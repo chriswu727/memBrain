@@ -200,9 +200,12 @@ def run_hook(event: str, directory: Path | None = None, stream=None, *, host_nam
     except Exception:
         host.log(directory, f"{event} failed: {traceback.format_exc(limit=3)}")
         return 0
-    if context:
-        sys.stdout.write(json.dumps({"hookSpecificOutput": {"hookEventName": name, "additionalContext": context}},
-                                    ensure_ascii=False))
+    output = {"hookSpecificOutput": {"hookEventName": name, "additionalContext": context}} if context else {}
+    if _user(payload):
+        # Tells the host plugin this runtime kept the turn in that person's memory; older runtimes say nothing.
+        output["membrainUser"] = _user(payload)
+    if output:
+        sys.stdout.write(json.dumps(output, ensure_ascii=False))
         sys.stdout.flush()
     return 0
 

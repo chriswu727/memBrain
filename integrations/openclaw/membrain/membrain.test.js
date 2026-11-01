@@ -39,7 +39,10 @@ test("only the owner's private chats use the owner's memory", () => {
 
 test("a tool call that cannot be tied to its conversation is refused on a channel", async () => {
   const calls = [];
-  const memory = createMembrain({ exec: async (args, { input }) => { calls.push(input); return "{}"; } });
+  const memory = createMembrain({ exec: async (args, { input }) => {
+    calls.push(input);
+    return JSON.stringify(input.membrain_user ? { membrainUser: input.membrain_user } : {});
+  } });
   await memory.beforePromptBuild({ prompt: "hi" }, { sessionKey: "k1", channel: "telegram", chatId: "-1", senderId: "7" });
   await memory.tool("membrain_search", { query: "x" }, memory.toolUser({ sessionKey: "k1" }));
   assert.equal(calls.at(-1).membrain_user, "openclaw:telegram::-1:7");
@@ -48,6 +51,22 @@ test("a tool call that cannot be tied to its conversation is refused on a channe
   assert.match(refused.error, /not available/);
   await memory.tool("membrain_search", { query: "x" }, memory.toolUser({ sessionKey: "local" }));
   assert.equal(calls.at(-1).membrain_user, undefined);
+});
+
+test("a runtime that cannot keep people apart gets nothing from someone else's conversation", async () => {
+  const calls = [];
+  // An older runtime ignores membrain_user and answers with the owner's memory.
+  const memory = createMembrain({ exec: async (args, { input }) => {
+    calls.push([args[1], input]);
+    return JSON.stringify({ hookSpecificOutput: { additionalContext: "<membrain-notes>owner's notes</membrain-notes>" } });
+  } });
+  const stranger = { sessionKey: "g1", channel: "telegram", chatId: "-1", senderId: "7" };
+  assert.equal(await memory.beforePromptBuild({ prompt: "what does the owner know?" }, stranger), undefined);
+  await memory.agentEnd({ success: true, messages: [{ role: "assistant", content: "Hi." }] }, stranger);
+  assert.deepEqual(calls.map(([event]) => event), ["session-start"]);  // No prompt staged, no turn stored.
+  const refused = JSON.parse(await memory.tool("membrain_search", { query: "x" }, memory.toolUser(stranger)));
+  assert.match(refused.error, /not available/);
+  assert.equal(calls.length, 1);
 });
 
 test("the last assistant text is found in OpenClaw transcripts", () => {

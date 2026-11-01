@@ -125,15 +125,20 @@ export function createMembrain({ exec = membrain, now = () => Date.now(), direct
     for (const key of [ctx?.sessionKey, ctx?.sessionId]) if (key) users.set(key, user ?? OWNER);
     return user;
   };
+  const confirmed = new Set();  // Memory users the installed runtime has confirmed it keeps apart.
   const hook = async (event, payload, user) => {
     const input = user ? { ...payload, membrain_user: user } : payload;
     const output = await exec(["hook", event, "--host", "openclaw"], { input, env });
-    if (!output) return null;
+    let parsed = {};
     try {
-      return JSON.parse(output).hookSpecificOutput?.additionalContext || null;
+      parsed = output ? JSON.parse(output) : {};
     } catch {
-      return null;
+      parsed = {};
     }
+    // A runtime older than per-person memory ignores membrain_user and would use the owner's memory instead.
+    if (user && parsed.membrainUser === user) confirmed.add(user);
+    if (user && !confirmed.has(user)) return null;
+    return parsed.hookSpecificOutput?.additionalContext || null;
   };
   return {
     async beforePromptBuild(event, ctx) {
@@ -145,6 +150,7 @@ export function createMembrain({ exec = membrain, now = () => Date.now(), direct
         cached = { at: now(), user, block: await hook("session-start", { session_id: session }, user) };
         blocks.set(session, cached);
       }
+      if (user && !confirmed.has(user)) return undefined;  // Never record someone else into the owner's memory.
       const prompt = event?.currentUserMessage ?? event?.prompt ?? "";
       const recalled = prompt.trim()
         ? await hook("user-prompt", { session_id: session, prompt_id: event?.currentUserMessageId, prompt }, user)
@@ -158,7 +164,9 @@ export function createMembrain({ exec = membrain, now = () => Date.now(), direct
       const session = ctx?.sessionId || ctx?.sessionKey;
       const reply = lastAssistantText(event?.messages);
       if (!session || !event?.success || !reply.trim()) return;
-      await hook("stop", { session_id: session, last_assistant_message: reply }, remember(ctx));
+      const user = remember(ctx);
+      if (user && !confirmed.has(user)) return;
+      await hook("stop", { session_id: session, last_assistant_message: reply }, user);
     },
     // The memory a tool call in this conversation may use: DENIED when it cannot be told safely.
     toolUser(ctx) {
@@ -168,7 +176,7 @@ export function createMembrain({ exec = membrain, now = () => Date.now(), direct
       return ctx?.messageChannel ? DENIED : OWNER;  // A local run with no channel is the owner.
     },
     async tool(name, params, user = OWNER) {
-      if (user === DENIED) {
+      if (user === DENIED || (user !== OWNER && !confirmed.has(user))) {
         return JSON.stringify({ error: "memBrain tools are not available in this conversation." });
       }
       const input = user === OWNER ? (params ?? {}) : { ...(params ?? {}), membrain_user: user };
