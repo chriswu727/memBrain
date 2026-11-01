@@ -67,6 +67,7 @@ def test_a_bot_without_tools_gets_notes_from_extraction(tmp_path):
         extractor.wait()
         later = memory.context(alice, "What should I order tonight?", session="a2", turn_id="t1")
         assert "Allergic to sesame; carries an EpiPen." in later and "sensitive" in later
+        assert "membrain-source" not in later  # Without a note tool there is nothing to pass a source to.
         with host.ready_client(directory, memory.user_id(bob)) as client:
             from membrain.notes import list_notes
 

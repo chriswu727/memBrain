@@ -123,7 +123,8 @@ class ChatMemory:
         share = self.share_real_life if share_real_life is None else share_real_life
         block = self._block(session, self.memory_user(speaker, roleplay), self.user_id(speaker), roleplay, share)
         recalled = host.prompt_context(self.directory, session, text, turn_id=turn_id, producer=self.producer,
-                                       user_id=self.user_id(speaker), roleplay=roleplay, include_source=True)
+                                       user_id=self.user_id(speaker), roleplay=roleplay,
+                                       include_source=bool(self.tools))  # The source hint is for the note tool.
         return "\n\n".join(part for part in (block, recalled) if part) or None
 
     def record(self, speaker: Speaker, reply: str | None, *, session: str, turn_id: str | None = None,
