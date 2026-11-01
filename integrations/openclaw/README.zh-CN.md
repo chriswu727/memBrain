@@ -1,6 +1,8 @@
 # OpenClaw 的 memBrain 插件
 
-为你的 [OpenClaw](https://github.com/openclaw/openclaw) 助手在它服务的每个渠道（WhatsApp、Telegram、Discord、iMessage 等）上提供长期记忆，并与同一台电脑上的 Claude Code、Codex 和 Hermes 共享。它与 OpenClaw 自带的记忆并行工作，不占用记忆插槽。
+为你的 [OpenClaw](https://github.com/openclaw/openclaw) 助手在它服务的每个渠道（WhatsApp、Telegram、Discord、iMessage 等）上提供长期记忆，它与 OpenClaw 自带的记忆并行工作，不占用记忆插槽。
+
+你自己和助手的私聊，与同一台电脑上的 Claude Code、Codex 和 Hermes 共用你的记忆。助手在渠道上交谈的其他所有人，会按 OpenClaw 自己判定的记忆归属，在各自的对话里拥有独立的记忆；群里的陌生人既看不到你的笔记，也写不进去。旧版 OpenClaw 不提供记忆归属时，只要消息来自渠道上的发送者或会话，也会这样处理。无法对应到所属记忆的对话里调用记忆工具会被拒绝。
 
 ## 安装
 

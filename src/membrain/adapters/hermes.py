@@ -6,6 +6,11 @@ and recent history; ``prefetch`` returns related earlier messages for the turn (
 ``sync_turn`` stores the user message and reply together; and ``on_memory_write`` mirrors writes to Hermes's built-in
 ``MEMORY.md`` / ``USER.md`` into memBrain notes. Memory is shared with other hosts using the same installation, so
 the same person is remembered in Claude Code and Hermes alike.
+
+Sessions from Hermes's messaging gateway (Telegram, Discord, ...) belong to whoever sent the message: each sender
+gets their own memory, and group chats are kept apart from private chats, so nobody else ever sees the owner's
+notes. The owner's own accounts can share the owner's memory by listing them as ``owner_ids`` (for example
+``["telegram:12345"]``) in ``membrain.json`` in the Hermes home.
 """
 from __future__ import annotations
 
@@ -23,6 +28,7 @@ except ImportError:  # pragma: no cover - exercised only without Hermes installe
     _Base = object
 
 PRODUCER = "membrain-hermes"
+LOCAL_PLATFORMS = frozenset({"cli", "local", "tui", "acp"})  # Hermes run on the owner's own computer.
 IMPORT_PRODUCER = "membrain-import:hermes"  # Notes that mirror Hermes's own USER.md.
 TOOLS = {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause"}
 _SCHEMAS = [
@@ -41,6 +47,34 @@ _SCHEMAS = [
     {"name": "membrain_resume", "description": "Resume recording after membrain_pause, when the user asks.",
      "parameters": {"type": "object", "properties": {}}},
 ]
+
+
+def _settings(hermes_home: str | None) -> dict:
+    if not hermes_home:
+        return {}
+    try:
+        value = json.loads((Path(hermes_home) / "membrain.json").read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return {}
+    return value if isinstance(value, dict) else {}
+
+
+def memory_user(options: dict, owner_ids=()) -> str | None:
+    """Whose memory a Hermes session uses: ``None`` for the owner, else the gateway sender (and group)."""
+    platform = str(options.get("platform") or "cli").strip().lower()
+    if platform in LOCAL_PLATFORMS:
+        return None
+    user = options.get("user_id") or options.get("user_id_alt")
+    if user and f"{platform}:{user}" in {str(item).strip() for item in owner_ids or ()}:
+        return None
+    chat_type = str(options.get("chat_type") or "").lower()
+    if user and chat_type not in ("group", "channel", "supergroup", "thread"):
+        return f"hermes:{platform}:{user}"
+    chat = options.get("chat_id") or options.get("gateway_session_key")
+    if user:
+        return f"hermes:{platform}:group:{chat or ''}:{user}"
+    # Without a sender the conversation itself is the boundary; never the owner's memory.
+    return f"hermes:{platform}:chat:{chat or options.get('session_id') or 'unknown'}"
 
 
 def _default_directory(hermes_home: str | None) -> Path:
@@ -68,6 +102,7 @@ class MembrainProvider(_Base):
         self._session = ""
         self._writes = True
         self._block = None
+        self._user: str | None = None  # None: the owner
 
     @property
     def name(self) -> str:
@@ -84,19 +119,25 @@ class MembrainProvider(_Base):
         self._hermes_home = Path(kwargs["hermes_home"]).expanduser() if kwargs.get("hermes_home") else None
         self._session = session_id or "hermes"
         self._writes = kwargs.get("agent_context", "primary") == "primary"
+        owner_ids = _settings(kwargs.get("hermes_home")).get("owner_ids") or ()
+        self._user = memory_user({"session_id": session_id, **kwargs},
+                                 owner_ids if isinstance(owner_ids, list) else ())
         host.state_directory(self._directory)
-        if host.ready_client(self._directory) is None:
+        client = host.ready_client(self._directory, self._user)
+        if client is None:
             host.start_in_background(self._directory)
+        else:
+            client.close()
 
     def system_prompt_block(self) -> str:
         if self._directory is None:
             return ""
         if self._block is None:
-            if self._writes:
-                self._import_user_file()
+            if self._writes and self._user is None:
+                self._import_user_file()  # USER.md describes the owner, so it only goes into the owner's memory.
             # Hermes puts its own USER.md and MEMORY.md in the prompt, so notes copied from them are not repeated.
             self._block = host.session_context(self._directory, self._session, tools=TOOLS,
-                                               skip_imports_from=("hermes",))
+                                               skip_imports_from=("hermes",), user_id=self._user)
         return self._block
 
     def _import_user_file(self) -> None:
@@ -127,14 +168,14 @@ class MembrainProvider(_Base):
         if self._directory is None or not self._writes:
             return ""
         return host.prompt_context(self._directory, session_id or self._session, query, producer=PRODUCER,
-                                   include_source=True, tools=TOOLS) or ""
+                                   include_source=True, tools=TOOLS, user_id=self._user) or ""
 
     def sync_turn(self, user_content: str, assistant_content: str, *, session_id: str = "",
                   messages: list[dict[str, Any]] | None = None, **kwargs) -> None:
         if self._directory is None or not self._writes:
             return
         host.finish_turn(self._directory, session_id or self._session, assistant_content, prompt=user_content,
-                         producer=PRODUCER)
+                         producer=PRODUCER, user_id=self._user)
 
     def on_session_switch(self, new_session_id: str, *, parent_session_id: str = "", reset: bool = False,
                           rewound: bool = False, **kwargs) -> None:
@@ -150,12 +191,12 @@ class MembrainProvider(_Base):
 
         try:
             if tool_name == "membrain_pause":
-                return json.dumps(host.pause(self._directory, args.get("hours")))
+                return json.dumps(host.pause(self._directory, args.get("hours"), user_id=self._user))
             if tool_name == "membrain_resume":
-                return json.dumps(host.resume(self._directory))
-            if tool_name == "membrain_note" and host.paused(self._directory):
+                return json.dumps(host.resume(self._directory, user_id=self._user))
+            if tool_name == "membrain_note" and host.paused(self._directory, self._user):
                 return json.dumps({"error": "Recording is paused. Resume before saving agent notes."})
-            client = host.ready_client(self._directory)
+            client = host.ready_client(self._directory, self._user)
             if client is None:
                 host.start_in_background(self._directory)
                 return json.dumps({"error": "memBrain is starting; try again in a few seconds."})
@@ -177,8 +218,9 @@ class MembrainProvider(_Base):
 
         Writes to MEMORY.md describe Hermes's environment and stay in Hermes.
         """
-        if self._directory is None or not self._writes or target != "user" or host.paused(self._directory):
-            return
+        if (self._directory is None or not self._writes or target != "user" or self._user is not None
+                or host.paused(self._directory)):
+            return  # Hermes's USER.md is about the owner; a gateway sender's session never writes it into memory.
         from ..notes import list_notes, save_note
 
         previous = (metadata or {}).get("previous_content")
@@ -206,7 +248,9 @@ class MembrainProvider(_Base):
 
     def save_config(self, values: dict[str, Any], hermes_home: str) -> None:
         path = Path(hermes_home) / "membrain.json"
-        path.write_text(json.dumps({"directory": values.get("directory") or ""}), encoding="utf-8")
+        settings = _settings(hermes_home)
+        settings["directory"] = values.get("directory") or ""
+        path.write_text(json.dumps(settings), encoding="utf-8")
 
     def shutdown(self) -> None:
         return None

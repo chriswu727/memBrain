@@ -96,11 +96,38 @@ const TOOLS = [
   },
 ];
 
+// Whose memory a turn uses. The owner's own private chats share the owner's memory (the one Claude Code and
+// Codex use); anyone else OpenClaw talks to on a channel gets their own memory, so a stranger in a group never
+// sees the owner's notes and never writes into them. OpenClaw resolves this itself as `memoryAudience`; older
+// versions without it are treated as someone else whenever the turn came from a channel sender or chat.
+export function memoryUser(ctx) {
+  const audience = ctx?.memoryAudience;
+  if (audience?.kind === "owner-private") return null;
+  if (audience?.kind === "conversation") {
+    return `openclaw:conversation:${audience.agentId || ""}:${audience.sessionKey || ctx?.sessionKey || ""}`;
+  }
+  const sender = ctx?.senderId || ctx?.senderExternalId;
+  const chat = ctx?.chatId || ctx?.channelId;
+  if (!sender && !chat) return null;
+  const channel = ctx?.channel || ctx?.messageProvider || "channel";
+  return `openclaw:${channel}:${ctx?.accountId || ""}:${chat || ""}:${sender || ""}`;
+}
+
+const OWNER = Symbol("owner");
+const DENIED = Symbol("denied");
+
 export function createMembrain({ exec = membrain, now = () => Date.now(), directory } = {}) {
   const env = directory ? { MEMBRAIN_DIRECTORY: directory } : undefined;
   const blocks = new Map();
-  const hook = async (event, payload) => {
-    const output = await exec(["hook", event, "--host", "openclaw"], { input: payload, env });
+  const users = new Map();  // session key -> memory user (OWNER for the owner), learned from the turn's hooks
+  const remember = (ctx) => {
+    const user = memoryUser(ctx);
+    for (const key of [ctx?.sessionKey, ctx?.sessionId]) if (key) users.set(key, user ?? OWNER);
+    return user;
+  };
+  const hook = async (event, payload, user) => {
+    const input = user ? { ...payload, membrain_user: user } : payload;
+    const output = await exec(["hook", event, "--host", "openclaw"], { input, env });
     if (!output) return null;
     try {
       return JSON.parse(output).hookSpecificOutput?.additionalContext || null;
@@ -112,14 +139,15 @@ export function createMembrain({ exec = membrain, now = () => Date.now(), direct
     async beforePromptBuild(event, ctx) {
       const session = ctx?.sessionId || ctx?.sessionKey;
       if (!session) return undefined;
+      const user = remember(ctx);
       let cached = blocks.get(session);
-      if (!cached || now() - cached.at > BLOCK_MS) {
-        cached = { at: now(), block: await hook("session-start", { session_id: session }) };
+      if (!cached || now() - cached.at > BLOCK_MS || cached.user !== user) {
+        cached = { at: now(), user, block: await hook("session-start", { session_id: session }, user) };
         blocks.set(session, cached);
       }
       const prompt = event?.currentUserMessage ?? event?.prompt ?? "";
       const recalled = prompt.trim()
-        ? await hook("user-prompt", { session_id: session, prompt_id: event?.currentUserMessageId, prompt })
+        ? await hook("user-prompt", { session_id: session, prompt_id: event?.currentUserMessageId, prompt }, user)
         : null;
       const result = {};
       if (cached.block) result.appendSystemContext = cached.block;
@@ -130,10 +158,21 @@ export function createMembrain({ exec = membrain, now = () => Date.now(), direct
       const session = ctx?.sessionId || ctx?.sessionKey;
       const reply = lastAssistantText(event?.messages);
       if (!session || !event?.success || !reply.trim()) return;
-      await hook("stop", { session_id: session, last_assistant_message: reply });
+      await hook("stop", { session_id: session, last_assistant_message: reply }, remember(ctx));
     },
-    async tool(name, params) {
-      const output = await exec(["tool", name.replace("membrain_", "")], { input: params ?? {}, env,
+    // The memory a tool call in this conversation may use: DENIED when it cannot be told safely.
+    toolUser(ctx) {
+      for (const key of [ctx?.sessionKey, ctx?.sessionId]) {
+        if (key && users.has(key)) return users.get(key);
+      }
+      return ctx?.messageChannel ? DENIED : OWNER;  // A local run with no channel is the owner.
+    },
+    async tool(name, params, user = OWNER) {
+      if (user === DENIED) {
+        return JSON.stringify({ error: "memBrain tools are not available in this conversation." });
+      }
+      const input = user === OWNER ? (params ?? {}) : { ...(params ?? {}), membrain_user: user };
+      const output = await exec(["tool", name.replace("membrain_", "")], { input, env,
         timeoutMs: 20_000 });
       if (name === "membrain_note" || name === "membrain_pause" || name === "membrain_resume") blocks.clear();
       return output || JSON.stringify({ error: "memBrain is not available yet; it may still be installing." });
@@ -160,13 +199,14 @@ export function definePlugin({ install = installRuntime, exec } = {}) {
       api.on("before_prompt_build", (event, ctx) => memory.beforePromptBuild(event, ctx));
       api.on("agent_end", (event, ctx) => memory.agentEnd(event, ctx));
       for (const spec of TOOLS) {
-        api.registerTool({
+        // A factory, so each tool call is bound to the conversation (and so the memory) it came from.
+        api.registerTool((ctx) => ({
           ...spec,
           label: spec.name,
           async execute(_id, params) {
-            return { content: [{ type: "text", text: await memory.tool(spec.name, params) }] };
+            return { content: [{ type: "text", text: await memory.tool(spec.name, params, memory.toolUser(ctx)) }] };
           },
-        });
+        }));
       }
     },
   };

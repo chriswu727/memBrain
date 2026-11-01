@@ -12,7 +12,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 同步文本运行时已实现，长期记忆质量仍在验证中。Claude Code 插件和无需 Docker 的嵌入式数据库是新增功能，目前仅在 Linux x86_64 上验证。使用 Docker 的桌面安装已在 macOS 上验证。详见[支持范围与已知限制](#status-and-verification)。
+> **预发布阶段。** 同步文本运行时已实现，长期记忆质量仍在验证中。插件和无需 Docker 的嵌入式数据库是新增功能：已在 Linux x86_64 上完成端到端验证，在 Windows 11 上部分实际运行过（数据库、服务、hook、代理、AstrBot 和 OpenClaw），尚未在真实的 Mac 上运行。使用 Docker 的桌面安装已在 macOS 上验证。详见[支持范围与已知限制](#status-and-verification)。
 
 <a id="claude-code-plugin"></a>
 
@@ -33,7 +33,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 随插件提供的宿主安装入口会下载固定到已验证完整 Git 提交的源码压缩包，不需要 Git 命令。需要自定义版本时，可在 shell 启动入口设置 `MEMBRAIN_PACKAGE`，或修改 MCP 配置中的 `--from` 参数。
 
-第一个会话会在后台安装运行时和嵌入式 PostgreSQL 数据库；运行时能够运行后才开始记录。在此之前发送的消息会跳过，避免 shell 将未经隐私过滤的原文写入队列。运行时安装完成后，如果数据库服务不可用，消息会先经过隐私过滤再排队。自动召回按关键词匹配当前消息；本地多语言模型（约 135 MB，无需 API key）在后台下载完成后，还会按语义跨语言匹配。当问题涉及个人背景时，Claude 也会被引导主动检索记忆。可通过设置 `HF_ENDPOINT` 从 Hugging Face 镜像下载该模型。运行一次 `membrain plugin import`，可以把 Claude Code、Hermes、OpenClaw 或 Codex 已经记住的关于你的内容导入 memBrain（加 `--dry-run` 先预览）。运行 `membrain plugin ui` 可打开本地记忆页面，查看、更正和删除已记住的内容，暂停记录，或导出全部数据。页面提供独立的人物和计划视图、原始消息来源、结构化笔记编辑，以及服务、索引和召回就绪状态。运行 `membrain doctor` 可诊断启动、模型、队列和磁盘问题，并获得具体恢复命令。除非你配置了模型服务，否则不会启用由模型驱动的后台学习。记忆保存在你的用户数据目录（例如 Linux 上的 `~/.local/share/membrain`），由你的各个会话共享。设计、验证和限制详见[插件模式](architecture/plugin-mode.md)。
+第一个会话会在后台安装运行时和嵌入式 PostgreSQL 数据库；运行时能够运行后才开始记录。在此之前发送的消息会跳过，避免 shell 将未经隐私过滤的原文写入队列。运行时安装完成后，如果数据库服务不可用，消息会先经过隐私过滤再排队。自动召回按关键词匹配当前消息；本地多语言模型（约 135 MB，无需 API key）在后台下载完成后，还会按语义跨语言匹配。当问题涉及个人背景时，Claude 也会被引导主动检索记忆。可通过设置 `HF_ENDPOINT` 从 Hugging Face 镜像下载该模型。运行一次 `membrain plugin import`，可以把 Claude Code、Hermes 或 OpenClaw 已经记住的关于你的内容导入 memBrain（加 `--dry-run` 先预览；Codex 的记忆描述的是项目而不是你本人，只有加 `--all` 才会导入）。运行 `membrain plugin ui` 可打开本地记忆页面，查看、更正和删除已记住的内容，暂停记录，或导出全部数据。页面提供独立的人物和计划视图、原始消息来源、结构化笔记编辑，以及服务、索引和召回就绪状态。运行 `membrain doctor` 可诊断启动、模型、队列和磁盘问题，并获得具体恢复命令。除非你配置了模型服务，否则不会启用由模型驱动的后台学习。记忆保存在你的用户数据目录（例如 Linux 上的 `~/.local/share/membrain`），由你的各个会话共享。设计、验证和限制详见[插件模式](architecture/plugin-mode.md)。
 
 其他 MCP 宿主可以添加一个 stdio 服务器，运行 `uvx --python 3.12 --from "membrain-ai[embedded,semantic] @ git+https://github.com/chriswu727/membrain" membrain plugin mcp`。这样可以使用记忆工具，但不会自动记录。
 
@@ -44,7 +44,7 @@ codex plugin marketplace add chriswu727/memBrain
 codex plugin add membrain@membrain
 ```
 
-下次启动时 Codex 会请你审核插件的 hooks；请选择信任（也可以之后用 `/hooks` 信任），因为 Codex 不会运行未受信任的 hooks。之后 Codex 获得与 Claude Code 相同的笔记、历史、召回、记录和记忆工具，同一台电脑上两者共享同一份记忆。已在 Linux 上用 Codex CLI 0.165 验证：在一个会话中告诉它的事实出现在了下一个会话的上下文里。
+下次启动时 Codex 会请你审核插件的 hooks；请选择信任（也可以之后用 `/hooks` 信任），因为 Codex 不会运行未受信任的 hooks。之后 Codex 获得与 Claude Code 相同的笔记、历史、召回、记录和记忆工具，同一台电脑上两者共享同一份记忆。已在 Linux 上用 Codex CLI 0.165 配合模拟的模型 API 验证：在一个会话中告诉它的事实出现在了下一个会话的上下文里。尚未测量真实 Codex 模型下的回答质量。
 
 **QQ、微信、Telegram 等平台上的聊天机器人。** [AstrBot 插件](integrations/astrbot/README.zh-CN.md)为每一个和 AstrBot 机器人聊天的人提供独立的长期记忆，适用于 AstrBot 支持的所有平台和模型服务（包括 DeepSeek）。一个人说过的话永远不会出现在给另一个人的回复里，群聊默认也与私聊分开保存。该插件已在 Windows 11 上的 AstrBot 4.29.3 中配合 DeepSeek、通过 AstrBot 自带的 WebChat 实际运行（两个用户互相隔离、跨对话召回、笔记与检索）；尚未通过 NapCat 接入 QQ 测试。
 
@@ -61,7 +61,7 @@ uv pip install --python ~/.hermes/hermes-agent/.venv/bin/python 'membrain-ai[emb
 hermes config set memory.provider membrain   # 或：hermes memory setup
 ```
 
-之后 Hermes 会在每个会话开始时注入你的笔记和最近消息，在每次回复前加入相关的早期消息，记录每一轮对话，并获得 `membrain_note`、`membrain_search`、`membrain_pause` 和 `membrain_resume` 工具。Hermes 在 `USER.md` 中记下的关于你的内容会被导入，之后的写入也会同步为笔记；它的 `MEMORY.md`（环境信息）留在 Hermes 中。默认 Hermes 配置档与同一台电脑上的 Claude Code 共享记忆；其他配置档各自独立。该适配器已按 Hermes 的接口和真实 memBrain 服务测试，但尚未在真实的 Hermes 安装中运行过。
+之后 Hermes 会在每个会话开始时注入你的笔记和最近消息，在每次回复前加入相关的早期消息，记录每一轮对话，并获得 `membrain_note`、`membrain_search`、`membrain_pause` 和 `membrain_resume` 工具。Hermes 在 `USER.md` 中记下的关于你的内容会被导入，之后的写入也会同步为笔记；它的 `MEMORY.md`（环境信息）留在 Hermes 中。默认 Hermes 配置档与同一台电脑上的 Claude Code 共享记忆；其他配置档各自独立。来自 Hermes 消息网关的会话属于发消息的人：每个发送者有自己的记忆，群聊也单独分开，其他人看不到你的笔记。如果想让你自己的账号共用你的记忆，在 Hermes 主目录的 `membrain.json` 中把它们列为 `owner_ids`（例如 `["telegram:12345"]`）。该适配器已按 Hermes 的接口和真实 memBrain 服务测试，但尚未在真实的 Hermes 安装中运行过。
 
 **基准测试。** 在 LoCoMo（1540 道题）上，走插件流程的 memBrain 答对 76.4%，把整段对话放进上下文为 81.4%，没有记忆为 2.4%；memBrain 给模型的上下文约为后者的七分之一。在没有用于调整召回的 7 段对话上，得分从调整前的 69.3% 提高到 76.2%（[报告](evaluations/locomo-2026-10-29.md)）。在 LongMemEval 的 30 题抽样上，它与把完整历史放进上下文打平（都答对 22 题），提示词 token 约为后者的二十分之一；薄弱点是询问助手自己之前说过什么的问题（[报告](evaluations/longmemeval-2026-10-29.md)）。在两个留出的、关于记住一个人生活的场景上（计划是否真的完成、相似的人名、即将发生的事、承诺、角色扮演），插件得分 18.5/22，Phase B 之前为 14.5，把完整历史放进提示词为 18（[报告](evaluations/v1-2026-10-29-phase-b.md)）。
 
@@ -213,7 +213,7 @@ membrain desktop stop
 membrain desktop start
 ```
 
-停止服务会保留已提交的记忆。下一次聊天、MCP 或 SDK 连接可以重新启动服务。配置位于安装目录，记忆内容位于该安装的 Docker 数据库卷。仅复制配置目录不等于备份数据库。
+停止服务会保留已提交的记忆。下一次聊天、MCP 或 SDK 连接可以重新启动服务。配置位于安装目录，记忆内容位于数据库中（嵌入式数据库的数据目录，或使用 Docker 引擎时的 Docker 数据卷）。仅复制配置目录不等于备份数据库。
 
 参阅[更新与配置](docs/reference.md#local-status-and-configuration)、[备份与恢复](architecture/desktop-recovery.md)和[故障排查](architecture/integration-troubleshooting.md)。无需管理界面。
 
@@ -253,7 +253,7 @@ membrain desktop start
 
 来源共享版本已通过 5,717 项源码测试、524 项安装包检查和全部四条独立安装后的桌面流程。随后[固定方案的多场景测试](evaluations/v1-2026-10-26-shared-communication-longitudinal.json)交付了全部 26 条输入：18 项整段回答案例中 17 项通过，最后的地图标签因无关的修架子计划挤掉原始场景细节而失败。测试已停止，116 次调用的用量全部明确，没有重试。[关系邻域排序修复](evaluations/v1-2026-10-26-belief-inheritance.md)让补入的关联记忆继承查询相关性，零模型 SQL 回放能在原上下文预算内恢复完整场景。原回答仍记为失败；修复后的真实模型回答，以及有用的随年龄变化的摘要回忆，仍未验证。行为验收尚未通过。
 
-已知限制仍然存在：模型可能把历史信息当作当前事实，检索可能包含无关内容，语义核验也可能拒绝有效提议。完整长线验收和真实时间流逝下的老化验证尚未完成。目前尚未交付流式输出、工具循环、多模态输入、原生一键安装，以及对任意 AI 客户端的完整接入；Windows／Linux 桌面端尚未进行实机验收。性格与情绪建模属于后续研究方向。
+已知限制仍然存在：模型可能把历史信息当作当前事实，检索可能包含无关内容，语义核验也可能拒绝有效提议。完整长线验收和真实时间流逝下的老化验证尚未完成。目前尚未交付流式输出、工具循环、多模态输入、原生一键安装，以及对任意 AI 客户端的完整接入。桌面聊天流程只在 macOS 上通过了实机验收；插件流程在 Windows 上部分实际运行过，在 Linux 上于容器中验证。性格与情绪建模属于后续研究方向。
 
 <a id="manual-deepseek-evaluation"></a>
 
@@ -268,7 +268,7 @@ membrain desktop start
 | [自动运行时契约](architecture/autonomous-runtime.contract.json) | 生命周期职责、接入要求和实现边界。 |
 | [认知预算控制](architecture/cognitive-budgets.md) | 明确的模型调用额度、用量记录和配置。 |
 | [记忆质量与效率](architecture/memory-quality-and-efficiency.md) | 实测开销、算法选择，以及未来人格与情绪研究的架构边界。 |
-| [路线图：面向聊天与生活类 Agent 的记忆](architecture/companion-roadmap.md) | 规划中的工作：与其他记忆工具功能对齐，记住人物、计划与关系，然后是人格与情绪。尚未实现。 |
+| [路线图：面向聊天与生活类 Agent 的记忆](architecture/companion-roadmap.md) | 与其他记忆工具功能对齐、记住人物、计划与关系（大部分已实现，每项都标明状态），然后是人格与情绪（尚未开始）。 |
 | [开发设置](docs/reference.md#development-setup) | 克隆仓库后的设置、数据库迁移和后台任务处理器。 |
 | [本地验证](docs/reference.md#verification) | 测试命令和现有证据的覆盖范围。 |
 

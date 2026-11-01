@@ -1,6 +1,8 @@
 # memBrain for OpenClaw
 
-Long-term memory for your [OpenClaw](https://github.com/openclaw/openclaw) assistant on every channel it serves (WhatsApp, Telegram, Discord, iMessage...), shared with Claude Code, Codex and Hermes on the same computer. It works alongside OpenClaw's own memory; it does not take the memory slot.
+Long-term memory for your [OpenClaw](https://github.com/openclaw/openclaw) assistant on every channel it serves (WhatsApp, Telegram, Discord, iMessage...), It works alongside OpenClaw's own memory; it does not take the memory slot.
+
+Your own private chats with the assistant share your memory with Claude Code, Codex and Hermes on the same computer. Everyone else the assistant talks to on a channel gets a separate memory for that conversation, following OpenClaw's own memory audience, so a stranger in a group never sees your notes and never writes into them. Older OpenClaw versions that do not report the audience are treated the same way whenever a message comes from a channel sender or chat. Memory tools called in a conversation that cannot be matched to its memory are refused.
 
 ## Install
 
