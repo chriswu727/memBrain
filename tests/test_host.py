@@ -438,3 +438,59 @@ def test_hooks_do_not_load_the_agent_runtime_or_cognition():
             "'membrain.cognition', 'membrain.semantic', 'membrain.service') if m in sys.modules])")
     loaded = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True).stdout.strip()
     assert loaded == "[]"  # Every hook is a short process; loading the runtime would slow every message.
+
+
+@pytest.mark.parametrize("secret", [
+    "sk_live_" + "a1" * 12, "rk_test_" + "b2" * 10, "glpat-" + "c" * 20, "hf_" + "d" * 34, "npm_" + "e" * 36,
+])
+def test_more_key_formats_are_scrubbed(secret):
+    assert host.scrub(f"use {secret} please") == f"use {host.SECRET_MARK} please"
+
+
+def test_passwords_in_urls_assignments_and_words_are_scrubbed():
+    assert host.scrub("db is postgresql://app:s3cretPass@db.internal:5432/main") == (
+        f"db is postgresql://app:{host.SECRET_MARK}@db.internal:5432/main")
+    assert host.scrub("aws_secret_access_key = wJalrXUtnFEMI/K7MDENG") == (
+        f"aws_secret_access_key = {host.SECRET_MARK}")
+    assert host.scrub("My password is Tr0ub4dor&3 so remember it") == (
+        f"My password is {host.SECRET_MARK} so remember it")
+    assert host.scrub("我的银行卡密码是884213，别忘了") == f"我的银行卡密码是{host.SECRET_MARK}"
+
+
+def test_card_and_identity_numbers_are_removed_but_ordinary_numbers_are_kept():
+    from membrain.privacy import NUMBER_MARK
+
+    assert host.scrub("card 4111 1111 1111 1111 exp 12/29") == f"card {NUMBER_MARK} exp 12/29"
+    assert host.scrub("身份证号11010519491231002X，请记住") == f"身份证号{NUMBER_MARK}，请记住"
+    assert host.scrub("SSN 078-05-1120 on file") == f"SSN {NUMBER_MARK} on file"
+    ordinary = ("Order 4111111111111112 shipped on 2026-10-29 at 14:05; call 13812345678 or +44 20 7946 0958; "
+                "ID 110105194912310021 is not valid; max_tokens: 16384; the token ring game.")
+    assert host.scrub(ordinary) == ordinary
+
+
+def test_contacts_are_removed_only_when_asked(monkeypatch):
+    from membrain.privacy import CONTACT_MARK
+
+    text = "Email mei@example.com or call 13812345678 / +1 (415) 555-0134."
+    assert host.scrub(text) == text
+    monkeypatch.setenv("MEMBRAIN_REDACT_CONTACTS", "1")
+    assert host.scrub(text) == f"Email {CONTACT_MARK} or call {CONTACT_MARK} / {CONTACT_MARK}."
+
+
+def test_mcp_observations_are_scrubbed_before_they_are_stored(tmp_path):
+    import asyncio
+
+    from membrain.mcp_server import create_server
+
+    class Observing(Client):
+        def observe(self, text, **record):
+            self.observed.append({"text": text, **record})
+            return {"outcome": "accepted"}
+
+    client = Observing()
+    server = create_server(client, directory=tmp_path)
+    asyncio.run(server.call_tool("memory_observe", {
+        "text": "Deploy key sk-proj-" + "z" * 30 + " and card 4111 1111 1111 1111.", "conversation_id": "c",
+        "branch_id": "main", "source_event_key": "k1"}))
+    stored = client.observed[-1]["text"]
+    assert "z" * 30 not in stored and "4111" not in stored and host.SECRET_MARK in stored
