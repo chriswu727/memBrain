@@ -24,9 +24,15 @@ For role-play (SillyTavern and similar), send `X-Membrain-Roleplay: <character n
 
 ## What it does to each request
 
-For `POST /v1/chat/completions` it adds one system message just before the person's latest message, containing the memory notice, their earlier messages from other days, and older messages related to the current one. The start of the conversation is left untouched so the provider's prompt cache (DeepSeek's included) keeps working. After the reply arrives (streamed or not) it stores the person's message and the reply. Every other endpoint is forwarded unchanged.
+For `POST /v1/chat/completions` it puts a fenced memory block at the start of the person's latest message (not in a system message, so remembered text never carries the bot's own authority), containing the memory notice, their earlier messages from other days, and older messages related to the current one. The start of the conversation is left untouched so the provider's prompt cache (DeepSeek's included) keeps working. After the reply arrives (streamed or not) it stores the person's message and the reply. Every other endpoint is forwarded unchanged.
 
 The proxy does not add tools, so the model cannot write notes or pause recording through it; text inside `<private>…</private>` and values that look like keys or passwords are still never stored.
+
+## What it refuses
+
+Without a token the proxy answers only requests addressed to `localhost`, `127.0.0.1` or `::1`, so a web page that points its own domain at your computer cannot use it. It also refuses requests that a browser sends on behalf of another site (an `Origin` header that is not this computer) and chat requests that are not `application/json`. If a browser-based front end calls the proxy directly, add its origin to `MEMBRAIN_PROXY_ORIGINS` (comma-separated, for example `http://localhost:8000,https://chat.example.com`). Request bodies above 32 MB are refused.
+
+Every client that can reach the proxy chooses whose memory it uses through `user` or `X-Membrain-User`. Only point bots you control at it, and in token mode treat the token as access to every person's memory.
 
 ## Serving other machines
 

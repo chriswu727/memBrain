@@ -54,10 +54,10 @@ class Memory(ChatMemory):
 
 def _client(memory, upstream, **options):
     app = create_proxy_app(memory, "https://api.deepseek.com/v1", transport=httpx.MockTransport(upstream), **options)
-    return TestClient(app)
+    return TestClient(app, base_url="http://127.0.0.1:8790")
 
 
-def test_memory_goes_just_before_the_latest_message_and_the_reply_is_stored(tmp_path):
+def test_memory_goes_into_the_latest_message_and_the_reply_is_stored(tmp_path):
     memory, upstream = Memory(tmp_path), Upstream("Peanut-free cookies it is.")
     messages = [{"role": "system", "content": "You are Xiaomei."}, {"role": "user", "content": "hi"},
                 {"role": "assistant", "content": "hello"},
@@ -68,8 +68,11 @@ def test_memory_goes_just_before_the_latest_message_and_the_reply_is_stored(tmp_
     assert response.status_code == 200 and response.json()["choices"][0]["message"]["content"].startswith("Peanut")
     sent = upstream.requests[0]
     assert sent["url"] == "https://api.deepseek.com/v1/chat/completions" and sent["auth"] == "Bearer sk-user"
-    assert [m["role"] for m in sent["body"]["messages"]] == ["system", "user", "assistant", "system", "user"]
-    assert sent["body"]["messages"][3]["content"] == "<membrain-notes>notes for qq:1001</membrain-notes>"
+    # Memory is part of the person's own turn, never a system message with the bot's authority.
+    assert [m["role"] for m in sent["body"]["messages"]] == ["system", "user", "assistant", "user"]
+    assert sent["body"]["messages"][3]["content"] == [
+        {"type": "text", "text": "<membrain-notes>notes for qq:1001</membrain-notes>"},
+        {"type": "text", "text": "Bake something for me?"}]
     assert sent["body"]["messages"][:3] == messages[:3]  # The cached prefix is untouched.
     assert memory.records == [("qq:1001", "Bake something for me?", "Peanut-free cookies it is.")]
 
@@ -91,7 +94,8 @@ def test_other_endpoints_pass_through_and_anonymous_requests_share_one_memory(tm
     with _client(memory, upstream) as client:
         assert client.get("/v1/models").json()["data"][0]["id"] == "deepseek-chat"
         client.post("/v1/chat/completions", json={"model": "m", "messages": [{"role": "user", "content": "hey"}]})
-        assert client.post("/v1/chat/completions", content=b"not json").status_code == 400
+        assert client.post("/v1/chat/completions", content=b"not json",
+                           headers={"content-type": "application/json"}).status_code == 400
     assert upstream.requests[-1]["body"] == {"raw": "not json"}
     assert upstream.requests[0]["url"] == "https://api.deepseek.com/v1/models"
     assert memory.contexts[0][0].user == "default" and len(memory.contexts) == 1
@@ -129,7 +133,8 @@ def test_proxy_gives_each_viewer_their_own_memory_through_a_real_service(tmp_pat
             say("douyin:8", "I only watch you during lunch break.", "day-1:douyin:8")
             later = say("douyin:7", "What should I get my dog?", "day-2:douyin:7")
             other = say("douyin:8", "Anything fun today?", "day-2:douyin:8")
-        assert len(later) == 3 and later[1]["role"] == "system" and "Doudou" in later[1]["content"]
+        assert len(later) == 2 and later[1]["role"] == "user" and "Doudou" in later[1]["content"]
+        assert later[1]["content"].endswith("\n\nWhat should I get my dog?")
         assert "Doudou" not in json.dumps(other) and "lunch break" in other[1]["content"]
         assert "membrain_" not in later[1]["content"] and "tool" not in later[1]["content"]  # No tools to call.
     finally:
@@ -137,3 +142,35 @@ def test_proxy_gives_each_viewer_their_own_memory_through_a_real_service(tmp_pat
             desktop.stop(directory)
         except desktop.DesktopError:
             pass
+
+
+def test_a_local_proxy_refuses_rebound_hosts_and_other_sites(tmp_path):
+    memory, upstream = Memory(tmp_path), Upstream()
+    chat = {"model": "m", "messages": [{"role": "user", "content": "what do you remember about me?"}]}
+    with _client(memory, upstream, allowed_origins=frozenset({"http://app.example"})) as client:
+        # A page on evil.example that rebinds its name to 127.0.0.1 still sends its own name as the Host.
+        assert client.post("/v1/chat/completions", json=chat, headers={"host": "evil.example:8790"}).status_code == 403
+        assert client.get("/v1/models", headers={"host": "evil.example"}).status_code == 403
+        # A cross-site page posting to 127.0.0.1 directly carries its Origin.
+        assert client.post("/v1/chat/completions", json=chat,
+                           headers={"origin": "https://evil.example"}).status_code == 403
+        # Forms and text/plain bodies are what a page can send without a preflight.
+        assert client.post("/v1/chat/completions", content=json.dumps(chat),
+                           headers={"content-type": "text/plain"}).status_code == 415
+        assert client.post("/v1/chat/completions", json=chat, headers={"content-length": str(64 * 1024 * 1024)}
+                           ).status_code == 413
+        assert memory.contexts == [] and upstream.requests == []
+        assert client.post("/v1/chat/completions", json=chat, headers={"host": "localhost:8790"}).status_code == 200
+        assert client.post("/v1/chat/completions", json=chat, headers={"origin": "http://127.0.0.1:3000"}
+                           ).status_code == 200
+        assert client.post("/v1/chat/completions", json=chat, headers={"origin": "http://app.example"}
+                           ).status_code == 200
+    assert len(memory.contexts) == 3
+
+
+def test_a_token_proxy_serves_any_host_name(tmp_path):
+    memory, upstream = Memory(tmp_path), Upstream()
+    with _client(memory, upstream, token="t0ken", upstream_key="sk-upstream") as client:
+        response = client.post("/v1/chat/completions", headers={"host": "bot-server.lan:8790", "authorization": "Bearer t0ken"},
+                               json={"model": "m", "messages": [{"role": "user", "content": "hi"}]})
+    assert response.status_code == 200 and upstream.requests[-1]["auth"] == "Bearer sk-upstream"
