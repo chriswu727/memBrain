@@ -131,16 +131,21 @@ class ChatMemory:
                prompt: str | None = None, roleplay: str | None = None) -> None:
         """Store the staged message (or ``prompt``) and the reply, unless this user paused recording."""
         if self._recording(speaker):
-            host.finish_turn(self.directory, session, reply, turn_id=turn_id, producer=self.producer, prompt=prompt,
-                             user_id=self.user_id(speaker), roleplay=roleplay or self.roleplay)
-            if self.extractor is not None and prompt:
-                self._extract(self.memory_user(speaker, roleplay), prompt, reply or "")
+            records = host.finish_turn(self.directory, session, reply, turn_id=turn_id, producer=self.producer,
+                                       prompt=prompt, user_id=self.user_id(speaker), roleplay=roleplay or self.roleplay)
+            # Only a turn that was actually recorded is read, and its notes are linked to its messages, so
+            # forgetting those messages forgets the notes too.
+            message = next((record for record in records if record["role"] == "user"), None)
+            if self.extractor is not None and message is not None:
+                sources = [{"producer_ref": record["producer_ref"], "source_event_key": record["source_event_key"],
+                            "source_revision": 1} for record in records]
+                self._extract(self.memory_user(speaker, roleplay), prompt or message["text"], reply or "", sources)
 
-    def _extract(self, user: str, prompt: str, reply: str) -> None:
+    def _extract(self, user: str, prompt: str, reply: str, sources: list[dict]) -> None:
         from ..extraction import extract_turn
 
         def task():
-            if extract_turn(self.directory, self.extractor, user, prompt, reply):
+            if extract_turn(self.directory, self.extractor, user, prompt, reply, sources=sources):
                 self._forget_blocks(user)  # The next session start shows the new notes.
 
         self.extractor.submit(task)

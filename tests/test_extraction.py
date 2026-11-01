@@ -53,7 +53,9 @@ def test_greetings_are_not_sent_for_extraction():
 @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
 def test_a_bot_without_tools_gets_notes_from_extraction(tmp_path):
     directory = tmp_path / "brain"
-    extractor = model([{"text": "Allergic to sesame; carries an EpiPen.", "kind": "constraint", "sensitive": True}])
+    seen = []
+    extractor = model([{"text": "Allergic to sesame; carries an EpiPen.", "kind": "constraint", "sensitive": True}],
+                      seen)
     memory = ChatMemory(directory, producer="membrain-proxy", tools=None, extractor=extractor)
     alice, bob = Speaker("api", "alice"), Speaker("api", "bob")
     try:
@@ -73,8 +75,29 @@ def test_a_bot_without_tools_gets_notes_from_extraction(tmp_path):
 
             assert list_notes(client)["items"] == []
         with host.ready_client(directory, memory.user_id(alice)) as client:
-            producers = {item.get("producer") for item in list_notes(client)["items"]}
-        assert producers == {PRODUCER}
+            items = list_notes(client)["items"]
+            assert {item.get("producer") for item in items} == {PRODUCER}
+            # The note is linked to the turn it came from: the person's message and the reply.
+            assert len(items[0]["source_event_ids"]) == 2 and items[0]["pending_source_count"] == 0
+        assert len(seen) == 1
+
+        # Paused while the reply was being written and resumed before it was recorded: the turn is not
+        # recorded, so it is not read either.
+        memory.context(alice, "Off the record: my brother Sam owes money to a loan shark.", session="a3",
+                       turn_id="t1")
+        memory.pause(alice)
+        memory.resume(alice)
+        memory.record(alice, "I won't keep that.", session="a3", turn_id="t1",
+                      prompt="Off the record: my brother Sam owes money to a loan shark.")
+        extractor.wait()
+        assert len(seen) == 1
+
+        # Forgetting the message the note came from forgets the note.
+        with host.ready_client(directory, memory.user_id(alice)) as client:
+            generation = client.dashboard()["brain"]["scope_generation"]
+            client.forget(items[0]["source_event_ids"], kind="events", mode="erase_content",
+                          expected_scope_generation=generation)
+            assert list_notes(client)["items"] == []
     finally:
         try:
             desktop.stop(directory)

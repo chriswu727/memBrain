@@ -143,8 +143,13 @@ class Extractor:
             timer.cancel()
 
 
-def extract_turn(directory, extractor: Extractor, user_id: str | None, prompt: str, reply: str) -> list[dict]:
-    """Save the lasting facts of one recorded turn as notes in this person's memory; returns what was saved."""
+def extract_turn(directory, extractor: Extractor, user_id: str | None, prompt: str, reply: str, *,
+                 sources=()) -> list[dict]:
+    """Save the lasting facts of one recorded turn as notes in this person's memory; returns what was saved.
+
+    ``sources`` are the turn's message references (``producer_ref``, ``source_event_key``, ``source_revision``);
+    each note is linked to them, so forgetting the messages forgets the notes drawn from them.
+    """
     from . import host
     from .notes import list_notes, render_notes, save_note
 
@@ -159,7 +164,8 @@ def extract_turn(directory, extractor: Extractor, user_id: str | None, prompt: s
         for note in extractor.propose(host.scrub(prompt), host.scrub(reply or ""), current):
             text, replaces = note.pop("text"), note.pop("replaces")
             try:
-                result = save_note(client, host.scrub(text), replaces=tuple(replaces), producer=PRODUCER, **note)
+                result = save_note(client, host.scrub(text), replaces=tuple(replaces), producer=PRODUCER,
+                                   source_messages=list(sources), **note)
             except Exception as error:  # One bad proposal must not lose the others.
                 _logger.warning("note not saved: %s", type(error).__name__)
                 continue
