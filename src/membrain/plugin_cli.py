@@ -65,9 +65,12 @@ def _person(args, directory: Path) -> int:
         if args.plugin_command == "export-user":
             document = json.dumps(host.export_user(directory, user), ensure_ascii=False, indent=2)
             if args.out:
-                descriptor = os.open(args.out, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+                # A new owner-only file replaces the target, so an existing readable file never gets the export.
+                temporary = args.out.with_name(f".{args.out.name}.{os.getpid()}.tmp")
+                descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
                 with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
                     stream.write(document)
+                os.replace(temporary, args.out)
                 print(f"Exported {user} to {args.out}. The file holds their original messages; store it securely.",
                       file=sys.stderr)
             else:

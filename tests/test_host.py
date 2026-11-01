@@ -494,3 +494,58 @@ def test_mcp_observations_are_scrubbed_before_they_are_stored(tmp_path):
         "branch_id": "main", "source_event_key": "k1"}))
     stored = client.observed[-1]["text"]
     assert "z" * 30 not in stored and "4111" not in stored and host.SECRET_MARK in stored
+
+
+def test_erasing_a_person_waits_for_a_replay_and_keeps_other_peoples_queued_records(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    events, started, release = [], Event(), Event()
+    host.spool(tmp_path, host.message_record("s", "user", "alice's message", user_id="alice"))
+    host.spool(tmp_path, host.message_record("s", "user", "bob's message", user_id="bob"))
+
+    class Replay(Client):
+        def ensure_brain(self, brain, name):
+            pass
+
+        def observe(self, **record):
+            started.set()
+            assert release.wait(5)
+            events.append("deliver " + record["text"])
+
+    class Eraser(Client):
+        def dashboard(self):
+            return {"brain": {"scope_generation": 1}}
+
+        def forget(self, ids, **options):
+            events.append("erase")
+            return {"outcome": "completed"}
+
+    monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: Eraser())
+    with ThreadPoolExecutor() as pool:
+        replay = pool.submit(host.flush, Replay(), tmp_path)
+        assert started.wait(5)
+        erase = pool.submit(host.erase_user, tmp_path, "alice")
+        host.spool(tmp_path, host.message_record("s", "user", "bob's later message", user_id="bob"))
+        assert not erase.done()  # The erase waits for the replay already under way.
+        release.set()
+        replay.result(timeout=10)
+        erase.result(timeout=10)
+    assert events == ["deliver alice's message", "deliver bob's message", "erase"]
+    remaining = (tmp_path / "plugin" / "spool.jsonl").read_text()
+    assert "bob's later message" in remaining and "alice" not in remaining
+
+
+def test_an_export_replaces_an_existing_readable_file_with_an_owner_only_one(tmp_path, monkeypatch):
+    import types
+
+    from membrain import plugin_cli
+
+    target = tmp_path / "export.json"
+    target.write_text("old")
+    target.chmod(0o644)
+    monkeypatch.setattr(host, "export_user", lambda directory, user: {"messages": ["private words"]})
+    args = types.SimpleNamespace(plugin_command="export-user", platform=None, user=None, group=None,
+                                 user_id="qq:1", yes=True, out=target)
+    assert plugin_cli._person(args, tmp_path) == 0
+    assert "private words" in target.read_text() and oct(target.stat().st_mode & 0o777) == "0o600"

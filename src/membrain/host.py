@@ -397,39 +397,42 @@ def resume(directory: Path, user_id: str | None = None) -> dict:
 def erase_user(directory: Path, user_id: str | None) -> dict:
     """Erase everything one person's memory holds, including records still queued or staged for it.
 
-    The content is erased, not hidden, and a restored backup cannot bring it back. ``None`` is the owner.
+    The content is erased, not hidden, and a restored backup cannot bring it back. ``None`` is the owner. Holds the
+    replay lock throughout (in the same order as ``flush``), so a replay in progress can neither store this
+    person's queued messages after the erase nor lose other people's records when the queue is rewritten.
     """
-    client = ready_client(directory, user_id)
-    if client is None:
-        start_in_background(directory)
-        raise RuntimeError("memBrain is starting; try again in a few seconds.")
-    with client:
-        generation = client.dashboard()["brain"]["scope_generation"]
-        response = client.forget([], kind="all_authorized_scope", mode="erase_content",
-                                 expected_scope_generation=generation)
-    dropped = 0
-    with profile_lock(state_directory(directory) / "spool-write-lock", timeout=5):
-        spool_path = state_directory(directory) / "spool.jsonl"
-        if spool_path.exists():
-            kept = []
-            for line in spool_path.read_text(encoding="utf-8").splitlines():
+    with profile_lock(state_directory(directory) / "spool-lock", timeout=60):
+        client = ready_client(directory, user_id)
+        if client is None:
+            start_in_background(directory)
+            raise RuntimeError("memBrain is starting; try again in a few seconds.")
+        with client:
+            generation = client.dashboard()["brain"]["scope_generation"]
+            response = client.forget([], kind="all_authorized_scope", mode="erase_content",
+                                     expected_scope_generation=generation)
+        dropped = 0
+        with profile_lock(state_directory(directory) / "spool-write-lock", timeout=5):
+            spool_path = state_directory(directory) / "spool.jsonl"
+            if spool_path.exists():
+                kept = []
+                for line in spool_path.read_text(encoding="utf-8").splitlines():
+                    try:
+                        owner = json.loads(line).get("_user")
+                    except (ValueError, AttributeError):
+                        owner = None
+                    if owner == user_id:
+                        dropped += 1
+                    else:
+                        kept.append(line)
+                _write_text(spool_path, "".join(line + "\n" for line in kept))
+        with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+            for path in (state_directory(directory) / "sessions").glob("*.json"):
                 try:
-                    owner = json.loads(line).get("_user")
-                except (ValueError, AttributeError):
-                    owner = None
-                if owner == user_id:
-                    dropped += 1
-                else:
-                    kept.append(line)
-            _write_text(spool_path, "".join(line + "\n" for line in kept))
-    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
-        for path in (state_directory(directory) / "sessions").glob("*.json"):
-            try:
-                state = json.loads(path.read_text(encoding="utf-8"))
-            except (OSError, ValueError):
-                continue
-            if isinstance(state, dict) and state.get("user_id") == user_id:
-                path.unlink(missing_ok=True)
+                    state = json.loads(path.read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    continue
+                if isinstance(state, dict) and state.get("user_id") == user_id:
+                    path.unlink(missing_ok=True)
     return {"erased": response.get("outcome"), "queued_records_dropped": dropped}
 
 
