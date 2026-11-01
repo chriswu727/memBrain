@@ -195,14 +195,24 @@ def start(directory: Path, timeout: float = 600) -> None:
         host.start(directory)
 
 
-def ingest(sample: dict, directory: Path, model_cache: Path | None = None) -> int:
-    """Store every turn as the hooks would; returns the number of stored messages. Idempotent per turn."""
+def ingest(sample: dict, directory: Path, model_cache: Path | None = None, extractor=None,
+           ports: tuple[int, int] | None = None) -> int:
+    """Store every turn as the hooks would; returns the number of stored messages. Idempotent per turn.
+
+    With ``extractor`` each turn is also read by memBrain's note extraction right after it is stored, as the proxy
+    and chat bots do when an extraction model is configured.
+    """
     from membrain import host
 
     marker = directory / "ingested.json"
     if marker.exists():
         start(directory)
         return json.loads(marker.read_text())["messages"]
+    if ports and not (directory / "profile.json").exists():
+        from membrain.embedded_database import default_engine
+        from membrain.local_profile import ensure_profile
+
+        ensure_profile(directory, api_port=ports[0], database_port=ports[1], database_engine=default_engine())
     host.ensure_installation(directory)  # Create the profile first; a non-empty directory without one is refused.
     if model_cache is not None:
         install_model(directory, model_cache)
@@ -215,6 +225,10 @@ def ingest(sample: dict, directory: Path, model_cache: Path | None = None) -> in
                 record = host.message_record(session, "user", turn_text(date, turn), turn_id=turn["dia_id"],
                                              producer="locomo-ingest")
                 stored += host.deliver(directory, client, record)
+                if extractor is not None:
+                    from membrain.extraction import extract_turn
+
+                    extract_turn(directory, extractor, None, turn_text(date, turn), "")
     host.pause(directory)  # Questions must never become memories.
     status = wait_for_embeddings(directory) if model_cache is not None else {}
     marker.write_text(json.dumps({"messages": stored, "semantic": model_cache is not None,
@@ -299,6 +313,12 @@ def run(args) -> None:
 
     model = Model(args.base_url, args.model, cap=total * len(arms) * 5 + 20, thinking=args.thinking)
     model_cache = None if args.no_semantic else out / "model-cache"
+    ports = tuple(map(int, args.ports.split(","))) if args.ports else None
+    extractor = None
+    if args.extract_model:
+        from membrain.extraction import Extractor
+
+        extractor = Extractor(args.base_url, args.extract_model, os.environ["DEEPSEEK_API_KEY"])
     for arm in arms:
         name = f"{arm}-{args.label}" if args.label else arm
         path = out / f"answers-{name}.jsonl"
@@ -307,7 +327,7 @@ def run(args) -> None:
         for sample in selected:
             directory = out / f"brain-{sample['sample_id']}"
             if arm == "M":
-                log("ingest", sample["sample_id"], ingest(sample, directory, model_cache), "messages")
+                log("ingest", sample["sample_id"], ingest(sample, directory, model_cache, extractor, ports), "messages")
             for qid, qa in questions(sample, categories):
                 count += 1
                 if args.max_questions and count > args.max_questions:
@@ -372,6 +392,8 @@ def main() -> None:
     parser.add_argument("--thinking", action="store_true", help="Let the host model reason before answering")
     parser.add_argument("--no-semantic", action="store_true", help="memBrain arm without the local embedding model")
     parser.add_argument("--label", default="", help="Store this run as a separate arm, e.g. after a recall change")
+    parser.add_argument("--extract-model", default="", help="Also run memBrain's note extraction on every stored turn")
+    parser.add_argument("--ports", default="", help="API and database ports for new installations, e.g. 8891,55601")
     parser.add_argument("--report", action="store_true", help="Only summarize existing results")
     args = parser.parse_args()
     sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
