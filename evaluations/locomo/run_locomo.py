@@ -195,6 +195,27 @@ def start(directory: Path, timeout: float = 600) -> None:
         host.start(directory)
 
 
+def extract_with_retry(directory: Path, extractor, text: str, turn_id: str) -> None:
+    """Read one turn with note extraction; a dropped connection is retried, then the turn is skipped and logged.
+
+    In the proxy, extraction runs on a background worker that drops a failed turn; here it runs in line, so a
+    network error must not end the run.
+    """
+    import httpx
+
+    from membrain.extraction import extract_turn
+
+    for attempt in range(3):
+        try:
+            extract_turn(directory, extractor, None, text, "")
+            return
+        except httpx.HTTPError as error:
+            if attempt == 2:
+                log("extraction skipped", turn_id, type(error).__name__)
+                return
+            time.sleep(5 * (attempt + 1))
+
+
 def ingest(sample: dict, directory: Path, model_cache: Path | None = None, extractor=None,
            ports: tuple[int, int] | None = None) -> int:
     """Store every turn as the hooks would; returns the number of stored messages. Idempotent per turn.
@@ -226,6 +247,9 @@ def ingest(sample: dict, directory: Path, model_cache: Path | None = None, extra
         install_model(directory, model_cache)
     start(directory)
     stored = 0
+    # Turns already read by extraction, so a resumed ingest never reads a turn twice.
+    progress = directory / "extracted.txt"
+    extracted = set(progress.read_text().split()) if progress.exists() else set()
     with host.ready_client(directory) as client:
         for number, date, turns in sessions(sample):
             session = f"locomo-{sample['sample_id']}-s{number}"
@@ -233,10 +257,10 @@ def ingest(sample: dict, directory: Path, model_cache: Path | None = None, extra
                 record = host.message_record(session, "user", turn_text(date, turn), turn_id=turn["dia_id"],
                                              producer="locomo-ingest")
                 stored += host.deliver(directory, client, record)
-                if extractor is not None:
-                    from membrain.extraction import extract_turn
-
-                    extract_turn(directory, extractor, None, turn_text(date, turn), "")
+                if extractor is not None and turn["dia_id"] not in extracted:
+                    extract_with_retry(directory, extractor, turn_text(date, turn), turn["dia_id"])
+                    with progress.open("a") as stream:
+                        stream.write(turn["dia_id"] + "\n")
     host.pause(directory)  # Questions must never become memories.
     status = wait_for_embeddings(directory) if model_cache is not None else {}
     marker.write_text(json.dumps({"messages": stored, "semantic": model_cache is not None,
