@@ -21,6 +21,7 @@ import hmac
 import ipaddress
 import json
 import logging
+import re
 import uuid
 from contextlib import asynccontextmanager
 from pathlib import Path
@@ -77,16 +78,37 @@ def _error(status: int, message: str) -> JSONResponse:
     return JSONResponse({"error": {"message": message, "type": "invalid_request_error"}}, status)
 
 
+NAMESPACE = re.compile(r"[A-Za-z0-9_-]{1,40}\Z")
+
+
+def parse_tokens(value: str | None) -> dict[str, str]:
+    """``MEMBRAIN_PROXY_TOKENS``: comma-separated ``token:namespace`` pairs, one per bot or client."""
+    tokens = {}
+    for entry in (value or "").split(","):
+        if not entry.strip():
+            continue
+        secret, _, namespace = entry.strip().rpartition(":")
+        if len(secret) < 16 or not NAMESPACE.match(namespace):
+            raise ValueError("MEMBRAIN_PROXY_TOKENS entries are token:namespace, with tokens of at least 16 "
+                             "characters and namespaces of letters, digits, '-' or '_'.")
+        tokens[secret] = namespace
+    return tokens
+
+
 def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | None = None,
                      token: str | None = None, transport: httpx.AsyncBaseTransport | None = None,
-                     allowed_origins: frozenset[str] = frozenset()) -> FastAPI:
+                     allowed_origins: frozenset[str] = frozenset(), tokens: dict[str, str] | None = None) -> FastAPI:
     """The proxy app. With ``token`` clients must present it and ``upstream_key`` is sent upstream instead.
+
+    ``tokens`` gives each bot its own token and namespace: people it names are kept inside that namespace, so
+    one bot's token cannot read another bot's people, and every request must name its person.
 
     Without a token the proxy only answers requests addressed to this computer by name (a web page that
     rebinds its own domain to 127.0.0.1 is refused) and refuses requests that browsers send on behalf of
     other sites, unless their origin is in ``allowed_origins``.
     """
-    if bool(token) != bool(upstream_key):
+    keys: dict[str, str | None] = {**({token: None} if token else {}), **(tokens or {})}
+    if bool(keys) != bool(upstream_key):
         raise ValueError("Set both the upstream key and the proxy token, or neither.")
     origins = frozenset(origin.rstrip("/").lower() for origin in allowed_origins)
     upstream = upstream.rstrip("/")
@@ -105,7 +127,7 @@ def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | N
 
     @app.middleware("http")
     async def guard(request: Request, call_next):
-        if not token and _hostname(request.headers.get("host", "")) not in LOOPBACK_HOSTS:
+        if not keys and _hostname(request.headers.get("host", "")) not in LOOPBACK_HOSTS:
             return _error(403, "This proxy only answers requests addressed to localhost or 127.0.0.1.")
         origin = request.headers.get("origin", "").rstrip("/").lower()
         if origin and origin not in origins and _hostname(origin.split("://", 1)[-1]) not in LOOPBACK_HOSTS:
@@ -119,32 +141,40 @@ def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | N
             return _error(413, "The request is too large.")
         return await call_next(request)
 
-    def headers(request: Request) -> dict | None:
+    def authorize(request: Request) -> tuple[dict, str | None] | None:
+        """Forwarded headers and the client's namespace, or ``None`` when a token is required and wrong."""
         forwarded = {name: request.headers[name] for name in _FORWARDED if name in request.headers}
         supplied = request.headers.get("authorization", "")
-        if token:
-            presented = supplied.removeprefix("Bearer ").strip()
-            if not hmac.compare_digest(presented.encode(), token.encode()):
-                return None
-            forwarded["authorization"] = f"Bearer {upstream_key}"
-        elif supplied:
-            forwarded["authorization"] = supplied
-        return forwarded
+        if not keys:
+            if supplied:
+                forwarded["authorization"] = supplied
+            return forwarded, None
+        presented = supplied.removeprefix("Bearer ").strip().encode()
+        matched = [namespace for secret, namespace in keys.items() if hmac.compare_digest(presented, secret.encode())]
+        if not matched:
+            return None
+        forwarded["authorization"] = f"Bearer {upstream_key}"
+        return forwarded, matched[0]
 
     def target(path: str) -> str:
         path = path.lstrip("/")
         return f"{upstream}/{path.removeprefix('v1/') if path.startswith('v1/') else path}"
 
-    def speaker(request: Request, body: dict) -> Speaker:
+    def speaker(request: Request, body: dict, namespace: str | None) -> Speaker | None:
         user = request.headers.get("x-membrain-user") or body.get("user")
         platform = request.headers.get("x-membrain-platform") or "api"
         group = request.headers.get("x-membrain-group") or None
+        if namespace:
+            if not user:
+                return None  # A namespaced bot must say whose memory to use; never fall back to a shared one.
+            platform = f"{namespace}/{platform}"
         return Speaker(platform, str(user) if user else "default", group)
 
     async def chat(request: Request, path: str) -> Response:
-        forwarded = headers(request)
-        if forwarded is None:
+        auth = authorize(request)
+        if auth is None:
             return _error(401, "Invalid proxy token.")
+        forwarded, namespace = auth
         if request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
             # A form or text/plain post is what a cross-site page can send without asking first.
             return _error(415, "Chat completions must be sent as application/json.")
@@ -157,11 +187,14 @@ def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | N
             assert isinstance(messages, list)
         except (ValueError, KeyError, AssertionError, TypeError):
             return await passthrough(request, path, raw, forwarded)
-        person, index = speaker(request, body), _latest_user(messages)
+        person, index = speaker(request, body, namespace), _latest_user(messages)
+        if person is None:
+            return _error(400, "Name the person with the request's user field or the X-Membrain-User header.")
         # A role-play character (SillyTavern and similar) gets its own memory, apart from the person's real life.
         roleplay = " ".join(request.headers.get("x-membrain-roleplay", "").split())[:80] or None
         share = request.headers.get("x-membrain-share-real-life", "").lower() in ("1", "true", "yes")
-        session = request.headers.get("x-membrain-session") or memory.session(
+        session = request.headers.get("x-membrain-session")
+        session = (f"{namespace}:{session}" if namespace and session else session) or memory.session(
             person, f"roleplay:{roleplay}" if roleplay else None)
         turn, prompt = uuid.uuid4().hex[:20], _text(messages[index]["content"]) if index is not None else ""
         if prompt.strip():
@@ -218,9 +251,11 @@ def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | N
                                  media_type=response.headers.get("content-type", "text/event-stream"))
 
     async def passthrough(request: Request, path: str, raw: bytes | None = None, forwarded: dict | None = None):
-        forwarded = forwarded if forwarded is not None else headers(request)
         if forwarded is None:
-            return _error(401, "Invalid proxy token.")
+            auth = authorize(request)
+            if auth is None:
+                return _error(401, "Invalid proxy token.")
+            forwarded = auth[0]
         response = await client.request(request.method, target(path), headers=forwarded,
                                         params=request.query_params,
                                         content=raw if raw is not None else await request.body())
@@ -236,14 +271,15 @@ def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | N
 
 
 def serve(upstream: str, *, host: str = "127.0.0.1", port: int = DEFAULT_PORT, directory: Path | None = None,
-          group_memory: str = "separate", upstream_key: str | None = None, token: str | None = None) -> None:
+          group_memory: str = "separate", upstream_key: str | None = None, token: str | None = None,
+          tokens: dict[str, str] | None = None) -> None:
     import uvicorn
 
     from . import host as host_module
 
-    if not is_loopback(host) and not token:
-        raise SystemExit("Listening beyond this computer needs MEMBRAIN_PROXY_TOKEN and MEMBRAIN_UPSTREAM_KEY, so "
-                         "only your bots can use the proxy and read memory.")
+    if not is_loopback(host) and not (token or tokens):
+        raise SystemExit("Listening beyond this computer needs MEMBRAIN_PROXY_TOKENS (or MEMBRAIN_PROXY_TOKEN) and "
+                         "MEMBRAIN_UPSTREAM_KEY, so only your bots can use the proxy and read memory.")
     directory = host_module.profile_directory(directory)
     host_module.ensure_installation(directory)
     memory = ChatMemory(directory, group_memory=group_memory, producer=PRODUCER, tools=None)
@@ -254,5 +290,5 @@ def serve(upstream: str, *, host: str = "127.0.0.1", port: int = DEFAULT_PORT, d
 
     allowed = frozenset(origin.strip() for origin in os.environ.get("MEMBRAIN_PROXY_ORIGINS", "").split(",")
                         if origin.strip())
-    uvicorn.run(create_proxy_app(memory, upstream, upstream_key=upstream_key, token=token, allowed_origins=allowed),
-                host=host, port=port, log_level="warning")
+    uvicorn.run(create_proxy_app(memory, upstream, upstream_key=upstream_key, token=token, tokens=tokens,
+                                 allowed_origins=allowed), host=host, port=port, log_level="warning")

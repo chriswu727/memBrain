@@ -46,6 +46,14 @@ membrain proxy --upstream https://api.deepseek.com/v1 --host 0.0.0.0
 
 之后机器人把这个令牌当作 API key 使用。没有这两项设置时，代理拒绝监听本机以外的地址，否则任何能访问它的人都可能读取记忆。
 
+有多个机器人时，改为给每个机器人一个独立的令牌和命名空间，这样一个机器人的令牌永远读不到另一个机器人的用户：
+
+```sh
+export MEMBRAIN_PROXY_TOKENS="$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))'):qq,$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))'):douyin"
+```
+
+每一项是 `令牌:命名空间`。机器人指明的用户都限定在它自己的命名空间里，即使它在 `X-Membrain-Platform` 里填了别的平台也一样；没有指明用户的请求会被拒绝，而不是落进一份共享的记忆。
+
 ## 状态
 
 已使用模拟的模型服务和真实的 memBrain 服务测试（两位直播观众跨天互相隔离、流式与非流式回复、令牌模式），并作为真实进程用 HTTP 客户端测试过。在 Windows 11 上已接入真实的 DeepSeek API（`deepseek-chat` 和推理模型 `deepseek-v4-pro`）运行：流式和非流式回复都原样转发（包括推理内容分片），用 `X-Membrain-User` 区分的两个人在之后的会话中各自召回了自己的信息、看不到对方的内容，`/v1/models` 和模型服务的错误也会被转发。尚未配合具体的机器人项目运行。
