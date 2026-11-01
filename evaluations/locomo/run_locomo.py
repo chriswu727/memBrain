@@ -332,10 +332,12 @@ def run(args) -> None:
         path = out / f"answers-{name}.jsonl"
         done = {json.loads(line)["id"] for line in path.read_text().splitlines()} if path.exists() else set()
         count = 0
-        for sample in selected:
+        for position, sample in enumerate(selected):
             directory = out / f"brain-{sample['sample_id']}"
             if arm == "M":
-                log("ingest", sample["sample_id"], ingest(sample, directory, model_cache, extractor, ports), "messages")
+                # Each conversation gets its own ports: a stopped database can hold its port for a while.
+                own = (ports[0] + 10 * position, ports[1] + 10 * position) if ports else None
+                log("ingest", sample["sample_id"], ingest(sample, directory, model_cache, extractor, own), "messages")
             for qid, qa in questions(sample, categories):
                 count += 1
                 if args.max_questions and count > args.max_questions:
