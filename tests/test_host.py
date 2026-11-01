@@ -428,3 +428,13 @@ def test_the_spool_stops_growing_when_memory_has_been_down_too_long(tmp_path, mo
     for index in range(20):
         host.spool(tmp_path, host.message_record("s", "user", f"message number {index}"))
     assert (tmp_path / "plugin" / "spool.jsonl").stat().st_size < 600
+
+
+def test_hooks_do_not_load_the_agent_runtime_or_cognition():
+    import subprocess
+    import sys
+
+    code = ("import sys, membrain.plugin; print([m for m in ('membrain.runtime', 'membrain.chat_provider', "
+            "'membrain.cognition', 'membrain.semantic', 'membrain.service') if m in sys.modules])")
+    loaded = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True).stdout.strip()
+    assert loaded == "[]"  # Every hook is a short process; loading the runtime would slow every message.
