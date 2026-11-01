@@ -13,8 +13,15 @@ _SECRETS = [re.compile(pattern, flags) for pattern, flags in (
     (r"(?i)\b(?:bearer)\s+[A-Za-z0-9._\-]{20,}", 0),
     (r"(?i)\b((?:api[_-]?key|secret|token|password|passwd|pwd)\b\s*[:=]\s*)(\"[^\"]{6,}\"|'[^']{6,}'|\S{6,})", 0),
 )]
+_BLOCK_TAG = re.compile(r"<(\s*/?\s*)(membrain[\w-]*)", re.IGNORECASE)
 SECRET_MARK = "[secret removed]"
 PRIVATE_MARK = "[private]"
+
+
+def neutralize(text: str) -> str:
+    """Defuse memBrain's own block tags inside stored text, so a remembered message cannot close a memory block
+    and pose as instructions outside it (``</membrain-memory>`` becomes ``‹/membrain-memory>``)."""
+    return _BLOCK_TAG.sub(lambda match: "\u2039" + match.group(1) + match.group(2), text)
 
 
 def scrub(text: str) -> str:

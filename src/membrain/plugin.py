@@ -61,6 +61,16 @@ def _turn(payload: dict) -> str | None:
     return turn if isinstance(turn, str) and 1 <= len(turn) <= 120 else None
 
 
+def _user(payload: dict) -> str | None:
+    """The person a hook or tool call belongs to, for hosts that talk to more than their owner (OpenClaw).
+
+    Absent for the owner, whose memory is shared with their other hosts. Set by the host's own plugin code,
+    not by anything the person writes.
+    """
+    user = payload.get("membrain_user")
+    return user.strip() if isinstance(user, str) and user.strip() else None
+
+
 def _import_host_queue(directory: Path, producer: str = PRODUCER) -> int:
     """Import bootstrap queues left by older plugins, filtering each record before spooling it."""
     root = os.environ.get("CLAUDE_PLUGIN_DATA") or os.environ.get("PLUGIN_DATA")  # Codex sets both.
@@ -105,14 +115,15 @@ def session_start(payload: dict, directory: Path, producer: str = PRODUCER) -> s
     _import_host_queue(directory, producer)
     name = next((key for key, value in PRODUCERS.items() if value == producer), "claude-code")
     return host.session_context(directory, _conversation(payload), tools=HOST_TOOLS.get(name, host.TOOL_NAMES),
-                                skip_imports_from=HOST_SKIPS.get(name, ()))
+                                skip_imports_from=HOST_SKIPS.get(name, ()), user_id=_user(payload))
 
 
 def user_prompt(payload: dict, directory: Path, producer: str = PRODUCER) -> str | None:
     _import_host_queue(directory, producer)
     name = next((key for key, value in PRODUCERS.items() if value == producer), "claude-code")
     return host.prompt_context(directory, _conversation(payload), payload.get("prompt"), turn_id=_turn(payload),
-                               producer=producer, include_source=True, tools=HOST_TOOLS.get(name, host.TOOL_NAMES))
+                               producer=producer, include_source=True, tools=HOST_TOOLS.get(name, host.TOOL_NAMES),
+                               user_id=_user(payload))
 
 
 def _text(content) -> str:
@@ -162,7 +173,8 @@ def stop(payload: dict, directory: Path, producer: str = PRODUCER) -> None:
     reply = payload.get("last_assistant_message")
     if not isinstance(reply, str) or not reply.strip():
         reply = last_assistant_message(payload.get("transcript_path"))
-    host.finish_turn(directory, _conversation(payload), reply, turn_id=_turn(payload), producer=producer)
+    host.finish_turn(directory, _conversation(payload), reply, turn_id=_turn(payload), producer=producer,
+                     user_id=_user(payload))
 
 
 HANDLERS = {
@@ -188,9 +200,12 @@ def run_hook(event: str, directory: Path | None = None, stream=None, *, host_nam
     except Exception:
         host.log(directory, f"{event} failed: {traceback.format_exc(limit=3)}")
         return 0
-    if context:
-        sys.stdout.write(json.dumps({"hookSpecificOutput": {"hookEventName": name, "additionalContext": context}},
-                                    ensure_ascii=False))
+    output = {"hookSpecificOutput": {"hookEventName": name, "additionalContext": context}} if context else {}
+    if _user(payload):
+        # Tells the host plugin this runtime kept the turn in that person's memory; older runtimes say nothing.
+        output["membrainUser"] = _user(payload)
+    if output:
+        sys.stdout.write(json.dumps(output, ensure_ascii=False))
         sys.stdout.flush()
     return 0
 
@@ -205,14 +220,15 @@ def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
         arguments = json.loads(raw) if raw.strip() else {}
         if not isinstance(arguments, dict) or name not in TOOLS:
             raise ValueError("Tool arguments must be a JSON object.")
+        user = _user(arguments)
         if name == "pause":
-            result = host.pause(directory, arguments.get("hours"))
+            result = host.pause(directory, arguments.get("hours"), user_id=user)
         elif name == "resume":
-            result = host.resume(directory)
-        elif name == "note" and host.paused(directory):
+            result = host.resume(directory, user_id=user)
+        elif name == "note" and host.paused(directory, user):
             result = {"error": "Recording is paused. Resume before saving agent notes."}
         else:
-            client = host.ready_client(directory)
+            client = host.ready_client(directory, user)
             if client is None:
                 host.start_in_background(directory)
                 result = {"error": "memBrain is starting; try again in a few seconds."}

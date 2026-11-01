@@ -5,10 +5,16 @@ on:
     paths-ignore:
       - '**/*.md'
       - 'evaluations/**'
+  push:
+    branches: [main]
+    paths-ignore:
+      - '**/*.md'
+      - 'evaluations/**'
+  workflow_call:  # The release workflow runs the same checks before publishing.
   workflow_dispatch:
 
 concurrency:
-  group: verify-${{ github.event.pull_request.number || github.ref }}
+  group: verify-${{ github.event.pull_request.number || github.ref }}-${{ github.workflow }}
   cancel-in-progress: true
 
 permissions:

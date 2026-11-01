@@ -1,6 +1,6 @@
 # Plugin mode
 
-Status: **implemented, verified on Linux x86_64 only**. This document is the design, acceptance contract and verification record for the lightweight plugin distribution. It does not change the server-mode guarantees described elsewhere.
+Status: **implemented; verified end to end on Linux x86_64, partly run on Windows 11, not run on a real Mac**. This document is the design, acceptance contract and verification record for the lightweight plugin distribution. It does not change the server-mode guarantees described elsewhere.
 
 ## Goal
 
@@ -78,4 +78,4 @@ Plugin mode is an optional host adapter over the unchanged core. The core still 
 - A query containing words such as "remember" is treated as a prior-record check. The hook supplies an evidence cutoff; the `memory_recall` MCP tool does not, so the skill tells Claude to avoid that phrasing.
 - `pgserver` publishes wheels only for CPython 3.9 to 3.12 and not for Linux ARM; the plugin pins Python 3.12 and other platforms fall back to Docker. The package has few recent releases, so bundling PostgreSQL ourselves may become necessary.
 - macOS was not run on a real machine. On Windows 11 the embedded database, service start from a hook, recording and recall ran for real through both launchers: `bin/membrain-hook` under the Git Bash bundled with WorkBuddy 5.8.3 (the shell WorkBuddy uses for hooks; it converts `CODEBUDDY_PLUGIN_ROOT` and `CLAUDE_PLUGIN_DATA` to `/c/...` form, and Git Bash converts them back for the runtime; older releases imported records queued before uv existed; current launchers skip these messages to avoid writing unfiltered input), and `bin/membrain-hook.cmd` under `cmd.exe`. When no bash is found WorkBuddy runs hooks with PowerShell, which cannot run the quoted hook command; that fallback is unsupported. Claude Code, Codex and the WorkBuddy app itself were not run on Windows.
-- The plugin installs from the repository's default branch until the package is published to PyPI.
+- Until the package is published to PyPI, the hooks, MCP files and OpenClaw plugin install a pinned source archive of a reviewed revision (no checksum is verified); the AstrBot requirements and the Hermes, proxy and desktop install instructions still follow the default branch.

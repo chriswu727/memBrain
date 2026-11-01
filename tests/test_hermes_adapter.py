@@ -24,6 +24,9 @@ class Client:
     def __exit__(self, *exc):
         return False
 
+    def close(self):
+        pass
+
     def observe(self, text, **options):
         event_id = f"e{len(self.observed) + 1}"
         self.observed.append({"text": text, **options})
@@ -141,15 +144,24 @@ def test_hermes_sessions_share_memory_through_a_real_service(tmp_path, monkeypat
     try:
         host.start(directory)
         first = hermes.MembrainProvider()
-        first.initialize("session-1", hermes_home=str(Path(tmp_path) / ".hermes"), platform="telegram")
+        first.initialize("session-1", hermes_home=str(Path(tmp_path) / ".hermes"), platform="telegram", user_id="42")
         first.system_prompt_block()
         first.prefetch("My cat Biscuit is allergic to chicken.", session_id="session-1")
         first.sync_turn("My cat Biscuit is allergic to chicken.", "Noted, no chicken treats.", session_id="session-1")
         assert "note_id" in json.loads(first.handle_tool_call("membrain_note", {"text": "Cat Biscuit: chicken allergy."}))
         second = hermes.MembrainProvider()
-        second.initialize("session-2", hermes_home=str(Path(tmp_path) / ".hermes"), platform="telegram")
+        second.initialize("session-2", hermes_home=str(Path(tmp_path) / ".hermes"), platform="telegram", user_id="42")
         block = second.system_prompt_block()
         assert "Cat Biscuit: chicken allergy." in block and "allergic to chicken" in block
+        # Someone else on the gateway, and the owner at the command line, each have their own memory.
+        stranger = hermes.MembrainProvider()
+        stranger.initialize("session-3", hermes_home=str(Path(tmp_path) / ".hermes"), platform="telegram", user_id="999")
+        assert "Biscuit" not in stranger.system_prompt_block()
+        assert "Biscuit" not in json.loads(stranger.handle_tool_call("membrain_search", {"query": "Biscuit cat allergy"}))[
+            "context"]
+        owner = hermes.MembrainProvider()
+        owner.initialize("session-4", hermes_home=str(Path(tmp_path) / ".hermes"), platform="cli")
+        assert "Biscuit" not in owner.system_prompt_block()
     finally:
         try:
             desktop.stop(directory)
@@ -173,3 +185,30 @@ def test_hermes_user_file_is_imported_once_and_not_repeated_in_hermes(tmp_path, 
     assert len(client.notes) == 3  # Unchanged file: no second import.
     instance.on_memory_write("add", "memory", "Server runs Ubuntu.")
     assert len(client.notes) == 3  # Environment memory stays in Hermes.
+
+
+def test_gateway_senders_get_their_own_memory_unless_listed_as_the_owner():
+    assert hermes.memory_user({"platform": "cli"}) is None
+    assert hermes.memory_user({}) is None
+    assert hermes.memory_user({"platform": "telegram", "user_id": "42"}) == "hermes:telegram:42"
+    assert hermes.memory_user({"platform": "telegram", "user_id": "42", "chat_type": "group", "chat_id": "-100"}) == (
+        "hermes:telegram:group:-100:42")
+    assert hermes.memory_user({"platform": "discord", "gateway_session_key": "k"}) == "hermes:discord:chat:k"
+    assert hermes.memory_user({"platform": "telegram", "user_id": "42"}, ["telegram:42"]) is None
+    assert hermes.memory_user({"platform": "telegram", "user_id": "42", "chat_type": "group"}, ["telegram:42"]) is None
+
+
+def test_a_gateway_session_reads_and_writes_only_its_senders_memory(tmp_path, monkeypatch):
+    users = []
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: users.append(user_id) or client)
+    home = tmp_path / "home"
+    (home / "memories").mkdir(parents=True)
+    (home / "memories" / "USER.md").write_text("The owner is allergic to sesame.\n", encoding="utf-8")
+    instance = hermes.MembrainProvider()
+    instance.initialize("g1", hermes_home=str(home), platform="telegram", user_id="999")
+    instance.system_prompt_block()
+    instance.handle_tool_call("membrain_search", {"query": "allergy"})
+    instance.on_memory_write("add", "user", "Likes trains.")
+    assert set(users) == {"hermes:telegram:999"}
+    assert not any("sesame" in record["text"] or "trains" in record["text"] for record in client.observed)

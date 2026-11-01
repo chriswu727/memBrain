@@ -1,14 +1,15 @@
 """OpenAI-compatible memory proxy: give any bot that lets you set a ``base_url`` long-term memory.
 
 Point the bot's ``base_url`` at the proxy instead of the model provider (DeepSeek, OpenAI, a local model...). For each
-chat completion the proxy adds the person's memory as a system message just before their latest message, forwards
+chat completion the proxy adds the person's memory, fenced as historical data, to the start of their latest message
+(not as a system message, so remembered text never gets the authority of the bot's own instructions), forwards
 the request upstream (streaming or not), and stores the message and the reply. Everything else is passed through.
 
 People are told apart by the request's ``user`` field or the ``X-Membrain-User`` header (with optional
 ``X-Membrain-Platform`` and ``X-Membrain-Group``); requests without either share one memory.
 ``X-Membrain-Roleplay: <character>`` keeps a role-play's memory apart from real life; ``X-Membrain-Share-Real-Life: 1``
-also shows that person's non-sensitive real-life notes in it. The memory system
-message is placed after the stable start of the conversation so providers' prompt caches keep working.
+also shows that person's non-sensitive real-life notes in it. The memory
+block is placed after the stable start of the conversation so providers' prompt caches keep working.
 
 By default the proxy listens on loopback and forwards the client's own API key. To serve other machines, store the
 provider key in ``MEMBRAIN_UPSTREAM_KEY`` and set ``MEMBRAIN_PROXY_TOKEN``; clients then use the token as their key.
@@ -26,12 +27,16 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from .adapters.chatbot import ChatMemory, Speaker
 
 PRODUCER = "membrain-proxy"
 DEFAULT_PORT = 8790
+MAX_BODY_BYTES = 32 * 1024 * 1024  # Generous for pasted documents and inline images.
+LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+_LOOPBACK_ORIGIN = r"https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?"
 _FORWARDED = ("content-type", "accept", "openai-organization", "openai-project", "anthropic-version")
 _logger = logging.getLogger("membrain.proxy")
 
@@ -61,11 +66,29 @@ def is_loopback(host: str) -> bool:
         return False
 
 
+def _hostname(value: str) -> str:
+    value = value.strip().lower()
+    if value.startswith("["):  # [::1]:8790
+        return value[1:].split("]", 1)[0]
+    return value.rsplit(":", 1)[0] if value.count(":") == 1 else value
+
+
+def _error(status: int, message: str) -> JSONResponse:
+    return JSONResponse({"error": {"message": message, "type": "invalid_request_error"}}, status)
+
+
 def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | None = None,
-                     token: str | None = None, transport: httpx.AsyncBaseTransport | None = None) -> FastAPI:
-    """The proxy app. With ``token`` clients must present it and ``upstream_key`` is sent upstream instead."""
+                     token: str | None = None, transport: httpx.AsyncBaseTransport | None = None,
+                     allowed_origins: frozenset[str] = frozenset()) -> FastAPI:
+    """The proxy app. With ``token`` clients must present it and ``upstream_key`` is sent upstream instead.
+
+    Without a token the proxy only answers requests addressed to this computer by name (a web page that
+    rebinds its own domain to 127.0.0.1 is refused) and refuses requests that browsers send on behalf of
+    other sites, unless their origin is in ``allowed_origins``.
+    """
     if bool(token) != bool(upstream_key):
         raise ValueError("Set both the upstream key and the proxy token, or neither.")
+    origins = frozenset(origin.rstrip("/").lower() for origin in allowed_origins)
     upstream = upstream.rstrip("/")
     client = httpx.AsyncClient(timeout=httpx.Timeout(600, connect=15), transport=transport)
 
@@ -75,6 +98,26 @@ def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | N
         await client.aclose()
 
     app = FastAPI(title="memBrain memory proxy", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
+    # Browser front ends that call the proxy directly need CORS answers; the guard below runs first and refuses
+    # every origin that is neither this computer nor listed.
+    app.add_middleware(CORSMiddleware, allow_origins=sorted(origins), allow_origin_regex=_LOOPBACK_ORIGIN,
+                       allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["*"], max_age=600)
+
+    @app.middleware("http")
+    async def guard(request: Request, call_next):
+        if not token and _hostname(request.headers.get("host", "")) not in LOOPBACK_HOSTS:
+            return _error(403, "This proxy only answers requests addressed to localhost or 127.0.0.1.")
+        origin = request.headers.get("origin", "").rstrip("/").lower()
+        if origin and origin not in origins and _hostname(origin.split("://", 1)[-1]) not in LOOPBACK_HOSTS:
+            # Bots call the proxy from a server; a browser page from another site must be allowed explicitly.
+            return _error(403, "Requests from web pages need their origin in MEMBRAIN_PROXY_ORIGINS.")
+        try:
+            size = int(request.headers.get("content-length") or 0)
+        except ValueError:
+            size = 0
+        if size > MAX_BODY_BYTES:
+            return _error(413, "The request is too large.")
+        return await call_next(request)
 
     def headers(request: Request) -> dict | None:
         forwarded = {name: request.headers[name] for name in _FORWARDED if name in request.headers}
@@ -101,8 +144,13 @@ def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | N
     async def chat(request: Request, path: str) -> Response:
         forwarded = headers(request)
         if forwarded is None:
-            return JSONResponse({"error": {"message": "Invalid proxy token.", "type": "invalid_request_error"}}, 401)
+            return _error(401, "Invalid proxy token.")
+        if request.headers.get("content-type", "").split(";")[0].strip().lower() != "application/json":
+            # A form or text/plain post is what a cross-site page can send without asking first.
+            return _error(415, "Chat completions must be sent as application/json.")
         raw = await request.body()
+        if len(raw) > MAX_BODY_BYTES:
+            return _error(413, "The request is too large.")
         try:
             body = json.loads(raw)
             messages = body["messages"]
@@ -124,7 +172,11 @@ def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | N
                 _logger.warning("memory failed: %s", type(error).__name__)
                 block = None
             if block:
-                body["messages"] = [*messages[:index], {"role": "system", "content": block}, *messages[index:]]
+                latest = dict(messages[index])
+                content = latest.get("content")
+                latest["content"] = ([{"type": "text", "text": block}, *content] if isinstance(content, list)
+                                     else f"{block}\n\n{content if isinstance(content, str) else ''}")
+                body["messages"] = [*messages[:index], latest, *messages[index + 1:]]
 
         async def store(reply: str) -> None:
             if prompt.strip() and reply.strip():
@@ -168,7 +220,7 @@ def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | N
     async def passthrough(request: Request, path: str, raw: bytes | None = None, forwarded: dict | None = None):
         forwarded = forwarded if forwarded is not None else headers(request)
         if forwarded is None:
-            return JSONResponse({"error": {"message": "Invalid proxy token.", "type": "invalid_request_error"}}, 401)
+            return _error(401, "Invalid proxy token.")
         response = await client.request(request.method, target(path), headers=forwarded,
                                         params=request.query_params,
                                         content=raw if raw is not None else await request.body())
@@ -198,5 +250,9 @@ def serve(upstream: str, *, host: str = "127.0.0.1", port: int = DEFAULT_PORT, d
     memory.start()
     print(f"memBrain proxy: set your bot's base_url to http://{host}:{port}/v1 (forwarding to {upstream})",
           flush=True)
-    uvicorn.run(create_proxy_app(memory, upstream, upstream_key=upstream_key, token=token), host=host, port=port,
-                log_level="warning")
+    import os
+
+    allowed = frozenset(origin.strip() for origin in os.environ.get("MEMBRAIN_PROXY_ORIGINS", "").split(",")
+                        if origin.strip())
+    uvicorn.run(create_proxy_app(memory, upstream, upstream_key=upstream_key, token=token, allowed_origins=allowed),
+                host=host, port=port, log_level="warning")
