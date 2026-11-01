@@ -212,7 +212,15 @@ def ingest(sample: dict, directory: Path, model_cache: Path | None = None, extra
         from membrain.embedded_database import default_engine
         from membrain.local_profile import ensure_profile
 
-        ensure_profile(directory, api_port=ports[0], database_port=ports[1], database_engine=default_engine())
+        for attempt in range(30):  # The previous conversation's database may still be releasing the ports.
+            try:
+                ensure_profile(directory, api_port=ports[0], database_port=ports[1],
+                               database_engine=default_engine())
+                break
+            except Exception:
+                if attempt == 29:
+                    raise
+                time.sleep(2)
     host.ensure_installation(directory)  # Create the profile first; a non-empty directory without one is refused.
     if model_cache is not None:
         install_model(directory, model_cache)
