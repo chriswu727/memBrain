@@ -54,6 +54,10 @@ export MEMBRAIN_PROXY_TOKENS="$(python3 -c 'import secrets; print(secrets.token_
 
 每一项是 `令牌:命名空间`。机器人指明的用户都限定在它自己的命名空间里，即使它在 `X-Membrain-Platform` 里填了别的平台也一样；没有指明用户的请求会被拒绝，而不是落进一份共享的记忆。
 
+## 删除或导出某一个人的记忆
+
+`membrain plugin export-user` 和 `membrain plugin forget-user` 按代理看到的身份指定这个人：`--platform` 是 `X-Membrain-Platform` 的值（默认 `api`；使用 `MEMBRAIN_PROXY_TOKENS` 时是 `命名空间/平台`），`--user` 是请求里的 `user`。群的记忆再加上 `--group`。
+
 ## 状态
 
 已使用模拟的模型服务和真实的 memBrain 服务测试（两位直播观众跨天互相隔离、流式与非流式回复、令牌模式），并作为真实进程用 HTTP 客户端测试过。在 Windows 11 上已接入真实的 DeepSeek API（`deepseek-chat` 和推理模型 `deepseek-v4-pro`）运行：流式和非流式回复都原样转发（包括推理内容分片），用 `X-Membrain-User` 区分的两个人在之后的会话中各自召回了自己的信息、看不到对方的内容，`/v1/models` 和模型服务的错误也会被转发。尚未配合具体的机器人项目运行。

@@ -54,6 +54,10 @@ export MEMBRAIN_PROXY_TOKENS="$(python3 -c 'import secrets; print(secrets.token_
 
 Each entry is `token:namespace`. The people a bot names are kept inside its namespace, even if it sends another platform in `X-Membrain-Platform`, and a request that names nobody is refused instead of falling into a shared memory.
 
+## Erasing or exporting one person
+
+`membrain plugin export-user` and `membrain plugin forget-user` take the person as the proxy sees them: `--platform` is the `X-Membrain-Platform` value (default `api`, or `namespace/platform` with `MEMBRAIN_PROXY_TOKENS`) and `--user` the request's `user`. Add `--group` for a group's memory.
+
 ## Status
 
 Tested with a stand-in provider and a real memBrain service (two live-stream viewers kept apart across days, streaming and non-streaming replies, token mode), and as a running process with an HTTP client. On Windows 11 it ran against the real DeepSeek API (`deepseek-chat` and the reasoning model `deepseek-v4-pro`): streaming and non-streaming replies passed through unchanged (reasoning chunks included), two people told apart by `X-Membrain-User` each recalled their own facts in a later session and not the other's, and `/v1/models` and provider errors were forwarded. Not yet run with a specific bot project.

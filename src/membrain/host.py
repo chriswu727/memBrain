@@ -394,6 +394,65 @@ def resume(directory: Path, user_id: str | None = None) -> dict:
     return {"recording": "on"}
 
 
+def erase_user(directory: Path, user_id: str | None) -> dict:
+    """Erase everything one person's memory holds, including records still queued or staged for it.
+
+    The content is erased, not hidden, and a restored backup cannot bring it back. ``None`` is the owner.
+    """
+    client = ready_client(directory, user_id)
+    if client is None:
+        start_in_background(directory)
+        raise RuntimeError("memBrain is starting; try again in a few seconds.")
+    with client:
+        generation = client.dashboard()["brain"]["scope_generation"]
+        response = client.forget([], kind="all_authorized_scope", mode="erase_content",
+                                 expected_scope_generation=generation)
+    dropped = 0
+    with profile_lock(state_directory(directory) / "spool-write-lock", timeout=5):
+        spool_path = state_directory(directory) / "spool.jsonl"
+        if spool_path.exists():
+            kept = []
+            for line in spool_path.read_text(encoding="utf-8").splitlines():
+                try:
+                    owner = json.loads(line).get("_user")
+                except (ValueError, AttributeError):
+                    owner = None
+                if owner == user_id:
+                    dropped += 1
+                else:
+                    kept.append(line)
+            _write_text(spool_path, "".join(line + "\n" for line in kept))
+    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        for path in (state_directory(directory) / "sessions").glob("*.json"):
+            try:
+                state = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if isinstance(state, dict) and state.get("user_id") == user_id:
+                path.unlink(missing_ok=True)
+    return {"erased": response.get("outcome"), "queued_records_dropped": dropped}
+
+
+def export_user(directory: Path, user_id: str | None) -> dict:
+    """One person's complete memory as an archive document (messages, notes, provenance and deletions)."""
+    client = ready_client(directory, user_id)
+    if client is None:
+        start_in_background(directory)
+        raise RuntimeError("memBrain is starting; try again in a few seconds.")
+    with client:
+        result = client.export()["result"]
+        archive = result.get("archive") or result
+        return client.download_archive(archive["archive_id"])
+
+
+def _write_text(path: Path, text: str) -> None:
+    temporary = path.with_suffix(".tmp")
+    descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+        stream.write(text)
+    os.replace(temporary, path)
+
+
 def _paused_file(path: Path, *, cleanup: bool = True) -> bool:
     try:
         state = json.loads(path.read_text(encoding="utf-8"))
