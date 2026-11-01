@@ -28,6 +28,18 @@ membrain proxy --upstream https://api.deepseek.com/v1
 
 代理不会添加工具，因此模型无法通过它记笔记或暂停记录；`<private>…</private>` 中的文字以及看起来像密钥或密码的内容仍然不会被保存。
 
+## 用你指定的模型生成笔记（可选）
+
+代理不提供工具，所以机器人自己的模型无法保存笔记。如果想让用户也有笔记、计划和人物，可以指定一个便宜的模型来提取笔记：
+
+```sh
+export MEMBRAIN_EXTRACT_MODEL=deepseek-chat        # 开启提取
+export MEMBRAIN_EXTRACT_KEY=sk-你的模型服务key       # 默认使用 MEMBRAIN_UPSTREAM_KEY
+# MEMBRAIN_EXTRACT_BASE_URL 默认与 --upstream 相同
+```
+
+每次回复发出后，提取模型会读一遍这轮对话和这个人现有的笔记，把其中长期有用的事实保存为带类型的笔记，并替换被更新的旧笔记。它在后台运行，会跳过寒暄，暂停记录期间不会运行；每条值得读的消息多一次模型调用。
+
 ## 代理会拒绝什么
 
 没有设置令牌时，代理只响应发给 `localhost`、`127.0.0.1` 或 `::1` 的请求，因此把自己的域名指向你电脑的网页无法使用它。浏览器代表其他网站发出的请求（`Origin` 不是本机）以及不是 `application/json` 的聊天请求也会被拒绝。如果某个网页前端直接从浏览器调用代理，请把它的来源加入 `MEMBRAIN_PROXY_ORIGINS`（用逗号分隔，例如 `http://localhost:8000,https://chat.example.com`）。超过 32 MB 的请求体会被拒绝。

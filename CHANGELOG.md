@@ -15,6 +15,9 @@ memBrain is a human-inspired memory engine for AI agents. It keeps persistent me
 - Guided first use through `membrain plugin setup`: actual incoming-message status, host connection instructions, a cross-session exercise and local semantic-model retry without an extra API key.
 - Saved notes refresh inside ongoing sessions after corrections, removals and coming-up changes. Fingerprints are bound to the selected brain, failed reads preserve the previous snapshot, and unchanged snapshots are not repeated. Previously delivered text cannot be retracted from a host model.
 - Explicit questions about earlier assistant recommendations retain attributed speech recall even when complete user history is already loaded. Other people's recommendations do not enable assistant-speech recall.
+- Optional note extraction for bots whose model cannot call the note tool (`MEMBRAIN_EXTRACT_MODEL` for the proxy, three settings in the AstrBot plugin): after each reply a model of your choice reads the exchange once and saves the lasting facts as typed notes. The proxy no longer shows the note-source hint, which only applies to hosts with the note tool.
+- The memory page is available in Chinese: it follows the browser language, with a toggle, and never translates what people wrote.
+- A test run no longer leaves embedded database clusters behind under `/var/lib/membrain` when run as root.
 - Follow-ups from the product review:
   - Each bot can have its own proxy token and namespace (`MEMBRAIN_PROXY_TOKENS`): one bot's token cannot reach another bot's people, and a namespaced request that names nobody is refused.
   - People on AstrBot erase their own memory with `/membrain_forget confirm`; operators erase or export one person with `membrain plugin forget-user` and `export-user`.

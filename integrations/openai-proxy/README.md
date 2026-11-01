@@ -28,6 +28,18 @@ For `POST /v1/chat/completions` it puts a fenced memory block at the start of th
 
 The proxy does not add tools, so the model cannot write notes or pause recording through it; text inside `<private>…</private>` and values that look like keys or passwords are still never stored.
 
+## Notes from a model of your choice (optional)
+
+The proxy adds no tools, so the bot's own model cannot save notes. To give people notes, plans and people anyway, name a cheap model for note extraction:
+
+```sh
+export MEMBRAIN_EXTRACT_MODEL=deepseek-chat        # turns extraction on
+export MEMBRAIN_EXTRACT_KEY=sk-your-provider-key   # defaults to MEMBRAIN_UPSTREAM_KEY
+# MEMBRAIN_EXTRACT_BASE_URL defaults to --upstream
+```
+
+After each reply has been sent, the extraction model reads that exchange once, together with the person's current notes, and saves the lasting facts as typed notes, replacing notes they update. It runs in the background, skips greetings, never runs while recording is paused, and costs one extra model call per message worth reading.
+
 ## What it refuses
 
 Without a token the proxy answers only requests addressed to `localhost`, `127.0.0.1` or `::1`, so a web page that points its own domain at your computer cannot use it. It also refuses requests that a browser sends on behalf of another site (an `Origin` header that is not this computer) and chat requests that are not `application/json`. If a browser-based front end calls the proxy directly, add its origin to `MEMBRAIN_PROXY_ORIGINS` (comma-separated, for example `http://localhost:8000,https://chat.example.com`). Request bodies above 32 MB are refused.
