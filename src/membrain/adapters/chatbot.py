@@ -47,7 +47,8 @@ class ChatMemory:
 
     def __init__(self, directory: Path, *, group_memory: str = "separate", record_groups: bool = True,
                  producer: str = "membrain-chatbot", tools: dict | None = TOOLS,
-                 block_seconds: float = BLOCK_SECONDS, roleplay: str | None = None, share_real_life: bool = False):
+                 block_seconds: float = BLOCK_SECONDS, roleplay: str | None = None, share_real_life: bool = False,
+                 extractor=None):
         if group_memory not in GROUP_MEMORY:
             raise ValueError(f"group_memory must be one of {', '.join(GROUP_MEMORY)}.")
         self.directory = Path(directory).expanduser()
@@ -55,6 +56,8 @@ class ChatMemory:
         self.block_seconds = block_seconds
         # A bot that plays a character keeps that story's memory apart from each person's real-life memory.
         self.roleplay, self.share_real_life = roleplay or None, share_real_life
+        # Optional: a model that saves notes from each turn, for bots whose own model cannot call the note tool.
+        self.extractor = extractor
         self._blocks: dict[str, tuple[float, str, str, bool]] = {}
         self._lock = threading.Lock()
         host.state_directory(self.directory)
@@ -129,6 +132,17 @@ class ChatMemory:
         if self._recording(speaker):
             host.finish_turn(self.directory, session, reply, turn_id=turn_id, producer=self.producer, prompt=prompt,
                              user_id=self.user_id(speaker), roleplay=roleplay or self.roleplay)
+            if self.extractor is not None and prompt:
+                self._extract(self.memory_user(speaker, roleplay), prompt, reply or "")
+
+    def _extract(self, user: str, prompt: str, reply: str) -> None:
+        from ..extraction import extract_turn
+
+        def task():
+            if extract_turn(self.directory, self.extractor, user, prompt, reply):
+                self._forget_blocks(user)  # The next session start shows the new notes.
+
+        self.extractor.submit(task)
 
     def note(self, speaker: Speaker, text: str, replaces=(), *, roleplay: str | None = None, source_event_ids=(), source_messages=(), **fields) -> dict:
         from ..notes import note_fields, save_note
