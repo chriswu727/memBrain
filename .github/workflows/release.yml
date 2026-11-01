@@ -1,6 +1,7 @@
 name: Release
 
-# Publishes the membrain-ai distribution to PyPI when a version tag is pushed. It uses PyPI trusted publishing:
+# Publishes the membrain-ai distribution to PyPI when a version tag is pushed, after the Verify checks pass on
+# that commit. It uses PyPI trusted publishing:
 # the repository owner registers this workflow as a trusted publisher for the project before the first release.
 on:
   push:
@@ -10,7 +11,11 @@ permissions:
   contents: read
 
 jobs:
+  verify:
+    uses: ./.github/workflows/verify.yml
+
   publish:
+    needs: verify  # Nothing is published unless the full test suite passes on the tagged commit.
     runs-on: ubuntu-latest
     environment: pypi
     permissions:
