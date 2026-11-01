@@ -170,3 +170,16 @@ def test_stored_text_cannot_close_a_memory_block():
     history = render_history({"complete": True, "items": [
         {"event_id": "e1", "text": attack, "recorded_at": "2026-10-28T00:00:00Z", "actor_role": "user"}]})
     assert "</membrain-notes>" not in history and history.count("</membrain-history>") == 1
+
+
+def test_an_overdue_plan_is_not_crowded_out_of_coming_up_by_the_week_ahead():
+    today = datetime.date(2026, 6, 8)
+    long = " Booked with the travel agent, seats together, bags included, confirmation sent to both of us by email."
+    response = {"items": [
+        *(item(f"s{index}", format_note(f"Flight {index} to Montreal.{long}", kind="plan", status="scheduled",
+                                        occurs_at="2026-06-17")) for index in range(6)),
+        item("eta", format_note("Apply for the Canadian eTA.", kind="plan", due="2026-03-03")),
+    ]}
+    rendered = render_coming_up(response, today=today, budget=1000)
+    assert "2026-03-03 has passed and this is still marked intended: Apply for the Canadian eTA. (id: eta)" in rendered
+    assert rendered.index("Apply for the Canadian eTA") < rendered.index("Flight 0")
