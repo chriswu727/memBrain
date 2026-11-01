@@ -385,3 +385,46 @@ def test_a_note_saved_before_the_reply_links_back_to_the_current_user_message(tm
             desktop.stop(directory)
         except desktop.DesktopError:
             pass
+
+
+def test_a_rejected_spooled_record_is_set_aside_instead_of_blocking_the_rest(tmp_path):
+    import httpx
+
+    from membrain.client import MemoryActionError
+
+    for text in ("first", "refused", "bad request", "third"):
+        host.spool(tmp_path, host.message_record("s", "user", text))
+
+    class Picky(Client):
+        def observe(self, **record):
+            if record["text"] == "refused":
+                raise MemoryActionError({"outcome": "rejected", "error": {"code": "invalid_request", "retryable": False}})
+            if record["text"] == "bad request":
+                raise httpx.HTTPStatusError("400", request=httpx.Request("POST", "http://x"),
+                                            response=httpx.Response(400))
+            super().observe(**record)
+
+    client = Picky()
+    assert host.flush(client, tmp_path) == 4
+    assert [item["text"] for item in client.observed] == ["first", "third"]
+    assert (tmp_path / "plugin" / "spool.jsonl").read_text() == ""
+    rejected = (tmp_path / "plugin" / "spool-rejected.jsonl").read_text().splitlines()
+    assert [json.loads(line)["text"] for line in rejected] == ["refused", "bad request"]
+    assert oct((tmp_path / "plugin" / "spool-rejected.jsonl").stat().st_mode & 0o777) == "0o600"
+
+    host.spool(tmp_path, host.message_record("s", "user", "busy"))
+
+    class Busy(Client):
+        def observe(self, **record):
+            raise MemoryActionError({"outcome": "failed", "error": {"code": "dependency_unavailable", "retryable": True}})
+
+    with pytest.raises(MemoryActionError):
+        host.flush(Busy(), tmp_path)
+    assert "busy" in (tmp_path / "plugin" / "spool.jsonl").read_text()  # Kept for the next replay.
+
+
+def test_the_spool_stops_growing_when_memory_has_been_down_too_long(tmp_path, monkeypatch):
+    monkeypatch.setattr(host, "SPOOL_BYTES", 200)
+    for index in range(20):
+        host.spool(tmp_path, host.message_record("s", "user", f"message number {index}"))
+    assert (tmp_path / "plugin" / "spool.jsonl").stat().st_size < 600

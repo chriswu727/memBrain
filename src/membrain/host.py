@@ -18,7 +18,7 @@ import time
 from pathlib import Path
 
 from .local_profile import profile_lock
-from .privacy import PRIVATE_MARK, SECRET_MARK, scrub  # noqa: F401
+from .privacy import PRIVATE_MARK, SECRET_MARK, neutralize, scrub  # noqa: F401
 
 PRODUCER = "membrain-plugin"
 CONTEXT_CHARACTERS = 9000  # Under Claude Code's 10,000-character limit for hook output.
@@ -485,12 +485,43 @@ def message_record(session: str, role: str, text: str, *, turn_id: str | None = 
     return record
 
 
+SPOOL_BYTES = 64 * 1024 * 1024  # Weeks of messages; beyond this the service has been down too long to queue more.
+REJECTED_BYTES = 4 * 1024 * 1024
+
+
 def spool(directory: Path, record: dict) -> None:
     path = state_directory(directory) / "spool.jsonl"
     with profile_lock(state_directory(directory) / "spool-write-lock", timeout=5):
+        if path.exists() and path.stat().st_size > SPOOL_BYTES:
+            log(directory, "spool full; message not queued")  # Never fill the disk while memory is unavailable.
+            return
         descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
         with os.fdopen(descriptor, "a", encoding="utf-8") as stream:
             stream.write(json.dumps(record, ensure_ascii=False) + "\n")
+
+
+def _permanent(error: Exception) -> bool:
+    """Whether a replayed record failed for good (rejected or malformed) rather than for now (offline, busy)."""
+    import httpx
+
+    from .client import MemoryActionError
+
+    if isinstance(error, MemoryActionError):
+        return not error.retryable
+    if isinstance(error, httpx.HTTPStatusError):
+        return 400 <= error.response.status_code < 500 and error.response.status_code not in (408, 409, 425, 429)
+    return isinstance(error, TypeError)  # A record whose fields the client does not accept.
+
+
+def _reject(directory: Path, line: str, error: Exception) -> None:
+    """Keep a record the service refused aside, so it cannot hold up every later record."""
+    path = state_directory(directory) / "spool-rejected.jsonl"
+    log(directory, f"spooled record rejected: {type(error).__name__} {getattr(error, 'code', '')}".strip())
+    if path.exists() and path.stat().st_size > REJECTED_BYTES:
+        return
+    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
+    with os.fdopen(descriptor, "a", encoding="utf-8") as stream:
+        stream.write(line.rstrip("\n") + "\n")
 
 
 def flush(client, directory: Path) -> int:
@@ -513,8 +544,16 @@ def flush(client, directory: Path) -> int:
                     except ValueError:
                         delivered += 1  # A torn line cannot be replayed; it must not block later records.
                         continue
-                    use_brain(client, record.pop("_user", None))
-                    client.observe(**record)
+                    try:
+                        try:
+                            use_brain(client, record.pop("_user", None))
+                        except ValueError as error:  # An invalid user identifier never becomes valid.
+                            raise TypeError(str(error)) from error
+                        client.observe(**record)
+                    except Exception as error:
+                        if not _permanent(error):
+                            raise  # Offline or busy: keep this and every later record for the next replay.
+                        _reject(directory, line, error)
                     delivered += 1
             finally:
                 client.brain_id = current
@@ -702,7 +741,7 @@ def render_context(response: dict, *, current_conversation: str | None = None,
         match = _STATEMENT.match(statement)
         speaker, text = (_SPEAKERS.get(match.group(1), match.group(1)), match.group(3)) if match else (
             "remembered", statement)
-        text = " ".join(text.split())
+        text = neutralize(" ".join(text.split()))
         if text in seen:
             continue
         seen.add(text)
@@ -847,7 +886,7 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
             if not item or item["event_id"] in selected:
                 continue
             speaker = _SPEAKERS.get(item.get("actor_role"), "remembered")
-            text = " ".join(_window(item["text"], starts.get(item["event_id"])).split())
+            text = neutralize(" ".join(_window(item["text"], starts.get(item["event_id"])).split()))
             line = f"- [{(item.get('recorded_at') or '')[:10] or 'undated'} · {speaker}] {text}"
             available = limit - used - 1
             if len(line) > available:
@@ -867,7 +906,7 @@ def render_history(response: dict) -> str | None:
     items = [item for item in response.get("items", []) if isinstance(item.get("text"), str) and item["text"].strip()]
     if not items:
         return None
-    lines = [f"- [{(item.get('recorded_at') or '')[:10] or 'undated'}] {' '.join(item['text'].split())}"
+    lines = [f"- [{(item.get('recorded_at') or '')[:10] or 'undated'}] {neutralize(' '.join(item['text'].split()))}"
              for item in reversed(items)]
     if response.get("complete"):
         header = (f"Everything this user wrote in earlier sessions ({len(lines)} messages, oldest first). It is "
