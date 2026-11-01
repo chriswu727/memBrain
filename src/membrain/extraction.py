@@ -15,6 +15,7 @@ import os
 import queue
 import re
 import threading
+import time
 
 import httpx
 
@@ -22,9 +23,17 @@ from .notes import KINDS, STATUSES, note_fields
 
 PRODUCER = "membrain-extract"
 MAX_NOTES = 5
+STATUS_FILE = "extraction.json"
+RETRY_DELAYS = (2, 8)  # Seconds before the second and third attempt at a turn the provider failed on for now.
 _logger = logging.getLogger("membrain.extraction")
-_WORDS = re.compile(r"\w+", re.UNICODE)
-_CJK = re.compile(r"[぀-ヿ㐀-鿿가-힯]")
+# Messages that never carry a lasting fact. Anything else is read, however short: "cancelled it", "改到周五", "ok"
+# (agreeing to what the assistant proposed) and "I'm vegan now" can all be updates.
+_SMALL_TALK = re.compile(
+    r"(hi|hiya|hello|hey|yo|thanks?|thank you|thx|ty|cheers|bye|goodbye|good (morning|night|evening)|gm|gn|"
+    r"night|lol|lmao|ha(ha)+|he(he)+|你好|您好|嗨|哈喽|谢谢|谢谢你|多谢|感谢|晚安|早安|早上好|早|拜拜|再见|哈{2,}|呵呵|嘿嘿)"
+    r"[呀啊哦哈~]*", re.IGNORECASE)
+_FILLER = {"ok", "okay", "so", "much", "a", "lot", "very", "you", "again", "all", "everyone", "there"}
+_MEANINGFUL = re.compile(r"[^\W_]", re.UNICODE)
 
 INSTRUCTIONS = f"""You maintain long-term memory notes about one person who talks to an assistant. Read the latest
 exchange and the person's current notes, and decide which lasting facts about the person or their life to save.
@@ -47,9 +56,16 @@ Return {{"notes": []}} when nothing lasting was said."""
 
 
 def worth_reading(prompt: str) -> bool:
-    """Skip greetings and one-word messages, which never hold a lasting fact, to save a model call."""
-    text = prompt or ""
-    return len(_WORDS.findall(text)) >= 4 or len(_CJK.findall(text)) >= 6
+    """Skip greetings, thanks and emoji-only messages, which never hold a lasting fact, to save a model call."""
+    text = re.sub(r"[\s\W_]+", " ", prompt or "", flags=re.UNICODE).strip()
+    if not _MEANINGFUL.search(text):
+        return False
+    if _SMALL_TALK.fullmatch(text):
+        return False
+    # "ok thanks", "thanks so much", "hi there": small talk with filler words around it.
+    words = text.lower().split()
+    rest = [word for word in words if word not in _FILLER]
+    return not (rest and len(rest) < len(words) and _SMALL_TALK.fullmatch(" ".join(rest)))
 
 
 class Extractor:
@@ -75,12 +91,20 @@ class Extractor:
             raise ValueError("Set MEMBRAIN_EXTRACT_BASE_URL for note extraction.")
         return cls(url, model, key)
 
-    def propose(self, prompt: str, reply: str, notes: str, today: _datetime.date | None = None) -> list[dict]:
-        """The notes to save for one exchange, as checked note fields plus ``text`` and ``replaces``."""
+    def propose(self, prompt: str, reply: str, notes: str, today: _datetime.date | None = None,
+                previous: tuple[str, str] | None = None) -> list[dict]:
+        """The notes to save for one exchange, as checked note fields plus ``text`` and ``replaces``.
+
+        ``previous`` is the exchange before it in the same conversation, shown so a short reply can be understood.
+        """
         today = today or _datetime.date.today()
+        earlier = ""
+        if previous:
+            earlier = ("Previous exchange (context only; its facts were already considered):\n"
+                       f"Person: {_clip(previous[0])}\nAssistant: {_clip(previous[1])}\n\n")
         body = {"model": self.model, "temperature": 0, "max_tokens": 1200, "response_format": {"type": "json_object"},
                 "messages": [{"role": "system", "content": INSTRUCTIONS}, {"role": "user", "content": (
-                    f"Today is {today.isoformat()}.\n\nCurrent notes:\n{notes or '(none)'}\n\n"
+                    f"Today is {today.isoformat()}.\n\nCurrent notes:\n{notes or '(none)'}\n\n{earlier}"
                     f"Latest exchange:\nPerson: {prompt}\nAssistant: {reply}")}]}
         if not self.thinking:
             body["thinking"] = {"type": "disabled"}  # Ignored by providers that do not know it.
@@ -110,16 +134,21 @@ class Extractor:
             notes_out.append({"text": str(item["text"]).strip(), "replaces": replaces, **checked})
         return notes_out
 
-    def submit(self, task) -> None:
-        """Run ``task`` on the background worker; drops it when the queue is full rather than slowing replies."""
+    def submit(self, task) -> bool:
+        """Run ``task`` on the background worker; drops it when the queue is full rather than slowing replies.
+
+        Returns whether the task was queued.
+        """
         with self._lock:
             if self._worker is None or not self._worker.is_alive():
                 self._worker = threading.Thread(target=self._run, name="membrain-extract", daemon=True)
                 self._worker.start()
         try:
             self._queue.put_nowait(task)
+            return True
         except queue.Full:
             _logger.warning("note extraction queue full; turn skipped")
+            return False
 
     def _run(self) -> None:
         while True:
@@ -143,8 +172,84 @@ class Extractor:
             timer.cancel()
 
 
+def _retryable(error: Exception) -> bool:
+    if isinstance(error, httpx.TransportError):
+        return True
+    return isinstance(error, httpx.HTTPStatusError) and (error.response.status_code == 429
+                                                          or error.response.status_code >= 500)
+
+
+def _error_name(error: Exception | str) -> str:
+    if isinstance(error, str):
+        return error
+    if isinstance(error, httpx.HTTPStatusError):
+        return f"HTTP {error.response.status_code}"
+    return type(error).__name__
+
+
+_status_lock = threading.Lock()
+
+
+def record_outcome(directory, *, saved: int | None = None, error: Exception | str | None = None,
+                   skipped: bool = False) -> None:
+    """Count one turn's extraction outcome in the installation's state, so a failing provider is visible.
+
+    Messages are recorded either way; only the notes drawn from them are missing while extraction fails.
+    """
+    from . import host
+
+    now = _datetime.datetime.now(_datetime.timezone.utc).isoformat(timespec="seconds")
+    with _status_lock:
+        path = host.state_directory(directory) / STATUS_FILE
+        try:
+            state = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            state = {}
+        if not isinstance(state, dict):
+            state = {}
+        for key in ("turns_read", "notes_saved", "turns_failed", "turns_skipped", "failed_since_success"):
+            state[key] = int(state.get(key) or 0)
+        if skipped:
+            state["turns_skipped"] += 1
+            state["failed_since_success"] += 1
+            state["last_failure_at"], state["last_error"] = now, "queue full"
+        elif error is not None:
+            state["turns_failed"] += 1
+            state["failed_since_success"] += 1
+            state["last_failure_at"], state["last_error"] = now, _error_name(error)
+        else:
+            state["turns_read"] += 1
+            state["notes_saved"] += saved or 0
+            state["failed_since_success"] = 0
+            state["last_success_at"] = now
+        temporary = path.with_name(f".{STATUS_FILE}.{os.getpid()}.tmp")
+        temporary.write_text(json.dumps(state, indent=2), encoding="utf-8")
+        os.replace(temporary, path)
+
+
+def extraction_status(directory) -> dict | None:
+    """The installation's extraction outcomes, or ``None`` when extraction has never run here.
+
+    ``state`` is ``degraded`` when the turns since the last successful read all failed or were skipped.
+    """
+    from pathlib import Path
+
+    try:
+        state = json.loads((Path(directory) / "plugin" / STATUS_FILE).read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return None
+    if not isinstance(state, dict):
+        return None
+    return {**state, "state": "degraded" if int(state.get("failed_since_success") or 0) else "ok"}
+
+
+def _clip(text: str, limit: int = 2000) -> str:
+    text = text or ""
+    return text if len(text) <= limit else text[:limit] + " …"
+
+
 def extract_turn(directory, extractor: Extractor, user_id: str | None, prompt: str, reply: str, *,
-                 sources=()) -> list[dict]:
+                 sources=(), previous: tuple[str, str] | None = None) -> list[dict]:
     """Save the lasting facts of one recorded turn as notes in this person's memory; returns what was saved.
 
     ``sources`` are the turn's message references (``producer_ref``, ``source_event_key``, ``source_revision``);
@@ -157,11 +262,24 @@ def extract_turn(directory, extractor: Extractor, user_id: str | None, prompt: s
         return []
     client = host.ready_client(directory, user_id)
     if client is None:
+        record_outcome(directory, error="memory service not ready")
         return []
     with client:
         current = render_notes(list_notes(client), tool=None) or ""
         saved = []
-        for note in extractor.propose(host.scrub(prompt), host.scrub(reply or ""), current):
+        earlier = (host.scrub(previous[0] or ""), host.scrub(previous[1] or "")) if previous else None
+        delays = getattr(extractor, "retry_delays", RETRY_DELAYS)
+        for attempt in range(len(delays) + 1):
+            try:
+                proposed = extractor.propose(host.scrub(prompt), host.scrub(reply or ""), current, previous=earlier)
+                break
+            except Exception as error:
+                if attempt < len(delays) and _retryable(error):
+                    time.sleep(delays[attempt])
+                    continue
+                record_outcome(directory, error=error)
+                raise
+        for note in proposed:
             text, replaces = note.pop("text"), note.pop("replaces")
             try:
                 result = save_note(client, host.scrub(text), replaces=tuple(replaces), producer=PRODUCER,
@@ -170,4 +288,5 @@ def extract_turn(directory, extractor: Extractor, user_id: str | None, prompt: s
                 _logger.warning("note not saved: %s", type(error).__name__)
                 continue
             saved.append({"text": text, **note, **result})
-        return saved
+    record_outcome(directory, saved=len(saved))
+    return saved

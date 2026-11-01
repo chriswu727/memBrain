@@ -93,6 +93,7 @@ const ZH = {
   "Optional local model; no API key or usage charge. Keyword search already works.": "可选的本地模型，不需要 API key，也不产生费用。关键词搜索已经可用。",
   "Retry model download": "重新下载模型", "Finish enabling recall": "完成启用召回",
   "Memory service needs attention": "记忆服务需要处理", "Messages waiting for delivery": "有消息等待写入",
+  "Note extraction needs attention": "笔记提炼需要处理",
   "Indexing your messages": "正在为你的消息建立索引", "Memory is ready": "记忆已就绪", "Keyword memory is ready": "关键词记忆已就绪",
   "Unable to check memory": "无法检查记忆状态", "This link has expired.": "这个链接已过期。",
   "No memory installation found. Run membrain plugin start first.": "没有找到记忆安装。请先运行 membrain plugin start。",
@@ -112,6 +113,8 @@ const ZH_PATTERNS = [
   [/^(.+?)\. (?:(\d+) message\(s\) waiting for indexing\.|Message index is up to date\.)\s*(?:(\d+) queued record\(s\)\.)?\s*(?:(\d+) background job\(s\) need attention\. Run membrain doctor\.)?\s*$/,
     (m, recall, lag, queued, failed) => `${translate(recall)}。${lag ? `${lag} 条消息等待建立索引。` : "消息索引已是最新。"}`
       + `${queued ? `${queued} 条记录在排队。` : ""}${failed ? `${failed} 个后台任务需要处理，请运行 membrain doctor。` : ""}`],
+  [/^(\d+) message\(s\) could not be read for notes \(last error: (.+?)\)\. They are still stored and recalled; notes from them are missing\. Run membrain doctor\.$/,
+    (m, n, error) => `有 ${n} 条消息未能提炼成笔记（最近的错误：${error}）。这些消息仍然保存并可召回，只是缺少从中提炼的笔记。请运行 membrain doctor。`],
   [/^Keyword and semantic recall enabled$/, () => "关键词和语义召回均已启用"],
   [/^Keyword recall ready; semantic model downloading$/, () => "关键词召回已就绪；语义模型下载中"],
   [/^Keyword recall ready; model download needs a retry$/, () => "关键词召回已就绪；模型下载需要重试"],

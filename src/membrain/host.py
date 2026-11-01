@@ -270,6 +270,11 @@ def installation_status(directory: Path) -> dict:
         result["pending_records"] = 0
     result["semantic_recall"] = semantic_state(directory)
     result["recording"] = "paused" if _paused_file(directory / "plugin" / "paused.json", cleanup=False) else "on"
+    from .extraction import extraction_status
+
+    extraction = extraction_status(directory)
+    if extraction is not None:
+        result["note_extraction"] = extraction
     return result
 
 

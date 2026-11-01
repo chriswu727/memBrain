@@ -550,8 +550,10 @@ class LocalSupervisor:
             semantic = host.semantic_state(self.profile.directory)
             if semantic == "ready" and not (self.settings.embedding_local_directory or self.settings.embedding_base_url):
                 semantic = "restart_required"
+            from .extraction import extraction_status
+
             return {**self.snapshot(), "semantic_recall": semantic,
-                    "pending_records": pending}
+                    "pending_records": pending, "note_extraction": extraction_status(self.profile.directory)}
 
         @app.post("/v1/local/semantic-model")
         def prepare_semantic_model(authorization: str | None = Header(default=None)):
