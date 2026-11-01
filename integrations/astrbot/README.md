@@ -35,6 +35,17 @@ Each person has their own memory: what Alice told the bot is never shown in a re
 
 Wrap text in `<private>…</private>` to keep it out of memory; values that look like passwords, API keys or tokens are removed before storage.
 
+## Erasing or exporting one person
+
+People can erase what the bot remembers about them by sending `/membrain_forget confirm` themselves (a command, so a model cannot be talked into it). As the operator you can erase or export any one person from the command line:
+
+```sh
+membrain plugin export-user --directory <data>/membrain --platform aiocqhttp --user 1001 --out alice.json
+membrain plugin forget-user --directory <data>/membrain --platform aiocqhttp --user 1001
+```
+
+Add `--group <id>` for the memory kept from a group chat. Erasing removes the content for good, including records still queued; a restored backup cannot bring it back. The export holds the person's original messages, so store it securely.
+
 ## Status
 
 Tested with stand-ins for AstrBot's plugin API and a real memBrain service (two QQ users kept apart, a group kept apart from a private chat, pause), and the tool docstrings are checked against AstrBot's parameter format. On Windows 11 it ran inside AstrBot 4.29.3 (source install, Python 3.12) with DeepSeek through AstrBot's own WebChat: AstrBot installed the dependency from `requirements.txt`, the first start created the memory in `data/plugin_data/membrain`, the model saved notes and searched with the plugin's tools, each of two users recalled their own facts in a new conversation, and neither saw the other's. That run found a bug that stopped every first start (fixed). QQ through NapCat has not been tried yet.

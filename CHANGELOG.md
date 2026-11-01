@@ -15,6 +15,12 @@ memBrain is a human-inspired memory engine for AI agents. It keeps persistent me
 - Guided first use through `membrain plugin setup`: actual incoming-message status, host connection instructions, a cross-session exercise and local semantic-model retry without an extra API key.
 - Saved notes refresh inside ongoing sessions after corrections, removals and coming-up changes. Fingerprints are bound to the selected brain, failed reads preserve the previous snapshot, and unchanged snapshots are not repeated. Previously delivered text cannot be retracted from a host model.
 - Explicit questions about earlier assistant recommendations retain attributed speech recall even when complete user history is already loaded. Other people's recommendations do not enable assistant-speech recall.
+- Follow-ups from the product review:
+  - Each bot can have its own proxy token and namespace (`MEMBRAIN_PROXY_TOKENS`): one bot's token cannot reach another bot's people, and a namespaced request that names nobody is refused.
+  - People on AstrBot erase their own memory with `/membrain_forget confirm`; operators erase or export one person with `membrain plugin forget-user` and `export-user`.
+  - Redaction also removes payment card numbers, Chinese ID numbers and US SSNs (checked by checksum or format), more key formats, credential assignments, passwords in connection URLs and passwords given in words; emails and phone numbers too with `MEMBRAIN_REDACT_CONTACTS=1`. MCP `memory_observe` is redacted as well.
+  - Hook processes no longer load the agent runtime and cognition code, saving about 200 ms on every message.
+  - Exact vector search was measured at about 0.1 s for 200,000 statements in one brain; an approximate index is deferred until brains reach about 300,000 statements ([measurement](evaluations/vector-search-2026-11-01.md)).
 - Memory of a person's life (Phase B):
   - Typed notes: a note can carry a kind (person, constraint, preference, plan, routine, milestone, relationship, agent commitment), a person it is about, aliases, a plan status (intended, scheduled, done, cancelled), dates, pinned and sensitive. Notes are stored as plain text with a short header, so recall, the memory page and deletion work as before.
   - Every session starts with a `<membrain-coming-up>` block of plans and promises that are due soon, overdue or still open, and with notes grouped by kind and chosen by priority within the budget.

@@ -68,9 +68,9 @@ def _load_astrbot_plugin(monkeypatch, tmp_path):
     registered = {}
 
     def decorator(kind):
-        def factory(**options):
+        def factory(*names, **options):
             def wrap(function):
-                registered[options.get("name") or kind] = function
+                registered[(names[0] if names else None) or options.get("name") or kind] = function
                 return function
             return wrap
         return factory
@@ -84,7 +84,7 @@ def _load_astrbot_plugin(monkeypatch, tmp_path):
         "astrbot.api": types.SimpleNamespace(star=types.SimpleNamespace(Star=Star, Context=object)),
         "astrbot.api.event": types.SimpleNamespace(AstrMessageEvent=object, filter=types.SimpleNamespace(
             on_llm_request=decorator("request"), on_llm_response=decorator("response"),
-            llm_tool=decorator("tool"))),
+            llm_tool=decorator("tool"), command=decorator("command"))),
         "astrbot.api.provider": types.SimpleNamespace(LLMResponse=object, ProviderRequest=object),
         "astrbot.core.utils.astrbot_path": types.SimpleNamespace(
             get_astrbot_plugin_data_path=lambda: str(tmp_path / "plugin_data")),
@@ -120,6 +120,9 @@ class Event:
     def get_extra(self, key=None, default=None):
         return self.extra.get(key, default)
 
+    def plain_result(self, text):
+        return text
+
 
 def test_astrbot_plugin_files_are_complete():
     for name in ("main.py", "metadata.yaml", "requirements.txt", "_conf_schema.json"):
@@ -135,7 +138,7 @@ def test_astrbot_plugin_remembers_each_qq_user_separately_through_a_real_service
     module, handlers = _load_astrbot_plugin(monkeypatch, tmp_path)
     directory = tmp_path / "plugin_data" / "membrain"
     assert set(handlers) == {"request", "response", "membrain_note", "membrain_search", "membrain_pause",
-                             "membrain_resume"}
+                             "membrain_resume", "membrain_forget"}
     try:
         # AstrBot constructs the plugin before any installation exists; its background start must still succeed.
         plugin = module.MembrainPlugin(context=None, config={})
@@ -173,6 +176,33 @@ def test_astrbot_plugin_remembers_each_qq_user_separately_through_a_real_service
         with host.ready_client(directory, plugin.memory.user_id(module.Speaker("aiocqhttp", "2002"))) as client:
             stored = json.dumps(client.timeline(roles=("user", "assistant"), max_characters=200_000))
         assert "marathon" in stored and "changing jobs" not in stored
+
+        async def command(event, *args):
+            return [reply async for reply in plugin.membrain_forget(event, *args)]
+
+        # A person erases their own memory with a command they send themselves; others keep theirs.
+        assert "confirm" in asyncio.run(command(Event("1001", "/membrain_forget")))[0]
+        assert asyncio.run(command(Event("1001", "/membrain_forget confirm"), "confirm"))[0].startswith("Done")
+        plugin.memory._blocks.clear()
+        async def both():
+            return (await turn(Event("1001", "What treats can I buy for my cat?", message_id="m4"), "Ask me.",
+                               conversation="c4"),
+                    await turn(Event("2002", "Any advice for my race?", message_id="m5"), "Rest.", conversation="c5"))
+
+        alice, bob = asyncio.run(both())
+        assert "Biscuit" not in alice and "marathon" in bob
+        # An operator can export or erase one person from the command line.
+        from membrain import plugin_cli
+
+        exported = tmp_path / "bob.json"
+        args = types.SimpleNamespace(plugin_command="export-user", platform="aiocqhttp", user="2002", group=None,
+                                     user_id=None, yes=True, out=exported)
+        assert plugin_cli._person(args, directory) == 0
+        assert "marathon" in exported.read_text() and oct(exported.stat().st_mode & 0o777) == "0o600"
+        args.plugin_command = "forget-user"
+        assert plugin_cli._person(args, directory) == 0
+        with host.ready_client(directory, plugin.memory.user_id(module.Speaker("aiocqhttp", "2002"))) as client:
+            assert "marathon" not in json.dumps(client.timeline(roles=("user", "assistant"), max_characters=200_000))
     finally:
         try:
             desktop.stop(directory)

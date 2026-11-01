@@ -35,6 +35,17 @@ mv memBrain-main/integrations/astrbot/astrbot_plugin_membrain . && rm -rf memBra
 
 用 `<private>…</private>` 包住的文字不会被记住；看起来像密码、API key 或 token 的内容会在保存前被移除。
 
+## 删除或导出某一个人的记忆
+
+用户自己发送 `/membrain_forget confirm` 就能删除机器人记住的关于他的内容（这是用户发的命令，模型无法被诱导去执行）。作为运营者，你可以在命令行删除或导出任意一个人的记忆：
+
+```sh
+membrain plugin export-user --directory <数据目录>/membrain --platform aiocqhttp --user 1001 --out alice.json
+membrain plugin forget-user --directory <数据目录>/membrain --platform aiocqhttp --user 1001
+```
+
+群聊里留下的记忆加上 `--group <群号>`。删除会永久清除内容，包括还在排队的记录；从备份恢复也不会让它回来。导出文件里有这个人的原始消息，请妥善保存。
+
 ## 状态
 
 已使用 AstrBot 插件 API 的替身和真实的 memBrain 服务测试（两个 QQ 用户互相隔离、群聊与私聊隔离、暂停记录），工具的文档字符串也已按 AstrBot 的参数格式检查。在 Windows 11 上，它已在 AstrBot 4.29.3（源码安装，Python 3.12）中配合 DeepSeek、通过 AstrBot 自带的 WebChat 实际运行：AstrBot 按 `requirements.txt` 安装了依赖，首次启动在 `data/plugin_data/membrain` 中创建了记忆，模型通过插件工具保存了笔记并进行了检索，两个用户各自在新对话中召回了自己的信息，且互相看不到对方的内容。这次运行发现了一个会让每次首次启动都失败的问题（已修复）。尚未通过 NapCat 接入 QQ 测试。

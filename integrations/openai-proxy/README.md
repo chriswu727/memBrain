@@ -46,6 +46,18 @@ membrain proxy --upstream https://api.deepseek.com/v1 --host 0.0.0.0
 
 Bots then use the token as their API key. The proxy refuses to listen beyond this computer without both settings, because anyone who can reach it could otherwise read memories.
 
+With more than one bot, give each its own token and namespace instead, so one bot's token can never read the people of another:
+
+```sh
+export MEMBRAIN_PROXY_TOKENS="$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))'):qq,$(python3 -c 'import secrets; print(secrets.token_urlsafe(24))'):douyin"
+```
+
+Each entry is `token:namespace`. The people a bot names are kept inside its namespace, even if it sends another platform in `X-Membrain-Platform`, and a request that names nobody is refused instead of falling into a shared memory.
+
+## Erasing or exporting one person
+
+`membrain plugin export-user` and `membrain plugin forget-user` take the person as the proxy sees them: `--platform` is the `X-Membrain-Platform` value (default `api`, or `namespace/platform` with `MEMBRAIN_PROXY_TOKENS`) and `--user` the request's `user`. Add `--group` for a group's memory.
+
 ## Status
 
 Tested with a stand-in provider and a real memBrain service (two live-stream viewers kept apart across days, streaming and non-streaming replies, token mode), and as a running process with an HTTP client. On Windows 11 it ran against the real DeepSeek API (`deepseek-chat` and the reasoning model `deepseek-v4-pro`): streaming and non-streaming replies passed through unchanged (reasoning chunks included), two people told apart by `X-Membrain-User` each recalled their own facts in a later session and not the other's, and `/v1/models` and provider errors were forwarded. Not yet run with a specific bot project.

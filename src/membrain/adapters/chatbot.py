@@ -159,6 +159,21 @@ class ChatMemory:
         self._forget_blocks(user)
         return result
 
+    def forget(self, speaker: Speaker) -> dict:
+        """Erase everything this speaker's memory holds here, and their memory of the bot's role-play character."""
+        users = [self.user_id(speaker)]
+        if self.roleplay:
+            users.append(self.memory_user(speaker))
+        results = [host.erase_user(self.directory, user) for user in dict.fromkeys(users)]
+        for user in users:
+            self._forget_blocks(user)
+        return {"erased": all(result["erased"] in ("accepted", "completed") for result in results),
+                "queued_records_dropped": sum(result["queued_records_dropped"] for result in results)}
+
+    def export(self, speaker: Speaker) -> dict:
+        """This speaker's memory here as an archive document."""
+        return host.export_user(self.directory, self.user_id(speaker))
+
     def resume(self, speaker: Speaker) -> dict:
         user = self.user_id(speaker)
         result = host.resume(self.directory, user_id=user)

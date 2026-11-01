@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -32,10 +33,59 @@ def add_commands(commands):
     pause = actions.add_parser("pause", help="Stop recording messages (recall keeps working) until resumed")
     pause.add_argument("--hours", type=float, default=None, help="Resume automatically after this many hours")
     actions.add_parser("resume", help="Resume recording messages")
+    for name, text in (("forget-user", "Erase everything one person's memory holds (for bot operators); cannot be undone"),
+                       ("export-user", "Export one person's memory as an archive document (for bot operators)")):
+        person = actions.add_parser(name, help=text)
+        person.add_argument("--platform", help="Platform as the bot reports it (for example aiocqhttp, telegram, or a "
+                                               "proxy namespace/platform such as qq/api)")
+        person.add_argument("--user", help="The person's id on that platform")
+        person.add_argument("--group", help="The group, for memory kept from a group chat")
+        person.add_argument("--user-id", help="A memBrain user id exactly as stored, instead of the three above")
+        person.add_argument("--yes", action="store_true", help="Do not ask for confirmation (forget-user)")
+        person.add_argument("--out", type=Path, help="Write the export here instead of standard output (export-user)")
     ui = actions.add_parser("ui", help="Open the memory page in a browser (starts the service if needed)")
     ui.add_argument("--no-browser", action="store_true", help="Only print the single-use link")
     for parser in actions.choices.values():
         parser.add_argument("--directory", type=Path, default=None)
+
+
+def _person(args, directory: Path) -> int:
+    """Erase or export one bot user's memory; returns the exit status."""
+    from . import host
+    from .adapters.chatbot import ChatMemory, Speaker
+
+    if args.user_id:
+        user = args.user_id
+    elif args.platform and args.user:
+        user = ChatMemory(directory, group_memory="separate").user_id(Speaker(args.platform, args.user, args.group))
+    else:
+        print("Give --platform and --user (and --group for a group chat), or --user-id.", file=sys.stderr)
+        return 2
+    try:
+        if args.plugin_command == "export-user":
+            document = json.dumps(host.export_user(directory, user), ensure_ascii=False, indent=2)
+            if args.out:
+                # A new owner-only file replaces the target, so an existing readable file never gets the export.
+                temporary = args.out.with_name(f".{args.out.name}.{os.getpid()}.tmp")
+                descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+                    stream.write(document)
+                os.replace(temporary, args.out)
+                print(f"Exported {user} to {args.out}. The file holds their original messages; store it securely.",
+                      file=sys.stderr)
+            else:
+                print(document)
+            return 0
+        if not args.yes:
+            answer = input(f"Erase everything memBrain holds for {user}? This cannot be undone. Type ERASE: ")
+            if answer.strip() != "ERASE":
+                print("Nothing was erased.", file=sys.stderr)
+                return 1
+        print(json.dumps({"user_id": user, **host.erase_user(directory, user)}, indent=2))
+        return 0
+    except RuntimeError as error:
+        print(str(error), file=sys.stderr)
+        return 1
 
 
 def dispatch(args) -> None:
@@ -44,6 +94,8 @@ def dispatch(args) -> None:
     directory = plugin.profile_directory(args.directory)
     if args.plugin_command == "hook":
         raise SystemExit(plugin.run_hook(args.event, directory, host_name=args.host))
+    if args.plugin_command in ("forget-user", "export-user"):
+        raise SystemExit(_person(args, directory))
     if args.plugin_command == "import":
         from . import host, imports
 

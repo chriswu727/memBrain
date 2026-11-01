@@ -7,12 +7,13 @@ import re
 import threading
 import time
 import zlib
-from typing import Any, Literal, get_args
+from typing import Any, Literal
 from uuid import uuid4
 
 import httpx
 
 from .outbound import provider_transport
+from .reasoning import ReasoningEffort, _validate_reasoning_effort  # noqa: F401
 from .runtime import ModelRequest
 
 _ERROR_CODES = frozenset({
@@ -30,16 +31,6 @@ _USAGE_DETAILS = {
     ),
 }
 _REQUEST_ID = re.compile(r"[A-Za-z0-9][A-Za-z0-9._:-]{0,255}\Z")
-ReasoningEffort = Literal["minimal", "low", "medium", "high", "xhigh", "max", "ultra"]
-
-
-def _validate_reasoning_effort(value, thinking):
-    if value is None:
-        return
-    if not isinstance(value, str) or value not in get_args(ReasoningEffort):
-        raise ValueError("reasoning_effort must be None or a supported effort level")
-    if thinking == "disabled":
-        raise ValueError("reasoning_effort cannot be set when thinking is disabled")
 
 
 class ChatProviderError(RuntimeError):

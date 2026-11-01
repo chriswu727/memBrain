@@ -110,6 +110,22 @@ class MembrainPlugin(star.Star):
         """
         return json.dumps(await asyncio.to_thread(self.memory.pause, _speaker(event), hours))
 
+    @filter.command("membrain_forget")
+    async def membrain_forget(self, event: AstrMessageEvent, confirm: str = ""):
+        """Erase what the bot remembers about you in this chat. Send /membrain_forget confirm."""
+        if confirm.strip().lower() != "confirm":
+            yield event.plain_result("This erases everything I remember about you in this chat and cannot be undone. "
+                                     "Send /membrain_forget confirm to go ahead.")
+            return
+        try:
+            result = await asyncio.to_thread(self.memory.forget, _speaker(event))
+        except Exception as error:
+            self.logger.warning(f"memBrain erase failed: {type(error).__name__}: {error}")
+            yield event.plain_result("I could not erase your memory just now; please try again shortly.")
+            return
+        yield event.plain_result("Done: everything I remembered about you in this chat is erased."
+                                 if result["erased"] else "Part of your memory could not be erased; please try again.")
+
     @filter.llm_tool(name="membrain_resume")
     async def membrain_resume(self, event: AstrMessageEvent):
         """Resume remembering this user's messages after membrain_pause, when they ask."""

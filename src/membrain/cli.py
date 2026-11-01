@@ -132,10 +132,15 @@ def main() -> None:
     elif args.command == "proxy":
         import os
 
+        from .proxy import parse_tokens
         from .proxy import serve as serve_proxy
+        try:
+            tokens = parse_tokens(os.environ.get("MEMBRAIN_PROXY_TOKENS"))
+        except ValueError as error:
+            raise SystemExit(str(error)) from None
         serve_proxy(args.upstream, host=args.host, port=args.port, directory=args.directory,
                     group_memory=args.group_memory, upstream_key=os.environ.get("MEMBRAIN_UPSTREAM_KEY") or None,
-                    token=os.environ.get("MEMBRAIN_PROXY_TOKEN") or None)
+                    token=os.environ.get("MEMBRAIN_PROXY_TOKEN") or None, tokens=tokens or None)
     elif args.command == "mcp":
         from .mcp_server import main as mcp_main
         mcp_main()

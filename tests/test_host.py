@@ -428,3 +428,124 @@ def test_the_spool_stops_growing_when_memory_has_been_down_too_long(tmp_path, mo
     for index in range(20):
         host.spool(tmp_path, host.message_record("s", "user", f"message number {index}"))
     assert (tmp_path / "plugin" / "spool.jsonl").stat().st_size < 600
+
+
+def test_hooks_do_not_load_the_agent_runtime_or_cognition():
+    import subprocess
+    import sys
+
+    code = ("import sys, membrain.plugin; print([m for m in ('membrain.runtime', 'membrain.chat_provider', "
+            "'membrain.cognition', 'membrain.semantic', 'membrain.service') if m in sys.modules])")
+    loaded = subprocess.run([sys.executable, "-c", code], capture_output=True, text=True, check=True).stdout.strip()
+    assert loaded == "[]"  # Every hook is a short process; loading the runtime would slow every message.
+
+
+@pytest.mark.parametrize("secret", [
+    "sk_live_" + "a1" * 12, "rk_test_" + "b2" * 10, "glpat-" + "c" * 20, "hf_" + "d" * 34, "npm_" + "e" * 36,
+])
+def test_more_key_formats_are_scrubbed(secret):
+    assert host.scrub(f"use {secret} please") == f"use {host.SECRET_MARK} please"
+
+
+def test_passwords_in_urls_assignments_and_words_are_scrubbed():
+    assert host.scrub("db is postgresql://app:s3cretPass@db.internal:5432/main") == (
+        f"db is postgresql://app:{host.SECRET_MARK}@db.internal:5432/main")
+    assert host.scrub("aws_secret_access_key = wJalrXUtnFEMI/K7MDENG") == (
+        f"aws_secret_access_key = {host.SECRET_MARK}")
+    assert host.scrub("My password is Tr0ub4dor&3 so remember it") == (
+        f"My password is {host.SECRET_MARK} so remember it")
+    assert host.scrub("我的银行卡密码是884213，别忘了") == f"我的银行卡密码是{host.SECRET_MARK}"
+
+
+def test_card_and_identity_numbers_are_removed_but_ordinary_numbers_are_kept():
+    from membrain.privacy import NUMBER_MARK
+
+    assert host.scrub("card 4111 1111 1111 1111 exp 12/29") == f"card {NUMBER_MARK} exp 12/29"
+    assert host.scrub("身份证号11010519491231002X，请记住") == f"身份证号{NUMBER_MARK}，请记住"
+    assert host.scrub("SSN 078-05-1120 on file") == f"SSN {NUMBER_MARK} on file"
+    ordinary = ("Order 4111111111111112 shipped on 2026-10-29 at 14:05; call 13812345678 or +44 20 7946 0958; "
+                "ID 110105194912310021 is not valid; max_tokens: 16384; the token ring game.")
+    assert host.scrub(ordinary) == ordinary
+
+
+def test_contacts_are_removed_only_when_asked(monkeypatch):
+    from membrain.privacy import CONTACT_MARK
+
+    text = "Email mei@example.com or call 13812345678 / +1 (415) 555-0134."
+    assert host.scrub(text) == text
+    monkeypatch.setenv("MEMBRAIN_REDACT_CONTACTS", "1")
+    assert host.scrub(text) == f"Email {CONTACT_MARK} or call {CONTACT_MARK} / {CONTACT_MARK}."
+
+
+def test_mcp_observations_are_scrubbed_before_they_are_stored(tmp_path):
+    import asyncio
+
+    from membrain.mcp_server import create_server
+
+    class Observing(Client):
+        def observe(self, text, **record):
+            self.observed.append({"text": text, **record})
+            return {"outcome": "accepted"}
+
+    client = Observing()
+    server = create_server(client, directory=tmp_path)
+    asyncio.run(server.call_tool("memory_observe", {
+        "text": "Deploy key sk-proj-" + "z" * 30 + " and card 4111 1111 1111 1111.", "conversation_id": "c",
+        "branch_id": "main", "source_event_key": "k1"}))
+    stored = client.observed[-1]["text"]
+    assert "z" * 30 not in stored and "4111" not in stored and host.SECRET_MARK in stored
+
+
+def test_erasing_a_person_waits_for_a_replay_and_keeps_other_peoples_queued_records(tmp_path, monkeypatch):
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Event
+
+    events, started, release = [], Event(), Event()
+    host.spool(tmp_path, host.message_record("s", "user", "alice's message", user_id="alice"))
+    host.spool(tmp_path, host.message_record("s", "user", "bob's message", user_id="bob"))
+
+    class Replay(Client):
+        def ensure_brain(self, brain, name):
+            pass
+
+        def observe(self, **record):
+            started.set()
+            assert release.wait(5)
+            events.append("deliver " + record["text"])
+
+    class Eraser(Client):
+        def dashboard(self):
+            return {"brain": {"scope_generation": 1}}
+
+        def forget(self, ids, **options):
+            events.append("erase")
+            return {"outcome": "completed"}
+
+    monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: Eraser())
+    with ThreadPoolExecutor() as pool:
+        replay = pool.submit(host.flush, Replay(), tmp_path)
+        assert started.wait(5)
+        erase = pool.submit(host.erase_user, tmp_path, "alice")
+        host.spool(tmp_path, host.message_record("s", "user", "bob's later message", user_id="bob"))
+        assert not erase.done()  # The erase waits for the replay already under way.
+        release.set()
+        replay.result(timeout=10)
+        erase.result(timeout=10)
+    assert events == ["deliver alice's message", "deliver bob's message", "erase"]
+    remaining = (tmp_path / "plugin" / "spool.jsonl").read_text()
+    assert "bob's later message" in remaining and "alice" not in remaining
+
+
+def test_an_export_replaces_an_existing_readable_file_with_an_owner_only_one(tmp_path, monkeypatch):
+    import types
+
+    from membrain import plugin_cli
+
+    target = tmp_path / "export.json"
+    target.write_text("old")
+    target.chmod(0o644)
+    monkeypatch.setattr(host, "export_user", lambda directory, user: {"messages": ["private words"]})
+    args = types.SimpleNamespace(plugin_command="export-user", platform=None, user=None, group=None,
+                                 user_id="qq:1", yes=True, out=target)
+    assert plugin_cli._person(args, tmp_path) == 0
+    assert "private words" in target.read_text() and oct(target.stat().st_mode & 0o777) == "0o600"

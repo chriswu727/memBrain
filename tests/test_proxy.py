@@ -191,3 +191,30 @@ def test_an_allowed_browser_origin_gets_cors_answers_and_others_do_not(tmp_path)
         assert local.headers["access-control-allow-origin"] == "http://localhost:3000"
         assert client.options("/v1/chat/completions", headers={"origin": "https://evil.example", **preflight}
                               ).status_code == 403
+
+
+def test_each_bot_token_reaches_only_its_own_people(tmp_path):
+    from membrain.proxy import parse_tokens
+
+    memory, upstream = Memory(tmp_path), Upstream()
+    tokens = parse_tokens("qq-bot-token-0123456789:qq,douyin-token-0123456789:douyin")
+    chat = {"model": "m", "user": "1001", "messages": [{"role": "user", "content": "hi"}]}
+    with _client(memory, upstream, tokens=tokens, upstream_key="sk-upstream") as client:
+        assert client.post("/v1/chat/completions", json=chat,
+                           headers={"authorization": "Bearer qq-bot-token-0123456789"}).status_code == 200
+        assert client.post("/v1/chat/completions", json=chat, headers={
+            "authorization": "Bearer douyin-token-0123456789", "x-membrain-platform": "qq",
+            "x-membrain-session": "s1"}).status_code == 200
+        # A namespaced bot must name its person; it never falls back to a shared memory.
+        anonymous = {"model": "m", "messages": [{"role": "user", "content": "hi"}]}
+        assert client.post("/v1/chat/completions", json=anonymous,
+                           headers={"authorization": "Bearer qq-bot-token-0123456789"}).status_code == 400
+        assert client.post("/v1/chat/completions", json=chat,
+                           headers={"authorization": "Bearer wrong-token-0123456789"}).status_code == 401
+    (qq, _, _), (douyin, _, session) = memory.contexts
+    # The same user id under two tokens is two different people, even when one claims the other's platform.
+    assert memory.user_id(qq) != memory.user_id(douyin)
+    assert qq.platform == "qq/api" and douyin.platform == "douyin/qq" and session == "douyin:s1"
+    assert all(request["auth"] == "Bearer sk-upstream" for request in upstream.requests)
+    with pytest.raises(ValueError):
+        parse_tokens("short:qq")

@@ -73,6 +73,7 @@ Plugin mode is an optional host adapter over the unchanged core. The core still 
 
 - Until the semantic model has downloaded, or without the `semantic` extra, automatic recall is lexical: common English word forms are folded (`run`, `running`, `ran`), but synonyms and cross-language matches are not ("wedding" does not match "getting married"; a Chinese question does not match English records). See the [plugin-path A/B report](../evaluations/v1-2026-10-27-plugin-path-ab.md).
 - Notes depend on the host model saving them. With DeepSeek V4 Pro under the skill guidance it saved dated notes and replaced outdated ones unprompted; other hosts and models have not been measured. Claude Code asks once before a plugin MCP tool is used.
+- Vector recall is an exact scan within one brain: about 0.1 s at 200,000 statements, measured in the [vector search check](../evaluations/vector-search-2026-11-01.md), which also explains why there is no approximate index yet.
 - Vector similarity has no relevance floor: in a small memory every record is a candidate, so a few loosely related records can be injected. They are labelled as historical data and limited to the recall budget.
 - The model download needs access to Hugging Face or a mirror (`HF_ENDPOINT`). ONNX Runtime wheels do not exist for every platform; there recall stays lexical.
 - A query containing words such as "remember" is treated as a prior-record check. The hook supplies an evidence cutoff; the `memory_recall` MCP tool does not, so the skill tells Claude to avoid that phrasing.

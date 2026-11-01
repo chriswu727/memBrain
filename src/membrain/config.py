@@ -7,8 +7,8 @@ from typing import Literal
 
 from dotenv import load_dotenv
 
-from .chat_provider import ReasoningEffort, _validate_reasoning_effort
 from .helpers import Principal
+from .reasoning import ReasoningEffort, _validate_reasoning_effort
 
 
 @dataclass

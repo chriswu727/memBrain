@@ -46,7 +46,7 @@ Every hook fails open: if memory is unavailable the prompt and reply proceed unc
 - `membrain plugin status` shows the service state, queued records and whether semantic recall is ready; `membrain desktop stop` stops the service.
 - Ask Claude to forget something, or use the `memory_forget` tool, to suppress or erase records. Erasing cannot be undone, so keep `memory_forget` on ask-each-time rather than always allowing it: text in a repository or web page the agent reads could try to trigger it.
 - Say "don't remember this" (Claude calls `memory_pause`) or run `membrain plugin pause [--hours N]` to stop recording; `membrain plugin resume` turns it back on. A turn in which recording is paused is not stored at all.
-- Wrap anything in `<private>…</private>` to keep it out of memory. Values that look like passwords, API keys, tokens or private keys are replaced with `[secret removed]` before storage.
+- Wrap anything in `<private>…</private>` to keep it out of memory. Values that look like passwords, API keys, tokens or private keys are replaced with `[secret removed]`, and payment card and identity numbers with `[personal number removed]`, before storage. Set `MEMBRAIN_REDACT_CONTACTS=1` to remove email addresses and phone numbers as well.
 
 ## Limits
 

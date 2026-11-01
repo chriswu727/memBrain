@@ -107,8 +107,10 @@ def create_server(client: MemoryClient, *, directory=None) -> FastMCP:
         source_revision: int = 1,
     ) -> dict[str, Any]:
         """Save an assistant-authored observation. Reuse source_event_key on retries; this does not verify user claims."""
+        from membrain.privacy import scrub
+
         return await asyncio.to_thread(
-            client.observe, text, conversation_id=conversation_id, branch_id=branch_id,
+            client.observe, scrub(text), conversation_id=conversation_id, branch_id=branch_id,
             source_event_key=source_event_key, source_revision=source_revision,
             role="assistant", actor_ref="assistant", producer_ref="mcp",
             delivery_state="unknown", interpretation_hint="unknown",
