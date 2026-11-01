@@ -27,6 +27,7 @@ from pathlib import Path
 
 import httpx
 from fastapi import FastAPI, Request
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
 from .adapters.chatbot import ChatMemory, Speaker
@@ -35,6 +36,7 @@ PRODUCER = "membrain-proxy"
 DEFAULT_PORT = 8790
 MAX_BODY_BYTES = 32 * 1024 * 1024  # Generous for pasted documents and inline images.
 LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
+_LOOPBACK_ORIGIN = r"https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?"
 _FORWARDED = ("content-type", "accept", "openai-organization", "openai-project", "anthropic-version")
 _logger = logging.getLogger("membrain.proxy")
 
@@ -96,6 +98,10 @@ def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | N
         await client.aclose()
 
     app = FastAPI(title="memBrain memory proxy", docs_url=None, redoc_url=None, openapi_url=None, lifespan=lifespan)
+    # Browser front ends that call the proxy directly need CORS answers; the guard below runs first and refuses
+    # every origin that is neither this computer nor listed.
+    app.add_middleware(CORSMiddleware, allow_origins=sorted(origins), allow_origin_regex=_LOOPBACK_ORIGIN,
+                       allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["*"], max_age=600)
 
     @app.middleware("http")
     async def guard(request: Request, call_next):

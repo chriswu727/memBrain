@@ -174,3 +174,20 @@ def test_a_token_proxy_serves_any_host_name(tmp_path):
         response = client.post("/v1/chat/completions", headers={"host": "bot-server.lan:8790", "authorization": "Bearer t0ken"},
                                json={"model": "m", "messages": [{"role": "user", "content": "hi"}]})
     assert response.status_code == 200 and upstream.requests[-1]["auth"] == "Bearer sk-upstream"
+
+
+def test_an_allowed_browser_origin_gets_cors_answers_and_others_do_not(tmp_path):
+    memory, upstream = Memory(tmp_path), Upstream()
+    chat = {"model": "m", "messages": [{"role": "user", "content": "hi"}]}
+    preflight = {"access-control-request-method": "POST", "access-control-request-headers": "content-type,authorization"}
+    with _client(memory, upstream, allowed_origins=frozenset({"https://chat.example"})) as client:
+        allowed = client.options("/v1/chat/completions", headers={"origin": "https://chat.example", **preflight})
+        assert allowed.status_code == 200
+        assert allowed.headers["access-control-allow-origin"] == "https://chat.example"
+        response = client.post("/v1/chat/completions", json=chat, headers={"origin": "https://chat.example"})
+        assert response.status_code == 200
+        assert response.headers["access-control-allow-origin"] == "https://chat.example"
+        local = client.options("/v1/chat/completions", headers={"origin": "http://localhost:3000", **preflight})
+        assert local.headers["access-control-allow-origin"] == "http://localhost:3000"
+        assert client.options("/v1/chat/completions", headers={"origin": "https://evil.example", **preflight}
+                              ).status_code == 403
