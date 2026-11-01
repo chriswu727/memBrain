@@ -133,7 +133,7 @@ Status: implemented (`membrain plugin import`, Hermes automatic import, per-host
 
 ### A6. Standard benchmarks
 
-Status: LoCoMo done ([report](../evaluations/locomo-2026-10-29.md)), with DeepSeek-V4.1-Flash answering and judging: memBrain through the plugin path 76.4% after recall changes tuned on three of the ten conversations (76.2% on the other seven, up from 69.3%), full context 81.4%, no memory 2.4%. LongMemEval on a 30-question sample ([report](../evaluations/longmemeval-2026-10-29.md)): memBrain 22, full history 22, no memory 2; the full 500 questions need faster embedding. PersonaMem is next.
+Status: LoCoMo done ([report](../evaluations/locomo-2026-10-29.md)), with DeepSeek-V4.1-Flash answering and judging: memBrain through the plugin path 76.4% after recall changes tuned on three of the ten conversations (76.2% on the other seven, up from 69.3%), full context 81.4%, no memory 2.4%. LongMemEval on a 30-question sample ([report](../evaluations/longmemeval-2026-10-29.md)): memBrain 22, full history 22, no memory 2; the full 500 questions have not been run (the sample predates batched local embedding). PersonaMem is next.
 
 Measure end-to-end answer accuracy with a judge, not retrieval alone, for these arms: no memory, full context (where it fits), and memBrain through the plugin path.
 
@@ -222,6 +222,8 @@ Status: implemented, with two parts deliberately left out.
 - The memory page marks the same likely duplicates and offers **Merge duplicate**: the person edits the merged sentence, which is saved as their own note and replaces both.
 - Not built: embedding similarity. Hooks run as short processes and cannot load the embedding model cheaply on every session start. Same kind, same person and word overlap catch the duplicates seen in the evaluations so far.
 - Not built: usage-based decay. Within each priority tier, newer notes already come first, and a note is never deleted automatically. Recording note use would mean a write on every recall, for a ranking change that has not been shown to matter.
+
+The original plan, for reference:
 
 - Detect near-duplicate notes by embedding similarity and same `about`. Offer merges on the memory page, and let the host merge at session end when notes exceed a threshold.
 - When notes exceed the session-start budget, choose notes by pinned status, then by importance, recency and relevance to the session's first message.

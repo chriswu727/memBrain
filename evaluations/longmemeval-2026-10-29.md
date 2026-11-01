@@ -43,5 +43,5 @@ DeepSeek-V4.1-Flash answered with thinking disabled. It was judged with LongMemE
 ## Limits
 
 - 30 questions, one run, a same-model judge. A difference of one question is 3.3 points; this sample cannot tell apart systems within about 15 points of each other.
-- Embedding speed is the bottleneck: the local model embeds one memory per background job. Running all 500 questions would take days on this machine, and batching embeddings is the fix ([changelog](../CHANGELOG.md), Known limits).
+- Embedding speed was the bottleneck: at the time the local model embedded one memory per background job, so running all 500 questions would have taken days on this machine. Local embedding has since been batched ([workflow measurements](v1-2026-10-30-workflow-acceptance.md)); this sample was not rerun.
 - As in LoCoMo, no notes were saved, because there is no host model in the conversation at ingestion time.
