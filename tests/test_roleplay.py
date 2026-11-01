@@ -99,7 +99,7 @@ def test_proxy_roleplay_header_selects_the_story_memory(tmp_path):
     upstream = httpx.MockTransport(lambda request: httpx.Response(
         200, json={"choices": [{"message": {"role": "assistant", "content": "Aye."}}]}))
     app = create_proxy_app(Memory(tmp_path), "https://api.example/v1", transport=upstream)
-    with TestClient(app) as client:
+    with TestClient(app, base_url="http://127.0.0.1:8790") as client:
         client.post("/v1/chat/completions", headers={"X-Membrain-Roleplay": "Captain  Vale",
                                                       "X-Membrain-Share-Real-Life": "1"},
                     json={"model": "m", "user": "st:hao", "messages": [{"role": "user", "content": "Ahoy"}]})
