@@ -43,6 +43,8 @@ jobs:
       MEMORY_DATABASE_APP_PASSWORD: ci-disposable-app
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # The pinned runtime commit must be present to compare it with the source.
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
