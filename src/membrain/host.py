@@ -1193,17 +1193,19 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
 
 def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: str | None = None,
                 producer: str = PRODUCER, prompt: str | None = None, user_id: str | None = None,
-                roleplay: str | None = None) -> None:
+                roleplay: str | None = None) -> list[dict]:
     """Store the staged user message and the reply, unless recording was paused during the turn.
 
     Hosts that report the whole turn at once pass ``prompt``; it is recorded if no prompt was staged for it.
+    Returns the records stored or queued, so a caller can link what it derives from them; empty when the turn
+    was not recorded.
     """
     user_id = roleplay_user(user_id, roleplay)
     pending, paused_turn, staged_user = _take_turn(directory, session)
     if user_id is None:
         user_id = pending.get("_user") if pending else staged_user
     if paused_turn or paused(directory, user_id):
-        return
+        return []
     records = [pending] if pending else []
     if isinstance(prompt, str) and prompt.strip() and (pending is None or pending["text"] != scrub(prompt)):
         pending = message_record(session, "user", prompt, turn_id=turn_id, producer=producer, user_id=user_id)
@@ -1214,13 +1216,14 @@ def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: st
         records.append(message_record(session, "assistant", reply, turn_id=turn_id, producer=producer,
                                       user_id=user_id))
     if not records:
-        return
+        return []
     client = ready_client(directory, user_id)
     if client is None:
         for record in records:
             deliver(directory, None, record)
         start_in_background(directory)
-        return
+        return records
     with client:
         for record in records:
             deliver(directory, client, record)
+    return records

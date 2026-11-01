@@ -35,6 +35,10 @@ Each person has their own memory: what Alice told the bot is never shown in a re
 
 Wrap text in `<private>…</private>` to keep it out of memory; values that look like passwords, API keys or tokens are removed before storage.
 
+## When the bot's model cannot call tools
+
+The plugin gives AstrBot's model a `membrain_note` tool. If the model you use does not call tools, fill in the three extraction settings (model, base URL and key of an OpenAI-compatible model such as `deepseek-chat`): after each reply, that model reads the exchange once and saves the lasting facts as notes. Each message worth reading costs one extra call.
+
 ## Erasing or exporting one person
 
 People can erase what the bot remembers about them by sending `/membrain_forget confirm` themselves (a command, so a model cannot be talked into it). As the operator you can erase or export any one person from the command line:

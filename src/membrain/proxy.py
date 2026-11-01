@@ -282,7 +282,12 @@ def serve(upstream: str, *, host: str = "127.0.0.1", port: int = DEFAULT_PORT, d
                          "MEMBRAIN_UPSTREAM_KEY, so only your bots can use the proxy and read memory.")
     directory = host_module.profile_directory(directory)
     host_module.ensure_installation(directory)
-    memory = ChatMemory(directory, group_memory=group_memory, producer=PRODUCER, tools=None)
+    from .extraction import Extractor
+
+    extractor = Extractor.from_environment(base_url=upstream, api_key=upstream_key)
+    if extractor is not None and not extractor.api_key:
+        raise SystemExit("Note extraction needs MEMBRAIN_EXTRACT_KEY (or MEMBRAIN_UPSTREAM_KEY) for its model.")
+    memory = ChatMemory(directory, group_memory=group_memory, producer=PRODUCER, tools=None, extractor=extractor)
     memory.start()
     print(f"memBrain proxy: set your bot's base_url to http://{host}:{port}/v1 (forwarding to {upstream})",
           flush=True)

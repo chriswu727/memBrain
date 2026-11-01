@@ -1,0 +1,8 @@
+{
+  "prompt_tokens": 10482274,
+  "completion_tokens": 55007,
+  "total_tokens": 10537281,
+  "prompt_cache_hit_tokens": 6920958,
+  "prompt_cache_miss_tokens": 3561316,
+  "calls": 3498
+}

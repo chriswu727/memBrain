@@ -35,6 +35,10 @@ mv memBrain-main/integrations/astrbot/astrbot_plugin_membrain . && rm -rf memBra
 
 用 `<private>…</private>` 包住的文字不会被记住；看起来像密码、API key 或 token 的内容会在保存前被移除。
 
+## 机器人的模型不支持工具调用时
+
+插件会给 AstrBot 的模型提供 `membrain_note` 工具。如果你用的模型不会调用工具，请填写三个提取设置（一个 OpenAI 兼容模型的名称、地址和 key，例如 `deepseek-chat`）：每次回复后，这个模型会把这轮对话读一遍，把长期有用的事实保存为笔记。每条值得读的消息多一次模型调用。
+
 ## 删除或导出某一个人的记忆
 
 用户自己发送 `/membrain_forget confirm` 就能删除机器人记住的关于他的内容（这是用户发的命令，模型无法被诱导去执行）。作为运营者，你可以在命令行删除或导出任意一个人的记忆：

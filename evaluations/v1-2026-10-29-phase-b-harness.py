@@ -8,6 +8,9 @@ MEMBRAIN_SRC (a checkout of the commit before Phase B). Role-play sessions (ids 
 role-play memory in P; O has none. The host is told the scenario's date, as Claude Code tells the model today's date,
 and P's coming-up block uses the same date.
 
+X and E run the memory proxy's path (ChatMemory without tools); E adds note extraction (EXTRACT_MODEL, default
+deepseek-flash) after each turn.
+
 Usage: MEMBRAIN_SRC=... MEMBRAIN_MODEL_CACHE=... MEMBRAIN_PORTS=api,db python v1-2026-10-29-phase-b-harness.py ARM SCENARIO_FILE OUT_DIR
 Resumable per arm and turn; hard call cap.
 """
@@ -54,12 +57,18 @@ def session_date(text: str, previous: datetime.date | None) -> datetime.date | N
 
 
 def simulate_today(today: datetime.date) -> None:
-    """Make the notes module (coming-up block) see the scenario date."""
-    try:
-        from membrain import notes
-    except ImportError:
-        return
-    if not hasattr(notes, "_datetime"):
+    """Make the notes module (coming-up block) and note extraction see the scenario date."""
+    import importlib
+
+    modules = []
+    for name in ("membrain.notes", "membrain.extraction"):
+        try:
+            module = importlib.import_module(name)
+        except ImportError:
+            continue
+        if hasattr(module, "_datetime"):
+            modules.append(module)
+    if not modules:
         return
 
     class ScenarioDate(datetime.date):
@@ -70,7 +79,8 @@ def simulate_today(today: datetime.date) -> None:
     shim = types.ModuleType("datetime")
     shim.__dict__.update(datetime.__dict__)
     shim.date = ScenarioDate
-    notes._datetime = shim
+    for module in modules:
+        module._datetime = shim
 
 
 class Host:
@@ -199,10 +209,21 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
         if path.exists() else {}
     host = Host(cap=sum(len(turns) for _, turns in sessions) * 5)
     memory = None
-    if arm in ("P", "O"):
+    chat = speaker = None
+    if arm in ("P", "O", "X", "E"):
         cache = os.environ.get("MEMBRAIN_MODEL_CACHE")
         ports = tuple(map(int, os.environ["MEMBRAIN_PORTS"].split(","))) if os.environ.get("MEMBRAIN_PORTS") else None
         memory = Memory(out / f"brain-{scenario}-{arm}", Path(cache) if cache else None, ports)
+    if arm in ("X", "E"):
+        # The memory proxy: no tools and no skill; memory goes at the start of the person's message. E adds note
+        # extraction by a cheap model after each turn.
+        from membrain.adapters.chatbot import ChatMemory, Speaker
+        from membrain.extraction import Extractor
+
+        extractor = Extractor(BASE_URL, os.environ.get("EXTRACT_MODEL", "deepseek-flash"),
+                              os.environ["DEEPSEEK_API_KEY"]) if arm == "E" else None
+        chat = ChatMemory(memory.directory, producer="membrain-proxy", tools=None, extractor=extractor)
+        speaker = Speaker("api", "person")
     history, today = [], None
     for session, turns in sessions:
         today = session_date(turns[0], today)
@@ -210,9 +231,11 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
         roleplay = session.split("-")[2] if session.startswith("roleplay-") else None
         date_line = f"Today's date: {today.isoformat()} ({today.strftime('%A')})."
         session_context = None
-        if memory is not None and not all((session, index) in done for index in range(len(turns))):
+        if memory is not None and chat is None and not all((session, index) in done for index in range(len(turns))):
             memory.wait_until_indexed()
             session_context = memory.host.session_context(memory.directory, session, **memory.options(roleplay))
+        elif chat is not None:
+            memory.wait_until_indexed()
         current = []
         for index, text in enumerate(turns):
             key = (session, index)
@@ -221,7 +244,10 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 current += row["transcript"]
                 continue
             system, prompt_context, schemas, client, server = module.HOST + "\n\n" + date_line, None, None, None, None
-            if memory is not None:
+            if chat is not None:
+                prompt_context = chat.context(speaker, text, session=session, turn_id=f"t{index}", roleplay=roleplay)
+                session_context = session_context or prompt_context
+            elif memory is not None:
                 prompt_context = memory.host.prompt_context(memory.directory, session, text, turn_id=f"t{index}",
                                                             **memory.options(roleplay))
                 client, server, schemas = memory.tools(roleplay)
@@ -252,7 +278,11 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 if client is not None:
                     client.close()
             reply = message.get("content") or ""
-            if memory is not None:
+            if chat is not None:
+                chat.record(speaker, reply, session=session, turn_id=f"t{index}", prompt=text, roleplay=roleplay)
+                if chat.extractor is not None:
+                    chat.extractor.wait(120)  # The next message sees this turn's notes, as a live bot usually would.
+            elif memory is not None:
                 memory.host.finish_turn(memory.directory, session, reply, turn_id=f"t{index}",
                                         **memory.options(roleplay))
             # The turn as the host's transcript keeps it: tool calls and results stay visible in later turns.

@@ -237,7 +237,7 @@ async function showSources(container, ids) {
     if (items.length < ids.length) container.append(element("p", "Some original messages are no longer available.", "hint"));
     for (const message of items.reverse()) {
       const block = element("div", undefined, "message");
-      block.append(element("div", `${day(message.recorded_at)} · ${message.actor_role === "user" ? "You" : "Agent"}`, "meta"), element("p", message.text));
+      block.append(element("div", `${day(message.recorded_at)} · ${message.actor_role === "user" ? "You" : "Agent"}`, "meta"), element("p", message.text, "user-text"));
       container.append(block);
     }
   } catch (error) { container.replaceChildren(element("p", error.message, "hint")); }
@@ -253,7 +253,7 @@ function noteItem(note, duplicate) {
   for (const tag of parsed.tags) meta.append(element("span", tag, "tag"));
   const actions = element("span", undefined, "actions");
   const edit = element("button", "Edit", "link"), remove = element("button", "Delete", "link danger");
-  actions.append(edit, remove); meta.append(actions); item.append(meta, element("p", parsed.sentence));
+  actions.append(edit, remove); meta.append(actions); item.append(meta, element("p", parsed.sentence, "user-text"));
   const date = fields.due || fields.occurs_at;
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
@@ -328,7 +328,7 @@ function conversationItem(conversation, messages) {
       block.replaceChildren(editor); editor.querySelector("textarea").focus();
     });
     meta.append(actions);
-    block.append(meta, element("p", message.text));
+    block.append(meta, element("p", message.text, "user-text"));
     guard(remove, async () => {
       if (!confirm("Delete this message? Its content is erased everywhere it was used.")) return;
       await forget("events", [message.event_id], "erase_content", conversation);
@@ -385,7 +385,7 @@ onSubmit($("search-form"), async () => {
     const meta = element("div", undefined, "meta");
     meta.append(element("span", day(message.recorded_at)),
       element("span", message.conversation_id === NOTES ? "note" : message.actor_role === "user" ? "You" : "Agent", "tag"));
-    block.append(meta, element("p", message.text));
+    block.append(meta, element("p", message.text, "user-text"));
     results.append(block);
   }
 });

@@ -133,7 +133,7 @@ Status: implemented (`membrain plugin import`, Hermes automatic import, per-host
 
 ### A6. Standard benchmarks
 
-Status: LoCoMo done ([report](../evaluations/locomo-2026-10-29.md)), with DeepSeek-V4.1-Flash answering and judging: memBrain through the plugin path 76.4% after recall changes tuned on three of the ten conversations (76.2% on the other seven, up from 69.3%), full context 81.4%, no memory 2.4%. LongMemEval on a 30-question sample ([report](../evaluations/longmemeval-2026-10-29.md)): memBrain 22, full history 22, no memory 2; the full 500 questions have not been run (the sample predates batched local embedding). PersonaMem is next.
+Status: LoCoMo done ([report](../evaluations/locomo-2026-10-29.md)), with DeepSeek-V4.1-Flash answering and judging: memBrain through the plugin path 76.4% after recall changes tuned on three of the ten conversations (76.2% on the other seven, up from 69.3%), full context 81.4%, no memory 2.4%. LongMemEval on a 30-question sample ([report](../evaluations/longmemeval-2026-10-29.md)): memBrain 22, full history 22, no memory 2; the full 500 questions have not been run (the sample predates batched local embedding). Under the same model, judge and embeddings, Mem0 open source scored 81.3% on LoCoMo and memBrain with optional note extraction 78.4% (78.5% against 80.3% on the held-out conversations; [report](../evaluations/mem0-and-extraction-2026-11-01.md)). PersonaMem is next.
 
 Measure end-to-end answer accuracy with a judge, not retrieval alone, for these arms: no memory, full context (where it fits), and memBrain through the plugin path.
 
@@ -231,7 +231,7 @@ The original plan, for reference:
 
 ### B7. Evaluation
 
-Status: held-out scenarios done with DeepSeek as host ([report](../evaluations/v1-2026-10-29-phase-b.md)): the plugin scored 18.5 of 22, against 14.5 before Phase B, 18 with full history and 7.5 without memory. Claude as host and PersonaMem are not run yet.
+Status: held-out scenarios done with DeepSeek as host ([report](../evaluations/v1-2026-10-29-phase-b.md)): the plugin scored 18.5 of 22, against 14.5 before Phase B, 18 with full history and 7.5 without memory. Through the proxy path the same scenarios scored 19 of 22 without note extraction and 20 with it, against 17.5 for the plugin's replies scored again by a fresh reviewer; these differences are within reviewer noise ([report](../evaluations/mem0-and-extraction-2026-11-01.md#phase-b-scenarios-through-the-proxy-path)). Claude as host and PersonaMem are not run yet.
 
 - Run PersonaMem.
 - Run two new held-out scenarios written by a separate agent, targeting:
@@ -298,12 +298,12 @@ Phase C ships as **v0.3**.
 | | claude-mem | memBrain |
 | --- | --- | --- |
 | Unit of memory | Agent actions in a project | A person, their life and the relationship |
-| Capture | Tool-use observations compressed by AI (extra model calls; sign-in and a hosted trial by default) | Original messages plus notes curated by the host; no account or extra calls |
+| Capture | Tool-use observations compressed by AI (extra model calls; sign-in and a hosted trial by default) | Original messages plus notes curated by the host; no account or extra calls (bots without a note tool can opt into extraction with a model of their choice) |
 | Trust | Summaries | Every note traces back to its source and speaker; audited deletion that survives restore |
 | Time | Session timeline | Plan status, replacement, upcoming dates, open loops (B1, B3) |
 | Fiction | — | Separate memory for role-play (B4) |
 | Languages | Interface languages | Recall across languages without a key (verified with Chinese, English and Spanish) |
-| Evidence | — | Blinded held-out evaluations now; LoCoMo, LongMemEval and PersonaMem next (A6) |
+| Evidence | — | Blinded held-out evaluations, LoCoMo with a same-setup Mem0 comparison, a LongMemEval sample; PersonaMem next (A6) |
 | Ahead of us today | Maturity, viewer, many hosts, community | — |
 
 ## Risks

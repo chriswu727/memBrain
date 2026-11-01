@@ -47,7 +47,8 @@ class ChatMemory:
 
     def __init__(self, directory: Path, *, group_memory: str = "separate", record_groups: bool = True,
                  producer: str = "membrain-chatbot", tools: dict | None = TOOLS,
-                 block_seconds: float = BLOCK_SECONDS, roleplay: str | None = None, share_real_life: bool = False):
+                 block_seconds: float = BLOCK_SECONDS, roleplay: str | None = None, share_real_life: bool = False,
+                 extractor=None):
         if group_memory not in GROUP_MEMORY:
             raise ValueError(f"group_memory must be one of {', '.join(GROUP_MEMORY)}.")
         self.directory = Path(directory).expanduser()
@@ -55,6 +56,8 @@ class ChatMemory:
         self.block_seconds = block_seconds
         # A bot that plays a character keeps that story's memory apart from each person's real-life memory.
         self.roleplay, self.share_real_life = roleplay or None, share_real_life
+        # Optional: a model that saves notes from each turn, for bots whose own model cannot call the note tool.
+        self.extractor = extractor
         self._blocks: dict[str, tuple[float, str, str, bool]] = {}
         self._lock = threading.Lock()
         host.state_directory(self.directory)
@@ -120,15 +123,32 @@ class ChatMemory:
         share = self.share_real_life if share_real_life is None else share_real_life
         block = self._block(session, self.memory_user(speaker, roleplay), self.user_id(speaker), roleplay, share)
         recalled = host.prompt_context(self.directory, session, text, turn_id=turn_id, producer=self.producer,
-                                       user_id=self.user_id(speaker), roleplay=roleplay, include_source=True)
+                                       user_id=self.user_id(speaker), roleplay=roleplay,
+                                       include_source=bool(self.tools))  # The source hint is for the note tool.
         return "\n\n".join(part for part in (block, recalled) if part) or None
 
     def record(self, speaker: Speaker, reply: str | None, *, session: str, turn_id: str | None = None,
                prompt: str | None = None, roleplay: str | None = None) -> None:
         """Store the staged message (or ``prompt``) and the reply, unless this user paused recording."""
         if self._recording(speaker):
-            host.finish_turn(self.directory, session, reply, turn_id=turn_id, producer=self.producer, prompt=prompt,
-                             user_id=self.user_id(speaker), roleplay=roleplay or self.roleplay)
+            records = host.finish_turn(self.directory, session, reply, turn_id=turn_id, producer=self.producer,
+                                       prompt=prompt, user_id=self.user_id(speaker), roleplay=roleplay or self.roleplay)
+            # Only a turn that was actually recorded is read, and its notes are linked to its messages, so
+            # forgetting those messages forgets the notes too.
+            message = next((record for record in records if record["role"] == "user"), None)
+            if self.extractor is not None and message is not None:
+                sources = [{"producer_ref": record["producer_ref"], "source_event_key": record["source_event_key"],
+                            "source_revision": 1} for record in records]
+                self._extract(self.memory_user(speaker, roleplay), prompt or message["text"], reply or "", sources)
+
+    def _extract(self, user: str, prompt: str, reply: str, sources: list[dict]) -> None:
+        from ..extraction import extract_turn
+
+        def task():
+            if extract_turn(self.directory, self.extractor, user, prompt, reply, sources=sources):
+                self._forget_blocks(user)  # The next session start shows the new notes.
+
+        self.extractor.submit(task)
 
     def note(self, speaker: Speaker, text: str, replaces=(), *, roleplay: str | None = None, source_event_ids=(), source_messages=(), **fields) -> dict:
         from ..notes import note_fields, save_note

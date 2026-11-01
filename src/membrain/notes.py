@@ -342,7 +342,8 @@ def render_coming_up(response: dict, *, today: _datetime.date | None = None, ski
             days = (when - today).days
             relative = "today" if days == 0 else "tomorrow" if days == 1 else f"in {days} days"
             soon.append(f"- {when.isoformat()} ({relative}): {label}")
-    lines = sorted(soon) + passed + undated
+    # Overdue and open items first: they are the ones to follow up on, and must not be crowded out by the week ahead.
+    lines = sorted(passed) + undated + sorted(soon)
     if not lines:
         return None
     header = ("<membrain-coming-up>\nToday is " + f"{today.isoformat()} ({today.strftime('%A')}). Plans and promises "

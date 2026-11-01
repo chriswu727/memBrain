@@ -15,6 +15,9 @@ memBrain is a human-inspired memory engine for AI agents. It keeps persistent me
 - Guided first use through `membrain plugin setup`: actual incoming-message status, host connection instructions, a cross-session exercise and local semantic-model retry without an extra API key.
 - Saved notes refresh inside ongoing sessions after corrections, removals and coming-up changes. Fingerprints are bound to the selected brain, failed reads preserve the previous snapshot, and unchanged snapshots are not repeated. Previously delivered text cannot be retracted from a host model.
 - Explicit questions about earlier assistant recommendations retain attributed speech recall even when complete user history is already loaded. Other people's recommendations do not enable assistant-speech recall.
+- Optional note extraction for bots whose model cannot call the note tool (`MEMBRAIN_EXTRACT_MODEL` for the proxy, three settings in the AstrBot plugin): after each reply a model of your choice reads the exchange once and saves the lasting facts as typed notes. The proxy no longer shows the note-source hint, which only applies to hosts with the note tool. On LoCoMo it raised memBrain from 76.4% to 78.4% (multi-hop +5.6, temporal +4.4 points); Mem0 open source scored 81.3% under the same model, judge and embeddings ([report](evaluations/mem0-and-extraction-2026-11-01.md)).
+- The memory page is available in Chinese: it follows the browser language, with a toggle, and never translates what people wrote.
+- A test run no longer leaves embedded database clusters behind under `/var/lib/membrain` when run as root.
 - Follow-ups from the product review:
   - Each bot can have its own proxy token and namespace (`MEMBRAIN_PROXY_TOKENS`): one bot's token cannot reach another bot's people, and a namespaced request that names nobody is refused.
   - People on AstrBot erase their own memory with `/membrain_forget confirm`; operators erase or export one person with `membrain plugin forget-user` and `export-user`.
@@ -27,6 +30,7 @@ memBrain is a human-inspired memory engine for AI agents. It keeps persistent me
   - Alias names are used as recall cues, so "the sparky" finds the electrician.
   - Role-play memory is kept apart from real life: a role-play character gets its own memory for each person (proxy header `X-Membrain-Roleplay`, the AstrBot setting, `ChatMemory(roleplay=…)`), and real-life notes are shown in a role-play only when allowed and never when marked sensitive.
   - Likely duplicate notes are pointed out to the agent, and the memory page offers to merge them.
+  - Coming-up lists overdue and open plans first, so the week ahead cannot crowd them out of its budget.
   - On two held-out scenarios scored blind, the plugin went from 14.5 to 18.5 of 22 cases, against 18 for the whole history in the prompt and 7.5 for no memory ([report](evaluations/v1-2026-10-29-phase-b.md)).
 - Recall shows the reply that followed a recalled message (the answer to a recalled question, or the reaction to a recalled statement) and considers more candidates.
 - In Claude Code, Codex and WorkBuddy, the `memory_recall` tool now returns the same compact recall as the hooks. It used to return the service's generic rendering. `with_ids` still returns memory IDs for the forgetting steps.
