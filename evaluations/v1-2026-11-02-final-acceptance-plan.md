@@ -100,6 +100,10 @@ R4 passes when both gated arms pass. The reference arm is reported, not gated.
   - Once a sheet has been scored, F and G are not used for acceptance again.
 - **If a gated arm fails.** The failure is reported as it is, and its cause is diagnosed and repaired. Then two new scenarios are written the same way and this plan runs again on the new candidate.
 
+## Amendment, 2026-11-02, before any reply was scored
+
+Scenario F's three arms cost 18.00 CNY (balance 374.77 → 356.77), so scenario G at the same cost would exceed the 30 CNY cap. Following the stop rule, the plan stopped before scenario G and the owner was asked. The owner approved further DeepSeek spending without a fixed cap. Scenario G runs with all three arms, unchanged. No sheet had been built or read when this was decided. Nothing else in the plan changes.
+
 ## Evidence
 
 The report goes in `evaluations/v1-2026-11-02-final-acceptance.md`. An evidence archive holds:
