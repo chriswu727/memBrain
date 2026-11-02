@@ -116,7 +116,11 @@ class Host:
                                             headers={"Authorization": "Bearer " + os.environ["DEEPSEEK_API_KEY"]})
                 response.raise_for_status()
                 data = response.json()
-                return data["choices"][0]["message"], data.get("usage", {})
+                message = data["choices"][0]["message"]
+                if not message.get("tool_calls") and not (message.get("content") or "").strip():
+                    # Thinking with no answer is a malformed response: retried like one, never recorded as the reply.
+                    raise ValueError("empty reply")
+                return message, data.get("usage", {})
             except (httpx.HTTPError, KeyError, ValueError) as error:
                 log("host error", type(error).__name__, str(error)[:300])
                 if attempt == 3 or self.calls >= self.cap:
@@ -305,8 +309,10 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                     if chat.extractor._queue.unfinished_tasks:
                         harness_event(out, "extraction_unfinished", session=session, turn=index)
             elif memory is not None:
+                # As the plugin's Stop hook: a turn in which the agent resumed recording is stored from its prompt.
+                resumed = getattr(memory.host, "turn_resumed", lambda *args: False)(memory.directory, session)
                 memory.host.finish_turn(memory.directory, session, reply, turn_id=f"t{index}",
-                                        **memory.options(roleplay))
+                                        **({"prompt": text} if resumed else {}), **memory.options(roleplay))
             # The turn as the host's transcript keeps it: tool calls and results stay visible in later turns.
             transcript = [{k: v for k, v in item.items() if k != "reasoning_content"}
                           for item in messages[1 + len(prior) + len(current):]]

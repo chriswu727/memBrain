@@ -43,7 +43,7 @@ _SCHEMAS = [
     {"name": "membrain_pause", "description": host.PAUSE_TOOL_DESCRIPTION,
      "parameters": {"type": "object", "properties": {"hours": {"type": "number"},
                                                     "until_resumed": {"type": "boolean"}}}},
-    {"name": "membrain_resume", "description": "Resume recording after membrain_pause, when the user asks.",
+    {"name": "membrain_resume", "description": "Resume recording after membrain_pause, when the user asks; their current message is then stored.",
      "parameters": {"type": "object", "properties": {}}},
 ]
 
@@ -193,7 +193,7 @@ class MembrainProvider(_Base):
                 return json.dumps(host.pause(self._directory, args.get("hours"), user_id=self._user,
                                              conversation=not args.get("until_resumed")))
             if tool_name == "membrain_resume":
-                return json.dumps(host.resume(self._directory, user_id=self._user))
+                return json.dumps(host.resume(self._directory, user_id=self._user, current_turn=True))
             if tool_name == "membrain_note" and host.paused(self._directory, self._user):
                 return json.dumps({"error": "Recording is paused. Resume before saving agent notes."})
             client = host.ready_client(self._directory, self._user)

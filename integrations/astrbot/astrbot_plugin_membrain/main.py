@@ -134,5 +134,5 @@ class MembrainPlugin(star.Star):
 
     @filter.llm_tool(name="membrain_resume")
     async def membrain_resume(self, event: AstrMessageEvent):
-        """Resume remembering this user's messages after membrain_pause, when they ask."""
+        """Resume remembering this user's messages after membrain_pause, when they ask; their current message is then stored."""
         return json.dumps(await asyncio.to_thread(self.memory.resume, _speaker(event)))

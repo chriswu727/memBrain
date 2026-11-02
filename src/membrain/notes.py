@@ -252,12 +252,16 @@ def select_notes(parsed: list, budget: int = NOTES_CHARACTERS) -> tuple[list, in
     """Notes that fit ``budget``: pinned, the user's own, constraints and people, open plans, then the newest.
 
     Returns the chosen notes in their original (oldest-first) order and how many were left out. Nothing is deleted.
+    Once a note does not fit, older notes of the same rank are left out too: a shorter, older note must not take
+    the place of a newer one that may correct it.
     """
     order = sorted(range(len(parsed)), key=lambda index: (_priority(parsed[index]), -index))
-    chosen, used = set(), 0
+    chosen, used, full = set(), 0, set()
     for index in order:
+        rank = _priority(parsed[index])
         size = len(_line(*parsed[index])) + 35
-        if used + size > budget:
+        if rank in full or used + size > budget:
+            full.add(rank)
             continue
         chosen.add(index)
         used += size

@@ -390,10 +390,11 @@ def pause(directory: Path, hours: float | None = None, user_id: str | None = Non
             pending = state.get("pending")
             owner = state.get("user_id", pending.get("_user") if isinstance(pending, dict) else None)
             if user_id is None or owner == user_id or real_life_user(owner) == user_id:
-                if isinstance(pending, dict):
-                    state["paused_turn"] = True
+                if isinstance(pending, dict) or state.get("paused_turn"):
+                    state["paused_turn"] = True  # Paused during the turn: resuming cannot bring this turn back.
                     state["user_id"] = owner
                 state.pop("pending", None)
+                state.pop("resumed_turn", None)
                 state.pop("last_prompt", None)
             elif owner is None:
                 state.pop("last_prompt", None)  # Legacy completed turns have no owner metadata.
@@ -436,10 +437,31 @@ def end_conversation_pause(directory: Path, session: str, user_id: str | None = 
     return True
 
 
-def resume(directory: Path, user_id: str | None = None) -> dict:
+def resume(directory: Path, user_id: str | None = None, *, current_turn: bool = False) -> dict:
+    """Turn recording back on. ``current_turn`` is for an agent resuming because the user's current message asked
+    it to ("back on the record"): that message and its reply are then stored, when the turn began while paused and
+    was not paused again during it. A resume from anywhere else stores nothing from a turn already in progress."""
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         _pause_file(directory, user_id).unlink(missing_ok=True)
+        if current_turn:
+            for marker in (state_directory(directory) / "sessions").glob("*.json"):
+                try:
+                    state = json.loads(marker.read_text(encoding="utf-8"))
+                except (OSError, ValueError):
+                    continue
+                if not isinstance(state, dict) or state.get("paused_turn") != "prompt":
+                    continue
+                owner = state.get("user_id")
+                if user_id is None or owner == user_id or real_life_user(owner) == user_id:
+                    state["resumed_turn"] = True
+                    _write_state(marker, state)
     return {"recording": "on"}
+
+
+def turn_resumed(directory: Path, session: str) -> bool:
+    """True when the agent resumed recording during this session's turn at the user's request; the host then
+    passes the turn's prompt to ``finish_turn``, since a message sent while paused is not kept."""
+    return bool(session_state(directory, session).get("resumed_turn"))
 
 
 def erase_user(directory: Path, user_id: str | None) -> dict:
@@ -736,7 +758,7 @@ def _mark_history(directory: Path, session: str, complete: bool, brain_id: str |
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         state = session_state(directory, session)
         _write_session_state(directory, session, {"complete": complete, "history_brain": brain_id, **{
-            key: state[key] for key in ("pending", "user_id", "paused_turn") if key in state}})
+            key: state[key] for key in ("pending", "user_id", "paused_turn", "resumed_turn") if key in state}})
     cutoff = time.time() - SESSION_MARKER_SECONDS
     for old in _session_marker(directory, session).parent.glob("*.json"):
         try:
@@ -784,10 +806,12 @@ def _stage(directory: Path, session: str, record: dict, prompt: str) -> dict | N
         if paused(directory, record.get("_user")):
             state.pop("last_prompt", None)
             state.pop("pending", None)
-            state["paused_turn"] = True
+            state.pop("resumed_turn", None)
+            state["paused_turn"] = "prompt"  # Paused when it arrived; the message itself is not kept.
             earlier = None
         else:
             state.pop("paused_turn", None)
+            state.pop("resumed_turn", None)
             state["last_prompt"] = scrub(prompt)[-CUE_CHARACTERS:]
             state["pending"] = {**record, "text": scrub(record["text"])}
         _write_session_state(directory, session, state)
@@ -804,13 +828,16 @@ def _take_pending(directory: Path, session: str) -> dict | None:
 
 
 def _take_turn(directory: Path, session: str) -> tuple[dict | None, bool, str | None]:
+    """The staged message, whether the turn stays unrecorded, and its user."""
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         state = session_state(directory, session)
         pending = state.pop("pending", None)
         paused_turn = state.pop("paused_turn", False)
-        if pending is not None or paused_turn:
+        resumed = state.pop("resumed_turn", False)
+        if pending is not None or paused_turn or resumed:
             _write_session_state(directory, session, state)
-        return (pending if isinstance(pending, dict) else None), bool(paused_turn), state.get("user_id")
+        skipped = bool(paused_turn) and not (paused_turn == "prompt" and resumed)
+        return (pending if isinstance(pending, dict) else None), skipped, state.get("user_id")
 
 
 # Recall -------------------------------------------------------------------------------------------------------
@@ -1276,7 +1303,9 @@ def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: st
                 roleplay: str | None = None) -> list[dict]:
     """Store the staged user message and the reply, unless recording was paused during the turn.
 
-    Hosts that report the whole turn at once pass ``prompt``; it is recorded if no prompt was staged for it.
+    Hosts that report the whole turn at once pass ``prompt``; it is recorded if no prompt was staged for it. A turn
+    that began while paused is stored only when the agent resumed in it at the user's request (``resume`` with
+    ``current_turn``); its message was not kept, so it is stored from ``prompt``.
     Returns the records stored or queued, so a caller can link what it derives from them; empty when the turn
     was not recorded.
     """

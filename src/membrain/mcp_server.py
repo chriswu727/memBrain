@@ -158,8 +158,9 @@ def create_server(client: MemoryClient, *, directory=None) -> FastMCP:
 
         @server.tool(annotations=WRITE)
         async def memory_resume() -> dict[str, Any]:
-            """Resume recording after memory_pause, when the user asks for it."""
-            return host.resume(installation)
+            """Resume recording after memory_pause, when the user asks for it. The user's current message and
+            your reply are recorded."""
+            return host.resume(installation, current_turn=True)
 
     @server.tool(annotations=READ_ONLY)
     async def memory_prepare(

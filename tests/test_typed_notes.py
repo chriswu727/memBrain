@@ -214,3 +214,18 @@ def test_a_deadline_on_any_note_and_an_undated_plan_reach_coming_up():
     assert block.index("2027-04-30 has passed") < block.index("Planned, not confirmed done")
     trish = notes._parsed({"items": [response["items"][0]]})[0]
     assert notes._priority(trish) == 3
+
+
+def test_an_older_shorter_note_does_not_take_the_place_of_a_newer_one_that_did_not_fit():
+    stale = item("stale", format_note("Flights back Monday 27 Sep.", kind="plan", status="done"),
+                 "2026-05-12T09:00:00Z")
+    newer = item("newer", "Return flight moved to Tuesday 28 Sep, same 18:40 flight; the extra day is approved.",
+                 "2026-07-06T09:00:00Z")
+    parsed = notes._parsed({"items": [newer, stale]})  # Newest first, as listed.
+    assert notes._priority(parsed[0]) == notes._priority(parsed[1])
+    size = {entry[0]["event_id"]: len(notes._line(*entry)) + 35 for entry in parsed}
+    assert size["stale"] < size["newer"]
+    chosen, omitted = notes.select_notes(parsed, budget=size["newer"] - 1)
+    assert chosen == [] and omitted == 2  # The stale note alone would fit, but it must not stand in.
+    chosen, _ = notes.select_notes(parsed, budget=size["newer"] + size["stale"] - 1)
+    assert [entry[0]["event_id"] for entry in chosen] == ["newer"]

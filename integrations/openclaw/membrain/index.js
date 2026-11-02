@@ -90,7 +90,7 @@ const TOOLS = [
   },
   {
     name: "membrain_resume",
-    description: "Resume recording after membrain_pause, when the user asks.",
+    description: "Resume recording after membrain_pause, when the user asks; their current message is then stored.",
     parameters: { type: "object", properties: {} },
   },
 ];
@@ -118,6 +118,7 @@ const DENIED = Symbol("denied");
 export function createMembrain({ exec = membrain, now = () => Date.now(), directory } = {}) {
   const env = directory ? { MEMBRAIN_DIRECTORY: directory } : undefined;
   const blocks = new Map();
+  const prompts = new Map();  // session -> the current turn's prompt, dropped when the turn ends
   const users = new Map();  // session key -> memory user (OWNER for the owner), learned from the turn's hooks
   const remember = (ctx) => {
     const user = memoryUser(ctx);
@@ -151,6 +152,7 @@ export function createMembrain({ exec = membrain, now = () => Date.now(), direct
       }
       if (user && !confirmed.has(user)) return undefined;  // Never record someone else into the owner's memory.
       const prompt = event?.currentUserMessage ?? event?.prompt ?? "";
+      prompts.set(session, prompt);  // Kept in memory for this turn only, for a turn the agent resumes recording in.
       const recalled = prompt.trim()
         ? await hook("user-prompt", { session_id: session, prompt_id: event?.currentUserMessageId, prompt }, user)
         : null;
@@ -162,10 +164,12 @@ export function createMembrain({ exec = membrain, now = () => Date.now(), direct
     async agentEnd(event, ctx) {
       const session = ctx?.sessionId || ctx?.sessionKey;
       const reply = lastAssistantText(event?.messages);
+      const prompt = session ? prompts.get(session) : undefined;
+      if (session) prompts.delete(session);
       if (!session || !event?.success || !reply.trim()) return;
       const user = remember(ctx);
       if (user && !confirmed.has(user)) return;
-      await hook("stop", { session_id: session, last_assistant_message: reply }, user);
+      await hook("stop", { session_id: session, last_assistant_message: reply, prompt }, user);
     },
     // The memory a tool call in this conversation may use: DENIED when it cannot be told safely.
     toolUser(ctx) {

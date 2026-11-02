@@ -214,9 +214,10 @@ class ChatMemory:
         """This speaker's memory here as an archive document."""
         return host.export_user(self.directory, self.user_id(speaker))
 
-    def resume(self, speaker: Speaker) -> dict:
+    def resume(self, speaker: Speaker, *, current_turn: bool = True) -> dict:
+        """Resume recording for this speaker; by default their current message (which asked for it) is stored."""
         user = self.user_id(speaker)
-        result = host.resume(self.directory, user_id=user)
+        result = host.resume(self.directory, user_id=user, current_turn=current_turn)
         self._forget_blocks(user)
         return result
 

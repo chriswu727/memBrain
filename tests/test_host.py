@@ -358,6 +358,82 @@ def test_resuming_before_a_paused_turn_finishes_does_not_store_it(tmp_path, monk
     assert "confidential" not in host._session_marker(tmp_path, "s").read_text()
 
 
+
+@pytest.mark.parametrize("user", [None, "alice"])
+def test_the_message_that_asks_to_go_back_on_the_record_is_stored(tmp_path, monkeypatch, user):
+    """An agent resuming at the user's request stores that message, which was sent while paused."""
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda *args: client)
+    monkeypatch.setattr(host, "use_brain", lambda *args: None)
+    host.pause(tmp_path, user_id=user, conversation=True)
+    prompt = "Back on the record. My flight home moved to Tuesday 28 September."
+    host.prompt_context(tmp_path, "s", prompt, turn_id="t2", user_id=user)
+    assert "Tuesday" not in host._session_marker(tmp_path, "s").read_text()  # Not kept while paused.
+    assert not host.turn_resumed(tmp_path, "s")
+    host.resume(tmp_path, user_id=user, current_turn=True)
+    assert host.turn_resumed(tmp_path, "s")
+    host.finish_turn(tmp_path, "s", "Noted the new return date.", turn_id="t2", prompt=prompt, user_id=user)
+    assert [(item["role"], item["text"]) for item in client.observed] == [
+        ("user", prompt), ("assistant", "Noted the new return date.")]
+    assert not host.turn_resumed(tmp_path, "s")
+    client.observed.clear()
+    host.prompt_context(tmp_path, "s", "Next message", turn_id="t3", user_id=user)
+    host.finish_turn(tmp_path, "s", "reply", turn_id="t3", user_id=user)
+    assert [item["text"] for item in client.observed] == ["Next message", "reply"]
+
+
+def test_a_turn_paused_and_resumed_in_the_same_message_stays_unstored(tmp_path, monkeypatch):
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda *args: client)
+    monkeypatch.setattr(host, "use_brain", lambda *args: None)
+    host.pause(tmp_path)
+    host.prompt_context(tmp_path, "s", "off the record: secret", turn_id="t1")
+    host.pause(tmp_path)  # Paused again during this turn.
+    host.resume(tmp_path, current_turn=True)
+    assert not host.turn_resumed(tmp_path, "s")
+    host.finish_turn(tmp_path, "s", "ok", turn_id="t1", prompt="off the record: secret")
+    host.prompt_context(tmp_path, "s2", "off the record: other secret", turn_id="t1")
+    host.pause(tmp_path)  # A turn that began on the record and was paused cannot be brought back either.
+    host.resume(tmp_path, current_turn=True)
+    host.finish_turn(tmp_path, "s2", "ok", turn_id="t1", prompt="off the record: other secret")
+    assert client.observed == []
+
+
+def test_resuming_for_one_user_does_not_store_another_users_paused_turn(tmp_path, monkeypatch):
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda *args: client)
+    monkeypatch.setattr(host, "use_brain", lambda *args: None)
+    host.pause(tmp_path, user_id="alice")
+    host.pause(tmp_path, user_id="bob")
+    host.prompt_context(tmp_path, "a", "alice secret", turn_id="t1", user_id="alice")
+    host.prompt_context(tmp_path, "b", "bob secret", turn_id="t1", user_id="bob")
+    host.resume(tmp_path, user_id="alice", current_turn=True)
+    assert host.turn_resumed(tmp_path, "a") and not host.turn_resumed(tmp_path, "b")
+
+
+def test_the_stop_hook_stores_a_resumed_turn_from_the_transcript(tmp_path, monkeypatch):
+    from membrain import plugin
+
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda *args: client)
+    monkeypatch.setattr(host, "use_brain", lambda *args: None)
+    monkeypatch.setattr(plugin, "_import_host_queue", lambda *args: None)
+    prompt = "Back on the record: the party moved to the 21st."
+    transcript = tmp_path / "t.jsonl"
+    transcript.write_text("\n".join(json.dumps(entry) for entry in [
+        {"type": "user", "message": {"role": "user", "content": prompt}},
+        {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "1"}]}},
+        {"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "1"}]}},
+        {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Noted."}]}},
+    ]))
+    assert plugin.last_user_message(str(transcript)) == prompt
+    host.pause(tmp_path, conversation=True)
+    payload = {"session_id": "s", "prompt": prompt, "transcript_path": str(transcript)}
+    plugin.user_prompt(payload, tmp_path)
+    host.resume(tmp_path, current_turn=True)
+    plugin.stop(payload, tmp_path)
+    assert [(item["role"], item["text"]) for item in client.observed] == [("user", prompt), ("assistant", "Noted.")]
+
 @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
 def test_a_note_saved_before_the_reply_links_back_to_the_current_user_message(tmp_path, unused_tcp_port):
     from membrain.local_profile import ensure_profile
