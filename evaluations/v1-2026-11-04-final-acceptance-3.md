@@ -48,12 +48,17 @@ Both fixes are in commit `a7cbda6`, with tests.
 
 All three arms ran to the end. The validity guard then found the two empty replies, so K was not scored.
 
-**K has not been seen.** Neither the developer nor any reviewer has read K's cases, criteria, FACTS or replies. Only case counts and hashes were reported. K therefore stays held out and is used again in attempt 4 on the repaired runtime, with fresh run directories.
+While diagnosing the empty replies, the developer printed both rows in full, including the first 800 characters of each transcript. That showed one of K's user messages and part of a memory block, so K is no longer held out:
+- attempt 4 replaces it with a new scenario, M;
+- K's attempt-3 results are never scored or used.
 
 ## Changes for the next attempt
 
-- **Harness.** An empty host reply (no answer and no tool call) is now treated as a malformed response and retried, as the stop rules already intended for malformed responses. The harness also mirrors the Stop hook for a resumed turn.
-- **Scenarios.** J has been seen, so a new held-out scenario, L, replaces it. It was written by a fresh agent under the same restrictions.
+These are set out in [attempt 4's plan](v1-2026-11-05-final-acceptance-plan-4.md):
+- **Harness.** An empty host reply (no answer and no tool call) is now treated as a malformed response and retried. The harness also mirrors the Stop hook for a resumed turn.
+- **Run procedure.** A run script starts each scenario's arms in new directories and never reuses one.
+- **Validity.** Validity runs on all six directories before anything is blinded or scored. If it fails, a `diagnose` command shows only error lines and turn positions, never case content.
+- **Scenarios.** New held-out scenarios L and M replace J and K. Fresh agents wrote them under the same restrictions, and two independent reviews checked them.
 - **Unchanged:** the pass rule, the review instructions and the attribution rules.
 
 ## Cost
