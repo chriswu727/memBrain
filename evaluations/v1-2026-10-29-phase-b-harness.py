@@ -39,21 +39,35 @@ MONTHS = {name: number for number, name in enumerate(
 MESES = {name: number for number, name in enumerate(
     ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre",
      "diciembre"], 1)}
+MONATE = {name: number for number, name in enumerate(
+    ["januar", "februar", "märz", "april", "mai", "juni", "juli", "august", "september", "oktober", "november",
+     "dezember"], 1)}
 
 
 def log(*parts):
     print(time.strftime("%H:%M:%S"), *parts, flush=True)
 
 
-def session_date(text: str, previous: datetime.date | None) -> datetime.date | None:
-    """The scenario date stated in a session's first message ("Today is Tuesday, March 3", Spanish or Chinese)."""
+def harness_event(out: Path, kind: str, **data) -> None:
+    """Record something that may have degraded a run (index wait timed out, extraction unfinished), so it is
+    reported with the results instead of passing silently."""
+    with (out / "harness-events.jsonl").open("a") as stream:
+        stream.write(json.dumps({"time": time.time(), "kind": kind, **data}) + "\n")
+    log("harness event", kind, data)
+
+
+def session_date(text: str, previous: datetime.date | None, year: int = YEAR) -> datetime.date:
+    """The scenario date stated in a session's first message ("Today is Tuesday, March 3"; Spanish, German or
+    Chinese). A session that states no date is an error: silently reusing the previous date would misdate it."""
     if match := re.search(r"Today is \w+, (\w+) (\d+)", text):
-        return datetime.date(YEAR, MONTHS[match[1].lower()], int(match[2]))
+        return datetime.date(year, MONTHS[match[1].lower()], int(match[2]))
     if match := re.search(r"Hoy es \w+, (\d+) de (\w+)", text):
-        return datetime.date(YEAR, MESES[match[2].lower()], int(match[1]))
+        return datetime.date(year, MESES[match[2].lower()], int(match[1]))
+    if match := re.search(r"Heute ist \w+, (?:der )?(\d+)\. (\w+)", text):
+        return datetime.date(year, MONATE[match[2].lower()], int(match[1]))
     if match := re.search(r"今天是(\d+)月(\d+)日", text):
-        return datetime.date(YEAR, int(match[1]), int(match[2]))
-    return previous
+        return datetime.date(year, int(match[1]), int(match[2]))
+    raise ValueError(f"no scenario date in: {text[:80]!r}")
 
 
 def simulate_today(today: datetime.date) -> None:
@@ -190,6 +204,7 @@ class Memory:
                 if status.get("pending_jobs") == 0 and status.get("index_lag", 0) == 0:
                     return
             time.sleep(2)
+        harness_event(self.directory.parent, "index_wait_timed_out", brain=self.directory.name)
 
 
 def load(path: str):
@@ -226,7 +241,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
         speaker = Speaker("api", "person")
     history, today = [], None
     for session, turns in sessions:
-        today = session_date(turns[0], today)
+        today = session_date(turns[0], today, getattr(module, "YEAR", YEAR))
         simulate_today(today)
         roleplay = session.split("-")[2] if session.startswith("roleplay-") else None
         date_line = f"Today's date: {today.isoformat()} ({today.strftime('%A')})."
@@ -282,6 +297,8 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 chat.record(speaker, reply, session=session, turn_id=f"t{index}", prompt=text, roleplay=roleplay)
                 if chat.extractor is not None:
                     chat.extractor.wait(120)  # The next message sees this turn's notes, as a live bot usually would.
+                    if chat.extractor._queue.unfinished_tasks:
+                        harness_event(out, "extraction_unfinished", session=session, turn=index)
             elif memory is not None:
                 memory.host.finish_turn(memory.directory, session, reply, turn_id=f"t{index}",
                                         **memory.options(roleplay))
