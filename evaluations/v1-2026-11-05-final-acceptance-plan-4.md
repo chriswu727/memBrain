@@ -11,7 +11,7 @@ An independent reviewer approved the first draft of this plan with five required
 ## Candidate
 
 - **Runtime.** Commit `a5586122888309a82872893caf6e7a0afe97e6fe`. Every launcher pins it as of commit `a222b02`.
-- **Install check.** The release install check passed INSTALL on this runtime, upgrading from attempt 3's runtime `9a1816a` ([results](release-install-2026-11-05.json)).
+- **Install check.** The release install check passed 17 of 17 on this runtime, upgrading from attempt 3's runtime `9a1816a` ([results](release-install-2026-11-05.json)).
 - **Freeze.** The runtime is frozen until scoring ends.
 - **Before the first paid call**, the outputs of these checks are saved:
   - the pin check reports 2 passed;

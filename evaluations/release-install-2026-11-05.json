@@ -1,5 +1,5 @@
 {
-  "pin": "a7cbda68828bf11d3c453bffdc4a89d024d1ef20",
+  "pin": "a5586122888309a82872893caf6e7a0afe97e6fe",
   "old": "9a1816af9a3d238bce925450998f4fd0bdd0d0f3",
   "results": [
     {
@@ -8,7 +8,7 @@
       "detail": {
         "build_id": "2fef7b8b1c58e4692c3bf0dc066773bc88ee7526485a5425395b6552051c69dd",
         "version": "0.1.0",
-        "install_seconds": 121
+        "install_seconds": 24
       }
     },
     {
@@ -16,8 +16,8 @@
       "ok": true,
       "detail": {
         "old_build": "2fef7b8b1c58e4692c3bf0dc066773bc88ee7526485a5425395b6552051c69dd",
-        "new_build": "061bee6b083a5525d0581d7f6d050b7f173e6e46c8ea6f5a8d6c96be974e094b",
-        "upgrade_seconds": 8
+        "new_build": "4845fb0880c656fab42d0a78aa2144c4b67d566fa2487b16ed625d8421b8219e",
+        "upgrade_seconds": 9
       }
     },
     {
@@ -37,7 +37,7 @@
     {
       "check": "the pinned runtime is the one installed",
       "ok": true,
-      "detail": "membrain-ai v0.1.0 [required:  https://github.com/chriswu727/membrain/archive/a7cbda68828bf11d3c453bffdc4a89d024d1ef20.zip]\n- membrain\n"
+      "detail": "membrain-ai v0.1.0 [required:  https://github.com/chriswu727/membrain/archive/a5586122888309a82872893caf6e7a0afe97e6fe.zip]\n- membrain\n"
     },
     {
       "check": ".claude-mcp.json starts the MCP server",
@@ -59,9 +59,9 @@
       "check": "a note can be corrected through MCP",
       "ok": true,
       "detail": {
-        "note_id": "c4d0abc4-8a84-46ad-b092-c04864c623f8",
+        "note_id": "5a2fdcb7-a913-48f6-b89c-add35cd954c7",
         "replaced": [
-          "37b9dfac-6cd9-4faf-9722-eb064f42ffef"
+          "2758cf2f-230f-448a-b190-00c91e42ee8b"
         ],
         "unknown": [],
         "source_event_ids": [],
@@ -71,14 +71,14 @@
     {
       "check": "the corrected note replaces the old one at session start",
       "ok": true,
-      "detail": "ened, and never suggest using, extending or relying on something only planned (a purchase, booking or task) as if it exists. When a fact changes, save the new note with memory_note and pass the old note's id in replaces.\\nPlans:\\n- [2026-11-02] Dentist with Dr. Alvarez moved to Friday, November 13 at 10 am. (scheduled, not confirmed done; on 2026-11-13) (id: c4d0abc4-8a84-46ad-b092-c04864c623f8)\\n"
+      "detail": "ened, and never suggest using, extending or relying on something only planned (a purchase, booking or task) as if it exists. When a fact changes, save the new note with memory_note and pass the old note's id in replaces.\\nPlans:\\n- [2026-11-02] Dentist with Dr. Alvarez moved to Friday, November 13 at 10 am. (scheduled, not confirmed done; on 2026-11-13) (id: 5a2fdcb7-a913-48f6-b89c-add35cd954c7)\\n"
     },
     {
       "check": "forgetting through MCP removes the records from later sessions",
       "ok": true,
       "detail": {
         "forgotten": 3,
-        "result": "{'message_type': 'response', 'contract_version': '1.0.0-draft', 'request_id': '59aafa27-3947-4752-8151-af00f29f8878', 'action': 'forget', 'outcome': 'completed', 'server_scope': {'tenant_id': 'b7755a98-4ff2-4338-95bf-2f204cc819cf', 'brain_id': 'edf46f55-1526-417e-b939-b290290d6359', 'principal_bindi",
+        "result": "{'message_type': 'response', 'contract_version': '1.0.0-draft', 'request_id': '5d2f0c41-7b20-4825-af03-1476319c721a', 'action': 'forget', 'outcome': 'completed', 'server_scope': {'tenant_id': 'd3c0b6d1-88cc-453c-a6f1-2a89d92ecd65', 'brain_id': 'ded5e49a-97a4-43a5-8547-8ca4b16b4226', 'principal_bindi",
         "later_context": "\"additionalContext\": \"<membrain-source>\\nWhen saving a note based on the current user message, pass source_messages=[{\\\"producer_ref\\\": \\\"membrain-plugin\\\", \\\"source_event_key\\\": \\\"release-s4:p1:user\\\", \\\"source_revision\\\": 1}]. This reference links after the turn is recorded.\\n</membrain-source>\"}}"
       }
     },
@@ -129,12 +129,12 @@
     {
       "check": "a backup completes",
       "ok": true,
-      "detail": "b366893-81ee-5c6f-aac4-db98ea6b343a/scratchpad/install-check4/home/.local/share/.agent-memory-recovery/c451f8c0-0237-4cf1-b9a6-1b15688d5909\",\n  \"replayed\": false\n}\nwarning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.\n"
+      "detail": "b366893-81ee-5c6f-aac4-db98ea6b343a/scratchpad/install-check5/home/.local/share/.agent-memory-recovery/f340bc34-8641-4d72-b2b2-817e87314507\",\n  \"replayed\": false\n}\nwarning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.\n"
     },
     {
       "check": "the backup restores into a fresh, quarantined installation",
       "ok": true,
-      "detail": "6ccb713e56a8d82e29559a6b30a46f16c064\"\n  },\n  \"automatic_start\": false,\n  \"external_host_epoch_required\": true,\n  \"pending_sessions\": \"preserved_as_evidence_only\"\n}\nwarning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.\n"
+      "detail": "3b25899f0f631a5d88642877a097b47202b0\"\n  },\n  \"automatic_start\": false,\n  \"external_host_epoch_required\": true,\n  \"pending_sessions\": \"preserved_as_evidence_only\"\n}\nwarning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.\n"
     },
     {
       "check": "the activated restore recalls memory from before the backup",
