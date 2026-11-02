@@ -3,6 +3,7 @@
   split   SHEET VERDICTS BLIND_DIR SCENARIO OUT_DIR   one file per case for the second review; refuses to write a
                                                       case file unless every reply appears in it in full
   tally   REVIEW_DIR BLIND_DIR SCENARIO KEY           final scores per arm, literal and with written resolutions
+  context BLIND_DIR SCENARIO CASE ARM NOTE OUT        what memory gave the host for one scored turn (attribution)
 
 Final score of a reply: 0 when a critical error stands, otherwise the first reviewer's score_ignoring_critical.
 A mark stands when the first reviewer made it and the second confirmed it, or the second added it; written
@@ -92,11 +93,28 @@ def tally(review: Path, blind_dir: Path, scenario_path: str, key: str) -> None:
                   "resolved", row["resolved"], row["reason"] or "")
 
 
+def context(blind_dir: Path, scenario_path: str, case: str, arm: str, verdict_note: str, out: Path) -> None:
+    """Everything memory gave the host for one scored turn, for attributing a critical error (attribute.md)."""
+    module = load(scenario_path)
+    scenario = Path(scenario_path).stem
+    session, turn = next((s, t) for s, t, c, _ in module.CASES if c == case)
+    row = next(json.loads(line) for line in (blind_dir / f"results_{scenario}_{arm}.jsonl").read_text().splitlines()
+               if json.loads(line)["session"] == session and json.loads(line)["turn"] == turn)
+    calls = "\n".join(f"- {call['name']}({json.dumps(call['arguments'], ensure_ascii=False)}) -> {call['result']}"
+                      for call in row.get("tool_calls", []))
+    out.write_text(f"# Critical error\n\n{verdict_note}\n\n# Session-start context\n\n{row.get('session_context') or '(none)'}"
+                   f"\n\n# Message as the assistant received it (memory added before the user's text)\n\n"
+                   f"{row['host_user_content']}\n\n# Memory tool calls\n\n{calls or '(none)'}\n\n# Reply\n\n{row['reply']}\n")
+    print(out)
+
+
 if __name__ == "__main__":
     command, *args = sys.argv[1:]
     if command == "split":
         split(Path(args[0]), Path(args[1]), Path(args[2]), args[3], Path(args[4]))
     elif command == "tally":
         tally(Path(args[0]), Path(args[1]), args[2], args[3])
+    elif command == "context":
+        context(Path(args[0]), args[1], args[2], args[3], args[4], Path(args[5]))
     else:
         raise SystemExit(__doc__)
