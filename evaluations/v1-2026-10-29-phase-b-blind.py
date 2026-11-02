@@ -26,7 +26,9 @@ for session, turn, case_id, criteria in module.CASES:
     secrets.SystemRandom().shuffle(shuffled)
     mapping[case_id] = dict(zip(labels, shuffled))
     first = rows[(shuffled[0], session, turn)]
-    sheet.append(f"## {case_id}\n\n**Date:** {first['date']}\n\n**Criteria:** {criteria.removeprefix('Criteria:').strip()}\n\n**User:** {first['input']}\n")
+    order = next(index for index, (name, _) in enumerate(module.SESSIONS_LONG) if name == session)
+    sheet.append(f"## {case_id}\n\n**Date:** {first['date']} (session {order + 1} of {len(module.SESSIONS_LONG)}, "
+                 f"message {turn + 1} of that session; earlier messages that day come before it)\n\n**Criteria:** {criteria.removeprefix('Criteria:').strip()}\n\n**User:** {first['input']}\n")
     for label, arm in zip(labels, shuffled):
         sheet.append(f"### {label}\n\n{rows[(arm, session, turn)]['reply'] or '(no reply)'}\n")
 (out / f"blind_{scenario}.md").write_text("\n".join(sheet))
