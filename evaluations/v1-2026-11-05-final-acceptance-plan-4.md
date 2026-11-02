@@ -25,7 +25,7 @@ This attempt runs the repaired runtime on two held-out scenarios: K again, and a
 | File | SHA-256 |
 | --- | --- |
 | [Scenario K](v1-2026-11-04-acceptance-scenario-k.py) (unchanged since attempt 3) | `f4137a1cd98c5efd5f3feee156940f540ffb48f76798422bf2a88b6c8a75038b` |
-| [Scenario L](v1-2026-11-05-acceptance-scenario-l.py) | `L_HASH` |
+| [Scenario L](v1-2026-11-05-acceptance-scenario-l.py) | `0d85bda8987f846c27659773aa3d6d350b6bea13705ccc8d3f04a3dbc26f7dcb` |
 | [Harness](v1-2026-10-29-phase-b-harness.py) | `96246b302f6984e01b9d2912f1a3e4ea249bf67d88df74303d82199bcd0b6f7e` |
 | [Blinding](v1-2026-10-29-phase-b-blind.py) | `320b8c2d55e7551c90ee229079b352da8d24e360fa42f6b2cb1c54dbfcc887d6` |
 | [Date pre-check](v1-2026-11-02-date-precheck.py) | `3e04a9915df6b52351806ebf4bb9ec8c368875762d94140071f4284b832065a6` |
