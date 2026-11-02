@@ -10,31 +10,31 @@ An independent reviewer approved the first draft of this plan with five required
 
 ## Candidate
 
-- **Runtime.** Commit `RUNTIME`. Every launcher pins it as of commit `PIN`.
+- **Runtime.** Commit `a5586122888309a82872893caf6e7a0afe97e6fe`. Every launcher pins it as of commit `a222b02`.
 - **Install check.** The release install check passed INSTALL on this runtime, upgrading from attempt 3's runtime `9a1816a` ([results](release-install-2026-11-05.json)).
 - **Freeze.** The runtime is frozen until scoring ends.
 - **Before the first paid call**, the outputs of these checks are saved:
   - the pin check reports 2 passed;
   - `git status --porcelain` is empty;
-  - `git diff RUNTIME -- plugins/membrain/skills src/membrain` is empty;
+  - `git diff a558612 -- plugins/membrain/skills src/membrain` is empty;
   - `MEMBRAIN_SRC` is unset, and `membrain.__file__` resolves into this checkout.
 
-**Every change since attempt 3's runtime `9a1816a`** (`git diff 9a1816a RUNTIME -- src plugins integrations`), each with tests:
+**Every change since attempt 3's runtime `9a1816a`** (`git diff 9a1816a a558612 -- src plugins integrations`), each with tests:
 - **Resumed turns are stored.** When the agent resumes recording because the user's current message asks for it (`memory_resume`, `membrain_resume`), that message and the reply are stored. Claude Code reads the message from the transcript, skipping meta and summary entries; OpenClaw sends it with the stop hook. A resume from the memory page or the command line still stores nothing from a turn in progress, and neither does a turn that is paused again during the message.
 - **Newer notes keep their place.** When notes do not all fit, older notes of a rank are not shown in place of a newer one of the same rank that does not fit.
 - **What the host is told** (arm `P`):
   - the skill now says the message that asks to resume is stored with the reply, so the host should save any update it brings as a note as usual;
   - the `memory_resume` description now says the current message and the reply are recorded;
   - the resume tools of Hermes, AstrBot and OpenClaw say the same.
-- **Launchers** are re-pinned to `RUNTIME`.
+- **Launchers** are re-pinned to `a5586122888309a82872893caf6e7a0afe97e6fe`.
 
 ## Inputs
 
 | File | SHA-256 |
 | --- | --- |
 | [Scenario L](v1-2026-11-05-acceptance-scenario-l.py), mainly English with one session in German | `94f40fcc3ab42e89e36339d55ea9ced35b4fd25597ff5551448d29da44c39c6c` |
-| [Scenario M](v1-2026-11-05-acceptance-scenario-m.py), mainly Chinese with one session in English | `M_HASH` |
-| [Harness](v1-2026-10-29-phase-b-harness.py) | `HARNESS_HASH` |
+| [Scenario M](v1-2026-11-05-acceptance-scenario-m.py), mainly Chinese with one session in English | `12ab30995fe9fe3cf518107de81b38d4ffea22b2423ef87ef2a7beef0d6814b2` |
+| [Harness](v1-2026-10-29-phase-b-harness.py) | `65a2dc5e7ba2e79caff4a11ce2775c287a2f41e1e7fe35fd4662fc1ada58f5a3` |
 | [Blinding](v1-2026-10-29-phase-b-blind.py) | `320b8c2d55e7551c90ee229079b352da8d24e360fa42f6b2cb1c54dbfcc887d6` |
 | [Date pre-check](v1-2026-11-02-date-precheck.py) | `3e04a9915df6b52351806ebf4bb9ec8c368875762d94140071f4284b832065a6` |
 | [Review pipeline](acceptance_review.py) | `b257a55a7ee7180c7221122f44133e88f322539798d1a5364536941985d9eefa` |
