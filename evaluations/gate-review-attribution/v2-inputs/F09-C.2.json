@@ -1,0 +1,9 @@
+{
+  "cause": "memory",
+  "per_type": {
+    "3": {
+      "cause": "memory",
+      "evidence": "Recalled history: \"[user said] ... Our dog Biscuit stays home, and I'll ask Nadia's sister Leila if she can dog-sit.\"; no note or recalled message contains 'Leila said no' (12 notes not shown). Memory surfaced the outdated Leila arrangement without the correction, and the reply treated it as still in place."
+    }
+  }
+}

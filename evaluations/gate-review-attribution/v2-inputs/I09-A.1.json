@@ -1,0 +1,9 @@
+{
+  "cause": "host",
+  "per_type": {
+    "1": {
+      "cause": "host",
+      "evidence": "Note: \"用户计划本周在网上给王秀英订购助行器和马桶增高架。 (intended, not confirmed done)\"; recalled assistant statement: \"东西（助行器、马桶增高架等）——我这边没记录到已下单。\" Memory correctly marked the order as unconfirmed and nothing stated it as done, so '都备好了' is the assistant's own assumption."
+    }
+  }
+}

@@ -1,0 +1,9 @@
+{
+  "cause": "memory",
+  "per_type": {
+    "3": {
+      "cause": "memory",
+      "evidence": "Note: \"Plans to ask Nadia's sister Leila to dog-sit Biscuit (family dog) during the Great Sand Dunes trip. (intended, not confirmed done)\"; history: \"I'll ask Nadia's sister Leila if she can dog-sit.\" Memory presented the superseded dog-sit plan as open and never served the 'Leila said no' update, which the reply repeated."
+    }
+  }
+}

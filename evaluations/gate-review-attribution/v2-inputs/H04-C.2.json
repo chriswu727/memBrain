@@ -1,0 +1,9 @@
+{
+  "cause": "host",
+  "per_type": {
+    "1": {
+      "cause": "host",
+      "evidence": "Note: \"Jule will find a guesthouse in Freiburg and the person will book a rental car at Basel airport. (intended, not confirmed done)\"; recalled February 8 message: \"Jule's going to find us a guesthouse in Freiburg, and I'll book a rental car\". Memory stated the correct unconfirmed state and nothing presented the bookings as done, so treating them as existing bookings was the assistant's own assumption."
+    }
+  }
+}

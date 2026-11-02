@@ -1,0 +1,9 @@
+{
+  "cause": "memory",
+  "per_type": {
+    "3": {
+      "cause": "memory",
+      "evidence": "Note: \"Plans to ask Nadia's sister Leila to dog-sit Biscuit ... (intended, not confirmed done)\"; recall: \"I'll ask Nadia's sister Leila if she can dog-sit.\" Memory showed the outdated plan as still open and lacked the 'Leila said no' correction, so the reply asked whether Leila confirmed."
+    }
+  }
+}

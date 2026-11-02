@@ -10,7 +10,7 @@ Critical error types: 1 a plan stated as done when not confirmed; 2 a private or
 For each type, decide "memory" or "host" with these fixed rules:
 
 Types 1, 3 and 4 (state errors):
-- "memory" when anything memory presented as current (a note, a coming-up line, recalled history, including recalled earlier assistant statements) stated the false or outdated version that the reply repeated, even if correct memory was also present; or when memory lacked the correcting fact while showing an outdated or contradicting one.
+- "memory" when anything memory presented as current (a note, a coming-up line, recalled history, including recalled earlier assistant statements) stated the false or outdated version that the reply repeated, even if correct memory was also present; or when memory lacked the correcting fact while showing an outdated or contradicting one; or, for type 3, when the correction itself (which the reviewers' evidence shows the user stated before this message) appears nowhere in what memory gave the assistant.
 - "host" when memory stated the correct current state (for example "intended, not confirmed done", the correction or cancellation) and nothing memory presented as current stated the false version, or when memory said nothing on the matter and the error is the assistant's own invention or assumption.
 
 Types 2 and 5 (leaks and fiction treated as real):

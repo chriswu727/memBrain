@@ -1,0 +1,9 @@
+{
+  "cause": "host",
+  "per_type": {
+    "1": {
+      "cause": "host",
+      "evidence": "Recalled earlier assistant statement: \"助行器、马桶增高架：你8月初说要订，但我这边没有你后来确认下单/到货的记录\" and \"东西有几样只能算「你没确认」，不能算「已安排」\"; the September 30 recalled reply mentions a walker only for in-hospital walking. Memory stated the walker purchase as unconfirmed and nothing presented it as owned, so '助行器放床边' was the assistant's own assumption."
+    }
+  }
+}
