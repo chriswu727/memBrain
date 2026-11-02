@@ -4,29 +4,37 @@
 - the message that ends a pause was lost;
 - an older note took a newer one's place.
 
-This attempt runs the repaired runtime on two held-out scenarios: K again, and a new scenario L. Wherever this plan does not say otherwise, [attempt 3's plan](v1-2026-11-04-final-acceptance-plan-3.md) applies. The pass rule, the review instructions and the attribution rules are all unchanged.
+This attempt runs the repaired runtime on two new held-out scenarios, L and M. Wherever this plan does not say otherwise, [attempt 3's plan](v1-2026-11-04-final-acceptance-plan-3.md) applies. The pass rule, the review instructions and the attribution rules are all unchanged.
+
+An independent reviewer approved the first draft of this plan with five required plan fixes and six required fixes to scenario L, and this version makes all of them. Scenario M was added afterwards and goes through the same review before the freeze.
 
 ## Candidate
 
-- **Runtime.** Commit `a7cbda68828bf11d3c453bffdc4a89d024d1ef20`. Every launcher pins it as of commit `11955c7`.
-- **Install check.** The release install check passed 17 of 17 on this runtime, upgrading from attempt 3's runtime `9a1816a` ([results](release-install-2026-11-05.json)).
-- **What changed since attempt 3** (commit `a7cbda6`, with tests):
-  - When the agent resumes recording at the user's request, that turn is stored from its prompt.
-  - When notes do not all fit, older notes of a rank are not shown in place of a newer one of the same rank that does not fit.
+- **Runtime.** Commit `RUNTIME`. Every launcher pins it as of commit `PIN`.
+- **Install check.** The release install check passed INSTALL on this runtime, upgrading from attempt 3's runtime `9a1816a` ([results](release-install-2026-11-05.json)).
 - **Freeze.** The runtime is frozen until scoring ends.
 - **Before the first paid call**, the outputs of these checks are saved:
   - the pin check reports 2 passed;
   - `git status --porcelain` is empty;
-  - `git diff a7cbda6 -- plugins/membrain/skills src/membrain` is empty;
+  - `git diff RUNTIME -- plugins/membrain/skills src/membrain` is empty;
   - `MEMBRAIN_SRC` is unset, and `membrain.__file__` resolves into this checkout.
+
+**Every change since attempt 3's runtime `9a1816a`** (`git diff 9a1816a RUNTIME -- src plugins integrations`), each with tests:
+- **Resumed turns are stored.** When the agent resumes recording because the user's current message asks for it (`memory_resume`, `membrain_resume`), that message and the reply are stored. Claude Code reads the message from the transcript, skipping meta and summary entries; OpenClaw sends it with the stop hook. A resume from the memory page or the command line still stores nothing from a turn in progress, and neither does a turn that is paused again during the message.
+- **Newer notes keep their place.** When notes do not all fit, older notes of a rank are not shown in place of a newer one of the same rank that does not fit.
+- **What the host is told** (arm `P`):
+  - the skill now says the message that asks to resume is stored with the reply, so the host should save any update it brings as a note as usual;
+  - the `memory_resume` description now says the current message and the reply are recorded;
+  - the resume tools of Hermes, AstrBot and OpenClaw say the same.
+- **Launchers** are re-pinned to `RUNTIME`.
 
 ## Inputs
 
 | File | SHA-256 |
 | --- | --- |
-| [Scenario K](v1-2026-11-04-acceptance-scenario-k.py) (unchanged since attempt 3) | `f4137a1cd98c5efd5f3feee156940f540ffb48f76798422bf2a88b6c8a75038b` |
-| [Scenario L](v1-2026-11-05-acceptance-scenario-l.py) | `0d85bda8987f846c27659773aa3d6d350b6bea13705ccc8d3f04a3dbc26f7dcb` |
-| [Harness](v1-2026-10-29-phase-b-harness.py) | `96246b302f6984e01b9d2912f1a3e4ea249bf67d88df74303d82199bcd0b6f7e` |
+| [Scenario L](v1-2026-11-05-acceptance-scenario-l.py), mainly English with one session in German | `94f40fcc3ab42e89e36339d55ea9ced35b4fd25597ff5551448d29da44c39c6c` |
+| [Scenario M](v1-2026-11-05-acceptance-scenario-m.py), mainly Chinese with one session in English | `M_HASH` |
+| [Harness](v1-2026-10-29-phase-b-harness.py) | `HARNESS_HASH` |
 | [Blinding](v1-2026-10-29-phase-b-blind.py) | `320b8c2d55e7551c90ee229079b352da8d24e360fa42f6b2cb1c54dbfcc887d6` |
 | [Date pre-check](v1-2026-11-02-date-precheck.py) | `3e04a9915df6b52351806ebf4bb9ec8c368875762d94140071f4284b832065a6` |
 | [Review pipeline](acceptance_review.py) | `b257a55a7ee7180c7221122f44133e88f322539798d1a5364536941985d9eefa` |
@@ -36,26 +44,39 @@ This attempt runs the repaired runtime on two held-out scenarios: K again, and a
 | [Attribution instructions](acceptance-review/attribute.md) | `737865ae9e982b19c242d26e6a1865e8f136cc686eb72f9e2230652ffc97648f` |
 
 **Harness changes since attempt 3:**
-- An empty host reply (no answer and no tool call) counts as a malformed response and is retried. The stop rules already resume after a malformed response; attempt 3's harness recorded the empty reply instead.
-- A turn in which the agent resumed recording is stored from its prompt, as the plugin's Stop hook now does.
+- **Empty replies.** An empty host reply (no answer and no tool call) counts as a malformed response and is retried inside the call, like other malformed responses: up to four tries in all, with a growing wait. Every try counts toward the call cap.
+- **Resumed turns.** A turn in which the agent resumed recording is stored from the user's own message, as the plugin's Stop hook now does. The harness requires `turn_resumed` from the runtime, so the behaviour cannot be silently missing.
 
-**Scenarios.**
-- **K is reused.** Attempt 3 ran K's arms, but nobody scored or read them. The developer has seen only K's case count and hash, and K's replies from attempt 3 are kept sealed in that attempt's evidence archive. K's arms run again here in new, empty directories on the repaired runtime.
-- **L replaces J,** which the developer has now seen. A fresh agent wrote L under the same restrictions and brief as J and K. It was not allowed to open any earlier acceptance scenario (F to K), any result or anything about the product. Like J, L is mainly in English with one session in Spanish or German.
-- **The developer has not seen L's cases, criteria or FACTS.** The date pre-check's full output goes to the evidence; only its last line is shown to the developer.
+## Scenarios
 
-## Arms, scoring, attribution, validity
+- **Why K was dropped.** Attempt 3's report named K's two empty turns by session id and gave a completion-token count. While diagnosing those turns, the developer printed both rows' usage, seconds, reply and tool calls, and the first 800 characters of each transcript. That showed K's full first user message in one session and the start of a memory block in the other. K is therefore no longer unseen, and it is not used.
+- **K's attempt-3 results** are never scored, opened or used for any decision, whatever this attempt's outcome.
+- **Who wrote L and M.** A fresh agent wrote each one under the same brief and restrictions as J and K. Neither agent was allowed to open any earlier acceptance scenario (F onwards), any result, or anything about the product.
+- **What the developer has seen of L and M:** only their hashes and the date pre-check's last line.
+- **Scenario fixes.** The reviewer's scenario findings go to a file the developer does not open. An agent other than the developer applies the required fixes from that file. Afterwards the new hashes are recorded here, and the date pre-check is re-run on L and M. Its full output goes to the evidence, and the developer sees only its last line.
+
+## Validity before scoring
+
+- **When validity runs.** `acceptance_review.py validity` runs on all six run directories after the last arm finishes, before any blinding, review or diagnosis.
+- **Exhausted retries.** If a call's retries run out, the arm stops with a Traceback. There is no mid-run resume. The guard then finds the Traceback, and the attempt is invalid.
+- **If the attempt is invalid:**
+  - neither scenario is scored, even one whose own three arms are valid;
+  - both stay held out and run again in new, empty directories;
+  - the diagnosis reads only the validity output and the harness log's error lines (arm, session id, turn and error), never a row's input, reply, memory context or transcript.
+- **Repeated failures.** If the same scenario is invalid twice in a row, the third run is replaced by a written diagnosis that follows the same reading rule. The attempt then stops without a pass or fail, for a decision by the owner.
+- **The report** gives each arm's count of retried empty replies (`host error ValueError empty reply` lines), as well as any failure.
+
+## Arms, scoring, attribution
 
 These are unchanged from attempt 3.
 - **Arms:** `P`, `E` and `F`.
 - **Review:** first review, split, per-case re-check, resolution under R1 to R3, then the tally.
 - **Attribution:** two fresh agents per gated critical reply. The cause is `host` only when both answer `host`.
-- **Validity guard:** runs on all six run directories.
 
 ## Pass rule
 
 This is the same as attempt 3. Each gated arm passes when all three of these hold:
-1. its total over K and L is at least the reference arm's total minus 1;
+1. its total over L and M is at least the reference arm's total minus 1;
 2. none of its standing critical errors is memory-caused;
 3. its number of host-caused standing critical errors is at most the reference arm's number of standing critical errors.
 
@@ -66,8 +87,12 @@ The report also gives:
 - the absolute totals against the lowest reference total so far (16.5);
 - what attempts 1 and 2's rule would have decided.
 
+## Limitations
+
+- **The real transcript path is not exercised.** The harness emulates the Stop hook with the user's clean message. A test covers reading a resumed prompt from a Claude Code transcript, including skipping meta entries, but no real Claude Code session runs in this attempt.
+
 ## Stop rules, spending, evidence
 
-These are as in attempt 3.
+These are as in attempt 3, with the validity rules above.
 - **Report:** `evaluations/v1-2026-11-05-final-acceptance-4.md`.
 - **Spending:** there is no fixed cap (owner approval of 2026-11-02). The balance is read before the attempt (308.87 CNY after attempt 3) and after each scenario.
