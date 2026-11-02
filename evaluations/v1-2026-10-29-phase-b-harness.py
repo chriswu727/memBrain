@@ -272,8 +272,9 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             messages = [{"role": "system", "content": system}, *prior, *current, {"role": "user", "content": user_content}]
             usage, started, tool_calls = {}, time.monotonic(), []
             try:
-                for _ in range(4):  # At most three tool rounds, then a final answer.
-                    message, call_usage = host.call(messages, schemas if schemas and len(tool_calls) < 6 else None)
+                for round_ in range(4):  # At most three tool rounds, then a final answer without tools.
+                    offer = schemas if schemas and len(tool_calls) < 6 and round_ < 3 else None
+                    message, call_usage = host.call(messages, offer)
                     add_usage(usage, call_usage)
                     calls = message.get("tool_calls") or []
                     if not calls:
@@ -309,7 +310,8 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             # The turn as the host's transcript keeps it: tool calls and results stay visible in later turns.
             transcript = [{k: v for k, v in item.items() if k != "reasoning_content"}
                           for item in messages[1 + len(prior) + len(current):]]
-            transcript.append({"role": "assistant", "content": reply})
+            # The final message only: text written beside tool calls is already in the transcript above.
+            transcript.append({"role": "assistant", "content": message.get("content") or ""})
             row = {"arm": arm, "scenario": scenario, "session": session, "turn": index, "date": today.isoformat(),
                    "input": text, "reply": reply, "usage": usage, "seconds": round(time.monotonic() - started, 1),
                    "host_user_content": user_content, "session_context": session_context or "",
