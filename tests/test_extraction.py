@@ -190,3 +190,15 @@ def test_extraction_saves_only_what_the_person_said():
 
     assert "Save only what the person said" in INSTRUCTIONS and "is not a fact" in INSTRUCTIONS
     assert "language the person wrote the latest exchange in" in INSTRUCTIONS
+
+
+def test_extraction_sees_the_weekday_and_the_coming_weeks():
+    import datetime
+
+    seen = []
+    model([], seen).propose("我妈想11号到13号来，帮我回她让她16号周六再来。", "好的。", "(none)",
+                            today=datetime.date(2027, 10, 7))
+    content = seen[0]["messages"][1]["content"]
+    assert "Today is 2027-10-07 (Thursday)." in content
+    assert "2027-10-16 Sat" in content and "2027-11-11" in content  # Five weeks ahead.
+    assert "next such day from today" in seen[0]["messages"][0]["content"]

@@ -50,6 +50,10 @@ dog-sitting?" is not a fact) unless the person confirmed it. A plan stays "inten
 or done; never mark something done because it was planned. When a fact changes (a date moves, a plan is cancelled
 or done), save the updated note and put the old note's id in "replaces". Most exchanges need no note.
 
+Resolve dates against today's date and the calendar given with the exchange: a day of the month without a month
+("the 16th", "16号") is the next such day from today, and when a weekday is named with it the two must agree on the
+calendar. If they cannot be reconciled, leave the date out rather than guess.
+
 Answer with JSON only: {{"notes": [ ... ]}} with at most {MAX_NOTES} items, each
 {{"text": "...", "kind": one of {list(KINDS)}, "about": "name or empty", "aliases": [],
 "status": one of {list(STATUSES)} or empty (plans and the assistant's promises only), "due": "YYYY-MM-DD or empty",
@@ -106,7 +110,8 @@ class Extractor:
                        f"Person: {_clip(previous[0])}\nAssistant: {_clip(previous[1])}\n\n")
         body = {"model": self.model, "temperature": 0, "max_tokens": 1200, "response_format": {"type": "json_object"},
                 "messages": [{"role": "system", "content": INSTRUCTIONS}, {"role": "user", "content": (
-                    f"Today is {today.isoformat()}.\n\nCurrent notes:\n{notes or '(none)'}\n\n{earlier}"
+                    f"Today is {today.isoformat()} ({today.strftime('%A')}).\n{_calendar(today)}\n\n"
+                    f"Current notes:\n{notes or '(none)'}\n\n{earlier}"
                     f"Latest exchange:\nPerson: {prompt}\nAssistant: {reply}")}]}
         if not self.thinking:
             body["thinking"] = {"type": "disabled"}  # Ignored by providers that do not know it.
@@ -243,6 +248,12 @@ def extraction_status(directory) -> dict | None:
     if not isinstance(state, dict):
         return None
     return {**state, "state": "degraded" if int(state.get("failed_since_success") or 0) else "ok"}
+
+
+def _calendar(today: _datetime.date, days: int = 35) -> str:
+    """The coming weeks with their weekdays, so "Saturday the 16th" resolves to the right month."""
+    dates = (today + _datetime.timedelta(days=offset) for offset in range(1, days + 1))
+    return "Calendar: " + ", ".join(f"{day.isoformat()} {day.strftime('%a')}" for day in dates)
 
 
 def _clip(text: str, limit: int = 2000) -> str:
