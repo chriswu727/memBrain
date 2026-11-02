@@ -47,7 +47,8 @@ of who it is about.
 Save only what the person said. Do not save small talk, one-off requests, facts already in a note, anything the
 person asked not to keep, or what the assistant said, assumed or asked about (a question such as "is Leila still
 dog-sitting?" is not a fact) unless the person confirmed it. A plan stays "intended" until the person says it is scheduled
-or done; never mark something done because it was planned. When a fact changes (a date moves, a plan is cancelled
+or done; never mark something done because it was planned. Anything the person must do by a date (send
+documents, pay, register) is a "plan" with that "due" date, whoever it involves. When a fact changes (a date moves, a plan is cancelled
 or done), save the updated note and put the old note's id in "replaces". Most exchanges need no note.
 
 Resolve dates against today's date and the calendar given with the exchange: a day of the month without a month

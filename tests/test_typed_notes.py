@@ -197,3 +197,20 @@ def test_a_cancelled_plan_stays_in_view_when_the_notes_are_full():
     passed = [item("gone", format_note("Cancelled the 2020 trip.", kind="plan", status="cancelled",
                                        occurs_at="2020-05-01"), "2020-01-01T09:00:00Z")]
     assert notes._priority(notes._parsed({"items": passed})[0]) == 4  # Its date has passed: an ordinary note.
+
+
+def test_a_deadline_on_any_note_and_an_undated_plan_reach_coming_up():
+    today = datetime.date(2027, 5, 17)
+    response = {"items": [
+        item("trish", format_note("Trish needs the 2026 receipts and mileage log.", kind="relationship",
+                                  about="Trish", due="2027-04-30")),
+        item("walker", format_note("Plans to order a walker for Mum.", kind="plan")),
+        item("done", format_note("Booked the ferry.", kind="plan", status="done", due="2027-04-01")),
+    ], "complete": True}
+    block = render_coming_up(response, today=today)
+    assert "2027-04-30 has passed and this is still marked intended: Trish: Trish needs the 2026 receipts" in block
+    assert "Planned, not confirmed done: Plans to order a walker" in block and "Booked the ferry" not in block
+    assert "make the suggestion conditional" in block
+    assert block.index("2027-04-30 has passed") < block.index("Planned, not confirmed done")
+    trish = notes._parsed({"items": [response["items"][0]]})[0]
+    assert notes._priority(trish) == 3
