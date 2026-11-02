@@ -6,6 +6,8 @@
   attribution-inputs REVIEW_DIR BLIND_DIR SCENARIO KEY OUT_DIR   one arm-blind file per gated reply with a standing
                                                       critical error, for attribute.md
   validity RUN_DIR...                                 refuse an attempt whose runs degraded
+  verdicts VERDICTS SCENARIO                          check a first review before the split; rename prefix keys
+                                                      ("L01") to case ids, keeping the original as .raw.json
   diagnose RUN_DIR...                                 for an invalid attempt: error lines and where each arm
                                                       stopped, by position, without any case content
   gate REVIEW_DIR KEY...                              the attempt-3 pass rule from tallies and attributions
@@ -225,6 +227,44 @@ def diagnose(run_dirs: list[Path]) -> None:
                 frame = frame and line.startswith(" ")
 
 
+def verdicts(path: Path, scenario_path: str) -> None:
+    """Check a first-review file before the split, and rename prefix keys ("L01") to full case ids.
+
+    Refuses unless the result covers exactly the scenario's cases, each with labels A, B and C, a score of 0, 0.5 or
+    1, and critical types from 1 to 5. A rename happens only when every key is the prefix of exactly one case; the
+    original is kept as <name>.raw.json and nothing but the top-level keys changes."""
+    ids = [case for _, _, case, _ in load(scenario_path).CASES]
+    try:
+        data = json.loads(path.read_text())
+    except ValueError as error:
+        raise SystemExit(f"invalid: not JSON ({error})")
+    if not isinstance(data, dict):
+        raise SystemExit("invalid: not an object")
+    renamed = {}
+    for key in data:
+        matches = [case for case in ids if case == key or case.split("-")[0] == key]
+        if len(matches) != 1:
+            raise SystemExit(f"invalid: key {key!r} does not name exactly one case")
+        renamed[key] = matches[0]
+    if sorted(renamed.values()) != sorted(ids):
+        raise SystemExit("invalid: the keys do not cover exactly the scenario's cases")
+    for key, verdict in data.items():
+        if not isinstance(verdict, dict) or sorted(verdict) != ["A", "B", "C"]:
+            raise SystemExit(f"invalid: {renamed[key].split('-')[0]} does not have exactly labels A, B and C")
+        for label, item in verdict.items():
+            critical = item.get("critical") if isinstance(item, dict) else None
+            if (not isinstance(item, dict) or item.get("score_ignoring_critical") not in (0, 0.5, 1)
+                    or not isinstance(critical, list)
+                    or not all(isinstance(t, int) and 1 <= t <= 5 for t in critical)):
+                raise SystemExit(f"invalid: {renamed[key].split('-')[0]}/{label} has a bad score or critical list")
+    changed = [key for key, case in renamed.items() if key != case]
+    if changed:
+        raw = path.with_name(path.stem + ".raw.json")
+        raw.write_bytes(path.read_bytes())
+        path.write_text(json.dumps({renamed[key]: value for key, value in data.items()}, ensure_ascii=False, indent=1))
+    print(json.dumps({"valid": True, "renamed_keys": len(changed)}))
+
+
 def gate(review: Path, keys: list[str]) -> None:
     """The attempt-3 pass rule from the tallies and the attributions (two per gated reply; disagreement or a
     missing or invalid answer counts as memory)."""
@@ -272,6 +312,8 @@ if __name__ == "__main__":
         attribution_inputs(Path(args[0]), Path(args[1]), args[2], args[3], Path(args[4]))
     elif command == "validity":
         validity([Path(arg) for arg in args])
+    elif command == "verdicts":
+        verdicts(Path(args[0]), args[1])
     elif command == "diagnose":
         diagnose([Path(arg) for arg in args])
     elif command == "gate":
