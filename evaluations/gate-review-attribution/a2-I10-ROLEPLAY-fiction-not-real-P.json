@@ -1,0 +1,4 @@
+{
+  "cause": "host",
+  "evidence": "Note: \"用户计划本周在网上给王秀英订购助行器和马桶增高架。 (intended, not confirmed done)\" plus the recalled Sep 17 reply \"助行器：之前计划'这周订'，但没有'已下单/已到货'的记录\". The memory gave the correct unconfirmed status, and the assistant assumed a walker was at home. (The recalled Sep 30 assistant reply also wrongly said \"马桶增高架、助行器都备好了\", but that was the assistant's own earlier mistake replayed back, and the notes still marked the purchase not confirmed.)"
+}

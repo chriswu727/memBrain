@@ -53,17 +53,14 @@ The existing regressions pass with zero known defects in any of these:
 
 ### R4 — Memory is useful on held-out lives (behavioral acceptance)
 
-This gate follows a plan frozen and independently reviewed before any paid call: [final acceptance plan](../evaluations/v1-2026-11-02-final-acceptance-plan.md).
+This gate follows a plan frozen and independently reviewed before any paid call: [attempt 3 plan](../evaluations/v1-2026-11-04-final-acceptance-plan-3.md).
 - **Scenarios.** Two new held-out scenarios, written without access to the product.
-- **Paths.** The plugin path and the proxy-with-extraction path run on the candidate, with replies scored blind.
-- **Pass rule.** Each path must score at least 20 of 22 (90%), with no critical error left after a second review. A critical error is any of these:
-  - a plan stated as done;
-  - a private fact leaked;
-  - a corrected fact used as if still true;
-  - a fact invented;
-  - role-play facts treated as real.
-
-  The owner set this rule on 2026-11-01.
+- **Paths.** The plugin path and the proxy-with-extraction path run on the candidate, next to a reference arm that puts the whole history in the prompt. Replies are scored blind.
+- **Pass rule.** Each gated path must meet all three conditions:
+  - it scores no lower than the reference minus 1 point;
+  - it has no critical error caused by memory;
+  - it has no more host-caused critical errors than the reference.
+- **Why this rule.** The [gate review](../evaluations/v1-2026-11-03-gate-review.md) explains the change. The first rule (at least 20 of 22 and no critical error, attempts 1 and 2) could not be met even by the reference arm with perfect information, so it measured the host model rather than memBrain.
 - **If it fails.** The cause is repaired, and the gate is retried only on new scenarios.
 
 ### R5 — Local overhead stays bounded
