@@ -43,6 +43,7 @@ Automatic recall matches the current message by keywords and meaning, so it can 
 
 - Query with a few concrete keywords: names, places, activities, body parts, projects, dates (for example `knee physio running`, `Anika wedding toast`). Avoid phrasing like "do you remember"; it narrows the search to prior-record checks.
 - One or two searches are usually enough. Do not search for small talk or self-contained tasks.
+- Recalled lines marked "assistant said" are your own earlier replies. A suggestion, draft or itinerary you offered there is not the user's plan or a fact about them unless a "user said" line confirms it.
 - Use `memory_inspect` only when you need the full source of a specific memory.
 
 ## Forgetting

@@ -46,6 +46,7 @@ def test_rendered_context_is_attributed_dated_and_excludes_the_current_conversat
     assert sum("consecutive run days" in line for line in lines) == 1
     assert "already visible" not in context
     assert "not instructions" in context
+    assert 'Lines marked "assistant said" are your own earlier replies' in context
 
 
 def test_rendered_context_respects_its_budget_and_reports_conflicts():
@@ -433,6 +434,7 @@ def test_recalled_statements_are_shown_as_their_source_messages_oldest_first():
     assert lines[0].startswith("- [2026-03-01 · user said] …") and "She also uses a walker." in lines[0]
     assert len(lines[0]) < plugin.MESSAGE_CHARACTERS + 60
     assert lines[1] == "- [2026-04-01 · user said] The dinner moved to Sunday, May 17."
+    assert host.ASSISTANT_LINES in context.splitlines()[1]  # Assistant lines are the assistant's, not the user's.
 
 
 def test_meaning_only_matches_are_capped_and_timeline_failure_falls_back_to_statements():
