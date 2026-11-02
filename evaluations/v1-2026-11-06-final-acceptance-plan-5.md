@@ -4,7 +4,7 @@
 
 In M06-C, recall served the assistant's own earlier suggested itinerary, and the host presented it as the user's original plan. Attempt 3's J07-C had shown the same pattern. The owner chose to repair this and run a new attempt (2026-11-05).
 
-Wherever this plan does not say otherwise, [attempt 4's plan](v1-2026-11-05-final-acceptance-plan-4.md) applies in full. That covers the arms, running, the validity check before scoring, the reading rule for an invalid run, review, attribution, the pass rule and the report contents. Nothing in the review instructions, the attribution rules, the pass rule, the harness or the run script has changed. The pipeline gains one command (`verdicts`, below).
+Wherever this plan does not say otherwise, [attempt 4's plan](v1-2026-11-05-final-acceptance-plan-4.md) applies in full. That covers the arms, running, the validity check before scoring, the reading rule for an invalid run, review, attribution, the pass rule and the report contents. Nothing in the review instructions, the attribution rules, the pass rule or the harness has changed. The run script changed in Revision 2 (at the end of this plan). The pipeline gains one command (`verdicts`, below).
 
 An independent reviewer approved a draft of this plan with five required plan fixes and seven required scenario fixes, and this version makes all of them.
 
@@ -12,7 +12,7 @@ An independent reviewer approved a draft of this plan with five required plan fi
 
 - **Runtime.** Commit `b6d725ad8a981c30873cfa4a93e5596284b9470c`. Commit `d541ea1` re-pins every launcher to it; that commit changes only the nine launcher files.
 - **Install check.** The release install check passed 17 of 17 on this runtime, upgrading from attempt 3's runtime `9a1816a` ([results](release-install-2026-11-06.json)). The upgrade from attempt 4's runtime `a558612` was not run separately; the two runtimes differ only in recall header text and the skill.
-- **Freeze.** The runtime, the harness, the pipeline, the run script and the scenarios are frozen at the hashes below from the first paid call until scoring ends. A re-run after an invalid attempt uses the same frozen files.
+- **Freeze.** The runtime, the harness, the pipeline, the run script and the scenarios are frozen at the hashes below from the first paid call until scoring ends. A re-run after an invalid attempt uses the same frozen files, except as Revision 2 records for the run script.
 - **Before the first paid call**, the outputs of these checks are saved:
   - the pin check reports 2 passed;
   - `git status --porcelain` is empty;
@@ -32,7 +32,7 @@ An independent reviewer approved a draft of this plan with five required plan fi
 | [Scenario N](v1-2026-11-06-acceptance-scenario-n.py), mainly English with one session in German | `5dd23f7638df698edc4ef6c8b0dbb1836a2d311c7968fbee3a157de9925fd732` |
 | [Scenario O](v1-2026-11-06-acceptance-scenario-o.py), mainly Chinese with one session in English | `dbbab96f821fb74394af615b9d391636695978b6785252e2408c50f04471dc39` |
 | [Harness](v1-2026-10-29-phase-b-harness.py) (unchanged since attempt 4) | `65a2dc5e7ba2e79caff4a11ce2775c287a2f41e1e7fe35fd4662fc1ada58f5a3` |
-| [Run script](v1-2026-11-05-run-scenario.sh) (revision 2: waits for bindable ports) | `197cfc54ee6d547dbe541cd33d84652d8c78a30f352994dc2f2799796b0d40ff` |
+| [Run script](v1-2026-11-05-run-scenario.sh) (Revision 2; runs 1 and 2 used `a983d5a5683c09003f0247649938c0987391bb6b23cfb194aaa8460623a9a583`) | `82e4cf00766de874fe9154aa3d16fa6d794b59f1439bf8ee123930dc2a16cdf6` |
 | [Blinding](v1-2026-10-29-phase-b-blind.py) | `320b8c2d55e7551c90ee229079b352da8d24e360fa42f6b2cb1c54dbfcc887d6` |
 | [Date pre-check](v1-2026-11-02-date-precheck.py) | `3e04a9915df6b52351806ebf4bb9ec8c368875762d94140071f4284b832065a6` |
 | [Review pipeline](acceptance_review.py) (adds `verdicts`) | `6d622d748344f7e692af7a776bc2d6c98760276fd0cd9a9bf77d55dc4a62f5b7` |
@@ -50,7 +50,7 @@ An independent reviewer approved a draft of this plan with five required plan fi
 
 ## Running and keys
 
-- **Order.** N runs first, then O, each with the run script as in attempt 4.
+- **Order.** N runs first, then O, each with the run script as revised in Revision 2.
 - **Run keys:** `n` and `o`. The run directories are `OUT_ROOT/n-P`, `n-E`, `n-F`, `o-P`, `o-E` and `o-F`. Every review file is named by its key: `sheet-<key>.md`, `verdicts-<key>.json`, `recheck-<key>/`, `resolution-<key>.json`, `tally-<key>.json` and `attribution-<key>/`.
 - **The balance** is read after each scenario.
 
@@ -98,8 +98,11 @@ The first two runs under this plan were invalid ([report](v1-2026-11-06-final-ac
 As this plan requires, the attempt stopped and went to the owner, who chose to fix the procedure and run again (2026-11-06).
 
 **What changes:**
-- **The run script only.** Before starting arm `P` or `E`, it waits until both of the arm's ports can be bound the same way the runtime checks them, for up to five minutes, and stops otherwise.
-- **The check was tested before use.** A test reproduced the failure: a port in TIME_WAIT has no listener, but cannot be bound. The new wait held for 65 seconds, until the port could be bound.
+- **The run script only.**
+  - Before starting any arm, it waits until all four fixed ports can be bound the same way the runtime checks them, for up to five minutes. If they never become free, it stops before any paid call.
+  - Just before starting arm `P` or `E`, it checks that arm's two ports again. If that wait times out, it stops every arm it has already started.
+- **The check was tested before use.** A test reproduced the failure: a port in TIME_WAIT has no listener, but cannot be bound. The new wait held until the port could be bound, after 60 to 65 seconds.
+- **The reviewer of this revision** found that the diagnosis matches the code, and reproduced both the failure and the fix independently.
 
 **What does not change:**
 - the runtime, the harness, the pipeline, the review instructions, the attribution rules and the pass rule;
@@ -111,3 +114,22 @@ As this plan requires, the attempt stopped and went to the owner, who chose to f
 - the pre-checks are saved again.
 
 **If this run is invalid too,** the attempt stops again and goes to the owner.
+
+**Stop rules for this run:**
+- **Before any arm of N starts.** If the script stops at the first port wait, no paid call has been made. The cause is found from socket state only (for example `/proc/net/tcp`), never from any run directory, and the script may be started again.
+- **After any arm has started.** If the script stops at a port wait, or anything else makes the run invalid, every arm already started is stopped at once. The attempt then goes to the owner.
+
+**The earlier runs are sealed:**
+- The run directories from runs 1 and 2 are never scored, opened, archived or used for any decision, whatever the outcome. That includes run 1's three complete N arms and their brain directories.
+- This run uses a new, empty `OUT_ROOT`, so `validity` and the pipeline only ever see its six directories.
+
+**How run 1's failure was noticed.**
+- The operator's error monitor reads each `run.log` programmatically and prints only lines matching `host error`, `Traceback` or `cap reached`. That is how the o-E startup Traceback surfaced.
+- After that, only `acceptance_review.py validity` and `diagnose` were run.
+- No progress line, results file or reply from runs 1 and 2 was displayed. The same error-only monitor is used in this run.
+
+**The report.** The result of this run is added to [the attempt-5 report](v1-2026-11-06-final-acceptance-5.md). That report keeps the account of runs 1 and 2 and their cost (8.22 CNY).
+
+**Before this run:**
+- the balance is read again (284.12 CNY after run 2);
+- the pre-checks are saved again, with every input's hash and the bind state of the four ports.

@@ -8,9 +8,10 @@
 # resume a run, which the acceptance plan does not allow. Needs DEEPSEEK_API_KEY and MEMBRAIN_MODEL_CACHE;
 # MEMBRAIN_SRC must be unset so the arms use this checkout.
 #
-# Arms P and E use fixed ports. Before starting one, the script waits until both of its ports can be bound the way the
+# Arms P and E use fixed ports. Before starting any arm, the script waits until all four ports can be bound the way the
 # runtime checks them (a plain bind on 127.0.0.1, which fails while closed connections are still in TIME_WAIT), for up
-# to five minutes, and stops if they never become free. Attempt 5 lost two runs to a port still in TIME_WAIT.
+# to five minutes, and stops before any paid call if they never become free; it checks each arm's ports again just
+# before starting it. Attempt 5 lost two runs to a port still in TIME_WAIT.
 set -euo pipefail
 scenario=$1 root=$2 key=$3
 : "${DEEPSEEK_API_KEY:?set DEEPSEEK_API_KEY}" "${MEMBRAIN_MODEL_CACHE:?set MEMBRAIN_MODEL_CACHE}"
@@ -38,11 +39,15 @@ wait_bindable() {
   done
   echo "ports $* free after ${waited} s"
 }
+wait_bindable 8893 55533 8894 55534 || exit 2  # Before any arm starts: a timeout here costs nothing.
 pids=()
 for spec in "P 8893,55533" "E 8894,55534" "F -"; do
   set -- $spec
   dir="$root/$key-$1"
-  if [ "$2" != "-" ]; then wait_bindable ${2//,/ } || exit 2; fi
+  if [ "$2" != "-" ] && ! wait_bindable ${2//,/ }; then
+    for pid in "${pids[@]}"; do kill "$pid" 2>/dev/null || true; done  # Never leave an earlier arm running alone.
+    exit 2
+  fi
   mkdir -p "$dir"
   if [ "$2" = "-" ]; then
     env -u MEMBRAIN_PORTS uv run python -u evaluations/v1-2026-10-29-phase-b-harness.py "$1" "$scenario" "$dir" \
