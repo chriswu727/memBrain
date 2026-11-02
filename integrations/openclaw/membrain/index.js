@@ -3,7 +3,7 @@
 import { spawn } from "node:child_process";
 
 const PACKAGE = process.env.MEMBRAIN_PACKAGE ||
-  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/cfd481e4903ad087343545ed1c4968f2d0f9ce41.zip";
+  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/b3d775473ea979443f8f2aa77fc9ba0b07eb0745.zip";
 const BLOCK_MS = 5 * 60 * 1000;
 
 function run(command, args, { input, timeoutMs = 12_000, env } = {}) {
