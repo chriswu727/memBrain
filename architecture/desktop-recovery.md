@@ -84,6 +84,8 @@ Activation leaves services stopped. Start the recovered installation explicitly:
 membrain desktop start --directory /private/path/recovered-profile
 ```
 
+Host plugins (Claude Code, Codex, WorkBuddy, OpenClaw), the proxy and the bot adapters use the default installation directory. After activating a restore in another directory, set `MEMBRAIN_DIRECTORY` to the recovered directory in the environment those hosts run in. The retired installation refuses to start and says so. The [release install check](../evaluations/release-install-2026-11-01.py) runs this path, backup through activation and recall, from the pinned runtime.
+
 The local SDK and MCP bridge use the epoch acknowledged by activation. External API adapters must explicitly supply `X-Memory-Recovery-Epoch` on operational requests. An authenticated `GET /v1/recovery` returns the epoch and recovery point without accepting them on the adapter's behalf.
 
 ```python
