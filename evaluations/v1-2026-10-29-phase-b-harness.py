@@ -292,7 +292,11 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             finally:
                 if client is not None:
                     client.close()
-            reply = message.get("content") or ""
+            # Everything the host wrote this turn: a host such as Claude Code shows text written beside tool calls too,
+            # so a final "the plan's above" must be read with the plan written before it.
+            written = [item.get("content") for item in messages[1 + len(prior) + len(current):]
+                       if item.get("role") == "assistant" and item.get("content")]
+            reply = "\n\n".join([*written, message.get("content") or ""]).strip()
             if chat is not None:
                 chat.record(speaker, reply, session=session, turn_id=f"t{index}", prompt=text, roleplay=roleplay)
                 if chat.extractor is not None:
