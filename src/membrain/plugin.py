@@ -171,8 +171,8 @@ def _transcript_tail(transcript: str | None):
             entry = json.loads(line)
         except ValueError:
             continue
-        if not isinstance(entry, dict):
-            continue
+        if not isinstance(entry, dict) or entry.get("isMeta") or entry.get("isCompactSummary"):
+            continue  # Claude Code's own notices and compaction summaries are not the user's words.
         message = entry.get("message") if isinstance(entry.get("message"), dict) else entry
         role = message.get("role") or entry.get("type")
         text = _text(message.get("content"))

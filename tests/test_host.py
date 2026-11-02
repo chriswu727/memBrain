@@ -424,6 +424,7 @@ def test_the_stop_hook_stores_a_resumed_turn_from_the_transcript(tmp_path, monke
         {"type": "user", "message": {"role": "user", "content": prompt}},
         {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "1"}]}},
         {"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "1"}]}},
+        {"type": "user", "isMeta": True, "message": {"role": "user", "content": "Caveat: local command output"}},
         {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Noted."}]}},
     ]))
     assert plugin.last_user_message(str(transcript)) == prompt
