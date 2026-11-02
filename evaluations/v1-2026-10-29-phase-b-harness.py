@@ -310,7 +310,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                         harness_event(out, "extraction_unfinished", session=session, turn=index)
             elif memory is not None:
                 # As the plugin's Stop hook: a turn in which the agent resumed recording is stored from its prompt.
-                resumed = getattr(memory.host, "turn_resumed", lambda *args: False)(memory.directory, session)
+                resumed = memory.host.turn_resumed(memory.directory, session)
                 memory.host.finish_turn(memory.directory, session, reply, turn_id=f"t{index}",
                                         **({"prompt": text} if resumed else {}), **memory.options(roleplay))
             # The turn as the host's transcript keeps it: tool calls and results stay visible in later turns.
