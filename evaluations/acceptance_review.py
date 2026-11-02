@@ -6,6 +6,8 @@
   attribution-inputs REVIEW_DIR BLIND_DIR SCENARIO KEY OUT_DIR   one arm-blind file per gated reply with a standing
                                                       critical error, for attribute.md
   validity RUN_DIR...                                 refuse an attempt whose runs degraded
+  diagnose RUN_DIR...                                 for an invalid attempt: error lines and where each arm
+                                                      stopped, by position, without any case content
   gate REVIEW_DIR KEY...                              the attempt-3 pass rule from tallies and attributions
 
 Final score of a reply: 0 when a critical error stands, otherwise the first reviewer's score_ignoring_critical.
@@ -154,29 +156,73 @@ def attribution_inputs(review: Path, blind_dir: Path, scenario_path: str, key: s
         print(out / f"{case.split('-')[0]}-{label}.md")
 
 
-def validity(run_dirs: list[Path]) -> None:
-    """Refuse an attempt whose runs degraded: empty or missing replies, a call cap, a harness error or an index
-    timeout in any arm. Prints the reference arm's largest prompt."""
-    problems, largest = [], 0
-    for run in run_dirs:
-        results = list(run.glob("results_*.jsonl"))
-        if len(results) != 1:
-            problems.append(f"{run}: expected one results file")
-            continue
-        rows = [json.loads(line) for line in results[0].read_text().splitlines()]
+def _run(run: Path) -> tuple[list[dict], list[tuple[str, int]], str]:
+    """A run directory's result rows, the scenario's turns in order (session, turn) and its log ("" if none)."""
+    results = list(run.glob("results_*.jsonl"))
+    rows = [json.loads(line) for line in results[0].read_text().splitlines()] if len(results) == 1 else []
+    order = []
+    if rows:
         scenario = load(str(Path(__file__).parent / (rows[0]["scenario"] + ".py")))
-        expected = sum(len(turns) for _, turns in scenario.SESSIONS_LONG)
-        if len(rows) != expected:
-            problems.append(f"{run}: {len(rows)} of {expected} turns")
-        problems += [f"{run}: empty reply at {row['session']} {row['turn']}" for row in rows if not row["reply"].strip()]
-        log = (run / "run.log").read_text() if (run / "run.log").exists() else ""
+        order = [(session, index) for session, turns in scenario.SESSIONS_LONG for index in range(len(turns))]
+    log = (run / "run.log").read_text(errors="replace") if (run / "run.log").exists() else ""
+    return rows, order, log
+
+
+def _position(order: list, row: dict) -> str:
+    """Where a turn is, without naming its session (session ids describe content)."""
+    key = (row["session"], row["turn"])
+    return f"turn {order.index(key) + 1} of {len(order)}" if key in order else "an unknown turn"
+
+
+def validity(run_dirs: list[Path]) -> None:
+    """Refuse an attempt whose runs degraded: a missing or unfinished log, missing or empty replies, a call cap, a
+    harness error or an index timeout in any arm. Names turns by position only. Prints the reference arm's largest
+    prompt and each arm's count of retried empty replies."""
+    problems, largest, retried = [], 0, {}
+    for run in run_dirs:
+        rows, order, log = _run(run)
+        if not rows:
+            problems.append(f"{run}: expected one results file with rows")
+            continue
+        arm, scenario = rows[0]["arm"], rows[0]["scenario"]
+        if len(rows) != len(order):
+            problems.append(f"{run}: {len(rows)} of {len(order)} turns")
+        problems += [f"{run}: empty reply at {_position(order, row)}" for row in rows if not row["reply"].strip()]
+        lines = [line for line in log.splitlines() if line.strip()]
+        if not lines or not lines[-1].endswith(f"{arm} {scenario} finished"):
+            problems.append(f"{run}: run.log missing, empty or not ending with the finished line")
         problems += [f"{run}: {marker}" for marker in ("cap reached", "Traceback") if marker in log]
+        retried[f"{run.name} ({arm})"] = log.count("host error ValueError empty reply")
         events = run / "harness-events.jsonl"
         if events.exists() and "index_wait_timed_out" in events.read_text():
             problems.append(f"{run}: index wait timed out")
-        if rows and rows[0]["arm"] == "F":
+        if arm == "F":
             largest = max(largest, max(row["usage"].get("prompt_tokens", 0) for row in rows))
-    print(json.dumps({"valid": not problems, "problems": problems, "reference_largest_prompt_tokens": largest}))
+    print(json.dumps({"valid": not problems, "problems": problems, "reference_largest_prompt_tokens": largest,
+                      "empty_replies_retried": retried}))
+
+
+_ERROR = re.compile(r"\bhost error\b|cap reached|harness event|^Traceback|^\S*(Error|Exception)\b")
+
+
+def diagnose(run_dirs: list[Path]) -> None:
+    """What an invalid run's diagnosis may read: error lines from the log (never the per-turn progress lines, which
+    show memory tool arguments) and where each arm stopped, by position. No input, reply, context or transcript."""
+    for run in run_dirs:
+        rows, order, log = _run(run)
+        print(f"== {run.name}: {len(rows)} of {len(order)} turns done"
+              + (f"; last done {_position(order, rows[-1])}" if rows else ""))
+        for row in rows:
+            if not row["reply"].strip():
+                print(f"   empty reply at {_position(order, row)}")
+        frame = False
+        for line in log.splitlines():
+            text = line.split(" ", 1)[1] if re.match(r"\d\d:\d\d:\d\d ", line) else line
+            if _ERROR.search(text) or (frame and line.startswith("  File ")):
+                frame = text.startswith("Traceback") or (frame and not _ERROR.search(text))
+                print("   " + text[:200])
+            else:
+                frame = frame and line.startswith(" ")
 
 
 def gate(review: Path, keys: list[str]) -> None:
@@ -226,6 +272,8 @@ if __name__ == "__main__":
         attribution_inputs(Path(args[0]), Path(args[1]), args[2], args[3], Path(args[4]))
     elif command == "validity":
         validity([Path(arg) for arg in args])
+    elif command == "diagnose":
+        diagnose([Path(arg) for arg in args])
     elif command == "gate":
         gate(Path(args[0]), args[1:])
     else:
