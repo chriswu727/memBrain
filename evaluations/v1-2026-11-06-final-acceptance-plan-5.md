@@ -29,13 +29,13 @@ An independent reviewer approved a draft of this plan with five required plan fi
 
 | File | SHA-256 |
 | --- | --- |
-| [Scenario N](v1-2026-11-06-acceptance-scenario-n.py), mainly English with one session in German | `2b12bcfc83a7a1dedcaadd6c3c90546f61cc31f3fdf2e6101781df80ca7bf1c8` |
-| [Scenario O](v1-2026-11-06-acceptance-scenario-o.py), mainly Chinese with one session in English | `89936fb1c9983749827556d64b662dfa8e043f8d15ff8392c62cbd35bd910ced` |
+| [Scenario N](v1-2026-11-06-acceptance-scenario-n.py), mainly English with one session in German | `5dd23f7638df698edc4ef6c8b0dbb1836a2d311c7968fbee3a157de9925fd732` |
+| [Scenario O](v1-2026-11-06-acceptance-scenario-o.py), mainly Chinese with one session in English | `dbbab96f821fb74394af615b9d391636695978b6785252e2408c50f04471dc39` |
 | [Harness](v1-2026-10-29-phase-b-harness.py) (unchanged since attempt 4) | `65a2dc5e7ba2e79caff4a11ce2775c287a2f41e1e7fe35fd4662fc1ada58f5a3` |
 | [Run script](v1-2026-11-05-run-scenario.sh) (unchanged) | `a983d5a5683c09003f0247649938c0987391bb6b23cfb194aaa8460623a9a583` |
 | [Blinding](v1-2026-10-29-phase-b-blind.py) | `320b8c2d55e7551c90ee229079b352da8d24e360fa42f6b2cb1c54dbfcc887d6` |
 | [Date pre-check](v1-2026-11-02-date-precheck.py) | `3e04a9915df6b52351806ebf4bb9ec8c368875762d94140071f4284b832065a6` |
-| [Review pipeline](acceptance_review.py) (adds `verdicts`) | `PIPELINE_HASH` |
+| [Review pipeline](acceptance_review.py) (adds `verdicts`) | `6d622d748344f7e692af7a776bc2d6c98760276fd0cd9a9bf77d55dc4a62f5b7` |
 | [First-reviewer instructions](acceptance-review/first.md) | `4bc86a35139ba297d62a46fa90b2600440a04a6f30a2d02480344e4f337475a6` |
 | [Re-check instructions](acceptance-review/recheck.md) | `7f1efbbe87e8087962bdd2a3c2ebdd237900c7b7155188450c512dc1b734c4da` |
 | [Resolution instructions](acceptance-review/resolve.md) | `838920c18b2fe0b1356c1e53d7061324ac4a82d2a9540bf565b471ab02fa8c86` |
