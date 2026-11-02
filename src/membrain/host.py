@@ -793,6 +793,34 @@ def recall(client, query: str, cues: tuple[str, ...] = ()) -> dict:
         return client.recall(query, budget=recall_budget(embeddings=0), **options)
 
 
+def recall_records(client, response: dict, limit: int = 20) -> dict:
+    """The original messages behind recalled records, with the IDs needed to forget them: each message's event ID
+    and the brain's scope generation, which ``memory_forget`` requires (``kind: "events"``)."""
+    result = response.get("result") or {}
+    events, generations = [], set()
+    for item in result.get("items", []):
+        memory = item.get("memory") or {}
+        scope = memory.get("scope") or {}
+        if isinstance(scope.get("scope_generation"), int):
+            generations.add(scope["scope_generation"])
+        for ref in memory.get("evidence_refs") or ():
+            if isinstance(ref, dict) and isinstance(ref.get("event_id"), str) and ref["event_id"] not in events:
+                events.append(ref["event_id"])
+    events = events[:limit]
+    found = {}
+    if events:
+        timeline = client.timeline(roles=("user", "assistant"), event_ids=events, max_characters=20_000,
+                                   max_item_characters=LINE_CHARACTERS, limit=limit)
+        found = {item["event_id"]: item for item in timeline.get("items", []) if isinstance(item.get("event_id"), str)}
+    records = [{"event_id": event, "conversation_id": found[event].get("conversation_id"),
+                "role": found[event].get("actor_role"), "recorded_at": (found[event].get("recorded_at") or "")[:10],
+                "text": neutralize(" ".join((found[event].get("text") or "").split()))}
+               for event in events if event in found]
+    return {"records": records, "scope_generation": max(generations) if generations else None,
+            "how_to_forget": "Call memory_forget with kind 'events', the event_id of each record the user wants "
+                             "forgotten and expected_scope_generation set to scope_generation."}
+
+
 def render_context(response: dict, *, current_conversation: str | None = None,
                    limit: int = CONTEXT_CHARACTERS) -> str | None:
     """Short, dated, attributed lines from a recall response; None when nothing applies."""

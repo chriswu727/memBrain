@@ -47,12 +47,14 @@ def create_server(client: MemoryClient, *, directory=None) -> FastMCP:
         async def memory_recall(query: str, with_ids: bool = False) -> dict[str, Any]:
             """Search this user's memory from earlier sessions with a few concrete keywords (names, places, dates,
             topics). Returns the matching messages with their dates, and the reply that followed the closest ones.
-            Set with_ids only when you need memory IDs (memory_versions) to inspect or forget records."""
+            Set with_ids only to forget records: it returns each record's event_id and the scope_generation that
+            memory_forget needs."""
             from membrain import host
 
             if with_ids:
                 response = await asyncio.to_thread(host.recall, client, host.scrub(query))
-                return {"action": "recall", "outcome": response["outcome"], "context": recalled_context(response)}
+                records = await asyncio.to_thread(host.recall_records, client, response)
+                return {"action": "recall", "outcome": response["outcome"], **records}
             # The same compact recall the hooks inject, so tool results read like the rest of the memory context.
             found = await asyncio.to_thread(host.recall_context, client, host.scrub(query))
             return {"context": found or "No matching records."}

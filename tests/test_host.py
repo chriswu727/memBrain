@@ -549,3 +549,40 @@ def test_an_export_replaces_an_existing_readable_file_with_an_owner_only_one(tmp
                                  user_id="qq:1", yes=True, out=target)
     assert plugin_cli._person(args, tmp_path) == 0
     assert "private words" in target.read_text() and oct(target.stat().st_mode & 0o777) == "0o600"
+
+
+@pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
+def test_a_plugin_host_can_forget_a_message_and_its_note_by_following_the_skill(tmp_path):
+    import asyncio
+
+    from membrain.mcp_server import create_server
+    from membrain.notes import list_notes
+
+    directory = tmp_path / "brain"
+    try:
+        host.start(directory)
+        context = host.prompt_context(directory, "first", "My dentist is Dr. Alvarez, Thursday at 3 pm.", turn_id="1",
+                                      include_source=True)
+        references, _ = json.JSONDecoder().raw_decode(context.split("source_messages=", 1)[1])
+        host.finish_turn(directory, "first", "Noted.", turn_id="1")
+        with host.ready_client(directory) as client:
+            server = create_server(client, directory=directory)
+            asyncio.run(server.call_tool("memory_note", {"text": "Dentist: Dr. Alvarez, Thursday 3 pm.", "kind": "plan",
+                                                         "source_messages": references}))
+            _, found = asyncio.run(server.call_tool("memory_recall", {"query": "dentist Alvarez", "with_ids": True}))
+            assert isinstance(found["scope_generation"], int)
+            original = [record for record in found["records"] if record["text"] == "My dentist is Dr. Alvarez, "
+                        "Thursday at 3 pm." and record["conversation_id"] == "first"]
+            assert original and "memory_forget" in found["how_to_forget"]
+            _, result = asyncio.run(server.call_tool("memory_forget", {
+                "ids": [original[0]["event_id"]], "kind": "events", "mode": "erase_content",
+                "expected_scope_generation": found["scope_generation"]}))
+            assert result.get("outcome") not in ("rejected", "conflict", "failed"), result
+            assert list_notes(client)["items"] == []  # The note drawn from the message went with it.
+        later = host.prompt_context(directory, "second", "Who is my dentist?", turn_id="1")
+        assert "Alvarez" not in (later or "") and "Alvarez" not in host.session_context(directory, "third")
+    finally:
+        try:
+            desktop.stop(directory)
+        except desktop.DesktopError:
+            pass
