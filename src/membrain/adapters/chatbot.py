@@ -188,9 +188,11 @@ class ChatMemory:
             found = host.recall_context(client, host.scrub(str(query or "")), current_conversation=session)
         return {"context": found or "No matching records."}
 
-    def pause(self, speaker: Speaker, hours: float | None = None) -> dict:
+    def pause(self, speaker: Speaker, hours: float | None = None, until_resumed: bool = False) -> dict:
+        """Pause recording for this speaker: for the rest of the conversation unless ``hours`` or
+        ``until_resumed`` (the person asked to stop being remembered until they say so)."""
         user = self.user_id(speaker)
-        result = host.pause(self.directory, hours, user_id=user)
+        result = host.pause(self.directory, hours, user_id=user, conversation=not until_resumed)
         self._forget_blocks(user)
         return result
 

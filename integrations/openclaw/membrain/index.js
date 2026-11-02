@@ -85,9 +85,8 @@ const TOOLS = [
   },
   {
     name: "membrain_pause",
-    description: "Stop recording, for example when the user asks you not to remember something. The current " +
-      "exchange is not stored either. Without hours it lasts until membrain_resume.",
-    parameters: { type: "object", properties: { hours: { type: "number" } } },
+    description: 'Stop recording only when the user asks you not to remember or store something ("off the record", "don\'t remember this"), not when they ask you to keep something private or between you: save that as a sensitive note instead. Without arguments the pause lasts for the rest of this conversation; pass hours when they name a duration, or until_resumed only when they ask you to stop remembering until they say so. The current exchange is not stored either.',
+    parameters: { type: "object", properties: { hours: { type: "number" }, until_resumed: { type: "boolean" } } },
   },
   {
     name: "membrain_resume",

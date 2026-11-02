@@ -107,13 +107,14 @@ class MembrainPlugin(star.Star):
         return json.dumps(result, ensure_ascii=False)
 
     @filter.llm_tool(name="membrain_pause")
-    async def membrain_pause(self, event: AstrMessageEvent, hours: float | None = None):
-        """Stop remembering this user's messages, for example when they ask you not to remember something. The current exchange is not stored either. Without hours it lasts until membrain_resume.
+    async def membrain_pause(self, event: AstrMessageEvent, hours: float | None = None, until_resumed: bool = False):
+        """Stop recording only when the user asks you not to remember or store something ("off the record", "don't remember this"), not when they ask you to keep something private or between you: save that as a sensitive note instead. Without arguments the pause lasts for the rest of this conversation; pass hours when they name a duration, or until_resumed only when they ask you to stop remembering until they say so. The current exchange is not stored either.
 
         Args:
             hours(number): Optional number of hours after which recording resumes.
+            until_resumed(boolean): Only when the user asks to stop being remembered until they say so.
         """
-        return json.dumps(await asyncio.to_thread(self.memory.pause, _speaker(event), hours))
+        return json.dumps(await asyncio.to_thread(self.memory.pause, _speaker(event), hours, until_resumed))
 
     @filter.command("membrain_forget")
     async def membrain_forget(self, event: AstrMessageEvent, confirm: str = ""):

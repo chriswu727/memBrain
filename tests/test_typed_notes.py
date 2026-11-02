@@ -183,3 +183,17 @@ def test_an_overdue_plan_is_not_crowded_out_of_coming_up_by_the_week_ahead():
     rendered = render_coming_up(response, today=today, budget=1000)
     assert "2026-03-03 has passed and this is still marked intended: Apply for the Canadian eTA. (id: eta)" in rendered
     assert rendered.index("Apply for the Canadian eTA") < rendered.index("Flight 0")
+
+
+def test_a_cancelled_plan_stays_in_view_when_the_notes_are_full():
+    items = [item("old", format_note("Ask Leila to dog-sit Biscuit for the camping trip.", kind="plan"),
+                  "2026-01-12T09:00:00Z"),
+             item("off", format_note("Leila can't dog-sit Biscuit; she is away that weekend.", kind="plan",
+                                     status="cancelled"), "2026-02-22T09:00:00Z")]
+    items += [item(f"n{index}", f"Ordinary remembered detail number {index} " + "x" * 120,
+                   f"2026-03-{index + 1:02d}T09:00:00Z") for index in range(25)]
+    rendered = render_notes({"items": list(reversed(items)), "complete": True}, budget=1500)
+    assert "Leila can't dog-sit" in rendered and "Ask Leila" in rendered
+    passed = [item("gone", format_note("Cancelled the 2020 trip.", kind="plan", status="cancelled",
+                                       occurs_at="2020-05-01"), "2020-01-01T09:00:00Z")]
+    assert notes._priority(notes._parsed({"items": passed})[0]) == 4  # Its date has passed: an ordinary note.

@@ -41,10 +41,12 @@ exchange and the person's current notes, and decide which lasting facts about th
 Save: health conditions and limits, allergies and diet, people in their life and how they relate (with names and
 nicknames that are easy to confuse), dates and places of plans, budgets and numbers that will matter, preferences
 about how the assistant should help, decisions, and changes to earlier plans. Write each note as one short sentence
-in the person's language, with dates as YYYY-MM-DD when timing matters and the name of who it is about.
+in the language the person wrote the latest exchange in, with dates as YYYY-MM-DD when timing matters and the name
+of who it is about.
 
-Do not save small talk, one-off requests, facts already in a note, things the assistant said unless the person
-agreed, or anything the person asked not to keep. A plan stays "intended" until the person says it is scheduled
+Save only what the person said. Do not save small talk, one-off requests, facts already in a note, anything the
+person asked not to keep, or what the assistant said, assumed or asked about (a question such as "is Leila still
+dog-sitting?" is not a fact) unless the person confirmed it. A plan stays "intended" until the person says it is scheduled
 or done; never mark something done because it was planned. When a fact changes (a date moves, a plan is cancelled
 or done), save the updated note and put the old note's id in "replaces". Most exchanges need no note.
 

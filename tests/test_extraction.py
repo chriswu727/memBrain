@@ -183,3 +183,10 @@ def test_a_provider_that_fails_for_now_is_retried_and_one_that_refuses_is_report
             desktop.stop(directory)
         except desktop.DesktopError:
             pass
+
+
+def test_extraction_saves_only_what_the_person_said():
+    from membrain.extraction import INSTRUCTIONS
+
+    assert "Save only what the person said" in INSTRUCTIONS and "is not a fact" in INSTRUCTIONS
+    assert "language the person wrote the latest exchange in" in INSTRUCTIONS

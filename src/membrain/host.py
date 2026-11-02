@@ -359,9 +359,15 @@ def _pause_file(directory: Path, user_id: str | None = None) -> Path:
     return folder / (user_brain_id(user_id) + ".json")
 
 
-def pause(directory: Path, hours: float | None = None, user_id: str | None = None) -> dict:
+PAUSE_TOOL_DESCRIPTION = ('Stop recording only when the user asks you not to remember or store something ("off the record", "don\'t remember this"), not when they ask you to keep something private or between you: save that as a sensitive note instead. Without arguments the pause lasts for the rest of this conversation; pass hours when they name a duration, or until_resumed only when they ask you to stop remembering until they say so. The current exchange is not stored either.')
+
+
+def pause(directory: Path, hours: float | None = None, user_id: str | None = None, *,
+          conversation: bool = False) -> dict:
     """Stop recording until resumed, or for ``hours``; for one user of a multi-user host, or for everyone.
 
+    With ``conversation`` the pause covers only the conversations in progress: it ends when a new one starts. An
+    agent that pauses on its own judgement uses this, so a misread request cannot silence memory for months.
     Recall keeps working; nothing new is stored.
     """
     if hours is not None and not 0 < float(hours) <= 24 * 365:
@@ -369,7 +375,10 @@ def pause(directory: Path, hours: float | None = None, user_id: str | None = Non
     until = None if hours is None else time.time() + float(hours) * 3600
     path = _pause_file(directory, user_id)
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
-        _write_state(path, {"since": time.time(), "until": until})
+        pause_state = {"since": time.time(), "until": until}
+        if conversation and hours is None:
+            pause_state["conversations"] = _active_sessions(directory, user_id)
+        _write_state(path, pause_state)
         for marker in (state_directory(directory) / "sessions").glob("*.json"):
             try:
                 state = json.loads(marker.read_text(encoding="utf-8"))
@@ -390,7 +399,41 @@ def pause(directory: Path, hours: float | None = None, user_id: str | None = Non
                 state.pop("last_prompt", None)  # Legacy completed turns have no owner metadata.
             if state != original:
                 _write_state(marker, state)
-    return {"recording": "paused", "until": until}
+    return {"recording": "paused", "until": until,
+            **({"scope": "this conversation"} if "conversations" in pause_state else {})}
+
+
+def _active_sessions(directory: Path, user_id: str | None, window: float = 6 * 3600) -> list[str]:
+    """Sessions of this user with a turn in progress or recent activity: the conversation a pause is meant for."""
+    sessions, now = [], time.time()
+    for marker in (state_directory(directory) / "sessions").glob("*.json"):
+        try:
+            state = json.loads(marker.read_text(encoding="utf-8"))
+            recent = now - marker.stat().st_mtime < window
+        except (OSError, ValueError):
+            continue
+        if not isinstance(state, dict):
+            continue
+        pending = state.get("pending")
+        owner = state.get("user_id", pending.get("_user") if isinstance(pending, dict) else None)
+        if (owner == user_id or (user_id is None and owner is None)) and (isinstance(pending, dict) or recent):
+            sessions.append(marker.stem)
+    return sessions
+
+
+def end_conversation_pause(directory: Path, session: str, user_id: str | None = None) -> bool:
+    """A new conversation ends a pause that covered only earlier conversations; returns whether it ended one."""
+    path = _pause_file(directory, user_id)
+    try:
+        state = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return False
+    conversations = state.get("conversations") if isinstance(state, dict) else None
+    if not isinstance(conversations, list) or _session_marker(directory, session).stem in conversations:
+        return False
+    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        path.unlink(missing_ok=True)
+    return True
 
 
 def resume(directory: Path, user_id: str | None = None) -> dict:
@@ -1103,7 +1146,9 @@ def _session_notice(complete: bool, tools: dict | None, is_paused: bool, rolepla
                       "When a request depends on the user's personal context and nothing relevant is shown, search "
                       f"with the {tools['recall']} tool using a few concrete keywords before answering. "
                       if tools else "") + notes_notice(tools))
-    notice = " ".join((notice.strip(), privacy_notice(tools))) + (" Recording is currently paused." if is_paused else "")
+    notice = " ".join((notice.strip(), privacy_notice(tools))) + (
+        " Recording is currently paused: new messages are not being remembered. Tell the user once, early in this "
+        "conversation, and offer to resume." if is_paused else "")
     if roleplay:
         notice = (f"This is a role-play with the character {' '.join(roleplay.split())}. The memory below is this "
                   "story's own: it is fiction, not facts about the user's real life, and nothing said here is kept "
@@ -1125,11 +1170,13 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     user_id = roleplay_user(user_id, roleplay)
     options = {"tools": tools, "skip_imports_from": list(skip_imports_from), "share_real_life": share_real_life}
     history, current, complete = None, None, False
+    resumed = ("Recording had been paused for an earlier conversation only; it is on again for this one. "
+               if end_conversation_pause(directory, session, real_life) else "")
     client = ready_client(directory, user_id)
     if client is None:
         start_in_background(directory)
         _mark_history(directory, session, False)
-        return ("memBrain is starting or unavailable. Earlier memory has not been loaded; do not claim it is "
+        return (resumed + "memBrain is starting or unavailable. Earlier memory has not been loaded; do not claim it is "
                 "active or that you remember earlier sessions. Continue helping normally. Memory will be "
                 "retried on the next message. Run membrain plugin setup to check the connection. "
                 + privacy_notice(tools) + (" Recording is currently paused." if paused(directory, user_id) else ""))
@@ -1154,7 +1201,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     _mark_history(directory, session, complete and history is not None, client.brain_id)
     if current is not None:
         _remember_context(directory, session, client.brain_id, current, options)
-    notice = _session_notice(complete and bool(history), tools, paused(directory, user_id), roleplay)
+    notice = resumed + _session_notice(complete and bool(history), tools, paused(directory, user_id), roleplay)
     return "\n\n".join(part for part in (notice, current["text"] if current else None, history) if part)
 
 

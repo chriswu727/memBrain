@@ -40,10 +40,9 @@ _SCHEMAS = [
         "Search the user's earlier conversations and notes by a few concrete keywords (names, places, activities, "
         "dates) when a request depends on personal context that is not already shown."),
      "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}},
-    {"name": "membrain_pause", "description": (
-        "Stop recording, for example when the user asks you not to remember something. The current exchange is not "
-        "stored either. Without hours it lasts until membrain_resume."),
-     "parameters": {"type": "object", "properties": {"hours": {"type": "number"}}}},
+    {"name": "membrain_pause", "description": host.PAUSE_TOOL_DESCRIPTION,
+     "parameters": {"type": "object", "properties": {"hours": {"type": "number"},
+                                                    "until_resumed": {"type": "boolean"}}}},
     {"name": "membrain_resume", "description": "Resume recording after membrain_pause, when the user asks.",
      "parameters": {"type": "object", "properties": {}}},
 ]
@@ -191,7 +190,8 @@ class MembrainProvider(_Base):
 
         try:
             if tool_name == "membrain_pause":
-                return json.dumps(host.pause(self._directory, args.get("hours"), user_id=self._user))
+                return json.dumps(host.pause(self._directory, args.get("hours"), user_id=self._user,
+                                             conversation=not args.get("until_resumed")))
             if tool_name == "membrain_resume":
                 return json.dumps(host.resume(self._directory, user_id=self._user))
             if tool_name == "membrain_note" and host.paused(self._directory, self._user):

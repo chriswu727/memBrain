@@ -235,7 +235,15 @@ def _priority(entry) -> int:
     if fields.get("kind") in ("plan", "agent_commitment", "milestone") and fields.get("status", "intended") in (
             OPEN_STATUSES):
         return 3
+    if fields.get("status") == "cancelled" and not _date_passed(fields):
+        # A cancellation keeps the agent from acting on the original plan, which recalled history may still show.
+        return 3
     return 4
+
+
+def _date_passed(fields: dict) -> bool:
+    when = _as_date(fields.get("occurs_at")) or _as_date(fields.get("due"))
+    return when is not None and when < _datetime.date.today()
 
 
 def select_notes(parsed: list, budget: int = NOTES_CHARACTERS) -> tuple[list, int]:

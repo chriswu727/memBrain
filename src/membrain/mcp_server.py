@@ -148,10 +148,13 @@ def create_server(client: MemoryClient, *, directory=None) -> FastMCP:
         installation = host.profile_directory(directory)
 
         @server.tool(annotations=WRITE)
-        async def memory_pause(hours: float | None = None) -> dict[str, Any]:
-            """Stop recording this user's messages, for example when they ask you not to remember something.
-            Without hours it lasts until memory_resume. The current turn is not stored either. Recall still works."""
-            return host.pause(installation, hours)
+        async def memory_pause(hours: float | None = None, until_resumed: bool = False) -> dict[str, Any]:
+            """Stop recording only when the user asks you not to remember or store something ("off the record",
+            "don't remember this"), not when they ask you to keep something private or between you (save that as a
+            sensitive note instead). Without arguments it lasts for the rest of this conversation; pass hours when
+            they name a duration, or until_resumed only when they ask you to stop remembering until they say so.
+            The current turn is not stored either. Recall still works."""
+            return host.pause(installation, hours, conversation=not until_resumed)
 
         @server.tool(annotations=WRITE)
         async def memory_resume() -> dict[str, Any]:

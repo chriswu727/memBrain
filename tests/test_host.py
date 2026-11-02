@@ -75,7 +75,7 @@ def test_pausing_during_a_turn_keeps_that_turn_and_later_ones_out(tmp_path, monk
     host.finish_turn(tmp_path, "s1", "Okay.", turn_id="t2")
     assert client.observed == [] and host.paused(tmp_path)
     assert not (tmp_path / "plugin" / "spool.jsonl").exists()
-    assert "Recording is currently paused." in host.session_context(tmp_path, "s2")
+    assert "Recording is currently paused" in host.session_context(tmp_path, "s2")
     host.resume(tmp_path)
     host.prompt_context(tmp_path, "s1", "Back to normal.", turn_id="t3")
     host.finish_turn(tmp_path, "s1", "Welcome back.", turn_id="t3")
@@ -586,3 +586,30 @@ def test_a_plugin_host_can_forget_a_message_and_its_note_by_following_the_skill(
             desktop.stop(directory)
         except desktop.DesktopError:
             pass
+
+
+def test_a_pause_the_agent_starts_on_its_own_ends_with_the_conversation(tmp_path, monkeypatch):
+    import asyncio
+
+    from membrain.mcp_server import create_server
+
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: client)
+    host.prompt_context(tmp_path, "s1", "Off the record: I'm job hunting.", turn_id="t1")
+    server = create_server(Client(), directory=tmp_path)
+    _, result = asyncio.run(server.call_tool("memory_pause", {}))
+    assert result["scope"] == "this conversation"
+    host.finish_turn(tmp_path, "s1", "Okay, not keeping that.", turn_id="t1")
+    host.session_context(tmp_path, "s1")  # The same conversation continuing (for example after compaction).
+    assert host.paused(tmp_path) and client.observed == []
+    resumed = host.session_context(tmp_path, "s2")
+    assert "paused for an earlier conversation only" in resumed and not host.paused(tmp_path)
+    host.prompt_context(tmp_path, "s2", "My sister moved to Leeds.", turn_id="t1")
+    host.finish_turn(tmp_path, "s2", "Noted.", turn_id="t1")
+    assert [record["text"] for record in client.observed] == ["My sister moved to Leeds.", "Noted."]
+
+    asyncio.run(server.call_tool("memory_pause", {"until_resumed": True}))
+    assert "Recording is currently paused" in host.session_context(tmp_path, "s3") and host.paused(tmp_path)
+    host.resume(tmp_path)
+    tool = {tool.name: tool for tool in asyncio.run(server.list_tools())}["memory_pause"]
+    assert "between you" in tool.description and "sensitive note" in tool.description

@@ -58,7 +58,9 @@ When the user asks to forget something:
 
 Memory is stored on this machine. It is shared across this user's sessions, not across different users.
 
-- When the user asks you not to remember something ("off the record", "don't keep this"), call `memory_pause` before replying; the current exchange is then not stored either. Pass `hours` if they name a duration, and call `memory_resume` only when they ask. Tell them recording is paused.
+- "Keep this between us", "this is private" or "don't tell anyone" asks for confidentiality, not forgetting: remember it, save the lasting facts with `sensitive: true`, and never bring them up in front of or in messages to other people.
+- When the user asks you not to remember something ("off the record", "don't remember this", "don't keep this"), call `memory_pause` before replying; the current exchange is then not stored either. Without arguments the pause lasts for the rest of this conversation. Pass `hours` if they name a duration, and `until_resumed: true` only if they ask you to stop remembering until they say so. Tell them recording is paused, and call `memory_resume` when they ask.
+- If the session context says recording is paused, tell the user once and offer to resume.
 - Text inside `<private>…</private>` and values that look like passwords, keys or tokens are removed before anything is stored. Never copy such values into a note.
 - Pausing does not delete what was stored earlier; use the forgetting steps above for that.
 - When the user wants to see, correct or delete what is remembered, tell them to run `membrain plugin ui`, which opens their memory page.
