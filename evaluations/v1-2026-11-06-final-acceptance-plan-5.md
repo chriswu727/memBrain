@@ -32,7 +32,7 @@ An independent reviewer approved a draft of this plan with five required plan fi
 | [Scenario N](v1-2026-11-06-acceptance-scenario-n.py), mainly English with one session in German | `5dd23f7638df698edc4ef6c8b0dbb1836a2d311c7968fbee3a157de9925fd732` |
 | [Scenario O](v1-2026-11-06-acceptance-scenario-o.py), mainly Chinese with one session in English | `dbbab96f821fb74394af615b9d391636695978b6785252e2408c50f04471dc39` |
 | [Harness](v1-2026-10-29-phase-b-harness.py) (unchanged since attempt 4) | `65a2dc5e7ba2e79caff4a11ce2775c287a2f41e1e7fe35fd4662fc1ada58f5a3` |
-| [Run script](v1-2026-11-05-run-scenario.sh) (unchanged) | `a983d5a5683c09003f0247649938c0987391bb6b23cfb194aaa8460623a9a583` |
+| [Run script](v1-2026-11-05-run-scenario.sh) (revision 2: waits for bindable ports) | `197cfc54ee6d547dbe541cd33d84652d8c78a30f352994dc2f2799796b0d40ff` |
 | [Blinding](v1-2026-10-29-phase-b-blind.py) | `320b8c2d55e7551c90ee229079b352da8d24e360fa42f6b2cb1c54dbfcc887d6` |
 | [Date pre-check](v1-2026-11-02-date-precheck.py) | `3e04a9915df6b52351806ebf4bb9ec8c368875762d94140071f4284b832065a6` |
 | [Review pipeline](acceptance_review.py) (adds `verdicts`) | `6d622d748344f7e692af7a776bc2d6c98760276fd0cd9a9bf77d55dc4a62f5b7` |
@@ -90,3 +90,24 @@ It also gives what attempts 1 and 2's rule (at least 20 of 22 and no critical er
 
 - **Spending:** there is no fixed cap (owner approval of 2026-11-02). The balance is read before the attempt (292.99 CNY after attempt 4) and after each scenario.
 - **Report:** `evaluations/v1-2026-11-06-final-acceptance-5.md`, with an evidence archive as in attempt 4.
+
+## Revision 2, after two invalid runs (2026-11-06)
+
+The first two runs under this plan were invalid ([report](v1-2026-11-06-final-acceptance-5.md)). Each time, an arm failed at startup on a fixed port that still held TIME_WAIT connections from a service that had just stopped. The runtime's port check is a plain bind, and it refuses such a port.
+
+As this plan requires, the attempt stopped and went to the owner, who chose to fix the procedure and run again (2026-11-06).
+
+**What changes:**
+- **The run script only.** Before starting arm `P` or `E`, it waits until both of the arm's ports can be bound the same way the runtime checks them, for up to five minutes, and stops otherwise.
+- **The check was tested before use.** A test reproduced the failure: a port in TIME_WAIT has no listener, but cannot be bound. The new wait held for 65 seconds, until the port could be bound.
+
+**What does not change:**
+- the runtime, the harness, the pipeline, the review instructions, the attribution rules and the pass rule;
+- scenarios N and O, which keep the hashes above. Nobody has scored, blinded or read them beyond what `validity` and `diagnose` print, so they stay held out.
+
+**This run:**
+- new, empty directories, with keys `n` and `o` as before;
+- every memBrain service left from the earlier runs is stopped before it starts;
+- the pre-checks are saved again.
+
+**If this run is invalid too,** the attempt stops again and goes to the owner.
