@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
+from psycopg.types.json import Jsonb
 
 from membrain import desktop, embedded_database, host, notes
 from membrain import service as service_module
@@ -757,6 +758,41 @@ def test_restored_messages_without_a_reported_time_keep_their_days_across_repeat
     assert [time["restored_from_recorded_at"] for time in times] == [
         "2027-03-02T09:00:00Z", "2027-03-05T09:00:00Z", "2027-03-09T09:00:00Z", "2027-04-20T08:00:00Z"]
     assert all(row["document"]["observed"]["occurred_time"]["start"] is None for row in rows)  # Never invented.
+
+
+@pytest.mark.parametrize("field", ["recorded_at", "restored_from_recorded_at"])
+@pytest.mark.parametrize("extreme", ["0001-01-01T00:00:00+23:59", "9999-12-31T23:59:59-23:59"])
+def test_an_archive_time_with_no_utc_form_is_an_invalid_archive_and_the_restore_writes_nothing(installation, brain,
+                                                                                              field, extreme):
+    import httpx
+
+    from membrain.client import MemoryClient
+    from membrain.helpers import digest
+
+    service, principal, ident = brain
+    note(brain, "Our first conversation.", kind="milestone", shared=True)
+
+    def handle(request):
+        return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
+
+    with MemoryClient("http://memory.test", "k", ident, transport=httpx.MockTransport(handle)) as client:
+        archive_id = client.export()["result"]["archive_id"]
+        document = service.download_archive(principal, archive_id)["document"]
+        document["events"][0]["system_time"][field] = extreme  # Valid as a date-time, but outside UTC's range.
+        with pytest.raises(DomainError) as refused:
+            service.upload_archive(principal, ident, document)
+        assert refused.value.code == "invalid_archive"
+        # An archive stored before this check is refused at restore, and the restore's transaction writes nothing.
+        with service.database.transaction(principal) as conn:
+            conn.execute("UPDATE memory_archives SET document=%s, manifest_hash=%s WHERE id=%s",
+                         (Jsonb(document), digest(document), archive_id))
+        copy = service.create_brain(principal, "Never restored")["id"]
+        restored = client.restore(archive_id, expected_manifest_sha256=digest(document), expected_scope_generation=1,
+                                  mode="new_brain", brain_id=copy)
+    assert restored["outcome"] == "rejected" and restored["error"]["code"] == "invalid_archive", restored
+    with service.database.transaction(principal) as conn:
+        written = conn.execute("SELECT count(*) AS n FROM memory_events WHERE brain_id=%s", (copy,)).fetchone()["n"]
+    assert written == 0
 
 
 def test_days_follow_when_a_message_occurred_but_never_a_time_still_to_come(brain, monkeypatch):

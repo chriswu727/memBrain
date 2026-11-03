@@ -14,11 +14,13 @@ from .helpers import DomainError, digest, now, uid
 
 
 def _moment(value):
+    """A time with an offset, in UTC; None when it has no offset or cannot be represented in UTC (a valid date-time
+    such as 0001-01-01T00:00:00+23:59 falls outside the range of dates)."""
     try:
         moment = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-    except ValueError:
+        return moment.astimezone(UTC) if moment.tzinfo is not None else None
+    except (ValueError, OverflowError):
         return None
-    return moment.astimezone(UTC) if moment.tzinfo is not None else None
 
 
 def original_recording(event: dict) -> str | None:
@@ -1305,6 +1307,10 @@ class MemoryService:
         for event in document["events"]:
             if digest(event["observed"]["content"]) != event["content_sha256"]:
                 raise DomainError("invalid_archive", "Archive event hash does not match its content.")
+            # A restore reads these recording times in UTC; one that has no UTC form makes the archive invalid.
+            for key in ("recorded_at", "restored_from_recorded_at"):
+                if key in event["system_time"] and _moment(event["system_time"][key]) is None:
+                    raise DomainError("invalid_archive", "Archive event recording times must be representable in UTC.")
         if not isinstance(document.get("retired_event_ids", []), list) or not all(isinstance(x, str) for x in document.get("retired_event_ids", [])):
             raise DomainError("invalid_archive", "Invalid retired source manifest.")
         excluded = document.get("excluded_deleted_event_ids", [])
