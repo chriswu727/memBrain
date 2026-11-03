@@ -42,6 +42,16 @@ Resolution adds these rules to the existing protocol:
   a quoted ground-truth line.
 - **R5 remains exclusive to type 4.** An R5 result can never clear types 6–9. Every resolution change needs a
   written reason naming the rule and the deciding message or action.
+- **Rule tags.** In C5 every entry that removes or adds a mark also carries `"rules"`, one tag per changed type:
+  `{"remove": [4, 6], "add": [], "rules": {"4": "R5", "6": "RC1"}, "reason": "..."}`. `tally --companion`
+  refuses the whole tally when a change breaks these rules: R1 removes types 1–5 only, when the first reviewer
+  recorded a condition for that type; R2 changes types 1 and 4, and adds type 3 only when it re-checks a candidate
+  type 1 or 4 mark as a corrected fact; R3 removes types 2, 3, 5, 7 or 9 only when the second reviewer added the
+  mark, and never adds one; R5 removes type 4 only, when `r5-KEY/<case prefix>-<label>.json` cleared that reply;
+  RC1 changes type 6 only; RC2 changes type 8 only, for a reply with an entry in `actions-KEY.json`. A change may
+  not remove a mark that does not stand literally or add one that does, may add only a mark a reviewer made
+  (except R2's type 3), and its reason must name each rule it uses. An entry for an unknown reply is refused.
+  R4 tallies keep their existing untagged format.
 
 Attribution uses both independent answers as before. Apply these additional source checks:
 

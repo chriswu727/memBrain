@@ -301,6 +301,66 @@ def actions_digest(review: Path, blind_dir: Path, scenario_path: str, key: str, 
     print(json.dumps(sorted(digest)))
 
 
+# C5 resolution rules: the critical types each may change, and whether it may add a mark as well as remove one.
+# R1 to R5 are resolve.md's, RC1 and RC2 companion.md's. Types 6 and 8 change only through RC1 and RC2, types 7 and 9
+# only through R3, and R5 clears only type 4 (plan: "It never clears types 6 to 9").
+_RULES = {"R1": ({1, 2, 3, 4, 5}, False), "R2": ({1, 3, 4}, True), "R3": ({2, 3, 5, 7, 9}, False),
+          "R5": ({4}, False), "RC1": ({6}, True), "RC2": ({8}, True)}
+
+
+def _companion_change_problem(review: Path, key: str, case: str, label: str, change: dict, verdict: dict,
+                              check: dict, literal: set, digest: dict) -> str | None:
+    """Why one C5 resolution change breaks the rules, or None. Every removed or added type carries its rule in
+    "rules" ({"<type>": "<rule>"}); the rule must be allowed to change that type in that direction, be named in the
+    reason, and rest on its evidence: R1 on a condition the first reviewer recorded for that type, R3 on a mark only
+    the second reviewer added, R5 on an R5 result that cleared this reply, RC2 on this reply's actions digest entry.
+    A mark is added only when a reviewer made it, except type 3 when R2 re-checks a corrected fact."""
+    remove, add = set(change.get("remove", [])), set(change.get("add", []))
+    if not remove and not add:
+        return None
+    rules = change.get("rules")
+    if not isinstance(rules, dict) or set(rules) != {str(mark) for mark in remove | add}:
+        return 'every removed or added type needs exactly one rule tag in "rules"'
+    if remove & add:
+        return "a type is both removed and added"
+    if remove - literal:
+        return "it removes a mark that does not stand literally"
+    if add & literal:
+        return "it adds a mark that already stands"
+    candidates = set(verdict["critical"]) | set(check["critical"]) | set(check["added"])
+    for mark in sorted(remove | add):
+        rule = rules[str(mark)]
+        if not isinstance(rule, str) or rule not in _RULES:
+            return f"type {mark} has no known rule tag (R1, R2, R3, R5, RC1 or RC2)"
+        types, adds = _RULES[rule]
+        if mark not in types:
+            return f"{rule} cannot change type {mark}"
+        if mark in add and not adds:
+            return f"{rule} can only remove a mark, not add type {mark}"
+        if not re.search(rf"\b{rule}\b", change["reason"]):
+            return f"the reason does not name {rule}"
+        if rule == "R2" and mark == 3 and (mark in remove or not candidates & {1, 4}):
+            return "R2 only adds type 3, when a candidate type 1 or 4 mark is re-checked as a corrected fact"
+        if mark in add and mark not in candidates and not (rule == "R2" and mark == 3):
+            return f"type {mark} is added although no reviewer made it"
+        if rule == "R1" and not any(isinstance(item, dict) and item.get("type") == mark
+                                    for item in verdict.get("conditions") or []):
+            return f"R1: the first reviewer recorded no condition for type {mark}"
+        if rule == "R3" and mark not in set(check["added"]):
+            return "R3 removes only a mark the second reviewer added, never one both reviewers made"
+        if rule == "R5":
+            result = review / f"r5-{key}" / f"{case.split('-')[0]}-{label}.json"
+            try:
+                cleared = json.loads(result.read_text())
+            except (OSError, ValueError):
+                cleared = None
+            if not isinstance(cleared, dict) or cleared.get("type4_cleared") is not True:
+                return f"R5: r5-{key}/{result.name} does not clear this reply"
+        if rule == "RC2" and f"{case}/{label}" not in digest:
+            return f"RC2: actions-{key}.json has no entry for this reply"
+    return None
+
+
 def tally(review: Path, blind_dir: Path, scenario_path: str, key: str, *, companion=False) -> None:
     verdicts(review / f"verdicts-{key}.json", scenario_path, companion=companion)
     module = load(scenario_path)
@@ -309,6 +369,13 @@ def tally(review: Path, blind_dir: Path, scenario_path: str, key: str, *, compan
     first = json.loads((review / f"verdicts-{key}.json").read_text())
     path = review / f"resolution-{key}.json"
     resolution = json.loads(path.read_text()) if path.exists() else {}
+    digest = {}
+    if companion:
+        known = {f"{case}/{label}" for case in first for label in first[case]}
+        if not isinstance(resolution, dict) or set(resolution) - known:
+            raise SystemExit("invalid resolution: every entry must name a reply of this scenario as <case id>/<label>")
+        actions = review / f"actions-{key}.json"
+        digest = json.loads(actions.read_text()) if actions.exists() else {}
     totals, rows = {"literal": {}, "resolved": {}}, []
     for _, _, case, _ in module.CASES:
         second = json.loads((review / f"recheck-{key}" / f"{case}.json").read_text())
@@ -334,6 +401,9 @@ def tally(review: Path, blind_dir: Path, scenario_path: str, key: str, *, compan
                         and (not isinstance(change.get("reason"), str) or not change["reason"].strip()))):
                 raise SystemExit(f"invalid review marks: {case}/{label}")
             literal = (marks & set(check.get("confirmed", []))) | set(check.get("added", []))
+            if companion and (problem := _companion_change_problem(review, key, case, label, change, verdict, check,
+                                                                   literal, digest)):
+                raise SystemExit(f"invalid resolution: {case}/{label}: {problem}")
             resolved = (literal - set(change.get("remove", []))) | set(change.get("add", []))
             base = verdict["score_ignoring_critical"]
             for name, standing in (("literal", literal), ("resolved", resolved)):

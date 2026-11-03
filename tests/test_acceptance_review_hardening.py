@@ -245,3 +245,139 @@ def test_actions_digest_is_written_once_and_needs_every_sealed_arm(pipeline, tmp
     assert SECRET not in result.stdout and json.loads((review / "actions-practice.json").read_text())
     with pytest.raises(SystemExit, match="written once"):
         pipeline.actions_digest(review, blind, str(scenario), "practice", runs)
+
+
+# S3: C5 resolution changes are checked against the rule that may make them and its evidence ------------------------
+
+def resolution_world(tmp_path, first, confirmed=(), added=(), conditions=(), change=None, r5=None, digest=False):
+    """One synthetic case whose reply A has these first-review marks, second-review decisions and resolution."""
+    scenario = tmp_path / "practice.py"
+    scenario.write_text('CASES = [(0, 0, "S01-practice", "A public synthetic practice case")]\n')
+    verdict = {label: {"score_ignoring_critical": 1, "critical": []} for label in "ABC"}
+    verdict["A"].update(critical=list(first), conditions=[{"type": mark, "condition": "practice"}
+                                                         for mark in conditions])
+    put(tmp_path / "verdicts-practice.json", {"S01-practice": verdict})
+    second = {label: {"critical": [], "confirmed": [], "rejected": [], "added": [], "evidence": ""}
+              for label in "ABC"}
+    second["A"].update(critical=sorted({*confirmed, *added}), confirmed=list(confirmed), added=list(added),
+                       rejected=[mark for mark in first if mark not in confirmed], evidence="Practice evidence.")
+    put(tmp_path / "recheck-practice" / "S01-practice.json", second)
+    put(tmp_path / "blind" / "sealed_practice.json", {"S01-practice": {"A": "P", "B": "E", "C": "F"}})
+    if change is not None:
+        put(tmp_path / "resolution-practice.json", {"S01-practice/A": change})
+    if r5 is not None:
+        put(tmp_path / "r5-practice" / "S01-A.json", {"type4_cleared": r5})
+    if digest:
+        put(tmp_path / "actions-practice.json", {"S01-practice/A": {"session": 1, "message": 1, "actions": []}})
+    return scenario, tmp_path / "blind"
+
+
+def resolved(pipeline, tmp_path, scenario, blind):
+    pipeline.tally(tmp_path, blind, str(scenario), "practice", companion=True)
+    return json.loads((tmp_path / "tally-practice.json").read_text())["rows"][0]["resolved"]
+
+
+VALID = {
+    "R5 clears type 4": (dict(first=[4], confirmed=[4], r5=True,
+                              change={"remove": [4], "rules": {"4": "R5"}, "reason": "R5 result cleared it"}), []),
+    "RC1 removes type 6": (dict(first=[6], confirmed=[6],
+                                change={"remove": [6], "rules": {"6": "RC1"}, "reason": "RC1: said in s1/2"}), []),
+    "RC2 removes type 8": (dict(first=[8], confirmed=[8], digest=True,
+                                change={"remove": [8], "rules": {"8": "RC2"}, "reason": "RC2: nothing removed"}), []),
+    "RC2 adds type 8": (dict(first=[8], digest=True,
+                             change={"add": [8], "rules": {"8": "RC2"}, "reason": "RC2: action 2/1 removed it"}), [8]),
+    "R3 removes an added 7": (dict(first=[], added=[7],
+                                   change={"remove": [7], "rules": {"7": "R3"}, "reason": "R3: no quoted line"}), []),
+    "R2 re-checks 4 as 3": (dict(first=[4], confirmed=[4], change={
+        "remove": [4], "add": [3], "rules": {"4": "R2", "3": "R2"}, "reason": "R2: corrected in s1/3"}), [3]),
+    "R2 adds a rejected 4": (dict(first=[4], change={"add": [4], "rules": {"4": "R2"}, "reason": "R2: never said"}),
+                             [4]),
+    "R1 settles a condition": (dict(first=[2], confirmed=[2], conditions=[2], change={
+        "remove": [2], "rules": {"2": "R1"}, "reason": "R1: the condition is false"}), []),
+    "mixed rules": (dict(first=[4, 6, 8], confirmed=[4, 6, 8], r5=True, change={
+        "remove": [4, 6], "rules": {"4": "R5", "6": "RC1"}, "reason": "R5 cleared; RC1 said in s1/2"}), [8]),
+}
+
+
+@pytest.mark.parametrize("name", VALID)
+def test_companion_tally_accepts_changes_made_by_their_rule_on_its_evidence(pipeline, tmp_path, name):
+    arguments, expected = VALID[name]
+    scenario, blind = resolution_world(tmp_path, **arguments)
+    assert resolved(pipeline, tmp_path, scenario, blind) == expected
+
+
+REFUSED = {
+    "no rule tag": (dict(first=[4], confirmed=[4], r5=True, change={"remove": [4], "reason": "R5 cleared"}),
+                    "rule tag"),
+    "a type without its tag": (dict(first=[4, 6], confirmed=[4, 6], r5=True, change={
+        "remove": [4, 6], "rules": {"4": "R5"}, "reason": "R5 cleared"}), "rule tag"),
+    "unknown rule": (dict(first=[4], confirmed=[4], change={"remove": [4], "rules": {"4": "R9"}, "reason": "R9"}),
+                     "no known rule tag"),
+    "R5 on type 6": (dict(first=[6], confirmed=[6], r5=True,
+                          change={"remove": [6], "rules": {"6": "R5"}, "reason": "R5"}), "R5 cannot change type 6"),
+    "R5 on type 7": (dict(first=[7], confirmed=[7], r5=True,
+                          change={"remove": [7], "rules": {"7": "R5"}, "reason": "R5"}), "R5 cannot change type 7"),
+    "R5 on type 8": (dict(first=[8], confirmed=[8], r5=True,
+                          change={"remove": [8], "rules": {"8": "R5"}, "reason": "R5"}), "R5 cannot change type 8"),
+    "R5 on type 9": (dict(first=[9], confirmed=[9], r5=True,
+                          change={"remove": [9], "rules": {"9": "R5"}, "reason": "R5"}), "R5 cannot change type 9"),
+    "R5 without a result": (dict(first=[4], confirmed=[4],
+                                 change={"remove": [4], "rules": {"4": "R5"}, "reason": "R5"}), "does not clear"),
+    "R5 not cleared": (dict(first=[4], confirmed=[4], r5=False,
+                            change={"remove": [4], "rules": {"4": "R5"}, "reason": "R5"}), "does not clear"),
+    "RC1 on type 8": (dict(first=[8], confirmed=[8], digest=True,
+                           change={"remove": [8], "rules": {"8": "RC1"}, "reason": "RC1"}), "RC1 cannot change type 8"),
+    "RC2 on type 6": (dict(first=[6], confirmed=[6], digest=True,
+                           change={"remove": [6], "rules": {"6": "RC2"}, "reason": "RC2"}), "RC2 cannot change type 6"),
+    "R3 on type 8": (dict(first=[8], confirmed=[8],
+                          change={"remove": [8], "rules": {"8": "R3"}, "reason": "R3"}), "R3 cannot change type 8"),
+    "R3 on type 6": (dict(first=[6], confirmed=[6],
+                          change={"remove": [6], "rules": {"6": "R3"}, "reason": "R3"}), "R3 cannot change type 6"),
+    "R2 on type 7": (dict(first=[7], confirmed=[7],
+                          change={"remove": [7], "rules": {"7": "R2"}, "reason": "R2"}), "R2 cannot change type 7"),
+    "R1 on type 9": (dict(first=[9], confirmed=[9], conditions=[9],
+                          change={"remove": [9], "rules": {"9": "R1"}, "reason": "R1"}), "R1 cannot change type 9"),
+    "R3 on a mark both made": (dict(first=[7], confirmed=[7],
+                                    change={"remove": [7], "rules": {"7": "R3"}, "reason": "R3"}), "R3 removes only"),
+    "R3 adding": (dict(first=[9], change={"add": [9], "rules": {"9": "R3"}, "reason": "R3"}), "can only remove"),
+    "R5 adding": (dict(first=[4], r5=True, change={"add": [4], "rules": {"4": "R5"}, "reason": "R5"}),
+                  "can only remove"),
+    "RC1 adding an unmade mark": (dict(first=[], change={"add": [6], "rules": {"6": "RC1"}, "reason": "RC1"}),
+                                  "no reviewer made it"),
+    "R2 type 3 without a 1 or 4": (dict(first=[2], confirmed=[2], change={
+        "add": [3], "rules": {"3": "R2"}, "reason": "R2"}), "R2 only adds type 3"),
+    "reason without the rule": (dict(first=[6], confirmed=[6], change={
+        "remove": [6], "rules": {"6": "RC1"}, "reason": "said in s1/2"}), "does not name RC1"),
+    "RC2 without the digest": (dict(first=[8], confirmed=[8], change={
+        "remove": [8], "rules": {"8": "RC2"}, "reason": "RC2"}), "no entry"),
+    "R1 without a condition": (dict(first=[2], confirmed=[2], change={
+        "remove": [2], "rules": {"2": "R1"}, "reason": "R1"}), "no condition"),
+    "removing a mark that does not stand": (dict(first=[6], change={
+        "remove": [6], "rules": {"6": "RC1"}, "reason": "RC1"}), "does not stand literally"),
+    "adding a mark that stands": (dict(first=[8], confirmed=[8], digest=True, change={
+        "add": [8], "rules": {"8": "RC2"}, "reason": "RC2"}), "already stands"),
+}
+
+
+@pytest.mark.parametrize("name", REFUSED)
+def test_companion_tally_refuses_changes_outside_their_rule(pipeline, tmp_path, name):
+    arguments, message = REFUSED[name]
+    scenario, blind = resolution_world(tmp_path, **arguments)
+    with pytest.raises(SystemExit, match=f"invalid resolution: S01-practice/A: .*{message}"):
+        pipeline.tally(tmp_path, blind, str(scenario), "practice", companion=True)
+    assert not (tmp_path / "tally-practice.json").exists()
+
+
+def test_companion_tally_refuses_a_resolution_for_an_unknown_reply(pipeline, tmp_path):
+    scenario, blind = resolution_world(tmp_path, first=[])
+    put(tmp_path / "resolution-practice.json", {"S01-practice/D": {"remove": [4], "reason": "R5"}})
+    with pytest.raises(SystemExit, match="invalid resolution: every entry"):
+        pipeline.tally(tmp_path, blind, str(scenario), "practice", companion=True)
+
+
+def test_r4_tally_keeps_its_untagged_resolutions(pipeline, tmp_path):
+    """R4 semantics stay exactly as they were: no rule tags, R5 evidence or digest are required."""
+    scenario, blind = resolution_world(tmp_path, first=[4], confirmed=[4],
+                                       change={"remove": [4], "reason": "practice evidence"})
+    pipeline.tally(tmp_path, blind, str(scenario), "practice")
+    assert json.loads((tmp_path / "tally-practice.json").read_text())["rows"][0]["resolved"] == []
