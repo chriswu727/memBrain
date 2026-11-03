@@ -250,6 +250,20 @@ Phase B ships as **v0.2**, together with the OpenClaw adapter and SillyTavern.
 
 Goal: a companion that stays itself and remembers how the user felt, without manipulation.
 
+**Scheduled next (owner, 2026-11-07).** Phase C starts after the 0.1 closeout, with personality, emotional memory and mood as separate items. It adds a visual memory map: a brain-shaped view on the memory page, with regions for people, plans, preferences, episodes and emotional memories, whose activity can be seen as memory is used. The view is built on the existing notes and recall data.
+
+### C0. Brain-shaped memory map
+
+- **What it shows.** The memory page gets a brain-shaped view. Its regions are notes by kind, people, open plans, recent episodes, and, once C2 exists, emotional memories.
+- **What it does.** Each region shows its size and its most recent activity. Selecting a region lists its items, which can be edited and deleted as on the rest of the page.
+- **Recall trace.** For the current conversation, the view highlights what recall used. It answers "why did it remember that?".
+- **Local only.** The view reads the local service. It needs no new storage and makes no model calls.
+
+### C1a. Mood
+
+- **What it is.** Mood is the user's recent emotional trend: the last few reported or observed affects, with the evidence for each. It is shown to the host as context, never as a simulated state of the assistant.
+- **Limits.** Mood decays. It never overrides what the user says now, and the user can see and clear it.
+
 ### C1. Persona
 
 - The host application (or the user) defines a persona card: stable traits, voice, values, boundaries. It is versioned and injected separately from user memory.

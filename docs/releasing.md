@@ -7,7 +7,7 @@ Status on 2026-11-02: **pre-release; acceptance incomplete**. This is the checkl
 - [ ] **R1 — tested runtime, install, upgrade, recovery.** One pinned runtime across all launchers (`scripts/pin_runtime.py`, guarded by `tests/test_installation_pin.py`). The [release install check](../evaluations/release-install-2026-11-01.py) runs the real launch commands on a clean home directory: fresh install, upgrade from the previous pin, cross-session recall, MCP correct and delete, restart, backup and restore.
 - [ ] **R2 — tests.** Full Python, TypeScript and OpenClaw suites on the candidate; Verify green on the merge.
 - [ ] **R3 — isolation, privacy, deletion.** Existing regressions green; no known defect open.
-- [ ] **R4 — behavioral acceptance.** The [frozen plan](../evaluations/v1-2026-11-02-final-acceptance-plan.md): plugin and proxy-with-extraction paths each at least 20 of 22 on two new held-out scenarios, with no critical error.
+- [ ] **R4 — behavioral acceptance.** Not passed after six attempts under the [revised rule](../architecture/v1-acceptance.md#r4--memory-is-useful-on-held-out-lives-behavioral-acceptance). The [README summary](../README.md#final-behavioral-acceptance-r4-attempts-1-to-6) gives each attempt's result. A release must state this result and its known limitation; it cannot claim that R4 passed.
 - [ ] **R5 — overhead.** Recall p95 under 500 ms on the development fixture; hooks never block the host.
 - [ ] **R6 — delivery.**
   - Write the acceptance report and the release notes, and keep the English and Chinese READMEs equal.

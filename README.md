@@ -218,6 +218,23 @@ See [updating and configuration](docs/reference.md#local-status-and-configuratio
 
 ## Status and verification
 
+### Final behavioral acceptance (R4), attempts 1 to 6
+
+Each attempt ran the plugin path (`P`) and the proxy with note extraction (`E`) against a reference arm with the whole history in the prompt (`F`). Every attempt used two new held-out scenarios written without access to the product, a DeepSeek V4 Pro host, and blind review. Totals are out of 22.
+
+| Attempt | `P` | `E` | `F` | Outcome |
+| --- | --- | --- | --- | --- |
+| [1](evaluations/v1-2026-11-02-final-acceptance.md) | 16.5 | 19.5 | 17 | not passed: memory defects, since fixed |
+| [2](evaluations/v1-2026-11-03-final-acceptance-2.md) | 17 | 17 | 16.5 | not passed under the first rule (20 of 22 and no critical error), which even `F` could not meet; [rule revised](evaluations/v1-2026-11-03-gate-review.md) |
+| [3](evaluations/v1-2026-11-04-final-acceptance-3.md) | 8 of 11 | 10.5 of 11 | 6 of 11 | invalid (empty host replies); its first scenario found two memory defects, since fixed |
+| [4](evaluations/v1-2026-11-05-final-acceptance-4.md) | 19.5 | 21 | 13 | `E` passed; `P` failed on one memory-caused reply |
+| [5](evaluations/v1-2026-11-06-final-acceptance-5.md) | 19 | 16 | 17.5 | not passed |
+| [6](evaluations/v1-2026-11-07-final-acceptance-6.md) | 19.5 | 20 | 15 | not passed: one memory-caused reply in each path |
+
+**R4 has not passed.** From attempt 4 on, both memory paths scored above the whole-history reference in all but one comparison. Every failure was repaired.
+
+Almost every remaining memory-caused error had the same pattern: the host restated a recalled assistant suggestion as a fact about the user. Automatic recall now leaves the assistant's own replies out unless the user asks what the assistant said (commit `ac93f33`). No paid run has tested that last change yet.
+
 The current release candidate supports **local synchronous text agents**, with a Python runtime, HTTP API, TypeScript client, MCP tools, and a direct terminal chat entry point. Core memory behavior is independent of chat frameworks. Desktop end-to-end verification currently covers **macOS with uv and Docker**.
 
 [Plugin mode](architecture/plugin-mode.md) is verified end to end on **Linux x86_64**. The embedded database passed real start, restart, backup, restore and activation checks as root and as an unprivileged user. An isolated Claude Code 2.1.311 installed the plugin from a local marketplace; with a stub model API, it recorded messages and replies, and a new session's model request contained the previous session's record. That check covers integration, not answer quality. At that time automatic recall was keyword-only; it now also matches by meaning once the local model is installed. On a Windows 11 machine the embedded database, the service, the hook launchers (Git Bash and `cmd.exe`), the proxy and the AstrBot and OpenClaw plugins ran for real; that run found and fixed two installation bugs that stopped every new Windows installation and every first AstrBot start. Claude Code and Codex have not been run on Windows, and macOS has not been run on a real machine.
