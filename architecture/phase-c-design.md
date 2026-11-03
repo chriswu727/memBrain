@@ -1,6 +1,6 @@
 # Phase C design: personality, mood and relationship development
 
-**Status.** Scheduled for implementation (owner, 2026-11-03). This turns the Phase C items in the [companion roadmap](companion-roadmap.md) into an order of work and the behaviours each step must show before it merges.
+**Status.** Steps 0 to 4 (brain map, persona, affect, mood, relationship) are implemented and merged as of 2026-11-03; P2 and C5 are next. Scheduled by the owner on 2026-11-03. This turns the Phase C items in the [companion roadmap](companion-roadmap.md) into an order of work and the behaviours each step must show before it merges.
 
 **How acceptance works.** Acceptance is local tests and browser checks. No step here authorises a new paid or subscription model run. A paid behavioural run comes only with a separate plan the owner approves.
 
