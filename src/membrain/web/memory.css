@@ -108,6 +108,10 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .brain-node:focus-visible { outline: none; stroke: var(--ink); stroke-width: 2.5; }
 .brain-node.sensitive { stroke-dasharray: 2 2; stroke: var(--muted); }
 .brain-node.recent { animation: brain-fire 2.4s ease-in-out infinite; }
+.brain-node.traced { stroke: var(--trace, #e0a100); stroke-width: 3; }
+.brain-trace { border-left: 3px solid var(--trace, #e0a100); padding-left: 10px; margin: 0 0 12px; }
+.brain-trace p { margin: 0 0 4px; }
+.brain-note-actions { gap: 12px; margin-top: 8px; }
 .brain-canvas.focused .brain-node:not(.lit) { opacity: .45; }
 .brain-canvas.focused .brain-edge:not(.lit) { opacity: .06; }
 .brain-label { font-size: 13px; fill: var(--muted); text-anchor: middle; font-weight: 600; pointer-events: none; }

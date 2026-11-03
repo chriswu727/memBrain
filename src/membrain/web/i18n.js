@@ -15,6 +15,10 @@ const ZH = {
   "Routines": "日常", "Recent messages": "最近的消息", "Relationship": "关系", "Milestones and dates": "里程碑与日期",
   "Other notes": "其他笔记", "Sensitive note (hidden)": "敏感笔记（已隐藏）", "Sensitive memory": "敏感记忆",
   "Memory is busy updating. Retry the map shortly.": "记忆正在更新，请稍后再打开记忆图。",
+  "No recall recorded since memory last started.": "自记忆服务上次启动以来，还没有记录到回忆。",
+  "Covers message recall only. Notes and history added when a session starts are not traced, so this is not everything a reply used.":
+    "只包含消息回忆。会话开始时加入的笔记和历史不在其中，所以这不是一条回复用到的全部记忆。",
+  "Used by the latest recorded recall": "最近一次记录的回忆用到了它", "This note is no longer available.": "这条笔记已不存在。",
   "No memories yet. Talk with your agent, then come back.": "还没有记忆。先和你的 agent 聊聊，再回来看看。",
   "Your memory as a brain: each dot is one memory, grouped by kind": "你的记忆大脑：每个点是一条记忆，按类型分组",
   "Checking memory…": "正在检查记忆…", "Refresh status": "刷新状态",
@@ -149,6 +153,9 @@ const ZH_PATTERNS = [
   [/^(\d+) memories and (\d+) links( \(the most recent; more exist\))?\.$/, (m, n, e, more) =>
     `${n} 条记忆，${e} 条关联${more ? "（只显示最近的，还有更多）" : ""}。`],
   [/^(\d+) memor(?:y|ies) · (\d+) links?$/, (m, n, e) => `${n} 条记忆 · ${e} 条关联`],
+  [/^Latest recorded recall \((.+)\): (\d+) of (\d+) records it used are lit\.$/, (m, when, shown, used) =>
+    `最近一次记录的回忆（${when}）：它用到的 ${used} 条记录中，有 ${shown} 条在图中点亮。`],
+  [/^Latest recorded recall \((.+)\): it found nothing to add\.$/, (m, when) => `最近一次记录的回忆（${when}）：没有找到可补充的记忆。`],
   [/^(derived from|about person|replaces) \((source event ids|about|replaces)\)$/, (m, type) => BRAIN_EDGES[type]],
   [/^(Status|Date|Saved): .+$/, (m) => m.replace(/Status: (\w+)/, (x, status) => `状态：${BRAIN_STATUS[status] || status}`)
     .replace(/Date: /g, "日期：").replace(/Saved: /g, "保存于：")],
