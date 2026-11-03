@@ -193,7 +193,8 @@ class MembrainProvider(_Base):
                 return json.dumps(host.pause(self._directory, args.get("hours"), user_id=self._user,
                                              conversation=not args.get("until_resumed")))
             if tool_name == "membrain_resume":
-                return json.dumps(host.resume(self._directory, user_id=self._user, current_turn=True))
+                return json.dumps(host.resume(self._directory, user_id=self._user, current_turn=True,
+                                              session=self._session or None))
             if tool_name == "membrain_note" and host.paused(self._directory, self._user):
                 return json.dumps({"error": "Recording is paused. Resume before saving agent notes."})
             client = host.ready_client(self._directory, self._user)
