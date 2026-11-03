@@ -96,12 +96,13 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
         note_ids = [row["id"] for row in chosen_notes]
         from .affect import AFFECT_CONVERSATION, AFFECT_PRODUCER
 
-        # One node per affect record of a shown note, linked to it. They share the episode budget, taking at most
+        # One node per affect record of a shown note, linked to it. The whole record is read (it is bounded JSON:
+        # a few short fields and at most 64 source ids), since a cut record cannot be parsed and would vanish. They share the episode budget, taking at most
         # half of it while there are messages, so a note's source messages stay in the sample.
         room = max_nodes - len(chosen_notes)
         room = room // 2 if recent or traced_messages else room
         feelings = conn.execute(
-            "SELECT e.id,d.input_event_id AS note_id,left(e.document->'observed'->'content'->>'text',1000) AS text,"
+            "SELECT e.id,d.input_event_id AS note_id,e.document->'observed'->'content'->>'text' AS text,"
             "e.document->'system_time'->>'recorded_at' AS recorded_at FROM memory_event_dependencies d "
             "JOIN memory_events e ON e.tenant_id=d.tenant_id AND e.owner_id=d.owner_id "
             "AND e.brain_id=d.brain_id AND e.id=d.output_event_id "

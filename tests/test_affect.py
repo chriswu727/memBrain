@@ -469,6 +469,33 @@ def test_the_memory_map_shows_one_emotion_per_record_linked_to_its_note(brain):
     assert len(memory_map(*brain, max_nodes=2)["nodes"]) <= 2
 
 
+def test_a_feeling_with_many_sources_still_appears_on_the_map(brain):
+    sources = [say(brain, f"Message {index} about the move.") for index in range(64)]
+    moving = write(brain, "Moving flat next month.", kind="plan", source_event_ids=sources,
+                   affect={"label": "stressed", "valence": -1, "intensity": 2, "basis": "inferred",
+                           "topic": "the move"})
+    result = memory_map(*brain, max_nodes=200, max_edges=10)
+    assert "affect:" + moving["affect_id"] in {node["id"] for node in result["nodes"]}
+
+
+def test_saving_or_clearing_feelings_never_schedules_learning(brain, monkeypatch):
+    from membrain import learning_windows
+
+    service, principal, ident = brain
+    scheduled = []
+    monkeypatch.setattr(learning_windows, "enqueue_window",
+                        lambda conn, svc, who, brain_row, target, *args, **kwargs: scheduled.append(
+                            target["conversation_ref"]))
+    monkeypatch.setattr(service, "semantic_processor", object(), raising=False)
+    source = say(brain, "I'm thrilled about the new job.")
+    write(brain, "Started a new job.", kind="milestone", source_event_ids=[source],
+          affect={"label": "thrilled", "valence": 2, "intensity": 3, "basis": "reported"})
+    from membrain.affect import AFFECT_CONVERSATION, clear_affect
+
+    clear_affect(service, principal, ident)
+    assert scheduled and AFFECT_CONVERSATION not in scheduled  # Ordinary messages still learn; feelings never do.
+
+
 def test_api_routes_list_and_clear_feelings_with_strict_bodies(installation, brain):
     service, principal, ident = brain
     headers = {"Authorization": "Bearer affect-test-key"}
