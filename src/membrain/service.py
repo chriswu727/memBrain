@@ -259,7 +259,16 @@ class MemoryService:
             envelope.pop("result", None)
             envelope.pop("server_scope", None)
             envelope.update(outcome="failed", error={"code": "budget_exceeded", "message": "Database deadline exceeded.", "retryable": True})
+        except psycopg.errors.TransactionRollback:
+            # A deadlock or serialization failure aborted the whole transaction (including any response stored
+            # with it), so nothing was read or changed: the request can simply be sent again.
+            envelope.pop("result", None)
+            envelope.pop("server_scope", None)
+            envelope.update(outcome="failed", error={"code": "dependency_unavailable", "retryable": True,
+                                                     "message": "Memory was busy with another request. Retry it."})
         except psycopg.OperationalError:
+            envelope.pop("result", None)
+            envelope.pop("server_scope", None)
             envelope.update(outcome="failed", error={"code": "dependency_unavailable", "message": "Database is unavailable.", "retryable": True})
         authority = getattr(self.database, "recovery_authority", None)
         if action == "forget" and authority is not None and authority.recorded_intent(principal, request):

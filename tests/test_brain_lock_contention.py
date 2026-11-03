@@ -367,6 +367,43 @@ def test_two_reads_that_find_one_pending_erasure_both_succeed_without_it(recover
                             (harness.principal.tenant_id, harness.brain)).fetchone()["n"] == 1
 
 
+def test_a_deadlock_comes_back_as_a_clean_retryable_error(recovery, monkeypatch):
+    """No path is known to deadlock any more, but if PostgreSQL ever aborts a read as a deadlock (or serialization
+    failure) the caller gets a retryable failure that carries nothing read before the abort, not a crash or a 500."""
+    import httpx
+
+    import membrain.service as service_module
+
+    harness, _ = recovery
+    harness.observe("The museum opens at nine.")
+    original = service_module.validate
+
+    def validate(name, value):
+        if name == "ActionResponse" and value.get("outcome") == "completed":
+            raise psycopg.errors.DeadlockDetected("deadlock detected")
+        return original(name, value)
+
+    monkeypatch.setattr(service_module, "validate", validate)
+    request = recall_request(harness, "museum")
+    response = harness.service.handle(harness.principal, request)
+    assert response["outcome"] == "failed" and response["error"]["retryable"] is True, response
+    assert "result" not in response and "server_scope" not in response and "nine" not in str(response)
+    original("ActionResponse", response)
+    with harness.database.transaction(harness.principal) as conn:
+        assert not conn.execute("SELECT 1 FROM memory_requests WHERE tenant_id=%s AND brain_id=%s AND key=%s",
+                                (harness.principal.tenant_id, harness.brain, request["request_id"])).fetchone()
+
+    def deadlocked(*args, **kwargs):
+        raise psycopg.errors.DeadlockDetected("deadlock detected")
+
+    monkeypatch.setattr(harness.service, "timeline", deadlocked)
+    with pytest.raises(httpx.HTTPStatusError) as error:
+        harness.memory.timeline()
+    assert error.value.response.status_code == 503
+    assert error.value.response.json()["error"] == {
+        "code": "dependency_unavailable", "message": "Database unavailable", "retryable": True}
+
+
 def test_same_key_reads_and_a_queued_writer_do_not_deadlock(recovery, monkeypatch):
     """Lock order: a reader takes the brain row (shared) before the same-key advisory lock, and a writer takes only
     the row. The reader waiting for the advisory lock shares the row with its holder, which never asks for anything
