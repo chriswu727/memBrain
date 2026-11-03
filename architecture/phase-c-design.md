@@ -21,6 +21,7 @@ Development is not giving the user an emotion score. The user's feelings are one
 | **`relationship`** | Shared experiences, familiarity and boundaries | Long term, cumulative | Shared moments, time together, the user's requests | Kept after the user corrects or resets it |
 
 **Shared requirements.**
+- **Reset markers.** Every reset writes a reset marker for its layer: an event with the time and the sequence number it applies from. Every derived value, including familiarity, mood triggers, shared moments drawn from history, and feedback counted toward a persona proposal, counts only events after the latest marker for its layer. A reset therefore cannot be recomputed from older conversations. Markers are visible on the page ("Relationship reset on 14 Mar"), and erasing all memory removes them too.
 - **Kept apart.** Every layer is stored, shown and injected into context on its own, with its own block and size limit, never mixed into notes.
 - **On the page.** Every layer has a section on the memory page that shows its current state and why it is so: the evidence and triggers. The user can adjust or correct it there, and reset it.
 - **Reset scope.** A reset clears only the layers named in its reset scope below.
@@ -98,7 +99,7 @@ Each version records who made it (host, user or accepted feedback) and why.
 
 **Reset scope.**
 - Reset makes the host's default card, or an empty card, the current version. History is kept, so a reset can be undone.
-- "Delete personality history" erases every version.
+- "Delete personality history" erases every version and writes a persona reset marker, so feedback from before it never counts toward a new proposal.
 - Neither touches `user_affect`, `agent_mood` or `relationship`.
 
 ## 2. `user_affect`: A1 affect records
@@ -131,7 +132,7 @@ There is no overall score of the user's emotions.
 3. After the user deletes that message, session 3's context has neither the note's affect nor the interview, and the page no longer lists the record.
 
 **Reset scope.**
-- "Clear feelings" deletes every affect record, reported and inferred.
+- "Clear feelings" deletes every affect record, reported and inferred, and writes an affect reset marker. Extraction and inference never re-read messages from before the marker to recreate records.
 - It also deletes the `agent_mood` triggers that came from those records.
 - It leaves notes, messages, `persona` and `relationship` untouched.
 
@@ -140,6 +141,7 @@ There is no overall score of the user's emotions.
 **State.** The companion's simulated mood is a small state: a `label` (for example calm, glad, concerned, playful or wistful), `valence` and `energy`.
 - It starts at the persona card's `baseline_mood`.
 - It decays back to the baseline with a half-life of 12 hours.
+- **The decay reaches zero.** The mood is exactly the baseline once it is within 0.25 of it on both `valence` and `energy`, or 48 hours after its last trigger, whichever comes first. From then on, the state stores the baseline and drops the trigger from the current mood; the trigger history remains on the page. At the baseline, the context has no mood line.
 
 **Triggers.** Mood changes only through listed rules over events already stored, with no model call:
 - the user reports good news (a reported positive affect, or a plan marked done) → glad;
@@ -157,17 +159,18 @@ Each change is stored with its trigger: the rule, the source record and the time
 **Cross-session example.**
 1. Session 1, 21:00: the user says they got the job (reported positive affect). The mood becomes glad, with that trigger.
 2. Session 2, the next morning at 09:00: the context shows glad, easing, with the same trigger.
-3. Session 3, two days later: the mood is back at the baseline, and the context has no mood line.
+3. Session 3, two days later (past the 48-hour cutoff): the mood is exactly the baseline, and the context has no mood line.
 
 The page shows the current mood, the trigger list and when it will be back at baseline. Every step is checked with a fixed clock.
 
 **M1 acceptance (beyond the example).**
 - **Ordinary moods only.** No trigger rule produces sadness from absence. A test runs a 30-day gap and expects the baseline.
+- **The cutoff holds.** A test checks that a strong trigger reaches the exact baseline by 48 hours, and that a weak one reaches it as soon as it is within the 0.25 threshold.
 - **Wording.** The mood line always says "simulated" and never states anything about the user.
 - **Pin.** The user can pin the mood to the baseline. Pinned, no trigger changes it.
 
 **Reset scope.**
-- Reset puts the mood back at the baseline and deletes its trigger history.
+- Reset puts the mood back at the baseline, deletes its trigger history and writes a mood reset marker. Events before the marker never trigger again.
 - It leaves `user_affect`, `persona` and `relationship` untouched.
 
 ## 4. `relationship`: R1
@@ -190,6 +193,8 @@ The page shows the current mood, the trigger list and when it will be back at ba
 
 **Reset scope.**
 - Reset clears shared moments, familiarity (back to "new"), boundaries, support style and the commitment record.
+- It writes a relationship reset marker. Familiarity then counts only days of conversation after the marker. Shared moments and boundaries are never re-derived from messages before it, and commitments before it are left out of the record. The conversations themselves stay in memory, so recall of what was said is unchanged.
+- **Acceptance.** A test reaches "familiar", resets, and then runs one more session. Familiarity is "new" (one day after the marker), and no shared moment, boundary or commitment from before the marker comes back.
 - The page confirms first, naming what will be removed, and says that boundaries go too.
 - It leaves `persona`, `user_affect`, `agent_mood` and the user's other notes untouched.
 
