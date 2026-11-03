@@ -35,6 +35,7 @@ Both runs used deterministic local host/extractor stubs, keyword recall, a dispo
 | `aa1aa6e` | 236 passed, no failures | `valid: true`, no retried empty replies | Persona acceptance, feelings, mood decay, boundaries, reset and deletion |
 | `ad216e5` | 250 passed, no failures | `valid: true`, no retried empty replies | The same checks, plus two intentionally unrecorded plugin turns followed by a recorded resume turn |
 | `506cf29` | 250 passed, no failures | `valid: true`, no retried empty replies | Integrated portable familiarity history and the initial live-budget wiring; stub mode made no external call |
+| `a0dd70a` | 250 passed, no failures | `valid: true`, no retried empty replies | Reviewed budget follow-up and allowlisted local-service startup; stub mode made no external call |
 
 Machine-readable checker reports are in [maturity-free-practice-2026-11-03](maturity-free-practice-2026-11-03/). Raw failed logs and complete public-practice run artifacts remain in this task's local evidence directory.
 
@@ -56,7 +57,7 @@ All 340 recall responses were nonempty. The benchmark exited 1 because both conc
 
 ## Prospective billing-control checks
 
-The evaluation-only guard and its C5 wiring passed 125 related offline checks at `506cf29`. Claude independently reviewed the code without running a model. The follow-up binds the full attempt to one ledger/policy, isolates local-service environment variables, reserves the complete published output bound and structures malformed-request refusals. Its related group passed 138 tests, none skipped (14.73 seconds). One preceding run had a false privacy-fixture failure because the literal word `private` matched macOS's temporary-directory path; the corrected fixture checks unique message and key strings. That failed log is retained. No API key or real provider was used. The follow-up still needs independent review and a new public stub pass; it grants no paid-run approval.
+The evaluation-only guard and its C5 wiring passed 125 related offline checks at `506cf29`. Claude independently reviewed the code without running a model. The follow-up binds the full attempt to one ledger/policy, isolates local-service environment variables, reserves the complete published output bound and structures malformed-request refusals. Its related group passed 138 tests, none skipped (14.73 seconds). One preceding run had a false privacy-fixture failure because the literal word `private` matched macOS's temporary-directory path; the corrected fixture checks unique message and key strings. That failed log is retained. No API key or real provider was used. The public stub follow-up at `a0dd70a` passed all 250 checks and strict validity, with no external calls or retried empty replies. Its services stopped normally. The follow-up still needs independent source review; it grants no paid-run approval.
 
 ## Still required
 
