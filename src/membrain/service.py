@@ -681,8 +681,11 @@ class MemoryService:
                     and event["scope"]["branch_id"] != target.get("branch_ref"))
         }
         state["verified_working_evidence_refs"] = [r for field in ("items", "open_loops") for item in working[field] for r in item["evidence_refs"]]
+        # Both callers validate this result in full later, after their last change to it: _recall's as the result
+        # of the ActionResponse that handle validates, _prepare's as cognition.prepare's RecallResult input. Until
+        # then it is only read here, and the traces it carries are validated one by one before they are saved.
         result = cognition.recall(self._scope(principal, brain, target), query, memories, events, state,
-                                  access_at=access_at)
+                                  access_at=access_at, validate_result=False)
         if recall_plan is None and result["items"]:
             from .pattern_store import load_patterns
 

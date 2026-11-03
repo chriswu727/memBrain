@@ -14,7 +14,7 @@ from test_learning import learning as learning
 
 import membrain.service as service_module
 from membrain.api import create_app
-from membrain.client import default_budget, default_read_fence
+from membrain.client import MemoryActionError, default_budget, default_read_fence
 from membrain.config import Settings
 from membrain.contracts import CONTRACT_VERSION
 from membrain.helpers import Principal
@@ -102,3 +102,54 @@ def test_a_cached_response_is_validated_again_at_the_http_boundary(learning):
         harness.memory.send(request)
     assert error.value.response.status_code == 422
     assert error.value.response.json()["error"]["code"] == "validation_failed"
+
+
+def corrupt_recall_results(monkeypatch):
+    """Make cognition.recall produce a result that is not a RecallResult (an unknown status)."""
+    import membrain.belief_resolution as belief_resolution
+
+    original = belief_resolution.factor_relations
+
+    def factor_relations(result):
+        original(result)
+        result["status"] = "not-a-status"
+
+    monkeypatch.setattr(belief_resolution, "factor_relations", factor_relations)
+
+
+def stored(harness, table):
+    with harness.database.transaction(harness.principal) as conn:
+        return conn.execute(f"SELECT count(*) AS n FROM {table} WHERE tenant_id=%s AND brain_id=%s",
+                            (harness.principal.tenant_id, harness.brain)).fetchone()["n"]
+
+
+@pytest.mark.integration
+def test_an_invalid_recall_result_is_rejected_and_nothing_of_it_is_kept(learning, monkeypatch):
+    harness = learning
+    harness.observe("The Vancouver library appointment is on Friday.")
+    harness.memory.work()
+    request = recall_request(harness.brain)
+    traces, requests = stored(harness, "memory_traces"), stored(harness, "memory_requests")
+    with monkeypatch.context() as patch:
+        corrupt_recall_results(patch)
+        response = harness.service.handle(harness.principal, request)
+    assert response["outcome"] == "rejected" and response["error"]["code"] == "validation_failed"
+    assert "result" not in response
+    assert (stored(harness, "memory_traces"), stored(harness, "memory_requests")) == (traces, requests)
+    retried = harness.service.handle(harness.principal, request)
+    assert retried["outcome"] == "completed" and retried["result"]["items"]
+
+
+@pytest.mark.integration
+def test_an_invalid_recall_result_is_rejected_when_preparing_context(learning, monkeypatch):
+    harness = learning
+    harness.observe("The Vancouver library appointment is on Friday.")
+    harness.memory.work()
+    cue = harness.observe("When is the library appointment?")["accepted_event_ids"]
+    corrupt_recall_results(monkeypatch)
+    with pytest.raises(MemoryActionError) as error:
+        harness.memory.prepare("turn", conversation_id="chat", branch_id="main",
+                               latest_input_event_ids=cue, budget=default_budget(4000))
+    assert error.value.response["outcome"] == "rejected"
+    assert error.value.response["error"]["code"] == "validation_failed"
+    assert "RecallResult" in error.value.response["error"]["message"]

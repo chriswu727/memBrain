@@ -649,7 +649,9 @@ def _candidate_signals(state: dict, key: tuple[str, int]) -> list[dict]:
 
 
 def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
-           state: dict, *, access_at: str | None = None) -> dict:
+           state: dict, *, access_at: str | None = None, validate_result: bool = True) -> dict:
+    """``validate_result=False`` is only for a caller that validates this same result as a RecallResult itself,
+    after its last change and before it is returned or used beyond recording validated traces."""
     validate("BoundScope", scope)
     validate("RecallRequest", request)
     _check_budget(request["budget"])
@@ -938,7 +940,8 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
     if _measure(result) > limit:
         raise DomainError("budget_exceeded", "Budget cannot hold the final recall envelope")
     result["model_context"] = render_recall(result)
-    validate("RecallResult", result)
+    if validate_result:
+        validate("RecallResult", result)
     return result
 
 
