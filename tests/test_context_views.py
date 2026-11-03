@@ -215,3 +215,27 @@ def test_user_authored_evaluation_metadata_is_not_removed_from_working_values():
     value = {"applicability": {"evaluated_at": "A timestamp mentioned by the user"}}
     packet = {"blocks": [{"section": "working_state", "text": json.dumps({"value": value}), "evidence_refs": []}]}
     assert context_view(packet)["blocks"][0]["content"]["value"] == value
+
+
+def test_recall_context_and_its_measured_size_do_not_depend_on_usage():
+    sources, memories, current = scenario()
+    result = recall(sources, memories, current)
+    without = {key: value for key, value in result.items() if key != "usage"}
+    changed = {**result, "usage": {**result["usage"], "context_tokens": 1, "elapsed_ms": 99}}
+    assert cognition.render_recall(without) == cognition.render_recall(changed) == result["model_context"]
+    assert result["usage"]["context_tokens"] == len(result["model_context"].encode())
+
+
+def test_packed_recall_counts_exactly_the_context_it_returns():
+    sources, memories, current = scenario()
+    memories[1]["statement"] *= 1000
+    current["belief_relations"] = [relation(memories[1], memories[:1])]
+    standalone = event("routine independent observation", 3)
+    sources.append(standalone)
+    memories.append(cognition.extract_event(standalone)[0])
+    current.update(durable_sequence=3, indexed_sequence=3)
+    current["working_event_metadata"][standalone["event_id"]] = standalone
+    recalled = recall(sources, memories, current, budget={**request()["budget"], "max_context_tokens": 3000})
+    assert recalled["usage"]["stopped_by"] == "context_limit"
+    assert recalled["usage"]["context_tokens"] == len(recalled["model_context"].encode()) <= 3000
+    assert recalled["model_context"] == cognition.render_recall(recalled)

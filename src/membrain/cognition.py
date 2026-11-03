@@ -400,12 +400,11 @@ def _usage(budget: dict) -> dict:
 
 
 def _measure(result: dict) -> int:
-    for _ in range(6):
-        count = estimate_tokens(render_recall(result))
-        if result["usage"]["context_tokens"] == count:
-            return count
-        result["usage"]["context_tokens"] = count
-    raise DomainError("budget_exceeded", "Unable to stabilize serialized budget accounting")
+    # The rendered context does not show usage, so recording the count cannot change it: one render settles it.
+    # Rendering without usage keeps that true: a renderer that started reading usage would fail here, not miscount.
+    count = estimate_tokens(render_recall({key: value for key, value in result.items() if key != "usage"}))
+    result["usage"]["context_tokens"] = count
+    return count
 
 
 def _check_budget(budget: dict) -> None:
