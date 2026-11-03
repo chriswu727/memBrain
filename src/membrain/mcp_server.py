@@ -129,7 +129,7 @@ def create_server(client: MemoryClient, *, directory=None) -> FastMCP:
         about: str | None = None, aliases: list[str] | None = None,
         status: Literal["intended", "scheduled", "done", "cancelled", "superseded"] | None = None,
         due: str | None = None, occurs_at: str | None = None, pinned: bool = False, sensitive: bool = False,
-        affect: dict[str, Any] | None = None,
+        affect: dict[str, Any] | None = None, shared: bool = False,
     ) -> dict[str, Any]:
         from membrain.notes import note_fields, save_note
 
@@ -139,9 +139,17 @@ def create_server(client: MemoryClient, *, directory=None) -> FastMCP:
             if host.paused(directory):
                 return {"error": "Recording is paused. Resume before saving agent notes."}
         fields = note_fields({"kind": kind, "about": about, "aliases": aliases, "status": status, "due": due,
-                              "occurs_at": occurs_at, "pinned": pinned, "sensitive": sensitive, "affect": affect})
+                              "occurs_at": occurs_at, "pinned": pinned, "sensitive": sensitive, "affect": affect,
+                              "shared": shared})
         return await asyncio.to_thread(save_note, client, text, replaces=replaces or (),
                                        source_event_ids=source_event_ids or (), source_messages=source_messages or (), **fields)
+
+    from membrain.relationship import BOUNDARY_TOOL_DESCRIPTION
+
+    @server.tool(annotations=WRITE, description=BOUNDARY_TOOL_DESCRIPTION)
+    async def memory_boundary(topic: str, aliases: list[str] | None = None) -> dict[str, Any]:
+        result = await asyncio.to_thread(client.add_boundary, topic, aliases or ())
+        return {"boundaries": result.get("boundaries", [])}
 
     if directory is not None:
         from membrain import host
