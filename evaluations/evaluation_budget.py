@@ -90,12 +90,16 @@ def create_ledger(path, *, run_id, limit_cny, endpoint, models):
 
 
 class GuardedTransport(httpx.BaseTransport):
-    def __init__(self, path, *, run_id, policy_sha256, transport=None):
+    def __init__(self, path, *, run_id, policy_sha256, transport=None, allow_stopped=False):
         self.path = Path(path)
         self.run_id, self.policy_sha256 = run_id, policy_sha256
         if not self.path.is_absolute() or not self.path.is_file():
             raise BudgetStop("An approved run needs its pre-created shared billing ledger.")
-        self.check()
+        if allow_stopped:
+            with _locked(self.path):
+                self._state()
+        else:
+            self.check()
         self.transport = transport if transport is not None else httpx.HTTPTransport(retries=0)
 
     def _state(self):
@@ -109,7 +113,7 @@ class GuardedTransport(httpx.BaseTransport):
         with _locked(self.path):
             state = self._state()
             if state["blocked"]:
-                raise BudgetStop("Billing evidence is uncertain; the run is stopped.")
+                raise BudgetStop("The shared billing run is stopped.")
 
     def _reserve(self, request):
         try:
@@ -132,7 +136,7 @@ class GuardedTransport(httpx.BaseTransport):
         with _locked(self.path):
             state = self._state()
             if state["version"] != 1 or state["blocked"]:
-                raise BudgetStop("Billing evidence is uncertain; the run is stopped.")
+                raise BudgetStop("The shared billing run is stopped.")
             if request.method != "POST" or str(request.url) != state["endpoint"] or body.get("stream", False) is not False:
                 raise BudgetStop("The request differs from the frozen billing endpoint or protocol.")
             rate = state["models"].get(model)
@@ -142,6 +146,9 @@ class GuardedTransport(httpx.BaseTransport):
                 rate["max_output_tokens"], rate["output_cny_per_million"])
             used = sum(entry.get("actual_micros", entry["reserved_micros"]) for entry in state["requests"].values())
             if used + reserved > state["limit_micros"]:
+                state["blocked"] = True
+                state["stop_reason"] = "reservation_limit"
+                _write(self.path, state)
                 raise BudgetStop("The shared billing cap cannot reserve this request.")
             ident = uuid.uuid4().hex
             state["requests"][ident] = {"model": model, "max_tokens": output, "reserved_micros": reserved}
@@ -176,8 +183,19 @@ class GuardedTransport(httpx.BaseTransport):
             entry["prompt_tokens"], entry["completion_tokens"] = prompt, completion
             _write(self.path, state)
 
+    def stop(self, reason):
+        with _locked(self.path):
+            state = self._state()
+            state["blocked"] = True
+            state.setdefault("stop_reason", reason)
+            _write(self.path, state)
+
     def handle_request(self, request):
-        ident = self._reserve(request)
+        try:
+            ident = self._reserve(request)
+        except BudgetStop:
+            self.stop("request_refused")
+            raise
         try:
             response = self.transport.handle_request(request)
             response.read()

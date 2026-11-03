@@ -33,6 +33,7 @@ import json
 import logging
 import os
 import re
+import signal
 import socket
 import sys
 import time
@@ -72,14 +73,15 @@ BILLING = None
 logging.getLogger("httpx").setLevel(logging.WARNING)  # Per-request lines would bury the run log.
 
 
-def billing_transport():
+def billing_transport(*, allow_stopped=False):
     path = os.environ.get("C5_BILLING_LEDGER")
     if not path:
         raise SystemExit("A live evaluation needs the approved run's shared C5_BILLING_LEDGER.")
     ident, policy = os.environ.get("C5_ATTEMPT_ID"), os.environ.get("C5_BILLING_POLICY_SHA256")
     if not ident or not policy:
         raise SystemExit("A live evaluation needs its frozen C5_ATTEMPT_ID and C5_BILLING_POLICY_SHA256.")
-    return billing_module().GuardedTransport(Path(path), run_id=ident, policy_sha256=policy)
+    return billing_module().GuardedTransport(Path(path), run_id=ident, policy_sha256=policy,
+                                            allow_stopped=allow_stopped)
 
 
 @lru_cache
@@ -837,7 +839,21 @@ def stop_started() -> None:
         desktop.stop(STARTED.pop())
 
 
+def interrupted(signum, frame):
+    try:
+        if BILLING is not None:
+            BILLING.stop("arm_interrupted")
+    finally:
+        raise SystemExit(128 + signum)
+
+
 if __name__ == "__main__":
+    signal.signal(signal.SIGTERM, interrupted)
+    if sys.argv[1:] == ["--stop"]:
+        guard = billing_transport(allow_stopped=True)
+        guard.stop("arm_failed")
+        guard.close()
+        raise SystemExit(0)
     if sys.argv[1:] == ["--preflight"]:
         check_live_environment()
         guard = billing_transport()

@@ -65,6 +65,22 @@ def test_every_arm_checks_a_failed_billing_ledger(monkeypatch):
         harness.check_billing()
 
 
+@pytest.mark.parametrize("fails", [False, True])
+def test_term_stops_the_shared_attempt_and_unwinds_for_service_cleanup(monkeypatch, fails):
+    calls = []
+
+    class Guard:
+        def stop(self, reason):
+            calls.append(reason)
+            if fails:
+                raise OSError("offline stop fixture")
+
+    monkeypatch.setattr(harness, "BILLING", Guard())
+    with pytest.raises(SystemExit) as error:
+        harness.interrupted(harness.signal.SIGTERM, None)
+    assert error.value.code == 143 and calls == ["arm_interrupted"]
+
+
 def test_a_billing_stop_is_not_retried_by_the_host(monkeypatch):
     monkeypatch.setattr(harness, "STUB", False)
     monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")

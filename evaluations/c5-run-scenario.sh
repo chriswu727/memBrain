@@ -27,6 +27,40 @@ if [ "${C5_STUB:-}" != 1 ]; then "${python[@]}" evaluations/c5-harness.py --pref
 for arm in P E F; do
   if [ -e "$root/$key-$arm" ]; then echo "$root/$key-$arm exists: a run directory is never reused" >&2; exit 2; fi
 done
+pids=() labels=() started=0
+cleanup() {
+  local status=$?
+  trap - EXIT
+  if [ "$status" -ne 0 ] && [ "$started" -gt 0 ] && [ "${C5_STUB:-}" != 1 ]; then
+    "${python[@]}" evaluations/c5-harness.py --stop || true
+  fi
+  if [ "${#pids[@]}" -gt 0 ]; then
+    for pid in "${pids[@]}"; do kill "$pid" 2>/dev/null || true; done
+    for pid in "${pids[@]}"; do wait "$pid" 2>/dev/null || true; done
+  fi
+  exit "$status"
+}
+trap cleanup EXIT
+trap 'exit 130' INT
+trap 'exit 143' TERM
+check_arms() {
+  local index pid status failed=0
+  if [ "${#pids[@]}" -eq 0 ]; then return 0; fi
+  for index in "${!pids[@]}"; do
+    pid=${pids[$index]}
+    if ! kill -0 "$pid" 2>/dev/null; then
+      status=0
+      wait "$pid" || status=$?
+      if [ "$status" -ne 0 ]; then
+        if [ "$failed" -eq 0 ]; then echo "arm ${labels[$pid]} failed with exit $status" >&2; fi
+        failed=1
+      fi
+      unset 'pids[index]'
+      unset 'labels[pid]'
+    fi
+  done
+  return "$failed"
+}
 bindable() {
   python3 - "$@" <<'PY'
 import socket, sys
@@ -42,17 +76,15 @@ wait_bindable() {
   local waited=0
   until bindable "$@"; do
     if [ "$waited" -ge 300 ]; then echo "ports $* still not free after 300 s" >&2; return 1; fi
-    sleep 5; waited=$((waited + 5))
+    sleep 5; check_arms || return 1; waited=$((waited + 5))
   done
   echo "ports $* free after ${waited} s"
 }
 wait_bindable 8893 55533 8894 55534 || exit 2  # Before any arm starts: a timeout here costs nothing.
-pids=()
 for spec in "P 8893,55533" "E 8894,55534" "F -"; do
   set -- $spec
   dir="$root/$key-$1"
   if [ "$2" != "-" ] && ! wait_bindable ${2//,/ }; then
-    for pid in "${pids[@]}"; do kill "$pid" 2>/dev/null || true; done  # Never leave an earlier arm running alone.
     exit 2
   fi
   mkdir -p "$dir"
@@ -61,9 +93,13 @@ for spec in "P 8893,55533" "E 8894,55534" "F -"; do
   else
     MEMBRAIN_PORTS=$2 "${python[@]}" -u evaluations/c5-harness.py "$1" "$scenario" "$dir" >> "$dir/run.log" 2>&1 &
   fi
-  pids+=($!)
-  sleep 15
+  pid=$!
+  pids+=("$pid")
+  labels[$pid]=$1
+  started=$((started + 1))
+  for delay in {1..15}; do sleep 1; check_arms || exit 1; done
 done
-status=0
-for pid in "${pids[@]}"; do wait "$pid" || status=1; done
-exit $status
+while [ "${#pids[@]}" -gt 0 ]; do
+  check_arms || exit 1
+  if [ "${#pids[@]}" -gt 0 ]; then sleep 1; fi
+done

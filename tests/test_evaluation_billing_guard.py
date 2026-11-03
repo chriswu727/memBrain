@@ -74,7 +74,11 @@ def test_concurrent_arms_cannot_spend_each_others_in_flight_reservations(tmp_pat
         finally:
             release.set()
         assert all(task.result().status_code == 200 for task in tasks)
-    assert send(path, reply).status_code == 200
+    state = json.loads(path.read_text())
+    assert state["blocked"] and state["stop_reason"] == "reservation_limit"
+    assert all("actual_micros" in entry for entry in state["requests"].values())
+    with pytest.raises(budget.BudgetStop, match="stopped"):
+        send(path, lambda request: pytest.fail("a cap-stopped run resumed after settlement"))
 
 
 @pytest.mark.parametrize("usage", [None, {}, {"prompt_tokens": True, "completion_tokens": 1, "total_tokens": 2},
@@ -120,7 +124,10 @@ def test_requests_outside_the_frozen_limits_are_refused_before_network(tmp_path,
     path = ledger(tmp_path)
     with pytest.raises(budget.BudgetStop):
         send(path, lambda request: pytest.fail("invalid request reached provider"), **changes)
-    assert not json.loads(path.read_text())["requests"]
+    state = json.loads(path.read_text())
+    assert not state["requests"] and state["blocked"]
+    with pytest.raises(budget.BudgetStop, match="stopped"):
+        send(path, lambda request: pytest.fail("a refused request did not stop other arms"))
 
 
 def test_an_unknown_request_after_a_crash_still_consumes_its_full_reservation(tmp_path):
@@ -169,14 +176,16 @@ def test_separate_arm_processes_share_one_cap(tmp_path):
     assert [process.exitcode for process in arms] == [0, 0]
 
 
-def test_the_extractor_can_omit_stream_but_another_endpoint_is_refused(tmp_path):
+@pytest.mark.parametrize("url", ["https://other.test/chat/completions", ENDPOINT + "/other"])
+def test_the_extractor_can_omit_stream_but_another_endpoint_is_refused(tmp_path, url):
     path = ledger(tmp_path)
     guard = guarded(path, transport=httpx.MockTransport(reply))
     with httpx.Client(transport=guard) as client:
         assert client.post(ENDPOINT, json={"model": "host", "max_tokens": 100}).status_code == 200
-        for url in ["https://other.test/chat/completions", ENDPOINT + "/other"]:
-            with pytest.raises(budget.BudgetStop, match="endpoint"):
-                client.post(url, json={"model": "host", "max_tokens": 100})
+        with pytest.raises(budget.BudgetStop, match="endpoint"):
+            client.post(url, json={"model": "host", "max_tokens": 100})
+        with pytest.raises(budget.BudgetStop, match="stopped"):
+            client.post(ENDPOINT, json={"model": "host", "max_tokens": 100})
 
 
 def test_the_provider_version_must_be_explicitly_frozen(tmp_path):
@@ -245,3 +254,19 @@ def test_all_published_output_is_reserved_even_when_the_request_limit_is_smaller
 def test_malformed_request_shapes_are_structured_stops_before_network(tmp_path, changes):
     with pytest.raises(budget.BudgetStop):
         send(ledger(tmp_path), lambda request: pytest.fail("malformed request reached provider"), **changes)
+
+
+def test_an_idempotent_stop_handle_cannot_send_a_request_or_clear_the_original_reason(tmp_path):
+    path = ledger(tmp_path)
+    guard = guarded(path, transport=httpx.MockTransport(lambda request: pytest.fail("stopped run reached provider")))
+    guard.stop("arm_failed")
+    guard.stop("arm_interrupted")
+    with pytest.raises(budget.BudgetStop, match="stopped"):
+        guard.check()
+    stopped = guarded(path, allow_stopped=True, transport=httpx.MockTransport(
+        lambda request: pytest.fail("stop-only handle reached provider")))
+    stopped.stop("arm_failed")
+    with httpx.Client(transport=stopped) as client, pytest.raises(budget.BudgetStop, match="stopped"):
+        client.post(ENDPOINT, json={"model": "host", "max_tokens": 100})
+    state = json.loads(path.read_text())
+    assert state["blocked"] and state["stop_reason"] == "arm_failed" and not state["requests"]

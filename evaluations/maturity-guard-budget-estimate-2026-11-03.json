@@ -1,0 +1,10 @@
+{
+  "scope": "Token counts only from already-scored public attempt-6 Q/R arm results; no message, reply or scenario content emitted. Blinded copies excluded. These rates are a proposed guard policy, not a new provider quote.",
+  "prompt_tokens": 4897910,
+  "completion_tokens": 552066,
+  "prompt_cache_hit_tokens": 2423808,
+  "input_cny_per_million": "9",
+  "output_cny_per_million": "27",
+  "host_guard_charge_cny": "58.986972",
+  "includes_extraction": false
+}
