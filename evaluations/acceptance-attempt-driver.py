@@ -32,6 +32,7 @@ import argparse
 import datetime
 import hashlib
 import json
+import math
 import os
 import re
 import shlex
@@ -196,6 +197,20 @@ def ledger_problem(path: Path) -> str | None:
     return None
 
 
+MAX_GRACE_SECONDS = 600.0
+
+
+def _grace(text) -> float:
+    """A finite, positive grace period of at most MAX_GRACE_SECONDS: NaN or infinity would disable escalation."""
+    try:
+        value = float(text)
+    except (TypeError, ValueError):
+        value = math.nan
+    if not (math.isfinite(value) and 0 < value <= MAX_GRACE_SECONDS):
+        raise Refused("usage", f"--grace must be a finite number of seconds above 0 and at most {MAX_GRACE_SECONDS:g}")
+    return value
+
+
 def _command(text: str, repo: Path) -> list[str]:
     argv = shlex.split(text)
     if not argv:
@@ -258,7 +273,7 @@ class Driver:
         self.child: subprocess.Popen | None = None
         self.terminated: int | None = None  # The child pid that has been sent SIGTERM for a signal.
         self.signalled_at = 0.0
-        self.grace = args.grace
+        self.grace = _grace(args.grace)
         self.signal: int | None = None
         self.current: str | None = None
         self.state: dict = {}
@@ -545,8 +560,9 @@ def main(argv=None) -> int:
     run.add_argument("--runner", help="default: evaluations/c5-run-scenario.sh")
     run.add_argument("--validity", help="default: this Python, evaluations/acceptance_review.py validity")
     run.add_argument("--ledger", help="billing ledger JSON whose blocked flag is read before each scenario")
-    run.add_argument("--grace", type=float, default=60.0,
-                     help="seconds a child gets after each stop signal before the next escalation (default 60)")
+    run.add_argument("--grace", default="60",
+                     help="seconds a child gets after each stop signal before the next escalation (default 60, "
+                          "finite, above 0, at most 600)")
     args = parser.parse_args(argv)
     try:
         return Driver(args).run()

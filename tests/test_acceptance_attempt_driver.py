@@ -522,3 +522,23 @@ def test_a_scenario_path_through_a_symlink_out_of_the_repo_is_refused(attempt):
     attempt.write_manifest()
     result = attempt.run()
     assert result.returncode == 2 and summary(result)["stop"] == "manifest" and attempt.calls() == []
+
+
+# Grace period ---------------------------------------------------------------------------------------------------------
+
+@pytest.mark.parametrize("grace", ["nan", "NaN", "inf", "-inf", "infinity", "0", "-1", "600.5", "1e9", "soon"])
+def test_a_grace_period_that_would_disable_bounded_escalation_is_refused(attempt, grace):
+    argv = attempt.argv()
+    index = argv.index("--grace")
+    argv[index:index + 2] = [f"--grace={grace}"]
+    result = subprocess.run(argv, env=attempt.env(), capture_output=True, text=True, timeout=120)
+    assert result.returncode == 2 and summary(result) == {"result": "refused", "stop": "usage"}
+    assert attempt.calls() == [] and not attempt.out.exists()
+
+
+@pytest.mark.parametrize("grace", ["0.5", "600"])
+def test_a_finite_bounded_grace_period_is_accepted(attempt, grace):
+    argv = attempt.argv()
+    index = argv.index("--grace")
+    argv[index:index + 2] = [f"--grace={grace}"]
+    assert subprocess.run(argv, env=attempt.env(), capture_output=True, text=True, timeout=120).returncode == 0
