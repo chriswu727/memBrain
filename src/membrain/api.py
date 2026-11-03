@@ -428,8 +428,12 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
                    principal: Principal = Depends(authenticate)):
         from .memory_map import memory_map as read_memory_map
 
-        return read_memory_map(service, principal, brain_id, max_nodes=max_nodes, max_edges=max_edges,
-                               include_sensitive=include_sensitive)
+        try:
+            return read_memory_map(service, principal, brain_id, max_nodes=max_nodes, max_edges=max_edges,
+                                   include_sensitive=include_sensitive)
+        except (psycopg.errors.LockNotAvailable, psycopg.errors.QueryCanceled):
+            raise DomainError("dependency_unavailable", "Memory is busy updating. Retry the map shortly.",
+                              retryable=True) from None
 
     @app.get("/v1/brains/{brain_id}/status")
     def memory_status(brain_id: str, principal: Principal = Depends(authenticate)):

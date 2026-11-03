@@ -171,6 +171,19 @@ def test_a_busy_brain_returns_a_sample_without_unbounded_nodes_or_labels(brain):
     assert sum(region["count"] for region in result["regions"]) == 20
 
 
+def test_map_backpressure_reports_retry_without_waiting_for_a_writer(installation, brain):
+    service, principal, ident = brain
+    headers = {"Authorization": "Bearer map-test-key"}
+    settings = replace(installation[1], api_keys={hashlib.sha256(b"map-test-key").hexdigest(): principal})
+    with TestClient(create_app(settings, service), base_url="http://127.0.0.1") as client:
+        with service.database.transaction(principal) as conn:
+            service._brain(conn, principal, ident)
+            result = client.get(f"/v1/brains/{ident}/memory-map", headers=headers)
+    assert result.status_code == 503
+    assert result.json()["error"] == {"code": "dependency_unavailable", "retryable": True,
+                                      "message": "Memory is busy updating. Retry the map shortly."}
+
+
 def test_map_read_does_not_write_or_schedule_processing(brain):
     service, principal, ident = brain
     note(brain, "Prefer a quiet trail.", kind="preference")
