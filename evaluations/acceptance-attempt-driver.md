@@ -11,16 +11,19 @@ The runner defaults to `evaluations/c5-run-scenario.sh` and is called as `RUNNER
 
 ## Live mode
 
-Live mode is on with `--live`, and whenever `C5_BILLING_LEDGER` or `C5_ATTEMPT_ID` is set. Without it, the driver is for offline tests only.
+Live mode is on with `--live`, and whenever `C5_BILLING_LEDGER`, `C5_ATTEMPT_ID` or any provider credential (any `*_API_KEY` variable, even an empty one) is set. Without it, the driver is for offline tests only, which must clear such keys. A credential makes the run live instead of being refused separately. That way one rule covers every case where a provider call is possible: the full binding is required and overrides are refused.
 
 | | Live mode | Offline (tests) |
 | --- | --- | --- |
 | Commands | Only the repository's `evaluations/c5-run-scenario.sh` and `<this python> evaluations/acceptance_review.py validity`; `--runner` and `--validity` are refused | Overrides allowed |
 | Frozen command files | `evaluations/c5-run-scenario.sh`, `evaluations/acceptance_review.py` and `evaluations/c5-harness.py` must be in `files` | Any command file inside the repository must be in `files` |
 | Ledger | `C5_BILLING_LEDGER`, required and absolute; a different `--ledger` is refused | Only with `--ledger` |
+| Attempt binding | `C5_ATTEMPT_ID` required and equal to `attempt_id` (`attempt_binding`) | None |
+| Policy binding | `C5_BILLING_POLICY_SHA256` required, 64 lowercase hex characters (`policy_binding`), and equal to the ledger's `policy_sha256` | None |
+| Marked in the state file and summary as | `"mode": "live"`, `"evidence": "live_attempt"` | `"mode": "offline"`, `"evidence": "offline_test_only"` |
 | Shared stop | Yes, see below | Never |
 
-Wherever a ledger is read, before the start and before each scenario, it must hold `"blocked": false` and a `run_id` equal to `attempt_id`. When `C5_BILLING_POLICY_SHA256` is set, its `policy_sha256` must match too. Otherwise the attempt stops with `ledger_blocked` or `ledger_mismatch`.
+Wherever a ledger is read, before the start and before each scenario, it must hold `"blocked": false` and a `run_id` equal to `attempt_id`. When `C5_BILLING_POLICY_SHA256` is set, which is always in live mode, its `policy_sha256` must match too. Otherwise the attempt stops with `ledger_blocked` or `ledger_mismatch`.
 
 **Shared stop.** On a stop the driver decides itself (`invalid`, `hash_mismatch`, which includes `inputs_changed`, `run_dir_exists` or `driver_error`), it blocks the shared billing run for every future provider call. It runs the harness's own entry point, `<C5_PYTHON or uv run python> evaluations/c5-harness.py --stop`, as the run script's supervisor does. A signal does not cut it short; after 300 s it is killed and recorded as failed. The driver never writes the ledger itself. The entry point takes no reason, so the ledger records `arm_failed` unless it already has a reason. The driver's own reason is in `shared_stop` in its state file, and a failed stop is reported on stderr.
 
@@ -76,12 +79,12 @@ The driver only reads the ledger. Anything other than an explicit `"blocked": fa
 | 2 | Refused before start |
 | 130 or 143 | Interrupted |
 
-The last line of stdout is a one-line JSON summary of statuses: `attempt_id`, `result`, the `stop` reason code, the status of each scenario and each pair, and `eligible`. Progress and stop details go to stderr. They name paths, keys and exit codes only.
+The last line of stdout is a one-line JSON summary of statuses: `mode`, `evidence`, `attempt_id`, `result`, the `stop` reason code, the status of each scenario and each pair, and `eligible`. Progress and stop details go to stderr. They name paths, keys and exit codes only.
 
 ## State file
 
 `OUT_ROOT/attempt-state.json` is written to a temporary file, then fsynced and moved into place with `os.replace`. It holds:
-- the attempt: `driver_state_version`, `attempt_id`, `manifest` (path), `manifest_sha256`, `repo`, `out_root`, the `runner` and `validity` argument lists, `ledger`, `live`, `created_at` and `updated_at`;
+- the attempt: `driver_state_version`, `mode`, `evidence`, `attempt_id`, `manifest` (path), `manifest_sha256`, `repo`, `out_root`, the `runner` and `validity` argument lists, `ledger`, `created_at` and `updated_at`;
 - `shared_stop`: null, or `reason`, `command`, `exit`, `started_at`, `finished_at` and `log`;
 - the outcome: `result`, which is `running`, `complete`, `stopped` or `interrupted`, and `stop`, which is null or holds `key`, `reason`, `detail` and `at`;
 - `order`;
