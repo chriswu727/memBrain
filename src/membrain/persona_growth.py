@@ -342,11 +342,19 @@ def _feedback(service, conn, principal, brain_id, *, after: int, ids=None) -> li
         "AND coalesce(document->'observed'->>'interpretation_hint','unknown') IN ('unknown','real_world_report') "
         "AND conversation_id IS NOT NULL AND NOT (conversation_id = ANY(%s::text[])) "
         "AND producer_ref <> 'membrain-memory-page' AND producer_ref NOT LIKE 'membrain-import:%%' "
+        # A restore files every message under archive-import and drops the producer that wrote it, so a restored
+        # message could have been typed on the memory page or imported from another assistant. Such a message
+        # counts toward a new suggestion only when the restore kept its original producer and that producer may
+        # count; suggestions and decisions restored from the archive keep their already checked sources (ids).
+        "AND (%s::text[] IS NOT NULL OR producer_ref <> %s OR ("
+        "document->>'imported_producer_ref' IS NOT NULL "
+        "AND document->>'imported_producer_ref' NOT IN ('membrain-memory-page', %s) "
+        "AND document->>'imported_producer_ref' NOT LIKE 'membrain-import:%%')) "
         "AND length(document->'observed'->'content'->>'text') <= %s "
         "AND (%s::text[] IS NULL OR id = ANY(%s::text[])) "
         "AND document->'observed'->'content'->>'text' ~* %s ORDER BY sequence DESC LIMIT %s",
-        (*service._params(principal, brain_id), after, _reserved(), SCAN_CHARACTERS, ids, ids, STEMS,
-         SCAN_ROWS)).fetchall()
+        (*service._params(principal, brain_id), after, _reserved(), ids, ARCHIVE_PRODUCER, ARCHIVE_PRODUCER,
+         SCAN_CHARACTERS, ids, ids, STEMS, SCAN_ROWS)).fetchall()
     result = []
     for row in reversed(rows):
         kinds = detect(row["text"])

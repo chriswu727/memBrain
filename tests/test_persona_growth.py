@@ -537,6 +537,51 @@ def test_an_archive_from_before_the_deletion_cannot_bring_the_words_back(brain):
     assert "Zephyrine" not in json.dumps(persona_proposals(service, principal, copy_brain))
 
 
+def _restored(brain, name):
+    import httpx
+
+    from membrain.client import MemoryClient
+
+    service, principal, ident = brain
+
+    def handle(request):
+        return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
+
+    with MemoryClient("http://memory.test", "k", ident, transport=httpx.MockTransport(handle)) as client:
+        archive = client.export()["result"]
+        restored = service.create_brain(principal, name)["id"]
+        client.restore(archive["archive_id"], expected_manifest_sha256=archive["manifest_sha256"],
+                       expected_scope_generation=1, mode="new_brain", brain_id=restored)
+    return restored
+
+
+def test_feedback_from_imported_or_page_conversations_never_counts_even_after_a_restore(brain):
+    service, principal, ident = brain
+    set_persona(service, principal, ident, CARD, made_by="host")
+    for text in ("you're too formal", "be more casual", "Can you be more casual?"):
+        said(brain, text, producer="membrain-import:chatgpt")
+    for text in ("be more playful", "be more playful!", "could you be more playful"):
+        said(brain, text, conversation="page-chat", producer="membrain-memory-page")
+    assert listing(brain)["proposals"] == []
+    # A restore files every message under archive-import and loses who wrote it; it must not turn another
+    # assistant's conversation, or text typed on the page, into feedback to this companion.
+    copy_brain = _restored(brain, "Restored imports")
+    assert persona_proposals(service, principal, copy_brain)["proposals"] == []
+
+
+def test_suggestions_made_before_a_backup_stay_valid_after_the_restore(brain):
+    service, principal, ident = brain
+    set_persona(service, principal, ident, CARD, made_by="host")
+    for text in ("you're too formal", "be more casual", "Can you be more casual?"):
+        said(brain, text)
+    original = listing(brain)["proposals"]
+    assert [(p["kind"], p["status"], p["source_count"]) for p in original] == [("less_formal", "open", 3)]
+    copy_brain = _restored(brain, "Restored suggestion")
+    restored = persona_proposals(service, principal, copy_brain)["proposals"]
+    assert [(p["kind"], p["status"], p["source_count"]) for p in restored] == [("less_formal", "open", 3)]
+    assert accept_proposal(service, principal, copy_brain, restored[0]["id"])["persona"]["made_by"] == "feedback"
+
+
 def test_decisions_leave_the_other_layers_unchanged(brain):
     from membrain.affect import affect_records
     from membrain.mood import mood_state
