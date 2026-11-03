@@ -438,6 +438,12 @@ def gate(review: Path, keys: list[str], *, companion=False) -> dict:
     if not keys or len(set(keys)) != len(keys):
         raise SystemExit("invalid tally: expected distinct scenario keys")
     tallies = [_checked_tally(review / f"tally-{key}.json", companion=companion) for key in keys]
+    seen_cases = set()
+    for data in tallies:
+        cases = {row["case"] for row in data["rows"]}
+        if overlap := seen_cases & cases:
+            raise SystemExit(f"invalid tally: duplicate case {sorted(overlap)[0].split('-')[0]} across scenarios")
+        seen_cases.update(cases)
     totals, critical, causes, protected = {}, {}, {}, {}
     for key, data in zip(keys, tallies, strict=True):
         for arm, value in data["totals"]["resolved"].items():

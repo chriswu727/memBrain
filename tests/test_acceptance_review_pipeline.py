@@ -284,3 +284,18 @@ def test_companion_cli_writes_a_failed_result_and_exits_nonzero(pipeline, practi
                             capture_output=True, text=True)
     assert result.returncode == 1, result.stderr
     assert json.loads((tmp_path / "gate-c5.json").read_text())["C5"] is False
+
+
+def test_gate_refuses_cross_scenario_case_collisions_that_overwrite_attribution(pipeline, tmp_path):
+    data = tally()
+    for index in (0, 2):
+        row = data["rows"][index]
+        row["resolved"] = [4]
+        data["totals"]["resolved"][row["arm"]] = 0
+    for key, cause in (("one", "memory"), ("two", "host")):
+        put(tmp_path / f"tally-{key}.json", data)
+        for number in (1, 2):
+            put(tmp_path / f"attribution-{key}" / f"S01-A.{number}.json", {"cause": cause})
+    with pytest.raises(SystemExit, match="invalid tally: duplicate case"):
+        pipeline.gate(tmp_path, ["one", "two"])
+    assert not (tmp_path / "gate.json").exists()
