@@ -72,6 +72,29 @@ def test_a_rebound_document_shares_nothing_with_the_stored_one():
     assert rebound["scope"]["scope_generation"] == 3 and rebound["disclosure_basis"]["dependency_generation"] == 7
 
 
+def test_recalled_items_and_traces_share_nothing_with_the_memories_and_scope_given(monkeypatch):
+    from test_belief_recall import scenario
+    from test_cognition import STAMP, request, scope
+
+    from membrain import cognition
+
+    monkeypatch.setattr(cognition, "now", lambda: STAMP)
+    sources, memories, current = scenario()
+    given, bound = copy.deepcopy(memories), scope()
+    result = cognition.recall(bound, request("routine"), memories, sources, current)
+    assert result["items"] and result["recall_traces"]
+    inputs = containers([memories, bound])
+    copies = containers([result["scope"], [item["memory"] for item in result["items"]],
+                         [[trace["scope"], trace["evidence_refs"]] for trace in result["recall_traces"]]])
+    assert not inputs.keys() & copies.keys()
+    for item in result["items"]:
+        item["memory"]["evidence_refs"][0]["event_id"] = "changed"
+    for trace in result["recall_traces"]:
+        trace["scope"]["tenant_id"] = "changed"
+    result["scope"]["brain_id"] = "changed"
+    assert memories == given and bound == scope()
+
+
 def test_non_json_keys_are_copied_with_their_shared_values():
     class Key:
         def __init__(self):

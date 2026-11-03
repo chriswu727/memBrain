@@ -21,6 +21,45 @@ def memory_handle(value):
     return _handle("m", {key: value[key] for key in ("memory_id", "revision")})
 
 
+class _Unkeyable(Exception):
+    pass
+
+
+def _key(value):
+    """A hashable key that is equal for two values only when they serialize to the same JSON: every type is part
+    of the key (True is not 1), floats by their repr (-0.0 is not 0.0), dicts and lists element by element in
+    order. Anything else raises _Unkeyable."""
+    kind = type(value)
+    if kind is str or kind is int or kind is bool or value is None:
+        return kind, value
+    if kind is float:
+        return kind, repr(value)
+    if kind is dict:
+        return kind, tuple((_key(key), _key(item)) for key, item in value.items())
+    if kind is list:
+        return kind, tuple(_key(item) for item in value)
+    raise _Unkeyable
+
+
+class Handles:
+    """Handles already computed during one recall, so its repeated context renders do not hash the same memory
+    versions, sources and relations again. Keys capture each value exactly (see _key); one instance lives only
+    for one recall and is never shared."""
+
+    def __init__(self):
+        self.known = {}
+
+    def __call__(self, kind, value):
+        try:
+            key = kind, _key(value)
+        except _Unkeyable:
+            return _handle(kind, value)
+        found = self.known.get(key)
+        if found is None:
+            found = self.known[key] = _handle(kind, value)
+        return found
+
+
 def relation_handle(value):
     return _handle("r", {key: value[key] for key in ("relation_id", "revision")})
 
@@ -65,24 +104,28 @@ def memory_content(item, copier=copy.deepcopy):
 
 
 class _Projection:
-    def __init__(self, assessments=(), copier=copy.deepcopy):
+    def __init__(self, assessments=(), copier=copy.deepcopy, handles=_handle):
         self.copier = copier
+        self.handle = handles
         self.memories = {}
         self.sources = {}
         self.source_values = {}
         self.relations = {}
-        self.assessments = {relation_handle(value["relation"]): value for value in assessments}
+        self.assessments = {self.relation_handle(value["relation"]): value for value in assessments}
+
+    def relation_handle(self, value):
+        return self.handle("r", {key: value[key] for key in ("relation_id", "revision")})
 
     def memory(self, value):
-        identifier = memory_handle(value)
         version = {key: value[key] for key in ("memory_id", "revision")}
+        identifier = self.handle("m", version)
         if identifier in self.memories and self.memories[identifier] != version:
             raise DomainError("validation_failed", "Context memory identifier collision")
         self.memories[identifier] = version
         return identifier
 
     def source(self, reference):
-        identifier = _handle("s", reference)
+        identifier = self.handle("s", reference)
         if identifier in self.source_values and self.source_values[identifier] != reference:
             raise DomainError("validation_failed", "Context source identifier collision")
         self.source_values[identifier] = reference
@@ -95,7 +138,7 @@ class _Projection:
 
     def relation(self, assessment):
         relation = assessment["relation"]
-        identifier = relation_handle(relation)
+        identifier = self.relation_handle(relation)
         value = {key: self.copier(relation[key]) for key in (
             "kind", "conditions", "valid_during", "world",
         )}
@@ -121,7 +164,7 @@ class _Projection:
         if field == "belief_resolution":
             assessments = list(value.get("relations", []))
             for reference in value.get("relation_refs", []):
-                assessment = self.assessments.get(relation_handle(reference))
+                assessment = self.assessments.get(self.relation_handle(reference))
                 if assessment is None:
                     raise DomainError("dependency_unavailable", "Context relation certificate is unavailable")
                 assessments.append(assessment)
@@ -160,10 +203,10 @@ def _shared(value):
     return value
 
 
-def recall_context_view(result, copier=copy.deepcopy):
+def recall_context_view(result, copier=copy.deepcopy, handles=_handle):
     """The compact recall view. With ``copier=_shared`` it shares values with ``result``: only for a caller that
     serializes the view at once and drops it, never changing or handing out any part of it."""
-    projection = _Projection(result.get("belief_relations", []), copier)
+    projection = _Projection(result.get("belief_relations", []), copier, handles)
     memories = []
     passages = active_passages(result)
     for item in result["items"]:
@@ -184,9 +227,10 @@ def recall_context_view(result, copier=copy.deepcopy):
     })
 
 
-def render_recall(result):
+def render_recall(result, handles=_handle):
+    """``handles`` may be one recall's Handles, to reuse the handles its earlier renders computed."""
     # Serialized here and dropped: no part of the view is changed or leaves this function, so nothing is copied.
-    return serialized(recall_context_view(result, _shared))
+    return serialized(recall_context_view(result, _shared, handles))
 
 
 def context_view(packet):

@@ -8,9 +8,16 @@ from datetime import UTC, datetime
 from typing import Any
 
 from .applicability import ApplicabilityResult, evaluate_applicability, validate_observation
-from .context_views import FORMAT, assistant_speech, context_view, memory_content, render_recall
+from .context_views import (
+    FORMAT,
+    Handles,
+    assistant_speech,
+    context_view,
+    memory_content,
+    render_recall,
+)
 from .contracts import validate
-from .helpers import DomainError, digest, now, uid
+from .helpers import DomainError, deep_copy, digest, now, uid
 from .ontology import CORE_REGISTRY
 from .retrieval import RANK_METHODS
 from .temporal import evaluate_valid_during
@@ -399,10 +406,11 @@ def _usage(budget: dict) -> dict:
     }
 
 
-def _measure(result: dict) -> int:
+def _measure(result: dict, handles=None) -> int:
     # The rendered context does not show usage, so recording the count cannot change it: one render settles it.
     # Rendering without usage keeps that true: a renderer that started reading usage would fail here, not miscount.
-    count = estimate_tokens(render_recall({key: value for key, value in result.items() if key != "usage"}))
+    view = {key: value for key, value in result.items() if key != "usage"}
+    count = estimate_tokens(render_recall(view) if handles is None else render_recall(view, handles))
     result["usage"]["context_tokens"] = count
     return count
 
@@ -681,7 +689,7 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
         "excluded_cue_event_ids": sorted(excluded), "exclude_cue_descendants": True,
     }
     result = {
-        "recall_id": uid(), "scope": copy.deepcopy(scope), "status": "no_match", "items": [],
+        "recall_id": uid(), "scope": deep_copy(scope), "status": "no_match", "items": [],
         "unknowns": [], "ambiguities": [], "conflicts": [], "coverage": coverage,
         "usage": _usage(request["budget"]), "next_step": "expand_search",
         "retrieval_snapshot": snapshot, "recall_traces": [], "context_format": FORMAT,
@@ -810,7 +818,7 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
         tail = any(event_map[ref["event_id"]]["sequence"] > state["indexed_sequence"]
                    for ref in memory["evidence_refs"])
         item = {
-            "memory": copy.deepcopy(memory),
+            "memory": deep_copy(memory),
             "rank_signals": signals,
             "retrieved_from": "unindexed_tail" if tail else "index",
             "display_mode": "explicit_recollection" if historical else "background_context",
@@ -841,10 +849,10 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
         result["items"].append(item)
         result["recall_traces"].append({
             "trace_id": uid(), "recall_id": result["recall_id"],
-            "retrieval_snapshot_id": snapshot["snapshot_id"], "scope": copy.deepcopy(scope),
+            "retrieval_snapshot_id": snapshot["snapshot_id"], "scope": deep_copy(scope),
             "turn_id": None, "memory_id": memory["memory_id"], "memory_revision": memory["revision"], "kind": "candidate_hit",
             "source": "server_instrumentation", "feedback_event_id": None,
-            "evidence_refs": copy.deepcopy(memory["evidence_refs"]),
+            "evidence_refs": deep_copy(memory["evidence_refs"]),
             "recorded_at": timestamp, "allowed_effect": "none",
         })
     if result["items"]:
@@ -898,8 +906,9 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
     if passages:
         result["source_passages"] = passages
     groups = connected_item_groups(result["items"])
+    handles = Handles()  # this recall's own: its renders below differ only in which items they show
     limit = request["budget"]["max_context_tokens"]
-    if _measure(result) > limit and result["items"]:
+    if _measure(result, handles) > limit and result["items"]:
         original_items, original_traces = result["items"], result["recall_traces"]
         result["items"], result["recall_traces"] = [], []
         result["status"] = "partial"
@@ -912,7 +921,7 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
             candidates = admitted | {item["memory"]["memory_id"] for item in group}
             result["items"] = [item for item in original_items if item["memory"]["memory_id"] in candidates]
             refresh_beliefs(result["items"])
-            fits = _measure(result) <= limit
+            fits = _measure(result, handles) <= limit
             if not fits and result.get("source_passages"):
                 from .source_context import active_passages
 
@@ -924,7 +933,7 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
                                            for ref in passage["anchor_memory_versions"])}
                 result["source_passages"] = [passage for passage in old_passages
                                              if passage["evidence_ref"]["event_id"] not in newly_active]
-                fits = _measure(result) <= limit
+                fits = _measure(result, handles) <= limit
                 if not fits:
                     result["source_passages"] = old_passages
             if fits:
@@ -932,13 +941,13 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
         result["items"] = [item for item in original_items if item["memory"]["memory_id"] in admitted]
         result["recall_traces"] = [trace for trace in original_traces if trace["memory_id"] in admitted]
         refresh_beliefs(result["items"])
-    if _measure(result) > limit:
+    if _measure(result, handles) > limit:
         raise DomainError("budget_exceeded", "Budget cannot hold the minimal recall envelope")
     retain_active_passages(result)
     factor_relations(result)
-    if _measure(result) > limit:
+    if _measure(result, handles) > limit:
         raise DomainError("budget_exceeded", "Budget cannot hold the final recall envelope")
-    result["model_context"] = render_recall(result)
+    result["model_context"] = render_recall(result, handles)
     if validate_result:
         validate("RecallResult", result)
     return result
