@@ -690,6 +690,10 @@ Archive import/export is separate from the implemented desktop logical backup an
 
 An archive is currently limited to 16 MB and 5,000 records of each type. Exceeding either limit produces an explicit error, not a silently truncated backup. Sharded export and large-scale restoration remain unimplemented.
 
+A restored event keeps two recording times. `system_time.recorded_at` is when this copy was ingested by the restore. `system_time.restored_from_recorded_at` is when the server first recorded the original: the earliest time across repeated restores, never later than the restore itself. It is a recording time, never an occurrence time; `occurred_time` stays as the host reported it, and the restore writes no extra event. Familiarity counts a restored message without a reported time on its original recording day, so a restore does not fold several days of conversation into one.
+
+Compatibility: archives from runtimes without this field restore as before. An archive exported after restoring carries the field, and a runtime that does not know it rejects that archive as invalid, because the contract does not allow unknown fields. Upgrade the runtime before restoring a newer archive; restoring onto an older runtime is not supported.
+
 ## Project structure
 
 - `src/membrain/cognition.py`: episode capture, cue-driven recall, evidence boundaries, and workspace assembly.

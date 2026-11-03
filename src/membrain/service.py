@@ -3,6 +3,7 @@ import hashlib
 import json
 import math
 import re
+from datetime import UTC, datetime
 
 import psycopg
 from psycopg.types.json import Jsonb
@@ -10,6 +11,28 @@ from psycopg.types.json import Jsonb
 from . import cognition
 from .contracts import CONTRACT_VERSION, validate
 from .helpers import DomainError, digest, now, uid
+
+
+def _moment(value):
+    """A time with an offset, in UTC; None when it has no offset or cannot be represented in UTC (a valid date-time
+    such as 0001-01-01T00:00:00+23:59 falls outside the range of dates)."""
+    try:
+        moment = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return moment.astimezone(UTC) if moment.tzinfo is not None else None
+    except (ValueError, OverflowError):
+        return None
+
+
+def original_recording(event: dict) -> str | None:
+    """When the server first recorded an archived event: the earliest valid recording time the archive carries for
+    it (an earlier restore's ``restored_from_recorded_at`` or its ``recorded_at``), never later than now. A recording
+    time, never an occurrence time; None when the archive carries none."""
+    system_time = event.get("system_time") if isinstance(event.get("system_time"), dict) else {}
+    times = [moment for moment in (_moment(system_time.get(key)) for key in ("restored_from_recorded_at",
+                                                                               "recorded_at")) if moment]
+    if not times:
+        return None
+    return min(*times, _moment(now())).isoformat().replace("+00:00", "Z")
 
 
 def _vector(text):
@@ -302,7 +325,7 @@ class MemoryService:
         return descendants
 
     def _append_event(self, conn, principal, brain, target, incoming, *, event_id=None, imported=False,
-                      segmentation_rule_version=cognition.RULE_VERSION):
+                      segmentation_rule_version=cognition.RULE_VERSION, restored_from_recorded_at=None):
         cognition._range(incoming["occurred_time"])
         params = self._params(principal, brain["id"])
         previous = conn.execute(
@@ -340,7 +363,9 @@ class MemoryService:
             "event_id": previous["id"] if previous else (event_id or uid()),
             "revision": previous["revision"] + 1 if previous else 1,
             "sequence": brain["durable_sequence"], "scope": self._scope(principal, brain, target),
-            "observed": copy.deepcopy(incoming), "system_time": {"recorded_at": now(), "superseded_at": None},
+            "observed": copy.deepcopy(incoming), "system_time": {
+                "recorded_at": now(), "superseded_at": None,
+                **({"restored_from_recorded_at": restored_from_recorded_at} if restored_from_recorded_at else {})},
             "content_sha256": digest(incoming["content"]),
             "origin": "document_import" if imported else {
                 "user": "user_statement", "assistant": "assistant_output", "tool": "tool_observation",
@@ -1310,6 +1335,10 @@ class MemoryService:
         for event in document["events"]:
             if digest(event["observed"]["content"]) != event["content_sha256"]:
                 raise DomainError("invalid_archive", "Archive event hash does not match its content.")
+            # A restore reads these recording times in UTC; one that has no UTC form makes the archive invalid.
+            for key in ("recorded_at", "restored_from_recorded_at"):
+                if key in event["system_time"] and _moment(event["system_time"][key]) is None:
+                    raise DomainError("invalid_archive", "Archive event recording times must be representable in UTC.")
         if not isinstance(document.get("retired_event_ids", []), list) or not all(isinstance(x, str) for x in document.get("retired_event_ids", [])):
             raise DomainError("invalid_archive", "Invalid retired source manifest.")
         excluded = document.get("excluded_deleted_event_ids", [])
@@ -1401,8 +1430,10 @@ class MemoryService:
             incoming["producer_ref"] = "archive-import"
             incoming["source_event_key"] = event["event_id"]
             target = {"conversation_ref": event["scope"]["conversation_id"], "branch_ref": event["scope"]["branch_id"]}
+            # recorded_at stays the time of this ingestion; the archive's own recording time is kept beside it.
             self._append_event(conn, principal, brain, target, incoming, event_id=event["event_id"], imported=True,
-                               segmentation_rule_version=cognition._literal_rule_version(event))
+                               segmentation_rule_version=cognition._literal_rule_version(event),
+                               restored_from_recorded_at=original_recording(event))
             if event["event_id"] in data.get("retired_event_ids", []):
                 conn.execute("UPDATE memory_events SET retired=true WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=%s",
                              (*params, event["event_id"]))
