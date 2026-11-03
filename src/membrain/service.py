@@ -1589,8 +1589,12 @@ class MemoryService:
                 "SELECT id,kind,state,attempts,last_error FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
                 "ORDER BY created_at DESC LIMIT 100", params,
             )]
+            pending = conn.execute(
+                "SELECT count(*) AS count FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+                "AND state IN ('queued','running','failed')", params,
+            ).fetchone()["count"]
             return {"brain": self._public_brain(brain), "events": events[-100:], "memories": memories, "jobs": jobs,
-                    "status": {"pending_jobs": sum(j["state"] != "completed" for j in jobs),
+                    "status": {"pending_jobs": pending,
                                "index_lag": brain["durable_sequence"] - brain["indexed_sequence"],
                                "extraction": "verified_semantic_proposals" if self.semantic_processor else "deterministic_source_capture",
                                "candidate_index": "hybrid-semantic-and-lexical" if self.embedding_provider else "lexical-and-structural-cues",
