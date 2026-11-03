@@ -1,0 +1,150 @@
+{
+  "pin": "ac93f33f90e553d09eb110d2eb672cadfa456510",
+  "old": "9a1816af9a3d238bce925450998f4fd0bdd0d0f3",
+  "results": [
+    {
+      "check": "old runtime installs and records a turn",
+      "ok": true,
+      "detail": {
+        "build_id": "2fef7b8b1c58e4692c3bf0dc066773bc88ee7526485a5425395b6552051c69dd",
+        "version": "0.1.0",
+        "install_seconds": 28
+      }
+    },
+    {
+      "check": "current hooks upgrade the installed runtime",
+      "ok": true,
+      "detail": {
+        "old_build": "2fef7b8b1c58e4692c3bf0dc066773bc88ee7526485a5425395b6552051c69dd",
+        "new_build": "3a16d53c5513a9f34eaad4393cc476673365c9b429cc33981ffb87ad7aa70dd7",
+        "upgrade_seconds": 13
+      }
+    },
+    {
+      "check": "the installation and brain survive the upgrade",
+      "ok": true,
+      "detail": ""
+    },
+    {
+      "check": "the first session after the upgrade gets the earlier turn",
+      "ok": true,
+      "detail": {
+        "at_session_start": true,
+        "with_first_message": false,
+        "with_next_message": false
+      }
+    },
+    {
+      "check": "the pinned runtime is the one installed",
+      "ok": true,
+      "detail": "membrain-ai v0.1.0 [required:  https://github.com/chriswu727/membrain/archive/ac93f33f90e553d09eb110d2eb672cadfa456510.zip]\n- membrain\n"
+    },
+    {
+      "check": ".claude-mcp.json starts the MCP server",
+      "ok": true,
+      "detail": [
+        "memory_capabilities",
+        "memory_recall",
+        "memory_inspect",
+        "memory_observe",
+        "memory_note",
+        "memory_pause",
+        "memory_resume",
+        "memory_prepare",
+        "memory_checkpoint",
+        "memory_forget"
+      ]
+    },
+    {
+      "check": "a note can be corrected through MCP",
+      "ok": true,
+      "detail": {
+        "note_id": "23af4c4c-91b0-4c5d-b211-d89d885e8e9d",
+        "replaced": [
+          "96e7f668-4702-4b72-99e3-b2c928d7cebf"
+        ],
+        "unknown": [],
+        "source_event_ids": [],
+        "pending_source_count": 0
+      }
+    },
+    {
+      "check": "the corrected note replaces the old one at session start",
+      "ok": true,
+      "detail": "ened, and never suggest using, extending or relying on something only planned (a purchase, booking or task) as if it exists. When a fact changes, save the new note with memory_note and pass the old note's id in replaces.\\nPlans:\\n- [2026-11-03] Dentist with Dr. Alvarez moved to Friday, November 13 at 10 am. (scheduled, not confirmed done; on 2026-11-13) (id: 23af4c4c-91b0-4c5d-b211-d89d885e8e9d)\\n"
+    },
+    {
+      "check": "forgetting through MCP removes the records from later sessions",
+      "ok": true,
+      "detail": {
+        "forgotten": 3,
+        "result": "{'message_type': 'response', 'contract_version': '1.0.0-draft', 'request_id': '08332bef-25e4-4b7a-9045-b6a88011be7f', 'action': 'forget', 'outcome': 'completed', 'server_scope': {'tenant_id': '950a100c-5406-4be7-83f2-ccb389395a4e', 'brain_id': '01022348-cee1-4de6-978d-95a570662d00', 'principal_bindi",
+        "later_context": "\"additionalContext\": \"<membrain-source>\\nWhen saving a note based on the current user message, pass source_messages=[{\\\"producer_ref\\\": \\\"membrain-plugin\\\", \\\"source_event_key\\\": \\\"release-s4:p1:user\\\", \\\"source_revision\\\": 1}]. This reference links after the turn is recorded.\\n</membrain-source>\"}}"
+      }
+    },
+    {
+      "check": ".codex-mcp.json starts the MCP server",
+      "ok": true,
+      "detail": [
+        "memory_capabilities",
+        "memory_recall",
+        "memory_inspect",
+        "memory_observe",
+        "memory_note",
+        "memory_pause",
+        "memory_resume",
+        "memory_prepare",
+        "memory_checkpoint",
+        "memory_forget"
+      ]
+    },
+    {
+      "check": ".codebuddy-mcp.json starts the MCP server",
+      "ok": true,
+      "detail": [
+        "memory_capabilities",
+        "memory_recall",
+        "memory_inspect",
+        "memory_observe",
+        "memory_note",
+        "memory_pause",
+        "memory_resume",
+        "memory_prepare",
+        "memory_checkpoint",
+        "memory_forget"
+      ]
+    },
+    {
+      "check": "after a restart the hooks start the service and recall still works",
+      "ok": true,
+      "detail": {
+        "state_when_stopped": "stopped"
+      }
+    },
+    {
+      "check": "a session started before the service was ready gets memory on its next message",
+      "ok": true,
+      "detail": "y when they help. Lines marked \\\"assistant said\\\" are your own earlier replies: a suggestion, draft or plan there is not the user's decision or a fact about the user unless a \\\"user said\\\" line confirms it.\\n- [2026-11-03 \u00b7 user said] My sister Priya moved to Leeds last month.\\n</membrain-memory>\"}}"
+    },
+    {
+      "check": "a backup completes",
+      "ok": true,
+      "detail": "b366893-81ee-5c6f-aac4-db98ea6b343a/scratchpad/install-check8/home/.local/share/.agent-memory-recovery/bec55565-f1f8-44f8-bb67-3c163a3db9ad\",\n  \"replayed\": false\n}\nwarning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.\n"
+    },
+    {
+      "check": "the backup restores into a fresh, quarantined installation",
+      "ok": true,
+      "detail": "9bdd98d4aca96e074343a314379eb633ed44\"\n  },\n  \"automatic_start\": false,\n  \"external_host_epoch_required\": true,\n  \"pending_sessions\": \"preserved_as_evidence_only\"\n}\nwarning: The `UV_NATIVE_TLS` environment variable is deprecated and will be removed in a future release. Use `UV_SYSTEM_CERTS` instead.\n"
+    },
+    {
+      "check": "the activated restore recalls memory from before the backup",
+      "ok": true,
+      "detail": "y when they help. Lines marked \\\"assistant said\\\" are your own earlier replies: a suggestion, draft or plan there is not the user's decision or a fact about the user unless a \\\"user said\\\" line confirms it.\\n- [2026-11-03 \u00b7 user said] My sister Priya moved to Leeds last month.\\n</membrain-memory>\"}}"
+    },
+    {
+      "check": "the retired original refuses to start after activation",
+      "ok": true,
+      "detail": " is unavailable or inconsistent; memory access is blocked. If you restored a backup into another directory, set MEMBRAIN_DIRECTORY to that directory; run membrain desktop recovery-status for details.\n"
+    }
+  ]
+}
