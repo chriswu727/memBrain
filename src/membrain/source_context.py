@@ -39,8 +39,8 @@ def retain_active_passages(result):
         result.pop("source_passages")
 
 
-def passage_content(passage):
-    return {key: copy.deepcopy(passage[key]) for key in (
+def passage_content(passage, copier=copy.deepcopy):
+    return {key: copier(passage[key]) for key in (
         "actor_role", "delivery_state", "world", "text", "recorded_at",
     )} | {"use": SOURCE_CONTEXT_USE}
 

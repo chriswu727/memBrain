@@ -47,9 +47,9 @@ def memory_use(item):
     return "belief_not_settled_current_rule" if resolution or unsettled else "conditional_memory_not_current_rule"
 
 
-def memory_content(item):
+def memory_content(item, copier=copy.deepcopy):
     memory = item["memory"]
-    result = {key: copy.deepcopy(memory[key]) for key in (
+    result = {key: copier(memory[key]) for key in (
         "statement", "world", "epistemic_status", "valid_time", "representation", "conditions",
         "claim_kind", "verification", "counterexamples", "procedure", "valid_during",
     ) if key in memory}
@@ -59,13 +59,14 @@ def memory_content(item):
         result["recall_detail"] = "summary_expandable"
     for key in ("applicability", "belief_resolution", "source_act"):
         if key in item:
-            result[key] = copy.deepcopy(item[key])
+            result[key] = copier(item[key])
     result["use"] = memory_use(item)
     return result
 
 
 class _Projection:
-    def __init__(self, assessments=()):
+    def __init__(self, assessments=(), copier=copy.deepcopy):
+        self.copier = copier
         self.memories = {}
         self.sources = {}
         self.source_values = {}
@@ -85,7 +86,7 @@ class _Projection:
         if identifier in self.source_values and self.source_values[identifier] != reference:
             raise DomainError("validation_failed", "Context source identifier collision")
         self.source_values[identifier] = reference
-        self.sources[identifier] = {key: copy.deepcopy(value) for key, value in reference.items()
+        self.sources[identifier] = {key: self.copier(value) for key, value in reference.items()
                                     if key != "source_content_sha256"}
         return identifier
 
@@ -95,7 +96,7 @@ class _Projection:
     def relation(self, assessment):
         relation = assessment["relation"]
         identifier = relation_handle(relation)
-        value = {key: copy.deepcopy(relation[key]) for key in (
+        value = {key: self.copier(relation[key]) for key in (
             "kind", "conditions", "valid_during", "world",
         )}
         value.update(source=self.memory(relation["source_memory_version"]),
@@ -110,13 +111,13 @@ class _Projection:
 
     def content(self, value, field=None):
         if field in {"value", "content"}:
-            return copy.deepcopy(value)
+            return self.copier(value)
         if isinstance(value, list):
             return [self.content(item) for item in value]
         if not isinstance(value, dict):
             return value
         if field == "verification":
-            return {"state": value["state"]} if "state" in value else copy.deepcopy(value)
+            return {"state": value["state"]} if "state" in value else self.copier(value)
         if field == "belief_resolution":
             assessments = list(value.get("relations", []))
             for reference in value.get("relation_refs", []):
@@ -155,18 +156,24 @@ class _Projection:
                 "sources": self.sources, "relations": self.relations, "memory_versions": self.memories}
 
 
-def recall_context_view(result):
-    projection = _Projection(result.get("belief_relations", []))
+def _shared(value):
+    return value
+
+
+def recall_context_view(result, copier=copy.deepcopy):
+    """The compact recall view. With ``copier=_shared`` it shares values with ``result``: only for a caller that
+    serializes the view at once and drops it, never changing or handing out any part of it."""
+    projection = _Projection(result.get("belief_relations", []), copier)
     memories = []
     passages = active_passages(result)
     for item in result["items"]:
         if item["display_mode"] == "do_not_surface" or covering_passage(item, passages):
             continue
-        content = projection.content(memory_content(item))
+        content = projection.content(memory_content(item, copier))
         content["sources"] = projection.references(item["memory"]["evidence_refs"])
         content["display_mode"] = item["display_mode"]
         memories.append(content)
-    source_views = [{**passage_content(passage), "sources": projection.references([passage["evidence_ref"]])}
+    source_views = [{**passage_content(passage, copier), "sources": projection.references([passage["evidence_ref"]])}
                     for passage in passages]
     return projection.finish({
         **({"source_passages": source_views} if source_views else {}),
@@ -178,7 +185,8 @@ def recall_context_view(result):
 
 
 def render_recall(result):
-    return serialized(recall_context_view(result))
+    # Serialized here and dropped: no part of the view is changed or leaves this function, so nothing is copied.
+    return serialized(recall_context_view(result, _shared))
 
 
 def context_view(packet):
