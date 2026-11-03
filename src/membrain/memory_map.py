@@ -1,7 +1,6 @@
 """A bounded view of recorded notes and their sources, without inferred semantic links."""
 from __future__ import annotations
 
-import json
 import threading
 from collections import OrderedDict, deque
 
@@ -94,23 +93,23 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
         note_budget = max(1, max_nodes * 3 // 4) if recent or traced_messages else max_nodes
         chosen_notes = list({row["id"]: row for row in [*traced_notes, *notes]}.values())[:note_budget]
         note_ids = [row["id"] for row in chosen_notes]
-        from .affect import AFFECT_CONVERSATION, AFFECT_PRODUCER
+        from .affect import AFFECT_CONVERSATION, AFFECT_PRODUCER, ARCHIVE_PRODUCER, _records
 
-        # One node per affect record of a shown note, linked to it. The whole record is read (it is bounded JSON:
-        # a few short fields and at most 64 source ids), since a cut record cannot be parsed and would vanish. They share the episode budget, taking at most
-        # half of it while there are messages, so a note's source messages stay in the sample.
+        # Feelings share the episode budget, leaving room for a note's source messages.
         room = max_nodes - len(chosen_notes)
         room = room // 2 if recent or traced_messages else room
-        feelings = conn.execute(
-            "SELECT e.id,d.input_event_id AS note_id,e.document->'observed'->'content'->>'text' AS text,"
-            "e.document->'system_time'->>'recorded_at' AS recorded_at FROM memory_event_dependencies d "
+        feeling_ids = conn.execute(
+            "SELECT e.id FROM memory_event_dependencies d "
             "JOIN memory_events e ON e.tenant_id=d.tenant_id AND e.owner_id=d.owner_id "
             "AND e.brain_id=d.brain_id AND e.id=d.output_event_id "
             "WHERE d.tenant_id=%s AND d.owner_id=%s AND d.brain_id=%s AND d.input_event_id=ANY(%s::text[]) "
             "AND e.is_current AND NOT e.deleted AND NOT e.suppressed AND NOT e.retired AND e.document IS NOT NULL "
-            "AND e.conversation_id=%s AND e.producer_ref=%s ORDER BY e.sequence DESC LIMIT %s",
-            (*params, note_ids, AFFECT_CONVERSATION, AFFECT_PRODUCER, room),
+            "AND e.conversation_id=%s AND e.producer_ref=ANY(%s::text[]) ORDER BY e.sequence DESC LIMIT %s",
+            (*params, note_ids, AFFECT_CONVERSATION, [AFFECT_PRODUCER, ARCHIVE_PRODUCER], room),
         ).fetchall() if note_ids and room > 0 else []
+        feelings = [record for record in _records(service, conn, principal, brain_id, limit=room,
+                                                 ids=[row["id"] for row in feeling_ids])
+                    if record["note_id"] in note_ids] if feeling_ids else []
         links = conn.execute(
             "SELECT d.output_event_id,d.input_event_id,e.sequence FROM memory_event_dependencies d "
             "JOIN memory_events e ON e.tenant_id=d.tenant_id AND e.owner_id=d.owner_id "
@@ -158,16 +157,6 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
     return result
 
 
-def _feeling(row) -> dict | None:
-    try:
-        stored = json.loads(row["text"] or "")
-        affect = stored["affect"]
-        return {"label": str(affect["label"]), "basis": str(affect["basis"]), "felt_at": affect.get("felt_at"),
-                "topic": affect.get("topic")}
-    except (ValueError, KeyError, TypeError):
-        return None
-
-
 def _project(brain_id, notes, messages, links, hidden_sources, feelings=(), *, max_nodes, max_edges,
              include_sensitive, truncated):
     nodes, fields_by_id = [], {}
@@ -186,18 +175,15 @@ def _project(brain_id, notes, messages, links, hidden_sources, feelings=(), *, m
                       "sensitive": sensitive, "recorded_at": row["recorded_at"],
                       "weight": 1.0 if fields.get("pinned") else 0.5})
     masked_notes = {row["id"] for row in notes if parse_note(row["text"] or "")[0].get("sensitive")}
-    for row in feelings:
-        record = _feeling(row)
-        if record is None:
-            continue
-        masked = row["note_id"] in masked_notes and not include_sensitive
+    for record in feelings:
+        masked = record["note_id"] in masked_notes and not include_sensitive
         label = record["label"] + (f" · {record['topic']}" if record["topic"] else "")
         # A feeling is evidence about one note, never a score: no weight beyond the layout default.
-        nodes.append({"id": "affect:" + row["id"], "region": "emotions", "kind": "affect",
+        nodes.append({"id": "affect:" + record["id"], "region": "emotions", "kind": "affect",
                       "label": "Sensitive memory" if masked else _label(label), "status": None,
-                      "date": None if masked else record["felt_at"], "sensitive": row["note_id"] in masked_notes,
-                      "basis": None if masked else record["basis"], "note_id": row["note_id"],
-                      "recorded_at": row["recorded_at"], "weight": 0.25})
+                      "date": None if masked else record["felt_at"], "sensitive": record["note_id"] in masked_notes,
+                      "basis": None if masked else record["basis"], "note_id": record["note_id"],
+                      "recorded_at": record["recorded_at"], "weight": 0.25})
     for row in messages:
         masked = row["id"] in hidden_sources
         nodes.append({"id": "msg:" + row["id"], "region": "episodes", "kind": "message",
