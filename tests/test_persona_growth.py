@@ -19,7 +19,7 @@ from membrain import desktop, embedded_database, host
 from membrain.api import create_app
 from membrain.client import default_budget
 from membrain.config import configured_service
-from membrain.helpers import DomainError, Principal, uid
+from membrain.helpers import DomainError, Principal, digest, uid
 from membrain.local_profile import load_profile
 from membrain.persona import (
     PERSONA_CONVERSATION,
@@ -156,6 +156,19 @@ def test_records_from_an_archive_are_read_back_strictly():
     for bad in ({**version, "feedback": {"proposal_id": "p"}}, {**version, "feedback": "text"},
                 {**version, "made_by": "user"}):
         assert persona_entry(_row(bad)) is None, bad
+
+
+@pytest.mark.parametrize("field,stamp", [
+    ("proposed_at", "0001-01-01T00:00:00+23:59"), ("proposed_at", "9999-12-31T23:59:59-23:59"),
+    ("decided_at", "0001-01-01T00:00:00+23:59"), ("decided_at", "9999-12-31T23:59:59-23:59"),
+    ("decided_at", "9999-12-31T23:59:59Z"),
+])
+def test_archived_proposal_times_and_rejection_deadlines_must_fit_in_utc(field, stamp):
+    proposal = {"persona_proposal": "less_formal", "source_event_ids": ["a", "b", "c"], "language": "en",
+                "proposed_at": stamp}
+    decision = {"persona_proposal_decision": "rejected", "proposal_id": "p", "kind": "less_formal",
+                "decided_at": stamp, "version": None}
+    assert proposal_entry(_row(proposal if field == "proposed_at" else decision)) is None
 
 
 def _imports(module: str) -> tuple[set[str], set[str]]:
@@ -599,6 +612,51 @@ def test_suggestions_made_before_a_backup_stay_valid_after_the_restore(brain):
     restored = persona_proposals(service, principal, copy_brain)["proposals"]
     assert [(p["kind"], p["status"], p["source_count"]) for p in restored] == [("less_formal", "open", 3)]
     assert accept_proposal(service, principal, copy_brain, restored[0]["id"])["persona"]["made_by"] == "feedback"
+
+
+@pytest.mark.parametrize("field,stamp", [("proposed_at", "0001-01-01T00:00:00+23:59"),
+                                       ("decided_at", "9999-12-31T23:59:59Z")])
+def test_restoring_malformed_proposal_times_keeps_the_companion_api_available(installation, brain, field, stamp):
+    import httpx
+
+    from membrain.client import MemoryClient
+
+    service, principal, ident = brain
+    set_persona(service, principal, ident, CARD, made_by="host")
+    for text in ("you're too formal", "be more casual", "Can you be more casual?"):
+        said(brain, text)
+    proposal = listing(brain)["proposals"][0]
+    if field == "decided_at":
+        reject_proposal(service, principal, ident, proposal["id"])
+
+    def handle(request):
+        return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
+
+    with MemoryClient("http://memory.test", "k", ident, transport=httpx.MockTransport(handle)) as client:
+        exported = client.export()["result"]
+        document = service.download_archive(principal, exported["archive_id"])["document"]
+        changed = 0
+        for event in document["events"]:
+            try:
+                content = json.loads(event["observed"]["content"].get("text") or "")
+            except ValueError:
+                continue
+            if isinstance(content, dict) and field in content:
+                content[field] = stamp
+                event["observed"]["content"]["text"] = json.dumps(content)
+                event["content_sha256"] = digest(event["observed"]["content"])
+                changed += 1
+        assert changed == 1
+        restored = service.create_brain(principal, "Malformed proposal time")['id']
+        uploaded = service.upload_archive(principal, restored, document)
+        client.restore(uploaded["archive_id"], expected_manifest_sha256=uploaded["manifest_sha256"],
+                       expected_scope_generation=1, mode="new_brain", brain_id=restored)
+    key = "proposal-time-fixture"
+    settings = replace(installation[2], api_keys={hashlib.sha256(key.encode()).hexdigest(): principal})
+    with TestClient(create_app(settings, service), base_url="http://127.0.0.1", raise_server_exceptions=False) as page:
+        response = page.get(f"/v1/brains/{restored}/persona/proposals", headers={"Authorization": f"Bearer {key}"})
+    assert response.status_code == 200, response.text
+    assert stamp not in response.text
 
 
 def test_native_feedback_given_before_a_backup_still_counts_after_the_restore(brain):

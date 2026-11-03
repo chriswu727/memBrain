@@ -324,9 +324,12 @@ def _entry(row) -> dict | None:
             if (decision == "accepted") != (type(version) is int and version >= 1) or (
                     decision == "rejected" and version is not None):
                 return None
+            decided_at = _time(stored["decided_at"])
+            if decision == "rejected":
+                _iso(decided_at + PAUSE)
             return {**base, "type": "decision", "decision": decision, "proposal_id": stored["proposal_id"],
-                    "kind": stored["kind"], "decided_at": _iso(_time(stored["decided_at"])), "version": version}
-    except (ValueError, KeyError, TypeError, AttributeError):
+                    "kind": stored["kind"], "decided_at": _iso(decided_at), "version": version}
+    except (ValueError, KeyError, TypeError, AttributeError, OverflowError):
         return None
     return None
 
