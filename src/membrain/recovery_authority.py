@@ -100,8 +100,7 @@ class RecoveryAuthority:
         )
         return result
 
-    def reconcile_brain(self, database, conn, principal, brain):
-        self.check(conn, principal)
+    def _last_receipt(self, conn, principal, brain):
         last = conn.execute(
             'SELECT sequence,intent_hash FROM memory_erasure_receipts WHERE tenant_id=%s AND owner_id=%s '
             'AND brain_id=%s AND registry_id=%s ORDER BY sequence DESC LIMIT 1',
@@ -110,6 +109,22 @@ class RecoveryAuthority:
         after = last['sequence'] if last else 0
         if last and self.registry.intent(after)['intent_hash'] != last['intent_hash']:
             raise RegistryError()
+        return after
+
+    def pending(self, conn, principal, brain):
+        """Whether the registry holds an erasure intent for this brain that the database has not applied yet.
+
+        Runs the same checks as ``reconcile_brain`` (active installation, intact receipt chain) but applies nothing,
+        so a reader holding the brain row in share mode can tell whether it must take it exclusively first.
+        """
+        self.check(conn, principal)
+        after = self._last_receipt(conn, principal, brain)
+        intents, _ = self.registry.intents(principal, brain_id=brain['id'], after=after, limit=1)
+        return bool(intents)
+
+    def reconcile_brain(self, database, conn, principal, brain):
+        self.check(conn, principal)
+        after = self._last_receipt(conn, principal, brain)
         from .service import MemoryService
 
         service = MemoryService(database)
@@ -216,6 +231,11 @@ def reconcile_brain(database, conn, principal, brain):
     authority = getattr(database, 'recovery_authority', None)
     if authority is not None:
         authority.reconcile_brain(database, conn, principal, brain)
+
+
+def pending_erasure(database, conn, principal, brain):
+    authority = getattr(database, 'recovery_authority', None)
+    return authority is not None and authority.pending(conn, principal, brain)
 
 
 def archive_barrier(database, conn, principal):

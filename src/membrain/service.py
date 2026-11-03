@@ -1,8 +1,10 @@
+import contextvars
 import copy
 import hashlib
 import json
 import math
 import re
+from contextlib import contextmanager
 from datetime import UTC, datetime
 
 import psycopg
@@ -47,6 +49,33 @@ def _vector(text):
 
 
 TIMELINE_ROLES = frozenset({"user", "assistant", "operator", "tool"})
+READ_ACTIONS = frozenset({"recall", "inspect"})
+_READING = contextvars.ContextVar("membrain_reading", default=False)
+
+
+@contextmanager
+def reading():
+    """Mark the brain accesses in this block as reads: they share the brain row instead of locking it exclusively.
+
+    Readers then run side by side, while every writer (and erasure, recovery and job leases, which all take the row
+    ``FOR UPDATE``) still waits for them and they for it. A write attempted inside the block fails loudly.
+    """
+    token = _READING.set(True)
+    try:
+        yield
+    finally:
+        _READING.reset(token)
+
+
+def _writable():
+    if _READING.get():
+        raise RuntimeError("A read-only memory request tried to change memory.")
+
+
+@contextmanager
+def _same():
+    yield
+
 
 class MemoryService:
     def __init__(self, database, *, semantic_processor=None, embedding_provider=None,
@@ -84,15 +113,49 @@ class MemoryService:
         return principal.tenant_id, principal.principal_id, brain_id
 
     def _brain(self, conn, principal, brain_id):
-        row = conn.execute(
-            "SELECT * FROM memory_brains WHERE tenant_id=%s AND owner_id=%s AND id=%s FOR UPDATE",
-            self._params(principal, brain_id),
-        ).fetchone()
+        """Lock the brain row for this transaction and apply any erasure the recovery registry holds for it.
+
+        Inside ``reading()`` the row is locked ``FOR SHARE``: reads of one brain no longer wait for each other, but
+        still wait for, and hold off, every transaction that locks it ``FOR UPDATE`` (writes, erasure, restore,
+        recovery and job leases). An erasure recorded in the registry but not yet in the database is never read
+        around: the reader then takes the row exclusively and applies it first, as every other access does.
+
+        A reader never waits for the exclusive lock while it holds the shared one: two readers doing that at once
+        would each wait for the other (a deadlock PostgreSQL resolves by aborting one). The shared lock is taken in a
+        savepoint, and a reader that finds a pending erasure rolls back to it, which gives the row up, before asking
+        for it exclusively. It then applies the erasure, reads the row again and checks that nothing is left pending.
+        Whether an erasure is pending cannot change while the row is held shared: intents are recorded, and applied,
+        only by transactions holding it exclusively, so the check made under the shared lock stays true until commit.
+        """
+        from .recovery_authority import pending_erasure, reconcile_brain
+
+        query = "SELECT * FROM memory_brains WHERE tenant_id=%s AND owner_id=%s AND id=%s FOR "
+        params = self._params(principal, brain_id)
+        reading = _READING.get()
+        if reading:
+            with conn.transaction() as shared:
+                row = conn.execute(query + "SHARE", params).fetchone()
+                if row is None:
+                    raise DomainError("not_found_or_forbidden", "Brain is unavailable.")
+                if not pending_erasure(self.database, conn, principal, row):
+                    return row
+                raise psycopg.Rollback(shared)  # Releases the shared row lock before the exclusive one is requested.
+        row = conn.execute(query + "UPDATE", params).fetchone()
         if row is None:
             raise DomainError("not_found_or_forbidden", "Brain is unavailable.")
-        from .recovery_authority import reconcile_brain
-
-        reconcile_brain(self.database, conn, principal, row)
+        token = _READING.set(False)
+        try:
+            reconcile_brain(self.database, conn, principal, row)
+        finally:
+            _READING.reset(token)
+        if reading:
+            # The row was given up and taken again (another reader may have applied the erasure in between), so
+            # what was read under the shared lock is not trusted: read it again and verify nothing is pending.
+            row = conn.execute(query + "UPDATE", params).fetchone()
+            if row is None:
+                raise DomainError("not_found_or_forbidden", "Brain is unavailable.")
+            if pending_erasure(self.database, conn, principal, row):
+                raise DomainError("deletion_in_progress", "A deletion is still being applied. Retry shortly.", True)
         return row
 
     def _scope(self, principal, brain, target=None):
@@ -176,13 +239,18 @@ class MemoryService:
             from .vector_jobs import query_embedding
 
             vector, vector_snapshot, embedding_calls = query_embedding(self, principal, request)
-            with self.database.transaction(principal) as conn:
+            with self.database.transaction(principal) as conn, (reading() if action in READ_ACTIONS else _same()):
                 deadline = min(request["payload"].get("budget", {}).get("max_wall_time_ms", 10000), 30000)
                 conn.execute("SELECT set_config('statement_timeout',%s,true)", (str(deadline),))
                 conn.execute("SELECT set_config('lock_timeout',%s,true)", (str(deadline),))
                 brain = self._brain(conn, principal, request["target"]["brain_ref"])
                 params = self._params(principal, brain["id"])
                 key = request["payload"].get("idempotency_key", request["request_id"])
+                if action in READ_ACTIONS:
+                    # Readers share the brain row, so requests with one idempotency key take turns here instead:
+                    # the second finds the first one's stored response.
+                    conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
+                                 (digest(["request", *params, action, key]),))
                 fingerprint = digest({"action": action, "target": request["target"], "payload": request["payload"]})
                 existing = conn.execute(
                     "SELECT request_hash,response FROM memory_requests "
@@ -230,7 +298,16 @@ class MemoryService:
             envelope.pop("result", None)
             envelope.pop("server_scope", None)
             envelope.update(outcome="failed", error={"code": "budget_exceeded", "message": "Database deadline exceeded.", "retryable": True})
+        except psycopg.errors.TransactionRollback:
+            # A deadlock or serialization failure aborted the whole transaction (including any response stored
+            # with it), so nothing was read or changed: the request can simply be sent again.
+            envelope.pop("result", None)
+            envelope.pop("server_scope", None)
+            envelope.update(outcome="failed", error={"code": "dependency_unavailable", "retryable": True,
+                                                     "message": "Memory was busy with another request. Retry it."})
         except psycopg.OperationalError:
+            envelope.pop("result", None)
+            envelope.pop("server_scope", None)
             envelope.update(outcome="failed", error={"code": "dependency_unavailable", "message": "Database is unavailable.", "retryable": True})
         authority = getattr(self.database, "recovery_authority", None)
         if action == "forget" and authority is not None and authority.recorded_intent(principal, request):
@@ -241,6 +318,7 @@ class MemoryService:
         return envelope
 
     def _advance(self, conn, principal, brain, *, scope=False):
+        _writable()
         brain["dependency_generation"] += 1
         if scope:
             brain["scope_generation"] += 1
@@ -255,6 +333,7 @@ class MemoryService:
         )
 
     def _job(self, conn, principal, brain, kind, payload, state="queued"):
+        _writable()
         job_id = uid()
         conn.execute(
             "INSERT INTO memory_jobs(tenant_id,owner_id,brain_id,id,kind,payload,state) VALUES(%s,%s,%s,%s,%s,%s,%s)",
@@ -326,6 +405,7 @@ class MemoryService:
 
     def _append_event(self, conn, principal, brain, target, incoming, *, event_id=None, imported=False,
                       segmentation_rule_version=cognition.RULE_VERSION, restored_from_recorded_at=None):
+        _writable()
         cognition._range(incoming["occurred_time"])
         params = self._params(principal, brain["id"])
         previous = conn.execute(
@@ -1515,7 +1595,7 @@ class MemoryService:
             if not 1 <= len(event_ids) <= 100 or any(
                     not isinstance(value, str) or not 1 <= len(value) <= 256 for value in event_ids):
                 raise DomainError("validation_failed", "Timeline event IDs must be 1 to 100 identifiers.")
-        with self.database.transaction(principal) as conn:
+        with reading(), self.database.transaction(principal) as conn:
             brain = self._brain(conn, principal, brain_id)
             rows = conn.execute(
                 "SELECT conversation_id, producer_ref, document, ARRAY(SELECT d.input_event_id FROM memory_event_dependencies d "
@@ -1555,7 +1635,7 @@ class MemoryService:
         if not 1 <= len(event_ids) <= 12 or any(not isinstance(value, str) or not 1 <= len(value) <= 256
                                               for value in event_ids):
             raise DomainError("validation_failed", "Choose 1 to 12 source messages.")
-        with self.database.transaction(principal) as conn:
+        with reading(), self.database.transaction(principal) as conn:
             self._brain(conn, principal, brain_id)
             rows = conn.execute(
                 "SELECT origin.id AS source_event_id, reply.document, reply.conversation_id FROM memory_events origin "
@@ -1578,7 +1658,7 @@ class MemoryService:
     def memory_status(self, principal, brain_id):
         from .notes import NOTES_CONVERSATION
 
-        with self.database.transaction(principal) as conn:
+        with reading(), self.database.transaction(principal) as conn:
             brain = self._brain(conn, principal, brain_id)
             jobs = conn.execute(
                 "SELECT count(*) FILTER (WHERE state IN ('queued','running','failed')) AS pending_jobs, "
@@ -1608,7 +1688,7 @@ class MemoryService:
     def dashboard(self, principal, brain_id):
         from .dynamics import DEFAULT_POLICY
 
-        with self.database.transaction(principal) as conn:
+        with reading(), self.database.transaction(principal) as conn:
             brain = self._brain(conn, principal, brain_id)
             params = self._params(principal, brain_id)
             events = list(reversed(self._events(conn, principal, brain, limit=100, descending=True)))
