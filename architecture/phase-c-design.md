@@ -1,6 +1,6 @@
 # Phase C design: personality, mood and relationship development
 
-**Status.** Steps 0 to 4 (brain map, persona, affect, mood, relationship) are implemented and merged as of 2026-11-03; P2 and C5 are next. Scheduled by the owner on 2026-11-03. This turns the Phase C items in the [companion roadmap](companion-roadmap.md) into an order of work and the behaviours each step must show before it merges.
+**Status.** Steps 0 to 4 (brain map, persona, affect, mood, relationship) are implemented and merged as of 2026-11-03. Step 5 (P2) is implemented with local tests and a browser check, awaiting review; C5 is next. Scheduled by the owner on 2026-11-03. This turns the Phase C items in the [companion roadmap](companion-roadmap.md) into an order of work and the behaviours each step must show before it merges.
 
 **How acceptance works.** Acceptance is local tests and browser checks. No step here authorises a new paid or subscription model run. A paid behavioural run comes only with a separate plan the owner approves.
 
@@ -90,6 +90,14 @@ Each version records who made it (host, user or accepted feedback) and why.
 - When the user gives the same kind of feedback on how the companion behaves at least three times, across any sessions ("you're too formal", "be more playful"), memBrain proposes a new version.
 - The proposal quotes that feedback. The user accepts or rejects it on the page.
 - A rejected proposal is not offered again for 30 days.
+
+**P2 status (2026-11-03): implemented, awaiting review.** `src/membrain/persona_growth.py`, tested by `tests/test_persona_growth.py`. Decisions made while building it:
+- **Detection** is a fixed table of seven feedback kinds (more casual, more formal, more playful, shorter, longer, fewer emoji, more emoji), each with narrow English and Chinese patterns and one card edit (`voice.register`, `voice.length`, `voice.emoji` or an added trait). Only the user's own received messages count: not the assistant's, the memory page's, imported conversations, role-play, hypothetical, dreamt or quoted messages, reported speech ("my boss said…") or anything before the persona reset marker. There is no model call.
+- **One proposal per kind** while it is open. It stores the source message ids; the quotes are read from the messages, so a deleted message is never quoted and a proposal left with fewer than three sources is shown as withdrawn. One whose change the card already has is withdrawn too.
+- **A decision uses up the feedback before it.** After a rejection, a new proposal of that kind needs three new messages and comes no sooner than 30 days after the rejection. Old feedback is never re-offered on its own.
+- **Accepting** saves a version with `made_by` "feedback", action "feedback", the proposal id and source ids, and a reason that quotes each message with its date (within the 200-character reason limit). Rollback is the ordinary restore.
+- **Context.** A pending proposal adds nothing to the agent's context, not even a one-line notice: the agent cannot act on it, and a notice would invite it to adopt or argue for a change the user has not accepted.
+- **Storage.** Proposals and decisions are system events in the reserved `membrain-persona-proposals` conversation: never learned from, recalled or counted, refused from outside writers, read back strictly after an archive restore, and erased by "Delete personality history" and by erasing all memory. Listing them stores any proposal that has become due (for example when a pause has ended).
 
 **Cross-session example.**
 1. In sessions 1 and 2, the user asks for more casual replies three times.

@@ -628,6 +628,7 @@ function personaForm(card) {
 function personaHistory(version) {
   if (version.action === "restore" && version.restored_from) return `restored from version ${version.restored_from}`;
   if (version.action === "reset") return version.empty ? "reset to no card" : "reset to the host's default";
+  if (version.action === "feedback") return "accepted suggestion"; // P2: the reason quotes the feedback.
   return version.host_default ? "host default" : "edited";
 }
 
@@ -652,7 +653,8 @@ async function loadPersona() {
     item.append(element("p", `History deleted on ${day(marker.recorded_at)}`, "hint"));
     list.append(item);
   }
-  await loadMood(); // The baseline mood comes from the card.
+  // The baseline mood comes from the card, and a suggestion (P2) is withdrawn once the card already has it.
+  await Promise.all([loadMood(), loadProposals()]);
 }
 
 function personaVersion(version, current) {
@@ -674,7 +676,18 @@ function personaVersion(version, current) {
   }
   meta.append(actions);
   item.append(meta);
-  if (version.reason) item.append(element("p", version.reason, "user-text"));
+  if (version.reason) item.append(element("p", version.reason, version.feedback ? "hint" : "user-text"));
+  if (version.feedback) {
+    // P2: the feedback is quoted from the messages that still exist; a deleted message is never shown.
+    const quotes = element("ul", "", "persona-feedback-quotes");
+    for (const message of version.feedback_messages || []) {
+      const row = element("li", "");
+      row.append(element("span", `“${message.text}”`, "user-text"), element("span", ` ${String(message.recorded_at).slice(0, 10)}`, "hint"));
+      quotes.append(row);
+    }
+    if (!(version.feedback_messages || []).length) quotes.append(element("li", "The messages behind this change were deleted.", "hint"));
+    item.append(quotes);
+  }
   item.append(version.empty ? element("p", "No card.", "hint") : personaCard(version.card));
   return item;
 }
@@ -711,6 +724,108 @@ guard($("persona-delete-history"), async () => {
   notify("Personality history deleted.");
   await loadPersona();
 });
+
+// Persona suggestions from feedback (P2) -------------------------------------------------------------------------
+// The service makes a suggestion when the user gives the same kind of feedback three times. The page lists it with
+// the quoted messages and the change to the card; only Accept changes the card, as a new version.
+const PROPOSAL_KINDS = { less_formal: "More casual", more_formal: "More formal", more_playful: "More playful",
+  shorter: "Shorter replies", longer: "Longer, more detailed replies", less_emoji: "Fewer emoji", more_emoji: "More emoji" };
+const PROPOSAL_FIELDS = { traits: "Traits", "voice.register": "Register", "voice.length": "Typical length",
+  "voice.emoji": "Emoji use" };
+const PROPOSAL_STATUS = { open: "waiting for you", accepted: "accepted", rejected: "rejected", withdrawn: "withdrawn" };
+const PROPOSAL_WITHDRAWN = { sources_removed: "Withdrawn: fewer than three of its messages are still in memory.",
+  already_in_card: "Withdrawn: the card already has this.", does_not_fit: "Withdrawn: the card has no room for it." };
+
+function proposalValue(values, other, mark) {
+  // One side of the change: list entries the other side lacks are marked; an empty value reads "(empty)".
+  const box = element("span", undefined, "proposal-side");
+  const items = Array.isArray(values) ? values : [values].filter(Boolean);
+  if (!items.length) box.append(element("span", "(empty)", "hint"));
+  items.forEach((text, index) => {
+    if (index) box.append(element("span", "; ", "hint"));
+    const changed = !Array.isArray(values) || !other.includes(text);
+    box.append(changed ? element(mark, text, "user-text") : element("span", text, "user-text"));
+  });
+  return box;
+}
+
+function proposalChange(change) {
+  const list = element("dl", undefined, "persona-card proposal-diff");
+  const detail = element("dd");
+  const before = Array.isArray(change.before) ? change.before : [change.before].filter(Boolean);
+  const after = Array.isArray(change.after) ? change.after : [change.after].filter(Boolean);
+  detail.append(proposalValue(change.before, after, "del"), element("span", "→", "proposal-arrow"),
+    proposalValue(change.after, before, "ins"));
+  list.append(element("dt", PROPOSAL_FIELDS[change.field] || change.field), detail);
+  return list;
+}
+
+function proposalSources(proposal) {
+  const box = element("div", undefined, "proposal-sources");
+  box.append(element("p", "What you said:", "hint"));
+  const list = element("ul");
+  for (const source of proposal.sources) {
+    const line = element("li");
+    line.append(element("q", source.text, "user-text"), element("span", shortDate(source.recorded_at), "hint"));
+    list.append(line);
+  }
+  box.append(list);
+  return box;
+}
+
+function proposalItem(proposal) {
+  const item = element("article", undefined, `item persona-proposal proposal-${proposal.status}`);
+  const meta = element("div", undefined, "meta");
+  meta.append(element("strong", `${PROPOSAL_KINDS[proposal.kind] || proposal.kind}: from ${proposal.source_count} messages`),
+    element("span", shortDate(proposal.proposed_at)), element("span", PROPOSAL_STATUS[proposal.status] || proposal.status, "tag"));
+  item.append(meta);
+  if (proposal.status === "open" && proposal.change) {
+    item.append(element("p", "Change to the card (everything else stays):", "hint"), proposalChange(proposal.change));
+  }
+  if (proposal.status === "accepted") item.append(element("p", `Accepted on ${shortDate(proposal.decided_at)} as version ${proposal.version}.`, "hint"));
+  if (proposal.status === "rejected") {
+    item.append(element("p", `Rejected on ${shortDate(proposal.decided_at)}. None of this kind until ${shortDate(proposal.paused_until)}.`, "hint"));
+  }
+  if (proposal.status === "withdrawn") item.append(element("p", PROPOSAL_WITHDRAWN[proposal.withdrawn_because] || "Withdrawn.", "hint"));
+  if (proposal.sources.length) item.append(proposalSources(proposal));
+  if (proposal.status === "open") {
+    const actions = element("div", undefined, "row persona-actions");
+    const accept = element("button", "Accept"), reject = element("button", "Reject", "secondary");
+    guard(accept, async () => {
+      if (!confirm("Accept this suggestion? The card is saved as a new version; you can restore the earlier one at any time.")) return;
+      const result = await api(personaPath(`/proposals/${encodeURIComponent(proposal.id)}/accept`), {});
+      notify(`Saved as version ${result.persona.version}.`);
+      await loadPersona();
+    });
+    guard(reject, async () => {
+      if (!confirm("Reject this suggestion? None of the same kind is offered again for 30 days.")) return;
+      await api(personaPath(`/proposals/${encodeURIComponent(proposal.id)}/reject`), {});
+      notify("Suggestion rejected. None of this kind for 30 days.");
+      await loadProposals();
+    });
+    actions.append(accept, reject);
+    item.append(actions);
+  }
+  return item;
+}
+
+async function loadProposals() {
+  const listing = await api(personaPath("/proposals"));
+  const open = listing.proposals.filter((proposal) => proposal.status === "open");
+  const earlier = listing.proposals.filter((proposal) => proposal.status !== "open");
+  $("persona-proposals-open").hidden = !open.length;
+  $("persona-proposals-open").textContent = open.length ? `${open.length} waiting` : "";
+  const list = $("persona-proposals");
+  list.replaceChildren();
+  if (!open.length) list.append(element("p", "No suggestions waiting.", "empty"));
+  for (const proposal of open) list.append(proposalItem(proposal));
+  for (const pause of listing.pauses) {
+    list.append(element("p", `${PROPOSAL_KINDS[pause.kind] || pause.kind}: paused until ${shortDate(pause.until)} after you rejected it.`, "hint"));
+  }
+  $("persona-proposals-earlier").hidden = !earlier.length;
+  $("persona-proposals-history").replaceChildren(...earlier.map(proposalItem));
+}
+// End of persona suggestions
 
 // Companion mood (M1) ----------------------------------------------------------------------------------------
 // A simulated short-term mood the service derives from stored events; the page reads it, pins it or resets it.
