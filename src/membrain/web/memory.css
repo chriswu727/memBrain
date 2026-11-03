@@ -274,5 +274,6 @@ body.showing { overflow: hidden; }
 .proposal-sources ul { margin: 2px 0 0; padding-left: 20px; display: grid; gap: 2px; }
 .proposal-sources li q { margin-right: 8px; overflow-wrap: anywhere; }
 .proposal-sources p { margin: 0; }
+.proposal-sources li .hint { white-space: nowrap; }
 .persona-proposals-earlier .list { margin-top: 8px; }
 /* End of persona suggestions */
