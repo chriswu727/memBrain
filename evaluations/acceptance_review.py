@@ -1,7 +1,9 @@
 """Review pipeline for the final behavioral acceptance (frozen by hash in the attempt plan).
 
   split   SHEET VERDICTS BLIND_DIR SCENARIO OUT_DIR   one file per case for the second review; refuses to write a
-                                                      case file unless every reply appears in it in full
+                                                      case file unless every reply appears in it in full; also
+                                                      writes OUT_DIR/assistant/CASE-LABEL.md, each label's own
+                                                      earlier assistant replies, for resolution rule R4
   tally   REVIEW_DIR BLIND_DIR SCENARIO KEY           final scores per arm, literal and with written resolutions
   attribution-inputs REVIEW_DIR BLIND_DIR SCENARIO KEY OUT_DIR   one arm-blind file per gated reply with a standing
                                                       critical error, for attribute.md
@@ -68,6 +70,31 @@ def split(sheet: Path, verdicts: Path, blind_dir: Path, scenario_path: str, out:
         (out / f"{case}.md").write_text(truth + body + "\n\n## First reviewer's critical-error marks\n\n"
                                         + json.dumps(first, ensure_ascii=False) + "\n")
         print(case, "ok")
+    assistant_history(blind_dir, module, scenario, out / "assistant")
+
+
+def assistant_history(blind_dir: Path, module, scenario: str, out: Path) -> None:
+    """For each case and label, that label's own earlier assistant replies, oldest first, without naming its arm.
+
+    The ground truth holds only the user's messages; these files let resolution rule R4 check a reply's statement
+    about what the assistant itself said earlier ("I flagged this in March")."""
+    sealed = json.loads((blind_dir / f"sealed_{scenario}.json").read_text())
+    rows = {}
+    for path in blind_dir.glob(f"results_{scenario}_*.jsonl"):
+        for line in path.read_text().splitlines():
+            row = json.loads(line)
+            rows[(row["arm"], row["session"], row["turn"])] = row
+    order = [(session, index) for session, turns in module.SESSIONS_LONG for index in range(len(turns))]
+    out.mkdir(parents=True, exist_ok=True)
+    for session, turn, case, _criteria in module.CASES:
+        before = order[:order.index((session, turn))]
+        for label, arm in sealed[case].items():
+            lines = [f"# Earlier assistant replies for {case.split('-')[0]}, reply {label}, oldest first", ""]
+            for earlier_session, earlier_turn in before:
+                row = rows.get((arm, earlier_session, earlier_turn))
+                if row and (row.get("reply") or "").strip():
+                    lines += [f"## {row['date']} · {earlier_session}, turn {earlier_turn}", "", row["reply"].strip(), ""]
+            (out / f"{case}-{label}.md").write_text("\n".join(lines))
 
 
 def tally(review: Path, blind_dir: Path, scenario_path: str, key: str) -> None:
