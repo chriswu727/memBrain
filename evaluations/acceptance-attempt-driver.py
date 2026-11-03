@@ -16,16 +16,18 @@ acceptance-attempt-driver.md; the same format as acceptance_review.py's manifest
   supervisor exits after a failed or refused arm), invalid scenario, changed input or blocked ledger. It never
   starts another scenario after that, and it never resumes, reuses or retries anything.
 
-Live mode is on with --live or whenever C5_BILLING_LEDGER or C5_ATTEMPT_ID is set. It refuses --runner and
---validity: it runs only the repository's evaluations/c5-run-scenario.sh and `<this python>
-evaluations/acceptance_review.py validity`, which must be frozen in the manifest's files together with
-evaluations/c5-harness.py. Its ledger is C5_BILLING_LEDGER (required, absolute; a different --ledger is refused). On a
+Live mode is on with --live, or whenever C5_BILLING_LEDGER, C5_ATTEMPT_ID or any provider credential (*_API_KEY) is
+set. It refuses --runner and --validity: it runs only the repository's evaluations/c5-run-scenario.sh and `<this
+python> evaluations/acceptance_review.py validity`, which must be frozen in the manifest's files together with
+evaluations/c5-harness.py. It requires C5_ATTEMPT_ID equal to the attempt_id and a 64-hex C5_BILLING_POLICY_SHA256
+equal to the ledger's policy_sha256. Its ledger is C5_BILLING_LEDGER (required, absolute; a different --ledger is
+refused). On a
 stop the driver decides itself (invalid, hash_mismatch including inputs changed during a scenario, run_dir_exists,
 driver_error) it blocks the shared billing run for every future provider call by running the harness's own entry
 point, `<C5_PYTHON or uv run python> evaluations/c5-harness.py --stop`, exactly as the run script's supervisor does.
 That entry point takes no reason, so the ledger records the harness's own reason ("arm_failed" unless already set);
-the driver's reason is in its state file. Without live mode (offline tests), overrides are allowed and no shared
-stop runs.
+the driver's reason is in its state file. Without live mode (offline tests), overrides are allowed, no shared
+stop runs, and the state file and summary say "mode": "offline", "evidence": "offline_test_only".
 
 OUT_ROOT/attempt-state.json is replaced atomically after every step. It records statuses, times, exit codes and log
 paths only: never a scenario's content and never a child's output (children write to log files). A pair is
@@ -298,12 +300,26 @@ def write_state(out: Path, state: dict, *, create: bool = False) -> None:
         Path(temporary).unlink(missing_ok=True)
 
 
+def is_live(args, environ=None) -> bool:
+    """Live mode: --live, any C5_BILLING_LEDGER or C5_ATTEMPT_ID, or any provider credential (a *_API_KEY variable,
+    whatever its value). With a credential present a provider call is possible, so the full binding is required;
+    offline test runs must clear such keys."""
+    environ = os.environ if environ is None else environ
+    return bool(args.live or "C5_BILLING_LEDGER" in environ or "C5_ATTEMPT_ID" in environ
+                or any(name.endswith("_API_KEY") for name in environ))
+
+
+def evidence(live: bool) -> dict:
+    """Marks every summary: an offline run (overridable commands, no billing binding) is never attempt evidence."""
+    return {"mode": "live" if live else "offline", "evidence": "live_attempt" if live else "offline_test_only"}
+
+
 class Driver:
     def __init__(self, args):
         self.repo = Path(args.repo).resolve()
         self.out = Path(args.out).absolute()
         self.manifest_path = Path(args.manifest).absolute()
-        self.live = bool(args.live or "C5_BILLING_LEDGER" in os.environ or "C5_ATTEMPT_ID" in os.environ)
+        self.live = is_live(args)
         if self.live and (args.runner or args.validity):
             raise Refused("live_override", "a live attempt runs only the repository's own run script and validity "
                                            "check: --runner and --validity are for offline tests")
@@ -348,8 +364,11 @@ class Driver:
         except ValueError as error:
             raise Refused("manifest", str(error)) from None
         attempt = self.manifest["attempt_id"]
-        if os.environ.get("C5_ATTEMPT_ID") not in (None, attempt):
-            raise Refused("environment", "C5_ATTEMPT_ID differs from the manifest's attempt_id")
+        if self.live and (not os.environ.get("C5_ATTEMPT_ID") or os.environ["C5_ATTEMPT_ID"] != attempt):
+            raise Refused("attempt_binding", "a live attempt needs C5_ATTEMPT_ID equal to the manifest's attempt_id")
+        if self.live and not _SHA256.fullmatch(self.policy_sha256 or ""):
+            raise Refused("policy_binding", "a live attempt needs C5_BILLING_POLICY_SHA256: 64 lowercase hex "
+                                            "characters, matching the ledger's policy_sha256")
         billing = os.environ.get("C5_BILLING_LEDGER")
         if self.ledger and billing and Path(billing).absolute() != self.ledger:
             raise Refused("environment", "--ledger differs from C5_BILLING_LEDGER")
@@ -399,7 +418,7 @@ class Driver:
             "runner": self.runner,
             "validity": self.validity,
             "ledger": str(self.ledger) if self.ledger else None,
-            "live": self.live,
+            **evidence(self.live),
             "shared_stop": None,
             "created_at": _now(),
             "result": "running",
@@ -632,7 +651,8 @@ class Driver:
 
 def summary(state: dict) -> dict:
     """Statuses only: no paths, details or output."""
-    return {"attempt_id": state["attempt_id"], "result": state["result"],
+    return {**{key: state[key] for key in ("mode", "evidence")},
+            "attempt_id": state["attempt_id"], "result": state["result"],
             "stop": state["stop"]["reason"] if state["stop"] else None,
             "scenarios": {key: record["status"] for key, record in state["scenarios"].items()},
             "pairs": {pair["gate"]: pair["status"] for pair in state["pairs"]},
@@ -655,8 +675,9 @@ def main(argv=None) -> int:
     run.add_argument("--ledger", help="billing ledger JSON whose blocked flag is read before each scenario; in live "
                                       "mode it is C5_BILLING_LEDGER")
     run.add_argument("--live", action="store_true",
-                     help="live mode (also on whenever C5_BILLING_LEDGER or C5_ATTEMPT_ID is set): no command "
-                          "override, a bound ledger, and a shared billing stop on every stop the driver decides")
+                     help="live mode (also on whenever C5_BILLING_LEDGER, C5_ATTEMPT_ID or any *_API_KEY is "
+                          "set): no command override, a required attempt, ledger and policy binding, and a shared "
+                          "billing stop on every stop the driver decides")
     run.add_argument("--grace", default="60",
                      help="seconds a child gets after each stop signal before the next escalation (default 60, "
                           "finite, above 0, at most 600)")
@@ -665,7 +686,7 @@ def main(argv=None) -> int:
         return Driver(args).run()
     except Refused as error:
         print(f"driver: refused: {error.reason}: {error}", file=sys.stderr)
-        print(json.dumps({"result": "refused", "stop": error.reason}, sort_keys=True))
+        print(json.dumps({**evidence(is_live(args)), "result": "refused", "stop": error.reason}, sort_keys=True))
         return 2
 
 

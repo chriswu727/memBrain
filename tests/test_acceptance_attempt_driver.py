@@ -83,6 +83,22 @@ sys.exit(config.get("stop_exit", 0))
 POLICY = "c" * 64
 
 
+@pytest.fixture(autouse=True)
+def no_credentials(monkeypatch):
+    """In-process drivers read os.environ: keep this machine's credentials and bindings out of every test."""
+    for name in list(os.environ):
+        if name.startswith("C5_") or name.endswith("_API_KEY"):
+            monkeypatch.delenv(name)
+
+
+def refused(stop, mode="offline"):
+    return {"mode": mode, "evidence": "live_attempt" if mode == "live" else "offline_test_only",
+            "result": "refused", "stop": stop}
+
+
+OFFLINE = {"mode": "offline", "evidence": "offline_test_only"}
+
+
 @pytest.fixture
 def driver():
     spec = importlib.util.spec_from_file_location("acceptance_attempt_driver_test", DRIVER)
@@ -134,8 +150,9 @@ class Attempt:
                 "--repo", str(self.repo), "--runner", self.runner, "--validity", self.validity, "--grace", "1", *extra]
 
     def env(self):
+        """Offline: no C5_* binding and no provider credential, whatever the machine running the tests has."""
         (self.root / "config.json").write_text(json.dumps(self.config))
-        env = {k: v for k, v in os.environ.items() if not k.startswith("C5_")}
+        env = {k: v for k, v in os.environ.items() if not k.startswith("C5_") and not k.endswith("_API_KEY")}
         env["FAKE_CONFIG"] = str(self.root / "config.json")
         return env
 
@@ -227,7 +244,7 @@ def test_happy_path_runs_every_scenario_in_manifest_order_and_validates_each(att
     assert record["runner_exit"] == 0 and record["validity_exit"] == 0 and record["gate"] == "R4"
     assert record["started_at"] and record["runner_finished_at"] and record["validity_finished_at"]
     assert str(attempt.out / "alpha-P" / "run.log") in record["logs"]
-    assert summary(result) == {"attempt_id": "attempt-test-1", "result": "complete", "stop": None,
+    assert summary(result) == {**OFFLINE, "attempt_id": "attempt-test-1", "result": "complete", "stop": None,
                                "scenarios": dict.fromkeys(ORDER, "valid"),
                                "pairs": {"R4": "complete", "C5": "complete"}, "eligible": ["C5", "R4"],
                                "shared_stop": None}
@@ -259,7 +276,7 @@ def test_no_scenario_content_on_success(attempt):
 def test_hash_mismatch_before_start_refuses_and_runs_nothing(attempt):
     attempt.frozen.write_text("HARNESS = 2\n")
     result = attempt.run()
-    assert result.returncode == 2 and summary(result) == {"result": "refused", "stop": "hash_mismatch"}
+    assert result.returncode == 2 and summary(result) == refused("hash_mismatch")
     assert attempt.calls() == [] and not attempt.out.exists()
 
 
@@ -333,7 +350,8 @@ def test_runner_failure_in_the_third_scenario_never_starts_the_fourth(attempt):
     assert [state["scenarios"][key]["status"] for key in ORDER] == ["valid", "valid", "runner_failed", "not_run"]
     assert state["scenarios"]["gamma"]["runner_exit"] == 3 and state["scenarios"]["gamma"]["validity_exit"] is None
     assert state["result"] == "stopped" and state["stop"]["key"] == "gamma"
-    assert summary(result) == {"attempt_id": "attempt-test-1", "result": "stopped", "stop": "runner_failed",
+    assert summary(result) == {**OFFLINE, "attempt_id": "attempt-test-1", "result": "stopped",
+                               "stop": "runner_failed",
                                "scenarios": {"alpha": "valid", "beta": "valid", "gamma": "runner_failed",
                                              "delta": "not_run"},
                                "pairs": {"R4": "complete", "C5": "incomplete"}, "eligible": ["R4"], "shared_stop": None}
@@ -437,10 +455,39 @@ def test_an_unblocked_ledger_is_only_read(attempt):
 
 # Environment binding --------------------------------------------------------------------------------------------------
 
-def test_a_different_c5_attempt_id_refuses(attempt):
+@pytest.mark.parametrize("value", ["some-other-attempt", "", None])
+def test_live_mode_requires_c5_attempt_id_equal_to_the_manifest(attempt, value):
     attempt.make_live()
-    result = attempt.run_live(C5_ATTEMPT_ID="some-other-attempt")
-    assert result.returncode == 2 and summary(result)["stop"] == "environment" and attempt.calls() == []
+    result = attempt.run_live(C5_ATTEMPT_ID=value)
+    assert result.returncode == 2 and summary(result) == refused("attempt_binding", "live")
+    assert attempt.calls() == [] and not attempt.out.exists()
+
+
+@pytest.mark.parametrize("value", [None, "", "C" * 64, "c" * 63, "c" * 65, "g" * 64, " " + "c" * 63])
+def test_live_mode_requires_a_well_formed_policy_hash(attempt, value):
+    attempt.make_live()
+    result = attempt.run_live(C5_BILLING_POLICY_SHA256=value)
+    assert result.returncode == 2 and summary(result) == refused("policy_binding", "live")
+    assert attempt.calls() == [] and not attempt.out.exists()
+
+
+@pytest.mark.parametrize("name", ["DEEPSEEK_API_KEY", "OTHER_PROVIDER_API_KEY"])
+@pytest.mark.parametrize("value", ["sk-test", ""])
+def test_a_provider_credential_makes_an_offline_run_live(attempt, name, value):
+    env = attempt.env() | {name: value}
+    result = attempt.run(env=env)  # Offline-shaped: overrides, no binding.
+    assert result.returncode == 2 and summary(result) == refused("live_override", "live")
+    argv = attempt.live_argv()  # No overrides: then the missing binding refuses it.
+    no_override = subprocess.run(argv, env=env, capture_output=True, text=True, timeout=120)
+    assert no_override.returncode == 2 and summary(no_override) == refused("ledger_required", "live")
+    assert attempt.calls() == [] and not attempt.out.exists()
+
+
+def test_an_offline_run_is_marked_test_only_in_the_summary_and_state(attempt):
+    result = attempt.run()
+    assert result.returncode == 0
+    assert {key: summary(result)[key] for key in OFFLINE} == OFFLINE
+    assert {key: attempt.state()[key] for key in OFFLINE} == OFFLINE
 
 
 # Live mode ------------------------------------------------------------------------------------------------------------
@@ -451,7 +498,8 @@ def test_live_mode_runs_only_the_repositorys_own_frozen_commands(attempt):
     assert result.returncode == 0, result.stderr
     assert attempt.runner_keys() == ORDER and attempt.stops() == []
     state = attempt.state()
-    assert state["live"] is True and state["ledger"] == str(attempt.ledger)
+    assert state["mode"] == "live" and state["evidence"] == "live_attempt" and state["ledger"] == str(attempt.ledger)
+    assert summary(result)["mode"] == "live" and summary(result)["evidence"] == "live_attempt"
     assert state["runner"] == [str(attempt.repo / "evaluations" / "c5-run-scenario.sh")]
     assert state["validity"] == [sys.executable, str(attempt.repo / "evaluations" / "acceptance_review.py"),
                                  "validity"]
@@ -472,7 +520,7 @@ def test_live_mode_refuses_a_command_override(attempt, trigger, flag):
     index = argv.index("--grace")
     argv[index:index] = [flag, attempt.runner if flag == "--runner" else attempt.validity]
     result = attempt.run_live(argv=argv, **changes)
-    assert result.returncode == 2 and summary(result) == {"result": "refused", "stop": "live_override"}
+    assert result.returncode == 2 and summary(result) == refused("live_override", "live")
     assert attempt.calls() == [] and not attempt.out.exists()
 
 
@@ -489,7 +537,7 @@ def test_a_validity_override_cannot_turn_an_invalid_live_attempt_complete(attemp
     argv[argv.index("--out") + 1] = str(second)
     argv += ["--validity", "/usr/bin/true"]
     overridden = attempt.run_live(argv=argv)
-    assert overridden.returncode == 2 and summary(overridden) == {"result": "refused", "stop": "live_override"}
+    assert overridden.returncode == 2 and summary(overridden) == refused("live_override", "live")
     assert not second.exists() and attempt.runner_keys() == ["alpha", "beta", "gamma"]
 
 
@@ -530,10 +578,11 @@ def test_live_mode_binds_the_ledger_to_the_attempt_and_policy(attempt, field, va
     assert json.loads(attempt.ledger.read_text()) == state
 
 
-def test_the_policy_is_checked_only_when_its_variable_is_given(attempt):
+def test_a_missing_policy_variable_no_longer_skips_the_ledger_policy_check(attempt):
     attempt.make_live()
     attempt.ledger.write_text(json.dumps(json.loads(attempt.ledger.read_text()) | {"policy_sha256": "d" * 64}))
-    assert attempt.run_live(C5_BILLING_POLICY_SHA256=None).returncode == 0
+    result = attempt.run_live(C5_BILLING_POLICY_SHA256=None)
+    assert result.returncode == 2 and summary(result)["stop"] == "policy_binding" and attempt.calls() == []
 
 
 SHARED = {"invalid": (lambda a: {"invalid": ["gamma"]}, "invalid", "invalid"),
@@ -581,7 +630,7 @@ def test_offline_mode_never_runs_a_shared_stop(attempt):
     attempt.make_live()
     attempt.config["invalid"] = ["alpha"]
     result = attempt.run()
-    assert result.returncode == 1 and attempt.stops() == [] and attempt.state()["live"] is False
+    assert result.returncode == 1 and attempt.stops() == [] and attempt.state()["mode"] == "offline"
 
 
 # Signals --------------------------------------------------------------------------------------------------------------
@@ -756,7 +805,7 @@ def test_manifest_structure_errors_are_refused(driver, name):
 def test_a_malformed_manifest_file_is_refused_by_the_cli(attempt, text):
     attempt.manifest_path.write_text(text)
     result = attempt.run()
-    assert result.returncode == 2 and summary(result) == {"result": "refused", "stop": "manifest"}
+    assert result.returncode == 2 and summary(result) == refused("manifest")
     assert attempt.calls() == [] and not attempt.out.exists()
 
 
@@ -778,7 +827,7 @@ def test_a_grace_period_that_would_disable_bounded_escalation_is_refused(attempt
     index = argv.index("--grace")
     argv[index:index + 2] = [f"--grace={grace}"]
     result = subprocess.run(argv, env=attempt.env(), capture_output=True, text=True, timeout=120)
-    assert result.returncode == 2 and summary(result) == {"result": "refused", "stop": "usage"}
+    assert result.returncode == 2 and summary(result) == refused("usage")
     assert attempt.calls() == [] and not attempt.out.exists()
 
 
