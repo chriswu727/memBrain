@@ -217,7 +217,7 @@ def _notes(service, conn, principal, brain_id, kind: str, after: int, limit: int
         fields, sentence = parse_note(row["text"] or "")
         if fields.get("kind") == kind:
             result.append({"id": row["id"], "sequence": row["sequence"], "text": sentence, "fields": fields,
-                           "actor_role": row["actor_role"], "recorded_at": row["recorded_at"],
+                           "actor_role": row["actor_role"], "recorded_at": row["recorded_at"], "stored": row["text"],
                            "source_event_ids": list(row["source_event_ids"] or [])})
     return result
 
@@ -228,7 +228,7 @@ def _moments(service, conn, principal, brain_id, after) -> list[dict]:
     moments = [{"id": note["id"], "text": note["text"], "occurs_at": note["fields"].get("occurs_at"),
                 "sensitive": bool(note["fields"].get("sensitive")), "recorded_at": note["recorded_at"],
                 "written_by_user": note["actor_role"] == "user", "source_event_ids": note["source_event_ids"],
-                "sequence": note["sequence"]}
+                "sequence": note["sequence"], "note_text": note["stored"]}
                for note in notes if note["fields"].get("shared")][:MAX_MOMENTS]
     return sorted(moments, key=lambda moment: ((moment["occurs_at"] or (moment["recorded_at"] or "")[:10]),
                                                moment["sequence"]))

@@ -106,7 +106,7 @@ function typedNote(text) {
   fields.kind = tokens[0];
   for (const token of tokens.slice(1)) {
     if (STATUSES.includes(token)) fields.status = token;
-    else if (["pinned", "sensitive"].includes(token)) fields[token] = true;
+    else if (["pinned", "sensitive"].includes(token) || (token === "shared" && fields.kind === "milestone")) fields[token] = true;
     else if (/^(due|on) \d{4}-\d{2}(-\d{2})?$/.test(token)) fields[token.startsWith("due ") ? "due" : "occurs_at"] = token.split(" ")[1];
     else if (token.startsWith("about ")) fields.about = token.slice(6);
     else if (token.startsWith("aka ")) fields.aliases = token.slice(4).split(",").map((value) => value.trim());
@@ -179,7 +179,8 @@ function noteEditor(note, merged = [], after = () => loadNotes(), initialSources
     const value = fields[name] || "";
     field(form, controls, name, title, value.length === 7 ? "month" : "date").value = value;
   }
-  for (const [name, title] of [["pinned", "Pin this note"], ["sensitive", "Sensitive: mention only when I bring it up"]]) {
+  for (const [name, title] of [["pinned", "Pin this note"], ["sensitive", "Sensitive: mention only when I bring it up"],
+    ["shared", "Shared moment: something we did or reached together"]]) {
     const input = field(form, controls, name, title, "checkbox"); input.checked = Boolean(fields[name]); input.parentElement.classList.add("check");
   }
   const sources = new Set([...(note?.source_event_ids || []), ...initialSources]);
@@ -209,7 +210,10 @@ function noteEditor(note, merged = [], after = () => loadNotes(), initialSources
   const cancel = element("button", "Cancel", "secondary"); cancel.type = "button";
   actions.append(save, cancel); form.append(actions);
   cancel.addEventListener("click", after);
-  const updateStatus = () => { controls.status.parentElement.hidden = !["plan", "agent_commitment"].includes(controls.kind.value); };
+  const updateStatus = () => {
+    controls.status.parentElement.hidden = !["plan", "agent_commitment"].includes(controls.kind.value);
+    controls.shared.parentElement.hidden = controls.kind.value !== "milestone";
+  };
   controls.kind.addEventListener("change", updateStatus); updateStatus();
   let requestId = uid(), previousBody = "";
   onSubmit(form, async () => {
@@ -220,6 +224,7 @@ function noteEditor(note, merged = [], after = () => loadNotes(), initialSources
     if (!controls.status.parentElement.hidden) body.status = controls.status.value;
     if (controls.aliases.value.trim()) body.aliases = controls.aliases.value.split(",").map((value) => value.trim()).filter(Boolean);
     body.pinned = controls.pinned.checked; body.sensitive = controls.sensitive.checked;
+    body.shared = controls.kind.value === "milestone" && controls.shared.checked;
     const serialized = JSON.stringify(body);
     if (serialized !== previousBody) { requestId = uid(); previousBody = serialized; }
     await api(`/v1/brains/${encodeURIComponent(state.brain)}/notes`, { request_id: requestId, ...body });
@@ -449,6 +454,122 @@ onSubmit($("search-form"), async () => {
     block.append(meta, element("p", message.text, "user-text"));
     results.append(block);
   }
+});
+
+// Relationship -----------------------------------------------------------------------------------------------
+// Shared moments (milestone notes flagged shared), derived familiarity with its reason and an optional limit, the
+// support style, boundaries and the promise record. The service derives everything; the page only shows and edits.
+
+const relationshipPath = (suffix = "") => `/v1/brains/${encodeURIComponent(state.brain)}/relationship${suffix}`;
+const LEVEL_NAMES = { new: "new", getting_to_know: "getting to know", familiar: "familiar", close: "close" };
+const PROMISE_TAGS = { kept: "kept", missed: "missed", cancelled: "cancelled", open: "open" };
+
+async function loadRelationship() {
+  const data = await api(relationshipPath());
+  state.relationship = data;
+  const marker = data.markers?.[0];
+  $("relationship-marker").hidden = !marker;
+  $("relationship-marker").textContent = marker ? `Relationship reset on ${shortDate(marker.recorded_at)}` : "";
+  const known = data.familiarity;
+  const level = $("relationship-level");
+  level.replaceChildren(element("strong", LEVEL_NAMES[known.level] || known.level, "tag"), element("span", known.reason));
+  const next = known.next;
+  $("relationship-next").textContent = !next ? ""
+    : next.shared_moments ? `Next: ${LEVEL_NAMES[next.level]} at ${next.days} days and ${next.shared_moments} shared moment${next.shared_moments === 1 ? "" : "s"}.`
+    : `Next: ${LEVEL_NAMES[next.level]} at ${next.days} days of conversation.`;
+  $("relationship-cap").value = known.cap || "";
+  $("support-text").value = data.support_style?.text || "";
+  const boundaries = $("boundaries");
+  boundaries.replaceChildren();
+  if (!data.boundaries.length) boundaries.append(element("p", "No boundaries. Add a topic you don't want your companion to bring up.", "empty"));
+  for (const boundary of data.boundaries) boundaries.append(boundaryItem(boundary));
+  const moments = $("moments");
+  moments.replaceChildren();
+  if (!data.shared_moments.length) moments.append(element("p", "No shared moments yet. When you and your companion do something together, your agent can keep it here.", "empty"));
+  for (const moment of data.shared_moments) moments.append(momentItem(moment));
+  const record = data.commitments;
+  $("commitments-summary").textContent = `Kept: ${record.kept.length} · missed: ${record.missed.length} · cancelled: ${record.cancelled.length} · open: ${record.open.length}`;
+  const promises = $("commitments");
+  promises.replaceChildren();
+  const listed = [...record.missed.map((item) => ["missed", item]), ...record.kept.map((item) => ["kept", item]),
+    ...record.cancelled.map((item) => ["cancelled", item])];
+  if (!listed.length) promises.append(element("p", "No kept or missed promises since the relationship began or was last reset.", "empty"));
+  for (const [kind, item] of listed) promises.append(promiseItem(kind, item));
+}
+
+function boundaryItem(boundary) {
+  const item = element("article", undefined, "item relationship-boundary");
+  const meta = element("div", undefined, "meta");
+  meta.append(element("span", day(boundary.recorded_at)));
+  const actions = element("span", undefined, "actions");
+  const remove = element("button", "Remove", "link danger");
+  actions.append(remove); meta.append(actions);
+  item.append(meta, element("p", boundary.topic, "user-text"));
+  if (boundary.aliases.length) item.append(element("p", `also: ${boundary.aliases.join(", ")}`, "hint"));
+  guard(remove, async () => {
+    if (!confirm("Remove this boundary? Your companion may bring the topic up again, and earlier messages about it are recalled normally.")) return;
+    await api(relationshipPath(`/boundaries/${encodeURIComponent(boundary.id)}`), undefined, "DELETE");
+    notify("Boundary removed."); await loadRelationship();
+  });
+  return item;
+}
+
+function momentItem(moment) {
+  const item = element("article", undefined, "item relationship-moment");
+  const meta = element("div", undefined, "meta");
+  meta.append(element("span", shortDate(moment.occurs_at || moment.recorded_at)));
+  if (moment.written_by_user) meta.append(element("span", "written by you", "tag"));
+  if (moment.sensitive) meta.append(element("span", "sensitive", "tag"));
+  const actions = element("span", undefined, "actions");
+  const edit = element("button", "Edit", "link"), remove = element("button", "Delete", "link danger");
+  actions.append(edit, remove); meta.append(actions);
+  item.append(meta, element("p", moment.text, "user-text"));
+  edit.addEventListener("click", () => {
+    const note = { event_id: moment.id, text: moment.note_text, source_event_ids: moment.source_event_ids };
+    item.replaceChildren(noteEditor(note, [], loadRelationship)); item.querySelector("textarea").focus();
+  });
+  guard(remove, async () => {
+    if (!confirm("Delete this shared moment? Its note is erased.")) return;
+    await forget("events", [moment.id], "erase_content", NOTES); notify("Shared moment deleted."); await loadRelationship();
+  });
+  return item;
+}
+
+function promiseItem(kind, promise) {
+  const item = element("article", undefined, "item");
+  const meta = element("div", undefined, "meta");
+  meta.append(element("span", PROMISE_TAGS[kind], kind === "missed" ? "tag relationship-missed" : "tag"));
+  if (promise.due) meta.append(element("span", `due ${promise.due}`, "tag"));
+  if (kind === "missed") meta.append(element("span", promise.acknowledged ? "shown to your agent" : "not shown yet", "tag"));
+  item.append(meta, element("p", promise.text, "user-text"));
+  return item;
+}
+
+guard($("relationship-cap-save"), async () => {
+  const level = $("relationship-cap").value || null;
+  await api(relationshipPath("/cap"), { level });
+  notify(level ? "Familiarity limit saved." : "Familiarity limit removed."); await loadRelationship();
+});
+onSubmit($("support-form"), async () => {
+  const saved = await api(relationshipPath("/support-style"), { text: $("support-text").value }, "PUT");
+  notify(saved.support_style ? "Support style saved." : "Support style removed."); await loadRelationship();
+});
+onSubmit($("boundary-form"), async () => {
+  const aliases = $("boundary-aliases").value.split(/[,，、]/).map((value) => value.trim()).filter(Boolean);
+  await api(relationshipPath("/boundaries"), { topic: $("boundary-topic").value.trim(), aliases });
+  $("boundary-topic").value = ""; $("boundary-aliases").value = "";
+  notify("Boundary added."); await loadRelationship();
+});
+guard($("moment-add"), async () => {
+  const form = noteEditor(null, [], async () => { $("moment-form-host").replaceChildren(); await loadRelationship(); });
+  $("moment-form-host").replaceChildren(form);
+  form.elements.kind.value = "milestone"; form.elements.kind.dispatchEvent(new Event("change"));
+  form.elements.shared.checked = true; form.elements.text.focus();
+});
+guard($("relationship-reset"), async () => {
+  if (!confirm("Reset the relationship? This deletes every shared moment, the support style, every boundary (so those topics are no longer kept out), the familiarity limit and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. Conversations, your other notes, the personality and feelings stay.")) return;
+  await api(relationshipPath("/reset"), {});
+  notify("Relationship reset."); await loadRelationship();
 });
 
 // Personality ------------------------------------------------------------------------------------------------
@@ -734,7 +855,9 @@ async function loadServiceStatus() {
 }
 guard($("refresh-status"), loadServiceStatus);
 
-const loaders = { notes: () => loadNotes(), brain: () => window.loadBrain(), persona: loadPersona, people: () => loadNotes("people"),
+// The Companion tab holds the personality and the relationship.
+const loadCompanion = () => Promise.all([loadPersona(), loadRelationship()]);
+const loaders = { notes: () => loadNotes(), brain: () => window.loadBrain(), persona: loadCompanion, people: () => loadNotes("people"),
   plans: () => loadNotes("plans"), feelings: loadFeelings,
   conversations: loadConversations, search: async () => {}, privacy: loadRecording };
 

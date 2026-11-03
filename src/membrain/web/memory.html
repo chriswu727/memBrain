@@ -17,7 +17,7 @@
   <nav id="tabs" aria-label="Memory views" hidden>
     <button data-view="notes" class="active">Notes</button>
     <button data-view="brain">Brain</button>
-    <button data-view="persona">Personality</button>
+    <button data-view="persona">Companion</button>
     <button data-view="plans">Plans and dates</button>
     <button data-view="people">People</button>
     <button data-view="feelings">Feelings</button>
@@ -179,6 +179,74 @@
       <p class="muted">Erases every version, including the current card. Deletion is recorded, so it also holds if
         an older backup is restored. Notes and messages are not touched.</p>
       <button id="persona-delete-history" class="danger">Delete personality history</button>
+    </div>
+
+    <!-- Relationship (R1): shared moments, familiarity, support style, boundaries, promises; reset. -->
+    <div id="relationship" class="relationship">
+      <div class="heading">
+        <div>
+          <h1>Relationship</h1>
+          <p class="muted">What you and your companion share: moments you had together, how familiar you are, how
+            you like to be supported and the topics it should not bring up. Your agent receives it in its own block.</p>
+        </div>
+      </div>
+      <p id="relationship-marker" class="hint relationship-marker" hidden></p>
+      <div class="card">
+        <h2>Familiarity</h2>
+        <p id="relationship-level" class="relationship-level"></p>
+        <p id="relationship-next" class="hint"></p>
+        <p class="hint">Worked out from the days you talked and the moments you shared. Nobody sets it, and it is not
+          a score of you. You can keep it at a lower level.</p>
+        <div class="row relationship-cap">
+          <label class="field">Keep familiarity at most
+            <select id="relationship-cap">
+              <option value="">No limit</option><option value="new">new</option>
+              <option value="getting_to_know">getting to know</option><option value="familiar">familiar</option>
+            </select>
+          </label>
+          <button id="relationship-cap-save" class="secondary">Save limit</button>
+        </div>
+      </div>
+      <form id="support-form" class="card">
+        <h2>How you like to be supported</h2>
+        <label class="field">Support style
+          <textarea id="support-text" maxlength="200" rows="2" placeholder="listen first, advice only when asked"></textarea>
+        </label>
+        <p class="hint">Leave it empty to remove it.</p>
+        <div class="row"><button type="submit">Save support style</button></div>
+      </form>
+      <div class="card">
+        <h2>Boundaries</h2>
+        <p class="muted">Topics your companion will not bring up. Earlier messages about them are left out of recall
+          unless you raise the topic yourself.</p>
+        <div id="boundaries" class="list"></div>
+        <form id="boundary-form" class="row boundary-form">
+          <label class="field">Topic<input id="boundary-topic" maxlength="60" placeholder="my ex" required autocomplete="off"></label>
+          <label class="field">Other words for it, separated by commas<input id="boundary-aliases" placeholder="ex-partner, 前任" autocomplete="off"></label>
+          <button type="submit">Add boundary</button>
+        </form>
+      </div>
+      <div class="card">
+        <h2>Shared moments</h2>
+        <p class="muted">Things you and your companion did or reached together, oldest first.</p>
+        <div id="moments" class="list"></div>
+        <div class="row"><button id="moment-add" class="secondary">Add a shared moment</button></div>
+        <div id="moment-form-host"></div>
+      </div>
+      <div class="card">
+        <h2>Promises kept and missed</h2>
+        <p class="hint">From your agent's promise notes. A missed promise is shown to your agent once, so it can
+          acknowledge it.</p>
+        <p id="commitments-summary" class="hint"></p>
+        <div id="commitments" class="list"></div>
+      </div>
+      <div class="card danger">
+        <h2>Reset the relationship</h2>
+        <p class="muted">Deletes the shared moments, the support style, every boundary, the familiarity limit and the
+          record of promises. Familiarity starts again at new. Conversations, your other notes, the personality and
+          feelings stay.</p>
+        <button id="relationship-reset" class="danger">Reset relationship</button>
+      </div>
     </div>
   </section>
 

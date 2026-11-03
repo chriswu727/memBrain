@@ -176,6 +176,16 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   .persona-card { grid-template-columns: 1fr; gap: 2px; }
   .persona-card dd { margin-bottom: 6px; }
 }
+/* Relationship (R1), in the Companion tab below the personality. */
+.relationship { margin-top: 32px; border-top: 1px solid var(--border); padding-top: 8px; }
+.relationship-level { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 16px; margin: 4px 0; }
+.relationship-level strong { font-size: 14px; background: var(--accent); color: var(--paper); }
+.relationship-cap, .boundary-form { align-items: flex-end; flex-wrap: wrap; }
+.boundary-form .field { flex: 1 1 200px; }
+.relationship .row .field input, .relationship .row .field select { flex: none; }
+.relationship-cap .field { min-width: 220px; }
+.relationship-missed { background: var(--danger-wash); color: var(--danger); }
+.relationship-marker { border-left: 3px solid var(--accent); padding-left: 10px; }
 /* Brain showcase: full-screen and dark in every colour scheme, for presenting and screen recording. */
 #view-brain > .heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 0 16px; }
 #view-brain > .heading > div { flex: 1 1 360px; }
