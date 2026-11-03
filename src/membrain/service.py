@@ -353,12 +353,15 @@ class MemoryService:
         link(self, conn, principal, brain, document)
         job = self._job(conn, principal, brain, "extract", {"event_id": document["event_id"], "revision": document["revision"]})
         from .affect import AFFECT_CONVERSATION
+        from .mood import MOOD_CONVERSATION
         from .persona import PERSONA_CONVERSATION
 
         # Persona versions are configuration and affect records are evidence kept with notes, not conversation:
-        # neither is read for learning, so saving or clearing them never starts a model call.
+        # neither is read for learning, so saving or clearing them never starts a model call. Mood pins and reset
+        # markers are settings, likewise.
         if (self.semantic_processor and target.get("conversation_ref") and target.get("branch_ref")
-                and target.get("conversation_ref") not in (PERSONA_CONVERSATION, AFFECT_CONVERSATION)
+                and target.get("conversation_ref") not in (PERSONA_CONVERSATION, AFFECT_CONVERSATION,
+                                                           MOOD_CONVERSATION)
                 and incoming["delivery_state"] in ("received", "delivered", "partially_delivered")
                 and incoming["event_kind"] not in ("source_correction", "delivery_receipt")):
             from .learning_allocations import CONTRACT_VERSION
@@ -372,10 +375,13 @@ class MemoryService:
         accepted, duplicates, jobs = [], [], []
         if len(request["payload"]["events"]) > 1000:
             raise DomainError("validation_failed", "An observation batch may contain at most 1000 events.")
+        from .mood import MOOD_CONVERSATION
         from .persona import PERSONA_CONVERSATION
 
         if request["target"].get("conversation_ref") == PERSONA_CONVERSATION:
             raise DomainError("invalid_evidence", "Persona versions are written through the persona API.")
+        if request["target"].get("conversation_ref") == MOOD_CONVERSATION:
+            raise DomainError("invalid_evidence", "The companion's mood is set through the mood API.")
         for event in request["payload"]["events"]:
             if event["producer_ref"] in ("memory-service", "archive-import") or event["event_kind"] == "source_correction":
                 raise DomainError("invalid_evidence", "Correction audit records are created by the service.")
