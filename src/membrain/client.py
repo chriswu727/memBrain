@@ -353,6 +353,20 @@ class MemoryClient:
         """Erase shared moments, support style, boundaries, cap and acknowledgements; write a reset marker."""
         return self._request("POST", self._relationship_path(brain_id, "/reset"))
 
+    def mood(self, *, brain_id: str | None = None) -> JsonObject:
+        """The companion's simulated mood: label, triggers with reasons, when it is back at baseline, pinned."""
+        return self._request("GET", f"v1/brains/{quote(self._scope(brain_id=brain_id)['brain_ref'], safe='')}/mood")
+
+    def pin_mood(self, pinned: bool = True, *, brain_id: str | None = None) -> JsonObject:
+        """Pin the simulated mood to the persona's baseline (no trigger changes it), or lift the pin."""
+        brain = quote(self._scope(brain_id=brain_id)["brain_ref"], safe="")
+        return self._request("POST", f"v1/brains/{brain}/mood/pin", json={"pinned": pinned})
+
+    def reset_mood(self, *, brain_id: str | None = None) -> JsonObject:
+        """Put the mood back at baseline and write a mood reset marker; earlier events never trigger again."""
+        brain = quote(self._scope(brain_id=brain_id)["brain_ref"], safe="")
+        return self._request("POST", f"v1/brains/{brain}/mood/reset")
+
     def following(self, event_ids: Sequence[str]) -> JsonObject:
         brain = self._scope()["brain_ref"]
         return self._request("GET", f"v1/brains/{quote(brain, safe='')}/timeline/following",

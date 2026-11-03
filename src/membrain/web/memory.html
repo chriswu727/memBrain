@@ -131,6 +131,23 @@
         <button id="persona-reset" class="secondary">Reset personality</button>
       </div>
     </div>
+    <!-- Companion mood (M1, agent_mood) -->
+    <div class="card mood-card" id="mood">
+      <div class="persona-title"><h2>Simulated mood</h2><span id="mood-now" class="mood-now"></span></div>
+      <p class="hint">A short-term mood your companion simulates from what happens in your conversations. It is not a
+        real feeling and says nothing about you. It drifts back to the baseline mood on its own; time apart never
+        changes it.</p>
+      <div id="mood-why" class="mood-why"></div>
+      <p id="mood-return" class="hint" hidden></p>
+      <p id="mood-marker" class="hint feelings-marker" hidden></p>
+      <label class="check"><input id="mood-pin" type="checkbox"> Keep the mood at its baseline</label>
+      <details class="mood-history">
+        <summary>Triggers</summary>
+        <div id="mood-triggers" class="list"></div>
+      </details>
+      <div class="row persona-actions"><button id="mood-reset" class="secondary">Reset mood</button></div>
+    </div>
+    <!-- End of companion mood -->
     <form id="persona-form" class="card persona-editor" hidden>
       <label class="field">Name<input name="name" maxlength="60" autocomplete="off"></label>
       <label class="field">Traits, one per line (up to 8)<textarea name="traits" rows="4"></textarea></label>
@@ -159,7 +176,7 @@
             <option value="2">2 lively</option><option value="3">3 very lively</option>
           </select>
         </label>
-        <p class="hint">Leave the mood empty for no baseline. It is the resting point a later mood step returns to;
+        <p class="hint">Leave the mood empty to rest at calm. It is the resting point the simulated mood returns to;
           it is not a feeling.</p>
       </fieldset>
       <label class="field">Why this change (optional)<input name="reason" maxlength="200" autocomplete="off"></label>

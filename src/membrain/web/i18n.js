@@ -153,8 +153,6 @@ const ZH = {
   "Baseline mood": "基础心情", "Mood": "心情", "calm, cheerful…": "平静、开朗……", "Valence": "情绪倾向",
   "-2 very low": "-2 很低落", "-1 low": "-1 低落", "0 neutral": "0 平和", "+1 positive": "+1 积极", "+2 very positive": "+2 很积极",
   "Energy": "活力", "0 resting": "0 休息", "1 calm": "1 平静", "2 lively": "2 活泼", "3 very lively": "3 很活泼",
-  "Leave the mood empty for no baseline. It is the resting point a later mood step returns to; it is not a feeling.":
-    "心情留空表示没有基础心情。它是之后的心情功能回归的起点，不是一种真实的感受。",
   "Why this change (optional)": "修改原因（可选）",
   "The card is limited to 1,200 characters. Values that look like passwords or keys are removed.":
     "设定最多 1,200 个字符。看起来像密码或密钥的内容会被移除。",
@@ -229,6 +227,24 @@ const ZH = {
   "There can be at most 12 boundaries. Remove one first.": "最多 12 个边界。请先移除一个。",
   "The boundaries would be too long to show in full. Shorten them or remove one first.": "边界加起来太长，无法完整显示。请缩短或先移除一个。",
   "That boundary is not available.": "这个边界已不存在。",
+  // Companion mood (M1)
+  "Simulated mood": "模拟心情",
+  "A short-term mood your companion simulates from what happens in your conversations. It is not a real feeling and says nothing about you. It drifts back to the baseline mood on its own; time apart never changes it.":
+    "伙伴根据你们对话里发生的事模拟出的短时心情。它不是真实的感受，也不代表对你的任何判断。它会自己慢慢回到基础心情；分开多久都不会让它改变。",
+  "Glad": "开心", "Concerned": "担心", "Playful": "俏皮", "Calm": "平静", "Wistful": "惆怅", "easing": "正在平复",
+  "Keep the mood at its baseline": "让心情保持在基础心情", "Triggers": "触发记录", "Reset mood": "重置心情",
+  "Good news you shared": "你分享的好消息", "Good news, inferred": "推断出的好消息", "A plan noted done": "一个计划已完成",
+  "Something hard you shared": "你分享的难过的事", "Something hard, inferred": "推断出的难过的事", "A shared joke": "一起开的玩笑",
+  "active": "生效中", "back at baseline": "已回到基础心情", "ignored while pinned": "固定期间已忽略",
+  "You said you felt": "你说你感到", "Your agent inferred you seemed": "agent 推断你似乎", "You did not say it.": "你并没有这样说。",
+  "Pinned to its baseline: no trigger changes it until you lift the pin.": "已固定在基础心情：在你取消固定之前，任何触发都不会改变它。",
+  "At its baseline. Nothing has moved it since it last came back.": "处于基础心情。自上次回到基础心情以来，没有什么改变它。",
+  "No triggers yet.": "还没有触发记录。", "Only the most recent triggers are listed.": "只列出了最近的触发记录。",
+  "Mood pinned to its baseline.": "心情已固定在基础心情。", "Mood pin lifted.": "已取消固定心情。", "Mood reset.": "心情已重置。",
+  "Put the mood back at its baseline and forget its triggers? Feelings, notes and the personality are not touched, and events before now never change the mood again.":
+    "把心情恢复到基础心情，并忘掉它的触发记录？感受、笔记和个性不受影响，之前发生的事也不会再改变心情。",
+  "Leave the mood empty to rest at calm. It is the resting point the simulated mood returns to; it is not a feeling.":
+    "心情留空则以平静为基础心情。它是模拟心情回归的起点，不是一种真实的感受。",
 };
 
 // Sentences built from numbers and names; the captured parts are kept as they are.
@@ -279,6 +295,12 @@ const ZH_PATTERNS = [
   [/^Latest recorded recall \((.+)\): it found nothing to add\.$/, (m, when) => `最近一次记录的回忆（${when}）：没有找到可补充的记忆。`],
   [/^(derived from|about person|replaces|feeling of) \((source event ids|about|replaces|note)\)$/, (m, type) => BRAIN_EDGES[type]],
   [/^Feelings cleared on (.+)$/, (m, date) => `感受已于 ${translate(date)} 清除`],
+  // Companion mood (M1): times are "14 Mar 21:05" in the viewer's own zone.
+  [/^(\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{2}:\d{2})$/, (m, d, month, time) =>
+    `${"JanFebMarAprMayJunJulAugSepOctNovDec".indexOf(month) / 3 + 1}月${d}日 ${time}`],
+  [/^Since (.+)$/, (m, when) => `始于 ${translate(when)}`],
+  [/^Back at its baseline by (.+)$/, (m, when) => `预计 ${translate(when)} 前回到基础心情`],
+  [/^Mood reset on (.+)$/, (m, date) => `心情已于 ${translate(date)} 重置`],
   [/^(\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4})$/, (m, d, month, y) =>
     `${y}年${"JanFebMarAprMayJunJulAugSepOctNovDec".indexOf(month) / 3 + 1}月${d}日`],
   [/^(\d+) original messages?$/, (m, n) => `${n} 条原始消息`],

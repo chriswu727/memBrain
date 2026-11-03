@@ -250,3 +250,13 @@ body.showing { overflow: hidden; }
   .show-brand span { display: block; }
   .show-legend { gap: 2px 12px; font-size: 12px; }
 }
+/* Companion mood (M1), inside the Personality tab. */
+.mood-now { display: inline-flex; gap: 8px; align-items: baseline; }
+.mood-why { display: grid; gap: 4px; margin: 8px 0; }
+.mood-why p, .mood-trigger p { margin: 0; }
+.mood-rule { font-weight: 600; }
+.mood-history { margin: 8px 0; }
+.mood-history .list { margin-top: 8px; }
+.mood-trigger .feeling-note { margin-top: 6px; display: grid; gap: 2px; }
+.mood-active { background: var(--accent); color: var(--paper); }
+.mood-pinned { border: 1px dashed var(--border); }
