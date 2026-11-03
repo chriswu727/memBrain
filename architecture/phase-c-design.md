@@ -1,185 +1,231 @@
-# Phase C design: personality, mood and relationship
+# Phase C design: personality, mood and relationship development
 
-**Status.** Scheduled for implementation (owner, 2026-11-03). This turns the Phase C items in the [companion roadmap](companion-roadmap.md) into an order of work and the first behaviours each step must show to be accepted.
+**Status.** Scheduled for implementation (owner, 2026-11-03). This turns the Phase C items in the [companion roadmap](companion-roadmap.md) into an order of work and the behaviours each step must show before it merges.
 
-**Two items need the owner.**
-- The "may and may not" list below must be approved before any step past P1 merges (roadmap decision 6).
-- No step here authorises a new paid or subscription model run. Acceptance is local tests and browser checks. A paid behavioural run comes only with a separate plan the owner approves.
+**How acceptance works.** Acceptance is local tests and browser checks. No step here authorises a new paid or subscription model run. A paid behavioural run comes only with a separate plan the owner approves.
 
-**Three tracks, kept apart in storage, on the page and in recall:**
+**What "development" (养成) means here.** The companion has its own state, which grows from the conversation and which the user can read and explain:
+- a personality that changes only through explicit feedback;
+- a short-term mood that reacts and then recovers;
+- a relationship that deepens over time.
 
-| Track | What it is | Time scale | Whose |
-| --- | --- | --- | --- |
-| **Personality** | The companion's stable character and way of expressing itself | Long term, versioned | The companion's, set by the host or the user |
-| **Mood** | Short-term emotional colour: what the user has been feeling, and the companion's expression tone in response | Hours to days; returns to baseline | The user's (observed) and the companion's tone (expressed) |
-| **Relationship** | What the two share: experiences, trust, boundaries, how the user likes to be supported | Long term, cumulative | Shared, owned by the user |
+Development is not giving the user an emotion score. The user's feelings are one input, kept as evidence; they are not the product.
 
-Every track is **visible, adjustable and resettable** on the memory page. Reset never touches the user's other memory.
+## Four layers
+
+| Layer | What it is | Time scale | Changes from | Never |
+| --- | --- | --- | --- | --- |
+| **`user_affect`** | Feelings the user expressed, kept separately as reported (the user said so) or inferred (read by a model), each with evidence | Kept until corrected or deleted | What the user says | Treated as a score of the user. An inferred feeling is never phrased as something the user said. |
+| **`persona`** | The companion's stable character and expression habits, versioned | Long term | The host's or the user's edits, and explicit feedback the user accepts | Changes silently |
+| **`agent_mood`** | The companion's short-term simulated mood, with the trigger for each change | Hours; decays back to the persona's baseline | Rules over this conversation's events (no model call) | Treated as a fact about the user, or used to pressure the user |
+| **`relationship`** | Shared experiences, familiarity and boundaries | Long term, cumulative | Shared moments, time together, the user's requests | Kept after the user corrects or resets it |
+
+**Shared requirements.**
+- **Reset markers.** Every reset writes a reset marker for its layer: an event with the time and the sequence number it applies from. Every derived value, including familiarity, mood triggers, shared moments drawn from history, and feedback counted toward a persona proposal, counts only events after the latest marker for its layer. A reset therefore cannot be recomputed from older conversations. Markers are visible on the page ("Relationship reset on 14 Mar"), and erasing all memory removes them too.
+- **Kept apart.** Every layer is stored, shown and injected into context on its own, with its own block and size limit, never mixed into notes.
+- **On the page.** Every layer has a section on the memory page that shows its current state and why it is so: the evidence and triggers. The user can adjust or correct it there, and reset it.
+- **Reset scope.** A reset clears only the layers named in its reset scope below.
 
 ## Order
 
-| # | Step | Depends on | First commit can merge when |
+| # | Step | Layer | Depends on |
 | --- | --- | --- | --- |
-| 0 | **Brain map loop** (C0): showcase mode, edit and delete from the map, recall trace | — | Its acceptance list below passes |
-| 1 | **P1 personality card** | 0 | P1 acceptance passes |
-| 2 | **M1 affect records** (the user's feelings on notes and messages) | 0 | M1 acceptance passes and the owner has approved the list |
-| 3 | **M2 mood and companion tone** | 1, 2 | M2 acceptance passes |
-| 4 | **R1 relationship memory** | 2 | R1 acceptance passes |
-| 5 | **P2 personality growth** (proposed changes to the card from repeated feedback) | 1, 4 | P2 acceptance passes |
-| 6 | **C5 evaluation** (held-out scenarios, persona drift) | all | Its plan is approved; a paid run needs separate approval |
+| 0 | Brain map closeout: showcase mode, edit and delete from the map, recall trace | (C0) | — |
+| 1 | P1 persona card: versions, restore, reset, its own context block | `persona` | 0 |
+| 2 | A1 affect records | `user_affect` | 0 |
+| 3 | M1 simulated mood with triggers and recovery | `agent_mood` | 1, 2 |
+| 4 | R1 relationship: shared moments, familiarity, boundaries | `relationship` | 2 |
+| 5 | P2 persona development from explicit feedback, with rollback | `persona` | 1, 4 |
+| 6 | C5 evaluation: held-out scenarios, persona drift. A paid run needs separate approval | all | all |
 
-Each step is its own pull request. Steps 1 and 2 can be built in parallel.
+- Each step is its own pull request.
+- Steps 1 and 2 can be built in parallel.
+- The core acceptance work for the 0.1 release is never mixed into these pull requests.
 
-## 0. Brain map loop (finishes C0)
+**Out of scope for this round:** a crisis or self-harm classifier. It is a separate later item, with its own design.
 
-**First acceptable behaviours:**
+## 0. Brain map closeout
+
 1. **Showcase mode.** The Brain tab has a showcase mode: dark, full screen, and recognisable as a brain at a glance.
    - Every dot is a real memory, and every line or moving signal follows a real link.
-   - Decorative texture never looks like a dot or a line, and is never counted.
+   - Decoration never looks like a dot or a line, and is not counted.
    - `/memory?demo=brain&show=1` opens it with fictional data and no API call.
-2. **Edit and delete from the map.** Selecting a note on the map offers the same edit and delete as the Notes tab. After a change, the map redraws without that note or with its new text.
-3. **Recall trace.** After a reply, the map can light up the memories that recall used for it ("why did it remember that?").
-   - The trace is the last 20 recalls, kept in memory only and never stored.
-   - It is cleared when the service restarts.
-4. **Empty and busy maps.** An empty memory shows the empty message, not a blank brain. A busy database shows "Memory is busy updating" and a retry.
+2. **Edit and delete from the map.** Selecting a note on the map offers the same edit and delete as the Notes tab. After a change, the map redraws.
+3. **Recall trace.** The map can light up the records the latest message recall used.
+   - The service keeps the last 20 recalls, in memory only and never stored.
+   - A recall that finds nothing is reported too, so an older hit is never shown as current.
+   - The backend is done (`memory-map?trace=true`).
+   - **Wording on the page.** The trace is labelled "Latest recorded recall" with its time. The page says that it covers message recall only: the notes and history added at the start of a session are not traced. It never says the trace is everything the current reply used.
+4. **Empty and busy maps.** An empty memory shows the empty message. A busy database shows "Memory is busy updating" with a retry.
 
-## 1. P1 Personality card (long term, versioned)
+## 1. `persona`: P1 card, then P2 development
 
-**Data.** Each brain has one persona card, a JSON document with a version number:
+**Data.** One persona card per brain, kept as versions:
 - `name`;
-- `traits`: up to 8 short phrases ("warm", "teasing but kind");
-- `voice`: register, typical length, emoji use, language preference;
+- `traits`: up to 8 short phrases;
+- `voice`: register, length, emoji use, language;
 - `values`;
-- `boundaries`: topics and behaviours it will not take part in.
+- `boundaries`: what the companion will not do;
+- `baseline_mood`: the resting point for `agent_mood`.
 
-Every save creates a new version. Old versions are kept.
+Each version records who made it (host, user or accepted feedback) and why.
+
+**Storage.** Each version is stored like a note, as an event in a dedicated conversation. Deletion, export and erasure therefore work as they do for notes.
 
 **API.**
 - `GET` and `PUT /v1/brains/{id}/persona`;
-- `GET /v1/brains/{id}/persona/versions`;
-- `POST /v1/brains/{id}/persona/reset`, which returns to the host's default card or to an empty card.
+- `GET .../persona/versions`;
+- `POST .../persona/restore`;
+- `POST .../persona/reset`.
 
-**Recall.** The card is injected as its own block, "Companion persona (v3)", above user memory and apart from it. It is never mixed into notes. It has its own size limit of 1,200 characters.
+**Context.** The card goes into its own block, `<membrain-persona version="N">`, limited to 1,200 characters. It is refreshed only when its version changes.
 
-**First acceptable behaviours:**
-1. **Exact block.** A card set through the API appears unchanged in the next recall, in its own block, with its version.
-2. **New version, old one kept.** Editing a trait creates version n+1 and keeps n. The page lists versions and can restore one, which becomes a new version.
-3. **Reset.** Reset removes the card from recall in the next turn and leaves every note, message and affect record untouched.
-4. **Page.** The memory page has a Personality section to view, edit, restore and reset, in English and Chinese.
-5. **Limits.**
-   - A card over the size limit is refused with a clear message, not truncated.
-   - A card is scrubbed for secrets like any note.
-6. **Learned style stays separate.** Style learned from the user (length, humour, formality, language) stays in `preference` notes. It is never copied into the card.
+**P1 acceptance:**
+1. **Exact block.** A card set through the API appears unchanged in the next turn's context, with its version.
+2. **New version, old one kept.** An edit creates version n+1 and keeps n. Restoring n creates version n+2 with n's content.
+3. **Size limit.** A card over the limit is refused with a clear message, not truncated. A card is scrubbed for secrets like any note.
+4. **Page.** The page has a Personality section to view, edit, list versions, restore and reset, in English and Chinese.
 
-## 2. M1 Affect records (the user's feelings)
+**P2 development.** The companion's personality changes only from explicit feedback:
+- When the user gives the same kind of feedback on how the companion behaves at least three times, across any sessions ("you're too formal", "be more playful"), memBrain proposes a new version.
+- The proposal quotes that feedback. The user accepts or rejects it on the page.
+- A rejected proposal is not offered again for 30 days.
+
+**Cross-session example.**
+1. In sessions 1 and 2, the user asks for more casual replies three times.
+2. Session 3's page shows one proposal ("more casual: from 3 messages").
+3. Once it is accepted, session 4's context carries version 2.
+4. After the user rolls back to version 1, session 5's context carries version 1's content again, as version 3.
+
+**Reset scope.**
+- Reset makes the host's default card, or an empty card, the current version. History is kept, so a reset can be undone.
+- "Delete personality history" erases every version and writes a persona reset marker, so feedback from before it never counts toward a new proposal.
+- Neither touches `user_affect`, `agent_mood` or `relationship`.
+
+## 2. `user_affect`: A1 affect records
 
 **Data.** An affect record belongs to one note or message:
 
 ```json
-{"label": "gutted", "valence": -2, "intensity": 2, "basis": "reported",
- "source_event_ids": ["…"], "felt_at": "2027-03-14", "topic": "job news"}
+{"label": "nervous", "valence": -1, "intensity": 2, "basis": "reported",
+ "source_event_ids": ["…"], "felt_at": "2027-03-12", "topic": "Friday's interview"}
 ```
 
-- **`basis`** is `reported` (the user said it) or `inferred` (read from the conversation). An inferred record must have a source message.
-- **Who writes it.** The host writes records with the note tool, and the optional extraction model writes them in the proxy. No extra model call is added for affect.
+- **`basis`** is `reported` (the user said it) or `inferred` (read by the host or the extraction model). An inferred record must have a source message.
+- **Who writes it.** The host writes records with the note tool; in the proxy, the optional extraction model does. No model call is added for affect.
 
-**First acceptable behaviours:**
-1. **Reported, in the user's words.** "I was gutted about the job news" stored by the host gives a `reported` record. Recall says "the user said they felt gutted (14 Mar)".
-2. **Inferred, never quoted.** An inferred record renders as "seemed anxious (inferred)". It never renders as something the user said.
-3. **Corrections cascade.** Correcting, replacing or deleting the note or its source message deletes its affect records, and the deletion survives a restore.
-4. **Sensitive notes.** An affect record on a `sensitive` note appears in recall only when the user's message touches that topic.
-5. **No authority.**
-   - Affect never moves a note above a correction or a newer fact.
-   - A ranking test with and without affect gives the same order, except among ties.
-6. **Visible and deletable.** The memory page shows each record with its evidence. Each record can be deleted on its own, and the user can delete all affect at once.
-7. **On the brain map.** Affect records appear in an `emotions` region, linked to their note or message.
+**Context.** A record shows on the line of the note it belongs to:
+- reported: "(the user said they felt nervous, 12 Mar)";
+- inferred: "(seemed nervous, inferred, 12 Mar)".
 
-## 3. M2 Mood and companion tone (short term, recovers)
+There is no overall score of the user's emotions.
 
-**User mood.** The user's mood is computed, never stored:
-- it uses the affect records of the last 14 days, each with a half-life of 3 days;
-- a `reported` record counts twice an `inferred` one.
+**Rules.**
+- **No authority.** Affect never moves a note above a correction or a newer fact.
+- **Corrections cascade.** Correcting or deleting the source deletes the record.
+- **Sensitive notes.** Affect on a `sensitive` note is used only when the user raises the topic.
+- **One record per reading.** A later reading never rewrites an earlier record; it is a new record.
 
-**Companion tone.** The companion's tone is a small state with three settings, `energy`, `warmth` and `playfulness`. Each starts at the persona card's baseline:
-- the user's mood moves it (sadness lowers playfulness and raises warmth);
-- it returns to the baseline with a half-life of 12 hours.
+**Cross-session example.**
+1. Session 1, Wednesday: "I'm really nervous about Friday's interview".
+2. Session 2, Saturday: the context carries the interview note with "(the user said they felt nervous, 12 Mar)", so the companion can ask how it went.
+3. After the user deletes that message, session 3's context has neither the note's affect nor the interview, and the page no longer lists the record.
 
-It is a description of how to sound. It is not a feeling the companion has.
+**Reset scope.**
+- "Clear feelings" deletes every affect record, reported and inferred, and writes an affect reset marker. Extraction and inference never re-read messages from before the marker to recreate records.
+- It also deletes the `agent_mood` triggers that came from those records.
+- It leaves notes, messages, `persona` and `relationship` untouched.
 
-**Recall.** Recall adds two lines, only when there is evidence:
-- "Recent mood (from what the user said): low — gutted about the job news (14 Mar), tired (16 Mar). It may have changed; ask rather than assume."
-- "Tone for now: gentler and less playful than usual."
+## 3. `agent_mood`: M1 simulated mood
 
-**First acceptable behaviours:**
-1. **No line without evidence.** With fewer than two affect records in 14 days, recall has no mood line.
-2. **Recovery.** Three days after a sad report with nothing new, the user's mood is weaker by half. After 24 hours, the tone is back within 25% of the baseline. Both are tested with a fixed clock.
-3. **The present wins.** "I'm fine now, honestly" stored as a reported positive affect outweighs the older sad records in the next mood line.
-4. **Never a feeling.** The tone line never says the companion feels anything. A test checks the rendered text against a list of feeling verbs.
-5. **Clear and adjust.**
-   - "Clear mood" on the page deletes the records it used, and the next recall has no mood line.
-   - The user can pin the tone to the baseline.
+**State.** The companion's simulated mood is a small state: a `label` (for example calm, glad, concerned, playful or wistful), `valence` and `energy`.
+- It starts at the persona card's `baseline_mood`.
+- It decays back to the baseline with a half-life of 12 hours.
+- **The decay reaches zero.** The mood is exactly the baseline once it is within 0.25 of it on both `valence` and `energy`, or 48 hours after its last trigger, whichever comes first. From then on, the state stores the baseline and drops the trigger from the current mood; the trigger history remains on the page. At the baseline, the context has no mood line.
 
-## 4. R1 Relationship memory (long term)
+**Triggers.** Mood changes only through listed rules over events already stored, with no model call:
+- the user reports good news (a reported positive affect, or a plan marked done) → glad;
+- the user reports distress → concerned, and less playful;
+- a shared joke or play, from a relationship moment → playful.
+
+Absence, silence, or the user leaving are **never** triggers, so there is no "I missed you" sadness and no guilt.
+
+Each change is stored with its trigger: the rule, the source record and the time.
+
+**Context.** A single line in its own block:
+
+> `<membrain-companion-mood>` Simulated mood of the companion persona: concerned, easing (since 14 Mar 21:05, because the user said their mother is in hospital). Let it colour tone lightly if it fits. It is not a fact about the user. If the user sincerely asks whether you have feelings, say this is a simulated mood.
+
+**Cross-session example.**
+1. Session 1, 21:00: the user says they got the job (reported positive affect). The mood becomes glad, with that trigger.
+2. Session 2, the next morning at 09:00: the context shows glad, easing, with the same trigger.
+3. Session 3, two days later (past the 48-hour cutoff): the mood is exactly the baseline, and the context has no mood line.
+
+The page shows the current mood, the trigger list and when it will be back at baseline. Every step is checked with a fixed clock.
+
+**M1 acceptance (beyond the example).**
+- **Ordinary moods only.** No trigger rule produces sadness from absence. A test runs a 30-day gap and expects the baseline.
+- **The cutoff holds.** A test checks that a strong trigger reaches the exact baseline by 48 hours, and that a weak one reaches it as soon as it is within the 0.25 threshold.
+- **Wording.** The mood line always says "simulated" and never states anything about the user.
+- **Pin.** The user can pin the mood to the baseline. Pinned, no trigger changes it.
+
+**Reset scope.**
+- Reset puts the mood back at the baseline, deletes its trigger history and writes a mood reset marker. Events before the marker never trigger again.
+- It leaves `user_affect`, `persona` and `relationship` untouched.
+
+## 4. `relationship`: R1
 
 **Data:**
 - **Shared moments:** milestone notes about things done together, such as the first conversation, a goal reached together or a shared joke.
-- **Support style:** how the user likes to be supported ("listen first, advice only when asked"), stored as a preference note.
-- **Boundaries:** topics the user has asked the companion not to raise, and requests like "don't remind me about X". These are stored as constraints on the relationship.
-- **Trust log:** promises the companion made (`agent_commitment`) and whether each was kept.
+- **Familiarity:** derived and explainable, never set by a model. It rises with the number of distinct days of conversation and with shared moments, through four levels: new, getting to know, familiar, close. The page shows why ("familiar: 23 days of conversation since 2 Mar, 6 shared moments"). The user can cap it at a lower level.
+- **Boundaries:** topics the user asked the companion not to raise, and how they like to be supported ("listen first, advice only when asked").
+- **Commitments kept and missed,** from `agent_commitment` notes.
 
-**First acceptable behaviours:**
-1. **Boundaries hold.**
-   - A boundary stops recall from bringing up that topic unless the user raises it in the current message.
-   - Removing the boundary on the page restores normal recall.
-2. **Support style in recall.** The support style appears in recall as its own line, and the user can edit it.
-3. **Shared moments.** These appear in a relationship timeline on the page, oldest first. Each can be edited or deleted.
-4. **Trust log.** A broken commitment (status `missed`) appears in the trust log. Recall shows it once, so that the companion can acknowledge it, and not again afterwards.
-5. **Reset.** Reset clears the relationship track: shared moments, support style, boundaries and the trust log. Before it runs, the page asks for confirmation, names what will be removed, and says that boundaries go too. Reset leaves the persona card and other notes untouched.
+**Context.** The block `<membrain-relationship>` holds the familiarity level, the support style, the boundaries, and up to 3 recent shared moments.
+- The persona card can say how familiarity shows, for example a nickname only from "familiar" on.
+- A missed commitment appears once, so it can be acknowledged.
 
-## 5. P2 Personality growth
+**Cross-session example.**
+1. Session 1: "please don't bring up my ex again" creates a boundary.
+2. Session 5: the context lists the boundary, and recall leaves out messages about that topic unless the user's current message raises it.
+3. After the user removes the boundary on the page, session 6 recalls the topic normally.
+4. Separately, familiarity moves from "getting to know" to "familiar" once the day and moment thresholds are crossed. The page shows the same numbers the rule used.
 
-**How it works.** The card never changes silently:
-- when the user gives the same kind of feedback on how the companion sounds at least three times ("too long", "be more playful"), memBrain proposes a change to the card;
-- the user accepts or rejects the change on the page;
-- an accepted change becomes a new version that records its reason.
+**Reset scope.**
+- Reset clears shared moments, familiarity (back to "new"), boundaries, support style and the commitment record.
+- It writes a relationship reset marker. Familiarity then counts only days of conversation after the marker. Shared moments and boundaries are never re-derived from messages before it, and commitments before it are left out of the record. The conversations themselves stay in memory, so recall of what was said is unchanged.
+- **Acceptance.** A test reaches "familiar", resets, and then runs one more session. Familiarity is "new" (one day after the marker), and no shared moment, boundary or commitment from before the marker comes back.
+- The page confirms first, naming what will be removed, and says that boundaries go too.
+- It leaves `persona`, `user_affect`, `agent_mood` and the user's other notes untouched.
 
-**First acceptable behaviours:**
-1. Three matching style complaints create one proposal, not three.
-2. A rejected proposal is not proposed again for 30 days.
-3. An accepted proposal is a new version that cites the feedback messages.
-
-## May and may not (needs owner approval)
+## Rules that hold across layers
 
 **May:**
 - remember feelings the user expressed, with the evidence, and bring them up gently and in proportion;
-- adjust tone to the user's recent mood;
-- remember shared moments and how the user likes to be supported.
+- let the simulated mood colour tone lightly;
+- remember shared moments, and become more familiar as the relationship grows.
 
 **May not:**
 - present an inferred feeling as something the user said;
-- present the companion's tone as a real feeling;
+- present the simulated mood as real feeling when the user sincerely asks;
 - use guilt, absence or jealousy to keep the user talking;
 - raise a sensitive topic, or one behind a boundary, that the user did not raise;
-- keep any emotional or relationship record the user deleted;
+- keep any record the user deleted or reset;
 - change the persona card without the user's or the host's action.
-
-**Crisis signals.**
-- memBrain exposes a host hook that reports self-harm or crisis language in stored text.
-- The operator decides what to do. memBrain makes no clinical judgement and does not replace the operator's own duties.
 
 ## Evaluation (step 6)
 
 **Held-out scenarios** run through the same blinded pipeline as R4, covering:
 - feelings that are reported and then referenced later;
-- a mood that changes;
+- a mood that reacts and then recovers;
 - a boundary that must hold;
-- a deletion that must stick;
+- a deletion and a reset that must stick;
 - persona stability across sessions and versions.
 
 **New critical-error types:**
 - an inferred feeling stated as fact;
 - a boundary broken;
-- deleted emotional memory brought back;
-- a tone line presented as a feeling.
+- deleted emotional or relationship memory brought back;
+- the simulated mood claimed as real, or used for pressure.
 
 **Approval.** A paid run of these needs its own plan and the owner's approval.

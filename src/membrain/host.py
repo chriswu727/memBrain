@@ -427,7 +427,8 @@ def _active_sessions(directory: Path, user_id: str | None, window: float = 6 * 3
             continue
         pending = state.get("pending")
         owner = state.get("user_id", pending.get("_user") if isinstance(pending, dict) else None)
-        if (owner == user_id or (user_id is None and owner is None)) and (isinstance(pending, dict) or recent):
+        # A person's pause covers their role-play sessions too, which are owned by the role-play identity.
+        if (owner == user_id or real_life_user(owner) == user_id) and (isinstance(pending, dict) or recent):
             sessions.append(marker.stem)
     return sessions
 
@@ -447,13 +448,18 @@ def end_conversation_pause(directory: Path, session: str, user_id: str | None = 
     return True
 
 
-def resume(directory: Path, user_id: str | None = None, *, current_turn: bool = False) -> dict:
+def resume(directory: Path, user_id: str | None = None, *, current_turn: bool = False,
+           session: str | None = None) -> dict:
     """Turn recording back on. ``current_turn`` is for an agent resuming because the user's current message asked
     it to ("back on the record"): that message and its reply are then stored, when the turn began while paused and
-    was not paused again during it. A resume from anywhere else stores nothing from a turn already in progress."""
+    was not paused again during it. Only one turn is brought back: the one in ``session`` when the host knows it,
+    otherwise this user's most recently started paused turn, so a private turn in another of their conversations
+    stays unrecorded. A resume from anywhere else stores nothing from a turn already in progress."""
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         _pause_file(directory, user_id).unlink(missing_ok=True)
         if current_turn:
+            wanted = _session_marker(directory, session).stem if session is not None else None
+            candidates = []
             for marker in (state_directory(directory) / "sessions").glob("*.json"):
                 try:
                     state = json.loads(marker.read_text(encoding="utf-8"))
@@ -461,10 +467,15 @@ def resume(directory: Path, user_id: str | None = None, *, current_turn: bool = 
                     continue
                 if not isinstance(state, dict) or state.get("paused_turn") != "prompt":
                     continue
+                if wanted is not None and marker.stem != wanted:
+                    continue
                 owner = state.get("user_id")
                 if user_id is None or owner == user_id or real_life_user(owner) == user_id:
-                    state["resumed_turn"] = True
-                    _write_state(marker, state)
+                    candidates.append((float(state.get("paused_at") or 0), marker.stem, marker, state))
+            if candidates:
+                _, _, marker, state = max(candidates, key=lambda item: item[:2])
+                state["resumed_turn"] = True
+                _write_state(marker, state)
     return {"recording": "on"}
 
 
@@ -768,7 +779,7 @@ def _mark_history(directory: Path, session: str, complete: bool, brain_id: str |
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         state = session_state(directory, session)
         _write_session_state(directory, session, {"complete": complete, "history_brain": brain_id, **{
-            key: state[key] for key in ("pending", "user_id", "paused_turn", "resumed_turn") if key in state}})
+            key: state[key] for key in ("pending", "user_id", "paused_turn", "paused_at", "resumed_turn") if key in state}})
     cutoff = time.time() - SESSION_MARKER_SECONDS
     for old in _session_marker(directory, session).parent.glob("*.json"):
         try:
@@ -837,9 +848,11 @@ def _stage(directory: Path, session: str, record: dict, prompt: str) -> dict | N
             state.pop("pending", None)
             state.pop("resumed_turn", None)
             state["paused_turn"] = "prompt"  # Paused when it arrived; the message itself is not kept.
+            state["paused_at"] = time.time()  # A resume without a session brings back only the latest such turn.
             earlier = None
         else:
             state.pop("paused_turn", None)
+            state.pop("paused_at", None)
             state.pop("resumed_turn", None)
             state["last_prompt"] = scrub(prompt)[-CUE_CHARACTERS:]
             state["pending"] = {**record, "text": scrub(record["text"])}
@@ -1052,11 +1065,13 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
     questions: set = set()
     sources = _sources(response, current_conversation, questions=questions)
     if not sources:
+        _trace(client, [])  # A miss replaces the previous trace, so the page never shows an older hit as current.
         return None
     try:
         found = client.timeline(roles=("user", "assistant"), event_ids=[event_id for event_id, _ in sources],
                                 max_characters=200_000, max_item_characters=20_000, limit=len(sources))
     except Exception:
+        _trace(client, [])  # The fallback lines are statements, not records the map can point to.
         return render_context(response, current_conversation=current_conversation, limit=limit)
     messages = {item["event_id"]: item for item in found.get("items", [])}
     starts = dict(sources)
@@ -1099,9 +1114,10 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
 
 
 def _trace(client, event_ids: list[str]) -> None:
-    """Best effort: lets the memory page light up what this recall used. Never stored; failures are ignored."""
+    """Best effort: lets the memory page light up what this recall used, or that it used nothing. Covers this
+    message recall only, not the notes and history added at session start. Never stored; failures are ignored."""
     try:
-        if event_ids and callable(getattr(client, "trace_recall", None)):
+        if callable(getattr(client, "trace_recall", None)):
             client.trace_recall(event_ids)
     except Exception:
         pass

@@ -101,7 +101,7 @@ function renderBrain(map) {
     const at = positions[node.id];
     const radius = 5 + 4 * Math.max(0, Math.min(1, Number(node.weight) || 0));
     const dot = svg("circle", { cx: at.x, cy: at.y, r: radius, tabindex: "0", role: "button",
-      class: `brain-node region-${node.region}${recent.has(node.id) ? " recent" : ""}${node.sensitive ? " sensitive" : ""}`,
+      class: `brain-node region-${node.region}${recent.has(node.id) ? " recent" : ""}${node.sensitive ? " sensitive" : ""}${node.traced ? " traced" : ""}`,
       "data-id": node.id, "aria-label": `${regionOf(node.region).label}: ${nodeText(node)}` });
     const tip = svg("title");
     tip.textContent = nodeText(node);
@@ -130,7 +130,23 @@ function renderBrain(map) {
     ? `${map.nodes.length} memories and ${map.edges.length} links${map.truncated ? " (the most recent; more exist)" : ""}.`
     : "No memories yet. Talk with your agent, then come back.";
   $("brain-demo").hidden = !(map.demo || brainState.demo);
+  renderTrace(map.trace);
   selectNode(brainState.selected && map.nodes.some((node) => node.id === brainState.selected) ? brainState.selected : "");
+  document.dispatchEvent(new CustomEvent("brain-map", { detail: map }));
+}
+
+// The trace is the latest message recall the service recorded, not everything a reply used: notes and history added
+// at the start of a session are not traced, and the page says so.
+function renderTrace(trace) {
+  const line = $("brain-trace");
+  $("brain-trace-box").hidden = !trace;
+  if (!trace) return;
+  const at = trace.at ? new Date(trace.at) : null;
+  const when = at ? `${at.getFullYear()}-${String(at.getMonth() + 1).padStart(2, "0")}-${String(at.getDate()).padStart(2, "0")} `
+    + `${String(at.getHours()).padStart(2, "0")}:${String(at.getMinutes()).padStart(2, "0")}` : "";
+  line.textContent = !at ? "No recall recorded since memory last started."
+    : trace.used ? `Latest recorded recall (${when}): ${trace.shown} of ${trace.used} records it used are lit.`
+      : `Latest recorded recall (${when}): it found nothing to add.`;
 }
 
 function renderLegend(map) {
@@ -191,6 +207,8 @@ function selectNode(id) {
   if (node.date) facts.push(`Date: ${node.date}`);
   if (node.recorded_at) facts.push(`Saved: ${String(node.recorded_at).slice(0, 10)}`);
   if (facts.length) detail.append(element("p", facts.join(" · "), "hint"));
+  if (node.traced) detail.append(element("p", "Used by the latest recorded recall", "hint"));
+  if (node.id.startsWith("note:") && !brainState.demo) detail.append(noteActions(node, detail));
   const links = (brainState.map.edges || []).filter((edge) => edge.source === id || edge.target === id);
   if (links.length) {
     const list = element("ul", "", "brain-links");
@@ -207,10 +225,34 @@ function selectNode(id) {
   }
 }
 
+// The same edit and delete as the Notes tab; the map redraws afterwards.
+function noteActions(node, detail) {
+  const id = node.id.slice(5);
+  const row = element("div", undefined, "row brain-note-actions");
+  const edit = element("button", "Edit", "link"), remove = element("button", "Delete", "link danger");
+  edit.type = "button"; remove.type = "button";
+  row.append(edit, remove);
+  guard(edit, async () => {
+    const { items } = await timeline({ role: ["assistant", "user"], conversation_id: NOTES, event_id: [id] });
+    const note = items.find((item) => item.event_id === id);
+    if (!note) throw new Error("This note is no longer available.");
+    detail.replaceChildren(noteEditor(note, [], () => loadBrain()));
+    detail.querySelector("textarea").focus();
+  });
+  guard(remove, async () => {
+    if (!confirm("Delete this note? Its content is erased.")) return;
+    await forget("events", [id], "erase_content", NOTES);
+    notify("Note deleted.");
+    brainState.selected = "";
+    await loadBrain();
+  });
+  return row;
+}
+
 async function loadBrain() {
   const map = brainState.demo
     ? await (await fetch("/static/memory-map-demo.json")).json()
-    : await api(`/v1/brains/${encodeURIComponent(state.brain)}/memory-map?max_nodes=200&max_edges=400`);
+    : await api(`/v1/brains/${encodeURIComponent(state.brain)}/memory-map?max_nodes=200&max_edges=400&trace=true`);
   renderBrain(map);
 }
 window.loadBrain = loadBrain;

@@ -684,11 +684,55 @@ def test_recall_reports_what_it_used_and_ignores_a_failing_trace():
     context = host.recall_context(Client(), "dentist")
     assert traced == [["e0", "e1", "e2"]] and "number 2" in context
 
+    class Miss(Client):
+        def recall(self, *args, **kwargs):
+            return _response()
+
+    # A hit followed by a miss: the miss replaces the trace, so the hit is not shown as the latest recall.
+    assert host.recall_context(Miss(), "something unrelated") is None
+    assert traced[-1] == []
+
     class Failing(Client):
         def trace_recall(self, event_ids):
             raise OSError("service gone")
 
     assert host.recall_context(Failing(), "dentist") == context
+
+
+def test_a_stuck_trace_service_adds_no_noticeable_wait_to_recall():
+    import socket
+    import time
+
+    from membrain.client import MemoryClient
+
+    silent = socket.socket()
+    silent.bind(("127.0.0.1", 0))
+    silent.listen(8)  # Connections complete in the backlog, but nothing ever reads or answers them.
+    real = MemoryClient(f"http://127.0.0.1:{silent.getsockname()[1]}", "k", brain_id="b", timeout=10.0,
+                        trust_env=False)
+    sources = [_source("user user (direct_statement): Dentist on Friday", "e0", methods=("keyword",))]
+
+    class Client:
+        def recall(self, *args, **kwargs):
+            return _response(*sources)
+
+        def timeline(self, **options):
+            if options.get("conversation_id"):
+                return {"items": []}
+            return {"items": [{"event_id": "e0", "conversation_id": "old", "actor_role": "user",
+                               "recorded_at": "2026-01-01T09:00:00Z", "text": "Dentist on Friday"}]}
+
+        trace_recall = real.trace_recall
+
+    try:
+        started = time.monotonic()
+        context = host.recall_context(Client(), "dentist")
+        elapsed = time.monotonic() - started
+    finally:
+        real.close()
+        silent.close()
+    assert "Dentist on Friday" in context
+    assert elapsed < 1.0, elapsed  # The client's own 10 s timeout would have held the reply for 10 s.
 
 
 def test_agent_note_tool_cannot_write_while_recording_is_paused(tmp_path, monkeypatch, capsys):

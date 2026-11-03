@@ -411,6 +411,43 @@ def test_resuming_for_one_user_does_not_store_another_users_paused_turn(tmp_path
     assert host.turn_resumed(tmp_path, "a") and not host.turn_resumed(tmp_path, "b")
 
 
+def test_resuming_brings_back_only_the_turn_that_asked_not_the_same_users_other_conversation(tmp_path, monkeypatch):
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda *args: client)
+    monkeypatch.setattr(host, "use_brain", lambda *args: None)
+    host.pause(tmp_path, user_id="alice")
+    host.prompt_context(tmp_path, "private", "off the record: my diagnosis", turn_id="t1", user_id="alice")
+    host.prompt_context(tmp_path, "asks", "Back on the record: flight moved to the 28th.", turn_id="t1",
+                        user_id="alice")
+    # A host that knows the conversation passes it; one that does not gets only the latest paused turn.
+    host.resume(tmp_path, user_id="alice", current_turn=True, session="asks")
+    assert host.turn_resumed(tmp_path, "asks") and not host.turn_resumed(tmp_path, "private")
+    host.finish_turn(tmp_path, "private", "ok", turn_id="t1", prompt="off the record: my diagnosis", user_id="alice")
+    assert client.observed == []
+
+    host.pause(tmp_path, user_id="alice")
+    host.prompt_context(tmp_path, "private2", "off the record: other secret", turn_id="t2", user_id="alice")
+    monkeypatch.setattr(host.time, "time", lambda: 10 ** 10)  # The asking turn starts later.
+    host.prompt_context(tmp_path, "asks2", "Back on the record please.", turn_id="t2", user_id="alice")
+    host.resume(tmp_path, user_id="alice", current_turn=True)
+    assert host.turn_resumed(tmp_path, "asks2") and not host.turn_resumed(tmp_path, "private2")
+
+
+def test_a_conversation_pause_holds_in_the_role_play_where_it_was_asked(tmp_path, monkeypatch):
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda *args: client)
+    monkeypatch.setattr(host, "use_brain", lambda *args: None)
+    role = host.roleplay_user("alice", "Merlin")
+    host.prompt_context(tmp_path, "rp", "Merlin, off the record: I'm moving out.", turn_id="t1", user_id=role)
+    host.pause(tmp_path, user_id="alice", conversation=True)  # Hosts pause the real-life person.
+    host.finish_turn(tmp_path, "rp", "Understood.", turn_id="t1", user_id=role)
+    host.session_context(tmp_path, "rp", user_id="alice", roleplay="Merlin")  # Same role-play continues.
+    assert host.paused(tmp_path, role)
+    host.prompt_context(tmp_path, "rp", "It's because of my landlord.", turn_id="t2", user_id=role)
+    host.finish_turn(tmp_path, "rp", "I see.", turn_id="t2", user_id=role)
+    assert client.observed == []
+
+
 def test_the_stop_hook_stores_a_resumed_turn_from_the_transcript(tmp_path, monkeypatch):
     from membrain import plugin
 
