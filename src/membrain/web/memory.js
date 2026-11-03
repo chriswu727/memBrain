@@ -531,6 +531,7 @@ async function loadPersona() {
     item.append(element("p", `History deleted on ${day(marker.recorded_at)}`, "hint"));
     list.append(item);
   }
+  await loadMood(); // The baseline mood comes from the card.
 }
 
 function personaVersion(version, current) {
@@ -589,6 +590,90 @@ guard($("persona-delete-history"), async () => {
   notify("Personality history deleted.");
   await loadPersona();
 });
+
+// Companion mood (M1) ----------------------------------------------------------------------------------------
+// A simulated short-term mood the service derives from stored events; the page reads it, pins it or resets it.
+const moodPath = (suffix = "") => `/v1/brains/${encodeURIComponent(state.brain)}/mood${suffix}`;
+const MOOD_LABELS = { glad: "Glad", concerned: "Concerned", playful: "Playful", calm: "Calm", wistful: "Wistful" };
+const MOOD_RULES = { reported_good_news: "Good news you shared", inferred_good_news: "Good news, inferred",
+  plan_done: "A plan noted done", reported_distress: "Something hard you shared",
+  inferred_distress: "Something hard, inferred", shared_play: "A shared joke" };
+const MOOD_STATUS = { active: "active", ended: "back at baseline", pinned: "ignored while pinned" };
+const two = (value) => String(value).padStart(2, "0");
+function moodTime(value) {
+  const moment = new Date(value);
+  return `${moment.getDate()} ${MONTHS[moment.getMonth()]} ${two(moment.getHours())}:${two(moment.getMinutes())}`;
+}
+
+function moodLabel(mood) {
+  // A baseline named on the personality card is the user's or host's own word; the table's labels are translated.
+  if (mood.at_baseline && mood.baseline.source === "persona") return element("span", mood.label, "tag user-text");
+  return element("span", MOOD_LABELS[mood.label] || mood.label, "tag");
+}
+
+function moodSource(trigger) {
+  const source = trigger.source || {};
+  const box = element("div", undefined, "feeling-note");
+  if (source.kind === "affect") {
+    box.append(element("p", source.basis === "reported" ? "You said you felt" : "Your agent inferred you seemed", "hint"),
+      element("p", source.label + (source.topic ? ` · ${source.topic}` : ""), "user-text"));
+    if (source.basis !== "reported") box.append(element("p", "You did not say it.", "hint"));
+  }
+  if (source.note_text) box.append(element("p", "On the note:", "hint"), element("p", source.note_text, "user-text"));
+  return box;
+}
+
+function moodTrigger(trigger) {
+  const item = element("article", undefined, "item mood-trigger");
+  const meta = element("div", undefined, "meta");
+  meta.append(element("span", moodTime(trigger.at)), element("span", MOOD_RULES[trigger.rule] || trigger.rule, "tag"),
+    element("span", MOOD_STATUS[trigger.status] || trigger.status, `tag mood-${trigger.status}`));
+  item.append(meta, moodSource(trigger));
+  return item;
+}
+
+async function loadMood() {
+  const mood = await api(moodPath());
+  state.mood = mood;
+  const now = $("mood-now");
+  now.replaceChildren(moodLabel(mood));
+  if (mood.easing) now.append(element("span", "easing", "hint"));
+  const why = $("mood-why");
+  why.replaceChildren();
+  if (mood.pinned) why.append(element("p", "Pinned to its baseline: no trigger changes it until you lift the pin.", "hint"));
+  else if (mood.at_baseline) why.append(element("p", "At its baseline. Nothing has moved it since it last came back.", "hint"));
+  else {
+    const main = mood.triggers.find((trigger) => trigger.id === mood.trigger_id);
+    why.append(element("p", `Since ${moodTime(mood.since)}`, "hint"));
+    if (main) why.append(element("p", MOOD_RULES[main.rule] || main.rule, "mood-rule"), moodSource(main));
+  }
+  $("mood-return").hidden = !mood.back_at_baseline_at;
+  $("mood-return").textContent = mood.back_at_baseline_at ? `Back at its baseline by ${moodTime(mood.back_at_baseline_at)}` : "";
+  $("mood-marker").hidden = !mood.marker;
+  $("mood-marker").textContent = mood.marker ? `Mood reset on ${shortDate(mood.marker.recorded_at)}` : "";
+  $("mood-pin").checked = mood.pinned;
+  const list = $("mood-triggers");
+  list.replaceChildren();
+  if (!mood.triggers.length) list.append(element("p", "No triggers yet.", "empty"));
+  if (!mood.complete_history) list.append(element("p", "Only the most recent triggers are listed.", "hint"));
+  for (const trigger of mood.triggers) list.append(moodTrigger(trigger));
+}
+
+$("mood-pin").addEventListener("change", async () => {
+  const pin = $("mood-pin");
+  pin.disabled = true;
+  try {
+    await api(moodPath("/pin"), { pinned: pin.checked });
+    notify(pin.checked ? "Mood pinned to its baseline." : "Mood pin lifted.");
+    await loadMood();
+  } catch (error) { notify(error.message, true); pin.checked = !pin.checked; } finally { pin.disabled = false; }
+});
+guard($("mood-reset"), async () => {
+  if (!confirm("Put the mood back at its baseline and forget its triggers? Feelings, notes and the personality are not touched, and events before now never change the mood again.")) return;
+  await api(moodPath("/reset"), {});
+  notify("Mood reset."); await loadMood();
+});
+// End of companion mood
 
 // Privacy ----------------------------------------------------------------------------------------------------
 

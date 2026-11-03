@@ -1,4 +1,5 @@
 from .helpers import digest
+from .mood import render_mood
 from .notes import render_coming_up, render_notes
 from .persona import render_persona
 
@@ -14,28 +15,36 @@ def _notes(saved, budget, **options):
     return "<membrain-notes>Saved notes did not fit. Search memory when personal context matters.</membrain-notes>"
 
 
-def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, persona=None):
+def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, persona=None, mood=None):
     """Saved memory for the host's context. The persona block comes first, apart from the user's memory, with its
-    own size limit: it never takes room from the notes."""
+    own size limit: it never takes room from the notes. The companion's simulated mood follows it in its own block
+    (none at the baseline). Its text changes only when the label, the easing or the trigger does, so the
+    fingerprint refreshes it only then, and a mood back at its baseline disappears."""
     persona_block = render_persona(persona)
-    blocks = [persona_block, render_coming_up(saved, skip_imports_from=skip_imports_from, budget=1000),
+    mood_block = render_mood(mood)
+    blocks = [persona_block, mood_block, render_coming_up(saved, skip_imports_from=skip_imports_from, budget=1000),
               _notes(saved, 2800 if shared is not None else 3600, tool=tools["note"] if tools else None,
                      skip_imports_from=skip_imports_from)]
     if shared is not None:
         blocks.append(_notes(shared, 1100, tool=None, real_life=True))
     text = "\n\n".join(block for block in blocks if block)
     return {"fingerprint": digest([brain_id, text]), "text": text,
-            "persona_version": persona["version"] if persona_block else None}
+            "persona_version": persona["version"] if persona_block else None, "mood_shown": bool(mood_block)}
 
 
-def update(current, previous, previous_persona=None):
+def update(current, previous, previous_persona=None, previous_mood=False):
     """The refreshed snapshot when it changed since ``previous``; ``previous_persona`` is the persona version the
-    session was last given, so a removed or reset card is announced instead of silently lingering."""
+    session was last given, so a removed or reset card is announced instead of silently lingering. Likewise
+    ``previous_mood`` says the session was given a simulated mood, so its return to the baseline is announced."""
     if current["fingerprint"] == previous:
         return None
     removed = ("" if not previous_persona or current.get("persona_version") else
                f" The companion persona (v{int(previous_persona)}) was reset or removed: earlier membrain-persona "
                "blocks in this session no longer apply.")
+    # Companion mood (M1).
+    removed += ("" if not previous_mood or current.get("mood_shown") else
+                " The companion's simulated mood is back at its baseline: earlier membrain-companion-mood blocks "
+                "in this session no longer apply.")
     return ("<membrain-updates>\nSaved memory has been refreshed. This snapshot replaces earlier persona, saved-note "
             "and coming-up blocks in this session. Do not use earlier versions as current notes; an omitted "
             "note may have been removed or may not fit. Omission does not prove a fact false. Search when "

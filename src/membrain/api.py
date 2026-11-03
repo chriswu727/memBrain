@@ -90,6 +90,10 @@ class PersonaReset(RuntimeBody):
     reason: PersonaReason | None = None
 
 
+class MoodPin(RuntimeBody):
+    pinned: bool
+
+
 class RuntimeBegin(RuntimeBody):
     turn_id: RuntimeIdentifier
     conversation_id: RuntimeIdentifier
@@ -566,6 +570,34 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
 
         body = await persona_body(request, PersonaReset)
         return await run_in_threadpool(reset_persona, service, principal, brain_id, **body)
+
+    # The companion's simulated mood (agent_mood): derived from stored events at read time, never stored as a score.
+    @app.get("/v1/brains/{brain_id}/mood")
+    def get_mood(brain_id: str, principal: Principal = Depends(authenticate)):
+        from .mood import mood_state
+
+        return mood_state(service, principal, brain_id)
+
+    @app.post("/v1/brains/{brain_id}/mood/pin")
+    async def pin_companion_mood(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
+        from starlette.concurrency import run_in_threadpool
+
+        from .mood import pin_mood
+
+        document = await read_document(request)
+        try:
+            body = MoodPin.model_validate(document)
+        except ValidationError as error:
+            first = error.errors()[0]
+            where = ".".join(str(part) for part in first["loc"]) or "body"
+            raise DomainError("validation_failed", f"Mood request field {where}: {first['msg']}.") from error
+        return await run_in_threadpool(pin_mood, service, principal, brain_id, body.pinned)
+
+    @app.post("/v1/brains/{brain_id}/mood/reset")
+    def reset_companion_mood(brain_id: str, principal: Principal = Depends(authenticate)):
+        from .mood import reset_mood
+
+        return reset_mood(service, principal, brain_id)
 
     @app.post("/v1/brains/{brain_id}/work")
     def work(brain_id: str, principal: Principal = Depends(authenticate)):
