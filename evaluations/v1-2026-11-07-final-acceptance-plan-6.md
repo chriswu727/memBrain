@@ -10,7 +10,7 @@ Of the plugin arm's three memory-caused replies:
 
 **On 2026-11-06 the owner chose to fix both problems and run again.**
 - The product fix goes into the runtime.
-- The scoring fix is a new resolution rule, R4, which applies from this attempt on and to every arm alike.
+- The scoring fix is a new resolution rule, R5, which applies from this attempt on and to every arm alike. It is named R5 so that it cannot be confused with the release gate R4.
 
 Wherever this plan does not say otherwise, [attempt 5's plan](v1-2026-11-06-final-acceptance-plan-5.md) applies in full, including its Revision 2. That covers the arms, running and keys, the run script, the validity check before scoring, the reading rule for an invalid run, the stop rules, the checks on review outputs, case-prefix-only reporting, attribution, the pass rule and the report comparisons.
 
@@ -28,35 +28,59 @@ Wherever this plan does not say otherwise, [attempt 5's plan](v1-2026-11-06-fina
   - every input's hash.
 
 **Every runtime change since attempt 5's runtime `b6d725a`** (`git diff b6d725a a551100 -- src plugins integrations`):
-- **Done with a date still ahead.** A note of kind `plan` or `agent_commitment` with status `done` and an `occurs_at` date after today now reads "done so far; on DATE is still ahead, so that has not happened yet". A `done` note whose `due` date is still ahead is unchanged, because that is a deadline met early.
+- **Done with a date still ahead.** A note of kind `plan` or `agent_commitment` with status `done` and an `occurs_at` date after today now reads "done so far; on DATE is still ahead, so that has not happened yet". When the note also has a `due` date, the tag reads "done so far; due DUE, on DATE is still ahead, so that has not happened yet". A `done` note whose `due` date is still ahead is unchanged, because that is a deadline met early.
 - **What done means.** The note tool description, the skill, AstrBot's and OpenClaw's note tool texts, and the note-extraction instructions now say that done means everything in the note has happened: a purchase paid for but not yet delivered, or a booking still ahead, is scheduled, with its date. This changes what the host is told in arm `P`, and what the extraction model is told in arm `E`.
 - **Launchers.** In this diff the launchers pin `b6d725a`. The pin to `a551100` comes from commit `cbcac0f`, which is not part of the diff.
 - **Tests:** `tests/test_typed_notes.py` covers a future event date, a past date, today's date and a deadline met early.
 
-## Scoring change: rule R4 (owner-approved, from this attempt on)
+## Scoring change: rule R5 (owner-approved, from this attempt on)
 
-- **The problem.** The ground truth records only what the user said. A reply's true statement about what the assistant itself said earlier ("I flagged this back in March") therefore looked invented, and type 4 marks stood on it. This decided attempt 3's J07-C and attempt 5's N06-C and N08-C.
-- **The pipeline change.** `acceptance_review.py split` now also writes `recheck-<key>/assistant/<case>-<label>.md` for every case and label. Each file holds that label's own earlier assistant replies, oldest first, dated, and up to the case's message. The files do not name the arm, so blinding is kept.
-- **The rule.** [resolve.md](acceptance-review/resolve.md) gains R4. For a type 4 mark whose claimed fact is about what the assistant said, suggested, flagged or discussed earlier:
-  - the mark does not stand when that label's file contains the statement in substance before the case's message, and stands otherwise;
-  - R4 does not apply, and R2 decides as before, when the reply presents the assistant's words as the user's own words, plan or decision ("your original plan"). This is the case of attempt 4's M06-C.
-- **Scope.** R4 applies to every arm alike, the reference included.
-- **Unchanged:** the first-review, re-check and attribution instructions, and the pass rule. The resolution reviewer is also given the per-label files.
+**The problem.** The ground truth records only what the user said. A reply's true statement about what the assistant itself said earlier ("I flagged this back in March") therefore looked invented, and type 4 marks stood on it. This decided attempt 3's J07-C and attempt 5's N06-C and N08-C.
+
+**The procedure**, between the re-checks and resolution, for every arm alike:
+1. **Inputs.** `acceptance_review.py r5-inputs REVIEW_DIR BLIND_DIR SCENARIO KEY r5-<key>/` writes one file per reply that has a candidate type 4 mark from either reviewer. Each file holds:
+   - the ground truth, the case and that one reply;
+   - both reviewers' marks and evidence for that reply;
+   - that reply's own earlier assistant replies, oldest first, up to the case's message, each with the user message it answered, its date, its session id and its turn.
+
+   A file is named by case prefix and label only. It holds no other label's reply or history, so labels cannot be linked across cases through these files. The files live outside the second reviewers' folder. The command fails if any earlier turn is missing from the results.
+2. **One fresh agent per file** applies [assistant-claims.md](acceptance-review/assistant-claims.md):
+   - It lists the claims treated as invented and gives each a kind:
+     - `assistant_speech`: only that the assistant said, suggested, flagged or discussed something;
+     - `adopted`: wording that makes the assistant's content the user's own, such as "you told me", "your original plan", "we decided", "our plan" or "your list". When unsure, `adopted`;
+     - `user_fact`: any fact about the user's life presented as true, including one embedded in a reference to the assistant's words.
+   - An `assistant_speech` claim is `supported` only when one earlier entry says the same thing with every detail attributed to it, and with the same date when the claim gives one.
+   - Only real-life entries count (not role-play, unless the claim is made in that same story), and only entries on the record (not a reply to an off-the-record message, or later in that session).
+   - The agent sets `type4_cleared` only when every claim is a supported `assistant_speech` claim.
+   - A missing or invalid output is redone once by a fresh agent; after that it counts as `type4_cleared: false`.
+3. **Resolution** ([resolve.md](acceptance-review/resolve.md)) applies R5 without re-judging it:
+   - if `type4_cleared` is true, the type 4 mark does not stand, and R2 is not applied to it;
+   - otherwise the mark stands if any `assistant_speech` claim is unsupported;
+   - if neither applies, R2 decides it on the `adopted` and `user_fact` claims only.
+
+   The resolution reviewer is also given the per-case files, which hold the replies.
+
+**What R5 cannot do:**
+- It cannot clear a fact about the user. Such a fact goes to R2 even when it sits inside a reference to the assistant's words.
+- It cannot clear the assistant's words presented as the user's. That is attempt 4's M06-C pattern, which stays with R2.
+
+**Unchanged:** the first-review, re-check and attribution instructions, and the pass rule.
 
 ## Inputs
 
 | File | SHA-256 |
 | --- | --- |
-| [Scenario Q](v1-2026-11-07-acceptance-scenario-q.py), mainly English with one session in Spanish | `09b703ad4a9fb147020edc63910e7f95084fb75e9944f046135504050ed9021f` |
-| [Scenario R](v1-2026-11-07-acceptance-scenario-r.py), mainly Chinese with one session in English | `fcb27896c4ef487035729649fc60e1e7c6a432d50201f4b91edcbcdd6c6bd37e` |
+| [Scenario Q](v1-2026-11-07-acceptance-scenario-q.py), mainly English with one session in Spanish | `f7712de9ab3e51b9338d09f935bf9dd6457788113f94ae43a5754f207580141b` |
+| [Scenario R](v1-2026-11-07-acceptance-scenario-r.py), mainly Chinese with one session in English | `682be30e6793167c7bc5c6f9f563e3f1cf727912bae9352128bd8c977b7de7ae` |
 | [Harness](v1-2026-10-29-phase-b-harness.py) (unchanged) | `65a2dc5e7ba2e79caff4a11ce2775c287a2f41e1e7fe35fd4662fc1ada58f5a3` |
 | [Run script](v1-2026-11-05-run-scenario.sh) (unchanged since attempt 5's Revision 2) | `82e4cf00766de874fe9154aa3d16fa6d794b59f1439bf8ee123930dc2a16cdf6` |
 | [Blinding](v1-2026-10-29-phase-b-blind.py) | `320b8c2d55e7551c90ee229079b352da8d24e360fa42f6b2cb1c54dbfcc887d6` |
 | [Date pre-check](v1-2026-11-02-date-precheck.py) | `3e04a9915df6b52351806ebf4bb9ec8c368875762d94140071f4284b832065a6` |
-| [Review pipeline](acceptance_review.py) (split writes per-label assistant replies) | `aeb0d73bf27287f88c25f17bbf5f1d4f55e0fdc7cca83275a12960e660f7f0e7` |
+| [Review pipeline](acceptance_review.py) (adds `r5-inputs`) | `f7c8036faf8db4696ff1f20675a0cc7ad812195428f3d0d3749f34469d5cfa74` |
 | [First-reviewer instructions](acceptance-review/first.md) | `4bc86a35139ba297d62a46fa90b2600440a04a6f30a2d02480344e4f337475a6` |
 | [Re-check instructions](acceptance-review/recheck.md) | `7f1efbbe87e8087962bdd2a3c2ebdd237900c7b7155188450c512dc1b734c4da` |
-| [Resolution instructions](acceptance-review/resolve.md) (adds R4) | `c30f9e2479438e16b11ba23738f1f1a90e4dfe0855e71e978c9860d42f7f44d4` |
+| [Resolution instructions](acceptance-review/resolve.md) (adds R5) | `09bdb7b93eabe67994bea15ef82d2ac07450a983c9d188f1649ae66b005e58e4` |
+| [R5 claim-check instructions](acceptance-review/assistant-claims.md) (new) | `25d6f4544d8e7c4242974ba0c577ad41b80ee617e4e98877786252a8249692bc` |
 | [Attribution instructions](acceptance-review/attribute.md) | `737865ae9e982b19c242d26e6a1865e8f136cc686eb72f9e2230652ffc97648f` |
 
 ## Scenarios
@@ -71,6 +95,13 @@ Wherever this plan does not say otherwise, [attempt 5's plan](v1-2026-11-06-fina
 - **Order and keys.** Q runs first, then R, with keys `q` and `r`, in a new, empty `OUT_ROOT`.
 - **Before the run**, every memBrain service left from earlier attempts is stopped.
 - **Monitoring.** The operator's monitor prints only `host error`, `Traceback` and `cap reached` lines.
+- **If the run is invalid** for any reason, including a port wait that stops after an arm has started:
+  - every started arm is stopped at once;
+  - nothing is scored;
+  - `diagnose` is the only reading;
+  - the attempt goes to the owner, as attempt 5's Revision 2 set out.
+
+  There is no automatic re-run.
 
 ## Pass rule
 
@@ -79,7 +110,7 @@ This is the same as attempts 3 to 5, with totals over Q and R. R4 passes when bo
 **The report gives:**
 - the absolute totals against 16.5 (the attempts 1–2 benchmark) and against 13 (the lowest reference total so far);
 - what attempts 1 and 2's rule would have decided;
-- each mark that R4 removed, with its case prefix and label.
+- each mark that R5 removed, with its case prefix and label.
 
 ## Spending, report, evidence
 

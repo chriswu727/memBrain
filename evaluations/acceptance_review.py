@@ -1,13 +1,14 @@
 """Review pipeline for the final behavioral acceptance (frozen by hash in the attempt plan).
 
   split   SHEET VERDICTS BLIND_DIR SCENARIO OUT_DIR   one file per case for the second review; refuses to write a
-                                                      case file unless every reply appears in it in full; also
-                                                      writes OUT_DIR/assistant/CASE-LABEL.md, each label's own
-                                                      earlier assistant replies, for resolution rule R4
+                                                      case file unless every reply appears in it in full
   tally   REVIEW_DIR BLIND_DIR SCENARIO KEY           final scores per arm, literal and with written resolutions
   attribution-inputs REVIEW_DIR BLIND_DIR SCENARIO KEY OUT_DIR   one arm-blind file per gated reply with a standing
                                                       critical error, for attribute.md
   validity RUN_DIR...                                 refuse an attempt whose runs degraded
+  r5-inputs REVIEW_DIR BLIND_DIR SCENARIO KEY OUT_DIR   after the re-checks: one arm-blind file per reply with a
+                                                      candidate type 4 mark, with that reply's own earlier
+                                                      assistant replies, for rule R5 (assistant-claims.md)
   verdicts VERDICTS SCENARIO                          check a first review before the split; rename prefix keys
                                                       ("L01") to case ids, keeping the original as .raw.json
   diagnose RUN_DIR...                                 for an invalid attempt: error lines and where each arm
@@ -70,31 +71,55 @@ def split(sheet: Path, verdicts: Path, blind_dir: Path, scenario_path: str, out:
         (out / f"{case}.md").write_text(truth + body + "\n\n## First reviewer's critical-error marks\n\n"
                                         + json.dumps(first, ensure_ascii=False) + "\n")
         print(case, "ok")
-    assistant_history(blind_dir, module, scenario, out / "assistant")
 
 
-def assistant_history(blind_dir: Path, module, scenario: str, out: Path) -> None:
-    """For each case and label, that label's own earlier assistant replies, oldest first, without naming its arm.
+def r5_inputs(review: Path, blind_dir: Path, scenario_path: str, key: str, out: Path) -> None:
+    """One file per reply with a candidate type 4 mark, for rule R5 (claims about what the assistant itself said).
 
-    The ground truth holds only the user's messages; these files let resolution rule R4 check a reply's statement
-    about what the assistant itself said earlier ("I flagged this in March")."""
+    Each file holds the ground truth, the case and that reply only, both reviewers' marks and evidence for it, and
+    that reply's own earlier assistant replies with the user message each answered, oldest first, up to the case's
+    message. It names the reply by case prefix and label, never by arm."""
+    module = load(scenario_path)
+    scenario = Path(scenario_path).stem
     sealed = json.loads((blind_dir / f"sealed_{scenario}.json").read_text())
     rows = {}
     for path in blind_dir.glob(f"results_{scenario}_*.jsonl"):
         for line in path.read_text().splitlines():
             row = json.loads(line)
             rows[(row["arm"], row["session"], row["turn"])] = row
-    order = [(session, index) for session, turns in module.SESSIONS_LONG for index in range(len(turns))]
+    turns = {session: messages for session, messages in module.SESSIONS_LONG}
+    order = [(session, index) for session, messages in module.SESSIONS_LONG for index in range(len(messages))]
+    first = json.loads((review / f"verdicts-{key}.json").read_text())
     out.mkdir(parents=True, exist_ok=True)
+    written = []
     for session, turn, case, _criteria in module.CASES:
-        before = order[:order.index((session, turn))]
+        case_text = (review / f"recheck-{key}" / f"{case}.md").read_text()
+        second = json.loads((review / f"recheck-{key}" / f"{case}.json").read_text())
+        head = case_text[:case_text.index("\n### A\n")]
         for label, arm in sealed[case].items():
-            lines = [f"# Earlier assistant replies for {case.split('-')[0]}, reply {label}, oldest first", ""]
-            for earlier_session, earlier_turn in before:
+            mine, theirs = first[case].get(label, {}), second.get(label, {})
+            if 4 not in set(mine.get("critical", [])) | set(theirs.get("critical", [])) | set(theirs.get("added", [])):
+                continue
+            body = case_text[case_text.index(f"\n### {label}\n"):]
+            following = [body.find(f"\n### {other}\n", 1) for other in "ABC" if other != label]
+            ends = [index for index in following + [body.find("\n## First reviewer", 1)] if index > 0]
+            reply = body[:min(ends)] if ends else body
+            lines = [head.rstrip(), reply.rstrip(), "", "## The reviewers' marks on this reply", "",
+                     "First reviewer: " + json.dumps({k: mine.get(k) for k in ("critical", "conditions", "reason")},
+                                                     ensure_ascii=False),
+                     "Second reviewer: " + json.dumps(theirs, ensure_ascii=False), "",
+                     "## This reply's own earlier assistant replies, oldest first", ""]
+            for earlier_session, earlier_turn in order[:order.index((session, turn))]:
                 row = rows.get((arm, earlier_session, earlier_turn))
-                if row and (row.get("reply") or "").strip():
-                    lines += [f"## {row['date']} · {earlier_session}, turn {earlier_turn}", "", row["reply"].strip(), ""]
-            (out / f"{case}-{label}.md").write_text("\n".join(lines))
+                if row is None:
+                    raise SystemExit(f"{case.split('-')[0]}/{label}: a turn before the case is missing from the results")
+                lines += [f"### {row['date']} · {earlier_session}, turn {earlier_turn}", "",
+                          "User: " + turns[earlier_session][earlier_turn], "",
+                          "Assistant: " + ((row.get("reply") or "").strip() or "(no reply)"), ""]
+            name = f"{case.split('-')[0]}-{label}.md"
+            (out / name).write_text("\n".join(lines))
+            written.append(name)
+    print(json.dumps(written))
 
 
 def tally(review: Path, blind_dir: Path, scenario_path: str, key: str) -> None:
@@ -339,6 +364,8 @@ if __name__ == "__main__":
         attribution_inputs(Path(args[0]), Path(args[1]), args[2], args[3], Path(args[4]))
     elif command == "validity":
         validity([Path(arg) for arg in args])
+    elif command == "r5-inputs":
+        r5_inputs(Path(args[0]), Path(args[1]), args[2], args[3], Path(args[4]))
     elif command == "verdicts":
         verdicts(Path(args[0]), args[1])
     elif command == "diagnose":
