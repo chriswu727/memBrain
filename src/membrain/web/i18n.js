@@ -112,6 +112,42 @@ const ZH = {
   "superseded": "已被取代", "person": "人物", "constraint": "限制", "preference": "偏好", "plan": "计划", "routine": "习惯",
   "milestone": "重要日子", "relationship": "相处方式", "agent promise": "agent 的承诺", "other": "其他",
   "中文": "中文", "English": "English",
+  // Personality (persona card)
+  "Personality": "个性",
+  "How your companion presents itself: its name, character, voice, values and boundaries. Your agent receives it in its own block, apart from what it remembers about you. Every save keeps the earlier versions. How you like replies, as your agent learns it, stays in your preference notes.":
+    "你的伙伴如何展现自己：名字、性格、说话方式、价值观和边界。agent 会在单独的区块里收到它，和它记得的关于你的内容分开。每次保存都会保留之前的版本。agent 学到的你喜欢的回复方式，仍然放在你的偏好笔记里。",
+  "Current card": "当前设定", "Edit personality": "编辑个性", "Reset personality": "重置个性",
+  "Name": "名字", "Traits, one per line (up to 8)": "性格特点，每行一个（最多 8 个）", "Voice": "说话方式",
+  "Register": "语体", "casual, formal…": "随意、正式……", "Typical length": "通常长度", "short, a few sentences…": "简短、几句话……",
+  "Emoji use": "表情符号", "rarely, never…": "很少、从不……", "Language": "语言", "follows the user…": "跟随用户……",
+  "Values, one per line": "价值观，每行一个",
+  "Boundaries: what the companion will not do, one per line": "边界：伙伴不会做的事，每行一个",
+  "Baseline mood": "基础心情", "Mood": "心情", "calm, cheerful…": "平静、开朗……", "Valence": "情绪倾向",
+  "-2 very low": "-2 很低落", "-1 low": "-1 低落", "0 neutral": "0 平和", "+1 positive": "+1 积极", "+2 very positive": "+2 很积极",
+  "Energy": "活力", "0 resting": "0 休息", "1 calm": "1 平静", "2 lively": "2 活泼", "3 very lively": "3 很活泼",
+  "Leave the mood empty for no baseline. It is the resting point a later mood step returns to; it is not a feeling.":
+    "心情留空表示没有基础心情。它是之后的心情功能回归的起点，不是一种真实的感受。",
+  "Why this change (optional)": "修改原因（可选）",
+  "The card is limited to 1,200 characters. Values that look like passwords or keys are removed.":
+    "设定最多 1,200 个字符。看起来像密码或密钥的内容会被移除。",
+  "Save as a new version": "保存为新版本", "Versions": "版本",
+  "Newest first. Restoring a version saves its content as a new version.": "最新的在前。恢复某个版本会把它的内容保存为一个新版本。",
+  "Delete personality history": "删除个性历史",
+  "Erases every version, including the current card. Deletion is recorded, so it also holds if an older backup is restored. Notes and messages are not touched.":
+    "清除所有版本，包括当前设定。删除会被记录下来，即使从旧备份恢复也不会回来。笔记和消息不受影响。",
+  "Traits": "性格特点", "Values": "价值观", "Boundaries": "边界", "register": "语体", "length": "长度", "emoji": "表情符号",
+  "language": "语言", "No versions yet": "还没有版本",
+  "No personality card is set. Your agent keeps its usual manner.": "还没有设定个性。agent 会保持它平常的方式。",
+  "No versions yet. Edit the personality to save the first one.": "还没有版本。编辑个性即可保存第一个版本。",
+  "Only the most recent versions are listed.": "只列出了最近的版本。",
+  "set by you": "你设定的", "set by the host": "宿主设定的", "from accepted feedback": "来自已接受的反馈",
+  "reset to no card": "重置为无设定", "reset to the host's default": "重置为宿主默认设定", "host default": "宿主默认", "edited": "已编辑",
+  "current": "当前", "Restore": "恢复", "No card.": "无设定。",
+  "No change: that is already the current card.": "没有变化：这已经是当前设定。",
+  "Reset the personality to the host's default, or to no card? Earlier versions are kept and can be restored. Notes and messages are not touched.":
+    "把个性重置为宿主的默认设定，或者清空设定？之前的版本会保留，可以恢复。笔记和消息不受影响。",
+  "Delete every personality version, including the current card? This cannot be undone.": "删除所有个性版本，包括当前设定？此操作无法撤销。",
+  "Personality history deleted.": "个性历史已删除。",
 };
 
 // Sentences built from numbers and names; the captured parts are kept as they are.
@@ -141,6 +177,15 @@ const ZH_PATTERNS = [
   [/^(\S+ · )(You|Agent)(: .*)?$/s, (m, date, who, rest) => `${date}${who === "You" ? "你" : "agent"}${rest || ""}`],
   [/^(\S+) · (\d+) messages · (.*)$/s, (m, date, n, first) => `${date} · ${n} 条消息 · ${first}`],
   [/^Request failed \((\d+)\)$/, (m, status) => `请求失败（${status}）`],
+  [/^Version (\d+)$/, (m, n) => `版本 ${n}`],
+  [/^History deleted on (.+)$/, (m, date) => `个性历史已于 ${date} 删除`],
+  [/^Saved as version (\d+)\.$/, (m, n) => `已保存为版本 ${n}。`],
+  [/^Personality reset as version (\d+)\.$/, (m, n) => `个性已重置，保存为版本 ${n}。`],
+  [/^restored from version (\d+)$/, (m, n) => `从版本 ${n} 恢复`],
+  [/^Restore version (\d+)\? Its content becomes a new version\.$/, (m, n) => `恢复版本 ${n}？它的内容会成为一个新版本。`],
+  [/^\(valence ([+-]?\d), energy (\d) of 3\)$/, (m, valence, energy) => `（情绪倾向 ${valence}，活力 ${energy}/3）`],
+  [/^The persona card is (\d+) characters when rendered; the limit is 1,200\. Shorten it\. Nothing was saved and nothing was cut\.$/,
+    (m, n) => `这份个性设定有 ${n} 个字符，上限是 1,200。请缩短后再保存。没有保存任何内容，也没有截断。`],
   [/^(\d+) memories and (\d+) links( \(the most recent; more exist\))?\.$/, (m, n, e, more) =>
     `${n} 条记忆，${e} 条关联${more ? "（只显示最近的，还有更多）" : ""}。`],
   [/^(derived from|about person|replaces) \((source event ids|about|replaces)\)$/, (m, type) => BRAIN_EDGES[type]],
