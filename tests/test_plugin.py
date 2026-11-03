@@ -670,3 +670,31 @@ def test_agent_note_tool_cannot_write_while_recording_is_paused(tmp_path, monkey
     assert plugin.run_tool('note', tmp_path, stream=io.BytesIO(b'{"text":"confidential appointment"}')) == 0
     assert 'paused' in json.loads(capsys.readouterr().out)['error']
     assert not (tmp_path / 'plugin' / 'spool.jsonl').exists()
+
+
+@pytest.mark.parametrize("query, shown", [("what should mum bring for the hike?", False),
+                                          ("what did you suggest she bring?", True),
+                                          ("你之前推荐她带什么？", True)])
+def test_the_assistants_own_replies_are_recalled_only_when_asked_about(query, shown):
+    """Hosts restated recalled assistant suggestions as facts about the user; they come back only on request."""
+    asked = {"event_id": "asked", "conversation_id": "a", "actor_role": "user", "recorded_at": "2027-03-02T00:00:00Z",
+             "text": "Mum's knees are bad: she needs to rest after 20 minutes of walking."}
+    answer = {"event_id": "answer", "conversation_id": "a", "actor_role": "assistant",
+              "recorded_at": "2027-03-02T00:00:01Z", "text": "Bring a light folding stool for her rests."}
+    response = _response(_source("user user (direct_statement): Mum's knees are bad.", "asked"))
+
+    class Client:
+        brain_id = "brain"
+
+        def recall(self, query, **options):
+            return response
+
+        def timeline(self, **options):
+            return {"items": [asked]}
+
+        def following(self, wanted):
+            return {"items": [{"source_event_id": "asked", **answer}]}
+
+    context = plugin.recall_context(Client(), query, current_conversation="current")
+    assert "Mum's knees are bad" in context
+    assert ("folding stool" in context) is shown

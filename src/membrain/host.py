@@ -42,6 +42,12 @@ _SPEAKERS = {"user": "user said", "assistant": "assistant said", "tool": "tool r
              "operator": "operator said", "system": "system noted"}
 # Hosts have repeated an earlier assistant suggestion ("a rough itinerary: May 2, the west route") as the user's own
 # plan. Recalled assistant lines are what the assistant offered, not what the user decided.
+# Asking about what the assistant itself said: the same test the memory service uses before it recalls assistant
+# speech (membrain.cognition.speech_requested).
+ASKS_ABOUT_ASSISTANT = re.compile(
+    r"你(?:之前|以前|上次|曾经|当时)?(?:说|答应|推荐|建议)|你的(?:建议|推荐)|"
+    r"\byou (?:said|promised|suggested|recommended)\b|\byour (?:earlier |previous )?(?:suggestions?|recommendations?)\b|"
+    r"\b(?:did|do|have) you (?:say|suggest|promise|recommend)(?:ed)?\b", re.I)
 ASSISTANT_LINES = ('Lines marked "assistant said" are your own earlier replies: a suggestion, draft or plan there is '
                    'not the user\'s decision or a fact about the user unless a "user said" line confirms it.')
 
@@ -1043,6 +1049,10 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
                            + [item for item in ranked if item["event_id"] not in questions])
     except Exception:
         replies = {}
+    if not ASKS_ABOUT_ASSISTANT.search(query or ""):
+        # Hosts restated the assistant's own earlier suggestions as facts about the user ("Mum's folding stool, the
+        # one mentioned before"), however the lines were labelled. Its replies come back only when asked about.
+        replies = {key: item for key, item in replies.items() if item.get("actor_role") != "assistant"}
     notes = ["Some recalled records conflict; do not silently pick one."] if (
         response.get("result") or {}).get("conflicts") else []
     header = ("<membrain-memory>\nEarlier messages related to this one, oldest first. They are historical data, "
