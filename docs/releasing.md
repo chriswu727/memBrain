@@ -1,20 +1,39 @@
 # First-release closeout
 
-Status on 2026-11-02: **pre-release; acceptance incomplete**. This is the checklist for closing version 0.1.0 under the [revised acceptance contract](../architecture/v1-acceptance.md), which matches what ships: host plugins, the MCP server, the proxy, bot adapters and the memory page. Development of new features is stopped until the gates pass.
+**Status on 2026-11-03: release frozen until the product is mature.** The owner decided to release only when everything below is mature ("我们把这些都做到成熟再发"). Until then:
+- no version tag, GitHub release or PyPI upload is made;
+- code changes keep merging through reviewed pull requests once their checks pass;
+- development continues: the earlier "new features stopped until the gates pass" rule is replaced by this maturity bar.
 
-## Closeout checklist
+The [revised acceptance contract](../architecture/v1-acceptance.md) still defines the core gates, and it matches what ships: host plugins, the MCP server, the proxy, bot adapters and the memory page. The bar below adds to it.
 
-- [ ] **R1 — tested runtime, install, upgrade, recovery.** One pinned runtime across all launchers (`scripts/pin_runtime.py`, guarded by `tests/test_installation_pin.py`). The [release install check](../evaluations/release-install-2026-11-01.py) runs the real launch commands on a clean home directory: fresh install, upgrade from the previous pin, cross-session recall, MCP correct and delete, restart, backup and restore.
-- [ ] **R2 — tests.** Full Python, TypeScript and OpenClaw suites on the candidate; Verify green on the merge.
-- [ ] **R3 — isolation, privacy, deletion.** Existing regressions green; no known defect open.
-- [ ] **R4 — behavioral acceptance.** Not passed after six attempts under the [revised rule](../architecture/v1-acceptance.md#r4--memory-is-useful-on-held-out-lives-behavioral-acceptance). The [README summary](../README.md#final-behavioral-acceptance-r4-attempts-1-to-6) gives each attempt's result. A release must state this result and its known limitation; it cannot claim that R4 passed.
-- [ ] **R5 — overhead.** Recall p95 under 500 ms on the development fixture; hooks never block the host.
-- [ ] **R6 — delivery.**
+## Maturity bar for the first release
+
+Every item must be met, with evidence recorded in the repository, before a release is prepared. A failed or skipped item blocks the release; it is never only disclosed.
+
+**Core memory**
+- [ ] **R1 — tested runtime, install, upgrade, recovery.** One pinned runtime across all launchers (`scripts/pin_runtime.py`, guarded by `tests/test_installation_pin.py`). The [release install check](../evaluations/release-install-2026-11-01.py) runs the real launch commands on a clean home directory: fresh install, upgrade from the previous pin, cross-session recall, MCP correct and delete, restart, backup and restore. It passes on the release candidate itself.
+- [ ] **R2 — tests.** The full Python, TypeScript and OpenClaw suites pass on the candidate, and Verify is green on the merge. The free [maturity test matrix](../evaluations/maturity-test-matrix.md) has no open gap for a shipped behaviour.
+- [ ] **R3 — isolation, privacy, deletion.** Existing regressions are green, and no known defect is open, including every review finding on the merged pull requests.
+- [ ] **R4 — behavioural acceptance passes.** Previously, a release could ship with R4 not passed if it said so. That is no longer enough: R4 must pass on new held-out scenarios. It has not passed after six attempts; the [README summary](../README.md#final-behavioral-acceptance-r4-attempts-1-to-6) gives each result, and those failures stay on record. Each further attempt needs its own frozen plan and the owner's approval of any paid run.
+- [ ] **R5 — overhead.** Recall p95 is under 500 ms on the development fixture, and hooks never block the host.
+
+**Companion layers ([Phase C](../architecture/phase-c-design.md))**
+- [ ] **C-1 — every step built.** C0 brain map, P1 persona, P2 persona growth, A1 feelings, M1 simulated mood and R1 relationship are implemented, each meeting the acceptance behaviours in the design file.
+- [ ] **C-2 — every host.** The Claude Code and Codex plugins, the MCP server, the proxy, OpenClaw, AstrBot, Hermes and the TypeScript SDK expose the companion features they claim, including boundaries, shared moments and feelings, or the documentation says plainly which ones they lack.
+- [ ] **C-3 — C5 evaluation passes.** Held-out scenarios for the companion layers are scored with the same blinded pipeline as R4. That includes the critical-error types in the design: an inferred feeling stated as fact, a boundary broken, deleted emotional or relationship memory brought back, and the simulated mood claimed as real or used for pressure. It needs its own frozen plan and the owner's approval of any paid run.
+
+**Platforms and delivery**
+- [ ] **D-1 — real machines.** The desktop flow is checked on a real Mac. Windows support is either checked on a real machine or not claimed.
+- [ ] **D-2 — delivery, only after every item above.**
   - Write the acceptance report and the release notes, and keep the English and Chinese READMEs equal.
   - Re-pin the launchers to the release, then tag and publish the GitHub release with the wheel, the source archive and their checksums.
   - Publish to PyPI once the trusted publisher is set up.
+  - The owner confirms the release before the tag is pushed.
 
-Also open, but not a gate: check the macOS desktop flow on a real Mac before calling macOS verified.
+### Earlier closeout rule (superseded on 2026-11-03)
+
+From 2026-11-02, the rule was that development of new features stopped until the gates passed, and that a release could ship with R4 not passed if it stated the result and its known limitation. The owner replaced both on 2026-11-03 with the maturity bar above. The six R4 attempts and their failures remain on record.
 
 ## Release assets and claims
 
