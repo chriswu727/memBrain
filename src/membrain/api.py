@@ -590,6 +590,26 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
         body = await persona_body(request, PersonaReset)
         return await run_in_threadpool(reset_persona, service, principal, brain_id, **body)
 
+    # Persona suggestions from the user's feedback (P2). Listing stores any suggestion that has become due; the card
+    # changes only when the user accepts one.
+    @app.get("/v1/brains/{brain_id}/persona/proposals")
+    def get_persona_proposals(brain_id: str, principal: Principal = Depends(authenticate)):
+        from .persona_growth import persona_proposals
+
+        return persona_proposals(service, principal, brain_id)
+
+    @app.post("/v1/brains/{brain_id}/persona/proposals/{proposal_id}/accept")
+    def accept_persona_proposal(brain_id: str, proposal_id: str, principal: Principal = Depends(authenticate)):
+        from .persona_growth import accept_proposal
+
+        return accept_proposal(service, principal, brain_id, proposal_id)
+
+    @app.post("/v1/brains/{brain_id}/persona/proposals/{proposal_id}/reject")
+    def reject_persona_proposal(brain_id: str, proposal_id: str, principal: Principal = Depends(authenticate)):
+        from .persona_growth import reject_proposal
+
+        return reject_proposal(service, principal, brain_id, proposal_id)
+
     async def relationship_body(request: Request, model: type[RuntimeBody]) -> dict:
         document = await read_document(request)
         try:
