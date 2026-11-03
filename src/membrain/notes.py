@@ -35,7 +35,9 @@ NOTE_TOOL_DESCRIPTION = (
     "under 300 characters, with dates when they matter. Set kind when it is clear: person (with about = their name, "
     "aliases, and the relation in the text), constraint, preference, plan (with status intended until the user "
     "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD), routine, milestone, relationship, or "
-    "agent_commitment for something you promised to do. When a fact changes (a plan is done, moved or cancelled), "
+    "agent_commitment for something you promised to do. Status done means everything in the note has happened: a "
+    "purchase paid for but not yet delivered, or a booking still ahead, is scheduled, with its date. "
+    "When a fact changes (a plan is done, moved or cancelled), "
     "save the updated note and pass the old note's id in replaces. Use source_messages from the current "
     "membrain-source block or source_event_ids from recorded history when available; never invent sources. "
     "Do not save routine requests or anything the "
@@ -202,11 +204,19 @@ def _when(fields: dict) -> str:
 
 def _line(item: dict, fields: dict, sentence: str) -> str:
     tags = []
+    when = _when(fields)
     if fields.get("kind") in ("plan", "agent_commitment"):
         status = fields.get("status", "intended")
-        tags.append(f"{status}, not confirmed done" if status in OPEN_STATUSES else status)
-    if _when(fields):
-        tags.append(_when(fields))
+        # A deadline met early is done; an event date still ahead ("delivery on the 8th") has not happened yet.
+        dated = _as_date(fields.get("occurs_at"))
+        if status == "done" and dated is not None and dated > _datetime.date.today():
+            # "Paid in full, delivery on the 8th" saved as done: the dated part has not happened yet.
+            tags.append(f"done so far; {when} is still ahead, so that has not happened yet")
+            when = ""
+        else:
+            tags.append(f"{status}, not confirmed done" if status in OPEN_STATUSES else status)
+    if when:
+        tags.append(when)
     if fields.get("sensitive"):
         tags.append("sensitive: mention only if the user brings it up")
     who = ""

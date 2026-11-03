@@ -70,7 +70,7 @@ class MembrainPlugin(star.Star):
                             status: str | None = None, due: str | None = None, occurs_at: str | None = None,
                             pinned: bool = False, sensitive: bool = False, source_event_ids: list | None = None,
                             source_messages: list | None = None):
-        """Save one short, lasting fact about the user you are talking to (health, people, dates, places, preferences, decisions, plans and their changes) so it is shown in every later conversation. One fact per note, under 300 characters. Set kind when it is clear; a plan stays intended until the user confirms it is scheduled or done. When a fact changes, save the new note and pass the old note's id in replaces. Do not save routine requests or anything the user asked you not to keep.
+        """Save one short, lasting fact about the user you are talking to (health, people, dates, places, preferences, decisions, plans and their changes) so it is shown in every later conversation. One fact per note, under 300 characters. Set kind when it is clear; a plan stays intended until the user confirms it is scheduled or done, and done means everything in the note has happened (paid but not yet delivered is scheduled). When a fact changes, save the new note and pass the old note's id in replaces. Do not save routine requests or anything the user asked you not to keep.
 
         Args:
             text(string): The fact, in one sentence, with dates when they matter.

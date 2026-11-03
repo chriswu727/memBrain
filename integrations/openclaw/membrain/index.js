@@ -57,7 +57,9 @@ const TOOLS = [
       "under 300 characters, with dates when they matter. Set kind when it is clear: person (with about = their name, " +
       "aliases, and the relation in the text), constraint, preference, plan (with status intended until the user " +
       "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD), routine, milestone, relationship, or " +
-      "agent_commitment for something you promised to do. When a fact changes, save the updated note and pass the " +
+      "agent_commitment for something you promised to do. Status done means everything in the note has happened: a " +
+      "purchase paid for but not yet delivered, or a booking still ahead, is scheduled, with its date. " +
+      "When a fact changes, save the updated note and pass the " +
       "old note's id in replaces. Do not save routine requests or anything the user asked you not to keep.",
     parameters: { type: "object", properties: {
       text: { type: "string" },

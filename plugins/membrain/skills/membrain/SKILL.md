@@ -20,7 +20,7 @@ Raw messages pile up and only part of them fits in a session, so durable facts m
 - When a fact changes (a date moves, a plan is cancelled, something planned is now done), save the updated note and pass the old note's `id` from `<membrain-notes>` in `replaces`.
 - Set the note's `kind` when it is clear, so notes are grouped and followed up:
   - `person` for someone in the user's life: `about` is their name, `aliases` holds other names the user uses ("the sparky", a nickname), and the text says the relation ("Mei is the user's younger sister; allergic to sesame").
-  - `plan` for something the user intends to do, with `due` or `occurs_at` as `YYYY-MM-DD`. Its `status` is `intended` until the user says it is `scheduled` or `done` (or `cancelled`). Never mark a plan done because it was planned.
+  - `plan` for something the user intends to do, with `due` or `occurs_at` as `YYYY-MM-DD`. Its `status` is `intended` until the user says it is `scheduled` or `done` (or `cancelled`). Never mark a plan done because it was planned. `done` means everything the note describes has happened: a purchase paid for but not yet delivered, or a booking still ahead, is `scheduled`, with its date.
   - `agent_commitment` for something you promised ("I'll remind you to book the vet on Friday"), with `due` when there is one; mark it `done` once fulfilled.
   - `constraint` (health, diet, access), `preference`, `routine`, `milestone` (birthdays, anniversaries), `relationship` (how the user wants you to be with them), or `other`.
   - `pinned` for the few notes that must always be shown; `sensitive` for health, money and other private matters.

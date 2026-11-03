@@ -229,3 +229,22 @@ def test_an_older_shorter_note_does_not_take_the_place_of_a_newer_one_that_did_n
     assert chosen == [] and omitted == 2  # The stale note alone would fit, but it must not stand in.
     chosen, _ = notes.select_notes(parsed, budget=size["newer"] + size["stale"] - 1)
     assert [entry[0]["event_id"] for entry in chosen] == ["newer"]
+
+
+def test_a_done_note_whose_date_is_still_ahead_says_that_part_has_not_happened(monkeypatch):
+    class Today(datetime.date):
+        @classmethod
+        def today(cls):
+            return cls(2027, 4, 22)
+
+    monkeypatch.setattr(notes._datetime, "date", Today)
+    paid = item("chair", format_note("Paid in full for the massage chair; delivery to Mum's on May 8.", kind="plan",
+                                     status="done", occurs_at="2027-05-08"))
+    rendered = render_notes({"items": [paid], "complete": True})
+    assert "(done so far; on 2027-05-08 is still ahead, so that has not happened yet)" in rendered
+    later = item("trip", format_note("Flew back from Leipzig.", kind="plan", status="done", occurs_at="2027-04-01"))
+    today = item("call", format_note("Called the landlord.", kind="plan", status="done", occurs_at="2027-04-22"))
+    rendered = render_notes({"items": [later, today], "complete": True})
+    assert "(done; on 2027-04-01)" in rendered and "(done; on 2027-04-22)" in rendered
+    early = item("deposit", format_note("Paid Dave's deposit.", kind="plan", status="done", due="2027-05-30"))
+    assert "(done; due 2027-05-30)" in render_notes({"items": [early], "complete": True})  # A deadline met early.
