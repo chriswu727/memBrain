@@ -897,15 +897,14 @@ function showConnection(brain, local) {
     ? `Enabled. ${brain.embedding_pending ? `${brain.embedding_pending} memory item(s) still preparing.` : "Finds related wording across languages."}`
     : semantic === "downloading" ? "Downloading the local model (about 135 MB). Keyword search already works."
     : semantic === "download_failed" ? "The download failed. Check your connection and retry below; keyword search still works."
-    : semantic === "restart_required" ? "The model is downloaded. Finish enabling it below."
+    : semantic === "activating" ? "The model is downloaded and is being enabled. Keyword search already works."
     : semantic === "unavailable" ? "Local model support is missing. Reinstall using the documented semantic extra."
     : "Optional local model; no API key or usage charge. Keyword search already works.";
   for (const [id, ready] of [["setup-service", local.ready], ["setup-recording", received], ["setup-semantic", semantic === "ready"]]) {
     $(id).parentElement.dataset.ready = String(Boolean(ready));
   }
-  $("prepare-model").hidden = ["ready", "downloading", "unavailable"].includes(semantic);
-  $("prepare-model").textContent = semantic === "download_failed" ? "Retry model download"
-    : semantic === "restart_required" ? "Finish enabling recall" : "Enable recall by meaning";
+  $("prepare-model").hidden = ["ready", "activating", "downloading", "unavailable"].includes(semantic);
+  $("prepare-model").textContent = semantic === "download_failed" ? "Retry model download" : "Enable recall by meaning";
 }
 
 async function loadServiceStatus() {
@@ -925,7 +924,7 @@ async function loadServiceStatus() {
     const recall = semantic === "ready" ? "Keyword and semantic recall enabled"
       : semantic === "downloading" ? "Keyword recall ready; semantic model downloading"
       : semantic === "download_failed" ? "Keyword recall ready; model download needs a retry"
-      : semantic === "restart_required" ? "Keyword recall ready; semantic model needs activation"
+      : semantic === "activating" ? "Keyword recall ready; semantic model activating"
       : local ? "Keyword recall ready; semantic model not enabled" : "Keyword recall available; local model status unknown";
     $("service-detail").textContent = `${recall}. ${lag ? `${lag} message(s) waiting for indexing.` : "Message index is up to date."} ${local?.pending_records ? `${local.pending_records} queued record(s).` : ""} ${brain.failed_jobs ? `${brain.failed_jobs} background job(s) need attention. Run membrain doctor.` : ""}`;
     $("extraction-detail").hidden = !extractionFailing;

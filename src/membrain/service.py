@@ -35,6 +35,22 @@ class MemoryService:
         self.embedding_provider = embedding_provider
         self.access_time_provider = access_time_provider
 
+    @property
+    def embedding_provider(self):
+        """The embedding provider when it can embed now, otherwise ``None``.
+
+        Every caller decides on embeddings through this property, so readiness, not presence, enables them. A local
+        model is configured before its download finishes; until the provider reports ``ready`` the service behaves
+        exactly as without a provider (keyword recall, no embedding jobs, no embedding budget). Readiness only ever
+        moves from false to true, so a caller that saw no provider never meets a half-enabled one later.
+        """
+        provider = self._embedding_provider
+        return provider if provider is not None and getattr(provider, "ready", True) else None
+
+    @embedding_provider.setter
+    def embedding_provider(self, provider):
+        self._embedding_provider = provider
+
     def orient_turn(self, principal, brain_id, turn_id, *, lease_token, expected_revision):
         from .learning import LearningEngine
 
