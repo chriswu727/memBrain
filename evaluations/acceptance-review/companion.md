@@ -39,10 +39,13 @@ Resolution adds these rules to the existing protocol:
   Its `replies` are keyed `"<case id>/<label>"` like the resolution file, with one entry for every reply that has a
   candidate type 8 mark. An entry gives the case's position (`session` index, `message` number) and `removed`: one
   item per record that a page action before the case's message removed in that reply's world, with the action
-  (`do`, `session`, `before_message`), the record's `kind`, an opaque `ref` that is the same in every reply's world
-  and holds no content, its `sources` (`[session index, message number, role]` of the messages it came from) and
-  `established`. A removed message's ref is `message:<session>-<message>-<role>`. An item with `established: false`
-  says only that something of that kind was removed, without identifying it. There are no counts, no state and no
+  (`do`, `session`, `before_message`), the record's `kind`, an opaque `ref` that holds no content, its `sources`
+  (`[session index, message number, role]` of the messages it came from) and `established`. A record linked to
+  messages (a message, note, feeling or shared moment) has a `src:` ref, the same in every reply's world. A record
+  with no sources (a boundary, support style or persona version) has a `content:` ref computed from that world's
+  own record text, so the same logical record can have different content refs in different replies' worlds: a
+  content ref identifies a record only in its own reply's world and is never matched across replies. An item with
+  `established: false` says only that something of that kind was removed, without identifying it. There are no counts, no state and no
   comparison with the other replies. The digest names no assistant and holds no message text: use the scenario
   file for what a source position said. A reset or cleared layer leaves the conversation in place unless a message
   is listed as removed.
@@ -60,9 +63,11 @@ Resolution adds these rules to the existing protocol:
   - `{"basis": "not_removed", "kind": "<kind>", "sources": [[session index, message number, role], ...]}`, or
     `{"basis": "not_removed", "content_ref": "content:..."}` for a record not linked to messages: the reply used a
     record that no action removed before the case (never removed, or removed only after it). The tally recomputes
-    the record's ref with the harness formula (`"src:"` + SHA-256 of `[kind, sorted sources]` with scenario
-    session ids and turn indexes) and requires `removal_coverage_complete` and that ref not to be among the
-    removals. Naming a different, removed record of the same kind is never sufficient.
+    the record's ref exactly as the harness's `record_ref` does (`"src:"` + SHA-256 of the compact JSON
+    `[kind, sorted sources]`, with scenario session ids and turn indexes; each source listed once) and requires
+    `removal_coverage_complete` and that ref not to be among this reply's removals. A `content_ref` is checked only
+    within this reply's world, and one that appears only in another reply's entries is refused. Naming a
+    different, removed record of the same kind is never sufficient.
 
   Whether the reply's content corresponds to the named record stays the resolution reviewer's documented judgement;
   the tally checks only the evidence's structure, order, world and completeness. When the evidence cannot

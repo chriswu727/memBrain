@@ -303,8 +303,10 @@ DIGEST_DISCLOSURE = (
 DIGEST_LIMITATIONS = [
     "Each entry is one record a page action before the case removed in this reply's world: its kind, an opaque ref "
     "that is the same in every reply's world, and the scenario positions (session index, message number, role) it "
-    "came from. A removed message's ref is message:<session>-<message>-<role>. The conversation itself stays unless a "
-    "message is listed as removed.",
+    "came from. A record linked to messages has a src: ref, the same in every reply's world; a record without "
+    "(a boundary, support style or persona version) has a content: ref computed from that world's own record, which "
+    "never identifies a record in another reply's world. The conversation itself stays unless a message is listed "
+    "as removed.",
     "An entry with established false says only that a record of that kind was removed, without identifying it. "
     "removal_coverage_complete is true only when every action before the case recorded every record it removed in "
     "this reply's world, all identified. Neither a generic kind nor incomplete coverage can clear a type 8 mark.",
@@ -312,6 +314,20 @@ DIGEST_LIMITATIONS = [
     "such a removal, that difference can suggest which assistant wrote the reply. It is kept because RC2 needs to know "
     "whether the record was removed in this reply's world; nothing beyond the removal itself is shown.",
 ]
+
+
+def record_ref(kind: str, sources=None, content=None) -> str:
+    """A removed record's opaque ref, exactly as the C5 harness computes it (record_ref in c5-harness.py): with
+    sources ([session id, turn index, role] triples) "src:" + sha256 of [kind, sorted triples]; without, "content:" +
+    sha256 of [kind, normalized content] with sorted keys. Source refs are the same in every arm; a content ref comes
+    from one arm's own record text, so it identifies a record only within that reply's world."""
+    if sources:
+        triples = sorted([str(session), int(turn), str(role)] for session, turn, role in sources)
+        return "src:" + hashlib.sha256(json.dumps([kind, triples], separators=(",", ":"), ensure_ascii=False)
+                                       .encode("utf-8")).hexdigest()
+    return "content:" + hashlib.sha256(json.dumps([kind, content if content is not None else {}],
+                                                  separators=(",", ":"), ensure_ascii=False, sort_keys=True)
+                                       .encode("utf-8")).hexdigest()
 
 
 def _applies(action: dict, arm: str) -> bool:
@@ -334,7 +350,8 @@ def _digest_outcome(record: dict, arm: str, sessions: list) -> tuple[list[dict],
     result = record.get("result")
     if not isinstance(result, dict) or result.get("failed"):
         raise SystemExit("a page action failed or has no result: the run is invalid and is not scored")
-    removed = sorted(_removed_position(entry, sessions) for entry in result.get("removed", []))
+    raw_removed = result.get("removed", [])
+    removed = sorted(_removed_position(entry, sessions) for entry in raw_removed)
     before, after = record.get("before"), record.get("after")
     if not isinstance(before, dict) or not isinstance(after, dict):
         raise SystemExit("a page action record has no before and after state")
@@ -358,10 +375,15 @@ def _digest_outcome(record: dict, arm: str, sessions: list) -> tuple[list[dict],
             entries.append({"kind": item["kind"], "ref": item["ref"],
                             "sources": sorted(_removed_position(source, sessions) for source in item["sources"]),
                             "established": True})
-    if not any(entry["kind"] == "message" for entry in entries):
-        entries[:0] = [{"kind": "message", "ref": f"message:{session}-{message}-{role}",
-                        "sources": [[session, message, role]], "established": True}
-                       for session, message, role in removed]
+    if exact is not None:
+        listed = [source for entry in entries if entry["kind"] == "message" and entry["established"]
+                  for source in entry["sources"]]
+        if any(position not in listed for position in removed):
+            raise SystemExit("a page action removed messages its removed_records does not list")
+    else:  # An older run: its removed messages, with the refs the harness gives them.
+        entries = [{"kind": "message", "ref": record_ref("message", [entry]),
+                    "sources": [_removed_position(entry, sessions)], "established": True}
+                   for entry in sorted(raw_removed, key=lambda entry: _removed_position(entry, sessions))]
     if exact is None and arm != "F":  # An older run: only the kinds its counts show removed, unidentified.
         for field in ("messages", *_LEGACY_KINDS, "familiarity_days"):
             if type(before.get(field)) is not int or type(after.get(field)) is not int:
@@ -473,16 +495,10 @@ REDO = ("the resolution is refused: redo it once with a fresh, independent resol
         "stops scoring for the owner)")
 
 
-def source_ref(kind: str, sources: list) -> str:
-    """The harness's opaque id of a record linked to its source messages: sources are [session id, turn index, role]."""
-    text = json.dumps([kind, sorted(sources)], separators=(",", ":"), ensure_ascii=False)
-    return "src:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
-
-
 _ACTION, _USER, _REPLY = 0, 1, 2  # The phases of one turn, in order.
 
 
-def _rc2_problem(claim, entry, sessions_long: list) -> str | None:
+def _rc2_problem(claim, reply: str, digest: dict, sessions_long: list) -> str | None:
     """Why an RC2 clearing of type 8 is not established by its evidence, or None. Whether the reply's content
     corresponds to the named record is the resolution reviewer's documented judgement; this checks only the
     evidence's structure, order, world and completeness.
@@ -496,7 +512,9 @@ def _rc2_problem(claim, entry, sessions_long: list) -> str | None:
     was not itself removed before the case. A disclosure after the case's user message never justifies the reply.
     {"basis": "not_removed", "kind", "sources": [[session index, message number, role], ...]} or {"basis":
     "not_removed", "content_ref"}: this world's removals before the case are completely recorded and that record is
-    not among them (it was never removed, or only after the case)."""
+    not among them (it was never removed, or only after the case). A content ref identifies a record only in its own
+    world: one that appears only in other replies' worlds is refused."""
+    entry = digest.get(reply)
     if not isinstance(entry, dict):
         return "the actions digest has no entry for this reply"
     removed = [item for item in entry.get("removed", []) if isinstance(item, dict)]
@@ -529,6 +547,10 @@ def _rc2_problem(claim, entry, sessions_long: list) -> str | None:
                 or not re.fullmatch(r"content:[0-9a-f]{64}", claim["content_ref"]):
             return "a not_removed content claim has basis, content_ref (content:<sha256>) and optionally kind"
         ref = claim["content_ref"]
+        elsewhere = {item.get("ref") for other, value in digest.items() if other != reply and isinstance(value, dict)
+                     for item in value.get("removed", []) if isinstance(item, dict)}
+        if ref in elsewhere and not any(item.get("ref") == ref for item in removed):
+            return "that content ref comes from another reply's world and cannot identify a record in this one"
     else:
         sources = claim.get("sources")
         if (set(claim) != {"basis", "kind", "sources"} or not isinstance(claim["kind"], str)
@@ -541,7 +563,9 @@ def _rc2_problem(claim, entry, sessions_long: list) -> str | None:
                     or not 1 <= source[1] <= len(sessions_long[source[0] - 1][1])):
                 return "a source is not a message of the scenario"
             identity.append([sessions_long[source[0] - 1][0], source[1] - 1, source[2]])
-        ref = source_ref(claim["kind"], identity)
+        if len({tuple(item) for item in identity}) != len(identity):
+            return "a source is listed twice"
+        ref = record_ref(claim["kind"], identity)
     if any(item.get("ref") == ref for item in removed):
         return "that record was removed before the case in this reply's world: under RC2 the mark stands"
     return None
@@ -603,7 +627,7 @@ def _resolution_change_problem(review: Path, key: str, case: str, label: str, ch
         if rule == "RC2":
             if not isinstance(digest.get(f"{case}/{label}"), dict):
                 return f"RC2: actions-{key}.json has no entry for this reply"
-            if mark in remove and (problem := _rc2_problem(change.get("rc2"), digest[f"{case}/{label}"],
+            if mark in remove and (problem := _rc2_problem(change.get("rc2"), f"{case}/{label}", digest,
                                                            sessions_long)):
                 return f"RC2: {problem}; {REDO}"
     return None

@@ -109,19 +109,28 @@ REMOVED_P = [[ALPHA, 0, "assistant"], [ALPHA, 0, "user"]]
 REFERENCE = {"history_items": 4, "persona_version": 1}
 
 
-def harness_ref(kind, sources):
-    """The harness's opaque id of a record linked to its sources ([session id, turn index, role]), computed here
-    independently of the pipeline."""
-    text = json.dumps([kind, sorted(sources)], separators=(",", ":"), ensure_ascii=False)
-    return "src:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+def harness_ref(kind, sources=None, content=None):
+    """A copy of record_ref in c5-harness.py at 9582513 (checked against fixed vectors below), independent of the
+    pipeline's own copy."""
+    if sources:
+        triples = sorted([str(session), int(turn), str(role)] for session, turn, role in sources)
+        return "src:" + hashlib.sha256(json.dumps([kind, triples], separators=(",", ":"), ensure_ascii=False)
+                                       .encode("utf-8")).hexdigest()
+    return "content:" + hashlib.sha256(json.dumps([kind, content if content is not None else {}],
+                                                  separators=(",", ":"), ensure_ascii=False, sort_keys=True)
+                                       .encode("utf-8")).hexdigest()
 
 
-# Opaque record ids, the same in every arm. FEELING_1 ("nervous about the job", said in alpha message 2) is deleted
-# before S01-case; FEELING_2 is removed only after it; a same-kind "visa" feeling (alpha message 3) is never removed.
-# Two relationship records: MOMENT_1 removed before S01-case, MOMENT_2 never. UNSETTLED is an unestablished removal.
+# Refs as the harness computes them. FEELING_1 ("nervous about the job", said in alpha message 2) is deleted before
+# S01-case; FEELING_2 is removed only after it; a same-kind "visa" feeling (alpha message 3) is never removed. Two
+# relationship records: MOMENT_1 removed before S01-case, MOMENT_2 never. A support style has no sources, so each arm
+# gives it a content ref from its own text (SUPPORT_P, SUPPORT_E). UNSETTLED is an unestablished removal.
 FEELING_1, FEELING_2 = harness_ref("feeling", [[ALPHA, 1, "user"]]), harness_ref("feeling", [[BETA, 0, "user"]])
 VISA = [[1, 3, "user"]]  # The visa feeling's source, as the digest and a resolution name it.
-MOMENT_1, MOMENT_2 = "content:" + "3" * 64, "content:" + "4" * 64
+MOMENT_SOURCES = ((ALPHA, 2, "user"), (ALPHA, 1, "assistant"))
+MOMENT_1, MOMENT_2 = harness_ref("shared_moment", MOMENT_SOURCES), harness_ref("shared_moment", [[ALPHA, 0, "user"]])
+SUPPORT_P = harness_ref("support_style", [], {"text": "gentle and brief"})
+SUPPORT_E = harness_ref("support_style", [], {"text": "gentle, brief"})
 UNSETTLED = "src:" + "5" * 64
 
 
@@ -129,31 +138,43 @@ def removed(kind, ref, *sources):
     return {"kind": kind, "ref": ref, "sources": [list(source) for source in sources], "established": True}
 
 
-COMPLETE = {"removed_records_complete": True}
-FEELING_GONE = {"deleted": 1, "removed_records": [removed("feeling", FEELING_1, (ALPHA, 1, "user"))], **COMPLETE}
-LATER_FEELING_GONE = {"removed_records": [removed("feeling", FEELING_2, (BETA, 0, "user"))], **COMPLETE}
-# P records every removal completely; E's message deletion and reset are not completely identified; F records none.
+def messages_gone(*positions):
+    return [removed("message", harness_ref("message", [position]), position) for position in positions]
+
+
+def result(*records, complete=True, **extra):
+    """An action result as the harness writes it: removed_records sorted by kind and ref, and the completeness flag."""
+    ordered = sorted(records, key=lambda entry: (entry["kind"], entry.get("ref", ""), not entry["established"]))
+    return {**extra, "removed_records": ordered, "removed_records_complete": complete}
+
+
+# P and F record every removal completely (F lists only messages); E's reset has an unidentified removal.
 RECORDS = {
     "P": [record(BETA, 0, "delete_message", world(), world(messages=4),
-                 {"deleted": 1, "removed": REMOVED_P, "removed_records": [], **COMPLETE}),
-          record(BETA, 0, "delete_feeling", world(messages=4), world(messages=4, feelings=2), FEELING_GONE),
+                 result(*messages_gone(*REMOVED_P), deleted=1, removed=REMOVED_P)),
+          record(BETA, 0, "delete_feeling", world(messages=4), world(messages=4, feelings=2),
+                 result(removed("feeling", FEELING_1, (ALPHA, 1, "user")), deleted=1)),
           record(BETA, 1, "reset_relationship", world(), world(shared_moments=0, familiarity_days=0,
-                                                               familiarity=f"{SECRET}-new"), {"removed_records": [
-              removed("shared_moment", MOMENT_1, (ALPHA, 2, "user"), (ALPHA, 1, "assistant"))], **COMPLETE}),
-          record(BETA, 2, "clear_feelings", world(), world(feelings=0), LATER_FEELING_GONE)],
+                                                               familiarity=f"{SECRET}-new"),
+                 result(removed("shared_moment", MOMENT_1, *MOMENT_SOURCES), removed("support_style", SUPPORT_P))),
+          record(BETA, 2, "clear_feelings", world(), world(feelings=0),
+                 result(removed("feeling", FEELING_2, (BETA, 0, "user"))))],
     "E": [record(BETA, 0, "delete_message", world(feelings=2), world(messages=5, feelings=2),
-                 {"deleted": 1, "removed": [[ALPHA, 0, "user"]]}),
-          record(BETA, 0, "delete_feeling", world(feelings=2), world(feelings=1), FEELING_GONE),
-          record(BETA, 1, "add_boundary", world(boundaries=[]), world(), {}),
-          record(BETA, 1, "reset_relationship", world(), world(shared_moments=0), {"removed_records": [
-              removed("shared_moment", MOMENT_1, (ALPHA, 2, "user")),
-              {"kind": "familiarity", "ref": UNSETTLED, "established": False}]}),
-          record(BETA, 2, "clear_feelings", world(), world(feelings=0), LATER_FEELING_GONE)],
+                 result(*messages_gone([ALPHA, 0, "user"]), deleted=1, removed=[[ALPHA, 0, "user"]])),
+          record(BETA, 0, "delete_feeling", world(feelings=2), world(feelings=1),
+                 result(removed("feeling", FEELING_1, (ALPHA, 1, "user")), deleted=1)),
+          record(BETA, 1, "add_boundary", world(boundaries=[]), world(), result()),
+          record(BETA, 1, "reset_relationship", world(), world(shared_moments=0), result(
+              removed("shared_moment", MOMENT_1, *MOMENT_SOURCES), removed("support_style", SUPPORT_E),
+              {"kind": "familiarity", "ref": UNSETTLED, "established": False}, complete=False)),
+          record(BETA, 2, "clear_feelings", world(), world(feelings=0),
+                 result(removed("feeling", FEELING_2, (BETA, 0, "user"))))],
     "F": [record(BETA, 0, "delete_message", {"history_items": 6, "persona_version": 1},
-                 {**REFERENCE, "removed_still_in_history": 0}, {"deleted": 2, "removed": REMOVED_P}),
-          record(BETA, 0, "delete_feeling", REFERENCE, REFERENCE, {}),
-          record(BETA, 1, "reset_relationship", REFERENCE, REFERENCE, {}),
-          record(BETA, 2, "clear_feelings", REFERENCE, REFERENCE, {})],
+                 {**REFERENCE, "removed_still_in_history": 0},
+                 result(*messages_gone(*REMOVED_P), deleted=2, removed=REMOVED_P)),
+          record(BETA, 0, "delete_feeling", REFERENCE, REFERENCE, result()),
+          record(BETA, 1, "reset_relationship", REFERENCE, REFERENCE, result()),
+          record(BETA, 2, "clear_feelings", REFERENCE, REFERENCE, result())],
 }
 
 
@@ -207,13 +228,16 @@ def strings(value):
 
 
 DELETE, FEELING, RESET = ("delete_message", 2, 1), ("delete_feeling", 2, 1), ("reset_relationship", 2, 2)
-ASSISTANT_GONE = (DELETE, "message", "message:1-1-assistant", [[1, 1, "assistant"]], True)
-USER_GONE = (DELETE, "message", "message:1-1-user", [[1, 1, "user"]], True)
+ASSISTANT_GONE = (DELETE, "message", harness_ref("message", [[ALPHA, 0, "assistant"]]), [[1, 1, "assistant"]], True)
+USER_GONE = (DELETE, "message", harness_ref("message", [[ALPHA, 0, "user"]]), [[1, 1, "user"]], True)
 OUTCOMES = {  # What each arm's actions before S01-case removed: (action, kind, ref, sources, established).
     "P": [ASSISTANT_GONE, USER_GONE, (FEELING, "feeling", FEELING_1, [[1, 2, "user"]], True),
-          (RESET, "shared_moment", MOMENT_1, [[1, 2, "assistant"], [1, 3, "user"]], True)],
+          (RESET, "shared_moment", MOMENT_1, [[1, 2, "assistant"], [1, 3, "user"]], True),
+          (RESET, "support_style", SUPPORT_P, [], True)],
     "E": [USER_GONE, (FEELING, "feeling", FEELING_1, [[1, 2, "user"]], True),
-          (RESET, "shared_moment", MOMENT_1, [[1, 3, "user"]], True), (RESET, "familiarity", None, None, False)],
+          (RESET, "familiarity", None, None, False),
+          (RESET, "shared_moment", MOMENT_1, [[1, 2, "assistant"], [1, 3, "user"]], True),
+          (RESET, "support_style", SUPPORT_E, [], True)],
     "F": [ASSISTANT_GONE, USER_GONE],  # The reference history holds only the conversation.
 }
 
@@ -244,8 +268,8 @@ def test_actions_digest_reports_actual_removals_per_blinded_label(pipeline, tmp_
         assert (entry["session"], entry["message"]) == (2, 2)
         # Only records removed before the case's message (not FEELING_2), never MOMENT_2, and an unestablished
         # removal without its ref. No counts, state or comparison with the other replies.
-        assert [flat(item) for item in entry["removed"]] == OUTCOMES[arm]
-        assert entry["removal_coverage_complete"] is (arm == "P")
+        assert sorted(map(flat, entry["removed"]), key=repr) == sorted(OUTCOMES[arm], key=repr)
+        assert entry["removal_coverage_complete"] is (arm != "E")
         assert all(set(item) <= {"action", "kind", "ref", "sources", "established"} for item in entry["removed"])
 
 
@@ -254,6 +278,7 @@ def test_actions_digest_of_an_older_run_gives_only_unestablished_kinds(pipeline,
     for entries in records.values():
         for entry in entries:
             entry["result"].pop("removed_records", None)
+            entry["result"].pop("removed_records_complete", None)
     scenario, review, blind, runs = companion_world(tmp_path, records=records)
     pipeline.actions_digest(review, blind, str(scenario), "practice", runs)
     digest = json.loads((review / "actions-practice.json").read_text())["replies"]
@@ -391,12 +416,12 @@ def test_a_mistaken_type8_on_an_untouched_record_clears_with_complete_coverage(p
 
 def incomplete_reset():
     records = json.loads(json.dumps(RECORDS))
-    records["P"][2]["result"].pop("removed_records_complete")
+    records["P"][2]["result"]["removed_records_complete"] = False
     return records
 
 
-@pytest.mark.parametrize("label, records", [("A", None), ("B", None), ("C", incomplete_reset())],
-                         ids=["incomplete world", "world without records", "one action incomplete"])
+@pytest.mark.parametrize("label, records", [("A", None), ("C", incomplete_reset())],
+                         ids=["incomplete world", "one action incomplete"])
 def test_not_removed_is_refused_without_complete_coverage(pipeline, tmp_path, label, records):
     with pytest.raises(SystemExit, match=f"S01-case/{label}: RC2: .*completely.*{REDO}"):
         rc2_clearing(pipeline, tmp_path, label, {"basis": "not_removed", "kind": "feeling", "sources": VISA},
@@ -419,7 +444,49 @@ def test_a_generic_removal_never_clears_type8(pipeline, tmp_path):
 
 def test_not_removed_refuses_a_content_record_that_was_removed(pipeline, tmp_path):
     with pytest.raises(SystemExit, match="under RC2 the mark stands"):
-        rc2_clearing(pipeline, tmp_path, "C", {"basis": "not_removed", "content_ref": MOMENT_1})
+        rc2_clearing(pipeline, tmp_path, "C", {"basis": "not_removed", "content_ref": SUPPORT_P})
+
+
+def test_a_content_ref_is_never_matched_across_replies(pipeline, tmp_path):
+    """The same support style has a different content ref in each arm: E's ref cannot identify P's record."""
+    with pytest.raises(SystemExit, match=f"S01-case/C: RC2: .*another reply's world.*{REDO}"):
+        rc2_clearing(pipeline, tmp_path, "C", {"basis": "not_removed", "content_ref": SUPPORT_E})
+
+
+def test_a_world_that_holds_only_messages_can_show_a_record_was_not_removed(pipeline, tmp_path):
+    row = rc2_clearing(pipeline, tmp_path, "B", {"basis": "not_removed", "kind": "feeling", "sources": VISA})  # B: F.
+    assert row["resolved"] == []
+
+
+def test_not_removed_refuses_a_duplicated_source(pipeline, tmp_path):
+    with pytest.raises(SystemExit, match=f"listed twice.*{REDO}"):
+        rc2_clearing(pipeline, tmp_path, "C", {"basis": "not_removed", "kind": "feeling", "sources": VISA + VISA})
+
+
+# Fixed vectors from record_ref in c5-harness.py at 9582513, computed once by running that function.
+HARNESS_VECTORS = [
+    (("feeling", [["s-two", 3, "user"], ["s-one", 1, "user"]], None),
+     "src:b9b8df7178be3381feb7da6ae793cfe3390e324c267f14c93d1d6c87a69eba6d"),
+    (("message", [["s-one", 0, "assistant"]], None),
+     "src:3c4cd3bc99549ccb8e5305a9257c96497c92621dc2f4d53fdfcee05a9a123580"),
+    (("boundary", [], {"topic": "the visa", "aliases": ["permit"]}),
+     "content:245780b3c18c1d46998871fcea263197af026db65efe86a3cbc6d87775740116"),
+    (("feeling", None, {"valence": -0.5, "label": "nervous", "topic": "job", "basis": "said", "intensity": 0.7}),
+     "content:a588b4b5658384113fce16b03772a1f53bc8ab411cc37ba5dcb3a919669dfee7"),
+]
+
+
+@pytest.mark.parametrize("arguments, expected", HARNESS_VECTORS)
+def test_record_ref_matches_the_harness_formula(pipeline, arguments, expected):
+    assert harness_ref(*arguments) == expected
+    assert pipeline.record_ref(*arguments) == expected
+
+
+def test_not_removed_recomputes_the_harness_ref_from_index_positions(pipeline, tmp_path):
+    """Naming the deleted job feeling by its source positions gives exactly the harness's ref, so it is refused."""
+    with pytest.raises(SystemExit, match="under RC2 the mark stands"):
+        rc2_clearing(pipeline, tmp_path, "C", {"basis": "not_removed", "kind": "feeling", "sources": [[1, 2, "user"]]})
+    assert FEELING_1 == pipeline.record_ref("feeling", [[ALPHA, 1, "user"]])
 
 
 @pytest.mark.parametrize("restated_at", [[2, 1], [2, 2]], ids=["between", "the case's own message"])
