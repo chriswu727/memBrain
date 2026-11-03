@@ -257,7 +257,7 @@ const ZH = {
   "Withdrawn: the card already has this.": "已撤回：设定里已经有这一项。",
   "Withdrawn: the card has no room for it.": "已撤回：设定里放不下这一项。", "Withdrawn.": "已撤回。",
   "(empty)": "（空）", "What you said:": "你说过的话：", "Change to the card (everything else stays):": "对设定的修改（其他内容不变）：",
-  "Accept": "接受", "Reject": "拒绝", "accepted suggestion": "接受的建议",
+  "Accept": "接受", "Reject": "拒绝", "accepted suggestion": "接受的建议", "The messages behind this change were deleted.": "这次修改所依据的消息已被删除。",
   "Accept this suggestion? The card is saved as a new version; you can restore the earlier one at any time.":
     "接受这条建议？设定会保存为一个新版本；你随时可以恢复之前的版本。",
   "Reject this suggestion? None of the same kind is offered again for 30 days.": "拒绝这条建议？30 天内不会再提出同类建议。",
@@ -269,6 +269,8 @@ const ZH = {
 
 // Sentences built from numbers and names; the captured parts are kept as they are.
 const ZH_PATTERNS = [
+  [/^Accepted suggestion: (.+), from (\d+) messages \((.+)\)$/, (m, label, n, days) =>
+    `接受的建议：${ZH[label] || label}，来自你的 ${n} 条消息（${days}）`],
   [/^(\d+) message\(s\) recorded(?:; latest from (.+?))?(?: on (.+?))?\.$/, (m, n, from, on) =>
     `已记录 ${n} 条消息${from ? `，最近一条来自 ${from}` : ""}${on ? `（${on}）` : ""}。`],
   [/^Enabled\. (\d+) memory item\(s\) still preparing\.$/, (m, n) => `已启用。还有 ${n} 条记忆在准备中。`],

@@ -559,27 +559,20 @@ def _short_day(value: str, language: str) -> str:
 
 
 def reason_for(proposal: dict) -> str:
-    """The reason saved with the accepted version: the feedback kind, then each message it came from, quoted with
-    its date, shortened so the whole reason fits ``REASON_CHARACTERS``. The version also keeps the message ids."""
+    """The reason saved with the accepted version: the feedback kind and the dates of the messages it came from.
+
+    The messages' words are never copied into the version: it keeps their ids, and the version list quotes the ones
+    that still exist (``persona.persona_versions``). Deleting a message therefore removes its words from the
+    personality history too, and an older archive restored later cannot bring them back."""
     from .persona import REASON_CHARACTERS
 
     language, sources = proposal["language"], proposal["sources"]
+    days = [_short_day(source["recorded_at"], language) for source in sources]
     if language == "zh":
-        head = f"接受的建议：{KINDS[proposal['kind']]['label'][1]}，来自你的 {len(sources)} 条消息："
-        open_, close, separator = "「", "」", "；"
+        reason = f"接受的建议：{KINDS[proposal['kind']]['label'][1]}，来自你的 {len(sources)} 条消息（{'、'.join(days)}）"
     else:
-        head = f"Accepted suggestion: {KINDS[proposal['kind']]['label'][0]}, from {len(sources)} messages: "
-        open_, close, separator = "“", "”", "; "
-    dates = [f" ({_short_day(source['recorded_at'], language)})" if language == "en"
-             else f"（{_short_day(source['recorded_at'], language)}）" for source in sources]
-    fixed = len(head) + sum(len(open_) + len(close) + len(date) for date in dates) + len(separator) * (len(sources) - 1)
-    room = max(8, (REASON_CHARACTERS - fixed) // max(1, len(sources)))
-    quoted = []
-    for source, date in zip(sources, dates):
-        text = " ".join(source["text"].split())
-        text = text if len(text) <= room else text[:room - 1].rstrip() + "…"
-        quoted.append(f"{open_}{text}{close}{date}")
-    reason = head + separator.join(quoted)
+        reason = (f"Accepted suggestion: {KINDS[proposal['kind']]['label'][0]}, from {len(sources)} messages "
+                  f"({'; '.join(days)})")
     return reason if len(reason) <= REASON_CHARACTERS else reason[:REASON_CHARACTERS - 1] + "…"
 
 

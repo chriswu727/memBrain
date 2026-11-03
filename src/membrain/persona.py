@@ -242,9 +242,33 @@ def persona_versions(service, principal, brain_id: str) -> dict:
     with service.database.transaction(principal) as conn:
         service._brain(conn, principal, brain_id)
         versions, markers = _entries(service, conn, principal, brain_id)
+        versions = versions[:MAX_VERSIONS + 1]
+        _quote_feedback(service, conn, principal, brain_id, versions[:MAX_VERSIONS])
     return {"versions": versions[:MAX_VERSIONS], "complete": len(versions) <= MAX_VERSIONS,
             "current_version": versions[0]["version"] if versions else 0,
             "markers": markers}
+
+
+def _quote_feedback(service, conn, principal, brain_id, versions) -> None:
+    """Add ``feedback_messages`` to versions accepted from feedback (P2): the source messages that still exist, read
+    now. A version stores only their ids, so a deleted message is never quoted, from this brain or a restored one."""
+    ids = sorted({ident for version in versions for ident in ((version.get("feedback") or {}).get("source_event_ids")
+                                                              or [])})
+    rows = conn.execute(
+        "SELECT id,left(document->'observed'->'content'->>'text',160) AS text,"
+        "document->'system_time'->>'recorded_at' AS recorded_at FROM memory_events "
+        "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=ANY(%s::text[]) AND is_current AND NOT deleted "
+        "AND NOT suppressed AND NOT retired AND document IS NOT NULL "
+        "AND document->'observed'->>'actor_role'='user'",
+        (*service._params(principal, brain_id), ids)).fetchall() if ids else []
+    found = {row["id"]: row for row in rows}
+    for version in versions:
+        feedback = version.get("feedback")
+        if feedback:
+            version["feedback_messages"] = [
+                {"event_id": ident, "text": " ".join((found[ident]["text"] or "").split()),
+                 "recorded_at": found[ident]["recorded_at"]}
+                for ident in feedback.get("source_event_ids") or [] if ident in found]
 
 
 def _reason(value) -> str | None:

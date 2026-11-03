@@ -676,7 +676,18 @@ function personaVersion(version, current) {
   }
   meta.append(actions);
   item.append(meta);
-  if (version.reason) item.append(element("p", version.reason, "user-text"));
+  if (version.reason) item.append(element("p", version.reason, version.feedback ? "hint" : "user-text"));
+  if (version.feedback) {
+    // P2: the feedback is quoted from the messages that still exist; a deleted message is never shown.
+    const quotes = element("ul", "", "persona-feedback-quotes");
+    for (const message of version.feedback_messages || []) {
+      const row = element("li", "");
+      row.append(element("span", `“${message.text}”`, "user-text"), element("span", ` ${String(message.recorded_at).slice(0, 10)}`, "hint"));
+      quotes.append(row);
+    }
+    if (!(version.feedback_messages || []).length) quotes.append(element("li", "The messages behind this change were deleted.", "hint"));
+    item.append(quotes);
+  }
   item.append(version.empty ? element("p", "No card.", "hint") : personaCard(version.card));
   return item;
 }

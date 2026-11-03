@@ -2,6 +2,7 @@
 reject with a 30-day pause, rollback, reset markers, deleted and role-play feedback, archive restore, the API and the
 page. Every test runs on a fixed clock where time matters, and nothing calls a model."""
 import ast
+import copy
 import datetime
 import hashlib
 import json
@@ -16,6 +17,7 @@ from fastapi.testclient import TestClient
 
 from membrain import desktop, embedded_database, host
 from membrain.api import create_app
+from membrain.client import default_budget
 from membrain.config import configured_service
 from membrain.helpers import DomainError, Principal, uid
 from membrain.local_profile import load_profile
@@ -108,17 +110,16 @@ def test_every_kind_proposes_one_field_in_both_languages():
         assert set(spec["value"]) == {"en", "zh"} and len(spec["label"]) == 2, kind
 
 
-def test_the_reason_quotes_every_message_with_its_date_and_fits():
+def test_the_reason_names_the_kind_and_dates_but_never_copies_the_messages():
     sources = [{"text": "can you be more casual?", "recorded_at": "2026-11-01T10:00:00Z"},
-               {"text": "you're too formal", "recorded_at": "2026-11-02T11:00:00Z"},
+               {"text": "you're too formal, Zephyrine", "recorded_at": "2026-11-02T11:00:00Z"},
                {"text": "Be more casual please, " + "really " * 60, "recorded_at": "2026-11-03T09:00:00Z"}]
     reason = reason_for({"language": "en", "kind": "less_formal", "sources": sources})
-    assert reason.startswith("Accepted suggestion: more casual, from 3 messages: ")
-    assert "“can you be more casual?” (1 Nov)" in reason and "“you're too formal” (2 Nov)" in reason
-    assert "(3 Nov)" in reason and len(reason) <= REASON_CHARACTERS
+    assert reason == "Accepted suggestion: more casual, from 3 messages (1 Nov; 2 Nov; 3 Nov)"
+    assert "Zephyrine" not in reason and "casual please" not in reason and len(reason) <= REASON_CHARACTERS
     chinese = reason_for({"language": "zh", "kind": "shorter",
                           "sources": [{"text": "回复太长了", "recorded_at": "2026-11-02T10:00:00Z"}] * 3})
-    assert chinese.startswith("接受的建议：回复更简短，来自你的 3 条消息：") and "「回复太长了」（11月2日）" in chinese
+    assert chinese == "接受的建议：回复更简短，来自你的 3 条消息（11月2日、11月2日、11月2日）"
 
 
 def _row(stored, producer="archive-import", role="system"):
@@ -338,9 +339,10 @@ def test_cross_session_three_requests_make_one_proposal_accept_then_roll_back(in
         version = accepted["persona"]
         assert (version["version"], version["made_by"], version["action"]) == (2, "feedback", "feedback")
         assert version["card"] == normalize_card(CASUAL)
-        assert version["reason"].startswith("Accepted suggestion: more casual, from 3 messages: ")
+        assert version["reason"].startswith("Accepted suggestion: more casual, from 3 messages (")
+        quoted = [m["text"] for m in client.persona_versions()["versions"][0]["feedback_messages"]]
         for text in ("Can you be more casual?", "You're too formal, honestly", "Please be more casual with me"):
-            assert f"“{text}”" in version["reason"]
+            assert text not in version["reason"] and text in quoted  # Quoted live, never copied into the version.
         assert version["feedback"] == {"proposal_id": proposal["id"], "kind": "less_formal",
                                        "source_event_ids": [s["event_id"] for s in proposal["sources"]]}
         assert accepted["proposal"]["status"] == "accepted" and accepted["proposal"]["version"] == 2
@@ -394,7 +396,9 @@ def test_chinese_feedback_proposes_a_chinese_card_value(brain):
     assert proposal["change"] == {"field": "voice.register", "before": "formal", "after": "随意"}
     accepted = accept_proposal(service, principal, ident, proposal["id"])["persona"]
     assert accepted["card"]["voice"]["register"] == "随意"
-    assert accepted["reason"].startswith("接受的建议：更随意，来自你的 3 条消息：") and "「太正式了」" in accepted["reason"]
+    assert accepted["reason"].startswith("接受的建议：更随意，来自你的 3 条消息（") and "太正式了" not in accepted["reason"]
+    quoted = [m["text"] for m in persona_versions(service, principal, ident)["versions"][0]["feedback_messages"]]
+    assert "太正式了" in quoted
     # A playful trait is added to the traits, not put in place of them.
     for text in ("能不能活泼一点", "你可以活泼一点吗", "be more playful"):
         said(brain, text)
@@ -475,6 +479,62 @@ def test_deleting_a_source_withdraws_the_proposal_and_is_never_quoted(brain):
     # The card already having the change withdraws a proposal too.
     set_persona(service, principal, ident, CASUAL, made_by="user")
     assert [p["withdrawn_because"] for p in listing(brain)["proposals"]] == ["already_in_card", "sources_removed"]
+
+
+def test_a_deleted_feedback_message_leaves_an_accepted_version_and_its_rollback(brain):
+    service, principal, ident = brain
+    set_persona(service, principal, ident, CARD, made_by="host")
+    first = said(brain, "you're too formal, Zephyrine")
+    said(brain, "be more casual")
+    said(brain, "Can you be more casual?")
+    proposal = listing(brain)["proposals"][0]
+    accept_proposal(service, principal, ident, proposal["id"])
+    accepted = persona_versions(service, principal, ident)["versions"][0]
+    assert [message["text"] for message in accepted["feedback_messages"]][0] == "you're too formal, Zephyrine"
+    forget(brain, [first])
+    # The change the user accepted stays; the deleted message's words are gone from the history.
+    history = persona_versions(service, principal, ident)
+    assert history["versions"][0]["card"]["voice"]["register"] == "casual"
+    assert len(history["versions"][0]["feedback_messages"]) == 2 and "Zephyrine" not in json.dumps(history)
+    restore_persona(service, principal, ident, 1, made_by="user")  # Rolling back keeps them gone too.
+    history = persona_versions(service, principal, ident)
+    assert history["versions"][0]["card"]["voice"]["register"] != "casual" and "Zephyrine" not in json.dumps(history)
+    assert "Zephyrine" not in json.dumps(listing(brain))
+
+
+def test_an_archive_from_before_the_deletion_cannot_bring_the_words_back(brain):
+    service, principal, ident = brain
+    set_persona(service, principal, ident, CARD, made_by="host")
+    first = said(brain, "you're too formal, Zephyrine")
+    said(brain, "be more casual")
+    said(brain, "Can you be more casual?")
+    accept_proposal(service, principal, ident, listing(brain)["proposals"][0]["id"])
+
+    def act(brain_id, action, payload):
+        result = service.handle(principal, {
+            "message_type": "request", "contract_version": "1.0.0-draft", "request_id": uid(), "action": action,
+            "target": {"brain_ref": brain_id, "conversation_ref": "chat", "branch_ref": "main"}, "payload": payload})
+        assert result["outcome"] == "completed", result
+        return result["result"]
+
+    def generation(brain_id):
+        return service.dashboard(principal, brain_id)["brain"]["scope_generation"]
+
+    exported = act(ident, "export", {"include_events": True, "include_working_states": True,
+                                     "include_assertions": True, "include_provenance": True,
+                                     "include_tombstones": True, "budget": default_budget(64000)})
+    offline = copy.deepcopy(service.download_archive(principal, exported["archive_id"])["document"])
+    assert "Zephyrine" in json.dumps(offline)
+    forget(brain, [first])
+    copy_brain = service.create_brain(principal, "Restored after deletion")["id"]
+    uploaded = service.upload_archive(principal, copy_brain, offline)
+    act(copy_brain, "restore", {"uploaded_archive_ref": uploaded["archive_id"],
+                                "expected_manifest_sha256": uploaded["manifest_sha256"], "mode": "new_brain",
+                                "apply_current_tombstones": True, "expected_scope_generation": generation(copy_brain),
+                                "budget": default_budget(64000)})
+    restored = persona_versions(service, principal, copy_brain)
+    assert restored["versions"][0]["made_by"] == "feedback" and "Zephyrine" not in json.dumps(restored)
+    assert "Zephyrine" not in json.dumps(persona_proposals(service, principal, copy_brain))
 
 
 def test_decisions_leave_the_other_layers_unchanged(brain):
