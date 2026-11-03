@@ -7,6 +7,15 @@ const ZH = {
   "Memory views": "记忆视图",
   "Notes": "笔记", "Plans and dates": "计划与日期", "People": "人物", "Conversations": "对话", "Search": "搜索",
   "Privacy": "隐私",
+  "Brain": "大脑", "derived from:": "来源：", "about person:": "相关人物：", "replaces:": "取代：", "(not shown)": "（未显示）", "(no text)": "（无文字）", "Your memory as a brain": "你的记忆大脑",
+  "Each dot is one memory, placed in the area for its kind. Lines are links that memory records, such as a note and the message it came from. The layout is illustrative: dot size is not memory strength. The brightest dots are the newest.":
+    "每个点是一条记忆，按类型放在大脑的对应区域。连线是记忆中记录的关联，比如一条笔记和它来自的消息。布局只是示意：点的大小不代表记忆强度。最亮的点是最新的。",
+  "Demo: fictional memories, not anyone's data.": "演示：虚构的记忆，不是任何人的数据。",
+  "Plans": "计划", "Commitments": "承诺", "Preferences": "偏好", "Health and constraints": "健康与限制",
+  "Routines": "日常", "Recent messages": "最近的消息", "Relationship": "关系", "Milestones and dates": "里程碑与日期",
+  "Other notes": "其他笔记", "Sensitive note (hidden)": "敏感笔记（已隐藏）",
+  "No memories yet. Talk with your agent, then come back.": "还没有记忆。先和你的 agent 聊聊，再回来看看。",
+  "Your memory as a brain: each dot is one memory, grouped by kind": "你的记忆大脑：每个点是一条记忆，按类型分组",
   "Checking memory…": "正在检查记忆…", "Refresh status": "刷新状态",
   "Your agent's memory": "你的 agent 的记忆",
   "Connect once, then talk normally. Your agent records conversations and brings useful memories into later sessions. You can review and correct them here.":
@@ -131,7 +140,16 @@ const ZH_PATTERNS = [
   [/^(\S+ · )(You|Agent)(: .*)?$/s, (m, date, who, rest) => `${date}${who === "You" ? "你" : "agent"}${rest || ""}`],
   [/^(\S+) · (\d+) messages · (.*)$/s, (m, date, n, first) => `${date} · ${n} 条消息 · ${first}`],
   [/^Request failed \((\d+)\)$/, (m, status) => `请求失败（${status}）`],
+  [/^(\d+) memories and (\d+) links( \(the most recent; more exist\))?\.$/, (m, n, e, more) =>
+    `${n} 条记忆，${e} 条关联${more ? "（只显示最近的，还有更多）" : ""}。`],
+  [/^(derived from|about person|replaces) \((source event ids|about|replaces)\)$/, (m, type) => BRAIN_EDGES[type]],
+  [/^(Status|Date|Saved): .+$/, (m) => m.replace(/Status: (\w+)/, (x, status) => `状态：${BRAIN_STATUS[status] || status}`)
+    .replace(/Date: /g, "日期：").replace(/Saved: /g, "保存于：")],
+  [/^(Plans|Commitments|Preferences|Health and constraints|Routines|Recent messages|People|Relationship|Milestones and dates|Other notes): (.*)$/s,
+    (m, region, text) => `${ZH[region]}：${text}`],
 ];
+const BRAIN_STATUS = { intended: "打算中", scheduled: "已安排", done: "已完成", cancelled: "已取消", superseded: "已被取代" };
+const BRAIN_EDGES = { "derived from": "来自这条消息", "about person": "关于这个人", replaces: "取代了这条" };
 
 let language = "en";
 // Read now: memory.js removes the query string (with its single-use code) before the page finishes loading.

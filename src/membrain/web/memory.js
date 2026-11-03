@@ -534,7 +534,8 @@ async function loadServiceStatus() {
 }
 guard($("refresh-status"), loadServiceStatus);
 
-const loaders = { notes: () => loadNotes(), people: () => loadNotes("people"), plans: () => loadNotes("plans"),
+const loaders = { notes: () => loadNotes(), brain: () => window.loadBrain(), people: () => loadNotes("people"),
+  plans: () => loadNotes("plans"),
   conversations: loadConversations, search: async () => {}, privacy: loadRecording };
 
 async function show(view) {

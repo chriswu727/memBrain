@@ -8,12 +8,14 @@
   <link rel="stylesheet" href="/static/memory.css">
   <script src="/static/i18n.js" defer></script>
   <script src="/static/memory.js" defer></script>
+  <script src="/static/brain.js" defer></script>
 </head>
 <body>
 <header>
   <a class="brand" href="/memory">memBrain</a>
   <nav id="tabs" aria-label="Memory views" hidden>
     <button data-view="notes" class="active">Notes</button>
+    <button data-view="brain">Brain</button>
     <button data-view="plans">Plans and dates</button>
     <button data-view="people">People</button>
     <button data-view="conversations">Conversations</button>
@@ -69,6 +71,25 @@
     </details>
   </section>
 
+  <section id="view-brain" class="view" hidden>
+    <div class="heading">
+      <div>
+        <h1>Your memory as a brain</h1>
+        <p class="muted">Each dot is one memory, placed in the area for its kind. Lines are links that memory
+          records, such as a note and the message it came from. The layout is illustrative: dot size is not memory
+          strength. The brightest dots are the newest.</p>
+      </div>
+    </div>
+    <p id="brain-demo" class="card hint" hidden>Demo: fictional memories, not anyone's data.</p>
+    <div class="brain-layout">
+      <div id="brain-canvas" class="card brain-canvas"></div>
+      <div class="brain-side">
+        <p id="brain-summary" class="hint"></p>
+        <div id="brain-legend" class="brain-legend"></div>
+        <div id="brain-detail" class="card brain-detail" hidden></div>
+      </div>
+    </div>
+  </section>
   <section id="view-notes" class="view" hidden>
     <div class="heading">
       <div>

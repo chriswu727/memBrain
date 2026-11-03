@@ -91,3 +91,48 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   nav button { padding: 6px 8px; font-size: 13px; }
   .item .meta .actions { width: 100%; margin-left: 0; margin-top: 6px; }
 }
+/* Brain view */
+:root { --r-plans: #d9822b; --r-commitments: #c4573a; --r-preferences: #8a6fd1; --r-constraints: #d14d72;
+  --r-routines: #3f8fbf; --r-episodes: #4aa38a; --r-people: #e0b341; --r-relationship: #c76fb5;
+  --r-milestones: #5b7fd6; --r-other: #8b9a94; }
+.brain-layout { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(220px, 1fr); gap: 14px; align-items: start; }
+@media (max-width: 760px) { .brain-layout { grid-template-columns: 1fr; } }
+.brain-canvas { padding: 8px; background: radial-gradient(circle at 45% 40%, var(--wash), var(--card) 70%); }
+.brain-canvas svg { width: 100%; height: auto; display: block; }
+.brain-outline { fill: var(--wash); stroke: var(--border); stroke-width: 2.5; }
+.brain-stem { fill: var(--paper); }
+.brain-fold { fill: none; stroke: var(--border); stroke-width: 2; stroke-linecap: round; opacity: .8; }
+.brain-edge { fill: none; stroke: var(--accent); stroke-width: 1.2; opacity: .3; transition: opacity .2s, stroke-width .2s; }
+.brain-edge.lit { opacity: .9; stroke-width: 2; stroke-dasharray: 6 4; animation: brain-signal 1.2s linear infinite; }
+.brain-node { stroke: var(--card); stroke-width: 1.5; filter: drop-shadow(0 0 2px currentColor); cursor: pointer; transition: opacity .2s, r .2s; }
+.brain-node:focus-visible { outline: none; stroke: var(--ink); stroke-width: 2.5; }
+.brain-node.sensitive { stroke-dasharray: 2 2; stroke: var(--muted); }
+.brain-node.recent { animation: brain-fire 2.4s ease-in-out infinite; }
+.brain-canvas.focused .brain-node:not(.lit) { opacity: .45; }
+.brain-canvas.focused .brain-edge:not(.lit) { opacity: .06; }
+.brain-label { font-size: 13px; fill: var(--muted); text-anchor: middle; font-weight: 600; pointer-events: none; }
+.brain-side { display: flex; flex-direction: column; gap: 10px; }
+.brain-legend { display: flex; flex-direction: column; gap: 4px; }
+.legend-item { display: flex; align-items: center; gap: 8px; background: none; color: var(--ink); border: 1px solid transparent;
+  padding: 4px 8px; text-align: left; }
+.legend-item .hint { margin-left: auto; }
+.legend-item[aria-pressed="true"] { border-color: var(--accent); background: var(--wash); }
+.legend-item:disabled { opacity: .45; cursor: default; }
+.legend-dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+.brain-links { list-style: none; padding: 0; margin: 6px 0 0; }
+.brain-links li { margin: 4px 0; overflow-wrap: anywhere; }
+.brain-links button.link { white-space: normal; text-align: left; padding: 0 0 0 4px; }
+.brain-detail { overflow-wrap: anywhere; }
+@keyframes brain-fire { 0%, 100% { filter: none; } 50% { filter: drop-shadow(0 0 5px currentColor) brightness(1.25); } }
+@keyframes brain-signal { to { stroke-dashoffset: -20; } }
+@media (prefers-reduced-motion: reduce) { .brain-node.recent, .brain-edge.lit { animation: none; } }
+.brain-node.region-plans { fill: var(--r-plans); color: var(--r-plans); } .legend-item.region-plans .legend-dot { background: var(--r-plans); }
+.brain-node.region-commitments { fill: var(--r-commitments); color: var(--r-commitments); } .legend-item.region-commitments .legend-dot { background: var(--r-commitments); }
+.brain-node.region-preferences { fill: var(--r-preferences); color: var(--r-preferences); } .legend-item.region-preferences .legend-dot { background: var(--r-preferences); }
+.brain-node.region-constraints { fill: var(--r-constraints); color: var(--r-constraints); } .legend-item.region-constraints .legend-dot { background: var(--r-constraints); }
+.brain-node.region-routines { fill: var(--r-routines); color: var(--r-routines); } .legend-item.region-routines .legend-dot { background: var(--r-routines); }
+.brain-node.region-episodes { fill: var(--r-episodes); color: var(--r-episodes); } .legend-item.region-episodes .legend-dot { background: var(--r-episodes); }
+.brain-node.region-people { fill: var(--r-people); color: var(--r-people); } .legend-item.region-people .legend-dot { background: var(--r-people); }
+.brain-node.region-relationship { fill: var(--r-relationship); color: var(--r-relationship); } .legend-item.region-relationship .legend-dot { background: var(--r-relationship); }
+.brain-node.region-milestones { fill: var(--r-milestones); color: var(--r-milestones); } .legend-item.region-milestones .legend-dot { background: var(--r-milestones); }
+.brain-node.region-other { fill: var(--r-other); color: var(--r-other); } .legend-item.region-other .legend-dot { background: var(--r-other); }
