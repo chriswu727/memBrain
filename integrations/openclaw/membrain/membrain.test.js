@@ -25,7 +25,7 @@ test("the plugin registers its hooks and tools", () => {
   definePlugin({ install: (directory) => installs.push(directory) }).register(api);
   assert.deepEqual(installs, ["/data/membrain"]);
   assert.deepEqual(hooks, ["before_prompt_build", "agent_end"]);
-  assert.deepEqual(tools, ["membrain_note", "membrain_search", "membrain_pause", "membrain_resume"]);
+  assert.deepEqual(tools, ["membrain_note", "membrain_search", "membrain_boundary", "membrain_pause", "membrain_resume"]);
 });
 
 test("only the owner's private chats use the owner's memory", () => {
@@ -104,6 +104,18 @@ test("memory carries across OpenClaw sessions through the real runtime",
     assert.deepEqual(JSON.parse(await memory.tool("membrain_resume", {})), { recording: "on" });
     const third = await memory.beforePromptBuild({ prompt: "Hello again", messages: [] }, { sessionId: "oc-3" });
     assert.doesNotMatch(third.appendSystemContext, /groom's speech/);
+    const shared = JSON.parse(await memory.tool("membrain_note", {
+      text: "We planned the Lisbon trip together.", kind: "milestone", shared: true,
+    }));
+    assert.ok(shared.note_id);
+    const boundary = JSON.parse(await memory.tool("membrain_boundary", { topic: "Lisbon trip", aliases: ["Tomas", "里斯本"] }));
+    assert.deepEqual(boundary.boundaries[0].aliases, ["Tomas", "里斯本"]);
+    const later = await memory.beforePromptBuild({ prompt: "Hello again", messages: [] }, { sessionId: "oc-3" });
+    assert.doesNotMatch(later.appendSystemContext, /Flying to Lisbon 3 Dec|brother Tomas's wedding|planned the Lisbon trip together/);
+    const hidden = JSON.parse(await memory.tool("membrain_search", { query: "wedding" }));
+    assert.doesNotMatch(hidden.context, /brother Tomas's wedding/);
+    const raised = JSON.parse(await memory.tool("membrain_search", { query: "Lisbon trip wedding" }));
+    assert.match(raised.context, /brother Tomas's wedding/);
   });
 
 test("someone else on a channel never sees or writes the owner's memory",

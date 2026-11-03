@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { MemoryClient } from "./index.ts";
+import type { NoteAffect } from "./index.ts";
 
 test("timeline sends roles, budgets and the excluded conversation as query parameters", async () => {
   const requests: { url: URL; init?: RequestInit }[] = [];
@@ -40,6 +41,21 @@ test("ensureBrain creates or reuses a named brain with PUT", async () => {
   assert.equal(requests[0].url.pathname, "/v1/brains/user-abc");
   assert.equal(requests[0].init?.method, "PUT");
   assert.deepEqual(JSON.parse(String(requests[0].init?.body)), { name: "user qq:1001" });
+});
+
+test("notes preserve shared moments and evidence-backed feelings including neutral values", async () => {
+  const bodies: any[] = [];
+  const client = new MemoryClient({ baseUrl: "http://memory.test", apiKey: "test-key", brainId: "brain",
+    fetch: async (_input, init) => { bodies.push(JSON.parse(String(init?.body))); return Response.json({ note_id: "n" }); } });
+  const affect: NoteAffect = { label: "平静", valence: 0, intensity: 0, basis: "reported", felt_at: "2026-11-03" };
+  await client.writeNote("We finished a puzzle together.", { kind: "milestone", shared: true, affect,
+    sourceEventIds: ["source"] });
+  assert.equal(bodies[0].shared, true);
+  assert.deepEqual(bodies[0].affect, affect);
+  assert.deepEqual(bodies[0].source_event_ids, ["source"]);
+  await client.writeNote("A personal milestone.", { kind: "milestone", shared: false });
+  assert.equal(bodies[1].shared, false);
+  assert.equal("affect" in bodies[1], false);
 });
 
 test("note writes preserve explicit sources and retry identity while timeline cursors stay encoded", async () => {
