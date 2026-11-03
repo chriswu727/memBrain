@@ -400,12 +400,11 @@ def _usage(budget: dict) -> dict:
 
 
 def _measure(result: dict) -> int:
-    for _ in range(6):
-        count = estimate_tokens(render_recall(result))
-        if result["usage"]["context_tokens"] == count:
-            return count
-        result["usage"]["context_tokens"] = count
-    raise DomainError("budget_exceeded", "Unable to stabilize serialized budget accounting")
+    # The rendered context does not show usage, so recording the count cannot change it: one render settles it.
+    # Rendering without usage keeps that true: a renderer that started reading usage would fail here, not miscount.
+    count = estimate_tokens(render_recall({key: value for key, value in result.items() if key != "usage"}))
+    result["usage"]["context_tokens"] = count
+    return count
 
 
 def _check_budget(budget: dict) -> None:
@@ -649,7 +648,9 @@ def _candidate_signals(state: dict, key: tuple[str, int]) -> list[dict]:
 
 
 def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
-           state: dict, *, access_at: str | None = None) -> dict:
+           state: dict, *, access_at: str | None = None, validate_result: bool = True) -> dict:
+    """``validate_result=False`` is only for a caller that validates this same result as a RecallResult itself,
+    after its last change and before it is returned or used beyond recording validated traces."""
     validate("BoundScope", scope)
     validate("RecallRequest", request)
     _check_budget(request["budget"])
@@ -938,7 +939,8 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
     if _measure(result) > limit:
         raise DomainError("budget_exceeded", "Budget cannot hold the final recall envelope")
     result["model_context"] = render_recall(result)
-    validate("RecallResult", result)
+    if validate_result:
+        validate("RecallResult", result)
     return result
 
 

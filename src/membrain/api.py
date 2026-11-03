@@ -17,7 +17,7 @@ from . import __version__
 from .config import Settings, configured_service
 from .contracts import CONTRACT_VERSION, schema, validate
 from .helpers import DomainError, Principal
-from .service import reading
+from .service import MemoryService, reading
 
 RuntimeIdentifier = Annotated[str, Field(min_length=1, max_length=256)]
 RuntimeFingerprint = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
@@ -286,6 +286,14 @@ def capabilities(*, semantic_enabled=False, embedding_enabled=False) -> dict:
     }
     validate("IntegrationCapabilities", result)
     return result
+
+
+def _unmodified_service(service) -> bool:
+    """Whether ``service.handle`` is MemoryService's own, so ``respond`` does exactly what it would. Any override,
+    in a subclass or on the instance, is what the route must call, and its response is validated here."""
+    kind, own = type(service), getattr(service, "__dict__", {})
+    return (isinstance(service, MemoryService) and kind.handle is MemoryService.handle
+            and kind.respond is MemoryService.respond and "handle" not in own and "respond" not in own)
 
 
 def create_app(settings: Settings | None = None, service=None, turns=None, jobs=None) -> FastAPI:
@@ -719,8 +727,12 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
         body = await read_document(request)
         validate("ActionRequest", body)
         from starlette.concurrency import run_in_threadpool
-        result = await run_in_threadpool(service.handle, principal, body)
-        validate("ActionResponse", result)
+        if _unmodified_service(service):
+            result, validated = await run_in_threadpool(service.respond, principal, body)
+        else:
+            result, validated = await run_in_threadpool(service.handle, principal, body), False
+        if not validated:  # A completed response was already validated, as this same unchanged object.
+            validate("ActionResponse", result)
         return result
 
     @app.get("/v1/brains/{brain_id}/runtime/status")
