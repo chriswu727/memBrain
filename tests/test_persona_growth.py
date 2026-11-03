@@ -582,6 +582,24 @@ def test_suggestions_made_before_a_backup_stay_valid_after_the_restore(brain):
     assert accept_proposal(service, principal, copy_brain, restored[0]["id"])["persona"]["made_by"] == "feedback"
 
 
+def test_native_feedback_given_before_a_backup_still_counts_after_the_restore(brain):
+    service, principal, ident = brain
+    set_persona(service, principal, ident, CARD, made_by="host")
+    said(brain, "you're too formal")
+    said(brain, "be more casual")
+    for text in ("be more casual please", "Can you be more casual?", "you are too formal"):
+        said(brain, text, producer="membrain-import:chatgpt")  # Another assistant's chat never counts.
+    assert listing(brain)["proposals"] == []
+    copy_brain = _restored(brain, "Restored progress")
+    assert persona_proposals(service, principal, copy_brain)["proposals"] == []
+    third = said((service, principal, copy_brain), "Please be more casual with me")
+    proposals = persona_proposals(service, principal, copy_brain)["proposals"]
+    assert [(p["kind"], p["status"], p["source_count"]) for p in proposals] == [("less_formal", "open", 3)]
+    quoted = [s["text"] for s in proposals[0]["sources"]]
+    assert quoted == ["you're too formal", "be more casual", "Please be more casual with me"]
+    assert proposals[0]["sources"][-1]["event_id"] == third
+
+
 def test_decisions_leave_the_other_layers_unchanged(brain):
     from membrain.affect import affect_records
     from membrain.mood import mood_state

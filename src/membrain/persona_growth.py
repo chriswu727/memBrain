@@ -45,6 +45,9 @@ from .persona import EMPTY_CARD, PERSONA_CONVERSATION, normalize_card
 PROPOSALS_CONVERSATION = "membrain-persona-proposals"
 PROPOSALS_PRODUCER = "membrain-persona-proposals"
 ARCHIVE_PRODUCER = "archive-import"
+# Written when a native feedback message arrives: {"persona_feedback_seen": "<event id>"}; ids only, never words.
+SEEN = "persona_feedback_seen"
+SEEN_PREFIX = '{"' + SEEN + '"'
 THRESHOLD = 3
 PAUSE = _datetime.timedelta(days=30)
 MAX_SOURCES = 10  # The most recent matching messages a suggestion quotes.
@@ -279,6 +282,10 @@ def _entry(row) -> dict | None:
             return {**base, "type": "proposal", "kind": stored["persona_proposal"], "language": stored["language"],
                     "source_event_ids": _ids(stored["source_event_ids"], THRESHOLD, MAX_SOURCES),
                     "proposed_at": _iso(_time(stored["proposed_at"]))}
+        if set(stored) == {SEEN}:
+            if not isinstance(stored[SEEN], str) or not 0 < len(stored[SEEN]) <= 200:
+                return None
+            return {**base, "type": "seen", "event_id": stored[SEEN]}
         if set(stored) == {"persona_proposal_decision", "proposal_id", "kind", "decided_at", "version"}:
             decision, version = stored["persona_proposal_decision"], stored["version"]
             if decision not in ("accepted", "rejected") or stored["kind"] not in KINDS:
@@ -302,8 +309,20 @@ _VISIBLE = ("tenant_id=%s AND owner_id=%s AND brain_id=%s AND is_current AND NOT
 def _records(service, conn, principal, brain_id) -> list[dict]:
     rows = conn.execute(
         f"SELECT producer_ref,document FROM memory_events WHERE {_VISIBLE} AND conversation_id=%s "
-        "ORDER BY sequence DESC LIMIT 2000", (*service._params(principal, brain_id), PROPOSALS_CONVERSATION)).fetchall()
+        "AND document->'observed'->'content'->>'text' NOT LIKE %s ORDER BY sequence DESC LIMIT 2000",
+        (*service._params(principal, brain_id), PROPOSALS_CONVERSATION, SEEN_PREFIX + "%")).fetchall()
     return list(reversed([entry for entry in map(_entry, rows) if entry is not None]))
+
+
+def _seen(service, conn, principal, brain_id) -> list[str]:
+    """The ids of messages this module saw arrive as the companion's own feedback (not imported, not typed on the
+    memory page). The records hold ids only, never the words, and are archived like the suggestions, so feedback
+    given before a backup still counts after it is restored."""
+    rows = conn.execute(
+        f"SELECT producer_ref,document FROM memory_events WHERE {_VISIBLE} AND conversation_id=%s "
+        "AND document->'observed'->'content'->>'text' LIKE %s",
+        (*service._params(principal, brain_id), PROPOSALS_CONVERSATION, SEEN_PREFIX + "%")).fetchall()
+    return [entry["event_id"] for entry in map(_entry, rows) if entry is not None and entry["type"] == "seen"]
 
 
 def latest_marker(service, conn, principal, brain_id) -> dict | None:
@@ -331,7 +350,7 @@ def _reserved() -> list[str]:
             MOOD_CONVERSATION, RELATIONSHIP_CONVERSATION, "membrain-memory-page"]
 
 
-def _feedback(service, conn, principal, brain_id, *, after: int, ids=None) -> list[dict]:
+def _feedback(service, conn, principal, brain_id, *, after: int, ids=None, seen=()) -> list[dict]:
     """Messages after ``after`` that count as feedback, oldest first, each with the kinds it gives. With ``ids``,
     only those messages (to check a suggestion's sources); otherwise the most recent candidates."""
     rows = conn.execute(
@@ -344,16 +363,17 @@ def _feedback(service, conn, principal, brain_id, *, after: int, ids=None) -> li
         "AND producer_ref <> 'membrain-memory-page' AND producer_ref NOT LIKE 'membrain-import:%%' "
         # A restore files every message under archive-import and drops the producer that wrote it, so a restored
         # message could have been typed on the memory page or imported from another assistant. Such a message
-        # counts toward a new suggestion only when the restore kept its original producer and that producer may
-        # count; suggestions and decisions restored from the archive keep their already checked sources (ids).
-        "AND (%s::text[] IS NOT NULL OR producer_ref <> %s OR ("
+        # counts toward a new suggestion only when it was seen arriving as native feedback (``seen``), or the restore
+        # kept its original producer and that producer may count; suggestions and decisions restored from the
+        # archive keep their already checked sources (ids).
+        "AND (%s::text[] IS NOT NULL OR producer_ref <> %s OR id = ANY(%s::text[]) OR ("
         "document->>'imported_producer_ref' IS NOT NULL "
         "AND document->>'imported_producer_ref' NOT IN ('membrain-memory-page', %s) "
         "AND document->>'imported_producer_ref' NOT LIKE 'membrain-import:%%')) "
         "AND length(document->'observed'->'content'->>'text') <= %s "
         "AND (%s::text[] IS NULL OR id = ANY(%s::text[])) "
         "AND document->'observed'->'content'->>'text' ~* %s ORDER BY sequence DESC LIMIT %s",
-        (*service._params(principal, brain_id), after, _reserved(), ids, ARCHIVE_PRODUCER, ARCHIVE_PRODUCER,
+        (*service._params(principal, brain_id), after, _reserved(), ids, ARCHIVE_PRODUCER, list(seen), ARCHIVE_PRODUCER,
          SCAN_CHARACTERS, ids, ids, STEMS, SCAN_ROWS)).fetchall()
     result = []
     for row in reversed(rows):
@@ -487,7 +507,8 @@ def _sync(service, conn, principal, brain, now: _datetime.datetime, kinds=None) 
         if last and last["status"] == "rejected" and now < _time(last["paused_until"]):
             continue
         if feedback is None:
-            feedback = _feedback(service, conn, principal, brain["id"], after=state.after)
+            feedback = _feedback(service, conn, principal, brain["id"], after=state.after,
+                                 seen=_seen(service, conn, principal, brain["id"]))
         after = max(state.after, last["decision_sequence"] if last else 0)
         sources = [item for item in feedback if kind in item["kinds"] and item["sequence"] > after][-MAX_SOURCES:]
         if len(sources) < THRESHOLD:
@@ -625,6 +646,7 @@ def observe_feedback(service, conn, principal, brain, target, event, event_id) -
                 "SELECT document->'system_time'->>'recorded_at' AS recorded_at FROM memory_events "
                 f"WHERE {_VISIBLE} AND id=%s", (*service._params(principal, brain["id"]), event_id)).fetchone()
             if row is not None:
+                _write(service, conn, principal, brain, {SEEN: event_id})
                 _sync(service, conn, principal, brain, _time(row["recorded_at"]), kinds)
     except Exception:  # A suggestion must never stop a message from being recorded.
         brain["durable_sequence"] = sequence
