@@ -6,6 +6,7 @@ import importlib.util
 import json
 import socket
 from pathlib import Path
+from types import SimpleNamespace
 
 import httpx
 import pytest
@@ -223,3 +224,67 @@ def test_page_actions_go_through_the_api_and_remove_only_what_they_name(memory):
     assert after["feelings"] == 0 and after["notes"] == ahead["notes"] - 1  # The note and feeling drawn from it.
     ahead, result, after = act({"do": "remove_boundary", "topic": "Tom"})
     assert result == {"failed": "no boundary 'Tom'"} and after == ahead
+
+
+class _ProposalClient:
+    """A client whose accepted proposal leads to ``stored`` (no database or model)."""
+
+    def __init__(self, stored):
+        self.stored = stored
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        return False
+
+    def persona_proposals(self):
+        return {"proposals": [{"id": "p1", "status": "open", "kind": "less_formal"}]}
+
+    def accept_persona_proposal(self, proposal_id):
+        return {"persona": {"version": 2, "card": self.stored}}
+
+    def persona(self):
+        return {"version": 2, "card": self.stored}
+
+
+@pytest.mark.parametrize("same", [True, False])
+def test_an_accepted_proposal_fails_unless_ps_card_is_the_card_f_gets(same):
+    stored = practice.ACCEPTED_CARD if same else practice.PERSONA
+    # The stored form may differ in whitespace only; that is the same card.
+    stored = {**stored, "name": f"  {stored['name']} "}
+    memory = SimpleNamespace(client=lambda: _ProposalClient(stored))
+    action = {"do": "accept_persona_proposal", "match": "formal", "card": practice.ACCEPTED_CARD}
+    result = harness.apply_page_action(memory, action, {})
+    if same:
+        assert result == {"proposal": "p1", "version": 2}
+    else:
+        assert result["failed"] == "the accepted card differs from the scenario's card"
+        assert result["differing_fields"] == ["voice"]
+
+
+def test_the_index_wait_uses_the_runtimes_count_of_jobs_that_can_still_run(tmp_path, monkeypatch):
+    # The listed jobs (the latest 100) show nothing runnable, but an older queued job is still pending.
+    dashboard = {"jobs": [{"state": "completed"}, {"state": "superseded"}],
+                 "status": {"pending_jobs": 1, "index_lag": 0}}
+
+    class Client:
+        def dashboard(self):
+            return dashboard
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            return False
+
+    memory = object.__new__(harness.Memory)
+    memory.host = SimpleNamespace(ready_client=lambda directory, user: Client())
+    memory.directory, memory.user = tmp_path / "brain", "person"
+    monkeypatch.setattr(harness.time, "sleep", lambda seconds: dashboard["status"].update(pending_jobs=0))
+    memory.wait_until_indexed(timeout=30)
+    assert not (tmp_path / "harness-events.jsonl").exists()
+    dashboard["status"]["pending_jobs"] = 1
+    monkeypatch.setattr(harness.time, "sleep", lambda seconds: None)
+    memory.wait_until_indexed(timeout=0.05)
+    assert "index_wait_timed_out" in (tmp_path / "harness-events.jsonl").read_text()

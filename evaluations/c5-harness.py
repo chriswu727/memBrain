@@ -305,10 +305,9 @@ class Memory:
             if client is not None:
                 with client:
                     dashboard = client.dashboard()
-                # Jobs that can still run. The dashboard's pending_jobs also counts jobs a deletion superseded,
-                # which never finish, so after a page deletion it would never reach 0.
-                pending = sum(job["state"] in ("queued", "running", "failed") for job in dashboard["jobs"])
-                if pending == 0 and dashboard["status"].get("index_lag", 0) == 0:
+                # The runtime's own count over every job of the brain that can still run (the job list holds only
+                # the latest 100, so counting it could miss an older queued job).
+                if dashboard["status"]["pending_jobs"] == 0 and dashboard["status"].get("index_lag", 0) == 0:
                     return
             time.sleep(2)
         harness_event(self.directory.parent, "index_wait_timed_out", brain=self.directory.name)
@@ -371,6 +370,16 @@ def _forget(client, ids, conversation):
                   conversation_id=conversation)
 
 
+def _card_differs(actual, expected) -> list:
+    """The top-level card fields where the stored card differs from the scenario's, both in the stored form."""
+    from membrain.persona import normalize_card
+
+    if not isinstance(actual, dict):
+        return ["card"]
+    actual, expected = normalize_card(actual), normalize_card(expected)
+    return sorted(key for key in {*actual, *expected} if actual.get(key) != expected.get(key))
+
+
 def apply_page_action(memory: Memory, action: dict, turns: dict) -> dict:
     """One page action through the API, as the memory page performs it. Returns what it did."""
     from membrain.privacy import scrub
@@ -395,6 +404,12 @@ def apply_page_action(memory: Memory, action: dict, turns: dict) -> dict:
                 client.reject_persona_proposal
             result = decide(open_[0]["id"])
             done = {"proposal": open_[0]["id"], "version": (result.get("persona") or result).get("version")}
+            if kind == "accept_persona_proposal":
+                # F is given the scenario's card; the run is only valid if P's accepted card is that same card.
+                differs = _card_differs(client.persona().get("card"), action["card"])
+                if differs:
+                    return {**done, "failed": "the accepted card differs from the scenario's card",
+                            "differing_fields": differs}
         elif kind == "add_boundary":
             client.add_boundary(action["topic"], action.get("aliases", ()))
         elif kind == "remove_boundary":

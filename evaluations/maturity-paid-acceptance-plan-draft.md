@@ -15,8 +15,8 @@ The two results are reported separately, so a failure in one never hides the res
 1. **P2 merged** with the tests listed in the [maturity test matrix](maturity-test-matrix.md#p2-persona-development-being-built-now).
 2. **The matrix is green** on the candidate, with no skipped test, and its gaps 4 to 15 are closed or explicitly accepted by the owner.
 3. **Verify is green** on the candidate's merge, and the release install check passes on it, upgrading from attempt 6's runtime `a551100`.
-4. **Harness changes, each with a free test.** Built, with tests, in the [C5 harness](c5-harness.md). Not yet reviewed:
-   - **Scenario clock.** The service records events at the scenario's date and time, not the wall clock, so mood decay and the 48-hour cutoff happen on the scenario's timeline. Today the harness only fixes the date.
+4. **Harness changes, each with a free test.** Implemented with free tests in the [C5 harness](c5-harness.md) (#41); under independent review, and to be re-verified on the integration candidate before any paid call:
+   - **Scenario clock.** The service records events at the scenario's date and time, not the wall clock, so mood decay and the 48-hour cutoff happen on the scenario's timeline. The clock is evaluation-only and refused outside a marked disposable profile.
    - **Page actions.** The harness applies a scenario's scripted page actions (below) through the API in arms `P` and `E`, at the stated position.
    - **Tools.** Arm `P` offers `memory_boundary` with the other memory tools, using the plugin's own schema and description.
    - **Persona in `F`.** The reference arm gets the current persona card text in its system prompt, updated when a page action changes it.

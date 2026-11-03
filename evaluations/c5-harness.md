@@ -51,9 +51,10 @@ Free prerequisites 4 and 5 of the [paid acceptance plan draft](maturity-paid-acc
   - In `E`, page actions apply to the proxy user's own brain (`api:person`), and the proxy's block cache is cleared so the next message sees the change.
   - Each action is logged in `run.log`. It is also logged in `page-actions.jsonl` with page counts before and after: messages, notes, feelings, boundaries, shared moments, familiarity, mood and persona version.
   - A failed action is recorded as `page_action_failed`.
+  - After `accept_persona_proposal`, the harness reads `P`'s current card and compares it, in the stored form (`persona.normalize_card`), with the card the scenario gives `F`. If they differ, the action fails with the differing fields, and `page_action_failed` makes the run invalid instead of letting `F` silently follow a different card. The dry-run check's block comparison remains as a second check.
   - A live run refuses a scenario with proposal actions on a runtime without P2.
 - **Reference world.** `F`'s earlier history drops a message only when `delete_message` deletes it. The product erases a deleted message; resets, cleared feelings, deleted feelings and notes, and mood and persona actions keep the conversation. So those never change `F`'s history, and the dry run checks this for every action. Within the session in progress, every arm keeps its own transcript, as a host app does.
-- **Index wait.** The harness waits only for jobs that can still run. The dashboard's `pending_jobs` also counts jobs that a deletion superseded, which never finish. After a page deletion, the Phase B wait would time out, and the run would become invalid.
+- **Index wait.** The harness waits on the dashboard's `status.pending_jobs` and `index_lag`. `pending_jobs` must count every job of the brain that can still run (queued, running or failed) and no superseded or cancelled job, which never finish. Older runtimes counted only the latest 100 listed jobs and included superseded ones, so after a page deletion the wait timed out; the dashboard fix that the integration candidate carries corrects this, and the harness relies on it rather than counting the listed jobs itself.
 - **No resume.** An existing results file or installation is refused.
 
 ## Zero-network dry run
