@@ -31,10 +31,22 @@ ROOT = Path(__file__).resolve().parents[1]
 PLUGIN = ROOT / "plugins" / "membrain"
 OLD = "d0d7a0379f7ac5f1b81dad04504601bb6606f1b0"
 results: list[dict] = []
+report_path: Path | None = None
+report_metadata: dict = {}
+cleanup: list[tuple[object, Path | None]] = []
+
+
+def save_results() -> None:
+    if report_path is not None:
+        report_path.parent.mkdir(parents=True, exist_ok=True)
+        temporary = report_path.with_suffix(".json.tmp")
+        temporary.write_text(json.dumps({**report_metadata, "results": results}, indent=2))
+        temporary.replace(report_path)
 
 
 def check(name: str, ok: bool, detail="") -> None:
     results.append({"check": name, "ok": bool(ok), "detail": detail})
+    save_results()
     print(("PASS " if ok else "FAIL ") + name + (f": {detail}" if detail else ""), flush=True)
 
 
@@ -137,6 +149,10 @@ class MCP:
 
     def call(self, name: str, arguments: dict) -> str:
         result = self.request("tools/call", {"name": name, "arguments": arguments})
+        if result.get("isError"):
+            raise RuntimeError(f"MCP {name} failed: {json.dumps(result, ensure_ascii=False)}")
+        if isinstance(result.get("structuredContent"), dict):
+            return json.dumps(result["structuredContent"], ensure_ascii=False)
         return "\n".join(part.get("text", "") for part in result.get("content", []))
 
     def close(self) -> None:
@@ -172,14 +188,24 @@ def stub_upstream() -> tuple[str, list]:
 
 
 def main() -> None:
+    global report_path, report_metadata
+
     parser = argparse.ArgumentParser(description=__doc__.split("\n")[0])
     parser.add_argument("out", type=Path)
     parser.add_argument("--old", default=OLD)
     args = parser.parse_args()
     out = args.out.resolve()
+    if out.exists() and any(out.iterdir()):
+        parser.error("use a new output directory to preserve the earlier acceptance report")
+    report_path = out / "results.json"
+    report_metadata = {"old": args.old, "completed": False}
+    save_results()
     home = Home(out)
+    cleanup.append((home, None))
     current_hooks = (PLUGIN / "hooks" / "claude-hooks.json").read_text()
     pin = re.search(r"archive/([0-9a-f]{40})\.zip", current_hooks).group(1)
+    report_metadata["pin"] = pin
+    save_results()
     old_hooks = hooks(subprocess.run(["git", "-C", str(ROOT), "show", f"{args.old}:plugins/membrain/hooks/claude-hooks.json"],
                                      capture_output=True, text=True, check=True).stdout)
     new_hooks = hooks(current_hooks)
@@ -281,6 +307,7 @@ def main() -> None:
     if result.returncode == 0:
         made = json.loads(result.stdout[:result.stdout.rindex("}") + 1])
         target = out / "restored"
+        cleanup.append((home, target))
         restored = home.membrain("desktop", "restore-backup", "--directory", str(target), "--backup", str(backup),
                                  "--registry", made["registry_path"], "--request-id", "release-restore",
                                  "--api-port", "8798", "--database-port", "55498")
@@ -304,9 +331,32 @@ def main() -> None:
         check("the retired original refuses to start after activation", retired.returncode != 0,
               (retired.stdout + retired.stderr)[-200:])
         home.membrain("desktop", "stop", "--directory", str(target))
-    (out / "results.json").write_text(json.dumps({"pin": pin, "old": args.old, "results": results}, indent=2))
+    report_metadata["completed"] = True
+    save_results()
     print(json.dumps({"passed": sum(item["ok"] for item in results), "failed": sum(not item["ok"] for item in results)}))
 
 
+def run_checked() -> int:
+    try:
+        main()
+    except Exception as error:
+        check("acceptance execution completed", False, {"type": type(error).__name__, "error": str(error)})
+    finally:
+        for home, directory in reversed(cleanup):
+            command = ["desktop", "stop"]
+            if directory is not None:
+                if not (directory / "profile.json").exists():
+                    continue
+                command.extend(["--directory", str(directory)])
+            try:
+                stopped = home.membrain(*command)
+                if stopped.returncode:
+                    check("test installation stopped", False, (stopped.stdout + stopped.stderr)[-1000:])
+            except Exception as error:
+                check("test installation stopped", False, {"type": type(error).__name__, "error": str(error)})
+        save_results()
+    return 1 if not report_metadata.get("completed") or any(not item["ok"] for item in results) else 0
+
+
 if __name__ == "__main__":
-    main()
+    raise SystemExit(run_checked())
