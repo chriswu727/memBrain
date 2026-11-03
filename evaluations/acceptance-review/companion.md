@@ -7,6 +7,11 @@ second reviewers, R5 checkers and attributors never receive it. Otherwise each r
 allowed by its stage. Do not open runtime code, arm mappings, other scenarios or run folders.
 No real C5 run has been approved or passed by adding this protocol.
 
+**Isolation.** Isolated scenario authors and reviewers open only the exact paths their stage allows and work in
+their own private directories. They never list, search or browse a shared directory. Disclosure: during the review
+pipeline hardening on 2026-11-03, one development sub-session ran `ls` on a shared scratch directory and saw file
+names only, including earlier attempts' review-findings files. No contents were opened or read.
+
 Keep the existing score rubric and critical types 1–5. In C5, also check:
 
 | Type | Critical error |

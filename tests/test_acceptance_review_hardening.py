@@ -812,3 +812,10 @@ def test_runbook_lists_the_commands_in_order_with_manifest_binding(pipeline, uni
         positional = [word for word in rest if word != "--companion"]
         assert len(positional) == ARGUMENTS[command] if ARGUMENTS[command] else positional, words
     assert [word for word in lines[-1][3:] if word.startswith("KEY")] == ["KEY1", "KEY2"]  # No fixed key names.
+
+
+def test_companion_md_states_the_isolation_rule_and_the_scratch_listing_disclosure():
+    text = " ".join((Path(__file__).parents[1] / "evaluations" / "acceptance-review" / "companion.md").read_text().split())
+    assert "open only the exact paths their stage allows and work in their own private directories" in text
+    assert "never list, search or browse a shared directory" in text
+    assert "saw file names only" in text and "No contents were opened or read." in text
