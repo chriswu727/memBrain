@@ -416,6 +416,48 @@ class Memory:
                               role=role, new_messages=len(mine))
 
 
+class ExtractionWatch(logging.Handler):
+    """Arm E: whether note extraction failed since the last look. The extractor's worker catches every error and
+    only logs it, and extract_turn counts provider failures and skipped turns in the installation's extraction
+    status; both are read here as counts, never the error text."""
+
+    FAILURES = ("note extraction failed: %s", "note extraction queue full; turn skipped", "note not saved: %s")
+
+    def __init__(self, directory: Path):
+        import threading
+
+        super().__init__(logging.WARNING)
+        self.directory, self.logged, self.guard = directory, 0, threading.Lock()
+        self.seen = self.counts()
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if record.msg in self.FAILURES:
+            with self.guard:
+                self.logged += 1
+
+    def counts(self) -> tuple[int, int]:
+        from membrain.extraction import extraction_status
+
+        status = extraction_status(self.directory) or {}
+        with self.guard:
+            logged = self.logged
+        return int(status.get("turns_failed") or 0) + int(status.get("turns_skipped") or 0), logged
+
+    def failed(self) -> bool:
+        counts = self.counts()
+        failed, self.seen = counts != self.seen, counts
+        return failed
+
+
+def watch_extraction(directory: Path) -> ExtractionWatch:
+    watch = ExtractionWatch(directory)
+    logger = logging.getLogger("membrain.extraction")
+    logger.addHandler(watch)
+    if not logger.isEnabledFor(logging.WARNING):
+        logger.setLevel(logging.WARNING)
+    return watch
+
+
 # Page actions -------------------------------------------------------------------------------------------------------
 
 def proposals_supported() -> bool:
@@ -683,7 +725,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
     BILLING = None if STUB else billing_transport()
     host = Host(cap=sum(len(turns) for _, turns in sessions) * 5,
                 transport=httpx.MockTransport(stub_host) if stub_host else BILLING)
-    memory = chat = speaker = reference = None
+    memory = chat = speaker = reference = watch = None
     if arm in ("P", "E"):
         cache = os.environ.get("MEMBRAIN_MODEL_CACHE")
         ports = tuple(map(int, os.environ["MEMBRAIN_PORTS"].split(","))) if os.environ.get("MEMBRAIN_PORTS") else None
@@ -703,6 +745,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                                   "stub" if STUB else os.environ["DEEPSEEK_API_KEY"],
                                   transport=httpx.MockTransport(stub_extract) if stub_extract else billing_transport())
             chat = ChatMemory(memory.directory, producer="membrain-proxy", tools=None, extractor=extractor)
+            watch = watch_extraction(memory.directory)
             if chat.user_id(speaker) != user:
                 raise SystemExit("the proxy's memory is not the brain page actions are applied to")
     else:
@@ -825,6 +868,8 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 check_billing()
                 if chat.extractor._queue.unfinished_tasks:
                     harness_event(out, "extraction_unfinished", session=session, turn=index)
+                if watch.failed():
+                    harness_event(out, "extraction_failed", session=session, turn=index)
             elif memory is not None:
                 resumed = memory.host.turn_resumed(memory.directory, session)
                 recorded = bool(memory.host.finish_turn(memory.directory, session, reply, turn_id=f"t{index}",

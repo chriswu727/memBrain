@@ -118,3 +118,128 @@ def test_every_harness_event_call_passes_only_kinds_positions_and_counts():
         reason = next((keyword.value for keyword in call.keywords if keyword.arg == "reason"), None)
         if reason is not None:  # A reason is a fixed code, never the result's own message.
             assert ast.unparse(reason).startswith("failure_code("), ast.unparse(call)
+
+
+# B3: failed extraction is reported ------------------------------------------------------------------------------
+
+class _FailingExtractor:
+    """A stub extraction transport that refuses every request (a 400, which is not retried)."""
+
+    def __init__(self, script=None):
+        self.key = None
+
+    def __call__(self, request):
+        import httpx
+
+        return httpx.Response(400, json={"error": {"message": "stub extraction refused"}})
+
+
+@pytest.fixture
+def extraction_watch(tmp_path):
+    import logging
+
+    watch = harness.watch_extraction(tmp_path)
+    yield watch
+    logging.getLogger("membrain.extraction").removeHandler(watch)
+
+
+def test_a_failed_extraction_is_read_from_the_extractors_own_status(tmp_path, extraction_watch):
+    from membrain.extraction import record_outcome
+
+    assert not extraction_watch.failed()
+    record_outcome(tmp_path, saved=1)
+    assert not extraction_watch.failed()
+    record_outcome(tmp_path, error="HTTP 400")
+    assert extraction_watch.failed() and not extraction_watch.failed()  # Each failure is reported once.
+    record_outcome(tmp_path, skipped=True)
+    assert extraction_watch.failed()
+
+
+def test_a_failure_the_extractor_only_logs_is_detected(tmp_path, extraction_watch):
+    import httpx
+
+    from membrain.extraction import Extractor
+
+    extractor = Extractor("http://stub.invalid", "stub", "stub", transport=httpx.MockTransport(_FailingExtractor()))
+    extractor.submit(lambda: extractor.propose("I moved to Lisbon.", "Nice.", ""))
+    extractor.wait(10)
+    assert not extractor._queue.unfinished_tasks
+    assert extraction_watch.failed()  # Extractor._run swallowed the HTTP error and only logged it.
+    assert not extraction_watch.failed()
+
+
+SCENARIO = '''
+HOST = "You are a companion. Reply briefly."
+SESSIONS_LONG = [
+    ("s1", ["Today is Monday, March 2, 20:00. I moved to Lisbon for a design job.",
+            "My sister Ana visits on the 14th.", "She loves tiles, by the way."]),
+    ("s2", ["Today is Tuesday, March 3, 21:00. Ana booked her flight."]),
+]
+'''
+
+
+def _free_ports(count: int) -> list:
+    import socket
+
+    sockets = [socket.socket() for _ in range(count)]
+    try:
+        for item in sockets:
+            item.bind(("127.0.0.1", 0))
+        return [item.getsockname()[1] for item in sockets]
+    finally:
+        for item in sockets:
+            item.close()
+
+
+@pytest.fixture
+def stub_run(tmp_path, monkeypatch):
+    """Runs one arm of a synthetic scenario through ``run`` in stub mode, on a real local service."""
+    import logging
+    import os
+    import socket
+    import time
+
+    from membrain import embedded_database
+
+    if not embedded_database.available():
+        pytest.skip("embedded PostgreSQL binaries are not installed")
+    environment, handlers = dict(os.environ), list(logging.getLogger("membrain.extraction").handlers)
+    monkeypatch.setattr(harness, "STUB", True)
+    monkeypatch.setattr(socket.socket, "connect", socket.socket.connect)  # refuse_network replaces it.
+    for name in ("MEMBRAIN_MODEL_CACHE", evaluation_clock.ENV):
+        os.environ.pop(name, None)
+    os.environ.update({"MEMBRAIN_SEMANTIC": "0", "PYTHON_DOTENV_DISABLED": "1",
+                       "MEMBRAIN_PORTS": ",".join(map(str, _free_ports(2)))})
+
+    def run(arm, source, script_host=None):
+        path = tmp_path / "zq-synthetic-scenario.py"
+        path.write_text(source + f"\nSTUB_HOST = {script_host or {}!r}\n")
+        out = tmp_path / f"run-{arm}"
+        try:
+            harness.run(arm, str(path), out)
+        finally:
+            harness.stop_started()
+        rows = [json.loads(line) for line in (out / f"results_{path.stem}_{arm}.jsonl").read_text().splitlines()]
+        return rows, _events(out)
+
+    try:
+        yield run
+    finally:
+        os.environ.clear()
+        os.environ.update(environment)
+        time.tzset()
+        for handler in logging.getLogger("membrain.extraction").handlers:
+            if handler not in handlers:
+                logging.getLogger("membrain.extraction").removeHandler(handler)
+
+
+def test_a_stub_proxy_run_reports_every_failed_extraction_turn_and_finishes(stub_run, monkeypatch, capsys):
+    monkeypatch.setattr(harness, "StubExtractor", _FailingExtractor)
+    rows, events = stub_run("E", SCENARIO)
+    assert len(rows) == 4 and all(row["recorded"] for row in rows)  # A dry run records the event and goes on.
+    failed = [(event["session"], event["turn"]) for event in events if event["kind"] == "extraction_failed"]
+    assert failed == [("s1", 0), ("s1", 1), ("s1", 2), ("s2", 0)]
+    assert all(set(event) == {"time", "kind", "session", "turn"} for event in events
+               if event["kind"] == "extraction_failed")
+    assert capsys.readouterr().out.rstrip().endswith("E zq-synthetic-scenario finished")
+

@@ -67,6 +67,11 @@ Free prerequisites 4 and 5 of the [paid acceptance plan draft](maturity-paid-acc
   - `network_refused` no longer names the host.
   - `index_wait_timed_out` no longer names the brain.
   - The full detail of a page action is still in `page-actions.jsonl`.
+- **Failed extraction is reported (B3).** The extractor's worker catches every error and only logs it. Arm `E` therefore watches two signals from the extractor itself, without changing `src/`:
+  - the extraction status in the installation's state, `extraction.json` (`turns_failed` and `turns_skipped`);
+  - the extractor's own failure warnings (`note extraction failed`, `queue full`, `note not saved`), counted by message template and never by text.
+
+  After each turn's extraction wait, any new failure records `extraction_failed` with the session and turn only.
 
 ## Zero-network dry run
 
