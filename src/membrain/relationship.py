@@ -10,7 +10,10 @@ What is stored here, and where:
   asked for, not something anyone said, so they are never extracted into recalled memories, shown as history,
   counted as messages or scheduled for learning.
 - **Familiarity is derived, never set**: distinct days with user messages and the number of shared moments, both
-  counted after the latest reset marker, mapped to four levels by ``THRESHOLDS``. The user can cap it lower.
+  counted after the latest reset marker, mapped to four levels by ``THRESHOLDS``. The user can cap it lower. A
+  message's day is when it happened as its host reported it, never later than when it was recorded. A restored
+  archive keeps a message's reported time but records it again, so messages without one count on the restore
+  day (open: a restored brain must stay identical to its archive, so the restore cannot add records for this).
 - **Commitments kept and missed** come from ``agent_commitment`` notes: done is kept; still open after its date is
   missed. A missed one is shown once in context and then acknowledged, so it is not repeated.
 
@@ -270,16 +273,37 @@ def _commitments(service, conn, principal, brain_id, after, acknowledged, today)
     return record
 
 
+def _utc_day(value) -> str | None:
+    """The UTC day of an ISO time (a time without a zone is read as UTC), or None when it is not one."""
+    try:
+        moment = _datetime.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    moment = moment if moment.tzinfo else moment.replace(tzinfo=_datetime.UTC)
+    return moment.astimezone(_datetime.UTC).date().isoformat()
+
+
 def _days(service, conn, principal, brain_id, after) -> list[str]:
-    """Distinct days (UTC, from when each message was recorded) with a user message after the marker. Notes,
-    messages written on the memory page and every reserved conversation are not conversation."""
+    """Distinct days (UTC) with a user message after the marker. Notes, messages written on the memory page and
+    every reserved conversation are not conversation.
+
+    A message's day is when it occurred as its host reported it, but never later than when it was recorded. With no
+    reported time, it is the day it was recorded."""
     rows = conn.execute(
-        "SELECT DISTINCT left(document->'system_time'->>'recorded_at',10) AS day FROM memory_events "
+        "SELECT DISTINCT left(document->'system_time'->>'recorded_at',10) AS recorded,"
+        "document->'observed'->'occurred_time'->>'start' AS occurred FROM memory_events "
         f"WHERE {_VISIBLE} AND sequence>%s AND document->'observed'->>'event_kind'='message' "
         "AND document->'observed'->>'actor_role'='user' AND conversation_id IS DISTINCT FROM %s "
-        "AND producer_ref <> 'membrain-memory-page' ORDER BY day",
+        "AND producer_ref <> 'membrain-memory-page'",
         (*service._params(principal, brain_id), after, NOTES_CONVERSATION)).fetchall()
-    return [row["day"] for row in rows if row["day"]]
+    days = set()
+    for row in rows:
+        if not row["recorded"]:
+            continue
+        latest = row["recorded"]
+        occurred = _utc_day(row["occurred"]) if row["occurred"] else None
+        days.add(occurred if occurred and occurred <= latest else latest)  # Never a time still to come.
+    return sorted(days)
 
 
 def _short(value: str | None, today: _datetime.date) -> str:

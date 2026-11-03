@@ -67,7 +67,7 @@ This gate follows a plan frozen and independently reviewed before any paid call:
 ### R5 — Local overhead stays bounded
 
 These are development regression budgets, not service-level promises:
-- **Recall.** Warm recall over 1,000 messages stays under 500 ms at p95 on the development fixture ([workflow benchmark](../evaluations/v1-2026-10-30-workflow-benchmark.py)).
+- **Recall.** Warm recall over 1,000 messages stays under 500 ms at p95 on the development fixture ([workflow benchmark](../evaluations/v1-2026-10-30-workflow-benchmark.py)). Since 2026-11-03 the release checklist also has a proposed concurrent bar, which is not yet met: 8 concurrent recalls on one brain at most 1,000 ms p95 (measured 2,582 ms), and on 8 brains at most 600 ms. The conditions are in the [test matrix](../evaluations/maturity-test-matrix.md), gap 20.
 - **Hooks.** They never block the host: they return on timeout, and records are queued while the service is unavailable.
 
 ### R6 — Deliver and stop
