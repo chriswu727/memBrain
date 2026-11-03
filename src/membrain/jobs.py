@@ -193,6 +193,20 @@ def summarize_learning(result):
     })
 
 
+# The jobs a claim may take; parameters: tenant, owner, brain, max_attempts, kinds, kinds, job_id, job_id.
+_CLAIMABLE = (
+    "tenant_id=%s AND owner_id=%s AND brain_id=%s "
+    "AND attempts<%s AND available_at<=clock_timestamp() "
+    "AND NOT payload ? 'recovery_job_id' "
+    "AND NOT EXISTS (SELECT 1 FROM memory_recovery_quarantine q WHERE q.tenant_id=memory_jobs.tenant_id "
+    "AND q.owner_id=memory_jobs.owner_id AND q.brain_id=memory_jobs.brain_id "
+    "AND q.object_kind='job' AND q.object_id=memory_jobs.id) "
+    "AND (state IN ('queued','failed') OR (state='running' AND lease_expires_at<=clock_timestamp())) "
+    "AND (%s::text[] IS NULL OR kind=ANY(%s::text[])) "
+    "AND (%s::text IS NULL OR id=%s) "
+)
+
+
 class JobStore:
     def __init__(self, database):
         self.database = database
@@ -320,6 +334,31 @@ class JobStore:
             )
             return [self._public(row) for row in rows]
 
+    def _may_claim(self, principal, brain_id, claimable):
+        """Whether a claim could find work, read without locking the brain row.
+
+        A worker polls every brain about once a second. Taking the row ``FOR UPDATE`` only to find nothing to do held
+        off every reader that arrived meanwhile (readers share the row, see ``MemoryService._brain``). This reads the
+        brain and its jobs under no row lock, and answers yes whenever the locked claim could do anything: a job
+        matches, or the recovery registry holds an erasure the database has not applied (the locked path applies it,
+        as every exclusive access does). Only a no is acted on, so the claim, its lock order, lease, fence and
+        ordering are unchanged; a job queued after this read is found by the next poll, as it would have been had
+        the poll run a moment earlier.
+        """
+        from .recovery_authority import pending_erasure
+
+        with self.database.transaction(principal) as conn:
+            conn.execute("SELECT set_config('statement_timeout','5000',true)")
+            conn.execute("SELECT set_config('lock_timeout','2000',true)")
+            brain = conn.execute("SELECT * FROM memory_brains WHERE tenant_id=%s AND owner_id=%s AND id=%s",
+                                 self._params(principal, brain_id)).fetchone()
+            if brain is None:
+                raise DomainError("not_found_or_forbidden", "Brain is unavailable.")
+            if pending_erasure(self.database, conn, principal, brain):
+                return True
+            return conn.execute("SELECT EXISTS (SELECT 1 FROM memory_jobs WHERE " + _CLAIMABLE + ") AS found",
+                                (*self._params(principal, brain_id), *claimable)).fetchone()["found"]
+
     def claim(self, principal, brain_id, *, worker_id, lease_seconds=60, kinds=None, max_attempts=3, job_id=None):
         _identifier(worker_id)
         _integer(lease_seconds, 1, 3600)
@@ -330,21 +369,16 @@ class JobStore:
             if not isinstance(kinds, (list, tuple)) or not 1 <= len(kinds) <= 32:
                 raise DomainError("validation_failed", "Job kinds must be a bounded nonempty list.")
             kinds = [_identifier(kind) for kind in kinds]
+        claimable = (max_attempts, kinds, kinds, job_id, job_id)
+        if not self._may_claim(principal, brain_id, claimable):
+            return None
         with self._transaction(principal, brain_id) as conn:
             params = self._params(principal, brain_id)
             row = conn.execute(
-                "SELECT * FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
-                "AND attempts<%s AND available_at<=clock_timestamp() "
-                "AND NOT payload ? 'recovery_job_id' "
-                "AND NOT EXISTS (SELECT 1 FROM memory_recovery_quarantine q WHERE q.tenant_id=memory_jobs.tenant_id "
-                "AND q.owner_id=memory_jobs.owner_id AND q.brain_id=memory_jobs.brain_id "
-                "AND q.object_kind='job' AND q.object_id=memory_jobs.id) "
-                "AND (state IN ('queued','failed') OR (state='running' AND lease_expires_at<=clock_timestamp())) "
-                "AND (%s::text[] IS NULL OR kind=ANY(%s::text[])) "
-                "AND (%s::text IS NULL OR id=%s) "
-                "ORDER BY CASE kind WHEN 'extract' THEN 0 WHEN 'rebuild' THEN 1 ELSE 2 END,created_at,id "
+                "SELECT * FROM memory_jobs WHERE " + _CLAIMABLE
+                + "ORDER BY CASE kind WHEN 'extract' THEN 0 WHEN 'rebuild' THEN 1 ELSE 2 END,created_at,id "
                 "LIMIT 1 FOR UPDATE SKIP LOCKED",
-                (*params, max_attempts, kinds, kinds, job_id, job_id),
+                (*params, *claimable),
             ).fetchone()
             if row is None:
                 return None

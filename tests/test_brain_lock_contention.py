@@ -1,6 +1,7 @@
 """Readers of one brain share its row; writers, erasure and recovery still exclude them (R5, gap 20)."""
 import threading
 import time
+from contextlib import contextmanager
 import uuid
 
 import psycopg
@@ -431,3 +432,41 @@ def test_same_key_reads_and_a_queued_writer_do_not_deadlock(recovery, monkeypatc
     assert first["value"]["outcome"] == second["value"]["outcome"] == "completed"
     assert first["value"]["result"] == second["value"]["result"]
     assert written["value"]["accepted_event_ids"]
+
+
+def test_an_idle_worker_poll_does_not_hold_off_shared_readers(recovery, monkeypatch):
+    """The desktop worker polls every brain about once a second. Before, each poll took the brain row FOR UPDATE to
+    look for a job, so a reader arriving during an idle poll queued behind it. Every transaction the poll opens is
+    stopped just before it commits, and another session asks for the row shared, without waiting."""
+    harness, authority = recovery
+    worker = MemoryService(harness.database)  # The desktop worker with the semantic model off.
+    secret = harness.observe("The safe combination is 3141.")["accepted_event_ids"][0]
+    while worker.work_once(harness.principal, harness.brain):
+        pass
+    original = harness.database.transaction
+    probes = []
+
+    def share_now():
+        with original(harness.principal) as other:
+            try:
+                with other.transaction():
+                    other.execute(*brain_row(harness, "SHARE NOWAIT")).fetchone()
+            except psycopg.errors.LockNotAvailable:
+                return False
+            return True
+
+    @contextmanager
+    def transaction(principal):
+        with original(principal) as conn:
+            yield conn
+            probes.append(share_now())  # The poll's transaction is still open here, holding what it locked.
+
+    monkeypatch.setattr(harness.database, "transaction", transaction)
+    assert worker.work_once(harness.principal, harness.brain) == 0
+    assert probes and all(probes), probes
+
+    # A poll still applies an erasure the registry holds and the database does not, as every exclusive access does.
+    monkeypatch.setattr(harness.database, "transaction", original)
+    pending(harness, authority, secret)
+    assert worker.work_once(harness.principal, harness.brain) == 0
+    assert raw_event(harness, secret) == {"document": None, "deleted": True}
