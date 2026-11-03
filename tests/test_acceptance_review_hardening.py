@@ -4,6 +4,8 @@ Synthetic fixtures only, written to tmp_path. No model call, no held-out scenari
 """
 import importlib.util
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -71,3 +73,175 @@ def test_diagnose_prints_kinds_counts_and_positions_but_never_content(pipeline, 
                  "log: exception ValueError: 1", "log: exception RuntimeError: 1", "log: cap reached: 1",
                  "log: harness event lines: 1", "log: exception other: 1", "harness events: 6"):
         assert line in out, (line, out)
+
+
+# I5: an arm-blind digest of what each page action actually removed, for RC2 ----------------------------------------
+
+ALPHA, BETA = f"{SECRET}-alpha", f"{SECRET}-beta"
+SCENARIO = f'''
+SESSIONS_LONG = [({ALPHA!r}, ["Today is Monday, March 2, 09:00. {SECRET} one", "{SECRET} two", "{SECRET} three"]),
+                 ({BETA!r}, ["Today is Friday, March 6, 09:00. {SECRET} four", "{SECRET} five", "{SECRET} six"])]
+CASES = [({BETA!r}, 1, "S01-case", "Criteria: {SECRET}"), ({ALPHA!r}, 1, "S02-case", "Criteria: {SECRET}")]
+PAGE_ACTIONS = [
+    ({BETA!r}, 0, {{"do": "delete_message", "session": {ALPHA!r}, "turn": 0}}),
+    ({BETA!r}, 0, {{"do": "delete_feeling", "label": "{SECRET}-label"}}),
+    ({BETA!r}, 1, {{"do": "add_boundary", "topic": "{SECRET}-topic", "arms": ["E"]}}),
+    ({BETA!r}, 2, {{"do": "reset_relationship"}}),
+]
+'''
+
+
+def world(**changes):
+    state = {"messages": 6, "notes": 1, "feelings": 3, "boundaries": [f"{SECRET}-topic"], "shared_moments": 2,
+             "familiarity": f"{SECRET}-level", "familiarity_days": 4, "mood": f"{SECRET}-mood", "mood_pinned": False,
+             "persona_version": 1}
+    return {**state, **changes}
+
+
+def record(session, turn, action, before, after, result):
+    return {"session": session, "before_turn": turn, "action": action, "time": f"{SECRET}-time",
+            "detail": {"topic": f"{SECRET}-detail"}, "before": before, "after": after, "result": result}
+
+
+REMOVED_P = [[ALPHA, 0, "assistant"], [ALPHA, 0, "user"]]
+REFERENCE = {"history_items": 4, "persona_version": 1}
+RECORDS = {
+    "P": [record(BETA, 0, "delete_message", world(), world(messages=4), {"deleted": 1, "removed": REMOVED_P}),
+          record(BETA, 0, "delete_feeling", world(messages=4), world(messages=4, feelings=2), {"deleted": 1}),
+          record(BETA, 2, "reset_relationship", world(), world(shared_moments=0, familiarity_days=0), {})],
+    "E": [record(BETA, 0, "delete_message", world(feelings=2), world(messages=5, feelings=2),
+                 {"deleted": 1, "removed": [[ALPHA, 0, "user"]]}),
+          record(BETA, 0, "delete_feeling", world(feelings=2), world(feelings=1), {"deleted": 1}),
+          record(BETA, 1, "add_boundary", world(boundaries=[]), world(), {}),
+          record(BETA, 2, "reset_relationship", world(), world(shared_moments=0), {})],
+    "F": [record(BETA, 0, "delete_message", {"history_items": 6, "persona_version": 1},
+                 {**REFERENCE, "removed_still_in_history": 0}, {"deleted": 2, "removed": REMOVED_P}),
+          record(BETA, 0, "delete_feeling", REFERENCE, REFERENCE, {}),
+          record(BETA, 2, "reset_relationship", REFERENCE, REFERENCE, {})],
+}
+
+
+def blank():
+    return {"critical": [], "confirmed": [], "rejected": [], "added": [], "evidence": f"{SECRET} evidence"}
+
+
+def companion_world(tmp_path, mapping=None, records=None):
+    """A synthetic companion scenario, its three arms' run directories, blinded mapping and review files."""
+    scenario = tmp_path / "practice.py"
+    scenario.write_text(SCENARIO)
+    review, blind = tmp_path / "review", tmp_path / "blind"
+    mapping = mapping or {"S01-case": {"A": "E", "B": "F", "C": "P"}, "S02-case": {"A": "P", "B": "E", "C": "F"}}
+    put(blind / "sealed_practice.json", mapping)
+    verdict = {case: {label: {"score_ignoring_critical": 1, "critical": [], "reason": f"{SECRET} reason"}
+                      for label in "ABC"} for case in ("S01-case", "S02-case")}
+    for label in "AB":
+        verdict["S01-case"][label]["critical"] = [8]
+    verdict["S02-case"]["A"]["critical"] = [8]
+    put(review / "verdicts-practice.json", verdict)
+    first = {label: blank() for label in "ABC"}
+    for label in "AB":
+        first[label].update(critical=[8], confirmed=[8])
+    first["C"].update(critical=[8], added=[8])
+    put(review / "recheck-practice" / "S01-case.json", first)
+    second = {label: blank() for label in "ABC"}
+    second["A"].update(rejected=[8])
+    put(review / "recheck-practice" / "S02-case.json", second)
+    runs = []
+    for arm, entries in (records or RECORDS).items():
+        run = tmp_path / f"run-{arm}"
+        run.mkdir()
+        (run / "results_practice_X.jsonl").write_text(json.dumps(
+            {"arm": arm, "scenario": "practice", "session": ALPHA, "turn": 0, "reply": f"{SECRET} reply"}) + "\n")
+        (run / "page-actions.jsonl").write_text("".join(json.dumps(entry) + "\n" for entry in entries))
+        runs.append(run)
+    return scenario, review, blind, runs
+
+
+def strings(value):
+    """Every key and string value in a JSON document."""
+    if isinstance(value, dict):
+        for key, item in value.items():
+            yield key
+            yield from strings(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from strings(item)
+    elif isinstance(value, str):
+        yield value
+
+
+ZERO = {"messages": 0, "notes": 0, "feelings": 0, "shared_moments": 0, "familiarity_days": 0}
+OUTCOMES = {  # What each arm's actions before S01-case removed, in scenario positions (session index, message).
+    "P": [{"removed": [[1, 1, "assistant"], [1, 1, "user"]], "deltas": {**ZERO, "messages": -2}},
+          {"removed": [], "deltas": {**ZERO, "feelings": -1}}, {"removed": [], "deltas": ZERO}],
+    "E": [{"removed": [[1, 1, "user"]], "deltas": {**ZERO, "messages": -1}},
+          {"removed": [], "deltas": {**ZERO, "feelings": -1}}, {"removed": [], "deltas": ZERO}],
+    "F": [{"removed": [[1, 1, "assistant"], [1, 1, "user"]], "deltas": {**ZERO, "messages": -2}},
+          {"removed": [], "deltas": ZERO}, {"removed": [], "deltas": ZERO}],
+}
+
+
+@pytest.mark.parametrize("mapping", [
+    {"S01-case": {"A": "E", "B": "F", "C": "P"}, "S02-case": {"A": "P", "B": "E", "C": "F"}},
+    {"S01-case": {"A": "F", "B": "P", "C": "E"}, "S02-case": {"A": "E", "B": "F", "C": "P"}},
+])
+def test_actions_digest_reports_actual_removals_per_blinded_label(pipeline, tmp_path, mapping):
+    scenario, review, blind, runs = companion_world(tmp_path, mapping)
+    pipeline.actions_digest(review, blind, str(scenario), "practice", runs)
+    digest = json.loads((review / "actions-practice.json").read_text())
+    # Only replies with a candidate type 8 mark: S01 A and B (first reviewer), C (added), S02 A (later rejected).
+    assert sorted(digest) == ["S01-case/A", "S01-case/B", "S01-case/C", "S02-case/A"]
+    assert digest["S02-case/A"] == {"session": 1, "message": 2, "actions": []}
+    for label, arm in mapping["S01-case"].items():
+        entry = digest[f"S01-case/{label}"]
+        assert (entry["session"], entry["message"]) == (2, 2)
+        assert [(item["action"], item["session"], item["before_message"]) for item in entry["actions"]] == [
+            ("delete_message", 2, 1), ("delete_feeling", 2, 1), ("add_boundary", 2, 2)]  # Not the later reset.
+        assert [{"removed": item["removed"], "deltas": item["deltas"]} for item in entry["actions"]] == OUTCOMES[arm]
+        # The arms removed different messages and feelings; the arm-limited boundary removed nothing anywhere.
+        assert [item["same_for_all_labels"] for item in entry["actions"]] == [False, False, True]
+
+
+def test_actions_digest_is_arm_blind_and_holds_no_content(pipeline, tmp_path, capsys):
+    scenario, review, blind, runs = companion_world(tmp_path)
+    pipeline.actions_digest(review, blind, str(scenario), "practice", runs)
+    text = (review / "actions-practice.json").read_text()
+    printed = capsys.readouterr().out
+    assert SECRET.casefold() not in (text + printed).casefold()
+    found = set(strings(json.loads(text)))
+    assert not found & {"P", "E", "F", "arm", "arms", "sealed", "detail", "time", "mood", "boundaries"}
+    assert all(not value.endswith(("/P", "/E", "/F")) for value in found)
+
+
+@pytest.mark.parametrize("damage", ["failed", "missing", "extra", "wrong_kind", "unknown_position", "f_kept"])
+def test_actions_digest_refuses_incomplete_or_failed_action_evidence(pipeline, tmp_path, damage):
+    records = json.loads(json.dumps(RECORDS))
+    if damage == "failed":
+        records["E"][1]["result"] = {"failed": f"no feeling '{SECRET}'"}
+    elif damage == "missing":
+        records["E"].pop(2)
+    elif damage == "extra":
+        records["F"].append(records["E"][2])
+    elif damage == "wrong_kind":
+        records["P"][1]["action"] = "clear_feelings"
+    elif damage == "unknown_position":
+        records["P"][0]["result"]["removed"].append([f"{SECRET}-elsewhere", 0, "user"])
+    else:
+        records["F"][0]["after"]["removed_still_in_history"] = 1
+    scenario, review, blind, runs = companion_world(tmp_path, records=records)
+    with pytest.raises(SystemExit) as refused:
+        pipeline.actions_digest(review, blind, str(scenario), "practice", runs)
+    assert SECRET not in str(refused.value)
+    assert not (review / "actions-practice.json").exists()
+
+
+def test_actions_digest_is_written_once_and_needs_every_sealed_arm(pipeline, tmp_path):
+    scenario, review, blind, runs = companion_world(tmp_path)
+    with pytest.raises(SystemExit, match="not the arms of the sealed mapping"):
+        pipeline.actions_digest(review, blind, str(scenario), "practice", runs[:2])
+    result = subprocess.run([sys.executable, pipeline.__file__, "actions-digest", str(review), str(blind),
+                             str(scenario), "practice", *map(str, runs)], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert SECRET not in result.stdout and json.loads((review / "actions-practice.json").read_text())
+    with pytest.raises(SystemExit, match="written once"):
+        pipeline.actions_digest(review, blind, str(scenario), "practice", runs)
