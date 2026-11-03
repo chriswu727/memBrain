@@ -305,12 +305,16 @@ def sdk(home: Home, calls: list, directory: Path | None = None, timeout: int = 3
     request = {"directory": str(directory) if directory else None, "calls": calls}
     result = subprocess.run([str(python), "-I", "-c", SDK_SCRIPT], input=json.dumps(request), capture_output=True,
                             text=True, env=home.env, cwd=home.home, timeout=timeout)
+    failed = RuntimeError(f"installed SDK call failed (exit {result.returncode}): "
+                          f"{(result.stdout + result.stderr)[-800:]}")
+    # A non-zero exit fails even when stdout already ends in a valid-looking answer: the process crashed after it.
+    if result.returncode != 0:
+        raise failed
     lines = result.stdout.strip().splitlines()
     try:
         answer = json.loads(lines[-1])
     except (IndexError, ValueError):
-        raise RuntimeError(f"installed SDK call failed (exit {result.returncode}): "
-                           f"{(result.stdout + result.stderr)[-800:]}") from None
+        raise failed from None
     if "error" in answer:
         raise RuntimeError(answer["error"])
     return answer["results"]

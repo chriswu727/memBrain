@@ -257,3 +257,14 @@ def test_the_installed_sdk_reports_a_missing_runtime_or_api_by_name(runner, tmp_
     with pytest.raises(RuntimeError, match="exit 1.*Traceback"):
         runner.sdk(home, [["persona", [], {}]])
     assert runner.missing(["memory_note"], runner.COMPANION_TOOLS) == ["memory_boundary"]
+
+def test_the_installed_sdk_fails_on_a_nonzero_exit_even_after_printing_results(runner, tmp_path, monkeypatch):
+    home = runner.Home(tmp_path / "base")
+    python = home.runtime_python()
+    python.parent.mkdir(parents=True)
+    python.write_text("")
+    crashed = runner.subprocess.CompletedProcess(
+        [], 1, stdout='{"results": ["printed before crash"]}\n', stderr="process failed")
+    monkeypatch.setattr(runner.subprocess, "run", lambda *args, **kwargs: crashed)
+    with pytest.raises(RuntimeError, match=r"(?s)exit 1.*printed before crash.*process failed"):
+        runner.sdk(home, [["persona", [], {}]])
