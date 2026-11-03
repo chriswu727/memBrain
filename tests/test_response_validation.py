@@ -10,6 +10,8 @@ import uuid
 
 import httpx
 import pytest
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 from test_learning import learning as learning
 
@@ -103,6 +105,20 @@ def test_an_invalid_response_from_an_overridden_handle_is_rejected(make):
     response = post(make(invalid_response), recall_request("brain"))
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "validation_failed"
+
+
+def test_an_action_response_is_encoded_byte_for_byte_as_the_default_encoding_would():
+    request = recall_request("brain")
+
+    def reply(request):
+        value = rejected_response(request)
+        value["error"]["message"] = "Refusé: 图书馆   \"quoted\" \\ </script> 1.5e-07"
+        return value
+
+    response = post(DuckTyped(reply), request)
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/json"
+    assert response.content == JSONResponse(jsonable_encoder(reply(request))).body
 
 
 @pytest.mark.integration
