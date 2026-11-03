@@ -21,6 +21,7 @@ from typing import Any
 
 from .. import host
 from ..notes import NOTE_FIELDS, NOTE_TOOL_DESCRIPTION, SOURCE_FIELD
+from ..relationship import BOUNDARY_TOOL_DESCRIPTION
 
 try:  # Hermes is only present when this module is loaded by Hermes; tests run without it.
     from agent.memory_provider import MemoryProvider as _Base
@@ -40,6 +41,9 @@ _SCHEMAS = [
         "Search the user's earlier conversations and notes by a few concrete keywords (names, places, activities, "
         "dates) when a request depends on personal context that is not already shown."),
      "parameters": {"type": "object", "properties": {"query": {"type": "string"}}, "required": ["query"]}},
+    {"name": "membrain_boundary", "description": BOUNDARY_TOOL_DESCRIPTION,
+     "parameters": {"type": "object", "properties": {"topic": {"type": "string"},
+         "aliases": {"type": "array", "items": {"type": "string"}}}, "required": ["topic"]}},
     {"name": "membrain_pause", "description": host.PAUSE_TOOL_DESCRIPTION,
      "parameters": {"type": "object", "properties": {"hours": {"type": "number"},
                                                     "until_resumed": {"type": "boolean"}}}},
@@ -189,6 +193,8 @@ class MembrainProvider(_Base):
         from ..notes import note_fields, save_note
 
         try:
+            if tool_name == "membrain_boundary" and not self._writes:
+                return json.dumps({"error": "This session cannot change memory."})
             if tool_name == "membrain_pause":
                 return json.dumps(host.pause(self._directory, args.get("hours"), user_id=self._user,
                                              conversation=not args.get("until_resumed")))
@@ -210,6 +216,10 @@ class MembrainProvider(_Base):
                     found = host.recall_context(client, host.scrub(str(args.get("query", ""))),
                                                 current_conversation=self._session)
                     return json.dumps({"context": found or "No matching records."}, ensure_ascii=False)
+                if tool_name == "membrain_boundary":
+                    result = client.add_boundary(args.get("topic", ""), args.get("aliases") or ())
+                    self._block = None
+                    return json.dumps({"boundaries": result.get("boundaries", [])}, ensure_ascii=False)
         except ValueError as error:
             return json.dumps({"error": str(error)})
         return json.dumps({"error": f"Unknown tool {tool_name}"})

@@ -180,6 +180,18 @@ class ChatMemory:
         self._forget_blocks(user)
         return result
 
+    def boundary(self, speaker: Speaker, topic: str, aliases=(), *, roleplay: str | None = None) -> dict:
+        if not self._recording(speaker):
+            return {"error": "Memory tools are not available in this conversation."}
+        user = self.memory_user(speaker, roleplay)
+        client = self._client(user)
+        if client is None:
+            return {"error": "memBrain is starting; try again in a few seconds."}
+        with client:
+            result = client.add_boundary(topic, aliases)
+        self._forget_blocks(user)
+        return {"boundaries": result.get("boundaries", [])}
+
     def search(self, speaker: Speaker, query: str, *, session: str | None = None, roleplay: str | None = None) -> dict:
         client = self._client(self.memory_user(speaker, roleplay))
         if client is None:
