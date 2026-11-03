@@ -265,6 +265,45 @@ class MemoryClient:
                              json={"request_id": request_id or str(uuid4()),
                                    "text": text, **fields})
 
+    def _persona_path(self, brain_id: str | None, suffix: str = "") -> str:
+        return f"v1/brains/{quote(self._scope(brain_id=brain_id)['brain_ref'], safe='')}/persona{suffix}"
+
+    def persona(self, *, brain_id: str | None = None) -> JsonObject:
+        """The current persona card with its version (0 when none was ever set) and its context block."""
+        return self._request("GET", self._persona_path(brain_id))
+
+    def set_persona(self, card: Mapping[str, Any], *, made_by: Literal["host", "user", "feedback"] = "host",
+                    reason: str | None = None, host_default: bool = False,
+                    brain_id: str | None = None) -> JsonObject:
+        """Save a card as a new version; ``host_default`` makes it the card that reset returns to."""
+        body: JsonObject = {"card": dict(card), "made_by": made_by, "host_default": host_default}
+        if reason is not None:
+            body["reason"] = reason
+        return self._request("PUT", self._persona_path(brain_id), json=body)
+
+    def persona_versions(self, *, brain_id: str | None = None) -> JsonObject:
+        return self._request("GET", self._persona_path(brain_id, "/versions"))
+
+    def restore_persona(self, version: int, *, made_by: Literal["host", "user", "feedback"] = "host",
+                        reason: str | None = None, brain_id: str | None = None) -> JsonObject:
+        """Save an earlier version's content as a new version."""
+        body: JsonObject = {"version": version, "made_by": made_by}
+        if reason is not None:
+            body["reason"] = reason
+        return self._request("POST", self._persona_path(brain_id, "/restore"), json=body)
+
+    def reset_persona(self, *, made_by: Literal["host", "user", "feedback"] = "host", reason: str | None = None,
+                      brain_id: str | None = None) -> JsonObject:
+        """Make the host's default card, or an empty card, current as a new version; history is kept."""
+        body: JsonObject = {"made_by": made_by}
+        if reason is not None:
+            body["reason"] = reason
+        return self._request("POST", self._persona_path(brain_id, "/reset"), json=body)
+
+    def delete_persona_history(self, *, brain_id: str | None = None) -> JsonObject:
+        """Erase every persona version (audited, like deleting notes)."""
+        return self._request("DELETE", self._persona_path(brain_id, "/versions"))
+
     def following(self, event_ids: Sequence[str]) -> JsonObject:
         brain = self._scope()["brain_ref"]
         return self._request("GET", f"v1/brains/{quote(brain, safe='')}/timeline/following",
