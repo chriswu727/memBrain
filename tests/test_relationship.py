@@ -766,7 +766,7 @@ def test_an_archive_time_with_no_utc_form_is_an_invalid_archive_and_the_restore_
                                                                                               field, extreme):
     import httpx
 
-    from membrain.client import MemoryClient
+    from membrain.client import MemoryActionError, MemoryClient
     from membrain.helpers import digest
 
     service, principal, ident = brain
@@ -787,9 +787,11 @@ def test_an_archive_time_with_no_utc_form_is_an_invalid_archive_and_the_restore_
             conn.execute("UPDATE memory_archives SET document=%s, manifest_hash=%s WHERE id=%s",
                          (Jsonb(document), digest(document), archive_id))
         copy = service.create_brain(principal, "Never restored")["id"]
-        restored = client.restore(archive_id, expected_manifest_sha256=digest(document), expected_scope_generation=1,
-                                  mode="new_brain", brain_id=copy)
-    assert restored["outcome"] == "rejected" and restored["error"]["code"] == "invalid_archive", restored
+        with pytest.raises(MemoryActionError) as rejected:
+            client.restore(archive_id, expected_manifest_sha256=digest(document), expected_scope_generation=1,
+                           mode="new_brain", brain_id=copy)
+    response = rejected.value.response
+    assert response["outcome"] == "rejected" and response["error"]["code"] == "invalid_archive", response
     with service.database.transaction(principal) as conn:
         written = conn.execute("SELECT count(*) AS n FROM memory_events WHERE brain_id=%s", (copy,)).fetchone()["n"]
     assert written == 0
