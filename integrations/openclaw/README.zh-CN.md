@@ -23,7 +23,9 @@ OpenClaw 2026.10 在你接受本地插件声明的能力（`--accept-capabilitie
 | --- | --- |
 | `before_prompt_build` | 以 `appendSystemContext` 加入会话说明、已保存的笔记和早期消息（每个会话五分钟内保持不变，以便模型服务的提示词缓存生效），并以 `prependContext` 加入与本次请求相关的早期消息。暂存本次请求。 |
 | `agent_end` | 对成功的运行，保存请求和最终的助手回复。 |
-| 工具 | `membrain_note`、`membrain_search`、`membrain_pause`、`membrain_resume`。 |
+| 工具 | `membrain_note`、`membrain_search`、`membrain_boundary`、`membrain_pause`、`membrain_resume`。 |
+
+用户要求不要主动提起某个话题时，使用 `membrain_boundary`。它只作用于当前对话所属用户的记忆，支持任意语言的别名；除非用户主动提起，否则自动上下文和检索不会带出该话题。用户可在记忆页面移除边界。通过 `membrain_note` 的 `kind: "milestone", shared: true` 可记录共同经历，`affect` 可附上有来源依据的情绪记录。
 
 设置插件的 `directory` 可以让这个助手的记忆与其他宿主分开。`membrain plugin ui` 可打开记忆页面；`<private>…</private>` 中的文字和看起来像凭据的内容永远不会被保存。
 
