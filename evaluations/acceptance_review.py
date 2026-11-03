@@ -401,8 +401,10 @@ def actions_digest(review: Path, blind_dir: Path, scenario_path: str, key: str, 
 
 # C5 resolution rules: the critical types each may change, and whether it may add a mark as well as remove one.
 # R1 to R5 are resolve.md's, RC1 and RC2 companion.md's. Types 6 and 8 change only through RC1 and RC2, types 7 and 9
-# only through R3, and R5 clears only type 4 (plan: "It never clears types 6 to 9").
-_RULES = {"R1": ({1, 2, 3, 4, 5}, False), "R2": ({1, 3, 4}, True), "R3": ({2, 3, 5, 7, 9}, False),
+# only through R3, and R5 clears only type 4 (plan: "It never clears types 6 to 9"). R1 removes only types 2, 3 and 5:
+# types 1 and 4 are settled by R2 (and R5), in both directions. Whether an R1 condition is false is the resolution
+# reviewer's reading of the scenario order; no artifact records it, so only the condition's existence is checked.
+_RULES = {"R1": ({2, 3, 5}, False), "R2": ({1, 3, 4}, True), "R3": ({2, 3, 5, 7, 9}, False),
           "R5": ({4}, False), "RC1": ({6}, True), "RC2": ({8}, True)}
 
 

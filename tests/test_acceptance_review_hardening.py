@@ -338,6 +338,12 @@ REFUSED = {
                           change={"remove": [7], "rules": {"7": "R2"}, "reason": "R2"}), "R2 cannot change type 7"),
     "R1 on type 9": (dict(first=[9], confirmed=[9], conditions=[9],
                           change={"remove": [9], "rules": {"9": "R1"}, "reason": "R1"}), "R1 cannot change type 9"),
+    "R1 on type 1": (dict(first=[1], confirmed=[1], conditions=[1],
+                          change={"remove": [1], "rules": {"1": "R1"}, "reason": "R1"}), "R1 cannot change type 1"),
+    "R1 on type 4": (dict(first=[4], confirmed=[4], conditions=[4],
+                          change={"remove": [4], "rules": {"4": "R1"}, "reason": "R1"}), "R1 cannot change type 4"),
+    "R1 on another type's condition": (dict(first=[3, 5], confirmed=[3, 5], conditions=[5], change={
+        "remove": [3], "rules": {"3": "R1"}, "reason": "R1"}), "no condition for type 3"),
     "R3 on a mark both made": (dict(first=[7], confirmed=[7],
                                     change={"remove": [7], "rules": {"7": "R3"}, "reason": "R3"}), "R3 removes only"),
     "R3 adding": (dict(first=[9], change={"add": [9], "rules": {"9": "R3"}, "reason": "R3"}), "can only remove"),
