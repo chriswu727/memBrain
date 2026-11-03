@@ -96,7 +96,10 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
         note_ids = [row["id"] for row in chosen_notes]
         from .affect import AFFECT_CONVERSATION, AFFECT_PRODUCER
 
-        # One node per affect record of a shown note, linked to it; they share the episode budget.
+        # One node per affect record of a shown note, linked to it. They share the episode budget, taking at most
+        # half of it while there are messages, so a note's source messages stay in the sample.
+        room = max_nodes - len(chosen_notes)
+        room = room // 2 if recent or traced_messages else room
         feelings = conn.execute(
             "SELECT e.id,d.input_event_id AS note_id,left(e.document->'observed'->'content'->>'text',1000) AS text,"
             "e.document->'system_time'->>'recorded_at' AS recorded_at FROM memory_event_dependencies d "
@@ -105,8 +108,8 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
             "WHERE d.tenant_id=%s AND d.owner_id=%s AND d.brain_id=%s AND d.input_event_id=ANY(%s::text[]) "
             "AND e.is_current AND NOT e.deleted AND NOT e.suppressed AND NOT e.retired AND e.document IS NOT NULL "
             "AND e.conversation_id=%s AND e.producer_ref=%s ORDER BY e.sequence DESC LIMIT %s",
-            (*params, note_ids, AFFECT_CONVERSATION, AFFECT_PRODUCER, max(0, max_nodes - len(chosen_notes))),
-        ).fetchall() if note_ids and max_nodes > len(chosen_notes) else []
+            (*params, note_ids, AFFECT_CONVERSATION, AFFECT_PRODUCER, room),
+        ).fetchall() if note_ids and room > 0 else []
         links = conn.execute(
             "SELECT d.output_event_id,d.input_event_id,e.sequence FROM memory_event_dependencies d "
             "JOIN memory_events e ON e.tenant_id=d.tenant_id AND e.owner_id=d.owner_id "
