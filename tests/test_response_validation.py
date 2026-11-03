@@ -256,3 +256,25 @@ def test_an_invalid_recall_trace_is_rejected_and_no_trace_is_saved(learning, mon
     response = harness.service.handle(harness.principal, recall_request(harness.brain))
     assert response["outcome"] == "rejected" and response["error"]["code"] == "validation_failed"
     assert stored(harness, "memory_traces") == traces
+
+
+@pytest.mark.integration
+def test_saving_traces_validates_all_of_them_first_and_writes_each_once(learning):
+    harness = learning
+    harness.observe("The Vancouver library appointment is on Friday.")
+    harness.memory.work()
+    returned = harness.service.handle(harness.principal, recall_request(harness.brain))["result"]["recall_traces"]
+    fresh = [{**copy.deepcopy(trace), "trace_id": str(uuid.uuid4())} for trace in returned[:1]] * 2
+    broken = [*fresh, {**copy.deepcopy(returned[0]), "trace_id": str(uuid.uuid4()), "kind": "not-a-kind"}]
+    with harness.database.transaction(harness.principal) as conn:
+        brain = {"id": harness.brain}
+        before = conn.execute("SELECT count(*) AS n FROM memory_traces WHERE tenant_id=%s AND brain_id=%s",
+                              (harness.principal.tenant_id, harness.brain)).fetchone()["n"]
+        with pytest.raises(DomainError):
+            harness.service._save_traces(conn, harness.principal, brain, broken)
+        assert conn.execute("SELECT count(*) AS n FROM memory_traces WHERE tenant_id=%s AND brain_id=%s",
+                            (harness.principal.tenant_id, harness.brain)).fetchone()["n"] == before
+        harness.service._save_traces(conn, harness.principal, brain, [*fresh, *returned])  # duplicates are kept once
+        rows = conn.execute("SELECT id,document FROM memory_traces WHERE tenant_id=%s AND brain_id=%s AND id=ANY(%s)",
+                            (harness.principal.tenant_id, harness.brain, [fresh[0]["trace_id"]])).fetchall()
+    assert [row["document"] for row in rows] == [fresh[0]]
