@@ -120,11 +120,39 @@ def log(*parts):
     print(time.strftime("%H:%M:%S"), *parts, flush=True)
 
 
+class DegradedRun(SystemExit):
+    """A live arm stopped by a harness event: its results are invalid, so it spends nothing more. A SystemExit, so no
+    ``except Exception`` on the way out swallows it and the main block's cleanup still stops the services."""
+
+    def __init__(self, kind: str):
+        super().__init__(3)
+        self.kind = kind
+
+
 def harness_event(out: Path, kind: str, **data) -> None:
-    """Record something that may have degraded a run, so it is reported with the results."""
+    """Record something that may have degraded a run, so it is reported with the results. ``data`` holds only kinds,
+    positions and counts, never the scenario's words. Every recorded event makes the run invalid
+    (acceptance_review.py validity), so a live arm stops here, after blocking the shared billing ledger as an
+    interrupted arm does; a dry run records the event and goes on, so its checks see every event."""
     with (out / "harness-events.jsonl").open("a") as stream:
         stream.write(json.dumps({"time": time.time(), "kind": kind, **data}) + "\n")
     log("harness event", kind, data)
+    if not STUB:
+        log("live run stopped: harness event", kind)
+        try:
+            if BILLING is not None:
+                BILLING.stop("harness_degraded")
+        finally:
+            raise DegradedRun(kind)
+
+
+def failure_code(result: dict) -> str:
+    """A failed page action's reason as a fixed code: its message names the scenario's topic, label or text."""
+    if "differing_fields" in result:
+        return "card_differs"
+    if "unknown_removed" in result:
+        return "unknown_removed"
+    return "not_found"
 
 
 def session_start(text: str, year: int = YEAR) -> datetime.datetime:
@@ -179,7 +207,7 @@ def refuse_network(out: Path) -> None:
     def connect(self, address):
         host = address[0] if isinstance(address, tuple) else address
         if self.family in (socket.AF_INET, socket.AF_INET6) and host not in ("127.0.0.1", "::1", "localhost"):
-            harness_event(out, "network_refused", host=str(host))
+            harness_event(out, "network_refused")
             raise OSError(f"dry run: network connection to {host} refused")
         return original(self, address)
 
@@ -363,7 +391,7 @@ class Memory:
                 if dashboard["status"]["pending_jobs"] == 0 and dashboard["status"].get("index_lag", 0) == 0:
                     return
             time.sleep(2)
-        harness_event(self.directory.parent, "index_wait_timed_out", brain=self.directory.name)
+        harness_event(self.directory.parent, "index_wait_timed_out")
 
     def now(self) -> str:
         return self.clock.current(self.directory).isoformat().replace("+00:00", "Z")
@@ -720,7 +748,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             log("page action", action["do"], "before", session, "turn", before, "result:", record["result"])
             if record["result"].get("failed"):
                 harness_event(out, "page_action_failed", action=action["do"], session=session, turn=before,
-                              reason=record["result"]["failed"])
+                              reason=failure_code(record["result"]))
 
     for (session, turns), start in zip(sessions, starts):
         today = start.date()
@@ -728,8 +756,8 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
         if memory is not None:
             effective = memory.clock.advance(memory.directory, start, run=memory.directory.name)
             if effective > start and session != sessions[0][0]:  # The first was set when the profile was made.
-                harness_event(out, "clock_already_past", session=session, requested=start.isoformat(),
-                              now=effective.isoformat())
+                harness_event(out, "clock_already_past", session=session,
+                              behind_seconds=int((effective - start).total_seconds()))
         date_line = f"Today's date: {today.isoformat()} ({today.strftime('%A')})."
         page_actions(session, 0)
         session_context = None
