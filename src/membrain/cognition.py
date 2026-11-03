@@ -10,7 +10,7 @@ from typing import Any
 from .applicability import ApplicabilityResult, evaluate_applicability, validate_observation
 from .context_views import FORMAT, assistant_speech, context_view, memory_content, render_recall
 from .contracts import validate
-from .helpers import DomainError, digest, now, uid
+from .helpers import DomainError, deep_copy, digest, now, uid
 from .ontology import CORE_REGISTRY
 from .retrieval import RANK_METHODS
 from .temporal import evaluate_valid_during
@@ -681,7 +681,7 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
         "excluded_cue_event_ids": sorted(excluded), "exclude_cue_descendants": True,
     }
     result = {
-        "recall_id": uid(), "scope": copy.deepcopy(scope), "status": "no_match", "items": [],
+        "recall_id": uid(), "scope": deep_copy(scope), "status": "no_match", "items": [],
         "unknowns": [], "ambiguities": [], "conflicts": [], "coverage": coverage,
         "usage": _usage(request["budget"]), "next_step": "expand_search",
         "retrieval_snapshot": snapshot, "recall_traces": [], "context_format": FORMAT,
@@ -810,7 +810,7 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
         tail = any(event_map[ref["event_id"]]["sequence"] > state["indexed_sequence"]
                    for ref in memory["evidence_refs"])
         item = {
-            "memory": copy.deepcopy(memory),
+            "memory": deep_copy(memory),
             "rank_signals": signals,
             "retrieved_from": "unindexed_tail" if tail else "index",
             "display_mode": "explicit_recollection" if historical else "background_context",
@@ -841,10 +841,10 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
         result["items"].append(item)
         result["recall_traces"].append({
             "trace_id": uid(), "recall_id": result["recall_id"],
-            "retrieval_snapshot_id": snapshot["snapshot_id"], "scope": copy.deepcopy(scope),
+            "retrieval_snapshot_id": snapshot["snapshot_id"], "scope": deep_copy(scope),
             "turn_id": None, "memory_id": memory["memory_id"], "memory_revision": memory["revision"], "kind": "candidate_hit",
             "source": "server_instrumentation", "feedback_event_id": None,
-            "evidence_refs": copy.deepcopy(memory["evidence_refs"]),
+            "evidence_refs": deep_copy(memory["evidence_refs"]),
             "recorded_at": timestamp, "allowed_effect": "none",
         })
     if result["items"]:
