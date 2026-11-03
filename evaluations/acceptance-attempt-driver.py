@@ -166,13 +166,26 @@ def validate_manifest(manifest) -> dict:
     return manifest
 
 
+def _shared_loader():
+    """acceptance_review.load_manifest from this driver's own directory, the single shared definition of the format."""
+    import importlib.util
+
+    source = Path(__file__).resolve().with_name("acceptance_review.py")
+    spec = importlib.util.spec_from_file_location("acceptance_review_for_driver", source)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.load_manifest
+
+
 def load_manifest(path: Path) -> tuple[dict, str]:
-    """The validated manifest and the sha256 of its exact bytes."""
+    """The validated manifest and the sha256 of its exact bytes. The shared loader decides the format; the local
+    validator (kept identical, see the parity test) must agree, so a divergence refuses the manifest."""
     data = path.read_bytes()
     try:
         manifest = json.loads(data.decode("utf-8"))
     except (ValueError, UnicodeDecodeError) as error:
         raise ValueError(f"the manifest is not JSON: {error}") from None
+    _shared_loader()(path)  # raises ManifestError, a ValueError, on any structural problem
     return validate_manifest(manifest), hashlib.sha256(data).hexdigest()
 
 
