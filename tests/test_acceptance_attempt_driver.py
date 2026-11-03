@@ -467,8 +467,6 @@ STRUCTURE_ERRORS = {
     "extra top-level key": lambda m: m.update(extra=1),
     "missing order": lambda m: m.pop("order"),
     "empty attempt": lambda m: m.update(attempt_id=""),
-    "padded attempt": lambda m: m.update(attempt_id=" x"),
-    "empty files": lambda m: m.update(files={}),
     "absolute file": lambda m: m.update(files={"/etc/passwd": "b" * 64}),
     "parent file": lambda m: m.update(files={"../outside": "b" * 64}),
     "dot file path": lambda m: m.update(files={"./run.sh": "b" * 64}),
@@ -491,6 +489,31 @@ STRUCTURE_ERRORS = {
     "order unknown key": lambda m: m["order"].append("five"),
     "order duplicate": lambda m: m.update(order=["one", "two", "three", "four", "one"]),
     "order not list": lambda m: m.update(order="one"),
+    "blank attempt": lambda m: m.update(attempt_id="   "),
+    "attempt not string": lambda m: m.update(attempt_id=1),
+    "files not object": lambda m: m.update(files=[]),
+    "double slash path": lambda m: m.update(files={"a//b.sh": "b" * 64}),
+    "trailing slash path": lambda m: m.update(files={"a/": "b" * 64}),
+    "inner dot path": lambda m: m.update(files={"a/./b.sh": "b" * 64}),
+    "backslash path": lambda m: m.update(files={"a\\b.sh": "b" * 64}),
+    "scenario not .py": lambda m: m["pairs"][0]["scenarios"][0].update(path="held/one.txt"),
+    "scenario directory path": lambda m: m["pairs"][0]["scenarios"][0].update(path="held/"),
+    "duplicate stem": lambda m: m["pairs"][1]["scenarios"][0].update(path="other/one.py"),
+    "scenario hash differs from files": lambda m: m.update(files={"held/one.py": "b" * 64}),
+    "pair not object": lambda m: m["pairs"].append("C5"),
+    "scenario not object": lambda m: m["pairs"][0]["scenarios"].append("five"),
+}
+
+# Accepted by acceptance_review.py's load_manifest, so accepted here too.
+STRUCTURE_ACCEPTED = {
+    "reference": lambda m: None,
+    "single pair": lambda m: (m["pairs"].pop(), m.update(order=["one", "two"])),
+    "padded attempt": lambda m: m.update(attempt_id=" x"),
+    "empty files": lambda m: m.update(files={}),
+    "scenario in files with its hash": lambda m: m["files"].update({"held/one.py": "a" * 64}),
+    "arbitrary key names": lambda m: (m["pairs"][0]["scenarios"][0].update(key="Zeta_9-x"),
+                                      m.update(order=["Zeta_9-x", "two", "three", "four"])),
+    "C5 pair first": lambda m: m["pairs"].reverse(),
 }
 
 
@@ -498,6 +521,33 @@ def test_the_reference_manifest_is_valid(driver):
     assert driver.validate_manifest(copy.deepcopy(VALID)) == VALID
     single = _broken(lambda m: (m["pairs"].pop(), m.update(order=["one", "two"])))
     assert driver.validate_manifest(single)["order"] == ["one", "two"]
+
+
+@pytest.mark.parametrize("name", sorted(STRUCTURE_ACCEPTED))
+def test_manifests_the_shared_loader_accepts_are_accepted(driver, name):
+    manifest = _broken(STRUCTURE_ACCEPTED[name])
+    assert driver.validate_manifest(copy.deepcopy(manifest)) == manifest
+
+
+def test_the_local_validator_agrees_with_the_shared_loader_when_present(driver, tmp_path):
+    """Runs once acceptance_review.py has load_manifest; until the branches are combined it is skipped."""
+    spec = importlib.util.spec_from_file_location("acceptance_review_parity",
+                                                  DRIVER.parent / "acceptance_review.py")
+    review = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(review)
+    if not hasattr(review, "load_manifest"):
+        pytest.skip("acceptance_review.py has no load_manifest on this branch yet")
+    for name, change in {**STRUCTURE_ERRORS, **STRUCTURE_ACCEPTED}.items():
+        path = tmp_path / "manifest.json"
+        path.write_text(json.dumps(_broken(change)))
+        verdicts = []
+        for check in (lambda: driver.load_manifest(path), lambda: review.load_manifest(path)):
+            try:
+                check()
+                verdicts.append(True)
+            except ValueError:
+                verdicts.append(False)
+        assert verdicts[0] == verdicts[1] == (name in STRUCTURE_ACCEPTED), name
 
 
 @pytest.mark.parametrize("name", sorted(STRUCTURE_ERRORS))

@@ -41,7 +41,7 @@ import subprocess
 import sys
 import tempfile
 import time
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 STATE = "attempt-state.json"
 LOGS = "driver-logs"
@@ -72,10 +72,12 @@ def _sha256(path: Path) -> str:
 
 
 def _relative(value, what: str) -> str:
-    if not isinstance(value, str) or not value or "\\" in value or "\0" in value:
+    """As acceptance_review.py's _repo_path: a normalised POSIX path, not absolute, with no empty, "." or ".." part.
+    (A NUL byte passes here as it does there; the containment check before any hashing refuses it.)"""
+    if not isinstance(value, str) or not value or "\\" in value:
         raise ValueError(f"{what} must be a non-empty repo-relative path")
-    parts = value.split("/")
-    if value.startswith("/") or any(part in ("", ".", "..") for part in parts):
+    path = PurePosixPath(value)
+    if path.is_absolute() or any(part in ("", ".", "..") for part in path.parts) or "/".join(path.parts) != value:
         raise ValueError(f"{what} {value!r} must be a normalised repo-relative path")
     return value
 
@@ -93,22 +95,23 @@ def _exact(value, keys: set, what: str) -> dict:
 
 
 def validate_manifest(manifest) -> dict:
-    """The shared manifest format: raises ValueError naming the first structural problem."""
+    """The shared manifest format: raises ValueError naming the first structural problem. It accepts and rejects
+    exactly what acceptance_review.py's load_manifest does (structure only, not the files on disk)."""
     _exact(manifest, {"version", "attempt_id", "files", "pairs", "order"}, "the manifest")
     if type(manifest["version"]) is not int or manifest["version"] != 1:
         raise ValueError("version must be 1")
     attempt = manifest["attempt_id"]
-    if not isinstance(attempt, str) or not attempt.strip() or attempt != attempt.strip() or not attempt.isprintable():
-        raise ValueError("attempt_id must be a non-empty printable string")
+    if not isinstance(attempt, str) or not attempt.strip():
+        raise ValueError("attempt_id must be a non-empty string")
     files = manifest["files"]
-    if not isinstance(files, dict) or not files:
-        raise ValueError("files must be a non-empty object of path to sha256")
+    if not isinstance(files, dict):
+        raise ValueError("files must be an object of path to sha256")
     for path, digest in files.items():
         _digest(digest, f"files[{_relative(path, 'a files entry')!r}]")
     pairs = manifest["pairs"]
     if not isinstance(pairs, list) or not pairs:
         raise ValueError("pairs must be a non-empty list")
-    keys, paths, gates = set(), set(), set()
+    keys, paths, stems, gates = set(), set(), set(), set()
     for pair in pairs:
         _exact(pair, {"gate", "scenarios"}, "a pair")
         if pair["gate"] not in GATES:
@@ -127,10 +130,18 @@ def validate_manifest(manifest) -> dict:
                 raise ValueError(f"scenario key {key!r} appears more than once")
             keys.add(key)
             path = _relative(scenario["path"], f"scenario {key}'s path")
+            if not path.endswith(".py"):
+                raise ValueError(f"scenario {key}'s path must be a .py file")
             if path in paths:
                 raise ValueError(f"scenario path {path!r} appears more than once")
             paths.add(path)
+            stem = PurePosixPath(path).stem
+            if stem in stems:
+                raise ValueError(f"scenario file stem {stem!r} appears more than once")
+            stems.add(stem)
             _digest(scenario["sha256"], f"scenario {key}'s sha256")
+            if path in files and files[path] != scenario["sha256"]:
+                raise ValueError(f"scenario {key}'s sha256 differs from its entry in files")
     order = manifest["order"]
     if not isinstance(order, list) or any(not isinstance(key, str) for key in order):
         raise ValueError("order must be a list of scenario keys")
@@ -145,7 +156,7 @@ def load_manifest(path: Path) -> tuple[dict, str]:
     """The validated manifest and the sha256 of its exact bytes."""
     data = path.read_bytes()
     try:
-        manifest = json.loads(data)
+        manifest = json.loads(data.decode("utf-8"))
     except (ValueError, UnicodeDecodeError) as error:
         raise ValueError(f"the manifest is not JSON: {error}") from None
     return validate_manifest(manifest), hashlib.sha256(data).hexdigest()
