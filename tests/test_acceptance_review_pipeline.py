@@ -1,6 +1,8 @@
 import copy
 import importlib.util
 import json
+import subprocess
+import sys
 from pathlib import Path
 
 import pytest
@@ -57,7 +59,10 @@ def test_tally_applies_written_resolutions_without_rewriting_literal_scores(pipe
     review, blind = tmp_path / "review", tmp_path / "blind"
     verdict["S01-practice"]["A"]["critical"] = [4]
     put(review / "verdicts-practice.json", verdict)
-    put(review / "recheck-practice" / "S01-practice.json", {"A": {"confirmed": [4]}, "B": {}, "C": {}})
+    second = {label: {"critical": [], "confirmed": [], "rejected": [], "added": [], "evidence": ""}
+              for label in "ABC"}
+    second["A"].update(critical=[4], confirmed=[4], evidence="Public practice evidence.")
+    put(review / "recheck-practice" / "S01-practice.json", second)
     put(review / "resolution-practice.json", {"S01-practice/A": {"remove": [4], "reason": "practice evidence"}})
     put(blind / "sealed_practice.json", {"S01-practice": {"A": "P", "B": "E", "C": "F"}})
     pipeline.tally(review, blind, str(scenario), "practice")
@@ -158,3 +163,139 @@ def test_gate_counts_nonobject_attribution_as_memory_caused(pipeline, tmp_path):
     result = json.loads((tmp_path / "gate.json").read_text())
     assert result["R4"] is False
     assert result["attributions"]["S01-practice/A"]["answers"] == [None, "host"]
+
+
+@pytest.mark.parametrize("mark", [6, 7, 8, 9])
+def test_companion_verdicts_require_explicit_mode(pipeline, practice, tmp_path, mark):
+    scenario, verdict = practice
+    verdict["S01-practice"]["A"]["critical"] = [mark]
+    path = put(tmp_path / "verdicts.json", verdict)
+    with pytest.raises(SystemExit, match="bad score or critical list"):
+        pipeline.verdicts(path, str(scenario))
+    pipeline.verdicts(path, str(scenario), companion=True)
+
+
+@pytest.mark.parametrize("mark", [0, 10, True, "7"])
+def test_companion_verdicts_still_reject_invalid_types(pipeline, practice, tmp_path, mark):
+    scenario, verdict = practice
+    verdict["S01-practice"]["A"]["critical"] = [mark]
+    path = put(tmp_path / "verdicts.json", verdict)
+    with pytest.raises(SystemExit, match="bad score or critical list"):
+        pipeline.verdicts(path, str(scenario), companion=True)
+
+
+def review_files(practice, tmp_path, marks):
+    scenario, verdict = practice
+    verdict["S01-practice"]["A"]["critical"] = marks
+    put(tmp_path / "verdicts-practice.json", verdict)
+    second = {label: {"critical": [], "confirmed": [], "rejected": [], "added": [], "evidence": ""}
+              for label in "ABC"}
+    second["A"].update(critical=marks, confirmed=marks, evidence="Synthetic public evidence.")
+    path = put(tmp_path / "recheck-practice" / "S01-practice.json", second)
+    blind = tmp_path / "blind"
+    put(blind / "sealed_practice.json", {"S01-practice": {"A": "P", "B": "E", "C": "F"}})
+    return scenario, path, second, blind
+
+
+@pytest.mark.parametrize("damage", ["missing_label", "missing_fields", "unjudged", "inconsistent", "boolean", "no_evidence"])
+def test_tally_refuses_incomplete_or_inconsistent_second_reviews(pipeline, practice, tmp_path, damage):
+    scenario, path, second, blind = review_files(practice, tmp_path, [4])
+    if damage == "missing_label":
+        second.pop("C")
+    elif damage == "missing_fields":
+        second["A"] = {}
+    elif damage == "unjudged":
+        second["A"].update(critical=[], confirmed=[])
+    elif damage == "inconsistent":
+        second["A"]["critical"] = []
+    elif damage == "boolean":
+        second["A"]["added"] = [True]
+    else:
+        second["A"]["evidence"] = ""
+    put(path, second)
+    with pytest.raises(SystemExit, match="invalid (second review|review marks)"):
+        pipeline.tally(tmp_path, blind, str(scenario), "practice")
+    assert not (tmp_path / "tally-practice.json").exists()
+
+
+def test_tally_refuses_a_resolution_without_a_reason(pipeline, practice, tmp_path):
+    scenario, _, _, blind = review_files(practice, tmp_path, [4])
+    put(tmp_path / "resolution-practice.json", {"S01-practice/A": {"remove": [4]}})
+    with pytest.raises(SystemExit, match="invalid review marks"):
+        pipeline.tally(tmp_path, blind, str(scenario), "practice")
+
+
+def test_companion_tally_keeps_type8_when_type4_is_cleared(pipeline, practice, tmp_path):
+    scenario, _, _, blind = review_files(practice, tmp_path, [4, 8])
+    put(tmp_path / "resolution-practice.json", {"S01-practice/A": {"remove": [4], "reason": "R5 practice result"}})
+    pipeline.tally(tmp_path, blind, str(scenario), "practice", companion=True)
+    data = json.loads((tmp_path / "tally-practice.json").read_text())
+    assert data["gate"] == "C5"
+    assert data["rows"][0]["literal"] == [4, 8] and data["rows"][0]["resolved"] == [8]
+    assert data["totals"]["resolved"]["P"] == 0
+
+
+@pytest.mark.parametrize("arm_index", [0, 1])
+@pytest.mark.parametrize("mark", [7, 8])
+def test_companion_boundary_and_deletion_fail_even_when_both_attributors_say_host(pipeline, tmp_path, arm_index, mark):
+    data = tally()
+    data["gate"] = "C5"
+    for index in (arm_index, 2):
+        row = data["rows"][index]
+        row["resolved"] = [mark]
+        data["totals"]["resolved"][row["arm"]] = 0
+    put(tmp_path / "tally-practice.json", data)
+    label = data["rows"][arm_index]["label"]
+    for number in (1, 2):
+        put(tmp_path / "attribution-practice" / f"S01-{label}.{number}.json", {"cause": "host"})
+    pipeline.gate(tmp_path, ["practice"], companion=True)
+    result = json.loads((tmp_path / "gate-c5.json").read_text())
+    arm = data["rows"][arm_index]["arm"]
+    assert result["arms"][arm]["host_caused"] == [f"S01-practice/{label}"]
+    assert result["arms"][arm]["not_worse"] is True
+    assert result["arms"][arm]["boundary_or_deletion_errors"] == [f"S01-practice/{label}"]
+    assert result["C5"] is False and "R4" not in result
+    assert not (tmp_path / "gate.json").exists()
+
+
+def test_companion_gate_is_separate_and_cannot_overwrite_an_r4_result(pipeline, tmp_path):
+    put(tmp_path / "tally-core.json", tally())
+    pipeline.gate(tmp_path, ["core"])
+    original = (tmp_path / "gate.json").read_bytes()
+    data = {**tally(), "gate": "C5"}
+    put(tmp_path / "tally-companion.json", data)
+    with pytest.raises(SystemExit, match="different gate"):
+        pipeline.gate(tmp_path, ["companion"])
+    with pytest.raises(SystemExit, match="different gate"):
+        pipeline.gate(tmp_path, ["core", "companion"], companion=True)
+    pipeline.gate(tmp_path, ["companion"], companion=True)
+    assert json.loads((tmp_path / "gate-c5.json").read_text())["C5"] is True
+    assert (tmp_path / "gate.json").read_bytes() == original
+
+
+def test_companion_cli_writes_a_failed_result_and_exits_nonzero(pipeline, practice, tmp_path):
+    scenario, _, _, blind = review_files(practice, tmp_path, [8])
+    script = pipeline.__file__
+    for arguments in (("verdicts", str(tmp_path / "verdicts-practice.json"), str(scenario)),
+                      ("tally", str(tmp_path), str(blind), str(scenario), "practice")):
+        result = subprocess.run([sys.executable, script, *arguments, "--companion"], capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+    result = subprocess.run([sys.executable, script, "gate", str(tmp_path), "practice", "--companion"],
+                            capture_output=True, text=True)
+    assert result.returncode == 1, result.stderr
+    assert json.loads((tmp_path / "gate-c5.json").read_text())["C5"] is False
+
+
+def test_gate_refuses_cross_scenario_case_collisions_that_overwrite_attribution(pipeline, tmp_path):
+    data = tally()
+    for index in (0, 2):
+        row = data["rows"][index]
+        row["resolved"] = [4]
+        data["totals"]["resolved"][row["arm"]] = 0
+    for key, cause in (("one", "memory"), ("two", "host")):
+        put(tmp_path / f"tally-{key}.json", data)
+        for number in (1, 2):
+            put(tmp_path / f"attribution-{key}" / f"S01-A.{number}.json", {"cause": cause})
+    with pytest.raises(SystemExit, match="invalid tally: duplicate case"):
+        pipeline.gate(tmp_path, ["one", "two"])
+    assert not (tmp_path / "gate.json").exists()
