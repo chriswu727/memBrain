@@ -2,6 +2,7 @@
 
 Synthetic fixtures only, written to tmp_path. No model call, no held-out scenario, no database.
 """
+import hashlib
 import importlib.util
 import json
 import subprocess
@@ -381,3 +382,183 @@ def test_r4_tally_keeps_its_untagged_resolutions(pipeline, tmp_path):
                                        change={"remove": [4], "reason": "practice evidence"})
     pipeline.tally(tmp_path, blind, str(scenario), "practice")
     assert json.loads((tmp_path / "tally-practice.json").read_text())["rows"][0]["resolved"] == []
+
+
+# S2: tallies and gates bound to the frozen attempt manifest -------------------------------------------------------
+
+# Arbitrary keys: nothing in the pipeline may assume the plan's own key names.
+PAIRS = {"R4": ["core-x", "core-y"], "C5": ["comp-x", "comp-y"]}
+
+
+def synthetic_attempt(tmp_path):
+    """Four synthetic scenarios with complete, critical-free review files, and the manifest that freezes them."""
+    review, blind = tmp_path / "review", tmp_path / "blind"
+    pairs, files = [], {}
+    for number, (gate_name, keys) in enumerate(PAIRS.items()):
+        scenarios = []
+        for index, key in enumerate(keys):
+            case = f"S{number}{index}-practice"
+            path = f"evaluations/practice-{key}.py"
+            scenario = tmp_path / path
+            scenario.parent.mkdir(parents=True, exist_ok=True)
+            scenario.write_text(f'CASES = [(0, 0, "{case}", "A public synthetic practice case")]\n')
+            put(review / f"verdicts-{key}.json",
+                {case: {label: {"score_ignoring_critical": 1, "critical": []} for label in "ABC"}})
+            put(review / f"recheck-{key}" / f"{case}.json",
+                {label: {"critical": [], "confirmed": [], "rejected": [], "added": [], "evidence": ""}
+                 for label in "ABC"})
+            put(blind / f"sealed_practice-{key}.json", {case: {"A": "P", "B": "E", "C": "F"}})
+            digest = pipeline_sha(scenario)
+            scenarios.append({"key": key, "path": path, "sha256": digest})
+            files[path] = digest
+        pairs.append({"gate": gate_name, "scenarios": scenarios})
+    manifest = {"version": 1, "attempt_id": "synthetic-attempt", "files": files, "pairs": pairs,
+                "order": [key for keys in PAIRS.values() for key in keys]}
+    return review, blind, put(tmp_path / "manifest.json", manifest), manifest
+
+
+def pipeline_sha(path):
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def scenario_path(tmp_path, key):
+    return str(tmp_path / f"evaluations/practice-{key}.py")
+
+
+def tally_all(pipeline, tmp_path, review, blind, path, gate_name):
+    for key in PAIRS[gate_name]:
+        pipeline.tally(review, blind, scenario_path(tmp_path, key), key, companion=gate_name == "C5", manifest=path)
+
+
+def test_load_manifest_returns_a_valid_manifest(pipeline, tmp_path):
+    _, _, path, manifest = synthetic_attempt(tmp_path)
+    assert pipeline.load_manifest(path) == manifest
+    assert [item["key"] for item in pipeline.manifest_scenarios(manifest, "C5")] == PAIRS["C5"]
+
+
+def first_scenario(manifest):
+    return manifest["pairs"][0]["scenarios"][0]
+
+
+@pytest.mark.parametrize("damage", {
+    "extra field": lambda m: m.update(extra=1),
+    "missing field": lambda m: m.pop("files"),
+    "version": lambda m: m.update(version=2),
+    "boolean version": lambda m: m.update(version=True),
+    "empty attempt": lambda m: m.update(attempt_id=" "),
+    "duplicate key": lambda m: m["pairs"][1]["scenarios"][0].update(key="core-x"),
+    "order misses a key": lambda m: m["order"].pop(),
+    "order has an unknown key": lambda m: m["order"].append("other"),
+    "order repeats a key": lambda m: m["order"].__setitem__(1, "core-x"),
+    "unknown gate": lambda m: m["pairs"][0].update(gate="R6"),
+    "two R4 pairs": lambda m: m["pairs"][1].update(gate="R4"),
+    "no pairs": lambda m: m.update(pairs=[], order=[]),
+    "empty pair": lambda m: m["pairs"][1].update(scenarios=[]),
+    "extra scenario field": lambda m: first_scenario(m).update(note="x"),
+    "bad hash": lambda m: first_scenario(m).update(sha256="ABC"),
+    "absolute path": lambda m: first_scenario(m).update(path="/tmp/practice.py"),
+    "parent path": lambda m: first_scenario(m).update(path="../practice.py"),
+    "not a scenario file": lambda m: first_scenario(m).update(path="evaluations/practice.json"),
+    "duplicate stem": lambda m: first_scenario(m).update(path="other/practice-core-y.py"),
+    "hash differs from files": lambda m: first_scenario(m).update(sha256="0" * 64),
+    "bad files entry": lambda m: m["files"].update({"/abs.py": "0" * 64}),
+    "unsafe key": lambda m: (first_scenario(m).update(key="../x"), m["order"].__setitem__(0, "../x")),
+}.items(), ids=lambda item: item[0] if isinstance(item, tuple) else None)
+def test_load_manifest_refuses_an_invalid_structure(pipeline, tmp_path, damage):
+    _, _, path, manifest = synthetic_attempt(tmp_path)
+    damage[1](manifest)
+    put(path, manifest)
+    with pytest.raises(pipeline.ManifestError, match="invalid manifest"):
+        pipeline.load_manifest(path)
+    assert issubclass(pipeline.ManifestError, ValueError)
+
+
+def test_every_tally_records_its_scenario_key_stem_and_hash(pipeline, tmp_path):
+    review, blind, path, manifest = synthetic_attempt(tmp_path)
+    pipeline.tally(review, blind, scenario_path(tmp_path, "core-x"), "core-x")
+    data = json.loads((review / "tally-core-x.json").read_text())
+    assert data["scenario"] == {"key": "core-x", "stem": "practice-core-x", "sha256": first_scenario(manifest)["sha256"]}
+    assert "manifest" not in data
+    pipeline.tally(review, blind, scenario_path(tmp_path, "core-x"), "core-x", manifest=path)
+    assert json.loads((review / "tally-core-x.json").read_text())["manifest"] == {
+        "attempt_id": "synthetic-attempt", "sha256": pipeline_sha(path)}
+
+
+def test_tally_with_a_manifest_refuses_a_scenario_outside_its_gate_or_changed(pipeline, tmp_path):
+    review, blind, path, _ = synthetic_attempt(tmp_path)
+    with pytest.raises(SystemExit, match="not in the manifest's C5 pair"):
+        pipeline.tally(review, blind, scenario_path(tmp_path, "core-x"), "core-x", companion=True, manifest=path)
+    with pytest.raises(SystemExit, match="not in the manifest's R4 pair"):
+        pipeline.tally(review, blind, scenario_path(tmp_path, "comp-x"), "comp-x", manifest=path)
+    with pytest.raises(SystemExit, match="not the manifest's 'core-x' scenario"):
+        pipeline.tally(review, blind, scenario_path(tmp_path, "core-y"), "core-x", manifest=path)
+    with open(scenario_path(tmp_path, "core-x"), "a") as stream:
+        stream.write("# changed after freezing\n")
+    with pytest.raises(SystemExit, match="not the manifest's 'core-x' scenario"):
+        pipeline.tally(review, blind, scenario_path(tmp_path, "core-x"), "core-x", manifest=path)
+    assert not (review / "tally-core-x.json").exists()
+
+
+@pytest.mark.parametrize("gate_name", ["R4", "C5"])
+def test_each_gate_takes_exactly_its_manifest_pair_independently(pipeline, tmp_path, gate_name):
+    review, blind, path, manifest = synthetic_attempt(tmp_path)
+    tally_all(pipeline, tmp_path, review, blind, path, gate_name)  # The other pair is never tallied or read.
+    companion, keys = gate_name == "C5", PAIRS[gate_name]
+    result = pipeline.gate(review, list(reversed(keys)), companion=companion, manifest=path)
+    assert result[gate_name] is True
+    assert result["manifest"]["attempt_id"] == "synthetic-attempt"
+    assert sorted(item["key"] for item in result["manifest"]["scenarios"]) == sorted(keys)
+    put(review / "tally-extra.json", json.loads((review / f"tally-{keys[0]}.json").read_text()))
+    for wrong in (keys[:1], [*keys, "extra"]):
+        with pytest.raises(SystemExit, match=f"gate {gate_name} needs exactly"):
+            pipeline.gate(review, wrong, companion=companion, manifest=path)
+
+
+@pytest.mark.parametrize("damage", ["no manifest", "other manifest", "hash", "stem", "key"])
+def test_gate_with_a_manifest_refuses_a_tally_not_bound_to_it(pipeline, tmp_path, damage):
+    review, blind, path, manifest = synthetic_attempt(tmp_path)
+    tally_all(pipeline, tmp_path, review, blind, path, "R4")
+    target = review / "tally-core-y.json"
+    data = json.loads(target.read_text())
+    if damage == "no manifest":
+        data.pop("manifest")
+    elif damage == "other manifest":
+        data["manifest"]["sha256"] = "0" * 64
+    elif damage == "hash":
+        data["scenario"]["sha256"] = "0" * 64
+    elif damage == "stem":
+        data["scenario"]["stem"] = "practice-core-x"
+    else:
+        data["scenario"]["key"] = "core-x"
+    put(target, data)
+    with pytest.raises(SystemExit, match="invalid tally tally-core-y.json: not"):
+        pipeline.gate(review, PAIRS["R4"], manifest=path)
+    assert not (review / "gate.json").exists()
+
+
+def test_gate_without_a_manifest_still_accepts_historical_tallies(pipeline, tmp_path):
+    review, blind, path, _ = synthetic_attempt(tmp_path)
+    tally_all(pipeline, tmp_path, review, blind, path, "R4")
+    for key in PAIRS["R4"]:  # A historical tally has no scenario or manifest record.
+        data = json.loads((review / f"tally-{key}.json").read_text())
+        put(review / f"tally-{key}.json", {field: data[field] for field in ("totals", "rows")})
+    assert pipeline.gate(review, PAIRS["R4"])["R4"] is True
+    with pytest.raises(SystemExit, match="not the manifest's"):
+        pipeline.gate(review, PAIRS["R4"], manifest=path)
+
+
+def test_manifest_cli_for_tally_and_gate(pipeline, tmp_path):
+    review, blind, path, _ = synthetic_attempt(tmp_path)
+    script = pipeline.__file__
+    for key in PAIRS["C5"]:
+        result = subprocess.run([sys.executable, script, "tally", str(review), str(blind),
+                                 scenario_path(tmp_path, key), key, "--companion", "--manifest", str(path)],
+                                capture_output=True, text=True)
+        assert result.returncode == 0, result.stderr
+    result = subprocess.run([sys.executable, script, "gate", str(review), "--manifest", str(path), *PAIRS["C5"],
+                             "--companion"], capture_output=True, text=True)
+    assert result.returncode == 0, result.stderr
+    assert json.loads((review / "gate-c5.json").read_text())["manifest"]["attempt_id"] == "synthetic-attempt"
+    result = subprocess.run([sys.executable, script, "verdicts", "x", "y", "--manifest", str(path)],
+                            capture_output=True, text=True)
+    assert result.returncode == 1 and "--manifest PATH is valid once for tally or gate" in result.stderr

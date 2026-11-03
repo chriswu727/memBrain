@@ -23,6 +23,9 @@
 
 verdicts, tally and gate accept --companion for C5 (critical types 1–9). C5 writes gate-c5.json and never writes
 an R4 result. Standing boundary/deletion errors (types 7/8) fail C5 regardless of attribution.
+tally and gate accept --manifest PATH, the frozen attempt manifest (load_manifest): a tally then must be of a scenario
+file in its gate's pair with the manifest's hash, and gate R4 (or C5) needs exactly that pair's keys, each tally made
+with that manifest. Every tally records its scenario's key, file stem and sha256.
 A failed C5 gate writes its report and exits nonzero; the legacy R4 command's exit behavior is unchanged.
 
 Final score of a reply: 0 when a critical error stands, otherwise the first reviewer's score_ignoring_critical.
@@ -31,11 +34,12 @@ resolutions (resolution-KEY.json, made before unsealing by the resolution review
 """
 from __future__ import annotations
 
+import hashlib
 import importlib.util
 import json
 import re
 import sys
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 
 
 def load(path: str):
@@ -47,6 +51,100 @@ def load(path: str):
 
 def _valid_marks(value, maximum):
     return isinstance(value, list) and all(type(mark) is int and 1 <= mark <= maximum for mark in value)
+
+
+# The frozen attempt manifest -------------------------------------------------------------------------------------------
+
+class ManifestError(ValueError):
+    """A frozen attempt manifest that is not valid."""
+
+
+GATES = ("R4", "C5")
+_SHA256 = re.compile(r"[0-9a-f]{64}")
+_KEY = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
+
+
+def sha256_file(path) -> str:
+    return hashlib.sha256(Path(path).read_bytes()).hexdigest()
+
+
+def _repo_path(value) -> bool:
+    if not isinstance(value, str) or not value or "\\" in value:
+        return False
+    parts = PurePosixPath(value).parts
+    return not PurePosixPath(value).is_absolute() and all(part not in ("", ".", "..") for part in parts) \
+        and "/".join(parts) == value
+
+
+def load_manifest(path) -> dict:
+    """Load and validate a frozen attempt manifest; return it as parsed. Raises ManifestError (a ValueError).
+
+    {"version": 1, "attempt_id": "...", "files": {"<repo-relative path>": "<sha256>"},
+     "pairs": [{"gate": "R4" | "C5", "scenarios": [{"key": "<key>", "path": "<repo-relative .py>", "sha256": "..."}]}],
+     "order": ["<key>", ...]}
+
+    Exactly these fields. Each gate names at most one pair; scenario keys, paths and file stems are unique; every
+    order key is in exactly one pair and every pair key is in the order once; a scenario path listed in "files" has
+    the same hash there. Hashes are lowercase hex SHA-256. It checks structure only, not the files on disk."""
+    try:
+        data = json.loads(Path(path).read_text())
+    except (OSError, ValueError) as error:
+        raise ManifestError(f"invalid manifest: not readable JSON ({error})") from error
+    if not isinstance(data, dict) or set(data) != {"version", "attempt_id", "files", "pairs", "order"}:
+        raise ManifestError("invalid manifest: expected exactly version, attempt_id, files, pairs and order")
+    if type(data["version"]) is not int or data["version"] != 1:
+        raise ManifestError("invalid manifest: version must be 1")
+    if not isinstance(data["attempt_id"], str) or not data["attempt_id"].strip():
+        raise ManifestError("invalid manifest: attempt_id must be a non-empty string")
+    files = data["files"]
+    if not isinstance(files, dict) or any(not _repo_path(name) or not isinstance(digest, str)
+                                          or not _SHA256.fullmatch(digest) for name, digest in files.items()):
+        raise ManifestError("invalid manifest: files must map repo-relative paths to sha256 hashes")
+    pairs = data["pairs"]
+    if not isinstance(pairs, list) or not pairs:
+        raise ManifestError("invalid manifest: pairs must be a non-empty list")
+    keys, paths, stems, gates = [], set(), set(), set()
+    for pair in pairs:
+        if not isinstance(pair, dict) or set(pair) != {"gate", "scenarios"} or pair["gate"] not in GATES:
+            raise ManifestError("invalid manifest: each pair has exactly a gate (R4 or C5) and scenarios")
+        if pair["gate"] in gates:
+            raise ManifestError(f"invalid manifest: more than one {pair['gate']} pair")
+        gates.add(pair["gate"])
+        if not isinstance(pair["scenarios"], list) or not pair["scenarios"]:
+            raise ManifestError(f"invalid manifest: the {pair['gate']} pair has no scenarios")
+        for scenario in pair["scenarios"]:
+            if (not isinstance(scenario, dict) or set(scenario) != {"key", "path", "sha256"}
+                    or not isinstance(scenario["key"], str) or not _KEY.fullmatch(scenario["key"])
+                    or not _repo_path(scenario["path"]) or not scenario["path"].endswith(".py")
+                    or not isinstance(scenario["sha256"], str) or not _SHA256.fullmatch(scenario["sha256"])):
+                raise ManifestError("invalid manifest: each scenario has exactly a key, a repo-relative .py path "
+                                    "and a sha256")
+            stem = PurePosixPath(scenario["path"]).stem
+            if scenario["key"] in keys or scenario["path"] in paths or stem in stems:
+                raise ManifestError("invalid manifest: scenario keys, paths and file stems must be unique")
+            if scenario["path"] in files and files[scenario["path"]] != scenario["sha256"]:
+                raise ManifestError("invalid manifest: a scenario's hash differs from its entry in files")
+            keys.append(scenario["key"])
+            paths.add(scenario["path"])
+            stems.add(stem)
+    order = data["order"]
+    if (not isinstance(order, list) or any(not isinstance(key, str) for key in order)
+            or len(order) != len(set(order)) or set(order) != set(keys)):
+        raise ManifestError("invalid manifest: order must list every scenario key exactly once")
+    return data
+
+
+def manifest_scenarios(manifest: dict, gate_name: str) -> list[dict]:
+    """The scenarios of a validated manifest's pair for one gate ([] when it has no such pair)."""
+    return next((pair["scenarios"] for pair in manifest["pairs"] if pair["gate"] == gate_name), [])
+
+
+def _manifest(path) -> tuple[dict, str]:
+    """A validated manifest and its file's sha256, for the commands; a problem stops the command."""
+    try:
+        return load_manifest(path), sha256_file(path)
+    except ManifestError as error:
+        raise SystemExit(str(error)) from error
 
 
 def replies(blind_dir: Path, module, scenario: str) -> dict:
@@ -361,10 +459,24 @@ def _companion_change_problem(review: Path, key: str, case: str, label: str, cha
     return None
 
 
-def tally(review: Path, blind_dir: Path, scenario_path: str, key: str, *, companion=False) -> None:
+def tally(review: Path, blind_dir: Path, scenario_path: str, key: str, *, companion=False,
+          manifest: Path | None = None) -> None:
+    """Final scores per arm, literal and resolved. The tally records the scenario's key, file stem and sha256; with a
+    frozen attempt manifest, the key must be in the pair of this tally's gate and the file must match its entry."""
+    scenario = Path(scenario_path).stem
+    digest_of_scenario = sha256_file(scenario_path)
+    bound = None
+    if manifest is not None:
+        frozen, frozen_hash = _manifest(manifest)
+        gate_name = "C5" if companion else "R4"
+        entry = next((item for item in manifest_scenarios(frozen, gate_name) if item["key"] == key), None)
+        if entry is None:
+            raise SystemExit(f"invalid tally: key {key!r} is not in the manifest's {gate_name} pair")
+        if PurePosixPath(entry["path"]).stem != scenario or entry["sha256"] != digest_of_scenario:
+            raise SystemExit(f"invalid tally: the scenario file is not the manifest's {key!r} scenario")
+        bound = {"attempt_id": frozen["attempt_id"], "sha256": frozen_hash}
     verdicts(review / f"verdicts-{key}.json", scenario_path, companion=companion)
     module = load(scenario_path)
-    scenario = Path(scenario_path).stem
     sealed = json.loads((blind_dir / f"sealed_{scenario}.json").read_text())
     first = json.loads((review / f"verdicts-{key}.json").read_text())
     path = review / f"resolution-{key}.json"
@@ -410,9 +522,12 @@ def tally(review: Path, blind_dir: Path, scenario_path: str, key: str, *, compan
                 totals[name][arm] = totals[name].get(arm, 0) + (0 if standing else base)
             rows.append({"case": case, "label": label, "arm": arm, "base": base, "literal": sorted(literal),
                          "resolved": sorted(resolved), "reason": change.get("reason")})
-    result = {"totals": totals, "rows": rows}
+    result = {"totals": totals, "rows": rows,
+              "scenario": {"key": key, "stem": scenario, "sha256": digest_of_scenario}}
     if companion:
         result["gate"] = "C5"
+    if bound:
+        result["manifest"] = bound
     (review / f"tally-{key}.json").write_text(json.dumps(result, indent=1, ensure_ascii=False))
     print(json.dumps(totals))
     for row in rows:
@@ -698,12 +813,32 @@ def _checked_tally(path: Path, *, companion=False) -> dict:
         raise SystemExit(f"invalid tally {path.name}: {error}") from error
 
 
-def gate(review: Path, keys: list[str], *, companion=False) -> dict:
+def gate(review: Path, keys: list[str], *, companion=False, manifest: Path | None = None) -> dict:
     """The attempt-3 pass rule from the tallies and the attributions (two per gated reply; disagreement or a
-    missing or invalid answer counts as memory). C5 also refuses every standing boundary or deletion error."""
+    missing or invalid answer counts as memory). C5 also refuses every standing boundary or deletion error.
+
+    With a frozen attempt manifest, the keys must be exactly its pair for this gate, and every tally must have been
+    made with that manifest on that pair's scenario file (key, stem and sha256). The other pair is not read."""
     if not keys or len(set(keys)) != len(keys):
         raise SystemExit("invalid tally: expected distinct scenario keys")
+    name = "C5" if companion else "R4"
     tallies = [_checked_tally(review / f"tally-{key}.json", companion=companion) for key in keys]
+    bound = None
+    if manifest is not None:
+        frozen, frozen_hash = _manifest(manifest)
+        pair = {item["key"]: item for item in manifest_scenarios(frozen, name)}
+        if set(keys) != set(pair):
+            raise SystemExit(f"invalid tally: gate {name} needs exactly the manifest's {name} keys "
+                             f"{sorted(pair)}, not {sorted(keys)}")
+        for key, data in zip(keys, tallies, strict=True):
+            expected = {"key": key, "stem": PurePosixPath(pair[key]["path"]).stem, "sha256": pair[key]["sha256"]}
+            if data.get("scenario") != expected:
+                raise SystemExit(f"invalid tally tally-{key}.json: not the manifest's {key!r} scenario")
+            if data.get("manifest") != {"attempt_id": frozen["attempt_id"], "sha256": frozen_hash}:
+                raise SystemExit(f"invalid tally tally-{key}.json: not made with this manifest")
+        bound = {"attempt_id": frozen["attempt_id"], "sha256": frozen_hash,
+                 "scenarios": [{"key": key, **{field: pair[key][field] for field in ("path", "sha256")}}
+                               for key in keys]}
     seen_cases = set()
     for data in tallies:
         cases = {row["case"] for row in data["rows"]}
@@ -743,10 +878,11 @@ def gate(review: Path, keys: list[str], *, companion=False) -> dict:
                         and len(host) <= len(critical.get("F", [])) and not protected.get(arm)}
         if companion:
             verdict[arm]["boundary_or_deletion_errors"] = protected.get(arm, [])
-    name = "C5" if companion else "R4"
     result = {"arms": verdict, "attributions": causes, name: all(item["passes"] for item in verdict.values())}
     if companion:
         result["strict_boundaries_and_deletions"] = True
+    if bound:
+        result["manifest"] = bound
     (review / ("gate-c5.json" if companion else "gate.json")).write_text(json.dumps(result, indent=1, ensure_ascii=False))
     print(json.dumps(result, indent=1, ensure_ascii=False))
     return result
@@ -759,10 +895,17 @@ if __name__ == "__main__":
         if command not in ("verdicts", "tally", "gate") or args.count("--companion") != 1:
             raise SystemExit("--companion is valid once for verdicts, tally or gate")
         args.remove("--companion")
+    manifest = None
+    if "--manifest" in args:
+        at = args.index("--manifest")
+        if command not in ("tally", "gate") or args.count("--manifest") != 1 or at + 1 >= len(args):
+            raise SystemExit("--manifest PATH is valid once for tally or gate")
+        manifest = Path(args[at + 1])
+        del args[at:at + 2]
     if command == "split":
         split(Path(args[0]), Path(args[1]), Path(args[2]), args[3], Path(args[4]))
     elif command == "tally":
-        tally(Path(args[0]), Path(args[1]), args[2], args[3], companion=companion)
+        tally(Path(args[0]), Path(args[1]), args[2], args[3], companion=companion, manifest=manifest)
     elif command == "attribution-inputs":
         attribution_inputs(Path(args[0]), Path(args[1]), args[2], args[3], Path(args[4]))
     elif command == "validity":
@@ -779,7 +922,7 @@ if __name__ == "__main__":
     elif command == "diagnose":
         diagnose([Path(arg) for arg in args])
     elif command == "gate":
-        result = gate(Path(args[0]), args[1:], companion=companion)
+        result = gate(Path(args[0]), args[1:], companion=companion, manifest=manifest)
         if companion and not result["C5"]:
             raise SystemExit(1)
     else:
