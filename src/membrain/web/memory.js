@@ -5,6 +5,8 @@ const HOST_NAMES = { "claude-code": "Claude Code", codex: "Codex", hermes: "Herm
 const NOTES = "membrain-notes";
 const state = { key: "", brain: "", notes: [], connectionShown: false };
 let messageTimer;
+// /memory?demo=brain shows fictional data only (brain.js): no sign-in, no saved session read or changed, no API call.
+const DEMO = new URLSearchParams(location.search).get("demo") === "brain";
 
 function notify(text, error = false) {
   clearTimeout(messageTimer);
@@ -559,9 +561,10 @@ async function open(key, brain) {
   await Promise.all([loadRecording(), loadServiceStatus(), show("notes")]);
 }
 onSubmit($("key-form"), () => open($("key").value.trim(), ""));
-setInterval(() => { if (state.key && !$("tabs").hidden) { loadServiceStatus(); loadRecording(); } }, 30000);
+setInterval(() => { if (!DEMO && state.key && !$("tabs").hidden) { loadServiceStatus(); loadRecording(); } }, 30000);
 
 (async () => {
+  if (DEMO) return;
   const code = new URLSearchParams(location.search).get("code");
   if (code) {
     history.replaceState(null, "", "/memory");
