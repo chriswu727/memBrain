@@ -180,11 +180,10 @@ def memory(tmp_path, monkeypatch):
     monkeypatch.setenv("MEMBRAIN_SEMANTIC", "0")
     monkeypatch.setenv("PYTHON_DOTENV_DISABLED", "1")
     start = datetime.datetime(2026, 3, 2, 20, 0, tzinfo=datetime.UTC)
-    created = harness.Memory(tmp_path / "brain", None, None, start)
+    monkeypatch.setenv(evaluation_clock.ENV, "")  # The harness sets it in os.environ; this restores it after.
     try:
-        yield created
+        yield harness.Memory(tmp_path / "brain", None, None, start)
     finally:
-        monkeypatch.delenv(evaluation_clock.ENV, raising=False)
         harness.stop_started()
 
 
