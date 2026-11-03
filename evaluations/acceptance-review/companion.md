@@ -52,7 +52,8 @@ Resolution adds these rules to the existing protocol:
   RC1 changes type 6 only; RC2 changes type 8 only, for a reply with an entry in `actions-KEY.json`. A change may
   not remove a mark that does not stand literally or add one that does, may add only a mark a reviewer made
   (except R2's type 3), and its reason must name each rule it uses. An entry for an unknown reply is refused.
-  R4 tallies keep their existing untagged format.
+  An R4 tally made with `--manifest` applies the same tags and proofs to types 1–5; a historical R4 tally without
+  a manifest keeps its untagged format.
 
 Attribution uses both independent answers as before. Apply these additional source checks:
 

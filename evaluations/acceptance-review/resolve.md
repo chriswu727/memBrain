@@ -8,5 +8,6 @@ R5 What the assistant itself said earlier. The ground truth records only the use
 R3 Types 2, 3 and 5. A mark stands when both reviewers made it, or when the second reviewer added it and quoted a ground-truth line the reply contradicts. Do not change these otherwise.
 
 Write JSON to the output path you are given, with an entry only for replies whose standing marks differ from the literal set:
-{"<case id>/<label>": {"remove": [numbers], "add": [numbers], "reason": "<rule applied, with the user message (session id, turn) that decides it>"}}
+{"<case id>/<label>": {"remove": [numbers], "add": [numbers], "rules": {"<type>": "<rule>"}, "reason": "<rule applied, with the user message (session id, turn) that decides it>"}}
+"rules" gives, for every type you remove or add, the one rule that decides it: "R1" (removes type 2, 3 or 5 when the first reviewer recorded a condition for that type and it is false), "R2" (types 1 and 4, and adding type 3 for a corrected fact), "R3" (removes a type 2, 3 or 5 mark only the second reviewer added, without a quoted ground-truth line) or "R5" (removes type 4 only when its R5 result file says "type4_cleared": true). Name each rule you use in the reason. The tally refuses a change that does not follow its rule.
 Then reply with a short list of the changes and their rules.

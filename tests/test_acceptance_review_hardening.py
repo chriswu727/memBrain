@@ -553,6 +553,54 @@ def test_gate_without_a_manifest_still_accepts_historical_tallies(pipeline, tmp_
         pipeline.gate(review, PAIRS["R4"], manifest=path)
 
 
+def r4_reply_with_type4(review, change, r5=None):
+    """Reply A of the R4 scenario core-x gets a confirmed type 4 mark, a resolution and maybe an R5 result."""
+    case = "S00-practice"
+    verdict = json.loads((review / "verdicts-core-x.json").read_text())
+    verdict[case]["A"].update(critical=[4], conditions=[{"type": 4, "condition": "practice"}])
+    put(review / "verdicts-core-x.json", verdict)
+    second = json.loads((review / "recheck-core-x" / f"{case}.json").read_text())
+    second["A"].update(critical=[4], confirmed=[4], evidence="Practice evidence.")
+    put(review / "recheck-core-x" / f"{case}.json", second)
+    put(review / "resolution-core-x.json", {f"{case}/A": change})
+    if r5 is not None:
+        put(review / "r5-core-x" / "S00-A.json", {"type4_cleared": r5})
+
+
+R4_REFUSED = {
+    "untagged": ({"remove": [4], "reason": "R5 cleared it"}, True, "rule tag"),
+    "R5 without a clearing result": ({"remove": [4], "rules": {"4": "R5"}, "reason": "R5"}, False, "does not clear"),
+    "R5 without any result": ({"remove": [4], "rules": {"4": "R5"}, "reason": "R5"}, None, "does not clear"),
+    "R1 on type 4": ({"remove": [4], "rules": {"4": "R1"}, "reason": "R1"}, None, "R1 cannot change type 4"),
+    "R3 on type 4": ({"remove": [4], "rules": {"4": "R3"}, "reason": "R3"}, None, "R3 cannot change type 4"),
+    "reason without the rule": ({"remove": [4], "rules": {"4": "R2"}, "reason": "never said"}, None,
+                                "does not name R2"),
+}
+
+
+@pytest.mark.parametrize("name", R4_REFUSED)
+def test_manifest_bound_r4_tally_enforces_rule_tags_and_r5_proof(pipeline, tmp_path, name):
+    review, blind, path, _ = synthetic_attempt(tmp_path)
+    change, r5, message = R4_REFUSED[name]
+    r4_reply_with_type4(review, change, r5)
+    with pytest.raises(SystemExit, match=f"invalid resolution: S00-practice/A: .*{message}"):
+        pipeline.tally(review, blind, scenario_path(tmp_path, "core-x"), "core-x", manifest=path)
+    assert not (review / "tally-core-x.json").exists()
+
+
+def test_manifest_bound_r4_tally_accepts_a_proven_change_and_historical_tallies_stay_untagged(pipeline, tmp_path):
+    review, blind, path, _ = synthetic_attempt(tmp_path)
+    r4_reply_with_type4(review, {"remove": [4], "rules": {"4": "R5"}, "reason": "R5 cleared it"}, True)
+    pipeline.tally(review, blind, scenario_path(tmp_path, "core-x"), "core-x", manifest=path)
+    assert json.loads((review / "tally-core-x.json").read_text())["rows"][0]["resolved"] == []
+    r4_reply_with_type4(review, {"remove": [4], "reason": "practice evidence"})  # Untagged, no R5 proof.
+    pipeline.tally(review, blind, scenario_path(tmp_path, "core-x"), "core-x")  # No manifest: as before.
+    assert json.loads((review / "tally-core-x.json").read_text())["rows"][0]["resolved"] == []
+    with pytest.raises(SystemExit, match="invalid resolution: every entry"):
+        put(review / "resolution-core-x.json", {"S00-practice/D": {"remove": [4], "reason": "R5"}})
+        pipeline.tally(review, blind, scenario_path(tmp_path, "core-x"), "core-x", manifest=path)
+
+
 def test_manifest_cli_for_tally_and_gate(pipeline, tmp_path):
     review, blind, path, _ = synthetic_attempt(tmp_path)
     script = pipeline.__file__

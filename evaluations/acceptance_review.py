@@ -399,7 +399,7 @@ def actions_digest(review: Path, blind_dir: Path, scenario_path: str, key: str, 
     print(json.dumps(sorted(digest)))
 
 
-# C5 resolution rules: the critical types each may change, and whether it may add a mark as well as remove one.
+# Resolution rules (C5, and R4 with a frozen manifest): the critical types each may change, and whether it may add a mark as well as remove one.
 # R1 to R5 are resolve.md's, RC1 and RC2 companion.md's. Types 6 and 8 change only through RC1 and RC2, types 7 and 9
 # only through R3, and R5 clears only type 4 (plan: "It never clears types 6 to 9"). R1 removes only types 2, 3 and 5:
 # types 1 and 4 are settled by R2 (and R5), in both directions. Whether an R1 condition is false is the resolution
@@ -408,9 +408,9 @@ _RULES = {"R1": ({2, 3, 5}, False), "R2": ({1, 3, 4}, True), "R3": ({2, 3, 5, 7,
           "R5": ({4}, False), "RC1": ({6}, True), "RC2": ({8}, True)}
 
 
-def _companion_change_problem(review: Path, key: str, case: str, label: str, change: dict, verdict: dict,
+def _resolution_change_problem(review: Path, key: str, case: str, label: str, change: dict, verdict: dict,
                               check: dict, literal: set, digest: dict) -> str | None:
-    """Why one C5 resolution change breaks the rules, or None. Every removed or added type carries its rule in
+    """Why one resolution change breaks the rules (C5, or R4 bound to a manifest), or None. Every removed or added type carries its rule in
     "rules" ({"<type>": "<rule>"}); the rule must be allowed to change that type in that direction, be named in the
     reason, and rest on its evidence: R1 on a condition the first reviewer recorded for that type, R3 on a mark only
     the second reviewer added, R5 on an R5 result that cleared this reply, RC2 on this reply's actions digest entry.
@@ -484,10 +484,14 @@ def tally(review: Path, blind_dir: Path, scenario_path: str, key: str, *, compan
     path = review / f"resolution-{key}.json"
     resolution = json.loads(path.read_text()) if path.exists() else {}
     digest = {}
-    if companion:
+    # C5 tallies, and R4 tallies bound to a frozen manifest, check every resolution change against its rule. A
+    # historical R4 tally (no manifest) keeps its untagged resolutions exactly as before.
+    strict = companion or bound is not None
+    if strict:
         known = {f"{case}/{label}" for case in first for label in first[case]}
         if not isinstance(resolution, dict) or set(resolution) - known:
             raise SystemExit("invalid resolution: every entry must name a reply of this scenario as <case id>/<label>")
+    if companion:
         actions = review / f"actions-{key}.json"
         digest = json.loads(actions.read_text()) if actions.exists() else {}
     totals, rows = {"literal": {}, "resolved": {}}, []
@@ -515,8 +519,8 @@ def tally(review: Path, blind_dir: Path, scenario_path: str, key: str, *, compan
                         and (not isinstance(change.get("reason"), str) or not change["reason"].strip()))):
                 raise SystemExit(f"invalid review marks: {case}/{label}")
             literal = (marks & set(check.get("confirmed", []))) | set(check.get("added", []))
-            if companion and (problem := _companion_change_problem(review, key, case, label, change, verdict, check,
-                                                                   literal, digest)):
+            if strict and (problem := _resolution_change_problem(review, key, case, label, change, verdict, check,
+                                                                literal, digest)):
                 raise SystemExit(f"invalid resolution: {case}/{label}: {problem}")
             resolved = (literal - set(change.get("remove", []))) | set(change.get("add", []))
             base = verdict["score_ignoring_critical"]
