@@ -292,8 +292,8 @@ def _unmodified_service(service) -> bool:
     """Whether ``service.handle`` is MemoryService's own, so ``respond`` does exactly what it would. Any override,
     in a subclass or on the instance, is what the route must call, and its response is validated here."""
     kind, own = type(service), getattr(service, "__dict__", {})
-    return (isinstance(service, MemoryService) and kind.handle is MemoryService.handle
-            and kind.respond is MemoryService.respond and "handle" not in own and "respond" not in own)
+    return (isinstance(service, MemoryService) and getattr(kind, "handle", None) is MemoryService.handle
+            and getattr(kind, "respond", None) is MemoryService.respond and "handle" not in own and "respond" not in own)
 
 
 def create_app(settings: Settings | None = None, service=None, turns=None, jobs=None) -> FastAPI:

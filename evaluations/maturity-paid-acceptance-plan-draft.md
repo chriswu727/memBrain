@@ -14,7 +14,7 @@ The two results are reported separately, so a failure in one never hides the res
 
 1. **P2 merged** with the tests listed in the [maturity test matrix](maturity-test-matrix.md#p2-persona-development-being-built-now).
 2. **The matrix is green** on the candidate, with no skipped test, and its gaps 4 to 15 are closed or explicitly accepted by the owner.
-3. **Verify is green** on the candidate's merge, and the release install check passes on it, upgrading from attempt 6's runtime `a551100`.
+3. **Verify is green** on the candidate's merge, and the release install check passes on it with its frozen basic launcher fixture `d0d7a0379f7ac5f1b81dad04504601bb6606f1b0` and companion fixture `19e894ca9e08cf65fa071e8019789499953478d0`. Record the runtime pins those launchers actually install; the basic fixture installs `defc3c5cc3cac7f63661b6e8c0ece982f08bbb91`, not acceptance harness source `a551100`. A Mac run passed all 49 checks at pin `a01903a`; it predates the later concurrency/CPU changes and is not the final candidate's acceptance.
 4. **Harness changes, each with a free test.** Implemented with free tests in the [C5 harness](c5-harness.md) (#41); independently exercised on Mac and to be re-verified on the final integration candidate before any paid call:
    - **Scenario clock.** The service records events at the scenario's date and time, not the wall clock, so mood decay and the 48-hour cutoff happen on the scenario's timeline. The clock is evaluation-only and refused outside a marked disposable profile.
    - **Page actions.** The harness applies a scenario's scripted page actions (below) through the API in arms `P` and `E`, at the stated position.
@@ -112,7 +112,16 @@ Invalid runs cost too: 8.22 CNY in attempt 5 (runs 1 and 2) and 33.45 CNY in att
 | With one full re-run after an invalid run | up to about 92 | up to about 175 |
 | C5 only (C1 and C2), without the core scenarios | about 19 to 26 | about 41 to 49 |
 
-**Proposed budget:** 100 CNY, subject to explicit approval and an independently verified pre-request spending guard. Historical estimates are not current price quotes or an enforceable bound. Re-check the provider's [current pricing and discount schedule](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/) immediately before approval and record the frozen maximum rates. Read the current balance before the attempt and after each scenario for reconciliation; these readings cannot replace the guard. The historical post-attempt-6 balance was 199.53 CNY, not a current balance.
+**Proposed budget:** 200 CNY, subject to explicit approval and an independently verified pre-request spending guard. Historical estimates are not current price quotes or an enforceable bound. Re-check the provider's [current pricing and discount schedule](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/) immediately before approval and record the frozen maximum rates. Read the current balance before the attempt and after each scenario for reconciliation; these readings cannot replace the guard. The historical post-attempt-6 balance was 199.53 CNY, not a current balance.
+
+**Reservation headroom (proposed policy, not approved).** The guard books usage conservatively at maximum rates, not the provider's eventual discounted bill. On 2026-11-03, the [published pricing](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/) lists a 1M context and 384K maximum output for the two models. Using 1,048,576 context tokens and 393,216 output tokens as bounds:
+
+| Model | Maximum uncached input / output CNY per million | Complete per-request reservation |
+| --- | --- | --- |
+| `deepseek-v4-pro` | 9 / 27 | 20.054016 CNY |
+| `deepseek-flash` | 2 / 8 | 5.242880 CNY |
+
+Budget planning allows three host reservations plus an extractor reservation: 65.404928 CNY in flight. This deliberately does not depend on the proxy currently waiting for extraction between turns. The earlier 100 CNY proposal can therefore stop well before the expected four-scenario run finishes. The revised **200 CNY ceiling** leaves reservation headroom above the historical estimates; it is a spending limit to approve, not a prediction that 200 CNY will be charged or a guarantee of completion. Rates and limits must be rechecked and frozen before execution. There is no automatic extra funding or retry.
 
 **Not in these figures:** the agents that write and review scenarios and score the run (in attempt 6: one first reviewer per scenario, 22 second reviewers, 18 R5 checkers, 2 resolution reviewers and 4 attributors). For four scenarios, expect about 4 scenario writers, 2 to 4 reviewers and fixers, 4 first reviewers, 44 second reviewers, 4 resolution reviewers, and R5 checkers and attributors as needed. These are subscription model calls and need the owner's approval as well.
 
@@ -133,4 +142,4 @@ These are inherited from attempts 4 to 6:
 
 The maturity scope is the combined S1/S2 R4 and C1/C2 C5 attempt, with P2 included and standing type 7 or 8 errors failing C5 regardless of attribution. Arm E uses page actions for boundaries, matching the proxy's currently delivered controls; conversational boundary extraction is not claimed. The run has no automatic retry after a failed or invalid attempt.
 
-The owner must explicitly approve the actual maximum monetary spend and subscription use for isolated scenario writing, review and scoring. The proposed cap is 100 CNY, but it is not actionable until the pre-request guard, final candidate checks and independent plan review are complete. This document grants no approval and schedules no run.
+The owner must explicitly approve the actual maximum monetary spend and subscription use for isolated scenario writing, review and scoring. The proposed cap is 200 CNY, but it is not actionable until the pre-request guard, final candidate checks and independent plan review are complete. This document grants no approval and schedules no run.

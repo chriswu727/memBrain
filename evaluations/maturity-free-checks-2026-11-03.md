@@ -41,6 +41,10 @@ Machine-readable checker reports are in [maturity-free-practice-2026-11-03](matu
 
 The new validity command rejects every reported harness degradation, malformed event evidence, missing/duplicate/out-of-order turns, mixed run identities and an empty run set. Invalid runs retain their JSON report and exit nonzero. Ten synthetic regressions failed on the earlier validator. No historical evaluation result was changed or re-scored.
 
+## Clean full Mac invocation
+
+Head `a113eaa` (pin `b1d70fc`) passed **6,470 tests, zero failures and zero skips**, in one full invocation (740.76 seconds). Required Chromium, Docker end-to-end flows, the real cached local embedding model, and launcher-pin checks were all enabled. The literal virtual-environment interpreter was supplied to the standalone chat test. Three Python deprecation warnings came from deliberate fork tests. Runtime source stayed unchanged throughout. This clean full result includes the shared-lock safety and proposal timestamp fixes; it predates the subsequent CPU optimization.
+
 ## Reference performance baseline
 
 The Mac baseline used runtime `fc7d2f7` (build `f32a502d7f0eae685fc854fe9d12183b98377f11615232208a4c057769e45e79`) and the benchmark script from `8a4965a`, on an Apple M4, Python 3.12.13 and embedded PostgreSQL 16.2. It seeded 1,000 keyword messages per brain across eight brains, plus 100 notes in the first brain, and waited for all indexing to settle. Each worker ran 21 recalls and discarded the first. No remote provider was configured. The bulk-write probe was disabled.
@@ -63,10 +67,18 @@ PR review then identified an overflow in archived personality-proposal timestamp
 
 ## Prospective billing-control checks
 
-The evaluation-only guard and its C5 wiring passed 125 related offline checks at `506cf29`. Claude independently reviewed the code without running a model. The follow-up binds the full attempt to one ledger/policy, isolates local-service environment variables, reserves the complete published output bound and structures malformed-request refusals. Its related group passed 138 tests, none skipped (14.73 seconds). One preceding run had a false privacy-fixture failure because the literal word `private` matched macOS's temporary-directory path; the corrected fixture checks unique message and key strings. That failed log is retained. No API key or real provider was used. The public stub follow-up at `a0dd70a` passed all 250 checks and strict validity, with no external calls or retried empty replies. Its services stopped normally. The follow-up still needs independent source review; it grants no paid-run approval.
+The evaluation-only guard and its C5 wiring passed 125 related offline checks at `506cf29`. Claude independently reviewed the code without running a model. The follow-up binds the full attempt to one ledger/policy, isolates local-service environment variables, reserves the complete published output bound and structures malformed-request refusals. Its related group passed 138 tests, none skipped (14.73 seconds). One preceding run had a false privacy-fixture failure because the literal word `private` matched macOS's temporary-directory path; the corrected fixture checks unique message and key strings. That failed log is retained. No API key or real provider was used. The public stub follow-up at `a0dd70a` passed all 250 checks and strict validity, with no external calls or retried empty replies. Its services stopped normally. Claude independently reviewed the actual `a0dd70a` source and reported 36 billing-guard checks passing with no further code finding. Provider policy, budget headroom and the complete behavioural plan still need freezing and approval; this grants no paid-run authorization.
+
+## CPU follow-up
+
+The early private safety/CPU combination `c3f2cff` improved serial/one-brain/eight-brain p95 to 234.31/1,781.39/1,903.34 ms, still failing both concurrent targets. Independent review found that the new HTTP fast path bypassed a subclass's overridden `handle`: the valid fixture returned 500 on the new route and 200 on the old route. `fa07a86` preserves subclass, instance-patch and duck-typed handlers and validates their responses. Seven independent HTTP checks passed, followed by 23 context/HTTP unit checks.
+
+After merging that CPU head as `5175284`, 190 retrieval/context/semantic/shared-lock regressions passed (25.17 seconds). Its reference benchmark p95 values were 374.47/1793.52/2286.82 ms for serial/one-brain/eight-brain recall. All 340 replies were nonempty. The benchmark exited 1 because both concurrency targets still failed; the service stopped. Context budgets and fixture sizes were unchanged. [Raw CPU-candidate samples](maturity-cpu-performance-2026-11-03.json) are retained, including the higher eight-brain tail latency. The clean full suite above does not cover these later CPU changes.
 
 ## Still required
 
 - Finish and independently validate the concurrent-recall/map performance change. Repeat the browser checks as part of the final candidate CI.
 - Freeze and pin one combined source, then run Verify and the full installation acceptance on that candidate.
 - Independently review and freeze the real behavioural acceptance plan and held-out scenarios. Obtain the owner's explicit approval for paid and subscription-backed evaluation, then pass R4 and C5. No such run has started.
+
+An additional service-double regression found that `Mock(spec=MemoryService)` satisfies `isinstance` while its real class has no `handle` attribute. The fast-path check now uses guarded class-attribute lookup; real, overridden, invalid and mock-backed HTTP paths passed 34 API/context checks (1.51 seconds). This does not change the production memory algorithm or its budget.
