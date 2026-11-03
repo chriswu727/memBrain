@@ -13,8 +13,9 @@
                                                       aside to be redone once), then write each reply's result
   verdicts VERDICTS SCENARIO                          check a first review before the split; rename prefix keys
                                                       ("L01") to case ids, keeping the original as .raw.json
-  diagnose RUN_DIR...                                 for an invalid attempt: error lines and where each arm
-                                                      stopped, by position, without any case content
+  diagnose RUN_DIR...                                 for an invalid attempt: where each arm stopped, harness
+                                                      event kinds with counts and positions, and error counts by
+                                                      exception class; never a message, payload or log line
   gate REVIEW_DIR KEY...                              the attempt-3 pass rule from tallies and attributions
 
 verdicts, tally and gate accept --companion for C5 (critical types 1–9). C5 writes gate-c5.json and never writes
@@ -356,27 +357,94 @@ def validity(run_dirs: list[Path]) -> dict:
     return result
 
 
-_ERROR = re.compile(r"\bhost error\b|cap reached|harness event|^Traceback|^\S*(Error|Exception)\b")
+_KIND = re.compile(r"[a-z][a-z0-9_]{0,63}")
+_EXCEPTION_LINE = re.compile(r"((?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*(?:Error|Exception|Exit|Interrupt|Stop|Timeout))(?::|$)")
+# Exception classes a run can raise: Python's own, httpx's and the billing guard's. A name outside this list could be
+# text from a multi-line message, so it is printed as "other".
+_KNOWN_CLASSES = frozenset(
+    {name for name, value in vars(__import__("builtins")).items()
+     if isinstance(value, type) and issubclass(value, BaseException)}
+    | {"BudgetStop", "JSONDecodeError", "CloseError", "ConnectError", "ConnectTimeout", "CookieConflict",
+       "DecodingError", "HTTPError", "HTTPStatusError", "InvalidURL", "LocalProtocolError", "NetworkError",
+       "PoolTimeout", "ProtocolError", "ProxyError", "ReadError", "ReadTimeout", "RemoteProtocolError",
+       "RequestError", "RequestNotRead", "ResponseNotRead", "StreamClosed", "StreamConsumed", "StreamError",
+       "TimeoutException", "TooManyRedirects", "TransportError", "UnsupportedProtocol", "WriteError", "WriteTimeout"})
+
+
+def _class_name(word: str) -> str:
+    """An exception class name from a log line, without any module prefix, or "other" when it is not one a run can
+    raise: never any other text."""
+    name = word.rstrip(":").rsplit(".", 1)[-1]
+    return name if name in _KNOWN_CLASSES else "other"
+
+
+def _event_position(event: dict, sessions: list) -> str | None:
+    """A harness event's position by session index and message number; never the session id (ids describe content)."""
+    session, turn = event.get("session"), event.get("turn")
+    if not isinstance(session, str) or session not in sessions:
+        return None
+    where = f"session {sessions.index(session) + 1} of {len(sessions)}"
+    return where + (f", message {turn + 1}" if type(turn) is int and turn >= 0 else "")
 
 
 def diagnose(run_dirs: list[Path]) -> None:
-    """What an invalid run's diagnosis may read: error lines from the log (never the per-turn progress lines, which
-    show memory tool arguments) and where each arm stopped, by position. No input, reply, context or transcript."""
+    """What an invalid run's diagnosis may read, per run directory: how far each arm got and its empty replies, by
+    position; each harness event's kind, with a count per kind and positions (session index, message) where the event
+    has them; and counts of the log's error lines by kind and exception class name. It never prints a payload string,
+    a session id, an exception message, a log line or any input, reply, context or transcript: those can carry
+    held-out content (attempt 3 lost a scenario that way)."""
     for run in run_dirs:
         rows, order, log = _run(run)
+        sessions = list(dict.fromkeys(session for session, _ in order))
         print(f"== {run.name}: {len(rows)} of {len(order)} turns done"
               + (f"; last done {_position(order, rows[-1])}" if rows else ""))
         for row in rows:
-            if not row["reply"].strip():
+            if not str(row.get("reply") or "").strip():
                 print(f"   empty reply at {_position(order, row)}")
-        frame = False
+        kinds: dict[str, list] = {}
+        malformed = 0
+        events = run / "harness-events.jsonl"
+        for line in (events.read_text(errors="replace").splitlines() if events.exists() else []):
+            try:
+                event = json.loads(line)
+            except ValueError:
+                event = None
+            if not isinstance(event, dict) or not isinstance(event.get("kind"), str) \
+                    or not _KIND.fullmatch(event["kind"]):
+                malformed += 1
+                continue
+            kinds.setdefault(event["kind"], []).append(_event_position(event, sessions))
+        if kinds or malformed:
+            print(f"   harness events: {sum(map(len, kinds.values())) + malformed}")
+        for kind, positions in sorted(kinds.items()):
+            known = [position for position in positions if position]
+            print(f"     {kind}: {len(positions)}" + (f" at {'; '.join(known)}" if known else "")
+                  + (f" ({len(positions) - len(known)} without a position)" if known and len(known) < len(positions)
+                     else ""))
+        if malformed:
+            print(f"     malformed event lines: {malformed}")
+        counts: dict[str, int] = {}
         for line in log.splitlines():
             text = line.split(" ", 1)[1] if re.match(r"\d\d:\d\d:\d\d ", line) else line
-            if _ERROR.search(text) or (frame and line.startswith("  File ")):
-                frame = text.startswith("Traceback") or (frame and not _ERROR.search(text))
-                print("   " + text[:200])
+            words = text.split()
+            if text.startswith("host error"):
+                name = f"host error {_class_name(words[2]) if len(words) > 2 else 'other'}"
+            elif text.startswith("stop failed"):
+                name = f"stop failed {_class_name(words[2]) if len(words) > 2 else 'other'}"
+            elif text.startswith("harness event"):
+                name = "harness event lines"
+            elif text.startswith("Traceback"):
+                name = "Traceback"
+            elif match := _EXCEPTION_LINE.match(text):
+                name = f"exception {_class_name(match.group(1))}"
             else:
-                frame = frame and line.startswith(" ")
+                name = None
+            if name:
+                counts[name] = counts.get(name, 0) + 1
+            if "cap reached" in text:
+                counts["cap reached"] = counts.get("cap reached", 0) + 1
+        for name, count in sorted(counts.items()):
+            print(f"   log: {name}: {count}")
 
 
 def verdicts(path: Path, scenario_path: str, *, companion=False) -> None:
