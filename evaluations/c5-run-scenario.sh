@@ -16,11 +16,14 @@ if [ "${C5_STUB:-}" = 1 ]; then
 else
   : "${DEEPSEEK_API_KEY:?set DEEPSEEK_API_KEY}"
   : "${C5_BILLING_LEDGER:?set the approved shared C5_BILLING_LEDGER}"
+  : "${C5_ATTEMPT_ID:?set the frozen attempt ID}"
+  : "${C5_BILLING_POLICY_SHA256:?set the frozen billing policy hash}"
 fi
 if [ -n "${MEMBRAIN_SRC:-}" ]; then echo "MEMBRAIN_SRC must be unset" >&2; exit 2; fi
 if [ -n "${MEMBRAIN_EVALUATION_CLOCK:-}" ]; then echo "MEMBRAIN_EVALUATION_CLOCK must be unset" >&2; exit 2; fi
 if [ -n "${C5_PYTHON:-}" ]; then python=("$C5_PYTHON"); else python=(uv run python); fi
 cd "$(dirname "$0")/.."
+if [ "${C5_STUB:-}" != 1 ]; then "${python[@]}" evaluations/c5-harness.py --preflight; fi
 for arm in P E F; do
   if [ -e "$root/$key-$arm" ]; then echo "$root/$key-$arm exists: a run directory is never reused" >&2; exit 2; fi
 done

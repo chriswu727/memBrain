@@ -36,6 +36,8 @@ import re
 import socket
 import sys
 import time
+from contextlib import contextmanager
+from functools import lru_cache
 from pathlib import Path
 
 import httpx
@@ -74,7 +76,37 @@ def billing_transport():
     path = os.environ.get("C5_BILLING_LEDGER")
     if not path:
         raise SystemExit("A live evaluation needs the approved run's shared C5_BILLING_LEDGER.")
-    return load(str(Path(__file__).with_name("evaluation_budget.py"))).GuardedTransport(Path(path))
+    ident, policy = os.environ.get("C5_ATTEMPT_ID"), os.environ.get("C5_BILLING_POLICY_SHA256")
+    if not ident or not policy:
+        raise SystemExit("A live evaluation needs its frozen C5_ATTEMPT_ID and C5_BILLING_POLICY_SHA256.")
+    return billing_module().GuardedTransport(Path(path), run_id=ident, policy_sha256=policy)
+
+
+@lru_cache
+def billing_module():
+    return load(str(Path(__file__).with_name("evaluation_budget.py")))
+
+
+def check_live_environment():
+    if any(value and (key.startswith(("MEMORY_", "MEMBRAIN_EXTRACT", "MEMBRAIN_UPSTREAM"))
+                      or key.endswith("_API_KEY") and key != "DEEPSEEK_API_KEY") for key, value in os.environ.items()):
+        raise SystemExit("Live evaluation refuses unrelated provider or memory configuration in the environment.")
+
+
+@contextmanager
+def local_environment():
+    allowed = {"PATH", "HOME", "USER", "LOGNAME", "SHELL", "TMPDIR", "TMP", "TEMP", "LANG", "LC_ALL", "LC_CTYPE",
+               "TZ", "SYSTEMROOT", "WINDIR", "COMSPEC", "LOCALAPPDATA", "APPDATA", "PROGRAMDATA", "HOMEDRIVE",
+               "HOMEPATH", "SSL_CERT_FILE", "SSL_CERT_DIR", "MEMBRAIN_EVALUATION_CLOCK", "MEMBRAIN_SEMANTIC"}
+    previous = dict(os.environ)
+    try:
+        os.environ.clear()
+        os.environ.update({key: value for key, value in previous.items() if key in allowed})
+        os.environ["PYTHON_DOTENV_DISABLED"] = "1"
+        yield
+    finally:
+        os.environ.clear()
+        os.environ.update(previous)
 
 
 def check_billing():
@@ -246,6 +278,9 @@ class Memory:
     def __init__(self, directory: Path, model_cache: Path | None, ports, start: datetime.datetime, user=None):
         import shutil
 
+        if not STUB:
+            check_live_environment()
+
         from membrain import evaluation_clock, host
         from membrain.embedded_database import default_engine
         from membrain.local_profile import ensure_profile
@@ -260,7 +295,8 @@ class Memory:
         evaluation_clock.advance(directory, start, run=directory.name)
         os.environ[evaluation_clock.ENV] = str(directory / evaluation_clock.CLOCK)
         evaluation_clock.enable(directory)  # This process too: notes, coming-up dates and extraction read it.
-        host.ensure_installation(directory)
+        with local_environment():
+            host.ensure_installation(directory)
         if model_cache is not None:  # The local embedding model, as the plugin would fetch it.
             from membrain.local_embeddings import download, installed, model_directory
 
@@ -272,7 +308,8 @@ class Memory:
 
         STARTED.append(directory)
         try:
-            host.start(directory)
+            with local_environment():
+                host.start(directory)
         except desktop.DesktopError:  # A slow start on a loaded machine is waited for, not fatal.
             deadline = time.monotonic() + 600
             while not desktop.status(directory).get("ready"):
@@ -611,6 +648,8 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             raise SystemExit("the dry run needs a practice scenario with stub scripts")
         refuse_network(out)
         stub_host, stub_extract = StubHost(module.STUB_HOST), StubExtractor(getattr(module, "STUB_EXTRACT", {}))
+    if not STUB:
+        check_live_environment()
     BILLING = None if STUB else billing_transport()
     host = Host(cap=sum(len(turns) for _, turns in sessions) * 5,
                 transport=httpx.MockTransport(stub_host) if stub_host else BILLING)
@@ -799,6 +838,12 @@ def stop_started() -> None:
 
 
 if __name__ == "__main__":
+    if sys.argv[1:] == ["--preflight"]:
+        check_live_environment()
+        guard = billing_transport()
+        print(json.dumps({"ledger": str(guard.path), "attempt": guard.run_id, "policy_sha256": guard.policy_sha256}))
+        guard.close()
+        raise SystemExit(0)
     try:
         run(sys.argv[1], sys.argv[2], Path(sys.argv[3]))
     finally:

@@ -83,6 +83,33 @@ def test_a_billing_stop_is_not_retried_by_the_host(monkeypatch):
     assert len(calls) == 1 and host_model.calls == 1
 
 
+@pytest.mark.parametrize("name", ["MEMORY_COGNITION_API_KEY", "MEMORY_EMBEDDING_API_KEY", "MEMBRAIN_EXTRACT_MODEL",
+                                "MEMBRAIN_EXTRACT_KEY", "MEMBRAIN_UPSTREAM_KEY", "OPENAI_API_KEY"])
+def test_live_memory_refuses_other_providers_before_creating_a_service(tmp_path, monkeypatch, name):
+    monkeypatch.setattr(harness, "STUB", False)
+    monkeypatch.setenv(name, "unrelated-fixture")
+    directory = tmp_path / "not-created"
+    with pytest.raises(SystemExit, match="unrelated provider"):
+        harness.Memory(directory, None, None, datetime.datetime(2026, 3, 2, tzinfo=datetime.UTC))
+    assert not directory.exists()
+
+
+def test_local_service_start_has_no_provider_key_and_restores_the_parent_environment(monkeypatch):
+    import os
+
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "fixture-key")
+    monkeypatch.setenv("MEMORY_COGNITION_API_KEY", "other-fixture-key")
+    monkeypatch.setenv("HF_TOKEN", "private-fixture-token")
+    monkeypatch.setenv("MEMBRAIN_EVALUATION_CLOCK", "/disposable/clock.json")
+    before = dict(os.environ)
+    with harness.local_environment():
+        assert all(name not in os.environ for name in ["DEEPSEEK_API_KEY", "MEMORY_COGNITION_API_KEY", "HF_TOKEN"])
+        assert os.environ["MEMBRAIN_EVALUATION_CLOCK"] == "/disposable/clock.json"
+        assert os.environ["PYTHON_DOTENV_DISABLED"] == "1"
+        assert os.environ["PATH"] == before["PATH"]
+    assert dict(os.environ) == before
+
+
 def test_the_practice_scenario_is_valid_and_public(monkeypatch):
     assert "practice" in Path(practice.__file__).name
     starts = [harness.session_start(turns[0]) for _, turns in practice.SESSIONS_LONG]
@@ -227,6 +254,7 @@ def memory(tmp_path, monkeypatch):
         pytest.skip("embedded PostgreSQL binaries are not installed")
     monkeypatch.setenv("MEMBRAIN_SEMANTIC", "0")
     monkeypatch.setenv("PYTHON_DOTENV_DISABLED", "1")
+    monkeypatch.setattr(harness, "STUB", True)
     start = datetime.datetime(2026, 3, 2, 20, 0, tzinfo=datetime.UTC)
     monkeypatch.setenv(evaluation_clock.ENV, "")  # The harness sets it in os.environ; this restores it after.
     try:

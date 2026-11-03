@@ -23,11 +23,17 @@ def ledger(tmp_path, limit="0.0024"):
     return path
 
 
+def guarded(path, **options):
+    state = json.loads(path.read_text())
+    return budget.GuardedTransport(path, run_id="practice", policy_sha256=state["policy_sha256"], **options)
+
+
 def send(path, handler, **changes):
-    body = {"model": "host", "max_tokens": 100, "stream": False, "messages": [{"role": "user", "content": "private"}]}
+    body = {"model": "host", "max_tokens": 100, "stream": False,
+            "messages": [{"role": "user", "content": "billing-message-fixture-441892"}]}
     body.update(changes)
-    with httpx.Client(transport=budget.GuardedTransport(path, transport=httpx.MockTransport(handler))) as client:
-        return client.post(ENDPOINT, json=body)
+    with httpx.Client(transport=guarded(path, transport=httpx.MockTransport(handler))) as client:
+        return client.post(ENDPOINT, json=body, headers={"Authorization": "Bearer billing-key-fixture-4499209"})
 
 
 def reply(request=None, **changes):
@@ -42,7 +48,8 @@ def test_success_settles_conservatively_and_retains_no_messages_or_keys(tmp_path
     state = json.loads(path.read_text())
     entry, = state["requests"].values()
     assert entry["reserved_micros"] == 1200 and entry["actual_micros"] == 30
-    assert not state["blocked"] and "private" not in path.read_text()
+    assert not state["blocked"]
+    assert all(value not in path.read_text() for value in ["billing-message-fixture-441892", "billing-key-fixture-4499209"])
     assert path.stat().st_mode & 0o777 == 0o600
 
 
@@ -118,7 +125,7 @@ def test_requests_outside_the_frozen_limits_are_refused_before_network(tmp_path,
 
 def test_an_unknown_request_after_a_crash_still_consumes_its_full_reservation(tmp_path):
     path = ledger(tmp_path, "0.0012")
-    guard = budget.GuardedTransport(path, transport=httpx.MockTransport(reply))
+    guard = guarded(path, transport=httpx.MockTransport(reply))
     guard._reserve(httpx.Request("POST", ENDPOINT, json={"model": "host", "max_tokens": 100, "stream": False}))
     with pytest.raises(budget.BudgetStop, match="cap"):
         send(path, lambda request: pytest.fail("crashed reservation was reclaimed"))
@@ -164,7 +171,7 @@ def test_separate_arm_processes_share_one_cap(tmp_path):
 
 def test_the_extractor_can_omit_stream_but_another_endpoint_is_refused(tmp_path):
     path = ledger(tmp_path)
-    guard = budget.GuardedTransport(path, transport=httpx.MockTransport(reply))
+    guard = guarded(path, transport=httpx.MockTransport(reply))
     with httpx.Client(transport=guard) as client:
         assert client.post(ENDPOINT, json={"model": "host", "max_tokens": 100}).status_code == 200
         for url in ["https://other.test/chat/completions", ENDPOINT + "/other"]:
@@ -189,7 +196,7 @@ def test_the_real_extractor_request_uses_the_same_transport_and_settlement(tmp_p
     def extraction(request):
         return reply(choices=[{"message": {"content": '{"notes": []}'}}])
 
-    extractor = Extractor("https://provider.test", "host", "fake-key", transport=budget.GuardedTransport(
+    extractor = Extractor("https://provider.test", "host", "fake-key", transport=guarded(
         path, transport=httpx.MockTransport(extraction)))
     try:
         assert extractor.propose("I prefer tea", "Okay", "") == []
@@ -205,3 +212,36 @@ def test_incomplete_or_ambiguous_frozen_policies_are_refused(tmp_path, override)
     with pytest.raises(budget.BudgetStop):
         budget.create_ledger(tmp_path / "billing.json", run_id="practice", limit_cny="1", endpoint=ENDPOINT,
                              models={"host": {**MODELS["host"], **override}})
+
+
+def test_a_new_scenario_cannot_switch_ledger_path_attempt_or_rates(tmp_path):
+    path = ledger(tmp_path)
+    state = json.loads(path.read_text())
+    with pytest.raises(budget.BudgetStop, match="frozen attempt"):
+        budget.GuardedTransport(path, run_id="another-attempt", policy_sha256=state["policy_sha256"])
+    another = tmp_path / "new-ledger.json"
+    other = budget.create_ledger(another, run_id="practice", limit_cny="1", endpoint=ENDPOINT, models=MODELS)
+    assert other["policy_sha256"] != state["policy_sha256"]
+    with pytest.raises(budget.BudgetStop, match="frozen attempt"):
+        budget.GuardedTransport(another, run_id="practice", policy_sha256=state["policy_sha256"])
+    state["limit_micros"] *= 10
+    path.write_text(json.dumps(state))
+    with pytest.raises(budget.BudgetStop, match="frozen attempt"):
+        budget.GuardedTransport(path, run_id="practice", policy_sha256=state["policy_sha256"])
+
+
+def test_all_published_output_is_reserved_even_when_the_request_limit_is_smaller(tmp_path):
+    path = ledger(tmp_path)
+    with pytest.raises(budget.BudgetStop, match="uncertain"):
+        send(path, lambda request: reply(), max_tokens=1)
+    state = json.loads(path.read_text())
+    entry, = state["requests"].values()
+    assert entry["reserved_micros"] == 1200 and "actual_micros" not in entry
+    assert state["blocked"]
+
+
+@pytest.mark.parametrize("changes", [{"tools": [None]}, {"messages": {}}, {"messages": "text"},
+                                    {"messages": ["text"]}])
+def test_malformed_request_shapes_are_structured_stops_before_network(tmp_path, changes):
+    with pytest.raises(budget.BudgetStop):
+        send(ledger(tmp_path), lambda request: pytest.fail("malformed request reached provider"), **changes)

@@ -34,10 +34,29 @@ Both runs used deterministic local host/extractor stubs, keyword recall, a dispo
 | --- | --- | --- | --- |
 | `aa1aa6e` | 236 passed, no failures | `valid: true`, no retried empty replies | Persona acceptance, feelings, mood decay, boundaries, reset and deletion |
 | `ad216e5` | 250 passed, no failures | `valid: true`, no retried empty replies | The same checks, plus two intentionally unrecorded plugin turns followed by a recorded resume turn |
+| `506cf29` | 250 passed, no failures | `valid: true`, no retried empty replies | Integrated portable familiarity history and the initial live-budget wiring; stub mode made no external call |
 
 Machine-readable checker reports are in [maturity-free-practice-2026-11-03](maturity-free-practice-2026-11-03/). Raw failed logs and complete public-practice run artifacts remain in this task's local evidence directory.
 
 The new validity command rejects every reported harness degradation, malformed event evidence, missing/duplicate/out-of-order turns, mixed run identities and an empty run set. Invalid runs retain their JSON report and exit nonzero. Ten synthetic regressions failed on the earlier validator. No historical evaluation result was changed or re-scored.
+
+## Reference performance baseline
+
+The Mac baseline used runtime `fc7d2f7` (build `f32a502d7f0eae685fc854fe9d12183b98377f11615232208a4c057769e45e79`) and the benchmark script from `8a4965a`, on an Apple M4, Python 3.12.13 and embedded PostgreSQL 16.2. It seeded 1,000 keyword messages per brain across eight brains, plus 100 notes in the first brain, and waited for all indexing to settle. Each worker ran 21 recalls and discarded the first. No remote provider was configured. The bulk-write probe was disabled.
+
+| Warm operation | Samples | p95 | Target met |
+| --- | --- | --- | --- |
+| Serial plugin recall | 20 | 480.25 ms | Yes, under 500 ms |
+| Eight concurrent recalls, one brain | 160 | 2,390.70 ms | No, target at most 1,000 ms |
+| Eight concurrent recalls, eight brains | 160 | 2,139.97 ms | No, target at most 600 ms |
+| Memory map, 200 nodes | 20 | 18.78 ms | Settled-index observation only |
+| Memory map, 500 nodes | 20 | 14.37 ms | Settled-index observation only |
+
+All 340 recall responses were nonempty. The benchmark exited 1 because both concurrency bars failed; its service was confirmed stopped. [Raw samples and lock-wait summary](maturity-free-performance-2026-11-03.json) are retained. This is a baseline, not final R5 acceptance or a capacity claim, and does not erase the earlier 10,000-message map failure during indexing.
+
+## Prospective billing-control checks
+
+The evaluation-only guard and its C5 wiring passed 125 related offline checks at `506cf29`. Claude independently reviewed the code without running a model. The follow-up binds the full attempt to one ledger/policy, isolates local-service environment variables, reserves the complete published output bound and structures malformed-request refusals. Its related group passed 138 tests, none skipped (14.73 seconds). One preceding run had a false privacy-fixture failure because the literal word `private` matched macOS's temporary-directory path; the corrected fixture checks unique message and key strings. That failed log is retained. No API key or real provider was used. The follow-up still needs independent review and a new public stub pass; it grants no paid-run approval.
 
 ## Still required
 
