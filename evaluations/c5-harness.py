@@ -66,7 +66,20 @@ ACTIONS = PERSONA_ACTIONS | DELETES_MESSAGES | {
     "reset_relationship", "reset_mood", "pin_mood"}
 PROPOSAL_ACTIONS = {"accept_persona_proposal", "reject_persona_proposal"}
 STARTED: list[Path] = []  # Installations this process started, stopped on the way out even after an error.
+BILLING = None
 logging.getLogger("httpx").setLevel(logging.WARNING)  # Per-request lines would bury the run log.
+
+
+def billing_transport():
+    path = os.environ.get("C5_BILLING_LEDGER")
+    if not path:
+        raise SystemExit("A live evaluation needs the approved run's shared C5_BILLING_LEDGER.")
+    return load(str(Path(__file__).with_name("evaluation_budget.py"))).GuardedTransport(Path(path))
+
+
+def check_billing():
+    if BILLING is not None:
+        BILLING.check()
 
 
 def log(*parts):
@@ -549,6 +562,7 @@ def removed_in_p(out: Path, action: dict, earlier: list, timeout: float = 3600) 
     run = out.parent / (out.name[:-1] + "P") if out.name.endswith("F") else None
     deadline = time.monotonic() + timeout
     while run is not None and time.monotonic() < deadline:
+        check_billing()
         log_path = run / "page-actions.jsonl"
         entries = [json.loads(line) for line in log_path.read_text().splitlines()] if log_path.exists() else []
         done = [entry for entry in entries if entry["action"] in DELETES_MESSAGES]
@@ -573,6 +587,7 @@ def load(path: str):
 
 
 def run(arm: str, scenario_path: str, out: Path) -> None:
+    global BILLING
     if arm not in ("P", "E", "F"):
         raise SystemExit("arms: P, E, F")
     module = load(scenario_path)
@@ -596,8 +611,9 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             raise SystemExit("the dry run needs a practice scenario with stub scripts")
         refuse_network(out)
         stub_host, stub_extract = StubHost(module.STUB_HOST), StubExtractor(getattr(module, "STUB_EXTRACT", {}))
+    BILLING = None if STUB else billing_transport()
     host = Host(cap=sum(len(turns) for _, turns in sessions) * 5,
-                transport=httpx.MockTransport(stub_host) if stub_host else None)
+                transport=httpx.MockTransport(stub_host) if stub_host else BILLING)
     memory = chat = speaker = reference = None
     if arm in ("P", "E"):
         cache = os.environ.get("MEMBRAIN_MODEL_CACHE")
@@ -616,7 +632,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
 
             extractor = Extractor(BASE_URL, os.environ.get("EXTRACT_MODEL", "deepseek-flash"),
                                   "stub" if STUB else os.environ["DEEPSEEK_API_KEY"],
-                                  transport=httpx.MockTransport(stub_extract) if stub_extract else None)
+                                  transport=httpx.MockTransport(stub_extract) if stub_extract else billing_transport())
             chat = ChatMemory(memory.directory, producer="membrain-proxy", tools=None, extractor=extractor)
             if chat.user_id(speaker) != user:
                 raise SystemExit("the proxy's memory is not the brain page actions are applied to")
@@ -683,6 +699,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             memory.wait_until_indexed()
         current: list[tuple[tuple, dict]] = []
         for index, text in enumerate(turns):
+            check_billing()
             if index:
                 page_actions(session, index)
             if stub_host:
@@ -736,6 +753,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 chat.record(speaker, reply, session=session, turn_id=f"t{index}", prompt=text)
                 recorded = not memory.host.paused(memory.directory, memory.user)
                 chat.extractor.wait(120)
+                check_billing()
                 if chat.extractor._queue.unfinished_tasks:
                     harness_event(out, "extraction_unfinished", session=session, turn=index)
             elif memory is not None:

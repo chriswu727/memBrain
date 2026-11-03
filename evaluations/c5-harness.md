@@ -106,3 +106,7 @@ The run produces the artifacts a real run produces: per-arm results, `run.log`, 
 - P2 merged. Without it, proposal actions are skipped in every arm in a dry run and refused in a live run.
 - Companion scoring (critical types 6 to 9, rules RC1 and RC2) in the review pipeline. This is being added separately. It will need, per case, the page actions before the case's message, with what each removed: `page-actions.jsonl` has this. It will also need whether a feeling was said or inferred, which comes from the scenario's `FACTS`.
 - The owner's decisions in the plan draft, held-out scenarios written to this format (each session with a time, `PAGE_ACTIONS` by position), and the independent reviews.
+
+## Prospective live billing guard
+
+Live runs require the approved attempt's shared `C5_BILLING_LEDGER`; host, extraction and retries all reserve against it before HTTP. See [billing control](evaluation-billing.md) for conservative rates, crash reservations and stop rules. The guard is offline-tested and awaiting independent review. It grants no model-use approval. Stub practice still requires no ledger and makes no external request.

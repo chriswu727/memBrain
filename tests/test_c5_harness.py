@@ -49,6 +49,40 @@ def test_every_session_states_a_date_and_a_time():
         harness.session_start("Hi there, 21:00")
 
 
+def test_live_transport_requires_the_shared_billing_ledger_before_network(monkeypatch):
+    monkeypatch.delenv("C5_BILLING_LEDGER", raising=False)
+    with pytest.raises(SystemExit, match="shared C5_BILLING_LEDGER"):
+        harness.billing_transport()
+
+
+def test_every_arm_checks_a_failed_billing_ledger(monkeypatch):
+    class Stopped:
+        def check(self):
+            raise RuntimeError("billing stopped")
+
+    monkeypatch.setattr(harness, "BILLING", Stopped())
+    with pytest.raises(RuntimeError, match="billing stopped"):
+        harness.check_billing()
+
+
+def test_a_billing_stop_is_not_retried_by_the_host(monkeypatch):
+    monkeypatch.setattr(harness, "STUB", False)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")
+    calls = []
+
+    def refused(request):
+        calls.append(request)
+        raise RuntimeError("billing stopped")
+
+    host_model = harness.Host(cap=5, transport=httpx.MockTransport(refused))
+    try:
+        with pytest.raises(RuntimeError, match="billing stopped"):
+            host_model.call([{"role": "user", "content": "fixture"}])
+    finally:
+        host_model.client.close()
+    assert len(calls) == 1 and host_model.calls == 1
+
+
 def test_the_practice_scenario_is_valid_and_public(monkeypatch):
     assert "practice" in Path(practice.__file__).name
     starts = [harness.session_start(turns[0]) for _, turns in practice.SESSIONS_LONG]

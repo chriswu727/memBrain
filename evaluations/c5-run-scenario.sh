@@ -15,6 +15,7 @@ if [ "${C5_STUB:-}" = 1 ]; then
   case "$(basename "$scenario")" in *practice*) ;; *) echo "the dry run takes only a practice scenario" >&2; exit 2;; esac
 else
   : "${DEEPSEEK_API_KEY:?set DEEPSEEK_API_KEY}"
+  : "${C5_BILLING_LEDGER:?set the approved shared C5_BILLING_LEDGER}"
 fi
 if [ -n "${MEMBRAIN_SRC:-}" ]; then echo "MEMBRAIN_SRC must be unset" >&2; exit 2; fi
 if [ -n "${MEMBRAIN_EVALUATION_CLOCK:-}" ]; then echo "MEMBRAIN_EVALUATION_CLOCK must be unset" >&2; exit 2; fi
