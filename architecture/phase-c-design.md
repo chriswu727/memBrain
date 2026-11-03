@@ -154,7 +154,7 @@ There is no overall score of the user's emotions.
 **Triggers.** Mood changes only through listed rules over events already stored, with no model call:
 - the user reports good news (a reported positive affect, or a plan marked done) → glad;
 - the user reports distress → concerned, and less playful;
-- a shared joke or play, from a relationship moment → playful.
+- a shared joke or play, from a relationship moment → playful; any other shared moment → glad.
 
 Absence, silence, or the user leaving are **never** triggers, so there is no "I missed you" sadness and no guilt.
 

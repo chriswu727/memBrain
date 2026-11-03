@@ -5,7 +5,8 @@ card's baseline mood and the triggers found in events already stored, with an in
 
 - good news the user shared (a positive affect record, or a plan noted done) makes it glad;
 - distress the user shared (a negative affect record) makes it concerned, and less lively;
-- a shared joke or play from a relationship moment would make it playful (``relationship_triggers``, for R1).
+- a shared moment of the relationship layer makes it playful when it reads as a joke or play, and glad otherwise
+  (``relationship_triggers``).
 
 Absence, silence, time apart or the user leaving are never triggers: there is no rule that reads them.
 
@@ -15,15 +16,16 @@ trigger, whichever comes first; the triggers are then dropped from the current m
 
 Triggers are derived, never copied: each names its rule, its source record and its time, so deleting or correcting
 the source (or "Clear feelings", which erases every affect record and writes the affect marker) removes the trigger.
-Only affect records after the latest affect reset marker count. The user can pin the mood to the baseline, and
-reset it; both are system-role events in a reserved conversation, so they are never recalled or shown as messages,
-and erasing all memory removes them too. A reset writes a mood reset marker: events before it never trigger again.
+Only affect records after the latest affect reset marker count, and only shared moments after the latest
+relationship reset marker. The user can pin the mood to the baseline, and reset it; both are system-role events in
+a reserved conversation, so they are never recalled or shown as messages, and erasing all memory removes them too. A reset writes a mood reset marker: events before it never trigger again.
 """
 from __future__ import annotations
 
 import datetime as _datetime
 import json
 import math
+import re
 
 from .helpers import DomainError, uid
 from .helpers import now as _now
@@ -51,9 +53,18 @@ RULES = {
     "plan_done": {"label": "glad", "push": lambda s: (s, 0.25 * s)},
     "reported_distress": {"label": "concerned", "push": lambda s: (-s, -0.5 * s)},
     "inferred_distress": {"label": "concerned", "push": lambda s: (-s, -0.5 * s)},
-    "shared_play": {"label": "playful", "push": lambda s: (0.5 * s, s)},  # Reserved for relationship moments (R1).
+    "shared_play": {"label": "playful", "push": lambda s: (0.5 * s, s)},
+    "shared_moment": {"label": "glad", "push": lambda s: (s, 0.25 * s)},
 }
 PLAN_DONE_STRENGTH = 1.0
+SHARED_MOMENT_STRENGTH = 1.0
+# A shared moment that reads as a joke or play makes the mood playful; any other shared moment, such as a goal
+# reached together, makes it glad. A small fixed list: English words match whole words in any case, Chinese ones
+# anywhere in the text (Chinese is not written with spaces between words).
+PLAY_WORDS = ("joke", "jokes", "joked", "joking", "laugh", "laughs", "laughed", "laughing", "funny", "silly",
+              "played")
+PLAY_WORDS_ZH = ("笑", "玩笑", "逗")
+_PLAY = re.compile(r"(?<!\w)(?:" + "|".join(PLAY_WORDS) + r")(?!\w)|" + "|".join(PLAY_WORDS_ZH), re.IGNORECASE)
 
 
 def label_for(valence: float, energy: float) -> str:
@@ -144,8 +155,40 @@ def _plan_triggers(service, conn, principal, brain_id) -> list[dict]:
 
 
 def relationship_triggers(service, conn, principal, brain_id) -> list[dict]:
-    """Hook for R1: shared jokes or play from relationship moments, as ``shared_play`` triggers. None yet."""
-    return []
+    """Shared moments (milestone notes flagged ``shared``) after the latest relationship reset marker: a joke or play
+    is ``shared_play``, any other moment ``shared_moment``. A sensitive moment, one about a boundary topic, an
+    imported or restored one and one whose date is still ahead never trigger: the mood line would raise it, or it is
+    not new. The mood reset marker and pins apply in ``derive``, as for every trigger."""
+    from .notes import IMPORT_PREFIX, NOTES_CONVERSATION, parse_note
+    from .relationship import _state, touches
+
+    relationship = _state(service, conn, principal, brain_id)
+    rows = conn.execute(
+        "SELECT producer_ref,document FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+        "AND conversation_id=%s AND is_current AND NOT deleted AND NOT suppressed AND NOT retired "
+        "AND document IS NOT NULL AND sequence>%s "
+        "AND document->'observed'->'content'->>'text' LIKE '[milestone%%' ORDER BY sequence DESC LIMIT %s",
+        (*service._params(principal, brain_id), NOTES_CONVERSATION, relationship["after"], PLAN_NOTES)).fetchall()
+    triggers = []
+    for row in rows:
+        if row["producer_ref"].startswith(IMPORT_PREFIX) or row["producer_ref"] == "archive-import":
+            continue
+        document = row["document"]
+        fields, sentence = parse_note(document["observed"]["content"].get("text") or "")
+        recorded = document["system_time"]["recorded_at"]
+        if (fields.get("kind") != "milestone" or not fields.get("shared") or fields.get("sensitive")
+                or touches(sentence, relationship["boundaries"])):
+            continue
+        if fields.get("occurs_at") and fields["occurs_at"] > recorded[:len(fields["occurs_at"])]:
+            continue
+        play = _PLAY.search(sentence) is not None
+        triggers.append({"rule": "shared_play" if play else "shared_moment", "strength": SHARED_MOMENT_STRENGTH,
+                         "sequence": document["sequence"], "at": recorded,
+                         "reason": ("you and the user shared a light moment: " if play
+                                    else "you and the user shared a moment: ") + _clip(sentence, 100),
+                         "source": {"kind": "note", "id": document["event_id"], "note_id": document["event_id"],
+                                    "note_text": sentence}})
+    return triggers
 
 
 TRIGGER_SOURCES = (_affect_triggers, _plan_triggers, relationship_triggers)

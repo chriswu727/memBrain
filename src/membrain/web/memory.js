@@ -833,7 +833,8 @@ const moodPath = (suffix = "") => `/v1/brains/${encodeURIComponent(state.brain)}
 const MOOD_LABELS = { glad: "Glad", concerned: "Concerned", playful: "Playful", calm: "Calm", wistful: "Wistful" };
 const MOOD_RULES = { reported_good_news: "Good news you shared", inferred_good_news: "Good news, inferred",
   plan_done: "A plan noted done", reported_distress: "Something hard you shared",
-  inferred_distress: "Something hard, inferred", shared_play: "A shared joke" };
+  inferred_distress: "Something hard, inferred", shared_play: "A shared joke",
+  shared_moment: "A moment you shared" };
 const MOOD_STATUS = { active: "active", ended: "back at baseline", pinned: "ignored while pinned" };
 const two = (value) => String(value).padStart(2, "0");
 function moodTime(value) {

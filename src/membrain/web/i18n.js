@@ -234,7 +234,7 @@ const ZH = {
   "Glad": "开心", "Concerned": "担心", "Playful": "俏皮", "Calm": "平静", "Wistful": "惆怅", "easing": "正在平复",
   "Keep the mood at its baseline": "让心情保持在基础心情", "Triggers": "触发记录", "Reset mood": "重置心情",
   "Good news you shared": "你分享的好消息", "Good news, inferred": "推断出的好消息", "A plan noted done": "一个计划已完成",
-  "Something hard you shared": "你分享的难过的事", "Something hard, inferred": "推断出的难过的事", "A shared joke": "一起开的玩笑",
+  "Something hard you shared": "你分享的难过的事", "Something hard, inferred": "推断出的难过的事", "A shared joke": "一起开的玩笑", "A moment you shared": "你们一起经历的时刻",
   "active": "生效中", "back at baseline": "已回到基础心情", "ignored while pinned": "固定期间已忽略",
   "You said you felt": "你说你感到", "Your agent inferred you seemed": "agent 推断你似乎", "You did not say it.": "你并没有这样说。",
   "Pinned to its baseline: no trigger changes it until you lift the pin.": "已固定在基础心情：在你取消固定之前，任何触发都不会改变它。",
