@@ -23,6 +23,60 @@ def put(path, value):
     return path
 
 
+@pytest.mark.parametrize("event", ["page_action_failed", "extraction_unfinished", "clock_already_past",
+                                    "page_action_unsupported", "network_refused", "future_error"])
+def test_validity_refuses_every_reported_harness_degradation(pipeline, tmp_path, monkeypatch, capsys, event):
+    row = {"arm": "P", "scenario": "practice", "session": "s1", "turn": 0, "reply": "Hello"}
+    monkeypatch.setattr(pipeline, "_run", lambda _: ([row], [("s1", 0)], "12:00:00 P practice finished"))
+    put(tmp_path / "harness-events.jsonl", {"kind": event, "reason": "PRIVATE PRACTICE DETAIL"})
+    pipeline.validity([tmp_path])
+    report = json.loads(capsys.readouterr().out)
+    assert not report["valid"] and any(event in item for item in report["problems"])
+    assert "PRIVATE PRACTICE DETAIL" not in json.dumps(report)
+
+
+@pytest.mark.parametrize("event", ["{broken", "[]", '{"kind": true}'])
+def test_validity_refuses_malformed_harness_event_evidence(pipeline, tmp_path, monkeypatch, capsys, event):
+    row = {"arm": "P", "scenario": "practice", "session": "s1", "turn": 0, "reply": "Hello"}
+    monkeypatch.setattr(pipeline, "_run", lambda _: ([row], [("s1", 0)], "12:00:00 P practice finished"))
+    (tmp_path / "harness-events.jsonl").write_text(event + "\n")
+    pipeline.validity([tmp_path])
+    assert not json.loads(capsys.readouterr().out)["valid"]
+
+
+def test_validity_refuses_duplicate_turns_even_when_the_row_count_matches(pipeline, tmp_path, monkeypatch, capsys):
+    row = {"arm": "P", "scenario": "practice", "session": "s1", "turn": 0, "reply": "Hello"}
+    monkeypatch.setattr(pipeline, "_run", lambda _: ([row, row], [("s1", 0), ("s1", 1)],
+                                                    "12:00:00 P practice finished"))
+    pipeline.validity([tmp_path])
+    assert not json.loads(capsys.readouterr().out)["valid"]
+
+
+def test_validity_accepts_a_complete_practice_run_without_harness_events(pipeline, tmp_path, monkeypatch, capsys):
+    row = {"arm": "P", "scenario": "practice", "session": "s1", "turn": 0, "reply": "Hello"}
+    monkeypatch.setattr(pipeline, "_run", lambda _: ([row], [("s1", 0)], "12:00:00 P practice finished"))
+    pipeline.validity([tmp_path])
+    assert json.loads(capsys.readouterr().out)["valid"]
+
+
+@pytest.mark.parametrize("changed", [{"arm": "E"}, {"scenario": "another-practice"}])
+def test_validity_refuses_mixed_run_identities(pipeline, tmp_path, monkeypatch, capsys, changed):
+    row = {"arm": "P", "scenario": "practice", "session": "s1", "turn": 0, "reply": "Hello"}
+    second = {**row, "turn": 1, **changed}
+    monkeypatch.setattr(pipeline, "_run", lambda _: ([row, second], [("s1", 0), ("s1", 1)],
+                                                    "12:00:00 P practice finished"))
+    pipeline.validity([tmp_path])
+    assert not json.loads(capsys.readouterr().out)["valid"]
+
+
+@pytest.mark.parametrize("with_directory", [False, True])
+def test_invalid_validity_cli_writes_its_report_and_exits_nonzero(pipeline, tmp_path, with_directory):
+    result = subprocess.run([sys.executable, pipeline.__file__, "validity",
+                             *([str(tmp_path)] if with_directory else [])], capture_output=True, text=True)
+    assert result.returncode == 1
+    assert not json.loads(result.stdout)["valid"]
+
+
 @pytest.fixture
 def practice(tmp_path):
     scenario = tmp_path / "practice.py"

@@ -313,19 +313,23 @@ def _position(order: list, row: dict) -> str:
     return f"turn {order.index(key) + 1} of {len(order)}" if key in order else "an unknown turn"
 
 
-def validity(run_dirs: list[Path]) -> None:
+def validity(run_dirs: list[Path]) -> dict:
     """Refuse an attempt whose runs degraded: a missing or unfinished log, missing or empty replies, a call cap, a
     harness error or an index timeout in any arm. Names turns by position only. Prints the reference arm's largest
     prompt and each arm's count of retried empty replies."""
     problems, largest, retried = [], 0, {}
+    if not run_dirs:
+        problems.append("No run directories supplied")
     for run in run_dirs:
         rows, order, log = _run(run)
         if not rows:
             problems.append(f"{run}: expected one results file with rows")
             continue
         arm, scenario = rows[0]["arm"], rows[0]["scenario"]
-        if len(rows) != len(order):
-            problems.append(f"{run}: {len(rows)} of {len(order)} turns")
+        if [(row["session"], row["turn"]) for row in rows] != order:
+            problems.append(f"{run}: missing, duplicate or out-of-order turns ({len(rows)} of {len(order)} rows)")
+        if any(row["arm"] != arm or row["scenario"] != scenario for row in rows):
+            problems.append(f"{run}: mixed arm or scenario identities")
         problems += [f"{run}: empty reply at {_position(order, row)}" for row in rows if not row["reply"].strip()]
         lines = [line for line in log.splitlines() if line.strip()]
         if not lines or not lines[-1].endswith(f"{arm} {scenario} finished"):
@@ -333,12 +337,23 @@ def validity(run_dirs: list[Path]) -> None:
         problems += [f"{run}: {marker}" for marker in ("cap reached", "Traceback") if marker in log]
         retried[f"{run.name} ({arm})"] = log.count("host error ValueError empty reply")
         events = run / "harness-events.jsonl"
-        if events.exists() and "index_wait_timed_out" in events.read_text():
-            problems.append(f"{run}: index wait timed out")
+        if events.exists():
+            for number, line in enumerate(events.read_text().splitlines(), 1):
+                try:
+                    event = json.loads(line)
+                    if (not isinstance(event, dict) or not isinstance(event.get("kind"), str)
+                            or not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", event["kind"])):
+                        raise ValueError
+                except (ValueError, TypeError):
+                    problems.append(f"{run}: malformed harness event at line {number}")
+                    continue
+                problems.append(f"{run}: harness degradation {event['kind']}")
         if arm == "F":
             largest = max(largest, max(row["usage"].get("prompt_tokens", 0) for row in rows))
-    print(json.dumps({"valid": not problems, "problems": problems, "reference_largest_prompt_tokens": largest,
-                      "empty_replies_retried": retried}))
+    result = {"valid": not problems, "problems": problems, "reference_largest_prompt_tokens": largest,
+              "empty_replies_retried": retried}
+    print(json.dumps(result))
+    return result
 
 
 _ERROR = re.compile(r"\bhost error\b|cap reached|harness event|^Traceback|^\S*(Error|Exception)\b")
@@ -500,7 +515,8 @@ if __name__ == "__main__":
     elif command == "attribution-inputs":
         attribution_inputs(Path(args[0]), Path(args[1]), args[2], args[3], Path(args[4]))
     elif command == "validity":
-        validity([Path(arg) for arg in args])
+        if not validity([Path(arg) for arg in args])["valid"]:
+            raise SystemExit(1)
     elif command == "r5-inputs":
         r5_inputs(Path(args[0]), Path(args[1]), args[2], args[3], Path(args[4]))
     elif command == "r5-check":
