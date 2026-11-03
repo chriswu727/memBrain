@@ -371,15 +371,17 @@ class MemoryService:
         from .affect import AFFECT_CONVERSATION
         from .mood import MOOD_CONVERSATION
         from .persona import PERSONA_CONVERSATION
+        from .persona_growth import PROPOSALS_CONVERSATION
         from .relationship import RELATIONSHIP_CONVERSATION
 
         # Persona versions are configuration and affect records are evidence kept with notes, not conversation:
         # neither is read for learning, so saving or clearing them never starts a model call. Mood pins and reset
         # markers are settings, and relationship records (support style, boundaries, cap, acknowledgements, reset
-        # markers) are the user's requests, likewise.
+        # markers) are the user's requests, likewise. Persona suggestions and decisions (P2) too.
         if (self.semantic_processor and target.get("conversation_ref") and target.get("branch_ref")
                 and target.get("conversation_ref") not in (PERSONA_CONVERSATION, AFFECT_CONVERSATION,
-                                                           MOOD_CONVERSATION, RELATIONSHIP_CONVERSATION)
+                                                           MOOD_CONVERSATION, RELATIONSHIP_CONVERSATION,
+                                                           PROPOSALS_CONVERSATION)
                 and incoming["delivery_state"] in ("received", "delivered", "partially_delivered")
                 and incoming["event_kind"] not in ("source_correction", "delivery_receipt")):
             from .learning_allocations import CONTRACT_VERSION
@@ -404,6 +406,11 @@ class MemoryService:
             raise DomainError("invalid_evidence", "Relationship records are written through the relationship API.")
         if request["target"].get("conversation_ref") == MOOD_CONVERSATION:
             raise DomainError("invalid_evidence", "The companion's mood is set through the mood API.")
+        from .persona_growth import PROPOSALS_CONVERSATION
+        from .persona_growth import observe_feedback as observe_persona_feedback
+
+        if request["target"].get("conversation_ref") == PROPOSALS_CONVERSATION:
+            raise DomainError("invalid_evidence", "Personality suggestions are made by memBrain from your feedback.")
         for event in request["payload"]["events"]:
             if event["producer_ref"] in ("memory-service", "archive-import") or event["event_kind"] == "source_correction":
                 raise DomainError("invalid_evidence", "Correction audit records are created by the service.")
@@ -413,6 +420,8 @@ class MemoryService:
                 from .feedback import observe_feedback
 
                 observe_feedback(conn, self, principal, brain, request["target"], event_id)
+                # Feedback on the companion's manner may bring a persona suggestion to its threshold (P2).
+                observe_persona_feedback(self, conn, principal, brain, request["target"], event, event_id)
             if job_id:
                 jobs.append(job_id)
         return {"accepted_event_ids": accepted, "duplicate_event_ids": duplicates,
