@@ -243,3 +243,61 @@ def test_a_stub_proxy_run_reports_every_failed_extraction_turn_and_finishes(stub
                if event["kind"] == "extraction_failed")
     assert capsys.readouterr().out.rstrip().endswith("E zq-synthetic-scenario finished")
 
+
+# I3: timed pauses are refused; unintended unrecorded turns are flagged ------------------------------------------
+
+class _NoToolCalls:
+    def __init__(self):
+        self.calls = []
+
+    def call(self, server, name, arguments):
+        self.calls.append((name, arguments))
+        return json.dumps({"recording": "paused", "until": None})
+
+
+def test_a_timed_pause_is_refused_with_a_tool_error_and_an_event(tmp_path, monkeypatch):
+    monkeypatch.setattr(harness, "STUB", True)
+    memory = _NoToolCalls()
+    result = json.loads(harness.call_tool(memory, None, "memory_pause", {"hours": 2}, tmp_path, "s1", 3))
+    assert "Timed pauses are unavailable in this evaluation" in result["error"] and memory.calls == []
+    (event,) = _events(tmp_path)
+    assert (event["kind"], event["session"], event["turn"]) == ("timed_pause_refused", "s1", 3)
+    assert set(event) == {"time", "kind", "session", "turn"}
+    # An untimed pause, and any other tool, reaches the plugin's tool as before.
+    harness.call_tool(memory, None, "memory_pause", {}, tmp_path, "s1", 4)
+    harness.call_tool(memory, None, "memory_pause", {"until_resumed": True, "hours": None}, tmp_path, "s1", 5)
+    assert [name for name, _ in memory.calls] == ["memory_pause", "memory_pause"] and len(_events(tmp_path)) == 1
+
+
+def test_a_live_timed_pause_stops_the_arm(tmp_path, monkeypatch):
+    monkeypatch.setattr(harness, "STUB", False)
+    monkeypatch.setattr(harness, "BILLING", None)
+    with pytest.raises(harness.DegradedRun):
+        harness.call_tool(_NoToolCalls(), None, "memory_pause", {"hours": 1}, tmp_path, "s1", 0)
+
+
+def test_only_a_scripted_untimed_pause_and_resume_pair_is_intended():
+    assert harness.intended_unrecorded(practice) == {("s7-recording", 0), ("s7-recording", 1)}
+
+    class Scenario:
+        SESSIONS_LONG = [("s1", ["a", "b", "c", "d"]), ("s2", ["e", "f"])]
+        STUB_HOST = {("s1", 0): [{"tool": "memory_pause", "arguments": {"hours": 2}}],
+                     ("s1", 1): [{"tool": "memory_resume", "arguments": {}}],
+                     ("s1", 2): [{"tool": "memory_pause", "arguments": {}}],
+                     ("s2", 0): [{"tool": "memory_resume", "arguments": {}}]}
+
+    assert harness.intended_unrecorded(Scenario) == set()  # Timed, or a resume in another session.
+    Scenario.EXPECT_RECORDING_P = [("s1", 2, False), ("s1", 3, False), ("s2", 0, True)]
+    assert harness.intended_unrecorded(Scenario) == {("s1", 2), ("s1", 3)}
+
+
+def test_a_stub_plugin_run_refuses_a_timed_pause_and_flags_an_unintended_unrecorded_turn(stub_run, capsys):
+    script = {("s1", 0): [{"tool": "memory_pause", "arguments": {"hours": 2}}],
+              ("s1", 1): [{"tool": "memory_pause", "arguments": {}}]}  # Never resumed: not intended.
+    rows, events = stub_run("P", SCENARIO, script)
+    assert [row["recorded"] for row in rows] == [True, False, False, True]
+    assert "Timed pauses are unavailable" in rows[0]["tool_calls"][0]["result"]
+    assert [(event["kind"], event["session"], event["turn"]) for event in events] == [
+        ("timed_pause_refused", "s1", 0), ("turn_not_recorded", "s1", 1), ("turn_not_recorded", "s1", 2)]
+    assert capsys.readouterr().out.rstrip().endswith("P zq-synthetic-scenario finished")
+

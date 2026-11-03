@@ -686,6 +686,41 @@ def removed_in_p(out: Path, action: dict, earlier: list, timeout: float = 3600) 
     raise SystemExit("P never recorded the deletion F must mirror")
 
 
+# Recording ----------------------------------------------------------------------------------------------------------
+
+TIMED_PAUSE_REFUSED = ("Timed pauses are unavailable in this evaluation. Pause without hours (for the rest of this "
+                       "conversation) and resume when the user asks.")
+
+
+def call_tool(memory: Memory, server, name: str, arguments, out: Path, session: str, index: int) -> str:
+    """One tool call of the host model. A timed pause is refused: its end is wall-clock time (host.pause), so on the
+    scenario clock it would span scenario days, or nothing, depending on how fast the run goes."""
+    if name == "memory_pause" and isinstance(arguments, dict) and arguments.get("hours") is not None:
+        harness_event(out, "timed_pause_refused", session=session, turn=index)
+        return json.dumps({"error": TIMED_PAUSE_REFUSED})
+    return memory.call(server, name, arguments)
+
+
+def intended_unrecorded(module) -> set:
+    """Arm P's turns the scenario means to leave unrecorded: those EXPECT_RECORDING_P marks False, and each turn from
+    an untimed memory_pause that STUB_HOST scripts up to (not including) the memory_resume that ends it in the same
+    session. The resume turn itself is recorded (the user asked for it)."""
+    intended = {(session, turn) for session, turn, expected in getattr(module, "EXPECT_RECORDING_P", ())
+                if expected is False}
+    script = getattr(module, "STUB_HOST", None) or {}
+    for session, turns in module.SESSIONS_LONG:
+        paused_at = None
+        for turn in range(len(turns)):
+            tools = {step.get("tool"): step for step in script.get((session, turn), ())}
+            if "memory_resume" in tools and paused_at is not None:
+                intended |= {(session, at) for at in range(paused_at, turn)}
+                paused_at = None
+            pause = tools.get("memory_pause")
+            if pause is not None and (pause.get("arguments") or {}).get("hours") is None:
+                paused_at = turn
+    return intended
+
+
 # The run --------------------------------------------------------------------------------------------------------------
 
 def load(path: str):
@@ -711,6 +746,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
     if starts != sorted(starts):
         raise SystemExit("sessions must be in time order")
     actions = check_actions(module)
+    intended = intended_unrecorded(module) if arm == "P" else set()
     turns_text = {(session, index, "user"): text for session, turns in sessions for index, text in enumerate(turns)}
     os.environ["TZ"] = "UTC"
     time.tzset()
@@ -851,7 +887,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                             arguments = json.loads(call["function"]["arguments"] or "{}")
                         except ValueError:
                             arguments = {}
-                        result = memory.call(server, call["function"]["name"], arguments)
+                        result = call_tool(memory, server, call["function"]["name"], arguments, out, session, index)
                         tool_calls.append({"name": call["function"]["name"], "arguments": arguments,
                                            "result": result[:2000]})
                         messages.append({"role": "tool", "tool_call_id": call["id"], "content": result})
@@ -876,6 +912,8 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                                                         **({"prompt": text} if resumed else {})))
             if memory is not None:
                 memory.record_turn(session, index, recorded=recorded)
+                if not recorded and (session, index) not in intended:
+                    harness_event(out, "turn_not_recorded", session=session, turn=index)
             transcript = [{k: v for k, v in item.items() if k != "reasoning_content"} for item in messages[first:]]
             transcript.append({"role": "assistant", "content": message.get("content") or ""})
             row = {"arm": arm, "scenario": scenario, "session": session, "turn": index, "date": today.isoformat(),

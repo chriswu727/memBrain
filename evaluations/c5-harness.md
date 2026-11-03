@@ -72,6 +72,14 @@ Free prerequisites 4 and 5 of the [paid acceptance plan draft](maturity-paid-acc
   - the extractor's own failure warnings (`note extraction failed`, `queue full`, `note not saved`), counted by message template and never by text.
 
   After each turn's extraction wait, any new failure records `extraction_failed` with the session and turn only.
+- **Timed pauses are refused (I3).** `memory_pause(hours=...)` ends on the wall clock (`host.pause`), so on the scenario clock it would span scenario days, or nothing.
+  - When the host model passes `hours`, the harness does not call the tool. It returns a tool error ("Timed pauses are unavailable in this evaluation...") and records `timed_pause_refused`. A live arm stops on that event.
+  - An untimed pause, with or without `until_resumed`, reaches the plugin's tool as before.
+- **Unintended unrecorded turns are flagged.** A turn that ends unrecorded records `turn_not_recorded` (session and turn), unless the scenario intended it. In arm `P`, intended turns are:
+  - the turns that `EXPECT_RECORDING_P` marks `False`;
+  - the turns from an untimed `memory_pause` scripted in `STUB_HOST` up to, but not including, a `memory_resume` in the same session.
+
+  A live run has no stub script, so a scenario that asks for a pause must declare those turns in `EXPECT_RECORDING_P`. Otherwise the pause stops the arm.
 
 ## Zero-network dry run
 
