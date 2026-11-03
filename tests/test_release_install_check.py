@@ -161,6 +161,15 @@ def test_companion_items_pass_only_while_each_is_still_there_and_effective(runne
     assert broken(lambda w, s: s["relationship"].update(support_style=None)) == [findings[5][0]]
 
 
+def test_hook_output_is_read_as_the_host_receives_it(runner):
+    block = '<membrain-persona version="1">\nName: Wren\n</membrain-persona>'
+    output = json.dumps({"hookSpecificOutput": {"hookEventName": "SessionStart", "additionalContext": block}})
+    assert '<membrain-persona version="1">' not in output  # Escaped quotes: the raw JSON would fail the check.
+    assert runner.delivered(output) == block
+    assert runner.delivered("plain text context") == "plain text context"
+    assert runner.delivered("") == ""
+
+
 def test_proxy_findings_need_injected_memory_and_a_recorded_reply(runner):
     first, second = (runner.PROXY_REPLY.format(count=count) for count in (1, 2))
     seen = [{"messages": [{"role": "user", "content": runner.PROXY_FACT}]},

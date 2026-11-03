@@ -633,6 +633,15 @@ def companion_findings(written: dict, seen: dict) -> list[tuple[str, bool, objec
     ]
 
 
+def delivered(output: str) -> str:
+    """The context a hook hands the host: its JSON ``additionalContext`` decoded (so quotes and newlines read as
+    the host sees them), or the output itself when it is plain text."""
+    try:
+        return json.loads(output)["hookSpecificOutput"]["additionalContext"]
+    except (ValueError, KeyError, TypeError):
+        return output
+
+
 def companion_context(home: Home, events: dict, directory: Path | None, tag: str) -> dict:
     """What the hooks deliver: through the launchers' own commands, or with ``--directory`` for a restored copy."""
     def hook(event: str, payload: dict) -> str:
@@ -642,7 +651,7 @@ def companion_context(home: Home, events: dict, directory: Path | None, tag: str
         else:
             command = ("uvx --offline --python 3.12 --from membrain-ai membrain plugin hook "
                        f"{event} --directory {shlex.quote(str(directory))}")
-        return home.run(command, payload).stdout
+        return delivered(home.run(command, payload).stdout)
 
     def start(session_id: str) -> str:
         return hook("session-start", {"session_id": session_id, "source": "startup", "cwd": str(home.home)})
