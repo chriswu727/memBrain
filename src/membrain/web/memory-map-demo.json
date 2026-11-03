@@ -57,6 +57,11 @@
       "id": "episodes",
       "count": 18,
       "last_activity": "2026-11-02T10:40:00Z"
+    },
+    {
+      "id": "emotions",
+      "count": 2,
+      "last_activity": "2026-11-02T10:16:30Z"
     }
   ],
   "nodes": [
@@ -466,6 +471,30 @@
       "sensitive": true,
       "recorded_at": "2026-11-02T10:30:00Z",
       "weight": 0.5
+    },
+    {
+      "id": "affect:demo-07",
+      "region": "emotions",
+      "kind": "affect",
+      "label": "excited · the planetarium visit",
+      "status": null,
+      "date": "2026-11-02",
+      "sensitive": false,
+      "basis": "reported",
+      "recorded_at": "2026-11-02T09:00:30Z",
+      "weight": 0.25
+    },
+    {
+      "id": "affect:demo-15",
+      "region": "emotions",
+      "kind": "affect",
+      "label": "a bit nervous · first pottery class",
+      "status": null,
+      "date": "2026-11-02",
+      "sensitive": false,
+      "basis": "inferred",
+      "recorded_at": "2026-11-02T10:16:30Z",
+      "weight": 0.25
     }
   ],
   "edges": [
@@ -600,6 +629,18 @@
       "target": "msg:demo-18",
       "type": "derived_from",
       "basis": "source_event_ids"
+    },
+    {
+      "source": "affect:demo-07",
+      "target": "note:demo-07",
+      "type": "feeling_of",
+      "basis": "note"
+    },
+    {
+      "source": "affect:demo-15",
+      "target": "note:demo-15",
+      "type": "feeling_of",
+      "basis": "note"
     }
   ]
 }

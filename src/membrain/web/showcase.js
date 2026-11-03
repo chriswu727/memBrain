@@ -36,10 +36,10 @@ const SHOW_SULCI = [
 // Region placement for this silhouette (illustrative, like the brain view) and the largest cluster radius there.
 const SHOW_ANCHORS = { plans: [222, 150, 55], commitments: [196, 250, 42], preferences: [316, 104, 45],
   constraints: [446, 78, 38], routines: [582, 122, 50], episodes: [440, 205, 72], people: [352, 352, 36],
-  relationship: [488, 340, 40], milestones: [652, 222, 48], other: [632, 382, 36] };
+  relationship: [488, 340, 40], milestones: [652, 222, 48], other: [632, 382, 36], emotions: [316, 250, 38] };
 const SHOW_COLOURS = { plans: "#ffa94d", commitments: "#ff8466", preferences: "#b69cff", constraints: "#ff6f9e",
   routines: "#57b8ff", episodes: "#3ee0b0", people: "#ffd54a", relationship: "#e59cf5", milestones: "#7f9bff",
-  other: "#b8c2cc" };
+  other: "#b8c2cc", emotions: "#a6e05a" };
 const MAX_PULSES = 40;
 const showState = { open: false, frame: 0, slots: [], links: [], nodes: {}, opener: null, rendered: null, folds: null };
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
