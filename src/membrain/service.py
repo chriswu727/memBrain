@@ -80,17 +80,28 @@ class MemoryService:
         still wait for, and hold off, every transaction that locks it ``FOR UPDATE`` (writes, erasure, restore,
         recovery and job leases). An erasure recorded in the registry but not yet in the database is never read
         around: the reader then takes the row exclusively and applies it first, as every other access does.
+
+        A reader never waits for the exclusive lock while it holds the shared one: two readers doing that at once
+        would each wait for the other (a deadlock PostgreSQL resolves by aborting one). The shared lock is taken in a
+        savepoint, and a reader that finds a pending erasure rolls back to it, which gives the row up, before asking
+        for it exclusively. It then applies the erasure, reads the row again and checks that nothing is left pending.
+        Whether an erasure is pending cannot change while the row is held shared: intents are recorded, and applied,
+        only by transactions holding it exclusively, so the check made under the shared lock stays true until commit.
         """
         from .recovery_authority import pending_erasure, reconcile_brain
 
         query = "SELECT * FROM memory_brains WHERE tenant_id=%s AND owner_id=%s AND id=%s FOR "
-        if _READING.get():
-            row = conn.execute(query + "SHARE", self._params(principal, brain_id)).fetchone()
-            if row is None:
-                raise DomainError("not_found_or_forbidden", "Brain is unavailable.")
-            if not pending_erasure(self.database, conn, principal, row):
-                return row
-        row = conn.execute(query + "UPDATE", self._params(principal, brain_id)).fetchone()
+        params = self._params(principal, brain_id)
+        reading = _READING.get()
+        if reading:
+            with conn.transaction() as shared:
+                row = conn.execute(query + "SHARE", params).fetchone()
+                if row is None:
+                    raise DomainError("not_found_or_forbidden", "Brain is unavailable.")
+                if not pending_erasure(self.database, conn, principal, row):
+                    return row
+                raise psycopg.Rollback(shared)  # Releases the shared row lock before the exclusive one is requested.
+        row = conn.execute(query + "UPDATE", params).fetchone()
         if row is None:
             raise DomainError("not_found_or_forbidden", "Brain is unavailable.")
         token = _READING.set(False)
@@ -98,6 +109,14 @@ class MemoryService:
             reconcile_brain(self.database, conn, principal, row)
         finally:
             _READING.reset(token)
+        if reading:
+            # The row was given up and taken again (another reader may have applied the erasure in between), so
+            # what was read under the shared lock is not trusted: read it again and verify nothing is pending.
+            row = conn.execute(query + "UPDATE", params).fetchone()
+            if row is None:
+                raise DomainError("not_found_or_forbidden", "Brain is unavailable.")
+            if pending_erasure(self.database, conn, principal, row):
+                raise DomainError("deletion_in_progress", "A deletion is still being applied. Retry shortly.", True)
         return row
 
     def _scope(self, principal, brain, target=None):
