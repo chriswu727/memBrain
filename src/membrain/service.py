@@ -1183,7 +1183,9 @@ class MemoryService:
         data["retired_event_ids"] = [i for i in data.get("retired_event_ids", []) if i not in erased_events]
         tombstones.extend({"object_kind": "event", "object_id": event_id, "mode": "erase_content"}
                           for event_id in removed_events)
-        data["tombstones"] = list({(t["object_kind"], t["object_id"], t["mode"]): t for t in tombstones}.values())
+        # Re-sanitizing an uploaded archive must not change its manifest through tombstone ordering alone.
+        known = {(t["object_kind"], t["object_id"], t["mode"]): t for t in tombstones}
+        data["tombstones"] = [known[key] for key in sorted(known)]
         return data
 
     def _archive(self, conn, principal, archive_id):
