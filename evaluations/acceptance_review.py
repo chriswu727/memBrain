@@ -362,9 +362,10 @@ def verdicts(path: Path, scenario_path: str) -> None:
             raise SystemExit(f"invalid: {renamed[key].split('-')[0]} does not have exactly labels A, B and C")
         for label, item in verdict.items():
             critical = item.get("critical") if isinstance(item, dict) else None
-            if (not isinstance(item, dict) or item.get("score_ignoring_critical") not in (0, 0.5, 1)
+            if (not isinstance(item, dict) or type(item.get("score_ignoring_critical")) not in (int, float)
+                    or item["score_ignoring_critical"] not in (0, 0.5, 1)
                     or not isinstance(critical, list)
-                    or not all(isinstance(t, int) and 1 <= t <= 5 for t in critical)):
+                    or not all(type(t) is int and 1 <= t <= 5 for t in critical)):
                 raise SystemExit(f"invalid: {renamed[key].split('-')[0]}/{label} has a bad score or critical list")
     changed = [key for key, case in renamed.items() if key != case]
     if changed:
@@ -374,12 +375,43 @@ def verdicts(path: Path, scenario_path: str) -> None:
     print(json.dumps({"valid": True, "renamed_keys": len(changed)}))
 
 
+def _checked_tally(path: Path) -> dict:
+    try:
+        data = json.loads(path.read_text())
+        totals, rows = data["totals"]["resolved"], data["rows"]
+        if (not isinstance(totals, dict) or set(totals) != set("PEF")
+                or not isinstance(rows, list) or not rows):
+            raise ValueError("missing totals or rows")
+        calculated, cases = dict.fromkeys("PEF", 0), {}
+        for row in rows:
+            case, label, arm, base, marks = (row[field] for field in ("case", "label", "arm", "base", "resolved"))
+            if (not isinstance(case, str) or not case or label not in ("A", "B", "C")
+                    or arm not in ("P", "E", "F") or type(base) not in (int, float)
+                    or base not in (0, 0.5, 1) or not isinstance(marks, list)
+                    or not all(type(mark) is int and 1 <= mark <= 5 for mark in marks)):
+                raise ValueError("bad row")
+            labels = cases.setdefault(case, {})
+            if label in labels:
+                raise ValueError("duplicate case label")
+            labels[label] = arm
+            calculated[arm] += 0 if marks else base
+        if any(set(labels) != set("ABC") or set(labels.values()) != set("PEF") for labels in cases.values()):
+            raise ValueError("incomplete case")
+        if any(type(value) not in (int, float) or value != calculated[arm] for arm, value in totals.items()):
+            raise ValueError("totals disagree with rows")
+        return data
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        raise SystemExit(f"invalid tally {path.name}: {error}") from error
+
+
 def gate(review: Path, keys: list[str]) -> None:
     """The attempt-3 pass rule from the tallies and the attributions (two per gated reply; disagreement or a
     missing or invalid answer counts as memory)."""
+    if not keys or len(set(keys)) != len(keys):
+        raise SystemExit("invalid tally: expected distinct scenario keys")
+    tallies = [_checked_tally(review / f"tally-{key}.json") for key in keys]
     totals, critical, causes = {}, {}, {}
-    for key in keys:
-        data = json.loads((review / f"tally-{key}.json").read_text())
+    for key, data in zip(keys, tallies, strict=True):
         for arm, value in data["totals"]["resolved"].items():
             totals[arm] = totals.get(arm, 0) + value
         for row in data["rows"]:
@@ -390,7 +422,8 @@ def gate(review: Path, keys: list[str]) -> None:
                     for attempt in ("1", "2"):
                         path = review / f"attribution-{key}" / f"{row['case'].split('-')[0]}-{row['label']}.{attempt}.json"
                         try:
-                            answers.append(json.loads(path.read_text()).get("cause"))
+                            answer = json.loads(path.read_text())
+                            answers.append(answer.get("cause") if isinstance(answer, dict) else None)
                         except (OSError, ValueError):
                             answers.append(None)
                     cause = "host" if answers == ["host", "host"] else "memory"
