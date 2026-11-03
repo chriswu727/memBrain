@@ -52,10 +52,14 @@ than the reference. R4 is computed separately on core scenarios with its unchang
 Use explicit companion mode throughout the prospective scoring run:
 
 ```sh
+python evaluations/acceptance_review.py validity RUN_P RUN_E RUN_F
 python evaluations/acceptance_review.py verdicts REVIEW/verdicts-KEY.json SCENARIO.py --companion
 python evaluations/acceptance_review.py tally REVIEW BLIND SCENARIO.py KEY --companion
 python evaluations/acceptance_review.py gate REVIEW c1 c2 --companion
 ```
+
+Validity rejects any reported harness degradation, malformed event evidence, missing or repeated turns, mixed
+run identities and empty run sets. It writes its JSON report and exits nonzero on an invalid run; do not score it.
 
 Companion tallies carry `gate: C5`. Mixing them with R4 tallies is refused. The last command writes
 `gate-c5.json`, exits nonzero when C5 fails, and never overwrites R4's `gate.json`. A synthetic practice pass is
