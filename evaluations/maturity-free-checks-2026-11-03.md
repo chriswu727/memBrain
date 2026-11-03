@@ -77,7 +77,7 @@ After merging that CPU head as `5175284`, 190 retrieval/context/semantic/shared-
 
 ## Still required
 
-- Finish and independently validate the concurrent-recall/map performance change. Repeat the browser checks as part of the final candidate CI.
+- Finish and independently validate concurrent-recall performance. The map follow-up below passed its 80-request reference run. Repeat the browser checks as part of the final candidate CI.
 - Freeze and pin one combined source, then run Verify and the full installation acceptance on that candidate.
 - Independently review and freeze the real behavioural acceptance plan and held-out scenarios. Obtain the owner's explicit approval for paid and subscription-backed evaluation, then pass R4 and C5. No such run has started.
 
@@ -89,4 +89,14 @@ The full map benchmark at `dbc2818` still failed: 40 requests at 1,000 messages 
 
 On that retained PostgreSQL 16.2 fixture, with indexing paused, EXPLAIN ANALYZE reported 988.077 ms for the original plan and 24.347 ms with nested-loop joins disabled. Both returned the same ordered 500 rows, with digest `ac13e76d49214dbabc89cdb0490dcee32cc1f3032bee7cc9aa620a3ed880d113`; [the summary](maturity-map-query-2026-11-03.json) also retains an unsuccessful lateral-join alternative (948.843 ms). The workaround changes the planner setting only for this query and restores it afterwards; request timeouts, bounds, filters and retries are unchanged.
 
-The related test attempt first had 45 passes and 15 setup errors because initdb could not write its WAL on a full disk. After removing this task's stopped, reproducible benchmark clusters and completed test fixtures, the same group passed all 60 checks (19.53 seconds), without a code or assertion change. Failure logs and cleanup records are retained. The reference map benchmark still needs a new full run on the fix; the SQL comparison alone is not a map pass.
+The related test attempt first had 45 passes and 15 setup errors because initdb could not write its WAL on a full disk. After removing this task's stopped, reproducible benchmark clusters and completed test fixtures, the same group passed all 60 checks (19.53 seconds), without a code or assertion change. Failure logs and cleanup records are retained.
+
+The unchanged 80-request reference map benchmark then passed on `1b2ef2a` (runtime `d7ca007`), with zero retries and the background indexer active. At 1,000 messages, 200/500-node p95 was 61.753/194.186 ms; at 10,000 messages it was 126.275/261.066 ms. The report records completion and service shutdown. [All raw samples](maturity-map-success-2026-11-03.json) are retained alongside the earlier failure. This measures bounded local HTTP maps during indexing, not browser rendering, semantic recall or total storage capacity.
+
+The same candidate also passed 25 shared-lock, semantic-read and recovery-erasure tests directly against the installed macOS PostgreSQL 16.2 database (10.30 seconds), with the API service and background worker stopped. [Source and test metadata](maturity-native-pg16-locks-2026-11-03.json) are retained. This supplements the earlier full suite's PostgreSQL container coverage.
+
+A later plain materialized-dependency CTE was also compared on the retained 10,000-message fixture. It took 1,696.260 ms, versus 1,357.966 ms for the original and 26.547 ms with nested-loop joins disabled; all returned the same ordered 500 rows. The fast plan was a merge join. This unsuccessful alternative is retained in [the SQL evidence](maturity-map-cte-query-2026-11-03.json). Larger brains have not been accepted by these runs.
+
+## Second CPU follow-up
+
+The four changes through `df6f662` remove copies of values that are immediately serialized, specialize stored JSON copies, encode plain action responses directly with a fallback to FastAPI's encoder, and save recall traces after validating the response that contains them. Independent review found that the copy helper reused non-JSON dictionary keys, which broke alias preservation when one key was also a value. A regression failed before the correction and passed afterwards. The string-key fast path remains; context budgets, candidates and validation contracts are unchanged. The combined API, trace, context, retrieval, shared-read and erasure group passed 156 checks, none skipped (21.85 seconds). These checks do not establish a concurrency-performance pass.

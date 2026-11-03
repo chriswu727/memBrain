@@ -1,0 +1,14 @@
+{
+  "postgresql": "PostgreSQL 16.2 on aarch64-apple-darwin23.5.0, compiled by Apple clang version 15.0.0 (clang-1500.0.40.1), 64-bit",
+  "source": "1b2ef2a1d97945f160dc0da93e396369790c2f9b",
+  "scope": "Shared-lock, semantic-read and erasure tests against the real embedded PostgreSQL; no API service or background worker.",
+  "passed": 25,
+  "failed": 0,
+  "skipped": 0,
+  "seconds": 10.3,
+  "tests": [
+    "test_brain_lock_contention.py",
+    "test_semantic_shared_reads.py",
+    "test_recovery_erasure.py"
+  ]
+}

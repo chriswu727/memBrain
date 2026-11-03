@@ -70,3 +70,18 @@ def test_a_rebound_document_shares_nothing_with_the_stored_one():
     rebound["disclosure_basis"]["support_paths"][0]["permitted_scope"]["visibility"] = "shared"
     assert stored == before
     assert rebound["scope"]["scope_generation"] == 3 and rebound["disclosure_basis"]["dependency_generation"] == 7
+
+
+def test_non_json_keys_are_copied_with_their_shared_values():
+    class Key:
+        def __init__(self):
+            self.parts = ["original"]
+
+    key = Key()
+    original = {key: key}
+    result = deep_copy(original)
+    copied_key = next(iter(result))
+    assert copied_key is not key
+    assert result[copied_key] is copied_key
+    copied_key.parts.append("changed")
+    assert key.parts == ["original"]

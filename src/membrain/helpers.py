@@ -74,8 +74,9 @@ def deep_copy(value: Any, memo: dict | None = None) -> Any:
             result = memo[id(value)] = {}
             for key, item in value.items():
                 inner = type(item)
-                result[key] = item if (inner is str or inner is int or inner is float or inner is bool
-                                       or item is None) else deep_copy(item, memo)
+                result[key if type(key) is str else deep_copy(key, memo)] = (
+                    item if (inner is str or inner is int or inner is float or inner is bool
+                             or item is None) else deep_copy(item, memo))
         else:
             result = memo[id(value)] = []
             for item in value:
