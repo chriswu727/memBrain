@@ -241,8 +241,15 @@ def map_labels(client: MemoryClient) -> dict[str, str]:
 
 # 1. Showcase ------------------------------------------------------------------------------------------------------
 
-def test_showcase_shows_fictional_data_and_makes_no_api_request(server, page):
+@pytest.mark.parametrize("saved_session", [
+    pytest.param(None, id="no-saved-session"),
+    pytest.param({"key": "fictional-saved-key", "brain": "fictional-saved-brain", "view": "persona"},
+                 id="saved-real-session"),
+])
+def test_showcase_shows_fictional_data_and_makes_no_api_request(server, page, saved_session):
     requests, console_errors = [], []
+    if saved_session is not None:
+        page.add_init_script("sessionStorage.setItem('membrain-page', JSON.stringify(" + json.dumps(saved_session) + "));")
     page.on("request", lambda request: requests.append(request.url))
     page.on("console", lambda message: console_errors.append(message.text) if message.type == "error" else None)
     page.goto(f"{server.base_url}/memory?demo=brain&show=1")
@@ -277,7 +284,8 @@ def test_showcase_shows_fictional_data_and_makes_no_api_request(server, page):
     assert {urlsplit(url).netloc for url in requests if not url.startswith("data:")} == {
         urlsplit(server.base_url).netloc}, "the showcase loads nothing from another host"
     assert "/static/memory-map-demo.json" in paths
-    assert page.evaluate("() => sessionStorage.getItem('membrain-page')") is None, "no saved session is written"
+    saved = page.evaluate("() => sessionStorage.getItem('membrain-page')")
+    assert (json.loads(saved) if saved else None) == saved_session, "demo mode leaves saved real sessions unchanged"
     assert console_errors == []
 
 
