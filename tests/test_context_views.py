@@ -268,3 +268,42 @@ def test_a_kept_recall_view_shares_nothing_and_rendering_changes_nothing(kind):
     rendered = cognition.render_recall(result)
     assert result == before
     assert rendered == serialized(view) == result["model_context"]
+
+
+def test_remembered_handles_are_exactly_the_hashed_ones():
+    from membrain.context_views import Handles, _handle
+
+    handles = Handles()
+    values = [{"memory_id": "m", "revision": 1}, {"memory_id": "m", "revision": True}, {"memory_id": "m", "revision": 1.0},
+              {"revision": 1, "memory_id": "m"}, {"x": 0.0}, {"x": -0.0}, {"x": 1e16}, {"x": 10**16},
+              {"span": {"start": 0, "end": 4}}, {"span": {"end": 4, "start": 0}}, {"x": [1, "1", None, [True]]},
+              {"x": "é"}, {"x": "é"}, {"x": None}, {"x": [{}]}, {1: "integer key"}, {"1": "string key"}]
+    for _ in range(2):  # computed, then remembered
+        for value in values:
+            for kind in ("m", "s", "r"):
+                assert handles(kind, value) == _handle(kind, value), (kind, value)
+    assert handles("s", {"x": (1, 2)}) == _handle("s", {"x": (1, 2)})  # not keyable: hashed every time
+    with pytest.raises(ValueError):
+        handles("s", {"x": float("nan")})
+    value = {"event_id": "e", "span": {"start": 0, "end": 4}}
+    before = handles("s", value)
+    value["span"]["end"] = 5  # a changed value is a new key, never the remembered handle
+    assert handles("s", value) == _handle("s", value) != before
+
+
+@pytest.mark.parametrize("kind", ["exception", "supersedes"])
+def test_a_recall_renders_the_same_context_with_remembered_handles(kind, monkeypatch):
+    from membrain.context_views import Handles
+
+    sources, memories, current = scenario(kind=kind)
+    result = recall(sources, memories, current)
+    shared = Handles()
+    assert cognition.render_recall(result, shared) == cognition.render_recall(result) == result["model_context"]
+    fewer = {**result, "items": result["items"][1:]}
+    assert cognition.render_recall(fewer, shared) == cognition.render_recall(fewer)
+    renders = []
+    original = cognition.render_recall
+    monkeypatch.setattr(cognition, "render_recall", lambda *args: renders.append(len(args)) or original(*args))
+    again = recall(sources, memories, current)
+    assert again["model_context"] == result["model_context"]
+    assert renders and set(renders) == {2}  # every render of the recall used its own handles
