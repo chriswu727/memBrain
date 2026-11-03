@@ -67,6 +67,29 @@ class NoteWrite(RuntimeBody):
     affect: NoteAffect | None = None
 
 
+PersonaAuthor = Literal["host", "user", "feedback"]
+PersonaReason = Annotated[str, Field(max_length=200)]
+
+
+class PersonaWrite(RuntimeBody):
+    # The card itself is checked by persona.normalize_card, whose messages name the field at fault.
+    card: dict
+    made_by: PersonaAuthor
+    reason: PersonaReason | None = None
+    host_default: bool = False
+
+
+class PersonaRestore(RuntimeBody):
+    version: Annotated[int, Field(ge=1, le=2**31)]
+    made_by: PersonaAuthor
+    reason: PersonaReason | None = None
+
+
+class PersonaReset(RuntimeBody):
+    made_by: PersonaAuthor
+    reason: PersonaReason | None = None
+
+
 class RuntimeBegin(RuntimeBody):
     turn_id: RuntimeIdentifier
     conversation_id: RuntimeIdentifier
@@ -338,6 +361,15 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
         except ValidationError as error:
             raise DomainError("validation_failed", "Runtime request fields are invalid.") from error
 
+    async def persona_body(request: Request, model: type[RuntimeBody]) -> dict:
+        document = await read_document(request)
+        try:
+            return model.model_validate(document).model_dump(exclude_none=True)
+        except ValidationError as error:
+            first = error.errors()[0]
+            where = ".".join(str(part) for part in first["loc"]) or "body"
+            raise DomainError("validation_failed", f"Persona request field {where}: {first['msg']}.") from error
+
     def runtime_limit(request: Request) -> int:
         if set(request.query_params) - {"limit"} or len(request.query_params.getlist("limit")) > 1:
             raise DomainError("validation_failed", "Only one limit parameter is supported.")
@@ -489,6 +521,51 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
         from .affect import clear_affect
 
         return clear_affect(service, principal, brain_id)
+
+    @app.get("/v1/brains/{brain_id}/persona")
+    def get_persona(brain_id: str, principal: Principal = Depends(authenticate)):
+        from .persona import current_persona
+
+        return current_persona(service, principal, brain_id)
+
+    @app.put("/v1/brains/{brain_id}/persona")
+    async def put_persona(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
+        from starlette.concurrency import run_in_threadpool
+
+        from .persona import set_persona
+
+        body = await persona_body(request, PersonaWrite)
+        return await run_in_threadpool(set_persona, service, principal, brain_id, body.pop("card"), **body)
+
+    @app.get("/v1/brains/{brain_id}/persona/versions")
+    def get_persona_versions(brain_id: str, principal: Principal = Depends(authenticate)):
+        from .persona import persona_versions
+
+        return persona_versions(service, principal, brain_id)
+
+    @app.delete("/v1/brains/{brain_id}/persona/versions")
+    def delete_persona_versions(brain_id: str, principal: Principal = Depends(authenticate)):
+        from .persona import delete_persona_history
+
+        return delete_persona_history(service, principal, brain_id)
+
+    @app.post("/v1/brains/{brain_id}/persona/restore")
+    async def restore_persona_version(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
+        from starlette.concurrency import run_in_threadpool
+
+        from .persona import restore_persona
+
+        body = await persona_body(request, PersonaRestore)
+        return await run_in_threadpool(restore_persona, service, principal, brain_id, body.pop("version"), **body)
+
+    @app.post("/v1/brains/{brain_id}/persona/reset")
+    async def reset_persona_card(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
+        from starlette.concurrency import run_in_threadpool
+
+        from .persona import reset_persona
+
+        body = await persona_body(request, PersonaReset)
+        return await run_in_threadpool(reset_persona, service, principal, brain_id, **body)
 
     @app.post("/v1/brains/{brain_id}/work")
     def work(brain_id: str, principal: Principal = Depends(authenticate)):

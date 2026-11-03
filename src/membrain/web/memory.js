@@ -451,6 +451,145 @@ onSubmit($("search-form"), async () => {
   }
 });
 
+// Personality ------------------------------------------------------------------------------------------------
+// The companion's persona card, versioned by the service. The page writes as the user; restore and reset save a
+// new version, so nothing is lost until "Delete personality history".
+
+const personaPath = (suffix = "") => `/v1/brains/${encodeURIComponent(state.brain)}/persona${suffix}`;
+const VOICE = [["register", "register"], ["length", "length"], ["emoji", "emoji"], ["language", "language"]];
+const MADE_BY = { user: "set by you", host: "set by the host", feedback: "from accepted feedback" };
+const lines = (text) => text.split("\n").map((value) => value.trim()).filter(Boolean);
+// By name, not as properties: a control named "length" would otherwise read as the collection's length.
+const personaControl = (name) => $("persona-form").elements.namedItem(name);
+
+function personaRows(card) {
+  const rows = [];
+  if (card.name) rows.push(["Name", card.name]);
+  if (card.traits?.length) rows.push(["Traits", card.traits.join("; ")]);
+  const voice = VOICE.filter(([name]) => card.voice?.[name]).map(([name, label]) => [label, card.voice[name]]);
+  if (voice.length) rows.push(["Voice", voice]);
+  if (card.values?.length) rows.push(["Values", card.values.join("; ")]);
+  if (card.boundaries?.length) rows.push(["Boundaries", card.boundaries.join("; ")]);
+  const mood = card.baseline_mood;
+  if (mood) rows.push(["Baseline mood", { label: mood.label, scale: `(valence ${mood.valence > 0 ? "+" : ""}${mood.valence}, energy ${mood.energy} of 3)` }]);
+  return rows;
+}
+
+function personaCard(card) {
+  const list = element("dl", undefined, "persona-card");
+  for (const [label, value] of personaRows(card)) {
+    const term = element("dt", label), detail = element("dd");
+    if (Array.isArray(value)) {
+      for (const [name, text] of value) {
+        const part = element("span", undefined, "persona-part");
+        part.append(element("span", name, "hint"), element("span", text, "user-text"));
+        detail.append(part);
+      }
+    } else if (typeof value === "object") detail.append(element("span", value.label, "user-text"), element("span", value.scale, "hint"));
+    else detail.append(element("span", value, "user-text"));
+    list.append(term, detail);
+  }
+  return list;
+}
+
+function personaForm(card) {
+  personaControl("name").value = card.name || "";
+  personaControl("traits").value = (card.traits || []).join("\n");
+  for (const [name] of VOICE) personaControl(name).value = card.voice?.[name] || "";
+  personaControl("values").value = (card.values || []).join("\n");
+  personaControl("boundaries").value = (card.boundaries || []).join("\n");
+  personaControl("mood_label").value = card.baseline_mood?.label || "";
+  personaControl("mood_valence").value = String(card.baseline_mood?.valence ?? 0);
+  personaControl("mood_energy").value = String(card.baseline_mood?.energy ?? 1);
+  personaControl("reason").value = "";
+}
+
+function personaHistory(version) {
+  if (version.action === "restore" && version.restored_from) return `restored from version ${version.restored_from}`;
+  if (version.action === "reset") return version.empty ? "reset to no card" : "reset to the host's default";
+  return version.host_default ? "host default" : "edited";
+}
+
+async function loadPersona() {
+  const [current, history] = await Promise.all([api(personaPath()), api(personaPath("/versions"))]);
+  state.persona = current;
+  $("persona-version").textContent = current.version ? `Version ${current.version}` : "No versions yet";
+  const view = $("persona-view");
+  view.replaceChildren(current.empty
+    ? element("p", "No personality card is set. Your agent keeps its usual manner.", "empty")
+    : personaCard(current.card));
+  $("persona-reset").hidden = !current.version || (current.empty && !history.versions.some((item) => item.host_default));
+  $("persona-form").hidden = true;
+  const list = $("persona-versions");
+  list.replaceChildren();
+  if (!history.versions.length) list.append(element("p", "No versions yet. Edit the personality to save the first one.", "empty"));
+  if (!history.complete) list.append(element("p", "Only the most recent versions are listed.", "hint"));
+  for (const version of history.versions) list.append(personaVersion(version, version.version === history.current_version));
+  // Every version older than a "history deleted" marker was erased, so the marker always comes last.
+  for (const marker of history.markers || []) {
+    const item = element("article", undefined, "item persona-marker");
+    item.append(element("p", `History deleted on ${day(marker.recorded_at)}`, "hint"));
+    list.append(item);
+  }
+}
+
+function personaVersion(version, current) {
+  const item = element("article", undefined, "item persona-version");
+  const meta = element("div", undefined, "meta");
+  meta.append(element("strong", `Version ${version.version}`), element("span", day(version.recorded_at)),
+    element("span", MADE_BY[version.made_by] || version.made_by, "tag"), element("span", personaHistory(version), "tag"));
+  if (current) meta.append(element("span", "current", "tag persona-current-tag"));
+  const actions = element("span", undefined, "actions");
+  if (!current) {
+    const restore = element("button", "Restore", "link");
+    guard(restore, async () => {
+      if (!confirm(`Restore version ${version.version}? Its content becomes a new version.`)) return;
+      const saved = await api(personaPath("/restore"), { version: version.version, made_by: "user" });
+      notify(saved.unchanged ? "No change: that is already the current card." : `Saved as version ${saved.version}.`);
+      await loadPersona();
+    });
+    actions.append(restore);
+  }
+  meta.append(actions);
+  item.append(meta);
+  if (version.reason) item.append(element("p", version.reason, "user-text"));
+  item.append(version.empty ? element("p", "No card.", "hint") : personaCard(version.card));
+  return item;
+}
+
+guard($("persona-edit"), async () => {
+  personaForm(state.persona?.card || {});
+  $("persona-form").hidden = false;
+  personaControl("name").focus();
+});
+$("persona-cancel").addEventListener("click", () => { $("persona-form").hidden = true; });
+onSubmit($("persona-form"), async () => {
+  const value = (name) => personaControl(name).value.trim();
+  const card = { name: value("name"), traits: lines(value("traits")), voice: {}, values: lines(value("values")),
+    boundaries: lines(value("boundaries")), baseline_mood: null };
+  for (const [name] of VOICE) card.voice[name] = value(name);
+  if (value("mood_label")) {
+    card.baseline_mood = { label: value("mood_label"), valence: Number(value("mood_valence")), energy: Number(value("mood_energy")) };
+  }
+  const body = { card, made_by: "user" };
+  if (value("reason")) body.reason = value("reason");
+  const saved = await api(personaPath(), body, "PUT");
+  notify(saved.unchanged ? "No change: that is already the current card." : `Saved as version ${saved.version}.`);
+  await loadPersona();
+});
+guard($("persona-reset"), async () => {
+  if (!confirm("Reset the personality to the host's default, or to no card? Earlier versions are kept and can be restored. Notes and messages are not touched.")) return;
+  const saved = await api(personaPath("/reset"), { made_by: "user" });
+  notify(saved.unchanged ? "No change: that is already the current card." : `Personality reset as version ${saved.version}.`);
+  await loadPersona();
+});
+guard($("persona-delete-history"), async () => {
+  if (!confirm("Delete every personality version, including the current card? This cannot be undone.")) return;
+  await api(personaPath("/versions"), undefined, "DELETE");
+  notify("Personality history deleted.");
+  await loadPersona();
+});
+
 // Privacy ----------------------------------------------------------------------------------------------------
 
 async function loadRecording() {
@@ -595,7 +734,7 @@ async function loadServiceStatus() {
 }
 guard($("refresh-status"), loadServiceStatus);
 
-const loaders = { notes: () => loadNotes(), brain: () => window.loadBrain(), people: () => loadNotes("people"),
+const loaders = { notes: () => loadNotes(), brain: () => window.loadBrain(), persona: loadPersona, people: () => loadNotes("people"),
   plans: () => loadNotes("plans"), feelings: loadFeelings,
   conversations: loadConversations, search: async () => {}, privacy: loadRecording };
 

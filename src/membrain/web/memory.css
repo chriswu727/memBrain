@@ -83,6 +83,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   outline: 3px solid var(--accent); outline-offset: 3px;
 }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* With eight views the tabs no longer fit beside the name, badge and language switch: give them their own row. */
+@media (max-width: 1240px) {
+  header { row-gap: 8px; }
+  nav { order: 3; width: 100%; }
+}
 @media (max-width: 600px) {
   .note-editor { grid-template-columns: 1fr; }
   .service-status { align-items: stretch; flex-direction: column; }
@@ -146,6 +151,31 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .feeling-basis { font-weight: 600; }
 .feeling-note { border-left: 3px solid var(--border); padding-left: 10px; }
 .feelings-marker { border-left: 3px solid var(--accent); padding-left: 10px; }
+
+/* Personality (persona card, P1). Kept apart from the brain view styles above. */
+.persona-title { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }
+.persona-title h2 { margin: 0; }
+.persona-actions { margin-top: 12px; }
+.persona-card { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 6px 16px; margin: 12px 0 0; }
+.persona-card dt { color: var(--muted); font-size: 13px; padding-top: 1px; }
+.persona-card dd { margin: 0; overflow-wrap: anywhere; display: flex; flex-wrap: wrap; gap: 4px 14px; }
+.persona-part { display: inline-flex; gap: 6px; align-items: baseline; }
+.persona-editor { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.persona-editor .field:has(textarea), .persona-editor .persona-voice, .persona-editor .hint,
+.persona-editor .editor-actions { grid-column: 1 / -1; }
+.persona-voice { border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px 14px; margin: 0;
+  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
+.persona-voice legend { padding: 0 6px; font-size: 13px; font-weight: 600; }
+.persona-voice .hint { margin: 0; }
+.persona-version .persona-card { margin-top: 8px; font-size: 14px; }
+.persona-current-tag { background: var(--accent); color: var(--paper); }
+.persona-marker { border-style: dashed; }
+.persona-marker p { margin: 0; }
+@media (max-width: 600px) {
+  .persona-editor, .persona-voice { grid-template-columns: 1fr; }
+  .persona-card { grid-template-columns: 1fr; gap: 2px; }
+  .persona-card dd { margin-bottom: 6px; }
+}
 /* Brain showcase: full-screen and dark in every colour scheme, for presenting and screen recording. */
 #view-brain > .heading { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-start; gap: 0 16px; }
 #view-brain > .heading > div { flex: 1 1 360px; }
