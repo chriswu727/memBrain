@@ -357,3 +357,44 @@ def test_every_personality_string_on_the_page_has_chinese():
     html = (WEB / "memory.html").read_text(encoding="utf-8")
     assert '<button data-view="persona">Personality</button>' in html and 'id="view-persona"' in html
     assert "persona: loadPersona" in script
+
+
+def test_restored_archives_keep_the_card_versions_and_host_default(installation, brain):
+    import httpx
+
+    from membrain.client import MemoryClient
+    from membrain.persona import current_persona
+
+    service, principal, ident = brain
+    set_persona(service, principal, ident, CARD, made_by="host", host_default=True)
+    set_persona(service, principal, ident, {**CARD, "traits": ["warm", "playful"]}, made_by="user", reason="playful")
+
+    def handle(request):
+        import json
+        return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
+
+    with MemoryClient("http://memory.test", "k", ident, transport=httpx.MockTransport(handle)) as client:
+        archive = client.export()["result"]
+        copy = service.create_brain(principal, "Restored persona")["id"]
+        client.restore(archive["archive_id"], expected_manifest_sha256=archive["manifest_sha256"],
+                       expected_scope_generation=1, mode="new_brain", brain_id=copy)
+    restored = current_persona(service, principal, copy)
+    assert restored["version"] == 2 and restored["card"]["traits"] == ["warm", "playful"]
+    assert restored["block"] == block(2, {**CARD, "traits": ["warm", "playful"]})
+    assert [kept["version"] for kept in persona_versions(service, principal, copy)["versions"]] == [2, 1]
+    after = reset_persona(service, principal, copy, made_by="user")  # The host default survived the round trip.
+    assert after["version"] == 3 and after["card"]["traits"] == CARD["traits"]
+
+
+def test_reset_and_restore_reach_versions_beyond_the_listing_limit(installation, brain):
+    from membrain.persona import MAX_VERSIONS
+
+    service, principal, ident = brain
+    set_persona(service, principal, ident, CARD, made_by="host", host_default=True)
+    for number in range(MAX_VERSIONS + 2):
+        set_persona(service, principal, ident, {**CARD, "name": f"Mira {number}"}, made_by="user")
+    assert not persona_versions(service, principal, ident)["complete"]
+    reset = reset_persona(service, principal, ident, made_by="user")
+    assert reset["card"]["name"] == "Mira" and reset["restored_from"] == 1  # Not an empty card.
+    restored = restore_persona(service, principal, ident, 2, made_by="user")
+    assert restored["card"]["name"] == "Mira 0" and restored["restored_from"] == 2

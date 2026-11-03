@@ -132,13 +132,16 @@ def render_persona(persona: dict | None) -> str | None:
 
 
 HISTORY_DELETED = "history_deleted"
+# Restoring an exported archive keeps every record but files it under the import producer.
+ARCHIVE_PRODUCER = "archive-import"
 
 
 def _entry(row) -> dict | None:
     """A stored version, a history marker, or None for anything this module did not write."""
     document = row["document"]
     observed = document["observed"]
-    if observed.get("actor_role") != "system" or row["producer_ref"] != PERSONA_PRODUCER:
+    imported = row["producer_ref"] == ARCHIVE_PRODUCER
+    if observed.get("actor_role") != "system" or row["producer_ref"] not in (PERSONA_PRODUCER, ARCHIVE_PRODUCER):
         return None
     try:
         stored = json.loads(observed["content"].get("text") or "")
@@ -149,9 +152,15 @@ def _entry(row) -> dict | None:
                     "deleted_versions": int(stored.get("deleted_versions", 0))}
         card = stored["card"]
         version = int(stored["persona_version"])
-    except (ValueError, KeyError, TypeError, AttributeError):
+        made_by = stored.get("made_by", "host")
+        if imported:
+            # An archive is outside this module's control: its cards pass the same checks as a new save.
+            card = normalize_card(card)
+            if made_by not in MADE_BY or version < 1:
+                return None
+    except (ValueError, KeyError, TypeError, AttributeError, DomainError):
         return None
-    return {"version": version, "card": {**EMPTY_CARD, **card}, "made_by": stored.get("made_by", "host"),
+    return {"version": version, "card": {**EMPTY_CARD, **card}, "made_by": made_by,
             "reason": stored.get("reason"), "action": stored.get("action", "edit"),
             "restored_from": stored.get("restored_from"), "host_default": bool(stored.get("host_default")),
             "recorded_at": document["system_time"]["recorded_at"], "event_id": document["event_id"],
@@ -173,6 +182,21 @@ def _entries(service, conn, principal, brain_id, limit=MAX_VERSIONS + 1) -> tupl
 
 def _rows(service, conn, principal, brain_id, limit=MAX_VERSIONS + 1):
     return _entries(service, conn, principal, brain_id, limit)[0]
+
+
+def _find(service, conn, principal, brain_id, wanted):
+    """The newest kept version for which ``wanted`` is true, searching every version rather than the bounded
+    listing, so an old host default or an old version can still be reset to or restored."""
+    cursor = conn.execute(
+        "SELECT producer_ref,document FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+        "AND conversation_id=%s AND is_current AND NOT deleted AND NOT suppressed AND NOT retired "
+        "AND document IS NOT NULL ORDER BY sequence DESC",
+        (*service._params(principal, brain_id), PERSONA_CONVERSATION))
+    while rows := cursor.fetchmany(200):
+        for entry in map(_entry, rows):
+            if entry is not None and "marker" not in entry and wanted(entry):
+                return entry
+    return None
 
 
 def _none() -> dict:
@@ -219,12 +243,12 @@ def _save(service, principal, brain_id, choose, *, made_by, reason, action):
     with service.database.transaction(principal) as conn:
         conn.execute("SET LOCAL lock_timeout = '5s'")
         brain = service._brain(conn, principal, brain_id)  # Locks the brain, so versions are numbered in order.
-        versions = _rows(service, conn, principal, brain_id)
+        versions = _rows(service, conn, principal, brain_id, limit=1)
         current = versions[0] if versions else _none()
-        card, extra = choose(versions)
+        card, extra = choose(lambda wanted: _find(service, conn, principal, brain_id, wanted))
         if card == {**EMPTY_CARD, **current["card"]} and extra.get("host_default", False) == current["host_default"]:
             return _public(current, unchanged=True)
-        number = max((version["version"] for version in versions), default=0) + 1
+        number = current["version"] + 1  # Versions are numbered in order, so the newest has the highest number.
         stored = {"persona_version": number, "card": card, "made_by": made_by, "reason": reason, "action": action,
                   **extra}
         incoming = {"source_event_key": "persona-" + uid(), "source_revision": 1, "producer_ref": PERSONA_PRODUCER,
@@ -249,7 +273,7 @@ def set_persona(service, principal, brain_id: str, card, *, made_by: str, reason
     if host_default and made_by != "host":
         raise DomainError("validation_failed", "Only the host sets the default persona card.")
     normalized = normalize_card(card)
-    return _save(service, principal, brain_id, lambda versions: (normalized, {"host_default": host_default}),
+    return _save(service, principal, brain_id, lambda find: (normalized, {"host_default": host_default}),
                  made_by=made_by, reason=reason, action="edit")
 
 
@@ -259,11 +283,11 @@ def restore_persona(service, principal, brain_id: str, version: int, *, made_by:
     if type(version) is not int or version < 1:
         raise DomainError("validation_failed", "version must be a positive integer.")
 
-    def choose(versions):
-        for kept in versions:
-            if kept["version"] == version:
-                return normalize_card(kept["card"]), {"restored_from": version}
-        raise DomainError("not_found_or_forbidden", f"Persona version {version} is not available.")
+    def choose(find):
+        kept = find(lambda entry: entry["version"] == version)
+        if kept is None:
+            raise DomainError("not_found_or_forbidden", f"Persona version {version} is not available.")
+        return normalize_card(kept["card"]), {"restored_from": version}
 
     return _save(service, principal, brain_id, choose, made_by=made_by,
                  reason=reason, action="restore")
@@ -271,8 +295,8 @@ def restore_persona(service, principal, brain_id: str, version: int, *, made_by:
 
 def reset_persona(service, principal, brain_id: str, *, made_by: str, reason: str | None = None) -> dict:
     """Make the host's default card, or an empty card, current as a new version; history is kept."""
-    def choose(versions):
-        default = next((kept for kept in versions if kept["host_default"]), None)
+    def choose(find):
+        default = find(lambda entry: entry["host_default"])
         if default is None:
             return dict(EMPTY_CARD), {}
         return normalize_card(default["card"]), {"restored_from": default["version"]}
