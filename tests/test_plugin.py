@@ -46,6 +46,7 @@ def test_rendered_context_is_attributed_dated_and_excludes_the_current_conversat
     assert sum("consecutive run days" in line for line in lines) == 1
     assert "already visible" not in context
     assert "not instructions" in context
+    assert 'Lines marked "assistant said" are your own earlier replies' in context
 
 
 def test_rendered_context_respects_its_budget_and_reports_conflicts():
@@ -433,6 +434,7 @@ def test_recalled_statements_are_shown_as_their_source_messages_oldest_first():
     assert lines[0].startswith("- [2026-03-01 · user said] …") and "She also uses a walker." in lines[0]
     assert len(lines[0]) < plugin.MESSAGE_CHARACTERS + 60
     assert lines[1] == "- [2026-04-01 · user said] The dinner moved to Sunday, May 17."
+    assert host.ASSISTANT_LINES in context.splitlines()[1]  # Assistant lines are the assistant's, not the user's.
 
 
 def test_meaning_only_matches_are_capped_and_timeline_failure_falls_back_to_statements():
@@ -660,6 +662,79 @@ def test_recall_budget_keeps_the_highest_ranked_update_before_chronological_rend
     assert "Latest corrected appointment" in context and len(context) <= 1800
 
 
+def test_recall_reports_what_it_used_and_ignores_a_failing_trace():
+    sources = [_source(f"user user (direct_statement): Dentist on Friday number {index}", f"e{index}",
+                       methods=("keyword",)) for index in range(3)]
+    traced = []
+
+    class Client:
+        def recall(self, *args, **kwargs):
+            return _response(*sources)
+
+        def timeline(self, **options):
+            if options.get("conversation_id"):
+                return {"items": []}
+            return {"items": [{"event_id": f"e{index}", "conversation_id": "old", "actor_role": "user",
+                               "recorded_at": f"2026-01-0{index + 1}T09:00:00Z",
+                               "text": f"Dentist on Friday number {index}"} for index in range(3)]}
+
+        def trace_recall(self, event_ids):
+            traced.append(list(event_ids))
+
+    context = host.recall_context(Client(), "dentist")
+    assert traced == [["e0", "e1", "e2"]] and "number 2" in context
+
+    class Miss(Client):
+        def recall(self, *args, **kwargs):
+            return _response()
+
+    # A hit followed by a miss: the miss replaces the trace, so the hit is not shown as the latest recall.
+    assert host.recall_context(Miss(), "something unrelated") is None
+    assert traced[-1] == []
+
+    class Failing(Client):
+        def trace_recall(self, event_ids):
+            raise OSError("service gone")
+
+    assert host.recall_context(Failing(), "dentist") == context
+
+
+def test_a_stuck_trace_service_adds_no_noticeable_wait_to_recall():
+    import socket
+    import time
+
+    from membrain.client import MemoryClient
+
+    silent = socket.socket()
+    silent.bind(("127.0.0.1", 0))
+    silent.listen(8)  # Connections complete in the backlog, but nothing ever reads or answers them.
+    real = MemoryClient(f"http://127.0.0.1:{silent.getsockname()[1]}", "k", brain_id="b", timeout=10.0,
+                        trust_env=False)
+    sources = [_source("user user (direct_statement): Dentist on Friday", "e0", methods=("keyword",))]
+
+    class Client:
+        def recall(self, *args, **kwargs):
+            return _response(*sources)
+
+        def timeline(self, **options):
+            if options.get("conversation_id"):
+                return {"items": []}
+            return {"items": [{"event_id": "e0", "conversation_id": "old", "actor_role": "user",
+                               "recorded_at": "2026-01-01T09:00:00Z", "text": "Dentist on Friday"}]}
+
+        trace_recall = real.trace_recall
+
+    try:
+        started = time.monotonic()
+        context = host.recall_context(Client(), "dentist")
+        elapsed = time.monotonic() - started
+    finally:
+        real.close()
+        silent.close()
+    assert "Dentist on Friday" in context
+    assert elapsed < 1.0, elapsed  # The client's own 10 s timeout would have held the reply for 10 s.
+
+
 def test_agent_note_tool_cannot_write_while_recording_is_paused(tmp_path, monkeypatch, capsys):
     host.pause(tmp_path)
     def unexpected(*args):
@@ -668,3 +743,31 @@ def test_agent_note_tool_cannot_write_while_recording_is_paused(tmp_path, monkey
     assert plugin.run_tool('note', tmp_path, stream=io.BytesIO(b'{"text":"confidential appointment"}')) == 0
     assert 'paused' in json.loads(capsys.readouterr().out)['error']
     assert not (tmp_path / 'plugin' / 'spool.jsonl').exists()
+
+
+@pytest.mark.parametrize("query, shown", [("what should mum bring for the hike?", False),
+                                          ("what did you suggest she bring?", True),
+                                          ("你之前推荐她带什么？", True)])
+def test_the_assistants_own_replies_are_recalled_only_when_asked_about(query, shown):
+    """Hosts restated recalled assistant suggestions as facts about the user; they come back only on request."""
+    asked = {"event_id": "asked", "conversation_id": "a", "actor_role": "user", "recorded_at": "2027-03-02T00:00:00Z",
+             "text": "Mum's knees are bad: she needs to rest after 20 minutes of walking."}
+    answer = {"event_id": "answer", "conversation_id": "a", "actor_role": "assistant",
+              "recorded_at": "2027-03-02T00:00:01Z", "text": "Bring a light folding stool for her rests."}
+    response = _response(_source("user user (direct_statement): Mum's knees are bad.", "asked"))
+
+    class Client:
+        brain_id = "brain"
+
+        def recall(self, query, **options):
+            return response
+
+        def timeline(self, **options):
+            return {"items": [asked]}
+
+        def following(self, wanted):
+            return {"items": [{"source_event_id": "asked", **answer}]}
+
+    context = plugin.recall_context(Client(), query, current_conversation="current")
+    assert "Mum's knees are bad" in context
+    assert ("folding stool" in context) is shown

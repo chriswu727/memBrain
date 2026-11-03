@@ -1,0 +1,9 @@
+{
+  "cause": "memory",
+  "per_type": {
+    "3": {
+      "cause": "memory",
+      "evidence": "Recalled history: \"Our dog Biscuit stays home, and I'll ask Nadia's sister Leila if she can dog-sit.\" No note or recalled message carried the Feb 22 'Leila said no' update, so memory showed only the outdated arrangement that the reply treated as live."
+    }
+  }
+}

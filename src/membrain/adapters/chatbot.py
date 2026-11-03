@@ -16,6 +16,7 @@ import hashlib
 import json
 import threading
 import time
+from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -24,6 +25,7 @@ from .. import host
 TOOLS = {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause"}
 GROUP_MEMORY = ("separate", "shared")
 BLOCK_SECONDS = 300
+PREVIOUS_EXCHANGES = 2000
 
 
 @dataclass(frozen=True)
@@ -59,6 +61,9 @@ class ChatMemory:
         # Optional: a model that saves notes from each turn, for bots whose own model cannot call the note tool.
         self.extractor = extractor
         self._blocks: dict[str, tuple[float, str, str, bool]] = {}
+        # The last recorded exchange per person and conversation, so a short follow-up ("cancelled it",
+        # "moved to Friday") is read with what it answers. Kept in this process only.
+        self._previous: OrderedDict[tuple[str, str], tuple[str, str]] = OrderedDict()
         self._lock = threading.Lock()
         host.state_directory(self.directory)
 
@@ -139,16 +144,26 @@ class ChatMemory:
             if self.extractor is not None and message is not None:
                 sources = [{"producer_ref": record["producer_ref"], "source_event_key": record["source_event_key"],
                             "source_revision": 1} for record in records]
-                self._extract(self.memory_user(speaker, roleplay), prompt or message["text"], reply or "", sources)
+                user, text = self.memory_user(speaker, roleplay), prompt or message["text"]
+                with self._lock:
+                    previous = self._previous.pop((user, session), None)
+                    self._previous[(user, session)] = (text, reply or "")
+                    while len(self._previous) > PREVIOUS_EXCHANGES:
+                        self._previous.popitem(last=False)
+                self._extract(user, text, reply or "", sources, previous)
 
-    def _extract(self, user: str, prompt: str, reply: str, sources: list[dict]) -> None:
+    def _extract(self, user: str, prompt: str, reply: str, sources: list[dict],
+                 previous: tuple[str, str] | None = None) -> None:
         from ..extraction import extract_turn
 
         def task():
-            if extract_turn(self.directory, self.extractor, user, prompt, reply, sources=sources):
+            if extract_turn(self.directory, self.extractor, user, prompt, reply, sources=sources, previous=previous):
                 self._forget_blocks(user)  # The next session start shows the new notes.
 
-        self.extractor.submit(task)
+        if not self.extractor.submit(task):
+            from ..extraction import record_outcome
+
+            record_outcome(self.directory, skipped=True)
 
     def note(self, speaker: Speaker, text: str, replaces=(), *, roleplay: str | None = None, source_event_ids=(), source_messages=(), **fields) -> dict:
         from ..notes import note_fields, save_note
@@ -173,9 +188,11 @@ class ChatMemory:
             found = host.recall_context(client, host.scrub(str(query or "")), current_conversation=session)
         return {"context": found or "No matching records."}
 
-    def pause(self, speaker: Speaker, hours: float | None = None) -> dict:
+    def pause(self, speaker: Speaker, hours: float | None = None, until_resumed: bool = False) -> dict:
+        """Pause recording for this speaker: for the rest of the conversation unless ``hours`` or
+        ``until_resumed`` (the person asked to stop being remembered until they say so)."""
         user = self.user_id(speaker)
-        result = host.pause(self.directory, hours, user_id=user)
+        result = host.pause(self.directory, hours, user_id=user, conversation=not until_resumed)
         self._forget_blocks(user)
         return result
 
@@ -187,6 +204,9 @@ class ChatMemory:
         results = [host.erase_user(self.directory, user) for user in dict.fromkeys(users)]
         for user in users:
             self._forget_blocks(user)
+        with self._lock:
+            for key in [key for key in self._previous if key[0] in users or host.real_life_user(key[0]) in users]:
+                del self._previous[key]
         return {"erased": all(result["erased"] in ("accepted", "completed") for result in results),
                 "queued_records_dropped": sum(result["queued_records_dropped"] for result in results)}
 
@@ -194,9 +214,11 @@ class ChatMemory:
         """This speaker's memory here as an archive document."""
         return host.export_user(self.directory, self.user_id(speaker))
 
-    def resume(self, speaker: Speaker) -> dict:
+    def resume(self, speaker: Speaker, *, current_turn: bool = True, session: str | None = None) -> dict:
+        """Resume recording for this speaker; by default their current message (which asked for it) is stored.
+        Pass the conversation's ``session`` when known, so only that conversation's paused turn comes back."""
         user = self.user_id(speaker)
-        result = host.resume(self.directory, user_id=user)
+        result = host.resume(self.directory, user_id=user, current_turn=current_turn, session=session)
         self._forget_blocks(user)
         return result
 

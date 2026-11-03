@@ -1,0 +1,9 @@
+{
+  "cause": "memory",
+  "per_type": {
+    "3": {
+      "cause": "memory",
+      "evidence": "Note: \"Wren: Wren has a tree-nut allergy ... The family kitchen is kept tree-nut-free.\" as Wren's only dietary constraint, under a header claiming \"Their complete history from earlier sessions is below\" (10 messages, ending January 26); no note or message says Wren went vegetarian on April 4. Memory presented an outdated, supposedly complete dietary picture without the correcting fact; the rules do not clearly settle whether an implicit default counts as 'memory said nothing', so the fallback answer is memory."
+    }
+  }
+}

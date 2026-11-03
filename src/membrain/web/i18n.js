@@ -7,6 +7,20 @@ const ZH = {
   "Memory views": "记忆视图",
   "Notes": "笔记", "Plans and dates": "计划与日期", "People": "人物", "Conversations": "对话", "Search": "搜索",
   "Privacy": "隐私",
+  "Brain": "大脑", "derived from:": "来源：", "about person:": "相关人物：", "replaces:": "取代：", "(not shown)": "（未显示）", "(no text)": "（无文字）", "Your memory as a brain": "你的记忆大脑",
+  "Each dot is one memory, placed in the area for its kind. Lines are links that memory records, such as a note and the message it came from. The layout is illustrative: dot size is not memory strength. The brightest dots are the newest.":
+    "每个点是一条记忆，按类型放在大脑的对应区域。连线是记忆中记录的关联，比如一条笔记和它来自的消息。布局只是示意：点的大小不代表记忆强度。最亮的点是最新的。",
+  "Demo: fictional memories, not anyone's data.": "演示：虚构的记忆，不是任何人的数据。",
+  "Plans": "计划", "Commitments": "承诺", "Preferences": "偏好", "Health and constraints": "健康与限制",
+  "Routines": "日常", "Recent messages": "最近的消息", "Relationship": "关系", "Milestones and dates": "里程碑与日期",
+  "Other notes": "其他笔记", "Sensitive note (hidden)": "敏感笔记（已隐藏）", "Sensitive memory": "敏感记忆",
+  "Memory is busy updating. Retry the map shortly.": "记忆正在更新，请稍后再打开记忆图。",
+  "No recall recorded since memory last started.": "自记忆服务上次启动以来，还没有记录到回忆。",
+  "Covers message recall only. Notes and history added when a session starts are not traced, so this is not everything a reply used.":
+    "只包含消息回忆。会话开始时加入的笔记和历史不在其中，所以这不是一条回复用到的全部记忆。",
+  "Used by the latest recorded recall": "最近一次记录的回忆用到了它", "This note is no longer available.": "这条笔记已不存在。",
+  "No memories yet. Talk with your agent, then come back.": "还没有记忆。先和你的 agent 聊聊，再回来看看。",
+  "Your memory as a brain: each dot is one memory, grouped by kind": "你的记忆大脑：每个点是一条记忆，按类型分组",
   "Checking memory…": "正在检查记忆…", "Refresh status": "刷新状态",
   "Your agent's memory": "你的 agent 的记忆",
   "Connect once, then talk normally. Your agent records conversations and brings useful memories into later sessions. You can review and correct them here.":
@@ -93,6 +107,7 @@ const ZH = {
   "Optional local model; no API key or usage charge. Keyword search already works.": "可选的本地模型，不需要 API key，也不产生费用。关键词搜索已经可用。",
   "Retry model download": "重新下载模型", "Finish enabling recall": "完成启用召回",
   "Memory service needs attention": "记忆服务需要处理", "Messages waiting for delivery": "有消息等待写入",
+  "Note extraction needs attention": "笔记提炼需要处理",
   "Indexing your messages": "正在为你的消息建立索引", "Memory is ready": "记忆已就绪", "Keyword memory is ready": "关键词记忆已就绪",
   "Unable to check memory": "无法检查记忆状态", "This link has expired.": "这个链接已过期。",
   "No memory installation found. Run membrain plugin start first.": "没有找到记忆安装。请先运行 membrain plugin start。",
@@ -100,6 +115,11 @@ const ZH = {
   "pinned": "置顶", "sensitive": "敏感", "intended": "打算", "scheduled": "已安排", "done": "已完成", "cancelled": "已取消",
   "superseded": "已被取代", "person": "人物", "constraint": "限制", "preference": "偏好", "plan": "计划", "routine": "习惯",
   "milestone": "重要日子", "relationship": "相处方式", "agent promise": "agent 的承诺", "other": "其他",
+  "Showcase": "展示模式", "Close": "关闭", "Close showcase (Esc)": "关闭展示模式（Esc）",
+  "Loading the memory map…": "正在加载记忆图…", "Fictional demo data": "虚构的演示数据",
+  "Only the most recent memories are shown.": "只显示最近的记忆。",
+  "Each dot is one memory and each line a link it records; light travels only along those links. The brain shape, folds and glow are decoration.":
+    "每个点是一条记忆，每条线是它记录的一条关联；光点只沿这些关联移动。大脑的轮廓、褶皱和光晕只是装饰。",
   "中文": "中文", "English": "English",
 };
 
@@ -112,6 +132,8 @@ const ZH_PATTERNS = [
   [/^(.+?)\. (?:(\d+) message\(s\) waiting for indexing\.|Message index is up to date\.)\s*(?:(\d+) queued record\(s\)\.)?\s*(?:(\d+) background job\(s\) need attention\. Run membrain doctor\.)?\s*$/,
     (m, recall, lag, queued, failed) => `${translate(recall)}。${lag ? `${lag} 条消息等待建立索引。` : "消息索引已是最新。"}`
       + `${queued ? `${queued} 条记录在排队。` : ""}${failed ? `${failed} 个后台任务需要处理，请运行 membrain doctor。` : ""}`],
+  [/^(\d+) message\(s\) could not be read for notes \(last error: (.+?)\)\. They are still stored and recalled; notes from them are missing\. Run membrain doctor\.$/,
+    (m, n, error) => `有 ${n} 条消息未能提炼成笔记（最近的错误：${error}）。这些消息仍然保存并可召回，只是缺少从中提炼的笔记。请运行 membrain doctor。`],
   [/^Keyword and semantic recall enabled$/, () => "关键词和语义召回均已启用"],
   [/^Keyword recall ready; semantic model downloading$/, () => "关键词召回已就绪；语义模型下载中"],
   [/^Keyword recall ready; model download needs a retry$/, () => "关键词召回已就绪；模型下载需要重试"],
@@ -128,7 +150,20 @@ const ZH_PATTERNS = [
   [/^(\S+ · )(You|Agent)(: .*)?$/s, (m, date, who, rest) => `${date}${who === "You" ? "你" : "agent"}${rest || ""}`],
   [/^(\S+) · (\d+) messages · (.*)$/s, (m, date, n, first) => `${date} · ${n} 条消息 · ${first}`],
   [/^Request failed \((\d+)\)$/, (m, status) => `请求失败（${status}）`],
+  [/^(\d+) memories and (\d+) links( \(the most recent; more exist\))?\.$/, (m, n, e, more) =>
+    `${n} 条记忆，${e} 条关联${more ? "（只显示最近的，还有更多）" : ""}。`],
+  [/^(\d+) memor(?:y|ies) · (\d+) links?$/, (m, n, e) => `${n} 条记忆 · ${e} 条关联`],
+  [/^Latest recorded recall \((.+)\): (\d+) of (\d+) records it used are lit\.$/, (m, when, shown, used) =>
+    `最近一次记录的回忆（${when}）：它用到的 ${used} 条记录中，有 ${shown} 条在图中点亮。`],
+  [/^Latest recorded recall \((.+)\): it found nothing to add\.$/, (m, when) => `最近一次记录的回忆（${when}）：没有找到可补充的记忆。`],
+  [/^(derived from|about person|replaces) \((source event ids|about|replaces)\)$/, (m, type) => BRAIN_EDGES[type]],
+  [/^(Status|Date|Saved): .+$/, (m) => m.replace(/Status: (\w+)/, (x, status) => `状态：${BRAIN_STATUS[status] || status}`)
+    .replace(/Date: /g, "日期：").replace(/Saved: /g, "保存于：")],
+  [/^(Plans|Commitments|Preferences|Health and constraints|Routines|Recent messages|People|Relationship|Milestones and dates|Other notes): (.*)$/s,
+    (m, region, text) => `${ZH[region]}：${text}`],
 ];
+const BRAIN_STATUS = { intended: "打算中", scheduled: "已安排", done: "已完成", cancelled: "已取消", superseded: "已被取代" };
+const BRAIN_EDGES = { "derived from": "来自这条消息", "about person": "关于这个人", replaces: "取代了这条" };
 
 let language = "en";
 // Read now: memory.js removes the query string (with its single-use code) before the page finishes loading.

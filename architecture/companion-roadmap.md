@@ -250,6 +250,34 @@ Phase B ships as **v0.2**, together with the OpenClaw adapter and SillyTavern.
 
 Goal: a companion that stays itself and remembers how the user felt, without manipulation.
 
+**Scheduled next (owner, 2026-11-07).** Phase C starts after the 0.1 closeout, with personality, emotional memory and mood as separate items. It adds a visual memory map: a brain-shaped view on the memory page, with regions for people, plans, preferences, episodes and emotional memories, whose activity can be seen as memory is used. The view is built on the existing notes and recall data.
+
+**Order of work (owner, 2026-11-03).** Phase C develops the companion's own state in four layers, kept apart: `user_affect` (what the user felt, reported apart from inferred), `persona` (stable character, versioned, changed only by explicit feedback), `agent_mood` (a short-term simulated mood with recorded triggers that recovers to baseline) and `relationship` (shared moments, familiarity, boundaries). Each layer can be seen, explained, adjusted and reset on the memory page. The data, a cross-session example and the reset scope for each layer are in [Phase C design](phase-c-design.md). Order:
+
+0. Finish the brain map: showcase mode, edit and delete from the map, recall trace.
+1. P1 persona card (`persona`).
+2. A1 affect records (`user_affect`).
+3. M1 simulated mood with triggers and recovery (`agent_mood`).
+4. R1 relationship: shared moments, familiarity, boundaries (`relationship`).
+5. P2 persona development from explicit feedback, with rollback (`persona`).
+6. C5 evaluation. A paid run needs separate approval.
+
+A crisis-language classifier is a separate later item.
+
+The sections below are the original item descriptions; where they differ, the design file is current.
+
+### C0. Brain-shaped memory map
+
+- **What it shows.** The memory page gets a brain-shaped view. Its regions are notes by kind, people, open plans, recent episodes, and, once C2 exists, emotional memories.
+- **What it does.** Each region shows its size and its most recent activity. Selecting a region lists its items, which can be edited and deleted as on the rest of the page.
+- **Recall trace.** For the current conversation, the view highlights what recall used. It answers "why did it remember that?".
+- **Local only.** The view reads the local service. It needs no new storage and makes no model calls.
+
+### C1a. Mood
+
+- **What it is.** Mood is the user's recent emotional trend: the last few reported or observed affects, with the evidence for each. It is shown to the host as context, never as a simulated state of the assistant.
+- **Limits.** Mood decays. It never overrides what the user says now, and the user can see and clear it.
+
 ### C1. Persona
 
 - The host application (or the user) defines a persona card: stable traits, voice, values, boundaries. It is versioned and injected separately from user memory.

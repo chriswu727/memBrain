@@ -1,0 +1,9 @@
+{
+  "cause": "memory",
+  "per_type": {
+    "3": {
+      "cause": "memory",
+      "evidence": "Note: \"Plans to ask Nadia's sister Leila to dog-sit Biscuit (family dog) during the Great Sand Dunes trip. (intended, not confirmed done)\"; memory_recall for 'Leila dog-sit Biscuit' returned only the January 12 message \"I'll ask Nadia's sister Leila if she can dog-sit\". Memory lacked the 'Leila said no' correction while showing the outdated open plan, which the reply asked about as still pending."
+    }
+  }
+}

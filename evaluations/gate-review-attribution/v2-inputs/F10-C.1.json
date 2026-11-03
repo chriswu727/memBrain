@@ -1,0 +1,9 @@
+{
+  "cause": "host",
+  "per_type": {
+    "3": {
+      "cause": "host",
+      "evidence": "Memory's only diet-related item was \"Wren has a tree-nut allergy ... The family kitchen is kept tree-nut-free\"; nothing memory served said Wren eats meat or stated any outdated diet. Memory said nothing on her diet (the vegetarian update was simply absent), so building the meals on meat is the assistant's own assumption."
+    }
+  }
+}

@@ -39,21 +39,35 @@ MONTHS = {name: number for number, name in enumerate(
 MESES = {name: number for number, name in enumerate(
     ["enero", "febrero", "marzo", "abril", "mayo", "junio", "julio", "agosto", "septiembre", "octubre", "noviembre",
      "diciembre"], 1)}
+MONATE = {name: number for number, name in enumerate(
+    ["januar", "februar", "märz", "april", "mai", "juni", "juli", "august", "september", "oktober", "november",
+     "dezember"], 1)}
 
 
 def log(*parts):
     print(time.strftime("%H:%M:%S"), *parts, flush=True)
 
 
-def session_date(text: str, previous: datetime.date | None) -> datetime.date | None:
-    """The scenario date stated in a session's first message ("Today is Tuesday, March 3", Spanish or Chinese)."""
+def harness_event(out: Path, kind: str, **data) -> None:
+    """Record something that may have degraded a run (index wait timed out, extraction unfinished), so it is
+    reported with the results instead of passing silently."""
+    with (out / "harness-events.jsonl").open("a") as stream:
+        stream.write(json.dumps({"time": time.time(), "kind": kind, **data}) + "\n")
+    log("harness event", kind, data)
+
+
+def session_date(text: str, previous: datetime.date | None, year: int = YEAR) -> datetime.date:
+    """The scenario date stated in a session's first message ("Today is Tuesday, March 3"; Spanish, German or
+    Chinese). A session that states no date is an error: silently reusing the previous date would misdate it."""
     if match := re.search(r"Today is \w+, (\w+) (\d+)", text):
-        return datetime.date(YEAR, MONTHS[match[1].lower()], int(match[2]))
+        return datetime.date(year, MONTHS[match[1].lower()], int(match[2]))
     if match := re.search(r"Hoy es \w+, (\d+) de (\w+)", text):
-        return datetime.date(YEAR, MESES[match[2].lower()], int(match[1]))
+        return datetime.date(year, MESES[match[2].lower()], int(match[1]))
+    if match := re.search(r"Heute ist \w+, (?:der )?(\d+)\. (\w+)", text):
+        return datetime.date(year, MONATE[match[2].lower()], int(match[1]))
     if match := re.search(r"今天是(\d+)月(\d+)日", text):
-        return datetime.date(YEAR, int(match[1]), int(match[2]))
-    return previous
+        return datetime.date(year, int(match[1]), int(match[2]))
+    raise ValueError(f"no scenario date in: {text[:80]!r}")
 
 
 def simulate_today(today: datetime.date) -> None:
@@ -102,7 +116,11 @@ class Host:
                                             headers={"Authorization": "Bearer " + os.environ["DEEPSEEK_API_KEY"]})
                 response.raise_for_status()
                 data = response.json()
-                return data["choices"][0]["message"], data.get("usage", {})
+                message = data["choices"][0]["message"]
+                if not message.get("tool_calls") and not (message.get("content") or "").strip():
+                    # Thinking with no answer is a malformed response: retried like one, never recorded as the reply.
+                    raise ValueError("empty reply")
+                return message, data.get("usage", {})
             except (httpx.HTTPError, KeyError, ValueError) as error:
                 log("host error", type(error).__name__, str(error)[:300])
                 if attempt == 3 or self.calls >= self.cap:
@@ -190,6 +208,7 @@ class Memory:
                 if status.get("pending_jobs") == 0 and status.get("index_lag", 0) == 0:
                     return
             time.sleep(2)
+        harness_event(self.directory.parent, "index_wait_timed_out", brain=self.directory.name)
 
 
 def load(path: str):
@@ -226,7 +245,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
         speaker = Speaker("api", "person")
     history, today = [], None
     for session, turns in sessions:
-        today = session_date(turns[0], today)
+        today = session_date(turns[0], today, getattr(module, "YEAR", YEAR))
         simulate_today(today)
         roleplay = session.split("-")[2] if session.startswith("roleplay-") else None
         date_line = f"Today's date: {today.isoformat()} ({today.strftime('%A')})."
@@ -257,8 +276,9 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             messages = [{"role": "system", "content": system}, *prior, *current, {"role": "user", "content": user_content}]
             usage, started, tool_calls = {}, time.monotonic(), []
             try:
-                for _ in range(4):  # At most three tool rounds, then a final answer.
-                    message, call_usage = host.call(messages, schemas if schemas and len(tool_calls) < 6 else None)
+                for round_ in range(4):  # At most three tool rounds, then a final answer without tools.
+                    offer = schemas if schemas and len(tool_calls) < 6 and round_ < 3 else None
+                    message, call_usage = host.call(messages, offer)
                     add_usage(usage, call_usage)
                     calls = message.get("tool_calls") or []
                     if not calls:
@@ -277,18 +297,27 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             finally:
                 if client is not None:
                     client.close()
-            reply = message.get("content") or ""
+            # Everything the host wrote this turn: a host such as Claude Code shows text written beside tool calls too,
+            # so a final "the plan's above" must be read with the plan written before it.
+            written = [item.get("content") for item in messages[1 + len(prior) + len(current):]
+                       if item.get("role") == "assistant" and item.get("content")]
+            reply = "\n\n".join([*written, message.get("content") or ""]).strip()
             if chat is not None:
                 chat.record(speaker, reply, session=session, turn_id=f"t{index}", prompt=text, roleplay=roleplay)
                 if chat.extractor is not None:
                     chat.extractor.wait(120)  # The next message sees this turn's notes, as a live bot usually would.
+                    if chat.extractor._queue.unfinished_tasks:
+                        harness_event(out, "extraction_unfinished", session=session, turn=index)
             elif memory is not None:
+                # As the plugin's Stop hook: a turn in which the agent resumed recording is stored from its prompt.
+                resumed = memory.host.turn_resumed(memory.directory, session)
                 memory.host.finish_turn(memory.directory, session, reply, turn_id=f"t{index}",
-                                        **memory.options(roleplay))
+                                        **({"prompt": text} if resumed else {}), **memory.options(roleplay))
             # The turn as the host's transcript keeps it: tool calls and results stay visible in later turns.
             transcript = [{k: v for k, v in item.items() if k != "reasoning_content"}
                           for item in messages[1 + len(prior) + len(current):]]
-            transcript.append({"role": "assistant", "content": reply})
+            # The final message only: text written beside tool calls is already in the transcript above.
+            transcript.append({"role": "assistant", "content": message.get("content") or ""})
             row = {"arm": arm, "scenario": scenario, "session": session, "turn": index, "date": today.isoformat(),
                    "input": text, "reply": reply, "usage": usage, "seconds": round(time.monotonic() - started, 1),
                    "host_user_content": user_content, "session_context": session_context or "",

@@ -1,0 +1,605 @@
+{
+  "brain_id": "fictional-demo",
+  "generated_at": "2026-11-02T12:00:00Z",
+  "demo": true,
+  "truncated": false,
+  "limits": {
+    "max_nodes": 200,
+    "max_edges": 400
+  },
+  "regions": [
+    {
+      "id": "people",
+      "count": 2,
+      "last_activity": "2026-11-02T08:08:00Z"
+    },
+    {
+      "id": "constraints",
+      "count": 3,
+      "last_activity": "2026-11-02T10:30:00Z"
+    },
+    {
+      "id": "preferences",
+      "count": 2,
+      "last_activity": "2026-11-02T08:40:00Z"
+    },
+    {
+      "id": "plans",
+      "count": 3,
+      "last_activity": "2026-11-02T09:16:00Z"
+    },
+    {
+      "id": "commitments",
+      "count": 2,
+      "last_activity": "2026-11-02T09:32:00Z"
+    },
+    {
+      "id": "routines",
+      "count": 2,
+      "last_activity": "2026-11-02T10:00:00Z"
+    },
+    {
+      "id": "milestones",
+      "count": 2,
+      "last_activity": "2026-11-02T10:16:00Z"
+    },
+    {
+      "id": "relationship",
+      "count": 2,
+      "last_activity": "2026-11-02T10:32:00Z"
+    },
+    {
+      "id": "other",
+      "count": 1,
+      "last_activity": "2026-11-02T10:40:00Z"
+    },
+    {
+      "id": "episodes",
+      "count": 18,
+      "last_activity": "2026-11-02T10:40:00Z"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "note:demo-01",
+      "region": "people",
+      "kind": "person",
+      "label": "Mira is my sister; she loves astronomy.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T08:00:00Z",
+      "weight": 0.5
+    },
+    {
+      "id": "msg:demo-01",
+      "region": "episodes",
+      "kind": "message",
+      "label": "Mira is my sister; she loves astronomy.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T08:00:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-02",
+      "region": "people",
+      "kind": "person",
+      "label": "Theo is my friend and weekend hiking partner.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T08:08:00Z",
+      "weight": 0.5
+    },
+    {
+      "id": "msg:demo-02",
+      "region": "episodes",
+      "kind": "message",
+      "label": "Theo is my friend and weekend hiking partner.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T08:08:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-03",
+      "region": "constraints",
+      "kind": "constraint",
+      "label": "I avoid caffeine after 2 pm.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T08:16:00Z",
+      "weight": 0.5
+    },
+    {
+      "id": "msg:demo-03",
+      "region": "episodes",
+      "kind": "message",
+      "label": "I avoid caffeine after 2 pm.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T08:16:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-04",
+      "region": "constraints",
+      "kind": "constraint",
+      "label": "Keep Saturday mornings free for family.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T08:24:00Z",
+      "weight": 0.5
+    },
+    {
+      "id": "msg:demo-04",
+      "region": "episodes",
+      "kind": "message",
+      "label": "Keep Saturday mornings free for family.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T08:24:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-05",
+      "region": "preferences",
+      "kind": "preference",
+      "label": "I prefer short answers with one concrete next step.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T08:32:00Z",
+      "weight": 1.0
+    },
+    {
+      "id": "msg:demo-05",
+      "region": "episodes",
+      "kind": "message",
+      "label": "I prefer short answers with one concrete next step.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T08:32:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-06",
+      "region": "preferences",
+      "kind": "preference",
+      "label": "I like quiet trails and lakes more than crowded attractions.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T08:40:00Z",
+      "weight": 0.5
+    },
+    {
+      "id": "msg:demo-06",
+      "region": "episodes",
+      "kind": "message",
+      "label": "I like quiet trails and lakes more than crowded attractions.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T08:40:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-07",
+      "region": "plans",
+      "kind": "plan",
+      "label": "Visit the planetarium with Mira on November 8.",
+      "status": "scheduled",
+      "date": "2026-11-08",
+      "sensitive": false,
+      "recorded_at": "2026-11-02T09:00:00Z",
+      "weight": 0.5
+    },
+    {
+      "id": "msg:demo-07",
+      "region": "episodes",
+      "kind": "message",
+      "label": "Visit the planetarium with Mira on November 8.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T09:00:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-08",
+      "region": "plans",
+      "kind": "plan",
+      "label": "Ask Theo about a weekend hike; no booking yet.",
+      "status": "intended",
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T09:08:00Z",
+      "weight": 0.5
+    },
+    {
+      "id": "msg:demo-08",
+      "region": "episodes",
+      "kind": "message",
+      "label": "Ask Theo about a weekend hike; no booking yet.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T09:08:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-09",
+      "region": "plans",
+      "kind": "plan",
+      "label": "The lakeside picnic was cancelled because of rain.",
+      "status": "cancelled",
+      "date": "2026-11-01",
+      "sensitive": false,
+      "recorded_at": "2026-11-02T09:16:00Z",
+      "weight": 0.5
+    },
+    {
+      "id": "msg:demo-09",
+      "region": "episodes",
+      "kind": "message",
+      "label": "The lakeside picnic was cancelled because of rain.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T09:16:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-10",
+      "region": "commitments",
+      "kind": "agent_commitment",
+      "label": "I promised to help compare two telescopes before the visit.",
+      "status": "intended",
+      "date": "2026-11-07",
+      "sensitive": false,
+      "recorded_at": "2026-11-02T09:24:00Z",
+      "weight": 0.5
+    },
+    {
+      "id": "msg:demo-10",
+      "region": "episodes",
+      "kind": "message",
+      "label": "I promised to help compare two telescopes before the visit.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T09:24:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-11",
+      "region": "commitments",
+      "kind": "agent_commitment",
+      "label": "I promised to ask how the first pottery class went.",
+      "status": "intended",
+      "date": "2026-11-05",
+      "sensitive": false,
+      "recorded_at": "2026-11-02T09:32:00Z",
+      "weight": 0.5
+    },
+    {
+      "id": "msg:demo-11",
+      "region": "episodes",
+      "kind": "message",
+      "label": "I promised to ask how the first pottery class went.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T09:32:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-12",
+      "region": "routines",
+      "kind": "routine",
+      "label": "I write for half an hour before breakfast.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T09:40:00Z",
+      "weight": 0.5
+    },
+    {
+      "id": "msg:demo-12",
+      "region": "episodes",
+      "kind": "message",
+      "label": "I write for half an hour before breakfast.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T09:40:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-13",
+      "region": "routines",
+      "kind": "routine",
+      "label": "Theo and I usually walk on Sunday afternoons.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T10:00:00Z",
+      "weight": 0.5
+    },
+    {
+      "id": "msg:demo-13",
+      "region": "episodes",
+      "kind": "message",
+      "label": "Theo and I usually walk on Sunday afternoons.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T10:00:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-14",
+      "region": "milestones",
+      "kind": "milestone",
+      "label": "I finished my first 5 km charity walk.",
+      "status": null,
+      "date": "2026-10-25",
+      "sensitive": false,
+      "recorded_at": "2026-11-02T10:08:00Z",
+      "weight": 0.5
+    },
+    {
+      "id": "msg:demo-14",
+      "region": "episodes",
+      "kind": "message",
+      "label": "I finished my first 5 km charity walk.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T10:08:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-15",
+      "region": "milestones",
+      "kind": "milestone",
+      "label": "My first pottery class is on November 4.",
+      "status": null,
+      "date": "2026-11-04",
+      "sensitive": false,
+      "recorded_at": "2026-11-02T10:16:00Z",
+      "weight": 0.5
+    },
+    {
+      "id": "msg:demo-15",
+      "region": "episodes",
+      "kind": "message",
+      "label": "My first pottery class is on November 4.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T10:16:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-16",
+      "region": "relationship",
+      "kind": "relationship",
+      "label": "Help me prepare, but let me make the final decision.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T10:24:00Z",
+      "weight": 1.0
+    },
+    {
+      "id": "msg:demo-16",
+      "region": "episodes",
+      "kind": "message",
+      "label": "Help me prepare, but let me make the final decision.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T10:24:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-17",
+      "region": "relationship",
+      "kind": "relationship",
+      "label": "When a plan changes, ask instead of assuming it happened.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T10:32:00Z",
+      "weight": 0.5
+    },
+    {
+      "id": "msg:demo-17",
+      "region": "episodes",
+      "kind": "message",
+      "label": "When a plan changes, ask instead of assuming it happened.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T10:32:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-18",
+      "region": "other",
+      "kind": "other",
+      "label": "The blue notebook holds my story ideas.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T10:40:00Z",
+      "weight": 0.5
+    },
+    {
+      "id": "msg:demo-18",
+      "region": "episodes",
+      "kind": "message",
+      "label": "The blue notebook holds my story ideas.",
+      "status": null,
+      "date": null,
+      "sensitive": false,
+      "recorded_at": "2026-11-02T10:40:00Z",
+      "weight": 0.25
+    },
+    {
+      "id": "note:demo-sensitive",
+      "region": "constraints",
+      "kind": "constraint",
+      "label": "Sensitive memory",
+      "status": null,
+      "date": null,
+      "sensitive": true,
+      "recorded_at": "2026-11-02T10:30:00Z",
+      "weight": 0.5
+    }
+  ],
+  "edges": [
+    {
+      "source": "note:demo-01",
+      "target": "msg:demo-01",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-02",
+      "target": "msg:demo-02",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-03",
+      "target": "msg:demo-03",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-04",
+      "target": "msg:demo-04",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-05",
+      "target": "msg:demo-05",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-06",
+      "target": "msg:demo-06",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-07",
+      "target": "msg:demo-07",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-07",
+      "target": "note:demo-01",
+      "type": "about_person",
+      "basis": "about"
+    },
+    {
+      "source": "note:demo-08",
+      "target": "msg:demo-08",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-08",
+      "target": "note:demo-02",
+      "type": "about_person",
+      "basis": "about"
+    },
+    {
+      "source": "note:demo-09",
+      "target": "msg:demo-09",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-10",
+      "target": "msg:demo-10",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-10",
+      "target": "note:demo-01",
+      "type": "about_person",
+      "basis": "about"
+    },
+    {
+      "source": "note:demo-11",
+      "target": "msg:demo-11",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-12",
+      "target": "msg:demo-12",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-13",
+      "target": "msg:demo-13",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-13",
+      "target": "note:demo-02",
+      "type": "about_person",
+      "basis": "about"
+    },
+    {
+      "source": "note:demo-14",
+      "target": "msg:demo-14",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-15",
+      "target": "msg:demo-15",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-16",
+      "target": "msg:demo-16",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-17",
+      "target": "msg:demo-17",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    },
+    {
+      "source": "note:demo-18",
+      "target": "msg:demo-18",
+      "type": "derived_from",
+      "basis": "source_event_ids"
+    }
+  ]
+}

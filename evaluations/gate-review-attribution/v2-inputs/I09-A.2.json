@@ -1,0 +1,9 @@
+{
+  "cause": "host",
+  "per_type": {
+    "1": {
+      "cause": "host",
+      "evidence": "Note: \"用户计划本周在网上给王秀英订购助行器和马桶增高架。 (intended, not confirmed done)\"; recalled earlier assistant statement: \"东西（助行器、马桶增高架等）——我这边没记录到已下单\" and \"东西多半还没下单\". Memory stated the items were unconfirmed and nothing said they were ready, so the reply's claim they were prepared was the assistant's own invention."
+    }
+  }
+}

@@ -45,9 +45,21 @@ def test_proposals_are_checked_before_they_become_notes():
     assert "- Earlier note (id: n1)" in request["messages"][1]["content"]
 
 
-def test_greetings_are_not_sent_for_extraction():
-    assert not worth_reading("hi!") and not worth_reading("你好呀") and not worth_reading("ok thanks")
-    assert worth_reading("My sister Mei is allergic to sesame") and worth_reading("我妹妹对芝麻过敏")
+def test_greetings_are_not_sent_for_extraction_but_short_updates_are():
+    for text in ("hi!", "你好呀", "ok thanks", "Thanks so much!!", "谢谢！", "哈哈哈", "😂😂", "good night", "  "):
+        assert not worth_reading(text), text
+    for text in ("My sister Mei is allergic to sesame", "我妹妹对芝麻过敏", "我不吃花生", "已取消", "改到周五",
+                 "I am vegan", "cancelled it", "moved to Friday", "she said no", "好的", "ok"):
+        assert worth_reading(text), text
+
+
+def test_a_short_reply_is_read_with_the_exchange_it_answers():
+    seen = []
+    model([], seen).propose("已取消", "好的，周四的牙医预约取消了。", "(none)",
+                            previous=("周四下午三点的牙医还去吗？", "要我提醒你周四下午三点去看牙医吗？"))
+    content = seen[0]["messages"][1]["content"]
+    assert "Previous exchange" in content and "周四下午三点的牙医还去吗？" in content
+    assert content.index("Previous exchange") < content.index("Latest exchange:\nPerson: 已取消")
 
 
 @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
@@ -98,8 +110,95 @@ def test_a_bot_without_tools_gets_notes_from_extraction(tmp_path):
             client.forget(items[0]["source_event_ids"], kind="events", mode="erase_content",
                           expected_scope_generation=generation)
             assert list_notes(client)["items"] == []
+
+        # A terse follow-up in the same conversation is read with the exchange before it.
+        memory.context(alice, "actually it's peanuts, not sesame", session="a1", turn_id="t2")
+        memory.record(alice, "Got it, peanuts.", session="a1", turn_id="t2", prompt="actually it's peanuts, not sesame")
+        extractor.wait()
+        assert len(seen) == 2
+        content = seen[1]["messages"][1]["content"]
+        assert "Previous exchange" in content and "always carry an EpiPen" in content
     finally:
         try:
             desktop.stop(directory)
         except desktop.DesktopError:
             pass
+
+
+def test_failed_and_skipped_turns_show_as_degraded_until_extraction_works_again(tmp_path):
+    from membrain import diagnostics
+    from membrain.extraction import extraction_status, record_outcome
+
+    assert extraction_status(tmp_path) is None
+    record_outcome(tmp_path, saved=2)
+    assert extraction_status(tmp_path)["state"] == "ok"
+    unavailable = httpx.HTTPStatusError("busy", request=httpx.Request("POST", "https://api.example/v1"),
+                                        response=httpx.Response(503))
+    record_outcome(tmp_path, error=unavailable)
+    record_outcome(tmp_path, skipped=True)
+    status = extraction_status(tmp_path)
+    assert status["state"] == "degraded" and status["failed_since_success"] == 2
+    assert status["last_error"] == "queue full" and status["turns_failed"] == 1 and status["turns_skipped"] == 1
+    check = next(item for item in diagnostics.diagnose(tmp_path)["checks"] if item["name"] == "note_extraction")
+    assert check["state"] == "warning" and "still recorded and recalled" in check["detail"]
+    record_outcome(tmp_path, saved=0)
+    status = extraction_status(tmp_path)
+    assert status["state"] == "ok" and status["turns_read"] == 2 and status["notes_saved"] == 2
+
+
+@pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
+def test_a_provider_that_fails_for_now_is_retried_and_one_that_refuses_is_reported(tmp_path):
+    from membrain.extraction import extraction_status
+
+    calls = []
+
+    def flaky(request: httpx.Request) -> httpx.Response:
+        calls.append(request)
+        if len(calls) <= 2:
+            raise httpx.ConnectError("connection reset", request=request)
+        if len(calls) == 3:
+            note = {"text": "Moved to Wellington in May.", "kind": "milestone"}
+            return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps({"notes": [note]})}}]})
+        return httpx.Response(401, json={"error": "invalid key"})
+
+    extractor = Extractor("https://api.example/v1", "cheap-model", "sk-test", transport=httpx.MockTransport(flaky))
+    extractor.retry_delays = (0, 0)
+    directory = tmp_path / "brain"
+    memory = ChatMemory(directory, producer="membrain-proxy", tools=None, extractor=extractor)
+    person = Speaker("api", "rua")
+    try:
+        host.start(directory)
+        memory.context(person, "I moved to Wellington in May.", session="w1", turn_id="t1")
+        memory.record(person, "Welcome to Wellington!", session="w1", turn_id="t1", prompt="I moved to Wellington in May.")
+        extractor.wait()
+        assert len(calls) == 3 and extraction_status(directory)["state"] == "ok"
+        assert "Moved to Wellington in May." in memory.context(person, "Where do I live?", session="w2", turn_id="t1")
+        memory.record(person, "In Wellington.", session="w2", turn_id="t1", prompt="Where do I live now, remind me?")
+        extractor.wait()
+        status = host.installation_status(directory)["note_extraction"]
+        assert len(calls) == 4  # Refused for good: not retried.
+        assert status["state"] == "degraded" and status["last_error"] == "HTTP 401"
+    finally:
+        try:
+            desktop.stop(directory)
+        except desktop.DesktopError:
+            pass
+
+
+def test_extraction_saves_only_what_the_person_said():
+    from membrain.extraction import INSTRUCTIONS
+
+    assert "Save only what the person said" in INSTRUCTIONS and "is not a fact" in INSTRUCTIONS
+    assert "language the person wrote the latest exchange in" in INSTRUCTIONS
+
+
+def test_extraction_sees_the_weekday_and_the_coming_weeks():
+    import datetime
+
+    seen = []
+    model([], seen).propose("我妈想11号到13号来，帮我回她让她16号周六再来。", "好的。", "(none)",
+                            today=datetime.date(2027, 10, 7))
+    content = seen[0]["messages"][1]["content"]
+    assert "Today is 2027-10-07 (Thursday)." in content
+    assert "2027-10-16 Sat" in content and "2027-11-11" in content  # Five weeks ahead.
+    assert "next such day from today" in seen[0]["messages"][0]["content"]

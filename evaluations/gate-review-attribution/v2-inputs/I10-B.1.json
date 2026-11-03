@@ -1,0 +1,9 @@
+{
+  "cause": "host",
+  "per_type": {
+    "1": {
+      "cause": "host",
+      "evidence": "Note-free on the order, but recalled assistant statement: \"助行器、马桶增高架：你8月初说要订，但我这边没有你后来确认下单/到货的记录\"; recalled user message: \"我还打算这周在网上给她订一个助行器\". Memory stated the correct unconfirmed state and nothing it served said the walker was bought, so '助行器放床边' is the assistant's assumption."
+    }
+  }
+}

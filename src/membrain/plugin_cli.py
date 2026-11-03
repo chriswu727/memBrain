@@ -156,4 +156,13 @@ def dispatch(args) -> None:
     except DesktopError as error:
         print(f"{error.code}: {error}", file=sys.stderr)
         raise SystemExit(1) from None
+    except Exception as error:
+        from .deletion_registry import RegistryError  # Imported only here: hooks must stay light.
+
+        if not isinstance(error, RegistryError):
+            raise
+        # The installation was retired by activating a restored backup, or its recovery record is unreadable.
+        print(f"{error.code}: {error} If you restored a backup into another directory, set MEMBRAIN_DIRECTORY "
+              "to that directory; run membrain desktop recovery-status for details.", file=sys.stderr)
+        raise SystemExit(1) from None
     print(json.dumps(result, indent=2, ensure_ascii=False))

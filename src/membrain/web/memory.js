@@ -5,6 +5,10 @@ const HOST_NAMES = { "claude-code": "Claude Code", codex: "Codex", hermes: "Herm
 const NOTES = "membrain-notes";
 const state = { key: "", brain: "", notes: [], connectionShown: false };
 let messageTimer;
+// /memory?demo=brain shows fictional data only (brain.js): no sign-in, no saved session read or changed, no API call.
+const DEMO = new URLSearchParams(location.search).get("demo") === "brain";
+// &show=1 opens the brain in showcase mode (showcase.js). Read now: the sign-in link's query is removed below.
+const SHOWCASE = new URLSearchParams(location.search).get("show") === "1";
 
 function notify(text, error = false) {
   clearTimeout(messageTimer);
@@ -510,8 +514,11 @@ async function loadServiceStatus() {
     ]);
     const lag = brain.index_lag;
     const semantic = local?.semantic_recall;
+    const extraction = local?.note_extraction;
+    const extractionFailing = extraction?.state === "degraded";
     $("service-heading").textContent = (local && !local.ready) || brain.failed_jobs ? "Memory service needs attention"
       : local?.pending_records ? "Messages waiting for delivery" : lag ? "Indexing your messages"
+      : extractionFailing ? "Note extraction needs attention"
       : semantic === "ready" ? "Memory is ready" : "Keyword memory is ready";
     const recall = semantic === "ready" ? "Keyword and semantic recall enabled"
       : semantic === "downloading" ? "Keyword recall ready; semantic model downloading"
@@ -519,6 +526,10 @@ async function loadServiceStatus() {
       : semantic === "restart_required" ? "Keyword recall ready; semantic model needs activation"
       : local ? "Keyword recall ready; semantic model not enabled" : "Keyword recall available; local model status unknown";
     $("service-detail").textContent = `${recall}. ${lag ? `${lag} message(s) waiting for indexing.` : "Message index is up to date."} ${local?.pending_records ? `${local.pending_records} queued record(s).` : ""} ${brain.failed_jobs ? `${brain.failed_jobs} background job(s) need attention. Run membrain doctor.` : ""}`;
+    $("extraction-detail").hidden = !extractionFailing;
+    $("extraction-detail").textContent = extractionFailing
+      ? `${extraction.failed_since_success} message(s) could not be read for notes (last error: ${extraction.last_error}). They are still stored and recalled; notes from them are missing. Run membrain doctor.`
+      : "";
     showConnection(brain, local);
   } catch (error) {
     $("service-heading").textContent = "Unable to check memory";
@@ -527,7 +538,8 @@ async function loadServiceStatus() {
 }
 guard($("refresh-status"), loadServiceStatus);
 
-const loaders = { notes: () => loadNotes(), people: () => loadNotes("people"), plans: () => loadNotes("plans"),
+const loaders = { notes: () => loadNotes(), brain: () => window.loadBrain(), people: () => loadNotes("people"),
+  plans: () => loadNotes("plans"),
   conversations: loadConversations, search: async () => {}, privacy: loadRecording };
 
 async function show(view) {
@@ -548,12 +560,14 @@ async function open(key, brain) {
   try { sessionStorage.setItem("membrain-page", JSON.stringify({ key: state.key, brain: state.brain })); } catch { /* private window */ }
   $("signin").hidden = true; $("tabs").hidden = false;
   resetNoteForm();
-  await Promise.all([loadRecording(), loadServiceStatus(), show("notes")]);
+  await Promise.all([loadRecording(), loadServiceStatus(), show(SHOWCASE ? "brain" : "notes")]);
+  if (SHOWCASE) window.openShowcase();
 }
 onSubmit($("key-form"), () => open($("key").value.trim(), ""));
-setInterval(() => { if (state.key && !$("tabs").hidden) { loadServiceStatus(); loadRecording(); } }, 30000);
+setInterval(() => { if (!DEMO && state.key && !$("tabs").hidden) { loadServiceStatus(); loadRecording(); } }, 30000);
 
 (async () => {
+  if (DEMO) return;
   const code = new URLSearchParams(location.search).get("code");
   if (code) {
     history.replaceState(null, "", "/memory");

@@ -47,12 +47,14 @@ def create_server(client: MemoryClient, *, directory=None) -> FastMCP:
         async def memory_recall(query: str, with_ids: bool = False) -> dict[str, Any]:
             """Search this user's memory from earlier sessions with a few concrete keywords (names, places, dates,
             topics). Returns the matching messages with their dates, and the reply that followed the closest ones.
-            Set with_ids only when you need memory IDs (memory_versions) to inspect or forget records."""
+            Set with_ids only to forget records: it returns each record's event_id and the scope_generation that
+            memory_forget needs."""
             from membrain import host
 
             if with_ids:
                 response = await asyncio.to_thread(host.recall, client, host.scrub(query))
-                return {"action": "recall", "outcome": response["outcome"], "context": recalled_context(response)}
+                records = await asyncio.to_thread(host.recall_records, client, response)
+                return {"action": "recall", "outcome": response["outcome"], **records}
             # The same compact recall the hooks inject, so tool results read like the rest of the memory context.
             found = await asyncio.to_thread(host.recall_context, client, host.scrub(query))
             return {"context": found or "No matching records."}
@@ -146,15 +148,19 @@ def create_server(client: MemoryClient, *, directory=None) -> FastMCP:
         installation = host.profile_directory(directory)
 
         @server.tool(annotations=WRITE)
-        async def memory_pause(hours: float | None = None) -> dict[str, Any]:
-            """Stop recording this user's messages, for example when they ask you not to remember something.
-            Without hours it lasts until memory_resume. The current turn is not stored either. Recall still works."""
-            return host.pause(installation, hours)
+        async def memory_pause(hours: float | None = None, until_resumed: bool = False) -> dict[str, Any]:
+            """Stop recording only when the user asks you not to remember or store something ("off the record",
+            "don't remember this"), not when they ask you to keep something private or between you (save that as a
+            sensitive note instead). Without arguments it lasts for the rest of this conversation; pass hours when
+            they name a duration, or until_resumed only when they ask you to stop remembering until they say so.
+            The current turn is not stored either. Recall still works."""
+            return host.pause(installation, hours, conversation=not until_resumed)
 
         @server.tool(annotations=WRITE)
         async def memory_resume() -> dict[str, Any]:
-            """Resume recording after memory_pause, when the user asks for it."""
-            return host.resume(installation)
+            """Resume recording after memory_pause, when the user asks for it. The user's current message and
+            your reply are recorded."""
+            return host.resume(installation, current_turn=True)
 
     @server.tool(annotations=READ_ONLY)
     async def memory_prepare(

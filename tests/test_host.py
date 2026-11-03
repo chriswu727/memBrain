@@ -75,7 +75,7 @@ def test_pausing_during_a_turn_keeps_that_turn_and_later_ones_out(tmp_path, monk
     host.finish_turn(tmp_path, "s1", "Okay.", turn_id="t2")
     assert client.observed == [] and host.paused(tmp_path)
     assert not (tmp_path / "plugin" / "spool.jsonl").exists()
-    assert "Recording is currently paused." in host.session_context(tmp_path, "s2")
+    assert "Recording is currently paused" in host.session_context(tmp_path, "s2")
     host.resume(tmp_path)
     host.prompt_context(tmp_path, "s1", "Back to normal.", turn_id="t3")
     host.finish_turn(tmp_path, "s1", "Welcome back.", turn_id="t3")
@@ -358,6 +358,120 @@ def test_resuming_before_a_paused_turn_finishes_does_not_store_it(tmp_path, monk
     assert "confidential" not in host._session_marker(tmp_path, "s").read_text()
 
 
+
+@pytest.mark.parametrize("user", [None, "alice"])
+def test_the_message_that_asks_to_go_back_on_the_record_is_stored(tmp_path, monkeypatch, user):
+    """An agent resuming at the user's request stores that message, which was sent while paused."""
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda *args: client)
+    monkeypatch.setattr(host, "use_brain", lambda *args: None)
+    host.pause(tmp_path, user_id=user, conversation=True)
+    prompt = "Back on the record. My flight home moved to Tuesday 28 September."
+    host.prompt_context(tmp_path, "s", prompt, turn_id="t2", user_id=user)
+    assert "Tuesday" not in host._session_marker(tmp_path, "s").read_text()  # Not kept while paused.
+    assert not host.turn_resumed(tmp_path, "s")
+    host.resume(tmp_path, user_id=user, current_turn=True)
+    assert host.turn_resumed(tmp_path, "s")
+    host.finish_turn(tmp_path, "s", "Noted the new return date.", turn_id="t2", prompt=prompt, user_id=user)
+    assert [(item["role"], item["text"]) for item in client.observed] == [
+        ("user", prompt), ("assistant", "Noted the new return date.")]
+    assert not host.turn_resumed(tmp_path, "s")
+    client.observed.clear()
+    host.prompt_context(tmp_path, "s", "Next message", turn_id="t3", user_id=user)
+    host.finish_turn(tmp_path, "s", "reply", turn_id="t3", user_id=user)
+    assert [item["text"] for item in client.observed] == ["Next message", "reply"]
+
+
+def test_a_turn_paused_and_resumed_in_the_same_message_stays_unstored(tmp_path, monkeypatch):
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda *args: client)
+    monkeypatch.setattr(host, "use_brain", lambda *args: None)
+    host.pause(tmp_path)
+    host.prompt_context(tmp_path, "s", "off the record: secret", turn_id="t1")
+    host.pause(tmp_path)  # Paused again during this turn.
+    host.resume(tmp_path, current_turn=True)
+    assert not host.turn_resumed(tmp_path, "s")
+    host.finish_turn(tmp_path, "s", "ok", turn_id="t1", prompt="off the record: secret")
+    host.prompt_context(tmp_path, "s2", "off the record: other secret", turn_id="t1")
+    host.pause(tmp_path)  # A turn that began on the record and was paused cannot be brought back either.
+    host.resume(tmp_path, current_turn=True)
+    host.finish_turn(tmp_path, "s2", "ok", turn_id="t1", prompt="off the record: other secret")
+    assert client.observed == []
+
+
+def test_resuming_for_one_user_does_not_store_another_users_paused_turn(tmp_path, monkeypatch):
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda *args: client)
+    monkeypatch.setattr(host, "use_brain", lambda *args: None)
+    host.pause(tmp_path, user_id="alice")
+    host.pause(tmp_path, user_id="bob")
+    host.prompt_context(tmp_path, "a", "alice secret", turn_id="t1", user_id="alice")
+    host.prompt_context(tmp_path, "b", "bob secret", turn_id="t1", user_id="bob")
+    host.resume(tmp_path, user_id="alice", current_turn=True)
+    assert host.turn_resumed(tmp_path, "a") and not host.turn_resumed(tmp_path, "b")
+
+
+def test_resuming_brings_back_only_the_turn_that_asked_not_the_same_users_other_conversation(tmp_path, monkeypatch):
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda *args: client)
+    monkeypatch.setattr(host, "use_brain", lambda *args: None)
+    host.pause(tmp_path, user_id="alice")
+    host.prompt_context(tmp_path, "private", "off the record: my diagnosis", turn_id="t1", user_id="alice")
+    host.prompt_context(tmp_path, "asks", "Back on the record: flight moved to the 28th.", turn_id="t1",
+                        user_id="alice")
+    # A host that knows the conversation passes it; one that does not gets only the latest paused turn.
+    host.resume(tmp_path, user_id="alice", current_turn=True, session="asks")
+    assert host.turn_resumed(tmp_path, "asks") and not host.turn_resumed(tmp_path, "private")
+    host.finish_turn(tmp_path, "private", "ok", turn_id="t1", prompt="off the record: my diagnosis", user_id="alice")
+    assert client.observed == []
+
+    host.pause(tmp_path, user_id="alice")
+    host.prompt_context(tmp_path, "private2", "off the record: other secret", turn_id="t2", user_id="alice")
+    monkeypatch.setattr(host.time, "time", lambda: 10 ** 10)  # The asking turn starts later.
+    host.prompt_context(tmp_path, "asks2", "Back on the record please.", turn_id="t2", user_id="alice")
+    host.resume(tmp_path, user_id="alice", current_turn=True)
+    assert host.turn_resumed(tmp_path, "asks2") and not host.turn_resumed(tmp_path, "private2")
+
+
+def test_a_conversation_pause_holds_in_the_role_play_where_it_was_asked(tmp_path, monkeypatch):
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda *args: client)
+    monkeypatch.setattr(host, "use_brain", lambda *args: None)
+    role = host.roleplay_user("alice", "Merlin")
+    host.prompt_context(tmp_path, "rp", "Merlin, off the record: I'm moving out.", turn_id="t1", user_id=role)
+    host.pause(tmp_path, user_id="alice", conversation=True)  # Hosts pause the real-life person.
+    host.finish_turn(tmp_path, "rp", "Understood.", turn_id="t1", user_id=role)
+    host.session_context(tmp_path, "rp", user_id="alice", roleplay="Merlin")  # Same role-play continues.
+    assert host.paused(tmp_path, role)
+    host.prompt_context(tmp_path, "rp", "It's because of my landlord.", turn_id="t2", user_id=role)
+    host.finish_turn(tmp_path, "rp", "I see.", turn_id="t2", user_id=role)
+    assert client.observed == []
+
+
+def test_the_stop_hook_stores_a_resumed_turn_from_the_transcript(tmp_path, monkeypatch):
+    from membrain import plugin
+
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda *args: client)
+    monkeypatch.setattr(host, "use_brain", lambda *args: None)
+    monkeypatch.setattr(plugin, "_import_host_queue", lambda *args: None)
+    prompt = "Back on the record: the party moved to the 21st."
+    transcript = tmp_path / "t.jsonl"
+    transcript.write_text("\n".join(json.dumps(entry) for entry in [
+        {"type": "user", "message": {"role": "user", "content": prompt}},
+        {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "tool_use", "id": "1"}]}},
+        {"type": "user", "message": {"role": "user", "content": [{"type": "tool_result", "tool_use_id": "1"}]}},
+        {"type": "user", "isMeta": True, "message": {"role": "user", "content": "Caveat: local command output"}},
+        {"type": "assistant", "message": {"role": "assistant", "content": [{"type": "text", "text": "Noted."}]}},
+    ]))
+    assert plugin.last_user_message(str(transcript)) == prompt
+    host.pause(tmp_path, conversation=True)
+    payload = {"session_id": "s", "prompt": prompt, "transcript_path": str(transcript)}
+    plugin.user_prompt(payload, tmp_path)
+    host.resume(tmp_path, current_turn=True)
+    plugin.stop(payload, tmp_path)
+    assert [(item["role"], item["text"]) for item in client.observed] == [("user", prompt), ("assistant", "Noted.")]
+
 @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
 def test_a_note_saved_before_the_reply_links_back_to_the_current_user_message(tmp_path, unused_tcp_port):
     from membrain.local_profile import ensure_profile
@@ -549,3 +663,67 @@ def test_an_export_replaces_an_existing_readable_file_with_an_owner_only_one(tmp
                                  user_id="qq:1", yes=True, out=target)
     assert plugin_cli._person(args, tmp_path) == 0
     assert "private words" in target.read_text() and oct(target.stat().st_mode & 0o777) == "0o600"
+
+
+@pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
+def test_a_plugin_host_can_forget_a_message_and_its_note_by_following_the_skill(tmp_path):
+    import asyncio
+
+    from membrain.mcp_server import create_server
+    from membrain.notes import list_notes
+
+    directory = tmp_path / "brain"
+    try:
+        host.start(directory)
+        context = host.prompt_context(directory, "first", "My dentist is Dr. Alvarez, Thursday at 3 pm.", turn_id="1",
+                                      include_source=True)
+        references, _ = json.JSONDecoder().raw_decode(context.split("source_messages=", 1)[1])
+        host.finish_turn(directory, "first", "Noted.", turn_id="1")
+        with host.ready_client(directory) as client:
+            server = create_server(client, directory=directory)
+            asyncio.run(server.call_tool("memory_note", {"text": "Dentist: Dr. Alvarez, Thursday 3 pm.", "kind": "plan",
+                                                         "source_messages": references}))
+            _, found = asyncio.run(server.call_tool("memory_recall", {"query": "dentist Alvarez", "with_ids": True}))
+            assert isinstance(found["scope_generation"], int)
+            original = [record for record in found["records"] if record["text"] == "My dentist is Dr. Alvarez, "
+                        "Thursday at 3 pm." and record["conversation_id"] == "first"]
+            assert original and "memory_forget" in found["how_to_forget"]
+            _, result = asyncio.run(server.call_tool("memory_forget", {
+                "ids": [original[0]["event_id"]], "kind": "events", "mode": "erase_content",
+                "expected_scope_generation": found["scope_generation"]}))
+            assert result.get("outcome") not in ("rejected", "conflict", "failed"), result
+            assert list_notes(client)["items"] == []  # The note drawn from the message went with it.
+        later = host.prompt_context(directory, "second", "Who is my dentist?", turn_id="1")
+        assert "Alvarez" not in (later or "") and "Alvarez" not in host.session_context(directory, "third")
+    finally:
+        try:
+            desktop.stop(directory)
+        except desktop.DesktopError:
+            pass
+
+
+def test_a_pause_the_agent_starts_on_its_own_ends_with_the_conversation(tmp_path, monkeypatch):
+    import asyncio
+
+    from membrain.mcp_server import create_server
+
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: client)
+    host.prompt_context(tmp_path, "s1", "Off the record: I'm job hunting.", turn_id="t1")
+    server = create_server(Client(), directory=tmp_path)
+    _, result = asyncio.run(server.call_tool("memory_pause", {}))
+    assert result["scope"] == "this conversation"
+    host.finish_turn(tmp_path, "s1", "Okay, not keeping that.", turn_id="t1")
+    host.session_context(tmp_path, "s1")  # The same conversation continuing (for example after compaction).
+    assert host.paused(tmp_path) and client.observed == []
+    resumed = host.session_context(tmp_path, "s2")
+    assert "paused for an earlier conversation only" in resumed and not host.paused(tmp_path)
+    host.prompt_context(tmp_path, "s2", "My sister moved to Leeds.", turn_id="t1")
+    host.finish_turn(tmp_path, "s2", "Noted.", turn_id="t1")
+    assert [record["text"] for record in client.observed] == ["My sister moved to Leeds.", "Noted."]
+
+    asyncio.run(server.call_tool("memory_pause", {"until_resumed": True}))
+    assert "Recording is currently paused" in host.session_context(tmp_path, "s3") and host.paused(tmp_path)
+    host.resume(tmp_path)
+    tool = {tool.name: tool for tool in asyncio.run(server.list_tools())}["memory_pause"]
+    assert "between you" in tool.description and "sensitive note" in tool.description

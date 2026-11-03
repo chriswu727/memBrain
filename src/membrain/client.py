@@ -111,6 +111,10 @@ def recalled_context(result_or_response: Mapping[str, Any]) -> str:
     return render_recall(result)
 
 
+# Recall traces only feed the memory page, so they give up quickly rather than delay a reply.
+TRACE_TIMEOUT = httpx.Timeout(0.1)
+
+
 class MemoryClient:
     def __init__(
         self,
@@ -244,6 +248,21 @@ class MemoryClient:
         if before_sequence is not None:
             params.append(("before_sequence", before_sequence))
         return self._request("GET", f"v1/brains/{quote(brain, safe='')}/timeline", params=params)
+
+    def memory_map(self, *, max_nodes: int = 200, max_edges: int = 400, include_sensitive: bool = False,
+                   trace: bool = False, brain_id: str | None = None) -> JsonObject:
+        brain = self._scope(brain_id=brain_id)["brain_ref"]
+        params = {"max_nodes": max_nodes, "max_edges": max_edges, "include_sensitive": str(include_sensitive).lower()}
+        if trace:
+            params["trace"] = "true"
+        return self._request("GET", f"v1/brains/{quote(brain, safe='')}/memory-map", params=params)
+
+    def trace_recall(self, event_ids: Sequence[str], *, brain_id: str | None = None) -> JsonObject:
+        """Tell the service which records a recall used, so the memory page can show them (kept in memory only)."""
+        brain = self._scope(brain_id=brain_id)["brain_ref"]
+        # Its own short timeout and no retry: a slow or stuck service must never hold up the reply being prepared.
+        return self._request("POST", f"v1/brains/{quote(brain, safe='')}/recall-trace",
+                             json={"event_ids": list(event_ids)[:50]}, timeout=TRACE_TIMEOUT)
 
     def write_note(self, text: str, *, request_id: str | None = None, **fields) -> JsonObject:
         brain = self._scope()["brain_ref"]

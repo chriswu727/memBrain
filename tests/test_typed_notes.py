@@ -183,3 +183,68 @@ def test_an_overdue_plan_is_not_crowded_out_of_coming_up_by_the_week_ahead():
     rendered = render_coming_up(response, today=today, budget=1000)
     assert "2026-03-03 has passed and this is still marked intended: Apply for the Canadian eTA. (id: eta)" in rendered
     assert rendered.index("Apply for the Canadian eTA") < rendered.index("Flight 0")
+
+
+def test_a_cancelled_plan_stays_in_view_when_the_notes_are_full():
+    items = [item("old", format_note("Ask Leila to dog-sit Biscuit for the camping trip.", kind="plan"),
+                  "2026-01-12T09:00:00Z"),
+             item("off", format_note("Leila can't dog-sit Biscuit; she is away that weekend.", kind="plan",
+                                     status="cancelled"), "2026-02-22T09:00:00Z")]
+    items += [item(f"n{index}", f"Ordinary remembered detail number {index} " + "x" * 120,
+                   f"2026-03-{index + 1:02d}T09:00:00Z") for index in range(25)]
+    rendered = render_notes({"items": list(reversed(items)), "complete": True}, budget=1500)
+    assert "Leila can't dog-sit" in rendered and "Ask Leila" in rendered
+    passed = [item("gone", format_note("Cancelled the 2020 trip.", kind="plan", status="cancelled",
+                                       occurs_at="2020-05-01"), "2020-01-01T09:00:00Z")]
+    assert notes._priority(notes._parsed({"items": passed})[0]) == 4  # Its date has passed: an ordinary note.
+
+
+def test_a_deadline_on_any_note_and_an_undated_plan_reach_coming_up():
+    today = datetime.date(2027, 5, 17)
+    response = {"items": [
+        item("trish", format_note("Trish needs the 2026 receipts and mileage log.", kind="relationship",
+                                  about="Trish", due="2027-04-30")),
+        item("walker", format_note("Plans to order a walker for Mum.", kind="plan")),
+        item("done", format_note("Booked the ferry.", kind="plan", status="done", due="2027-04-01")),
+    ], "complete": True}
+    block = render_coming_up(response, today=today)
+    assert "2027-04-30 has passed and this is still marked intended: Trish: Trish needs the 2026 receipts" in block
+    assert "Planned, not confirmed done: Plans to order a walker" in block and "Booked the ferry" not in block
+    assert "make the suggestion conditional" in block
+    assert block.index("2027-04-30 has passed") < block.index("Planned, not confirmed done")
+    trish = notes._parsed({"items": [response["items"][0]]})[0]
+    assert notes._priority(trish) == 3
+
+
+def test_an_older_shorter_note_does_not_take_the_place_of_a_newer_one_that_did_not_fit():
+    stale = item("stale", format_note("Flights back Monday 27 Sep.", kind="plan", status="done"),
+                 "2026-05-12T09:00:00Z")
+    newer = item("newer", "Return flight moved to Tuesday 28 Sep, same 18:40 flight; the extra day is approved.",
+                 "2026-07-06T09:00:00Z")
+    parsed = notes._parsed({"items": [newer, stale]})  # Newest first, as listed.
+    assert notes._priority(parsed[0]) == notes._priority(parsed[1])
+    size = {entry[0]["event_id"]: len(notes._line(*entry)) + 35 for entry in parsed}
+    assert size["stale"] < size["newer"]
+    chosen, omitted = notes.select_notes(parsed, budget=size["newer"] - 1)
+    assert chosen == [] and omitted == 2  # The stale note alone would fit, but it must not stand in.
+    chosen, _ = notes.select_notes(parsed, budget=size["newer"] + size["stale"] - 1)
+    assert [entry[0]["event_id"] for entry in chosen] == ["newer"]
+
+
+def test_a_done_note_whose_date_is_still_ahead_says_that_part_has_not_happened(monkeypatch):
+    class Today(datetime.date):
+        @classmethod
+        def today(cls):
+            return cls(2027, 4, 22)
+
+    monkeypatch.setattr(notes._datetime, "date", Today)
+    paid = item("chair", format_note("Paid in full for the massage chair; delivery to Mum's on May 8.", kind="plan",
+                                     status="done", occurs_at="2027-05-08"))
+    rendered = render_notes({"items": [paid], "complete": True})
+    assert "(done so far; on 2027-05-08 is still ahead, so that has not happened yet)" in rendered
+    later = item("trip", format_note("Flew back from Leipzig.", kind="plan", status="done", occurs_at="2027-04-01"))
+    today = item("call", format_note("Called the landlord.", kind="plan", status="done", occurs_at="2027-04-22"))
+    rendered = render_notes({"items": [later, today], "complete": True})
+    assert "(done; on 2027-04-01)" in rendered and "(done; on 2027-04-22)" in rendered
+    early = item("deposit", format_note("Paid Dave's deposit.", kind="plan", status="done", due="2027-05-30"))
+    assert "(done; due 2027-05-30)" in render_notes({"items": [early], "complete": True})  # A deadline met early.

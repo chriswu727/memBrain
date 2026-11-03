@@ -142,30 +142,42 @@ def last_assistant_message(transcript: str | None) -> str | None:
     Reads entries shaped like Claude Code's (``{"type": "assistant", "message": {...}}``) or plain chat messages
     (``{"role": "assistant", "content": ...}``), newest first, and stops at the user's prompt.
     """
+    for role, text in _transcript_tail(transcript):
+        if role == "assistant":
+            return text
+        if role == "user":
+            return None  # The prompt came after the last reply: this turn has no text reply.
+    return None
+
+
+def last_user_message(transcript: str | None) -> str | None:
+    """The user's latest prompt in a host transcript; tool results carry no text and are passed over."""
+    return next((text for role, text in _transcript_tail(transcript) if role == "user"), None)
+
+
+def _transcript_tail(transcript: str | None):
+    """(role, text) of the transcript's last entries that have text, newest first."""
     if not isinstance(transcript, str) or not transcript:
-        return None
+        return
     try:
         with open(transcript, "rb") as stream:
             stream.seek(0, os.SEEK_END)
             stream.seek(max(0, stream.tell() - TRANSCRIPT_TAIL_BYTES))
             lines = stream.read().decode("utf-8", "replace").splitlines()
     except OSError:
-        return None
+        return
     for line in reversed(lines):
         try:
             entry = json.loads(line)
         except ValueError:
             continue
-        if not isinstance(entry, dict):
-            continue
+        if not isinstance(entry, dict) or entry.get("isMeta") or entry.get("isCompactSummary"):
+            continue  # Claude Code's own notices and compaction summaries are not the user's words.
         message = entry.get("message") if isinstance(entry.get("message"), dict) else entry
         role = message.get("role") or entry.get("type")
         text = _text(message.get("content"))
-        if role == "assistant" and text.strip():
-            return text
-        if role == "user" and text.strip():
-            return None  # The prompt came after the last reply: this turn has no text reply.
-    return None
+        if role in ("assistant", "user") and text.strip():
+            yield role, text
 
 
 def stop(payload: dict, directory: Path, producer: str = PRODUCER) -> None:
@@ -173,8 +185,14 @@ def stop(payload: dict, directory: Path, producer: str = PRODUCER) -> None:
     reply = payload.get("last_assistant_message")
     if not isinstance(reply, str) or not reply.strip():
         reply = last_assistant_message(payload.get("transcript_path"))
-    host.finish_turn(directory, _conversation(payload), reply, turn_id=_turn(payload), producer=producer,
-                     user_id=_user(payload))
+    session = _conversation(payload)
+    # A message sent while paused is not kept; when the agent resumed at its request, store it from the transcript.
+    prompt = None
+    if host.turn_resumed(directory, session):
+        prompt = payload.get("prompt") if isinstance(payload.get("prompt"), str) else None
+        prompt = prompt or last_user_message(payload.get("transcript_path"))
+    host.finish_turn(directory, session, reply, turn_id=_turn(payload), producer=producer,
+                     user_id=_user(payload), prompt=prompt)
 
 
 HANDLERS = {
@@ -222,9 +240,10 @@ def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
             raise ValueError("Tool arguments must be a JSON object.")
         user = _user(arguments)
         if name == "pause":
-            result = host.pause(directory, arguments.get("hours"), user_id=user)
+            result = host.pause(directory, arguments.get("hours"), user_id=user,
+                                conversation=not arguments.get("until_resumed"))
         elif name == "resume":
-            result = host.resume(directory, user_id=user)
+            result = host.resume(directory, user_id=user, current_turn=True)
         elif name == "note" and host.paused(directory, user):
             result = {"error": "Recording is paused. Resume before saving agent notes."}
         else:

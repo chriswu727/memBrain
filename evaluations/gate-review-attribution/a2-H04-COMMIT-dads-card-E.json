@@ -1,0 +1,4 @@
+{
+  "cause": "host",
+  "evidence": "Note: \"Jule will find a guesthouse in Freiburg and the person will book a rental car at Basel airport. (intended, not confirmed done)\"; the recalled Feb 8 message says \"Jule's going to find us a guesthouse ... and I'll book a rental car\". The memory gave the correct unconfirmed status, and the assistant itself assumed both were booked."
+}

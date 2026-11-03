@@ -1,14 +1,51 @@
 # First-release closeout
 
-Status on 2026-10-26: **pre-release; acceptance incomplete**. This is the execution checklist for closing version 0.1.0, not a new architecture roadmap. The [finite acceptance contract](../architecture/v1-acceptance.md) remains authoritative. Once its gates pass, stop development and evaluation for this release.
+Status on 2026-11-02: **pre-release; acceptance incomplete**. This is the checklist for closing version 0.1.0 under the [revised acceptance contract](../architecture/v1-acceptance.md), which matches what ships: host plugins, the MCP server, the proxy, bot adapters and the memory page. Development of new features is stopped until the gates pass.
 
-## Frozen scope
+## Closeout checklist
+
+- [ ] **R1 — tested runtime, install, upgrade, recovery.** One pinned runtime across all launchers (`scripts/pin_runtime.py`, guarded by `tests/test_installation_pin.py`). The [release install check](../evaluations/release-install-2026-11-01.py) runs the real launch commands on a clean home directory: fresh install, upgrade from the previous pin, cross-session recall, MCP correct and delete, restart, backup and restore.
+- [ ] **R2 — tests.** Full Python, TypeScript and OpenClaw suites on the candidate; Verify green on the merge.
+- [ ] **R3 — isolation, privacy, deletion.** Existing regressions green; no known defect open.
+- [ ] **R4 — behavioral acceptance.** Not passed after six attempts under the [revised rule](../architecture/v1-acceptance.md#r4--memory-is-useful-on-held-out-lives-behavioral-acceptance). The [README summary](../README.md#final-behavioral-acceptance-r4-attempts-1-to-6) gives each attempt's result. A release must state this result and its known limitation; it cannot claim that R4 passed.
+- [ ] **R5 — overhead.** Recall p95 under 500 ms on the development fixture; hooks never block the host.
+- [ ] **R6 — delivery.**
+  - Write the acceptance report and the release notes, and keep the English and Chinese READMEs equal.
+  - Re-pin the launchers to the release, then tag and publish the GitHub release with the wheel, the source archive and their checksums.
+  - Publish to PyPI once the trusted publisher is set up.
+
+Also open, but not a gate: check the macOS desktop flow on a real Mac before calling macOS verified.
+
+## Release assets and claims
+
+Prepare a source archive, wheel, SHA-256 checksums, release notes and the final acceptance report. Inspect archive contents for unintended local files and credentials. Verify the documented install command against the chosen distribution before advertising it. A package name in `pyproject.toml` does not establish availability or ownership on a package index.
+
+Use a GitHub versioned release as the first delivery record. Package-index publication and promotional posts are separate distribution steps; this checklist does not claim they have happened. Do not label a tag or release stable while acceptance is incomplete. The current [changelog](../CHANGELOG.md) is an unreleased draft, not a published release.
+
+## Publishing to PyPI
+
+The `membrain-ai` distribution is published by `.github/workflows/release.yml` when a `v<version>` tag is pushed. It uses PyPI trusted publishing, so no token is stored in the repository.
+
+One-time setup by the repository owner:
+
+1. On PyPI, add a pending trusted publisher for the project `membrain-ai` with owner `chriswu727`, repository `memBrain`, workflow `release.yml` and environment `pypi`.
+2. In the GitHub repository settings, create an environment named `pypi` (optionally requiring approval).
+
+For each release: update the version in `pyproject.toml` and the plugin manifest, commit, then push a matching tag such as `git tag v0.1.0 && git push origin v0.1.0`. The workflow refuses a tag that does not match the package version.
+
+Launchers are pinned with `python scripts/pin_runtime.py <commit>`. A commit cannot pin itself, so change the runtime first, commit, then pin to that commit in a second commit. After the first successful PyPI release, run `python scripts/pin_runtime.py --pypi <version>` so that installation comes from PyPI wheels instead of a GitHub archive. The script covers the Claude Code and Codex hooks, the three MCP configurations, both hook launchers, OpenClaw and AstrBot.
+
+## History: cognition-runtime closeout (superseded)
+
+The checklist below, as of 2026-10-26, was written for the cognition runtime. It is kept for audit; its G4 campaigns did not pass.
+
+### Frozen scope (superseded)
 
 Ship the existing persistent memory engine for synchronous text agents: Python lifecycle integration, HTTP API, TypeScript client, optional MCP memory tools, and local API-key chat. The documented desktop target is macOS with uv and Docker. Preserve the model's responsibility for semantic decisions, bounded evidence-backed processing, and the existing default verification format. Experimental shared-source verification is not promoted.
 
 Personality, emotion, a management UI, native installers, streaming, multimodal input, additional framework adapters, new operating-system certification and competitive benchmark claims remain outside this release. No routine CI is added. A new idea does not reopen the release scope.
 
-## Closeout checklist
+### Closeout checklist (superseded)
 
 - [ ] **Behavioral acceptance (G4).** Independently review a frozen plan before paid execution. Use the existing varied life scenario with one durable brain; review whole answers and published memory against only the available source prefix. Exercise updates, temporary exceptions, distinct people, intention versus completion, unfinished tasks, delayed returns, cue recovery, uncertainty and irrelevant-memory suppression. Separately record assistance and corrections. Bind isolated cue and age diagnostics to their declared checkpoint. Failed or unexecuted cases cannot pass.
 - [ ] **Final candidate evidence (G1–G3, G5).** Reuse checks whose runtime and behavior are unchanged. Reopen only checks affected by an actual repair. Build the final source archive and wheel after packaging changes; compare their runtime, schema and migration bytes with source and an isolated installation. Retain the existing installed desktop, restart, upgrade and recovery evidence when those bytes are unchanged. Record hashes, revision and applicable performance measurements.
@@ -18,7 +55,7 @@ The owner selected MIT on 2026-10-26. Licensing is resolved; behavioral acceptan
 
 An earlier technical baseline was commit `18a969921d8da30b8ec84f94dec7d699292a8ba4`, runtime build `4f9655bd59349144ec973c9747661edcab55018ac248da5576ccf952462bf3dc`. The [preparation report](../evaluations/v1-2026-10-25-learning-preparation.md) records the full source run's two fixture failures, their successful affected-file follow-up, installed checks and four desktop flows. It must not be summarized as an all-green full run. Earlier real-model failures remain failures; local engineering evidence does not pass G4.
 
-## Completed varied diagnostic and remaining blockers
+### Completed varied diagnostic and remaining blockers
 
 The later [release-scenario run](../evaluations/v1-2026-10-26-release-longitudinal.md) stopped after eleven deliveries, ten completed learning cycles and five complete sessions. Its two map captions omitted stored meaning, one ordinary assistant-speech claim confused actors, and malformed source citations stopped required encoding. All 46 transport calls have known usage, totaling 493,740 tokens; the harness nevertheless left the last cognitive operation uncertain. Preserve both original records. Its journal and allowance are closed; the bad derived claim is not a basis for a same-brain diagnostic tail. Prospective version-2 claim/short-view actor checks, declared citation aliases and bounded original-source context require local verification and a separately frozen fresh-brain acceptance run. These are repairs within the existing scope, not a behavioral pass.
 
@@ -46,7 +83,7 @@ The [source and recall repair follow-up](../evaluations/v1-2026-10-26-longitudin
 
 The [source-preserving resolution follow-up](../evaluations/v1-2026-10-26-recall-resolution.md) implements optional verified short expressions and cue expansion without age-based source deletion. It records deterministic context/input reductions, a charged failed encoding, its bounded schema repair, two whole host-answer passes and one failure, and an episode-actor ambiguity. No automatic real-model short-expression formation was observed in its small encoding case. G4 and stable publication remain unpassed; no paid work continues under either closed diagnostic allowance.
 
-## Historical proposed longitudinal follow-up
+### Historical proposed longitudinal follow-up
 
 The [2026-10-26 preparation record](../evaluations/v1-2026-10-26-closeout.md) stopped at the independent plan-review call: it timed out with unknown usage. No primary session or auxiliary diagnostic started. The proposed ceilings below are preserved for audit; unused capacity is not permission to resume or retry that stopped attempt.
 
@@ -58,21 +95,3 @@ A failed required behavior, unsupported publication, invalid fixture, failed req
 
 Fictional day labels do not age memory. Access-age diagnostics use the existing validated seam and stable snapshot; they do not rewrite source timestamps or claim years of interaction. Report actual elapsed time and active uptime separately. A real-time field trial is useful later work, not an unbounded additional gate for this release.
 
-## Release assets and claims
-
-Prepare a source archive, wheel, SHA-256 checksums, release notes and the final acceptance report. Inspect archive contents for unintended local files and credentials. Verify the documented install command against the chosen distribution before advertising it. A package name in `pyproject.toml` does not establish availability or ownership on a package index.
-
-Use a GitHub versioned release as the first delivery record. Package-index publication and promotional posts are separate distribution steps; this checklist does not claim they have happened. Do not label a tag or release stable while acceptance is incomplete. The current [changelog](../CHANGELOG.md) is an unreleased draft, not a published release.
-
-## Publishing to PyPI
-
-The `membrain-ai` distribution is published by `.github/workflows/release.yml` when a `v<version>` tag is pushed. It uses PyPI trusted publishing, so no token is stored in the repository.
-
-One-time setup by the repository owner:
-
-1. On PyPI, add a pending trusted publisher for the project `membrain-ai` with owner `chriswu727`, repository `memBrain`, workflow `release.yml` and environment `pypi`.
-2. In the GitHub repository settings, create an environment named `pypi` (optionally requiring approval).
-
-For each release: update the version in `pyproject.toml` and the plugin manifest, commit, then push a matching tag such as `git tag v0.1.0 && git push origin v0.1.0`. The workflow refuses a tag that does not match the package version.
-
-After the first successful release, change the default package from the Git URL to `membrain-ai[embedded,semantic]==<version>` in `plugins/membrain/hooks/claude-hooks.json`, `hooks/codex-hooks.json`, `.claude-mcp.json`, `.codex-mcp.json`, `.codebuddy-mcp.json`, `bin/membrain-hook` and `bin/membrain-hook.cmd`, in `integrations/openclaw/membrain/index.js`, and in `integrations/astrbot/astrbot_plugin_membrain/requirements.txt`. Installation then comes from PyPI wheels instead of cloning the repository.

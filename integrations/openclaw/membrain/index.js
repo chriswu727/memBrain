@@ -3,7 +3,7 @@
 import { spawn } from "node:child_process";
 
 const PACKAGE = process.env.MEMBRAIN_PACKAGE ||
-  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/d0d7a0379f7ac5f1b81dad04504601bb6606f1b0.zip";
+  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/ee5e0fb9d2c0b070bbff31627963c177e2891056.zip";
 const BLOCK_MS = 5 * 60 * 1000;
 
 function run(command, args, { input, timeoutMs = 12_000, env } = {}) {
@@ -57,7 +57,9 @@ const TOOLS = [
       "under 300 characters, with dates when they matter. Set kind when it is clear: person (with about = their name, " +
       "aliases, and the relation in the text), constraint, preference, plan (with status intended until the user " +
       "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD), routine, milestone, relationship, or " +
-      "agent_commitment for something you promised to do. When a fact changes, save the updated note and pass the " +
+      "agent_commitment for something you promised to do. Status done means everything in the note has happened: a " +
+      "purchase paid for but not yet delivered, or a booking still ahead, is scheduled, with its date. " +
+      "When a fact changes, save the updated note and pass the " +
       "old note's id in replaces. Do not save routine requests or anything the user asked you not to keep.",
     parameters: { type: "object", properties: {
       text: { type: "string" },
@@ -85,13 +87,12 @@ const TOOLS = [
   },
   {
     name: "membrain_pause",
-    description: "Stop recording, for example when the user asks you not to remember something. The current " +
-      "exchange is not stored either. Without hours it lasts until membrain_resume.",
-    parameters: { type: "object", properties: { hours: { type: "number" } } },
+    description: 'Stop recording only when the user asks you not to remember or store something ("off the record", "don\'t remember this"), not when they ask you to keep something private or between you: save that as a sensitive note instead. Without arguments the pause lasts for the rest of this conversation; pass hours when they name a duration, or until_resumed only when they ask you to stop remembering until they say so. The current exchange is not stored either.',
+    parameters: { type: "object", properties: { hours: { type: "number" }, until_resumed: { type: "boolean" } } },
   },
   {
     name: "membrain_resume",
-    description: "Resume recording after membrain_pause, when the user asks.",
+    description: "Resume recording after membrain_pause, when the user asks; their current message is then stored.",
     parameters: { type: "object", properties: {} },
   },
 ];
@@ -119,6 +120,7 @@ const DENIED = Symbol("denied");
 export function createMembrain({ exec = membrain, now = () => Date.now(), directory } = {}) {
   const env = directory ? { MEMBRAIN_DIRECTORY: directory } : undefined;
   const blocks = new Map();
+  const prompts = new Map();  // session -> the current turn's prompt, dropped when the turn ends
   const users = new Map();  // session key -> memory user (OWNER for the owner), learned from the turn's hooks
   const remember = (ctx) => {
     const user = memoryUser(ctx);
@@ -152,6 +154,7 @@ export function createMembrain({ exec = membrain, now = () => Date.now(), direct
       }
       if (user && !confirmed.has(user)) return undefined;  // Never record someone else into the owner's memory.
       const prompt = event?.currentUserMessage ?? event?.prompt ?? "";
+      prompts.set(session, prompt);  // Kept in memory for this turn only, for a turn the agent resumes recording in.
       const recalled = prompt.trim()
         ? await hook("user-prompt", { session_id: session, prompt_id: event?.currentUserMessageId, prompt }, user)
         : null;
@@ -163,10 +166,12 @@ export function createMembrain({ exec = membrain, now = () => Date.now(), direct
     async agentEnd(event, ctx) {
       const session = ctx?.sessionId || ctx?.sessionKey;
       const reply = lastAssistantText(event?.messages);
+      const prompt = session ? prompts.get(session) : undefined;
+      if (session) prompts.delete(session);
       if (!session || !event?.success || !reply.trim()) return;
       const user = remember(ctx);
       if (user && !confirmed.has(user)) return;
-      await hook("stop", { session_id: session, last_assistant_message: reply }, user);
+      await hook("stop", { session_id: session, last_assistant_message: reply, prompt }, user);
     },
     // The memory a tool call in this conversation may use: DENIED when it cannot be told safely.
     toolUser(ctx) {

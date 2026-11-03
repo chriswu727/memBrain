@@ -38,7 +38,7 @@ export MEMBRAIN_EXTRACT_KEY=sk-your-provider-key   # defaults to MEMBRAIN_UPSTRE
 # MEMBRAIN_EXTRACT_BASE_URL defaults to --upstream
 ```
 
-After each reply has been sent, the extraction model reads that exchange once, together with the person's current notes, and saves the lasting facts as typed notes, replacing notes they update. It runs in the background, skips greetings, never runs while recording is paused, and costs one extra model call per message worth reading.
+After each reply has been sent, the extraction model reads that exchange once, together with the person's current notes, and saves the lasting facts as typed notes, replacing notes they update. It runs in the background, skips greetings and thanks (short updates such as "cancelled it" are read, together with the exchange before them), never runs while recording is paused, and costs one extra model call per message worth reading. Notes it saves are linked to the messages they came from, so deleting those messages deletes the notes. A provider error is retried twice when it is temporary; a turn that still fails is skipped. `membrain plugin status`, `membrain doctor` and the memory page then report how many messages were not read for notes and the last error. The messages themselves are always recorded. Queued turns are kept in memory only, so turns not yet read when the proxy stops are not read.
 
 ## What it refuses
 

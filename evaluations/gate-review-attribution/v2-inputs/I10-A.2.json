@@ -1,0 +1,9 @@
+{
+  "cause": "memory",
+  "per_type": {
+    "1": {
+      "cause": "memory",
+      "evidence": "Recalled earlier assistant statement (September 30 reply) in <membrain-memory>: \"多聊点盼头：厦门家里次卧、马桶增高架、助行器都备好了\". Even though the note \"用户计划本周在网上给王秀英订购助行器和马桶增高架。 (intended, not confirmed done)\" was also present, memory recalled an earlier assistant statement asserting the walker was ready, and the reply repeated that."
+    }
+  }
+}
