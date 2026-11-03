@@ -20,7 +20,11 @@ Subsequent independent checks:
 
 - The corrected C5 harness at `4a0210d`, combined with strict scoring validation: 101 clock, harness, scoring and matrix checks passed, none skipped.
 - Intentional recording pauses initially produced two `message_identity_unknown` errors despite correctly storing nothing. A real-service regression reproduced this. `ad216e5` distinguishes an intentionally unrecorded turn from a missing recorded turn and still rejects unexpected stored messages. The related group passed 105 checks; the expanded practice scenario below exercises the actual pause/resume tools.
-- The familiarity restore change at `717f168`, combined with the integrated runtime: 314 restore-related checks passed, none skipped; 53.25 seconds. An independent review still found schema-valid timestamps that overflow UTC conversion; that input guard must be fixed before the change is accepted.
+- The familiarity restore change at `717f168`, combined with the integrated runtime: 314 restore-related checks passed, none skipped; 53.25 seconds. An independent review found schema-valid timestamps that overflow UTC conversion. The subsequent input guard is included in `fc7d2f7`; its 211 related integration checks passed on Mac, none skipped (24.30 seconds). The TypeScript SDK passed 44 tests and its type check after adding the optional original-recording timestamp to its contract.
+
+A later full invocation at `4b20f76`, with Docker, cached local embeddings and required Chromium enabled, passed 6,392 cases and failed one, with none skipped (546.04 seconds). The standalone-chat subprocess used an incorrectly resolved virtual-environment interpreter, which selected system Python without the package. That case passed unchanged when given the literal virtual-environment Python path (12.89 seconds). Both logs are retained. This accounts for all 6,393 cases across those two runs; it is not one clean full invocation and predates the portable familiarity merge.
+
+The independent Chromium/browser group passed 110 checks, none skipped (14.45 seconds), including native confirmation acceptance/dismissal, both languages, phone and desktop widths, and a seeded login session that the fictional showcase must not use. Native occurrence-range rejection passed 116 related checks after three regressions failed on the old source. An earlier incomplete UTC fallback still let the worker fail; that failed log is retained.
 
 ## Public practice runs
 
@@ -37,7 +41,6 @@ The new validity command rejects every reported harness degradation, malformed e
 
 ## Still required
 
-- Finish and independently validate the concurrent-recall/map performance change and the browser regression suite.
-- Finish the familiarity timestamp input guard and integrate it with the other changes.
+- Finish and independently validate the concurrent-recall/map performance change. Repeat the browser checks as part of the final candidate CI.
 - Freeze and pin one combined source, then run Verify and the full installation acceptance on that candidate.
 - Independently review and freeze the real behavioural acceptance plan and held-out scenarios. Obtain the owner's explicit approval for paid and subscription-backed evaluation, then pass R4 and C5. No such run has started.

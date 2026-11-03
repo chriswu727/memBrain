@@ -8,11 +8,15 @@ memBrain 原名 Agent Memory。已有的安装、数据目录和 `agent_memory` 
 
 通过分层回忆、选择性遗忘和可追溯来源，让 Agent 在不同对话之间保留并使用有用的记忆。
 
+![memBrain 大脑视图：虚构记忆按类别分布，并与来源相连](.github/assets/brain-showcase.png)
+
+*实际运行的大脑视图，使用虚构演示数据。运行 `membrain plugin ui`，选择“大脑”，再打开“展示”。光点代表记忆，连线代表已记录的关联；脑形和发光是示意装饰。*
+
 memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后，运行时会自动捕获消息，在回复前准备相关记忆，并在后台学习。进程重启或切换已配置的回复模型后，Agent 仍使用同一个大脑。
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 同步文本运行时已实现，长期记忆质量仍在验证中。插件和无需 Docker 的嵌入式数据库是新增功能：已在 Linux x86_64 上完成端到端验证，在 Windows 11 上部分实际运行过（数据库、服务、hook、代理、AstrBot 和 OpenClaw），尚未在真实的 Mac 上运行。使用 Docker 的桌面安装已在 macOS 上验证。详见[支持范围与已知限制](#status-and-verification)。
+> **预发布阶段。** 同步文本运行时已实现，长期记忆质量仍在验证中。插件和无需 Docker 的嵌入式数据库是新增功能：已在 Linux x86_64 上完成端到端验证，在 Windows 11 上部分实际运行过（数据库、服务、hook、代理、AstrBot 和 OpenClaw），嵌入式运行时也已通过独立的 macOS 安装检查。整合后的成熟度候选版本仍需最终安装验收。使用 Docker 的桌面安装也已在 macOS 上验证。详见[支持范围与已知限制](#status-and-verification)。
 
 <a id="claude-code-plugin"></a>
 
