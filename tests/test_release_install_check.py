@@ -90,3 +90,161 @@ def test_an_existing_output_directory_is_preserved(runner, tmp_path, monkeypatch
         runner.main()
     assert caught.value.code == 2
     assert report.read_text() == '{"original_failure":true}'
+
+
+def test_arguments_default_to_both_frozen_baselines_and_both_parts(runner, tmp_path):
+    args = runner.parse_args([str(tmp_path / "out")])
+    assert args.old == runner.OLD == "d0d7a0379f7ac5f1b81dad04504601bb6606f1b0"
+    assert args.companion_old == runner.COMPANION_OLD == "19e894ca9e08cf65fa071e8019789499953478d0"
+    assert args.parts == ["upgrade", "companion"]
+    args = runner.parse_args([str(tmp_path / "out"), "--parts", "companion,upgrade", "--old", "a551100",
+                              "--companion-old", "f" * 40])
+    assert (args.parts, args.old, args.companion_old) == (["upgrade", "companion"], "a551100", "f" * 40)
+    assert runner.parse_args([str(tmp_path / "out"), "--parts", "companion"]).parts == ["companion"]
+
+
+@pytest.mark.parametrize("arguments", [["--companion-old", "19e894c"], ["--companion-old", "main"],
+                                       ["--parts", "proxy"], ["--parts", ""], ["--parts", "upgrade,upgrade"]])
+def test_a_moving_or_unknown_baseline_or_part_is_refused(runner, tmp_path, arguments):
+    with pytest.raises(SystemExit) as caught:
+        runner.parse_args([str(tmp_path / "out"), *arguments])
+    assert caught.value.code == 2
+
+
+def companion_observation(runner):
+    written = {"persona_version": 1, "persona_name": "Wren", "baseline_mood": "cheerful", "feeling_note_id": "n1",
+               "feeling": "nervous", "moment_note_id": "n2", "moment_text": runner.COMPANION["moment"]["text"],
+               "boundary_topic": "my ex", "boundary_aliases": ["Jordan"], "kept_out": "Tahoe", "control": "Rainier",
+               "support_style": runner.COMPANION["support_style"]}
+    context = ('<membrain-persona version="1">\nName: Wren\nBaseline mood: cheerful (valence +1, energy 2 of 3)\n'
+               "- Job interview at Northwind Labs next Monday. (the user said they felt nervous, 3 Nov)\n"
+               f"How they like to be supported: {written['support_style']}\n- 3 Nov: {written['moment_text']}")
+    seen = {"persona": {"version": 1, "card": {"name": "Wren"}},
+            "affect": {"records": [{"note_id": "n1", "label": "nervous", "basis": "reported"}]},
+            "notes": {"items": [{"event_id": "n1"}, {"event_id": "n2"}]},
+            "relationship": {"boundaries": [{"topic": "my ex", "aliases": ["Jordan"]}],
+                             "shared_moments": [{"id": "n2", "text": written["moment_text"]}],
+                             "support_style": {"text": written["support_style"]}},
+            "mood": {"label": "cheerful", "pinned": True, "baseline": {"label": "cheerful"}},
+            "session_start": context, "unraised": "hiking at Mount Rainier", "raised": "hiking at Lake Tahoe"}
+    return written, seen
+
+
+def test_companion_items_pass_only_while_each_is_still_there_and_effective(runner):
+    written, seen = companion_observation(runner)
+    findings = runner.companion_findings(written, seen)
+    assert [name for name, _, _ in findings] == [
+        "the persona block is in session context with its version", "the feeling is listed with its note",
+        "the boundary keeps its topic out of recall until the user raises it", "the shared moment is in the relationship",
+        "the mood is still pinned at the persona's baseline", "the support style is kept"]
+    assert all(ok for _, ok, _ in findings)
+    json.dumps(findings)  # Every detail can be saved in the report.
+
+    def broken(change):
+        written, seen = companion_observation(runner)
+        change(written, seen)
+        return [name for name, ok, _ in runner.companion_findings(written, seen) if not ok]
+
+    assert broken(lambda w, s: s["persona"].update(version=2)) == [findings[0][0]]
+    assert broken(lambda w, s: s.update(session_start=s["session_start"].replace('version="1"', 'version="2"'))
+                  ) == [findings[0][0]]
+    assert broken(lambda w, s: s["affect"].update(records=[])) == [findings[1][0]]
+    assert broken(lambda w, s: s["notes"].update(items=[{"event_id": "n2"}])) == [findings[1][0]]
+    assert broken(lambda w, s: s.update(unraised=s["unraised"] + " and Lake Tahoe with Jordan")) == [findings[2][0]]
+    assert broken(lambda w, s: s.update(unraised="nothing recalled")) == [findings[2][0]]
+    assert broken(lambda w, s: s.update(raised="nothing recalled")) == [findings[2][0]]
+    assert broken(lambda w, s: s["relationship"].update(boundaries=[{"topic": "my ex", "aliases": []}])
+                  ) == [findings[2][0]]
+    assert broken(lambda w, s: s["relationship"].update(shared_moments=[])) == [findings[3][0]]
+    assert broken(lambda w, s: s.update(mood={"label": "concerned", "pinned": False, "baseline": {"label": "cheerful"}})
+                  ) == [findings[4][0]]
+    assert broken(lambda w, s: s["relationship"].update(support_style=None)) == [findings[5][0]]
+
+
+def test_proxy_findings_need_injected_memory_and_a_recorded_reply(runner):
+    first, second = (runner.PROXY_REPLY.format(count=count) for count in (1, 2))
+    seen = [{"messages": [{"role": "user", "content": runner.PROXY_FACT}]},
+            {"messages": [{"role": "user", "content": f"<membrain-history>{runner.PROXY_FACT}</membrain-history>\n\n"
+                                                      f"{runner.PROXY_QUESTION}"}]}]
+    replies = [{"choices": [{"message": {"content": first}}]}, {"choices": [{"message": {"content": second}}]}]
+    export = json.dumps({"events": [runner.PROXY_FACT, first]})
+    assert all(ok for _, ok, _ in runner.proxy_findings(seen, replies, export))
+    plain = [seen[0], {"messages": [{"role": "user", "content": runner.PROXY_QUESTION}]}]
+    assert [ok for _, ok, _ in runner.proxy_findings(plain, replies, export)] == [True, False, True]
+    assert [ok for _, ok, _ in runner.proxy_findings(seen, replies, json.dumps([runner.PROXY_FACT]))] == [
+        True, True, False]
+    assert [ok for _, ok, _ in runner.proxy_findings(seen[:1], replies[:1], export)] == [False, False, True]
+
+
+def test_the_stub_upstream_answers_without_a_model_and_keeps_each_request(runner):
+    import urllib.request
+
+    url, seen = runner.stub_upstream(lambda body, count: f"reply {count} to {body['user']}")
+    opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+    request = urllib.request.Request(url + "/chat/completions", data=json.dumps({"user": "bot", "messages": []}).encode(),
+                                     headers={"content-type": "application/json"})
+    with opener.open(request, timeout=10) as response:
+        assert json.loads(response.read())["choices"][0]["message"]["content"] == "reply 1 to bot"
+    assert seen == [{"user": "bot", "messages": []}]
+
+
+def test_a_failed_step_stops_only_its_part_and_is_saved(runner):
+    def companion():
+        runner.check("companion: a persona card is written on the baseline", True)
+        runner.require("companion: the mood is pinned on the baseline", False, "no pin_mood")
+        runner.check("never reached", True)
+
+    def upgrade():
+        raise RuntimeError("proxy did not start")
+
+    assert runner.run_part("companion", companion) is False
+    assert runner.run_part("upgrade", upgrade) is False
+    assert runner.run_part("other", lambda: runner.check("later part still runs", True)) is True
+    report = json.loads(runner.report_path.read_text())["results"]
+    assert [(item["check"], item["ok"]) for item in report] == [
+        ("companion: a persona card is written on the baseline", True),
+        ("companion: the mood is pinned on the baseline", False), ("acceptance execution completed", False),
+        ("acceptance execution completed", False), ("later part still runs", True)]
+    assert report[2]["detail"] == {"part": "companion", "stopped_after": "companion: the mood is pinned on the baseline"}
+    assert report[3]["detail"] == {"part": "upgrade", "type": "RuntimeError", "error": "proxy did not start"}
+
+
+def test_main_runs_the_chosen_parts_and_is_complete_only_when_each_finishes(runner, tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(runner, "upgrade_part", lambda out, old, pin, hooks: calls.append(("upgrade", old)))
+    monkeypatch.setattr(runner, "companion_part", lambda out, old, hooks: calls.append(("companion", old)))
+    monkeypatch.setattr("sys.argv", ["release-install", str(tmp_path / "run")])
+    assert runner.run_checked() == 0
+    report = json.loads((tmp_path / "run" / "results.json").read_text())
+    assert calls == [("upgrade", runner.OLD), ("companion", runner.COMPANION_OLD)]
+    assert (report["completed"], report["parts"], report["companion_old"]) == (True, ["upgrade", "companion"],
+                                                                               runner.COMPANION_OLD)
+
+    def fails(out, old, hooks):
+        raise runner.StepFailed("companion: baseline 19e894c installs through its own hooks and records turns")
+
+    runner.results.clear()
+    monkeypatch.setattr(runner, "companion_part", fails)
+    monkeypatch.setattr("sys.argv", ["release-install", str(tmp_path / "second"), "--parts", "companion"])
+    assert runner.run_checked() == 1
+    report = json.loads((tmp_path / "second" / "results.json").read_text())
+    assert report["completed"] is False and report["parts"] == ["companion"]
+    assert report["results"][-1]["detail"]["part"] == "companion"
+
+
+def test_the_installed_sdk_reports_a_missing_runtime_or_api_by_name(runner, tmp_path):
+    home = runner.Home(tmp_path / "base")
+    with pytest.raises(RuntimeError, match="no installed runtime"):
+        runner.sdk(home, [["persona", [], {}]])
+    python = home.runtime_python()
+    python.parent.mkdir(parents=True)
+    python.write_text("#!/bin/sh\ncat >/dev/null\necho '{\"error\": \"the SDK has no MemoryClient.pin_mood\"}'\n")
+    python.chmod(0o755)
+    with pytest.raises(RuntimeError, match="SDK has no MemoryClient.pin_mood"):
+        runner.sdk(home, [["pin_mood", [True], {}]])
+    python.write_text("#!/bin/sh\ncat >/dev/null\necho 'log line'\necho '{\"results\": [{\"version\": 3}]}'\n")
+    assert runner.sdk(home, [["persona", [], {}]]) == [{"version": 3}]
+    python.write_text("#!/bin/sh\necho Traceback >&2\nexit 1\n")
+    with pytest.raises(RuntimeError, match="exit 1.*Traceback"):
+        runner.sdk(home, [["persona", [], {}]])
+    assert runner.missing(["memory_note"], runner.COMPANION_TOOLS) == ["memory_boundary"]
