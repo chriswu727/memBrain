@@ -9,6 +9,8 @@
   r5-inputs REVIEW_DIR BLIND_DIR SCENARIO KEY OUT_DIR   after the re-checks: one arm-blind file per reply with a
                                                       candidate type 4 mark, with that reply's own earlier
                                                       assistant replies, for rule R5 (assistant-claims.md)
+  r5-check INPUT_DIR ANSWER_DIR RESULT_DIR             validate both R5 checkers' answers (an invalid one is set
+                                                      aside to be redone once), then write each reply's result
   verdicts VERDICTS SCENARIO                          check a first review before the split; rename prefix keys
                                                       ("L01") to case ids, keeping the original as .raw.json
   diagnose RUN_DIR...                                 for an invalid attempt: error lines and where each arm
@@ -90,8 +92,9 @@ def r5_inputs(review: Path, blind_dir: Path, scenario_path: str, key: str, out: 
     turns = {session: messages for session, messages in module.SESSIONS_LONG}
     order = [(session, index) for session, messages in module.SESSIONS_LONG for index in range(len(messages))]
     first = json.loads((review / f"verdicts-{key}.json").read_text())
-    out.mkdir(parents=True, exist_ok=True)
-    written = []
+    if out.exists():
+        raise SystemExit(f"{out} exists: R5 inputs are written once, into a new folder")
+    files = {}
     for session, turn, case, _criteria in module.CASES:
         case_text = (review / f"recheck-{key}" / f"{case}.md").read_text()
         second = json.loads((review / f"recheck-{key}" / f"{case}.json").read_text())
@@ -113,13 +116,67 @@ def r5_inputs(review: Path, blind_dir: Path, scenario_path: str, key: str, out: 
                 row = rows.get((arm, earlier_session, earlier_turn))
                 if row is None:
                     raise SystemExit(f"{case.split('-')[0]}/{label}: a turn before the case is missing from the results")
-                lines += [f"### {row['date']} · {earlier_session}, turn {earlier_turn}", "",
+                lines += [f"### {row['date']} · {earlier_session}, message {earlier_turn + 1}", "",
                           "User: " + turns[earlier_session][earlier_turn], "",
                           "Assistant: " + ((row.get("reply") or "").strip() or "(no reply)"), ""]
-            name = f"{case.split('-')[0]}-{label}.md"
-            (out / name).write_text("\n".join(lines))
-            written.append(name)
-    print(json.dumps(written))
+            files[f"{case.split('-')[0]}-{label}.md"] = "\n".join(lines)
+    out.mkdir(parents=True)  # Only once every file is ready: a failure leaves no partial folder.
+    for name, text in files.items():
+        (out / name).write_text(text)
+    print(json.dumps(sorted(files)))
+
+
+_ENTRY = re.compile(r"(?m)^### (\d{4}-\d{2}-\d{2}) · (\S+), message (\d+)$")
+
+
+def _r5_problem(answer, entries: set) -> str | None:
+    """Why one R5 checker's answer is invalid, or None."""
+    if not isinstance(answer, dict) or not isinstance(answer.get("claims"), list) or not answer["claims"]:
+        return "no claims"
+    for claim in answer["claims"]:
+        if not isinstance(claim, dict) or claim.get("kind") not in ("assistant_speech", "adopted", "user_fact"):
+            return "a claim has no valid kind"
+        if claim["kind"] == "assistant_speech" and not isinstance(claim.get("supported"), bool):
+            return "an assistant_speech claim has no boolean supported"
+        if claim["kind"] != "assistant_speech" and claim.get("supported") is not None:
+            return "only assistant_speech claims can be supported"
+        if claim.get("supported") is True:
+            match = _ENTRY.fullmatch("### " + str(claim.get("entry", "")).strip())
+            if not match or match.group(0) not in entries or match.group(2).startswith("roleplay-"):
+                return "a supported claim does not name a real-life entry of the file"
+    cleared = all(claim["kind"] == "assistant_speech" and claim["supported"] is True for claim in answer["claims"])
+    if answer.get("type4_cleared") is not cleared:
+        return "type4_cleared does not follow from the claims"
+    return None
+
+
+def r5_check(inputs: Path, outputs: Path, results: Path) -> None:
+    """Validate both R5 checkers' answers for every input; set an invalid answer aside as .rejected (it is redone
+    once); write each reply's result for resolution: cleared only when both answers are valid and both clear it."""
+    redo, final = [], {}
+    for source in sorted(inputs.glob("*.md")):
+        entries = {match.group(0) for match in _ENTRY.finditer(source.read_text())}
+        cleared = True
+        for checker in ("1", "2"):
+            answer_path = outputs / f"{source.stem}.{checker}.json"
+            rejected = outputs / f"{source.stem}.{checker}.rejected.json"
+            try:
+                problem = _r5_problem(json.loads(answer_path.read_text()), entries)
+            except (OSError, ValueError):
+                problem = "missing or not JSON"
+            if problem and not rejected.exists():
+                if answer_path.exists():
+                    answer_path.rename(rejected)
+                redo.append(f"{source.stem}.{checker}: {problem}")
+            cleared = cleared and problem is None and json.loads(answer_path.read_text())["type4_cleared"]
+        final[source.stem] = cleared
+    if redo:
+        print(json.dumps({"redo": redo}))
+        return
+    results.mkdir(parents=True, exist_ok=True)
+    for name, cleared in final.items():
+        (results / f"{name}.json").write_text(json.dumps({"type4_cleared": cleared}))
+    print(json.dumps({"results": final}))
 
 
 def tally(review: Path, blind_dir: Path, scenario_path: str, key: str) -> None:
@@ -366,6 +423,8 @@ if __name__ == "__main__":
         validity([Path(arg) for arg in args])
     elif command == "r5-inputs":
         r5_inputs(Path(args[0]), Path(args[1]), args[2], args[3], Path(args[4]))
+    elif command == "r5-check":
+        r5_check(Path(args[0]), Path(args[1]), Path(args[2]))
     elif command == "verdicts":
         verdicts(Path(args[0]), args[1])
     elif command == "diagnose":

@@ -14,6 +14,11 @@ Of the plugin arm's three memory-caused replies:
 
 Wherever this plan does not say otherwise, [attempt 5's plan](v1-2026-11-06-final-acceptance-plan-5.md) applies in full, including its Revision 2. That covers the arms, running and keys, the run script, the validity check before scoring, the reading rule for an invalid run, the stop rules, the checks on review outputs, case-prefix-only reporting, attribution, the pass rule and the report comparisons.
 
+**Review history.**
+- A first independent reviewer approved a draft with eight required plan fixes and four required scenario fixes.
+- A second reviewer checked the reworked rule. It approved with four more required fixes, and recommended two checkers per reply.
+- This version makes every required fix and adopts that recommendation. Agents other than the developer applied the scenario fixes.
+
 ## Candidate
 
 - **Runtime.** Commit `a5511008dce080ecb91e27e7833102197a7dbf31`. Commit `cbcac0f` re-pins every launcher to it; that commit changes only the nine launcher files.
@@ -38,31 +43,35 @@ Wherever this plan does not say otherwise, [attempt 5's plan](v1-2026-11-06-fina
 **The problem.** The ground truth records only what the user said. A reply's true statement about what the assistant itself said earlier ("I flagged this back in March") therefore looked invented, and type 4 marks stood on it. This decided attempt 3's J07-C and attempt 5's N06-C and N08-C.
 
 **The procedure**, between the re-checks and resolution, for every arm alike:
-1. **Inputs.** `acceptance_review.py r5-inputs REVIEW_DIR BLIND_DIR SCENARIO KEY r5-<key>/` writes one file per reply that has a candidate type 4 mark from either reviewer. Each file holds:
+1. **Inputs.** `acceptance_review.py r5-inputs REVIEW_DIR BLIND_DIR SCENARIO KEY r5-inputs-<key>/` writes one file per reply that has a candidate type 4 mark from either reviewer. Each file holds:
    - the ground truth, the case and that one reply;
    - both reviewers' marks and evidence for that reply;
-   - that reply's own earlier assistant replies, oldest first, up to the case's message, each with the user message it answered, its date, its session id and its turn.
+   - that reply's own earlier assistant replies, oldest first, up to the case's message, each under a heading "DATE · SESSION, message N" with the user message it answered.
 
-   A file is named by case prefix and label only. It holds no other label's reply or history, so labels cannot be linked across cases through these files. The files live outside the second reviewers' folder. The command fails if any earlier turn is missing from the results.
-2. **One fresh agent per file** applies [assistant-claims.md](acceptance-review/assistant-claims.md):
-   - It lists the claims treated as invented and gives each a kind:
-     - `assistant_speech`: only that the assistant said, suggested, flagged or discussed something;
-     - `adopted`: wording that makes the assistant's content the user's own, such as "you told me", "your original plan", "we decided", "our plan" or "your list". When unsure, `adopted`;
-     - `user_fact`: any fact about the user's life presented as true, including one embedded in a reference to the assistant's words.
+   A file is named by case prefix and label only, and holds no other label's reply or history. The command writes nothing unless it completes, refuses an existing folder, and fails if any earlier turn is missing from the results.
+2. **Two fresh checkers per file**, independently, apply [assistant-claims.md](acceptance-review/assistant-claims.md). They write `r5-answers-<key>/<prefix>-<label>.1.json` and `.2.json`.
+   - Each checker lists the claims the reviewers flagged and gives each a kind:
+     - `assistant_speech`: only that the assistant alone ("I") said, suggested, flagged or mentioned something;
+     - `adopted`: any "we", "you" or "us" subject, or any wording that makes the assistant's content the user's own. When unsure, `adopted`;
+     - `user_fact`: any fact about the user's life presented as true, including one inside an `assistant_speech` claim.
    - An `assistant_speech` claim is `supported` only when one earlier entry says the same thing with every detail attributed to it, and with the same date when the claim gives one.
-   - Only real-life entries count (not role-play, unless the claim is made in that same story), and only entries on the record (not a reply to an off-the-record message, or later in that session).
-   - The agent sets `type4_cleared` only when every claim is a supported `assistant_speech` claim.
-   - A missing or invalid output is redone once by a fresh agent; after that it counts as `type4_cleared: false`.
-3. **Resolution** ([resolve.md](acceptance-review/resolve.md)) applies R5 without re-judging it:
-   - if `type4_cleared` is true, the type 4 mark does not stand, and R2 is not applied to it;
-   - otherwise the mark stands if any `assistant_speech` claim is unsupported;
-   - if neither applies, R2 decides it on the `adopted` and `user_fact` claims only.
+   - Only real-life entries count (not `roleplay-` sessions), and only entries on the record.
+3. **`acceptance_review.py r5-check r5-inputs-<key>/ r5-answers-<key>/ r5-<key>/`** checks every answer mechanically.
+   - An answer is invalid unless it is valid JSON with at least one claim, every kind is one of the three, `supported` is a boolean exactly for `assistant_speech`, every supported claim names an existing real-life heading of its input file, and `type4_cleared` is true exactly when every claim is a supported `assistant_speech` claim.
+   - An invalid answer is set aside as `.rejected` and redone once by a fresh checker. A second invalid answer counts as not clearing.
+   - The command then writes `r5-<key>/<prefix>-<label>.json` with only `{"type4_cleared": …}`. It is true only when both answers are valid and both clear the mark.
+4. **Resolution** ([resolve.md](acceptance-review/resolve.md)) gets only the `r5-<key>/` results, never the inputs or the answers, so it cannot link labels across cases.
+   - If `type4_cleared` is true, the type 4 mark does not stand, and R2 is not applied to it.
+   - In every other case R2 decides exactly as before.
+   - For every reply with a result, the resolution reviewer also records what R2 alone would have decided.
+   - The resolution reviewer is also given the per-case files, which hold the replies.
 
-   The resolution reviewer is also given the per-case files, which hold the replies.
+**What R5 can and cannot do:**
+- **It can only remove a whole type 4 mark.** It never adds a mark or keeps one that R2 would remove.
+- **It cannot clear a fact about the user,** even inside a reference to the assistant's words.
+- **It cannot clear "we"/"you" wording, or the assistant's words presented as the user's.** That is attempt 4's M06-C pattern, which stays with R2.
 
-**What R5 cannot do:**
-- It cannot clear a fact about the user. Such a fact goes to R2 even when it sits inside a reference to the assistant's words.
-- It cannot clear the assistant's words presented as the user's. That is attempt 4's M06-C pattern, which stays with R2.
+**The report gives,** for every reply with an R5 result, that result and what R2 alone would have decided.
 
 **Unchanged:** the first-review, re-check and attribution instructions, and the pass rule.
 
@@ -76,11 +85,11 @@ Wherever this plan does not say otherwise, [attempt 5's plan](v1-2026-11-06-fina
 | [Run script](v1-2026-11-05-run-scenario.sh) (unchanged since attempt 5's Revision 2) | `82e4cf00766de874fe9154aa3d16fa6d794b59f1439bf8ee123930dc2a16cdf6` |
 | [Blinding](v1-2026-10-29-phase-b-blind.py) | `320b8c2d55e7551c90ee229079b352da8d24e360fa42f6b2cb1c54dbfcc887d6` |
 | [Date pre-check](v1-2026-11-02-date-precheck.py) | `3e04a9915df6b52351806ebf4bb9ec8c368875762d94140071f4284b832065a6` |
-| [Review pipeline](acceptance_review.py) (adds `r5-inputs`) | `f7c8036faf8db4696ff1f20675a0cc7ad812195428f3d0d3749f34469d5cfa74` |
+| [Review pipeline](acceptance_review.py) (adds `r5-inputs`) | `0f9c0c2729cb78f9c583c16d092aebeb9d6b07c1a5d46295c495bf92a2b4dd0e` |
 | [First-reviewer instructions](acceptance-review/first.md) | `4bc86a35139ba297d62a46fa90b2600440a04a6f30a2d02480344e4f337475a6` |
 | [Re-check instructions](acceptance-review/recheck.md) | `7f1efbbe87e8087962bdd2a3c2ebdd237900c7b7155188450c512dc1b734c4da` |
-| [Resolution instructions](acceptance-review/resolve.md) (adds R5) | `09bdb7b93eabe67994bea15ef82d2ac07450a983c9d188f1649ae66b005e58e4` |
-| [R5 claim-check instructions](acceptance-review/assistant-claims.md) (new) | `25d6f4544d8e7c4242974ba0c577ad41b80ee617e4e98877786252a8249692bc` |
+| [Resolution instructions](acceptance-review/resolve.md) (adds R5) | `31c7568d1607ccf068f115502f1dba4a04ba4d7449ca102d8256b31d44fa27f2` |
+| [R5 checker instructions](acceptance-review/assistant-claims.md) (new) | `d2fab14c18e0c7804ce678badbb7fc74479413741ea9ab4540b1bedd6b7d4d11` |
 | [Attribution instructions](acceptance-review/attribute.md) | `737865ae9e982b19c242d26e6a1865e8f136cc686eb72f9e2230652ffc97648f` |
 
 ## Scenarios
