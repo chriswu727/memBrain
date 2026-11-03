@@ -16,7 +16,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 同步文本运行时已实现，长期记忆质量仍在验证中。插件和无需 Docker 的嵌入式数据库是新增功能：已在 Linux x86_64 上完成端到端验证，在 Windows 11 上部分实际运行过（数据库、服务、hook、代理、AstrBot 和 OpenClaw），嵌入式运行时也已通过独立的 macOS 安装检查。成熟度候选版本 `6656720` 已在 macOS 上通过完整安装验收（49 项检查）；之后针对并发和 CPU 的候选版本仍需最终验收。使用 Docker 的桌面安装也已在 macOS 上验证。详见[支持范围与已知限制](#status-and-verification)。
+> **预发布阶段。** 同步文本运行时已实现，长期记忆质量仍在验证中。插件和无需 Docker 的嵌入式数据库是新增功能：已在 Linux x86_64 上完成端到端验证，在 Windows 11 上部分实际运行过（数据库、服务、hook、代理、AstrBot 和 OpenClaw），嵌入式运行时也已通过独立的 macOS 安装检查。候选版本 `91271f5`（运行时 `9d8509c`）已在 macOS 上通过完整安装验收（49 项检查）；并发回忆和真实模型行为验收仍未通过。使用 Docker 的桌面安装也已在 macOS 上验证。详见[支持范围与已知限制](#status-and-verification)。
 
 <a id="claude-code-plugin"></a>
 
@@ -252,7 +252,7 @@ membrain desktop start
 
 当前候选版本支持**本地同步文本 Agent**，提供 Python 运行时、HTTP API、TypeScript 客户端、MCP 工具和直接终端聊天入口。核心记忆行为独立于聊天框架。桌面端到端验证目前覆盖 **macOS、uv 和 Docker** 的组合。
 
-[插件模式](architecture/plugin-mode.md)已在 **Linux x86_64** 上完成端到端验证。嵌入式数据库分别以 root 和普通用户身份，通过了真实的启动、重启、备份、恢复和激活检查。在隔离配置的 Claude Code 2.1.311 中，插件从本地插件市场安装成功；使用模拟模型 API 时，插件记录了消息和回复，新会话发给模型的请求中包含上一个会话的记录。这项检查覆盖的是集成流程，不是回答质量。当时自动召回只做关键词匹配；现在安装本地模型后还会按语义匹配。在一台 Windows 11 机器上，嵌入式数据库、本地服务、hook 启动脚本（Git Bash 与 `cmd.exe`）、代理以及 AstrBot 和 OpenClaw 插件都已实际运行；这次运行发现并修复了两个安装问题，它们会让所有新的 Windows 安装以及 AstrBot 首次启动失败。Claude Code 和 Codex 尚未在 Windows 上运行。模型激活候选版本已在真实 Mac 上通过 17 项独立安装检查，包括嵌入式数据库。随后，成熟度候选版本 `6656720`（启动脚本固定到 `a01903a`）在 macOS 上通过了真实安装验收的全部 49 项检查（[检查清单](evaluations/maturity-install-mac-2026-11-03.json)），覆盖全新安装、升级、伙伴状态、代理以及备份与恢复。这只验证了该候选版本：之后针对并发和 CPU 的候选版本仍需最终验收，[发布清单](docs/releasing.md)中 R5 的并发召回延迟目标也尚未达到。新的实现验证和剩余门槛见[临时成熟度证据](evaluations/maturity-free-checks-2026-11-03.md)。
+[插件模式](architecture/plugin-mode.md)已在 **Linux x86_64** 上完成端到端验证。嵌入式数据库分别以 root 和普通用户身份，通过了真实的启动、重启、备份、恢复和激活检查。在隔离配置的 Claude Code 2.1.311 中，插件从本地插件市场安装成功；使用模拟模型 API 时，插件记录了消息和回复，新会话发给模型的请求中包含上一个会话的记录。这项检查覆盖的是集成流程，不是回答质量。当时自动召回只做关键词匹配；现在安装本地模型后还会按语义匹配。在一台 Windows 11 机器上，嵌入式数据库、本地服务、hook 启动脚本（Git Bash 与 `cmd.exe`）、代理以及 AstrBot 和 OpenClaw 插件都已实际运行；这次运行发现并修复了两个安装问题，它们会让所有新的 Windows 安装以及 AstrBot 首次启动失败。Claude Code 和 Codex 尚未在 Windows 上运行。模型激活候选版本已在真实 Mac 上通过 17 项独立安装检查，包括嵌入式数据库。较早的 `6656720`（固定到 `a01903a`）通过 49 项检查的结果仍作为[历史证据](evaluations/maturity-install-mac-2026-11-03.json)保留。之后的 CPU 候选版本 `91271f5`（固定到 `9d8509c`）也在 macOS 上通过了完整安装验收的全部 49 项检查（[检查清单](evaluations/maturity-install-mac-cpu3-2026-11-03.json)），覆盖全新安装、升级、伙伴状态、代理以及备份与恢复。这只验证了该运行时；[发布清单](docs/releasing.md)中 R5 的并发召回延迟目标仍未达到，成熟度候选版本的真实模型 R4/C5 行为验收也尚未执行。新的实现验证和剩余门槛见[临时成熟度证据](evaluations/maturity-free-checks-2026-11-03.md)。
 
 在一个全新的十会话场景上进行的[盲评 A/B 诊断](evaluations/v1-2026-10-27-ab-baselines.md)中，默认记忆运行时得 4.5 分（满分 12），无记忆基线得 2 分，直接放入完整历史的朴素做法得 11.5 分。记忆组消耗的 token 约为完整历史组的三十倍，并需要 58 次人工干预。它失分的主要原因是召回没有取回相关事实。在这样的小规模下，完整历史是更强的基线；更长的历史尚未测试。使用相同模型和用例对插件路径进行的[第二次盲评](evaluations/v1-2026-10-27-plugin-path-ab.md)中，插件在该场景得 10.5 分，完整历史得 11 分。在一个包含粘贴代码和日志的 34 会话长版本上，插件先得 7.5 分，针对问题改进历史注入和召回后得 12 分，完整历史得 11.5 分，插件消耗的 token 约为完整历史的四分之一。这些都是单次运行，且改进是在同一场景上设计的。由另一个智能体编写的[两个全新场景](evaluations/v1-2026-10-27-fresh-scenarios.md)对此做了检验：在第一个场景的长版本上，当时已合并的插件（含本地语义召回）只得 6 分，完整历史得 11 分。随后的重新设计（由宿主模型维护笔记、按整条消息召回）在预留的第二个场景长版本上得 11.5 分，与完整历史相同，而之前的插件只得 5.5 分，token 消耗约为完整历史的三分之一。这只是使用一个宿主模型（DeepSeek V4 Pro）的单次运行。
 

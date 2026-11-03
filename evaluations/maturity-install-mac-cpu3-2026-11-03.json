@@ -1,0 +1,209 @@
+{
+  "basic_launcher_baseline": "d0d7a0379f7ac5f1b81dad04504601bb6606f1b0",
+  "companion_launcher_baseline": "19e894ca9e08cf65fa071e8019789499953478d0",
+  "companion_runtime": "4f5f5278c5566e59606f1483720dc4150465ddb5",
+  "platform": "macOS 15.7.4 arm64, Apple M4",
+  "completed": true,
+  "paid_or_subscription_model_calls": false,
+  "candidate_head": "91271f5e1711a9b5724dbc11e91192e8acc24300",
+  "pin": "9d8509c6d4f6272c11759a1a05b8f6de8aa822d4",
+  "checks": [
+    {
+      "check": "old runtime installs and records a turn",
+      "ok": true
+    },
+    {
+      "check": "current hooks upgrade the installed runtime",
+      "ok": true
+    },
+    {
+      "check": "the installation and brain survive the upgrade",
+      "ok": true
+    },
+    {
+      "check": "the first session after the upgrade gets the earlier turn",
+      "ok": true
+    },
+    {
+      "check": "the pinned runtime is the one installed",
+      "ok": true
+    },
+    {
+      "check": ".claude-mcp.json starts the MCP server",
+      "ok": true
+    },
+    {
+      "check": "a note can be corrected through MCP",
+      "ok": true
+    },
+    {
+      "check": "the corrected note replaces the old one at session start",
+      "ok": true
+    },
+    {
+      "check": "forgetting through MCP removes the records from later sessions",
+      "ok": true
+    },
+    {
+      "check": ".codex-mcp.json starts the MCP server",
+      "ok": true
+    },
+    {
+      "check": ".codebuddy-mcp.json starts the MCP server",
+      "ok": true
+    },
+    {
+      "check": "after a restart the hooks start the service and recall still works",
+      "ok": true
+    },
+    {
+      "check": "a session started before the service was ready gets memory on its next message",
+      "ok": true
+    },
+    {
+      "check": "the installed proxy starts against a stub upstream with no model key",
+      "ok": true
+    },
+    {
+      "check": "the proxy forwards chat completions to the upstream and returns its reply",
+      "ok": true
+    },
+    {
+      "check": "the proxy adds memory from an earlier recorded turn for a bot user",
+      "ok": true
+    },
+    {
+      "check": "the proxy records the bot user's message and the upstream's reply",
+      "ok": true
+    },
+    {
+      "check": "a backup completes",
+      "ok": true
+    },
+    {
+      "check": "the backup restores into a fresh, quarantined installation",
+      "ok": true
+    },
+    {
+      "check": "the activated restore recalls memory from before the backup",
+      "ok": true
+    },
+    {
+      "check": "the retired original refuses to start after activation",
+      "ok": true
+    },
+    {
+      "check": "companion: baseline 19e894c installs through its own hooks and records turns",
+      "ok": true
+    },
+    {
+      "check": "companion: the baseline's MCP launcher offers the note and boundary tools",
+      "ok": true
+    },
+    {
+      "check": "companion: the baseline's SDK offers the persona, mood and relationship calls",
+      "ok": true
+    },
+    {
+      "check": "companion: a persona card with a baseline mood is written on the baseline",
+      "ok": true
+    },
+    {
+      "check": "companion: the mood is pinned on the baseline",
+      "ok": true
+    },
+    {
+      "check": "companion: a reported feeling on a note is written on the baseline",
+      "ok": true
+    },
+    {
+      "check": "companion: a shared moment is written on the baseline",
+      "ok": true
+    },
+    {
+      "check": "companion: a boundary with an alias is written on the baseline",
+      "ok": true
+    },
+    {
+      "check": "companion: a support style is written on the baseline",
+      "ok": true
+    },
+    {
+      "check": "companion: the baseline reads back everything written",
+      "ok": true
+    },
+    {
+      "check": "companion: current hooks upgrade the baseline runtime",
+      "ok": true
+    },
+    {
+      "check": "companion after upgrade: the persona block is in session context with its version",
+      "ok": true
+    },
+    {
+      "check": "companion after upgrade: the feeling is listed with its note",
+      "ok": true
+    },
+    {
+      "check": "companion after upgrade: the boundary keeps its topic out of recall until the user raises it",
+      "ok": true
+    },
+    {
+      "check": "companion after upgrade: the shared moment is in the relationship",
+      "ok": true
+    },
+    {
+      "check": "companion after upgrade: the mood is still pinned at the persona's baseline",
+      "ok": true
+    },
+    {
+      "check": "companion after upgrade: the support style is kept",
+      "ok": true
+    },
+    {
+      "check": "companion: a backup completes",
+      "ok": true
+    },
+    {
+      "check": "companion: the backup restores into a fresh, quarantined installation",
+      "ok": true
+    },
+    {
+      "check": "companion: the backup restores",
+      "ok": true
+    },
+    {
+      "check": "companion: the restored installation activates",
+      "ok": true
+    },
+    {
+      "check": "companion: the restored installation is ready",
+      "ok": true
+    },
+    {
+      "check": "companion after restore: the persona block is in session context with its version",
+      "ok": true
+    },
+    {
+      "check": "companion after restore: the feeling is listed with its note",
+      "ok": true
+    },
+    {
+      "check": "companion after restore: the boundary keeps its topic out of recall until the user raises it",
+      "ok": true
+    },
+    {
+      "check": "companion after restore: the shared moment is in the relationship",
+      "ok": true
+    },
+    {
+      "check": "companion after restore: the mood is still pinned at the persona's baseline",
+      "ok": true
+    },
+    {
+      "check": "companion after restore: the support style is kept",
+      "ok": true
+    }
+  ],
+  "all_test_installations_stopped": true
+}
