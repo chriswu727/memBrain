@@ -121,13 +121,14 @@ def record_affect(service, conn, principal, brain, *, note_id, affect, request_i
     return {"affect_id": record_id}
 
 
-def _records(service, conn, principal, brain_id, limit=MAX_RECORDS + 1) -> list[dict]:
+def _records(service, conn, principal, brain_id, limit=MAX_RECORDS + 1, *, ids=None) -> list[dict]:
     """Current records whose note is still current, newest first, each with its note and evidence."""
     params = service._params(principal, brain_id)
     rows = conn.execute(
         f"SELECT producer_ref,document FROM memory_events WHERE {_VISIBLE} AND conversation_id=%s "
-        "AND document->'observed'->'content'->>'text' NOT LIKE %s ORDER BY sequence DESC LIMIT %s",
-        (*params, AFFECT_CONVERSATION, '{"affect_marker"%', limit)).fetchall()
+        "AND document->'observed'->'content'->>'text' NOT LIKE %s "
+        "AND (%s::text[] IS NULL OR id=ANY(%s::text[])) ORDER BY sequence DESC LIMIT %s",
+        (*params, AFFECT_CONVERSATION, '{"affect_marker"%', ids, ids, limit)).fetchall()
     records = [entry for entry in map(_entry, rows) if entry and "marker" not in entry]
     marker = latest_marker(service, conn, principal, brain_id)
     if marker:  # Erased by the reset; kept out here too, so nothing before the marker can count.

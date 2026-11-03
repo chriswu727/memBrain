@@ -163,9 +163,11 @@ def test_feelings_and_clear_marker_survive_archive_restore(brain):
     result = affect_records(*copied)
     assert [record["label"] for record in result["records"]] == ["calm"]
     assert len(result["markers"]) == 1
+    assert [node["label"] for node in memory_map(*copied)["nodes"] if node["kind"] == "affect"] == ["calm"]
     clear_affect(*copied)
     assert affect_records(*copied)["records"] == []
     assert len(affect_records(*copied)["markers"]) == 2
+    assert not any(node["kind"] == "affect" for node in memory_map(*copied)["nodes"])
 
 
 @pytest.mark.parametrize("replacement", [
@@ -204,6 +206,7 @@ def test_imported_inferred_feelings_without_real_sources_stay_out(brain, false_s
     copied = service, principal, service.create_brain(principal, "Untrusted feelings")["id"]
     restore(copied, upload(copied, offline), fresh=True)
     assert affect_records(*copied)["records"] == []
+    assert not any(node["kind"] == "affect" for node in memory_map(*copied)["nodes"])
 
 
 def test_imported_inferred_feeling_keeps_its_original_user_message(brain):
@@ -218,6 +221,8 @@ def test_imported_inferred_feeling_keeps_its_original_user_message(brain):
     result = affect_records(*copied)["records"]
     assert [(record["id"], record["basis"], record["source_event_ids"]) for record in result] == [
         (saved["affect_id"], "inferred", [source])]
+    feelings = [node for node in memory_map(*copied)["nodes"] if node["kind"] == "affect"]
+    assert [(node["id"], node["basis"]) for node in feelings] == [("affect:" + saved["affect_id"], "inferred")]
 
 
 def test_an_older_archive_cannot_undo_later_companion_deletions_and_resets(brain):
