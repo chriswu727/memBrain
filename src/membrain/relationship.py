@@ -10,7 +10,10 @@ What is stored here, and where:
   asked for, not something anyone said, so they are never extracted into recalled memories, shown as history,
   counted as messages or scheduled for learning.
 - **Familiarity is derived, never set**: distinct days with user messages and the number of shared moments, both
-  counted after the latest reset marker, mapped to four levels by ``THRESHOLDS``. The user can cap it lower.
+  counted after the latest reset marker, mapped to four levels by ``THRESHOLDS``. The user can cap it lower. A
+  message's day is when it happened as its host reported it, never later than when it was recorded. Restoring an
+  archive records each message again, so the restore keeps the day it was first recorded on in a ``restored_days``
+  record here.
 - **Commitments kept and missed** come from ``agent_commitment`` notes: done is kept; still open after its date is
   missed. A missed one is shown once in context and then acknowledged, so it is not repeated.
 
@@ -50,6 +53,7 @@ BOUNDARIES_CHARACTERS = 900  # The rendered boundaries line; a new boundary that
 RELATIONSHIP_CHARACTERS = 2200  # The whole block, including its fixed header.
 MOMENTS_IN_CONTEXT = 3
 MAX_MOMENTS = 500
+RESTORED_CHARACTERS = 200_000  # Event IDs per ``restored_days`` record, well inside the 256 KiB event limit.
 _VISIBLE = ("tenant_id=%s AND owner_id=%s AND brain_id=%s AND is_current AND NOT deleted AND NOT suppressed "
             "AND NOT retired AND document IS NOT NULL")
 # Leading words dropped from a boundary topic before matching, so "my ex" matches "my ex texted" and "the ex".
@@ -177,6 +181,17 @@ def _entry(row) -> dict | None:
             return {**base, "kind": kind, "level": _level(stored.get("level"))}
         if kind == "acknowledged":
             return {**base, "kind": kind, "note_id": str(stored["note_id"])}
+        if kind == "restored_days":
+            # Never a day after the record itself was written, so an archive cannot add days still to come.
+            days = {}
+            for day, ids in stored["days"].items():
+                if _datetime.date.fromisoformat(day).isoformat() != day or not isinstance(ids, list):
+                    return None
+                for event_id in ids:
+                    if not isinstance(event_id, str) or not 0 < len(event_id) <= 256:
+                        return None
+                    days[event_id] = min(day, str(base["recorded_at"])[:10])
+            return {**base, "kind": kind, "days": days}
     except (ValueError, KeyError, TypeError, AttributeError, DomainError):
         return None
     return None
@@ -197,10 +212,16 @@ def _state(service, conn, principal, brain_id) -> dict:
     records = [entry for entry in entries if "kind" in entry and entry["sequence"] > after]
     latest = {kind: next((entry for entry in reversed(records) if entry["kind"] == kind), None)
               for kind in ("support_style", "cap")}
+    restored = {}
+    for entry in records:  # The earliest record wins: a second restore would re-record the first restore's day.
+        if entry["kind"] == "restored_days":
+            for event_id, day in entry["days"].items():
+                restored.setdefault(event_id, day)
     return {"marker": markers[-1] if markers else None, "markers": list(reversed(markers)), "after": after,
             "records": records, "support_style": latest["support_style"], "cap": latest["cap"],
             "boundaries": [entry for entry in records if entry["kind"] == "boundary"],
-            "acknowledged": {entry["note_id"] for entry in records if entry["kind"] == "acknowledged"}}
+            "acknowledged": {entry["note_id"] for entry in records if entry["kind"] == "acknowledged"},
+            "restored_days": restored}
 
 
 def latest_marker(service, conn, principal, brain_id) -> dict | None:
@@ -269,16 +290,40 @@ def _commitments(service, conn, principal, brain_id, after, acknowledged, today)
     return record
 
 
-def _days(service, conn, principal, brain_id, after) -> list[str]:
-    """Distinct days (UTC, from when each message was recorded) with a user message after the marker. Notes,
-    messages written on the memory page and every reserved conversation are not conversation."""
+def _utc_day(value) -> str | None:
+    """The UTC day of an ISO time (a time without a zone is read as UTC), or None when it is not one."""
+    try:
+        moment = _datetime.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return None
+    moment = moment if moment.tzinfo else moment.replace(tzinfo=_datetime.UTC)
+    return moment.astimezone(_datetime.UTC).date().isoformat()
+
+
+def _days(service, conn, principal, brain_id, after, restored=None) -> list[str]:
+    """Distinct days (UTC) with a user message after the marker. Notes, messages written on the memory page and
+    every reserved conversation are not conversation.
+
+    A message's day is when it occurred as its host reported it, but never later than when it was recorded: the day
+    a restored message was first recorded on (``restored``: event ID to day), else the day of its own record. With
+    no reported time, it is that recorded day."""
+    restored = restored or {}
     rows = conn.execute(
-        "SELECT DISTINCT left(document->'system_time'->>'recorded_at',10) AS day FROM memory_events "
+        "SELECT DISTINCT left(document->'system_time'->>'recorded_at',10) AS recorded,"
+        "document->'observed'->'occurred_time'->>'start' AS occurred,"
+        f"CASE WHEN producer_ref='{ARCHIVE_PRODUCER}' THEN id END AS restored_id FROM memory_events "
         f"WHERE {_VISIBLE} AND sequence>%s AND document->'observed'->>'event_kind'='message' "
         "AND document->'observed'->>'actor_role'='user' AND conversation_id IS DISTINCT FROM %s "
-        "AND producer_ref <> 'membrain-memory-page' ORDER BY day",
+        "AND producer_ref <> 'membrain-memory-page'",
         (*service._params(principal, brain_id), after, NOTES_CONVERSATION)).fetchall()
-    return [row["day"] for row in rows if row["day"]]
+    days = set()
+    for row in rows:
+        if not row["recorded"]:
+            continue
+        latest = min(restored.get(row["restored_id"]) or row["recorded"], row["recorded"])
+        occurred = _utc_day(row["occurred"]) if row["occurred"] else None
+        days.add(occurred if occurred and occurred <= latest else latest)  # Never a time still to come.
+    return sorted(days)
 
 
 def _short(value: str | None, today: _datetime.date) -> str:
@@ -320,7 +365,8 @@ def _read(service, conn, principal, brain_id, today) -> dict:
     moments = _moments(service, conn, principal, brain_id, after)
     commitments = _commitments(service, conn, principal, brain_id, after, state["acknowledged"], today)
     cap = state["cap"]["level"] if state["cap"] else None
-    known = familiarity(_days(service, conn, principal, brain_id, after), len(moments), cap, today)
+    known = familiarity(_days(service, conn, principal, brain_id, after, state["restored_days"]), len(moments), cap,
+                        today)
     support = state["support_style"]
     return {"familiarity": known,
             "support_style": None if not support or not support["text"] else {
@@ -573,6 +619,29 @@ def reset_relationship(service, principal, brain_id: str, *, today=None) -> dict
     if marker is None:
         raise DomainError("dependency_unavailable", "The reset marker could not be read back.", retryable=True)
     return {**result, **relationship_context(result), "removed": removed, "marker": marker}
+
+
+def record_restored_days(service, conn, principal, brain, events) -> None:
+    """Keep the day each restored user message was first recorded on, for familiarity. Restore records every event
+    again at the time of the restore, so without this a restored brain counts all its history as one day."""
+    days = {}
+    for event in events:
+        observed = event["observed"]
+        day = _utc_day(event["system_time"]["recorded_at"])
+        if (observed.get("event_kind") == "message" and observed.get("actor_role") == "user" and day
+                and event["scope"]["conversation_id"] != NOTES_CONVERSATION):
+            days[event["event_id"]] = day
+    grouped, size = {}, 0
+    for event_id, day in days.items():
+        if size + len(event_id) > RESTORED_CHARACTERS:  # Event IDs are up to 256 characters: split by length.
+            _append(service, conn, principal, brain, {"relationship": "restored_days", "days": grouped},
+                    "relationship-restored-" + uid())
+            grouped, size = {}, 0
+        grouped.setdefault(day, []).append(event_id)
+        size += len(event_id) + 4
+    if grouped:
+        _append(service, conn, principal, brain, {"relationship": "restored_days", "days": grouped},
+                "relationship-restored-" + uid())
 
 
 def shared_refusal(service, conn, principal, brain_id, sequences) -> str | None:

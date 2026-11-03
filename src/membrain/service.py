@@ -1355,7 +1355,7 @@ class MemoryService:
                 "ON CONFLICT(tenant_id,owner_id,brain_id,object_kind,object_id) DO NOTHING",
                 (*params, tombstone["object_kind"], tombstone["object_id"], tombstone["mode"]),
             )
-        imported, quarantined = 0, 0
+        imported, quarantined, restored_events = 0, 0, []
         excluded = len(set(data.get("excluded_deleted_event_ids", [])))
         for event in sorted(data["events"], key=lambda e: e["sequence"]):
             if event["event_id"] in blocked_events:
@@ -1379,6 +1379,11 @@ class MemoryService:
                 conn.execute("UPDATE memory_events SET retired=true WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=%s",
                              (*params, event["event_id"]))
             imported += 1
+            restored_events.append(event)
+        from .relationship import record_restored_days
+
+        # Restored events are recorded again now; familiarity keeps the day each message was first recorded on.
+        record_restored_days(self, conn, principal, brain, restored_events)
         if data.get("event_dependencies"):
             conn.cursor().executemany(
                 "INSERT INTO memory_event_dependencies(tenant_id,owner_id,brain_id,input_event_id,output_event_id) "
