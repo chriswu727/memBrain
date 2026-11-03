@@ -177,9 +177,15 @@ def test_recall_trace_marks_what_the_last_recall_used_even_outside_the_sample(in
         assert client.post(f"/v1/brains/{ident}/recall-trace", headers=headers,
                            json={"event_ids": ["x"] * 51}).status_code == 422
         traced = client.get(path + "&trace=true", headers=headers).json()
+        assert client.post(f"/v1/brains/{ident}/recall-trace", headers=headers,
+                           json={"event_ids": []}).json() == {"recorded": 0}
+        missed = client.get(path + "&trace=true", headers=headers).json()
     marked = {node["id"] for node in traced["nodes"] if node["traced"]}
     assert marked == {"msg:" + old, "note:" + kept}
     assert traced["trace"]["used"] == 3 and traced["trace"]["shown"] == 2 and traced["trace"]["at"]
+    # A later recall that found nothing clears the marks but still says when it ran.
+    assert not any(node["traced"] for node in missed["nodes"])
+    assert missed["trace"]["used"] == 0 and missed["trace"]["at"] >= traced["trace"]["at"]
     with TestClient(create_app(settings, service), base_url="http://127.0.0.1") as client:
         restarted = client.get(f"/v1/brains/{ident}/memory-map?trace=true", headers=headers).json()
     assert restarted["trace"]["used"] == 0 and not any(node["traced"] for node in restarted["nodes"])

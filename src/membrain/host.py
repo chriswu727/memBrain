@@ -1033,11 +1033,13 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
     questions: set = set()
     sources = _sources(response, current_conversation, questions=questions)
     if not sources:
+        _trace(client, [])  # A miss replaces the previous trace, so the page never shows an older hit as current.
         return None
     try:
         found = client.timeline(roles=("user", "assistant"), event_ids=[event_id for event_id, _ in sources],
                                 max_characters=200_000, max_item_characters=20_000, limit=len(sources))
     except Exception:
+        _trace(client, [])  # The fallback lines are statements, not records the map can point to.
         return render_context(response, current_conversation=current_conversation, limit=limit)
     messages = {item["event_id"]: item for item in found.get("items", [])}
     starts = dict(sources)
@@ -1080,9 +1082,10 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
 
 
 def _trace(client, event_ids: list[str]) -> None:
-    """Best effort: lets the memory page light up what this recall used. Never stored; failures are ignored."""
+    """Best effort: lets the memory page light up what this recall used, or that it used nothing. Covers this
+    message recall only, not the notes and history added at session start. Never stored; failures are ignored."""
     try:
-        if event_ids and callable(getattr(client, "trace_recall", None)):
+        if callable(getattr(client, "trace_recall", None)):
             client.trace_recall(event_ids)
     except Exception:
         pass

@@ -50,9 +50,11 @@ Development is not giving the user an emotion score. The user's feelings are one
    - Decoration never looks like a dot or a line, and is not counted.
    - `/memory?demo=brain&show=1` opens it with fictional data and no API call.
 2. **Edit and delete from the map.** Selecting a note on the map offers the same edit and delete as the Notes tab. After a change, the map redraws.
-3. **Recall trace.** The map can light up the records the last recall used.
+3. **Recall trace.** The map can light up the records the latest message recall used.
    - The service keeps the last 20 recalls, in memory only and never stored.
+   - A recall that finds nothing is reported too, so an older hit is never shown as current.
    - The backend is done (`memory-map?trace=true`).
+   - **Wording on the page.** The trace is labelled "Latest recorded recall" with its time. The page says that it covers message recall only: the notes and history added at the start of a session are not traced. It never says the trace is everything the current reply used.
 4. **Empty and busy maps.** An empty memory shows the empty message. A busy database shows "Memory is busy updating" with a retry.
 
 ## 1. `persona`: P1 card, then P2 development

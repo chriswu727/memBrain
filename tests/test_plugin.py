@@ -684,6 +684,14 @@ def test_recall_reports_what_it_used_and_ignores_a_failing_trace():
     context = host.recall_context(Client(), "dentist")
     assert traced == [["e0", "e1", "e2"]] and "number 2" in context
 
+    class Miss(Client):
+        def recall(self, *args, **kwargs):
+            return _response()
+
+    # A hit followed by a miss: the miss replaces the trace, so the hit is not shown as the latest recall.
+    assert host.recall_context(Miss(), "something unrelated") is None
+    assert traced[-1] == []
+
     class Failing(Client):
         def trace_recall(self, event_ids):
             raise OSError("service gone")
