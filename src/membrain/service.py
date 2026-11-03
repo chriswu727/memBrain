@@ -11,7 +11,7 @@ from psycopg.types.json import Jsonb
 
 from . import cognition
 from .contracts import CONTRACT_VERSION, validate
-from .helpers import DomainError, digest, now, uid
+from .helpers import DomainError, deep_copy, digest, now, uid
 
 
 def _vector(text):
@@ -115,7 +115,7 @@ class MemoryService:
         }
 
     def _rebind(self, document, principal, brain):
-        result = copy.deepcopy(document)
+        result = deep_copy(document)
         old_scope = result["scope"]
         scope = self._scope(principal, brain, {
             "conversation_ref": old_scope.get("conversation_id"),
