@@ -2,18 +2,30 @@
 """Run one frozen paid acceptance attempt from a manifest, scenario by scenario, and stop at the first problem.
 
   acceptance-attempt-driver.py run --manifest M --out OUT_ROOT [--repo ROOT] [--runner CMD] [--validity CMD]
-                                   [--ledger LEDGER] [--grace SECONDS]
+                                   [--ledger LEDGER] [--grace SECONDS] [--live]
 
 The manifest freezes every input by sha256 and binds each scenario key to its gate (format in
 acceptance-attempt-driver.md; the same format as acceptance_review.py's manifest). The driver:
 - validates the manifest and every hash before anything, and refuses an OUT_ROOT that already has a driver state or
   any of the attempt's run directories;
-- before each scenario, in manifest order: re-verifies every hash, reads the billing ledger's `blocked` flag (read
-  only, when --ledger is given) and refuses existing run directories;
+- before each scenario, in manifest order: re-verifies every hash, reads the billing ledger (read only, when one is
+  given: `blocked` must be false, `run_id` the attempt_id, and `policy_sha256` C5_BILLING_POLICY_SHA256 when set) and
+  refuses existing run directories;
 - runs RUNNER SCENARIO OUT_ROOT KEY, then VALIDITY OUT_ROOT/KEY-P OUT_ROOT/KEY-E OUT_ROOT/KEY-F;
 - stops at the first non-zero exit (any runner exit but 0 is a scenario failure, including the run script's
   supervisor exits after a failed or refused arm), invalid scenario, changed input or blocked ledger. It never
   starts another scenario after that, and it never resumes, reuses or retries anything.
+
+Live mode is on with --live or whenever C5_BILLING_LEDGER or C5_ATTEMPT_ID is set. It refuses --runner and
+--validity: it runs only the repository's evaluations/c5-run-scenario.sh and `<this python>
+evaluations/acceptance_review.py validity`, which must be frozen in the manifest's files together with
+evaluations/c5-harness.py. Its ledger is C5_BILLING_LEDGER (required, absolute; a different --ledger is refused). On a
+stop the driver decides itself (invalid, hash_mismatch including inputs changed during a scenario, run_dir_exists,
+driver_error) it blocks the shared billing run for every future provider call by running the harness's own entry
+point, `<C5_PYTHON or uv run python> evaluations/c5-harness.py --stop`, exactly as the run script's supervisor does.
+That entry point takes no reason, so the ledger records the harness's own reason ("arm_failed" unless already set);
+the driver's reason is in its state file. Without live mode (offline tests), overrides are allowed and no shared
+stop runs.
 
 OUT_ROOT/attempt-state.json is replaced atomically after every step. It records statuses, times, exit codes and log
 paths only: never a scenario's content and never a child's output (children write to log files). A pair is
@@ -23,7 +35,7 @@ which gates have a complete pair and never decides R4 or C5. The last stdout lin
 Exit codes: 0 every scenario ran and was valid; 1 stopped; 2 refused before any scenario started; 128 + signal
 number after SIGINT or SIGTERM. A signal goes first to the runner alone, so the run script's supervisor can block the
 billing ledger before it stops its arms; after --grace seconds the runner's whole process group gets SIGTERM, and
-after twice that SIGKILL. The driver only ever reads the ledger.
+after twice that SIGKILL. A signal never cuts the shared stop short. The driver itself only ever reads the ledger.
 Standard library only; runs on the system Python 3 of macOS.
 """
 from __future__ import annotations
@@ -196,19 +208,33 @@ def verify(repo: Path, manifest: dict, manifest_path: Path, manifest_sha256: str
     return None
 
 
-def ledger_problem(path: Path) -> str | None:
-    """Reads the billing ledger's `blocked` flag (never writes it). Anything but an explicit False stops the run."""
+def ledger_problem(path: Path, attempt_id: str, policy_sha256: str | None) -> tuple[str, str] | None:
+    """(reason, detail) when the billing ledger stops the attempt; it is only read, never written. Anything but an
+    explicit `blocked: false` stops it, and so does a `run_id` other than the manifest's attempt_id or, when
+    C5_BILLING_POLICY_SHA256 is given, a `policy_sha256` other than it."""
     try:
         state = json.loads(path.read_text())
     except (OSError, ValueError) as error:
-        return f"the billing ledger is unreadable: {type(error).__name__}"
+        return "ledger_blocked", f"the billing ledger is unreadable: {type(error).__name__}"
     if not isinstance(state, dict) or state.get("blocked") is not False:
-        return "the billing ledger is blocked" if isinstance(state, dict) and state.get("blocked") is True \
-            else "the billing ledger has no explicit blocked=false"
+        return "ledger_blocked", ("the billing ledger is blocked" if isinstance(state, dict) and state.get("blocked")
+                                  is True else "the billing ledger has no explicit blocked=false")
+    if state.get("run_id") != attempt_id:
+        return "ledger_mismatch", "the billing ledger's run_id differs from the manifest's attempt_id"
+    if policy_sha256 is not None and state.get("policy_sha256") != policy_sha256:
+        return "ledger_mismatch", "the billing ledger's policy_sha256 differs from C5_BILLING_POLICY_SHA256"
     return None
 
 
 MAX_GRACE_SECONDS = 600.0
+LIVE_RUNNER = "evaluations/c5-run-scenario.sh"
+LIVE_VALIDITY = "evaluations/acceptance_review.py"
+LIVE_STOPPER = "evaluations/c5-harness.py"
+SHARED_STOP_SECONDS = 300.0
+# Stops the driver decides itself. On these, in live mode, it blocks the shared billing run for every future provider
+# call through the harness's own `--stop` entry point. A failed runner is left to the run script's supervisor, which
+# blocks the ledger itself after any arm started; a ledger already blocked or bound elsewhere needs nothing.
+SHARED_STOPS = ("invalid", "hash_mismatch", "run_dir_exists", "driver_error")
 
 
 def _grace(text) -> float:
@@ -277,11 +303,27 @@ class Driver:
         self.repo = Path(args.repo).resolve()
         self.out = Path(args.out).absolute()
         self.manifest_path = Path(args.manifest).absolute()
+        self.live = bool(args.live or "C5_BILLING_LEDGER" in os.environ or "C5_ATTEMPT_ID" in os.environ)
+        if self.live and (args.runner or args.validity):
+            raise Refused("live_override", "a live attempt runs only the repository's own run script and validity "
+                                           "check: --runner and --validity are for offline tests")
         self.ledger = Path(args.ledger).absolute() if args.ledger else None
-        self.runner = _command(args.runner or "evaluations/c5-run-scenario.sh", self.repo)
+        if self.live:
+            billing = os.environ.get("C5_BILLING_LEDGER", "")
+            if not billing or not os.path.isabs(billing):
+                raise Refused("ledger_required", "a live attempt needs an absolute C5_BILLING_LEDGER")
+            if self.ledger is not None and self.ledger != Path(billing):
+                raise Refused("environment", "--ledger differs from C5_BILLING_LEDGER")
+            self.ledger = Path(billing)
+        self.policy_sha256 = os.environ.get("C5_BILLING_POLICY_SHA256") or None
+        self.runner = _command(args.runner or LIVE_RUNNER, self.repo)
         self.validity = (_command(args.validity, self.repo) if args.validity
-                         else [sys.executable, str(self.repo / "evaluations" / "acceptance_review.py"), "validity"])
+                         else [sys.executable, str(self.repo / LIVE_VALIDITY), "validity"])
+        # The run script's own interpreter choice, so the harness can load its billing guard.
+        python = [os.environ["C5_PYTHON"]] if os.environ.get("C5_PYTHON") else ["uv", "run", "python"]
+        self.stopper = python + [str(self.repo / LIVE_STOPPER), "--stop"] if self.live else None
         self.child: subprocess.Popen | None = None
+        self.protected = False  # The running child is the shared billing stop, which a signal must not cut short.
         self.terminated: int | None = None  # The child pid that has been sent SIGTERM for a signal.
         self.signalled_at = 0.0
         self.grace = _grace(args.grace)
@@ -312,6 +354,11 @@ class Driver:
         if self.ledger and billing and Path(billing).absolute() != self.ledger:
             raise Refused("environment", "--ledger differs from C5_BILLING_LEDGER")
         frozen = set(self.manifest["files"])
+        if self.live:
+            missing = [path for path in (LIVE_RUNNER, LIVE_VALIDITY, LIVE_STOPPER) if path not in frozen]
+            if missing:
+                raise Refused("unfrozen_command", f"a live attempt needs these in the manifest's files: "
+                                                  f"{', '.join(missing)}")
         driver = Path(__file__).resolve()
         unfrozen = unfrozen_command_files(self.runner + self.validity, self.repo, frozen)
         if self.repo in driver.parents and driver.relative_to(self.repo).as_posix() not in frozen:
@@ -321,8 +368,8 @@ class Driver:
         problem = verify(self.repo, self.manifest, self.manifest_path, self.manifest_sha256)
         if problem:
             raise Refused("hash_mismatch", problem)
-        if self.ledger and (problem := ledger_problem(self.ledger)):
-            raise Refused("ledger_blocked", problem)
+        if self.ledger and (problem := ledger_problem(self.ledger, attempt, self.policy_sha256)):
+            raise Refused(*problem)
         if (self.out / STATE).exists():
             try:
                 earlier = json.loads((self.out / STATE).read_text()).get("attempt_id")
@@ -352,6 +399,8 @@ class Driver:
             "runner": self.runner,
             "validity": self.validity,
             "ledger": str(self.ledger) if self.ledger else None,
+            "live": self.live,
+            "shared_stop": None,
             "created_at": _now(),
             "result": "running",
             "stop": None,
@@ -373,7 +422,8 @@ class Driver:
         first SIGTERM, so the run script's supervisor can block the billing ledger before it stops its arms."""
         if self.signal is None:
             self.signal = number
-        self.terminate_leader()
+        if not self.protected:
+            self.terminate_leader()
 
     def terminate_leader(self) -> None:
         child = self.child
@@ -395,22 +445,28 @@ class Driver:
             pass
         return True
 
-    def spawn(self, argv: list[str], log: Path) -> int:
+    def spawn(self, argv: list[str], log: Path, *, protect: float | None = None) -> int:
         """Run a child in its own process group with its output going to LOG only, and return its exit code.
         Polls (never `wait -n`). On SIGINT/SIGTERM: SIGTERM to the leader; after the grace period SIGTERM to the
         whole group; after another, SIGKILL to the group. After the leader exits, for any reason, whatever is left of
-        its group gets SIGTERM and, if still there after the grace period, SIGKILL."""
+        its group gets SIGTERM and, if still there after the grace period, SIGKILL. With PROTECT (seconds), a signal
+        does not stop the child; it gets that long, then its group gets SIGKILL and the exit code is -9."""
+        self.protected = protect is not None
         with log.open("ab") as output:
             try:
                 self.child = subprocess.Popen(argv, cwd=self.repo, stdin=subprocess.DEVNULL, stdout=output,
                                               stderr=subprocess.STDOUT, start_new_session=True)
             except OSError as error:
                 output.write(f"driver: could not start {argv[0]}: {type(error).__name__}\n".encode())
+                self.protected = False
                 return 127
         pgid = self.child.pid
+        deadline = None if protect is None else time.monotonic() + protect
         try:
             while True:
-                if self.signal is not None:  # Also covers a signal that arrived just before the child started.
+                if deadline is not None and time.monotonic() > deadline:
+                    self.kill_group(pgid, signal.SIGKILL)
+                elif self.signal is not None and protect is None:  # Also a signal from just before the start.
                     self.terminate_leader()
                     waited = time.monotonic() - self.signalled_at
                     if waited > 2 * self.grace:
@@ -430,7 +486,7 @@ class Driver:
                 self.kill_group(pgid, signal.SIGKILL)
             return code
         finally:
-            self.child = None
+            self.child, self.protected = None, False
 
     # The attempt ----------------------------------------------------------------------------------------------------
 
@@ -457,8 +513,8 @@ class Driver:
         """Run one scenario; True when it ran and is valid."""
         record = self.state["scenarios"][key]
         self.current = key
-        if self.ledger and (problem := ledger_problem(self.ledger)):
-            self.stop(key, "ledger_blocked", problem)
+        if self.ledger and (problem := ledger_problem(self.ledger, self.manifest["attempt_id"], self.policy_sha256)):
+            self.stop(key, *problem)
             return False
         problem = verify(self.repo, self.manifest, self.manifest_path, self.manifest_sha256)
         if problem:
@@ -509,6 +565,26 @@ class Driver:
         print(f"driver: {key} valid", file=sys.stderr)
         return True
 
+    def shared_stop(self) -> None:
+        """Block the shared billing run for every future provider call, through the harness's own entry point (the
+        one the run script's supervisor uses). The driver never writes the ledger itself. A signal does not cut this
+        short; a stopper still running after SHARED_STOP_SECONDS is killed and recorded as failed."""
+        log = self.out / LOGS / "shared-stop.log"
+        record = {"reason": self.state["stop"]["reason"], "command": self.stopper, "exit": None,
+                  "started_at": _now(), "finished_at": None, "log": str(log)}
+        self.state["shared_stop"] = record
+        self.save()
+        try:
+            record["exit"] = self.spawn(self.stopper, log, protect=SHARED_STOP_SECONDS)
+        except Exception as error:  # Recorded as a failed stop; the attempt is stopped either way.
+            print(f"driver: shared stop error: {type(error).__name__}", file=sys.stderr)
+        record["finished_at"] = _now()
+        if record["exit"] != 0:
+            print(f"driver: the shared billing stop FAILED (exit {record['exit']}): block the ledger by hand",
+                  file=sys.stderr)
+        else:
+            print("driver: the shared billing run is stopped", file=sys.stderr)
+
     def run(self) -> int:
         self.prepare()
         self.out.mkdir(parents=True, exist_ok=True)
@@ -534,6 +610,8 @@ class Driver:
             if self.child is not None:
                 self.kill_group(self.child.pid, signal.SIGKILL)
             self.stop(self.current, "driver_error", type(error).__name__)
+        if self.live and self.state["stop"] and self.state["stop"]["reason"] in SHARED_STOPS:
+            self.shared_stop()
         if self.signal is not None:
             self.state["result"] = "interrupted"
             self.stop(self.current, "interrupted", f"signal {signal.Signals(self.signal).name}")
@@ -558,7 +636,9 @@ def summary(state: dict) -> dict:
             "stop": state["stop"]["reason"] if state["stop"] else None,
             "scenarios": {key: record["status"] for key, record in state["scenarios"].items()},
             "pairs": {pair["gate"]: pair["status"] for pair in state["pairs"]},
-            "eligible": sorted(gate for gate, ok in state["eligible"].items() if ok)}
+            "eligible": sorted(gate for gate, ok in state["eligible"].items() if ok),
+            "shared_stop": (None if not state.get("shared_stop")
+                            else "blocked" if state["shared_stop"]["exit"] == 0 else "failed")}
 
 
 def main(argv=None) -> int:
@@ -568,9 +648,15 @@ def main(argv=None) -> int:
     run.add_argument("--manifest", required=True)
     run.add_argument("--out", required=True, help="OUT_ROOT for run directories and attempt-state.json")
     run.add_argument("--repo", default=str(Path(__file__).resolve().parent.parent))
-    run.add_argument("--runner", help="default: evaluations/c5-run-scenario.sh")
-    run.add_argument("--validity", help="default: this Python, evaluations/acceptance_review.py validity")
-    run.add_argument("--ledger", help="billing ledger JSON whose blocked flag is read before each scenario")
+    run.add_argument("--runner", help="offline tests only; refused in live mode (default: "
+                                      "evaluations/c5-run-scenario.sh)")
+    run.add_argument("--validity", help="offline tests only; refused in live mode (default: this Python, "
+                                        "evaluations/acceptance_review.py validity)")
+    run.add_argument("--ledger", help="billing ledger JSON whose blocked flag is read before each scenario; in live "
+                                      "mode it is C5_BILLING_LEDGER")
+    run.add_argument("--live", action="store_true",
+                     help="live mode (also on whenever C5_BILLING_LEDGER or C5_ATTEMPT_ID is set): no command "
+                          "override, a bound ledger, and a shared billing stop on every stop the driver decides")
     run.add_argument("--grace", default="60",
                      help="seconds a child gets after each stop signal before the next escalation (default 60, "
                           "finite, above 0, at most 600)")

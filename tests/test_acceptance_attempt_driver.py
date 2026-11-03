@@ -59,13 +59,28 @@ sys.exit(3 if key in config.get("fail", []) else 0)
 VALIDITY = r'''
 import json, os, pathlib, sys
 config = json.loads(pathlib.Path(os.environ["FAKE_CONFIG"]).read_text())
-runs = [pathlib.Path(arg) for arg in sys.argv[1:]]
+runs = [pathlib.Path(arg) for arg in sys.argv[1:] if arg != "validity"]
 key = runs[0].name.rsplit("-", 1)[0]
 with open(config["calls"], "a") as calls:
     calls.write(json.dumps(["validity", key, [run.name for run in runs]]) + "\n")
 print((runs[0] / "run.log").read_text())
 sys.exit(1 if key in config.get("invalid", []) else 0)
 '''
+
+
+STOPPER = r'''
+import json, os, pathlib, sys
+config = json.loads(pathlib.Path(os.environ["FAKE_CONFIG"]).read_text())
+with open(config["calls"], "a") as calls:
+    calls.write(json.dumps(["stop", sys.argv[1:], os.environ.get("C5_BILLING_LEDGER")]) + "\n")
+ledger = pathlib.Path(os.environ["C5_BILLING_LEDGER"])  # Stands in for the harness's own --stop entry point.
+state = json.loads(ledger.read_text())
+state["blocked"] = True
+state.setdefault("stop_reason", "arm_failed")
+ledger.write_text(json.dumps(state))
+sys.exit(config.get("stop_exit", 0))
+'''
+POLICY = "c" * 64
 
 
 @pytest.fixture
@@ -127,6 +142,46 @@ class Attempt:
     def run(self, *extra, env=None):
         return subprocess.run(self.argv(*extra), env=env or self.env(), capture_output=True, text=True, timeout=120)
 
+    def make_live(self, *, omit=()):
+        """Synthetic stand-ins at the repository's own command paths (never the real scripts), frozen in the manifest
+        unless omitted, and a synthetic ledger bound to this attempt."""
+        for relative, code in (("evaluations/c5-run-scenario.sh", RUNNER),
+                               ("evaluations/acceptance_review.py", VALIDITY),
+                               ("evaluations/c5-harness.py", STOPPER)):
+            path = self.repo / relative
+            path.write_text(f"#!{sys.executable}\n{code}")
+            path.chmod(0o755)
+            if relative not in omit:
+                self.manifest["files"][relative] = sha(path)
+        self.write_manifest()
+        self.ledger = Path(self.config["ledger"])
+        self.ledger.write_text(json.dumps({"version": 1, "run_id": "attempt-test-1", "ledger_path": str(self.ledger),
+                                           "blocked": False, "policy_sha256": POLICY, "requests": {}}))
+
+    def live_argv(self, *extra):
+        argv = self.argv(*extra)
+        for flag in ("--runner", "--validity"):
+            index = argv.index(flag)
+            del argv[index:index + 2]
+        return argv
+
+    def live_env(self, **changes):
+        env = self.env() | {"C5_BILLING_LEDGER": str(self.ledger), "C5_ATTEMPT_ID": "attempt-test-1",
+                            "C5_BILLING_POLICY_SHA256": POLICY, "C5_PYTHON": sys.executable}
+        for name, value in changes.items():
+            if value is None:
+                env.pop(name, None)
+            else:
+                env[name] = value
+        return env
+
+    def run_live(self, *extra, argv=None, **changes):
+        return subprocess.run(argv or self.live_argv(*extra), env=self.live_env(**changes), capture_output=True,
+                              text=True, timeout=120)
+
+    def stops(self):
+        return [call for call in self.calls() if call[0] == "stop"]
+
     def calls(self):
         if not self.calls_path.exists():
             return []
@@ -174,7 +229,8 @@ def test_happy_path_runs_every_scenario_in_manifest_order_and_validates_each(att
     assert str(attempt.out / "alpha-P" / "run.log") in record["logs"]
     assert summary(result) == {"attempt_id": "attempt-test-1", "result": "complete", "stop": None,
                                "scenarios": dict.fromkeys(ORDER, "valid"),
-                               "pairs": {"R4": "complete", "C5": "complete"}, "eligible": ["C5", "R4"]}
+                               "pairs": {"R4": "complete", "C5": "complete"}, "eligible": ["C5", "R4"],
+                               "shared_stop": None}
 
 
 def test_order_comes_from_the_manifest_not_from_the_pairs(attempt):
@@ -234,7 +290,7 @@ def test_a_file_changed_during_a_scenario_stops_before_the_next(attempt):
 def test_a_file_changed_between_scenarios_is_caught_by_the_check_before_the_next(driver, attempt):
     args = driver.main.__globals__["argparse"].Namespace(
         manifest=str(attempt.manifest_path), out=str(attempt.out), repo=str(attempt.repo),
-        runner=attempt.runner, validity=attempt.validity, ledger=None, grace=1)
+        runner=attempt.runner, validity=attempt.validity, ledger=None, grace=1, live=False)
     run = driver.Driver(args)
     run.prepare()
     attempt.out.mkdir()
@@ -280,7 +336,7 @@ def test_runner_failure_in_the_third_scenario_never_starts_the_fourth(attempt):
     assert summary(result) == {"attempt_id": "attempt-test-1", "result": "stopped", "stop": "runner_failed",
                                "scenarios": {"alpha": "valid", "beta": "valid", "gamma": "runner_failed",
                                              "delta": "not_run"},
-                               "pairs": {"R4": "complete", "C5": "incomplete"}, "eligible": ["R4"]}
+                               "pairs": {"R4": "complete", "C5": "incomplete"}, "eligible": ["R4"], "shared_stop": None}
     assert_no_content(attempt, result)
 
 
@@ -351,7 +407,7 @@ def test_a_completed_attempt_cannot_be_rerun_into_the_same_out_root(attempt):
 
 def test_a_ledger_blocked_during_the_attempt_stops_before_the_next_scenario(attempt):
     ledger = Path(attempt.config["ledger"])
-    ledger.write_text(json.dumps({"version": 1, "blocked": False, "requests": {}}))
+    ledger.write_text(json.dumps({"version": 1, "run_id": "attempt-test-1", "blocked": False, "requests": {}}))
     attempt.config["block_ledger"] = ["alpha"]
     result = attempt.run("--ledger", str(ledger))
     assert result.returncode == 1 and attempt.runner_keys() == ["alpha"]
@@ -373,7 +429,7 @@ def test_a_blocked_missing_or_malformed_ledger_refuses_before_start(attempt, con
 
 def test_an_unblocked_ledger_is_only_read(attempt):
     ledger = Path(attempt.config["ledger"])
-    ledger.write_text(json.dumps({"version": 1, "blocked": False}))
+    ledger.write_text(json.dumps({"version": 1, "run_id": "attempt-test-1", "blocked": False}))
     before = (ledger.read_bytes(), ledger.stat().st_mtime_ns)
     assert attempt.run("--ledger", str(ledger)).returncode == 0
     assert (ledger.read_bytes(), ledger.stat().st_mtime_ns) == before
@@ -382,10 +438,150 @@ def test_an_unblocked_ledger_is_only_read(attempt):
 # Environment binding --------------------------------------------------------------------------------------------------
 
 def test_a_different_c5_attempt_id_refuses(attempt):
-    env = attempt.env() | {"C5_ATTEMPT_ID": "some-other-attempt"}
-    result = attempt.run(env=env)
+    attempt.make_live()
+    result = attempt.run_live(C5_ATTEMPT_ID="some-other-attempt")
     assert result.returncode == 2 and summary(result)["stop"] == "environment" and attempt.calls() == []
-    assert attempt.run(env=attempt.env() | {"C5_ATTEMPT_ID": "attempt-test-1"}).returncode == 0
+
+
+# Live mode ------------------------------------------------------------------------------------------------------------
+
+def test_live_mode_runs_only_the_repositorys_own_frozen_commands(attempt):
+    attempt.make_live()
+    result = attempt.run_live()
+    assert result.returncode == 0, result.stderr
+    assert attempt.runner_keys() == ORDER and attempt.stops() == []
+    state = attempt.state()
+    assert state["live"] is True and state["ledger"] == str(attempt.ledger)
+    assert state["runner"] == [str(attempt.repo / "evaluations" / "c5-run-scenario.sh")]
+    assert state["validity"] == [sys.executable, str(attempt.repo / "evaluations" / "acceptance_review.py"),
+                                 "validity"]
+    assert summary(result)["shared_stop"] is None and json.loads(attempt.ledger.read_text())["blocked"] is False
+
+
+LIVE_TRIGGERS = {"ledger variable": ({"C5_ATTEMPT_ID": None}, ()),
+                 "attempt variable": ({"C5_BILLING_LEDGER": None}, ()),
+                 "flag": ({"C5_BILLING_LEDGER": None, "C5_ATTEMPT_ID": None}, ("--live",))}
+
+
+@pytest.mark.parametrize("trigger", sorted(LIVE_TRIGGERS))
+@pytest.mark.parametrize("flag", ["--runner", "--validity"])
+def test_live_mode_refuses_a_command_override(attempt, trigger, flag):
+    attempt.make_live()
+    changes, extra = LIVE_TRIGGERS[trigger]
+    argv = attempt.live_argv(*extra)
+    index = argv.index("--grace")
+    argv[index:index] = [flag, attempt.runner if flag == "--runner" else attempt.validity]
+    result = attempt.run_live(argv=argv, **changes)
+    assert result.returncode == 2 and summary(result) == {"result": "refused", "stop": "live_override"}
+    assert attempt.calls() == [] and not attempt.out.exists()
+
+
+def test_a_validity_override_cannot_turn_an_invalid_live_attempt_complete(attempt):
+    """The reproduced gap: under the same frozen manifest, `--validity /usr/bin/true` made an attempt whose third
+    scenario is invalid exit 0, complete, with R4 and C5 both eligible."""
+    attempt.make_live()
+    attempt.config["invalid"] = ["gamma"]
+    normal = attempt.run_live()
+    assert normal.returncode == 1 and summary(normal)["eligible"] == ["R4"]
+    attempt.ledger.write_text(json.dumps(json.loads(attempt.ledger.read_text()) | {"blocked": False}))
+    second = attempt.root / "out-again"
+    argv = attempt.live_argv()
+    argv[argv.index("--out") + 1] = str(second)
+    argv += ["--validity", "/usr/bin/true"]
+    overridden = attempt.run_live(argv=argv)
+    assert overridden.returncode == 2 and summary(overridden) == {"result": "refused", "stop": "live_override"}
+    assert not second.exists() and attempt.runner_keys() == ["alpha", "beta", "gamma"]
+
+
+@pytest.mark.parametrize("omit", ["evaluations/c5-run-scenario.sh", "evaluations/acceptance_review.py",
+                                  "evaluations/c5-harness.py"])
+def test_live_mode_needs_its_commands_frozen_in_the_manifest(attempt, omit):
+    attempt.make_live(omit=(omit,))
+    result = attempt.run_live()
+    assert result.returncode == 2 and summary(result)["stop"] == "unfrozen_command" and omit in result.stderr
+    assert attempt.calls() == []
+
+
+@pytest.mark.parametrize("changes, extra", [({"C5_BILLING_LEDGER": None}, ()),
+                                            ({"C5_BILLING_LEDGER": ""}, ()),
+                                            ({"C5_BILLING_LEDGER": "relative/ledger.json"}, ()),
+                                            ({"C5_BILLING_LEDGER": None, "C5_ATTEMPT_ID": None}, ("--live",))])
+def test_live_mode_requires_the_shared_ledger(attempt, changes, extra):
+    attempt.make_live()
+    result = attempt.run_live(*extra, **changes)
+    assert result.returncode == 2 and summary(result)["stop"] == "ledger_required" and attempt.calls() == []
+
+
+def test_live_mode_refuses_a_different_ledger_argument(attempt):
+    attempt.make_live()
+    other = attempt.root / "other-ledger.json"
+    other.write_text(attempt.ledger.read_text())
+    result = attempt.run_live("--ledger", str(other))
+    assert result.returncode == 2 and summary(result)["stop"] == "environment" and attempt.calls() == []
+
+
+@pytest.mark.parametrize("field, value", [("run_id", "another-attempt"), ("policy_sha256", "d" * 64)])
+def test_live_mode_binds_the_ledger_to_the_attempt_and_policy(attempt, field, value):
+    attempt.make_live()
+    state = json.loads(attempt.ledger.read_text()) | {field: value}
+    attempt.ledger.write_text(json.dumps(state))
+    result = attempt.run_live()
+    assert result.returncode == 2 and summary(result)["stop"] == "ledger_mismatch" and attempt.calls() == []
+    assert json.loads(attempt.ledger.read_text()) == state
+
+
+def test_the_policy_is_checked_only_when_its_variable_is_given(attempt):
+    attempt.make_live()
+    attempt.ledger.write_text(json.dumps(json.loads(attempt.ledger.read_text()) | {"policy_sha256": "d" * 64}))
+    assert attempt.run_live(C5_BILLING_POLICY_SHA256=None).returncode == 0
+
+
+SHARED = {"invalid": (lambda a: {"invalid": ["gamma"]}, "invalid", "invalid"),
+          "inputs_changed": (lambda a: {"modify": {"gamma": [str(a.frozen)]}}, "hash_mismatch", "inputs_changed"),
+          "run_dir_exists": (lambda a: {"touch": {"beta": [str(a.out / "gamma-E")]}}, "run_dir_exists", "not_run")}
+
+
+@pytest.mark.parametrize("name", sorted(SHARED))
+def test_a_stop_the_driver_decides_blocks_the_shared_billing_run(attempt, name):
+    attempt.make_live()
+    config, reason, status = SHARED[name]
+    attempt.config.update(config(attempt))
+    result = attempt.run_live()
+    assert result.returncode == 1 and "delta" not in attempt.runner_keys()
+    assert attempt.stops() == [["stop", ["--stop"], str(attempt.ledger)]]
+    assert attempt.calls()[-1][0] == "stop"  # After the scenario's own steps, before anything else.
+    assert json.loads(attempt.ledger.read_text())["blocked"] is True
+    line = summary(result)
+    assert line["stop"] == reason and line["scenarios"]["gamma"] == status and line["shared_stop"] == "blocked"
+    assert line["pairs"]["R4"] == "complete" and line["eligible"] == ["R4"]
+    record = attempt.state()["shared_stop"]
+    assert record["reason"] == reason and record["exit"] == 0
+    assert record["command"] == [sys.executable, str(attempt.repo / "evaluations" / "c5-harness.py"), "--stop"]
+
+
+@pytest.mark.parametrize("config, reason", [({"fail": ["gamma"]}, "runner_failed"),
+                                            ({"block_ledger": ["beta"]}, "ledger_blocked")])
+def test_stops_already_handled_by_the_supervisor_or_the_ledger_add_no_shared_stop(attempt, config, reason):
+    attempt.make_live()
+    attempt.config.update(config)
+    result = attempt.run_live()
+    assert result.returncode == 1 and summary(result)["stop"] == reason
+    assert attempt.stops() == [] and summary(result)["shared_stop"] is None
+
+
+def test_a_failed_shared_stop_is_reported(attempt):
+    attempt.make_live()
+    attempt.config.update(invalid=["alpha"], stop_exit=4)
+    result = attempt.run_live()
+    assert result.returncode == 1 and summary(result)["shared_stop"] == "failed"
+    assert attempt.state()["shared_stop"]["exit"] == 4 and "shared billing stop FAILED" in result.stderr
+
+
+def test_offline_mode_never_runs_a_shared_stop(attempt):
+    attempt.make_live()
+    attempt.config["invalid"] = ["alpha"]
+    result = attempt.run()
+    assert result.returncode == 1 and attempt.stops() == [] and attempt.state()["live"] is False
 
 
 # Signals --------------------------------------------------------------------------------------------------------------
