@@ -720,8 +720,11 @@ class LearningEngine:
         return row
 
     def _literal(self, principal, brain_id, job):
+        from .service import reading
+
         service = self.service
-        with service.database.transaction(principal) as conn:
+        # Only reads: the captures are published below under the exclusive lock, and only for events still current.
+        with reading(), service.database.transaction(principal) as conn:
             brain = service._brain(conn, principal, brain_id)
             event_ids = ([job["payload"]["event_id"]] if job["kind"] == "extract"
                          else job["payload"].get("event_ids", []))
