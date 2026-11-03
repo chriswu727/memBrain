@@ -797,7 +797,8 @@ def history_complete(directory: Path, session: str, brain_id: str | None = None)
 def _remember_context(directory, session, brain_id, current, options):
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         state = session_state(directory, session)
-        state["memory_context"] = {"brain_id": brain_id, "fingerprint": current["fingerprint"], **options}
+        state["memory_context"] = {"brain_id": brain_id, "fingerprint": current["fingerprint"],
+                                   "persona_version": current.get("persona_version"), **options}
         _write_session_state(directory, session, state)
 
 
@@ -814,8 +815,26 @@ def _saved_context(client, real_life, roleplay, options):
             shared = list_notes(client)
         finally:
             client.brain_id = current
-    return saved, snapshot(saved, brain_id=client.brain_id, shared=shared,
+    return saved, snapshot(saved, brain_id=client.brain_id, shared=shared, persona=_persona(client),
                            tools=options["tools"], skip_imports_from=options.get("skip_imports_from", ()))
+
+
+def _persona(client) -> dict | None:
+    """The current brain's persona card; None when the client or an older service has no persona route.
+
+    Any other failure propagates, so a failed read keeps the session's previous snapshot instead of announcing that
+    the persona was removed.
+    """
+    reader = getattr(client, "persona", None)
+    if not callable(reader):
+        return None
+    try:
+        persona = reader()
+    except Exception as error:
+        if getattr(getattr(error, "response", None), "status_code", None) in (404, 405):
+            return None
+        raise
+    return persona if isinstance(persona, dict) else None
 
 
 def _stage(directory: Path, session: str, record: dict, prompt: str) -> dict | None:
@@ -1307,7 +1326,8 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
                    if same_brain else {"tools": tools, "skip_imports_from": [], "share_real_life": False})
         try:
             saved, current = _saved_context(client, real_life, roleplay, options)
-            refreshed = update(current, context.get("fingerprint") if same_brain else None)
+            refreshed = update(current, context.get("fingerprint") if same_brain else None,
+                               context.get("persona_version") if same_brain else None)
             if not same_brain:
                 notice = "memBrain memory is active for this user. "
                 if roleplay:

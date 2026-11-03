@@ -17,6 +17,7 @@
   <nav id="tabs" aria-label="Memory views" hidden>
     <button data-view="notes" class="active">Notes</button>
     <button data-view="brain">Brain</button>
+    <button data-view="persona">Personality</button>
     <button data-view="plans">Plans and dates</button>
     <button data-view="people">People</button>
     <button data-view="conversations">Conversations</button>
@@ -110,6 +111,74 @@
       <div id="note-form-host"></div>
     </details>
     <div id="notes" class="list"></div>
+  </section>
+
+  <section id="view-persona" class="view" hidden>
+    <div class="heading">
+      <div>
+        <h1>Personality</h1>
+        <p class="muted">How your companion presents itself: its name, character, voice, values and boundaries.
+          Your agent receives it in its own block, apart from what it remembers about you. Every save keeps the
+          earlier versions. How you like replies, as your agent learns it, stays in your preference notes.</p>
+      </div>
+    </div>
+    <div class="card persona-current">
+      <div class="persona-title"><h2>Current card</h2><span id="persona-version" class="tag"></span></div>
+      <div id="persona-view"></div>
+      <div class="row persona-actions">
+        <button id="persona-edit">Edit personality</button>
+        <button id="persona-reset" class="secondary">Reset personality</button>
+      </div>
+    </div>
+    <form id="persona-form" class="card persona-editor" hidden>
+      <label class="field">Name<input name="name" maxlength="60" autocomplete="off"></label>
+      <label class="field">Traits, one per line (up to 8)<textarea name="traits" rows="4"></textarea></label>
+      <fieldset class="persona-voice">
+        <legend>Voice</legend>
+        <label class="field">Register<input name="register" maxlength="60" placeholder="casual, formal…"></label>
+        <label class="field">Typical length<input name="length" maxlength="60" placeholder="short, a few sentences…"></label>
+        <label class="field">Emoji use<input name="emoji" maxlength="60" placeholder="rarely, never…"></label>
+        <label class="field">Language<input name="language" maxlength="60" placeholder="follows the user…"></label>
+      </fieldset>
+      <label class="field">Values, one per line<textarea name="values" rows="3"></textarea></label>
+      <label class="field">Boundaries: what the companion will not do, one per line<textarea name="boundaries" rows="3"></textarea></label>
+      <fieldset class="persona-voice">
+        <legend>Baseline mood</legend>
+        <label class="field">Mood<input name="mood_label" maxlength="40" placeholder="calm, cheerful…"></label>
+        <label class="field">Valence
+          <select name="mood_valence">
+            <option value="-2">-2 very low</option><option value="-1">-1 low</option>
+            <option value="0" selected>0 neutral</option><option value="1">+1 positive</option>
+            <option value="2">+2 very positive</option>
+          </select>
+        </label>
+        <label class="field">Energy
+          <select name="mood_energy">
+            <option value="0">0 resting</option><option value="1" selected>1 calm</option>
+            <option value="2">2 lively</option><option value="3">3 very lively</option>
+          </select>
+        </label>
+        <p class="hint">Leave the mood empty for no baseline. It is the resting point a later mood step returns to;
+          it is not a feeling.</p>
+      </fieldset>
+      <label class="field">Why this change (optional)<input name="reason" maxlength="200" autocomplete="off"></label>
+      <p class="hint">The card is limited to 1,200 characters. Values that look like passwords or keys are removed.</p>
+      <div class="row editor-actions">
+        <button type="submit">Save as a new version</button>
+        <button type="button" id="persona-cancel" class="secondary">Cancel</button>
+      </div>
+    </form>
+    <div class="card">
+      <h2>Versions</h2>
+      <p class="hint">Newest first. Restoring a version saves its content as a new version.</p>
+      <div id="persona-versions" class="list"></div>
+    </div>
+    <div class="card danger">
+      <h2>Delete personality history</h2>
+      <p class="muted">Erases every version, including the current card. Deletion is recorded, so it also holds if
+        an older backup is restored. Notes and messages are not touched.</p>
+      <button id="persona-delete-history" class="danger">Delete personality history</button>
+    </div>
   </section>
 
   <section id="view-plans" class="view" hidden>
