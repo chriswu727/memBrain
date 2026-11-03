@@ -244,3 +244,21 @@ def test_expansion_caps_complete_source_bytes_and_count_without_clipping_qualifi
     assert sum(len(passage["text"].encode()) for passage in result["source_passages"]) <= MAX_TOTAL_SOURCE_BYTES
     assert all(passage["text"] in [s["observed"]["content"]["text"] for s in sources]
                for passage in result["source_passages"])
+
+
+@pytest.mark.parametrize("legacy_first", [False, True])
+def test_the_literal_capture_check_applies_to_every_current_passage(legacy_first):
+    from membrain.source_context import covering_passage
+
+    source = event(TEXT)
+    memories = cognition.extract_event(source)
+    result = cognition.recall(scope(), request("blue map"), memories, [source], state())
+    current = result["source_passages"][0]
+    legacy = {**copy.deepcopy(current), "policy_version": "bounded-source-context-v1"}
+    passages = [legacy, current, copy.deepcopy(current)] if legacy_first else [current, copy.deepcopy(current), legacy]
+    literal = next(memory for memory in memories if covering_passage({"memory": memory}, [current]))
+    assert covering_passage({"memory": literal}, passages) is (legacy if legacy_first else current)
+    dated = {**literal, "valid_time": {"start": "2026-10-22T12:00:00Z", "end": None,
+                                       "precision": "exact", "basis": "source_explicit"}}
+    assert covering_passage({"memory": dated}, [current, copy.deepcopy(current)]) is None
+    assert covering_passage({"memory": dated}, passages) is legacy
