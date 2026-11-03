@@ -8,6 +8,7 @@ Free prerequisites 4 and 5 of the [paid acceptance plan draft](maturity-paid-acc
 | [`c5-run-scenario.sh`](c5-run-scenario.sh) | Runs the three arms in parallel, as `v1-2026-11-05-run-scenario.sh` does |
 | [`c5-practice-scenario.py`](c5-practice-scenario.py) | A **public practice** scenario with stub scripts. Never a held-out scenario |
 | [`c5-dry-run-check.py`](c5-dry-run-check.py) | Checks a dry run, layer by layer |
+| [`c5-precheck.py`](c5-precheck.py) | Checks a scenario file before a run, printing counts and positions only |
 | [`../src/membrain/evaluation_clock.py`](../src/membrain/evaluation_clock.py) | The evaluation-only scenario clock |
 
 ## Scenario clock
@@ -57,6 +58,48 @@ Free prerequisites 4 and 5 of the [paid acceptance plan draft](maturity-paid-acc
 - **Reference world.** `F`'s earlier history drops a message only when `delete_message` deletes it. The product erases a deleted message; resets, cleared feelings, deleted feelings and notes, and mood and persona actions keep the conversation. So those never change `F`'s history, and the dry run checks this for every action. Within the session in progress, every arm keeps its own transcript, as a host app does. A message deleted during the session in progress stays in that session's running transcript, but it is left out when the session is added to `F`'s history, so later sessions never see it.
 - **Index wait.** The harness waits on the dashboard's `status.pending_jobs` and `index_lag`. `pending_jobs` must count every job of the brain that can still run (queued, running or failed) and no superseded or cancelled job, which never finish. Older runtimes counted only the latest 100 listed jobs and included superseded ones, so after a page deletion the wait timed out; the dashboard fix that the integration candidate carries corrects this, and the harness relies on it rather than counting the listed jobs itself.
 - **No resume.** An existing results file or installation is refused.
+
+## Hardening after the independent plan review
+
+- **A degraded live arm stops (U2).** `harness_event` is the single choke point. Every recorded event makes the run invalid (`acceptance_review.py validity`), so in a live run it records the event, blocks the shared billing ledger (`harness_degraded`, as an interrupted arm does), and raises `DegradedRun`. `DegradedRun` is a `SystemExit` with exit code 3: no `except Exception` swallows it, and the main block's cleanup (`stop_started`) still runs. The run script then sees a failed arm and stops the others. A dry run (`C5_STUB=1`) records the event and goes on, so its checks still see every event.
+  - **The paid turn's row is kept.** An event raised while a turn's paid reply is being recorded (`record_turn`, the extraction checks, `turn_not_recorded`) blocks the ledger at once. The stop itself waits until that turn's results row is written, in the usual format, with `"stopped_after": "<event kind>"`. The run stays invalid: the event is in `harness-events.jsonl`, the later turns are missing, and `run.log` has no finished line.
+- **The dry-run check fails on any harness event.** Its "run" verdict used to fail only on `page_action_failed`, `index_wait_timed_out` and `extraction_unfinished`. It now fails on every event kind, as `acceptance_review.py validity` does, and still reads kinds only. This includes `page_action_unsupported`, so a dry run on a runtime without P2 no longer passes the check.
+- **Event payloads hold only kinds, positions and counts.**
+  - `page_action_failed` now has `reason` as a code (`not_found`, `card_differs`, `unknown_removed`). Before, it held the result's message, which named the topic, label, note text or proposal match.
+  - `clock_already_past` now has `behind_seconds` instead of the requested and current times.
+  - `network_refused` no longer names the host.
+  - `index_wait_timed_out` no longer names the brain.
+  - The full detail of a page action is still in `page-actions.jsonl`.
+- **Which records a page action removed.** Each action's `result` in `page-actions.jsonl` now has `removed_records` and `removed_records_complete`. Kinds and counts alone cannot tell two feelings with the same label apart.
+  - **How they are found.** The harness lists every layer's records by their own ids before and after the action, through the same SDK calls `world()` uses: messages, `list_notes`, `affect_records`, `relationship()` and `persona_versions`. A record is removed when its id is present before and gone after.
+  - **Entry format.** Each removed record is `{"kind", "ref", "sources", "established": true}`.
+    - `kind` is one of `message`, `note`, `shared_moment`, `commitment`, `feeling`, `boundary`, `support_style`, `familiarity_cap` or `persona_version`.
+    - `sources` are the record's source messages as `[session_id, turn_index, role]` triples, mapped through the positions `record_turn` recorded.
+  - **`ref`** is computed by `record_ref`, the formula the review side recomputes. It never contains a database id or content.
+    - With sources: `"src:" + sha256(json.dumps([kind, sorted(sources)], separators=(",", ":"), ensure_ascii=False))`.
+    - Without sources: `"content:" + sha256(json.dumps([kind, content], separators=(",", ":"), ensure_ascii=False, sort_keys=True))`, over the record's normalized content fields.
+  - **Unestablished drops.** A drop in a `world()` count that no id diff explains is written as `{"kind", "established": false}`, with no ref. `removed_records_complete` is true only when there is no such entry.
+  - **Arm `F`** lists only the messages a deletion removed. It uses the same refs as `P`, and its `removed_records_complete` is always true. The `removed` field is unchanged.
+- **Failed extraction is reported (B3).** The extractor's worker catches every error and only logs it. Arm `E` therefore watches two signals from the extractor itself, without changing `src/`:
+  - the extraction status in the installation's state, `extraction.json` (`turns_failed` and `turns_skipped`);
+  - the extractor's own failure warnings (`note extraction failed`, `queue full`, `note not saved`), counted by message template and never by text.
+
+  After each turn's extraction wait, any new failure records `extraction_failed` with the session and turn only.
+- **Timed pauses are refused (I3).** `memory_pause(hours=...)` ends on the wall clock (`host.pause`), so on the scenario clock it would span scenario days, or nothing.
+  - When the host model passes `hours`, the harness does not call the tool. It returns a tool error ("Timed pauses are unavailable in this evaluation...") and records `timed_pause_refused`. A live arm stops on that event.
+  - An untimed pause, with or without `until_resumed`, reaches the plugin's tool as before.
+- **Unintended unrecorded turns are flagged.** A turn that ends unrecorded records `turn_not_recorded` (session and turn), unless the scenario intended it. In arm `P`, intended turns are:
+  - the turns that `EXPECT_RECORDING_P` marks `False`;
+  - the turns from an untimed `memory_pause` scripted in `STUB_HOST` up to, but not including, a `memory_resume` in the same session.
+
+  A live run has no stub script, so a scenario that asks for a pause must declare those turns in `EXPECT_RECORDING_P`. Otherwise the pause stops the arm.
+- **Count-only precheck (I2).** `python evaluations/c5-precheck.py SCENARIO.py` checks a scenario with the harness's own parsers before any service or model starts. It checks that:
+  - each session's first message states a date and a time;
+  - session starts strictly increase and are at least one hour apart (I4);
+  - every page action passes `check_actions`;
+  - no timed pause is scripted, either in `STUB_HOST` or as a page action with `hours`.
+
+  It prints only counts (sessions, turns, actions, intended unrecorded turns) and, for each failure, a code with a session index, an action index or a `session:turn` position. It never prints a message, a session id, a topic, a label or an exception's text. Output from loading the scenario is discarded. The last line is a JSON summary. It exits 0 when the scenario is fit and 1 when it is not.
 
 ## Zero-network dry run
 
