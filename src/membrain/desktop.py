@@ -589,6 +589,24 @@ class LocalSupervisor:
         return app
 
 
+def _evaluation_clock(profile):
+    """The scenario clock of a disposable evaluation profile, or None. A clock requested for any other profile stops
+    the service before it opens the database, with the refusal in the service log (see evaluation_clock)."""
+    from .evaluation_clock import ClockRefused, enable
+
+    try:
+        return enable(profile.directory)
+    except ClockRefused as error:
+        logger, handler = _logger(profile)
+        try:
+            logger.info(json.dumps({"time": round(time.time(), 3), "event": "evaluation_clock_refused",
+                                    "reason": str(error)}))
+        finally:
+            logger.removeHandler(handler)
+            handler.close()
+        raise DesktopError("evaluation_clock_refused", str(error)) from None
+
+
 def run(directory: Path | None = None) -> None:
     import uvicorn
 
@@ -596,6 +614,7 @@ def run(directory: Path | None = None) -> None:
     if os.name != "nt":
         os.umask(0o077)
     with profile_lock(profile.directory / "supervisor", timeout=0):
+        clock = _evaluation_clock(profile)
         from .recovery_profile import check_start_allowed
 
         check_start_allowed(profile)
@@ -610,6 +629,8 @@ def run(directory: Path | None = None) -> None:
                 timeout_graceful_shutdown=10,
             ))
             supervisor.worker.start()
+            if clock is not None:
+                supervisor.log("evaluation_clock_enabled_time_is_simulated")
             supervisor.log("service_started")
             supervisor.server.run()
         except Exception:

@@ -31,6 +31,7 @@ import json
 import re
 
 from .helpers import DomainError, uid
+from .helpers import today as _clock_today
 from .notes import _MONTHS, NOTES_CONVERSATION, OPEN_STATUSES, parse_note
 from .privacy import neutralize, scrub
 
@@ -360,7 +361,7 @@ def _read(service, conn, principal, brain_id, today) -> dict:
 
 
 def _today(today) -> _datetime.date:
-    return today or _datetime.date.today()
+    return today or _clock_today()
 
 
 def relationship(service, principal, brain_id: str, *, today: _datetime.date | None = None) -> dict:
@@ -398,7 +399,7 @@ def relationship_context(result: dict | None) -> dict:
     block for the first and only time, to be acknowledged once the block is delivered."""
     if not result or "familiarity" not in result:
         return {"block": None, "stable": None, "once": []}
-    today = _date(result.get("today")) or _datetime.date.today()
+    today = _date(result.get("today")) or _clock_today()
     known = result["familiarity"]
     lines = [f"Familiarity: {known['reason']}."]
     # The default level is left out, so a block that only carried a one-time line and then goes away does not
