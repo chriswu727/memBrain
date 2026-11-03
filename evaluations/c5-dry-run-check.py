@@ -92,9 +92,8 @@ def check(scenario_path: str, root: Path, key: str) -> dict:
         verdict("run", "Traceback" not in log, f"{arm}: Traceback in run.log")
         verdict("network", not any(event["kind"] == "network_refused" for event in events[arm]),
                 f"{arm}: a network connection was attempted")
-        verdict("run", not any(event["kind"] in ("page_action_failed", "index_wait_timed_out",
-                                                 "extraction_unfinished") for event in events[arm]),
-                f"{arm}: harness events {[event['kind'] for event in events[arm]]}")
+        # Any harness event degrades a run (acceptance_review.py validity), whatever its kind; only kinds are read.
+        verdict("run", not events[arm], f"{arm}: harness events {[event['kind'] for event in events[arm]]}")
 
     # Context per layer.
     expect = list(module.EXPECT) + (list(getattr(module, "EXPECT_P2", [])) if p2 else [])

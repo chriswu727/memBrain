@@ -350,6 +350,23 @@ def test_a_live_arm_stopped_by_a_turns_event_writes_that_turns_row_first(stub_ru
                                             for problem in result["problems"])
 
 
+# The dry-run check fails on any harness event -------------------------------------------------------------------
+
+@pytest.mark.parametrize("kind", ["extraction_failed", "turn_not_recorded", "timed_pause_refused",
+                                  "unexpected_recording", "message_identity_unknown", "page_action_failed"])
+def test_the_dry_run_check_fails_its_run_verdict_on_any_harness_event_kind(tmp_path, kind):
+    check = _load("c5_dry_run_check_hardening", ROOT / "evaluations" / "c5-dry-run-check.py")
+    scenario = str(ROOT / "evaluations" / "c5-practice-scenario.py")
+    for arm in "PEF":
+        (tmp_path / f"k-{arm}").mkdir()
+    clean = check.check(scenario, tmp_path, "k")["run"]["failures"]
+    assert not any("harness events" in failure for failure in clean)
+    (tmp_path / "k-E" / "harness-events.jsonl").write_text(
+        json.dumps({"time": 0, "kind": kind, "session": "s1-arrival", "turn": 0}) + "\n")
+    failures = check.check(scenario, tmp_path, "k")["run"]["failures"]
+    assert f"E: harness events ['{kind}']" in failures
+
+
 # I2: the count-only precheck ------------------------------------------------------------------------------------
 
 PLANT = "zq-planted-7f3c91"
