@@ -7,7 +7,12 @@ from test_cognition import STAMP, event, prepare_payload, request, scope, state,
 
 from membrain import cognition
 from membrain.belief_resolution import factor_relations, relation_assessments
-from membrain.context_views import context_view, reasoning_context_view, recall_context_view
+from membrain.context_views import (
+    context_view,
+    reasoning_context_view,
+    recall_context_view,
+    serialized,
+)
 from membrain.contracts import validate
 from membrain.helpers import DomainError
 
@@ -239,3 +244,27 @@ def test_packed_recall_counts_exactly_the_context_it_returns():
     assert recalled["usage"]["stopped_by"] == "context_limit"
     assert recalled["usage"]["context_tokens"] == len(recalled["model_context"].encode()) <= 3000
     assert recalled["model_context"] == cognition.render_recall(recalled)
+
+
+def containers(value, found=None):
+    found = {} if found is None else found
+    if isinstance(value, (dict, list)):
+        found[id(value)] = value
+        for item in value.values() if isinstance(value, dict) else value:
+            containers(item, found)
+    return found
+
+
+@pytest.mark.parametrize("kind", ["exception", None])
+def test_a_kept_recall_view_shares_nothing_and_rendering_changes_nothing(kind):
+    sources, memories, current = scenario(kind=kind) if kind else scenario()
+    result = recall(sources, memories, current)
+    before = copy.deepcopy(result)
+    view = recall_context_view(result)
+    # Only the lists it has always passed through are shared; every memory, source and relation is a copy.
+    passed = containers([result["unknowns"], result["ambiguities"], result["conflicts"],
+                         result["coverage"]["limitations"]])
+    assert containers(view).keys() & containers(result).keys() <= passed.keys()
+    rendered = cognition.render_recall(result)
+    assert result == before
+    assert rendered == serialized(view) == result["model_context"]

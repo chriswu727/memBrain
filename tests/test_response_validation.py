@@ -10,6 +10,8 @@ import uuid
 
 import httpx
 import pytest
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
 from test_learning import learning as learning
 
@@ -113,6 +115,20 @@ def test_an_invalid_response_from_an_overridden_handle_is_rejected(make):
     assert response.json()["error"]["code"] == "validation_failed"
 
 
+def test_an_action_response_is_encoded_byte_for_byte_as_the_default_encoding_would():
+    request = recall_request("brain")
+
+    def reply(request):
+        value = rejected_response(request)
+        value["error"]["message"] = "Refusé: 图书馆   \"quoted\" \\ </script> 1.5e-07"
+        return value
+
+    response = post(DuckTyped(reply), request)
+    assert response.status_code == 200
+    assert response.headers["content-type"] == "application/json"
+    assert response.content == JSONResponse(jsonable_encoder(reply(request))).body
+
+
 @pytest.mark.integration
 def test_a_completed_recall_is_validated_once_and_returned_unchanged(learning, monkeypatch):
     harness = learning
@@ -205,3 +221,38 @@ def test_an_invalid_recall_result_is_rejected_when_preparing_context(learning, m
     assert error.value.response["outcome"] == "rejected"
     assert error.value.response["error"]["code"] == "validation_failed"
     assert "RecallResult" in error.value.response["error"]["message"]
+
+
+@pytest.mark.integration
+def test_a_recall_saves_exactly_the_traces_it_returns(learning):
+    harness = learning
+    harness.observe("The Vancouver library appointment is on Friday.")
+    harness.memory.work()
+    response = harness.service.handle(harness.principal, recall_request(harness.brain))
+    returned = response["result"]["recall_traces"]
+    assert response["outcome"] == "completed" and returned
+    with harness.database.transaction(harness.principal) as conn:
+        saved = {row["id"]: row["document"] for row in conn.execute(
+            "SELECT id,document FROM memory_traces WHERE tenant_id=%s AND brain_id=%s AND document->>'recall_id'=%s",
+            (harness.principal.tenant_id, harness.brain, response["result"]["recall_id"]))}
+    assert saved == {trace["trace_id"]: trace for trace in returned}
+
+
+@pytest.mark.integration
+def test_an_invalid_recall_trace_is_rejected_and_no_trace_is_saved(learning, monkeypatch):
+    import membrain.belief_resolution as belief_resolution
+
+    harness = learning
+    harness.observe("The Vancouver library appointment is on Friday.")
+    harness.memory.work()
+    original = belief_resolution.factor_relations
+
+    def factor_relations(result):
+        original(result)
+        result["recall_traces"][-1]["kind"] = "not-a-kind"
+
+    monkeypatch.setattr(belief_resolution, "factor_relations", factor_relations)
+    traces = stored(harness, "memory_traces")
+    response = harness.service.handle(harness.principal, recall_request(harness.brain))
+    assert response["outcome"] == "rejected" and response["error"]["code"] == "validation_failed"
+    assert stored(harness, "memory_traces") == traces

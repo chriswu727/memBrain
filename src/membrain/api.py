@@ -733,7 +733,12 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
             result, validated = await run_in_threadpool(service.handle, principal, body), False
         if not validated:  # A completed response was already validated, as this same unchanged object.
             validate("ActionResponse", result)
-        return result
+        try:
+            # The bytes the default encoding produces for plain JSON data, without first rebuilding every value
+            # of the response with jsonable_encoder. Anything json cannot encode takes the default path.
+            return JSONResponse(result)
+        except (TypeError, ValueError):
+            return result
 
     @app.get("/v1/brains/{brain_id}/runtime/status")
     def runtime_status(brain_id: str, principal: Principal = Depends(authenticate)):
