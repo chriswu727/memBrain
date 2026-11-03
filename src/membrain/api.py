@@ -64,6 +64,7 @@ class NoteWrite(RuntimeBody):
     occurs_at: str | None = None
     pinned: bool = False
     sensitive: bool = False
+    shared: bool = False
     affect: NoteAffect | None = None
 
 
@@ -88,6 +89,24 @@ class PersonaRestore(RuntimeBody):
 class PersonaReset(RuntimeBody):
     made_by: PersonaAuthor
     reason: PersonaReason | None = None
+
+
+# Relationship (R1). The texts are checked by relationship.py, whose messages say what is wrong.
+class SupportStyleWrite(RuntimeBody):
+    text: Annotated[str, Field(max_length=2000)]
+
+
+class BoundaryWrite(RuntimeBody):
+    topic: Annotated[str, Field(max_length=2000)]
+    aliases: Annotated[list[Annotated[str, Field(max_length=2000)]], Field(max_length=50)] = []
+
+
+class FamiliarityCap(RuntimeBody):
+    level: Literal["new", "getting_to_know", "familiar"] | None
+
+
+class CommitmentAcknowledgement(RuntimeBody):
+    note_ids: Annotated[list[RuntimeIdentifier], Field(max_length=50)]
 
 
 class MoodPin(RuntimeBody):
@@ -570,6 +589,71 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
 
         body = await persona_body(request, PersonaReset)
         return await run_in_threadpool(reset_persona, service, principal, brain_id, **body)
+
+    async def relationship_body(request: Request, model: type[RuntimeBody]) -> dict:
+        document = await read_document(request)
+        try:
+            return model.model_validate(document).model_dump()
+        except ValidationError as error:
+            first = error.errors()[0]
+            where = ".".join(str(part) for part in first["loc"]) or "body"
+            raise DomainError("validation_failed", f"Relationship request field {where}: {first['msg']}.") from error
+
+    @app.get("/v1/brains/{brain_id}/relationship")
+    def get_relationship(brain_id: str, principal: Principal = Depends(authenticate)):
+        from .relationship import relationship
+
+        return relationship(service, principal, brain_id)
+
+    @app.put("/v1/brains/{brain_id}/relationship/support-style")
+    async def put_support_style(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
+        from starlette.concurrency import run_in_threadpool
+
+        from .relationship import set_support_style
+
+        body = await relationship_body(request, SupportStyleWrite)
+        return await run_in_threadpool(set_support_style, service, principal, brain_id, body["text"])
+
+    @app.post("/v1/brains/{brain_id}/relationship/boundaries")
+    async def post_boundary(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
+        from starlette.concurrency import run_in_threadpool
+
+        from .relationship import add_boundary
+
+        body = await relationship_body(request, BoundaryWrite)
+        return await run_in_threadpool(add_boundary, service, principal, brain_id, body["topic"], body["aliases"])
+
+    @app.delete("/v1/brains/{brain_id}/relationship/boundaries/{boundary_id}")
+    def delete_boundary(brain_id: str, boundary_id: str, principal: Principal = Depends(authenticate)):
+        from .relationship import remove_boundary
+
+        return remove_boundary(service, principal, brain_id, boundary_id)
+
+    @app.post("/v1/brains/{brain_id}/relationship/cap")
+    async def post_cap(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
+        from starlette.concurrency import run_in_threadpool
+
+        from .relationship import set_cap
+
+        body = await relationship_body(request, FamiliarityCap)
+        return await run_in_threadpool(set_cap, service, principal, brain_id, body["level"])
+
+    @app.post("/v1/brains/{brain_id}/relationship/acknowledge")
+    async def post_acknowledge(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
+        # The host reports missed commitments it has shown once, so later context does not repeat them.
+        from starlette.concurrency import run_in_threadpool
+
+        from .relationship import acknowledge
+
+        body = await relationship_body(request, CommitmentAcknowledgement)
+        return await run_in_threadpool(acknowledge, service, principal, brain_id, body["note_ids"])
+
+    @app.post("/v1/brains/{brain_id}/relationship/reset")
+    def post_relationship_reset(brain_id: str, principal: Principal = Depends(authenticate)):
+        # Audited erasure of moments, support style, boundaries, cap and acknowledgements, then a reset marker.
+        from .relationship import reset_relationship
+
+        return reset_relationship(service, principal, brain_id)
 
     # The companion's simulated mood (agent_mood): derived from stored events at read time, never stored as a score.
     @app.get("/v1/brains/{brain_id}/mood")

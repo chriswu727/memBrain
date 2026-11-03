@@ -355,8 +355,9 @@ def test_every_personality_string_on_the_page_has_chinese():
                     "Only the host sets the default persona card."):
         assert f'"{message}"' in dictionary, message
     html = (WEB / "memory.html").read_text(encoding="utf-8")
-    assert '<button data-view="persona">Personality</button>' in html and 'id="view-persona"' in html
-    assert "persona: loadPersona" in script
+    # The tab is named Companion: it holds the personality and the relationship (R1).
+    assert '<button data-view="persona">Companion</button>' in html and 'id="view-persona"' in html
+    assert "persona: loadCompanion" in script and "Promise.all([loadPersona(), loadRelationship()])" in script
 
 
 def test_restored_archives_keep_the_card_versions_and_host_default(installation, brain):

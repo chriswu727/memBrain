@@ -177,7 +177,9 @@ def _project(brain_id, notes, messages, links, hidden_sources, feelings=(), *, m
         masked = sensitive and not include_sensitive
         kind = fields.get("kind", "other")
         fields_by_id[row["id"]] = {} if masked else fields
-        nodes.append({"id": "note:" + row["id"], "region": REGIONS.get(kind, "other"), "kind": kind,
+        # A shared moment (a milestone flagged shared) belongs to the relationship layer.
+        region = "relationship" if fields.get("shared") and not masked else REGIONS.get(kind, "other")
+        nodes.append({"id": "note:" + row["id"], "region": region, "kind": kind,
                       "label": "Sensitive memory" if masked else _label(text),
                       "status": None if masked else fields.get("status"),
                       "date": None if masked else fields.get("due") or fields.get("occurs_at"),

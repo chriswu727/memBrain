@@ -176,6 +176,57 @@ const ZH = {
     "把个性重置为宿主的默认设定，或者清空设定？之前的版本会保留，可以恢复。笔记和消息不受影响。",
   "Delete every personality version, including the current card? This cannot be undone.": "删除所有个性版本，包括当前设定？此操作无法撤销。",
   "Personality history deleted.": "个性历史已删除。",
+  // Relationship (R1) and the Companion tab that holds it with the personality
+  "Companion": "伙伴", "Relationship": "关系",
+  "What you and your companion share: moments you had together, how familiar you are, how you like to be supported and the topics it should not bring up. Your agent receives it in its own block.":
+    "你和伙伴之间的关系：一起经历的时刻、彼此有多熟悉、你希望被怎样支持，以及它不该提起的话题。agent 会在单独的一段里收到这些。",
+  "Familiarity": "熟悉程度",
+  "Worked out from the days you talked and the moments you shared. Nobody sets it, and it is not a score of you. You can keep it at a lower level.":
+    "根据你们聊天的天数和共同的时刻推算出来。没有人设定它，它也不是对你的评分。你可以让它停在较低的程度。",
+  "Keep familiarity at most": "熟悉程度最多到", "No limit": "不限制", "Save limit": "保存上限",
+  "new": "初识", "getting to know": "渐渐熟悉", "familiar": "熟悉", "close": "亲近",
+  "How you like to be supported": "你希望被怎样支持", "Support style": "支持方式",
+  "listen first, advice only when asked": "先倾听，我问了再给建议", "Leave it empty to remove it.": "留空即可删除。",
+  "Save support style": "保存支持方式", "Boundaries": "边界",
+  "Topics your companion will not bring up. Earlier messages about them are left out of recall unless you raise the topic yourself.":
+    "伙伴不会主动提起的话题。除非你自己提起，否则召回时会略过之前关于这些话题的消息。",
+  "Topic": "话题", "my ex": "我的前任", "Other words for it, separated by commas": "其他说法，用逗号分隔",
+  "ex-partner, 前任": "前男友, 前女友", "Add boundary": "添加边界", "Shared moments": "共同时刻",
+  "Things you and your companion did or reached together, oldest first.": "你和伙伴一起做过或一起达成的事，最早的在前。",
+  "Add a shared moment": "添加一个共同时刻", "Promises kept and missed": "做到和错过的承诺",
+  "From your agent's promise notes. A missed promise is shown to your agent once, so it can acknowledge it.":
+    "来自 agent 的承诺笔记。错过的承诺会给 agent 看一次，让它可以承认。",
+  "Reset the relationship": "重置关系",
+  "Deletes the shared moments, the support style, every boundary, the familiarity limit and the record of promises. Familiarity starts again at new. Conversations, your other notes, the personality and feelings stay.":
+    "删除共同时刻、支持方式、所有边界、熟悉程度上限和承诺记录。熟悉程度从“初识”重新开始。对话、你的其他笔记、个性和感受都会保留。",
+  "Reset relationship": "重置关系",
+  "No boundaries. Add a topic you don't want your companion to bring up.": "没有边界。添加一个你不希望伙伴提起的话题。",
+  "No shared moments yet. When you and your companion do something together, your agent can keep it here.":
+    "还没有共同时刻。当你和伙伴一起做了什么，agent 可以把它记在这里。",
+  "No kept or missed promises since the relationship began or was last reset.": "自关系开始或上次重置以来，没有做到或错过的承诺。",
+  "Remove": "移除", "kept": "做到了", "missed": "错过了", "open": "进行中", "shown to your agent": "已给 agent 看过",
+  "not shown yet": "还没给 agent 看", "shared": "共同时刻",
+  "Shared moment: something we did or reached together": "共同时刻：我们一起做过或一起达成的事",
+  "Remove this boundary? Your companion may bring the topic up again, and earlier messages about it are recalled normally.":
+    "移除这个边界？伙伴可能会再次提起这个话题，之前关于它的消息也会照常召回。",
+  "Boundary removed.": "边界已移除。", "Boundary added.": "边界已添加。",
+  "Delete this shared moment? Its note is erased.": "删除这个共同时刻？它的笔记会被清除。",
+  "Shared moment deleted.": "共同时刻已删除。", "Familiarity limit saved.": "熟悉程度上限已保存。",
+  "Familiarity limit removed.": "熟悉程度上限已取消。", "Support style saved.": "支持方式已保存。",
+  "Support style removed.": "支持方式已删除。", "Relationship reset.": "关系已重置。",
+  "Reset the relationship? This deletes every shared moment, the support style, every boundary (so those topics are no longer kept out), the familiarity limit and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. Conversations, your other notes, the personality and feelings stay.":
+    "重置关系？这会删除所有共同时刻、支持方式、所有边界（这些话题将不再被略过）、熟悉程度上限，以及做到和错过的承诺记录。熟悉程度从“初识”重新开始，只计算从现在起的天数。对话、你的其他笔记、个性和感受都会保留。",
+  "The support style is text.": "支持方式必须是文字。",
+  "Keep the support style under 200 characters.": "支持方式请控制在 200 个字符以内。",
+  "A boundary is a topic and an optional list of other words for it.": "边界是一个话题，加上可选的其他说法。",
+  "A boundary topic is 1 to 60 characters.": "边界话题为 1 到 60 个字符。",
+  "Each other word for a boundary is 1 to 40 characters.": "边界的每个其他说法为 1 到 40 个字符。",
+  "A boundary has at most 6 other words.": "一个边界最多有 6 个其他说法。",
+  "Name the topic itself, not only words like \"my\" or \"the\".": "请写出话题本身，而不只是“我的”这类词。",
+  "A familiarity cap is new, getting_to_know or familiar, or none.": "熟悉程度上限只能是初识、渐渐熟悉、熟悉，或不限制。",
+  "There can be at most 12 boundaries. Remove one first.": "最多 12 个边界。请先移除一个。",
+  "The boundaries would be too long to show in full. Shorten them or remove one first.": "边界加起来太长，无法完整显示。请缩短或先移除一个。",
+  "That boundary is not available.": "这个边界已不存在。",
   // Companion mood (M1)
   "Simulated mood": "模拟心情",
   "A short-term mood your companion simulates from what happens in your conversations. It is not a real feeling and says nothing about you. It drifts back to the baseline mood on its own; time apart never changes it.":
@@ -257,7 +308,26 @@ const ZH_PATTERNS = [
     .replace(/Date: /g, "日期：").replace(/Saved: /g, "保存于：")],
   [/^(Plans|Commitments|Preferences|Health and constraints|Routines|Recent messages|People|Relationship|Milestones and dates|Other notes|Feelings): (.*)$/s,
     (m, region, text) => `${ZH[region]}：${text}`],
+  // Relationship (R1). The reason is the service's own sentence, with the numbers its rule used.
+  [/^Relationship reset on (.+)$/, (m, date) => `关系已于 ${translate(date)} 重置`],
+  [/^(new|getting to know|familiar|close): (\d+) days? of conversation since (.+), (\d+) shared moments?(?: \(capped by you; the rule gives (.+)\))?$/,
+    (m, level, days, since, moments, derived) => `${ZH[level]}：自 ${zhDay(since)} 起聊了 ${days} 天，${moments} 个共同时刻${derived ? `（你设了上限；按规则是“${ZH[derived]}”）` : ""}`],
+  [/^(new|getting to know|familiar|close): no conversation yet, (\d+) shared moments?(?: \(capped by you; the rule gives (.+)\))?$/,
+    (m, level, moments, derived) => `${ZH[level]}：还没有聊过，${moments} 个共同时刻${derived ? `（你设了上限；按规则是“${ZH[derived]}”）` : ""}`],
+  [/^Next: (.+) at (\d+) days and (\d+) shared moments?\.$/, (m, level, days, moments) => `下一级：${ZH[level]}，需要聊满 ${days} 天并有 ${moments} 个共同时刻。`],
+  [/^Next: (.+) at (\d+) days of conversation\.$/, (m, level, days) => `下一级：${ZH[level]}，需要聊满 ${days} 天。`],
+  [/^also: (.+)$/s, (m, names) => `也叫：${names}`],
+  [/^Kept: (\d+) · missed: (\d+) · cancelled: (\d+) · open: (\d+)$/, (m, kept, missed, cancelled, open) =>
+    `做到 ${kept} · 错过 ${missed} · 取消 ${cancelled} · 进行中 ${open}`],
+  [/^Relationship request field ([\w.\[\]]+): (.+)$/s, (m, where, detail) => `关系字段 ${where}：${detail}`],
 ];
+// "2 Mar" or "2 Mar 2027" as a Chinese date.
+function zhDay(text) {
+  const match = /^(\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)(?: (\d{4}))?$/.exec(text);
+  if (!match) return text;
+  const month = "JanFebMarAprMayJunJulAugSepOctNovDec".indexOf(match[2]) / 3 + 1;
+  return `${match[3] ? `${match[3]}年` : ""}${month}月${match[1]}日`;
+}
 const BRAIN_STATUS = { intended: "打算中", scheduled: "已安排", done: "已完成", cancelled: "已取消", superseded: "已被取代" };
 const BRAIN_EDGES = { "derived from": "来自这条消息", "about person": "关于这个人", replaces: "取代了这条",
   "feeling of": "这条笔记上的感受" };

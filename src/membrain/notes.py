@@ -34,7 +34,8 @@ NOTE_TOOL_DESCRIPTION = (
     "constraints, plans and their changes) so it is shown at the start of every later session. One fact per note, "
     "under 300 characters, with dates when they matter. Set kind when it is clear: person (with about = their name, "
     "aliases, and the relation in the text), constraint, preference, plan (with status intended until the user "
-    "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD), routine, milestone, relationship, or "
+    "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD), routine, milestone (shared true when it "
+    "is a moment you and the user shared: a first conversation, a goal reached together, a shared joke), relationship, or "
     "agent_commitment for something you promised to do. Status done means everything in the note has happened: a "
     "purchase paid for but not yet delivered, or a booking still ahead, is scheduled, with its date. "
     "When a fact changes (a plan is done, moved or cancelled), "
@@ -55,6 +56,8 @@ NOTE_FIELDS = {
     "occurs_at": {"type": "string", "description": "YYYY-MM-DD on which an event happens."},
     "pinned": {"type": "boolean", "description": "Always show this note."},
     "sensitive": {"type": "boolean", "description": "Health, money or other private matters."},
+    "shared": {"type": "boolean", "description": "With kind milestone: a moment the user and you shared, such as "
+                                                 "your first conversation, a goal reached together or a shared joke."},
     "affect": {"type": "object", "additionalProperties": False, "required": ["label", "valence", "intensity", "basis"],
                "description": "A feeling the user expressed about this note's subject. Kept as evidence, never "
                               "as a score.",
@@ -184,13 +187,17 @@ def note_fields(arguments: dict) -> dict:
 
 
 def format_note(text: str, *, kind=None, about=None, aliases=(), status=None, due=None, occurs_at=None,
-                pinned=False, sensitive=False) -> str:
-    """The stored form: plain text, or ``[kind · status · due DATE · about NAME · aka A, B] sentence``."""
+                pinned=False, sensitive=False, shared=False) -> str:
+    """The stored form: plain text, or ``[kind · status · due DATE · about NAME · aka A, B] sentence``.
+
+    ``shared`` marks a milestone as a shared moment of the relationship layer (``relationship.py``)."""
     text = " ".join(str(text).split())
     if not text:
         raise ValueError("A note needs text.")
     if len(text) > NOTE_CHARACTERS:
         raise ValueError(f"Keep a note under {NOTE_CHARACTERS} characters; save separate facts separately.")
+    if shared and kind != "milestone":
+        raise ValueError("shared marks a shared moment: use it with kind milestone.")
     if not any((kind, about, aliases, status, due, occurs_at, pinned, sensitive)):
         if _HEADER.fullmatch(text) and parse_note(text)[0]:
             raise ValueError("A note cannot start with a bracketed header; pass the fields instead.")
@@ -206,7 +213,7 @@ def format_note(text: str, *, kind=None, about=None, aliases=(), status=None, du
     tokens += [f"about {_name(about, 'about')}"] if about else []
     names = [_name(alias, "aliases") for alias in (aliases or ())]
     tokens += [f"aka {', '.join(names)}"] if names else []
-    tokens += ["pinned"] * bool(pinned) + ["sensitive"] * bool(sensitive)
+    tokens += ["pinned"] * bool(pinned) + ["sensitive"] * bool(sensitive) + ["shared"] * bool(shared)
     header = ' · '.join(tokens)
     stored = f"[{header}] {text}"
     if len(header) > 200 or len(stored) > STORED_CHARACTERS:
@@ -228,7 +235,7 @@ def parse_note(stored: str) -> tuple[dict, str]:
         word, _, value = token.partition(" ")
         if token in STATUSES:
             fields["status"] = token
-        elif token in ("pinned", "sensitive"):
+        elif token in ("pinned", "sensitive") or (token == "shared" and tokens[0] == "milestone"):
             fields[token] = True
         elif word == "due" and _DATE.fullmatch(value):
             fields["due"] = value
@@ -572,6 +579,22 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
         if len(available) != len(sources) or any(
                 event["scope"]["conversation_id"] in (NOTES_CONVERSATION, AFFECT_CONVERSATION) for event in available):
             raise DomainError("source_unavailable", "A note source is unavailable in this brain.")
+        shared_refused = None
+        if fields.get("shared"):
+            from .relationship import shared_refusal
+
+            # A source message not recorded yet is newer than any reset marker.
+            sequences = [event["sequence"] for event in available]
+            for ref in arguments.get("source_messages", []):
+                row = conn.execute(
+                    "SELECT sequence FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+                    "AND producer_ref=%s AND source_key=%s AND source_revision=%s",
+                    (*params, ref["producer_ref"], ref["source_event_key"], ref["source_revision"])).fetchone()
+                if row:
+                    sequences.append(row["sequence"])
+            shared_refused = shared_refusal(service, conn, principal, brain_id, sequences)
+            if shared_refused:
+                text = format_note(scrub(arguments["text"]), **{**fields, "shared": False})
         from .note_sources import reference
 
         references = list(arguments.get("source_messages", []))
@@ -603,6 +626,8 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
             "AND output_event_id=%s ORDER BY input_event_id", (*params, note_id))]
         result = {"note_id": note_id, "replaced": stale, "unknown": [value for value in replaces if value not in stale],
                   "source_event_ids": linked, "pending_source_count": max(0, len(references) - len(linked))}
+        if shared_refused:
+            result["shared_refused"] = shared_refused
         if affect is not None:
             from .affect import record_affect
 

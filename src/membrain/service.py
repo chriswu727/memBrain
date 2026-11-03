@@ -355,13 +355,15 @@ class MemoryService:
         from .affect import AFFECT_CONVERSATION
         from .mood import MOOD_CONVERSATION
         from .persona import PERSONA_CONVERSATION
+        from .relationship import RELATIONSHIP_CONVERSATION
 
         # Persona versions are configuration and affect records are evidence kept with notes, not conversation:
         # neither is read for learning, so saving or clearing them never starts a model call. Mood pins and reset
-        # markers are settings, likewise.
+        # markers are settings, and relationship records (support style, boundaries, cap, acknowledgements, reset
+        # markers) are the user's requests, likewise.
         if (self.semantic_processor and target.get("conversation_ref") and target.get("branch_ref")
                 and target.get("conversation_ref") not in (PERSONA_CONVERSATION, AFFECT_CONVERSATION,
-                                                           MOOD_CONVERSATION)
+                                                           MOOD_CONVERSATION, RELATIONSHIP_CONVERSATION)
                 and incoming["delivery_state"] in ("received", "delivered", "partially_delivered")
                 and incoming["event_kind"] not in ("source_correction", "delivery_receipt")):
             from .learning_allocations import CONTRACT_VERSION
@@ -380,6 +382,10 @@ class MemoryService:
 
         if request["target"].get("conversation_ref") == PERSONA_CONVERSATION:
             raise DomainError("invalid_evidence", "Persona versions are written through the persona API.")
+        from .relationship import RELATIONSHIP_CONVERSATION
+
+        if request["target"].get("conversation_ref") == RELATIONSHIP_CONVERSATION:
+            raise DomainError("invalid_evidence", "Relationship records are written through the relationship API.")
         if request["target"].get("conversation_ref") == MOOD_CONVERSATION:
             raise DomainError("invalid_evidence", "The companion's mood is set through the mood API.")
         for event in request["payload"]["events"]:

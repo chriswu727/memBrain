@@ -319,6 +319,40 @@ class MemoryClient:
         """Erase every persona version (audited, like deleting notes)."""
         return self._request("DELETE", self._persona_path(brain_id, "/versions"))
 
+    def _relationship_path(self, brain_id: str | None, suffix: str = "") -> str:
+        return f"v1/brains/{quote(self._scope(brain_id=brain_id)['brain_ref'], safe='')}/relationship{suffix}"
+
+    def relationship(self, *, brain_id: str | None = None) -> JsonObject:
+        """Familiarity with its reason, support style, boundaries, shared moments, the commitment record, reset
+        markers and the ``<membrain-relationship>`` block."""
+        return self._request("GET", self._relationship_path(brain_id))
+
+    def set_support_style(self, text: str, *, brain_id: str | None = None) -> JsonObject:
+        """How the user likes to be supported ("listen first, advice only when asked"); empty text removes it."""
+        return self._request("PUT", self._relationship_path(brain_id, "/support-style"), json={"text": text})
+
+    def add_boundary(self, topic: str, aliases: Sequence[str] = (), *, brain_id: str | None = None) -> JsonObject:
+        """A topic the user asked the companion not to bring up, with other words for it (e.g. "前任")."""
+        return self._request("POST", self._relationship_path(brain_id, "/boundaries"),
+                             json={"topic": topic, "aliases": list(aliases)})
+
+    def remove_boundary(self, boundary_id: str, *, brain_id: str | None = None) -> JsonObject:
+        return self._request("DELETE", self._relationship_path(brain_id, f"/boundaries/{quote(boundary_id, safe='')}"))
+
+    def cap_familiarity(self, level: Literal["new", "getting_to_know", "familiar"] | None, *,
+                        brain_id: str | None = None) -> JsonObject:
+        """Cap familiarity at a lower level; None removes the cap."""
+        return self._request("POST", self._relationship_path(brain_id, "/cap"), json={"level": level})
+
+    def acknowledge_commitments(self, note_ids: Sequence[str], *, brain_id: str | None = None) -> JsonObject:
+        """Report missed commitments that were shown once, so they are not shown again."""
+        return self._request("POST", self._relationship_path(brain_id, "/acknowledge"),
+                             json={"note_ids": list(note_ids)[:50]})
+
+    def reset_relationship(self, *, brain_id: str | None = None) -> JsonObject:
+        """Erase shared moments, support style, boundaries, cap and acknowledgements; write a reset marker."""
+        return self._request("POST", self._relationship_path(brain_id, "/reset"))
+
     def mood(self, *, brain_id: str | None = None) -> JsonObject:
         """The companion's simulated mood: label, triggers with reasons, when it is back at baseline, pinned."""
         return self._request("GET", f"v1/brains/{quote(self._scope(brain_id=brain_id)['brain_ref'], safe='')}/mood")
