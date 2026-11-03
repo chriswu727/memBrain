@@ -121,7 +121,7 @@ def record_affect(service, conn, principal, brain, *, note_id, affect, request_i
     return {"affect_id": record_id}
 
 
-def _records(service, conn, principal, brain_id, limit=MAX_RECORDS + 1, *, ids=None) -> list[dict]:
+def _records(service, conn, principal, brain_id, limit=MAX_RECORDS + 1, *, ids=None, include_imports=True) -> list[dict]:
     """Current records whose note is still current, newest first, each with its note and evidence."""
     params = service._params(principal, brain_id)
     rows = conn.execute(
@@ -152,6 +152,8 @@ def _records(service, conn, principal, brain_id, limit=MAX_RECORDS + 1, *, ids=N
     result = []
     for record in records:
         imported = record.pop("_from_archive")
+        if imported and not include_imports:
+            continue
         note = notes.get(record["note_id"])
         if note is None:
             continue  # Its note was corrected or deleted; the cascade removes the record with it.

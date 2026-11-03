@@ -98,13 +98,13 @@ def _clip(text: str, limit: int) -> str:
 def _affect_triggers(service, conn, principal, brain_id) -> list[dict]:
     """Affect records after the latest affect reset marker whose note is still current. A record on a sensitive
     note never triggers: such a feeling is used only when the user raises the topic, and the mood line would
-    raise it."""
+    raise it. Restored records describe history, rather than something that just happened."""
     from .affect import _records, latest_marker
 
     marker = latest_marker(service, conn, principal, brain_id)
     after = marker["applies_from_sequence"] if marker else 0
     triggers = []
-    for record in _records(service, conn, principal, brain_id):
+    for record in _records(service, conn, principal, brain_id, include_imports=False):
         if record["sequence"] <= after or record["sensitive"] or record["valence"] == 0:
             continue
         kind = "good_news" if record["valence"] > 0 else "distress"

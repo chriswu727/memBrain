@@ -402,6 +402,31 @@ def test_pins_and_reset_markers_survive_an_archive_restore(installation, brain, 
     assert pin_mood(service, principal, copy, True, now=moment("2027-03-14T21:05:00Z"))["unchanged"]
 
 
+def test_restoring_old_feelings_does_not_trigger_a_fresh_mood(installation, brain, clock):
+    from membrain.client import MemoryClient
+
+    service, principal, ident = brain
+    clock("2027-03-14T21:00:00Z")
+    write(brain, "Got the job.", kind="milestone", affect=JOB)
+    assert not mood(brain, "2027-03-14T21:05:00Z")["at_baseline"]
+    clock("2027-03-20T21:00:00Z")
+    assert mood(brain, "2027-03-20T21:00:00Z")["at_baseline"]
+
+    def handle(request):
+        return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
+
+    with MemoryClient("http://memory.test", "k", ident, transport=httpx.MockTransport(handle)) as client:
+        archive = client.export()["result"]
+        copy = service.create_brain(principal, "Restored old feelings")["id"]
+        client.restore(archive["archive_id"], expected_manifest_sha256=archive["manifest_sha256"],
+                       expected_scope_generation=1, mode="new_brain", brain_id=copy)
+    restored = mood_state(service, principal, copy, now=moment("2027-03-20T21:01:00Z"))
+    assert restored["at_baseline"] and restored["block"] is None
+    from membrain.affect import affect_records
+
+    assert len(affect_records(service, principal, copy)["records"]) == 1
+
+
 def test_archived_mood_settings_are_read_strictly(brain):
     from membrain.mood import _entry
 
