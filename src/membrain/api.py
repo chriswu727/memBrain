@@ -17,6 +17,7 @@ from . import __version__
 from .config import Settings, configured_service
 from .contracts import CONTRACT_VERSION, schema, validate
 from .helpers import DomainError, Principal
+from .service import reading
 
 RuntimeIdentifier = Annotated[str, Field(min_length=1, max_length=256)]
 RuntimeFingerprint = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
@@ -507,9 +508,10 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
         from .memory_map import memory_map as read_memory_map
 
         try:
-            return read_memory_map(service, principal, brain_id, max_nodes=max_nodes, max_edges=max_edges,
-                                   include_sensitive=include_sensitive,
-                                   trace=(traces.last(principal, brain_id) or {}) if trace else None)
+            with reading():
+                return read_memory_map(service, principal, brain_id, max_nodes=max_nodes, max_edges=max_edges,
+                                       include_sensitive=include_sensitive,
+                                       trace=(traces.last(principal, brain_id) or {}) if trace else None)
         except (psycopg.errors.LockNotAvailable, psycopg.errors.QueryCanceled):
             raise DomainError("dependency_unavailable", "Memory is busy updating. Retry the map shortly.",
                               retryable=True) from None
@@ -536,7 +538,8 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     def list_affect(brain_id: str, principal: Principal = Depends(authenticate)):
         from .affect import affect_records
 
-        return affect_records(service, principal, brain_id)
+        with reading():
+            return affect_records(service, principal, brain_id)
 
     @app.post("/v1/brains/{brain_id}/affect/reset")
     def reset_affect(brain_id: str, principal: Principal = Depends(authenticate)):
@@ -549,7 +552,8 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     def get_persona(brain_id: str, principal: Principal = Depends(authenticate)):
         from .persona import current_persona
 
-        return current_persona(service, principal, brain_id)
+        with reading():
+            return current_persona(service, principal, brain_id)
 
     @app.put("/v1/brains/{brain_id}/persona")
     async def put_persona(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
@@ -564,7 +568,8 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     def get_persona_versions(brain_id: str, principal: Principal = Depends(authenticate)):
         from .persona import persona_versions
 
-        return persona_versions(service, principal, brain_id)
+        with reading():
+            return persona_versions(service, principal, brain_id)
 
     @app.delete("/v1/brains/{brain_id}/persona/versions")
     def delete_persona_versions(brain_id: str, principal: Principal = Depends(authenticate)):
@@ -603,7 +608,8 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     def get_relationship(brain_id: str, principal: Principal = Depends(authenticate)):
         from .relationship import relationship
 
-        return relationship(service, principal, brain_id)
+        with reading():
+            return relationship(service, principal, brain_id)
 
     @app.put("/v1/brains/{brain_id}/relationship/support-style")
     async def put_support_style(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
@@ -660,7 +666,8 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     def get_mood(brain_id: str, principal: Principal = Depends(authenticate)):
         from .mood import mood_state
 
-        return mood_state(service, principal, brain_id)
+        with reading():
+            return mood_state(service, principal, brain_id)
 
     @app.post("/v1/brains/{brain_id}/mood/pin")
     async def pin_companion_mood(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
