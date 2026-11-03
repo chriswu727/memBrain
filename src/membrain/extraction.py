@@ -23,7 +23,15 @@ import time
 
 import httpx
 
+from . import helpers as _helpers
 from .notes import KINDS, STATUSES, check_affect, note_fields
+
+
+def _clock_today() -> _datetime.date:
+    """The evaluation scenario clock's date when one is enabled; otherwise this module's own date, which older
+    evaluation harnesses replace through ``_datetime``."""
+    return _helpers.today() if _helpers._scenario_clock is not None else _datetime.date.today()
+
 
 PRODUCER = "membrain-extract"
 MAX_NOTES = 5
@@ -115,7 +123,7 @@ class Extractor:
 
         ``previous`` is the exchange before it in the same conversation, shown so a short reply can be understood.
         """
-        today = today or _datetime.date.today()
+        today = today or _clock_today()
         earlier = ""
         if previous:
             earlier = ("Previous exchange (context only; its facts were already considered):\n"
