@@ -90,6 +90,9 @@ def test_the_feedback_table_recognises_english_and_chinese_feedback(text, kind):
     "例句：你太正式了。", "「你太正式了」是他的台词", "朋友：你太正式了", "“你太正式了”这句话怎么翻译",
     # A quote that opens in an earlier sentence of the same message.
     '"Hello. You are too formal for this chat."', '“Hi there. You are too formal.”', "「你好。你太正式了。」",
+    # Code is quoted text too: fenced blocks (closed or not) and inline code.
+    "```\nYou are too formal for this chat.\n```", "`You are too formal for this chat.`",
+    "Here is the fixture:\n```text\nyou're too formal\n", "~~~\n你太正式了\n~~~",
     "", "x" * 2001,
 ])
 def test_narrow_patterns_ignore_false_positives(text):
@@ -100,7 +103,7 @@ def test_narrow_patterns_ignore_false_positives(text):
     # Ordinary feedback with an apostrophe, a comma or an aside still counts.
     ("You're too formal, honestly", "less_formal"), ("you're too formal", "less_formal"),
     ("I can't lie, you're too formal", "less_formal"), ("Honestly, can you be more casual?", "less_formal"),
-    ("你太正式了，放松一点", "less_formal"),
+    ("你太正式了，放松一点", "less_formal"), ("Use `ls` please. You are too formal.", "less_formal"),
 ])
 def test_quote_and_colon_guards_leave_ordinary_feedback_alone(text, kind):
     assert detect(text) == [kind]

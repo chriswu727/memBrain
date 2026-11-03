@@ -220,6 +220,8 @@ def _sentence_before(text: str, start: int) -> str:
 
 
 _PAIRS = {"“": "”", "「": "」", "『": "』"}
+_FENCED_CODE = re.compile(r"(?:```|~~~).*?(?:```|~~~|$)", re.DOTALL)
+_INLINE_CODE = re.compile(r"`[^`\n]*`")
 
 
 def _inside_quote(text: str, position: int) -> bool:
@@ -259,6 +261,8 @@ def detect(text: str) -> list[str]:
     """The feedback kinds a message gives about the companion's manner, in table order; usually none."""
     if not isinstance(text, str) or not text.strip() or len(text) > SCAN_CHARACTERS:
         return []
+    # Code is quoted text: a fenced block (an unclosed fence runs to the end) and inline `code` never count.
+    text = _INLINE_CODE.sub(" ", _FENCED_CODE.sub(" ", text))
     text = " ".join(text.replace("’", "'").replace("‘", "'").split())
     if _WORLD.search(text):
         return []
