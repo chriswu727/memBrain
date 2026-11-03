@@ -140,12 +140,42 @@ def test_model_retry_requires_authentication_and_starts_only_the_local_download(
         assert len(launched) == 1
 
 
-def test_downloaded_model_is_not_reported_enabled_before_the_service_activates_it(supervisor, monkeypatch):
-    from membrain import host
+def test_downloaded_model_activates_in_place_and_is_never_reported_as_needing_a_restart(tmp_path, monkeypatch):
+    import hashlib
 
-    monkeypatch.setattr(host, "semantic_state", lambda directory: "ready")
+    import membrain.recovery_authority
+    from membrain import host, local_embeddings
+    from membrain.storage import Database
+
+    monkeypatch.setattr(Database, "check_compatibility", lambda *args, **kwargs: None)
+    monkeypatch.setattr(membrain.recovery_authority, "configure_authority", lambda *args: None)
+    monkeypatch.setattr(local_embeddings, "runtime_available", lambda: True)
+    contents = {"onnx/model_quantized.onnx": b"model" * 10, "tokenizer.json": b"{}"}
+    monkeypatch.setattr(local_embeddings, "FILES", {
+        name: (hashlib.sha256(data).hexdigest(), len(data)) for name, data in contents.items()})
+    profile = ensure_profile(tmp_path / "profile")
+    supervisor = LocalSupervisor(profile, logging.getLogger("desktop-test"))
+    # The provider is configured before the model exists, so the configuration does not change when it arrives.
+    assert supervisor.settings.embedding_local_directory == str(local_embeddings.model_directory(profile.directory))
     monkeypatch.setattr(supervisor, "snapshot", lambda: {"ready": True})
+    launched = []
+    monkeypatch.setattr(host, "_fetch_in_background", launched.append)
     with TestClient(supervisor.app(), base_url="http://127.0.0.1") as client:
         headers = {"Authorization": "Bearer " + supervisor.profile.api_key}
-        result = client.get("/v1/local/memory-status", headers=headers).json()
-        assert result["semantic_recall"] == "restart_required"
+
+        def semantic():
+            return client.get("/v1/local/memory-status", headers=headers).json()["semantic_recall"]
+
+        service = client.app.state.service
+        assert semantic() == "not_downloaded" and service.embedding_provider is None
+        with monkeypatch.context() as patched:
+            # Reported installed before this service's provider has seen the files: activating, not restart.
+            patched.setattr(host, "semantic_state", lambda directory: "ready")
+            assert semantic() == "activating"
+        for name, data in contents.items():
+            target = local_embeddings.model_directory(profile.directory) / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_bytes(data)
+        assert semantic() == "ready" and service.embedding_provider is not None
+        assert client.post("/v1/local/semantic-model", headers=headers).json() == {"semantic_recall": "ready"}
+        assert launched == []

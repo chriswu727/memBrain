@@ -335,20 +335,20 @@ def _fetch_in_background(directory: Path) -> None:
 
 
 def fetch_model(directory: Path) -> dict:
-    """Download the local embedding model, then restart a running service so it starts using it."""
-    from . import desktop
+    """Download the local embedding model; a running service starts using it in place.
+
+    The service was configured with the model's provider before the download, and the provider becomes ready once
+    the verified files are in place. Restarting here would break reads, writes and sessions in flight, so this never
+    restarts the service.
+    """
     from .local_embeddings import download
 
     try:
         download(directory)
         (state_directory(directory) / "model-download-error.json").unlink(missing_ok=True)
         log(directory, "semantic model installed")
-        restarted = False
-        if (Path(directory) / "profile.json").exists() and desktop.status(directory).get("state") in {
-                "ready", "degraded", "restart_required"}:
-            desktop.restart(directory)
-            restarted = True
-        return {"semantic_recall": semantic_state(directory), "service_restarted": restarted}
+        state = semantic_state(directory)
+        return {"semantic_recall": state, "service_restarted": False, "activated": state == "ready"}
     except Exception as error:
         _write_state(state_directory(directory) / "model-download-error.json",
                      {"time": time.time(), "type": type(error).__name__})

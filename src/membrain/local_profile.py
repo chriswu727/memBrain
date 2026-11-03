@@ -237,10 +237,14 @@ class DesktopProfile:
 
 
 def _local_embeddings(directory: Path) -> str | None:
-    from .local_embeddings import installed, runtime_available
+    """The local model directory whenever the runtime is installed, whether or not the model is downloaded yet.
 
-    model = installed(directory)
-    return str(model) if model is not None and runtime_available() else None
+    The setting must not change when the download finishes: the service's provider reports itself not ready until
+    the verified files are in place and is then used in place, so finishing the download never needs a restart.
+    """
+    from .local_embeddings import model_directory, runtime_available
+
+    return str(model_directory(directory)) if runtime_available() else None
 
 
 def _cognition(value) -> dict | None:
