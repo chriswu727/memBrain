@@ -699,8 +699,13 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
         body = await read_document(request)
         validate("ActionRequest", body)
         from starlette.concurrency import run_in_threadpool
-        result = await run_in_threadpool(service.handle, principal, body)
-        validate("ActionResponse", result)
+        respond = getattr(service, "respond", None)
+        if respond is None:
+            result, validated = await run_in_threadpool(service.handle, principal, body), False
+        else:
+            result, validated = await run_in_threadpool(respond, principal, body)
+        if not validated:  # A completed response was already validated, as this same unchanged object.
+            validate("ActionResponse", result)
         return result
 
     @app.get("/v1/brains/{brain_id}/runtime/status")

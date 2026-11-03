@@ -169,6 +169,12 @@ class MemoryService:
             return self._public_brain(self._brain(conn, principal, brain_id))
 
     def handle(self, principal, request):
+        return self.respond(principal, request)[0]
+
+    def respond(self, principal, request):
+        """``handle``, plus whether the returned envelope is the very object this call validated as an
+        ActionResponse, unchanged since. Only a completed response is; cached responses and errors are not, so a
+        caller that must return a valid response validates those itself."""
         action = request.get("action", "observe")
         envelope = {
             "message_type": "response", "contract_version": CONTRACT_VERSION,
@@ -206,7 +212,7 @@ class MemoryService:
                         raise DomainError("version_conflict", "Cached response was invalidated; use a new request ID.")
                     response = copy.deepcopy(existing["response"])
                     response["request_id"] = request["request_id"]
-                    return response
+                    return response, False
                 if vector_snapshot:
                     from .learning import validate_snapshot
 
@@ -231,7 +237,7 @@ class MemoryService:
                         "AND id=%s AND kind='query_embedding'",
                         (*params, "query:" + digest([key, action])),
                     )
-            return envelope
+            return envelope, True
         except DomainError as error:
             envelope.pop("result", None)
             envelope.pop("server_scope", None)
@@ -248,7 +254,7 @@ class MemoryService:
                 "code": "deletion_in_progress", "retryable": True,
                 "message": "A durable deletion intent was recorded. Reconcile it before treating deletion as complete.",
             })
-        return envelope
+        return envelope, False
 
     def _advance(self, conn, principal, brain, *, scope=False):
         _writable()
