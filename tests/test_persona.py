@@ -347,8 +347,13 @@ def test_every_personality_string_on_the_page_has_chinese():
     assert missing == []
     for pattern in ("^Version (\\d+)$", "^History deleted on (.+)$", "^Saved as version (\\d+)\\.$", "^Personality reset as version (\\d+)\\.$",
                     "^restored from version (\\d+)$", "^Restore version (\\d+)\\? Its content becomes a new version\\.$",
-                    "^\\(valence ([+-]?\\d), energy (\\d) of 3\\)$", "^The persona card is (\\d+) characters"):
+                    "^\\(valence ([+-]?\\d), energy (\\d) of 3\\)$", "^The persona card is (\\d+) characters",
+                    "^Persona version (\\d+) is not available\\.$", "^A reason is text of at most (\\d+) characters\\.$",
+                    "^Persona card field ("):
         assert pattern in dictionary, pattern
+    for message in ("Persona card field baseline_mood.label: give the mood a name.",
+                    "Only the host sets the default persona card."):
+        assert f'"{message}"' in dictionary, message
     html = (WEB / "memory.html").read_text(encoding="utf-8")
     assert '<button data-view="persona">Personality</button>' in html and 'id="view-persona"' in html
     assert "persona: loadPersona" in script

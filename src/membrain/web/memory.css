@@ -83,6 +83,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   outline: 3px solid var(--accent); outline-offset: 3px;
 }
 .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+/* With eight views the tabs no longer fit beside the name, badge and language switch: give them their own row. */
+@media (max-width: 1240px) {
+  header { row-gap: 8px; }
+  nav { order: 3; width: 100%; }
+}
 @media (max-width: 600px) {
   .note-editor { grid-template-columns: 1fr; }
   .service-status { align-items: stretch; flex-direction: column; }

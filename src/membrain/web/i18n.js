@@ -133,6 +133,8 @@ const ZH = {
   "Save as a new version": "保存为新版本", "Versions": "版本",
   "Newest first. Restoring a version saves its content as a new version.": "最新的在前。恢复某个版本会把它的内容保存为一个新版本。",
   "Delete personality history": "删除个性历史",
+  "Persona card field baseline_mood.label: give the mood a name.": "个性字段 baseline_mood.label：请给这个心情起个名字。",
+  "Only the host sets the default persona card.": "只有宿主应用可以设定默认个性。",
   "Erases every version, including the current card. Deletion is recorded, so it also holds if an older backup is restored. Notes and messages are not touched.":
     "清除所有版本，包括当前设定。删除会被记录下来，即使从旧备份恢复也不会回来。笔记和消息不受影响。",
   "Traits": "性格特点", "Values": "价值观", "Boundaries": "边界", "register": "语体", "length": "长度", "emoji": "表情符号",
@@ -184,6 +186,10 @@ const ZH_PATTERNS = [
   [/^restored from version (\d+)$/, (m, n) => `从版本 ${n} 恢复`],
   [/^Restore version (\d+)\? Its content becomes a new version\.$/, (m, n) => `恢复版本 ${n}？它的内容会成为一个新版本。`],
   [/^\(valence ([+-]?\d), energy (\d) of 3\)$/, (m, valence, energy) => `（情绪倾向 ${valence}，活力 ${energy}/3）`],
+  [/^Persona version (\d+) is not available\.$/, (m, version) => `个性版本 ${version} 已不存在。`],
+  [/^A reason is text of at most (\d+) characters\.$/, (m, n) => `原因最多 ${n} 个字符。`],
+  // Field checks name the field; the detail after it comes from the validator and stays in English.
+  [/^Persona card field ([\w.\[\]]+): (.+)$/s, (m, where, detail) => `个性字段 ${where}：${detail}`],
   [/^The persona card is (\d+) characters when rendered; the limit is 1,200\. Shorten it\. Nothing was saved and nothing was cut\.$/,
     (m, n) => `这份个性设定有 ${n} 个字符，上限是 1,200。请缩短后再保存。没有保存任何内容，也没有截断。`],
   [/^(\d+) memories and (\d+) links( \(the most recent; more exist\))?\.$/, (m, n, e, more) =>
