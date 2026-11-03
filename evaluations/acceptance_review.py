@@ -289,19 +289,25 @@ def r5_check(inputs: Path, outputs: Path, results: Path) -> None:
     print(json.dumps({"results": final}))
 
 
-# Record kinds other than messages a page action can remove, read from the page's counts before and after it. The
-# harness does not record which earlier messages those records came from, so the digest names only their kinds.
-_RECORD_KINDS = ("notes", "feelings", "shared_moments")
+# Exact removals: each page action's result lists "removed_records", one entry per record it removed, with an opaque
+# "ref" (src:<sha256> or content:<sha256>, the same in every arm, no content) and the scenario positions the record came
+# from, or {"kind", "established": false} when the run could not identify the record. A result without that list (an
+# older run) gives only the kinds its counts show removed, as unestablished entries.
+_REF = re.compile(r"(?:src|content):[0-9a-f]{64}")
+_LEGACY_KINDS = {"notes": "note", "feelings": "feeling", "shared_moments": "shared_moment"}
 
 DIGEST_DISCLOSURE = (
     "For the resolution reviewer only, after every first and second review is final; for rule RC2 (type 8). No earlier "
     "stage reads it. It names no assistant: replies are keyed by case and label through the sealed mapping.")
 DIGEST_LIMITATIONS = [
-    "Removed messages are given by scenario position (session index, message number, role). For notes, feelings, "
-    "shared moments and familiarity only the kind removed is given: the run does not record which messages those "
-    "records came from. The conversation itself stays unless a message is listed as removed.",
-    "A reply whose world held no record of a kind shows none removed. Where other replies of the same case show such "
-    "a removal, that difference can suggest which assistant wrote the reply. It is kept because RC2 needs to know "
+    "Each entry is one record a page action before the case removed in this reply's world: its kind, an opaque ref "
+    "that is the same in every reply's world, and the scenario positions (session index, message number, role) it "
+    "came from. A removed message's ref is message:<session>-<message>-<role>. The conversation itself stays unless a "
+    "message is listed as removed.",
+    "An entry with established false says only that a record of that kind was removed, without identifying it. It can "
+    "never clear a type 8 mark: an RC2 clearing must cite established refs.",
+    "A reply whose world never held a kind of record shows none removed. Where other replies of the same case show "
+    "such a removal, that difference can suggest which assistant wrote the reply. It is kept because RC2 needs to know "
     "whether the record was removed in this reply's world; nothing beyond the removal itself is shown.",
 ]
 
@@ -311,38 +317,60 @@ def _applies(action: dict, arm: str) -> bool:
     return not action.get("arms") or ("P" if arm == "F" else arm) in action["arms"]
 
 
-def _digest_outcome(record: dict, arm: str, sessions: list) -> dict:
-    """What one recorded page action actually removed in one arm: removed message positions (session index, message
-    number, role) and the other record kinds it removed. No counts, and nothing else of the record (its detail,
-    topics, labels, mood, state or time)."""
+def _removed_position(entry, sessions: list) -> list:
+    """A recorded [session id, turn, role] as [session index, message number, role]; never the session id."""
+    if (not isinstance(entry, list) or len(entry) != 3 or not isinstance(entry[0], str) or entry[0] not in sessions
+            or type(entry[1]) is not int or entry[1] < 0 or entry[2] not in ("user", "assistant")):
+        raise SystemExit("a page action removed a position that is not one of this scenario's messages")
+    return [sessions.index(entry[0]) + 1, entry[1] + 1, entry[2]]
+
+
+def _digest_outcome(record: dict, arm: str, sessions: list) -> list[dict]:
+    """The records one page action actually removed in one arm, each {"kind", "ref", "sources", "established": true}
+    or {"kind", "established": false}. No counts, and nothing else of the record (its detail, topics, labels, mood,
+    state or time)."""
     result = record.get("result")
     if not isinstance(result, dict) or result.get("failed"):
         raise SystemExit("a page action failed or has no result: the run is invalid and is not scored")
-    removed = []
-    for entry in result.get("removed", []):
-        if (not isinstance(entry, list) or len(entry) != 3 or not isinstance(entry[0], str)
-                or entry[0] not in sessions or type(entry[1]) is not int or entry[1] < 0
-                or entry[2] not in ("user", "assistant")):
-            raise SystemExit("a page action removed a position that is not one of this scenario's messages")
-        removed.append([sessions.index(entry[0]) + 1, entry[1] + 1, entry[2]])
-    removed.sort()
+    removed = sorted(_removed_position(entry, sessions) for entry in result.get("removed", []))
     before, after = record.get("before"), record.get("after")
     if not isinstance(before, dict) or not isinstance(after, dict):
         raise SystemExit("a page action record has no before and after state")
-    kinds = []
-    if arm == "F":  # The reference history holds only the conversation: it removes messages and nothing else.
-        if after.get("removed_still_in_history"):
-            raise SystemExit("the reference history kept a message its page action removed")
-    else:
-        for field in ("messages", *_RECORD_KINDS, "familiarity_days"):
+    if arm == "F" and after.get("removed_still_in_history"):
+        raise SystemExit("the reference history kept a message its page action removed")
+    entries = []
+    exact = result.get("removed_records")
+    if exact is not None:
+        if not isinstance(exact, list):
+            raise SystemExit("a page action's removed_records is not a list")
+        for item in exact:
+            if (not isinstance(item, dict) or not isinstance(item.get("kind"), str) or not _KIND.fullmatch(item["kind"])
+                    or type(item.get("established")) is not bool):
+                raise SystemExit("a removed record has no valid kind and established flag")
+            if not item["established"]:
+                entries.append({"kind": item["kind"], "established": False})
+                continue
+            if not isinstance(item.get("ref"), str) or not _REF.fullmatch(item["ref"]) \
+                    or not isinstance(item.get("sources"), list):
+                raise SystemExit("an established removed record has no opaque ref and sources")
+            entries.append({"kind": item["kind"], "ref": item["ref"],
+                            "sources": sorted(_removed_position(source, sessions) for source in item["sources"]),
+                            "established": True})
+    if not any(entry["kind"] == "message" for entry in entries):
+        entries[:0] = [{"kind": "message", "ref": f"message:{session}-{message}-{role}",
+                        "sources": [[session, message, role]], "established": True}
+                       for session, message, role in removed]
+    if exact is None and arm != "F":  # An older run: only the kinds its counts show removed, unidentified.
+        for field in ("messages", *_LEGACY_KINDS, "familiarity_days"):
             if type(before.get(field)) is not int or type(after.get(field)) is not int:
                 raise SystemExit("a page action record has no count of what it removed")
         if before["messages"] - after["messages"] > len(removed):
-            kinds.append("messages without a recorded position")
-        kinds += [kind for kind in _RECORD_KINDS if after[kind] < before[kind]]
+            entries.append({"kind": "message", "established": False})
+        entries += [{"kind": kind, "established": False} for field, kind in _LEGACY_KINDS.items()
+                    if after[field] < before[field]]
         if after["familiarity_days"] < before["familiarity_days"] or after.get("familiarity") != before.get("familiarity"):
-            kinds.append("familiarity")
-    return {"removed_messages": removed, "removed_records": kinds}
+            entries.append({"kind": "familiarity", "established": False})
+    return entries
 
 
 def actions_digest(review: Path, blind_dir: Path, scenario_path: str, key: str, run_dirs: list[Path]) -> None:
@@ -350,8 +378,9 @@ def actions_digest(review: Path, blind_dir: Path, scenario_path: str, key: str, 
     the world of each reply with a candidate type 8 mark. Written once to REVIEW/actions-KEY.json, after every first
     and second review is complete and before any resolution exists: {"stage", "disclosure", "limitations",
     "replies": {"<case id>/<label>": ...}}, keyed through the sealed mapping like the resolution file. It names no arm
-    and holds only action kinds, positions (session index, message number), removed message positions and the other
-    record kinds removed: no counts, state, or message, note, feeling, topic or session text.
+    and holds, for each record an earlier action removed in that reply's world, only the action's kind and position
+    (session index, message number), the record's kind, opaque ref and source positions, and whether the run
+    established it: no counts, state, or message, note, feeling, topic or session text.
 
     Every arm's page-actions.jsonl must hold exactly the scenario's PAGE_ACTIONS that apply to it, in order, and none
     may have failed. An action that does not apply in a reply's arm removed nothing there."""
@@ -401,7 +430,6 @@ def actions_digest(review: Path, blind_dir: Path, scenario_path: str, key: str, 
         outcomes[arm] = {index: _digest_outcome(record, arm, sessions) for record, index in zip(records, expected)}
     if set(outcomes) != {arm for labels in sealed.values() for arm in labels.values()}:
         raise SystemExit("the run directories are not the arms of the sealed mapping")
-    nothing = {"removed_messages": [], "removed_records": []}
     digest = {}
     for session, turn, case, _criteria in module.CASES:
         second = json.loads((review / f"recheck-{key}" / f"{case}.json").read_text())
@@ -415,9 +443,10 @@ def actions_digest(review: Path, blind_dir: Path, scenario_path: str, key: str, 
                 action_session, before_turn, action = actions[index]
                 if (sessions.index(action_session), before_turn) > at:
                     continue  # Applied after the case's message.
-                entries.append({"action": action["do"], "session": sessions.index(action_session) + 1,
-                                "before_message": before_turn + 1, **outcomes[arm].get(index, nothing)})
-            digest[f"{case}/{label}"] = {"session": at[0] + 1, "message": turn + 1, "actions": entries}
+                position = {"do": action["do"], "session": sessions.index(action_session) + 1,
+                            "before_message": before_turn + 1}
+                entries += [{"action": position, **item} for item in outcomes[arm].get(index, [])]
+            digest[f"{case}/{label}"] = {"session": at[0] + 1, "message": turn + 1, "removed": entries}
     out.write_text(json.dumps({"stage": "resolution", "disclosure": DIGEST_DISCLOSURE,
                                "limitations": DIGEST_LIMITATIONS, "replies": digest}, indent=1))
     print(json.dumps(sorted(digest)))
@@ -437,7 +466,8 @@ def _resolution_change_problem(review: Path, key: str, case: str, label: str, ch
     """Why one resolution change breaks the rules (C5, or R4 bound to a manifest), or None. Every removed or added type carries its rule in
     "rules" ({"<type>": "<rule>"}); the rule must be allowed to change that type in that direction, be named in the
     reason, and rest on its evidence: R1 on a condition the first reviewer recorded for that type, R3 on a mark only
-    the second reviewer added, R5 on an R5 result that cleared this reply, RC2 on this reply's actions digest entry.
+    the second reviewer added, R5 on an R5 result that cleared this reply, RC2 on this reply's actions digest entry
+    (an RC2 clearing of type 8 also cites, in "rc2_refs", established removed records of that entry).
     A mark is added only when a reviewer made it, except type 3 when R2 re-checks a corrected fact."""
     remove, add = set(change.get("remove", [])), set(change.get("add", []))
     if not remove and not add:
@@ -451,6 +481,8 @@ def _resolution_change_problem(review: Path, key: str, case: str, label: str, ch
         return "it removes a mark that does not stand literally"
     if add & literal:
         return "it adds a mark that already stands"
+    if change.get("rc2_refs") is not None and rules.get("8") != "RC2":
+        return "rc2_refs belong only to an RC2 change of type 8"
     candidates = set(verdict["critical"]) | set(check["critical"]) | set(check["added"])
     for mark in sorted(remove | add):
         rule = rules[str(mark)]
@@ -480,8 +512,23 @@ def _resolution_change_problem(review: Path, key: str, case: str, label: str, ch
                 cleared = None
             if not isinstance(cleared, dict) or cleared.get("type4_cleared") is not True:
                 return f"R5: r5-{key}/{result.name} does not clear this reply"
-        if rule == "RC2" and f"{case}/{label}" not in digest:
-            return f"RC2: actions-{key}.json has no entry for this reply"
+        if rule == "RC2":
+            entry = digest.get(f"{case}/{label}")
+            if not isinstance(entry, dict):
+                return f"RC2: actions-{key}.json has no entry for this reply"
+            refs = change.get("rc2_refs")
+            if mark in remove and refs is None:
+                return ("RC2: clearing type 8 must cite rc2_refs, the removed records the reply's content corresponds "
+                        "to; a generic removal never clears it")
+            if refs is not None:
+                if not isinstance(refs, list) or not refs or any(not isinstance(ref, str) for ref in refs) \
+                        or len(set(refs)) != len(refs):
+                    return "RC2: rc2_refs must be a non-empty list of distinct refs"
+                established = {item.get("ref") for item in entry.get("removed", [])
+                               if isinstance(item, dict) and item.get("established") is True}
+                if set(refs) - established:
+                    return ("RC2: a cited ref is not a record an action before this case is established to have "
+                            "removed in this reply's world")
     return None
 
 

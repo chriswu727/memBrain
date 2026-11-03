@@ -32,19 +32,26 @@ Resolution adds these rules to the existing protocol:
   and the user did not state it again after that action. Judge it on what the actions actually removed in that
   reply's world, not on the scenario's intended scope alone. The resolution reviewer is given `actions-KEY.json`.
   Its `replies` are keyed `"<case id>/<label>"` like the resolution file, with one entry for every reply that has a
-  candidate type 8 mark. An entry gives the case's position (`session` index, `message` number) and, for each page
-  action before the case's message, its kind and position, `removed_messages` (the positions of the conversation
-  messages it removed: `[session index, message number, role]`) and `removed_records` (the other kinds of record it
-  removed in that reply's world: `notes`, `feelings`, `shared_moments`, `familiarity`). There are no counts and no
+  candidate type 8 mark. An entry gives the case's position (`session` index, `message` number) and `removed`: one
+  item per record that a page action before the case's message removed in that reply's world, with the action
+  (`do`, `session`, `before_message`), the record's `kind`, an opaque `ref` that is the same in every reply's world
+  and holds no content, its `sources` (`[session index, message number, role]` of the messages it came from) and
+  `established`. A removed message's ref is `message:<session>-<message>-<role>`. An item with `established: false`
+  says only that something of that kind was removed, without identifying it. There are no counts, no state and no
   comparison with the other replies. The digest names no assistant and holds no message text: use the scenario
-  file for what a removed position said. A reset or cleared layer leaves the conversation in place unless a message
-  is listed as removed. A record the digest shows was not removed in that reply's world cannot make the mark stand
-  under RC2; a record it shows removed can. Name the deciding action by its position in the reason.
-  **Known limitations, also stated in the digest's own `limitations` field:** the run records where removed
-  messages came from, but not which messages a removed note, feeling or relationship record came from, so those
-  are given by kind only. An assistant whose world never held a kind of record shows none removed; where another
-  reply of the same case does, that difference can hint at which assistant wrote the reply. It is kept because
-  RC2 needs it; do not treat it as anything but the record of what this reply's world lost.
+  file for what a source position said. A reset or cleared layer leaves the conversation in place unless a message
+  is listed as removed.
+  **Clearing type 8 under RC2 cites the record.** An RC2 entry that removes type 8 must list in `"rc2_refs"` the
+  ref of each removed record the reply's content corresponds to, and say in the reason why the mark does not stand
+  (for example the user stated it again after the action, at a named position). Each cited ref must be an
+  `established: true` item of that reply's entry. The tally refuses a type 8 clearing with no refs, with a ref
+  that is not in that entry (a record removed only after the case, never removed, or removed only in another
+  reply's world) or with only unestablished items: a generic "a feeling was removed" never clears type 8. A
+  reply whose content corresponds to no established removal keeps its mark.
+  **Known limitation, also stated in the digest's own `limitations` field:** an assistant whose world never held a
+  kind of record shows none removed; where another reply of the same case does, that difference can hint at which
+  assistant wrote the reply. It is kept because RC2 needs it; do not treat it as anything but the record of what
+  this reply's world lost.
 - **Types 7 and 9:** apply the existing R3 rule: both reviewers made the mark, or the second reviewer added it with
   a quoted ground-truth line.
 - **R5 remains exclusive to type 4.** An R5 result can never clear types 6–9. Every resolution change needs a
@@ -56,7 +63,9 @@ Resolution adds these rules to the existing protocol:
   only that the condition was recorded; name the deciding message in the reason); R2 changes types 1 and 4, and
   adds type 3 only when it re-checks a candidate type 1 or 4 mark as a corrected fact; R3 removes types 2, 3, 5, 7
   or 9 only when the second reviewer added the mark, and never adds one; R5 removes type 4 only, when `r5-KEY/<case prefix>-<label>.json` cleared that reply;
-  RC1 changes type 6 only; RC2 changes type 8 only, for a reply with an entry in `actions-KEY.json`. A change may
+  RC1 changes type 6 only; RC2 changes type 8 only, for a reply with an entry in `actions-KEY.json`, and clears it
+  only with `rc2_refs` as above:
+  `{"remove": [8], "rules": {"8": "RC2"}, "rc2_refs": ["src:..."], "reason": "RC2: ..."}`. A change may
   not remove a mark that does not stand literally or add one that does, may add only a mark a reviewer made
   (except R2's type 3), and its reason must name each rule it uses. An entry for an unknown reply is refused.
   An R4 tally made with `--manifest` applies the same tags and proofs to types 1–5; a historical R4 tally without
