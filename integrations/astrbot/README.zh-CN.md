@@ -19,7 +19,9 @@ mv memBrain-main/integrations/astrbot/astrbot_plugin_membrain . && rm -rf memBra
 
 - **每次请求模型前**，在系统提示词末尾加入：机器人为这个人保存的笔记、他在之前几天发过的消息，以及与当前消息相关的早期消息。
 - **每次回复后**，保存这个人的消息和机器人的回复。
-- **给模型的工具**：`membrain_note`（记下一条持久事实，并可替换过时的笔记）、`membrain_search`、`membrain_pause` 和 `membrain_resume`（当有人说“别记这个”时使用）。
+- **给模型的工具**：`membrain_note`（记下一条持久事实，并可替换过时的笔记）、`membrain_search`、`membrain_boundary`（此人要求不要主动提起的话题）、`membrain_pause` 和 `membrain_resume`（当有人说“别记这个”时使用）。
+
+话题边界支持任意语言的别名，与笔记采用相同的用户和群聊隔离。除非此人主动提起，否则自动上下文和检索不会带出该话题；用户可在记忆页面移除边界。通过笔记的 `kind: "milestone", shared: true` 可记录共同经历，`affect` 可附上有来源依据的情绪记录。
 
 每个人的记忆彼此独立：Alice 告诉机器人的事，永远不会出现在给 Bob 的回复里。默认情况下，一个人在群里说的话也与他的私聊分开保存，因此群聊回复不会泄露私聊内容。
 

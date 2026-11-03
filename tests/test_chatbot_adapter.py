@@ -97,6 +97,31 @@ def _load_astrbot_plugin(monkeypatch, tmp_path):
     return module, registered
 
 
+def test_boundaries_use_the_speakers_roleplay_and_never_an_unrecorded_group(tmp_path, monkeypatch):
+    users, saved = [], []
+
+    class Client:
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *exc):
+            pass
+
+        def add_boundary(self, topic, aliases):
+            saved.append((topic, aliases))
+            return {"boundaries": [{"topic": topic, "aliases": aliases}]}
+
+    monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: users.append(user_id) or Client())
+    memory = ChatMemory(tmp_path, roleplay="Mira", record_groups=False)
+    private = Speaker("telegram", "42")
+    assert memory.boundary(private, "my ex", ["前任"])["boundaries"][0]["topic"] == "my ex"
+    assert users == [memory.memory_user(private)]
+    assert saved == [("my ex", ["前任"])]
+    assert "error" in memory.boundary(Speaker("telegram", "42", "group"), "my ex")
+    assert "error" in memory.boundary(Speaker("telegram", ""), "my ex")
+    assert len(users) == 1
+
+
 class Event:
     def __init__(self, sender, text, group="", message_id="m1"):
         self.sender, self.text, self.group, self.extra = sender, text, group, {}
@@ -138,7 +163,7 @@ def test_astrbot_plugin_remembers_each_qq_user_separately_through_a_real_service
     module, handlers = _load_astrbot_plugin(monkeypatch, tmp_path)
     directory = tmp_path / "plugin_data" / "membrain"
     assert set(handlers) == {"request", "response", "membrain_note", "membrain_search", "membrain_pause",
-                             "membrain_resume", "membrain_forget"}
+                             "membrain_resume", "membrain_forget", "membrain_boundary"}
     try:
         # AstrBot constructs the plugin before any installation exists; its background start must still succeed.
         plugin = module.MembrainPlugin(context=None, config={})
@@ -173,6 +198,19 @@ def test_astrbot_plugin_remembers_each_qq_user_separately_through_a_real_service
         assert alice.startswith("You are a friendly bot.")
         assert "Cat Biscuit: chicken allergy." in alice and "marathon" not in alice
         assert "marathon" in bob and "Biscuit" not in bob
+        shared = json.loads(asyncio.run(plugin.membrain_note(Event("1001", ""),
+            "We planned Biscuit's meals together.", kind="milestone", shared=True)))
+        assert "note_id" in shared
+        boundary = json.loads(asyncio.run(plugin.membrain_boundary(Event("1001", ""), "my cat", ["Biscuit", "小饼干"])))
+        assert boundary["boundaries"][0]["aliases"] == ["Biscuit", "小饼干"]
+        with host.ready_client(directory, plugin.memory.user_id(module.Speaker("aiocqhttp", "1001"))) as client:
+            assert client.relationship()["shared_moments"][0]["id"] == shared["note_id"]
+        with host.ready_client(directory, plugin.memory.user_id(module.Speaker("aiocqhttp", "2002"))) as client:
+            assert client.relationship()["boundaries"] == []
+        hidden = plugin.memory.context(module.Speaker("aiocqhttp", "1001"), "Hello again", session="after-boundary")
+        assert "Cat Biscuit: chicken allergy." not in hidden and "allergic to chicken" not in hidden
+        raised = plugin.memory.search(module.Speaker("aiocqhttp", "1001"), "Biscuit chicken allergy")
+        assert "allergic to chicken" in raised["context"]
         with host.ready_client(directory, plugin.memory.user_id(module.Speaker("aiocqhttp", "2002"))) as client:
             stored = json.dumps(client.timeline(roles=("user", "assistant"), max_characters=200_000))
         assert "marathon" in stored and "changing jobs" not in stored
@@ -217,7 +255,7 @@ def test_astrbot_tool_docstrings_follow_astrbots_parameter_format(monkeypatch, t
 
     module, handlers = _load_astrbot_plugin(monkeypatch, tmp_path)
     supported = {"string", "number", "object", "array", "boolean"}
-    for name in ("membrain_note", "membrain_search", "membrain_pause", "membrain_resume"):
+    for name in ("membrain_note", "membrain_search", "membrain_boundary", "membrain_pause", "membrain_resume"):
         function = handlers[name]
         parameters = [p for p in inspect.signature(function).parameters if p not in ("self", "event")]
         doc = inspect.getdoc(function)

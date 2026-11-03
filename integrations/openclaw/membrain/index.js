@@ -3,7 +3,7 @@
 import { spawn } from "node:child_process";
 
 const PACKAGE = process.env.MEMBRAIN_PACKAGE ||
-  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/4f5f5278c5566e59606f1483720dc4150465ddb5.zip";
+  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/183b1eb106600da164ee39a8bedba40c5a784084.zip";
 const BLOCK_MS = 5 * 60 * 1000;
 
 function run(command, args, { input, timeoutMs = 12_000, env } = {}) {
@@ -79,6 +79,7 @@ const TOOLS = [
       occurs_at: { type: "string", description: "YYYY-MM-DD" },
       pinned: { type: "boolean" },
       sensitive: { type: "boolean" },
+      shared: { type: "boolean", description: "With kind milestone: a moment you and the user shared, such as a goal reached together or a shared joke." },
       affect: { type: "object", description: "A feeling the user expressed about this; kept as evidence, never a score.",
         properties: {
           label: { type: "string", maxLength: 40, description: "The user's own word, e.g. nervous." },
@@ -95,6 +96,14 @@ const TOOLS = [
     description: "Search the user's earlier conversations and notes by a few concrete keywords (names, places, " +
       "activities, dates) when a request depends on personal context that is not already shown.",
     parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
+  },
+  {
+    name: "membrain_boundary",
+    description: "Save a topic the user asked you not to bring up, with other names they use for it. Earlier " +
+      "messages about it stay out of recalled memory unless the user raises it. This is not a pause or deletion: " +
+      "the conversation is still remembered. The memory page can remove it.",
+    parameters: { type: "object", properties: { topic: { type: "string" },
+      aliases: { type: "array", items: { type: "string" } } }, required: ["topic"] },
   },
   {
     name: "membrain_pause",
@@ -198,7 +207,7 @@ export function createMembrain({ exec = membrain, now = () => Date.now(), direct
       const input = user === OWNER ? (params ?? {}) : { ...(params ?? {}), membrain_user: user };
       const output = await exec(["tool", name.replace("membrain_", "")], { input, env,
         timeoutMs: 20_000 });
-      if (name === "membrain_note" || name === "membrain_pause" || name === "membrain_resume") blocks.clear();
+      if (["membrain_note", "membrain_boundary", "membrain_pause", "membrain_resume"].includes(name)) blocks.clear();
       return output || JSON.stringify({ error: "memBrain is not available yet; it may still be installing." });
     },
   };

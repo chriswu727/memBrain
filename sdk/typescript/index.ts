@@ -67,6 +67,14 @@ export type ScopeOptions = {
   requestId?: string;
 };
 export type BranchOptions = ScopeOptions & { conversationId: string; branchId: string };
+export type NoteAffect = {
+  label: string;
+  valence: -2 | -1 | 0 | 1 | 2;
+  intensity: 0 | 1 | 2 | 3;
+  basis: "reported" | "inferred";
+  topic?: string;
+  felt_at?: string;
+};
 export type RetryLearningOptions = {
   requestId: string;
   expectedFence: number;
@@ -504,14 +512,16 @@ export class MemoryClient {
   writeNote(text: string, options: { requestId?: string; brainId?: string; replaces?: readonly string[];
     sourceEventIds?: readonly string[]; sourceMessages?: readonly { producer_ref: string; source_event_key: string; source_revision: number }[];
     kind?: string; status?: string; about?: string; aliases?: readonly string[]; due?: string; occursAt?: string;
-    pinned?: boolean; sensitive?: boolean; role?: "user" | "assistant" } = {}): Promise<JsonObject> {
+    pinned?: boolean; sensitive?: boolean; shared?: boolean; affect?: NoteAffect;
+    role?: "user" | "assistant" } = {}): Promise<JsonObject> {
     const brain = encodeURIComponent(this.#scope(options).brain_ref);
     return this.#request("POST", `v1/brains/${brain}/notes`, {
       request_id: options.requestId ?? randomUUID(), text, replaces: options.replaces ?? [],
       source_event_ids: options.sourceEventIds ?? [], source_messages: options.sourceMessages ?? [],
       ...Object.fromEntries(Object.entries({ kind: options.kind, status: options.status, about: options.about,
         aliases: options.aliases, due: options.due, occurs_at: options.occursAt, pinned: options.pinned,
-        sensitive: options.sensitive, role: options.role }).filter(([, value]) => value !== undefined)),
+        sensitive: options.sensitive, shared: options.shared, affect: options.affect,
+        role: options.role }).filter(([, value]) => value !== undefined)),
     });
   }
   memoryStatus(brainId?: string): Promise<JsonObject> {

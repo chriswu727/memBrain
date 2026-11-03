@@ -69,7 +69,7 @@ def test_register_hands_hermes_a_new_provider_each_time():
     assert all(isinstance(value, hermes.MembrainProvider) for value in registered)
     assert registered[0] is not registered[1] and registered[0].name == "membrain" and registered[0].is_available()
     assert [tool["name"] for tool in registered[0].get_tool_schemas()] == [
-        "membrain_note", "membrain_search", "membrain_pause", "membrain_resume"]
+        "membrain_note", "membrain_search", "membrain_boundary", "membrain_pause", "membrain_resume"]
 
 
 def test_profiles_get_their_own_installation_unless_configured(tmp_path, monkeypatch):
@@ -104,6 +104,7 @@ def test_subagents_and_paused_recording_store_nothing(tmp_path, monkeypatch):
     sub = provider(tmp_path, monkeypatch, client, agent_context="subagent")
     sub.prefetch("internal task", session_id="h1")
     sub.sync_turn("internal task", "done", session_id="h1")
+    assert "cannot change memory" in sub.handle_tool_call("membrain_boundary", {"topic": "my ex"})
     instance = provider(tmp_path, monkeypatch, client)
     assert json.loads(instance.handle_tool_call("membrain_pause", {}))["recording"] == "paused"
     instance.sync_turn("Off the record: I'm job hunting.", "Understood.", session_id="h1")
@@ -153,6 +154,19 @@ def test_hermes_sessions_share_memory_through_a_real_service(tmp_path, monkeypat
         second.initialize("session-2", hermes_home=str(Path(tmp_path) / ".hermes"), platform="telegram", user_id="42")
         block = second.system_prompt_block()
         assert "Cat Biscuit: chicken allergy." in block and "allergic to chicken" in block
+        shared = json.loads(first.handle_tool_call("membrain_note", {
+            "text": "We planned Biscuit's meals together.", "kind": "milestone", "shared": True}))
+        assert "note_id" in shared
+        boundary = json.loads(first.handle_tool_call("membrain_boundary", {"topic": "my cat", "aliases": ["Biscuit", "小饼干"]}))
+        assert boundary["boundaries"][0]["aliases"] == ["Biscuit", "小饼干"]
+        with host.ready_client(directory, first._user) as client:
+            assert client.relationship()["shared_moments"][0]["id"] == shared["note_id"]
+        hidden = first.system_prompt_block()
+        assert "Cat Biscuit: chicken allergy." not in hidden and "allergic to chicken" not in hidden
+        blocked = json.loads(second.handle_tool_call("membrain_search", {"query": "chicken allergy"}))["context"]
+        assert "allergic to chicken" not in blocked
+        raised = json.loads(second.handle_tool_call("membrain_search", {"query": "Biscuit chicken allergy"}))["context"]
+        assert "allergic to chicken" in raised
         # Someone else on the gateway, and the owner at the command line, each have their own memory.
         stranger = hermes.MembrainProvider()
         stranger.initialize("session-3", hermes_home=str(Path(tmp_path) / ".hermes"), platform="telegram", user_id="999")

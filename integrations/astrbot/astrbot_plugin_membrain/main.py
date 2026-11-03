@@ -69,7 +69,7 @@ class MembrainPlugin(star.Star):
                             kind: str | None = None, about: str | None = None, aliases: list | None = None,
                             status: str | None = None, due: str | None = None, occurs_at: str | None = None,
                             pinned: bool = False, sensitive: bool = False, source_event_ids: list | None = None,
-                            source_messages: list | None = None, affect: dict | None = None):
+                            source_messages: list | None = None, affect: dict | None = None, shared: bool = False):
         """Save one short, lasting fact about the user you are talking to (health, people, dates, places, preferences, decisions, plans and their changes) so it is shown in every later conversation. One fact per note, under 300 characters. Set kind when it is clear; a plan stays intended until the user confirms it is scheduled or done, and done means everything in the note has happened (paid but not yet delivered is scheduled). When a fact changes, save the new note and pass the old note's id in replaces. When the user expresses a feeling about it, add affect: reported only if they said it, inferred (with source_event_ids or source_messages) if clearly evident but unsaid; never invent one. Do not save routine requests or anything the user asked you not to keep.
 
         Args:
@@ -86,11 +86,12 @@ class MembrainPlugin(star.Star):
             source_event_ids(array[string]): Original recorded message IDs, when available.
             source_messages(array[object]): Exact source references from the current membrain-source block.
             affect(object): A feeling the user expressed about this: label (their own word), valence -2 to 2, intensity 0 to 3, basis reported or inferred, optional topic and felt_at YYYY-MM-DD.
+            shared(boolean): With kind milestone: a moment you and the user shared, such as a goal reached together or a shared joke.
         """
         fields = {"kind": kind, "about": about, "aliases": aliases, "status": status, "due": due,
                   "occurs_at": occurs_at, "pinned": pinned, "sensitive": sensitive,
                   "source_event_ids": source_event_ids or [], "source_messages": source_messages or [],
-                  "affect": affect}
+                  "affect": affect, "shared": shared}
         try:
             result = await asyncio.to_thread(self.memory.note, _speaker(event), text, replaces or (), **fields)
         except ValueError as error:
@@ -106,6 +107,18 @@ class MembrainPlugin(star.Star):
         """
         state = event.get_extra(_STATE) or {}
         result = await asyncio.to_thread(self.memory.search, _speaker(event), query, session=state.get("session"))
+        return json.dumps(result, ensure_ascii=False)
+
+    @filter.llm_tool(name="membrain_boundary")
+    async def membrain_boundary(self, event: AstrMessageEvent, topic: str, aliases: list | None = None):
+        """Save a topic the user asked you not to bring up. It stays out of recalled memory unless they raise it.
+        This is not a pause or deletion: the conversation is still remembered. The memory page can remove it.
+
+        Args:
+            topic(string): The topic in a few words, only when the user asked not to bring it up.
+            aliases(array[string]): Other names the user uses for this topic, in any language.
+        """
+        result = await asyncio.to_thread(self.memory.boundary, _speaker(event), topic, aliases or ())
         return json.dumps(result, ensure_ascii=False)
 
     @filter.llm_tool(name="membrain_pause")
