@@ -1,5 +1,6 @@
 """Readers of one brain share its row; writers, erasure and recovery still exclude them (R5, gap 20)."""
 import threading
+import time
 import uuid
 
 import pytest
@@ -11,6 +12,7 @@ from membrain.client import default_budget, default_read_fence
 from membrain.contracts import CONTRACT_VERSION
 from membrain.helpers import uid
 from membrain.notes import store_note
+from membrain.service import MemoryService
 
 pytestmark = pytest.mark.integration
 
@@ -204,3 +206,35 @@ def test_reads_wait_for_a_write_in_progress(recovery, monkeypatch):
         writer.join(20)
     after = harness.service.handle(harness.principal, recall_request(harness, "bike lock"))
     assert after["outcome"] == "completed" and "5150" in str(after)
+
+
+def test_indexing_a_message_of_a_new_bulk_import_holds_the_brain_briefly(recovery):
+    harness, _ = recovery
+    service = MemoryService(harness.database)
+    brain = service.create_brain(harness.principal, "Bulk import")["id"]
+    for start in range(0, 2000, 500):
+        response = service.handle(harness.principal, {
+            "message_type": "request", "contract_version": CONTRACT_VERSION, "request_id": str(uuid.uuid4()),
+            "action": "observe", "target": {"brain_ref": brain, "conversation_ref": "import", "branch_ref": "main"},
+            "payload": {"idempotency_key": uid(), "events": [{
+                "source_event_key": f"import-{index}", "source_revision": 1, "producer_ref": "import-test",
+                "actor_ref": "user", "actor_role": "user", "event_kind": "message",
+                "content": {"media_type": "text/plain", "text": f"Imported message {index} about the planetarium."},
+                "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
+                "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": [],
+            } for index in range(start, start + 500)]}})
+        assert response["outcome"] == "completed", response
+    began = time.perf_counter()
+    assert service.work_once(harness.principal, brain) == 1
+    # Before: the indexed-sequence query compared every pending job with every event under the exclusive lock
+    # (about 2.5 s here), longer than the map's 500 ms lock timeout.
+    assert time.perf_counter() - began < 0.5
+    with harness.database.transaction(harness.principal) as conn:
+        done = conn.execute("SELECT j.payload->>'event_id' AS id FROM memory_jobs j WHERE j.tenant_id=%s "
+                            "AND j.brain_id=%s AND j.state='completed'", (harness.principal.tenant_id, brain)).fetchall()
+        row = conn.execute("SELECT indexed_sequence FROM memory_brains WHERE tenant_id=%s AND id=%s",
+                           (harness.principal.tenant_id, brain)).fetchone()
+        first = conn.execute("SELECT id FROM memory_events WHERE tenant_id=%s AND brain_id=%s AND sequence=1",
+                             (harness.principal.tenant_id, brain)).fetchone()["id"]
+    # Every message before the first one still waiting is indexed: one, if the job that ran was the first.
+    assert len(done) == 1 and row["indexed_sequence"] == (1 if done[0]["id"] == first else 0)
