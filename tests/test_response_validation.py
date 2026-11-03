@@ -213,3 +213,38 @@ def test_an_invalid_recall_result_is_rejected_when_preparing_context(learning, m
     assert error.value.response["outcome"] == "rejected"
     assert error.value.response["error"]["code"] == "validation_failed"
     assert "RecallResult" in error.value.response["error"]["message"]
+
+
+@pytest.mark.integration
+def test_a_recall_saves_exactly_the_traces_it_returns(learning):
+    harness = learning
+    harness.observe("The Vancouver library appointment is on Friday.")
+    harness.memory.work()
+    response = harness.service.handle(harness.principal, recall_request(harness.brain))
+    returned = response["result"]["recall_traces"]
+    assert response["outcome"] == "completed" and returned
+    with harness.database.transaction(harness.principal) as conn:
+        saved = {row["id"]: row["document"] for row in conn.execute(
+            "SELECT id,document FROM memory_traces WHERE tenant_id=%s AND brain_id=%s AND document->>'recall_id'=%s",
+            (harness.principal.tenant_id, harness.brain, response["result"]["recall_id"]))}
+    assert saved == {trace["trace_id"]: trace for trace in returned}
+
+
+@pytest.mark.integration
+def test_an_invalid_recall_trace_is_rejected_and_no_trace_is_saved(learning, monkeypatch):
+    import membrain.belief_resolution as belief_resolution
+
+    harness = learning
+    harness.observe("The Vancouver library appointment is on Friday.")
+    harness.memory.work()
+    original = belief_resolution.factor_relations
+
+    def factor_relations(result):
+        original(result)
+        result["recall_traces"][-1]["kind"] = "not-a-kind"
+
+    monkeypatch.setattr(belief_resolution, "factor_relations", factor_relations)
+    traces = stored(harness, "memory_traces")
+    response = harness.service.handle(harness.principal, recall_request(harness.brain))
+    assert response["outcome"] == "rejected" and response["error"]["code"] == "validation_failed"
+    assert stored(harness, "memory_traces") == traces

@@ -226,6 +226,9 @@ class MemoryService:
                     result["usage"]["actual_cost_microunits"] = None
                 envelope.update(outcome="completed", server_scope=self._scope(principal, brain, request["target"]), result=result)
                 validate("ActionResponse", envelope)
+                if action == "recall":
+                    # Validated just now as RecallTraces inside the response's RecallResult, and unchanged since.
+                    self._save_traces(conn, principal, brain, result.get("recall_traces", []), validated=True)
                 conn.execute(
                     "INSERT INTO memory_requests(tenant_id,owner_id,brain_id,action,key,request_hash,response) "
                     "VALUES(%s,%s,%s,%s,%s,%s,%s)",
@@ -603,7 +606,8 @@ class MemoryService:
                     observations.append(observation)
         return observations, complete
 
-    def _retrieval(self, conn, principal, brain, target, query, recall_plan=None, query_embedding=None, context_observations=None):
+    def _retrieval(self, conn, principal, brain, target, query, recall_plan=None, query_embedding=None, context_observations=None,
+                   *, save_traces=True):
         params = self._params(principal, brain["id"])
         from .belief_resolution import frozen_relations, resolution_evidence
         from .belief_store import load_belief_relations
@@ -717,11 +721,14 @@ class MemoryService:
                     item["memory"]["evidence_refs"] + resolution_evidence(item.get("belief_resolution", {})))
             ):
                 raise DomainError("invalid_evidence", "Selected memory versions are unavailable or unsupported.")
-        self._save_traces(conn, principal, brain, result.get("recall_traces", []))
+        if save_traces:
+            self._save_traces(conn, principal, brain, result.get("recall_traces", []))
         return result, working, state
 
     def _recall(self, conn, principal, brain, request, query_embedding=None):
-        return self._retrieval(conn, principal, brain, request["target"], request["payload"], query_embedding=query_embedding)[0]
+        # handle saves the traces once the response that contains them has been validated.
+        return self._retrieval(conn, principal, brain, request["target"], request["payload"],
+                               query_embedding=query_embedding, save_traces=False)[0]
 
     def _prepare(self, conn, principal, brain, request, query_embedding=None, *, persist_preflight=True):
         payload = request["payload"]
@@ -935,9 +942,11 @@ class MemoryService:
                 return memory
         raise DomainError("invalid_evidence", "The deterministic extractor cannot substantiate this proposal.")
 
-    def _save_traces(self, conn, principal, brain, traces):
+    def _save_traces(self, conn, principal, brain, traces, *, validated=False):
+        """``validated`` only for traces already validated as RecallTraces, unchanged since."""
         for trace in traces:
-            validate("RecallTrace", trace)
+            if not validated:
+                validate("RecallTrace", trace)
             conn.execute(
                 "INSERT INTO memory_traces(tenant_id,owner_id,brain_id,id,document) VALUES(%s,%s,%s,%s,%s) "
                 "ON CONFLICT(tenant_id,brain_id,id) DO NOTHING",
