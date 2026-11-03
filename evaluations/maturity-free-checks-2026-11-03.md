@@ -1,6 +1,6 @@
 # Provisional maturity checks, 2026-11-03
 
-The first release remains frozen. These are free implementation and harness checks, not a real-model R4 or C5 result. They do not establish that the final candidate has passed its launcher-pin check, Verify, installation acceptance or performance gates.
+The first release remains frozen. Every result applies to the source named below. Runtime `9d8509c` has passed its local Python, SDK, package-content and Mac installation checks; both concurrent R5 targets remain unmet. Final combined-source Verify and the real-model R4/C5 gates remain open. No paid or subscription-backed behavioural evaluation has started.
 
 ## Independent Mac checks
 
@@ -121,3 +121,7 @@ The source through `9ef6711` reuses exact-value context handles within one recal
 On `91271f5` (runtime pin `9d8509c`), the unchanged reference benchmark measured serial/one-brain/eight-brain p95 of **158.31/1,027.26/1,064.27 ms**, with medians 148.99/914.81/932.51 ms. All 340 responses were nonempty. Both concurrent targets still failed, so it exited 1; its service was independently confirmed stopped. [Raw samples](maturity-cpu3-performance-2026-11-03.json) are retained. No recall candidates or context budgets were reduced.
 
 The same pinned runtime subsequently passed the complete Mac installation acceptance: **49 passed, zero failed**, `completed: true`. The basic and companion launcher baselines are unchanged. Fresh install, upgrade, MCP correction/deletion, cross-session recall, restart, installed stub proxy and companion backup/restore/activation all passed. Four installations were independently confirmed stopped afterwards. [Source and check names](maturity-install-mac-cpu3-2026-11-03.json) are retained. No paid or subscription-backed model was used; local embeddings were allowed. This installation pass does not pass R5, R4 or C5.
+
+One clean full invocation at `8d85954`, still pinned to `9d8509c`, then passed **6,521 tests, zero failures and zero skips**, in 776.74 seconds. Required Chromium, Docker, real cached local embeddings and launcher checks were enabled. Source and pins stayed unchanged throughout, and provider API keys were removed. The three warnings were the same deliberate-fork deprecations. This full result includes contract linking, recursive-schema equivalence and the evaluation stop-rule changes; it predates the separate evaluation-hardening branches.
+
+The installed package also matched **157 runtime, web, contract and migration files** byte for byte, with no missing, mismatched or unexpected files. [Hashes and tested dependency versions](maturity-package-parity-2026-11-03.json) are retained. On the same candidate the TypeScript SDK passed **44 tests** and its strict type check. Its OpenClaw wrapper, included in the full Python invocation, required all **7 Node tests** to pass against a real disposable service, with none skipped. [SDK source metadata](maturity-sdk-2026-11-03.json) is retained. These are local engineering passes, separate from unrun real-model behavioural acceptance.

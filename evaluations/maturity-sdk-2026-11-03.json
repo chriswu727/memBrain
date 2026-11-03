@@ -1,0 +1,11 @@
+{
+  "source_commit": "8d8595425354817fa0499c304d5ea869d65b3581",
+  "runtime_pin": "9d8509c6d4f6272c11759a1a05b8f6de8aa822d4",
+  "node": "v25.6.1",
+  "sdk_tests_passed": 44,
+  "sdk_tests_failed": 0,
+  "sdk_tests_skipped": 0,
+  "strict_typecheck_exit": 0,
+  "openclaw_tests_passed_through_full_python_suite": 7,
+  "paid_or_subscription_model_calls": false
+}
