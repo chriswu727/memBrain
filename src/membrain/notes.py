@@ -40,6 +40,9 @@ NOTE_TOOL_DESCRIPTION = (
     "When a fact changes (a plan is done, moved or cancelled), "
     "save the updated note and pass the old note's id in replaces. Use source_messages from the current "
     "membrain-source block or source_event_ids from recorded history when available; never invent sources. "
+    "When the user expresses a feeling about what the note covers, add affect {label in their own words, valence "
+    "-2..2, intensity 0..3, basis, topic, felt_at}: basis reported only if they said it, or inferred, with the "
+    "message it was read from as a source, if it is clearly evident but unsaid. Never invent a feeling. "
     "Do not save routine requests or anything the "
     "user asked you not to keep.")
 NOTE_FIELDS = {
@@ -52,7 +55,28 @@ NOTE_FIELDS = {
     "occurs_at": {"type": "string", "description": "YYYY-MM-DD on which an event happens."},
     "pinned": {"type": "boolean", "description": "Always show this note."},
     "sensitive": {"type": "boolean", "description": "Health, money or other private matters."},
+    "affect": {"type": "object", "additionalProperties": False, "required": ["label", "valence", "intensity", "basis"],
+               "description": "A feeling the user expressed about this note's subject. Kept as evidence, never "
+                              "as a score.",
+               "properties": {
+                   "label": {"type": "string", "maxLength": 40, "description": "The user's own word, e.g. nervous."},
+                   "valence": {"type": "integer", "minimum": -2, "maximum": 2},
+                   "intensity": {"type": "integer", "minimum": 0, "maximum": 3},
+                   "basis": {"type": "string", "enum": ["reported", "inferred"],
+                             "description": "reported: the user said it. inferred: read from their words; needs "
+                                            "the source message."},
+                   "topic": {"type": "string", "maxLength": 80},
+                   "felt_at": {"type": "string", "description": "YYYY-MM-DD when it was felt; default today."}}},
 }
+AFFECT_BASES = ("reported", "inferred")
+# Feelings in the notes block have their own allowance on top of the notes' budget, including the sentence on how
+# to read them.
+AFFECT_CHARACTERS = 800
+AFFECT_NOTICE = (" A feeling in brackets is either what the user said they felt or what was inferred from their words, "
+                 "with its date: bring it up gently and only when it fits, never present an inferred one as something "
+                 "the user said, and on a sensitive note only if the user raises the topic.")
+AFFECT_PER_NOTE = 2
+_MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 SOURCE_FIELD = {"source_event_ids": {"type": "array", "items": {"type": "string"}, "maxItems": 64,
                                      "description": "Original message IDs in this brain; never invent sources."}}
 SOURCE_FIELD["source_messages"] = {"type": "array", "maxItems": 64, "items": {
@@ -72,9 +96,21 @@ def imported_from(item: dict) -> str | None:
 
 
 def list_notes(client, *, max_characters: int = 200_000) -> dict:
-    """Current notes, newest first. Session start chooses among them within its own budget (``select_notes``)."""
-    return client.timeline(roles=("assistant", "user"), conversation_id=NOTES_CONVERSATION, max_characters=max_characters,
-                           max_item_characters=STORED_CHARACTERS, limit=200)
+    """Current notes, newest first. Session start chooses among them within its own budget (``select_notes``).
+
+    ``affect`` holds the affect records (feelings) that belong to the notes, newest first, when the client can read
+    them. They are stored apart from the notes and only shown on their notes' lines.
+    """
+    response = client.timeline(roles=("assistant", "user"), conversation_id=NOTES_CONVERSATION,
+                               max_characters=max_characters, max_item_characters=STORED_CHARACTERS, limit=200)
+    if callable(getattr(type(client), "affect_records", None)):
+        try:
+            records = client.affect_records().get("records")
+        except Exception:  # Notes still show, without their feelings, when the service cannot list them.
+            records = None
+        if isinstance(records, list):
+            response = {**response, "affect": records}
+    return response
 
 
 def _name(value, field: str) -> str:
@@ -93,6 +129,53 @@ def _date(value, field: str) -> str:
     except ValueError:
         raise ValueError(f"{field} must be a valid calendar date.") from None
     return value
+
+
+def check_affect(value, *, sourced: bool, today: _datetime.date | None = None) -> dict:
+    """The stored form of an affect record's reading: validated, scrubbed, with ``felt_at`` defaulting to today.
+
+    ``sourced`` says whether the call names the message the feeling was read from; an inferred feeling needs one.
+    """
+    if not isinstance(value, dict):
+        raise ValueError("affect must be an object with label, valence, intensity and basis.")
+    unknown = set(value) - set(NOTE_FIELDS["affect"]["properties"])
+    if unknown:
+        raise ValueError(f"Unknown affect fields: {', '.join(sorted(unknown))}.")
+    label = " ".join(scrub(str(value.get("label") or "")).split())
+    if not label or len(label) > 40:
+        raise ValueError("affect.label must be the feeling in a few words, at most 40 characters.")
+    numbers = {}
+    for name, low, high in (("valence", -2, 2), ("intensity", 0, 3)):
+        number = value.get(name)
+        if type(number) is not int or not low <= number <= high:
+            raise ValueError(f"affect.{name} must be a whole number from {low} to {high}.")
+        numbers[name] = number
+    basis = value.get("basis")
+    if basis not in AFFECT_BASES:
+        raise ValueError("affect.basis must be reported (the user said it) or inferred.")
+    if basis == "inferred" and not sourced:
+        raise ValueError("An inferred feeling needs the message it was read from: pass source_event_ids or "
+                         "source_messages.")
+    topic = " ".join(scrub(str(value.get("topic") or "")).split())
+    if len(topic) > 80:
+        raise ValueError("affect.topic must be at most 80 characters.")
+    felt_at = _date(value.get("felt_at") or (today or _datetime.date.today()).isoformat(), "affect.felt_at")
+    if len(felt_at) != 10:
+        raise ValueError("affect.felt_at must be a full date as YYYY-MM-DD.")
+    record = {"label": label, **numbers, "basis": basis, "felt_at": felt_at}
+    return {**record, "topic": topic} if topic else record
+
+
+def affect_phrase(record: dict, today: _datetime.date | None = None) -> str:
+    """How one affect record reads on its note's line. An inferred feeling is never phrased as something said."""
+    when = _as_date(record.get("felt_at"))
+    today = today or _datetime.date.today()
+    day = "" if when is None else f", {when.day} {_MONTHS[when.month - 1]}" + (
+        f" {when.year}" if when.year != today.year else "")
+    label = " ".join(str(record.get("label") or "").split())
+    if record.get("basis") == "reported":
+        return f"(the user said they felt {label}{day})"
+    return f"(seemed {label}, inferred{day})"
 
 
 def note_fields(arguments: dict) -> dict:
@@ -168,14 +251,21 @@ def save_note(client, text: str, *, replaces=(), producer: str = NOTE_PRODUCER, 
     unknown = set(fields) - set(NOTE_FIELDS)
     if unknown:
         raise ValueError(f"Unknown note fields: {', '.join(sorted(unknown))}.")
+    affect = fields.pop("affect", None)
+    if affect is not None:
+        affect = check_affect(affect, sourced=bool(source_event_ids or source_messages))
     text = format_note(text, **fields)
     writer = getattr(client, "write_note", None)
     if callable(writer):
         parsed, sentence = parse_note(text)
+        if affect is not None:
+            parsed["affect"] = affect
         return writer(sentence, replaces=list(replaces), producer=producer,
                       source_event_ids=list(source_event_ids), source_messages=list(source_messages), **parsed)
     if source_event_ids or source_messages:
         raise ValueError("This client does not support source-linked notes.")
+    if affect is not None:
+        raise ValueError("This client does not support feelings on notes.")
     response = client.observe(text, conversation_id=NOTES_CONVERSATION, branch_id="main",
                               source_event_key="note-" + uid(), role="assistant", actor_ref="assistant",
                               producer_ref=producer, delivery_state="unknown")
@@ -202,7 +292,7 @@ def _when(fields: dict) -> str:
     return ", ".join(parts)
 
 
-def _line(item: dict, fields: dict, sentence: str) -> str:
+def _line(item: dict, fields: dict, sentence: str, feelings: tuple[str, ...] = ()) -> str:
     tags = []
     when = _when(fields)
     if fields.get("kind") in ("plan", "agent_commitment"):
@@ -224,8 +314,9 @@ def _line(item: dict, fields: dict, sentence: str) -> str:
         who = fields["about"] + (f" (aka {', '.join(fields['aliases'])})" if fields.get("aliases") else "") + ": "
     detail = f" ({'; '.join(tags)})" if tags else ""
     pin = "pinned · " if fields.get("pinned") else ""
-    return neutralize(f"- [{pin}{(item.get('recorded_at') or '')[:10]}{_label(item)}] {who}{sentence}{detail} "
-                      f"(id: {item['event_id']})")
+    feeling = "".join(" " + phrase for phrase in feelings)
+    return neutralize(f"- [{pin}{(item.get('recorded_at') or '')[:10]}{_label(item)}] {who}{sentence}{feeling}"
+                      f"{detail} (id: {item['event_id']})")
 
 
 def _parsed(response: dict, skip_imports_from=()) -> list[tuple[dict, dict, str]]:
@@ -296,19 +387,47 @@ def duplicate_pairs(parsed: list, threshold: float = 0.75) -> list[tuple[str, st
     return pairs
 
 
+def _feelings(response: dict, chosen: list) -> dict[str, tuple[str, ...]]:
+    """The affect phrases for the chosen notes, newest notes and readings first, within their own allowance.
+
+    They are chosen after the notes, so a feeling never changes which notes are shown or their order.
+    """
+    by_note: dict[str, list[dict]] = {}
+    for record in response.get("affect") or ():
+        if isinstance(record, dict) and record.get("note_id") and record.get("label"):
+            by_note.setdefault(record["note_id"], []).append(record)
+    phrases: dict[str, list[str]] = {}
+    used = 0
+    for item, _fields, _sentence in reversed(chosen):
+        for record in by_note.get(item["event_id"], [])[:AFFECT_PER_NOTE]:
+            phrase = affect_phrase(record)
+            if used + len(phrase) + 1 > AFFECT_CHARACTERS - len(AFFECT_NOTICE):
+                break
+            phrases.setdefault(item["event_id"], []).append(phrase)
+            used += len(phrase) + 1
+    return {key: tuple(value) for key, value in phrases.items()}
+
+
 def render_notes(response: dict, *, tool: str | None = "memory_note", skip_imports_from=(),
-                 real_life: bool = False, budget: int = NOTES_CHARACTERS) -> str | None:
+                 real_life: bool = False, budget: int = NOTES_CHARACTERS, affect: bool = True) -> str | None:
     """The notes block, grouped by kind; ``skip_imports_from`` leaves out notes copied from hosts that show their
-    own memory files. ``real_life`` renders the person's non-sensitive real-life notes for a role-play session."""
+    own memory files. ``real_life`` renders the person's non-sensitive real-life notes for a role-play session.
+
+    Feelings (``response["affect"]``) are added to their notes' lines after the notes are chosen, within
+    ``AFFECT_CHARACTERS`` on top of ``budget``; ``affect=False`` leaves them out. A role-play's real-life block
+    never shows them: they stay with the companion they were told to.
+    """
     parsed = [entry for entry in _parsed(response, skip_imports_from)
               if not (real_life and entry[1].get("sensitive"))]
     if not parsed:
         return None
     parsed, omitted = select_notes(parsed, budget)
     duplicates = [] if real_life or tool is None else duplicate_pairs(parsed)
+    feelings = {} if real_life or not affect else _feelings(response, parsed)
     groups: dict[str, list[str]] = {}
     for item, fields, sentence in parsed:
-        groups.setdefault(fields.get("kind") or "", []).append(_line(item, fields, sentence))
+        groups.setdefault(fields.get("kind") or "", []).append(
+            _line(item, fields, sentence, feelings.get(item["event_id"], ())))
     body = []
     for kind, title in SECTIONS:
         if groups.get(kind):
@@ -331,6 +450,7 @@ def render_notes(response: dict, *, tool: str | None = "memory_note", skip_impor
             "the user wrote or corrected take precedence over yours, and the user's current message over both. A plan "
             "marked intended or scheduled has not been confirmed done: never assume it happened, and never suggest using, "
             "extending or relying on something only planned (a purchase, booking or task) as if it exists."
+            + (AFFECT_NOTICE if feelings else "")
             + (f" When a fact changes, save the new note with {tool} and pass the old note's id in replaces."
                if tool else "") + more + "\n" + "\n".join(body) + "\n</membrain-notes>")
 
@@ -409,7 +529,12 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
     from .privacy import scrub
 
     try:
-        text = format_note(scrub(arguments["text"]), **note_fields(arguments))
+        fields = note_fields(arguments)
+        affect = fields.pop("affect", None)
+        text = format_note(scrub(arguments["text"]), **fields)
+        if affect is not None:
+            affect = check_affect(affect, sourced=bool(arguments.get("source_event_ids")
+                                                       or arguments.get("source_messages")))
     except (TypeError, ValueError) as error:
         raise DomainError("validation_failed", str(error)) from None
     request_id = arguments["request_id"]
@@ -442,8 +567,10 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
             "SELECT input_event_id FROM memory_event_dependencies WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
             "AND output_event_id=ANY(%s::text[])", (*params, stale)))
         available = service._events(conn, principal, brain, event_ids=list(sources), limit=64) if sources else []
+        from .affect import AFFECT_CONVERSATION
+
         if len(available) != len(sources) or any(
-                event["scope"]["conversation_id"] == NOTES_CONVERSATION for event in available):
+                event["scope"]["conversation_id"] in (NOTES_CONVERSATION, AFFECT_CONVERSATION) for event in available):
             raise DomainError("source_unavailable", "A note source is unavailable in this brain.")
         from .note_sources import reference
 
@@ -476,6 +603,13 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
             "AND output_event_id=%s ORDER BY input_event_id", (*params, note_id))]
         result = {"note_id": note_id, "replaced": stale, "unknown": [value for value in replaces if value not in stale],
                   "source_event_ids": linked, "pending_source_count": max(0, len(references) - len(linked))}
+        if affect is not None:
+            from .affect import record_affect
+
+            result.update(record_affect(service, conn, principal, brain, note_id=note_id, affect=affect,
+                                        request_id=request_id, producer=arguments.get("producer", NOTE_PRODUCER),
+                                        source_event_ids=arguments.get("source_event_ids", []),
+                                        source_messages=arguments.get("source_messages", [])))
         conn.execute(
             "INSERT INTO memory_requests(tenant_id,owner_id,brain_id,action,key,request_hash,response) "
             "VALUES(%s,%s,%s,'note',%s,%s,%s)", (*params, request_id, fingerprint, Jsonb(result)))

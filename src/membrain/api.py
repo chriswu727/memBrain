@@ -39,6 +39,15 @@ class RecallTrace(RuntimeBody):
     event_ids: Annotated[list[RuntimeIdentifier], Field(max_length=50)]
 
 
+class NoteAffect(RuntimeBody):
+    label: Annotated[str, Field(min_length=1, max_length=40)]
+    valence: Annotated[int, Field(ge=-2, le=2)]
+    intensity: Annotated[int, Field(ge=0, le=3)]
+    basis: Literal["reported", "inferred"]
+    topic: Annotated[str, Field(max_length=80)] | None = None
+    felt_at: Annotated[str, Field(min_length=10, max_length=10)] | None = None
+
+
 class NoteWrite(RuntimeBody):
     request_id: Annotated[str, Field(min_length=1, max_length=120)]
     text: Annotated[str, Field(min_length=1, max_length=300)]
@@ -55,6 +64,7 @@ class NoteWrite(RuntimeBody):
     occurs_at: str | None = None
     pinned: bool = False
     sensitive: bool = False
+    affect: NoteAffect | None = None
 
 
 class RuntimeBegin(RuntimeBody):
@@ -466,6 +476,19 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
 
         body = await runtime_body(request, NoteWrite)
         return await run_in_threadpool(store_note, service, principal, brain_id, body)
+
+    @app.get("/v1/brains/{brain_id}/affect")
+    def list_affect(brain_id: str, principal: Principal = Depends(authenticate)):
+        from .affect import affect_records
+
+        return affect_records(service, principal, brain_id)
+
+    @app.post("/v1/brains/{brain_id}/affect/reset")
+    def reset_affect(brain_id: str, principal: Principal = Depends(authenticate)):
+        # "Clear feelings": audited erasure of every affect record, then a reset marker. Notes are untouched.
+        from .affect import clear_affect
+
+        return clear_affect(service, principal, brain_id)
 
     @app.post("/v1/brains/{brain_id}/work")
     def work(brain_id: str, principal: Principal = Depends(authenticate)):

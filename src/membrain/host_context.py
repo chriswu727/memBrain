@@ -3,11 +3,12 @@ from .notes import render_coming_up, render_notes
 
 
 def _notes(saved, budget, **options):
+    # Fitted without feelings, so they never change which notes are shown; they have their own allowance on top.
     selection_budget = budget
     for _ in range(4):
-        block = render_notes(saved, budget=selection_budget, **options)
+        block = render_notes(saved, budget=selection_budget, affect=False, **options)
         if not block or len(block) <= budget:
-            return block
+            return render_notes(saved, budget=selection_budget, **options)
         selection_budget = max(0, selection_budget - (len(block) - budget) - 100)
     return "<membrain-notes>Saved notes did not fit. Search memory when personal context matters.</membrain-notes>"
 
