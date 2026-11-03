@@ -93,3 +93,18 @@ def test_recalled_items_and_traces_share_nothing_with_the_memories_and_scope_giv
         trace["scope"]["tenant_id"] = "changed"
     result["scope"]["brain_id"] = "changed"
     assert memories == given and bound == scope()
+
+
+def test_non_json_keys_are_copied_with_their_shared_values():
+    class Key:
+        def __init__(self):
+            self.parts = ["original"]
+
+    key = Key()
+    original = {key: key}
+    result = deep_copy(original)
+    copied_key = next(iter(result))
+    assert copied_key is not key
+    assert result[copied_key] is copied_key
+    copied_key.parts.append("changed")
+    assert key.parts == ["original"]

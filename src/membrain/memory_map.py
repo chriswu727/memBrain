@@ -110,6 +110,10 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
         feelings = [record for record in _records(service, conn, principal, brain_id, limit=room,
                                                  ids=[row["id"] for row in feeling_ids])
                     if record["note_id"] in note_ids] if feeling_ids else []
+        if note_ids:
+            # Fresh bulk imports can make the planner join every recent event to every note dependency.
+            nestloop = conn.execute("SELECT current_setting('enable_nestloop') AS value").fetchone()["value"]
+            conn.execute("SELECT set_config('enable_nestloop','off',true)")
         links = conn.execute(
             "SELECT d.output_event_id,d.input_event_id,e.sequence FROM memory_event_dependencies d "
             "JOIN memory_events e ON e.tenant_id=d.tenant_id AND e.owner_id=d.owner_id "
@@ -122,6 +126,8 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
             "ORDER BY e.sequence DESC,d.output_event_id LIMIT %s",
             (*params, note_ids, NOTES_CONVERSATION, max_edges + max_nodes + 1),
         ).fetchall() if note_ids else []
+        if note_ids:
+            conn.execute("SELECT set_config('enable_nestloop',%s,true)", (nestloop,))
         source_ids = list(dict.fromkeys(row["input_event_id"] for row in links))[:max_nodes]
         sources = conn.execute(
             f"SELECT {_COLUMNS} FROM memory_events WHERE {_VISIBLE} AND id=ANY(%s::text[]) "
