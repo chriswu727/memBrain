@@ -219,13 +219,38 @@ def _sentence_before(text: str, start: int) -> str:
     return before[cut + 1:]
 
 
+_PAIRS = {"“": "”", "「": "」", "『": "』"}
+
+
+def _inside_quote(text: str, position: int) -> bool:
+    """Whether ``position`` falls inside quoted text anywhere in the message, across sentences: double quotes,
+    “…”, 「…」 and 『…』, and single quotes that open after a space or the start and close before one."""
+    double, closers, single = False, [], False
+    for index, character in enumerate(text[:position]):
+        if character == '"':
+            double = not double
+        elif character in _PAIRS:
+            closers.append(_PAIRS[character])
+        elif closers and character == closers[-1]:
+            closers.pop()
+        elif character == "'":
+            before = text[index - 1] if index else " "
+            after = text[index + 1] if index + 1 < len(text) else " "
+            if not single and (before.isspace() or before in "([") and not after.isspace():
+                single = True
+            elif single and not before.isspace() and (after.isspace() or after in ".,!?:;)]"):
+                single = False
+    return double or bool(closers) or single
+
+
 def _matches(patterns, text: str) -> bool:
     for pattern in patterns:
         for match in pattern.finditer(text):
             guard = _ZH_GUARD if _CJK.search(match.group(0)) else _EN_GUARD
             # A boundary character the pattern consumed (a colon before "你…") counts as before the feedback.
             before = _sentence_before(text, match.start()) + match.group(0)[:1]
-            if not guard.search(before) and not _CLOSING_QUOTE.match(text, match.end()):
+            if (not guard.search(before) and not _CLOSING_QUOTE.match(text, match.end())
+                    and not _inside_quote(text, match.start())):
                 return True
     return False
 

@@ -88,6 +88,8 @@ def test_the_feedback_table_recognises_english_and_chinese_feedback(text, kind):
     "My friend: you are too formal.", "The example sentence is: you are too formal.",
     "'be more playful' was the note on the script", "She wrote: be more casual",
     "例句：你太正式了。", "「你太正式了」是他的台词", "朋友：你太正式了", "“你太正式了”这句话怎么翻译",
+    # A quote that opens in an earlier sentence of the same message.
+    '"Hello. You are too formal for this chat."', '“Hi there. You are too formal.”', "「你好。你太正式了。」",
     "", "x" * 2001,
 ])
 def test_narrow_patterns_ignore_false_positives(text):
@@ -454,6 +456,20 @@ def test_feedback_before_the_persona_reset_marker_never_counts(brain):
     # "Delete personality history" erases the suggestions too, and the next one starts after the new marker.
     delete_persona_history(service, principal, ident)
     assert listing(brain)["proposals"] == []
+
+
+def test_deleting_an_empty_history_still_cuts_off_earlier_feedback(brain):
+    service, principal, ident = brain
+    said(brain, "you're too formal")
+    said(brain, "be more casual")
+    # No persona version and no suggestion yet; feedback recorded without eligibility records (older data) too.
+    with service.database.transaction(principal) as conn:
+        conn.execute("UPDATE memory_events SET deleted=true WHERE brain_id=%s AND conversation_id=%s",
+                     (ident, PROPOSALS_CONVERSATION))
+    deleted = delete_persona_history(service, principal, ident)
+    assert deleted["deleted_versions"] == 0 and deleted["marker"]["marker"] == "history_deleted"
+    said(brain, "Can you be more casual?")
+    assert listing(brain)["proposals"] == []  # The two earlier messages are before the cut-off.
 
 
 def test_deleting_a_source_withdraws_the_proposal_and_is_never_quoted(brain):

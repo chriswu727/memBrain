@@ -373,16 +373,17 @@ def delete_persona_history(service, principal, brain_id: str) -> dict:
             "SELECT count(*) AS value FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
             "AND conversation_id=%s AND is_current AND NOT deleted",
             (*service._params(principal, brain_id), PROPOSALS_CONVERSATION)).fetchone()["value"]
-        if not count and not suggestions:
-            return {"deleted_versions": 0, "marker": None}
         key = "persona-history-" + uid()
         target = {"brain_ref": brain_id, "conversation_ref": PERSONA_CONVERSATION, "branch_ref": "main"}
-        service._forget(conn, principal, brain, {
-            "request_id": key, "target": target,
-            "payload": {"idempotency_key": key,
-                        "selector": {"kind": "conversation", "ids": [PERSONA_CONVERSATION, PROPOSALS_CONVERSATION]},
-                        "mode": "erase_content", "expected_scope_generation": brain["scope_generation"]}})
-        brain = service._brain(conn, principal, brain_id)
+        if count or suggestions:
+            service._forget(conn, principal, brain, {
+                "request_id": key, "target": target,
+                "payload": {"idempotency_key": key,
+                            "selector": {"kind": "conversation", "ids": [PERSONA_CONVERSATION, PROPOSALS_CONVERSATION]},
+                            "mode": "erase_content", "expected_scope_generation": brain["scope_generation"]}})
+            brain = service._brain(conn, principal, brain_id)
+        # The marker is written even when there was nothing to erase: it is the cut-off feedback counts from, so
+        # feedback given before the user asked to delete the history never comes back into a suggestion.
         text = json.dumps({"persona_marker": HISTORY_DELETED, "deleted_versions": count})
         service._append_event(conn, principal, brain, target, {
             "source_event_key": key, "source_revision": 1, "producer_ref": PERSONA_PRODUCER,
