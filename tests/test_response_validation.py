@@ -1,7 +1,8 @@
 """Every action response stays validated against the contract when validation is not repeated (recall CPU work).
 
 The service validates a completed ActionResponse once; the HTTP layer skips its own check only for that same,
-unchanged object. Cached responses and errors are still validated at the HTTP boundary.
+unchanged object, and only when the service is an unmodified MemoryService. Cached responses, errors and any
+overridden ``handle`` are still validated at the HTTP boundary.
 """
 import copy
 import hashlib
@@ -12,12 +13,14 @@ import pytest
 from fastapi.testclient import TestClient
 from test_learning import learning as learning
 
+import membrain.api as api_module
 import membrain.service as service_module
 from membrain.api import create_app
 from membrain.client import MemoryActionError, default_budget, default_read_fence
 from membrain.config import Settings
 from membrain.contracts import CONTRACT_VERSION
-from membrain.helpers import Principal
+from membrain.helpers import DomainError, Principal
+from membrain.service import MemoryService
 
 KEY = "response-validation-key"
 PRINCIPAL = Principal("tenant-a", "owner-a")
@@ -37,26 +40,67 @@ def invalid_response(request):
             "action": request["action"], "outcome": "completed", "unexpected": True}
 
 
-class HandleOnly:
-    """A service without ``respond``: the HTTP layer validates whatever ``handle`` returns."""
+def rejected_response(request):
+    # A valid ActionResponse that needs no database: the action was refused.
+    return {"message_type": "response", "contract_version": CONTRACT_VERSION, "request_id": request["request_id"],
+            "action": request["action"], "outcome": "rejected",
+            "error": DomainError("unsupported_capability", "Refused by the test service.").as_dict()}
+
+
+class DuckTyped:
+    """Any object with ``handle``, and no ``respond`` at all."""
+
+    def __init__(self, reply):
+        self.reply = reply
 
     def handle(self, principal, request):
-        return invalid_response(request)
+        return self.reply(request)
 
 
-class UnvalidatedRespond:
-    """A service whose ``respond`` says it did not validate: the HTTP layer must."""
+class Subclass(MemoryService):
+    """Overrides ``handle`` and never sets the attributes MemoryService.respond would read."""
 
-    def respond(self, principal, request):
-        return invalid_response(request), False
+    def __init__(self, reply):  # noqa: D107 - deliberately skips MemoryService.__init__
+        self.reply = reply
+
+    def handle(self, principal, request):
+        return self.reply(request)
 
 
-@pytest.mark.parametrize("service", [HandleOnly(), UnvalidatedRespond()], ids=["handle", "respond"])
-def test_http_layer_rejects_an_invalid_response_it_was_not_told_is_validated(service):
+def patched_instance(reply):
+    service = MemoryService(None)
+    service.handle = lambda principal, request: reply(request)
+    return service
+
+
+SERVICES = {"subclass": Subclass, "instance-patch": patched_instance, "duck-typed": DuckTyped}
+
+
+def post(service, request):
     settings = Settings(database_url="unused", api_keys={hashlib.sha256(KEY.encode()).hexdigest(): PRINCIPAL})
     with TestClient(create_app(settings, service)) as client:
-        response = client.post("/v1/actions", headers={"Authorization": f"Bearer {KEY}"},
-                               json=recall_request("brain"))
+        return client.post("/v1/actions", headers={"Authorization": f"Bearer {KEY}"}, json=request)
+
+
+@pytest.mark.parametrize("make", SERVICES.values(), ids=SERVICES.keys())
+def test_the_route_calls_an_overridden_handle_and_validates_its_response(make, monkeypatch):
+    request = recall_request("brain")
+    checked, original = [], api_module.validate
+
+    def recording(definition, value):
+        original(definition, value)
+        checked.append((definition, value))
+
+    monkeypatch.setattr(api_module, "validate", recording)
+    response = post(make(rejected_response), request)
+    assert response.status_code == 200, response.text
+    assert response.json() == rejected_response(request)
+    assert [definition for definition, _ in checked] == ["ActionRequest", "ActionResponse"]
+
+
+@pytest.mark.parametrize("make", SERVICES.values(), ids=SERVICES.keys())
+def test_an_invalid_response_from_an_overridden_handle_is_rejected(make):
+    response = post(make(invalid_response), recall_request("brain"))
     assert response.status_code == 422
     assert response.json()["error"]["code"] == "validation_failed"
 
