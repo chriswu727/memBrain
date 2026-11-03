@@ -301,3 +301,72 @@ def test_a_stub_plugin_run_refuses_a_timed_pause_and_flags_an_unintended_unrecor
         ("timed_pause_refused", "s1", 0), ("turn_not_recorded", "s1", 1), ("turn_not_recorded", "s1", 2)]
     assert capsys.readouterr().out.rstrip().endswith("P zq-synthetic-scenario finished")
 
+
+# I2: the count-only precheck ------------------------------------------------------------------------------------
+
+PLANT = "zq-planted-7f3c91"
+
+
+def _precheck(path: Path):
+    import os
+    import subprocess
+    import sys
+
+    environment = {key: value for key, value in os.environ.items() if key != "C5_STUB"}
+    done = subprocess.run([sys.executable, str(ROOT / "evaluations" / "c5-precheck.py"), str(path)],
+                          capture_output=True, text=True, timeout=120, env=environment)
+    return done.returncode, done.stdout, done.stderr, json.loads(done.stdout.splitlines()[-1])
+
+
+def test_the_precheck_passes_the_public_practice_scenario_printing_counts_only():
+    code, out, err, summary = _precheck(ROOT / "evaluations" / "c5-practice-scenario.py")
+    assert code == 0 and err == ""
+    assert summary == {"ok": True, "sessions": 7, "turns": 18, "actions": 7, "failures": 0, "codes": []}
+    assert "intended unrecorded turns 2" in out
+    for text in ("s1-arrival", "Lisbon", "Tom", "casual", "Juniper", "Today"):
+        assert text not in out
+
+
+GOOD = [(f"{PLANT}-s1", [f"Today is Monday, March 2, 20:00. {PLANT} one.", f"{PLANT} two."]),
+        (f"{PLANT}-s2", [f"Today is Tuesday, March 3, 21:00. {PLANT} three."])]
+
+
+@pytest.mark.parametrize("change, codes", [
+    ({"SESSIONS_LONG": [(f"{PLANT}-s1", [f"Today is Monday, March 2. {PLANT}"])]}, ["no_time"]),
+    ({"SESSIONS_LONG": [(f"{PLANT}-s1", [f"{PLANT} hello at 20:00"])]}, ["no_date"]),
+    ({"SESSIONS_LONG": [(f"{PLANT}-s1", [f"Today is Monday, Smarch 2, 20:00. {PLANT}"])]}, ["bad_date"]),
+    ({"SESSIONS_LONG": [GOOD[1], (f"{PLANT}-s0", [f"Today is Monday, March 2, 20:00. {PLANT}"])]},
+     ["not_increasing"]),
+    ({"SESSIONS_LONG": [GOOD[0], (f"{PLANT}-s2", [f"Today is Monday, March 2, 20:30. {PLANT}"])]}, ["too_close"]),
+    ({"SESSIONS_LONG": [GOOD[0], GOOD[0]]}, ["duplicate_session", "not_increasing"]),
+    ({"SESSIONS_LONG": [(f"{PLANT}-s1", [])]}, ["malformed_session"]),
+    ({"PAGE_ACTIONS": [(f"{PLANT}-s9", 0, {"do": "add_boundary", "topic": PLANT})]}, ["bad_action"]),
+    ({"PAGE_ACTIONS": [(f"{PLANT}-s1", 1, {"do": f"{PLANT}"})]}, ["bad_action"]),
+    ({"PAGE_ACTIONS": [(f"{PLANT}-s1", 1, {"do": "accept_persona_proposal", "match": PLANT})]},
+     ["proposal_without_card"]),
+    ({"PAGE_ACTIONS": [(f"{PLANT}-s1", 1, {"do": "pause_recording", "hours": 2, "note": PLANT})]},
+     ["bad_action", "timed_pause"]),
+    ({"STUB_HOST": {(f"{PLANT}-s1", 1): [{"tool": "memory_pause", "arguments": {"hours": 3}}]}}, ["timed_pause"]),
+    ({"RAISE": True}, ["load_failed"]),
+])
+def test_a_bad_scenario_fails_with_codes_and_never_prints_its_words(tmp_path, change, codes):
+    scenario = {"YEAR": 2026, "HOST": PLANT, "SESSIONS_LONG": GOOD, "PAGE_ACTIONS": [], **change}
+    source = "".join(f"{key} = {value!r}\n" for key, value in scenario.items() if key != "RAISE")
+    if change.get("RAISE"):
+        source += f"print({PLANT!r})\nimport sys\nprint({PLANT!r}, file=sys.stderr)\nraise ValueError({PLANT!r})\n"
+    path = tmp_path / f"{PLANT}-scenario.py"
+    path.write_text(source)
+    code, out, err, summary = _precheck(path)
+    assert code == 1 and summary["ok"] is False and summary["codes"] == sorted(codes)
+    assert PLANT not in out and PLANT not in err and "Traceback" not in out + err
+    assert all(line.startswith(("sessions ", "turns ", "actions ", "intended ", "FAIL code=", "{"))
+               for line in out.splitlines())
+
+
+def test_a_good_synthetic_scenario_passes(tmp_path):
+    path = tmp_path / "scenario.py"
+    path.write_text(f"HOST = {PLANT!r}\nSESSIONS_LONG = {GOOD!r}\n"
+                    f"PAGE_ACTIONS = [({GOOD[1][0]!r}, 0, {{'do': 'add_boundary', 'topic': {PLANT!r}}})]\n")
+    code, out, err, summary = _precheck(path)
+    assert (code, summary["ok"], summary["turns"], summary["actions"]) == (0, True, 3, 1)
+    assert PLANT not in out + err

@@ -8,6 +8,7 @@ Free prerequisites 4 and 5 of the [paid acceptance plan draft](maturity-paid-acc
 | [`c5-run-scenario.sh`](c5-run-scenario.sh) | Runs the three arms in parallel, as `v1-2026-11-05-run-scenario.sh` does |
 | [`c5-practice-scenario.py`](c5-practice-scenario.py) | A **public practice** scenario with stub scripts. Never a held-out scenario |
 | [`c5-dry-run-check.py`](c5-dry-run-check.py) | Checks a dry run, layer by layer |
+| [`c5-precheck.py`](c5-precheck.py) | Checks a scenario file before a run, printing counts and positions only |
 | [`../src/membrain/evaluation_clock.py`](../src/membrain/evaluation_clock.py) | The evaluation-only scenario clock |
 
 ## Scenario clock
@@ -80,6 +81,13 @@ Free prerequisites 4 and 5 of the [paid acceptance plan draft](maturity-paid-acc
   - the turns from an untimed `memory_pause` scripted in `STUB_HOST` up to, but not including, a `memory_resume` in the same session.
 
   A live run has no stub script, so a scenario that asks for a pause must declare those turns in `EXPECT_RECORDING_P`. Otherwise the pause stops the arm.
+- **Count-only precheck (I2).** `python evaluations/c5-precheck.py SCENARIO.py` checks a scenario with the harness's own parsers before any service or model starts. It checks that:
+  - each session's first message states a date and a time;
+  - session starts strictly increase and are at least one hour apart (I4);
+  - every page action passes `check_actions`;
+  - no timed pause is scripted, either in `STUB_HOST` or as a page action with `hours`.
+
+  It prints only counts (sessions, turns, actions, intended unrecorded turns) and, for each failure, a code with a session index, an action index or a `session:turn` position. It never prints a message, a session id, a topic, a label or an exception's text. Output from loading the scenario is discarded. The last line is a JSON summary. It exits 0 when the scenario is fit and 1 when it is not.
 
 ## Zero-network dry run
 
