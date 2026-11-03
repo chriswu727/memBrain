@@ -30,7 +30,9 @@ semantic = ["onnxruntime>=1.17,<2", "tokenizers>=0.15,<1", "numpy>=1.26,<3"]
 [dependency-groups]
 dev = ["pytest>=8,<10", "pytest-asyncio>=1,<2", "ruff>=0.12", "build>=1,<2", "httpx2>=2.16,<3",
        "pgserver>=0.1.4,<0.2; python_version < '3.13' and (sys_platform != 'linux' or platform_machine == 'x86_64')",
-       "onnxruntime>=1.17,<2", "tokenizers>=0.15,<1", "numpy>=1.26,<3"]
+       "onnxruntime>=1.17,<2", "tokenizers>=0.15,<1", "numpy>=1.26,<3",
+       # The memory page browser test (tests/test_memory_page_browser.py); Verify installs its Chromium.
+       "playwright>=1.63,<1.64"]
 
 [project.entry-points."hermes_agent.memory_providers"]
 membrain = "membrain.adapters.hermes:register"
