@@ -28,6 +28,7 @@ A run directory is never resumed: existing results are refused.
 """
 import asyncio
 import datetime
+import hashlib
 import importlib.util
 import json
 import logging
@@ -553,6 +554,105 @@ def _card_differs(actual, expected) -> list:
     return sorted(key for key in {*actual, *expected} if actual.get(key) != expected.get(key))
 
 
+# Which records a page action removed: by their own ids, named by scenario position or a content hash, never by
+# database id or content. One record per entry: {"kind", "ref", "sources", "established": true}, or
+# {"kind", "established": false} for a drop in a count that no id diff accounts for.
+COUNTED = {"messages": ("message",), "feelings": ("feeling",), "boundaries": ("boundary",),
+           "shared_moments": ("shared_moment",), "notes": ("note", "shared_moment", "commitment")}
+
+
+def record_ref(kind: str, sources=None, content=None) -> str:
+    """A removed record's ref, the shared format the review side recomputes. Stable across arms: scenario positions
+    (or, for a record with none, its normalized content) are the same in each arm. ``sources`` are
+    [session_id, turn_index, role] triples; the content itself never reaches the file, only its hash."""
+    if sources:
+        triples = sorted([str(session), int(turn), str(role)] for session, turn, role in sources)
+        return "src:" + hashlib.sha256(json.dumps([kind, triples], separators=(",", ":"), ensure_ascii=False)
+                                       .encode("utf-8")).hexdigest()
+    return "content:" + hashlib.sha256(json.dumps([kind, content if content is not None else {}],
+                                                  separators=(",", ":"), ensure_ascii=False, sort_keys=True)
+                                       .encode("utf-8")).hexdigest()
+
+
+def layer_records(client, positions: dict) -> dict:
+    """Every record of the layers a page action can remove, by its own id, through the SDK calls world() uses:
+    {id: {"kind", "sources", "content"}}, keyed by id alone so that a record whose kind reads differently after the
+    action (a commitment before a relationship reset is a plain note after it) is not taken for removed. ``sources``
+    are the scenario positions of its source messages."""
+    from membrain.notes import list_notes
+    from membrain.persona import normalize_card
+
+    def where(ids) -> list:
+        return sorted({tuple(positions[event]) for event in ids or () if event in positions})
+
+    def words(text) -> str:
+        return " ".join(str(text or "").split())
+
+    records = {}
+    for event, item in _messages(client).items():
+        records[event] = {"kind": "message", "sources": where([event]), "content": None}
+    relationship = client.relationship()
+    moments = {item["id"] for item in relationship.get("shared_moments") or ()}
+    commitments = {item["note_id"] for bucket in (relationship.get("commitments") or {}).values()
+                   for item in bucket}
+    for item in list_notes(client).get("items", []):
+        kind = ("shared_moment" if item["event_id"] in moments else
+                "commitment" if item["event_id"] in commitments else "note")
+        records[item["event_id"]] = {"kind": kind, "sources": where(item.get("source_event_ids")),
+                                             "content": {"text": words(item.get("text"))}}
+    for item in client.affect_records()["records"]:
+        records[item["id"]] = {"kind": "feeling", "sources": where(item.get("source_event_ids")),
+                                            "content": {key: item.get(key) for key in
+                                                        ("label", "valence", "intensity", "basis", "topic")}}
+    for item in relationship.get("boundaries") or ():
+        records[item["id"]] = {"kind": "boundary", "sources": [], "content": {
+            "topic": words(item.get("topic")), "aliases": sorted(words(alias) for alias in item.get("aliases") or ())}}
+    support = relationship.get("support_style")
+    if support:
+        records[support["id"]] = {"kind": "support_style", "sources": [],
+                                                     "content": {"text": words(support.get("text"))}}
+    cap = (relationship.get("familiarity") or {}).get("cap")
+    if cap:  # The cap has no id of its own: it is its level.
+        records["familiarity_cap:" + cap] = {"kind": "familiarity_cap", "sources": [], "content": {"level": cap}}
+    if callable(getattr(client, "persona_versions", None)):
+        for item in client.persona_versions().get("versions", []):
+            records[item["event_id"]] = {"kind": "persona_version", "sources": [], "content": {
+                "version": item.get("version"), "card": normalize_card(item.get("card") or {}),
+                "host_default": bool(item.get("host_default"))}}
+    return records
+
+
+def removed_records(before: dict, after: dict, counts_before: dict | None = None,
+                    counts_after: dict | None = None) -> list:
+    """The records present before and gone after, plus one unestablished entry per unexplained drop in a count."""
+    removed = []
+    for key, entry in before.items():
+        if key in after:
+            continue
+        if entry["kind"] == "message" and not entry["sources"]:
+            removed.append({"kind": "message", "established": False})  # A message with no recorded position.
+            continue
+        removed.append({"kind": entry["kind"], "ref": record_ref(entry["kind"], entry["sources"], entry["content"]),
+                        "sources": [list(source) for source in entry["sources"]], "established": True})
+    def size(value) -> int:  # world() gives counts, and boundaries as a list of topics.
+        return len(value) if isinstance(value, list) else int(value or 0)
+
+    for field, kinds in COUNTED.items():
+        if counts_before is None or counts_after is None or field not in counts_before:
+            continue
+        dropped = size(counts_before[field]) - size(counts_after.get(field))
+        explained = sum(entry["kind"] in kinds for entry in removed)
+        removed += [{"kind": kinds[0], "established": False}] * max(0, dropped - explained)
+    return sorted(removed, key=lambda entry: (entry["kind"], entry.get("ref", ""), not entry["established"]))
+
+
+def message_records(removed: list) -> list:
+    """Arm F: the messages a deletion removed, as removed_records, with the same refs as P's."""
+    return sorted(({"kind": "message", "ref": record_ref("message", [position]),
+                    "sources": [list(position)], "established": True} for position in removed),
+                  key=lambda entry: entry["ref"])
+
+
 def apply_page_action(memory: Memory, action: dict, turns: dict) -> dict:
     """One page action through the API, as the memory page performs it. Returns what it did."""
 
@@ -837,10 +937,13 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                       "detail": {key: value for key, value in action.items() if key not in ("do", "card")}}
             if memory is not None:
                 with memory.client() as client:
-                    record["before"] = world(client)
+                    record["before"], held = world(client), layer_records(client, memory.positions)
                 record["result"] = apply_page_action(memory, action, turns_text)
                 with memory.client() as client:
-                    record["after"] = world(client)
+                    record["after"], kept = world(client), layer_records(client, memory.positions)
+                removed = removed_records(held, kept, record["before"], record["after"])
+                record["result"]["removed_records"] = removed
+                record["result"]["removed_records_complete"] = all(entry["established"] for entry in removed)
                 record["time"] = memory.now()
                 if chat is not None:
                     chat._forget_blocks(memory.user)  # The next message reads the page's change.
@@ -850,6 +953,8 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                     deletions.append(action)
                 record["before"] = reference.summary()
                 record["result"] = reference.apply(action)
+                record["result"]["removed_records"] = message_records(record["result"].get("removed", []))
+                record["result"]["removed_records_complete"] = True  # F's only records are its messages.
                 record["after"] = reference.summary()
                 if action["do"] in DELETES_MESSAGES:
                     record["after"]["removed_still_in_history"] = reference.contains(action["removed"])

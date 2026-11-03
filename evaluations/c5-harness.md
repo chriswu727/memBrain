@@ -70,6 +70,16 @@ Free prerequisites 4 and 5 of the [paid acceptance plan draft](maturity-paid-acc
   - `network_refused` no longer names the host.
   - `index_wait_timed_out` no longer names the brain.
   - The full detail of a page action is still in `page-actions.jsonl`.
+- **Which records a page action removed.** Each action's `result` in `page-actions.jsonl` now has `removed_records` and `removed_records_complete`. Kinds and counts alone cannot tell two feelings with the same label apart.
+  - **How they are found.** The harness lists every layer's records by their own ids before and after the action, through the same SDK calls `world()` uses: messages, `list_notes`, `affect_records`, `relationship()` and `persona_versions`. A record is removed when its id is present before and gone after.
+  - **Entry format.** Each removed record is `{"kind", "ref", "sources", "established": true}`.
+    - `kind` is one of `message`, `note`, `shared_moment`, `commitment`, `feeling`, `boundary`, `support_style`, `familiarity_cap` or `persona_version`.
+    - `sources` are the record's source messages as `[session_id, turn_index, role]` triples, mapped through the positions `record_turn` recorded.
+  - **`ref`** is computed by `record_ref`, the formula the review side recomputes. It never contains a database id or content.
+    - With sources: `"src:" + sha256(json.dumps([kind, sorted(sources)], separators=(",", ":"), ensure_ascii=False))`.
+    - Without sources: `"content:" + sha256(json.dumps([kind, content], separators=(",", ":"), ensure_ascii=False, sort_keys=True))`, over the record's normalized content fields.
+  - **Unestablished drops.** A drop in a `world()` count that no id diff explains is written as `{"kind", "established": false}`, with no ref. `removed_records_complete` is true only when there is no such entry.
+  - **Arm `F`** lists only the messages a deletion removed. It uses the same refs as `P`, and its `removed_records_complete` is always true. The `removed` field is unchanged.
 - **Failed extraction is reported (B3).** The extractor's worker catches every error and only logs it. Arm `E` therefore watches two signals from the extractor itself, without changing `src/`:
   - the extraction status in the installation's state, `extraction.json` (`turns_failed` and `turns_skipped`);
   - the extractor's own failure warnings (`note extraction failed`, `queue full`, `note not saved`), counted by message template and never by text.

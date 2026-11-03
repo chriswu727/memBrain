@@ -367,6 +367,86 @@ def test_the_dry_run_check_fails_its_run_verdict_on_any_harness_event_kind(tmp_p
     assert f"E: harness events ['{kind}']" in failures
 
 
+# Which records a page action removed ----------------------------------------------------------------------------
+
+REMOVAL_SCENARIO = '''
+HOST = "You are a companion. Reply briefly."
+SESSIONS_LONG = [
+    ("s1", ["Today is Monday, March 2, 20:00. I'm nervous about Thursday's review. Please never mention Tom.",
+            "I'm nervous about the move too. And please leave work out of it."]),
+    ("s2", ["Today is Tuesday, March 3, 21:00. Hi again."]),
+]
+PAGE_ACTIONS = [
+    ("s2", 0, {"do": "delete_message", "session": "s1", "turn": 1, "role": "user"}),
+    ("s2", 0, {"do": "remove_boundary", "topic": "Tom"}),
+]
+'''
+NERVOUS = {"label": "nervous", "valence": -1, "intensity": 2, "basis": "reported"}
+REMOVAL_SCRIPT = {
+    ("s1", 0): [{"tool": "memory_note", "arguments": {"text": "Review on 2026-03-05.", "kind": "plan",
+                                                      "affect": NERVOUS}, "source": "current"},
+                {"tool": "memory_boundary", "arguments": {"topic": "Tom"}}],
+    ("s1", 1): [{"tool": "memory_note", "arguments": {"text": "Move on 2026-03-20.", "kind": "plan",
+                                                      "affect": NERVOUS}, "source": "current"},
+                {"tool": "memory_boundary", "arguments": {"topic": "Work"}}],
+}
+
+
+def test_removed_records_name_exactly_the_removed_one_of_two_alike_records(stub_run, tmp_path):
+    rows, events = stub_run("P", REMOVAL_SCENARIO, REMOVAL_SCRIPT)
+    assert len(rows) == 3 and events == []
+    deletion, removal = [json.loads(line) for line in (tmp_path / "run-P" / "page-actions.jsonl").read_text()
+                         .splitlines()]
+    turn = [["s1", 1, "user"]]
+    removed = deletion["result"]["removed_records"]
+    assert all(entry["established"] for entry in removed) and deletion["result"]["removed_records_complete"] is True
+    assert removal["result"]["removed_records_complete"] is True
+    assert sorted(entry["kind"] for entry in removed) == ["feeling", "message", "note"]
+    for entry in removed:  # Only the second turn's message, its note and its feeling; never the first turn's.
+        assert entry["sources"] == turn
+        assert entry["ref"] == harness.record_ref(entry["kind"], [tuple(source) for source in turn], {})
+    assert deletion["before"]["feelings"] == 2 and deletion["after"]["feelings"] == 1
+    other = harness.record_ref("feeling", [("s1", 0, "user")], {})
+    assert other not in {entry["ref"] for entry in removed}
+    # F names the deleted message with the same ref, from P's removed positions.
+    message = next(entry for entry in removed if entry["kind"] == "message")
+    assert harness.message_records(deletion["result"]["removed"]) == [message]
+    (boundary,) = removal["result"]["removed_records"]
+    assert boundary == {"kind": "boundary", "established": True, "sources": [],
+                        "ref": harness.record_ref("boundary", [], {"topic": "Tom", "aliases": []})}
+    assert boundary["ref"] != harness.record_ref("boundary", [], {"topic": "Work", "aliases": []})
+    text = json.dumps(deletion) + json.dumps(removal)
+    assert "nervous" not in json.dumps(deletion["result"]) and "Move on" not in text and "Review on" not in text
+
+
+def test_the_ref_is_the_shared_formula():
+    import hashlib
+
+    sources = [["s2", 0, "user"], ["s1", 10, "assistant"], ["s1", 2, "user"]]
+    expected = "src:" + hashlib.sha256(json.dumps(["feeling", sorted(sources)], separators=(",", ":"),
+                                                  ensure_ascii=False).encode("utf-8")).hexdigest()
+    assert harness.record_ref("feeling", sources) == expected
+    assert harness.record_ref("feeling", [tuple(source) for source in reversed(sources)]) == expected
+    content = {"topic": "Tomás", "aliases": ["mi ex"]}
+    assert harness.record_ref("boundary", [], content) == harness.record_ref("boundary", content=content) == (
+        "content:" + hashlib.sha256(json.dumps(["boundary", content], separators=(",", ":"), ensure_ascii=False,
+                                               sort_keys=True).encode("utf-8")).hexdigest())
+
+
+def test_a_count_drop_no_id_diff_explains_is_not_established():
+    assert harness.removed_records({}, {}, {"feelings": 2, "boundaries": ["a"]}, {"feelings": 1, "boundaries": []}) \
+        == [{"kind": "boundary", "established": False}, {"kind": "feeling", "established": False}]
+    held = {("feeling", "id-1"): {"kind": "feeling", "sources": [("s1", 0, "user")], "content": {"label": "x"}}}
+    (entry,) = harness.removed_records(held, {}, {"feelings": 1}, {"feelings": 0})
+    assert entry["established"] and entry["ref"].startswith("src:") and "id-1" not in json.dumps(entry)
+    unlinked = {("boundary", "id-2"): {"kind": "boundary", "sources": [], "content": {"topic": "zq", "aliases": []}}}
+    (entry,) = harness.removed_records(unlinked, {})
+    assert entry["ref"].startswith("content:") and "zq" not in json.dumps(entry) and "id-2" not in json.dumps(entry)
+    # A commitment that reads as a plain note after a relationship reset was not removed.
+    kept = {"id-3": {"kind": "commitment", "sources": [], "content": {"text": "x"}}}
+    assert harness.removed_records(kept, {"id-3": {**kept["id-3"], "kind": "note"}}, {"notes": 1}, {"notes": 1}) == []
+
+
 # I2: the count-only precheck ------------------------------------------------------------------------------------
 
 PLANT = "zq-planted-7f3c91"
