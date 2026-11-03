@@ -116,6 +116,43 @@ def test_the_block_lists_familiarity_style_boundaries_three_recent_moments_and_a
     assert relationship_context(None) == {"block": None, "stable": None, "once": []}
 
 
+def test_a_new_relationship_with_nothing_beyond_the_default_renders_no_block():
+    # A first session must not gain a block that only says "new"; an empty memory stays empty.
+    empty = relationship_context(state())
+    assert (empty["block"], empty["once"]) == (None, [])
+    assert snapshot({"items": []}, brain_id="b", tools=None, relationship=state())["text"] == ""
+    for extra in ({"familiarity": familiarity(["2027-03-02"], 0, "new", TODAY)},
+                  {"familiarity": familiarity([f"2027-03-0{n}" for n in range(1, 4)], 0, None, TODAY)},
+                  {"support_style": {"text": "listen first"}}, {"boundaries": [EX]},
+                  {"shared_moments": [{"id": "m1", "text": "Our first chat.", "occurs_at": "2027-03-02"}]},
+                  {"commitments": {"missed": [{"note_id": "c1", "text": "Send the recipe", "due": "2027-03-10"}]}}):
+        assert relationship_context(state(**extra))["block"], extra
+    # An acknowledged promise alone is nothing to show.
+    assert relationship_context(state(commitments={"missed": [{"note_id": "c1", "text": "x", "due": "2027-03-10",
+                                                               "acknowledged": True}]}))["block"] is None
+
+
+def test_boundaries_keep_shared_moments_and_missed_promises_out_of_the_block():
+    moments = [{"id": "m1", "text": "We celebrated getting over Jordan together.", "occurs_at": "2027-03-02"},
+               {"id": "m2", "text": "和前任分手后我们一起去看了海。", "occurs_at": "2027-03-03"},
+               {"id": "m3", "text": "Our first chat.", "occurs_at": "2027-03-04"}]
+    missed = [{"note_id": "c1", "text": "Ask how the talk with Jordan went", "due": "2027-03-10"},
+              {"note_id": "c2", "text": "问问前任的事处理得怎样", "due": "2027-03-11"},
+              {"note_id": "c3", "text": "Send the recipe", "due": "2027-03-12"}]
+    context = relationship_context(state(boundaries=[EX], shared_moments=moments, commitments={"missed": missed}))
+    block = context["block"]
+    assert "getting over Jordan" not in block and "看了海" not in block
+    assert "Our first chat." in block and "Send the recipe" in block
+    assert "talk with Jordan" not in block and "处理得怎样" not in block
+    assert context["once"] == ["c3"]  # A promise kept out of the block is never acknowledged as shown.
+
+
+def test_a_sensitive_missed_promise_is_listed_but_never_raised_automatically():
+    missed = [{"note_id": "c1", "text": "Check in after the biopsy results", "due": "2027-03-10", "sensitive": True}]
+    context = relationship_context(state(commitments={"missed": missed}))
+    assert context["block"] is None and context["once"] == []
+
+
 def test_snapshot_keeps_bounded_notes_and_shared_moments_out_of_the_notes_block():
     saved = {"items": [
         {"event_id": "n1", "text": "Prefers short replies.", "actor_role": "assistant", "recorded_at": "2027-03-01"},
@@ -339,9 +376,65 @@ def test_a_missed_commitment_is_shown_once_and_kept_ones_are_recorded(installati
     # Shown once: the next message does not refresh because of it, and a new session does not repeat it.
     assert "<membrain-updates>" not in (host.prompt_context(directory, "p1", "Hi", turn_id="2", user_id=user) or "")
     second = host.session_context(directory, "p2", user_id=user)
-    assert "shown once" not in second and "<membrain-relationship>" in second
+    assert "shown once" not in second  # Nothing else to say yet, so there is no relationship block at all.
     with host.ready_client(directory, user) as client:
         assert client.relationship()["commitments"]["missed"][0]["acknowledged"] is True
+
+
+def test_sensitive_and_bounded_missed_promises_are_listed_but_not_shown_or_acknowledged(brain):
+    service, principal, ident = brain
+    add_boundary(service, principal, ident, "my ex", ["前任", "Jordan"])
+    private = note(brain, "Check in after the biopsy results.", kind="agent_commitment", status="intended",
+                   due="2027-03-10", sensitive=True)["note_id"]
+    bounded = note(brain, "问问前任的事处理得怎样", kind="agent_commitment", status="intended", due="2027-03-11")["note_id"]
+    plain = note(brain, "Send the recipe.", kind="agent_commitment", status="intended", due="2027-03-12")["note_id"]
+    result = relationship(service, principal, ident, today=TODAY)
+    missed = {item["note_id"]: item for item in result["commitments"]["missed"]}
+    assert set(missed) == {private, bounded, plain}  # The page lists every one.
+    assert missed[private]["sensitive"] is True and missed[plain]["sensitive"] is False
+    assert result["once"] == [plain] and "biopsy" not in result["block"] and "前任的事" not in result["block"]
+    after = acknowledge(service, principal, ident, [private, bounded, plain], today=TODAY)
+    assert {item["note_id"]: item["acknowledged"] for item in after["commitments"]["missed"]} == {
+        private: False, bounded: False, plain: True}
+
+
+def test_mcp_recall_honors_boundaries_with_and_without_an_installation(brain, tmp_path):
+    import asyncio
+
+    import httpx
+
+    from membrain.client import MemoryClient
+    from membrain.mcp_server import create_server
+
+    service, principal, ident = brain
+    say(brain, "My ex Jordan and I hiked Mount Tam every Sunday.")
+    say(brain, "Mount Tam trails are best in spring.")
+    add_boundary(service, principal, ident, "my ex", ["前任", "Jordan"])
+    service.work_once(principal, ident)
+
+    def handle(request):
+        path, query = request.url.path, request.url.params
+        if path == "/v1/actions":
+            return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
+        if path.endswith("/relationship"):
+            return httpx.Response(200, json=relationship(service, principal, ident))
+        if path.endswith("/timeline/following"):
+            return httpx.Response(200, json=service.following(principal, ident, query.get_list("event_id")))
+        if path.endswith("/timeline"):
+            return httpx.Response(200, json=service.timeline(
+                principal, ident, roles=query.get_list("role"), event_ids=query.get_list("event_id") or None,
+                max_characters=int(query["max_characters"]), max_item_characters=int(query["max_item_characters"]),
+                limit=int(query["limit"])))
+        return httpx.Response(200, json={"recorded": 0})
+
+    with MemoryClient("http://memory.test", "k", ident, transport=httpx.MockTransport(handle)) as client:
+        for directory in (None, tmp_path):  # The standalone server and a local installation's.
+            server = create_server(client, directory=directory)
+            _, quiet = asyncio.run(server.call_tool("memory_recall", {"query": "Mount Tam"}))
+            quiet = json.dumps(quiet, ensure_ascii=False)
+            assert "best in spring" in quiet and "every Sunday" not in quiet, directory
+            _, raised = asyncio.run(server.call_tool("memory_recall", {"query": "Jordan at Mount Tam"}))
+            assert "every Sunday" in json.dumps(raised, ensure_ascii=False), directory
 
 
 def test_reset_starts_familiarity_again_and_nothing_from_before_the_marker_returns(brain, monkeypatch):
@@ -380,7 +473,7 @@ def test_reset_starts_familiarity_again_and_nothing_from_before_the_marker_retur
     assert (after["shared_moments"], after["boundaries"], after["support_style"]) == ([], [], None)
     assert after["familiarity"]["cap"] is None
     assert after["commitments"] == {"kept": [], "missed": [], "cancelled": [], "open": []}
-    assert after["markers"] == [marker] and "Boundaries" not in after["block"]
+    assert after["markers"] == [marker] and after["block"] is None
     # A moment read from a message before the marker is never recreated; a new one is kept.
     again = note(brain, "Named the cat Biscuit together.", kind="milestone", shared=True, source_event_ids=[source])
     assert "never recreated" in again["shared_refused"]
@@ -484,7 +577,7 @@ def test_api_and_sdk_routes_check_keys_owners_and_bodies(installation, brain, ap
     foreign = service.create_brain(Principal(principal.tenant_id, uid()), "Foreign")["id"]
     assert client.get(path, headers={"Authorization": "Bearer wrong"}).status_code == 401
     empty = client.get(path).json()
-    assert empty["familiarity"]["level"] == "new" and empty["boundaries"] == [] and empty["block"]
+    assert empty["familiarity"]["level"] == "new" and empty["boundaries"] == [] and empty["block"] is None
     for method, suffix, body in (("GET", "", None), ("PUT", "/support-style", {"text": "x"}),
                                  ("POST", "/boundaries", {"topic": "x"}), ("DELETE", "/boundaries/x", None),
                                  ("POST", "/cap", {"level": None}), ("POST", "/acknowledge", {"note_ids": []}),

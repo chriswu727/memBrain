@@ -55,7 +55,8 @@ def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, perso
     text = "\n\n".join(block for block in blocks if block)
     # The relationship block counts by what it means (level, style, boundaries, moments, which promises were missed),
     # not by its day count or one-time line, so a new day or an acknowledgement alone does not refresh everything.
-    basis = [brain_id, text] if bond["block"] is None else [brain_id, text.replace(bond["block"], ""), bond["stable"]]
+    others = "\n\n".join(block for block in blocks if block and block is not bond["block"])
+    basis = [brain_id, text] if bond["stable"] is None else [brain_id, others, bond["stable"]]
     return {"fingerprint": digest(basis), "text": text,
             "persona_version": persona["version"] if persona_block else None, "mood_shown": bool(mood_block),
             "boundaries": boundaries, "acknowledge": bond["once"]}

@@ -21,6 +21,36 @@ WRITE = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHin
 DESTRUCTIVE = ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempotentHint=True, openWorldHint=False)
 
 
+def _boundaries(client: MemoryClient) -> list[dict[str, Any]]:
+    """The user's boundaries, best effort: an older service without the relationship route has none."""
+    try:
+        return list(client.relationship().get("boundaries") or [])
+    except Exception:
+        return []
+
+
+def _outside_boundaries(response: dict[str, Any], boundaries, query: str) -> dict[str, Any]:
+    """The recall result without memories and source passages about a boundary topic the query does not raise
+    (the rule host.recall_context applies), rendered again from what is left."""
+    from membrain.relationship import kept_out
+
+    result = response.get("result")
+    if not boundaries or not isinstance(result, dict):
+        return response
+
+    def bounded(item):
+        memory = item.get("memory") or {}
+        return any(kept_out(text or "", boundaries, query)
+                   for text in (memory.get("statement"), (memory.get("recall_summary") or {}).get("statement")))
+
+    result = {key: value for key, value in result.items() if key != "model_context"}
+    result["items"] = [item for item in result.get("items", []) if not bounded(item)]
+    if "source_passages" in result:
+        result["source_passages"] = [passage for passage in result["source_passages"]
+                                     if not kept_out(passage.get("text") or "", boundaries, query)]
+    return {**response, "result": result}
+
+
 def create_server(client: MemoryClient, *, directory=None) -> FastMCP:
     if not client.brain_id:
         raise ValueError("MCP requires a configured brain_id")
@@ -88,8 +118,9 @@ def create_server(client: MemoryClient, *, directory=None) -> FastMCP:
                 response = await asyncio.to_thread(recall, 1)
             except MemoryActionError:
                 response = await asyncio.to_thread(recall, 0)  # Without a usable query embedding, keyword recall still works.
+            boundaries = await asyncio.to_thread(_boundaries, client)
             return {"action": "recall", "outcome": response["outcome"],
-                    "context": recalled_context(response),
+                    "context": recalled_context(_outside_boundaries(response, boundaries, query)),
                     "context_tokens": response["result"]["usage"]["context_tokens"]}
 
     @server.tool(annotations=READ_ONLY)

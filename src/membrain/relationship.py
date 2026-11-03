@@ -106,6 +106,12 @@ def kept_out(text: str, boundaries, current: str | None = None) -> bool:
     return any(boundary.get("id") not in raised for boundary in touched)
 
 
+def shown(item: dict, boundaries) -> bool:
+    """Whether a shared moment or a missed promise may be raised in context without the user raising it: not
+    sensitive and not about a boundary topic. The page lists it either way."""
+    return not item.get("sensitive") and not touches(item.get("text") or "", boundaries)
+
+
 # Records --------------------------------------------------------------------------------------------------------
 
 def _support(value, scrubbing: bool = True) -> str:
@@ -250,7 +256,8 @@ def _commitments(service, conn, principal, brain_id, after, acknowledged, today)
         status = fields.get("status", "intended")
         when = _date(fields.get("due") or fields.get("occurs_at"))
         item = {"note_id": note["id"], "text": note["text"], "status": status, "due": fields.get("due"),
-                "occurs_at": fields.get("occurs_at"), "recorded_at": note["recorded_at"]}
+                "occurs_at": fields.get("occurs_at"), "recorded_at": note["recorded_at"],
+                "sensitive": bool(fields.get("sensitive"))}
         if status == "done":
             record["kept"].append(item)
         elif status == "cancelled":
@@ -370,21 +377,24 @@ def relationship_context(result: dict | None) -> dict:
     today = _date(result.get("today")) or _datetime.date.today()
     known = result["familiarity"]
     lines = [f"Familiarity: {known['reason']}."]
-    stable = [f"Familiarity: {known['level']}."]
+    # The default level is left out, so a block that only carried a one-time line and then goes away does not
+    # count as a change.
+    stable = [f"Familiarity: {known['level']}."] if known["level"] != "new" or known.get("cap") else []
     if result.get("support_style"):
         line = f"How they like to be supported: {result['support_style']['text']}"
         lines.append(line)
         stable.append(line)
-    line = boundaries_line(result.get("boundaries"))
+    boundaries = result.get("boundaries") or []
+    line = boundaries_line(boundaries)
     if line:
         lines.append(line)
         stable.append(line)
-    missed = (result.get("commitments") or {}).get("missed") or []
+    missed = [item for item in (result.get("commitments") or {}).get("missed") or () if shown(item, boundaries)]
     once = [item for item in missed if not item.get("acknowledged")][:2]
     once_lines = [f"A promise you made is past its date and not done (shown once): {item['text']} (due "
                   f"{item.get('due') or item.get('occurs_at')}, id: {item['note_id']}). Acknowledge it briefly if it "
                   "fits, and update its note when it is done or dropped." for item in once]
-    moments = [moment for moment in result.get("shared_moments") or () if not moment.get("sensitive")]
+    moments = [moment for moment in result.get("shared_moments") or () if shown(moment, boundaries)]
     header = f"<membrain-relationship>\n{HEADER}\n"
     footer = "\n</membrain-relationship>"
     body = "\n".join(lines + once_lines)
@@ -401,6 +411,9 @@ def relationship_context(result: dict | None) -> dict:
         body += "\nShared moments, oldest first:\n" + "\n".join(chosen)
         stable.append("\n".join(chosen))
     stable.append(json.dumps(sorted(item["note_id"] for item in missed)))
+    if not stable[:-1] and not once_lines:
+        # Nothing beyond the default: a first session, or one after a reset, gets no block at all.
+        return {"block": None, "stable": "\n".join(stable), "once": []}
     # The user's own words (style, topics, moments) are defused, so they can never close or open a memory block.
     return {"block": header + neutralize(body) + footer, "stable": "\n".join(stable),
             "once": [item["note_id"] for item in once]}
@@ -513,8 +526,10 @@ def acknowledge(service, principal, brain_id: str, note_ids, *, today=None) -> d
     today = _today(today)
 
     def change(conn, brain, state):
+        # Only a promise the context may show can have been shown: never a sensitive or bounded one.
         missed = {item["note_id"] for item in _commitments(
-            service, conn, principal, brain_id, state["after"], state["acknowledged"], today)["missed"]}
+            service, conn, principal, brain_id, state["after"], state["acknowledged"], today)["missed"]
+            if shown(item, state["boundaries"])}
         for note_id in dict.fromkeys(note_ids):
             if note_id in missed and note_id not in state["acknowledged"]:
                 _append(service, conn, principal, brain, {"relationship": "acknowledged", "note_id": note_id},
