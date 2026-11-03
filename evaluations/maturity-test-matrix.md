@@ -217,5 +217,14 @@ Each is a free test (no model call). Items 1 to 3 are owned by the P2 pull reque
 17. **Scoring pipeline tests.** Unit tests for `evaluations/acceptance_review.py` on a small synthetic scenario: `verdicts` refuses bad files, `tally` applies resolutions, `r5-check` rejects malformed answers, `gate` counts a disagreeing attribution as memory.
 18. **#29 overlap regression.** Start a real local service without the semantic model. Keep notes, timeline, recall and MCP `memory_recall` requests running in another thread, then finish the model install and activate it while a request is in flight (held by a barrier, not a sleep). Expect zero failed requests, the same service instance (no restart), semantic recall active afterwards, and earlier messages indexed. Also expect that `fetch_model` never calls `desktop.restart`. Added with the #29 fix (see the R1 row); a separate Mac run of the same test, in its own venv with the real model, passed 4 of 4.
 19. **Install check proxy step.** Call the defined `stub_upstream` path. The installed `membrain-proxy` should add memory for a bot user with no model key, and the check should record the step's result.
-20. **Concurrent recall bound.** Decide a p95 bar for concurrent recall: 8 concurrent requests measured 2,582 ms against 360.85 ms serially. Then add a benchmark check that fails above it.
+20. **Concurrent recall bound.** Proposed bar, not yet met (see R5 in the [release checklist](../docs/releasing.md)): p95 at most 1,000 ms for 8 concurrent recalls on one brain, and at most 600 ms for 8 concurrent recalls on 8 brains. On 2026-11-03, one brain measured 2,582 ms against 360.85 ms serially.
+    - **Measurement conditions** (the same for serial and concurrent, and recorded with every result):
+      - the 1,000-message keyword fixture, with no model calls and the semantic model off;
+      - measured after the message index has caught up;
+      - excluding client start-up (`ready_client`) and reply generation;
+      - 20 queries, each run once per worker, with the first round discarded as warm-up;
+      - one local service;
+      - the machine's CPU, core count, OS and PostgreSQL version written down.
+    - **The check to add:** a benchmark script that measures both bars and fails above them. Run it before release on the reference machine, not in CI, where timing is not stable.
+    - **A cause to profile first:** `MemoryService._brain` reads the brain row with `FOR UPDATE` (`service.py`). That can make concurrent recalls on one brain wait for each other. This is a hypothesis only. Removing the lock is not acceptable unless the erase and recovery fences it protects are kept, and the existing isolation, erasure and recovery tests still pass.
 21. **Browser checks.** A headless browser test of the memory page: the showcase URL makes no `/v1/` request, a note edited on the map redraws it, and each companion section renders in English and Chinese. This needs a browser in CI, so it is an owner decision whether it joins Verify.
