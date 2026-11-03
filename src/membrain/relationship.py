@@ -277,10 +277,10 @@ def _utc_day(value) -> str | None:
     """The UTC day of an ISO time (a time without a zone is read as UTC), or None when it is not one."""
     try:
         moment = _datetime.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
-    except (TypeError, ValueError):
+        moment = moment if moment.tzinfo else moment.replace(tzinfo=_datetime.UTC)
+        return moment.astimezone(_datetime.UTC).date().isoformat()
+    except (TypeError, ValueError, OverflowError):
         return None
-    moment = moment if moment.tzinfo else moment.replace(tzinfo=_datetime.UTC)
-    return moment.astimezone(_datetime.UTC).date().isoformat()
 
 
 def _days(service, conn, principal, brain_id, after) -> list[str]:

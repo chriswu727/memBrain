@@ -111,7 +111,7 @@ def _stamp(value: str) -> datetime:
         if parsed.tzinfo is None:
             raise ValueError("timezone missing")
         return parsed.astimezone(UTC)
-    except (ValueError, TypeError, AttributeError) as error:
+    except (ValueError, TypeError, AttributeError, OverflowError) as error:
         raise DomainError("validation_failed", "An aware RFC3339 time is required") from error
 
 

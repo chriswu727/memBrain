@@ -303,6 +303,7 @@ class MemoryService:
 
     def _append_event(self, conn, principal, brain, target, incoming, *, event_id=None, imported=False,
                       segmentation_rule_version=cognition.RULE_VERSION):
+        cognition._range(incoming["occurred_time"])
         params = self._params(principal, brain["id"])
         previous = conn.execute(
             "SELECT * FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "

@@ -253,7 +253,7 @@ def api(installation, brain):
         yield client, f"/v1/brains/{ident}/relationship"
 
 
-def say(brain, text, *, conversation="chat", on=None, monkeypatch=None):
+def say(brain, text, *, conversation="chat", on=None, monkeypatch=None, occurred=None, occurred_end=None):
     """One user message; ``on`` (with ``monkeypatch``) records it on that day, as the service clock reads it."""
     service, principal, ident = brain
     if on is not None:
@@ -264,7 +264,8 @@ def say(brain, text, *, conversation="chat", on=None, monkeypatch=None):
         "payload": {"idempotency_key": uid(), "events": [{
             "source_event_key": uid(), "source_revision": 1, "producer_ref": "relationship-test", "actor_ref": "user",
             "actor_role": "user", "event_kind": "message", "content": {"media_type": "text/plain", "text": text},
-            "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
+            "occurred_time": {"start": occurred, "end": occurred_end, "precision": "exact" if occurred else "unknown",
+                              "basis": "source_explicit" if occurred else "unknown"},
             "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": [],
         }]},
     })
@@ -319,6 +320,22 @@ def test_cross_session_a_boundary_keeps_the_topic_out_until_it_is_removed(instal
     later = host.session_context(directory, "s6", user_id=user)
     later += turn("s6", "Any hiking ideas near Mount Tam this weekend?")
     assert "Mount Tam every Sunday" in later and "海边" in later and "Boundaries:" not in later
+
+
+@pytest.mark.parametrize("occurred,occurred_end", [
+    ("0001-01-01T00:00:00+23:59", None), ("9999-12-31T23:59:59-23:59", None),
+    ("2027-03-20T09:00:00Z", "2027-03-19T09:00:00Z"),
+])
+def test_invalid_occurrence_ranges_are_rejected_before_they_can_reach_the_worker(
+        brain, monkeypatch, occurred, occurred_end):
+    result = say(brain, "A fictional message with an unusable occurrence range.", on="2027-03-20",
+                 monkeypatch=monkeypatch, occurred=occurred, occurred_end=occurred_end)
+    assert result["outcome"] == "rejected" and result["error"]["code"] == "validation_failed"
+    status = brain[0].memory_status(brain[1], brain[2])
+    assert status["recorded_messages"] == 0 and status["pending_jobs"] == 0
+    assert say(brain, "A later valid message.", on="2027-03-20", monkeypatch=monkeypatch)["outcome"] == "completed"
+    known = relationship(*brain, today=TODAY)["familiarity"]
+    assert (known["days"], known["since"]) == (1, "2027-03-20")
 
 
 def test_familiarity_crosses_its_thresholds_with_the_numbers_the_page_shows(brain, monkeypatch):
