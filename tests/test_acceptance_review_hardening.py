@@ -107,9 +107,20 @@ def record(session, turn, action, before, after, result):
 
 REMOVED_P = [[ALPHA, 0, "assistant"], [ALPHA, 0, "user"]]
 REFERENCE = {"history_items": 4, "persona_version": 1}
-# Opaque record ids, the same in every arm. Two feelings: FEELING_1 removed before S01-case, FEELING_2 only after it.
+
+
+def harness_ref(kind, sources):
+    """The harness's opaque id of a record linked to its sources ([session id, turn index, role]), computed here
+    independently of the pipeline."""
+    text = json.dumps([kind, sorted(sources)], separators=(",", ":"), ensure_ascii=False)
+    return "src:" + hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+# Opaque record ids, the same in every arm. FEELING_1 ("nervous about the job", said in alpha message 2) is deleted
+# before S01-case; FEELING_2 is removed only after it; a same-kind "visa" feeling (alpha message 3) is never removed.
 # Two relationship records: MOMENT_1 removed before S01-case, MOMENT_2 never. UNSETTLED is an unestablished removal.
-FEELING_1, FEELING_2 = "src:" + "1" * 64, "src:" + "2" * 64
+FEELING_1, FEELING_2 = harness_ref("feeling", [[ALPHA, 1, "user"]]), harness_ref("feeling", [[BETA, 0, "user"]])
+VISA = [[1, 3, "user"]]  # The visa feeling's source, as the digest and a resolution name it.
 MOMENT_1, MOMENT_2 = "content:" + "3" * 64, "content:" + "4" * 64
 UNSETTLED = "src:" + "5" * 64
 
@@ -118,22 +129,25 @@ def removed(kind, ref, *sources):
     return {"kind": kind, "ref": ref, "sources": [list(source) for source in sources], "established": True}
 
 
-FEELING_GONE = {"deleted": 1, "removed_records": [removed("feeling", FEELING_1, (ALPHA, 1, "user"))]}
-LATER_FEELING_GONE = {"removed_records": [removed("feeling", FEELING_2, (BETA, 0, "user"))]}
+COMPLETE = {"removed_records_complete": True}
+FEELING_GONE = {"deleted": 1, "removed_records": [removed("feeling", FEELING_1, (ALPHA, 1, "user"))], **COMPLETE}
+LATER_FEELING_GONE = {"removed_records": [removed("feeling", FEELING_2, (BETA, 0, "user"))], **COMPLETE}
+# P records every removal completely; E's message deletion and reset are not completely identified; F records none.
 RECORDS = {
-    "P": [record(BETA, 0, "delete_message", world(), world(messages=4), {"deleted": 1, "removed": REMOVED_P}),
+    "P": [record(BETA, 0, "delete_message", world(), world(messages=4),
+                 {"deleted": 1, "removed": REMOVED_P, "removed_records": [], **COMPLETE}),
           record(BETA, 0, "delete_feeling", world(messages=4), world(messages=4, feelings=2), FEELING_GONE),
           record(BETA, 1, "reset_relationship", world(), world(shared_moments=0, familiarity_days=0,
                                                                familiarity=f"{SECRET}-new"), {"removed_records": [
-              removed("shared_moment", MOMENT_1, (ALPHA, 2, "user"), (ALPHA, 1, "assistant")),
-              {"kind": "familiarity", "ref": UNSETTLED, "established": False}]}),
+              removed("shared_moment", MOMENT_1, (ALPHA, 2, "user"), (ALPHA, 1, "assistant"))], **COMPLETE}),
           record(BETA, 2, "clear_feelings", world(), world(feelings=0), LATER_FEELING_GONE)],
     "E": [record(BETA, 0, "delete_message", world(feelings=2), world(messages=5, feelings=2),
                  {"deleted": 1, "removed": [[ALPHA, 0, "user"]]}),
           record(BETA, 0, "delete_feeling", world(feelings=2), world(feelings=1), FEELING_GONE),
           record(BETA, 1, "add_boundary", world(boundaries=[]), world(), {}),
           record(BETA, 1, "reset_relationship", world(), world(shared_moments=0), {"removed_records": [
-              removed("shared_moment", MOMENT_1, (ALPHA, 2, "user"))]}),
+              removed("shared_moment", MOMENT_1, (ALPHA, 2, "user")),
+              {"kind": "familiarity", "ref": UNSETTLED, "established": False}]}),
           record(BETA, 2, "clear_feelings", world(), world(feelings=0), LATER_FEELING_GONE)],
     "F": [record(BETA, 0, "delete_message", {"history_items": 6, "persona_version": 1},
                  {**REFERENCE, "removed_still_in_history": 0}, {"deleted": 2, "removed": REMOVED_P}),
@@ -197,10 +211,9 @@ ASSISTANT_GONE = (DELETE, "message", "message:1-1-assistant", [[1, 1, "assistant
 USER_GONE = (DELETE, "message", "message:1-1-user", [[1, 1, "user"]], True)
 OUTCOMES = {  # What each arm's actions before S01-case removed: (action, kind, ref, sources, established).
     "P": [ASSISTANT_GONE, USER_GONE, (FEELING, "feeling", FEELING_1, [[1, 2, "user"]], True),
-          (RESET, "shared_moment", MOMENT_1, [[1, 2, "assistant"], [1, 3, "user"]], True),
-          (RESET, "familiarity", None, None, False)],
+          (RESET, "shared_moment", MOMENT_1, [[1, 2, "assistant"], [1, 3, "user"]], True)],
     "E": [USER_GONE, (FEELING, "feeling", FEELING_1, [[1, 2, "user"]], True),
-          (RESET, "shared_moment", MOMENT_1, [[1, 3, "user"]], True)],
+          (RESET, "shared_moment", MOMENT_1, [[1, 3, "user"]], True), (RESET, "familiarity", None, None, False)],
     "F": [ASSISTANT_GONE, USER_GONE],  # The reference history holds only the conversation.
 }
 
@@ -225,13 +238,14 @@ def test_actions_digest_reports_actual_removals_per_blinded_label(pipeline, tmp_
     digest = written["replies"]
     # Only replies with a candidate type 8 mark: S01 A and B (first reviewer), C (added), S02 A (later rejected).
     assert sorted(digest) == ["S01-case/A", "S01-case/B", "S01-case/C", "S02-case/A"]
-    assert digest["S02-case/A"] == {"session": 1, "message": 2, "removed": []}
+    assert digest["S02-case/A"] == {"session": 1, "message": 2, "removed": [], "removal_coverage_complete": True}
     for label, arm in mapping["S01-case"].items():
         entry = digest[f"S01-case/{label}"]
         assert (entry["session"], entry["message"]) == (2, 2)
         # Only records removed before the case's message (not FEELING_2), never MOMENT_2, and an unestablished
         # removal without its ref. No counts, state or comparison with the other replies.
         assert [flat(item) for item in entry["removed"]] == OUTCOMES[arm]
+        assert entry["removal_coverage_complete"] is (arm == "P")
         assert all(set(item) <= {"action", "kind", "ref", "sources", "established"} for item in entry["removed"])
 
 
@@ -325,57 +339,161 @@ def test_tally_refuses_an_actions_file_not_made_by_the_digest_command(pipeline, 
         pipeline.tally(tmp_path, blind, str(scenario), "practice", companion=True)
 
 
-# RC2 clears type 8 only by citing a specific record established as removed in that reply's world -------------------
+# RC2: the mark stands when the reply uses a record removed before the case and not restated since. A clearing needs a
+# basis with checked evidence; anything the evidence cannot establish refuses the tally for the bounded redo. --------
 
-def rc2_clearing(pipeline, tmp_path, label, refs, records=None):
-    """Build the digest from the synthetic runs, then clear S01-case/<label>'s type 8 mark under RC2 citing refs."""
+REDO = "redo it once with a fresh, independent resolution reviewer"
+
+
+def rc2_clearing(pipeline, tmp_path, label, rc2=None, records=None, **extra):
+    """Build the digest from the synthetic runs, then clear S01-case/<label>'s type 8 mark under RC2."""
     scenario, review, blind, runs = companion_world(tmp_path, records=records)
     pipeline.actions_digest(review, blind, str(scenario), "practice", runs)
-    change = {"remove": [8], "rules": {"8": "RC2"}, "reason": "RC2: restated by the user after the action"}
-    if refs is not None:
-        change["rc2_refs"] = refs
+    change = {"remove": [8], "rules": {"8": "RC2"}, "reason": "RC2: see the basis", **extra}
+    if rc2 is not None:
+        change["rc2"] = rc2
     put(review / "resolution-practice.json", {f"S01-case/{label}": change})
     pipeline.tally(review, blind, str(scenario), "practice", companion=True)
     rows = json.loads((review / "tally-practice.json").read_text())["rows"]
-    digest = json.loads((review / "actions-practice.json").read_text())["replies"]
-    return next(row for row in rows if row["case"] == "S01-case" and row["label"] == label), digest
+    return next(row for row in rows if row["case"] == "S01-case" and row["label"] == label)
 
 
-@pytest.mark.parametrize("cited", [FEELING_1, MOMENT_1])
-def test_rc2_clears_type8_when_it_cites_the_record_removed_before_the_case(pipeline, tmp_path, cited):
-    row, digest = rc2_clearing(pipeline, tmp_path, "C", [cited])  # C is arm P in companion_world's mapping.
-    assert row["literal"] == [8] and row["resolved"] == []
-    assert any(item.get("ref") == cited and item["established"] is True for item in digest["S01-case/C"]["removed"])
-
-
-RC2_REFUSED = {
-    "the same-kind feeling removed only after the case": ("C", [FEELING_2], "not a record"),
-    "the relationship record that was never removed": ("C", [MOMENT_2], "not a record"),
-    "an unestablished removal": ("C", [UNSETTLED], "not a record"),
-    "a removed record next to an unremoved one": ("C", [FEELING_1, MOMENT_2], "not a record"),
-    "no record": ("C", None, "must cite rc2_refs"),
-    "an empty citation": ("C", [], "non-empty list"),
-    "a record removed only in other replies' worlds": ("B", [FEELING_1], "not a record"),  # B is arm F.
-}
-
-
-@pytest.mark.parametrize("name", RC2_REFUSED)
-def test_rc2_refuses_to_clear_type8_without_an_established_removed_record(pipeline, tmp_path, name):
-    label, refs, message = RC2_REFUSED[name]
-    with pytest.raises(SystemExit, match=f"invalid resolution: S01-case/{label}: RC2: .*{message}"):
-        rc2_clearing(pipeline, tmp_path, label, refs)
+def test_citing_the_removed_record_alone_never_clears_type8(pipeline, tmp_path):
+    """The exact change dd4aef8 accepted: a removed record cited as if its removal cleared the mark."""
+    with pytest.raises(SystemExit, match=f"invalid resolution: S01-case/C: .*rc2_refs is not a clearing basis.*{REDO}"):
+        rc2_clearing(pipeline, tmp_path, "C", reason="RC2: this record was removed.", rc2_refs=[FEELING_1])
     assert not (tmp_path / "review" / "tally-practice.json").exists()
 
 
-@pytest.mark.parametrize("refs", [None, [FEELING_1]])
-def test_a_generic_feeling_removal_never_clears_type8(pipeline, tmp_path, refs):
-    """An older run records only that a feeling was removed, not which: that cannot clear a type 8 mark."""
+JOB_STILL_USED = {  # The deleted job feeling, used by the reply and never restated: under RC2 the mark stands.
+    "an rc2 object citing only the removed ref": ({"basis": "reintroduced", "ref": FEELING_1}, "exactly basis"),
+    "a bare ref": ({"ref": FEELING_1}, "needs an \"rc2\" object"),
+    "not_removed naming the deleted feeling": ({"basis": "not_removed", "kind": "feeling", "sources": [[1, 2, "user"]]},
+                                               "under RC2 the mark stands"),
+    "reintroduced at its original statement": ({"basis": "reintroduced", "ref": FEELING_1, "restated_at": [1, 2]},
+                                               "not after the last removal"),
+}
+
+
+@pytest.mark.parametrize("name", JOB_STILL_USED)
+def test_a_used_removed_record_cannot_clear_type8_under_either_basis(pipeline, tmp_path, name):
+    rc2, message = JOB_STILL_USED[name]
+    with pytest.raises(SystemExit, match=f"S01-case/C: RC2: .*{message}.*{REDO}"):
+        rc2_clearing(pipeline, tmp_path, "C", rc2)
+
+
+@pytest.mark.parametrize("rc2", [{"basis": "not_removed", "kind": "feeling", "sources": VISA},
+                                 {"basis": "not_removed", "content_ref": "content:" + "9" * 64}])
+def test_a_mistaken_type8_on_an_untouched_record_clears_with_complete_coverage(pipeline, tmp_path, rc2):
+    row = rc2_clearing(pipeline, tmp_path, "C", rc2)  # C is arm P, whose removals are completely recorded.
+    assert row["literal"] == [8] and row["resolved"] == []
+
+
+def incomplete_reset():
+    records = json.loads(json.dumps(RECORDS))
+    records["P"][2]["result"].pop("removed_records_complete")
+    return records
+
+
+@pytest.mark.parametrize("label, records", [("A", None), ("B", None), ("C", incomplete_reset())],
+                         ids=["incomplete world", "world without records", "one action incomplete"])
+def test_not_removed_is_refused_without_complete_coverage(pipeline, tmp_path, label, records):
+    with pytest.raises(SystemExit, match=f"S01-case/{label}: RC2: .*completely.*{REDO}"):
+        rc2_clearing(pipeline, tmp_path, label, {"basis": "not_removed", "kind": "feeling", "sources": VISA},
+                     records=records)
+
+
+def test_a_generic_removal_never_clears_type8(pipeline, tmp_path):
+    """An older run records only that a feeling was removed, not which: coverage is never complete."""
     records = json.loads(json.dumps(RECORDS))
     for entries in records.values():
         for entry in entries:
             entry["result"].pop("removed_records", None)
-    with pytest.raises(SystemExit, match="invalid resolution: S01-case/C: RC2: "):
-        rc2_clearing(pipeline, tmp_path, "C", refs, records=records)
+    for rc2 in ({"basis": "not_removed", "kind": "feeling", "sources": VISA},
+                {"basis": "reintroduced", "ref": FEELING_1, "restated_at": [2, 1]}):
+        world_dir = tmp_path / rc2["basis"]
+        world_dir.mkdir()
+        with pytest.raises(SystemExit, match=f"S01-case/C: RC2: .*{REDO}"):
+            rc2_clearing(pipeline, world_dir, "C", rc2, records=records)
+
+
+def test_not_removed_refuses_a_content_record_that_was_removed(pipeline, tmp_path):
+    with pytest.raises(SystemExit, match="under RC2 the mark stands"):
+        rc2_clearing(pipeline, tmp_path, "C", {"basis": "not_removed", "content_ref": MOMENT_1})
+
+
+@pytest.mark.parametrize("restated_at", [[2, 1], [2, 2]], ids=["between", "the case's own message"])
+def test_reintroduced_clears_when_restated_after_the_deletion_and_by_the_case(pipeline, tmp_path, restated_at):
+    # The job feeling was deleted before beta message 1; the case is beta message 2.
+    row = rc2_clearing(pipeline, tmp_path, "C", {"basis": "reintroduced", "ref": FEELING_1, "restated_at": restated_at})
+    assert row["literal"] == [8] and row["resolved"] == []
+
+
+REINTRODUCED_REFUSED = {
+    "a restatement before the deletion": ("C", FEELING_1, [1, 3], "not after the last removal"),
+    "a restatement after the case": ("C", FEELING_1, [2, 3], "not after the last removal"),
+    "a message the scenario does not have": ("C", FEELING_1, [2, 9], "not a user message"),
+    "a ref removed only after the case": ("C", FEELING_2, [2, 1], "not a record removed before this case"),
+    "a ref removed only in another reply's world": ("B", FEELING_1, [2, 1], "not a record removed before"),  # B is F.
+    "a ref never removed": ("C", MOMENT_2, [2, 1], "not a record removed before"),
+    "an unestablished removal": ("A", UNSETTLED, [2, 2], "not a record removed before"),
+}
+
+
+@pytest.mark.parametrize("name", REINTRODUCED_REFUSED)
+def test_reintroduced_is_refused_without_ordered_evidence_in_that_world(pipeline, tmp_path, name):
+    label, ref, restated_at, message = REINTRODUCED_REFUSED[name]
+    with pytest.raises(SystemExit, match=f"S01-case/{label}: RC2: .*{message}.*{REDO}"):
+        rc2_clearing(pipeline, tmp_path, label, {"basis": "reintroduced", "ref": ref, "restated_at": restated_at})
+
+
+# Turn order: a page action before message N, then user message N, then the reply. Synthetic digests with complete
+# world evidence; the case is session 2, message 3.
+
+TEMPORAL_SCENARIO = """SESSIONS_LONG = [("one", ["a", "b", "c", "d"]), ("two", ["e", "f", "g", "h"])]
+CASES = [("two", 2, "S01-practice", "A public synthetic practice case")]
+"""
+
+
+def deleted(session, before_message, kind="feeling", ref=None, sources=None):
+    return {"action": {"do": "delete_message" if kind == "message" else "delete_feeling", "session": session,
+                       "before_message": before_message}, "kind": kind, "ref": ref or FEELING_1,
+            "sources": sources or [[1, 2, "user"]], "established": True}
+
+
+def temporal(pipeline, tmp_path, removals, restated_at):
+    scenario, blind = resolution_world(tmp_path, first=[8], confirmed=[8], change={
+        "remove": [8], "rules": {"8": "RC2"}, "reason": "RC2: restated",
+        "rc2": {"basis": "reintroduced", "ref": FEELING_1, "restated_at": restated_at}})
+    scenario.write_text(TEMPORAL_SCENARIO)
+    put(tmp_path / "actions-practice.json", {"stage": "resolution", "replies": {"S01-practice/A": {
+        "session": 2, "message": 3, "removed": removals, "removal_coverage_complete": True}}})
+    return resolved(pipeline, tmp_path, scenario, blind)
+
+
+TEMPORAL = {
+    "deleted before the case's turn, restated in the case's own message": ([deleted(2, 3)], [2, 3], True),
+    "restated in an earlier turn that precedes the deletion": ([deleted(2, 2)], [2, 1], False),
+    "deleted, restated, deleted again, then used": ([deleted(1, 2), deleted(2, 1)], [1, 4], False),
+    "deleted, restated, deleted again, restated again": ([deleted(1, 2), deleted(2, 1)], [2, 2], True),
+    "restated in a turn after the case": ([deleted(2, 1)], [2, 4], False),
+    "the restatement was itself deleted": (
+        [deleted(2, 1), deleted(2, 3, "message", "message:2-2-user", [[2, 2, "user"]])], [2, 2], False),
+    "an unidentified message deletion": (
+        [deleted(2, 1), {"action": {"do": "delete_message", "session": 2, "before_message": 3}, "kind": "message",
+                         "established": False}], [2, 2], False),
+}
+
+
+@pytest.mark.parametrize("name", TEMPORAL)
+def test_reintroduced_follows_the_turn_order_and_the_last_deletion(pipeline, tmp_path, name):
+    removals, restated_at, clears = TEMPORAL[name]
+    if clears:
+        assert temporal(pipeline, tmp_path, removals, restated_at) == []
+    else:
+        with pytest.raises(SystemExit, match=f"S01-practice/A: RC2: .*{REDO}"):
+            temporal(pipeline, tmp_path, removals, restated_at)
+        assert not (tmp_path / "tally-practice.json").exists()
 
 
 # S3: C5 resolution changes are checked against the rule that may make them and its evidence ------------------------
@@ -400,7 +518,7 @@ def resolution_world(tmp_path, first, confirmed=(), added=(), conditions=(), cha
         put(tmp_path / "r5-practice" / "S01-A.json", {"type4_cleared": r5})
     if digest:
         put(tmp_path / "actions-practice.json", {"stage": "resolution", "replies": {
-            "S01-practice/A": {"session": 1, "message": 1, "removed": [
+            "S01-practice/A": {"session": 1, "message": 1, "removal_coverage_complete": True, "removed": [
                 {"action": {"do": "delete_feeling", "session": 1, "before_message": 1}, "kind": "feeling",
                  "ref": FEELING_1, "sources": [[1, 1, "user"]], "established": True}]}}})
     return scenario, tmp_path / "blind"
@@ -417,8 +535,9 @@ VALID = {
     "RC1 removes type 6": (dict(first=[6], confirmed=[6],
                                 change={"remove": [6], "rules": {"6": "RC1"}, "reason": "RC1: said in s1/2"}), []),
     "RC2 removes type 8": (dict(first=[8], confirmed=[8], digest=True,
-                                change={"remove": [8], "rules": {"8": "RC2"}, "rc2_refs": [FEELING_1],
-                                        "reason": "RC2: restated after action 1/1"}), []),
+                                change={"remove": [8], "rules": {"8": "RC2"}, "reason": "RC2: never removed",
+                                        "rc2": {"basis": "not_removed", "content_ref": "content:" + "9" * 64}}),
+                           []),
     "RC2 adds type 8": (dict(first=[8], digest=True,
                              change={"add": [8], "rules": {"8": "RC2"}, "reason": "RC2: action 2/1 removed it"}), [8]),
     "R3 removes an added 7": (dict(first=[], added=[7],
@@ -498,7 +617,15 @@ REFUSED = {
     "adding a mark that stands": (dict(first=[8], confirmed=[8], digest=True, change={
         "add": [8], "rules": {"8": "RC2"}, "reason": "RC2"}), "already stands"),
     "rc2_refs on another rule's change": (dict(first=[6], confirmed=[6], digest=True, change={
-        "remove": [6], "rules": {"6": "RC1"}, "rc2_refs": [FEELING_1], "reason": "RC1"}), "belong only to an RC2"),
+        "remove": [6], "rules": {"6": "RC1"}, "rc2_refs": [FEELING_1], "reason": "RC1"}), "not a clearing basis"),
+    "rc2 on another rule's change": (dict(first=[6], confirmed=[6], digest=True, change={
+        "remove": [6], "rules": {"6": "RC1"}, "rc2": {"basis": "not_removed", "content_ref": "content:" + "9" * 64},
+        "reason": "RC1"}), "belongs only to an RC2 removal"),
+    "rc2 on an RC2 addition": (dict(first=[8], digest=True, change={
+        "add": [8], "rules": {"8": "RC2"}, "rc2": {"basis": "not_removed", "content_ref": "content:" + "9" * 64},
+        "reason": "RC2"}), "belongs only to an RC2 removal"),
+    "an RC2 clearing without a basis": (dict(first=[8], confirmed=[8], digest=True, change={
+        "remove": [8], "rules": {"8": "RC2"}, "reason": "RC2"}), "needs an \"rc2\" object"),
 }
 
 
