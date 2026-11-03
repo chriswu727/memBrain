@@ -548,8 +548,10 @@ class LocalSupervisor:
             except FileNotFoundError:
                 pending = 0
             semantic = host.semantic_state(self.profile.directory)
-            if semantic == "ready" and not (self.settings.embedding_local_directory or self.settings.embedding_base_url):
-                semantic = "restart_required"
+            if semantic == "ready" and self.settings.embedding_base_url is None and getattr(
+                    app.state.service, "embedding_provider", None) is None:
+                # Installed but not yet picked up by this service's provider; it activates in place.
+                semantic = "activating"
             from .extraction import extraction_status
 
             return {**self.snapshot(), "semantic_recall": semantic,
@@ -564,8 +566,6 @@ class LocalSupervisor:
             if state == "unavailable":
                 raise HTTPException(409, "Local model support is missing. Reinstall with the semantic extra.")
             if state != "ready":
-                host._fetch_in_background(self.profile.directory)
-            elif not self.settings.embedding_local_directory:
                 host._fetch_in_background(self.profile.directory)
             return {"semantic_recall": host.semantic_state(self.profile.directory)}
 

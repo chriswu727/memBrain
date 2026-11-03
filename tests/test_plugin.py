@@ -348,19 +348,22 @@ def test_start_fetches_the_semantic_model_in_the_background_once(tmp_path, monke
     assert plugin.semantic_state(tmp_path) == "unavailable"
 
 
-def test_fetched_model_restarts_a_running_service_and_clears_the_marker(tmp_path, monkeypatch):
+@pytest.mark.parametrize("state", ["ready", "degraded", "restart_required", "stopped"])
+def test_fetched_model_never_restarts_the_service_and_clears_the_marker(tmp_path, monkeypatch, state):
     from membrain import local_embeddings
 
     (tmp_path / "profile.json").write_text("{}")
     monkeypatch.setattr(local_embeddings, "download", lambda directory: directory)
     monkeypatch.setattr(local_embeddings, "runtime_available", lambda: True)
     monkeypatch.setattr(local_embeddings, "installed", lambda directory: directory)
-    restarted = []
-    monkeypatch.setattr(desktop, "status", lambda directory: {"state": "ready"})
-    monkeypatch.setattr(desktop, "restart", lambda directory: restarted.append(directory))
+    lifecycle = []
+    monkeypatch.setattr(desktop, "status", lambda directory: {"state": state})
+    for name in ("restart", "stop", "start"):
+        monkeypatch.setattr(desktop, name, lambda directory, name=name: lifecycle.append(name))
     host._download_marker(tmp_path).touch()
-    assert plugin.fetch_model(tmp_path) == {"semantic_recall": "ready", "service_restarted": True}
-    assert restarted == [tmp_path] and not host._download_marker(tmp_path).exists()
+    # The running service activates the model in place; a restart would break requests in flight (#29).
+    assert plugin.fetch_model(tmp_path) == {"semantic_recall": "ready", "service_restarted": False, "activated": True}
+    assert lifecycle == [] and not host._download_marker(tmp_path).exists()
 
     def failing(directory):
         raise local_embeddings.LocalEmbeddingError("offline")
