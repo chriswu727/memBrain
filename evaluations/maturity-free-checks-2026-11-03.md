@@ -37,7 +37,7 @@ Both runs used deterministic local host/extractor stubs, keyword recall, a dispo
 | `506cf29` | 250 passed, no failures | `valid: true`, no retried empty replies | Integrated portable familiarity history and the initial live-budget wiring; stub mode made no external call |
 | `a0dd70a` | 250 passed, no failures | `valid: true`, no retried empty replies | Reviewed budget follow-up and allowlisted local-service startup; stub mode made no external call |
 
-Machine-readable checker reports are in [maturity-free-practice-2026-11-03](maturity-free-practice-2026-11-03/). Raw failed logs and complete public-practice run artifacts remain in this task's local evidence directory.
+Machine-readable checker reports are in [maturity-free-practice-2026-11-03](maturity-free-practice-2026-11-03/). Raw failed logs and public-practice JSON/logs remain in this task's local evidence directory. Completed, reproducible temporary database/model copies were later removed to recover disk space; source fixtures and execution evidence are retained.
 
 The new validity command rejects every reported harness degradation, malformed event evidence, missing/duplicate/out-of-order turns, mixed run identities and an empty run set. Invalid runs retain their JSON report and exit nonzero. Ten synthetic regressions failed on the earlier validator. No historical evaluation result was changed or re-scored.
 
@@ -82,3 +82,11 @@ After merging that CPU head as `5175284`, 190 retrieval/context/semantic/shared-
 - Independently review and freeze the real behavioural acceptance plan and held-out scenarios. Obtain the owner's explicit approval for paid and subscription-backed evaluation, then pass R4 and C5. No such run has started.
 
 An additional service-double regression found that `Mock(spec=MemoryService)` satisfies `isinstance` while its real class has no `handle` attribute. The fast-path check now uses guarded class-attribute lookup; real, overridden, invalid and mock-backed HTTP paths passed 34 API/context checks (1.51 seconds). This does not change the production memory algorithm or its budget.
+
+## Map query follow-up
+
+The full map benchmark at `dbc2818` still failed: 40 requests at 1,000 messages succeeded, then the first 10,000-message/200-node request returned 503 after 2,014.922 ms. The report has `completed: false` and `stopped: true`; [all 41 requests are retained](maturity-map-failure-2026-11-03.json). PostgreSQL logged the 2-second statement timeout on the note-source dependency join, distinct from the earlier brain-row lock timeout.
+
+On that retained PostgreSQL 16.2 fixture, with indexing paused, EXPLAIN ANALYZE reported 988.077 ms for the original plan and 24.347 ms with nested-loop joins disabled. Both returned the same ordered 500 rows, with digest `ac13e76d49214dbabc89cdb0490dcee32cc1f3032bee7cc9aa620a3ed880d113`; [the summary](maturity-map-query-2026-11-03.json) also retains an unsuccessful lateral-join alternative (948.843 ms). The workaround changes the planner setting only for this query and restores it afterwards; request timeouts, bounds, filters and retries are unchanged.
+
+The related test attempt first had 45 passes and 15 setup errors because initdb could not write its WAL on a full disk. After removing this task's stopped, reproducible benchmark clusters and completed test fixtures, the same group passed all 60 checks (19.53 seconds), without a code or assertion change. Failure logs and cleanup records are retained. The reference map benchmark still needs a new full run on the fix; the SQL comparison alone is not a map pass.
