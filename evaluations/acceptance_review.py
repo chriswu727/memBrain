@@ -26,7 +26,7 @@ an R4 result. Standing boundary/deletion errors (types 7/8) fail C5 regardless o
 tally and gate accept --manifest PATH, the frozen attempt manifest (load_manifest): a tally then must be of a scenario
 file in its gate's pair with the manifest's hash, and gate R4 (or C5) needs exactly that pair's keys, each tally made
 with that manifest. Every tally records its scenario's key, file stem and sha256.
-A failed C5 gate writes its report and exits nonzero; the legacy R4 command's exit behavior is unchanged.
+A failed gate, R4 or C5, writes its report (gate.json or gate-c5.json) and then exits nonzero.
 
 Final score of a reply: 0 when a critical error stands, otherwise the first reviewer's score_ignoring_critical.
 A mark stands when the first reviewer made it and the second confirmed it, or the second added it; written
@@ -923,7 +923,7 @@ if __name__ == "__main__":
         diagnose([Path(arg) for arg in args])
     elif command == "gate":
         result = gate(Path(args[0]), args[1:], companion=companion, manifest=manifest)
-        if companion and not result["C5"]:
-            raise SystemExit(1)
+        if not result["C5" if companion else "R4"]:
+            raise SystemExit(1)  # After the gate file is written: a failed gate is reported, then exits nonzero.
     else:
         raise SystemExit(__doc__)

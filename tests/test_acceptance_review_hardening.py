@@ -562,3 +562,23 @@ def test_manifest_cli_for_tally_and_gate(pipeline, tmp_path):
     result = subprocess.run([sys.executable, script, "verdicts", "x", "y", "--manifest", str(path)],
                             capture_output=True, text=True)
     assert result.returncode == 1 and "--manifest PATH is valid once for tally or gate" in result.stderr
+
+
+# S5: R4 and C5 gates exit alike: the gate file is written first, then a failed gate exits nonzero --------------------
+
+@pytest.mark.parametrize("gate_name", ["R4", "C5"])
+@pytest.mark.parametrize("passes", [True, False])
+def test_both_gates_write_their_file_then_exit_nonzero_only_on_failure(pipeline, tmp_path, gate_name, passes):
+    rows = [{"case": "S01-practice", "label": label, "arm": arm, "base": 1, "literal": [], "resolved": []}
+            for label, arm in zip("ABC", "PEF", strict=True)]
+    totals = {"P": 1, "E": 1, "F": 1}
+    if not passes:
+        rows[0]["resolved"] = [4]  # A standing critical error in P with no attribution: memory-caused.
+        totals["P"] = 0
+    put(tmp_path / "tally-practice.json", {"totals": {"resolved": totals}, "rows": rows,
+                                           **({"gate": "C5"} if gate_name == "C5" else {})})
+    result = subprocess.run([sys.executable, pipeline.__file__, "gate", str(tmp_path), "practice",
+                             *(["--companion"] if gate_name == "C5" else [])], capture_output=True, text=True)
+    written = json.loads((tmp_path / ("gate-c5.json" if gate_name == "C5" else "gate.json")).read_text())
+    assert written[gate_name] is passes
+    assert result.returncode == (0 if passes else 1), result.stderr

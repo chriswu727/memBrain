@@ -87,6 +87,7 @@ Validity rejects any reported harness degradation, malformed event evidence, mis
 run identities and empty run sets. It writes its JSON report and exits nonzero on an invalid run; do not score it.
 
 Companion tallies carry `gate: C5`. Mixing them with R4 tallies is refused. The last command writes
-`gate-c5.json`, exits nonzero when C5 fails, and never overwrites R4's `gate.json`. A synthetic practice pass is
-only a pipeline test. The runtime, harness, scenarios, protocol and budgets still need the plan's independent
-review and explicit owner approval before any real model evaluation.
+`gate-c5.json`, exits nonzero when C5 fails, and never overwrites R4's `gate.json`. The R4 gate likewise writes
+`gate.json` first and exits nonzero when R4 fails. A synthetic practice pass is only a pipeline test. The runtime,
+harness, scenarios, protocol and budgets still need the plan's independent review and explicit owner approval
+before any real model evaluation.
