@@ -78,15 +78,53 @@ either fails C5 in a gated arm, whatever its cause or the reference arm's errors
 score at least reference minus one, no memory-caused critical errors, and no more host-caused critical replies
 than the reference. R4 is computed separately on core scenarios with its unchanged types and pass rule.
 
-Use explicit companion mode throughout the prospective scoring run:
+## Runbook
+
+The commands in the order they run. `MANIFEST.json` is the frozen attempt manifest; `KEY` is one scenario key of a
+pair, `KEY1 KEY2` are exactly that pair's keys, and `SCENARIO.py` is the scenario file the manifest lists for `KEY`.
+`RUN_P RUN_E RUN_F` are that scenario's three run directories. `BLIND` holds its blinded sheet, sealed mapping and
+copies of its `results_<scenario>_<arm>.jsonl` files. Lines starting with `#` are review steps done by fresh agents,
+not commands. Use explicit companion mode throughout the C5 unit (the C5 pair):
+
+```sh
+# After each scenario's three arms finish, before the next scenario starts:
+python evaluations/acceptance_review.py validity RUN_P RUN_E RUN_F
+# Once both scenarios of the pair are valid, for each KEY of the pair:
+python evaluations/v1-2026-10-29-phase-b-blind.py BLIND SCENARIO.py PEF
+# First review (first.md and this file) writes REVIEW/verdicts-KEY.json from BLIND/blind_<scenario>.md.
+python evaluations/acceptance_review.py verdicts REVIEW/verdicts-KEY.json SCENARIO.py --companion
+python evaluations/acceptance_review.py split BLIND/blind_<scenario>.md REVIEW/verdicts-KEY.json BLIND SCENARIO.py REVIEW/recheck-KEY
+# One fresh second reviewer per case (recheck.md and this file) writes REVIEW/recheck-KEY/<case id>.json.
+python evaluations/acceptance_review.py r5-inputs REVIEW BLIND SCENARIO.py KEY REVIEW/r5-inputs-KEY
+# Two R5 checkers per input (assistant-claims.md) write REVIEW/r5-answers-KEY/<prefix>-<label>.<1|2>.json.
+python evaluations/acceptance_review.py r5-check REVIEW/r5-inputs-KEY REVIEW/r5-answers-KEY REVIEW/r5-KEY
+python evaluations/acceptance_review.py actions-digest REVIEW BLIND SCENARIO.py KEY RUN_P RUN_E RUN_F
+# Resolution (resolve.md and this file, given REVIEW/r5-KEY/ and REVIEW/actions-KEY.json) writes REVIEW/resolution-KEY.json.
+python evaluations/acceptance_review.py tally REVIEW BLIND SCENARIO.py KEY --companion --manifest MANIFEST.json
+python evaluations/acceptance_review.py attribution-inputs REVIEW BLIND SCENARIO.py KEY REVIEW/attribution-inputs-KEY
+# Two attributors per input (attribute.md and this file) write REVIEW/attribution-KEY/<prefix>-<label>.<1|2>.json.
+# Once both scenarios of the pair are tallied:
+python evaluations/acceptance_review.py gate REVIEW KEY1 KEY2 --companion --manifest MANIFEST.json
+```
+
+The R4 unit (the R4 pair) runs the same steps without `--companion` and without `actions-digest`; its resolutions
+carry the same rule tags for types 1–5:
 
 ```sh
 python evaluations/acceptance_review.py validity RUN_P RUN_E RUN_F
-python evaluations/acceptance_review.py verdicts REVIEW/verdicts-KEY.json SCENARIO.py --companion
-python evaluations/acceptance_review.py actions-digest REVIEW BLIND SCENARIO.py KEY RUN_P RUN_E RUN_F
-python evaluations/acceptance_review.py tally REVIEW BLIND SCENARIO.py KEY --companion
-python evaluations/acceptance_review.py gate REVIEW c1 c2 --companion
+python evaluations/v1-2026-10-29-phase-b-blind.py BLIND SCENARIO.py PEF
+python evaluations/acceptance_review.py verdicts REVIEW/verdicts-KEY.json SCENARIO.py
+python evaluations/acceptance_review.py split BLIND/blind_<scenario>.md REVIEW/verdicts-KEY.json BLIND SCENARIO.py REVIEW/recheck-KEY
+python evaluations/acceptance_review.py r5-inputs REVIEW BLIND SCENARIO.py KEY REVIEW/r5-inputs-KEY
+python evaluations/acceptance_review.py r5-check REVIEW/r5-inputs-KEY REVIEW/r5-answers-KEY REVIEW/r5-KEY
+python evaluations/acceptance_review.py tally REVIEW BLIND SCENARIO.py KEY --manifest MANIFEST.json
+python evaluations/acceptance_review.py attribution-inputs REVIEW BLIND SCENARIO.py KEY REVIEW/attribution-inputs-KEY
+python evaluations/acceptance_review.py gate REVIEW KEY1 KEY2 --manifest MANIFEST.json
 ```
+
+With `--manifest`, `tally` refuses a key outside its gate's pair or a scenario file whose hash differs from the
+manifest, and `gate` refuses any keys but exactly its pair's, or a tally not made with that manifest. Each pair is
+gated on its own; the other pair is never read.
 
 `actions-digest` runs after every second review is complete and before any resolution exists, on the scenario's
 three run directories; it refuses otherwise. It writes `REVIEW/actions-KEY.json` once, through the sealed mapping,

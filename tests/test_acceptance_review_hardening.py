@@ -676,3 +676,43 @@ def test_both_gates_write_their_file_then_exit_nonzero_only_on_failure(pipeline,
     written = json.loads((tmp_path / ("gate-c5.json" if gate_name == "C5" else "gate.json")).read_text())
     assert written[gate_name] is passes
     assert result.returncode == (0 if passes else 1), result.stderr
+
+
+# Runbook: companion.md gives the exact commands, in the order they run -------------------------------------------
+
+# Positional arguments each command takes (after removing --companion and --manifest PATH); None: one or more.
+ARGUMENTS = {"validity": None, "verdicts": 2, "split": 5, "r5-inputs": 5, "r5-check": 3, "actions-digest": None,
+             "tally": 4, "attribution-inputs": 5, "gate": None}
+
+
+def runbook_blocks():
+    import re
+
+    text = (Path(__file__).parents[1] / "evaluations" / "acceptance-review" / "companion.md").read_text()
+    blocks = re.findall(r"```sh\n(.*?)```", text, re.S)
+    return [[line.split() for line in block.splitlines() if line.startswith("python evaluations/acceptance_review")]
+            for block in blocks]
+
+
+@pytest.mark.parametrize("unit", ["C5", "R4"])
+def test_runbook_lists_the_commands_in_order_with_manifest_binding(pipeline, unit):
+    blocks = runbook_blocks()
+    assert len(blocks) == 2
+    lines = blocks[0 if unit == "C5" else 1]
+    order = [words[2] for words in lines]
+    expected = ["validity", "verdicts", "split", "r5-inputs", "r5-check", "actions-digest", "tally",
+                "attribution-inputs", "gate"]
+    assert order == ([step for step in expected if step != "actions-digest"] if unit == "R4" else expected)
+    for words in lines:
+        command, rest = words[2], words[3:]
+        assert command in pipeline.__doc__  # A command the module documents and dispatches.
+        companion = "--companion" in rest
+        assert companion == (unit == "C5" and command in ("verdicts", "tally", "gate"))
+        if command in ("tally", "gate"):
+            assert rest[rest.index("--manifest") + 1] == "MANIFEST.json"
+            rest = rest[:rest.index("--manifest")] + rest[rest.index("--manifest") + 2:]
+        else:
+            assert "--manifest" not in rest
+        positional = [word for word in rest if word != "--companion"]
+        assert len(positional) == ARGUMENTS[command] if ARGUMENTS[command] else positional, words
+    assert [word for word in lines[-1][3:] if word.startswith("KEY")] == ["KEY1", "KEY2"]  # No fixed key names.
