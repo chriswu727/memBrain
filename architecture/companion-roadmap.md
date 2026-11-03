@@ -252,7 +252,17 @@ Goal: a companion that stays itself and remembers how the user felt, without man
 
 **Scheduled next (owner, 2026-11-07).** Phase C starts after the 0.1 closeout, with personality, emotional memory and mood as separate items. It adds a visual memory map: a brain-shaped view on the memory page, with regions for people, plans, preferences, episodes and emotional memories, whose activity can be seen as memory is used. The view is built on the existing notes and recall data.
 
-The buildable design, its order and the proposed "may and may not" list are in [Phase C design](phase-c-design.md).
+**Order of work (owner, 2026-11-03).** Personality, mood and relationship are three separate tracks. Each can be seen, adjusted and reset on the memory page. The order, the data and the first behaviours each step must show are in [Phase C design](phase-c-design.md):
+
+0. Finish the brain map: showcase mode, edit and delete from the map, recall trace.
+1. P1 personality card (long term, versioned).
+2. M1 affect records (the user's feelings, reported apart from inferred).
+3. M2 mood and companion tone (short term, returns to baseline).
+4. R1 relationship memory (shared moments, support style, boundaries, trust log).
+5. P2 personality growth (proposed card changes the user accepts).
+6. C5 evaluation. A paid run needs separate approval.
+
+The sections below are the original item descriptions; where they differ, the design file is current.
 
 ### C0. Brain-shaped memory map
 
