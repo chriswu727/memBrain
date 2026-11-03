@@ -422,6 +422,15 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
                                 exclude_conversation=exclude_conversation, event_ids=event_id or None,
                                 conversation_id=conversation_id, before_sequence=before_sequence)
 
+    @app.get("/v1/brains/{brain_id}/memory-map")
+    def memory_map(brain_id: str, max_nodes: int = Query(default=200, ge=1, le=500),
+                   max_edges: int = Query(default=400, ge=0, le=1000), include_sensitive: bool = False,
+                   principal: Principal = Depends(authenticate)):
+        from .memory_map import memory_map as read_memory_map
+
+        return read_memory_map(service, principal, brain_id, max_nodes=max_nodes, max_edges=max_edges,
+                               include_sensitive=include_sensitive)
+
     @app.get("/v1/brains/{brain_id}/status")
     def memory_status(brain_id: str, principal: Principal = Depends(authenticate)):
         return service.memory_status(principal, brain_id)
