@@ -252,15 +252,17 @@ Goal: a companion that stays itself and remembers how the user felt, without man
 
 **Scheduled next (owner, 2026-11-07).** Phase C starts after the 0.1 closeout, with personality, emotional memory and mood as separate items. It adds a visual memory map: a brain-shaped view on the memory page, with regions for people, plans, preferences, episodes and emotional memories, whose activity can be seen as memory is used. The view is built on the existing notes and recall data.
 
-**Order of work (owner, 2026-11-03).** Personality, mood and relationship are three separate tracks. Each can be seen, adjusted and reset on the memory page. The order, the data and the first behaviours each step must show are in [Phase C design](phase-c-design.md):
+**Order of work (owner, 2026-11-03).** Phase C develops the companion's own state in four layers, kept apart: `user_affect` (what the user felt, reported apart from inferred), `persona` (stable character, versioned, changed only by explicit feedback), `agent_mood` (a short-term simulated mood with recorded triggers that recovers to baseline) and `relationship` (shared moments, familiarity, boundaries). Each layer can be seen, explained, adjusted and reset on the memory page. The data, a cross-session example and the reset scope for each layer are in [Phase C design](phase-c-design.md). Order:
 
 0. Finish the brain map: showcase mode, edit and delete from the map, recall trace.
-1. P1 personality card (long term, versioned).
-2. M1 affect records (the user's feelings, reported apart from inferred).
-3. M2 mood and companion tone (short term, returns to baseline).
-4. R1 relationship memory (shared moments, support style, boundaries, trust log).
-5. P2 personality growth (proposed card changes the user accepts).
+1. P1 persona card (`persona`).
+2. A1 affect records (`user_affect`).
+3. M1 simulated mood with triggers and recovery (`agent_mood`).
+4. R1 relationship: shared moments, familiarity, boundaries (`relationship`).
+5. P2 persona development from explicit feedback, with rollback (`persona`).
 6. C5 evaluation. A paid run needs separate approval.
+
+A crisis-language classifier is a separate later item.
 
 The sections below are the original item descriptions; where they differ, the design file is current.
 
