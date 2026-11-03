@@ -20,6 +20,7 @@
     <button data-view="persona">Personality</button>
     <button data-view="plans">Plans and dates</button>
     <button data-view="people">People</button>
+    <button data-view="feelings">Feelings</button>
     <button data-view="conversations">Conversations</button>
     <button data-view="search">Search</button>
     <button data-view="privacy">Privacy</button>
@@ -189,6 +190,24 @@
   <section id="view-people" class="view" hidden>
     <div class="heading"><h1>People</h1><p class="muted">People your agent remembers, with their names and aliases.</p></div>
     <div id="people" class="list"></div>
+  </section>
+  <section id="view-feelings" class="view" hidden>
+    <div class="heading">
+      <div>
+        <h1>Feelings</h1>
+        <p class="muted">Feelings you expressed, each kept with the note it belongs to and the message it came from.
+          Each one says whether you said it or your agent inferred it. There is no overall score of how you feel.
+          Correcting or deleting the note or its message deletes the feeling too.</p>
+      </div>
+    </div>
+    <p id="feelings-marker" class="hint feelings-marker" hidden></p>
+    <div id="feelings" class="list"></div>
+    <div class="card danger">
+      <h2>Clear feelings</h2>
+      <p class="muted">Deletes every recorded feeling, said or inferred. Notes and messages stay. Feelings are never
+        recreated from messages before this point.</p>
+      <button id="clear-feelings" class="danger">Clear feelings</button>
+    </div>
   </section>
   <section id="view-conversations" class="view" hidden>
     <div class="heading">

@@ -352,11 +352,13 @@ class MemoryService:
 
         link(self, conn, principal, brain, document)
         job = self._job(conn, principal, brain, "extract", {"event_id": document["event_id"], "revision": document["revision"]})
+        from .affect import AFFECT_CONVERSATION
         from .persona import PERSONA_CONVERSATION
 
-        # Persona versions are configuration, not conversation: they are never read for learning.
+        # Persona versions are configuration and affect records are evidence kept with notes, not conversation:
+        # neither is read for learning, so saving or clearing them never starts a model call.
         if (self.semantic_processor and target.get("conversation_ref") and target.get("branch_ref")
-                and target.get("conversation_ref") != PERSONA_CONVERSATION
+                and target.get("conversation_ref") not in (PERSONA_CONVERSATION, AFFECT_CONVERSATION)
                 and incoming["delivery_state"] in ("received", "delivered", "partially_delivered")
                 and incoming["event_kind"] not in ("source_correction", "delivery_receipt")):
             from .learning_allocations import CONTRACT_VERSION

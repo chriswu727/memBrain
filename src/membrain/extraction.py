@@ -5,6 +5,10 @@ so its people would only ever get raw-message recall. With an extraction model c
 read once, after the reply has been sent, together with the person's current notes, and the lasting facts in it
 are saved as typed notes (plans and whether they are done, people and their aliases, constraints, preferences),
 replacing notes they update. Extraction never runs while recording is paused and never delays a reply.
+
+A feeling the person expressed is saved as an affect record on its note, linked to the turn it was read from. Only
+the finished turn is read, never earlier messages, so after "Clear feelings" no feeling is recreated from messages
+before the reset (the service also refuses one whose source is older than the reset marker).
 """
 from __future__ import annotations
 
@@ -19,7 +23,7 @@ import time
 
 import httpx
 
-from .notes import KINDS, STATUSES, note_fields
+from .notes import KINDS, STATUSES, check_affect, note_fields
 
 PRODUCER = "membrain-extract"
 MAX_NOTES = 5
@@ -52,6 +56,10 @@ for but not yet delivered is "scheduled", with the delivery date). Anything the 
 documents, pay, register) is a "plan" with that "due" date, whoever it involves. When a fact changes (a date moves, a plan is cancelled
 or done), save the updated note and put the old note's id in "replaces". Most exchanges need no note.
 
+When the person expresses a feeling about what a note covers ("I'm really nervous about Friday's interview"), add
+"affect" to that note: "label" in their own words, "basis" "reported" only if they said it, or "inferred" only if it
+is clearly evident in the latest exchange but unsaid. Never invent a feeling, and leave "affect" out otherwise.
+
 Resolve dates against today's date and the calendar given with the exchange: a day of the month without a month
 ("the 16th", "16号") is the next such day from today, and when a weekday is named with it the two must agree on the
 calendar. If they cannot be reconciled, leave the date out rather than guess.
@@ -59,7 +67,9 @@ calendar. If they cannot be reconciled, leave the date out rather than guess.
 Answer with JSON only: {{"notes": [ ... ]}} with at most {MAX_NOTES} items, each
 {{"text": "...", "kind": one of {list(KINDS)}, "about": "name or empty", "aliases": [],
 "status": one of {list(STATUSES)} or empty (plans and the assistant's promises only), "due": "YYYY-MM-DD or empty",
-"occurs_at": "YYYY-MM-DD or empty", "sensitive": true or false, "replaces": ["old note id", ...]}}.
+"occurs_at": "YYYY-MM-DD or empty", "sensitive": true or false, "replaces": ["old note id", ...],
+"affect": {{"label": "...", "valence": -2 to 2, "intensity": 0 to 3, "basis": "reported" or "inferred",
+"topic": "..."}} or null}}.
 Return {{"notes": []}} when nothing lasting was said."""
 
 
@@ -140,6 +150,14 @@ class Extractor:
             except ValueError:
                 checked = {}
             replaces = [value for value in item.get("replaces") or () if isinstance(value, str)]
+            if isinstance(item.get("affect"), dict):
+                # Read from the latest exchange, which becomes the note's source, so it is dated today.
+                reading = {key: value for key, value in item["affect"].items()
+                           if key in ("label", "valence", "intensity", "basis", "topic") and value not in (None, "")}
+                try:
+                    checked["affect"] = check_affect(reading, sourced=True, today=today)
+                except ValueError:
+                    pass  # A malformed feeling is dropped; the note is kept.
             notes_out.append({"text": str(item["text"]).strip(), "replaces": replaces, **checked})
         return notes_out
 
@@ -296,6 +314,8 @@ def extract_turn(directory, extractor: Extractor, user_id: str | None, prompt: s
                 raise
         for note in proposed:
             text, replaces = note.pop("text"), note.pop("replaces")
+            if not sources:
+                note.pop("affect", None)  # A feeling is kept only with the message it was read from.
             try:
                 result = save_note(client, host.scrub(text), replaces=tuple(replaces), producer=PRODUCER,
                                    source_messages=list(sources), **note)

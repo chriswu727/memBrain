@@ -3,7 +3,7 @@
 import { spawn } from "node:child_process";
 
 const PACKAGE = process.env.MEMBRAIN_PACKAGE ||
-  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/26faabbea7fb87640718074abdf36f9266f76409.zip";
+  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/1cdbec34752a4cbfdc9602c9aabf93c373bfb43c.zip";
 const BLOCK_MS = 5 * 60 * 1000;
 
 function run(command, args, { input, timeoutMs = 12_000, env } = {}) {
@@ -60,7 +60,9 @@ const TOOLS = [
       "agent_commitment for something you promised to do. Status done means everything in the note has happened: a " +
       "purchase paid for but not yet delivered, or a booking still ahead, is scheduled, with its date. " +
       "When a fact changes, save the updated note and pass the " +
-      "old note's id in replaces. Do not save routine requests or anything the user asked you not to keep.",
+      "old note's id in replaces. When the user expresses a feeling about it, add affect: basis reported only if " +
+      "they said it, inferred (with the message it was read from as a source) if clearly evident but unsaid; never " +
+      "invent one. Do not save routine requests or anything the user asked you not to keep.",
     parameters: { type: "object", properties: {
       text: { type: "string" },
       replaces: { type: "array", items: { type: "string" } },
@@ -77,6 +79,15 @@ const TOOLS = [
       occurs_at: { type: "string", description: "YYYY-MM-DD" },
       pinned: { type: "boolean" },
       sensitive: { type: "boolean" },
+      affect: { type: "object", description: "A feeling the user expressed about this; kept as evidence, never a score.",
+        properties: {
+          label: { type: "string", maxLength: 40, description: "The user's own word, e.g. nervous." },
+          valence: { type: "integer", minimum: -2, maximum: 2 },
+          intensity: { type: "integer", minimum: 0, maximum: 3 },
+          basis: { type: "string", enum: ["reported", "inferred"] },
+          topic: { type: "string", maxLength: 80 },
+          felt_at: { type: "string", description: "YYYY-MM-DD" },
+        }, required: ["label", "valence", "intensity", "basis"] },
     }, required: ["text"] },
   },
   {

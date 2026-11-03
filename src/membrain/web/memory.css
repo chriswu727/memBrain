@@ -99,7 +99,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 /* Brain view */
 :root { --r-plans: #d9822b; --r-commitments: #c4573a; --r-preferences: #8a6fd1; --r-constraints: #d14d72;
   --r-routines: #3f8fbf; --r-episodes: #4aa38a; --r-people: #e0b341; --r-relationship: #c76fb5;
-  --r-milestones: #5b7fd6; --r-other: #8b9a94; }
+  --r-milestones: #5b7fd6; --r-other: #8b9a94; --r-emotions: #7fa83a; }
 .brain-layout { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(220px, 1fr); gap: 14px; align-items: start; }
 @media (max-width: 760px) { .brain-layout { grid-template-columns: 1fr; } }
 .brain-canvas { padding: 8px; background: radial-gradient(circle at 45% 40%, var(--wash), var(--card) 70%); }
@@ -145,6 +145,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .brain-node.region-relationship { fill: var(--r-relationship); color: var(--r-relationship); } .legend-item.region-relationship .legend-dot { background: var(--r-relationship); }
 .brain-node.region-milestones { fill: var(--r-milestones); color: var(--r-milestones); } .legend-item.region-milestones .legend-dot { background: var(--r-milestones); }
 .brain-node.region-other { fill: var(--r-other); color: var(--r-other); } .legend-item.region-other .legend-dot { background: var(--r-other); }
+.brain-node.region-emotions { fill: var(--r-emotions); color: var(--r-emotions); } .legend-item.region-emotions .legend-dot { background: var(--r-emotions); }
+.edge-feeling_of { stroke: var(--r-emotions); }
+/* Feelings */
+.feeling-basis { font-weight: 600; }
+.feeling-note { border-left: 3px solid var(--border); padding-left: 10px; }
+.feelings-marker { border-left: 3px solid var(--accent); padding-left: 10px; }
 
 /* Personality (persona card, P1). Kept apart from the brain view styles above. */
 .persona-title { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; }

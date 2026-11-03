@@ -69,8 +69,8 @@ class MembrainPlugin(star.Star):
                             kind: str | None = None, about: str | None = None, aliases: list | None = None,
                             status: str | None = None, due: str | None = None, occurs_at: str | None = None,
                             pinned: bool = False, sensitive: bool = False, source_event_ids: list | None = None,
-                            source_messages: list | None = None):
-        """Save one short, lasting fact about the user you are talking to (health, people, dates, places, preferences, decisions, plans and their changes) so it is shown in every later conversation. One fact per note, under 300 characters. Set kind when it is clear; a plan stays intended until the user confirms it is scheduled or done, and done means everything in the note has happened (paid but not yet delivered is scheduled). When a fact changes, save the new note and pass the old note's id in replaces. Do not save routine requests or anything the user asked you not to keep.
+                            source_messages: list | None = None, affect: dict | None = None):
+        """Save one short, lasting fact about the user you are talking to (health, people, dates, places, preferences, decisions, plans and their changes) so it is shown in every later conversation. One fact per note, under 300 characters. Set kind when it is clear; a plan stays intended until the user confirms it is scheduled or done, and done means everything in the note has happened (paid but not yet delivered is scheduled). When a fact changes, save the new note and pass the old note's id in replaces. When the user expresses a feeling about it, add affect: reported only if they said it, inferred (with source_event_ids or source_messages) if clearly evident but unsaid; never invent one. Do not save routine requests or anything the user asked you not to keep.
 
         Args:
             text(string): The fact, in one sentence, with dates when they matter.
@@ -85,10 +85,12 @@ class MembrainPlugin(star.Star):
             sensitive(boolean): Health, money or other private matters.
             source_event_ids(array[string]): Original recorded message IDs, when available.
             source_messages(array[object]): Exact source references from the current membrain-source block.
+            affect(object): A feeling the user expressed about this: label (their own word), valence -2 to 2, intensity 0 to 3, basis reported or inferred, optional topic and felt_at YYYY-MM-DD.
         """
         fields = {"kind": kind, "about": about, "aliases": aliases, "status": status, "due": due,
                   "occurs_at": occurs_at, "pinned": pinned, "sensitive": sensitive,
-                  "source_event_ids": source_event_ids or [], "source_messages": source_messages or []}
+                  "source_event_ids": source_event_ids or [], "source_messages": source_messages or [],
+                  "affect": affect}
         try:
             result = await asyncio.to_thread(self.memory.note, _speaker(event), text, replaces or (), **fields)
         except ValueError as error:

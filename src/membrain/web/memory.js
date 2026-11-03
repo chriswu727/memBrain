@@ -3,6 +3,7 @@ const $ = (id) => document.getElementById(id);
 const uid = () => crypto.randomUUID();
 const HOST_NAMES = { "claude-code": "Claude Code", codex: "Codex", hermes: "Hermes", openclaw: "OpenClaw", workbuddy: "WorkBuddy" };
 const NOTES = "membrain-notes";
+const AFFECT = "membrain-affect";
 const state = { key: "", brain: "", notes: [], connectionShown: false };
 let messageTimer;
 // /memory?demo=brain shows fictional data only (brain.js): no sign-in, no saved session read or changed, no API call.
@@ -202,6 +203,7 @@ function noteEditor(note, merged = [], after = () => loadNotes(), initialSources
       loaded = true;
     } catch (error) { notify(error.message, true); }
   });
+  if (note?.event_id) form.append(element("p", "Saving a correction also deletes any feeling recorded with this note.", "hint"));
   const actions = element("div", undefined, "row editor-actions");
   const save = element("button", note?.event_id ? "Save correction" : "Add note");
   const cancel = element("button", "Cancel", "secondary"); cancel.type = "button";
@@ -283,6 +285,61 @@ function noteItem(note, duplicate) {
 }
 
 $("show-completed").addEventListener("change", () => loadNotes("plans"));
+
+// Feelings ---------------------------------------------------------------------------------------------------
+
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+const shortDate = (value) => {
+  const match = /^(\d{4})-(\d{2})-(\d{2})/.exec(value || "");
+  return match ? `${Number(match[3])} ${MONTHS[Number(match[2]) - 1]} ${match[1]}` : day(value);
+};
+
+async function loadFeelings() {
+  const { records, markers, complete } = await api(`/v1/brains/${encodeURIComponent(state.brain)}/affect`);
+  const marker = markers[0];
+  $("feelings-marker").hidden = !marker;
+  $("feelings-marker").textContent = marker ? `Feelings cleared on ${shortDate(marker.recorded_at)}` : "";
+  const list = $("feelings");
+  list.replaceChildren();
+  if (!complete) list.append(element("p", "This is a partial list of the most recent feelings.", "hint"));
+  if (!records.length) list.append(element("p", "No feelings recorded. When you tell your agent how you feel about something, it can keep that with the note it belongs to.", "empty"));
+  for (const record of records) list.append(feelingItem(record));
+}
+
+function feelingItem(record) {
+  const item = element("article", undefined, "item feeling");
+  const meta = element("div", undefined, "meta");
+  meta.append(element("span", shortDate(record.felt_at)),
+    element("span", record.basis === "reported" ? "you said" : "inferred", "tag feeling-basis"));
+  if (record.sensitive) meta.append(element("span", "sensitive", "tag"));
+  const actions = element("span", undefined, "actions");
+  const remove = element("button", "Delete", "link danger");
+  actions.append(remove); meta.append(actions);
+  item.append(meta, element("p", record.label + (record.topic ? ` · ${record.topic}` : ""), "user-text"));
+  item.append(element("p", record.basis === "reported" ? "You said you felt this."
+    : "Your agent inferred this from what you wrote; you did not say it.", "hint"));
+  const note = element("div", undefined, "feeling-note");
+  note.append(element("p", "On the note:", "hint"), element("p", record.note_text, "user-text"));
+  item.append(note);
+  const ids = record.source_event_ids || [];
+  if (ids.length) {
+    const details = element("details"); details.append(element("summary", `${ids.length} original message${ids.length === 1 ? "" : "s"}`));
+    const content = element("div"); details.append(content); item.append(details);
+    let loaded = false;
+    details.addEventListener("toggle", () => { if (details.open && !loaded) { loaded = true; showSources(content, ids); } });
+  } else item.append(element("p", "Original message not linked.", "hint"));
+  guard(remove, async () => {
+    if (!confirm("Delete this feeling? The note and its messages stay.")) return;
+    await forget("events", [record.id], "erase_content", AFFECT); notify("Feeling deleted."); await loadFeelings();
+  });
+  return item;
+}
+
+guard($("clear-feelings"), async () => {
+  if (!confirm("Clear every recorded feeling, said or inferred? Notes and messages stay, and feelings are not recreated from earlier messages.")) return;
+  await api(`/v1/brains/${encodeURIComponent(state.brain)}/affect/reset`, {});
+  notify("Feelings cleared."); await loadFeelings();
+});
 const currentView = () => $("tabs").querySelector("button.active")?.dataset.view || "notes";
 
 // Conversations ----------------------------------------------------------------------------------------------
@@ -678,7 +735,7 @@ async function loadServiceStatus() {
 guard($("refresh-status"), loadServiceStatus);
 
 const loaders = { notes: () => loadNotes(), brain: () => window.loadBrain(), persona: loadPersona, people: () => loadNotes("people"),
-  plans: () => loadNotes("plans"),
+  plans: () => loadNotes("plans"), feelings: loadFeelings,
   conversations: loadConversations, search: async () => {}, privacy: loadRecording };
 
 async function show(view) {

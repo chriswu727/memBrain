@@ -120,6 +120,25 @@ const ZH = {
   "Only the most recent memories are shown.": "只显示最近的记忆。",
   "Each dot is one memory and each line a link it records; light travels only along those links. The brain shape, folds and glow are decoration.":
     "每个点是一条记忆，每条线是它记录的一条关联；光点只沿这些关联移动。大脑的轮廓、褶皱和光晕只是装饰。",
+  "Feelings": "感受",
+  "Feelings you expressed, each kept with the note it belongs to and the message it came from. Each one says whether you said it or your agent inferred it. There is no overall score of how you feel. Correcting or deleting the note or its message deletes the feeling too.":
+    "你表达过的感受，每条都和它所属的笔记以及它来自的消息放在一起，并注明是你亲口说的还是 agent 推断的。这里没有对你情绪的总体评分。更正或删除那条笔记或消息，感受也会一起删除。",
+  "Clear feelings": "清除感受",
+  "Deletes every recorded feeling, said or inferred. Notes and messages stay. Feelings are never recreated from messages before this point.":
+    "删除所有记录的感受，无论是你说的还是推断的。笔记和消息都会保留。之后也不会再从此前的消息里重新生成感受。",
+  "Saving a correction also deletes any feeling recorded with this note.": "保存更正也会删除这条笔记上记录的感受。",
+  "This is a partial list of the most recent feelings.": "这只是最近感受的部分列表。",
+  "No feelings recorded. When you tell your agent how you feel about something, it can keep that with the note it belongs to.":
+    "还没有记录任何感受。当你告诉 agent 你对某件事的感受时，它可以把感受记在对应的笔记上。",
+  "you said": "你说的", "inferred": "推断的", "You said you felt this.": "这是你说过的感受。",
+  "Your agent inferred this from what you wrote; you did not say it.": "这是 agent 根据你写的内容推断的，你并没有这样说。",
+  "On the note:": "所属笔记：", "Original message not linked.": "没有关联原始消息。",
+  "Delete this feeling? The note and its messages stay.": "删除这条感受？笔记和相关消息会保留。",
+  "Feeling deleted.": "感受已删除。", "Feelings cleared.": "感受已清除。",
+  "Clear every recorded feeling, said or inferred? Notes and messages stay, and feelings are not recreated from earlier messages.":
+    "清除所有记录的感受，包括你说的和推断的？笔记和消息会保留，也不会再从之前的消息里重新生成感受。",
+  "A feeling you said you had": "你说过的感受", "A feeling your agent inferred; you did not say it": "agent 推断的感受，你并没有这样说",
+  "Delete this feeling": "删除这条感受", "feeling of:": "所属笔记：",
   "中文": "中文", "English": "English",
   // Personality (persona card)
   "Personality": "个性",
@@ -207,14 +226,19 @@ const ZH_PATTERNS = [
   [/^Latest recorded recall \((.+)\): (\d+) of (\d+) records it used are lit\.$/, (m, when, shown, used) =>
     `最近一次记录的回忆（${when}）：它用到的 ${used} 条记录中，有 ${shown} 条在图中点亮。`],
   [/^Latest recorded recall \((.+)\): it found nothing to add\.$/, (m, when) => `最近一次记录的回忆（${when}）：没有找到可补充的记忆。`],
-  [/^(derived from|about person|replaces) \((source event ids|about|replaces)\)$/, (m, type) => BRAIN_EDGES[type]],
+  [/^(derived from|about person|replaces|feeling of) \((source event ids|about|replaces|note)\)$/, (m, type) => BRAIN_EDGES[type]],
+  [/^Feelings cleared on (.+)$/, (m, date) => `感受已于 ${translate(date)} 清除`],
+  [/^(\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{4})$/, (m, d, month, y) =>
+    `${y}年${"JanFebMarAprMayJunJulAugSepOctNovDec".indexOf(month) / 3 + 1}月${d}日`],
+  [/^(\d+) original messages?$/, (m, n) => `${n} 条原始消息`],
   [/^(Status|Date|Saved): .+$/, (m) => m.replace(/Status: (\w+)/, (x, status) => `状态：${BRAIN_STATUS[status] || status}`)
     .replace(/Date: /g, "日期：").replace(/Saved: /g, "保存于：")],
-  [/^(Plans|Commitments|Preferences|Health and constraints|Routines|Recent messages|People|Relationship|Milestones and dates|Other notes): (.*)$/s,
+  [/^(Plans|Commitments|Preferences|Health and constraints|Routines|Recent messages|People|Relationship|Milestones and dates|Other notes|Feelings): (.*)$/s,
     (m, region, text) => `${ZH[region]}：${text}`],
 ];
 const BRAIN_STATUS = { intended: "打算中", scheduled: "已安排", done: "已完成", cancelled: "已取消", superseded: "已被取代" };
-const BRAIN_EDGES = { "derived from": "来自这条消息", "about person": "关于这个人", replaces: "取代了这条" };
+const BRAIN_EDGES = { "derived from": "来自这条消息", "about person": "关于这个人", replaces: "取代了这条",
+  "feeling of": "这条笔记上的感受" };
 
 let language = "en";
 // Read now: memory.js removes the query string (with its single-use code) before the page finishes loading.

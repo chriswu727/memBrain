@@ -16,6 +16,7 @@ const REGIONS = [
   { id: "relationship", label: "Relationship", x: 480, y: 330 },
   { id: "milestones", label: "Milestones and dates", x: 650, y: 225 },
   { id: "other", label: "Other notes", x: 610, y: 395 },
+  { id: "emotions", label: "Feelings", x: 320, y: 235 },
 ];
 const BRAIN_OUTLINE = "M150 300 C110 250 115 165 175 120 C225 80 290 62 350 66 C395 40 470 38 520 60 " +
   "C585 62 650 92 690 150 C730 205 728 280 690 320 C668 345 640 352 612 350 C600 375 575 390 545 388 " +
@@ -38,7 +39,7 @@ function svg(tag, attributes = {}) {
   return node;
 }
 
-function regionOf(id) { return REGIONS.find((region) => region.id === id) || REGIONS[REGIONS.length - 1]; }
+function regionOf(id) { return REGIONS.find((region) => region.id === id) || REGIONS.find((region) => region.id === "other"); }
 
 // Deterministic placement: a sunflower spiral around the region's anchor, oldest at the centre.
 function layout(map) {
@@ -207,8 +208,11 @@ function selectNode(id) {
   if (node.date) facts.push(`Date: ${node.date}`);
   if (node.recorded_at) facts.push(`Saved: ${String(node.recorded_at).slice(0, 10)}`);
   if (facts.length) detail.append(element("p", facts.join(" · "), "hint"));
+  if (node.basis) detail.append(element("p", node.basis === "reported" ? "A feeling you said you had"
+    : "A feeling your agent inferred; you did not say it", "hint"));
   if (node.traced) detail.append(element("p", "Used by the latest recorded recall", "hint"));
   if (node.id.startsWith("note:") && !brainState.demo) detail.append(noteActions(node, detail));
+  if (node.id.startsWith("affect:") && !brainState.demo) detail.append(feelingActions(node));
   const links = (brainState.map.edges || []).filter((edge) => edge.source === id || edge.target === id);
   if (links.length) {
     const list = element("ul", "", "brain-links");
@@ -243,6 +247,22 @@ function noteActions(node, detail) {
     if (!confirm("Delete this note? Its content is erased.")) return;
     await forget("events", [id], "erase_content", NOTES);
     notify("Note deleted.");
+    brainState.selected = "";
+    await loadBrain();
+  });
+  return row;
+}
+
+// The same delete as the Feelings section: the feeling is erased, its note stays.
+function feelingActions(node) {
+  const row = element("div", undefined, "row brain-note-actions");
+  const remove = element("button", "Delete this feeling", "link danger");
+  remove.type = "button";
+  row.append(remove);
+  guard(remove, async () => {
+    if (!confirm("Delete this feeling? The note and its messages stay.")) return;
+    await forget("events", [node.id.slice(7)], "erase_content", AFFECT);
+    notify("Feeling deleted.");
     brainState.selected = "";
     await loadBrain();
   });

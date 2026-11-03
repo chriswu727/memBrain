@@ -270,6 +270,16 @@ class MemoryClient:
                              json={"request_id": request_id or str(uuid4()),
                                    "text": text, **fields})
 
+    def affect_records(self, brain_id: str | None = None) -> JsonObject:
+        """The user's affect records (feelings kept with their notes, with evidence) and reset markers."""
+        brain = self._scope(brain_id=brain_id)["brain_ref"]
+        return self._request("GET", f"v1/brains/{quote(brain, safe='')}/affect")
+
+    def clear_affect(self, brain_id: str | None = None) -> JsonObject:
+        """Erase every affect record and write an affect reset marker; notes and messages are kept."""
+        brain = self._scope(brain_id=brain_id)["brain_ref"]
+        return self._request("POST", f"v1/brains/{quote(brain, safe='')}/affect/reset")
+
     def _persona_path(self, brain_id: str | None, suffix: str = "") -> str:
         return f"v1/brains/{quote(self._scope(brain_id=brain_id)['brain_ref'], safe='')}/persona{suffix}"
 
