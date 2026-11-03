@@ -81,10 +81,25 @@ def test_the_feedback_table_recognises_english_and_chinese_feedback(text, kind):
     "you are not too formal", "I never said you're too formal", '"you\'re too formal" is a line from the play',
     "let's role-play: you're too formal, knight!", "我们来角色扮演，你太正式了", "imagine you were more playful",
     "I dreamt you were too formal", "如果你太正式了就不好", "朋友说你太正式了",
+    # Quoted or reported with single, curly or no quotes, a colon, or as an example or a character's line.
+    "'you're too formal' is an example sentence.", "‘you are too formal’ is what the character says.",
+    "My friend: you are too formal.", "The example sentence is: you are too formal.",
+    "'be more playful' was the note on the script", "She wrote: be more casual",
+    "例句：你太正式了。", "「你太正式了」是他的台词", "朋友：你太正式了", "“你太正式了”这句话怎么翻译",
     "", "x" * 2001,
 ])
 def test_narrow_patterns_ignore_false_positives(text):
     assert detect(text) == []
+
+
+@pytest.mark.parametrize("text, kind", [
+    # Ordinary feedback with an apostrophe, a comma or an aside still counts.
+    ("You're too formal, honestly", "less_formal"), ("you're too formal", "less_formal"),
+    ("I can't lie, you're too formal", "less_formal"), ("Honestly, can you be more casual?", "less_formal"),
+    ("你太正式了，放松一点", "less_formal"),
+])
+def test_quote_and_colon_guards_leave_ordinary_feedback_alone(text, kind):
+    assert detect(text) == [kind]
 
 
 def test_every_kind_proposes_one_field_in_both_languages():

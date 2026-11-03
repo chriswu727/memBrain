@@ -137,14 +137,18 @@ _ASK = (r"(?:^|" + _B + r"|\b(?:please|pls|plz|can\s+you|could\s+you|would\s+you
 # The companion ("你") or its replies, named before the complaint.
 _ZH_SUBJECT = r"(?:你的?(?:回复|回答|说话|讲话|语气|消息)?|回复|回答|说话|讲话|语气)"
 # Anywhere in the message: role-play, a hypothetical, a dream or a quotation is never feedback to the companion.
-_WORLD = re.compile(r"角色扮演|扮演|假如|假设|如果|要是|梦见|梦到|做梦|引用|原文|\b(?:role[ -]?play(?:ing)?|"
-                    r"pretend(?:ing)?|imagine|suppose|hypothetically|in\s+character|dream(?:t|ed|ing)?|quote|"
-                    r"quotation)\b", re.IGNORECASE)
+_WORLD = re.compile(r"角色扮演|扮演|假如|假设|如果|要是|梦见|梦到|做梦|引用|原文|例句|台词|翻译|角色|"
+                    r"\b(?:role[ -]?play(?:ing)?|pretend(?:ing)?|imagine|suppose|hypothetically|in\s+character|"
+                    r"dream(?:t|ed|ing)?|quote[sd]?|quotation|examples?|characters?|translat\w*|line\s+from)\b",
+                    re.IGNORECASE)
 _ZH_START = r"(?:^|" + _B + r"|我觉得|我感觉)"
 # Reported speech, conditions and negations earlier in the same sentence: not feedback to the companion.
 _EN_GUARD = re.compile(r"\b(?:said|says|told\s+me|tells\s+me|wrote|asked\s+me|according\s+to|if|whether|not|never|"
-                       r"don't|dont|doesn't|isn't|aren't|wasn't|weren't|didn't)\b|[\"“”]", re.IGNORECASE)
-_ZH_GUARD = re.compile(r"(?:他|她|他们|她们|别人|老板|同事|朋友|有人|大家)(?:都|也)?(?:说|觉得|认为)|如果|假如|要是|不觉得|并不")
+                       r"don't|dont|doesn't|isn't|aren't|wasn't|weren't|didn't)\b|[\"“”:]|(?:^|[\s(\[])'", re.IGNORECASE)
+_ZH_GUARD = re.compile(r"(?:他|她|他们|她们|别人|老板|同事|朋友|有人|大家)(?:都|也)?(?:说|觉得|认为)|如果|假如|要是|不觉得|并不|"
+                       r"[：:「『“\"']")
+# Feedback that ends in a closing quote is quoted, not said to the companion ("'you're too formal' is a line").
+_CLOSING_QUOTE = re.compile(r"""\s*['"”」』]""")
 
 
 def _compile(spec: dict) -> list[re.Pattern]:
@@ -216,7 +220,9 @@ def _matches(patterns, text: str) -> bool:
     for pattern in patterns:
         for match in pattern.finditer(text):
             guard = _ZH_GUARD if _CJK.search(match.group(0)) else _EN_GUARD
-            if not guard.search(_sentence_before(text, match.start())):
+            # A boundary character the pattern consumed (a colon before "你…") counts as before the feedback.
+            before = _sentence_before(text, match.start()) + match.group(0)[:1]
+            if not guard.search(before) and not _CLOSING_QUOTE.match(text, match.end()):
                 return True
     return False
 
