@@ -252,6 +252,8 @@ Goal: a companion that stays itself and remembers how the user felt, without man
 
 **Scheduled next (owner, 2026-11-07).** Phase C starts after the 0.1 closeout, with personality, emotional memory and mood as separate items. It adds a visual memory map: a brain-shaped view on the memory page, with regions for people, plans, preferences, episodes and emotional memories, whose activity can be seen as memory is used. The view is built on the existing notes and recall data.
 
+The buildable design, its order and the proposed "may and may not" list are in [Phase C design](phase-c-design.md).
+
 ### C0. Brain-shaped memory map
 
 - **What it shows.** The memory page gets a brain-shaped view. Its regions are notes by kind, people, open plans, recent episodes, and, once C2 exists, emotional memories.
