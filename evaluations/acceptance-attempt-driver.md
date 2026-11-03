@@ -4,14 +4,31 @@
 
 ```
 python3 evaluations/acceptance-attempt-driver.py run --manifest M --out OUT_ROOT
-    [--repo ROOT] [--runner CMD] [--validity CMD] [--ledger LEDGER] [--grace SECONDS]
+    [--repo ROOT] [--runner CMD] [--validity CMD] [--ledger LEDGER] [--grace SECONDS] [--live]
 ```
 
-The runner defaults to `evaluations/c5-run-scenario.sh` and is called as `RUNNER SCENARIO OUT_ROOT KEY`, with an absolute scenario path and `OUT_ROOT`. The validity check defaults to `python evaluations/acceptance_review.py validity`, using the driver's own interpreter, and is called on `OUT_ROOT/KEY-P OUT_ROOT/KEY-E OUT_ROOT/KEY-F`. Both run with the repository as their working directory and inherit the environment. Their output goes only to `OUT_ROOT/driver-logs/KEY.runner.log` and `KEY.validity.log`.
+The runner defaults to `evaluations/c5-run-scenario.sh` and is called as `RUNNER SCENARIO OUT_ROOT KEY`, with an absolute scenario path and `OUT_ROOT`. The validity check defaults to `python evaluations/acceptance_review.py validity`, using the driver's own interpreter, and is called on `OUT_ROOT/KEY-P OUT_ROOT/KEY-E OUT_ROOT/KEY-F`. Both run with the repository as their working directory and inherit the environment. Their output goes only to `OUT_ROOT/driver-logs/KEY.runner.log` and `KEY.validity.log`. `--grace` must be a finite number of seconds above 0 and at most 600; anything else, including NaN or infinity, is refused.
+
+## Live mode
+
+Live mode is on with `--live`, and whenever `C5_BILLING_LEDGER` or `C5_ATTEMPT_ID` is set. Without it, the driver is for offline tests only.
+
+| | Live mode | Offline (tests) |
+| --- | --- | --- |
+| Commands | Only the repository's `evaluations/c5-run-scenario.sh` and `<this python> evaluations/acceptance_review.py validity`; `--runner` and `--validity` are refused | Overrides allowed |
+| Frozen command files | `evaluations/c5-run-scenario.sh`, `evaluations/acceptance_review.py` and `evaluations/c5-harness.py` must be in `files` | Any command file inside the repository must be in `files` |
+| Ledger | `C5_BILLING_LEDGER`, required and absolute; a different `--ledger` is refused | Only with `--ledger` |
+| Shared stop | Yes, see below | Never |
+
+Wherever a ledger is read, before the start and before each scenario, it must hold `"blocked": false` and a `run_id` equal to `attempt_id`. When `C5_BILLING_POLICY_SHA256` is set, its `policy_sha256` must match too. Otherwise the attempt stops with `ledger_blocked` or `ledger_mismatch`.
+
+**Shared stop.** On a stop the driver decides itself (`invalid`, `hash_mismatch`, which includes `inputs_changed`, `run_dir_exists` or `driver_error`), it blocks the shared billing run for every future provider call. It runs the harness's own entry point, `<C5_PYTHON or uv run python> evaluations/c5-harness.py --stop`, as the run script's supervisor does. A signal does not cut it short; after 300 s it is killed and recorded as failed. The driver never writes the ledger itself. The entry point takes no reason, so the ledger records `arm_failed` unless it already has a reason. The driver's own reason is in `shared_stop` in its state file, and a failed stop is reported on stderr.
+
+The driver adds no shared stop for `runner_failed`, because the supervisor blocks the ledger itself once any arm has started. Nor does it add one for `ledger_blocked`, `ledger_mismatch` or `interrupted`, or for any refusal before the first scenario.
 
 ## Manifest
 
-This is the format shared with `acceptance_review.py`. Until that file's `load_manifest` is on this branch, the driver validates it locally.
+This is the format shared with `acceptance_review.py`. Until that file's `load_manifest` is on this branch, the driver validates it locally, accepting and rejecting exactly the same manifests. A test compares the two validators once both are present.
 
 ```json
 {"version": 1, "attempt_id": "...",
@@ -23,11 +40,13 @@ This is the format shared with `acceptance_review.py`. Until that file's `load_m
 
 The driver checks the structure:
 - Each object has exactly these keys.
-- `version` is the integer 1, and `attempt_id` is a non-empty printable string.
-- Paths are normalised and repo-relative. They contain no `..`, and they may not resolve outside the repository, even through a symlink.
+- `version` is the integer 1, and `attempt_id` is a string that is not blank.
+- Paths are normalised and repo-relative. They contain no `..`, and before any hashing they may not resolve outside the repository, even through a symlink.
 - Each sha256 is lowercase hex.
 - Each gate is `R4` or `C5` and has at most one pair, and each pair has at least one scenario.
-- Keys match `[A-Za-z0-9][A-Za-z0-9_-]{0,63}`, and keys and scenario paths are unique.
+- Keys match `[A-Za-z0-9][A-Za-z0-9_-]{0,63}`.
+- Scenario paths end in `.py`, and keys, paths and file stems are unique.
+- A scenario that is also listed in `files` has the same hash there.
 - `order` names every key exactly once.
 
 No scenario name is built in.
@@ -44,7 +63,7 @@ The driver also refuses:
 2. **Each key in `order`.** The driver first reads the ledger flag, re-verifies every hash and refuses an existing run directory. Then it runs the runner. A non-zero exit is `runner_failed`, which covers the supervisor's exits after a failed or refused arm, a port wait and a preflight. On a zero exit, it runs validity on the three directories, and a non-zero exit is `invalid`. Last, it re-verifies every hash; an input that changed while the scenario ran makes it `inputs_changed`. If any step fails, it stops. It never starts another scenario and never retries.
 3. **Pairs.** A pair is `complete` when all its scenarios are `valid`. It stays complete whatever happens later. At the end, a pair with any started scenario that is not complete is `incomplete`, and a pair with none started is `not_run`. `eligible` lists the gates whose pair is complete. The driver never decides R4 or C5.
 
-The ledger is only read. Anything other than an explicit `"blocked": false` stops the attempt, and that includes a missing, malformed or unreadable ledger. The run script's supervisor writes `blocked`.
+The driver only reads the ledger. Anything other than an explicit `"blocked": false` stops the attempt, and that includes a missing, malformed or unreadable ledger. The harness's guard and its `--stop` entry point write `blocked`.
 
 **Signals.** On SIGINT or SIGTERM, the driver first sends SIGTERM to the runner alone, so the supervisor can block the ledger before it stops its arms. If the runner is still running after `--grace` seconds (default 60), its whole process group gets SIGTERM, and after twice that, SIGKILL. Whenever a runner or validity child exits, anything left in its process group gets SIGTERM, then SIGKILL after the grace period. The driver records `interrupted` and exits with 128 plus the signal number. It polls children and never uses `wait -n`. It uses only the standard library and the macOS system Python 3.
 
@@ -62,7 +81,8 @@ The last line of stdout is a one-line JSON summary of statuses: `attempt_id`, `r
 ## State file
 
 `OUT_ROOT/attempt-state.json` is written to a temporary file, then fsynced and moved into place with `os.replace`. It holds:
-- the attempt: `driver_state_version`, `attempt_id`, `manifest` (path), `manifest_sha256`, `repo`, `out_root`, the `runner` and `validity` argument lists, `ledger`, `created_at` and `updated_at`;
+- the attempt: `driver_state_version`, `attempt_id`, `manifest` (path), `manifest_sha256`, `repo`, `out_root`, the `runner` and `validity` argument lists, `ledger`, `live`, `created_at` and `updated_at`;
+- `shared_stop`: null, or `reason`, `command`, `exit`, `started_at`, `finished_at` and `log`;
 - the outcome: `result`, which is `running`, `complete`, `stopped` or `interrupted`, and `stop`, which is null or holds `key`, `reason`, `detail` and `at`;
 - `order`;
 - `scenarios`, one entry per key, with these fields:
@@ -88,14 +108,13 @@ A scenario's `status` is one of these values:
 | `interrupted` | Stopped by a signal |
 | `not_run` | Never started |
 
-The stop `reason` is one of `hash_mismatch`, `run_dir_exists`, `ledger_blocked`, `runner_failed`, `invalid`, `interrupted` or `driver_error`. Neither file holds scenario content, a child's output or a validity finding.
+The stop `reason` is one of `hash_mismatch`, `run_dir_exists`, `ledger_blocked`, `ledger_mismatch`, `runner_failed`, `invalid`, `interrupted` or `driver_error`. The stdout summary also has `shared_stop`: null, `blocked` or `failed`. Neither file holds scenario content, a child's output or a validity finding.
 
 ## Left to the operator
 
 The driver deliberately does none of the following:
 - **Pre-checks.** It does not check the pin, a clean `git status`, `MEMBRAIN_SRC`, the port state or leftover memBrain services before the first call.
-- **Choosing the frozen files.** It does not decide which files to freeze. In particular, it does not list `c5-harness.py`, review instructions or the runtime pin in `files`. It only enforces what the manifest lists.
-- **Billing.** It does not set any `C5_*` billing variable, create or write the ledger, read balances, or reconcile cost.
+- **Choosing the frozen files.** Apart from the three live-mode command files, it does not decide which files to freeze, such as review instructions or the runtime pin. It only enforces what the manifest lists.
+- **Billing.** It does not set any `C5_*` billing variable, create the ledger or write it directly, read balances, or reconcile cost. It does not recompute the ledger's policy hash; the harness's guard does.
 - **Results.** It does not decide what a stopped attempt means, re-run anything after an invalid run or a port-wait failure (use a fresh `OUT_ROOT` and the plan's rules), or run `diagnose`.
 - **Scoring.** It does not run blinding, any scoring step, `gate`, or the R4 or C5 decision.
-- **Checking the ledger's `run_id` and policy hash.** The harness's guard checks these.
