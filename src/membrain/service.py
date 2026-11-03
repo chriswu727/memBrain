@@ -1022,15 +1022,20 @@ class MemoryService:
         raise DomainError("invalid_evidence", "The deterministic extractor cannot substantiate this proposal.")
 
     def _save_traces(self, conn, principal, brain, traces, *, validated=False):
-        """``validated`` only for traces already validated as RecallTraces, unchanged since."""
-        for trace in traces:
-            if not validated:
+        """``validated`` only for traces already validated as RecallTraces, unchanged since. Every trace is
+        validated before any is written; the inserts, in order, go to the server in one pipeline."""
+        if not validated:
+            for trace in traces:
                 validate("RecallTrace", trace)
-            conn.execute(
-                "INSERT INTO memory_traces(tenant_id,owner_id,brain_id,id,document) VALUES(%s,%s,%s,%s,%s) "
-                "ON CONFLICT(tenant_id,brain_id,id) DO NOTHING",
-                (*self._params(principal, brain["id"]), trace["trace_id"], Jsonb(trace)),
-            )
+        params = self._params(principal, brain["id"])
+        rows = [(*params, trace["trace_id"], Jsonb(trace)) for trace in traces]
+        if rows:
+            with conn.cursor() as cursor:
+                cursor.executemany(
+                    "INSERT INTO memory_traces(tenant_id,owner_id,brain_id,id,document) VALUES(%s,%s,%s,%s,%s) "
+                    "ON CONFLICT(tenant_id,brain_id,id) DO NOTHING",
+                    rows,
+                )
 
     def _feedback(self, conn, principal, brain, target, payload, events):
         from .feedback import record_feedback

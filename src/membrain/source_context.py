@@ -114,11 +114,15 @@ def covering_passage(item, passages):
     references = memory["evidence_refs"]
     if not references or any(ref["relationship"] != "supports" or "span" not in ref for ref in references):
         return None
+    capture = None  # _literal_capture(memory), computed once, when first needed
     for passage in passages:
         if not literal and passage["policy_version"] != SOURCE_CONTEXT_VERSION:
             continue
-        if literal and passage["policy_version"] == SOURCE_CONTEXT_VERSION and not _literal_capture(memory):
-            continue
+        if literal and passage["policy_version"] == SOURCE_CONTEXT_VERSION:
+            if capture is None:
+                capture = _literal_capture(memory)
+            if not capture:
+                continue
         full = passage["evidence_ref"]
         if all(_source(ref) == _source(full) and ref["span"]["unit"] == full["span"]["unit"]
                and full["span"]["start"] <= ref["span"]["start"] < ref["span"]["end"] <= full["span"]["end"]

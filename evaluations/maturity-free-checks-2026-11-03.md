@@ -1,6 +1,6 @@
 # Provisional maturity checks, 2026-11-03
 
-The first release remains frozen. These are free implementation and harness checks, not a real-model R4 or C5 result. They do not establish that the final candidate has passed its launcher-pin check, Verify, installation acceptance or performance gates.
+The first release remains frozen. Every result applies to the source named below. Runtime `9d8509c` has passed its local Python, SDK, package-content and Mac installation checks; both concurrent R5 targets remain unmet. Final combined-source Verify and the real-model R4/C5 gates remain open. No paid or subscription-backed behavioural evaluation has started.
 
 ## Independent Mac checks
 
@@ -36,6 +36,7 @@ Both runs used deterministic local host/extractor stubs, keyword recall, a dispo
 | `ad216e5` | 250 passed, no failures | `valid: true`, no retried empty replies | The same checks, plus two intentionally unrecorded plugin turns followed by a recorded resume turn |
 | `506cf29` | 250 passed, no failures | `valid: true`, no retried empty replies | Integrated portable familiarity history and the initial live-budget wiring; stub mode made no external call |
 | `a0dd70a` | 250 passed, no failures | `valid: true`, no retried empty replies | Reviewed budget follow-up and allowlisted local-service startup; stub mode made no external call |
+| `98f416d` | 250 passed, no failures | `valid: true`, no retried empty replies | Permanent shared stops, failure supervision and signal cleanup; normal stub flow made no external call |
 
 Machine-readable checker reports are in [maturity-free-practice-2026-11-03](maturity-free-practice-2026-11-03/). Raw failed logs and public-practice JSON/logs remain in this task's local evidence directory. Completed, reproducible temporary database/model copies were later removed to recover disk space; source fixtures and execution evidence are retained.
 
@@ -110,3 +111,17 @@ The unchanged reference benchmark on `efb0f6e` measured serial/one-brain/eight-b
 Independent offline reproduction found that a cap refusal did not persist a shared stop: after another request settled, a later reservation could proceed. The monetary bound held, but this contradicted the plan's stop rule. The fix persists the cap stop under the reservation lock, stops the shared attempt after any refused request, and lets known in-flight usage settle without reopening the run. An idempotent stop handle still refuses every provider request.
 
 A fake-process reproduction also showed that the old runner let P and F continue after E exited 7. The runner now observes failures during the existing launch stagger and completion wait, records the failing arm and original exit code, stops the shared live ledger, then terminates and reaps its active children. SIGTERM unwinds the harness through shared-stop and disposable-service cleanup. The subprocess tests use fake interpreters and no provider connection, including the live-control path. The integrated billing, supervisor and C5 harness group passed 84 checks, none skipped (17.68 seconds); Ruff and Bash syntax checks passed. An earlier check passed all 80 tests but found one import-order lint error; that lint error was corrected and the expanded checks passed. Real-model execution remains unapproved, and the independently reviewed plan still has other open hardening items.
+
+The complete public practice at `98f416d` then passed all 250 checks and strict validity, with no external network call. Both disposable memory profiles were independently confirmed stopped. Its [checker and validity files](maturity-free-practice-2026-11-03/) are retained. This normal path complements the fake-process failure tests; no real host or extraction model ran.
+
+## Third CPU candidate
+
+The source through `9ef6711` reuses exact-value context handles within one recall, checks literal capture once per item, extends the JSON copy to recall documents, and links pure local contract references without changing the published schema. An independent recursive-schema regression compares valid and invalid nested documents with the plain validator. The combined contract/API/budget/context/retrieval/lock/erasure group passed 217 checks, none skipped (27.13 seconds); Ruff and the four launcher/matrix checks passed. The earlier full 6,494-test result predates this source.
+
+On `91271f5` (runtime pin `9d8509c`), the unchanged reference benchmark measured serial/one-brain/eight-brain p95 of **158.31/1,027.26/1,064.27 ms**, with medians 148.99/914.81/932.51 ms. All 340 responses were nonempty. Both concurrent targets still failed, so it exited 1; its service was independently confirmed stopped. [Raw samples](maturity-cpu3-performance-2026-11-03.json) are retained. No recall candidates or context budgets were reduced.
+
+The same pinned runtime subsequently passed the complete Mac installation acceptance: **49 passed, zero failed**, `completed: true`. The basic and companion launcher baselines are unchanged. Fresh install, upgrade, MCP correction/deletion, cross-session recall, restart, installed stub proxy and companion backup/restore/activation all passed. Four installations were independently confirmed stopped afterwards. [Source and check names](maturity-install-mac-cpu3-2026-11-03.json) are retained. No paid or subscription-backed model was used; local embeddings were allowed. This installation pass does not pass R5, R4 or C5.
+
+One clean full invocation at `8d85954`, still pinned to `9d8509c`, then passed **6,521 tests, zero failures and zero skips**, in 776.74 seconds. Required Chromium, Docker, real cached local embeddings and launcher checks were enabled. Source and pins stayed unchanged throughout, and provider API keys were removed. The three warnings were the same deliberate-fork deprecations. This full result includes contract linking, recursive-schema equivalence and the evaluation stop-rule changes; it predates the separate evaluation-hardening branches.
+
+The installed package also matched **157 runtime, web, contract and migration files** byte for byte, with no missing, mismatched or unexpected files. [Hashes and tested dependency versions](maturity-package-parity-2026-11-03.json) are retained. On the same candidate the TypeScript SDK passed **44 tests** and its strict type check. Its OpenClaw wrapper, included in the full Python invocation, required all **7 Node tests** to pass against a real disposable service, with none skipped. [SDK source metadata](maturity-sdk-2026-11-03.json) is retained. These are local engineering passes, separate from unrun real-model behavioural acceptance.
