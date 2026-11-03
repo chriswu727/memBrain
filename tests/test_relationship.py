@@ -714,6 +714,51 @@ def test_a_restored_brain_keeps_days_its_messages_carry_and_adds_nothing_to_the_
     assert extra == 0
 
 
+def test_restored_messages_without_a_reported_time_keep_their_days_across_repeated_restores(installation, brain,
+                                                                                             monkeypatch):
+    service, principal, ident = brain
+
+    def said(text):
+        return service.handle(principal, {
+            "message_type": "request", "contract_version": "1.0.0-draft", "request_id": uid(), "action": "observe",
+            "target": {"brain_ref": ident, "conversation_ref": "chat", "branch_ref": "main"},
+            "payload": {"idempotency_key": uid(), "events": [{
+                "source_event_key": uid(), "source_revision": 1, "producer_ref": "relationship-test",
+                "actor_ref": "user", "actor_role": "user", "event_kind": "message",
+                "content": {"media_type": "text/plain", "text": text},
+                "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
+                "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": [],
+            }]}})["outcome"]
+
+    for when in ("2027-03-02T09:00:00Z", "2027-03-05T09:00:00Z", "2027-03-09T09:00:00Z"):
+        monkeypatch.setattr(service_module, "now", lambda when=when: when)
+        assert said(f"Chat recorded at {when}.") == "completed"
+    # A clock that ran ahead recorded this one in the future; a restore never counts a day still to come.
+    monkeypatch.setattr(service_module, "now", lambda: "2027-05-01T09:00:00Z")
+    assert said("Recorded by a clock that ran ahead.") == "completed"
+    monkeypatch.setattr(service_module, "now", lambda: "2027-04-20T08:00:00Z")
+    first = restore_copy(service, principal, ident, "First restore")
+    monkeypatch.setattr(service_module, "now", lambda: "2027-04-25T08:00:00Z")
+    second = restore_copy(service, principal, first, "Restore of the restore")
+    monkeypatch.undo()
+    for copy in (first, second):
+        known = relationship(service, principal, copy, today=TODAY)["familiarity"]
+        assert (known["days"], known["since"]) == (4, "2027-03-02")
+    with service.database.transaction(principal) as conn:
+        rows = conn.execute(
+            "SELECT document FROM memory_events WHERE brain_id=%s AND is_current ORDER BY sequence", (second,)).fetchall()
+        extra = conn.execute(
+            "SELECT count(*) AS n FROM memory_events WHERE brain_id IN (%s,%s) AND producer_ref <> 'archive-import'",
+            (first, second)).fetchone()["n"]
+    assert extra == 0  # Nothing beyond the imported events: the restored brains still equal their archives.
+    times = [row["document"]["system_time"] for row in rows]
+    # recorded_at stays this copy's ingestion; the original recording time is the earliest one, never a future one.
+    assert {time["recorded_at"] for time in times} == {"2027-04-25T08:00:00Z"}
+    assert [time["restored_from_recorded_at"] for time in times] == [
+        "2027-03-02T09:00:00Z", "2027-03-05T09:00:00Z", "2027-03-09T09:00:00Z", "2027-04-20T08:00:00Z"]
+    assert all(row["document"]["observed"]["occurred_time"]["start"] is None for row in rows)  # Never invented.
+
+
 def test_days_follow_when_a_message_occurred_but_never_a_time_still_to_come(brain, monkeypatch):
     service, principal, ident = brain
 

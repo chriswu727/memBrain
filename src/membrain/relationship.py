@@ -287,9 +287,11 @@ def _days(service, conn, principal, brain_id, after) -> list[str]:
     every reserved conversation are not conversation.
 
     A message's day is when it occurred as its host reported it, but never later than when it was recorded. With no
-    reported time, it is the day it was recorded."""
+    reported time, it is the day it was recorded. A message restored from an archive was recorded when the original
+    was (``restored_from_recorded_at``), not on the day of the restore, so a restore never folds its days into one."""
     rows = conn.execute(
         "SELECT DISTINCT left(document->'system_time'->>'recorded_at',10) AS recorded,"
+        "left(document->'system_time'->>'restored_from_recorded_at',10) AS restored_from,"
         "document->'observed'->'occurred_time'->>'start' AS occurred FROM memory_events "
         f"WHERE {_VISIBLE} AND sequence>%s AND document->'observed'->>'event_kind'='message' "
         "AND document->'observed'->>'actor_role'='user' AND conversation_id IS DISTINCT FROM %s "
@@ -299,7 +301,7 @@ def _days(service, conn, principal, brain_id, after) -> list[str]:
     for row in rows:
         if not row["recorded"]:
             continue
-        latest = row["recorded"]
+        latest = min(row["recorded"], row["restored_from"] or row["recorded"])
         occurred = _utc_day(row["occurred"]) if row["occurred"] else None
         days.add(occurred if occurred and occurred <= latest else latest)  # Never a time still to come.
     return sorted(days)
