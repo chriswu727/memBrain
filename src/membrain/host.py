@@ -1075,7 +1075,17 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
             selected[item["event_id"]] = (item, line)
             used += len(line) + 1
     ordered = sorted(selected.values(), key=lambda value: (value[0].get("recorded_at") or "", value[0]["event_id"]))
+    _trace(client, [item["event_id"] for item, _ in ordered])
     return _wrap(header, notes, [line for _, line in ordered], limit)
+
+
+def _trace(client, event_ids: list[str]) -> None:
+    """Best effort: lets the memory page light up what this recall used. Never stored; failures are ignored."""
+    try:
+        if event_ids and callable(getattr(client, "trace_recall", None)):
+            client.trace_recall(event_ids)
+    except Exception:
+        pass
 
 
 # Session-start context ----------------------------------------------------------------------------------------

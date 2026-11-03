@@ -246,11 +246,18 @@ class MemoryClient:
         return self._request("GET", f"v1/brains/{quote(brain, safe='')}/timeline", params=params)
 
     def memory_map(self, *, max_nodes: int = 200, max_edges: int = 400, include_sensitive: bool = False,
-                   brain_id: str | None = None) -> JsonObject:
+                   trace: bool = False, brain_id: str | None = None) -> JsonObject:
         brain = self._scope(brain_id=brain_id)["brain_ref"]
-        return self._request("GET", f"v1/brains/{quote(brain, safe='')}/memory-map", params={
-            "max_nodes": max_nodes, "max_edges": max_edges, "include_sensitive": str(include_sensitive).lower(),
-        })
+        params = {"max_nodes": max_nodes, "max_edges": max_edges, "include_sensitive": str(include_sensitive).lower()}
+        if trace:
+            params["trace"] = "true"
+        return self._request("GET", f"v1/brains/{quote(brain, safe='')}/memory-map", params=params)
+
+    def trace_recall(self, event_ids: Sequence[str], *, brain_id: str | None = None) -> JsonObject:
+        """Tell the service which records a recall used, so the memory page can show them (kept in memory only)."""
+        brain = self._scope(brain_id=brain_id)["brain_ref"]
+        return self._request("POST", f"v1/brains/{quote(brain, safe='')}/recall-trace",
+                             json={"event_ids": list(event_ids)[:50]})
 
     def write_note(self, text: str, *, request_id: str | None = None, **fields) -> JsonObject:
         brain = self._scope()["brain_ref"]

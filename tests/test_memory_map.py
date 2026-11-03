@@ -159,6 +159,44 @@ def test_api_reuses_authentication_and_brain_ownership(installation, brain):
         assert denied.status_code == 404 and "observatory" not in denied.text
 
 
+def test_recall_trace_marks_what_the_last_recall_used_even_outside_the_sample(installation, brain):
+    service, principal, ident = brain
+    old = say(brain, "Long ago I learned to play the cello.")
+    for index in range(6):
+        say(brain, f"Filler message {index}.")
+    kept = note(brain, "Plays the cello.", kind="preference", source_event_ids=[old])
+    headers = {"Authorization": "Bearer map-test-key"}
+    settings = replace(installation[1], api_keys={hashlib.sha256(b"map-test-key").hexdigest(): principal})
+    with TestClient(create_app(settings, service), base_url="http://127.0.0.1") as client:
+        path = f"/v1/brains/{ident}/memory-map?max_nodes=3"
+        assert "trace" not in client.get(path, headers=headers).json()
+        empty = client.get(path + "&trace=true", headers=headers).json()
+        assert empty["trace"] == {"at": None, "used": 0, "shown": 0}
+        assert client.post(f"/v1/brains/{ident}/recall-trace", headers=headers,
+                           json={"event_ids": [old, kept, "missing-id"]}).json() == {"recorded": 3}
+        assert client.post(f"/v1/brains/{ident}/recall-trace", headers=headers,
+                           json={"event_ids": ["x"] * 51}).status_code == 422
+        traced = client.get(path + "&trace=true", headers=headers).json()
+    marked = {node["id"] for node in traced["nodes"] if node["traced"]}
+    assert marked == {"msg:" + old, "note:" + kept}
+    assert traced["trace"]["used"] == 3 and traced["trace"]["shown"] == 2 and traced["trace"]["at"]
+    with TestClient(create_app(settings, service), base_url="http://127.0.0.1") as client:
+        restarted = client.get(f"/v1/brains/{ident}/memory-map?trace=true", headers=headers).json()
+    assert restarted["trace"]["used"] == 0 and not any(node["traced"] for node in restarted["nodes"])
+
+
+def test_recall_trace_is_per_caller_and_bounded():
+    from membrain.memory_map import RecallTraces
+
+    traces = RecallTraces(size=2, brains=2)
+    me, other = Principal("t", "me"), Principal("t", "other")
+    traces.add(me, "b", ["a", "a", "b"])
+    assert traces.last(me, "b")["event_ids"] == ["a", "b"] and traces.last(other, "b") is None
+    traces.add(other, "b", ["c"])
+    traces.add(other, "c", ["d"])
+    assert traces.last(me, "b") is None  # the least recently used brain is dropped
+
+
 def test_a_busy_brain_returns_a_sample_without_unbounded_nodes_or_labels(brain):
     for index in range(30):
         source = say(brain, f"Original source {index}: " + "a long diary entry. " * 15)

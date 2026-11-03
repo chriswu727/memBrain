@@ -35,6 +35,10 @@ class NoteSource(RuntimeBody):
     source_revision: RuntimeRevision = 1
 
 
+class RecallTrace(RuntimeBody):
+    event_ids: Annotated[list[RuntimeIdentifier], Field(max_length=50)]
+
+
 class NoteWrite(RuntimeBody):
     request_id: Annotated[str, Field(min_length=1, max_length=120)]
     text: Annotated[str, Field(min_length=1, max_length=300)]
@@ -422,15 +426,25 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
                                 exclude_conversation=exclude_conversation, event_ids=event_id or None,
                                 conversation_id=conversation_id, before_sequence=before_sequence)
 
+    from .memory_map import RecallTraces
+
+    traces = RecallTraces()
+
+    @app.post("/v1/brains/{brain_id}/recall-trace")
+    def recall_trace(brain_id: str, body: RecallTrace, principal: Principal = Depends(authenticate)):
+        # Held in this process only and never stored; the map shows only records the caller may read.
+        return {"recorded": traces.add(principal, brain_id, body.event_ids)}
+
     @app.get("/v1/brains/{brain_id}/memory-map")
     def memory_map(brain_id: str, max_nodes: int = Query(default=200, ge=1, le=500),
                    max_edges: int = Query(default=400, ge=0, le=1000), include_sensitive: bool = False,
-                   principal: Principal = Depends(authenticate)):
+                   trace: bool = False, principal: Principal = Depends(authenticate)):
         from .memory_map import memory_map as read_memory_map
 
         try:
             return read_memory_map(service, principal, brain_id, max_nodes=max_nodes, max_edges=max_edges,
-                                   include_sensitive=include_sensitive)
+                                   include_sensitive=include_sensitive,
+                                   trace=(traces.last(principal, brain_id) or {}) if trace else None)
         except (psycopg.errors.LockNotAvailable, psycopg.errors.QueryCanceled):
             raise DomainError("dependency_unavailable", "Memory is busy updating. Retry the map shortly.",
                               retryable=True) from None

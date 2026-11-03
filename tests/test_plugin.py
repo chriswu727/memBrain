@@ -662,6 +662,35 @@ def test_recall_budget_keeps_the_highest_ranked_update_before_chronological_rend
     assert "Latest corrected appointment" in context and len(context) <= 1800
 
 
+def test_recall_reports_what_it_used_and_ignores_a_failing_trace():
+    sources = [_source(f"user user (direct_statement): Dentist on Friday number {index}", f"e{index}",
+                       methods=("keyword",)) for index in range(3)]
+    traced = []
+
+    class Client:
+        def recall(self, *args, **kwargs):
+            return _response(*sources)
+
+        def timeline(self, **options):
+            if options.get("conversation_id"):
+                return {"items": []}
+            return {"items": [{"event_id": f"e{index}", "conversation_id": "old", "actor_role": "user",
+                               "recorded_at": f"2026-01-0{index + 1}T09:00:00Z",
+                               "text": f"Dentist on Friday number {index}"} for index in range(3)]}
+
+        def trace_recall(self, event_ids):
+            traced.append(list(event_ids))
+
+    context = host.recall_context(Client(), "dentist")
+    assert traced == [["e0", "e1", "e2"]] and "number 2" in context
+
+    class Failing(Client):
+        def trace_recall(self, event_ids):
+            raise OSError("service gone")
+
+    assert host.recall_context(Failing(), "dentist") == context
+
+
 def test_agent_note_tool_cannot_write_while_recording_is_paused(tmp_path, monkeypatch, capsys):
     host.pause(tmp_path)
     def unexpected(*args):

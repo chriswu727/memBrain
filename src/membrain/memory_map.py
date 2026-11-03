@@ -1,6 +1,9 @@
 """A bounded view of recorded notes and their sources, without inferred semantic links."""
 from __future__ import annotations
 
+import threading
+from collections import OrderedDict, deque
+
 from .helpers import DomainError, now
 from .notes import NOTES_CONVERSATION, parse_note
 from .privacy import neutralize
@@ -18,17 +21,46 @@ _COLUMNS = ("id,sequence,conversation_id,document->'observed'->>'actor_role' AS 
             "document->'system_time'->>'recorded_at' AS recorded_at")
 
 
+class RecallTraces:
+    """Which records the last recalls put in front of the host, per brain, held in memory only.
+
+    Nothing is stored: a restart forgets every trace. Keys include the caller, so a caller can only add to and read
+    its own traces, and the map still shows only records the caller may read.
+    """
+
+    def __init__(self, size: int = 20, brains: int = 64):
+        self._size, self._brains, self._items, self._lock = size, brains, OrderedDict(), threading.Lock()
+
+    def add(self, principal, brain_id: str, event_ids: list[str]) -> int:
+        ids = list(dict.fromkeys(event_ids))
+        key = (principal.tenant_id, principal.principal_id, brain_id)
+        with self._lock:
+            entries = self._items.pop(key, None) or deque(maxlen=self._size)
+            entries.append({"at": now(), "event_ids": ids})
+            self._items[key] = entries
+            while len(self._items) > self._brains:
+                self._items.popitem(last=False)
+        return len(ids)
+
+    def last(self, principal, brain_id: str) -> dict | None:
+        with self._lock:
+            entries = self._items.get((principal.tenant_id, principal.principal_id, brain_id))
+            return dict(entries[-1]) if entries else None
+
+
 def _label(text):
     return neutralize(" ".join(text.split()))[:80]
 
 
-def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, include_sensitive=False):
+def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, include_sensitive=False,
+               trace: dict | None = None):
     """Return a bounded sample; region counts describe the sample, not the entire brain.
 
     Weights are layout hints, not inferred activation or recall strength. Recent user messages and note
     sources share the episode budget; assistant replies are excluded. Sensitive flags can mask known note
     sources, but unclassified original messages can still contain personal information. This is an
-    authenticated local view, not an anonymized public export.
+    authenticated local view, not an anonymized public export. ``trace`` (from ``RecallTraces.last``) marks the
+    records the last recall used as ``traced`` and keeps them in the sample.
     """
     for value, minimum, maximum in ((max_nodes, 1, 500), (max_edges, 0, 1000)):
         if type(value) is not int or not minimum <= value <= maximum:
@@ -50,8 +82,16 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
             "AND document->'observed'->>'actor_role'='user' ORDER BY sequence DESC LIMIT %s",
             (*params, NOTES_CONVERSATION, max_nodes + 1),
         ).fetchall()
-        note_budget = max(1, max_nodes * 3 // 4) if recent else max_nodes
-        chosen_notes = notes[:note_budget]
+        traced_ids = list((trace or {}).get("event_ids") or [])[:50]
+        traced = conn.execute(
+            f"SELECT {_COLUMNS} FROM memory_events WHERE {_VISIBLE} AND id=ANY(%s::text[]) "
+            "AND (conversation_id=%s OR document->'observed'->>'actor_role'='user') ORDER BY sequence DESC",
+            (*params, traced_ids, NOTES_CONVERSATION),
+        ).fetchall() if traced_ids else []
+        traced_notes = [row for row in traced if row["conversation_id"] == NOTES_CONVERSATION]
+        traced_messages = [row for row in traced if row["conversation_id"] != NOTES_CONVERSATION]
+        note_budget = max(1, max_nodes * 3 // 4) if recent or traced_messages else max_nodes
+        chosen_notes = list({row["id"]: row for row in [*traced_notes, *notes]}.values())[:note_budget]
         note_ids = [row["id"] for row in chosen_notes]
         links = conn.execute(
             "SELECT d.output_event_id,d.input_event_id,e.sequence FROM memory_event_dependencies d "
@@ -71,7 +111,7 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
             "AND document->'observed'->>'actor_role'='user' ORDER BY sequence DESC",
             (*params, source_ids),
         ).fetchall() if source_ids else []
-        message_rows = {row["id"]: row for row in [*recent[:1], *sources, *recent]}
+        message_rows = {row["id"]: row for row in [*traced_messages, *recent[:1], *sources, *recent]}
         chosen_messages = list(message_rows.values())[:max_nodes - len(chosen_notes)]
         hidden_sources = set()
         if not include_sensitive and chosen_messages:
@@ -88,10 +128,16 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
                 "split_part(n.document->'observed'->'content'->>'text','] ',1) LIKE '%% · sensitive · %%')",
                 (*params, [row["id"] for row in chosen_messages], NOTES_CONVERSATION),
             )}
-    return _project(brain_id, chosen_notes, chosen_messages, links, hidden_sources,
-                    max_nodes=max_nodes, max_edges=max_edges, include_sensitive=include_sensitive,
-                    truncated=(len(notes) > len(chosen_notes) or len(recent) > len(chosen_messages)
-                               or len(links) >= max_edges + max_nodes + 1))
+    result = _project(brain_id, chosen_notes, chosen_messages, links, hidden_sources,
+                      max_nodes=max_nodes, max_edges=max_edges, include_sensitive=include_sensitive,
+                      truncated=(len(notes) > len(chosen_notes) or len(recent) > len(chosen_messages)
+                                 or len(links) >= max_edges + max_nodes + 1))
+    if trace is not None:
+        shown = {row["id"] for row in traced} & {node["id"].split(":", 1)[1] for node in result["nodes"]}
+        for node in result["nodes"]:
+            node["traced"] = node["id"].split(":", 1)[1] in shown
+        result["trace"] = {"at": trace.get("at"), "used": len(traced_ids), "shown": len(shown)}
+    return result
 
 
 def _project(brain_id, notes, messages, links, hidden_sources, *, max_nodes, max_edges,
