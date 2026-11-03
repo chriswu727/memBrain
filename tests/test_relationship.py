@@ -677,48 +677,41 @@ def restore_copy(service, principal, source, name):
     return copy
 
 
-def test_a_restored_brain_keeps_its_days_of_conversation(installation, brain, monkeypatch):
+def test_a_restored_brain_keeps_days_its_messages_carry_and_adds_nothing_to_the_archive(installation, brain,
+                                                                                          monkeypatch):
     service, principal, ident = brain
-    days_of_conversation(brain, monkeypatch, 20)
+
+    def said(text, occurred):
+        return service.handle(principal, {
+            "message_type": "request", "contract_version": "1.0.0-draft", "request_id": uid(), "action": "observe",
+            "target": {"brain_ref": ident, "conversation_ref": "chat", "branch_ref": "main"},
+            "payload": {"idempotency_key": uid(), "events": [{
+                "source_event_key": uid(), "source_revision": 1, "producer_ref": "relationship-test",
+                "actor_ref": "user", "actor_role": "user", "event_kind": "message",
+                "content": {"media_type": "text/plain", "text": text},
+                "occurred_time": {"start": occurred, "end": None, "precision": "exact", "basis": "source_explicit"},
+                "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": [],
+            }]}})["outcome"]
+
+    monkeypatch.setattr(service_module, "now", lambda: "2027-03-22T12:00:00Z")
+    for day in range(2, 22):
+        assert said(f"Day {day}.", f"2027-03-{day:02d}T09:00:00Z") == "completed"
+    monkeypatch.undo()
     note(brain, "Our first conversation.", kind="milestone", shared=True)
     note(brain, "We finished the 10k plan together.", kind="milestone", shared=True)
     before = relationship(service, principal, ident, today=TODAY)["familiarity"]
     assert (before["level"], before["days"], before["since"]) == ("familiar", 20, "2027-03-02")
-
-    # Restored weeks later, every event is recorded again on that one day; the days of conversation stay.
     monkeypatch.setattr(service_module, "now", lambda: "2027-04-20T08:00:00Z")
     copy = restore_copy(service, principal, ident, "Restored days")
+    monkeypatch.undo()
     after = relationship(service, principal, copy, today=TODAY)["familiarity"]
-    assert (after["level"], after["days"], after["since"], after["reason"]) == (
-        before["level"], before["days"], before["since"], before["reason"])
-    # A second round trip keeps the first recorded days, not the first restore's day.
-    monkeypatch.setattr(service_module, "now", lambda: "2027-05-20T08:00:00Z")
-    again = relationship(service, principal, restore_copy(service, principal, copy, "Restored twice"),
-                         today=TODAY)["familiarity"]
-    assert (again["level"], again["days"], again["since"]) == ("familiar", 20, "2027-03-02")
-    monkeypatch.undo()
-    # The day of a restored message is never later than its new record, and a new message counts as usual.
-    say(brain, "One more day.", on="2027-03-25", monkeypatch=monkeypatch)
-    monkeypatch.undo()
-    assert relationship(service, principal, ident, today=TODAY)["familiarity"]["days"] == 21
-
-
-def test_restored_days_are_split_into_records_inside_the_event_size_limit(monkeypatch):
-    import membrain.relationship as relationship_module
-
-    written = []
-    monkeypatch.setattr(relationship_module, "_append",
-                        lambda service, conn, principal, brain, stored, key: written.append(stored))
-    events = [{"event_id": f"{index:04d}" + "x" * 252, "observed": {"event_kind": "message", "actor_role": "user"},
-               "system_time": {"recorded_at": f"2027-03-{index % 28 + 1:02d}T09:00:00Z"},
-               "scope": {"conversation_id": "chat"}} for index in range(1500)]
-    events.append({"event_id": "a-note", "observed": {"event_kind": "message", "actor_role": "user"},
-                   "system_time": {"recorded_at": "2027-03-01T09:00:00Z"}, "scope": {"conversation_id": "membrain-notes"}})
-    relationship_module.record_restored_days(None, None, None, None, events)
-    assert len(written) > 1
-    assert all(len(json.dumps(stored, ensure_ascii=False, sort_keys=True).encode()) < 240_000 for stored in written)
-    kept = {event_id: day for stored in written for day, ids in stored["days"].items() for event_id in ids}
-    assert len(kept) == 1500 and "a-note" not in kept and kept["0027" + "x" * 252] == "2027-03-28"
+    assert (after["level"], after["days"], after["since"]) == (before["level"], before["days"], before["since"])
+    # A restored brain must stay identical to its archive: the restore wrote nothing beyond the imported events.
+    with service.database.transaction(principal) as conn:
+        extra = conn.execute(
+            "SELECT count(*) AS n FROM memory_events WHERE brain_id=%s AND producer_ref <> 'archive-import'",
+            (copy,)).fetchone()["n"]
+    assert extra == 0
 
 
 def test_days_follow_when_a_message_occurred_but_never_a_time_still_to_come(brain, monkeypatch):
