@@ -11,9 +11,9 @@
                                                       assistant replies, for rule R5 (assistant-claims.md)
   r5-check INPUT_DIR ANSWER_DIR RESULT_DIR             validate both R5 checkers' answers (an invalid one is set
                                                       aside to be redone once), then write each reply's result
-  actions-digest REVIEW_DIR BLIND_DIR SCENARIO KEY RUN_DIR...   C5, for RC2: what each page action before a case
-                                                      actually removed in the world of each reply with a candidate
-                                                      type 8 mark, by label only (actions-KEY.json)
+  actions-digest REVIEW_DIR BLIND_DIR SCENARIO KEY RUN_DIR...   C5, for RC2, resolution stage only: what each page
+                                                      action before a case actually removed in the world of each
+                                                      reply with a candidate type 8 mark, by label (actions-KEY.json)
   verdicts VERDICTS SCENARIO                          check a first review before the split; rename prefix keys
                                                       ("L01") to case ids, keeping the original as .raw.json
   diagnose RUN_DIR...                                 for an invalid attempt: where each arm stopped, harness
@@ -289,9 +289,21 @@ def r5_check(inputs: Path, outputs: Path, results: Path) -> None:
     print(json.dumps({"results": final}))
 
 
-# What a page action removed, as counts the memory page shows. A layer a reply's world does not hold (the reference
-# arm holds no notes, feelings or relationship) removed none of it: 0, as for an arm that held no such record.
-_DIGEST_COUNTS = ("messages", "notes", "feelings", "shared_moments", "familiarity_days")
+# Record kinds other than messages a page action can remove, read from the page's counts before and after it. The
+# harness does not record which earlier messages those records came from, so the digest names only their kinds.
+_RECORD_KINDS = ("notes", "feelings", "shared_moments")
+
+DIGEST_DISCLOSURE = (
+    "For the resolution reviewer only, after every first and second review is final; for rule RC2 (type 8). No earlier "
+    "stage reads it. It names no assistant: replies are keyed by case and label through the sealed mapping.")
+DIGEST_LIMITATIONS = [
+    "Removed messages are given by scenario position (session index, message number, role). For notes, feelings, "
+    "shared moments and familiarity only the kind removed is given: the run does not record which messages those "
+    "records came from. The conversation itself stays unless a message is listed as removed.",
+    "A reply whose world held no record of a kind shows none removed. Where other replies of the same case show such "
+    "a removal, that difference can suggest which assistant wrote the reply. It is kept because RC2 needs to know "
+    "whether the record was removed in this reply's world; nothing beyond the removal itself is shown.",
+]
 
 
 def _applies(action: dict, arm: str) -> bool:
@@ -301,7 +313,8 @@ def _applies(action: dict, arm: str) -> bool:
 
 def _digest_outcome(record: dict, arm: str, sessions: list) -> dict:
     """What one recorded page action actually removed in one arm: removed message positions (session index, message
-    number, role) and count deltas. Nothing else of the record (its detail, topics, labels, mood or time)."""
+    number, role) and the other record kinds it removed. No counts, and nothing else of the record (its detail,
+    topics, labels, mood, state or time)."""
     result = record.get("result")
     if not isinstance(result, dict) or result.get("failed"):
         raise SystemExit("a page action failed or has no result: the run is invalid and is not scored")
@@ -316,25 +329,29 @@ def _digest_outcome(record: dict, arm: str, sessions: list) -> dict:
     before, after = record.get("before"), record.get("after")
     if not isinstance(before, dict) or not isinstance(after, dict):
         raise SystemExit("a page action record has no before and after state")
-    if arm == "F":
+    kinds = []
+    if arm == "F":  # The reference history holds only the conversation: it removes messages and nothing else.
         if after.get("removed_still_in_history"):
             raise SystemExit("the reference history kept a message its page action removed")
-        deltas = dict.fromkeys(_DIGEST_COUNTS, 0)
-        deltas["messages"] = -len(removed)
     else:
-        deltas = {}
-        for field in _DIGEST_COUNTS:
+        for field in ("messages", *_RECORD_KINDS, "familiarity_days"):
             if type(before.get(field)) is not int or type(after.get(field)) is not int:
                 raise SystemExit("a page action record has no count of what it removed")
-            deltas[field] = after[field] - before[field]
-    return {"removed": removed, "deltas": deltas}
+        if before["messages"] - after["messages"] > len(removed):
+            kinds.append("messages without a recorded position")
+        kinds += [kind for kind in _RECORD_KINDS if after[kind] < before[kind]]
+        if after["familiarity_days"] < before["familiarity_days"] or after.get("familiarity") != before.get("familiarity"):
+            kinds.append("familiarity")
+    return {"removed_messages": removed, "removed_records": kinds}
 
 
 def actions_digest(review: Path, blind_dir: Path, scenario_path: str, key: str, run_dirs: list[Path]) -> None:
-    """For rule RC2: what each page action before a case actually removed, in the world of each reply with a candidate
-    type 8 mark. Written once to REVIEW/actions-KEY.json, keyed "<case id>/<label>" through the sealed mapping, like
-    the resolution file. It names no arm and holds only action kinds, positions (session index, message number),
-    removed message positions and count deltas, never message, note, feeling, topic or session text.
+    """For rule RC2, disclosed only to the resolution stage: what each page action before a case actually removed, in
+    the world of each reply with a candidate type 8 mark. Written once to REVIEW/actions-KEY.json, after every first
+    and second review is complete and before any resolution exists: {"stage", "disclosure", "limitations",
+    "replies": {"<case id>/<label>": ...}}, keyed through the sealed mapping like the resolution file. It names no arm
+    and holds only action kinds, positions (session index, message number), removed message positions and the other
+    record kinds removed: no counts, state, or message, note, feeling, topic or session text.
 
     Every arm's page-actions.jsonl must hold exactly the scenario's PAGE_ACTIONS that apply to it, in order, and none
     may have failed. An action that does not apply in a reply's arm removed nothing there."""
@@ -344,6 +361,15 @@ def actions_digest(review: Path, blind_dir: Path, scenario_path: str, key: str, 
     out = review / f"actions-{key}.json"
     if out.exists():
         raise SystemExit(f"{out} exists: the actions digest is written once")
+    if (review / f"resolution-{key}.json").exists():
+        raise SystemExit("a resolution already exists: the actions digest is made for the resolution stage, before it")
+    for _session, _turn, case, _criteria in module.CASES:
+        try:
+            second = json.loads((review / f"recheck-{key}" / f"{case}.json").read_text())
+        except (OSError, ValueError):
+            second = None
+        if not isinstance(second, dict) or set(second) != set("ABC"):
+            raise SystemExit("the actions digest is disclosed only after every second review is complete")
     sealed = json.loads((blind_dir / f"sealed_{scenario}.json").read_text())
     first = json.loads((review / f"verdicts-{key}.json").read_text())
     sessions = [session for session, _ in module.SESSIONS_LONG]
@@ -375,7 +401,7 @@ def actions_digest(review: Path, blind_dir: Path, scenario_path: str, key: str, 
         outcomes[arm] = {index: _digest_outcome(record, arm, sessions) for record, index in zip(records, expected)}
     if set(outcomes) != {arm for labels in sealed.values() for arm in labels.values()}:
         raise SystemExit("the run directories are not the arms of the sealed mapping")
-    nothing = {"removed": [], "deltas": dict.fromkeys(_DIGEST_COUNTS, 0)}
+    nothing = {"removed_messages": [], "removed_records": []}
     digest = {}
     for session, turn, case, _criteria in module.CASES:
         second = json.loads((review / f"recheck-{key}" / f"{case}.json").read_text())
@@ -389,13 +415,11 @@ def actions_digest(review: Path, blind_dir: Path, scenario_path: str, key: str, 
                 action_session, before_turn, action = actions[index]
                 if (sessions.index(action_session), before_turn) > at:
                     continue  # Applied after the case's message.
-                outcome = outcomes[arm].get(index, nothing)
                 entries.append({"action": action["do"], "session": sessions.index(action_session) + 1,
-                                "before_message": before_turn + 1, **outcome,
-                                "same_for_all_labels": all(outcomes[other].get(index, nothing) == outcome
-                                                           for other in sealed[case].values())})
+                                "before_message": before_turn + 1, **outcomes[arm].get(index, nothing)})
             digest[f"{case}/{label}"] = {"session": at[0] + 1, "message": turn + 1, "actions": entries}
-    out.write_text(json.dumps(digest, indent=1))
+    out.write_text(json.dumps({"stage": "resolution", "disclosure": DIGEST_DISCLOSURE,
+                               "limitations": DIGEST_LIMITATIONS, "replies": digest}, indent=1))
     print(json.dumps(sorted(digest)))
 
 
@@ -493,7 +517,12 @@ def tally(review: Path, blind_dir: Path, scenario_path: str, key: str, *, compan
             raise SystemExit("invalid resolution: every entry must name a reply of this scenario as <case id>/<label>")
     if companion:
         actions = review / f"actions-{key}.json"
-        digest = json.loads(actions.read_text()) if actions.exists() else {}
+        if actions.exists():
+            data = json.loads(actions.read_text())
+            if not isinstance(data, dict) or data.get("stage") != "resolution" or not isinstance(data.get("replies"),
+                                                                                                 dict):
+                raise SystemExit(f"invalid actions digest: actions-{key}.json is not made by actions-digest")
+            digest = data["replies"]
     totals, rows = {"literal": {}, "resolved": {}}, []
     for _, _, case, _ in module.CASES:
         second = json.loads((review / f"recheck-{key}" / f"{case}.json").read_text())

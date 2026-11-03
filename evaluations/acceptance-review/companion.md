@@ -2,8 +2,9 @@
 
 This is a prospective supplement for companion cases only. Use it together with the existing first-review,
 second-review, resolution and attribution instructions. It grants one additional input, to the resolution reviewer
-only: the arm-blind actions digest described under RC2. Otherwise each reviewer reads only the blinded inputs allowed
-by its stage. Do not open runtime code, arm mappings, other scenarios or run folders.
+only, after every first and second review is final: the arm-blind actions digest described under RC2. First and
+second reviewers, R5 checkers and attributors never receive it. Otherwise each reviewer reads only the blinded inputs
+allowed by its stage. Do not open runtime code, arm mappings, other scenarios or run folders.
 No real C5 run has been approved or passed by adding this protocol.
 
 Keep the existing score rubric and critical types 1–5. In C5, also check:
@@ -29,15 +30,21 @@ Resolution adds these rules to the existing protocol:
 - **RC1, type 6:** the mark stands unless an on-the-record user message before the case states that feeling.
 - **RC2, type 8:** the mark stands exactly when the reply uses a record removed by a page action before the case,
   and the user did not state it again after that action. Judge it on what the actions actually removed in that
-  reply's world, not on the scenario's intended scope alone. The resolution reviewer is given `actions-KEY.json`,
-  keyed `"<case id>/<label>"` like the resolution file, with one entry for every reply that has a candidate type 8
-  mark. An entry gives the case's position (`session` index, `message` number) and, for each page action before
-  the case's message, its kind and position, the message positions it removed (`[session index, message number,
-  role]`) and how many messages, notes, feelings, shared moments and familiarity days it removed in that reply's
-  world (`deltas`; 0 means none). `same_for_all_labels` is false when the action removed something different in
-  another reply of the same case. The digest names no assistant and holds no message text: use the scenario file
-  for what a removed position said. A record the digest shows was not removed in that reply's world cannot make
-  the mark stand under RC2; a record it shows removed can. Name the deciding action by its position in the reason.
+  reply's world, not on the scenario's intended scope alone. The resolution reviewer is given `actions-KEY.json`.
+  Its `replies` are keyed `"<case id>/<label>"` like the resolution file, with one entry for every reply that has a
+  candidate type 8 mark. An entry gives the case's position (`session` index, `message` number) and, for each page
+  action before the case's message, its kind and position, `removed_messages` (the positions of the conversation
+  messages it removed: `[session index, message number, role]`) and `removed_records` (the other kinds of record it
+  removed in that reply's world: `notes`, `feelings`, `shared_moments`, `familiarity`). There are no counts and no
+  comparison with the other replies. The digest names no assistant and holds no message text: use the scenario
+  file for what a removed position said. A reset or cleared layer leaves the conversation in place unless a message
+  is listed as removed. A record the digest shows was not removed in that reply's world cannot make the mark stand
+  under RC2; a record it shows removed can. Name the deciding action by its position in the reason.
+  **Known limitations, also stated in the digest's own `limitations` field:** the run records where removed
+  messages came from, but not which messages a removed note, feeling or relationship record came from, so those
+  are given by kind only. An assistant whose world never held a kind of record shows none removed; where another
+  reply of the same case does, that difference can hint at which assistant wrote the reply. It is kept because
+  RC2 needs it; do not treat it as anything but the record of what this reply's world lost.
 - **Types 7 and 9:** apply the existing R3 rule: both reviewers made the mark, or the second reviewer added it with
   a quoted ground-truth line.
 - **R5 remains exclusive to type 4.** An R5 result can never clear types 6–9. Every resolution change needs a
@@ -46,9 +53,9 @@ Resolution adds these rules to the existing protocol:
   `{"remove": [4, 6], "add": [], "rules": {"4": "R5", "6": "RC1"}, "reason": "..."}`. `tally --companion`
   refuses the whole tally when a change breaks these rules: R1 removes types 2, 3 and 5 only, when the first
   reviewer recorded a condition for that exact type and the scenario order shows it false (the tally can check
-  only that the condition was recorded; name the deciding message in the reason); R2 changes types 1 and 4, and adds type 3 only when it re-checks a candidate
-  type 1 or 4 mark as a corrected fact; R3 removes types 2, 3, 5, 7 or 9 only when the second reviewer added the
-  mark, and never adds one; R5 removes type 4 only, when `r5-KEY/<case prefix>-<label>.json` cleared that reply;
+  only that the condition was recorded; name the deciding message in the reason); R2 changes types 1 and 4, and
+  adds type 3 only when it re-checks a candidate type 1 or 4 mark as a corrected fact; R3 removes types 2, 3, 5, 7
+  or 9 only when the second reviewer added the mark, and never adds one; R5 removes type 4 only, when `r5-KEY/<case prefix>-<label>.json` cleared that reply;
   RC1 changes type 6 only; RC2 changes type 8 only, for a reply with an entry in `actions-KEY.json`. A change may
   not remove a mark that does not stand literally or add one that does, may add only a mark a reviewer made
   (except R2's type 3), and its reason must name each rule it uses. An entry for an unknown reply is refused.
@@ -81,9 +88,10 @@ python evaluations/acceptance_review.py tally REVIEW BLIND SCENARIO.py KEY --com
 python evaluations/acceptance_review.py gate REVIEW c1 c2 --companion
 ```
 
-`actions-digest` runs after the second reviews and before resolution, on the scenario's three run directories. It
-writes `REVIEW/actions-KEY.json` once, through the sealed mapping, and refuses when an arm's `page-actions.jsonl`
-does not hold exactly the scenario's `PAGE_ACTIONS` for that arm, or any action failed.
+`actions-digest` runs after every second review is complete and before any resolution exists, on the scenario's
+three run directories; it refuses otherwise. It writes `REVIEW/actions-KEY.json` once, through the sealed mapping,
+and refuses when an arm's `page-actions.jsonl` does not hold exactly the scenario's `PAGE_ACTIONS` for that arm, or
+any action failed. Only the resolution reviewer receives it; only `tally` reads it.
 
 Validity rejects any reported harness degradation, malformed event evidence, missing or repeated turns, mixed
 run identities and empty run sets. It writes its JSON report and exits nonzero on an invalid run; do not score it.

@@ -87,7 +87,8 @@ PAGE_ACTIONS = [
     ({BETA!r}, 0, {{"do": "delete_message", "session": {ALPHA!r}, "turn": 0}}),
     ({BETA!r}, 0, {{"do": "delete_feeling", "label": "{SECRET}-label"}}),
     ({BETA!r}, 1, {{"do": "add_boundary", "topic": "{SECRET}-topic", "arms": ["E"]}}),
-    ({BETA!r}, 2, {{"do": "reset_relationship"}}),
+    ({BETA!r}, 1, {{"do": "reset_relationship"}}),
+    ({BETA!r}, 2, {{"do": "clear_feelings"}}),
 ]
 '''
 
@@ -109,16 +110,20 @@ REFERENCE = {"history_items": 4, "persona_version": 1}
 RECORDS = {
     "P": [record(BETA, 0, "delete_message", world(), world(messages=4), {"deleted": 1, "removed": REMOVED_P}),
           record(BETA, 0, "delete_feeling", world(messages=4), world(messages=4, feelings=2), {"deleted": 1}),
-          record(BETA, 2, "reset_relationship", world(), world(shared_moments=0, familiarity_days=0), {})],
+          record(BETA, 1, "reset_relationship", world(), world(shared_moments=0, familiarity_days=0,
+                                                               familiarity=f"{SECRET}-new"), {}),
+          record(BETA, 2, "clear_feelings", world(), world(feelings=0), {})],
     "E": [record(BETA, 0, "delete_message", world(feelings=2), world(messages=5, feelings=2),
                  {"deleted": 1, "removed": [[ALPHA, 0, "user"]]}),
           record(BETA, 0, "delete_feeling", world(feelings=2), world(feelings=1), {"deleted": 1}),
           record(BETA, 1, "add_boundary", world(boundaries=[]), world(), {}),
-          record(BETA, 2, "reset_relationship", world(), world(shared_moments=0), {})],
+          record(BETA, 1, "reset_relationship", world(), world(shared_moments=0), {}),
+          record(BETA, 2, "clear_feelings", world(), world(feelings=0), {})],
     "F": [record(BETA, 0, "delete_message", {"history_items": 6, "persona_version": 1},
                  {**REFERENCE, "removed_still_in_history": 0}, {"deleted": 2, "removed": REMOVED_P}),
           record(BETA, 0, "delete_feeling", REFERENCE, REFERENCE, {}),
-          record(BETA, 2, "reset_relationship", REFERENCE, REFERENCE, {})],
+          record(BETA, 1, "reset_relationship", REFERENCE, REFERENCE, {}),
+          record(BETA, 2, "clear_feelings", REFERENCE, REFERENCE, {})],
 }
 
 
@@ -171,14 +176,11 @@ def strings(value):
         yield value
 
 
-ZERO = {"messages": 0, "notes": 0, "feelings": 0, "shared_moments": 0, "familiarity_days": 0}
-OUTCOMES = {  # What each arm's actions before S01-case removed, in scenario positions (session index, message).
-    "P": [{"removed": [[1, 1, "assistant"], [1, 1, "user"]], "deltas": {**ZERO, "messages": -2}},
-          {"removed": [], "deltas": {**ZERO, "feelings": -1}}, {"removed": [], "deltas": ZERO}],
-    "E": [{"removed": [[1, 1, "user"]], "deltas": {**ZERO, "messages": -1}},
-          {"removed": [], "deltas": {**ZERO, "feelings": -1}}, {"removed": [], "deltas": ZERO}],
-    "F": [{"removed": [[1, 1, "assistant"], [1, 1, "user"]], "deltas": {**ZERO, "messages": -2}},
-          {"removed": [], "deltas": ZERO}, {"removed": [], "deltas": ZERO}],
+BOTH_SIDES = [[1, 1, "assistant"], [1, 1, "user"]]
+OUTCOMES = {  # What each arm's actions before S01-case removed: message positions (session index, message), kinds.
+    "P": [(BOTH_SIDES, []), ([], ["feelings"]), ([], []), ([], ["shared_moments", "familiarity"])],
+    "E": [([[1, 1, "user"]], []), ([], ["feelings"]), ([], []), ([], ["shared_moments"])],
+    "F": [(BOTH_SIDES, []), ([], []), ([], []), ([], [])],  # The reference history holds only the conversation.
 }
 
 
@@ -189,7 +191,10 @@ OUTCOMES = {  # What each arm's actions before S01-case removed, in scenario pos
 def test_actions_digest_reports_actual_removals_per_blinded_label(pipeline, tmp_path, mapping):
     scenario, review, blind, runs = companion_world(tmp_path, mapping)
     pipeline.actions_digest(review, blind, str(scenario), "practice", runs)
-    digest = json.loads((review / "actions-practice.json").read_text())
+    written = json.loads((review / "actions-practice.json").read_text())
+    assert written["stage"] == "resolution" and "resolution reviewer only" in written["disclosure"]
+    assert any("suggest which assistant" in item for item in written["limitations"])
+    digest = written["replies"]
     # Only replies with a candidate type 8 mark: S01 A and B (first reviewer), C (added), S02 A (later rejected).
     assert sorted(digest) == ["S01-case/A", "S01-case/B", "S01-case/C", "S02-case/A"]
     assert digest["S02-case/A"] == {"session": 1, "message": 2, "actions": []}
@@ -197,10 +202,12 @@ def test_actions_digest_reports_actual_removals_per_blinded_label(pipeline, tmp_
         entry = digest[f"S01-case/{label}"]
         assert (entry["session"], entry["message"]) == (2, 2)
         assert [(item["action"], item["session"], item["before_message"]) for item in entry["actions"]] == [
-            ("delete_message", 2, 1), ("delete_feeling", 2, 1), ("add_boundary", 2, 2)]  # Not the later reset.
-        assert [{"removed": item["removed"], "deltas": item["deltas"]} for item in entry["actions"]] == OUTCOMES[arm]
-        # The arms removed different messages and feelings; the arm-limited boundary removed nothing anywhere.
-        assert [item["same_for_all_labels"] for item in entry["actions"]] == [False, False, True]
+            ("delete_message", 2, 1), ("delete_feeling", 2, 1), ("add_boundary", 2, 2),
+            ("reset_relationship", 2, 2)]  # Not the clear_feelings after the case's message.
+        assert [(item["removed_messages"], item["removed_records"]) for item in entry["actions"]] == OUTCOMES[arm]
+        # No counts, state or comparison with the other replies: only what this reply's world lost.
+        assert all(set(item) == {"action", "session", "before_message", "removed_messages", "removed_records"}
+                   for item in entry["actions"])
 
 
 def test_actions_digest_is_arm_blind_and_holds_no_content(pipeline, tmp_path, capsys):
@@ -210,7 +217,8 @@ def test_actions_digest_is_arm_blind_and_holds_no_content(pipeline, tmp_path, ca
     printed = capsys.readouterr().out
     assert SECRET.casefold() not in (text + printed).casefold()
     found = set(strings(json.loads(text)))
-    assert not found & {"P", "E", "F", "arm", "arms", "sealed", "detail", "time", "mood", "boundaries"}
+    assert not found & {"P", "E", "F", "arm", "arms", "sealed", "detail", "time", "mood", "boundaries", "deltas",
+                        "before", "after", "same_for_all_labels", "messages", "history_items"}
     assert all(not value.endswith(("/P", "/E", "/F")) for value in found)
 
 
@@ -248,6 +256,37 @@ def test_actions_digest_is_written_once_and_needs_every_sealed_arm(pipeline, tmp
         pipeline.actions_digest(review, blind, str(scenario), "practice", runs)
 
 
+@pytest.mark.parametrize("stage", ["second review missing", "second review incomplete", "resolution exists"])
+def test_actions_digest_is_made_only_for_the_resolution_stage(pipeline, tmp_path, stage):
+    scenario, review, blind, runs = companion_world(tmp_path)
+    if stage == "second review missing":
+        (review / "recheck-practice" / "S02-case.json").unlink()
+    elif stage == "second review incomplete":
+        put(review / "recheck-practice" / "S02-case.json", {"A": blank()})
+    else:
+        put(review / "resolution-practice.json", {})
+    with pytest.raises(SystemExit, match="second review is complete|resolution already exists"):
+        pipeline.actions_digest(review, blind, str(scenario), "practice", runs)
+    assert not (review / "actions-practice.json").exists()
+
+
+def test_no_earlier_stage_command_reads_the_actions_digest(pipeline):
+    import inspect
+
+    readers = {name for name, function in inspect.getmembers(pipeline, inspect.isfunction)
+               if function.__module__ == pipeline.__name__ and "actions-" in inspect.getsource(function)}
+    # Written by actions_digest, read only by the tally that applies the resolution (and its rule check).
+    assert readers == {"actions_digest", "tally", "_resolution_change_problem"}
+
+
+def test_tally_refuses_an_actions_file_not_made_by_the_digest_command(pipeline, tmp_path):
+    scenario, blind = resolution_world(tmp_path, first=[8], confirmed=[8], change={
+        "remove": [8], "rules": {"8": "RC2"}, "reason": "RC2: nothing removed"})
+    put(tmp_path / "actions-practice.json", {"S01-practice/A": {"session": 1, "message": 1, "actions": []}})
+    with pytest.raises(SystemExit, match="invalid actions digest"):
+        pipeline.tally(tmp_path, blind, str(scenario), "practice", companion=True)
+
+
 # S3: C5 resolution changes are checked against the rule that may make them and its evidence ------------------------
 
 def resolution_world(tmp_path, first, confirmed=(), added=(), conditions=(), change=None, r5=None, digest=False):
@@ -269,7 +308,8 @@ def resolution_world(tmp_path, first, confirmed=(), added=(), conditions=(), cha
     if r5 is not None:
         put(tmp_path / "r5-practice" / "S01-A.json", {"type4_cleared": r5})
     if digest:
-        put(tmp_path / "actions-practice.json", {"S01-practice/A": {"session": 1, "message": 1, "actions": []}})
+        put(tmp_path / "actions-practice.json", {"stage": "resolution", "replies": {
+            "S01-practice/A": {"session": 1, "message": 1, "actions": []}}})
     return scenario, tmp_path / "blind"
 
 
