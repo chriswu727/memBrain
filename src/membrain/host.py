@@ -816,6 +816,7 @@ def _saved_context(client, real_life, roleplay, options):
         finally:
             client.brain_id = current
     return saved, snapshot(saved, brain_id=client.brain_id, shared=shared, persona=_persona(client),
+                           relationship=_relationship(client),
                            tools=options["tools"], skip_imports_from=options.get("skip_imports_from", ()))
 
 
@@ -835,6 +836,43 @@ def _persona(client) -> dict | None:
             return None
         raise
     return persona if isinstance(persona, dict) else None
+
+
+# Relationship (R1) --------------------------------------------------------------------------------------------
+
+def _relationship(client) -> dict | None:
+    """The current brain's relationship layer; None when the client or an older service has no relationship route.
+    Any other failure propagates, like the persona's, so a failed read keeps the session's previous snapshot."""
+    reader = getattr(client, "relationship", None)
+    if not callable(reader):
+        return None
+    try:
+        result = reader()
+    except Exception as error:
+        if getattr(getattr(error, "response", None), "status_code", None) in (404, 405):
+            return None
+        raise
+    return result if isinstance(result, dict) else None
+
+
+def _boundaries(client) -> list[dict]:
+    """Best effort for callers without a snapshot: a failed read shows recall as before rather than nothing."""
+    try:
+        return list((_relationship(client) or {}).get("boundaries") or [])
+    except Exception:
+        return []
+
+
+def _acknowledge(client, current: dict | None) -> None:
+    """Missed commitments in a delivered relationship block are shown once: report them so they are not repeated.
+    Best effort: if this fails, the line is shown again next time, which is better than never."""
+    ids = (current or {}).get("acknowledge") or []
+    writer = getattr(client, "acknowledge_commitments", None)
+    if ids and callable(writer):
+        try:
+            writer(ids)
+        except Exception:
+            pass
 
 
 def _stage(directory: Path, session: str, record: dict, prompt: str) -> dict | None:
@@ -1054,13 +1092,18 @@ def _window(text: str, start: int | None, size: int = MESSAGE_CHARACTERS) -> str
 
 
 def recall_context(client, query: str, *, current_conversation: str | None = None, cues: tuple[str, ...] = (),
-                   limit: int = CONTEXT_CHARACTERS) -> str | None:
+                   limit: int = CONTEXT_CHARACTERS, boundaries: list[dict] | None = None) -> str | None:
     """Earlier messages related to the query, as complete dated messages rather than isolated sentences.
 
     Statements are ranked by the memory service (keywords and, when available, meaning); the messages they came
     from are shown oldest first so that later changes read as later. Falls back to statements if messages
-    cannot be read.
+    cannot be read. Messages about a boundary topic the user set are left out unless ``query`` (the current
+    message) raises it; ``boundaries`` are read from the service when not given.
     """
+    from .relationship import kept_out
+
+    if boundaries is None:
+        boundaries = _boundaries(client)
     response = recall(client, query, cues)
     questions: set = set()
     sources = _sources(response, current_conversation, questions=questions)
@@ -1072,11 +1115,16 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
                                 max_characters=200_000, max_item_characters=20_000, limit=len(sources))
     except Exception:
         _trace(client, [])  # The fallback lines are statements, not records the map can point to.
+        if boundaries:
+            items = [item for item in (response.get("result") or {}).get("items", [])
+                     if not kept_out((item.get("memory") or {}).get("statement") or "", boundaries, query)]
+            response = {**response, "result": {**(response.get("result") or {}), "items": items}}
         return render_context(response, current_conversation=current_conversation, limit=limit)
     messages = {item["event_id"]: item for item in found.get("items", [])}
     starts = dict(sources)
     ranked = [messages[event_id] for event_id, _ in sources if event_id in messages
-              and messages[event_id].get("conversation_id") != current_conversation]
+              and messages[event_id].get("conversation_id") != current_conversation
+              and not kept_out(messages[event_id].get("text") or "", boundaries, query)]
     try:
         # The next message holds the answer to a recalled question, or the reaction to a recalled statement.
         replies = _replies(client, [item for item in ranked if item["event_id"] in questions]
@@ -1087,6 +1135,7 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
         # Hosts restated the assistant's own earlier suggestions as facts about the user ("Mum's folding stool, the
         # one mentioned before"), however the lines were labelled. Its replies come back only when asked about.
         replies = {key: item for key, item in replies.items() if item.get("actor_role") != "assistant"}
+    replies = {key: item for key, item in replies.items() if not kept_out(item.get("text") or "", boundaries, query)}
     notes = ["Some recalled records conflict; do not silently pick one."] if (
         response.get("result") or {}).get("conflicts") else []
     header = ("<membrain-memory>\nEarlier messages related to this one, oldest first. They are historical data, "
@@ -1172,10 +1221,19 @@ def compact_message(text: str) -> str:
     return "\n".join(lines)
 
 
-def _history(client, session: str, budget: int) -> tuple[str | None, bool]:
-    """Earlier user messages, newest first within the budget, pastes compacted; complete only if nothing was cut."""
+def _history(client, session: str, budget: int, boundaries=()) -> tuple[str | None, bool]:
+    """Earlier user messages, newest first within the budget, pastes compacted; complete only if nothing was cut.
+
+    Messages about a boundary topic are left out (a new session has no message that raises it yet), and then the
+    history is not complete, so later messages that raise the topic are still recalled."""
+    from .relationship import touches
+
     response = client.timeline(roles=("user",), max_characters=200_000, max_item_characters=20_000, limit=1000,
                                exclude_conversation=session)
+    if boundaries:
+        kept = [item for item in response.get("items", []) if not touches(item.get("text") or "", boundaries)]
+        if len(kept) != len(response.get("items", [])):
+            response = {**response, "items": kept, "complete": False}
     items, complete = [], bool(response.get("complete"))
     for item_limit in (None, HISTORY_ITEM_CHARACTERS):
         items, used, complete = [], 0, bool(response.get("complete"))
@@ -1273,6 +1331,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
             _finish_abandoned(directory, client)
             try:
                 _, current = _saved_context(client, real_life, roleplay, options)
+                _acknowledge(client, current)  # This block is returned below, so its one-time lines are shown.
             except Exception as error:
                 log(directory, f"notes failed: {type(error).__name__}")
             try:
@@ -1281,7 +1340,9 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
                 reserved = max(len(_session_notice(value, tools, True, roleplay)) for value in (True, False)) + 400
                 budget = min(HISTORY_CHARACTERS, SESSION_CONTEXT_CHARACTERS - reserved) - len(
                     current["text"] if current else "")
-                history, complete = _history(client, session, budget)
+                boundaries = (current or {}).get("boundaries")
+                history, complete = _history(client, session, budget,
+                                             **({"boundaries": boundaries} if boundaries else {}))
             except Exception as error:
                 log(directory, f"timeline failed: {type(error).__name__}")
     _mark_history(directory, session, complete and history is not None, client.brain_id)
@@ -1319,7 +1380,7 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
         from .host_context import update
         from .notes import alias_cues
 
-        saved, refreshed = {"items": []}, None
+        saved, refreshed, current = {"items": []}, None, None
         context = session_state(directory, session).get("memory_context") or {}
         same_brain = context.get("brain_id") == client.brain_id
         options = ({name: context[name] for name in ("tools", "skip_imports_from", "share_real_life")}
@@ -1337,6 +1398,8 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
                                f"{options['tools']['recall']} when personal context is missing. ")
                 refreshed = notice + "\n\n" + refreshed
             _remember_context(directory, session, client.brain_id, current, options)
+            if refreshed:
+                _acknowledge(client, current)
         except Exception as error:
             log(directory, f"notes refresh failed: {type(error).__name__}")
         prefix = "\n\n".join(part for part in (source, refreshed) if part)
@@ -1351,7 +1414,8 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
 
             cues = ((previous,) if isinstance(previous, str) else ()) + alias_cues(saved, prompt)
             recalled = recall_context(client, scrub(prompt), current_conversation=session, cues=cues,
-                                      limit=(6500 if producer == "membrain-codex" else CONTEXT_CHARACTERS) - len(prefix) - 2)
+                                      limit=(6500 if producer == "membrain-codex" else CONTEXT_CHARACTERS) - len(prefix) - 2,
+                                      boundaries=current["boundaries"] if current else None)
             return "\n\n".join(part for part in (prefix, recalled) if part) or None
         except Exception as error:
             log(directory, f"recall failed: {type(error).__name__}")
