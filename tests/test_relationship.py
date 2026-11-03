@@ -661,6 +661,74 @@ def test_restored_archives_keep_the_relationship_records(installation, brain):
     assert remove_boundary(service, principal, copy, restored["boundaries"][0]["id"])["boundaries"] == []
 
 
+def restore_copy(service, principal, source, name):
+    import httpx
+
+    from membrain.client import MemoryClient
+
+    def handle(request):
+        return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
+
+    with MemoryClient("http://memory.test", "k", source, transport=httpx.MockTransport(handle)) as client:
+        archive = client.export()["result"]
+        copy = service.create_brain(principal, name)["id"]
+        client.restore(archive["archive_id"], expected_manifest_sha256=archive["manifest_sha256"],
+                       expected_scope_generation=1, mode="new_brain", brain_id=copy)
+    return copy
+
+
+def test_a_restored_brain_keeps_its_days_of_conversation(installation, brain, monkeypatch):
+    service, principal, ident = brain
+    days_of_conversation(brain, monkeypatch, 20)
+    note(brain, "Our first conversation.", kind="milestone", shared=True)
+    note(brain, "We finished the 10k plan together.", kind="milestone", shared=True)
+    before = relationship(service, principal, ident, today=TODAY)["familiarity"]
+    assert (before["level"], before["days"], before["since"]) == ("familiar", 20, "2027-03-02")
+
+    # Restored weeks later, every event is recorded again on that one day; the days of conversation stay.
+    monkeypatch.setattr(service_module, "now", lambda: "2027-04-20T08:00:00Z")
+    copy = restore_copy(service, principal, ident, "Restored days")
+    after = relationship(service, principal, copy, today=TODAY)["familiarity"]
+    assert (after["level"], after["days"], after["since"], after["reason"]) == (
+        before["level"], before["days"], before["since"], before["reason"])
+    # A second round trip keeps the first recorded days, not the first restore's day.
+    monkeypatch.setattr(service_module, "now", lambda: "2027-05-20T08:00:00Z")
+    again = relationship(service, principal, restore_copy(service, principal, copy, "Restored twice"),
+                         today=TODAY)["familiarity"]
+    assert (again["level"], again["days"], again["since"]) == ("familiar", 20, "2027-03-02")
+    monkeypatch.undo()
+    # The day of a restored message is never later than its new record, and a new message counts as usual.
+    say(brain, "One more day.", on="2027-03-25", monkeypatch=monkeypatch)
+    monkeypatch.undo()
+    assert relationship(service, principal, ident, today=TODAY)["familiarity"]["days"] == 21
+
+
+def test_days_follow_when_a_message_occurred_but_never_a_time_still_to_come(brain, monkeypatch):
+    service, principal, ident = brain
+
+    def said(text, occurred):
+        return service.handle(principal, {
+            "message_type": "request", "contract_version": "1.0.0-draft", "request_id": uid(), "action": "observe",
+            "target": {"brain_ref": ident, "conversation_ref": "imported-chat", "branch_ref": "main"},
+            "payload": {"idempotency_key": uid(), "events": [{
+                "source_event_key": uid(), "source_revision": 1, "producer_ref": "relationship-test",
+                "actor_ref": "user", "actor_role": "user", "event_kind": "message",
+                "content": {"media_type": "text/plain", "text": text},
+                "occurred_time": {"start": occurred, "end": None, "precision": "exact", "basis": "source_explicit"},
+                "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": [],
+            }]}})["outcome"]
+
+    monkeypatch.setattr(service_module, "now", lambda: "2027-03-20T12:00:00Z")
+    for day in range(2, 16):  # Fourteen days of history, all recorded on 20 Mar.
+        assert said(f"Chat on day {day}.", f"2027-03-{day:02d}T09:00:00Z") == "completed"
+    assert said("Late evening in New York.", "2027-03-15T22:30:00-05:00") == "completed"  # 16 Mar in UTC.
+    assert said("Earlier today.", "2027-03-20T08:00:00Z") == "completed"
+    assert said("A time still to come.", "2027-06-01T09:00:00Z") == "completed"  # Counted on 20 Mar instead.
+    monkeypatch.undo()
+    known = relationship(service, principal, ident, today=TODAY)["familiarity"]
+    assert (known["days"], known["since"]) == (16, "2027-03-02")
+
+
 def test_the_map_puts_shared_moments_in_the_relationship_region(brain):
     from membrain.memory_map import memory_map
 
