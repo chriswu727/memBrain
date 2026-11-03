@@ -120,6 +120,7 @@ export type TimeRange = {
 
 export type SystemTime = {
   "recorded_at": string;
+  "restored_from_recorded_at"?: string;
   "superseded_at": string | null;
 };
 

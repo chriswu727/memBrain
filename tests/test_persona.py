@@ -286,7 +286,8 @@ def test_api_and_sdk_routes_check_keys_owners_limits_and_delete_history(installa
     latest = service.memory_status(principal, ident)["durable_sequence"]
     assert marker["applies_from_sequence"] == latest and marker["recorded_at"]
     assert client.get(path).json()["version"] == 0
-    assert client.delete(path + "/versions").json() == {"deleted_versions": 0, "marker": None}
+    again = client.delete(path + "/versions").json()  # Nothing left to erase: a new cut-off is still written.
+    assert again["deleted_versions"] == 0 and again["marker"]["marker"] == "history_deleted"
     with service.database.transaction(principal) as conn:
         tombstones = conn.execute(
             "SELECT count(*) AS value FROM memory_tombstones t JOIN memory_events e ON e.tenant_id=t.tenant_id "
@@ -294,7 +295,7 @@ def test_api_and_sdk_routes_check_keys_owners_limits_and_delete_history(installa
             "AND e.conversation_id=%s AND t.mode='erase_content'", (ident, PERSONA_CONVERSATION)).fetchone()
     assert tombstones["value"] == 4  # Audited deletion, as for notes: it holds if a backup is restored.
     assert client.put(path, json={"card": CARD, "made_by": "user"}).json()["version"] == 1
-    assert client.get(path + "/versions").json()["markers"] == [marker]
+    assert client.get(path + "/versions").json()["markers"] == [again["marker"], marker]  # Newest first.
     # Erasing all memory removes the versions and the marker too.
     generation = service.dashboard(principal, ident)["brain"]["scope_generation"]
     erased = service.handle(principal, {

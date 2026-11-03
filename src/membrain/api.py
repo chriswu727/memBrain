@@ -292,8 +292,8 @@ def _unmodified_service(service) -> bool:
     """Whether ``service.handle`` is MemoryService's own, so ``respond`` does exactly what it would. Any override,
     in a subclass or on the instance, is what the route must call, and its response is validated here."""
     kind, own = type(service), getattr(service, "__dict__", {})
-    return (isinstance(service, MemoryService) and kind.handle is MemoryService.handle
-            and kind.respond is MemoryService.respond and "handle" not in own and "respond" not in own)
+    return (isinstance(service, MemoryService) and getattr(kind, "handle", None) is MemoryService.handle
+            and getattr(kind, "respond", None) is MemoryService.respond and "handle" not in own and "respond" not in own)
 
 
 def create_app(settings: Settings | None = None, service=None, turns=None, jobs=None) -> FastAPI:
@@ -602,6 +602,26 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
 
         body = await persona_body(request, PersonaReset)
         return await run_in_threadpool(reset_persona, service, principal, brain_id, **body)
+
+    # Persona suggestions from the user's feedback (P2). Listing stores any suggestion that has become due; the card
+    # changes only when the user accepts one.
+    @app.get("/v1/brains/{brain_id}/persona/proposals")
+    def get_persona_proposals(brain_id: str, principal: Principal = Depends(authenticate)):
+        from .persona_growth import persona_proposals
+
+        return persona_proposals(service, principal, brain_id)
+
+    @app.post("/v1/brains/{brain_id}/persona/proposals/{proposal_id}/accept")
+    def accept_persona_proposal(brain_id: str, proposal_id: str, principal: Principal = Depends(authenticate)):
+        from .persona_growth import accept_proposal
+
+        return accept_proposal(service, principal, brain_id, proposal_id)
+
+    @app.post("/v1/brains/{brain_id}/persona/proposals/{proposal_id}/reject")
+    def reject_persona_proposal(brain_id: str, proposal_id: str, principal: Principal = Depends(authenticate)):
+        from .persona_growth import reject_proposal
+
+        return reject_proposal(service, principal, brain_id, proposal_id)
 
     async def relationship_body(request: Request, model: type[RuntimeBody]) -> dict:
         document = await read_document(request)

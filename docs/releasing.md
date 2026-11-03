@@ -16,7 +16,9 @@ Every item must be met, with evidence recorded in the repository, before a relea
 - [ ] **R2 — tests.** The full Python, TypeScript and OpenClaw suites pass on the candidate, and Verify is green on the merge. The free [maturity test matrix](../evaluations/maturity-test-matrix.md) has no open gap for a shipped behaviour.
 - [ ] **R3 — isolation, privacy, deletion.** Existing regressions are green, and no known defect is open, including every review finding on the merged pull requests.
 - [ ] **R4 — behavioural acceptance passes.** Previously, a release could ship with R4 not passed if it said so. That is no longer enough: R4 must pass on new held-out scenarios. It has not passed after six attempts; the [README summary](../README.md#final-behavioral-acceptance-r4-attempts-1-to-6) gives each result, and those failures stay on record. Each further attempt needs its own frozen plan and the owner's approval of any paid run.
-- [ ] **R5 — overhead.** Recall p95 is under 500 ms on the development fixture, and hooks never block the host.
+- [ ] **R5 — overhead.** Hooks never block the host, and recall meets both bars below on the reference fixture. A serial result alone does not meet R5.
+  - **Serial:** p95 under 500 ms. Measured 2026-11-03: 360.85 ms, so met.
+  - **Concurrent:** proposed bar, not yet met. With 8 concurrent recalls on one brain, p95 is at most 1,000 ms. With 8 concurrent recalls spread over 8 brains, p95 is at most 600 ms. Measured 2026-11-03 for one brain: 2,582 ms. The conditions are in [gap 20 of the test matrix](../evaluations/maturity-test-matrix.md). The owner may change the numbers; the bar must be written down before anyone claims R5.
 
 **Companion layers ([Phase C](../architecture/phase-c-design.md))**
 - [ ] **C-1 — every step built.** C0 brain map, P1 persona, P2 persona growth, A1 feelings, M1 simulated mood and R1 relationship are implemented, each meeting the acceptance behaviours in the design file.

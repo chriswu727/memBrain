@@ -43,7 +43,7 @@ def test_the_showcase_is_a_separate_mode_entered_from_the_brain_tab_or_the_addre
     memory = (WEB / "memory.js").read_text(encoding="utf-8")
     # Read before the sign-in link's query string is removed, then honoured once the brain map is loaded.
     assert memory.index('get("show") === "1"') < memory.index("history.replaceState")
-    assert 'show(SHOWCASE ? "brain" : "notes")' in memory and "if (SHOWCASE) window.openShowcase();" in memory
+    assert 'show(SHOWCASE ? "brain" : view)' in memory and "if (SHOWCASE) window.openShowcase();" in memory
     script = (WEB / "showcase.js").read_text(encoding="utf-8")
     assert "if (DEMO && SHOWCASE) openShowcase();" in script
     assert 'event.key === "Escape"' in script and '$("show-close").addEventListener("click", closeShowcase)' in script

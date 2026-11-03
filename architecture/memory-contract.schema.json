@@ -90,6 +90,11 @@
             "null"
           ],
           "format": "date-time"
+        },
+        "restored_from_recorded_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Only on an event restored from an archive: when the server first recorded the original event (the earliest across repeated restores, never later than recorded_at). recorded_at stays the time this copy was ingested. It is a recording time, never a time the event occurred."
         }
       },
       "required": [

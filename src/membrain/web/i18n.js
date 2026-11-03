@@ -102,10 +102,10 @@ const ZH = {
     "还没有收到 agent 的消息。请在下面完成连接，发一条消息并等它回复，然后刷新。",
   "Downloading the local model (about 135 MB). Keyword search already works.": "正在下载本地模型（约 135 MB）。关键词搜索已经可用。",
   "The download failed. Check your connection and retry below; keyword search still works.": "下载失败。请检查网络后在下面重试；关键词搜索仍然可用。",
-  "The model is downloaded. Finish enabling it below.": "模型已下载，请在下面完成启用。",
+  "The model is downloaded and is being enabled. Keyword search already works.": "模型已下载，正在启用。关键词搜索已经可用。",
   "Local model support is missing. Reinstall using the documented semantic extra.": "缺少本地模型支持。请按文档带上 semantic 附加组件重新安装。",
   "Optional local model; no API key or usage charge. Keyword search already works.": "可选的本地模型，不需要 API key，也不产生费用。关键词搜索已经可用。",
-  "Retry model download": "重新下载模型", "Finish enabling recall": "完成启用召回",
+  "Retry model download": "重新下载模型",
   "Memory service needs attention": "记忆服务需要处理", "Messages waiting for delivery": "有消息等待写入",
   "Note extraction needs attention": "笔记提炼需要处理",
   "Indexing your messages": "正在为你的消息建立索引", "Memory is ready": "记忆已就绪", "Keyword memory is ready": "关键词记忆已就绪",
@@ -234,7 +234,7 @@ const ZH = {
   "Glad": "开心", "Concerned": "担心", "Playful": "俏皮", "Calm": "平静", "Wistful": "惆怅", "easing": "正在平复",
   "Keep the mood at its baseline": "让心情保持在基础心情", "Triggers": "触发记录", "Reset mood": "重置心情",
   "Good news you shared": "你分享的好消息", "Good news, inferred": "推断出的好消息", "A plan noted done": "一个计划已完成",
-  "Something hard you shared": "你分享的难过的事", "Something hard, inferred": "推断出的难过的事", "A shared joke": "一起开的玩笑",
+  "Something hard you shared": "你分享的难过的事", "Something hard, inferred": "推断出的难过的事", "A shared joke": "一起开的玩笑", "A moment you shared": "你们一起经历的时刻",
   "active": "生效中", "back at baseline": "已回到基础心情", "ignored while pinned": "固定期间已忽略",
   "You said you felt": "你说你感到", "Your agent inferred you seemed": "agent 推断你似乎", "You did not say it.": "你并没有这样说。",
   "Pinned to its baseline: no trigger changes it until you lift the pin.": "已固定在基础心情：在你取消固定之前，任何触发都不会改变它。",
@@ -245,10 +245,32 @@ const ZH = {
     "把心情恢复到基础心情，并忘掉它的触发记录？感受、笔记和个性不受影响，之前发生的事也不会再改变心情。",
   "Leave the mood empty to rest at calm. It is the resting point the simulated mood returns to; it is not a feeling.":
     "心情留空则以平静为基础心情。它是模拟心情回归的起点，不是一种真实的感受。",
+  // Persona suggestions from feedback (P2)
+  "Suggestions from your feedback": "根据你的反馈提出的建议",
+  "When you give your companion the same kind of feedback on how it talks three times, in any conversations, memBrain suggests a change to its card here and quotes what you said. Nothing changes until you accept. If you reject a suggestion, none of the same kind is offered again for 30 days.":
+    "当你就伙伴的说话方式给出同一类反馈满三次（在任何对话里都算），memBrain 会在这里建议修改它的设定，并引用你说过的话。在你接受之前什么都不会改变。如果你拒绝一条建议，30 天内不会再提出同类建议。",
+  "Earlier suggestions": "之前的建议", "No suggestions waiting.": "没有待处理的建议。",
+  "More casual": "更随意", "More formal": "更正式", "More playful": "更活泼", "Shorter replies": "回复更简短",
+  "Longer, more detailed replies": "回复更详细", "Fewer emoji": "少用表情", "More emoji": "多用表情",
+  "waiting for you": "等你决定", "accepted": "已接受", "rejected": "已拒绝", "withdrawn": "已撤回",
+  "Withdrawn: fewer than three of its messages are still in memory.": "已撤回：它引用的消息留在记忆里的已不足三条。",
+  "Withdrawn: the card already has this.": "已撤回：设定里已经有这一项。",
+  "Withdrawn: the card has no room for it.": "已撤回：设定里放不下这一项。", "Withdrawn.": "已撤回。",
+  "(empty)": "（空）", "What you said:": "你说过的话：", "Change to the card (everything else stays):": "对设定的修改（其他内容不变）：",
+  "Accept": "接受", "Reject": "拒绝", "accepted suggestion": "接受的建议", "The messages behind this change were deleted.": "这次修改所依据的消息已被删除。",
+  "Accept this suggestion? The card is saved as a new version; you can restore the earlier one at any time.":
+    "接受这条建议？设定会保存为一个新版本；你随时可以恢复之前的版本。",
+  "Reject this suggestion? None of the same kind is offered again for 30 days.": "拒绝这条建议？30 天内不会再提出同类建议。",
+  "Suggestion rejected. None of this kind for 30 days.": "已拒绝这条建议。30 天内不会再提出同类建议。",
+  "That suggestion is not available.": "这条建议已不存在。", "That suggestion is no longer open.": "这条建议已经处理过或已撤回。",
+  "The card already has this change.": "设定里已经有这项修改。",
+  // End of persona suggestions
 };
 
 // Sentences built from numbers and names; the captured parts are kept as they are.
 const ZH_PATTERNS = [
+  [/^Accepted suggestion: (.+), from (\d+) messages \((.+)\)$/, (m, label, n, days) =>
+    `接受的建议：${ZH[label] || label}，来自你的 ${n} 条消息（${days}）`],
   [/^(\d+) message\(s\) recorded(?:; latest from (.+?))?(?: on (.+?))?\.$/, (m, n, from, on) =>
     `已记录 ${n} 条消息${from ? `，最近一条来自 ${from}` : ""}${on ? `（${on}）` : ""}。`],
   [/^Enabled\. (\d+) memory item\(s\) still preparing\.$/, (m, n) => `已启用。还有 ${n} 条记忆在准备中。`],
@@ -261,7 +283,7 @@ const ZH_PATTERNS = [
   [/^Keyword and semantic recall enabled$/, () => "关键词和语义召回均已启用"],
   [/^Keyword recall ready; semantic model downloading$/, () => "关键词召回已就绪；语义模型下载中"],
   [/^Keyword recall ready; model download needs a retry$/, () => "关键词召回已就绪；模型下载需要重试"],
-  [/^Keyword recall ready; semantic model needs activation$/, () => "关键词召回已就绪；语义模型需要启用"],
+  [/^Keyword recall ready; semantic model activating$/, () => "关键词召回已就绪；语义模型启用中"],
   [/^Keyword recall ready; semantic model not enabled$/, () => "关键词召回已就绪；未启用语义模型"],
   [/^Keyword recall available; local model status unknown$/, () => "关键词召回可用；本地模型状态未知"],
   [/^(.*) Run membrain doctor for help\.$/, (m, error) => `${error} 运行 membrain doctor 获取帮助。`],
@@ -320,6 +342,14 @@ const ZH_PATTERNS = [
   [/^Kept: (\d+) · missed: (\d+) · cancelled: (\d+) · open: (\d+)$/, (m, kept, missed, cancelled, open) =>
     `做到 ${kept} · 错过 ${missed} · 取消 ${cancelled} · 进行中 ${open}`],
   [/^Relationship request field ([\w.\[\]]+): (.+)$/s, (m, where, detail) => `关系字段 ${where}：${detail}`],
+  // Persona suggestions from feedback (P2). The kind is one of the labels above; dates are "3 Nov 2026".
+  [/^(.+): from (\d+) messages$/, (m, kind, n) => `${ZH[kind] || kind}：来自 ${n} 条消息`],
+  [/^Accepted on (.+) as version (\d+)\.$/, (m, date, n) => `已于 ${translate(date)} 接受，保存为版本 ${n}。`],
+  [/^Rejected on (.+)\. None of this kind until (.+)\.$/, (m, date, until) =>
+    `已于 ${translate(date)} 拒绝。${translate(until)} 之前不会再提出同类建议。`],
+  [/^(\d+) waiting$/, (m, n) => `${n} 条待处理`],
+  [/^(.+): paused until (.+) after you rejected it\.$/, (m, kind, until) => `${ZH[kind] || kind}：你拒绝过，${translate(until)} 之前暂停提出。`],
+  // End of persona suggestions
 ];
 // "2 Mar" or "2 Mar 2027" as a Chinese date.
 function zhDay(text) {

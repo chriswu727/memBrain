@@ -10,8 +10,16 @@ from __future__ import annotations
 import datetime as _datetime
 import re
 
+from . import helpers as _helpers
 from .helpers import uid
 from .privacy import neutralize, scrub
+
+
+def _clock_today() -> _datetime.date:
+    """The evaluation scenario clock's date when one is enabled; otherwise this module's own date, which older
+    evaluation harnesses replace through ``_datetime``."""
+    return _helpers.today() if _helpers._scenario_clock is not None else _datetime.date.today()
+
 
 NOTES_CONVERSATION = "membrain-notes"
 NOTE_CHARACTERS = 300  # The sentence; a typed note's header comes on top.
@@ -162,7 +170,7 @@ def check_affect(value, *, sourced: bool, today: _datetime.date | None = None) -
     topic = " ".join(scrub(str(value.get("topic") or "")).split())
     if len(topic) > 80:
         raise ValueError("affect.topic must be at most 80 characters.")
-    felt_at = _date(value.get("felt_at") or (today or _datetime.date.today()).isoformat(), "affect.felt_at")
+    felt_at = _date(value.get("felt_at") or (today or _clock_today()).isoformat(), "affect.felt_at")
     if len(felt_at) != 10:
         raise ValueError("affect.felt_at must be a full date as YYYY-MM-DD.")
     record = {"label": label, **numbers, "basis": basis, "felt_at": felt_at}
@@ -172,7 +180,7 @@ def check_affect(value, *, sourced: bool, today: _datetime.date | None = None) -
 def affect_phrase(record: dict, today: _datetime.date | None = None) -> str:
     """How one affect record reads on its note's line. An inferred feeling is never phrased as something said."""
     when = _as_date(record.get("felt_at"))
-    today = today or _datetime.date.today()
+    today = today or _clock_today()
     day = "" if when is None else f", {when.day} {_MONTHS[when.month - 1]}" + (
         f" {when.year}" if when.year != today.year else "")
     label = " ".join(str(record.get("label") or "").split())
@@ -306,7 +314,7 @@ def _line(item: dict, fields: dict, sentence: str, feelings: tuple[str, ...] = (
         status = fields.get("status", "intended")
         # A deadline met early is done; an event date still ahead ("delivery on the 8th") has not happened yet.
         dated = _as_date(fields.get("occurs_at"))
-        if status == "done" and dated is not None and dated > _datetime.date.today():
+        if status == "done" and dated is not None and dated > _clock_today():
             # "Paid in full, delivery on the 8th" saved as done: the dated part has not happened yet.
             tags.append(f"done so far; {when} is still ahead, so that has not happened yet")
             when = ""
@@ -353,7 +361,7 @@ def _priority(entry) -> int:
 
 def _date_passed(fields: dict) -> bool:
     when = _as_date(fields.get("occurs_at")) or _as_date(fields.get("due"))
-    return when is not None and when < _datetime.date.today()
+    return when is not None and when < _clock_today()
 
 
 def select_notes(parsed: list, budget: int = NOTES_CHARACTERS) -> tuple[list, int]:
@@ -474,7 +482,7 @@ def _as_date(value: str | None) -> _datetime.date | None:
 def render_coming_up(response: dict, *, today: _datetime.date | None = None, skip_imports_from=(),
                      budget: int = 1500) -> str | None:
     """Open plans and commitments that are due soon, overdue, or undated, with today's date."""
-    today = today or _datetime.date.today()
+    today = today or _clock_today()
     soon, passed, undated = [], [], []
     planned = []
     for item, fields, sentence in _parsed(response, skip_imports_from):

@@ -2,7 +2,9 @@
 
 The model (multilingual-e5-small, int8 ONNX export, MIT licence) runs in-process with ONNX Runtime. Its files are
 downloaded once into the installation directory, pinned to a revision and verified by SHA-256. Without the optional
-``semantic`` extra or before the download finishes, recall stays lexical.
+``semantic`` extra or before the download finishes, recall stays lexical. A local profile configures the provider
+before the download; it reports ready once the verified files are in place and then loads on first use, so a running
+service starts using the model without a restart.
 """
 from __future__ import annotations
 
@@ -49,14 +51,26 @@ def model_directory(installation: Path) -> Path:
     return Path(installation) / _DIRECTORY
 
 
+def complete(directory: Path) -> bool:
+    """Whether every pinned file is in ``directory`` with its expected size.
+
+    ``download`` moves a file to its final name only after its SHA-256 matched, so a complete directory holds the
+    verified model.
+    """
+    for name, (_, size) in FILES.items():
+        path = Path(directory) / name
+        try:
+            if not path.is_file() or path.is_symlink() or path.stat().st_size != size:
+                return False
+        except OSError:
+            return False
+    return True
+
+
 def installed(installation: Path) -> Path | None:
     """Return the model directory when every pinned file is present with its expected size."""
     directory = model_directory(installation)
-    for name, (_, size) in FILES.items():
-        path = directory / name
-        if not path.is_file() or path.is_symlink() or path.stat().st_size != size:
-            return None
-    return directory
+    return directory if complete(directory) else None
 
 
 def _source(name: str) -> str:
@@ -95,7 +109,12 @@ def download(installation: Path, *, timeout: float = 600.0, transport: httpx.Bas
 
 
 class LocalEmbeddingProvider:
-    """In-process ``EmbeddingProvider`` for the pinned multilingual model."""
+    """In-process ``EmbeddingProvider`` for the pinned multilingual model.
+
+    The provider may be created before its model directory exists. ``ready`` stays false until every pinned file is
+    in place; ``MemoryService`` treats a provider that is not ready as absent. Once ready it stays ready, and the
+    model loads on the first request, under a lock.
+    """
 
     metered = False  # No cost or network call: exempt from model-call budgets and the operation ledger.
 
@@ -106,6 +125,13 @@ class LocalEmbeddingProvider:
         self._lock = threading.Lock()
         self._session = None
         self._tokenizer = None
+        self._ready = False
+
+    @property
+    def ready(self) -> bool:
+        if not self._ready and complete(self._directory):
+            self._ready = True
+        return self._ready
 
     @property
     def space(self) -> EmbeddingSpace:
@@ -121,6 +147,8 @@ class LocalEmbeddingProvider:
         self.close()
 
     def _load(self):
+        if not self.ready:
+            raise LocalEmbeddingError("The local embedding model is not installed yet.")
         with self._lock:
             if self._session is None:
                 import onnxruntime

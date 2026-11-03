@@ -319,6 +319,19 @@ class MemoryClient:
         """Erase every persona version (audited, like deleting notes)."""
         return self._request("DELETE", self._persona_path(brain_id, "/versions"))
 
+    def persona_proposals(self, *, brain_id: str | None = None) -> JsonObject:
+        """Suggestions for a new persona card made from the user's repeated feedback, open ones first, each with
+        the quoted messages, the proposed change and its status (open, accepted, rejected or withdrawn)."""
+        return self._request("GET", self._persona_path(brain_id, "/proposals"))
+
+    def accept_persona_proposal(self, proposal_id: str, *, brain_id: str | None = None) -> JsonObject:
+        """Accept a suggestion: its card becomes a new version made by "feedback". Only the user should do this."""
+        return self._request("POST", self._persona_path(brain_id, f"/proposals/{quote(proposal_id, safe='')}/accept"))
+
+    def reject_persona_proposal(self, proposal_id: str, *, brain_id: str | None = None) -> JsonObject:
+        """Reject a suggestion; none of the same kind is offered again for 30 days."""
+        return self._request("POST", self._persona_path(brain_id, f"/proposals/{quote(proposal_id, safe='')}/reject"))
+
     def _relationship_path(self, brain_id: str | None, suffix: str = "") -> str:
         return f"v1/brains/{quote(self._scope(brain_id=brain_id)['brain_ref'], safe='')}/relationship{suffix}"
 

@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
+from psycopg.types.json import Jsonb
 
 from membrain import desktop, embedded_database, host, notes
 from membrain import service as service_module
@@ -253,7 +254,7 @@ def api(installation, brain):
         yield client, f"/v1/brains/{ident}/relationship"
 
 
-def say(brain, text, *, conversation="chat", on=None, monkeypatch=None):
+def say(brain, text, *, conversation="chat", on=None, monkeypatch=None, occurred=None, occurred_end=None):
     """One user message; ``on`` (with ``monkeypatch``) records it on that day, as the service clock reads it."""
     service, principal, ident = brain
     if on is not None:
@@ -264,7 +265,8 @@ def say(brain, text, *, conversation="chat", on=None, monkeypatch=None):
         "payload": {"idempotency_key": uid(), "events": [{
             "source_event_key": uid(), "source_revision": 1, "producer_ref": "relationship-test", "actor_ref": "user",
             "actor_role": "user", "event_kind": "message", "content": {"media_type": "text/plain", "text": text},
-            "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
+            "occurred_time": {"start": occurred, "end": occurred_end, "precision": "exact" if occurred else "unknown",
+                              "basis": "source_explicit" if occurred else "unknown"},
             "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": [],
         }]},
     })
@@ -319,6 +321,22 @@ def test_cross_session_a_boundary_keeps_the_topic_out_until_it_is_removed(instal
     later = host.session_context(directory, "s6", user_id=user)
     later += turn("s6", "Any hiking ideas near Mount Tam this weekend?")
     assert "Mount Tam every Sunday" in later and "海边" in later and "Boundaries:" not in later
+
+
+@pytest.mark.parametrize("occurred,occurred_end", [
+    ("0001-01-01T00:00:00+23:59", None), ("9999-12-31T23:59:59-23:59", None),
+    ("2027-03-20T09:00:00Z", "2027-03-19T09:00:00Z"),
+])
+def test_invalid_occurrence_ranges_are_rejected_before_they_can_reach_the_worker(
+        brain, monkeypatch, occurred, occurred_end):
+    result = say(brain, "A fictional message with an unusable occurrence range.", on="2027-03-20",
+                 monkeypatch=monkeypatch, occurred=occurred, occurred_end=occurred_end)
+    assert result["outcome"] == "rejected" and result["error"]["code"] == "validation_failed"
+    status = brain[0].memory_status(brain[1], brain[2])
+    assert status["recorded_messages"] == 0 and status["pending_jobs"] == 0
+    assert say(brain, "A later valid message.", on="2027-03-20", monkeypatch=monkeypatch)["outcome"] == "completed"
+    known = relationship(*brain, today=TODAY)["familiarity"]
+    assert (known["days"], known["since"]) == (1, "2027-03-20")
 
 
 def test_familiarity_crosses_its_thresholds_with_the_numbers_the_page_shows(brain, monkeypatch):
@@ -659,6 +677,167 @@ def test_restored_archives_keep_the_relationship_records(installation, brain):
     assert [moment["text"] for moment in restored["shared_moments"]] == ["Our first conversation."]
     # The restored records can still be changed, and the boundary removed.
     assert remove_boundary(service, principal, copy, restored["boundaries"][0]["id"])["boundaries"] == []
+
+
+def restore_copy(service, principal, source, name):
+    import httpx
+
+    from membrain.client import MemoryClient
+
+    def handle(request):
+        return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
+
+    with MemoryClient("http://memory.test", "k", source, transport=httpx.MockTransport(handle)) as client:
+        archive = client.export()["result"]
+        copy = service.create_brain(principal, name)["id"]
+        client.restore(archive["archive_id"], expected_manifest_sha256=archive["manifest_sha256"],
+                       expected_scope_generation=1, mode="new_brain", brain_id=copy)
+    return copy
+
+
+def test_a_restored_brain_keeps_days_its_messages_carry_and_adds_nothing_to_the_archive(installation, brain,
+                                                                                          monkeypatch):
+    service, principal, ident = brain
+
+    def said(text, occurred):
+        return service.handle(principal, {
+            "message_type": "request", "contract_version": "1.0.0-draft", "request_id": uid(), "action": "observe",
+            "target": {"brain_ref": ident, "conversation_ref": "chat", "branch_ref": "main"},
+            "payload": {"idempotency_key": uid(), "events": [{
+                "source_event_key": uid(), "source_revision": 1, "producer_ref": "relationship-test",
+                "actor_ref": "user", "actor_role": "user", "event_kind": "message",
+                "content": {"media_type": "text/plain", "text": text},
+                "occurred_time": {"start": occurred, "end": None, "precision": "exact", "basis": "source_explicit"},
+                "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": [],
+            }]}})["outcome"]
+
+    monkeypatch.setattr(service_module, "now", lambda: "2027-03-22T12:00:00Z")
+    for day in range(2, 22):
+        assert said(f"Day {day}.", f"2027-03-{day:02d}T09:00:00Z") == "completed"
+    monkeypatch.undo()
+    note(brain, "Our first conversation.", kind="milestone", shared=True)
+    note(brain, "We finished the 10k plan together.", kind="milestone", shared=True)
+    before = relationship(service, principal, ident, today=TODAY)["familiarity"]
+    assert (before["level"], before["days"], before["since"]) == ("familiar", 20, "2027-03-02")
+    monkeypatch.setattr(service_module, "now", lambda: "2027-04-20T08:00:00Z")
+    copy = restore_copy(service, principal, ident, "Restored days")
+    monkeypatch.undo()
+    after = relationship(service, principal, copy, today=TODAY)["familiarity"]
+    assert (after["level"], after["days"], after["since"]) == (before["level"], before["days"], before["since"])
+    # A restored brain must stay identical to its archive: the restore wrote nothing beyond the imported events.
+    with service.database.transaction(principal) as conn:
+        extra = conn.execute(
+            "SELECT count(*) AS n FROM memory_events WHERE brain_id=%s AND producer_ref <> 'archive-import'",
+            (copy,)).fetchone()["n"]
+    assert extra == 0
+
+
+def test_restored_messages_without_a_reported_time_keep_their_days_across_repeated_restores(installation, brain,
+                                                                                             monkeypatch):
+    service, principal, ident = brain
+
+    def said(text):
+        return service.handle(principal, {
+            "message_type": "request", "contract_version": "1.0.0-draft", "request_id": uid(), "action": "observe",
+            "target": {"brain_ref": ident, "conversation_ref": "chat", "branch_ref": "main"},
+            "payload": {"idempotency_key": uid(), "events": [{
+                "source_event_key": uid(), "source_revision": 1, "producer_ref": "relationship-test",
+                "actor_ref": "user", "actor_role": "user", "event_kind": "message",
+                "content": {"media_type": "text/plain", "text": text},
+                "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
+                "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": [],
+            }]}})["outcome"]
+
+    for when in ("2027-03-02T09:00:00Z", "2027-03-05T09:00:00Z", "2027-03-09T09:00:00Z"):
+        monkeypatch.setattr(service_module, "now", lambda when=when: when)
+        assert said(f"Chat recorded at {when}.") == "completed"
+    # A clock that ran ahead recorded this one in the future; a restore never counts a day still to come.
+    monkeypatch.setattr(service_module, "now", lambda: "2027-05-01T09:00:00Z")
+    assert said("Recorded by a clock that ran ahead.") == "completed"
+    monkeypatch.setattr(service_module, "now", lambda: "2027-04-20T08:00:00Z")
+    first = restore_copy(service, principal, ident, "First restore")
+    monkeypatch.setattr(service_module, "now", lambda: "2027-04-25T08:00:00Z")
+    second = restore_copy(service, principal, first, "Restore of the restore")
+    monkeypatch.undo()
+    for copy in (first, second):
+        known = relationship(service, principal, copy, today=TODAY)["familiarity"]
+        assert (known["days"], known["since"]) == (4, "2027-03-02")
+    with service.database.transaction(principal) as conn:
+        rows = conn.execute(
+            "SELECT document FROM memory_events WHERE brain_id=%s AND is_current ORDER BY sequence", (second,)).fetchall()
+        extra = conn.execute(
+            "SELECT count(*) AS n FROM memory_events WHERE brain_id IN (%s,%s) AND producer_ref <> 'archive-import'",
+            (first, second)).fetchone()["n"]
+    assert extra == 0  # Nothing beyond the imported events: the restored brains still equal their archives.
+    times = [row["document"]["system_time"] for row in rows]
+    # recorded_at stays this copy's ingestion; the original recording time is the earliest one, never a future one.
+    assert {time["recorded_at"] for time in times} == {"2027-04-25T08:00:00Z"}
+    assert [time["restored_from_recorded_at"] for time in times] == [
+        "2027-03-02T09:00:00Z", "2027-03-05T09:00:00Z", "2027-03-09T09:00:00Z", "2027-04-20T08:00:00Z"]
+    assert all(row["document"]["observed"]["occurred_time"]["start"] is None for row in rows)  # Never invented.
+
+
+@pytest.mark.parametrize("field", ["recorded_at", "restored_from_recorded_at"])
+@pytest.mark.parametrize("extreme", ["0001-01-01T00:00:00+23:59", "9999-12-31T23:59:59-23:59"])
+def test_an_archive_time_with_no_utc_form_is_an_invalid_archive_and_the_restore_writes_nothing(installation, brain,
+                                                                                              field, extreme):
+    import httpx
+
+    from membrain.client import MemoryActionError, MemoryClient
+    from membrain.helpers import digest
+
+    service, principal, ident = brain
+    note(brain, "Our first conversation.", kind="milestone", shared=True)
+
+    def handle(request):
+        return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
+
+    with MemoryClient("http://memory.test", "k", ident, transport=httpx.MockTransport(handle)) as client:
+        archive_id = client.export()["result"]["archive_id"]
+        document = service.download_archive(principal, archive_id)["document"]
+        document["events"][0]["system_time"][field] = extreme  # Valid as a date-time, but outside UTC's range.
+        with pytest.raises(DomainError) as refused:
+            service.upload_archive(principal, ident, document)
+        assert refused.value.code == "invalid_archive"
+        # An archive stored before this check is refused at restore, and the restore's transaction writes nothing.
+        with service.database.transaction(principal) as conn:
+            conn.execute("UPDATE memory_archives SET document=%s, manifest_hash=%s WHERE id=%s",
+                         (Jsonb(document), digest(document), archive_id))
+        copy = service.create_brain(principal, "Never restored")["id"]
+        with pytest.raises(MemoryActionError) as rejected:
+            client.restore(archive_id, expected_manifest_sha256=digest(document), expected_scope_generation=1,
+                           mode="new_brain", brain_id=copy)
+    response = rejected.value.response
+    assert response["outcome"] == "rejected" and response["error"]["code"] == "invalid_archive", response
+    with service.database.transaction(principal) as conn:
+        written = conn.execute("SELECT count(*) AS n FROM memory_events WHERE brain_id=%s", (copy,)).fetchone()["n"]
+    assert written == 0
+
+
+def test_days_follow_when_a_message_occurred_but_never_a_time_still_to_come(brain, monkeypatch):
+    service, principal, ident = brain
+
+    def said(text, occurred):
+        return service.handle(principal, {
+            "message_type": "request", "contract_version": "1.0.0-draft", "request_id": uid(), "action": "observe",
+            "target": {"brain_ref": ident, "conversation_ref": "imported-chat", "branch_ref": "main"},
+            "payload": {"idempotency_key": uid(), "events": [{
+                "source_event_key": uid(), "source_revision": 1, "producer_ref": "relationship-test",
+                "actor_ref": "user", "actor_role": "user", "event_kind": "message",
+                "content": {"media_type": "text/plain", "text": text},
+                "occurred_time": {"start": occurred, "end": None, "precision": "exact", "basis": "source_explicit"},
+                "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": [],
+            }]}})["outcome"]
+
+    monkeypatch.setattr(service_module, "now", lambda: "2027-03-20T12:00:00Z")
+    for day in range(2, 16):  # Fourteen days of history, all recorded on 20 Mar.
+        assert said(f"Chat on day {day}.", f"2027-03-{day:02d}T09:00:00Z") == "completed"
+    assert said("Late evening in New York.", "2027-03-15T22:30:00-05:00") == "completed"  # 16 Mar in UTC.
+    assert said("Earlier today.", "2027-03-20T08:00:00Z") == "completed"
+    assert said("A time still to come.", "2027-06-01T09:00:00Z") == "completed"  # Counted on 20 Mar instead.
+    monkeypatch.undo()
+    known = relationship(service, principal, ident, today=TODAY)["familiarity"]
+    assert (known["days"], known["since"]) == (16, "2027-03-02")
 
 
 def test_the_map_puts_shared_moments_in_the_relationship_region(brain):

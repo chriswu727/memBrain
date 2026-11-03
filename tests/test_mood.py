@@ -31,6 +31,7 @@ from membrain.mood import (
 )
 from membrain.notes import store_note
 from membrain.persona import set_persona
+from membrain.relationship import _append, add_boundary, reset_relationship
 
 ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT / "src" / "membrain" / "web"
@@ -153,9 +154,11 @@ def test_cross_session_job_news_is_glad_then_easing_then_exactly_the_baseline(br
         return snapshot({"items": []}, brain_id="b", tools=None, mood=state)
 
     one, two, three = context(first), context(second), context(third)
-    assert one["mood_shown"] and first["block"] in one["text"]
+    local = moment("2027-03-14T21:00:00Z").astimezone()
+    host_when = f"{local.day} Mar {local:%H:%M}"
+    assert one["mood_shown"] and first["block"].replace("14 Mar 21:00", host_when) in one["text"]
     assert update(context(mood(brain, "2027-03-14T22:00:00Z")), one["fingerprint"], None, True) is None
-    assert second["block"] in update(two, one["fingerprint"], None, True)
+    assert second["block"].replace("14 Mar 21:00", host_when) in update(two, one["fingerprint"], None, True)
     gone = update(three, two["fingerprint"], None, True)
     assert "simulated mood is back at its baseline" in gone and "<membrain-companion-mood>" not in gone
 
@@ -183,7 +186,7 @@ def test_the_persona_baseline_is_the_resting_point(brain, clock):
 
 def test_absence_is_never_a_trigger_and_a_thirty_day_gap_is_the_baseline(brain, clock):
     assert set(RULES) == {"reported_good_news", "inferred_good_news", "plan_done", "reported_distress",
-                          "inferred_distress", "shared_play"}
+                          "inferred_distress", "shared_play", "shared_moment"}
     assert {rule["label"] for rule in RULES.values()} <= {"glad", "concerned", "playful"}
     clock("2027-03-01T10:00:00Z")
     say(brain, "Talk soon, I'm off for a while.")
@@ -399,6 +402,31 @@ def test_pins_and_reset_markers_survive_an_archive_restore(installation, brain, 
     assert pin_mood(service, principal, copy, True, now=moment("2027-03-14T21:05:00Z"))["unchanged"]
 
 
+def test_restoring_old_feelings_does_not_trigger_a_fresh_mood(installation, brain, clock):
+    from membrain.client import MemoryClient
+
+    service, principal, ident = brain
+    clock("2027-03-14T21:00:00Z")
+    write(brain, "Got the job.", kind="milestone", affect=JOB)
+    assert not mood(brain, "2027-03-14T21:05:00Z")["at_baseline"]
+    clock("2027-03-20T21:00:00Z")
+    assert mood(brain, "2027-03-20T21:00:00Z")["at_baseline"]
+
+    def handle(request):
+        return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
+
+    with MemoryClient("http://memory.test", "k", ident, transport=httpx.MockTransport(handle)) as client:
+        archive = client.export()["result"]
+        copy = service.create_brain(principal, "Restored old feelings")["id"]
+        client.restore(archive["archive_id"], expected_manifest_sha256=archive["manifest_sha256"],
+                       expected_scope_generation=1, mode="new_brain", brain_id=copy)
+    restored = mood_state(service, principal, copy, now=moment("2027-03-20T21:01:00Z"))
+    assert restored["at_baseline"] and restored["block"] is None
+    from membrain.affect import affect_records
+
+    assert len(affect_records(service, principal, copy)["records"]) == 1
+
+
 def test_archived_mood_settings_are_read_strictly(brain):
     from membrain.mood import _entry
 
@@ -569,3 +597,140 @@ def test_the_mood_section_is_on_the_personality_page_in_english_and_chinese():
     for sample, pattern in (("Back at its baseline by 15 Mar 09:00", "Back at its baseline by"),
                             ("Since 14 Mar 21:00", "Since"), ("Mood reset on 14 Mar 2027", "Mood reset on")):
         assert re.search(r"\[/\^" + re.escape(pattern), dictionary), sample
+
+
+# Shared moments (R1) ---------------------------------------------------------------------------------------------
+# A shared moment of the relationship layer moves the mood: a joke or play is playful, anything else glad.
+
+def shared(brain, text, **fields):
+    return write(brain, text, kind="milestone", shared=True, **fields)
+
+
+def rules(state):
+    return [(t["rule"], t["source"]["id"], t["status"]) for t in state["triggers"]]
+
+
+def test_the_play_list_is_small_fixed_and_matches_whole_english_words():
+    from membrain.mood import _PLAY
+
+    for text in ("We laughed about the burnt pancakes.", "A silly game of charades", "We played chess.",
+                 "Your JOKE about the cat", "我们一起开了个玩笑。", "他逗我", "笑了很久"):
+        assert _PLAY.search(text), text
+    for text in ("We displayed the photos.", "Finished the 10k plan together.", "Slaughtered the backlog",
+                 "我们一起跑完了十公里"):
+        assert _PLAY.search(text) is None, text
+
+
+def test_a_shared_achievement_is_glad_and_a_shared_joke_is_playful(brain, clock):
+    clock("2027-03-14T21:00:00Z")
+    done = shared(brain, "We finished the 10k plan together.")
+    glad = mood(brain, "2027-03-14T21:00:00Z")
+    assert rules(glad) == [("shared_moment", done["note_id"], "active")]
+    assert glad["label"] == "glad" and glad["triggers"][0]["label"] == "glad"
+    assert glad["block"] == (
+        "<membrain-companion-mood>\nSimulated mood of the companion persona: glad (since 14 Mar 21:00, because you "
+        "and the user shared a moment: We finished the 10k plan together.). " + SAFE + "\n</membrain-companion-mood>")
+    # Two days later the mood is exactly the baseline again.
+    assert mood(brain, "2027-03-16T21:00:00Z")["at_baseline"]
+
+    clock("2027-03-20T10:00:00Z")
+    joke = shared(brain, "We laughed about the burnt pancakes.")
+    playful = mood(brain, "2027-03-20T10:00:00Z")
+    assert rules(playful)[0] == ("shared_play", joke["note_id"], "active")
+    assert playful["label"] == "playful" and playful["triggers"][0]["label"] == "playful"
+    assert "because you and the user shared a light moment: We laughed about the burnt pancakes." in playful["block"]
+    assert "feel" not in playful["block"].split("because", 1)[1].split(").", 1)[0]  # No claim of real feelings.
+
+    clock("2027-03-25T10:00:00Z")
+    chinese = shared(brain, "我们一起开了个玩笑。")
+    assert rules(mood(brain, "2027-03-25T10:00:00Z"))[0] == ("shared_play", chinese["note_id"], "active")
+
+
+def test_sensitive_bounded_imported_future_and_ordinary_milestones_never_trigger(brain, clock):
+    service, principal, ident = brain
+    clock("2027-03-14T21:00:00Z")
+    add_boundary(service, principal, ident, "my ex", ["Jordan"])
+    shared(brain, "We got through the hospital week together.", sensitive=True)
+    shared(brain, "We joked about Jordan's band.")
+    shared(brain, "Our first conversation, in 2024.", producer="membrain-import:hermes")
+    shared(brain, "We will run the half marathon together.", occurs_at="2027-05-01")
+    write(brain, "Graduated in 2019.", kind="milestone")  # Not shared.
+    assert mood(brain, "2027-03-14T21:01:00Z")["triggers"] == []
+    kept = shared(brain, "We finished the reading list together.")
+    assert rules(mood(brain, "2027-03-14T21:01:00Z")) == [("shared_moment", kept["note_id"], "active")]
+
+
+def test_deleting_the_moment_removes_its_trigger(brain, clock):
+    service, principal, ident = brain
+    clock("2027-03-14T21:00:00Z")
+    joke = shared(brain, "We laughed about the burnt pancakes.")
+    assert rules(mood(brain, "2027-03-14T21:05:00Z")) == [("shared_play", joke["note_id"], "active")]
+    generation = service.dashboard(principal, ident)["brain"]["scope_generation"]
+    service.handle(principal, {
+        "message_type": "request", "contract_version": "1.0.0-draft", "request_id": uid(), "action": "forget",
+        "target": {"brain_ref": ident, "conversation_ref": "membrain-notes", "branch_ref": "main"},
+        "payload": {"idempotency_key": uid(), "selector": {"kind": "events", "ids": [joke["note_id"]]},
+                    "mode": "erase_content", "expected_scope_generation": generation}})
+    state = mood(brain, "2027-03-14T21:05:00Z")
+    assert state["triggers"] == [] and state["at_baseline"] and "pancakes" not in json.dumps(state)
+
+
+def test_moments_before_a_mood_or_relationship_reset_never_trigger(brain, clock):
+    service, principal, ident = brain
+    clock("2027-03-14T21:00:00Z")
+    first = shared(brain, "We finished the 10k plan together.")
+    assert rules(mood(brain, "2027-03-14T21:01:00Z")) == [("shared_moment", first["note_id"], "active")]
+    clock("2027-03-14T21:10:00Z")
+    reset_mood(service, principal, ident, now=moment("2027-03-14T21:10:00Z"))
+    assert mood(brain, "2027-03-14T21:11:00Z")["triggers"] == []
+
+    # A relationship reset erases its moments; a moment still in place from before its marker is cut by the marker
+    # alone (written here without the erasure, as an archive or a concurrent write could leave it).
+    clock("2027-03-14T22:00:00Z")
+    early = shared(brain, "We laughed about the burnt pancakes.")
+    assert rules(mood(brain, "2027-03-14T22:01:00Z")) == [("shared_play", early["note_id"], "active")]
+    clock("2027-03-14T22:10:00Z")
+    with service.database.transaction(principal) as conn:
+        _append(service, conn, principal, service._brain(conn, principal, ident),
+                {"relationship_marker": "reset", "removed": {}}, "relationship-reset-" + uid())
+    cut = mood(brain, "2027-03-14T22:11:00Z")
+    assert cut["triggers"] == [] and cut["at_baseline"]
+    clock("2027-03-14T22:20:00Z")
+    after = shared(brain, "We finished the reading list together.")
+    assert rules(mood(brain, "2027-03-14T22:21:00Z")) == [("shared_moment", after["note_id"], "active")]
+    # A real reset erases the moments too, so none of them can come back.
+    clock("2027-03-14T22:30:00Z")
+    reset_relationship(service, principal, ident)
+    assert mood(brain, "2027-03-14T22:31:00Z")["triggers"] == []
+
+
+def test_moments_noted_while_pinned_never_apply(brain, clock):
+    service, principal, ident = brain
+    clock("2027-03-14T21:00:00Z")
+    pin_mood(service, principal, ident, True, now=moment("2027-03-14T21:00:00Z"))
+    clock("2027-03-14T21:05:00Z")
+    joke = shared(brain, "We laughed about the burnt pancakes.")
+    held = mood(brain, "2027-03-14T21:06:00Z")
+    assert held["at_baseline"] and rules(held) == [("shared_play", joke["note_id"], "pinned")]
+    clock("2027-03-14T21:10:00Z")
+    lifted = pin_mood(service, principal, ident, False, now=moment("2027-03-14T21:10:00Z"))
+    assert lifted["at_baseline"] and lifted["block"] is None
+
+
+def test_restored_moments_are_imported_and_never_trigger(installation, brain, clock):
+    from membrain.client import MemoryClient
+
+    service, principal, ident = brain
+    clock("2027-03-14T21:00:00Z")
+    source = shared(brain, "We finished the 10k plan together.")
+    assert rules(mood(brain, "2027-03-14T21:05:00Z")) == [("shared_moment", source["note_id"], "active")]
+
+    def handle(request):
+        return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
+
+    with MemoryClient("http://memory.test", "k", ident, transport=httpx.MockTransport(handle)) as client:
+        archive = client.export()["result"]
+        copy = service.create_brain(principal, "Restored moments")["id"]
+        client.restore(archive["archive_id"], expected_manifest_sha256=archive["manifest_sha256"],
+                       expected_scope_generation=1, mode="new_brain", brain_id=copy)
+    assert mood_state(service, principal, copy, now=moment("2027-03-14T21:05:00Z"))["triggers"] == []

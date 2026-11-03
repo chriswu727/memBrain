@@ -75,7 +75,15 @@ def patched_instance(reply):
     return service
 
 
-SERVICES = {"subclass": Subclass, "instance-patch": patched_instance, "duck-typed": DuckTyped}
+def spec_mock(reply):
+    from unittest.mock import Mock
+
+    service = Mock(spec=MemoryService)
+    service.handle.side_effect = lambda principal, request: reply(request)
+    return service
+
+
+SERVICES = {"subclass": Subclass, "instance-patch": patched_instance, "duck-typed": DuckTyped, "spec-mock": spec_mock}
 
 
 def post(service, request):

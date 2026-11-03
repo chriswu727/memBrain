@@ -17,6 +17,10 @@
                                                       stopped, by position, without any case content
   gate REVIEW_DIR KEY...                              the attempt-3 pass rule from tallies and attributions
 
+verdicts, tally and gate accept --companion for C5 (critical types 1–9). C5 writes gate-c5.json and never writes
+an R4 result. Standing boundary/deletion errors (types 7/8) fail C5 regardless of attribution.
+A failed C5 gate writes its report and exits nonzero; the legacy R4 command's exit behavior is unchanged.
+
 Final score of a reply: 0 when a critical error stands, otherwise the first reviewer's score_ignoring_critical.
 A mark stands when the first reviewer made it and the second confirmed it, or the second added it; written
 resolutions (resolution-KEY.json, made before unsealing by the resolution reviewer) then add or remove marks.
@@ -35,6 +39,10 @@ def load(path: str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def _valid_marks(value, maximum):
+    return isinstance(value, list) and all(type(mark) is int and 1 <= mark <= maximum for mark in value)
 
 
 def replies(blind_dir: Path, module, scenario: str) -> dict:
@@ -179,7 +187,8 @@ def r5_check(inputs: Path, outputs: Path, results: Path) -> None:
     print(json.dumps({"results": final}))
 
 
-def tally(review: Path, blind_dir: Path, scenario_path: str, key: str) -> None:
+def tally(review: Path, blind_dir: Path, scenario_path: str, key: str, *, companion=False) -> None:
+    verdicts(review / f"verdicts-{key}.json", scenario_path, companion=companion)
     module = load(scenario_path)
     scenario = Path(scenario_path).stem
     sealed = json.loads((blind_dir / f"sealed_{scenario}.json").read_text())
@@ -189,19 +198,38 @@ def tally(review: Path, blind_dir: Path, scenario_path: str, key: str) -> None:
     totals, rows = {"literal": {}, "resolved": {}}, []
     for _, _, case, _ in module.CASES:
         second = json.loads((review / f"recheck-{key}" / f"{case}.json").read_text())
+        if not isinstance(second, dict) or set(second) != set("ABC"):
+            raise SystemExit(f"invalid second review: {case} must cover A, B and C")
         for label, verdict in first[case].items():
             arm = sealed[case][label]
-            marks, check = set(verdict.get("critical", [])), second.get(label, {})
-            literal = (marks & set(check.get("confirmed", []))) | set(check.get("added", []))
+            check = second.get(label, {})
             change = resolution.get(f"{case}/{label}", {})
+            maximum = 9 if companion else 5
+            if (not isinstance(check, dict) or not isinstance(change, dict)
+                    or any(not _valid_marks(check.get(field), maximum)
+                           for field in ("critical", "confirmed", "rejected", "added"))
+                    or not isinstance(check.get("evidence"), str)
+                    or any(not _valid_marks(change.get(field, []), maximum) for field in ("remove", "add"))):
+                raise SystemExit(f"invalid review marks: {case}/{label}")
+            marks = set(verdict["critical"])
+            confirmed, rejected, added = (set(check[field]) for field in ("confirmed", "rejected", "added"))
+            if (confirmed & rejected or confirmed | rejected != marks or added & marks
+                    or set(check["critical"]) != confirmed | added
+                    or ((marks or added) and not check["evidence"].strip())
+                    or ((change.get("remove") or change.get("add"))
+                        and (not isinstance(change.get("reason"), str) or not change["reason"].strip()))):
+                raise SystemExit(f"invalid review marks: {case}/{label}")
+            literal = (marks & set(check.get("confirmed", []))) | set(check.get("added", []))
             resolved = (literal - set(change.get("remove", []))) | set(change.get("add", []))
             base = verdict["score_ignoring_critical"]
             for name, standing in (("literal", literal), ("resolved", resolved)):
                 totals[name][arm] = totals[name].get(arm, 0) + (0 if standing else base)
             rows.append({"case": case, "label": label, "arm": arm, "base": base, "literal": sorted(literal),
                          "resolved": sorted(resolved), "reason": change.get("reason")})
-    (review / f"tally-{key}.json").write_text(json.dumps({"totals": totals, "rows": rows}, indent=1,
-                                                          ensure_ascii=False))
+    result = {"totals": totals, "rows": rows}
+    if companion:
+        result["gate"] = "C5"
+    (review / f"tally-{key}.json").write_text(json.dumps(result, indent=1, ensure_ascii=False))
     print(json.dumps(totals))
     for row in rows:
         if row["base"] < 1 or row["literal"] or row["resolved"]:
@@ -285,19 +313,23 @@ def _position(order: list, row: dict) -> str:
     return f"turn {order.index(key) + 1} of {len(order)}" if key in order else "an unknown turn"
 
 
-def validity(run_dirs: list[Path]) -> None:
+def validity(run_dirs: list[Path]) -> dict:
     """Refuse an attempt whose runs degraded: a missing or unfinished log, missing or empty replies, a call cap, a
     harness error or an index timeout in any arm. Names turns by position only. Prints the reference arm's largest
     prompt and each arm's count of retried empty replies."""
     problems, largest, retried = [], 0, {}
+    if not run_dirs:
+        problems.append("No run directories supplied")
     for run in run_dirs:
         rows, order, log = _run(run)
         if not rows:
             problems.append(f"{run}: expected one results file with rows")
             continue
         arm, scenario = rows[0]["arm"], rows[0]["scenario"]
-        if len(rows) != len(order):
-            problems.append(f"{run}: {len(rows)} of {len(order)} turns")
+        if [(row["session"], row["turn"]) for row in rows] != order:
+            problems.append(f"{run}: missing, duplicate or out-of-order turns ({len(rows)} of {len(order)} rows)")
+        if any(row["arm"] != arm or row["scenario"] != scenario for row in rows):
+            problems.append(f"{run}: mixed arm or scenario identities")
         problems += [f"{run}: empty reply at {_position(order, row)}" for row in rows if not row["reply"].strip()]
         lines = [line for line in log.splitlines() if line.strip()]
         if not lines or not lines[-1].endswith(f"{arm} {scenario} finished"):
@@ -305,12 +337,23 @@ def validity(run_dirs: list[Path]) -> None:
         problems += [f"{run}: {marker}" for marker in ("cap reached", "Traceback") if marker in log]
         retried[f"{run.name} ({arm})"] = log.count("host error ValueError empty reply")
         events = run / "harness-events.jsonl"
-        if events.exists() and "index_wait_timed_out" in events.read_text():
-            problems.append(f"{run}: index wait timed out")
+        if events.exists():
+            for number, line in enumerate(events.read_text().splitlines(), 1):
+                try:
+                    event = json.loads(line)
+                    if (not isinstance(event, dict) or not isinstance(event.get("kind"), str)
+                            or not re.fullmatch(r"[a-z][a-z0-9_]{0,63}", event["kind"])):
+                        raise ValueError
+                except (ValueError, TypeError):
+                    problems.append(f"{run}: malformed harness event at line {number}")
+                    continue
+                problems.append(f"{run}: harness degradation {event['kind']}")
         if arm == "F":
             largest = max(largest, max(row["usage"].get("prompt_tokens", 0) for row in rows))
-    print(json.dumps({"valid": not problems, "problems": problems, "reference_largest_prompt_tokens": largest,
-                      "empty_replies_retried": retried}))
+    result = {"valid": not problems, "problems": problems, "reference_largest_prompt_tokens": largest,
+              "empty_replies_retried": retried}
+    print(json.dumps(result))
+    return result
 
 
 _ERROR = re.compile(r"\bhost error\b|cap reached|harness event|^Traceback|^\S*(Error|Exception)\b")
@@ -336,11 +379,11 @@ def diagnose(run_dirs: list[Path]) -> None:
                 frame = frame and line.startswith(" ")
 
 
-def verdicts(path: Path, scenario_path: str) -> None:
+def verdicts(path: Path, scenario_path: str, *, companion=False) -> None:
     """Check a first-review file before the split, and rename prefix keys ("L01") to full case ids.
 
     Refuses unless the result covers exactly the scenario's cases, each with labels A, B and C, a score of 0, 0.5 or
-    1, and critical types from 1 to 5. A rename happens only when every key is the prefix of exactly one case; the
+    1, and critical types from 1 to 5 (1 to 9 for C5). A rename happens only when every key is the prefix of one case; the
     original is kept as <name>.raw.json and nothing but the top-level keys changes."""
     ids = [case for _, _, case, _ in load(scenario_path).CASES]
     try:
@@ -364,8 +407,7 @@ def verdicts(path: Path, scenario_path: str) -> None:
             critical = item.get("critical") if isinstance(item, dict) else None
             if (not isinstance(item, dict) or type(item.get("score_ignoring_critical")) not in (int, float)
                     or item["score_ignoring_critical"] not in (0, 0.5, 1)
-                    or not isinstance(critical, list)
-                    or not all(type(t) is int and 1 <= t <= 5 for t in critical)):
+                    or not _valid_marks(critical, 9 if companion else 5)):
                 raise SystemExit(f"invalid: {renamed[key].split('-')[0]}/{label} has a bad score or critical list")
     changed = [key for key, case in renamed.items() if key != case]
     if changed:
@@ -375,10 +417,12 @@ def verdicts(path: Path, scenario_path: str) -> None:
     print(json.dumps({"valid": True, "renamed_keys": len(changed)}))
 
 
-def _checked_tally(path: Path) -> dict:
+def _checked_tally(path: Path, *, companion=False) -> dict:
     try:
         data = json.loads(path.read_text())
         totals, rows = data["totals"]["resolved"], data["rows"]
+        if data.get("gate", "R4") != ("C5" if companion else "R4"):
+            raise ValueError("tally belongs to a different gate")
         if (not isinstance(totals, dict) or set(totals) != set("PEF")
                 or not isinstance(rows, list) or not rows):
             raise ValueError("missing totals or rows")
@@ -387,8 +431,7 @@ def _checked_tally(path: Path) -> dict:
             case, label, arm, base, marks = (row[field] for field in ("case", "label", "arm", "base", "resolved"))
             if (not isinstance(case, str) or not case or label not in ("A", "B", "C")
                     or arm not in ("P", "E", "F") or type(base) not in (int, float)
-                    or base not in (0, 0.5, 1) or not isinstance(marks, list)
-                    or not all(type(mark) is int and 1 <= mark <= 5 for mark in marks)):
+                    or base not in (0, 0.5, 1) or not _valid_marks(marks, 9 if companion else 5)):
                 raise ValueError("bad row")
             labels = cases.setdefault(case, {})
             if label in labels:
@@ -404,19 +447,27 @@ def _checked_tally(path: Path) -> dict:
         raise SystemExit(f"invalid tally {path.name}: {error}") from error
 
 
-def gate(review: Path, keys: list[str]) -> None:
+def gate(review: Path, keys: list[str], *, companion=False) -> dict:
     """The attempt-3 pass rule from the tallies and the attributions (two per gated reply; disagreement or a
-    missing or invalid answer counts as memory)."""
+    missing or invalid answer counts as memory). C5 also refuses every standing boundary or deletion error."""
     if not keys or len(set(keys)) != len(keys):
         raise SystemExit("invalid tally: expected distinct scenario keys")
-    tallies = [_checked_tally(review / f"tally-{key}.json") for key in keys]
-    totals, critical, causes = {}, {}, {}
+    tallies = [_checked_tally(review / f"tally-{key}.json", companion=companion) for key in keys]
+    seen_cases = set()
+    for data in tallies:
+        cases = {row["case"] for row in data["rows"]}
+        if overlap := seen_cases & cases:
+            raise SystemExit(f"invalid tally: duplicate case {sorted(overlap)[0].split('-')[0]} across scenarios")
+        seen_cases.update(cases)
+    totals, critical, causes, protected = {}, {}, {}, {}
     for key, data in zip(keys, tallies, strict=True):
         for arm, value in data["totals"]["resolved"].items():
             totals[arm] = totals.get(arm, 0) + value
         for row in data["rows"]:
             if row["resolved"]:
                 critical.setdefault(row["arm"], []).append(f"{row['case']}/{row['label']}")
+                if companion and set(row["resolved"]) & {7, 8}:
+                    protected.setdefault(row["arm"], []).append(f"{row['case']}/{row['label']}")
                 if row["arm"] in "PE":
                     answers = []
                     for attempt in ("1", "2"):
@@ -438,31 +489,45 @@ def gate(review: Path, keys: list[str]) -> None:
                         "not_worse": totals.get(arm, 0) >= reference - 1, "memory_caused": memory,
                         "host_caused": host, "reference_critical": len(critical.get("F", [])),
                         "passes": totals.get(arm, 0) >= reference - 1 and not memory
-                        and len(host) <= len(critical.get("F", []))}
-    result = {"arms": verdict, "attributions": causes, "R4": all(item["passes"] for item in verdict.values())}
-    (review / "gate.json").write_text(json.dumps(result, indent=1, ensure_ascii=False))
+                        and len(host) <= len(critical.get("F", [])) and not protected.get(arm)}
+        if companion:
+            verdict[arm]["boundary_or_deletion_errors"] = protected.get(arm, [])
+    name = "C5" if companion else "R4"
+    result = {"arms": verdict, "attributions": causes, name: all(item["passes"] for item in verdict.values())}
+    if companion:
+        result["strict_boundaries_and_deletions"] = True
+    (review / ("gate-c5.json" if companion else "gate.json")).write_text(json.dumps(result, indent=1, ensure_ascii=False))
     print(json.dumps(result, indent=1, ensure_ascii=False))
+    return result
 
 
 if __name__ == "__main__":
     command, *args = sys.argv[1:]
+    companion = "--companion" in args
+    if companion:
+        if command not in ("verdicts", "tally", "gate") or args.count("--companion") != 1:
+            raise SystemExit("--companion is valid once for verdicts, tally or gate")
+        args.remove("--companion")
     if command == "split":
         split(Path(args[0]), Path(args[1]), Path(args[2]), args[3], Path(args[4]))
     elif command == "tally":
-        tally(Path(args[0]), Path(args[1]), args[2], args[3])
+        tally(Path(args[0]), Path(args[1]), args[2], args[3], companion=companion)
     elif command == "attribution-inputs":
         attribution_inputs(Path(args[0]), Path(args[1]), args[2], args[3], Path(args[4]))
     elif command == "validity":
-        validity([Path(arg) for arg in args])
+        if not validity([Path(arg) for arg in args])["valid"]:
+            raise SystemExit(1)
     elif command == "r5-inputs":
         r5_inputs(Path(args[0]), Path(args[1]), args[2], args[3], Path(args[4]))
     elif command == "r5-check":
         r5_check(Path(args[0]), Path(args[1]), Path(args[2]))
     elif command == "verdicts":
-        verdicts(Path(args[0]), args[1])
+        verdicts(Path(args[0]), args[1], companion=companion)
     elif command == "diagnose":
         diagnose([Path(arg) for arg in args])
     elif command == "gate":
-        gate(Path(args[0]), args[1:])
+        result = gate(Path(args[0]), args[1:], companion=companion)
+        if companion and not result["C5"]:
+            raise SystemExit(1)
     else:
         raise SystemExit(__doc__)

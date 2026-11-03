@@ -3,6 +3,7 @@ import threading
 import time
 import uuid
 
+import psycopg
 import pytest
 from test_learning import learning as learning
 from test_recovery_erasure import pending, raw_event
@@ -238,3 +239,195 @@ def test_indexing_a_message_of_a_new_bulk_import_holds_the_brain_briefly(recover
                              (harness.principal.tenant_id, brain)).fetchone()["id"]
     # Every message before the first one still waiting is indexed: one, if the job that ran was the first.
     assert len(done) == 1 and row["indexed_sequence"] == (1 if done[0]["id"] == first else 0)
+
+
+def waiting(harness, events):
+    """How many sessions of this database are blocked right now on a heavyweight lock of one of these kinds."""
+    with harness.database.transaction(harness.principal) as conn:
+        return conn.execute("SELECT count(*) AS n FROM pg_stat_activity WHERE datname=current_database() "
+                            "AND wait_event_type='Lock' AND wait_event=ANY(%s)", (list(events),)).fetchone()["n"]
+
+
+def until(condition):
+    """Poll for a lock wait the test has set up (the wait itself is the event; nothing is ordered by time)."""
+    deadline = time.monotonic() + 20
+    while not condition():
+        assert time.monotonic() < deadline, "the expected lock wait never happened"
+        time.sleep(0.01)
+
+
+ROW_WAITS = ("transactionid", "tuple")
+
+
+def brain_row(harness, mode):
+    return ("SELECT id FROM memory_brains WHERE tenant_id=%s AND id=%s FOR " + mode,
+            (harness.principal.tenant_id, harness.brain))
+
+
+def test_rolling_back_to_a_savepoint_releases_a_share_lock_on_the_brain_row(recovery):
+    """What a shared read relies on when it finds a pending erasure: giving up its savepoint gives up the row."""
+    harness, _ = recovery
+
+    def exclusive_now(conn):
+        try:
+            with conn.transaction():
+                conn.execute(*brain_row(harness, "UPDATE NOWAIT")).fetchone()
+                raise psycopg.Rollback()
+        except psycopg.errors.LockNotAvailable:
+            return False
+        return True
+
+    with harness.database.transaction(harness.principal) as reader, \
+            harness.database.transaction(harness.principal) as other:
+        with reader.transaction() as shared:
+            reader.execute(*brain_row(harness, "SHARE")).fetchone()
+            assert not exclusive_now(other)
+            raise psycopg.Rollback(shared)
+        # The reader's transaction is still open, but its share lock went with the savepoint.
+        assert exclusive_now(other)
+        with reader.transaction():
+            reader.execute(*brain_row(harness, "SHARE")).fetchone()
+        # A released savepoint (the path without a pending erasure) keeps the lock until the transaction ends.
+        assert not exclusive_now(other)
+
+    # A writer already waiting for the row is woken by the rollback to the savepoint, not by the reader's commit.
+    acquired, done = threading.Event(), threading.Event()
+
+    def writer():
+        with harness.database.transaction(harness.principal) as conn:
+            conn.execute(*brain_row(harness, "UPDATE")).fetchone()
+            acquired.set()
+            assert done.wait(20)
+
+    thread = threading.Thread(target=writer, daemon=True)
+    with harness.database.transaction(harness.principal) as reader:
+        with reader.transaction() as shared:
+            reader.execute(*brain_row(harness, "SHARE")).fetchone()
+            thread.start()
+            until(lambda: waiting(harness, ROW_WAITS) == 1)
+            assert not acquired.is_set()
+            raise psycopg.Rollback(shared)
+        assert acquired.wait(20)
+        done.set()
+    thread.join(20)
+
+
+@pytest.mark.parametrize("second", ["recall", "same_request", "timeline"])
+def test_two_reads_that_find_one_pending_erasure_both_succeed_without_it(recovery, monkeypatch, second):
+    """Both readers share the brain row and both see the erasure the registry holds. Before, each then asked for the
+    row exclusively while still holding it shared, and PostgreSQL aborted one of them as a deadlock."""
+    import membrain.recovery_authority as authority_module
+
+    harness, authority = recovery
+    secret = harness.observe("The alarm code is 9932.")["accepted_event_ids"][0]
+    pending(harness, authority, secret)
+    original = authority_module.pending_erasure
+    both = threading.Barrier(2, timeout=20)
+    gated = set()
+
+    def pending_erasure(*args):
+        found = original(*args)
+        if found and threading.get_ident() not in gated:
+            gated.add(threading.get_ident())
+            both.wait()  # Each reader holds the brain row shared and has seen the erasure before either goes on.
+        return found
+
+    monkeypatch.setattr(authority_module, "pending_erasure", pending_erasure)
+    request = recall_request(harness, "alarm code", wall_ms=20000)
+    readers = {
+        "recall": lambda: harness.service.handle(harness.principal,
+                                                 recall_request(harness, "alarm code", wall_ms=20000)),
+        "same_request": lambda: harness.service.handle(harness.principal, request),
+        "timeline": lambda: harness.service.timeline(harness.principal, harness.brain),
+    }
+    results = {}
+
+    def run(name, read):
+        try:
+            results[name] = read()
+        except BaseException as error:  # noqa: BLE001 - asserted below
+            results[name] = error
+
+    threads = [threading.Thread(target=run, args=("first", readers["same_request"]), daemon=True),
+               threading.Thread(target=run, args=("second", readers[second]), daemon=True)]
+    for thread in threads:
+        thread.start()
+    for thread in threads:
+        thread.join(30)
+        assert not thread.is_alive()
+    assert len(gated) == 2, "both readers must have seen the pending erasure while sharing the row"
+    for name, value in results.items():
+        assert not isinstance(value, BaseException), (name, repr(value))
+        assert "9932" not in str(value), name
+        if "outcome" in value:
+            assert value["outcome"] == "completed", (name, value)
+    assert raw_event(harness, secret) == {"document": None, "deleted": True}
+    with harness.database.transaction(harness.principal) as conn:
+        assert conn.execute("SELECT count(*) AS n FROM memory_erasure_receipts WHERE tenant_id=%s AND brain_id=%s",
+                            (harness.principal.tenant_id, harness.brain)).fetchone()["n"] == 1
+
+
+def test_a_deadlock_comes_back_as_a_clean_retryable_error(recovery, monkeypatch):
+    """No path is known to deadlock any more, but if PostgreSQL ever aborts a read as a deadlock (or serialization
+    failure) the caller gets a retryable failure that carries nothing read before the abort, not a crash or a 500."""
+    import httpx
+
+    import membrain.service as service_module
+
+    harness, _ = recovery
+    harness.observe("The museum opens at nine.")
+    original = service_module.validate
+
+    def validate(name, value):
+        if name == "ActionResponse" and value.get("outcome") == "completed":
+            raise psycopg.errors.DeadlockDetected("deadlock detected")
+        return original(name, value)
+
+    monkeypatch.setattr(service_module, "validate", validate)
+    request = recall_request(harness, "museum")
+    response = harness.service.handle(harness.principal, request)
+    assert response["outcome"] == "failed" and response["error"]["retryable"] is True, response
+    assert "result" not in response and "server_scope" not in response and "nine" not in str(response)
+    original("ActionResponse", response)
+    with harness.database.transaction(harness.principal) as conn:
+        assert not conn.execute("SELECT 1 FROM memory_requests WHERE tenant_id=%s AND brain_id=%s AND key=%s",
+                                (harness.principal.tenant_id, harness.brain, request["request_id"])).fetchone()
+
+    def deadlocked(*args, **kwargs):
+        raise psycopg.errors.DeadlockDetected("deadlock detected")
+
+    monkeypatch.setattr(harness.service, "timeline", deadlocked)
+    with pytest.raises(httpx.HTTPStatusError) as error:
+        harness.memory.timeline()
+    assert error.value.response.status_code == 503
+    assert error.value.response.json()["error"] == {
+        "code": "dependency_unavailable", "message": "Database unavailable", "retryable": True}
+
+
+def test_same_key_reads_and_a_queued_writer_do_not_deadlock(recovery, monkeypatch):
+    """Lock order: a reader takes the brain row (shared) before the same-key advisory lock, and a writer takes only
+    the row. The reader waiting for the advisory lock shares the row with its holder, which never asks for anything
+    the waiter holds, so a writer queued behind both waits for them and then runs."""
+    harness, _ = recovery
+    harness.observe("The dentist is on Tuesday.")
+    request = recall_request(harness, "dentist", request_id=str(uuid.uuid4()), wall_ms=20000)
+    held = Held(harness, monkeypatch)
+    thread, first = held.run(lambda: harness.service.handle(harness.principal, request))
+    second, written = {}, {}
+    follower = threading.Thread(target=lambda: second.update(value=harness.service.handle(harness.principal, request)),
+                                daemon=True)
+    writer = threading.Thread(target=lambda: written.update(value=harness.observe("The dentist moved to Wednesday.")),
+                              daemon=True)
+    try:
+        follower.start()
+        until(lambda: waiting(harness, ("advisory",)) == 1)
+        writer.start()
+        until(lambda: waiting(harness, ROW_WAITS) == 1)
+    finally:
+        held.release.set()
+    for worker in (thread, follower, writer):
+        worker.join(30)
+        assert not worker.is_alive()
+    assert first["value"]["outcome"] == second["value"]["outcome"] == "completed"
+    assert first["value"]["result"] == second["value"]["result"]
+    assert written["value"]["accepted_event_ids"]

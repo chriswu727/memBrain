@@ -131,6 +131,19 @@
         <button id="persona-reset" class="secondary">Reset personality</button>
       </div>
     </div>
+    <!-- Persona suggestions from feedback (P2) -->
+    <div class="card persona-proposals" id="persona-proposals-card">
+      <div class="persona-title"><h2>Suggestions from your feedback</h2><span id="persona-proposals-open" class="tag" hidden></span></div>
+      <p class="hint">When you give your companion the same kind of feedback on how it talks three times, in any
+        conversations, memBrain suggests a change to its card here and quotes what you said. Nothing changes until
+        you accept. If you reject a suggestion, none of the same kind is offered again for 30 days.</p>
+      <div id="persona-proposals" class="list"></div>
+      <details id="persona-proposals-earlier" class="persona-proposals-earlier" hidden>
+        <summary>Earlier suggestions</summary>
+        <div id="persona-proposals-history" class="list"></div>
+      </details>
+    </div>
+    <!-- End of persona suggestions -->
     <!-- Companion mood (M1, agent_mood) -->
     <div class="card mood-card" id="mood">
       <div class="persona-title"><h2>Simulated mood</h2><span id="mood-now" class="mood-now"></span></div>

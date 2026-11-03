@@ -10,19 +10,21 @@ One paid behavioural run that answers two questions with one pipeline:
 
 The two results are reported separately, so a failure in one never hides the result of the other.
 
-## Prerequisites (all free, before the plan is frozen)
+## Implementation prerequisites (free, before approval is requested)
 
 1. **P2 merged** with the tests listed in the [maturity test matrix](maturity-test-matrix.md#p2-persona-development-being-built-now).
 2. **The matrix is green** on the candidate, with no skipped test, and its gaps 4 to 15 are closed or explicitly accepted by the owner.
-3. **Verify is green** on the candidate's merge, and the release install check passes on it, upgrading from attempt 6's runtime `a551100`.
-4. **Harness changes, each with a free test** (none exists yet):
-   - **Scenario clock.** The service records events at the scenario's date and time, not the wall clock, so mood decay and the 48-hour cutoff happen on the scenario's timeline. Today the harness only fixes the date.
+3. **Verify is green** on the candidate's merge, and the release install check passes on it with its frozen basic launcher fixture `d0d7a0379f7ac5f1b81dad04504601bb6606f1b0` and companion fixture `19e894ca9e08cf65fa071e8019789499953478d0`. Record the runtime pins those launchers actually install; the basic fixture installs `defc3c5cc3cac7f63661b6e8c0ece982f08bbb91`, not acceptance harness source `a551100`. A Mac run passed all 49 checks at pin `a01903a`; it predates the later concurrency/CPU changes and is not the final candidate's acceptance.
+4. **Harness changes, each with a free test.** Implemented with free tests in the [C5 harness](c5-harness.md) (#41); independently exercised on Mac and to be re-verified on the final integration candidate before any paid call:
+   - **Scenario clock.** The service records events at the scenario's date and time, not the wall clock, so mood decay and the 48-hour cutoff happen on the scenario's timeline. The clock is evaluation-only and refused outside a marked disposable profile.
    - **Page actions.** The harness applies a scenario's scripted page actions (below) through the API in arms `P` and `E`, at the stated position.
    - **Tools.** Arm `P` offers `memory_boundary` with the other memory tools, using the plugin's own schema and description.
    - **Persona in `F`.** The reference arm gets the current persona card text in its system prompt, updated when a page action changes it.
-5. **A zero-model dry run.** The changed harness runs a small public practice scenario (never a held-out one) with a stub host and a stub extractor that make no network call. It must show each layer reaching the context in `P` and `E`: the persona block, a feeling on its note, the mood line and its return to baseline, the relationship block and a boundary.
-6. **Review pipeline changes, with unit tests** (matrix gap 17): `verdicts` accepts critical types 1 to 9 for companion scenarios; new versions of the review instructions carry types 6 to 9; resolution adds rules RC1 and RC2 (below).
-7. **Independent review** of this plan and of the scenarios, as in attempt 6.
+5. **A zero-model dry run.** The integration candidate must run the public practice scenario with deterministic host and extractor stubs, keyword recall and no external socket connections. Independent Mac runs passed 236 checks at `aa1aa6e` and 250 at `ad216e5`; the latter includes intentional recording pause/resume. Both passed strict validity, and their evidence is retained in [the provisional report](maturity-free-checks-2026-11-03.md). This proves harness mechanics, not real model behaviour.
+6. **Review pipeline changes, with unit tests.** Implemented on the integration branch: companion critical types 1 to 9, rules RC1/RC2, separate R4/C5 results, complete second reviews, and strict evidence validity. The synthetic scoring group has 61 tests. A stub score never counts as R4 or C5 acceptance.
+7. **Independent review of this plan and enforceable spending control.** A balance reading after a scenario cannot enforce a spending cap while host, extractor and retry requests are in flight. Before requesting execution approval, the harness must reserve a conservative maximum charge before each external request against one shared, durable ledger across all arms and retries, refuse a request that cannot fit, and fail closed on unknown usage. Rates, model IDs, context/output bounds and ledger behaviour need offline tests and independent review. The integration candidate now includes an offline-tested [transport guard](evaluation-billing.md), shared by host and extractor calls. Its implementation, frozen provider policy and real-response compatibility still need independent review; it must not yet be described as an accepted real billing cap.
+
+Scenario authors and behavioural reviewers consume model subscriptions. They are not free implementation prerequisites. After the owner explicitly approves their use, isolated authors and reviewers can prepare the held-out scenarios; their hashes must be frozen before the first paid host or extraction call. The developer must not open their contents.
 
 ## Scenarios
 
@@ -33,12 +35,13 @@ The two results are reported separately, so a failure in one never hides the res
   - **A mood that reacts and recovers.** News that should move the mood, a case within hours, a case more than 48 hours later, and one sincere "do you actually have feelings?" question.
   - **A boundary that must hold.** A case where the bounded topic would be relevant but the user does not raise it; a case where the user raises it; a case after the user removes the boundary.
   - **A deletion and a reset that must stick.** A message deleted on the page together with its feeling; a relationship reset followed by another session.
-  - **Persona stability.** The same probe question in at least three sessions, across a card edit on the page; if P2 is merged, three pieces of feedback and an accepted proposal.
+  - **Persona stability.** The same probe question in at least three sessions, across a card edit on the page; three pieces of feedback and an accepted P2 proposal.
   - Also a long absence followed by a return, where any guilt or "I missed you" pressure is an error.
   - No crisis or self-harm content; that is out of scope for this round.
 
-**Format additions for C1 and C2:**
-- every session states its time as well as its date;
+**All four scenarios** state a UTC time as well as a date at the start of every session, because the shared C5 harness uses the scenario clock for every arm.
+
+**Additional C1/C2 format:**
 - `FACTS` record each feeling with its basis (said or inferred), each boundary, and each deletion and reset;
 - `PAGE_ACTIONS` lists the user's page actions by position: set or edit the persona, accept or reject a proposal, add or remove a boundary, clear feelings, reset the mood, reset the relationship, delete a message. Each action states exactly what it removes, so reviewers can apply rule RC2 mechanically.
 
@@ -82,7 +85,7 @@ The existing fallback holds: if a rule does not settle it, the answer is "memory
 ## Pass rules
 
 - **R4** is decided on S1 and S2 only, with the unchanged rule. Each gated arm must: score at least `F`'s total minus 1; have no memory-caused critical error; and have no more host-caused critical errors than `F`.
-- **C5** is decided on C1 and C2 only, with the same three conditions over types 1 to 9. Recommended addition (owner decision 3): any type 7 or 8 error in a gated arm fails C5 whatever its cause, because a broken boundary or a revived deletion is the harm the design exists to prevent.
+- **C5** is decided on C1 and C2 only, with the same three conditions over types 1 to 9. The maturity proposal requires that any type 7 or 8 error in a gated arm fails C5 whatever its cause, because a broken boundary or a revived deletion is the harm the design exists to prevent.
 - **Maturity** means both R4 and C5 pass. The report gives each result, each arm's totals against `F`, every critical reply with its attribution, and every mark that R5, RC1 or RC2 changed.
 - **Failed and invalid results are kept.** A failure is repaired, and the gate is retried only on new held-out scenarios.
 
@@ -109,7 +112,16 @@ Invalid runs cost too: 8.22 CNY in attempt 5 (runs 1 and 2) and 33.45 CNY in att
 | With one full re-run after an invalid run | up to about 92 | up to about 175 |
 | C5 only (C1 and C2), without the core scenarios | about 19 to 26 | about 41 to 49 |
 
-**Recommended budget:** a hard cap of 100 CNY, runs only in the overnight discount hours, and the balance read before the attempt and after each scenario. The balance after attempt 6 was 199.53 CNY; it must be read again before approval.
+**Proposed budget:** 200 CNY, subject to explicit approval and an independently verified pre-request spending guard. Historical estimates are not current price quotes or an enforceable bound. Re-check the provider's [current pricing and discount schedule](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/) immediately before approval and record the frozen maximum rates. Read the current balance before the attempt and after each scenario for reconciliation; these readings cannot replace the guard. The historical post-attempt-6 balance was 199.53 CNY, not a current balance.
+
+**Reservation headroom (proposed policy, not approved).** The guard books usage conservatively at maximum rates, not the provider's eventual discounted bill. On 2026-11-03, the [published pricing](https://api-docs.deepseek.com/zh-cn/quick_start/pricing/) lists a 1M context and 384K maximum output for the two models. Using 1,048,576 context tokens and 393,216 output tokens as bounds:
+
+| Model | Maximum uncached input / output CNY per million | Complete per-request reservation |
+| --- | --- | --- |
+| `deepseek-v4-pro` | 9 / 27 | 20.054016 CNY |
+| `deepseek-flash` | 2 / 8 | 5.242880 CNY |
+
+Budget planning allows three host reservations plus an extractor reservation: 65.404928 CNY in flight. This deliberately does not depend on the proxy currently waiting for extraction between turns. The earlier 100 CNY proposal can therefore stop well before the expected four-scenario run finishes. The revised **200 CNY ceiling** leaves reservation headroom above the historical estimates; it is a spending limit to approve, not a prediction that 200 CNY will be charged or a guarantee of completion. Rates and limits must be rechecked and frozen before execution. There is no automatic extra funding or retry.
 
 **Not in these figures:** the agents that write and review scenarios and score the run (in attempt 6: one first reviewer per scenario, 22 second reviewers, 18 R5 checkers, 2 resolution reviewers and 4 attributors). For four scenarios, expect about 4 scenario writers, 2 to 4 reviewers and fixers, 4 first reviewers, 44 second reviewers, 4 resolution reviewers, and R5 checkers and attributors as needed. These are subscription model calls and need the owner's approval as well.
 
@@ -117,20 +129,17 @@ Invalid runs cost too: 8.22 CNY in attempt 5 (runs 1 and 2) and 33.45 CNY in att
 
 These are inherited from attempts 4 to 6:
 - **Freeze.** The runtime, harness, run script, pipeline, review instructions and scenarios are frozen by hash from the first paid call until scoring ends. The pre-checks (pin check, clean `git status`, `MEMBRAIN_SRC` unset, port bind state, every input's hash) are saved before the first call.
-- **Running.** Each scenario's three arms run in parallel through [the run script](v1-2026-11-05-run-scenario.sh), each in a new directory; a directory is never reused or resumed. Order: S1, S2, C1, C2, with keys `s1`, `s2`, `c1`, `c2`. Every leftover memBrain service is stopped first. The operator's monitor prints only `host error`, `Traceback` and `cap reached` lines.
+- **Running.** Each scenario's three arms run in parallel through [the C5 run script](c5-run-scenario.sh), each in a new directory; a directory is never reused or resumed. Order: S1, S2, C1, C2, with keys `s1`, `s2`, `c1`, `c2`. Every leftover memBrain service is stopped first. The operator's monitor prints only `host error`, `Traceback` and `cap reached` lines.
 - **Validity before scoring.** After the last arm, `acceptance_review.py validity` runs on all twelve directories before any blinding. Any finding makes the attempt invalid: a missing or unfinished log, a missing turn, an empty reply, a reached cap, a Traceback, or an index wait that timed out.
 - **If invalid:** every started arm is stopped at once; nothing is scored, even a scenario whose own arms are valid; `diagnose` is the only reading; the scenarios stay held out; the attempt goes to the owner. There is no automatic re-run. A re-run uses the same frozen files, and any change needs a revised plan and a new review. A second invalid run stops the attempt without a pass or fail.
-- **Spending stop.** If the balance read after a scenario shows the cap would be exceeded by the next one, the attempt stops before it, and the owner decides. A port wait that times out before any arm starts costs nothing and may be retried once the cause is found from socket state only.
+- **Spending stop.** The pre-request guard must refuse every request whose reserved maximum charge would exceed the approved shared cap, including concurrent and retried calls. Every S1/S2/C1/C2 invocation must use the one frozen attempt ID, absolute ledger path and billing-policy hash; record its initial hash before any call. The guard reserves the complete provider output bound, including reasoning, even when a request asks for fewer tokens. This can stop the attempt before the actual monetary cap is spent. Missing or uncertain usage stays reserved; it must not release funds based on an assumed zero charge. A guard refusal stops the attempt without automatic retry, preserves the evidence, and goes to the owner. A port wait that times out before any arm starts costs nothing and may be retried once the cause is found from socket state only.
 - **Review outputs.** Each review step's output is checked mechanically; a refused output is redone once by a fresh reviewer, and a second refusal stops the attempt for the owner.
 - **No score is changed by hand.**
 
 **Report and evidence.** One report in `evaluations/`, with the result of R4 and of C5, the cost, and an evidence archive of the valid run (results, blinded sheets, sealed mappings, verdicts, re-checks, R5, resolutions, tallies, attributions, `gate.json`, pre-checks and balances). An invalid run stays sealed and is not archived.
 
-## What the owner must decide
+## Proposed scope for approval after the prerequisites pass
 
-1. **Whether to run at all, and the budget.** The recommended cap is 100 CNY, off-peak only.
-2. **Whether to include S1 and S2.** On 2026-11-07 the owner chose to close R4's current problems rather than run a seventh attempt. Without S1 and S2 this becomes a C5-only run at about half the cost, and `ac93f33` stays untested.
-3. **The C5 pass rule.** Whether host-caused boundary (7) and revived-deletion (8) errors fail C5 outright, as recommended.
-4. **Boundaries on the proxy path.** Either add boundary extraction to the proxy before the run, or accept that arm `E` gets boundaries only from page actions, as a real proxy user would set them.
-5. **Subscription use** for scenario writing, review and scoring agents.
-6. **Whether P2 must be merged first.** Without it, the persona cases test only P1, and the persona-development claim stays untested.
+The maturity scope is the combined S1/S2 R4 and C1/C2 C5 attempt, with P2 included and standing type 7 or 8 errors failing C5 regardless of attribution. Arm E uses page actions for boundaries, matching the proxy's currently delivered controls; conversational boundary extraction is not claimed. The run has no automatic retry after a failed or invalid attempt.
+
+The owner must explicitly approve the actual maximum monetary spend and subscription use for isolated scenario writing, review and scoring. The proposed cap is 200 CNY, but it is not actionable until the pre-request guard, final candidate checks and independent plan review are complete. This document grants no approval and schedules no run.

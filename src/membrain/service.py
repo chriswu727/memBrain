@@ -5,6 +5,7 @@ import json
 import math
 import re
 from contextlib import contextmanager
+from datetime import UTC, datetime
 
 import psycopg
 from psycopg.types.json import Jsonb
@@ -12,6 +13,28 @@ from psycopg.types.json import Jsonb
 from . import cognition
 from .contracts import CONTRACT_VERSION, validate
 from .helpers import DomainError, deep_copy, digest, now, uid
+
+
+def _moment(value):
+    """A time with an offset, in UTC; None when it has no offset or cannot be represented in UTC (a valid date-time
+    such as 0001-01-01T00:00:00+23:59 falls outside the range of dates)."""
+    try:
+        moment = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return moment.astimezone(UTC) if moment.tzinfo is not None else None
+    except (ValueError, OverflowError):
+        return None
+
+
+def original_recording(event: dict) -> str | None:
+    """When the server first recorded an archived event: the earliest valid recording time the archive carries for
+    it (an earlier restore's ``restored_from_recorded_at`` or its ``recorded_at``), never later than now. A recording
+    time, never an occurrence time; None when the archive carries none."""
+    system_time = event.get("system_time") if isinstance(event.get("system_time"), dict) else {}
+    times = [moment for moment in (_moment(system_time.get(key)) for key in ("restored_from_recorded_at",
+                                                                               "recorded_at")) if moment]
+    if not times:
+        return None
+    return min(*times, _moment(now())).isoformat().replace("+00:00", "Z")
 
 
 def _vector(text):
@@ -64,6 +87,22 @@ class MemoryService:
         self.embedding_provider = embedding_provider
         self.access_time_provider = access_time_provider
 
+    @property
+    def embedding_provider(self):
+        """The embedding provider when it can embed now, otherwise ``None``.
+
+        Every caller decides on embeddings through this property, so readiness, not presence, enables them. A local
+        model is configured before its download finishes; until the provider reports ``ready`` the service behaves
+        exactly as without a provider (keyword recall, no embedding jobs, no embedding budget). Readiness only ever
+        moves from false to true, so a caller that saw no provider never meets a half-enabled one later.
+        """
+        provider = self._embedding_provider
+        return provider if provider is not None and getattr(provider, "ready", True) else None
+
+    @embedding_provider.setter
+    def embedding_provider(self, provider):
+        self._embedding_provider = provider
+
     def orient_turn(self, principal, brain_id, turn_id, *, lease_token, expected_revision):
         from .learning import LearningEngine
 
@@ -80,17 +119,28 @@ class MemoryService:
         still wait for, and hold off, every transaction that locks it ``FOR UPDATE`` (writes, erasure, restore,
         recovery and job leases). An erasure recorded in the registry but not yet in the database is never read
         around: the reader then takes the row exclusively and applies it first, as every other access does.
+
+        A reader never waits for the exclusive lock while it holds the shared one: two readers doing that at once
+        would each wait for the other (a deadlock PostgreSQL resolves by aborting one). The shared lock is taken in a
+        savepoint, and a reader that finds a pending erasure rolls back to it, which gives the row up, before asking
+        for it exclusively. It then applies the erasure, reads the row again and checks that nothing is left pending.
+        Whether an erasure is pending cannot change while the row is held shared: intents are recorded, and applied,
+        only by transactions holding it exclusively, so the check made under the shared lock stays true until commit.
         """
         from .recovery_authority import pending_erasure, reconcile_brain
 
         query = "SELECT * FROM memory_brains WHERE tenant_id=%s AND owner_id=%s AND id=%s FOR "
-        if _READING.get():
-            row = conn.execute(query + "SHARE", self._params(principal, brain_id)).fetchone()
-            if row is None:
-                raise DomainError("not_found_or_forbidden", "Brain is unavailable.")
-            if not pending_erasure(self.database, conn, principal, row):
-                return row
-        row = conn.execute(query + "UPDATE", self._params(principal, brain_id)).fetchone()
+        params = self._params(principal, brain_id)
+        reading = _READING.get()
+        if reading:
+            with conn.transaction() as shared:
+                row = conn.execute(query + "SHARE", params).fetchone()
+                if row is None:
+                    raise DomainError("not_found_or_forbidden", "Brain is unavailable.")
+                if not pending_erasure(self.database, conn, principal, row):
+                    return row
+                raise psycopg.Rollback(shared)  # Releases the shared row lock before the exclusive one is requested.
+        row = conn.execute(query + "UPDATE", params).fetchone()
         if row is None:
             raise DomainError("not_found_or_forbidden", "Brain is unavailable.")
         token = _READING.set(False)
@@ -98,6 +148,14 @@ class MemoryService:
             reconcile_brain(self.database, conn, principal, row)
         finally:
             _READING.reset(token)
+        if reading:
+            # The row was given up and taken again (another reader may have applied the erasure in between), so
+            # what was read under the shared lock is not trusted: read it again and verify nothing is pending.
+            row = conn.execute(query + "UPDATE", params).fetchone()
+            if row is None:
+                raise DomainError("not_found_or_forbidden", "Brain is unavailable.")
+            if pending_erasure(self.database, conn, principal, row):
+                raise DomainError("deletion_in_progress", "A deletion is still being applied. Retry shortly.", True)
         return row
 
     def _scope(self, principal, brain, target=None):
@@ -249,7 +307,16 @@ class MemoryService:
             envelope.pop("result", None)
             envelope.pop("server_scope", None)
             envelope.update(outcome="failed", error={"code": "budget_exceeded", "message": "Database deadline exceeded.", "retryable": True})
+        except psycopg.errors.TransactionRollback:
+            # A deadlock or serialization failure aborted the whole transaction (including any response stored
+            # with it), so nothing was read or changed: the request can simply be sent again.
+            envelope.pop("result", None)
+            envelope.pop("server_scope", None)
+            envelope.update(outcome="failed", error={"code": "dependency_unavailable", "retryable": True,
+                                                     "message": "Memory was busy with another request. Retry it."})
         except psycopg.OperationalError:
+            envelope.pop("result", None)
+            envelope.pop("server_scope", None)
             envelope.update(outcome="failed", error={"code": "dependency_unavailable", "message": "Database is unavailable.", "retryable": True})
         authority = getattr(self.database, "recovery_authority", None)
         if action == "forget" and authority is not None and authority.recorded_intent(principal, request):
@@ -346,8 +413,9 @@ class MemoryService:
         return descendants
 
     def _append_event(self, conn, principal, brain, target, incoming, *, event_id=None, imported=False,
-                      segmentation_rule_version=cognition.RULE_VERSION):
+                      segmentation_rule_version=cognition.RULE_VERSION, restored_from_recorded_at=None):
         _writable()
+        cognition._range(incoming["occurred_time"])
         params = self._params(principal, brain["id"])
         previous = conn.execute(
             "SELECT * FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
@@ -384,7 +452,9 @@ class MemoryService:
             "event_id": previous["id"] if previous else (event_id or uid()),
             "revision": previous["revision"] + 1 if previous else 1,
             "sequence": brain["durable_sequence"], "scope": self._scope(principal, brain, target),
-            "observed": copy.deepcopy(incoming), "system_time": {"recorded_at": now(), "superseded_at": None},
+            "observed": copy.deepcopy(incoming), "system_time": {
+                "recorded_at": now(), "superseded_at": None,
+                **({"restored_from_recorded_at": restored_from_recorded_at} if restored_from_recorded_at else {})},
             "content_sha256": digest(incoming["content"]),
             "origin": "document_import" if imported else {
                 "user": "user_statement", "assistant": "assistant_output", "tool": "tool_observation",
@@ -416,15 +486,17 @@ class MemoryService:
         from .affect import AFFECT_CONVERSATION
         from .mood import MOOD_CONVERSATION
         from .persona import PERSONA_CONVERSATION
+        from .persona_growth import PROPOSALS_CONVERSATION
         from .relationship import RELATIONSHIP_CONVERSATION
 
         # Persona versions are configuration and affect records are evidence kept with notes, not conversation:
         # neither is read for learning, so saving or clearing them never starts a model call. Mood pins and reset
         # markers are settings, and relationship records (support style, boundaries, cap, acknowledgements, reset
-        # markers) are the user's requests, likewise.
+        # markers) are the user's requests, likewise. Persona suggestions and decisions (P2) too.
         if (self.semantic_processor and target.get("conversation_ref") and target.get("branch_ref")
                 and target.get("conversation_ref") not in (PERSONA_CONVERSATION, AFFECT_CONVERSATION,
-                                                           MOOD_CONVERSATION, RELATIONSHIP_CONVERSATION)
+                                                           MOOD_CONVERSATION, RELATIONSHIP_CONVERSATION,
+                                                           PROPOSALS_CONVERSATION)
                 and incoming["delivery_state"] in ("received", "delivered", "partially_delivered")
                 and incoming["event_kind"] not in ("source_correction", "delivery_receipt")):
             from .learning_allocations import CONTRACT_VERSION
@@ -449,6 +521,11 @@ class MemoryService:
             raise DomainError("invalid_evidence", "Relationship records are written through the relationship API.")
         if request["target"].get("conversation_ref") == MOOD_CONVERSATION:
             raise DomainError("invalid_evidence", "The companion's mood is set through the mood API.")
+        from .persona_growth import PROPOSALS_CONVERSATION
+        from .persona_growth import observe_feedback as observe_persona_feedback
+
+        if request["target"].get("conversation_ref") == PROPOSALS_CONVERSATION:
+            raise DomainError("invalid_evidence", "Personality suggestions are made by memBrain from your feedback.")
         for event in request["payload"]["events"]:
             if event["producer_ref"] in ("memory-service", "archive-import") or event["event_kind"] == "source_correction":
                 raise DomainError("invalid_evidence", "Correction audit records are created by the service.")
@@ -458,6 +535,8 @@ class MemoryService:
                 from .feedback import observe_feedback
 
                 observe_feedback(conn, self, principal, brain, request["target"], event_id)
+                # Feedback on the companion's manner may bring a persona suggestion to its threshold (P2).
+                observe_persona_feedback(self, conn, principal, brain, request["target"], event, event_id)
             if job_id:
                 jobs.append(job_id)
         return {"accepted_event_ids": accepted, "duplicate_event_ids": duplicates,
@@ -1253,7 +1332,9 @@ class MemoryService:
         data["retired_event_ids"] = [i for i in data.get("retired_event_ids", []) if i not in erased_events]
         tombstones.extend({"object_kind": "event", "object_id": event_id, "mode": "erase_content"}
                           for event_id in removed_events)
-        data["tombstones"] = list({(t["object_kind"], t["object_id"], t["mode"]): t for t in tombstones}.values())
+        # Re-sanitizing an uploaded archive must not change its manifest through tombstone ordering alone.
+        known = {(t["object_kind"], t["object_id"], t["mode"]): t for t in tombstones}
+        data["tombstones"] = [known[key] for key in sorted(known)]
         return data
 
     def _archive(self, conn, principal, archive_id):
@@ -1352,6 +1433,10 @@ class MemoryService:
         for event in document["events"]:
             if digest(event["observed"]["content"]) != event["content_sha256"]:
                 raise DomainError("invalid_archive", "Archive event hash does not match its content.")
+            # A restore reads these recording times in UTC; one that has no UTC form makes the archive invalid.
+            for key in ("recorded_at", "restored_from_recorded_at"):
+                if key in event["system_time"] and _moment(event["system_time"][key]) is None:
+                    raise DomainError("invalid_archive", "Archive event recording times must be representable in UTC.")
         if not isinstance(document.get("retired_event_ids", []), list) or not all(isinstance(x, str) for x in document.get("retired_event_ids", [])):
             raise DomainError("invalid_archive", "Invalid retired source manifest.")
         excluded = document.get("excluded_deleted_event_ids", [])
@@ -1443,8 +1528,10 @@ class MemoryService:
             incoming["producer_ref"] = "archive-import"
             incoming["source_event_key"] = event["event_id"]
             target = {"conversation_ref": event["scope"]["conversation_id"], "branch_ref": event["scope"]["branch_id"]}
+            # recorded_at stays the time of this ingestion; the archive's own recording time is kept beside it.
             self._append_event(conn, principal, brain, target, incoming, event_id=event["event_id"], imported=True,
-                               segmentation_rule_version=cognition._literal_rule_version(event))
+                               segmentation_rule_version=cognition._literal_rule_version(event),
+                               restored_from_recorded_at=original_recording(event))
             if event["event_id"] in data.get("retired_event_ids", []):
                 conn.execute("UPDATE memory_events SET retired=true WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=%s",
                              (*params, event["event_id"]))
@@ -1632,8 +1719,12 @@ class MemoryService:
                 "SELECT id,kind,state,attempts,last_error FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
                 "ORDER BY created_at DESC LIMIT 100", params,
             )]
+            pending = conn.execute(
+                "SELECT count(*) AS count FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+                "AND state IN ('queued','running','failed')", params,
+            ).fetchone()["count"]
             return {"brain": self._public_brain(brain), "events": events[-100:], "memories": memories, "jobs": jobs,
-                    "status": {"pending_jobs": sum(j["state"] != "completed" for j in jobs),
+                    "status": {"pending_jobs": pending,
                                "index_lag": brain["durable_sequence"] - brain["indexed_sequence"],
                                "extraction": "verified_semantic_proposals" if self.semantic_processor else "deterministic_source_capture",
                                "candidate_index": "hybrid-semantic-and-lexical" if self.embedding_provider else "lexical-and-structural-cues",

@@ -2,7 +2,7 @@ import copy
 import hashlib
 import json
 from dataclasses import dataclass
-from datetime import UTC, datetime
+from datetime import UTC, date, datetime
 from typing import Any
 from uuid import uuid4
 
@@ -38,8 +38,18 @@ def uid() -> str:
     return str(uuid4())
 
 
+# Set only by evaluation_clock.enable() in a disposable evaluation profile; None (the wall clock) everywhere else.
+_scenario_clock = None
+
+
 def now() -> str:
-    return datetime.now(UTC).isoformat().replace("+00:00", "Z")
+    moment = _scenario_clock() if _scenario_clock is not None else datetime.now(UTC)
+    return moment.astimezone(UTC).isoformat().replace("+00:00", "Z")
+
+
+def today() -> date:
+    """The local date, from the same clock as ``now()``."""
+    return _scenario_clock().astimezone().date() if _scenario_clock is not None else date.today()
 
 
 def digest(value: Any) -> str:
