@@ -130,6 +130,19 @@ def test_only_a_deleted_message_leaves_fs_history(kind):
     assert reference.contains(removed) == 0
 
 
+def test_a_deletion_during_the_session_in_progress_never_reaches_fs_later_history():
+    reference = harness.Reference(practice.PERSONA)
+    current = [(("s2", 0, "user"), {"role": "user", "content": "keep"}),
+               (("s2", 0, "assistant"), {"role": "assistant", "content": "kept reply"}),
+               (("s2", 1, "user"), {"role": "user", "content": "erased later in s2"})]
+    # A page action before s2's turn 2 deletes turn 1: the running transcript keeps it, the history must not.
+    reference.apply({"do": "delete_message", "session": "s2", "turn": 1, "role": "user",
+                     "removed": [["s2", 1, "user"]]})
+    reference.end_session(current)
+    assert [message["content"] for _, message in reference.history] == ["keep", "kept reply"]
+    assert reference.contains([["s2", 1, "user"]]) == 0
+
+
 def test_f_waits_for_and_mirrors_ps_recorded_deletion(tmp_path):
     action = {"do": "delete_message", "session": "s1", "turn": 0, "role": "user"}
     (tmp_path / "k-P").mkdir()
@@ -193,6 +206,7 @@ def test_page_actions_go_through_the_api_and_remove_only_what_they_name(memory):
     assert memory.now().startswith("2026-03-02T20:0")
     host.prompt_context(directory, "s1", "I'm nervous about Thursday's review.", turn_id="t0", include_source=True)
     host.finish_turn(directory, "s1", "Good luck.", turn_id="t0")
+    memory.record_turn("s1", 0)
     with memory.client() as client:
         message = next(item for item in client.timeline(roles=("user",))["items"] if "nervous" in item["text"])
         save_note(client, "Review on 2026-03-05.", kind="plan", status="scheduled", occurs_at="2026-03-05",
@@ -288,3 +302,21 @@ def test_the_index_wait_uses_the_runtimes_count_of_jobs_that_can_still_run(tmp_p
     monkeypatch.setattr(harness.time, "sleep", lambda seconds: None)
     memory.wait_until_indexed(timeout=0.05)
     assert "index_wait_timed_out" in (tmp_path / "harness-events.jsonl").read_text()
+
+
+def test_a_deletion_finds_its_turn_by_identity_even_when_another_turn_says_the_same(memory):
+    directory = memory.directory
+    for session in ("s1", "s2"):
+        host.prompt_context(directory, session, "Thanks.", turn_id="t0", include_source=True)
+        host.finish_turn(directory, session, "You're welcome.", turn_id="t0")
+        memory.record_turn(session, 0)
+    result = harness.apply_page_action(memory, {"do": "delete_message", "session": "s2", "turn": 0}, {})
+    assert result["deleted"] == 1 and "failed" not in result
+    assert ["s2", 0, "user"] in result["removed"] and ["s1", 0, "user"] not in result["removed"]
+    with memory.client() as client:
+        left = [(memory.positions[item["event_id"]], item["text"]) for item in harness._messages(client).values()]
+    assert (("s1", 0, "user"), "Thanks.") in left and all(position[0] == "s1" or position[2] == "assistant"
+                                                          for position, _ in left)
+    # A deletion of a turn whose messages were never identified fails instead of guessing by text.
+    assert harness.apply_page_action(memory, {"do": "delete_message", "session": "s9", "turn": 0}, {}) == {
+        "failed": "message not found"}

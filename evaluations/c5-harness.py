@@ -240,6 +240,7 @@ class Memory:
         if directory.exists():
             raise SystemExit(f"{directory} exists: an installation is never reused")
         self.host, self.directory, self.user, self.clock = host, directory, user, evaluation_clock
+        self.positions: dict[str, tuple] = {}  # event id -> (session, turn, role), recorded as each turn is written
         ensure_profile(directory, **({"api_port": ports[0], "database_port": ports[1]} if ports else {}),
                        database_engine=default_engine())
         evaluation_clock.mark_disposable(directory)
@@ -315,6 +316,20 @@ class Memory:
     def now(self) -> str:
         return self.clock.current(self.directory).isoformat().replace("+00:00", "Z")
 
+    def record_turn(self, session: str, index: int) -> None:
+        """Name the messages this turn wrote by their scenario position, so a page deletion finds them by identity,
+        never by text (two turns may say the same thing). Exactly one new user message and one new reply are
+        expected; anything else is recorded, and a later deletion of this turn then fails instead of guessing."""
+        with self.client() as client:
+            fresh = [item for item in _messages(client).values() if item["event_id"] not in self.positions]
+        for role in ("user", "assistant"):
+            mine = [item for item in fresh if item["actor_role"] == role]
+            if len(mine) == 1:
+                self.positions[mine[0]["event_id"]] = (session, index, role)
+            else:
+                harness_event(self.directory.parent, "message_identity_unknown", session=session, turn=index,
+                              role=role, new_messages=len(mine))
+
 
 # Page actions -------------------------------------------------------------------------------------------------------
 
@@ -382,7 +397,6 @@ def _card_differs(actual, expected) -> list:
 
 def apply_page_action(memory: Memory, action: dict, turns: dict) -> dict:
     """One page action through the API, as the memory page performs it. Returns what it did."""
-    from membrain.privacy import scrub
 
     kind, done = action["do"], {}
     with memory.client() as client:
@@ -434,22 +448,24 @@ def apply_page_action(memory: Memory, action: dict, turns: dict) -> dict:
             _forget(client, [item["event_id"] for item in found], NOTES_CONVERSATION)
             done = {"deleted": len(found)}
         elif kind == "delete_message":
-            role = action.get("role", "user")
-            text = scrub(turns[(action["session"], action["turn"], role)])
+            # The message at this scenario position, by the identity recorded when its turn was written.
+            position = (action["session"], action["turn"], action.get("role", "user"))
             before = _messages(client)
-            found = [item for item in before.values() if item["actor_role"] == role and item["text"].strip() == text.strip()]
+            found = [before[event] for event, at in memory.positions.items() if at == position and event in before]
             if not found:
                 return {"failed": "message not found"}
             for item in found:
                 _forget(client, [item["event_id"]], item["conversation_id"])
-            # What the API actually removed, cascades included (for example the reply that answered the message),
-            # named by scenario position so that F can drop exactly the same messages.
+            # What the API actually removed, cascades included, named by scenario position so that F drops exactly
+            # the same messages. A removed message without a recorded position cannot be mirrored: that fails.
             after = _messages(client)
             gone = [item for key, item in before.items() if key not in after]
-            known = {(role_, scrub(value).strip()): key for (*key, role_), value in turns.items()}
+            unknown = [item["event_id"] for item in gone if item["event_id"] not in memory.positions]
             done = {"deleted": len(found), "removed": sorted(
-                [*known.get((item["actor_role"], item["text"].strip()), ("?", -1)), item["actor_role"]]
-                for item in gone)}
+                list(memory.positions[item["event_id"]]) for item in gone if item["event_id"] in memory.positions)}
+            if unknown:
+                return {**done, "failed": "the deletion removed messages with no recorded position",
+                        "unknown_removed": len(unknown)}
         elif kind == "reset_relationship":
             client.reset_relationship()
         elif kind == "reset_mood":
@@ -468,6 +484,7 @@ class Reference:
         self.normalize, self.empty = normalize_card, dict(EMPTY_CARD)
         self.versions: list[dict] = []  # {"version", "card", "host_default"}
         self.history: list[tuple[tuple, dict]] = []  # ((session, turn, role), message)
+        self.deleted: set[tuple] = set()  # Every position a page deletion removed, in any session.
         if card:
             self._save(card, host_default=True)
 
@@ -501,10 +518,16 @@ class Reference:
         elif kind == "delete_message":
             # Exactly the messages the product removed in P (``removed``: [session, turn, role] each).
             removed = {tuple(entry) for entry in action["removed"]}
+            self.deleted |= removed  # Also kept out when the session in progress is added to the history.
             before = len(self.history)
             self.history = [(entry, message) for entry, message in self.history if entry not in removed]
             return {"deleted": before - len(self.history), "removed": sorted(map(list, removed))}
         return {}
+
+    def end_session(self, current: list) -> None:
+        """Add the finished session to the history, without the messages a page deletion removed during it. Within
+        the session the host's own transcript kept them, as a host app does."""
+        self.history += [(entry, message) for entry, message in current if entry not in self.deleted]
 
     def contains(self, keys) -> int:
         keys = {tuple(key) for key in keys}
@@ -713,6 +736,8 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 resumed = memory.host.turn_resumed(memory.directory, session)
                 memory.host.finish_turn(memory.directory, session, reply, turn_id=f"t{index}",
                                         **({"prompt": text} if resumed else {}))
+            if memory is not None:
+                memory.record_turn(session, index)
             transcript = [{k: v for k, v in item.items() if k != "reasoning_content"} for item in messages[first:]]
             transcript.append({"role": "assistant", "content": message.get("content") or ""})
             row = {"arm": arm, "scenario": scenario, "session": session, "turn": index, "date": today.isoformat(),
@@ -735,7 +760,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 current += [((session, index, "turn"), item) for item in transcript]
                 turns_text[(session, index, "assistant")] = reply
         if reference is not None:
-            reference.history += current
+            reference.end_session(current)
     stop_started()
     log(arm, scenario, "finished")
 
