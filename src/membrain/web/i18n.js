@@ -245,6 +245,26 @@ const ZH = {
     "把心情恢复到基础心情，并忘掉它的触发记录？感受、笔记和个性不受影响，之前发生的事也不会再改变心情。",
   "Leave the mood empty to rest at calm. It is the resting point the simulated mood returns to; it is not a feeling.":
     "心情留空则以平静为基础心情。它是模拟心情回归的起点，不是一种真实的感受。",
+  // Persona suggestions from feedback (P2)
+  "Suggestions from your feedback": "根据你的反馈提出的建议",
+  "When you give your companion the same kind of feedback on how it talks three times, in any conversations, memBrain suggests a change to its card here and quotes what you said. Nothing changes until you accept. If you reject a suggestion, none of the same kind is offered again for 30 days.":
+    "当你就伙伴的说话方式给出同一类反馈满三次（在任何对话里都算），memBrain 会在这里建议修改它的设定，并引用你说过的话。在你接受之前什么都不会改变。如果你拒绝一条建议，30 天内不会再提出同类建议。",
+  "Earlier suggestions": "之前的建议", "No suggestions waiting.": "没有待处理的建议。",
+  "More casual": "更随意", "More formal": "更正式", "More playful": "更活泼", "Shorter replies": "回复更简短",
+  "Longer, more detailed replies": "回复更详细", "Fewer emoji": "少用表情", "More emoji": "多用表情",
+  "waiting for you": "等你决定", "accepted": "已接受", "rejected": "已拒绝", "withdrawn": "已撤回",
+  "Withdrawn: fewer than three of its messages are still in memory.": "已撤回：它引用的消息留在记忆里的已不足三条。",
+  "Withdrawn: the card already has this.": "已撤回：设定里已经有这一项。",
+  "Withdrawn: the card has no room for it.": "已撤回：设定里放不下这一项。", "Withdrawn.": "已撤回。",
+  "(empty)": "（空）", "What you said:": "你说过的话：", "Change to the card (everything else stays):": "对设定的修改（其他内容不变）：",
+  "Accept": "接受", "Reject": "拒绝", "accepted suggestion": "接受的建议",
+  "Accept this suggestion? The card is saved as a new version; you can restore the earlier one at any time.":
+    "接受这条建议？设定会保存为一个新版本；你随时可以恢复之前的版本。",
+  "Reject this suggestion? None of the same kind is offered again for 30 days.": "拒绝这条建议？30 天内不会再提出同类建议。",
+  "Suggestion rejected. None of this kind for 30 days.": "已拒绝这条建议。30 天内不会再提出同类建议。",
+  "That suggestion is not available.": "这条建议已不存在。", "That suggestion is no longer open.": "这条建议已经处理过或已撤回。",
+  "The card already has this change.": "设定里已经有这项修改。",
+  // End of persona suggestions
 };
 
 // Sentences built from numbers and names; the captured parts are kept as they are.
@@ -320,6 +340,14 @@ const ZH_PATTERNS = [
   [/^Kept: (\d+) · missed: (\d+) · cancelled: (\d+) · open: (\d+)$/, (m, kept, missed, cancelled, open) =>
     `做到 ${kept} · 错过 ${missed} · 取消 ${cancelled} · 进行中 ${open}`],
   [/^Relationship request field ([\w.\[\]]+): (.+)$/s, (m, where, detail) => `关系字段 ${where}：${detail}`],
+  // Persona suggestions from feedback (P2). The kind is one of the labels above; dates are "3 Nov 2026".
+  [/^(.+): from (\d+) messages$/, (m, kind, n) => `${ZH[kind] || kind}：来自 ${n} 条消息`],
+  [/^Accepted on (.+) as version (\d+)\.$/, (m, date, n) => `已于 ${translate(date)} 接受，保存为版本 ${n}。`],
+  [/^Rejected on (.+)\. None of this kind until (.+)\.$/, (m, date, until) =>
+    `已于 ${translate(date)} 拒绝。${translate(until)} 之前不会再提出同类建议。`],
+  [/^(\d+) waiting$/, (m, n) => `${n} 条待处理`],
+  [/^(.+): paused until (.+) after you rejected it\.$/, (m, kind, until) => `${ZH[kind] || kind}：你拒绝过，${translate(until)} 之前暂停提出。`],
+  // End of persona suggestions
 ];
 // "2 Mar" or "2 Mar 2027" as a Chinese date.
 function zhDay(text) {
