@@ -360,6 +360,92 @@ def test_only_affect_records_after_the_latest_affect_marker_count(brain, clock, 
         assert _affect_triggers(service, conn, principal, ident) == []
 
 
+def test_the_explanation_points_the_same_way_as_the_mood(brain, clock):
+    # Good news, then two harder things: the mood is concerned, so the reason is one of the hard things, never
+    # the good news even though that single trigger is the largest.
+    clock("2027-03-14T21:00:00Z")
+    write(brain, "Got the job.", kind="milestone", affect=JOB)
+    hard = [write(brain, text, kind="milestone", affect={"label": label, "valence": -2, "intensity": 2,
+                                                         "basis": "reported"})
+            for text, label in (("Mum is in hospital.", "scared"), ("The flat fell through.", "gutted"))]
+    state = mood(brain, "2027-03-14T21:00:00Z")
+    assert state["label"] == "concerned" and state["valence"] < 0
+    assert state["trigger_id"] in {f"reported_distress:{saved['affect_id']}" for saved in hard}
+    assert "thrilled" not in state["reason"] and "thrilled" not in state["block"]
+    assert re.search(r"because the user said they felt (scared|gutted)\)", state["block"])
+
+
+def test_pins_and_reset_markers_survive_an_archive_restore(installation, brain, clock):
+    from membrain.client import MemoryClient
+
+    service, principal, ident = brain
+    clock("2027-03-14T21:00:00Z")
+    write(brain, "Got the job.", kind="milestone", affect=JOB)
+    reset_mood(service, principal, ident, now=moment("2027-03-14T21:00:00Z"))
+    pin_mood(service, principal, ident, True, now=moment("2027-03-14T21:00:00Z"))
+
+    def handle(request):
+        return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
+
+    with MemoryClient("http://memory.test", "k", ident, transport=httpx.MockTransport(handle)) as client:
+        archive = client.export()["result"]
+        copy = service.create_brain(principal, "Restored mood")["id"]
+        client.restore(archive["archive_id"], expected_manifest_sha256=archive["manifest_sha256"],
+                       expected_scope_generation=1, mode="new_brain", brain_id=copy)
+    restored = mood_state(service, principal, copy, now=moment("2027-03-14T21:05:00Z"))
+    assert restored["pinned"] and restored["at_baseline"] and restored["block"] is None
+    assert restored["marker"] is not None and restored["marker"]["marker"] == "reset"
+    # Pinning again changes nothing: the restored pin is the current setting.
+    assert pin_mood(service, principal, copy, True, now=moment("2027-03-14T21:05:00Z"))["unchanged"]
+
+
+def test_archived_mood_settings_are_read_strictly(brain):
+    from membrain.mood import _entry
+
+    def row(text, producer="archive-import", role="system"):
+        return {"producer_ref": producer, "document": {
+            "event_id": "e1", "sequence": 7, "system_time": {"recorded_at": "2027-03-14T21:00:00Z"},
+            "observed": {"actor_role": role, "content": {"text": text}}}}
+
+    assert _entry(row('{"mood_pin": true}'))["pinned"] is True
+    assert _entry(row('{"mood_marker": "reset"}'))["applies_from_sequence"] == 7
+    for bad in ('{"mood_pin": "yes"}', '{"mood_pin": 1}', '{"mood_pin": true, "extra": 1}',
+                '{"mood_marker": "cleared"}', '{"mood_marker": "reset", "applies_from_sequence": 1}', "[]", "x"):
+        assert _entry(row(bad)) is None, bad
+    assert _entry(row('{"mood_pin": true}', role="user")) is None
+    assert _entry(row('{"mood_pin": true}', producer="someone-else")) is None
+
+
+def test_a_pin_holds_however_many_resets_follow(brain, clock):
+    from membrain.mood import _write
+
+    service, principal, ident = brain
+    clock("2027-03-14T21:00:00Z")
+    pin_mood(service, principal, ident, True, now=moment("2027-03-14T21:00:00Z"))
+    with service.database.transaction(principal) as conn:
+        current = service._brain(conn, principal, ident)
+        for number in range(510):
+            _write(service, conn, principal, current, f"mood-reset-many-{number}", {"mood_marker": "reset"})
+    state = mood(brain, "2027-03-14T21:05:00Z")
+    assert state["pinned"] and state["pinned_at"] == "2027-03-14T21:00:00Z"
+    assert pin_mood(service, principal, ident, True, now=moment("2027-03-14T21:05:00Z"))["unchanged"]
+
+
+def test_a_reset_marker_holds_however_many_pin_changes_follow(brain, clock):
+    from membrain.mood import _write
+
+    service, principal, ident = brain
+    clock("2027-03-14T21:00:00Z")
+    write(brain, "Got the job.", kind="milestone", affect=JOB)
+    reset_mood(service, principal, ident, now=moment("2027-03-14T21:00:00Z"))
+    with service.database.transaction(principal) as conn:
+        current = service._brain(conn, principal, ident)
+        for number in range(510):
+            _write(service, conn, principal, current, f"mood-pin-many-{number}", {"mood_pin": number % 2 == 0})
+    state = mood(brain, "2027-03-14T21:05:00Z")
+    assert state["marker"] is not None and state["triggers"] == [] and not state["pinned"]
+
+
 def test_mood_settings_are_never_learned_recalled_or_counted_and_cannot_be_planted(brain, monkeypatch):
     from membrain import learning_windows
 

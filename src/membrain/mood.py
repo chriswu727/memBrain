@@ -153,32 +153,66 @@ TRIGGER_SOURCES = (_affect_triggers, _plan_triggers, relationship_triggers)
 
 # Stored settings: pins and reset markers --------------------------------------------------------------------------
 
+# Restoring an exported archive keeps every record but files it under the import producer.
+ARCHIVE_PRODUCER = "archive-import"
+_PIN, _MARKER = '{"mood_pin"%', '{"mood_marker"%'  # How each kind of setting is stored (json.dumps).
+LISTED_MARKERS = 20
+
+
 def _entry(row) -> dict | None:
+    """A pin or a reset marker, or None for anything else. Only the exact forms this module writes are accepted,
+    so an archive (which is outside this module's control) cannot add anything else."""
     document = row["document"]
     observed = document["observed"]
-    if observed.get("actor_role") != "system" or row["producer_ref"] != MOOD_PRODUCER:
+    if observed.get("actor_role") != "system" or row["producer_ref"] not in (MOOD_PRODUCER, ARCHIVE_PRODUCER):
         return None
     try:
         stored = json.loads(observed["content"].get("text") or "")
-        base = {"id": document["event_id"], "sequence": document["sequence"],
-                "recorded_at": document["system_time"]["recorded_at"]}
-        if stored.get("mood_marker") == RESET:
-            return {**base, "marker": RESET, "applies_from_sequence": document["sequence"]}
-        if type(stored.get("mood_pin")) is bool:
+        base = {"id": document["event_id"], "sequence": int(document["sequence"]),
+                "recorded_at": str(document["system_time"]["recorded_at"])}
+        if stored == {"mood_marker": RESET}:
+            return {**base, "marker": RESET, "applies_from_sequence": base["sequence"]}
+        if isinstance(stored, dict) and set(stored) == {"mood_pin"} and type(stored["mood_pin"]) is bool:
             return {**base, "pinned": stored["mood_pin"]}
     except (ValueError, KeyError, TypeError, AttributeError):
         return None
     return None
 
 
-def _settings(service, conn, principal, brain_id, limit=500) -> list[dict]:
-    """Pins and markers, oldest first (the newest ``limit``)."""
-    rows = conn.execute(
+def _scan(service, conn, principal, brain_id, kind, *, after=0, through=None):
+    """Valid settings of one kind (``_PIN`` or ``_MARKER``), newest first, with ``after < sequence <= through``.
+
+    Unbounded, like ``persona._find``: callers stop at the first match they need, so however many settings of the
+    other kind (or of this one) were recorded, the newest pin and the newest marker are always found."""
+    cursor = conn.execute(
         "SELECT producer_ref,document FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
         "AND conversation_id=%s AND is_current AND NOT deleted AND NOT suppressed AND NOT retired "
-        "AND document IS NOT NULL ORDER BY sequence DESC LIMIT %s",
-        (*service._params(principal, brain_id), MOOD_CONVERSATION, limit)).fetchall()
-    return [entry for entry in map(_entry, reversed(rows)) if entry is not None]
+        "AND document IS NOT NULL AND sequence>%s AND (%s::bigint IS NULL OR sequence<=%s) "
+        "AND document->'observed'->'content'->>'text' LIKE %s ORDER BY sequence DESC",
+        (*service._params(principal, brain_id), MOOD_CONVERSATION, after, through, through, kind))
+    while rows := cursor.fetchmany(200):
+        for entry in map(_entry, rows):
+            if entry is not None:
+                yield entry
+
+
+def _latest_pin(service, conn, principal, brain_id, through=None) -> dict | None:
+    return next(_scan(service, conn, principal, brain_id, _PIN, through=through), None)
+
+
+def _settings(service, conn, principal, brain_id, start=None) -> list[dict]:
+    """The settings ``derive`` needs, oldest first: the newest reset markers (the latest one decides which triggers
+    count), and the pin history from ``start`` (the earliest trigger that can count; never before the latest
+    marker) together with the pin in force at ``start``."""
+    markers = []
+    for marker in _scan(service, conn, principal, brain_id, _MARKER):
+        markers.append(marker)
+        if len(markers) == LISTED_MARKERS:
+            break
+    start = max(markers[0]["applies_from_sequence"] if markers else 0, start or 0)
+    pins = list(_scan(service, conn, principal, brain_id, _PIN, after=start))
+    before = _latest_pin(service, conn, principal, brain_id, through=start)
+    return list(reversed(markers)) + ([before] if before else []) + list(reversed(pins))
 
 
 def _baseline(service, conn, principal, brain_id) -> dict:
@@ -273,7 +307,7 @@ def derive(baseline: dict, triggers: list[dict], settings: list[dict], now: _dat
         end(back)
         back = None
     valence, energy = _offset(baseline, active, now) if active else (0.0, 0.0)
-    main = max(active, key=lambda trigger: math.hypot(*_offset(baseline, [trigger], now))) if active else None
+    main = _main(baseline, active, now, valence, energy) if active else None
     state = {
         "label": label_for(valence, energy) if active else baseline["label"],
         "valence": round(baseline["valence"] + valence, 2), "energy": round(baseline["energy"] + energy, 2),
@@ -290,6 +324,15 @@ def derive(baseline: dict, triggers: list[dict], settings: list[dict], now: _dat
     return state
 
 
+def _main(baseline, active, now, valence, energy) -> dict:
+    """The trigger that explains the mood: the largest one pushing the same way as the combined mood moved (by
+    valence, or by energy when valence is back at the baseline), so a concerned mood is never explained by good
+    news that the harder news outweighed. Ties go to the newest."""
+    axis, total = (0, valence) if abs(valence) > _EPSILON else (1, energy)
+    same = [trigger for trigger in active if trigger["push"][axis] * total > 0] or active
+    return max(same, key=lambda trigger: (math.hypot(*_offset(baseline, [trigger], now)), trigger["sequence"]))
+
+
 def _trigger_id(trigger) -> str:
     return f"{trigger['rule']}:{trigger['source']['id']}"
 
@@ -304,7 +347,9 @@ def _public(trigger) -> dict:
 def _read(service, conn, principal, brain_id, now) -> dict:
     baseline = _baseline(service, conn, principal, brain_id)
     triggers = [trigger for source in TRIGGER_SOURCES for trigger in source(service, conn, principal, brain_id)]
-    return derive(baseline, triggers, _settings(service, conn, principal, brain_id), now)
+    # Pins matter from the earliest trigger on; with no trigger only the pin in force now does.
+    start = min(trigger["sequence"] for trigger in triggers) - 1 if triggers else 2**62
+    return derive(baseline, triggers, _settings(service, conn, principal, brain_id, start), now)
 
 
 def _clock(now) -> _datetime.datetime:
@@ -340,8 +385,8 @@ def pin_mood(service, principal, brain_id: str, pinned: bool, *, now=None, tz=No
     with service.database.transaction(principal) as conn:
         conn.execute("SET LOCAL lock_timeout = '5s'")
         brain = service._brain(conn, principal, brain_id)
-        pins = [entry for entry in _settings(service, conn, principal, brain_id) if "pinned" in entry]
-        unchanged = (pins[-1]["pinned"] if pins else False) == pinned
+        latest = _latest_pin(service, conn, principal, brain_id)
+        unchanged = (latest["pinned"] if latest else False) == pinned
         if not unchanged:
             _write(service, conn, principal, brain, "mood-pin-" + uid(), {"mood_pin": pinned})
         state = _read(service, conn, principal, brain_id, _clock(now))
