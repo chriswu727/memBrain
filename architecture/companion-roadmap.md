@@ -252,6 +252,8 @@ Goal: a companion that stays itself and remembers how the user felt, without man
 
 **Scheduled next (owner, 2026-11-07).** Phase C starts after the 0.1 closeout, with personality, emotional memory and mood as separate items. It adds a visual memory map: a brain-shaped view on the memory page, with regions for people, plans, preferences, episodes and emotional memories, whose activity can be seen as memory is used. The view is built on the existing notes and recall data.
 
+**Status (2026-11-03).** Steps 0 to 4 are implemented and merged: the brain map with showcase mode and recall trace (#22), the persona card (#23), affect records (#24), the simulated mood (#25) and the relationship layer (#26). Each passed CI and code review, with every review finding fixed by a regression test. Not yet built: P2 persona development and C5 evaluation. No paid behavioural run has tested Phase C.
+
 **Order of work (owner, 2026-11-03).** Phase C develops the companion's own state in four layers, kept apart: `user_affect` (what the user felt, reported apart from inferred), `persona` (stable character, versioned, changed only by explicit feedback), `agent_mood` (a short-term simulated mood with recorded triggers that recovers to baseline) and `relationship` (shared moments, familiarity, boundaries). Each layer can be seen, explained, adjusted and reset on the memory page. The data, a cross-session example and the reset scope for each layer are in [Phase C design](phase-c-design.md). Order:
 
 0. Finish the brain map: showcase mode, edit and delete from the map, recall trace.

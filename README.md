@@ -73,7 +73,8 @@ Hermes then starts each session with your notes and recent messages, adds relate
 - **Local and private.** One command installs an embedded database on your machine. There is no Docker, cloud account or extra model key; the host model you already use does the interpretation.
 - **Never in the way.** Hooks fail open: if memory is unavailable, your agent answers as usual. Once the runtime is installed, privacy-filtered records are queued until the service recovers.
 - **Forgetting you can audit.** Erasure is recorded and survives restoring an older backup.
-- **Measured in the open.** Evaluations, including failed ones, are published with their method and cost. Personality and emotion modelling are planned research, not current features.
+- **Measured in the open.** Evaluations, including failed ones, are published with their method and cost. The companion layers below are checked by local tests and browser checks; no paid behavioural run has tested them yet.
+- **A companion that stays itself, explainably.** A versioned personality card; feelings the user expressed, kept as evidence and marked as said or inferred, never as a score; a simulated short-term mood with recorded triggers that returns to its baseline and is labelled simulated; and a relationship memory of shared moments, derived familiarity, boundaries and promises kept or missed. Each layer has its own context block, is shown on the memory page with its evidence, and can be adjusted or reset on its own; a reset cannot be rebuilt from older conversations. A brain view on the memory page shows memory as a brain, with a full-screen showcase mode. See [Phase C design](architecture/phase-c-design.md).
 
 <a id="desktop-setup"></a>
 
@@ -265,7 +266,7 @@ The [source-rendered communication candidate](evaluations/v1-2026-10-26-communic
 
 The source-sharing build passed 5,717 source tests, 524 installed checks and all four installed desktop flows. Its [frozen varied run](evaluations/v1-2026-10-26-shared-communication-longitudinal.json) then delivered all 26 inputs: seventeen of eighteen whole-answer cases passed, but the final map label failed when unrelated shelf-plan context displaced original scene details. The campaign stopped with all 116 calls accounted for; it was not retried. The [belief-neighborhood repair](evaluations/v1-2026-10-26-belief-inheritance.md) restores query-relative ranking and recovers the complete original scene within the same context budget in zero-model SQL replay. The failed answer remains failed; a repaired real-model answer and useful age-dependent gist formation remain unverified. Behavioral acceptance has not passed.
 
-Known limits remain visible: a model can treat historical information as current fact, retrieval can include irrelevant material, and semantic verification can reject valid proposals. Full longitudinal acceptance and real elapsed-time aging remain incomplete. Streaming, tool loops, multimodal input, native one-click installation, and full integration into arbitrary AI clients are not currently delivered. The desktop chat flow has been accepted only on macOS; on Windows the plugin path ran partly for real, and on Linux it is verified in containers. Personality and emotion modeling are future research.
+Known limits remain visible: a model can treat historical information as current fact, retrieval can include irrelevant material, and semantic verification can reject valid proposals. Full longitudinal acceptance and real elapsed-time aging remain incomplete. Streaming, tool loops, multimodal input, native one-click installation, and full integration into arbitrary AI clients are not currently delivered. The desktop chat flow has been accepted only on macOS; on Windows the plugin path ran partly for real, and on Linux it is verified in containers. Personality, feelings, mood and relationship (Phase C) are implemented and covered by local tests, but no held-out behavioural run has scored them yet, and personality changes proposed from repeated feedback (P2) are not built.
 
 <a id="manual-deepseek-evaluation"></a>
 
@@ -280,7 +281,7 @@ Read the [acceptance criteria](architecture/v1-acceptance.md), [closed longitudi
 | [Automatic runtime contract](architecture/autonomous-runtime.contract.json) | Lifecycle responsibilities, integration requirements, and implementation boundaries. |
 | [Cognitive budget controls](architecture/cognitive-budgets.md) | Explicit model-call allowances, accounting, and configuration. |
 | [Memory quality and efficiency](architecture/memory-quality-and-efficiency.md) | Measured costs, algorithm choices, and boundaries for future personality and emotion research. |
-| [Roadmap: memory for chat and life agents](architecture/companion-roadmap.md) | Parity with other memory tools and memory of people, plans and relationships (largely implemented, with status per item), then personality and emotion (not started). |
+| [Roadmap: memory for chat and life agents](architecture/companion-roadmap.md) | Parity with other memory tools and memory of people, plans and relationships (largely implemented, with status per item), then personality, feelings, mood and relationship (implemented; personality growth and their evaluation next). |
 | [Development setup](docs/reference.md#development-setup) | Clone-based setup, database migrations, and the worker. |
 | [Local verification](docs/reference.md#verification) | Test commands and the scope of existing evidence. |
 
