@@ -154,9 +154,11 @@ def test_cross_session_job_news_is_glad_then_easing_then_exactly_the_baseline(br
         return snapshot({"items": []}, brain_id="b", tools=None, mood=state)
 
     one, two, three = context(first), context(second), context(third)
-    assert one["mood_shown"] and first["block"] in one["text"]
+    local = moment("2027-03-14T21:00:00Z").astimezone()
+    host_when = f"{local.day} Mar {local:%H:%M}"
+    assert one["mood_shown"] and first["block"].replace("14 Mar 21:00", host_when) in one["text"]
     assert update(context(mood(brain, "2027-03-14T22:00:00Z")), one["fingerprint"], None, True) is None
-    assert second["block"] in update(two, one["fingerprint"], None, True)
+    assert second["block"].replace("14 Mar 21:00", host_when) in update(two, one["fingerprint"], None, True)
     gone = update(three, two["fingerprint"], None, True)
     assert "simulated mood is back at its baseline" in gone and "<membrain-companion-mood>" not in gone
 
