@@ -149,3 +149,18 @@ def test_definitions_that_change_reference_scope_are_not_linked(synthetic):
     assert contracts._linked_definitions() is None
     with pytest.raises(DomainError):
         contracts.validate("Item", {"at": 1})
+
+
+def test_recursive_local_definitions_keep_validation_paths_and_the_published_document(synthetic):
+    document = {"$schema": "https://json-schema.org/draft/2020-12/schema", "$defs": {
+        "Node": {"type": "object", "additionalProperties": False, "properties": {
+            "value": {"type": "integer"}, "children": {"type": "array", "items": {"$ref": "#/$defs/Node"}}}}}}
+    before = copy.deepcopy(document)
+    synthetic(document)
+    reference = Draft202012Validator({**document, "$ref": "#/$defs/Node"})
+    linked = contracts.validator("Node")
+    for value in [{"value": 1}, {"children": [{"children": [{"value": 2}]}]},
+                  {"children": [{"children": [{"value": "bad"}]}]}, {"children": [{"extra": 1}]}]:
+        assert first_error(linked, value) == first_error(reference, value)
+    assert document == before
+    json.dumps(document)
