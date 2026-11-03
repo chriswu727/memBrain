@@ -7,6 +7,8 @@ const state = { key: "", brain: "", notes: [], connectionShown: false };
 let messageTimer;
 // /memory?demo=brain shows fictional data only (brain.js): no sign-in, no saved session read or changed, no API call.
 const DEMO = new URLSearchParams(location.search).get("demo") === "brain";
+// &show=1 opens the brain in showcase mode (showcase.js). Read now: the sign-in link's query is removed below.
+const SHOWCASE = new URLSearchParams(location.search).get("show") === "1";
 
 function notify(text, error = false) {
   clearTimeout(messageTimer);
@@ -558,7 +560,8 @@ async function open(key, brain) {
   try { sessionStorage.setItem("membrain-page", JSON.stringify({ key: state.key, brain: state.brain })); } catch { /* private window */ }
   $("signin").hidden = true; $("tabs").hidden = false;
   resetNoteForm();
-  await Promise.all([loadRecording(), loadServiceStatus(), show("notes")]);
+  await Promise.all([loadRecording(), loadServiceStatus(), show(SHOWCASE ? "brain" : "notes")]);
+  if (SHOWCASE) window.openShowcase();
 }
 onSubmit($("key-form"), () => open($("key").value.trim(), ""));
 setInterval(() => { if (!DEMO && state.key && !$("tabs").hidden) { loadServiceStatus(); loadRecording(); } }, 30000);

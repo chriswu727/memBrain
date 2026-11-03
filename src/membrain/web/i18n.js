@@ -111,6 +111,11 @@ const ZH = {
   "pinned": "置顶", "sensitive": "敏感", "intended": "打算", "scheduled": "已安排", "done": "已完成", "cancelled": "已取消",
   "superseded": "已被取代", "person": "人物", "constraint": "限制", "preference": "偏好", "plan": "计划", "routine": "习惯",
   "milestone": "重要日子", "relationship": "相处方式", "agent promise": "agent 的承诺", "other": "其他",
+  "Showcase": "展示模式", "Close": "关闭", "Close showcase (Esc)": "关闭展示模式（Esc）",
+  "Loading the memory map…": "正在加载记忆图…", "Fictional demo data": "虚构的演示数据",
+  "Only the most recent memories are shown.": "只显示最近的记忆。",
+  "Each dot is one memory and each line a link it records; light travels only along those links. The brain shape, folds and glow are decoration.":
+    "每个点是一条记忆，每条线是它记录的一条关联；光点只沿这些关联移动。大脑的轮廓、褶皱和光晕只是装饰。",
   "中文": "中文", "English": "English",
 };
 
@@ -143,6 +148,7 @@ const ZH_PATTERNS = [
   [/^Request failed \((\d+)\)$/, (m, status) => `请求失败（${status}）`],
   [/^(\d+) memories and (\d+) links( \(the most recent; more exist\))?\.$/, (m, n, e, more) =>
     `${n} 条记忆，${e} 条关联${more ? "（只显示最近的，还有更多）" : ""}。`],
+  [/^(\d+) memor(?:y|ies) · (\d+) links?$/, (m, n, e) => `${n} 条记忆 · ${e} 条关联`],
   [/^(derived from|about person|replaces) \((source event ids|about|replaces)\)$/, (m, type) => BRAIN_EDGES[type]],
   [/^(Status|Date|Saved): .+$/, (m) => m.replace(/Status: (\w+)/, (x, status) => `状态：${BRAIN_STATUS[status] || status}`)
     .replace(/Date: /g, "日期：").replace(/Saved: /g, "保存于：")],

@@ -131,6 +131,7 @@ function renderBrain(map) {
     : "No memories yet. Talk with your agent, then come back.";
   $("brain-demo").hidden = !(map.demo || brainState.demo);
   selectNode(brainState.selected && map.nodes.some((node) => node.id === brainState.selected) ? brainState.selected : "");
+  document.dispatchEvent(new CustomEvent("brain-map", { detail: map }));
 }
 
 function renderLegend(map) {
