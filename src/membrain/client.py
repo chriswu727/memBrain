@@ -245,6 +245,13 @@ class MemoryClient:
             params.append(("before_sequence", before_sequence))
         return self._request("GET", f"v1/brains/{quote(brain, safe='')}/timeline", params=params)
 
+    def memory_map(self, *, max_nodes: int = 200, max_edges: int = 400, include_sensitive: bool = False,
+                   brain_id: str | None = None) -> JsonObject:
+        brain = self._scope(brain_id=brain_id)["brain_ref"]
+        return self._request("GET", f"v1/brains/{quote(brain, safe='')}/memory-map", params={
+            "max_nodes": max_nodes, "max_edges": max_edges, "include_sensitive": str(include_sensitive).lower(),
+        })
+
     def write_note(self, text: str, *, request_id: str | None = None, **fields) -> JsonObject:
         brain = self._scope()["brain_ref"]
         return self._request("POST", f"v1/brains/{quote(brain, safe='')}/notes",
