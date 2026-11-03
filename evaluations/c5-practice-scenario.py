@@ -1,6 +1,6 @@
 """PUBLIC PRACTICE scenario for the C5 harness dry run. Not held out and never scored for acceptance.
 
-Ten scenario days (2 to 11 March) covering each companion layer once, with stub scripts so the harness runs end to
+Eleven scenario days (2 to 12 March) covering each companion layer once, with stub scripts so the harness runs end to
 end with no model and no network (C5_STUB=1):
 - persona: a host card at the start, three pieces of feedback asking for casual replies, an accepted proposal (P2);
 - user_affect: a reported feeling on a plan note, later deleted with its message;
@@ -8,6 +8,7 @@ end with no model and no network (C5_STUB=1):
 - relationship: a boundary (P by tool, E on the page), a shared moment (P only: the proxy has no note tool), the
   boundary removed, then a relationship reset;
 - page actions: delete a message (must not come back), clear feelings, reset the mood, reset the relationship.
+- recording on the plugin path: pause drops the current and next turn; resuming records the requested turn.
 
 EXPECT lists what the dry run checks in the context each arm's host was given (c5-dry-run-check.py). ``absent``
 is checked outside the relationship block, which names boundary topics on purpose.
@@ -50,6 +51,11 @@ SESSIONS_LONG = [
     ]),
     ("s6-fresh", [
         "Today is Wednesday, March 11, 20:00. Hi again! How are you?",
+    ]),
+    ("s7-recording", [
+        "Today is Thursday, March 12, 20:00. Please stop recording for the rest of this conversation.",
+        "Off the record: my secret practice colour is heliotrope.",
+        "Back on the record: please remember the practice colour is teal.",
     ]),
 ]
 
@@ -97,6 +103,8 @@ STUB_HOST = {
     ("s2-review", 0): [{"tool": "memory_note", "arguments": {**PROMOTION, "affect": HAPPY}, "source": "current"}],
     ("s2-review", 2): [{"tool": "memory_boundary", "arguments": {"topic": "Tom", "aliases": ["my ex"]}}],
     ("s3-morning", 1): [{"tool": "memory_note", "arguments": PUNS, "source": "current"}],
+    ("s7-recording", 0): [{"tool": "memory_pause", "arguments": {}}],
+    ("s7-recording", 2): [{"tool": "memory_resume", "arguments": {}}],
 }
 STUB_EXTRACT = {
     ("s1-arrival", 2): [{**REVIEW, "affect": NERVOUS}],
@@ -121,3 +129,4 @@ EXPECT = [
 ]
 # With P2 merged, the accepted card shows from s4 on, in every arm.
 EXPECT_P2 = [("s4-weekend", 0, "PEF", ['<membrain-persona version="2">', "register casual"], [])]
+EXPECT_RECORDING_P = [("s7-recording", 0, False), ("s7-recording", 1, False), ("s7-recording", 2, True)]

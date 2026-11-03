@@ -69,7 +69,7 @@ def check(scenario_path: str, root: Path, key: str) -> dict:
     stem = Path(scenario_path).stem
     report = {layer: {"passed": 0, "failures": []} for layer in
               ("persona", "affect", "mood", "relationship", "page_actions", "reference", "clock", "tools",
-               "network", "run")}
+               "network", "run", "recording")}
 
     def verdict(layer, ok, failure):
         if ok:
@@ -132,6 +132,10 @@ def check(scenario_path: str, root: Path, key: str) -> dict:
                     f"{arm} {session} t{turn}: scenario time {row['scenario_time']}")
         verdict("clock", not any(event["kind"] == "clock_already_past" for event in events[arm]),
                 f"{arm}: a session started after the clock had passed its time")
+
+    for session, turn, expected in getattr(module, "EXPECT_RECORDING_P", []):
+        row = rows["P"].get((session, turn), {})
+        verdict("recording", row.get("recorded") is expected, f"P {session} t{turn}: recording expected {expected}")
 
     # Tools: P offers memory_boundary and the note tool's affect and shared fields; every scripted call succeeded.
     calls = [call for row in rows["P"].values() for call in row["tool_calls"]]

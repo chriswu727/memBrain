@@ -320,3 +320,33 @@ def test_a_deletion_finds_its_turn_by_identity_even_when_another_turn_says_the_s
     # A deletion of a turn whose messages were never identified fails instead of guessing by text.
     assert harness.apply_page_action(memory, {"do": "delete_message", "session": "s9", "turn": 0}, {}) == {
         "failed": "message not found"}
+
+
+@pytest.mark.parametrize("pause_at", ["before", "during", "during_then_resume"])
+def test_a_legitimately_unrecorded_turn_does_not_degrade_the_harness(memory, pause_at):
+    if pause_at == "before":
+        host.pause(memory.directory)
+    host.prompt_context(memory.directory, "private", "A private practice turn.", turn_id="t0")
+    if pause_at != "before":
+        host.pause(memory.directory)
+    if pause_at == "during_then_resume":
+        host.resume(memory.directory)
+    recorded = host.finish_turn(memory.directory, "private", "Understood.", turn_id="t0")
+    assert recorded == []
+    memory.record_turn("private", 0, recorded=bool(recorded))
+    assert memory.positions == {} and not (memory.directory.parent / "harness-events.jsonl").exists()
+    host.resume(memory.directory)
+    host.prompt_context(memory.directory, "private", "Back on the record.", turn_id="t1")
+    recorded = host.finish_turn(memory.directory, "private", "Welcome back.", turn_id="t1")
+    assert len(recorded) == 2
+    memory.record_turn("private", 1, recorded=bool(recorded))
+    assert set(memory.positions.values()) == {("private", 1, "user"), ("private", 1, "assistant")}
+
+
+def test_an_unrecorded_turn_cannot_silently_add_messages_to_memory(memory):
+    host.prompt_context(memory.directory, "private", "A practice privacy error.", turn_id="t0")
+    host.finish_turn(memory.directory, "private", "Understood.", turn_id="t0")
+    memory.record_turn("private", 0, recorded=False)
+    event = json.loads((memory.directory.parent / "harness-events.jsonl").read_text())
+    assert event["kind"] == "unexpected_recording" and event["new_messages"] == 2
+    assert "practice privacy error" not in json.dumps(event)

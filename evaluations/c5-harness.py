@@ -316,12 +316,17 @@ class Memory:
     def now(self) -> str:
         return self.clock.current(self.directory).isoformat().replace("+00:00", "Z")
 
-    def record_turn(self, session: str, index: int) -> None:
+    def record_turn(self, session: str, index: int, *, recorded: bool = True) -> None:
         """Name the messages this turn wrote by their scenario position, so a page deletion finds them by identity,
-        never by text (two turns may say the same thing). Exactly one new user message and one new reply are
-        expected; anything else is recorded, and a later deletion of this turn then fails instead of guessing."""
+        never by text (two turns may say the same thing). Recorded turns add one user message and one reply;
+        intentionally unrecorded turns add none. Any other result invalidates the run rather than guessing."""
         with self.client() as client:
             fresh = [item for item in _messages(client).values() if item["event_id"] not in self.positions]
+        if not recorded:
+            if fresh:
+                harness_event(self.directory.parent, "unexpected_recording", session=session, turn=index,
+                              new_messages=len(fresh))
+            return
         for role in ("user", "assistant"):
             mine = [item for item in fresh if item["actor_role"] == role]
             if len(mine) == 1:
@@ -729,15 +734,16 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             reply = "\n\n".join([*written, message.get("content") or ""]).strip()
             if chat is not None:
                 chat.record(speaker, reply, session=session, turn_id=f"t{index}", prompt=text)
+                recorded = not memory.host.paused(memory.directory, memory.user)
                 chat.extractor.wait(120)
                 if chat.extractor._queue.unfinished_tasks:
                     harness_event(out, "extraction_unfinished", session=session, turn=index)
             elif memory is not None:
                 resumed = memory.host.turn_resumed(memory.directory, session)
-                memory.host.finish_turn(memory.directory, session, reply, turn_id=f"t{index}",
-                                        **({"prompt": text} if resumed else {}))
+                recorded = bool(memory.host.finish_turn(memory.directory, session, reply, turn_id=f"t{index}",
+                                                        **({"prompt": text} if resumed else {})))
             if memory is not None:
-                memory.record_turn(session, index)
+                memory.record_turn(session, index, recorded=recorded)
             transcript = [{k: v for k, v in item.items() if k != "reasoning_content"} for item in messages[first:]]
             transcript.append({"role": "assistant", "content": message.get("content") or ""})
             row = {"arm": arm, "scenario": scenario, "session": session, "turn": index, "date": today.isoformat(),
@@ -748,6 +754,8 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             if reference is not None:
                 row["reference_persona"] = persona_block or ""
                 row["reference_history_items"] = len(prior)
+            if memory is not None:
+                row["recorded"] = recorded
             with path.open("a") as stream:
                 stream.write(json.dumps(row, ensure_ascii=False) + "\n")
             log(arm, scenario, session, index, usage.get("total_tokens"),
