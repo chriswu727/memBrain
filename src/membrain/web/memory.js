@@ -1062,24 +1062,27 @@ const loaders = { notes: () => loadNotes(), brain: () => window.loadBrain(), per
   conversations: loadConversations, search: async () => {}, privacy: loadRecording };
 
 async function show(view) {
+  if (typeof view !== "string" || !Object.hasOwn(loaders, view)) view = "notes";
   for (const button of $("tabs").querySelectorAll("button")) {
     button.classList.toggle("active", button.dataset.view === view);
     button.setAttribute("aria-pressed", String(button.dataset.view === view));
   }
   for (const name of Object.keys(loaders)) $(`view-${name}`).hidden = name !== view;
+  if (!DEMO && state.key) {
+    try { sessionStorage.setItem("membrain-page", JSON.stringify({ key: state.key, brain: state.brain, view })); } catch { /* private window */ }
+  }
   try { await loaders[view](); } catch (error) { notify(error.message, true); }
 }
 for (const button of $("tabs").querySelectorAll("button")) button.addEventListener("click", () => show(button.dataset.view));
 
-async function open(key, brain) {
+async function open(key, brain, view = "notes") {
   state.key = key; state.brain = brain;
   if (!state.brain) state.brain = (await api("/v1/brains")).brains?.[0]?.id || "";
   if (!state.brain) throw new Error("No memory installation found. Run membrain plugin start first.");
   await api(`/v1/brains/${encodeURIComponent(state.brain)}/status`);
-  try { sessionStorage.setItem("membrain-page", JSON.stringify({ key: state.key, brain: state.brain })); } catch { /* private window */ }
   $("signin").hidden = true; $("tabs").hidden = false;
   resetNoteForm();
-  await Promise.all([loadRecording(), loadServiceStatus(), show(SHOWCASE ? "brain" : "notes")]);
+  await Promise.all([loadRecording(), loadServiceStatus(), show(SHOWCASE ? "brain" : view)]);
   if (SHOWCASE) window.openShowcase();
 }
 onSubmit($("key-form"), () => open($("key").value.trim(), ""));
@@ -1099,7 +1102,7 @@ setInterval(() => { if (!DEMO && state.key && !$("tabs").hidden) { loadServiceSt
   }
   try {
     const saved = JSON.parse(sessionStorage.getItem("membrain-page") || "null");
-    if (saved?.key) return await open(saved.key, saved.brain);
+    if (saved?.key) return await open(saved.key, saved.brain, saved.view);
   } catch { try { sessionStorage.removeItem("membrain-page"); } catch { /* private window */ } }
   $("signin").hidden = false;
 })();
