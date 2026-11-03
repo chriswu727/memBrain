@@ -62,6 +62,7 @@ Free prerequisites 4 and 5 of the [paid acceptance plan draft](maturity-paid-acc
 ## Hardening after the independent plan review
 
 - **A degraded live arm stops (U2).** `harness_event` is the single choke point. Every recorded event makes the run invalid (`acceptance_review.py validity`), so in a live run it records the event, blocks the shared billing ledger (`harness_degraded`, as an interrupted arm does), and raises `DegradedRun`. `DegradedRun` is a `SystemExit` with exit code 3: no `except Exception` swallows it, and the main block's cleanup (`stop_started`) still runs. The run script then sees a failed arm and stops the others. A dry run (`C5_STUB=1`) records the event and goes on, so its checks still see every event.
+  - **The paid turn's row is kept.** An event raised while a turn's paid reply is being recorded (`record_turn`, the extraction checks, `turn_not_recorded`) blocks the ledger at once. The stop itself waits until that turn's results row is written, in the usual format, with `"stopped_after": "<event kind>"`. The run stays invalid: the event is in `harness-events.jsonl`, the later turns are missing, and `run.log` has no finished line.
 - **Event payloads hold only kinds, positions and counts.**
   - `page_action_failed` now has `reason` as a code (`not_found`, `card_differs`, `unknown_removed`). Before, it held the result's message, which named the topic, label, note text or proposal match.
   - `clock_already_past` now has `behind_seconds` instead of the requested and current times.

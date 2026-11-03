@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 
 from membrain import evaluation_clock
+from membrain import host as membrain_host
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -206,14 +207,20 @@ def stub_run(tmp_path, monkeypatch):
     environment, handlers = dict(os.environ), list(logging.getLogger("membrain.extraction").handlers)
     monkeypatch.setattr(harness, "STUB", True)
     monkeypatch.setattr(socket.socket, "connect", socket.socket.connect)  # refuse_network replaces it.
+    # Brains already created are remembered by service URL; an earlier test's service may have had these ports.
+    monkeypatch.setattr(membrain_host, "_ENSURED_BRAINS", set())
     for name in ("MEMBRAIN_MODEL_CACHE", evaluation_clock.ENV):
         os.environ.pop(name, None)
     os.environ.update({"MEMBRAIN_SEMANTIC": "0", "PYTHON_DOTENV_DISABLED": "1",
                        "MEMBRAIN_PORTS": ",".join(map(str, _free_ports(2)))})
 
     def run(arm, source, script_host=None):
-        path = tmp_path / "zq-synthetic-scenario.py"
-        path.write_text(source + f"\nSTUB_HOST = {script_host or {}!r}\n")
+        """``source`` is a synthetic scenario's code, or the path of a public scenario file."""
+        if isinstance(source, Path):
+            path = source
+        else:
+            path = tmp_path / "zq-synthetic-scenario.py"
+            path.write_text(source + f"\nSTUB_HOST = {script_host or {}!r}\n")
         out = tmp_path / f"run-{arm}"
         try:
             harness.run(arm, str(path), out)
@@ -300,6 +307,47 @@ def test_a_stub_plugin_run_refuses_a_timed_pause_and_flags_an_unintended_unrecor
     assert [(event["kind"], event["session"], event["turn"]) for event in events] == [
         ("timed_pause_refused", "s1", 0), ("turn_not_recorded", "s1", 1), ("turn_not_recorded", "s1", 2)]
     assert capsys.readouterr().out.rstrip().endswith("P zq-synthetic-scenario finished")
+
+
+# A stopped live arm keeps the paid turn's row -------------------------------------------------------------------
+
+def test_a_live_stop_during_a_turns_bookkeeping_waits_for_its_row(tmp_path, monkeypatch):
+    stops = []
+
+    class Guard:
+        def stop(self, reason):
+            stops.append(reason)
+
+    monkeypatch.setattr(harness, "STUB", False)
+    monkeypatch.setattr(harness, "BILLING", Guard())
+    with harness.deferred_stop([]) as stopping:
+        harness.harness_event(tmp_path, "message_identity_unknown", session="s1", turn=0, role="user",
+                              new_messages=0)
+        harness.harness_event(tmp_path, "turn_not_recorded", session="s1", turn=0)
+    assert stopping == ["message_identity_unknown", "turn_not_recorded"]
+    assert stops == ["harness_degraded", "harness_degraded"]  # The ledger is blocked at once.
+    with pytest.raises(harness.DegradedRun):  # Outside a turn's bookkeeping a live arm stops at the event.
+        harness.harness_event(tmp_path, "index_wait_timed_out")
+
+
+def test_a_live_arm_stopped_by_a_turns_event_writes_that_turns_row_first(stub_run, tmp_path, monkeypatch, capsys):
+    review = _load("c5_acceptance_review_hardening", ROOT / "evaluations" / "acceptance_review.py")
+    monkeypatch.setattr(harness, "StubExtractor", _FailingExtractor)
+    monkeypatch.setattr(harness, "stops_on_events", lambda: True)  # The live stop, with the stub host and extractor.
+    scenario = ROOT / "evaluations" / "c5-practice-scenario.py"
+    with pytest.raises(harness.DegradedRun) as stopped:
+        stub_run("E", scenario)
+    assert stopped.value.kind == "extraction_failed" and stopped.value.code == 3
+    directory = tmp_path / "run-E"
+    (directory / "run.log").write_text(capsys.readouterr().out)
+    (row,) = [json.loads(line) for line in (directory / f"results_{scenario.stem}_E.jsonl").read_text().splitlines()]
+    assert (row["session"], row["turn"], row["stopped_after"]) == ("s1-arrival", 0, "extraction_failed")
+    assert row["reply"].startswith("(stub reply") and row["usage"]["total_tokens"] > 0 and row["transcript"]
+    assert row["input"] == practice.SESSIONS_LONG[0][1][0] and row["recorded"] is True
+    assert [event["kind"] for event in _events(directory)] == ["extraction_failed"]
+    result = review.validity([directory])
+    assert result["valid"] is False and any("harness degradation extraction_failed" in problem
+                                            for problem in result["problems"])
 
 
 # I2: the count-only precheck ------------------------------------------------------------------------------------

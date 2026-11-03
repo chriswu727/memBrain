@@ -129,21 +129,52 @@ class DegradedRun(SystemExit):
         self.kind = kind
 
 
+_DEFERRED: list | None = None  # While a turn's reply is being recorded: the stopping events, raised after its row.
+
+
+def stops_on_events() -> bool:
+    """A live arm stops on its first harness event; a dry run records every event and goes on."""
+    return not STUB
+
+
+@contextmanager
+def deferred_stop(kinds: list):
+    """After a turn's reply was paid for: a live arm's stop waits until the turn's results row is written, so the
+    paid reply is never lost. The ledger is still blocked at once."""
+    global _DEFERRED
+    _DEFERRED = kinds
+    try:
+        yield kinds
+    finally:
+        _DEFERRED = None
+
+
+def stop_run(kind: str):
+    log("live run stopped: harness event", kind)
+    raise DegradedRun(kind)
+
+
 def harness_event(out: Path, kind: str, **data) -> None:
     """Record something that may have degraded a run, so it is reported with the results. ``data`` holds only kinds,
     positions and counts, never the scenario's words. Every recorded event makes the run invalid
     (acceptance_review.py validity), so a live arm stops here, after blocking the shared billing ledger as an
-    interrupted arm does; a dry run records the event and goes on, so its checks see every event."""
+    interrupted arm does (within ``deferred_stop``, after the turn's row); a dry run records the event and goes on,
+    so its checks see every event."""
     with (out / "harness-events.jsonl").open("a") as stream:
         stream.write(json.dumps({"time": time.time(), "kind": kind, **data}) + "\n")
     log("harness event", kind, data)
-    if not STUB:
-        log("live run stopped: harness event", kind)
-        try:
-            if BILLING is not None:
-                BILLING.stop("harness_degraded")
-        finally:
-            raise DegradedRun(kind)
+    if not stops_on_events():
+        return
+    try:
+        if BILLING is not None:
+            BILLING.stop("harness_degraded")
+    except Exception as error:  # The stop still happens; the run script's --stop blocks the ledger again.
+        log("ledger stop failed", type(error).__name__)
+    if _DEFERRED is not None:
+        _DEFERRED.append(kind)
+        log("live run stops after this turn's row: harness event", kind)
+        return
+    stop_run(kind)
 
 
 def failure_code(result: dict) -> str:
@@ -897,23 +928,25 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             written = [item.get("content") for item in messages[first + 1:]
                        if item.get("role") == "assistant" and item.get("content")]
             reply = "\n\n".join([*written, message.get("content") or ""]).strip()
-            if chat is not None:
-                chat.record(speaker, reply, session=session, turn_id=f"t{index}", prompt=text)
-                recorded = not memory.host.paused(memory.directory, memory.user)
-                chat.extractor.wait(120)
-                check_billing()
-                if chat.extractor._queue.unfinished_tasks:
-                    harness_event(out, "extraction_unfinished", session=session, turn=index)
-                if watch.failed():
-                    harness_event(out, "extraction_failed", session=session, turn=index)
-            elif memory is not None:
-                resumed = memory.host.turn_resumed(memory.directory, session)
-                recorded = bool(memory.host.finish_turn(memory.directory, session, reply, turn_id=f"t{index}",
-                                                        **({"prompt": text} if resumed else {})))
-            if memory is not None:
-                memory.record_turn(session, index, recorded=recorded)
-                if not recorded and (session, index) not in intended:
-                    harness_event(out, "turn_not_recorded", session=session, turn=index)
+            stopping: list[str] = []
+            with deferred_stop(stopping):  # The reply is paid for: its row is written before any stop.
+                if chat is not None:
+                    chat.record(speaker, reply, session=session, turn_id=f"t{index}", prompt=text)
+                    recorded = not memory.host.paused(memory.directory, memory.user)
+                    chat.extractor.wait(120)
+                    check_billing()
+                    if chat.extractor._queue.unfinished_tasks:
+                        harness_event(out, "extraction_unfinished", session=session, turn=index)
+                    if watch.failed():
+                        harness_event(out, "extraction_failed", session=session, turn=index)
+                elif memory is not None:
+                    resumed = memory.host.turn_resumed(memory.directory, session)
+                    recorded = bool(memory.host.finish_turn(memory.directory, session, reply, turn_id=f"t{index}",
+                                                            **({"prompt": text} if resumed else {})))
+                if memory is not None:
+                    memory.record_turn(session, index, recorded=recorded)
+                    if not recorded and (session, index) not in intended:
+                        harness_event(out, "turn_not_recorded", session=session, turn=index)
             transcript = [{k: v for k, v in item.items() if k != "reasoning_content"} for item in messages[first:]]
             transcript.append({"role": "assistant", "content": message.get("content") or ""})
             row = {"arm": arm, "scenario": scenario, "session": session, "turn": index, "date": today.isoformat(),
@@ -926,10 +959,14 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 row["reference_history_items"] = len(prior)
             if memory is not None:
                 row["recorded"] = recorded
+            if stopping:
+                row["stopped_after"] = stopping[0]
             with path.open("a") as stream:
                 stream.write(json.dumps(row, ensure_ascii=False) + "\n")
             log(arm, scenario, session, index, usage.get("total_tokens"),
                 "tools:", [(call["name"], str(call["arguments"])[:80]) for call in tool_calls])
+            if stopping:
+                stop_run(stopping[0])
             if reference is not None:  # F's history holds the user's words, not a memory block, and the reply.
                 current += [((session, index, "user"), {"role": "user", "content": text}),
                             ((session, index, "assistant"), {"role": "assistant", "content": reply})]
