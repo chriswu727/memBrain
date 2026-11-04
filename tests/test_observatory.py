@@ -27,7 +27,7 @@ VENDORED = {
 MEMORY_EDGE_TYPES = {"derived_from", "about_person", "feeling_of"}
 EDGE_TYPES = MEMORY_EDGE_TYPES | {"based_on_feedback", "proposed_from_feedback", "accepted_proposal", "restored_from",
                                   "baseline_from", "triggered_by", "affected_by"}
-PAGE_SCRIPTS = ["i18n.js", "memory.js", "brain.js", "observatory.js", "showcase.js"]
+PAGE_SCRIPTS = ["i18n.js", "memory.js", "brain.js", "observatory.js", "hologram.js", "showcase.js"]
 
 
 def test_vendored_three_js_matches_the_recorded_hashes_version_and_licence():

@@ -145,6 +145,8 @@ const ZH = {
   "superseded": "已被取代", "person": "人物", "constraint": "限制", "preference": "偏好", "plan": "计划", "routine": "习惯",
   "milestone": "重要日子", "relationship": "相处方式", "agent promise": "agent 的承诺", "other": "其他",
   "Showcase": "展示模式", "Close": "关闭", "Close showcase (Esc)": "关闭展示模式（Esc）",
+  "Pause signal animation": "暂停信号动画", "Full screen": "全屏", "Demo ·": "演示 ·", "Simulated signals": "模拟信号",
+  "3D memory hologram. Drag to rotate and scroll to zoom. Signals are simulated.": "3D 记忆全息图。拖动旋转，滚动缩放。信号为模拟动画。",
   "Loading the memory map…": "正在加载记忆图…", "Fictional demo data": "虚构的演示数据",
   "Only the most recent memories are shown.": "只显示最近的记忆。",
   "Each dot is one memory and each line a link it records; light travels only along those links. The brain shape, folds and glow are decoration.":

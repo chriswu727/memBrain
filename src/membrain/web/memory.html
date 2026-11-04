@@ -10,6 +10,7 @@
   <script src="/static/memory.js" defer></script>
   <script src="/static/brain.js" defer></script>
   <script src="/static/observatory.js" defer></script>
+  <script src="/static/hologram.js" defer></script>
   <script src="/static/showcase.js" defer></script>
 </head>
 <body>
@@ -457,9 +458,14 @@
 <section id="brain-show" class="brain-show" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="show-title" hidden>
   <div class="show-top">
     <p class="show-brand"><strong>memBrain</strong> <span id="show-title">Your memory as a brain</span></p>
-    <button id="show-close" class="show-close" type="button" aria-label="Close showcase (Esc)">Close</button>
+    <div class="show-controls">
+      <button id="show-pause" class="show-close" type="button" aria-label="Pause signal animation" aria-pressed="false">Ⅱ</button>
+      <button id="show-fullscreen" class="show-close" type="button" aria-label="Full screen">⛶</button>
+      <button id="show-close" class="show-close" type="button" aria-label="Close showcase (Esc)">×</button>
+    </div>
   </div>
   <div id="show-stage" class="show-stage"></div>
+  <p id="show-simulation" class="show-simulation" hidden><span id="show-fictional">Demo · </span><span>Simulated signals</span></p>
   <div class="show-foot">
     <p class="show-caption"><span id="show-counts">Loading the memory map…</span><span id="show-demo" class="show-demo" hidden>Fictional demo data</span><span id="show-more" hidden>Only the most recent memories are shown.</span></p>
     <div id="show-legend" class="show-legend"></div>

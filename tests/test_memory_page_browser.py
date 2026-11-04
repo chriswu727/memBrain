@@ -254,7 +254,9 @@ def test_showcase_shows_fictional_data_and_makes_no_api_request(server, page, sa
     page.on("console", lambda message: console_errors.append(message.text) if message.type == "error" else None)
     page.goto(f"{server.base_url}/memory?demo=brain&show=1")
     expect(page.locator("#brain-show")).to_be_visible()
-    expect(page.locator("#show-demo")).to_be_visible()
+    page.wait_for_function("() => window.memoryHologram.snapshot().ready")
+    expect(page.locator("#show-simulation")).to_be_visible()
+    expect(page.locator("#show-fictional")).to_be_visible()
     expect(page.locator("#show-demo")).to_have_text("Fictional demo data")
     demo = json.loads((WEB / "memory-map-demo.json").read_text(encoding="utf-8"))
     assert demo["demo"] is True

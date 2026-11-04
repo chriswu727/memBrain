@@ -1,7 +1,7 @@
 "use strict";
 // memBrain memory page: showcase mode. A full-screen, dark rendering of the memory map that brain.js already loaded,
 // for presenting and screen recording. It makes no request of its own.
-// Honesty rules: every dot is a node of the map, and every line or travelling light is an edge of the map. The
+// In the SVG fallback every dot is a node of the map, and every line or travelling light is an edge of the map. The
 // silhouette, folds, glow and background are decoration in their own layer: drawn as dark grooves, never as dots or
 // lit lines, and never counted.
 
@@ -303,6 +303,8 @@ function renderShowcase(map) {
   $("show-more").hidden = !map.truncated;
   showState.rendered = map;
   startPulses();
+  $("show-fictional").hidden = !(map.demo || brainState.demo);
+  hologram.open(map);
 }
 
 // Signals: at most MAX_PULSES lights at once. Each light travels along one link from showState.links (built from
@@ -310,7 +312,7 @@ function renderShowcase(map) {
 function startPulses() {
   stopPulses();
   const layer = $("show-stage").querySelector(".show-motion");
-  if (!showState.open || reducedMotion.matches || !layer || !showState.links.length) return;
+  if (!showState.open || document.hidden || hologram.renderer || hologram.paused || reducedMotion.matches || !layer || !showState.links.length) return;
   const random = seeded(11);
   const order = showState.links.map((link) => [random(), link]).sort((a, b) => a[0] - b[0]).map(([, link]) => link);
   const count = Math.min(MAX_PULSES, Math.ceil(order.length / 2));
@@ -375,7 +377,7 @@ function openShowcase() {
   for (const id of ["header", "main"]) document.querySelector(id).inert = true;
   panel.focus({ preventScroll: true });
   if (brainState.map && showState.rendered !== brainState.map) renderShowcase(brainState.map);
-  else if (brainState.map) startPulses();
+  else if (brainState.map) { startPulses(); hologram.open(brainState.map); }
 }
 window.openShowcase = openShowcase;
 
@@ -383,6 +385,8 @@ function closeShowcase() {
   if (!showState.open) return;
   showState.open = false;
   stopPulses();
+  hologram.close();
+  if (document.fullscreenElement === $("brain-show")) document.exitFullscreen().catch(() => {});
   $("brain-show").hidden = true;
   document.body.classList.remove("showing");
   for (const id of ["header", "main"]) document.querySelector(id).inert = false;
@@ -391,11 +395,33 @@ function closeShowcase() {
 
 document.addEventListener("brain-map", (event) => { if (showState.open) renderShowcase(event.detail); });
 document.addEventListener("brain-clear", () => { closeShowcase(); showState.rendered = null; });
-document.addEventListener("keydown", (event) => { if (event.key === "Escape" && showState.open) closeShowcase(); });
+document.addEventListener("keydown", (event) => {
+  if (!showState.open) return;
+  if (event.key === "Escape") closeShowcase();
+  if (event.key === "Tab") {
+    const buttons = [...$("brain-show").querySelectorAll("button")].filter((button) => button.getClientRects().length);
+    const index = buttons.indexOf(document.activeElement);
+    if (event.shiftKey && index <= 0) { event.preventDefault(); buttons.at(-1)?.focus(); }
+    else if (!event.shiftKey && (index === buttons.length - 1 || index < 0)) { event.preventDefault(); buttons[0]?.focus(); }
+  }
+});
+document.addEventListener("visibilitychange", () => document.hidden ? stopPulses() : startPulses());
 reducedMotion.addEventListener?.("change", () => (reducedMotion.matches ? stopPulses() : startPulses()));
 document.addEventListener("DOMContentLoaded", () => {
   $("show-close").addEventListener("click", closeShowcase);
   $("brain-showcase").addEventListener("click", openShowcase);
+  $("show-pause").addEventListener("click", () => {
+    hologram.paused = !hologram.paused;
+    $("show-pause").setAttribute("aria-pressed", String(hologram.paused));
+    hologram.schedule();
+    if (hologram.paused) stopPulses(); else startPulses();
+  });
+  $("show-fullscreen").addEventListener("click", async () => {
+    try {
+      if (document.fullscreenElement) await document.exitFullscreen();
+      else await $("brain-show").requestFullscreen();
+    } catch { /* The viewport mode also works in browsers without the Fullscreen API. */ }
+  });
   // /memory?demo=brain&show=1 opens straight into the showcase; signed-in pages do so from memory.js.
   if (DEMO && SHOWCASE) openShowcase();
 });

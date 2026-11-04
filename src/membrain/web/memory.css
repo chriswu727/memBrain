@@ -306,6 +306,22 @@ body.showing { overflow: hidden; }
   .show-brand span { display: block; }
   .show-legend { gap: 2px 12px; font-size: 12px; }
 }
+.brain-show.holographic { display: block; padding: 0; background: radial-gradient(ellipse at 50% 48%, #071b2a 0%, #030915 48%, #010309 100%); }
+.holographic .show-stage { position: absolute; inset: 0; margin: 0; aspect-ratio: auto; }
+.holographic .show-stage > svg, .holographic .show-foot, .holographic .show-brand span { display: none; }
+.holographic .show-top { position: absolute; inset: 0 0 auto; z-index: 2; padding: 22px 28px; pointer-events: none; }
+.holographic .show-brand strong { font-size: 13px; letter-spacing: .16em; color: #7daabf; font-weight: 500; }
+.show-controls { display: flex; gap: 8px; pointer-events: auto; }
+.show-controls .show-close { min-width: 36px; height: 36px; padding: 0 8px; font-size: 19px; border-radius: 50%; }
+.holographic .show-controls { opacity: .35; transition: opacity .25s; }
+.holographic .show-controls:hover, .holographic .show-controls:focus-within { opacity: 1; }
+.hologram-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.hologram-canvas:active { cursor: grabbing; }
+.show-simulation { position: absolute; bottom: 16px; left: 28px; margin: 0; font-size: 10px; letter-spacing: .12em; color: #6890a2; pointer-events: none; }
+@media (max-width: 600px) {
+  .holographic .show-top { padding: 16px; }
+  .show-simulation { left: 16px; font-size: 9px; }
+}
 /* Companion mood (M1), inside the Personality tab. */
 .mood-now { display: inline-flex; gap: 8px; align-items: baseline; }
 .mood-why { display: grid; gap: 4px; margin: 8px 0; }
