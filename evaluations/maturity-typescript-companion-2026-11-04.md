@@ -15,7 +15,7 @@ The change adds no model call, extraction rule, endpoint, database migration or 
 
 The allowlisted evidence directory contains the exact scripts, logs, check list, run result and hashes. The scripts retain this machine's absolute paths to the tested SDK and installed interpreter. Credentials, database contents, the connection file and private conversation data are excluded. The actual-API check covers transport and state transitions; it does not prove a real host model will respect boundaries or interpret feelings correctly.
 
-The SDK change has not yet completed its own GitHub CI run at this report revision. The 50-test local result and the earlier 7,000-test backend CI are separate evidence.
+[Full Verify for SDK source `78a225d`](https://github.com/chriswu727/memBrain/actions/runs/41906140459) now passes **7,000 Python tests, zero skips**, three warnings, **50 TypeScript tests**, strict types, Ruff and package builds. All four Docker journeys and the real local-model/activation cases run. The [CI result](maturity-typescript-companion-2026-11-04/ci-result.json) records the source, job, complete-log hash and Docker cases. This qualifies the SDK extension at that source; later host-context runtime repairs require their own verification.
 
 ## Documentation and remaining gates
 

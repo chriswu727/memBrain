@@ -24,6 +24,39 @@
     "run-sdk-live.py": "ff625adb66233860e0234090f7a177c890165fc60c8d30382f13772c249fb4b6",
     "sdk-live.log": "acd2b3ec4445adcfd5e8142592a90c28760fe06b7043778f496c350889970087",
     "typescript-tests.log": "4a7a1bda666f6f5803ec1215a7f850a098dcc90cd31017614912601a3f501288",
-    "sdk-live.mjs": "6069e9f373ae7f264979b5d91b9c233f39a6a06821d08c5189f360fbfa4c7e95"
+    "sdk-live.mjs": "6069e9f373ae7f264979b5d91b9c233f39a6a06821d08c5189f360fbfa4c7e95",
+    "ci-result.json": "45886ddbbb17fe83309b5e33dff8975ea4f727fab0914c5a0658f55d357222e6"
+  },
+  "ci": {
+    "source_commit": "78a225d0b8fc1cc403f17c321e12a031072f9fb1",
+    "run_id": 41906140459,
+    "job_id": 126841187219,
+    "url": "https://github.com/chriswu727/memBrain/actions/runs/41906140459",
+    "conclusion": "success",
+    "python_passed": 7000,
+    "python_skipped": 0,
+    "warnings": 3,
+    "python_seconds": 1336.37,
+    "typescript_passed": 50,
+    "typescript_failed": 0,
+    "typescript_skipped": 0,
+    "strict_types": "passed",
+    "ruff": "passed",
+    "sdist_wheel": "passed",
+    "docker_cases": {
+      "test_desktop_e2e.py": [
+        "tests/test_desktop_e2e.py::test_cold_start_concurrent_connect_restart_and_mcp_preserve_one_brain PASSED [ 41%]"
+      ],
+      "test_desktop_recovery_e2e.py": [
+        "tests/test_desktop_recovery_e2e.py::test_full_streamed_backup_restores_current_deletions_and_requires_explicit_epoch PASSED [ 42%]"
+      ],
+      "test_desktop_upgrade_e2e.py": [
+        "tests/test_desktop_upgrade_e2e.py::test_independent_builds_detect_staleness_upgrade_and_reject_downgrade_without_data_loss PASSED [ 43%]"
+      ],
+      "test_standalone_chat_e2e.py": [
+        "tests/test_standalone_chat_e2e.py::test_chat_processes_recall_restart_deduplicate_and_block_unknown_generation PASSED [ 96%]"
+      ]
+    },
+    "full_log_sha256": "182710802ad9e05fef333a5887e534ca2ff81d9d07e0718afc42e644c2f69610"
   }
 }

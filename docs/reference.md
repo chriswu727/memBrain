@@ -518,7 +518,7 @@ New cognitive jobs use `source-composition-v4`. Assistant speech claims retain e
 
 ## Current low-level interfaces
 
-The Python client is in `membrain.client`, with an underlying workflow example in [examples/connect.py](../examples/connect.py). The TypeScript client is in [sdk/typescript](../sdk/typescript). The following HTTP contract is for adapters to orchestrate; it is not the target product's required step-by-step workflow for users or the main agent:
+The Python client is in `membrain.client`, with an underlying workflow example in [examples/connect.py](../examples/connect.py). See [host features and verification scope](host-compatibility.md) for companion controls, refresh behaviour and native-host limitations. The TypeScript client is in [sdk/typescript](../sdk/typescript). The following HTTP contract is for adapters to orchestrate; it is not the target product's required step-by-step workflow for users or the main agent:
 
 1. `observe` persists actually received or delivered messages with stable source IDs.
 2. `prepare` reads the current situation, working state, and relevant memories.
@@ -626,19 +626,19 @@ Verified with Codex CLI 0.165 on Linux against a stub Responses API: after the h
 | Hermes call | memBrain behaviour |
 | --- | --- |
 | `initialize` | Binds the installation: the shared memBrain directory for the default `~/.hermes` profile, `<HERMES_HOME>/membrain` for other profiles, or the `directory` saved by `hermes memory setup`. Starts the service in the background. Subagent, cron and flush contexts never write. |
-| `system_prompt_block` | Session notice with the provider's tool names, saved notes, then recent history; computed once per session. |
+| `system_prompt_block` | Current session notice, persona/mood/relationship, saved notes and recent history; rebuilt whenever the host requests it. |
 | `prefetch` | Related earlier messages for the turn (Hermes fences them as memory context); stages the prompt. |
 | `sync_turn` | Stores the user message and the reply together; skipped while recording is paused. |
 | `on_memory_write` | Mirrors writes to built-in `USER.md` as notes imported from Hermes; `replace` and `remove` suppress the matching earlier note. `MEMORY.md` writes stay in Hermes. `USER.md` itself is imported when it changes, and notes from Hermes are left out of Hermes's own system prompt. |
-| Tools | `membrain_note`, `membrain_search`, `membrain_pause`, `membrain_resume`. |
+| Tools | `membrain_note` (including feelings/shared moments), `membrain_search`, `membrain_boundary`, `membrain_pause`, `membrain_resume`. |
 
 Verified with unit tests, a signature check against Hermes's `agent/memory_provider.py`, and two provider sessions sharing memory through a real embedded service. Not yet run inside a real Hermes installation.
 
 ### Chat bots and AstrBot
 
-`membrain.adapters.chatbot.ChatMemory` serves every user of a bot from one installation. Bot frameworks call `context(speaker, text, session=...)` before a model request (session notice, the user's notes and earlier days, related messages; cached for five minutes per session and refreshed when notes or recording change) and `record(speaker, reply, session=..., prompt=...)` after the reply, and expose `note`, `search`, `pause` and `resume` as tools. A `Speaker` is a platform, a user ID and an optional group; each maps to its own user brain. With `group_memory="separate"` (default) a person's group messages use a brain per group, apart from their private chats. `session()` is one calendar day of one chat or framework conversation, because bots keep a single conversation for months while recall leaves the current session out.
+`membrain.adapters.chatbot.ChatMemory` serves every user of a bot from one installation. Bot frameworks call `context(speaker, text, session=...)` before a model request (session notice, the user's notes and earlier days, related messages; refreshed from the service for each request) and `record(speaker, reply, session=..., prompt=...)` after the reply, and expose `note`, `search`, `pause` and `resume` as tools. A `Speaker` is a platform, a user ID and an optional group; each maps to its own user brain. With `group_memory="separate"` (default) a person's group messages use a brain per group, apart from their private chats. `session()` is one calendar day of one chat or framework conversation, because bots keep a single conversation for months while recall leaves the current session out.
 
-The AstrBot plugin in `integrations/astrbot/astrbot_plugin_membrain` maps `on_llm_request` to `context` (appended to `req.system_prompt`, which AstrBot does not persist, rather than to the user message, which it does), `on_llm_response` to `record`, and registers `membrain_note`, `membrain_search`, `membrain_pause` and `membrain_resume` with `llm_tool`. Memory is kept in `data/plugin_data/membrain`.
+The AstrBot plugin in `integrations/astrbot/astrbot_plugin_membrain` maps `on_llm_request` to `context` (appended to `req.system_prompt`, which AstrBot does not persist, rather than to the user message, which it does), `on_llm_response` to `record`, and registers `membrain_note`, `membrain_search`, `membrain_boundary`, `membrain_pause` and `membrain_resume` with `llm_tool`. Memory is kept in `data/plugin_data/membrain`.
 
 When the embedded database runs as root, as in AstrBot's Docker image, a new cluster is created inside the installation directory if the database's service account can traverse it, so it lives on the same volume as the rest of the data; otherwise, and for clusters that already exist, it stays under `/var/lib/membrain`.
 

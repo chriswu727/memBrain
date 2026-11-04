@@ -1,0 +1,32 @@
+{
+  "source_commit": "78a225d0b8fc1cc403f17c321e12a031072f9fb1",
+  "run_id": 41906140459,
+  "job_id": 126841187219,
+  "url": "https://github.com/chriswu727/memBrain/actions/runs/41906140459",
+  "conclusion": "success",
+  "python_passed": 7000,
+  "python_skipped": 0,
+  "warnings": 3,
+  "python_seconds": 1336.37,
+  "typescript_passed": 50,
+  "typescript_failed": 0,
+  "typescript_skipped": 0,
+  "strict_types": "passed",
+  "ruff": "passed",
+  "sdist_wheel": "passed",
+  "docker_cases": {
+    "test_desktop_e2e.py": [
+      "tests/test_desktop_e2e.py::test_cold_start_concurrent_connect_restart_and_mcp_preserve_one_brain PASSED [ 41%]"
+    ],
+    "test_desktop_recovery_e2e.py": [
+      "tests/test_desktop_recovery_e2e.py::test_full_streamed_backup_restores_current_deletions_and_requires_explicit_epoch PASSED [ 42%]"
+    ],
+    "test_desktop_upgrade_e2e.py": [
+      "tests/test_desktop_upgrade_e2e.py::test_independent_builds_detect_staleness_upgrade_and_reject_downgrade_without_data_loss PASSED [ 43%]"
+    ],
+    "test_standalone_chat_e2e.py": [
+      "tests/test_standalone_chat_e2e.py::test_chat_processes_recall_restart_deduplicate_and_block_unknown_generation PASSED [ 96%]"
+    ]
+  },
+  "full_log_sha256": "182710802ad9e05fef333a5887e534ca2ff81d9d07e0718afc42e644c2f69610"
+}

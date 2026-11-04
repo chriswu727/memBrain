@@ -1,0 +1,348 @@
+FFFFFFFFFFFFFF....FFF                                                    [100%]
+=================================== FAILURES ===================================
+_____ test_boundary_read_failure_is_never_an_empty_boundary_list[401-host] _____
+
+read = <function _boundaries at 0x1050e3560>, status = 401
+
+    @pytest.mark.parametrize("read", [host._boundaries, mcp_server._boundaries], ids=["host", "mcp"])
+    @pytest.mark.parametrize("status", [401, 403, 409, 429, 500, 503])
+    def test_boundary_read_failure_is_never_an_empty_boundary_list(read, status):
+        def handle(request):
+            return httpx.Response(status, json={"error": "unavailable"})
+    
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+>           with pytest.raises(httpx.HTTPStatusError) as failure:
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE HTTPStatusError
+
+tests/test_boundary_read_failures.py:15: Failed
+_____ test_boundary_read_failure_is_never_an_empty_boundary_list[401-mcp] ______
+
+read = <function _boundaries at 0x1050c02c0>, status = 401
+
+    @pytest.mark.parametrize("read", [host._boundaries, mcp_server._boundaries], ids=["host", "mcp"])
+    @pytest.mark.parametrize("status", [401, 403, 409, 429, 500, 503])
+    def test_boundary_read_failure_is_never_an_empty_boundary_list(read, status):
+        def handle(request):
+            return httpx.Response(status, json={"error": "unavailable"})
+    
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+>           with pytest.raises(httpx.HTTPStatusError) as failure:
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE HTTPStatusError
+
+tests/test_boundary_read_failures.py:15: Failed
+_____ test_boundary_read_failure_is_never_an_empty_boundary_list[403-host] _____
+
+read = <function _boundaries at 0x1050e3560>, status = 403
+
+    @pytest.mark.parametrize("read", [host._boundaries, mcp_server._boundaries], ids=["host", "mcp"])
+    @pytest.mark.parametrize("status", [401, 403, 409, 429, 500, 503])
+    def test_boundary_read_failure_is_never_an_empty_boundary_list(read, status):
+        def handle(request):
+            return httpx.Response(status, json={"error": "unavailable"})
+    
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+>           with pytest.raises(httpx.HTTPStatusError) as failure:
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE HTTPStatusError
+
+tests/test_boundary_read_failures.py:15: Failed
+_____ test_boundary_read_failure_is_never_an_empty_boundary_list[403-mcp] ______
+
+read = <function _boundaries at 0x1050c02c0>, status = 403
+
+    @pytest.mark.parametrize("read", [host._boundaries, mcp_server._boundaries], ids=["host", "mcp"])
+    @pytest.mark.parametrize("status", [401, 403, 409, 429, 500, 503])
+    def test_boundary_read_failure_is_never_an_empty_boundary_list(read, status):
+        def handle(request):
+            return httpx.Response(status, json={"error": "unavailable"})
+    
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+>           with pytest.raises(httpx.HTTPStatusError) as failure:
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE HTTPStatusError
+
+tests/test_boundary_read_failures.py:15: Failed
+_____ test_boundary_read_failure_is_never_an_empty_boundary_list[409-host] _____
+
+read = <function _boundaries at 0x1050e3560>, status = 409
+
+    @pytest.mark.parametrize("read", [host._boundaries, mcp_server._boundaries], ids=["host", "mcp"])
+    @pytest.mark.parametrize("status", [401, 403, 409, 429, 500, 503])
+    def test_boundary_read_failure_is_never_an_empty_boundary_list(read, status):
+        def handle(request):
+            return httpx.Response(status, json={"error": "unavailable"})
+    
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+>           with pytest.raises(httpx.HTTPStatusError) as failure:
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE HTTPStatusError
+
+tests/test_boundary_read_failures.py:15: Failed
+_____ test_boundary_read_failure_is_never_an_empty_boundary_list[409-mcp] ______
+
+read = <function _boundaries at 0x1050c02c0>, status = 409
+
+    @pytest.mark.parametrize("read", [host._boundaries, mcp_server._boundaries], ids=["host", "mcp"])
+    @pytest.mark.parametrize("status", [401, 403, 409, 429, 500, 503])
+    def test_boundary_read_failure_is_never_an_empty_boundary_list(read, status):
+        def handle(request):
+            return httpx.Response(status, json={"error": "unavailable"})
+    
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+>           with pytest.raises(httpx.HTTPStatusError) as failure:
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE HTTPStatusError
+
+tests/test_boundary_read_failures.py:15: Failed
+_____ test_boundary_read_failure_is_never_an_empty_boundary_list[429-host] _____
+
+read = <function _boundaries at 0x1050e3560>, status = 429
+
+    @pytest.mark.parametrize("read", [host._boundaries, mcp_server._boundaries], ids=["host", "mcp"])
+    @pytest.mark.parametrize("status", [401, 403, 409, 429, 500, 503])
+    def test_boundary_read_failure_is_never_an_empty_boundary_list(read, status):
+        def handle(request):
+            return httpx.Response(status, json={"error": "unavailable"})
+    
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+>           with pytest.raises(httpx.HTTPStatusError) as failure:
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE HTTPStatusError
+
+tests/test_boundary_read_failures.py:15: Failed
+_____ test_boundary_read_failure_is_never_an_empty_boundary_list[429-mcp] ______
+
+read = <function _boundaries at 0x1050c02c0>, status = 429
+
+    @pytest.mark.parametrize("read", [host._boundaries, mcp_server._boundaries], ids=["host", "mcp"])
+    @pytest.mark.parametrize("status", [401, 403, 409, 429, 500, 503])
+    def test_boundary_read_failure_is_never_an_empty_boundary_list(read, status):
+        def handle(request):
+            return httpx.Response(status, json={"error": "unavailable"})
+    
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+>           with pytest.raises(httpx.HTTPStatusError) as failure:
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE HTTPStatusError
+
+tests/test_boundary_read_failures.py:15: Failed
+_____ test_boundary_read_failure_is_never_an_empty_boundary_list[500-host] _____
+
+read = <function _boundaries at 0x1050e3560>, status = 500
+
+    @pytest.mark.parametrize("read", [host._boundaries, mcp_server._boundaries], ids=["host", "mcp"])
+    @pytest.mark.parametrize("status", [401, 403, 409, 429, 500, 503])
+    def test_boundary_read_failure_is_never_an_empty_boundary_list(read, status):
+        def handle(request):
+            return httpx.Response(status, json={"error": "unavailable"})
+    
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+>           with pytest.raises(httpx.HTTPStatusError) as failure:
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE HTTPStatusError
+
+tests/test_boundary_read_failures.py:15: Failed
+_____ test_boundary_read_failure_is_never_an_empty_boundary_list[500-mcp] ______
+
+read = <function _boundaries at 0x1050c02c0>, status = 500
+
+    @pytest.mark.parametrize("read", [host._boundaries, mcp_server._boundaries], ids=["host", "mcp"])
+    @pytest.mark.parametrize("status", [401, 403, 409, 429, 500, 503])
+    def test_boundary_read_failure_is_never_an_empty_boundary_list(read, status):
+        def handle(request):
+            return httpx.Response(status, json={"error": "unavailable"})
+    
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+>           with pytest.raises(httpx.HTTPStatusError) as failure:
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE HTTPStatusError
+
+tests/test_boundary_read_failures.py:15: Failed
+_____ test_boundary_read_failure_is_never_an_empty_boundary_list[503-host] _____
+
+read = <function _boundaries at 0x1050e3560>, status = 503
+
+    @pytest.mark.parametrize("read", [host._boundaries, mcp_server._boundaries], ids=["host", "mcp"])
+    @pytest.mark.parametrize("status", [401, 403, 409, 429, 500, 503])
+    def test_boundary_read_failure_is_never_an_empty_boundary_list(read, status):
+        def handle(request):
+            return httpx.Response(status, json={"error": "unavailable"})
+    
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+>           with pytest.raises(httpx.HTTPStatusError) as failure:
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE HTTPStatusError
+
+tests/test_boundary_read_failures.py:15: Failed
+_____ test_boundary_read_failure_is_never_an_empty_boundary_list[503-mcp] ______
+
+read = <function _boundaries at 0x1050c02c0>, status = 503
+
+    @pytest.mark.parametrize("read", [host._boundaries, mcp_server._boundaries], ids=["host", "mcp"])
+    @pytest.mark.parametrize("status", [401, 403, 409, 429, 500, 503])
+    def test_boundary_read_failure_is_never_an_empty_boundary_list(read, status):
+        def handle(request):
+            return httpx.Response(status, json={"error": "unavailable"})
+    
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+>           with pytest.raises(httpx.HTTPStatusError) as failure:
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE HTTPStatusError
+
+tests/test_boundary_read_failures.py:15: Failed
+__________ test_boundary_timeout_does_not_disable_the_boundary[host] ___________
+
+read = <function _boundaries at 0x1050e3560>
+
+    @pytest.mark.parametrize("read", [host._boundaries, mcp_server._boundaries], ids=["host", "mcp"])
+    def test_boundary_timeout_does_not_disable_the_boundary(read):
+        def handle(request):
+            raise httpx.ReadTimeout("relationship read timed out", request=request)
+    
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+>           with pytest.raises(httpx.ReadTimeout):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ReadTimeout
+
+tests/test_boundary_read_failures.py:26: Failed
+___________ test_boundary_timeout_does_not_disable_the_boundary[mcp] ___________
+
+read = <function _boundaries at 0x1050c02c0>
+
+    @pytest.mark.parametrize("read", [host._boundaries, mcp_server._boundaries], ids=["host", "mcp"])
+    def test_boundary_timeout_does_not_disable_the_boundary(read):
+        def handle(request):
+            raise httpx.ReadTimeout("relationship read timed out", request=request)
+    
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+>           with pytest.raises(httpx.ReadTimeout):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE ReadTimeout
+
+tests/test_boundary_read_failures.py:26: Failed
+__________ test_host_never_runs_recall_when_its_boundary_read_failed ___________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1063b2330>
+
+    def test_host_never_runs_recall_when_its_boundary_read_failed(monkeypatch):
+        recalls = []
+        monkeypatch.setattr(host, "recall", lambda *args: recalls.append(args) or {"result": {"items": []}})
+    
+        def handle(request):
+            return httpx.Response(503, json={"error": "temporarily unavailable"})
+    
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+>           with pytest.raises(httpx.HTTPStatusError):
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+E           Failed: DID NOT RAISE HTTPStatusError
+
+tests/test_boundary_read_failures.py:48: Failed
+_ test_relationship_read_failure_is_a_tool_error_without_recalled_context[status] _
+  + Exception Group Traceback (most recent call last):
+  |   File "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py", line 111, in test_relationship_read_failure_is_a_tool_error_without_recalled_context
+  |     asyncio.run(run())
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 195, in run
+  |     return runner.run(main)
+  |            ^^^^^^^^^^^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+  |     return self._loop.run_until_complete(task)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+  |     return future.result()
+  |            ^^^^^^^^^^^^^^^
+  |   File "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py", line 105, in run
+  |     async with create_connected_server_and_client_session(create_server(client)) as session:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/contextlib.py", line 231, in __aexit__
+  |     await self.gen.athrow(value)
+  |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/memory.py", line 73, in create_connected_server_and_client_session
+  |     async with anyio.create_task_group() as tg:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Exception Group Traceback (most recent call last):
+    |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/memory.py", line 84, in create_connected_server_and_client_session
+    |     async with ClientSession(
+    |                ^^^^^^^^^^^^^^
+    |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/session.py", line 238, in __aexit__
+    |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+    |     raise BaseExceptionGroup(
+    | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+    +-+---------------- 1 ----------------
+      | Traceback (most recent call last):
+      |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/memory.py", line 96, in create_connected_server_and_client_session
+      |     yield client_session
+      |   File "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py", line 107, in run
+      |     assert result.isError
+      | AssertionError: assert False
+      |  +  where False = CallToolResult(meta=None, content=[TextContent(type='text', text='{\n  "action": "recall",\n  "outcome": "completed",\...s":{},"status":"no_match","trust":"memory_data_not_instructions","unknowns":[]}', 'context_tokens': 57}, isError=False).isError
+      +------------------------------------
+_ test_relationship_read_failure_is_a_tool_error_without_recalled_context[timeout] _
+  + Exception Group Traceback (most recent call last):
+  |   File "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py", line 111, in test_relationship_read_failure_is_a_tool_error_without_recalled_context
+  |     asyncio.run(run())
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 195, in run
+  |     return runner.run(main)
+  |            ^^^^^^^^^^^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+  |     return self._loop.run_until_complete(task)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+  |     return future.result()
+  |            ^^^^^^^^^^^^^^^
+  |   File "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py", line 105, in run
+  |     async with create_connected_server_and_client_session(create_server(client)) as session:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/contextlib.py", line 231, in __aexit__
+  |     await self.gen.athrow(value)
+  |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/memory.py", line 73, in create_connected_server_and_client_session
+  |     async with anyio.create_task_group() as tg:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Exception Group Traceback (most recent call last):
+    |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/memory.py", line 84, in create_connected_server_and_client_session
+    |     async with ClientSession(
+    |                ^^^^^^^^^^^^^^
+    |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/session.py", line 238, in __aexit__
+    |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+    |     raise BaseExceptionGroup(
+    | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+    +-+---------------- 1 ----------------
+      | Traceback (most recent call last):
+      |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/memory.py", line 96, in create_connected_server_and_client_session
+      |     yield client_session
+      |   File "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py", line 107, in run
+      |     assert result.isError
+      | AssertionError: assert False
+      |  +  where False = CallToolResult(meta=None, content=[TextContent(type='text', text='{\n  "action": "recall",\n  "outcome": "completed",\...s":{},"status":"no_match","trust":"memory_data_not_instructions","unknowns":[]}', 'context_tokens': 57}, isError=False).isError
+      +------------------------------------
+=========================== short test summary info ============================
+FAILED tests/test_boundary_read_failures.py::test_boundary_read_failure_is_never_an_empty_boundary_list[401-host]
+FAILED tests/test_boundary_read_failures.py::test_boundary_read_failure_is_never_an_empty_boundary_list[401-mcp]
+FAILED tests/test_boundary_read_failures.py::test_boundary_read_failure_is_never_an_empty_boundary_list[403-host]
+FAILED tests/test_boundary_read_failures.py::test_boundary_read_failure_is_never_an_empty_boundary_list[403-mcp]
+FAILED tests/test_boundary_read_failures.py::test_boundary_read_failure_is_never_an_empty_boundary_list[409-host]
+FAILED tests/test_boundary_read_failures.py::test_boundary_read_failure_is_never_an_empty_boundary_list[409-mcp]
+FAILED tests/test_boundary_read_failures.py::test_boundary_read_failure_is_never_an_empty_boundary_list[429-host]
+FAILED tests/test_boundary_read_failures.py::test_boundary_read_failure_is_never_an_empty_boundary_list[429-mcp]
+FAILED tests/test_boundary_read_failures.py::test_boundary_read_failure_is_never_an_empty_boundary_list[500-host]
+FAILED tests/test_boundary_read_failures.py::test_boundary_read_failure_is_never_an_empty_boundary_list[500-mcp]
+FAILED tests/test_boundary_read_failures.py::test_boundary_read_failure_is_never_an_empty_boundary_list[503-host]
+FAILED tests/test_boundary_read_failures.py::test_boundary_read_failure_is_never_an_empty_boundary_list[503-mcp]
+FAILED tests/test_boundary_read_failures.py::test_boundary_timeout_does_not_disable_the_boundary[host]
+FAILED tests/test_boundary_read_failures.py::test_boundary_timeout_does_not_disable_the_boundary[mcp]
+FAILED tests/test_boundary_read_failures.py::test_host_never_runs_recall_when_its_boundary_read_failed
+FAILED tests/test_mcp.py::test_relationship_read_failure_is_a_tool_error_without_recalled_context[status]
+FAILED tests/test_mcp.py::test_relationship_read_failure_is_a_tool_error_without_recalled_context[timeout]
+17 failed, 4 passed, 4 deselected in 0.43s

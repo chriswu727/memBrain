@@ -1,0 +1,19 @@
+{
+  "source_commit": "e749a24e86d45d25d1a06d9fcba223e9adf69fcb",
+  "runtime_pin": "e749a24e86d45d25d1a06d9fcba223e9adf69fcb",
+  "command": [
+    "/Users/yichen/tmp/membrain-review-20261029/.venv/bin/python",
+    "evaluations/recall-concurrency-benchmark.py",
+    "--directory",
+    "/Users/yichen/tmp/membrain-final-audit-20261104/perf-e749a24-installation",
+    "--database-port",
+    "62127",
+    "--api-port",
+    "62128",
+    "--output",
+    "/Users/yichen/tmp/membrain-final-audit-20261104/canonical-e749a24.json",
+    "--bulk-to",
+    "0"
+  ],
+  "exit_code": 0
+}
