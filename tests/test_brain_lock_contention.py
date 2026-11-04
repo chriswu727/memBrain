@@ -1,8 +1,8 @@
 """Readers of one brain share its row; writers, erasure and recovery still exclude them (R5, gap 20)."""
 import threading
 import time
-from contextlib import contextmanager
 import uuid
+from contextlib import contextmanager
 
 import psycopg
 import pytest
