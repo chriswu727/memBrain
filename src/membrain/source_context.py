@@ -80,12 +80,13 @@ def _unit_key(memory):
 
 
 def source_unit_candidates(ranked, documents, *, limit, expand=False):
-    literal_keys = {_unit_key(documents[_version(item)]) for item in ranked
+    units = {_version(item): _unit_key(documents[_version(item)]) for item in ranked}
+    literal_keys = {units[_version(item)] for item in ranked
                     if documents[_version(item)]["derivation"]["method"] == "direct_capture"} - {None}
     groups = {}
     for item in ranked:
         memory = documents[_version(item)]
-        unit = _unit_key(memory)
+        unit = units[_version(item)]
         key = ("unit", unit) if unit in literal_keys else ("memory", *_version(memory))
         groups.setdefault(key, []).append(item)
     selected = list(groups.values())[:min(128, limit)]

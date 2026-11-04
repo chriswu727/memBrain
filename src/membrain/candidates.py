@@ -109,7 +109,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
     def remember(rows, *, dependencies=False):
         result = []
         for row in rows:
-            document = service._rebind(row["document"], principal, brain)
+            document = service._bind_document(row["document"], principal, brain)
             document["scope"]["visibility"] = row["document"]["scope"]["visibility"]
             for old_path, path in zip(row["document"]["disclosure_basis"]["support_paths"],
                                       document["disclosure_basis"]["support_paths"], strict=True):
@@ -146,7 +146,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
         lexical.sort(key=lambda value: (-value[0], value[1]["document"]["memory_id"]))
         bridged, source_truncated = source_candidates(
             conn, service, principal, brain, target, text,
-            [service._rebind(row["document"], principal, brain) for _, row in lexical[:candidate_limit]],
+            [service._bind_document(row["document"], principal, brain) for _, row in lexical[:candidate_limit]],
             source_limit=min(64, candidate_limit), scan_limit=scan_limit,
             through_sequence=brain["durable_sequence"],
             score_text=score_text,

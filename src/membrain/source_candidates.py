@@ -84,7 +84,7 @@ def source_candidates(conn, service, principal, brain, target, query, seeds, *,
     truncated = truncated or len(rows) > scan_limit
     ranked = []
     for row in rows[:scan_limit]:
-        matches = _matching_references(service._rebind(row["document"], principal, brain),
+        matches = _matching_references(service._bind_document(row["document"], principal, brain),
                                        events, scope, query, superseded, score_text)
         scores = [score for score, reference in matches
                   if any(cognition.evidence_overlaps(reference, seed) for seed in seed_refs)]

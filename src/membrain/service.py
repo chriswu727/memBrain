@@ -173,7 +173,10 @@ class MemoryService:
         }
 
     def _rebind(self, document, principal, brain):
-        result = deep_copy(document)
+        return self._bind_document(deep_copy(document), principal, brain)
+
+    def _bind_document(self, result, principal, brain):
+        """Bind a freshly decoded database document in place; borrowed records use _rebind instead."""
         old_scope = result["scope"]
         scope = self._scope(principal, brain, {
             "conversation_ref": old_scope.get("conversation_id"),
@@ -554,7 +557,7 @@ class MemoryService:
             extra.append(after_sequence)
         selection = " AND (" + " OR ".join(clauses) + ")" if clauses else ""
         ordering = " DESC" if descending else " ASC"
-        return [self._rebind(row["document"], principal, brain) for row in conn.execute(
+        return [self._bind_document(row["document"], principal, brain) for row in conn.execute(
             "SELECT document FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
             "AND is_current AND NOT deleted AND NOT suppressed AND document IS NOT NULL "
             "AND (%s OR NOT retired)" + selection + " ORDER BY sequence" + ordering + " LIMIT %s",

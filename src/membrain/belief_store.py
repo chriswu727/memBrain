@@ -135,7 +135,7 @@ def validate_relation(document):
 def _load_memories(conn, service, principal, brain, versions):
     if not versions:
         return []
-    return [service._rebind(row["document"], principal, brain) for row in conn.execute(
+    return [service._bind_document(row["document"], principal, brain) for row in conn.execute(
         "SELECT document FROM memory_assertions WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
         "AND NOT invalidated AND NOT deleted AND NOT suppressed AND document IS NOT NULL "
         "AND (id,revision) IN (SELECT * FROM unnest(%s::text[],%s::bigint[]))",

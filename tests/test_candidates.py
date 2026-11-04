@@ -135,6 +135,26 @@ def test_private_cross_conversation_history_and_scoped_visibility_are_preserved(
     assert returned["disclosure_basis"]["support_paths"][0]["permitted_scope"]["visibility"] == "conversation"
 
 
+def test_candidate_and_source_mutations_do_not_reach_later_database_reads(candidates):
+    stored = candidates.add("The turquoise lighthouse holds the amber notebook.", visibility="conversation")
+    memories, before = candidates.query("turquoise lighthouse")
+    returned, = memories
+    expected = copy.deepcopy(returned)
+    returned["scope"]["visibility"] = "shared"
+    returned["evidence_refs"][0]["event_id"] = "changed"
+    returned["dynamics"]["reasons"].append("changed")
+    returned["disclosure_basis"]["support_paths"][0]["permitted_scope"]["conversation_id"] = "changed"
+    fresh, after = candidates.query("turquoise lighthouse")
+    assert fresh == [expected] and before["candidate_versions"] == after["candidate_versions"] == [key(stored)]
+    with candidates.database.transaction(candidates.principal) as conn:
+        brain = candidates.service._brain(conn, candidates.principal, candidates.brain_id)
+        first, = candidates.service._events(conn, candidates.principal, brain)
+        original = copy.deepcopy(first)
+        first["scope"]["conversation_id"] = "changed"
+        first["observed"]["content"]["text"] = "changed"
+        assert candidates.service._events(conn, candidates.principal, brain) == [original]
+
+
 def test_semantic_vector_route_requires_exact_space_revision_content_and_dimension(candidates):
     matching = candidates.add("coffee preference")
     wrong_version = candidates.add("tea preference")

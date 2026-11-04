@@ -82,7 +82,7 @@ def source_passage_candidates(conn, service, principal, brain, target, seeds, *,
     truncated = truncated or len(rows) > 32
     candidates = []
     for row in rows[:32]:
-        memory = service._rebind(row["document"], principal, brain)
+        memory = service._bind_document(row["document"], principal, brain)
         if memory["lifecycle"] not in {"active", "dormant"} or not cognition._scope_allows(
             memory["scope"], scope
         ):
