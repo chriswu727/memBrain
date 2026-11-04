@@ -45,7 +45,7 @@ jobs:
       MEMBRAIN_REQUIRE_BROWSER: '1'
       MEMORY_DESKTOP_E2E: '1'
       MEMORY_CHAT_E2E_PYTHON: ${{ github.workspace }}/.venv/bin/python
-      MEMBRAIN_TEST_EMBEDDING_MODEL: ${{ runner.temp }}/membrain-test-model
+      MEMBRAIN_TEST_EMBEDDING_MODEL: ${{ github.workspace }}/../membrain-test-model
     steps:
       - uses: actions/checkout@v4
         with:
