@@ -185,7 +185,7 @@ function obsBuild(map) {
   const index = new Map();
   const groups = { note: [], message: [], affect: [] };
   for (const node of map.nodes) groups[obsShape(node)].push(node);
-  const geometries = { note: new THREE.IcosahedronGeometry(1, 2), message: new THREE.OctahedronGeometry(1.15, 0),
+  const geometries = { note: new THREE.IcosahedronGeometry(1, 1), message: new THREE.OctahedronGeometry(1.15, 0),
     affect: new THREE.TetrahedronGeometry(1.3, 0) };
   const matrix = new THREE.Matrix4(), quaternion = new THREE.Quaternion(), scale = new THREE.Vector3(),
     point = new THREE.Vector3();
