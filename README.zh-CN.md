@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 同步文本运行时已实现，长期记忆质量仍在验证中。插件和无需 Docker 的嵌入式数据库是新增功能：已在 Linux x86_64 上完成端到端验证，在 Windows 11 上部分实际运行过（数据库、服务、hook、代理、AstrBot 和 OpenClaw），嵌入式运行时也已通过独立的 macOS 安装检查。候选版本 `91271f5`（运行时 `9d8509c`）已在 macOS 上通过完整安装验收（49 项检查）；并发回忆和真实模型行为验收仍未通过。使用 Docker 的桌面安装也已在 macOS 上验证。详见[支持范围与已知限制](#status-and-verification)。
+> **预发布阶段。** 同步文本运行时已实现，长期记忆质量仍在验证中。插件和无需 Docker 的嵌入式数据库是新增功能：已在 Linux x86_64 上完成端到端验证，在 Windows 11 上部分实际运行过（数据库、服务、hook、代理、AstrBot 和 OpenClaw），嵌入式运行时也已通过独立的 macOS 安装检查。当前观测台候选版本 `1018877`（运行时 `bd7affa`）已通过全部 49 项 Mac 安装检查，163 个安装文件与源码一致，安装后的 3D/2D 图谱流程也已通过验证。八个大脑并发回忆和真实模型行为验收仍未通过。使用 Docker 的桌面安装也已在 macOS 上验证。详见[支持范围与已知限制](#status-and-verification)。
 
 <a id="claude-code-plugin"></a>
 
