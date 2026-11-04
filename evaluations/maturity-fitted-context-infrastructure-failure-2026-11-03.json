@@ -1,0 +1,15 @@
+{
+  "source_commit": "82df0517d97198c80dc3c52e1e5f5051db1c8db1",
+  "runtime_commit": "e1b093e164214c501c7047d145fa0fd91ad0c938",
+  "completed": false,
+  "measured_recall_samples": 0,
+  "failure_phase": "index_catchup",
+  "exit_code": 1,
+  "database_error": "No space left on device while writing PostgreSQL WAL; dashboard returned HTTP503 and lock sampler lost its database connection.",
+  "service_stopped": true,
+  "active_process_matches": 0,
+  "postmaster_pid_files": 0,
+  "raw_log": "perf-82df051.log",
+  "database_log": "perf-82df051-installation/postgres.log",
+  "follow_up": "Retain this failed fixture and logs. After removing only stopped reproducible task fixtures, repeat the unchanged workload in a fresh installation with unchanged source/pin."
+}

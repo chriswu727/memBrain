@@ -1,6 +1,6 @@
 # Provisional maturity checks, 2026-11-03
 
-The first release remains frozen. Every result applies to the source named below. Runtime `9d8509c` has passed its local Python, SDK, package-content and Mac installation checks; both concurrent R5 targets remain unmet. Final combined-source Verify and the real-model R4/C5 gates remain open. No paid or subscription-backed behavioural evaluation has started.
+The first release remains frozen. Every result applies to the source named below. Runtime `9d8509c` passed its full local Python, SDK, package-content and Mac installation checks. The later fitting candidate passes serial and same-brain recall latency targets, but eight-brain R5 still fails. The current 3D/companion integration has passed its scoped browser/backend checks; final combined-source checks and real-model R4/C5 acceptance remain open. No paid or subscription-backed behavioural evaluation has started.
 
 ## Independent Mac checks
 
@@ -137,3 +137,21 @@ At `ebb9f8d` (runtime `959a1c8`), the unchanged reference benchmark measured **1
 ## 3D product direction
 
 The owner requires a 3D view that explains the actual memory model and companion development before publication. The [revised design](../architecture/phase-c-design.md#c0-revision-a-3d-memory-observatory) distinguishes the renderer from the missing graph projections and defines evidence, privacy, deletion, accessibility and browser-performance requirements. The [storage decision](../architecture/cognitive-memory-plan.md#storage-decision-for-the-memory-observatory) retains PostgreSQL. These are specifications, not implemented or accepted 3D capabilities. Documentation linkage and the existing static brain-view/matrix group passed seven checks; no 3D runtime or frame-rate test has run on this source.
+
+## Companion projection and fitting follow-up
+
+The companion graph projects actual personality versions and proposal decisions, surviving feedback, simulated mood with active/ended trigger evidence, settings, shared moments and commitment states. Reading it does not create or accept proposals. Its bounded sampling interleaves record kinds so a long personality history cannot hide all other layers. Before integration, 313 related API, companion, client, lock and recovery checks passed; the expanded graph module passed 21 checks. These are scoped engineering results, not full-suite acceptance.
+
+Independent privacy tests reproduced two leaks when an ordinary note or attached feeling repeated a source also used by a sensitive note. Both graph endpoints now propagate protection through that shared source, including sensitive notes outside the displayed sample. Classification and masking are separate fields. The corrected privacy/graph/context/parity group passed 75 checks. The initial failures remain in the local evidence directory.
+
+Claude's fitting-measure optimization was integrated at `e304acc`. Independent multilingual tests compare UTF-8 measurements and complete recall contents against a full-render oracle, including quotes, escapes, newlines and generated trace identity linkage. That context/cognition group passed 77 checks.
+
+The unchanged R5 workload on candidate `82df051` (runtime `e1b093e`) measured serial/one-brain/eight-brain p95 of **132.35/800.82/870.77 ms**, with all 340 responses nonempty. Serial and same-brain targets pass; the eight-brain target is still at most 600 ms and fails. The process exited 1 and the service was independently confirmed stopped. Settled 200/500-node map p95 was 22.29/17.18 ms, without errors. [Raw samples and source metadata](maturity-fitted-context-performance-2026-11-03.json) are retained. An earlier attempt at the same source exhausted disk space while writing PostgreSQL WAL during indexing, before any measured recall. Its [zero-sample failure record](maturity-fitted-context-infrastructure-failure-2026-11-03.json) and raw local logs are retained. The unchanged workload was rerun in a fresh profile after removing only stopped task-owned fixtures. The earlier full-suite and installation passes do not cover this runtime. GitHub Verify passed at `82df051`.
+
+## Integrated 3D and companion graph
+
+Runtime `bd7affa` combines Claude's renderer through `8f658d7` with Codex's companion backend and graph-layer UI integration. Both graph layers use the same selection/detail flow in 3D and 2D, with distinct recorded edge types and directional source captions. Starting a reload clears the previous records, details and GPU scene; a generation guard rejects late responses. The fictional demo stays on its own memory fixture and cannot request the signed-in companion graph.
+
+The independent real Chromium/native PostgreSQL 16.2 group passed **103 checks, zero failures and zero skips**, in 35.70 seconds. It covers rotation/zoom/picking, keyboard access, WebGL failure/recovery, idle/hidden disposal, note correction/deletion, reset/restore, both languages and phone widths; new authenticated journeys compare scene identities and links to the real companion endpoint, inspect personality feedback and mood triggers, reset relationship evidence, and deliberately return a stale response after switching layers. Related graph, context, exact fitting and matrix checks are included. [Selection and file hashes](maturity-observatory-integration-2026-11-03.json) are retained. The first full invocation had 102 passes and one Chinese title mismatch; the corrected invocation passed. A preceding command named a nonexistent test file and ran no tests. Launcher/matrix checks then passed all four cases, and Ruff and JavaScript syntax checks passed.
+
+These passes do not cover final installed-package acceptance, learned assertion/episode/association projection, complete familiarity aggregates, hardware rendering targets or real-model behaviour. The software-GL measurement supplied by Claude remains indicative only. No formal release is authorized by these engineering results.
