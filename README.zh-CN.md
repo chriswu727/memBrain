@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 运行时 `b994ec8` 已通过 **95 项本地图谱与浏览器测试**、**49/49 项全新 Mac 安装检查**，且 **165 个安装文件与源码完全一致**。标准关键词召回 p95 为 **97.61/476.12/469.96 ms**（串行/同脑八并发/八脑并发），但完整全屏对照有 **3/12 个八脑窗口失败**，最高 **659.56 ms**。**R5 仍未通过**；完整 CI 正在运行，真实模型 R4/C5 及最终独立、隐私和设计复核仍未通过。此前成功和失败的记录均保留为当时的证据。详见[当前验收与失败记录](evaluations/maturity-release-qualification-2026-11-04.md)及[宿主验证范围](docs/host-compatibility.md)。
+> **预发布阶段。** 运行时 `b994ec8` 已通过 **95 项本地图谱与浏览器测试**、**49/49 项全新 Mac 安装检查**，且 **165 个安装文件与源码完全一致**。标准关键词召回 p95 为 **97.61/476.12/469.96 ms**（串行/同脑八并发/八脑并发），但完整全屏对照有 **3/12 个八脑窗口失败**，最高 **659.56 ms**。**R5 仍未通过**；完整 CI 已通过 7,029 项 Python／50 项 TypeScript 测试、严格类型检查和打包，真实模型 R4/C5 及最终独立、隐私和设计复核仍未通过。此前成功和失败的记录均保留为当时的证据。详见[当前验收与失败记录](evaluations/maturity-release-qualification-2026-11-04.md)及[宿主验证范围](docs/host-compatibility.md)。
 
 <a id="claude-code-plugin"></a>
 

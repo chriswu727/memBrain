@@ -1,6 +1,6 @@
 # Current runtime: installation passes, sustained recall gate remains open
 
-Tested source `281b06e585b0a9ca6b67e8892f3c6a3d69bc572f`; all nine launchers pin runtime `b994ec8080d46ee861f6ed8738a1617929f50d2a`. Source, tests, pins and qualification inputs stay unchanged during each verification. **R1 is verified again; R5 is not met.** Full CI is still in progress and is not inferred from older green runs.
+Tested source `281b06e585b0a9ca6b67e8892f3c6a3d69bc572f`; all nine launchers pin runtime `b994ec8080d46ee861f6ed8738a1617929f50d2a`. Source, tests, pins and qualification inputs stay unchanged during each verification. **R1 is verified again; R5 is not met.** Full CI at this source passes **7,029 Python tests, zero skips; 50 TypeScript tests, zero skips**, strict types, Ruff and package builds.
 
 ## Fresh installed runtime
 
@@ -48,6 +48,6 @@ The complete stopped failing corpus and registry are privately cold-archived: **
 
 To make room for verification, only stopped task-owned completed synthetic databases are removed after port checks and private file-hash inventories. Their packages, profiles, registries, model weights and measurement reports remain; their raw databases do not. The first failed installed follow-up is preserved. Six current remaining profiles have both API/database ports independently checked closed, in addition to the archived performance fixture's six ports.
 
-Full Verify at [source `281b06e`](https://github.com/chriswu727/memBrain/actions/runs/41927888667) remains in progress. The superseded `9b9bad0` run is **cancelled**, with pytest cancelled and TypeScript/build steps skipped; it is not a green check. Cancelled metadata and all new failures are retained in the [allowlisted manifest](maturity-release-qualification-2026-11-04/manifest.json).
+Full Verify at [source `281b06e`](https://github.com/chriswu727/memBrain/actions/runs/41927888667) **passes**: **7,029 Python tests, zero skips**, three warnings, 1,291.54 seconds; **50 TypeScript tests**, zero failures/skips, strict types, Ruff, sdist and wheel. All four actual Docker journeys (desktop, streamed recovery, independent-build upgrade and standalone chat), the real pinned CPU embedding model and activation-with-requests-in-flight cases pass. The complete decoded log is retained compressed with its SHA-256, alongside the [structured result](maturity-release-qualification-2026-11-04/ci-result.json). The superseded `9b9bad0` run is **cancelled**, with pytest cancelled and TypeScript/build steps skipped; it is not a green check. Cancelled metadata and all new failures are retained in the [allowlisted manifest](maturity-release-qualification-2026-11-04/manifest.json).
 
 **R5, real R4/C5, final independent/privacy/design review and remaining graph coverage stay open.** No paid/subscription behavioural test, additional Claude consultation, main merge, tag or publication is performed. Goal work remains active without a schedule.

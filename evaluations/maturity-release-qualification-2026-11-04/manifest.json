@@ -37,6 +37,8 @@
     "visual-permissions-3-closed.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
     "visual-permissions-abba.json": "9c61a1339d731aafbfb2564edd3f2aebf4c93816af5842222481877065891589",
     "visual-permissions-abba.log": "aefa04ff9675a2c26d4331a0eac9486ec8f9ec94ccc191da2a42feb5d1a28e1a",
-    "visual-summary.json": "66efe205bcc59b4fc2746cbe7ef7e3c05dea3b1cedcf6d95c230e59cdb0276e5"
+    "visual-summary.json": "66efe205bcc59b4fc2746cbe7ef7e3c05dea3b1cedcf6d95c230e59cdb0276e5",
+    "ci-result.json": "31c355aad73366b2c34823ceac271b43a8197819f047ca689a56674cf99661f5",
+    "ci-281b06e.log.gz": "ab23f459f433441de7bd52668d880bd5ba5016a357b52f16e0748bdfa228af47"
   }
 }
