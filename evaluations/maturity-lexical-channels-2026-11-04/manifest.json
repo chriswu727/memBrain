@@ -1,0 +1,28 @@
+{
+  "purpose": "Allowlisted candidate merge experiment and regressions; complete R5 and CI pending",
+  "runtime_pin": "28c0b3ed34484b29550b6d2c011a819bcbce016b",
+  "prototype_source": "ed95232b164a0d314e051af8b2c00b1c3fcead4a",
+  "files": {
+    "credential-scan.json": "0e37fda8292c1ef330d8807eebef4425097cc10263813f5afd5cae449f4e5216",
+    "focused-run.log": "2e0bdcab53fa57b885533741b078076583424df189fe2c2e165d526efb17a0ac",
+    "lexical-focused.json": "c14fea6c30fbf9a95fcf266375c9c7d340994e5b025343f306d16b866d19d058",
+    "lexical-focused.log": "ada878f2ebe0f73b47dc37417f18824ff2630738df318ca4bf7c5561ff51e9ff",
+    "lexical-union-abba.json.gz": "0449b78f3d5b1d22b00cd32d6a8820eb061d6d8b5068eab53a4e5e422fe7acf5",
+    "lexical-union-abba.log": "2a78c7bd258170aa5b9e32d587fe3ea31e9bbc6699e782d8825bdf0d5b8410d0",
+    "lexical-union-arm-0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lexical-union-arm-1.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lexical-union-arm-2.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lexical-union-arm-3.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "lexical-union-prototype.py": "eec379ceec47a28e59c1500cbb66fc305b28a1ae0e731bf722259609db6d3093",
+    "lexical-union-worker.py": "5efdc9970ff41912b67848810dac6ba9a2caaee52d94c57edddf1da87d2d1296",
+    "lexical-wider.json": "6ff715f11d687901248faa73b25ce51ba8047d4e639d89946a201a4e9f12cea2",
+    "lexical-wider.log": "ccc16c296925bbbb6ab0dfc24ab00175ba63dcfece7ed61cfeb31bdb59a50e28",
+    "ruff-ci-scope.log": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+    "ruff-entire-tree.json": "142d1178fadbe90ca01ba3fbab89750c90105a27c7cc3c7386702763730f70a2",
+    "run-checks.py": "40f0a3af5440bd7e117ccfe377a640d36c93968062fc5d3d62abe1b0e26a6da3",
+    "run-lexical-union.py": "72534f7644b4f5bd289e1629e884652f5a14f8e838930cd1c4639c0a3c438baa",
+    "wider-run.log": "e8ad5f16a72cc626355ed59d6183b377d3c560abddbd7805d45b1cc4bfb597a7",
+    "pin-checks.log": "471c77f65875e4c272e08d0f1104f654c2ee63bed8cefdd055594fbb60385d29",
+    "matrix-checks.log": "7cd0def610c08948d8972feff72a2d42b89ae25f95d5f6460f558867f48ee6b9"
+  }
+}
