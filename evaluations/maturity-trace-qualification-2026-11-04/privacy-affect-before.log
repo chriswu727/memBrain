@@ -1,0 +1,12 @@
+F                                                                        [100%]
+=================================== FAILURES ===================================
+____ test_sensitive_evidence_is_not_repeated_by_another_note_or_its_feeling ____
+tests/test_memory_map.py:147: in test_sensitive_evidence_is_not_repeated_by_another_note_or_its_feeling
+    assert all(node["recorded_at"] is None for node in hidden["nodes"] if node["sensitive"])
+E   assert False
+E    +  where False = all(<generator object test_sensitive_evidence_is_not_repeated_by_another_note_or_its_feeling.<locals>.<genexpr> at 0x115f24c70>)
+---------------------------- Captured stderr setup -----------------------------
+Starting the local memory database and service…
+=========================== short test summary info ============================
+FAILED tests/test_memory_map.py::test_sensitive_evidence_is_not_repeated_by_another_note_or_its_feeling
+1 failed in 1.83s

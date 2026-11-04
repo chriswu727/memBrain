@@ -1,0 +1,13 @@
+{
+  "source": "9b9bad016ad7223991c98ee74e34ddb49ceb95b4",
+  "runtime_pin": "f1fc97b193f816ccfe4d3988c797060fff2bbbc6",
+  "reason": "retain the stopped passing fixture while reclaiming space for final runtime qualification",
+  "archive": "/Users/yichen/tmp/membrain-trace-batch-20261104/canonical-profile-f1fc97b.tar.gz",
+  "archive_sha256": "e75d517f28f7c0646f9e8351ac3568f6b177caa733ff183cd4df9be031050e64",
+  "archive_bytes": 302880181,
+  "regular_files_verified": 1487,
+  "ports_closed_before_archive": true,
+  "original_owned_profile_removed": true,
+  "registry_preserved": true,
+  "never_commit_archive_or_profiles": true
+}

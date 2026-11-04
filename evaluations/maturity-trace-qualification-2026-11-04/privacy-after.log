@@ -1,0 +1,11 @@
+........................F............................................... [ 77%]
+.....................                                                    [100%]
+=================================== FAILURES ===================================
+____ test_sensitive_evidence_masks_assertions_episodes_patterns_and_sources ____
+tests/test_structure_map.py:81: in test_sensitive_evidence_masks_assertions_episodes_patterns_and_sources
+    assert all(node["recorded_at"] is not None for node in revealed["nodes"] if node.get("sensitive"))
+E   assert False
+E    +  where False = all(<generator object test_sensitive_evidence_masks_assertions_episodes_patterns_and_sources.<locals>.<genexpr> at 0x109c57ed0>)
+=========================== short test summary info ============================
+FAILED tests/test_structure_map.py::test_sensitive_evidence_masks_assertions_episodes_patterns_and_sources
+1 failed, 92 passed in 46.61s
