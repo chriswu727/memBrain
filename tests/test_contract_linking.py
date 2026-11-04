@@ -6,6 +6,7 @@ from pathlib import Path
 
 import pytest
 from jsonschema import Draft202012Validator, FormatChecker, ValidationError
+from jsonschema.validators import extend
 from test_belief_recall import recall, scenario
 from test_cognition import STAMP, prepare_payload, scope, working
 
@@ -213,6 +214,81 @@ def test_prepared_validation_preserves_an_evolved_format_checker():
     reference = plain("RecallTrace").evolve(format_checker=checker)
     assert [error_details(error) for error in candidate.iter_errors(value)] == [
         error_details(error) for error in reference.iter_errors(value)]
+
+
+@pytest.mark.parametrize("declared", ["integer", "number", "boolean", "null", "string", "array", "object",
+                                    ["integer", "null"], ["number", "boolean"], ["array", "object"]])
+def test_prepared_types_preserve_numeric_and_subclass_semantics(synthetic, declared):
+    from decimal import Decimal
+    from fractions import Fraction
+
+    class Text(str):
+        pass
+
+    class Record(dict):
+        pass
+
+    class Items(list):
+        pass
+
+    definition = {"type": declared}
+    synthetic({"$schema": "https://json-schema.org/draft/2020-12/schema", "$defs": {"Item": definition}})
+    candidate, reference = contracts.validator("Item"), Draft202012Validator(definition)
+    for value in (None, True, False, 0, 1, -1, 1.0, 1.5, float("nan"), float("inf"), -float("inf"),
+                  Decimal("1"), Decimal("1.5"), Fraction(1, 2), 1j, "ok", Text("ok"), [], Items(), (), {}, Record()):
+        assert [error_details(error) for error in candidate.iter_errors(value)] == [
+            error_details(error) for error in reference.iter_errors(value)]
+
+
+@pytest.mark.parametrize("definition,value", [
+    ({"type": "string", "minLength": 2, "pattern": "^a"}, "b"),
+    ({"type": "integer", "minimum": 1, "maximum": 3}, 4),
+    ({"type": "number", "multipleOf": 0.5}, 0.1),
+    ({"type": "boolean", "const": True}, False),
+    ({"type": "object", "required": ["name"]}, {}),
+    ({"type": "array", "minItems": 1}, []),
+    ({"type": ["string", "null"], "enum": ["ok"]}, None),
+])
+def test_a_matching_prepared_type_does_not_bypass_other_constraints(synthetic, definition, value):
+    synthetic({"$schema": "https://json-schema.org/draft/2020-12/schema", "$defs": {"Item": definition}})
+    candidate, reference = contracts.validator("Item"), Draft202012Validator(definition)
+    errors = [error_details(error) for error in candidate.iter_errors(value)]
+    assert errors and errors == [error_details(error) for error in reference.iter_errors(value)]
+
+
+@pytest.mark.parametrize("definition,values", [
+    ({"properties": {"value": {"type": "integer"}}}, [{"value": "alias"}, {"value": 1}]),
+    ({"items": {"type": "integer"}}, [["alias"], [1]]),
+    ({"allOf": [{"type": "integer"}]}, ["alias", 1]),
+    ({"if": {"type": "integer"}, "then": {"const": "alias"}, "else": {"const": 1}}, ["alias", 1, "other", 2]),
+])
+def test_prepared_children_preserve_a_custom_type_checker(synthetic, definition, values):
+    synthetic({"$schema": "https://json-schema.org/draft/2020-12/schema", "$defs": {"Item": definition}})
+    base = contracts.validator("Item")
+    checker = Draft202012Validator.TYPE_CHECKER.redefine("integer", lambda checker, value: value == "alias")
+    candidate = extend(type(base), type_checker=checker)(base.schema, format_checker=base.format_checker)
+    reference = extend(Draft202012Validator, type_checker=checker)(definition, format_checker=base.format_checker)
+    for value in values:
+        assert [error_details(error) for error in candidate.iter_errors(value)] == [
+            error_details(error) for error in reference.iter_errors(value)]
+
+
+def test_prepared_children_preserve_overridden_keyword_validation(synthetic):
+    definition = {"properties": {"value": {"type": "string"}}}
+    synthetic({"$schema": "https://json-schema.org/draft/2020-12/schema", "$defs": {"Item": definition}})
+
+    def reject_strings(current, declared, value, node):
+        if isinstance(value, str):
+            yield ValidationError("Custom string validation rejected the value")
+        else:
+            yield from Draft202012Validator.VALIDATORS["type"](current, declared, value, node)
+
+    base = contracts.validator("Item")
+    candidate = extend(type(base), {"type": reject_strings})(base.schema, format_checker=base.format_checker)
+    reference = extend(Draft202012Validator, {"type": reject_strings})(definition, format_checker=base.format_checker)
+    for value in ({"value": "ok"}, {"value": 1}):
+        errors = [error_details(error) for error in candidate.iter_errors(value)]
+        assert errors and errors == [error_details(error) for error in reference.iter_errors(value)]
 
 
 def test_prepared_validation_preserves_array_and_conditional_edges(synthetic):

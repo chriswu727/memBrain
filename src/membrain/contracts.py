@@ -103,12 +103,27 @@ def _prepared_root():
     if any("$ref" in node for node in nodes):
         return None
     children = {}
+    python_types = {"string": {str}, "object": {dict}, "array": {list}, "null": {type(None)},
+                    "boolean": {bool}, "integer": {int}, "number": {int, float}}
+    accepted_types = {}
+    for node in nodes:
+        declared = node.get("type")
+        declared = [declared] if isinstance(declared, str) else declared
+        if (isinstance(declared, list) and declared
+                and all(isinstance(name, str) and name in python_types for name in declared)):
+            accepted_types[id(node)] = frozenset(kind for name in declared for kind in python_types[name])
+
+    def check_type(current, declared, instance, node):
+        if (type(current) is cls and current.TYPE_CHECKER is Draft202012Validator.TYPE_CHECKER
+                and type(instance) in accepted_types.get(id(node), ())):
+            return
+        yield from Draft202012Validator.VALIDATORS["type"](current, declared, instance, node)
 
     # Linked child schemas contain no references or reference scopes. Only schemas are retained;
     # every value is checked again, including mutable records and records from another request or owner.
     def descend(current, instance, subschema, *, path=None, schema_path=None):
         child = children.get(id(subschema))
-        if child is None or child.format_checker is not current.format_checker:
+        if child is None or type(current) is not type(child) or child.format_checker is not current.format_checker:
             yield from current.descend(instance, subschema, path=path, schema_path=schema_path)
             return
         for error in child.iter_errors(instance):
@@ -139,14 +154,14 @@ def _prepared_root():
 
     def if_clause(current, condition, instance, schema):
         child = children.get(id(condition))
-        if child is None or child.format_checker is not current.format_checker:
+        if child is None or type(current) is not type(child) or child.format_checker is not current.format_checker:
             yield from Draft202012Validator.VALIDATORS["if"](current, condition, instance, schema)
             return
         branch = "then" if child.is_valid(instance) else "else"
         if branch in schema:
             yield from descend(current, instance, schema[branch], schema_path=branch)
 
-    cls = extend(Draft202012Validator, {"properties": properties, "items": items,
+    cls = extend(Draft202012Validator, {"type": check_type, "properties": properties, "items": items,
                                       "allOf": all_of, "if": if_clause})
     root = cls({"$schema": schema()["$schema"], "$defs": definitions}, format_checker=FormatChecker())
     children.update((id(node), root.evolve(schema=node)) for node in nodes)
