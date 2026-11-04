@@ -108,7 +108,9 @@ def _private(path: Path, *, directory: bool = False) -> None:
     else:
         if metadata.st_uid != os.getuid() or (not directory and metadata.st_nlink != 1):
             raise LocalProfileError("Profile files must belong exclusively to the current user.")
-        path.chmod(0o700 if directory else 0o600)
+        mode = 0o700 if directory else 0o600
+        if stat.S_IMODE(metadata.st_mode) != mode:
+            path.chmod(mode)
 
 
 def _open_private(path: Path, flags: int) -> int:

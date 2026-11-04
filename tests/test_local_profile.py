@@ -6,6 +6,7 @@ import subprocess
 import sys
 from dataclasses import replace
 from pathlib import Path
+from types import SimpleNamespace
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
@@ -46,6 +47,68 @@ def test_private_files_have_owner_only_permissions(tmp_path):
     for name in ("profile.json", ".profile.lock"):
         assert stat.S_IMODE((tmp_path / name).stat().st_mode) == 0o600
 
+
+@pytest.mark.skipif(os.name == 'nt', reason='POSIX permission bits')
+@pytest.mark.parametrize('directory', [False, True])
+def test_private_access_rechecks_permissions_but_writes_only_to_repair_them(tmp_path, monkeypatch, directory):
+    path = tmp_path / 'private'
+    path.mkdir() if directory else path.touch()
+    mode = 0o700 if directory else 0o600
+    original = Path.chmod
+    original(path, mode)
+    writes = []
+
+    def chmod(target, value, **kwargs):
+        if target == path:
+            writes.append(value)
+        return original(target, value, **kwargs)
+
+    monkeypatch.setattr(Path, 'chmod', chmod)
+    local_profile._private(path, directory=directory)
+    local_profile._private(path, directory=directory)
+    assert writes == []
+    original(path, 0o755 if directory else 0o644)
+    local_profile._private(path, directory=directory)
+    local_profile._private(path, directory=directory)
+    assert writes == [mode] and stat.S_IMODE(path.stat().st_mode) == mode
+
+
+@pytest.mark.skipif(os.name == 'nt', reason='POSIX ownership and links')
+@pytest.mark.parametrize('unsafe', ['foreign_owner', 'hardlink', 'symlink'])
+def test_matching_mode_never_bypasses_private_path_checks(tmp_path, monkeypatch, unsafe):
+    path = tmp_path / 'private'
+    path.touch(mode=0o600)
+    if unsafe == 'hardlink':
+        os.link(path, tmp_path / 'linked')
+    elif unsafe == 'symlink':
+        original = tmp_path / 'original'
+        path.rename(original)
+        path.symlink_to(original)
+    else:
+        original = Path.lstat
+
+        def lstat(target, **kwargs):
+            metadata = original(target, **kwargs)
+            if target == path:
+                values = list(metadata)
+                values[4] = os.getuid() + 1
+                return os.stat_result(values)
+            return metadata
+
+        monkeypatch.setattr(Path, 'lstat', lstat)
+    with pytest.raises(local_profile.LocalProfileError):
+        local_profile._private(path)
+
+
+def test_windows_private_access_always_applies_its_acl(tmp_path, monkeypatch):
+    path = tmp_path / 'private'
+    path.touch(mode=0o600)
+    writes = []
+    monkeypatch.setattr(local_profile, 'os', SimpleNamespace(name='nt'))
+    monkeypatch.setattr(local_profile, '_restrict_windows_access', writes.append)
+    local_profile._private(path)
+    local_profile._private(path)
+    assert writes == [path, path]
 
 def test_secrets_are_absent_from_repr_and_environment_is_ignored(tmp_path, monkeypatch):
     profile = configure_cognition(ensure_profile(tmp_path), "https://provider.example/v1", "model", "model-secret")
