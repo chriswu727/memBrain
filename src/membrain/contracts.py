@@ -1,9 +1,11 @@
 import json
+import math
+from contextvars import ContextVar
 from functools import lru_cache
 from importlib.resources import files
 from pathlib import Path
 
-from jsonschema import Draft202012Validator, FormatChecker, ValidationError
+from jsonschema import Draft202012Validator, FormatChecker, ValidationError, validators
 
 from .helpers import DomainError
 
@@ -27,6 +29,44 @@ _SCHEMA_ONE = {"not", "if", "then", "else", "contains", "items", "additionalProp
 _SCHEMA_LISTS = {"allOf", "anyOf", "oneOf", "prefixItems"}
 # Keywords that change how references resolve or which dialect applies below them.
 _SCOPE = {"$schema", "$id", "$anchor", "$dynamicAnchor", "$dynamicRef", "$recursiveAnchor", "$recursiveRef"}
+_PROPERTY_CHECKS = ContextVar("contract_property_checks", default=None)
+_PROPERTIES = Draft202012Validator.VALIDATORS["properties"]
+
+
+def _property_key(value):
+    if type(value) is not dict or not 4 <= len(value) <= 64:
+        return None
+    parts, size = [], 0
+    for key, item in value.items():
+        kind = type(item)
+        if type(key) is not str or kind not in (str, bool, int, float, type(None)):
+            return None
+        if kind is float and not math.isfinite(item) or kind is int and item.bit_length() > 64:
+            return None
+        size += len(key) + (len(item) if kind is str else 8)
+        if size > 2048:
+            return None
+        parts.append((key, kind, item))
+    return tuple(sorted(parts))
+
+
+def _properties_once(validator, properties, instance, schema):
+    checked = _PROPERTY_CHECKS.get()
+    key = _property_key(instance) if checked is not None and len(properties) >= 4 else None
+    identity = (id(schema), key)
+    if key is not None and identity in checked:
+        return
+    failed = False
+    for error in _PROPERTIES(validator, properties, instance, schema):
+        failed = True
+        yield error
+    # Only completed property checks of identical plain JSON values can be reused inside one validation.
+    # All other keywords still run, and scoped/dynamic schemas use the unmodified validator.
+    if key is not None and not failed and len(checked) < 512:
+        checked.add(identity)
+
+
+_MemoizedValidator = validators.extend(Draft202012Validator, {"properties": _properties_once})
 
 
 def _local(value) -> str | None:
@@ -96,18 +136,23 @@ def _linked_definitions() -> dict | None:
 @lru_cache
 def validator(definition: str | None = None) -> Draft202012Validator:
     document = schema()
+    linked = _linked_definitions() if definition is not None else None
     if definition is not None:
         document = {
             "$schema": document["$schema"],
-            "$defs": _linked_definitions() or document["$defs"],
+            "$defs": linked or document["$defs"],
             "$ref": f"#/$defs/{definition}",
         }
-    return Draft202012Validator(document, format_checker=FormatChecker())
+    implementation = _MemoizedValidator if linked is not None else Draft202012Validator
+    return implementation(document, format_checker=FormatChecker())
 
 
 def validate(definition: str | None, value: object) -> None:
+    token = _PROPERTY_CHECKS.set(set())
     try:
         validator(definition).validate(value)
     except ValidationError as error:
         path = ".".join(map(str, error.absolute_path)) or "$"
         raise DomainError("validation_failed", f"Invalid {definition or 'contract'} at {path}") from error
+    finally:
+        _PROPERTY_CHECKS.reset(token)
