@@ -537,6 +537,26 @@ The default `prepare` budget of 2,000 units is the memory allocation left after 
 
 `POST /v1/actions` accepts the [JSON Schema contract](../architecture/memory-contract.schema.json). Identity is bound to the API key. Request parameters can select only an authorized brain and cannot set a tenant or authenticated identity. The running service's capability declaration is available at `GET /v1/capabilities`.
 
+### TypeScript companion controls and maps
+
+The TypeScript client also exposes the companion's current state and user controls. Use the same authenticated `MemoryClient` and brain as your host integration:
+
+```typescript
+const persona = await memory.persona();
+const proposals = await memory.personaProposals();
+const feelings = await memory.affectRecords();
+const mood = await memory.mood();
+const relationship = await memory.relationship();
+const structure = await memory.memoryMap({ structure: true, trace: true });
+const companion = await memory.companionMap();
+```
+
+`setPersona(card, { madeBy: "user" })`, `personaVersions()`, `restorePersona(version)` and `resetPersona()` manage the versioned card. `hostDefault: true` on `setPersona` sets the card used by reset. `personaProposals()` returns pending and decided proposals; call `acceptPersonaProposal(id)` or `rejectPersonaProposal(id)` only after the user's decision. `deletePersonaHistory()` erases versions and proposals. Accepting proposals must not be an automatic response to conversational sentiment.
+
+`clearAffect()`, `pinMood(true)` / `pinMood(false)` and `resetMood()` control feelings and simulated mood. Pinning holds the mood at its baseline. Relationship controls are `setSupportStyle(text)` (empty text removes it), `addBoundary(topic, aliases)`, `removeBoundary(id)`, `capFamiliarity(level)` (`null` removes the cap), `acknowledgeCommitments(noteIds)` (at most the first 50 IDs per request), and `resetRelationship()`. Explain each reset's scope to the user: relationship reset clears its shared moments, support style, boundaries, cap and acknowledgements, while preserving the persona. These are the existing server operations, with the server's validation, authorization and erasure rules.
+
+Each method defaults to the client's brain. Read/control methods accept an explicit final `brainId`; persona changes and maps accept `brainId` in their options. An override cannot bypass the API key's ownership scope. Requests retain the client's recovery acknowledgement and timeout, and a failed request does not fall back to another brain or retry a write. Maps default to 200 nodes/400 edges, omit sensitive content unless `includeSensitive: true`, and obey the server's hard limits of 500/1,000. They return bounded stored records and relations; the optional trace covers recorded message recall only. These methods do not add an automatic TypeScript chat runtime or make model calls.
+
 ### Plugin mode
 
 `membrain plugin` provides zero-configuration entry points for host plugins. They create an installation in the default profile directory (or `MEMBRAIN_DIRECTORY`) on first use and choose the embedded database engine when it is installed.

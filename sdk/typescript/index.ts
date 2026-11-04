@@ -67,6 +67,26 @@ export type ScopeOptions = {
   requestId?: string;
 };
 export type BranchOptions = ScopeOptions & { conversationId: string; branchId: string };
+export type PersonaCard = {
+  name?: string;
+  traits?: readonly string[];
+  voice?: { register?: string; length?: string; emoji?: string; language?: string };
+  values?: readonly string[];
+  boundaries?: readonly string[];
+  baseline_mood?: { label: string; valence: -2 | -1 | 0 | 1 | 2; energy: 0 | 1 | 2 | 3 } | null;
+};
+export type PersonaChangeOptions = {
+  brainId?: string;
+  madeBy?: "host" | "user" | "feedback";
+  reason?: string;
+};
+export type MapOptions = {
+  brainId?: string;
+  maxNodes?: number;
+  maxEdges?: number;
+  includeSensitive?: boolean;
+};
+export type MemoryMapOptions = MapOptions & { trace?: boolean; structure?: boolean };
 export type NoteAffect = {
   label: string;
   valence: -2 | -1 | 0 | 1 | 2;
@@ -451,6 +471,18 @@ export class MemoryClient {
     };
   }
 
+  #brainPath(brainId?: string): string {
+    return `v1/brains/${encodeURIComponent(this.#scope({ brainId }).brain_ref)}`;
+  }
+
+  #map(resource: "memory-map" | "companion-map", options: MapOptions,
+    flags: { trace?: boolean; structure?: boolean } = {}): Promise<JsonObject> {
+    const query = new URLSearchParams({ max_nodes: String(options.maxNodes ?? 200),
+      max_edges: String(options.maxEdges ?? 400), include_sensitive: String(options.includeSensitive ?? false) });
+    for (const [name, enabled] of Object.entries(flags)) if (enabled) query.set(name, "true");
+    return this.#request("GET", `${this.#brainPath(options.brainId)}/${resource}?${query}`);
+  }
+
   recovery(): Promise<JsonObject> {
     return this.#request("GET", "v1/recovery");
   }
@@ -523,6 +555,81 @@ export class MemoryClient {
         sensitive: options.sensitive, shared: options.shared, affect: options.affect,
         role: options.role }).filter(([, value]) => value !== undefined)),
     });
+  }
+  persona(brainId?: string): Promise<JsonObject> {
+    return this.#request("GET", `${this.#brainPath(brainId)}/persona`);
+  }
+  setPersona(card: PersonaCard, options: PersonaChangeOptions & { hostDefault?: boolean } = {}): Promise<JsonObject> {
+    return this.#request("PUT", `${this.#brainPath(options.brainId)}/persona`, {
+      card, made_by: options.madeBy ?? "host", host_default: options.hostDefault ?? false, reason: options.reason,
+    });
+  }
+  personaVersions(brainId?: string): Promise<JsonObject> {
+    return this.#request("GET", `${this.#brainPath(brainId)}/persona/versions`);
+  }
+  restorePersona(version: number, options: PersonaChangeOptions = {}): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(options.brainId)}/persona/restore`, {
+      version, made_by: options.madeBy ?? "host", reason: options.reason,
+    });
+  }
+  resetPersona(options: PersonaChangeOptions = {}): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(options.brainId)}/persona/reset`, {
+      made_by: options.madeBy ?? "host", reason: options.reason,
+    });
+  }
+  deletePersonaHistory(brainId?: string): Promise<JsonObject> {
+    return this.#request("DELETE", `${this.#brainPath(brainId)}/persona/versions`);
+  }
+  personaProposals(brainId?: string): Promise<JsonObject> {
+    return this.#request("GET", `${this.#brainPath(brainId)}/persona/proposals`);
+  }
+  acceptPersonaProposal(proposalId: string, brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/persona/proposals/${encodeURIComponent(proposalId)}/accept`);
+  }
+  rejectPersonaProposal(proposalId: string, brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/persona/proposals/${encodeURIComponent(proposalId)}/reject`);
+  }
+  affectRecords(brainId?: string): Promise<JsonObject> {
+    return this.#request("GET", `${this.#brainPath(brainId)}/affect`);
+  }
+  clearAffect(brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/affect/reset`);
+  }
+  mood(brainId?: string): Promise<JsonObject> {
+    return this.#request("GET", `${this.#brainPath(brainId)}/mood`);
+  }
+  pinMood(pinned = true, brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/mood/pin`, { pinned });
+  }
+  resetMood(brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/mood/reset`);
+  }
+  relationship(brainId?: string): Promise<JsonObject> {
+    return this.#request("GET", `${this.#brainPath(brainId)}/relationship`);
+  }
+  setSupportStyle(text: string, brainId?: string): Promise<JsonObject> {
+    return this.#request("PUT", `${this.#brainPath(brainId)}/relationship/support-style`, { text });
+  }
+  addBoundary(topic: string, aliases: readonly string[] = [], brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/relationship/boundaries`, { topic, aliases });
+  }
+  removeBoundary(boundaryId: string, brainId?: string): Promise<JsonObject> {
+    return this.#request("DELETE", `${this.#brainPath(brainId)}/relationship/boundaries/${encodeURIComponent(boundaryId)}`);
+  }
+  capFamiliarity(level: "new" | "getting_to_know" | "familiar" | null, brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/relationship/cap`, { level });
+  }
+  acknowledgeCommitments(noteIds: readonly string[], brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/relationship/acknowledge`, { note_ids: noteIds.slice(0, 50) });
+  }
+  resetRelationship(brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/relationship/reset`);
+  }
+  memoryMap(options: MemoryMapOptions = {}): Promise<JsonObject> {
+    return this.#map("memory-map", options, { trace: options.trace, structure: options.structure });
+  }
+  companionMap(options: MapOptions = {}): Promise<JsonObject> {
+    return this.#map("companion-map", options);
   }
   memoryStatus(brainId?: string): Promise<JsonObject> {
     return this.#request("GET", `v1/brains/${encodeURIComponent(this.#scope({ brainId }).brain_ref)}/status`);

@@ -159,7 +159,7 @@ with open_agent(conversation_id="writing", deliver=deliver) as agent:
 
 请在 Python 3.12+ 环境中运行。在实际宿主中，将 `deliver` 替换为真实的发送操作，并只在确认发送成功后返回成功回执。此示例确认的是终端写入，不代表有人已经阅读回答。每条新输入都需要一个稳定且唯一的消息 ID；只有在处理同一条消息的恢复或核对时，才复用该 ID。重放已完成的消息不会再次生成或交付回复。
 
-如需自己的模型回调、交付渠道、恢复处理或可选的回答核验器，请参阅[自动接入参考](docs/reference.md#automatic-integration)。HTTP 和 TypeScript 客户端提供底层操作；目前开箱即用的自动文本运行时是 Python 版本。
+如需自己的模型回调、交付渠道、恢复处理或可选的回答核验器，请参阅[自动接入参考](docs/reference.md#automatic-integration)。HTTP 和 TypeScript 客户端提供底层操作；目前开箱即用的自动文本运行时是 Python 版本。TypeScript 客户端还提供[人格、感受、模拟心情、关系控制和真实记忆图接口](docs/reference.md#typescript-companion-controls-and-maps)，人格建议须由用户明确接受或拒绝。
 
 <a id="mcp"></a>
 
@@ -254,7 +254,7 @@ membrain desktop start
 
 当前候选版本支持**本地同步文本 Agent**，提供 Python 运行时、HTTP API、TypeScript 客户端、MCP 工具和直接终端聊天入口。核心记忆行为独立于聊天框架。桌面端到端验证目前覆盖 **macOS、uv 和 Docker** 的组合。
 
-[插件模式](architecture/plugin-mode.md)已在 **Linux x86_64** 上完成端到端验证。嵌入式数据库分别以 root 和普通用户身份，通过了真实的启动、重启、备份、恢复和激活检查。在隔离配置的 Claude Code 2.1.311 中，插件从本地插件市场安装成功；使用模拟模型 API 时，插件记录了消息和回复，新会话发给模型的请求中包含上一个会话的记录。这项检查覆盖的是集成流程，不是回答质量。当时自动召回只做关键词匹配；现在安装本地模型后还会按语义匹配。在一台 Windows 11 机器上，嵌入式数据库、本地服务、hook 启动脚本（Git Bash 与 `cmd.exe`）、代理以及 AstrBot 和 OpenClaw 插件都已实际运行；这次运行发现并修复了两个安装问题，它们会让所有新的 Windows 安装以及 AstrBot 首次启动失败。Claude Code 和 Codex 尚未在 Windows 上运行。模型激活候选版本已在真实 Mac 上通过 17 项独立安装检查，包括嵌入式数据库。较早的 `6656720`（固定到 `a01903a`）通过 49 项检查的结果仍作为[历史证据](evaluations/maturity-install-mac-2026-11-03.json)保留。之后的 CPU 候选版本 `91271f5`（固定到 `9d8509c`）也在 macOS 上通过了完整安装验收的全部 49 项检查（[检查清单](evaluations/maturity-install-mac-cpu3-2026-11-03.json)），覆盖全新安装、升级、伙伴状态、代理以及备份与恢复。这只验证了该运行时；[发布清单](docs/releasing.md)中 R5 的并发召回延迟目标仍未达到，成熟度候选版本的真实模型 R4/C5 行为验收也尚未执行。新的实现验证和剩余门槛见[临时成熟度证据](evaluations/maturity-free-checks-2026-11-03.md)。
+[插件模式](architecture/plugin-mode.md)已在 **Linux x86_64** 上完成端到端验证。嵌入式数据库分别以 root 和普通用户身份，通过了真实的启动、重启、备份、恢复和激活检查。在隔离配置的 Claude Code 2.1.311 中，插件从本地插件市场安装成功；使用模拟模型 API 时，插件记录了消息和回复，新会话发给模型的请求中包含上一个会话的记录。这项检查覆盖的是集成流程，不是回答质量。当时自动召回只做关键词匹配；现在安装本地模型后还会按语义匹配。在一台 Windows 11 机器上，嵌入式数据库、本地服务、hook 启动脚本（Git Bash 与 `cmd.exe`）、代理以及 AstrBot 和 OpenClaw 插件都已实际运行；这次运行发现并修复了两个安装问题，它们会让所有新的 Windows 安装以及 AstrBot 首次启动失败。Claude Code 和 Codex 尚未在 Windows 上运行。模型激活候选版本已在真实 Mac 上通过 17 项独立安装检查，包括嵌入式数据库。较早的 `6656720`（固定到 `a01903a`）通过 49 项检查的结果仍作为[历史证据](evaluations/maturity-install-mac-2026-11-03.json)保留。之后的 CPU 候选版本 `91271f5`（固定到 `9d8509c`）也在 macOS 上通过了完整安装验收的全部 49 项检查（[检查清单](evaluations/maturity-install-mac-cpu3-2026-11-03.json)），覆盖全新安装、升级、伙伴状态、代理以及备份与恢复。这只验证了当时的运行时；该版本尚未达到 R5 并发召回延迟目标。当前 `d4d7126` 已通过[发布清单](docs/releasing.md)中的 R5 门槛，成熟度候选版本的真实模型 R4/C5 行为验收仍未执行。新的实现验证和剩余门槛见[临时成熟度证据](evaluations/maturity-free-checks-2026-11-03.md)。
 
 在一个全新的十会话场景上进行的[盲评 A/B 诊断](evaluations/v1-2026-10-27-ab-baselines.md)中，默认记忆运行时得 4.5 分（满分 12），无记忆基线得 2 分，直接放入完整历史的朴素做法得 11.5 分。记忆组消耗的 token 约为完整历史组的三十倍，并需要 58 次人工干预。它失分的主要原因是召回没有取回相关事实。在这样的小规模下，完整历史是更强的基线；更长的历史尚未测试。使用相同模型和用例对插件路径进行的[第二次盲评](evaluations/v1-2026-10-27-plugin-path-ab.md)中，插件在该场景得 10.5 分，完整历史得 11 分。在一个包含粘贴代码和日志的 34 会话长版本上，插件先得 7.5 分，针对问题改进历史注入和召回后得 12 分，完整历史得 11.5 分，插件消耗的 token 约为完整历史的四分之一。这些都是单次运行，且改进是在同一场景上设计的。由另一个智能体编写的[两个全新场景](evaluations/v1-2026-10-27-fresh-scenarios.md)对此做了检验：在第一个场景的长版本上，当时已合并的插件（含本地语义召回）只得 6 分，完整历史得 11 分。随后的重新设计（由宿主模型维护笔记、按整条消息召回）在预留的第二个场景长版本上得 11.5 分，与完整历史相同，而之前的插件只得 5.5 分，token 消耗约为完整历史的三分之一。这只是使用一个宿主模型（DeepSeek V4 Pro）的单次运行。
 

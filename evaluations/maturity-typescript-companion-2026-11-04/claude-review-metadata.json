@@ -1,0 +1,24 @@
+{
+  "source_commit": "ac645f5ede17882b52e38f188fda5c635f625537",
+  "files_sha256": {
+    "evaluations/evaluation_budget.py": "072d044ed23134e18ef0ae84abf71d2151e7f81fc0a37c97450ccd7c1c7e2cd7",
+    "evaluations/acceptance-attempt-driver.py": "2babb22a05d43717843c5491a70d2d90a671b4d54280244667a511d4bc440117",
+    "evaluations/c5-run-scenario.sh": "c8d7ae89aa42b10c7e0a3e12b35bc3e2d0bb369598d87a4b8c2dd64b0962b2cc",
+    "evaluations/c5-harness.py": "efd72a71735b5df1a2437734a700a8b14ce2411cdac308ed5fe4b5f12cc8f19b",
+    "evaluations/maturity-paid-acceptance-plan-draft.md": "a9eeb094884e5d24651a3828a1a6e6379d1422e40efcf58a3d055e86ebf51ad3"
+  },
+  "prompt_sha256": "83674bdc9162f42c2d1b360b7b2fac91465155af81341479153441b217cda9c7",
+  "prompt_characters": 150564,
+  "auth_method": "existing Claude.ai Max",
+  "tools": [],
+  "mcp_servers": [],
+  "hooks_disabled": true,
+  "session_persistence": false,
+  "budget_usd_option": 0.5,
+  "timeout_seconds": 180,
+  "requested_model": "sonnet",
+  "purpose": "one ordinary independent code review; not a behavioural/model test",
+  "completed": false,
+  "error": "bounded_code_review_timeout",
+  "elapsed_seconds": 180.02
+}

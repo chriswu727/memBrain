@@ -1,0 +1,11 @@
+{
+  "runtime_pin": "d4d71262ab1c7d76600082b9c53b10144bb08a00",
+  "completed": true,
+  "sdk_sha256": "0010035b7955d8aaae17f25608d668b3c5218f779da942f4b3c4eac3496711e5",
+  "node_returncode": 0,
+  "stop_returncode": 0,
+  "ports_closed": {
+    "api": true,
+    "database": true
+  }
+}
