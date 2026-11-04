@@ -1,0 +1,77 @@
+{
+  "all_closed": true,
+  "profiles": [
+    {
+      "directory": "/Users/yichen/tmp/membrain-tail-attribution-20261104/install-final/restored",
+      "ports": {
+        "api": 58164,
+        "database": 58165
+      },
+      "closed": true
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-tail-attribution-20261104/install-final/home/Library/Application Support/memBrain",
+      "ports": {
+        "api": 8788,
+        "database": 55433
+      },
+      "closed": true
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-tail-attribution-20261104/install-final/companion/restored",
+      "ports": {
+        "api": 58527,
+        "database": 58528
+      },
+      "closed": true
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-tail-attribution-20261104/install-final/companion/home/Library/Application Support/memBrain",
+      "ports": {
+        "api": 58254,
+        "database": 58255
+      },
+      "closed": true
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-tail-attribution-20261104/installed-followup-smoke",
+      "ports": {
+        "api": 8788,
+        "database": 55433
+      },
+      "closed": true
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-sql-recall-20261104/perf-38c948a-installation",
+      "ports": {
+        "api": 54176,
+        "database": 54175
+      },
+      "closed": true
+    },
+    {
+      "directory": "canonical profile archived and removed after successful measurement",
+      "ports": {
+        "api": 57621,
+        "database": 57620
+      },
+      "closed": true
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-tail-attribution-20261104/public-practice/practice-P/brain-c5-practice-scenario-P",
+      "ports": {
+        "api": 58713,
+        "database": 58714
+      },
+      "closed": true
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-tail-attribution-20261104/public-practice/practice-E/brain-c5-practice-scenario-E",
+      "ports": {
+        "api": 58715,
+        "database": 58716
+      },
+      "closed": true
+    }
+  ]
+}

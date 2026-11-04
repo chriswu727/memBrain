@@ -1,0 +1,6 @@
+{
+  "request_sent": false,
+  "new_claude_session": false,
+  "subscription_test_calls": 0,
+  "reason": "Claude desktop can be observed, but coordinate actions cannot locate an operable window. Raising and a search shortcut did not locate the authorized conversation; no message was sent. Independent review remains pending."
+}

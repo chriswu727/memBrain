@@ -1,0 +1,8 @@
+{
+  "source_commit": "53d7e323219a40f670ef574e45c2c36e3f32d4ee",
+  "runtime_pin": "d4d71262ab1c7d76600082b9c53b10144bb08a00",
+  "prototype_function_matches_runtime": true,
+  "private_function_sha256": "d2d76035d81c48579dbfc62bdc13bf22e747160487077a541248ab5c52f19c8a",
+  "fixture_origin": "canonical-38c948a; same settled 8-brain x1k corpus; actual service imports current runtime",
+  "protocol": "Unchanged recall bars applied to every canonical-size cycle and every phase aggregate; no model calls."
+}
