@@ -1,1 +1,1 @@
-membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/959a1c86b9fde8db5671adcc2b9a1e2375ccdbde.zip
+membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/e1b093e164214c501c7047d145fa0fd91ad0c938.zip
