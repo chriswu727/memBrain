@@ -67,7 +67,10 @@ Resolution adds these rules to the existing protocol:
     `[kind, sorted sources]`, with scenario session ids and turn indexes; each source listed once) and requires
     `removal_coverage_complete` and that ref not to be among this reply's removals. A `content_ref` is checked only
     within this reply's world, and one that appears only in another reply's entries is refused. Naming a
-    different, removed record of the same kind is never sufficient.
+    different, removed record of the same kind is never sufficient. A claim may name only a record kind that
+    exists in that reply's world: a world that holds only its conversation has messages and nothing else, so a
+    feeling, note, relationship or content identity there is refused with "this record kind does not exist in
+    that reply's world". The tally takes this from the sealed mapping and names no assistant in the refusal.
 
   Whether the reply's content corresponds to the named record stays the resolution reviewer's documented judgement;
   the tally checks only the evidence's structure, order, world and completeness. When the evidence cannot

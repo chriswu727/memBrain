@@ -106,6 +106,30 @@ flowchart TD
 
 The fast path makes current events immediately usable; the slow path compares episodes, retains counterexamples, and forms reusable beliefs. Fast and slow describe processing modes rather than forcing all semantic memory to learn slowly. An explicitly expressed preference can form from one statement, while a general rule inferred from multiple experiences requires additional support.
 
+### Storage decision for the memory observatory
+
+**Decision, 2026-11-03: retain PostgreSQL as authoritative memory storage.** This is a decision for the current product and workload, not a claim that SQL is universally faster than NoSQL. A 3D neuron-like interface is a read projection of memory records and relations; it does not dictate the database category.
+
+The implementation already combines relational identity, revisions, dependencies, episodes, associations, jobs and access state with JSONB documents and pgvector embeddings. `migrations/001_initial.sql` installs `vector`; `007_cognitive_views.sql` defines episodes, association edges and the versioned embedding table. Vector queries in `candidates.py` apply ownership, scope, embedding-space and source checks. The migrations do not currently create HNSW or IVFFlat indexes: the existence of pgvector is not proof of approximate-nearest-neighbor acceleration or large-scale capacity. The independent local SQLite deletion registry (`authority.sqlite3`) is a separate recovery authority, not a second memory database; keeping it outside a restored PostgreSQL snapshot prevents an old backup from silently undoing deletion intent.
+
+| Option | Fit for this product now | Decision |
+| --- | --- | --- |
+| PostgreSQL with relational tables, JSONB and pgvector | One transactional authority for sources, versions, derived relations and deletion; existing embedded and Docker paths | Retain |
+| Document database | Flexible records and potentially useful distributed deployment; would require a migration and revalidation of joins, source authority and recovery | No current need established |
+| Dedicated graph database | Potentially useful for measured, deep traversals beyond bounded neighborhoods | Reconsider only after traversal profiling |
+| Dedicated vector database | Potentially useful at much larger measured embedding workloads | Consider only as a rebuildable derived index |
+| SQLite as the primary memory store | Attractive install footprint for a smaller local-only product; current SQL, isolation, concurrency and vector behavior would need a separate port | Do not add a second primary backend in this release |
+
+Document and graph databases can provide transactions too. The reason to retain PostgreSQL is the existing working consistency model and workload, rather than assuming that other categories cannot preserve data. Splitting authority now would add synchronization, backup and deletion obligations without evidence that it fixes the measured bottleneck.
+
+The current reference recall performance runs have local semantic embeddings disabled, yet still fail their concurrent targets. Profiling has identified substantial Python validation/copy work, and earlier measurements separately exposed locking and SQL-plan problems. Replacing vector storage cannot by itself explain or repair these lexical-path failures. Continue profiling CPU, query time, lock waits, connection waits and response serialization separately; keep candidate limits, evidence and context budgets unchanged. Validate source/result parity and privacy after each optimization.
+
+**When to reconsider.** Run declared, fixed-fixture growth checks before making a capacity claim: source counts and bytes, derived records, vector dimension/model, index state, disk footprint, RSS, cold/warm retrieval latency and concurrent writes. Evaluate 10k, 100k and 1m source-record fixtures progressively if resources permit, stopping and retaining failures; none of these proposed larger fixtures is accepted by this decision. Compare exact retrieval with any proposed ANN index for answer-relevant recall and filtered-scope correctness, not speed alone. Add an external graph/vector service only when those measurements show a specific need and its recovery protocol passes correction, boundary, erasure, restart and old-backup restore checks. Any external derived index must fail closed when its source validity or deletion generation cannot be verified. The authoritative store remains the source of permissions and truth.
+
+**Installation.** The default embedded engine should be managed by memBrain: users should not have to administer PostgreSQL. Keep startup/shutdown, upgrades, diagnostics and backup/restore covered by installed checks; expose the engine choice only where it helps resolve a real platform or deployment constraint. The current fresh-install evidence is scoped to its tested source and platform, not every operating system or a public package release.
+
+References: PostgreSQL documents [JSONB and indexing](https://www.postgresql.org/docs/current/datatype-json.html) and [transaction isolation](https://www.postgresql.org/docs/current/transaction-iso.html); the [pgvector project](https://github.com/pgvector/pgvector) describes exact search, ANN indexes and filtering tradeoffs. These capabilities do not substitute for memBrain-specific benchmarks.
+
 ## Shared semantic representation
 
 The smallest memory unit is a contextualized proposition, not an isolated keyword. Preserve speaker, subject, relation, object, negation, statement type, actual or hypothetical world, valid time, and evidence location. Keywords and vectors help find propositions but cannot establish relations themselves.
