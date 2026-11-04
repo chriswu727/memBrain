@@ -117,6 +117,18 @@ def check_billing():
         BILLING.check()
 
 
+def billing_halt(stopping: list):
+    """A shared billing stop met after this turn's paid host call, returned instead of raised: the turn's row is
+    written first (``"stopped_after": "billing_stop"``), then the stop is raised. Nothing is spent in between."""
+    try:
+        check_billing()
+    except Exception as error:  # A blocked or unreadable ledger: the run stops either way.
+        stopping.append("billing_stop")
+        log("billing stopped: this turn's row is written first", type(error).__name__)
+        return error
+    return None
+
+
 def log(*parts):
     print(time.strftime("%H:%M:%S"), *parts, flush=True)
 
@@ -1035,20 +1047,23 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             reply = "\n\n".join([*written, message.get("content") or ""]).strip()
             stopping: list[str] = []
             with deferred_stop(stopping):  # The reply is paid for: its row is written before any stop.
-                if chat is not None:
+                # Another arm may have stopped the shared ledger during this turn's host call: then nothing more is
+                # recorded or extracted (extraction would be a further billed request).
+                halted, recorded = billing_halt(stopping), False
+                if halted is None and chat is not None:
                     chat.record(speaker, reply, session=session, turn_id=f"t{index}", prompt=text)
                     recorded = not memory.host.paused(memory.directory, memory.user)
                     chat.extractor.wait(120)
-                    check_billing()
-                    if chat.extractor._queue.unfinished_tasks:
+                    halted = billing_halt(stopping)
+                    if halted is None and chat.extractor._queue.unfinished_tasks:
                         harness_event(out, "extraction_unfinished", session=session, turn=index)
-                    if watch.failed():
+                    if halted is None and watch.failed():
                         harness_event(out, "extraction_failed", session=session, turn=index)
-                elif memory is not None:
+                elif halted is None and memory is not None:
                     resumed = memory.host.turn_resumed(memory.directory, session)
                     recorded = bool(memory.host.finish_turn(memory.directory, session, reply, turn_id=f"t{index}",
                                                             **({"prompt": text} if resumed else {})))
-                if memory is not None:
+                if halted is None and memory is not None:
                     memory.record_turn(session, index, recorded=recorded)
                     if not recorded and (session, index) not in intended:
                         harness_event(out, "turn_not_recorded", session=session, turn=index)
@@ -1070,6 +1085,8 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 stream.write(json.dumps(row, ensure_ascii=False) + "\n")
             log(arm, scenario, session, index, usage.get("total_tokens"),
                 "tools:", [(call["name"], str(call["arguments"])[:80]) for call in tool_calls])
+            if halted is not None:
+                raise halted
             if stopping:
                 stop_run(stopping[0])
             if reference is not None:  # F's history holds the user's words, not a memory block, and the reply.
@@ -1092,6 +1109,19 @@ def stop_started() -> None:
         desktop.stop(STARTED.pop())
 
 
+STOP_REASON = re.compile(r"[a-z][a-z0-9_]{0,39}")
+
+
+def stop_reason(arguments: list) -> str:
+    """``--stop`` takes an optional ``--reason CODE``; without it the reason is ``arm_failed``. The ledger keeps the
+    first reason it was given. A malformed reason is refused before the ledger is opened."""
+    if not arguments:
+        return "arm_failed"
+    if len(arguments) == 2 and arguments[0] == "--reason" and STOP_REASON.fullmatch(arguments[1]):
+        return arguments[1]
+    raise SystemExit("usage: c5-harness.py --stop [--reason CODE], CODE matching [a-z][a-z0-9_]{0,39}")
+
+
 def interrupted(signum, frame):
     try:
         if BILLING is not None:
@@ -1102,9 +1132,10 @@ def interrupted(signum, frame):
 
 if __name__ == "__main__":
     signal.signal(signal.SIGTERM, interrupted)
-    if sys.argv[1:] == ["--stop"]:
+    if sys.argv[1:2] == ["--stop"]:
+        reason = stop_reason(sys.argv[2:])
         guard = billing_transport(allow_stopped=True)
-        guard.stop("arm_failed")
+        guard.stop(reason)
         guard.close()
         raise SystemExit(0)
     if sys.argv[1:] == ["--preflight"]:
