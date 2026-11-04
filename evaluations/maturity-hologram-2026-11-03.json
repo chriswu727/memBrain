@@ -1,0 +1,103 @@
+{
+  "scope": "Immersive fullscreen memory hologram; fictional visual fixtures and existing database-backed UI regression; no real model calls",
+  "runtime_commit": "369462993a71ceb2a630cdddbf247d28ecbea299",
+  "source_and_pin_commit": "6286a846ac71146fd564c2b9a84601d1c3eff2fe",
+  "checks": [
+    {
+      "name": "Initial browser harness run",
+      "result": "failed",
+      "passed": 1,
+      "failed": 4,
+      "reason": "String predicates in Playwright wait_for_function violated the real CSP. Changed test predicates to functions without relaxing CSP.",
+      "log": "hologram-first-tests.log"
+    },
+    {
+      "name": "Corrected browser harness",
+      "result": "passed",
+      "passed": 5,
+      "failed": 0,
+      "seconds": 9.96,
+      "log": "hologram-second-tests.log"
+    },
+    {
+      "name": "First combined regression",
+      "result": "failed",
+      "passed": 42,
+      "failed": 1,
+      "reason": "The runtime was not yet committed/pinned. Installation pin remained on 5d0475d. Kept the failed check, then committed runtime and updated all nine launchers.",
+      "log": "hologram-final-browser.log"
+    },
+    {
+      "name": "Final source browser and existing UI regression",
+      "result": "passed",
+      "passed": 41,
+      "failed": 0,
+      "skipped": 0,
+      "seconds": 48.08,
+      "log": "hologram-final-regression.log"
+    },
+    {
+      "name": "Post-pin installation and maturity matrix checks",
+      "result": "passed",
+      "passed": 4,
+      "failed": 0,
+      "seconds": 0.32
+    },
+    {
+      "name": "Ruff and JavaScript syntax",
+      "result": "passed"
+    }
+  ],
+  "visuals": {
+    "nodes": 200,
+    "edges": 400,
+    "max_simultaneous_signals": 48,
+    "languages": [
+      "en",
+      "zh"
+    ],
+    "proofs": [
+      "hologram-en.png",
+      "hologram-zh.png",
+      "hologram-live-preview.png"
+    ],
+    "decorative_geometry": [
+      "cortical filaments and particles",
+      "dendritic branches",
+      "hindbrain and stem",
+      "projection rings and beams",
+      "background dust"
+    ],
+    "signals": "Simulation along displayed payload edges; not live agent execution or measured electrical activity"
+  },
+  "verified_behaviors": [
+    "viewport coverage",
+    "actual rendered pixels change on drag",
+    "zoom",
+    "pause and resume",
+    "mobile resize",
+    "modal keyboard focus and Escape",
+    "repeated close and reopen",
+    "GPU resource disposal",
+    "reduced motion",
+    "hidden pause and resume",
+    "companion provenance edges",
+    "map replacement and removal",
+    "empty map",
+    "WebGL unavailable and context loss fallback",
+    "no external or extra API requests"
+  ],
+  "ci": {
+    "run_id": 41772764696,
+    "commit": "6286a846ac71146fd564c2b9a84601d1c3eff2fe",
+    "last_observed_status": "pending",
+    "conclusion": null
+  },
+  "limits": [
+    "New immersive renderer has no hardware frame-time benchmark yet; previous inspector measurements do not apply.",
+    "No new installed-package or 49-check launcher acceptance run in this scope.",
+    "R5 eight-brain recall latency failure remains open.",
+    "No release or main merge; remaining maturity gates unchanged.",
+    "No paid or subscription-backed model evaluations were run."
+  ]
+}
