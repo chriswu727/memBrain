@@ -350,6 +350,91 @@ def test_a_live_arm_stopped_by_a_turns_event_writes_that_turns_row_first(stub_ru
                                             for problem in result["problems"])
 
 
+# Another arm stops the shared ledger during this arm's paid call (fakes only) -----------------------------------
+
+class _FakeProvider:
+    """The provider behind the real billing guard: fixed replies, billed usage, and a hook after a given call."""
+
+    def __init__(self, after=None):
+        self.models, self.after = [], after or {}
+
+    def __call__(self, request):
+        import httpx
+
+        model = json.loads(request.content)["model"]
+        self.models.append(model)
+        content = json.dumps({"notes": []}) if model == "fake-extract" else "Fake reply."
+        response = httpx.Response(200, json={
+            "model": model, "choices": [{"message": {"role": "assistant", "content": content}}],
+            "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}})
+        if len(self.models) in self.after:
+            self.after[len(self.models)]()
+        return response
+
+
+@pytest.fixture
+def shared_ledger(tmp_path, monkeypatch):
+    """A fake live run: the real billing guard on a temporary shared ledger, a fake provider behind it, and a
+    second guard on the same ledger standing for another arm."""
+    import os
+
+    import httpx
+
+    budget = harness.billing_module()
+    rate = {"context_tokens": 100_000, "max_output_tokens": 20_000, "input_cny_per_million": "1",
+            "output_cny_per_million": "1"}
+    path = tmp_path / "ledger.json"
+    frozen = budget.create_ledger(path, run_id="fake-attempt", limit_cny="100",
+                                  endpoint=harness.BASE_URL + "/chat/completions",
+                                  models={harness.MODEL: rate, "fake-extract": rate})
+    for name in [key for key in os.environ if key.startswith(("MEMORY_", "MEMBRAIN_EXTRACT", "MEMBRAIN_UPSTREAM"))
+                 or key.endswith("_API_KEY")]:
+        monkeypatch.delenv(name)
+    monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")
+    monkeypatch.setenv("EXTRACT_MODEL", "fake-extract")
+    monkeypatch.setenv("C5_BILLING_LEDGER", str(path))
+    monkeypatch.setenv("C5_ATTEMPT_ID", "fake-attempt")
+    monkeypatch.setenv("C5_BILLING_POLICY_SHA256", frozen["policy_sha256"])
+    provider = _FakeProvider()
+
+    def guarded(**options):
+        return budget.GuardedTransport(path, run_id="fake-attempt", policy_sha256=frozen["policy_sha256"],
+                                       transport=httpx.MockTransport(provider), **options)
+
+    monkeypatch.setattr(harness, "billing_transport", guarded)
+    other_arm = budget.GuardedTransport(path, run_id="fake-attempt", policy_sha256=frozen["policy_sha256"])
+    return SimpleLedger(path, provider, other_arm)
+
+
+class SimpleLedger:
+    def __init__(self, path, provider, other_arm):
+        self.path, self.provider, self.other_arm = path, provider, other_arm
+
+    def state(self):
+        return json.loads(self.path.read_text())
+
+
+@pytest.mark.parametrize("arm", ["F", "E"])
+def test_an_arm_writes_its_paid_row_before_a_stop_another_arm_made_during_its_call(
+        stub_run, shared_ledger, tmp_path, monkeypatch, arm):
+    monkeypatch.setattr(harness, "STUB", False)  # Live, with the fake provider behind the real guard.
+    monkeypatch.setattr(harness, "BILLING", None)
+    budget = harness.billing_module()
+    # Arm A stops the shared ledger once arm B's first host call has been billed, before B's bookkeeping.
+    shared_ledger.provider.after[1] = lambda: shared_ledger.other_arm.stop("arm_failed")
+    with pytest.raises(budget.BudgetStop):
+        stub_run(arm, SCENARIO)
+    (row,) = [json.loads(line) for line in
+              (tmp_path / f"run-{arm}" / f"results_zq-synthetic-scenario_{arm}.jsonl").read_text().splitlines()]
+    assert (row["session"], row["turn"], row["stopped_after"]) == ("s1", 0, "billing_stop")
+    assert row["reply"] == "Fake reply." and row["usage"]["total_tokens"] == 15 and row["transcript"]
+    # No paid call after the stop: no extraction of the turn, no next turn.
+    assert shared_ledger.provider.models == [harness.MODEL]
+    state = shared_ledger.state()
+    assert state["blocked"] is True and state["stop_reason"] == "arm_failed"
+    assert [entry.get("actual_micros") is not None for entry in state["requests"].values()] == [True]
+
+
 # The dry-run check fails on any harness event -------------------------------------------------------------------
 
 @pytest.mark.parametrize("kind", ["extraction_failed", "turn_not_recorded", "timed_pause_refused",
