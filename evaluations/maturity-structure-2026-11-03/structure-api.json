@@ -1,0 +1,73 @@
+{
+  "runtime_pin": "84e973a8686ee6716bcf11123498a914a28db804",
+  "fixture": "1000 messages per brain, 8 brains, 100 notes in brain 0; keyword index caught up",
+  "semantic": "off",
+  "model_calls": 0,
+  "runs": [
+    {
+      "node_limit": 200,
+      "edge_limit": 400,
+      "sample_nodes": 185,
+      "sample_edges": 66,
+      "n": 20,
+      "median_ms": 22.25,
+      "p95_ms": 31.8,
+      "errors": [],
+      "raw_ms": [
+        22.19,
+        20.6,
+        20.19,
+        20.15,
+        31.8,
+        20.1,
+        301.88,
+        30.06,
+        25.99,
+        22.22,
+        27.21,
+        27.03,
+        21.78,
+        20.71,
+        22.52,
+        22.29,
+        22.07,
+        22.43,
+        22.42,
+        22.21
+      ]
+    },
+    {
+      "node_limit": 500,
+      "edge_limit": 1000,
+      "sample_nodes": 416,
+      "sample_edges": 166,
+      "n": 20,
+      "median_ms": 27.85,
+      "p95_ms": 28.76,
+      "errors": [],
+      "raw_ms": [
+        28.21,
+        28.47,
+        28.3,
+        28.21,
+        28.39,
+        28.09,
+        28.76,
+        27.9,
+        27.79,
+        27.53,
+        27.26,
+        28.0,
+        27.47,
+        27.66,
+        37.6,
+        26.53,
+        26.51,
+        26.18,
+        27.02,
+        27.11
+      ]
+    }
+  ],
+  "completed": true
+}
