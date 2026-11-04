@@ -273,6 +273,7 @@ def test_showcase_shows_fictional_data_and_makes_no_api_request(server, page, sa
     expect(page.locator("#view-brain")).to_be_visible()
     expect(page.locator("#brain-demo")).to_be_visible()
     expect(page.locator("#signin")).to_be_hidden()
+    page.locator("#mode-2d").click()  # The 2D map; the 3D view has its own tests (test_memory_observatory_browser.py).
     first_note = page.locator('#brain-canvas circle.brain-node[data-id^="note:"]').first
     first_note.click()
     expect(page.locator("#brain-detail")).to_be_visible()
@@ -453,6 +454,7 @@ def test_editing_and_deleting_a_note_on_the_brain_map_redraws_the_map_without_re
     assert {tea_id, walk_id} <= set(labels), labels
     sign_in(page, server.base_url, key)
     open_view(page, "brain")
+    page.locator("#mode-2d").click()  # The 2D map; the 3D view has its own tests (test_memory_observatory_browser.py).
     nodes = page.locator("#brain-canvas circle.brain-node")
     expect(nodes).to_have_count(len(labels))
     expect(page.locator("#brain-summary")).to_contain_text(f"{len(labels)} memories")
