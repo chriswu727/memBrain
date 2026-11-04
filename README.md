@@ -12,7 +12,7 @@ Help your agent carry useful memories across conversations—with layered recall
 
 *The working brain view, using fictional demo data. Open `membrain plugin ui`, choose Brain, then Showcase. Dots represent memories and lines represent recorded links; the brain shape and glow are illustrative.*
 
-The pre-release source also has a read-only [companion graph API](docs/reference.md): personality versions and explicit feedback, proposal decisions, simulated mood with its source evidence, relationship settings, shared moments and commitment states. Its bounded graph preserves ownership, sensitivity and deletion rules. The 3D renderer and complete learned-memory projection are still in development; this backend is not yet connected to the pictured view, and final acceptance has not passed.
+The pre-release source includes a 3D observatory with rotation, zoom, picking, a keyboard list and a 2D fallback. In Brain, choose **Memories** or **Companion development** to inspect actual saved records: personality versions and feedback, proposal decisions, simulated mood with its triggers, relationship settings, shared moments and commitment states. The read-only [companion graph API](docs/reference.md) preserves ownership, sensitivity and deletion rules. The picture above shows the earlier 2D showcase. Learned-memory assertions, episodes, associations and complete familiarity aggregates are not yet projected; final product acceptance remains open.
 
 memBrain runs as a local service. Connect your agent's conversation lifecycle once, and the runtime captures messages, prepares relevant memory before replies, and learns in the background. The agent keeps the same brain across process restarts and changes to its configured reply model.
 

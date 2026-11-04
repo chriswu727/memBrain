@@ -17,6 +17,8 @@ const REGIONS = [
   { id: "milestones", label: "Milestones and dates", x: 650, y: 225 },
   { id: "other", label: "Other notes", x: 610, y: 395 },
   { id: "emotions", label: "Feelings", x: 320, y: 235 },
+  { id: "persona", label: "Personality", x: 350, y: 160 },
+  { id: "mood", label: "Simulated mood", x: 460, y: 285 },
 ];
 const BRAIN_OUTLINE = "M150 300 C110 250 115 165 175 120 C225 80 290 62 350 66 C395 40 470 38 520 60 " +
   "C585 62 650 92 690 150 C730 205 728 280 690 320 C668 345 640 352 612 350 C600 375 575 390 545 388 " +
@@ -31,7 +33,8 @@ const FOLDS = [
   "M440 60 C445 110 440 160 450 210",
 ];
 
-const brainState = { map: null, selected: "", region: "", demo: false };
+const brainState = { map: null, selected: "", region: "", demo: false, layer: "memory", generation: 0 };
+try { if (!DEMO && localStorage.getItem("membrain-brain-layer") === "companion") brainState.layer = "companion"; } catch { /* storage may be unavailable */ }
 
 function svg(tag, attributes = {}) {
   const node = document.createElementNS(BRAIN_SVG, tag);
@@ -64,7 +67,18 @@ function recentIds(map, count = 5) {
 }
 
 function nodeText(node) {
-  return node.sensitive && !node.label ? "Sensitive note (hidden)" : (node.label || "(no text)");
+  if (node.masked || (node.sensitive && !node.label)) return "Sensitive memory";
+  if (node.kind === "mood_trigger") return translate({
+    reported_good_news: "Reported good news", inferred_good_news: "Inferred good news",
+    reported_distress: "Reported distress", inferred_distress: "Inferred distress", plan_done: "Plan marked done",
+    shared_play: "Shared play", shared_moment: "Shared moment",
+  }[node.details?.rule] || "Recorded mood trigger");
+  if (node.kind === "persona_proposal") {
+    const label = node.label || "(no text)";
+    return translate(label.charAt(0).toUpperCase() + label.slice(1));
+  }
+  if (["persona", "persona_proposal", "simulated_mood", "relationship_cap"].includes(node.kind)) return translate(node.label || "(no text)");
+  return node.label || "(no text)";
 }
 
 function renderBrain(map) {
@@ -128,7 +142,7 @@ function renderBrain(map) {
   canvas.append(root);
   renderLegend(map);
   $("brain-summary").textContent = map.nodes.length
-    ? `${map.nodes.length} memories and ${map.edges.length} links${map.truncated ? " (the most recent; more exist)" : ""}.`
+    ? `${map.nodes.length} memories and ${map.edges.length} links${map.truncated ? " (a bounded selection; more exist)" : ""}.`
     : "No memories yet. Talk with your agent, then come back.";
   $("brain-demo").hidden = !(map.demo || brainState.demo);
   renderTrace(map.trace);
@@ -155,6 +169,7 @@ function renderLegend(map) {
   legend.replaceChildren();
   const counts = Object.fromEntries((map.regions || []).map((region) => [region.id, region.count]));
   for (const region of REGIONS) {
+    if (!counts[region.id]) continue;
     const button = element("button", "", `legend-item region-${region.id}`);
     button.type = "button";
     button.setAttribute("aria-pressed", String(brainState.region === region.id));
@@ -206,13 +221,29 @@ function selectNode(id) {
   const text = element("p", nodeText(node), node.sensitive ? "muted" : "user-text");
   detail.append(text);
   const facts = [];
-  if (node.status) facts.push(`Status: ${node.status}`);
-  if (node.date) facts.push(`Date: ${node.date}`);
+  const data = node.details || {};
+  if (node.status || data.status) facts.push(`Status: ${node.status || data.status}`);
+  if (node.date || data.due || data.occurs_at) facts.push(`Date: ${node.date || data.due || data.occurs_at}`);
   if (node.recorded_at) facts.push(`Saved: ${String(node.recorded_at).slice(0, 10)}`);
   if (facts.length) detail.append(element("p", facts.join(" · "), "hint"));
   if (node.basis) detail.append(element("p", node.basis === "reported" ? "A feeling you said you had"
     : "A feeling your agent inferred; you did not say it", "hint"));
   if (node.traced) detail.append(element("p", "Used by the latest recorded recall", "hint"));
+  if (data.version) detail.append(element("p", `Version: ${data.version}`, "hint"));
+  if (data.text) detail.append(element("pre", data.text, "user-text"));
+  if (data.reason) detail.append(element("p", data.reason, "user-text"));
+  if (node.kind === "simulated_mood") detail.append(element("p",
+    data.at_baseline ? "Simulated mood is at its baseline." : "Simulated mood is responding to the linked triggers.", "hint"));
+  if (data.commitment_state) detail.append(element("p", {
+    kept: "The saved note marks this commitment done.", cancelled: "The saved note marks this commitment cancelled.",
+    missed: "The due date passed with no completion recorded.", open: "This commitment is still open.",
+  }[data.commitment_state], "hint"));
+  if (brainState.layer === "companion" && !brainState.demo) {
+    const controls = element("button", "Open Companion controls", "link");
+    controls.type = "button";
+    controls.addEventListener("click", () => show("persona"));
+    detail.append(controls);
+  }
   if (node.id.startsWith("note:") && !brainState.demo) detail.append(noteActions(node, detail));
   if (node.id.startsWith("affect:") && !brainState.demo) detail.append(feelingActions(node));
   const links = (brainState.map.edges || []).filter((edge) => edge.source === id || edge.target === id);
@@ -224,11 +255,26 @@ function selectNode(id) {
       const open = element("button", other ? nodeText(other) : "(not shown)", "link");
       open.type = "button";
       if (other) open.addEventListener("click", () => selectNode(other.id)); else open.disabled = true;
-      row.append(element("span", `${edge.type.replaceAll("_", " ")}: `, "hint"), open);
+      row.append(element("span", edgeCaption(edge, id), "hint"), open);
       list.append(row);
     }
     detail.append(list);
   }
+}
+
+function edgeCaption(edge, id) {
+  const labels = {
+    derived_from: ["derived from:", "source for:"], about_person: ["about person:", "mentioned by:"],
+    feeling_of: ["feeling of:", "feeling attached:"],
+    based_on_feedback: ["based on feedback:", "feedback for personality:"],
+    proposed_from_feedback: ["proposed from feedback:", "feedback for suggestion:"],
+    accepted_proposal: ["accepted proposal:", "accepted as personality:"],
+    restored_from: ["restored from version:", "restored into version:"],
+    baseline_from: ["baseline from personality:", "baseline for mood:"],
+    triggered_by: ["triggered by:", "trigger evidence for:"],
+    affected_by: ["affected by active trigger:", "active trigger for mood:"],
+  };
+  return (labels[edge.type]?.[edge.source === id ? 0 : 1] || `${edge.type.replaceAll("_", " ")}:`) + " ";
 }
 
 // The same edit and delete as the Notes tab; the map redraws afterwards.
@@ -272,18 +318,45 @@ function feelingActions(node) {
 }
 
 async function loadBrain() {
-  const map = brainState.demo
-    ? await (await fetch("/static/memory-map-demo.json")).json()
-    : await api(`/v1/brains/${encodeURIComponent(state.brain)}/memory-map?max_nodes=200&max_edges=400&trace=true`);
-  performance.mark("membrain-map-payload");  // Rendering measurements start here, after the payload arrived.
-  renderBrain(map);
+  const generation = ++brainState.generation, layer = brainState.layer, brain = state.brain;
+  brainState.map = null;
+  brainState.selected = "";
+  brainState.region = "";
+  $("brain-canvas").replaceChildren();
+  $("brain-detail").replaceChildren();
+  $("brain-detail").hidden = true;
+  $("brain-legend").replaceChildren();
+  $("brain-trace-box").hidden = true;
+  $("brain-summary").textContent = "Loading memory graph…";
+  document.dispatchEvent(new CustomEvent("brain-clear"));
+  try {
+    const endpoint = layer === "companion" ? "companion-map?max_nodes=200&max_edges=400"
+      : "memory-map?max_nodes=200&max_edges=400&trace=true";
+    const map = brainState.demo
+      ? await (await fetch("/static/memory-map-demo.json")).json()
+      : await api(`/v1/brains/${encodeURIComponent(brain)}/${endpoint}`);
+    if (generation !== brainState.generation || layer !== brainState.layer || brain !== state.brain) return;
+    performance.mark("membrain-map-payload");
+    renderBrain(map);
+  } catch (error) {
+    if (generation !== brainState.generation) return;
+    $("brain-summary").textContent = "Could not load this graph. Try Refresh.";
+    throw error;
+  }
 }
 window.loadBrain = loadBrain;
 
 // /memory?demo=brain shows the fictional demo map without signing in.
 document.addEventListener("DOMContentLoaded", () => {
+  $("brain-layer").value = brainState.layer;
+  $("brain-layer").addEventListener("change", () => {
+    brainState.layer = $("brain-layer").value === "companion" ? "companion" : "memory";
+    try { localStorage.setItem("membrain-brain-layer", brainState.layer); } catch { /* storage may be unavailable */ }
+    loadBrain().catch((error) => notify(error.message, true));
+  });
   if (new URLSearchParams(location.search).get("demo") !== "brain") return;
   brainState.demo = true;
+  $("brain-layer").disabled = true;
   $("signin").hidden = true;
   $("view-brain").hidden = false;
   loadBrain().catch((error) => notify(error.message, true));

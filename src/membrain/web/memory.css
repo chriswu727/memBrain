@@ -99,7 +99,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 /* Brain view */
 :root { --r-plans: #d9822b; --r-commitments: #c4573a; --r-preferences: #8a6fd1; --r-constraints: #d14d72;
   --r-routines: #3f8fbf; --r-episodes: #4aa38a; --r-people: #e0b341; --r-relationship: #c76fb5;
-  --r-milestones: #5b7fd6; --r-other: #8b9a94; --r-emotions: #7fa83a; }
+  --r-milestones: #5b7fd6; --r-other: #8b9a94; --r-emotions: #7fa83a; --r-persona: #9b73d7; --r-mood: #d98b40; }
 .brain-layout { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(220px, 1fr); gap: 14px; align-items: start; }
 @media (max-width: 760px) { .brain-layout { grid-template-columns: 1fr; } }
 .brain-canvas { padding: 8px; background: radial-gradient(circle at 45% 40%, var(--wash), var(--card) 70%); }
@@ -147,6 +147,17 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .brain-node.region-other { fill: var(--r-other); color: var(--r-other); } .legend-item.region-other .legend-dot, .observatory-item.region-other .legend-dot { background: var(--r-other); }
 .brain-node.region-emotions { fill: var(--r-emotions); color: var(--r-emotions); } .legend-item.region-emotions .legend-dot, .observatory-item.region-emotions .legend-dot { background: var(--r-emotions); }
 .edge-feeling_of { stroke: var(--r-emotions); }
+.brain-node.region-persona { fill: var(--r-persona); color: var(--r-persona); }
+.legend-item.region-persona .legend-dot, .observatory-item.region-persona .legend-dot { background: var(--r-persona); }
+.brain-node.region-mood { fill: var(--r-mood); color: var(--r-mood); }
+.legend-item.region-mood .legend-dot, .observatory-item.region-mood .legend-dot { background: var(--r-mood); }
+.edge-based_on_feedback, .edge-proposed_from_feedback, .edge-accepted_proposal, .edge-restored_from { stroke: var(--r-persona); }
+.edge-baseline_from, .edge-triggered_by, .edge-affected_by { stroke: var(--r-mood); }
+.edge-swatch.edge-based_on_feedback, .edge-swatch.edge-proposed_from_feedback,
+.edge-swatch.edge-accepted_proposal, .edge-swatch.edge-restored_from { border-color: var(--r-persona); }
+.edge-swatch.edge-baseline_from, .edge-swatch.edge-triggered_by, .edge-swatch.edge-affected_by { border-color: var(--r-mood); }
+.edge-swatch.edge-proposed_from_feedback, .edge-swatch.edge-restored_from, .edge-swatch.edge-baseline_from { border-top-style: dashed; }
+.edge-swatch.edge-affected_by { border-top-style: dotted; }
 /* 3D observatory (observatory.js): the same map in depth, plus a keyboard list and a key to every mark. */
 .brain-main { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
 .brain-modes { gap: 8px; flex-wrap: wrap; align-items: center; }

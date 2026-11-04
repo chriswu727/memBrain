@@ -89,6 +89,11 @@
     <div class="brain-layout">
       <div class="brain-main">
         <div class="row brain-modes" role="group" aria-label="How to show the map">
+          <label for="brain-layer">Graph layer</label>
+          <select id="brain-layer" aria-label="Graph layer">
+            <option value="memory">Memories</option>
+            <option value="companion">Companion development</option>
+          </select>
           <button id="mode-3d" class="secondary" type="button" aria-pressed="true">3D observatory</button>
           <button id="mode-2d" class="secondary" type="button" aria-pressed="false">2D map</button>
           <button id="observatory-reset" class="link" type="button" hidden>Reset camera</button>
@@ -115,11 +120,25 @@
             <li data-edge="feeling_of"><span class="edge-swatch edge-feeling_of" aria-hidden="true"></span>
               <strong>feeling of</strong> <span>A feeling and the note it belongs to.</span>
               <span class="hint edge-count">0</span></li>
+            <li data-edge="based_on_feedback"><span class="edge-swatch edge-based_on_feedback" aria-hidden="true"></span>
+              <strong>based on feedback</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="proposed_from_feedback"><span class="edge-swatch edge-proposed_from_feedback" aria-hidden="true"></span>
+              <strong>proposed from feedback</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="accepted_proposal"><span class="edge-swatch edge-accepted_proposal" aria-hidden="true"></span>
+              <strong>accepted proposal</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="restored_from"><span class="edge-swatch edge-restored_from" aria-hidden="true"></span>
+              <strong>restored from version</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="baseline_from"><span class="edge-swatch edge-baseline_from" aria-hidden="true"></span>
+              <strong>baseline from personality</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="triggered_by"><span class="edge-swatch edge-triggered_by" aria-hidden="true"></span>
+              <strong>triggered by</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="affected_by"><span class="edge-swatch edge-affected_by" aria-hidden="true"></span>
+              <strong>affected by active trigger</strong><span class="hint edge-count">0</span></li>
           </ul>
           <p class="hint">Solid, dashed and dotted lines are the only links drawn, each one recorded in memory. Being
             close together in space means nothing.</p>
           <ul class="observatory-shapes">
-            <li><span class="shape-swatch shape-note" aria-hidden="true"></span>Ball: a note</li>
+            <li><span class="shape-swatch shape-note" aria-hidden="true"></span>Ball: a saved record or derived state</li>
             <li><span class="shape-swatch shape-message" aria-hidden="true"></span>Diamond: an original message you sent</li>
             <li><span class="shape-swatch shape-affect" aria-hidden="true"></span>Pyramid: a feeling attached to a note</li>
             <li><span class="shape-swatch shape-recalled" aria-hidden="true"></span>Gold ring: returned by the latest
@@ -133,10 +152,10 @@
             record, not parts of a real brain, and the dots are software records, not neurons.</p>
         </div>
         <details id="observatory-layers" class="card observatory-layers">
-          <summary>Layers this map does not include yet</summary>
-          <p class="hint">The map holds notes, original messages you sent and feelings attached to notes. The layers
-            below exist in memory, but the map does not yet include them with their sources, so neither view draws
-            them as memories.</p>
+          <summary>Graph coverage</summary>
+          <p class="hint">Memories shows notes, original messages and attached feelings. Companion development shows
+            personality feedback and decisions, simulated mood triggers, relationship settings and commitments.
+            Both are bounded inspection windows, not everything a reply used.</p>
           <ul>
             <li data-layer="assertions"><strong>Learned memory</strong> <span>Assertions, their revisions and
               sources. Not available yet.</span></li>
@@ -144,11 +163,12 @@
               links between memories. Not available yet. “Recent messages” are original messages, not
               episodes.</span></li>
             <li data-layer="persona"><strong>Personality development</strong> <span>Versions, suggestions and your
-              decisions. Not available yet; the Companion tab shows them.</span></li>
-            <li data-layer="mood"><strong>Simulated mood</strong> <span>Triggers and the baseline. Not available yet;
-              the Companion tab shows them.</span></li>
+              decisions. Available in Companion development.</span></li>
+            <li data-layer="mood"><strong>Simulated mood</strong> <span>Triggers and the baseline. Available in
+              Companion development.</span></li>
             <li data-layer="relationship"><strong>Relationship evidence</strong> <span>Support style, boundaries,
-              promises and familiarity. Not available yet; shared moments appear as notes.</span></li>
+              promises and familiarity limits. Available in Companion development; complete familiarity
+              aggregates are not included yet.</span></li>
           </ul>
         </details>
       </div>

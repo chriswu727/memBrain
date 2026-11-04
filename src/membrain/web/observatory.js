@@ -25,12 +25,21 @@ const OBS_SPACE = {
   milestones: { at: [2.42, 0.21, 0.5], size: [0.42, 0.36, 0.48] },
   other: { at: [2.0, -1.4, -0.4], size: [0.42, 0.34, 0.48] },
   emotions: { at: [-1.05, 0.1, -0.9], size: [0.36, 0.3, 0.4] },
+  persona: { at: [-1.0, 0.8, 0.8], size: [0.48, 0.34, 0.4] },
+  mood: { at: [0.2, -0.5, 0.9], size: [0.48, 0.34, 0.4] },
 };
-// The three edge types memory_map.py records, each with its own colour and dash; anything else is drawn plain grey.
+// Recorded dependency types from the memory and companion maps; unknown types are drawn plain grey.
 const OBS_EDGES = {
   derived_from: { color: "--accent", dash: null, opacity: 0.55 },
   about_person: { color: "--r-people", dash: [0.14, 0.08], opacity: 0.85 },
   feeling_of: { color: "--r-emotions", dash: [0.035, 0.05], opacity: 0.95 },
+  based_on_feedback: { color: "--r-persona", dash: null, opacity: 0.7 },
+  proposed_from_feedback: { color: "--r-persona", dash: [0.14, 0.08], opacity: 0.7 },
+  accepted_proposal: { color: "--r-persona", dash: null, opacity: 0.95 },
+  restored_from: { color: "--r-persona", dash: [0.08, 0.04], opacity: 0.7 },
+  baseline_from: { color: "--r-mood", dash: [0.14, 0.08], opacity: 0.7 },
+  triggered_by: { color: "--r-mood", dash: null, opacity: 0.8 },
+  affected_by: { color: "--r-mood", dash: [0.035, 0.05], opacity: 0.95 },
 };
 const OBS_HOME = { theta: 0.35, phi: 1.32, radius: 7.6, target: [0, 0, 0] };
 const OBS_MESSAGES = {
@@ -82,7 +91,7 @@ function obsLayout(map) {
 }
 
 // Size is the payload's layout weight (0 to 1), nothing else.
-const obsRadius = (node) => 0.06 + 0.06 * Math.max(0, Math.min(1, Number(node.weight) || 0));
+const obsRadius = (node) => 0.06 + 0.06 * (Number.isFinite(node.weight) ? Math.max(0, Math.min(1, node.weight)) : 0.5);
 const obsShape = (node) => (node.kind === "message" ? "message" : node.kind === "affect" ? "affect" : "note");
 
 // Theme ------------------------------------------------------------------------------------------------------------
@@ -663,7 +672,7 @@ async function obsSync() {
   obsShowMode();
   if (!wanted) { cancelAnimationFrame(obs.pending); obs.pending = 0; obsDispose(); return; }
   if (!(await obsEnsureRenderer())) return;
-  if (obs.mode !== "3d" || obs.fallback || $("view-brain").hidden) return obsSync();
+  if (obs.mode !== "3d" || obs.fallback || !obs.map || $("view-brain").hidden) return obsSync();
   if (obs.built?.map !== obs.map) obsBuild(obs.map);
   obsShowMode();
   obsResize();
@@ -681,6 +690,7 @@ function obsEdgeCounts(map) {
   for (const edge of map.edges) counts[edge.type] = (counts[edge.type] || 0) + 1;
   for (const row of $("observatory-edges").querySelectorAll("[data-edge]")) {
     row.querySelector(".edge-count").textContent = String(counts[row.dataset.edge] || 0);
+    row.hidden = !counts[row.dataset.edge];
   }
   const traced = map.nodes.filter((node) => node.traced).length;
   $("observatory-recalled-count").textContent = String(traced);
@@ -700,6 +710,12 @@ document.addEventListener("DOMContentLoaded", () => {
     obsSync();
   });
   document.addEventListener("brain-highlight", () => obsHighlight());
+  document.addEventListener("brain-clear", () => {
+    obs.map = null;
+    obsRenderList({ nodes: [] });
+    obsEdgeCounts({ nodes: [], edges: [] });
+    obsSync();
+  });
   document.addEventListener("visibilitychange", () => {
     if (document.visibilityState === "hidden") { cancelAnimationFrame(obs.pending); obs.pending = 0; obs.dirty = true; }
     else if (obs.dirty) obsRequestRender();

@@ -20,6 +20,7 @@ import sys
 import time
 import uuid
 import zlib
+from datetime import datetime, timezone
 from pathlib import Path
 from urllib.parse import urlsplit
 
@@ -780,15 +781,121 @@ def test_switching_tabs_frees_the_scene_and_resets_and_restores_show_the_current
     expect(page.locator("#observatory-list")).not_to_contain_text("Biscuit")
 
 
+def test_companion_graph_matches_saved_personality_mood_and_relationship_evidence(server, account, tab):
+    key, client = account
+    client.set_persona({"name": "Aster", "voice": {"register": "formal"},
+                        "baseline_mood": {"label": "calm", "valence": 0, "energy": 1}})
+    sources = []
+    for index in range(3):
+        result = client.observe("You're too formal. Please be more casual.", conversation_id="feedback",
+                                branch_id="main", source_event_key=f"feedback-{index}")
+        sources.extend(result["result"]["accepted_event_ids"])
+    proposal = client.persona_proposals()["proposals"][0]
+    client.accept_persona_proposal(proposal["id"])
+    client.restore_persona(1)
+    source = client.observe("I am thrilled about my new job.", conversation_id="chat", branch_id="main",
+                            source_event_key="new-job")["result"]["accepted_event_ids"][0]
+    client.write_note("Started a new job.", kind="milestone", source_event_ids=[source],
+                      affect={"label": "thrilled", "basis": "reported", "valence": 2, "intensity": 3,
+                              "topic": "new job", "felt_at": datetime.now(timezone.utc).date().isoformat()})
+    client.add_boundary("old workplace")
+    client.set_support_style("Listen first, then offer advice.")
+    client.cap_familiarity("familiar")
+    graph = client.companion_map()
+    assert {"persona", "persona_proposal", "simulated_mood", "mood_trigger", "boundary", "support_style",
+            "relationship_cap", "affect"} <= {node["kind"] for node in graph["nodes"]}
+
+    page = tab.page
+    sign_in(page, server.base_url, key)
+    open_brain(page)
+    initial = settled(page)
+    page.select_option("#brain-layer", "companion")
+    current = settled(page, initial["generation"] + 1)
+    assert sorted(current["nodes"]) == sorted(node["id"] for node in graph["nodes"])
+    assert set(current["edges"]) == edge_keys(graph)
+    assert current["recalled"] == []
+    version = next(node for node in graph["nodes"] if node["kind"] == "persona" and node["details"]["version"] == 2)
+    page.locator(f'#observatory-list button[data-id="{version["id"]}"]').click()
+    expect(page.locator("#brain-detail")).to_contain_text("Version: 2")
+    expect(page.locator("#brain-detail")).to_contain_text("based on feedback:")
+    page.locator(f'#observatory-list button[data-id="msg:{sources[0]}"]').click()
+    expect(page.locator("#brain-detail")).to_contain_text("feedback for personality:")
+    page.locator('#observatory-list button[data-id="mood:current"]').click()
+    expect(page.locator("#brain-detail")).to_contain_text("Simulated mood is responding to the linked triggers.")
+    expect(page.locator("#brain-detail")).to_contain_text("affected by active trigger:")
+    evidence = os.environ.get("MEMBRAIN_EVIDENCE_DIRECTORY")
+    if evidence:
+        page.evaluate("() => window.scrollTo(0, 0)")
+        page.screenshot(path=str(Path(evidence) / "companion-observatory-mac.png"), full_page=True)
+
+    page.locator("#language").click()
+    expect(page.locator("html")).to_have_attribute("lang", "zh-CN")
+    settled(page)
+    expect(page.locator("#brain-layer")).to_have_value("companion")
+    page.locator('#observatory-list button[data-id="mood:current"]').click()
+    expect(page.locator("#brain-detail h2")).to_have_text("模拟心情")
+    expect(page.locator("#brain-detail")).to_contain_text("模拟心情正受到相连触发依据的影响。")
+    boundary = next(node for node in graph["nodes"] if node["kind"] == "boundary")
+    page.locator(f'#observatory-list button[data-id="{boundary["id"]}"]').click()
+    before_reset = snapshot(page)
+    client.reset_relationship()
+    page.locator('#tabs button[data-view="notes"]').click()
+    open_brain(page)
+    reset = settled(page, before_reset["generation"] + 1)
+    assert boundary["id"] not in reset["nodes"]
+    assert sorted(reset["nodes"]) == sorted(node["id"] for node in client.companion_map()["nodes"])
+    expect(page.locator("#brain-detail")).to_be_hidden()
+    expect(page.locator("#observatory-list")).not_to_contain_text("old workplace")
+
+
+def test_late_companion_response_cannot_replace_a_newer_memory_graph(server, account, tab):
+    key, client = account
+    seeded_brain(client)
+    client.set_persona({"name": "Aster"})
+    companion = client.companion_map()
+    page = tab.page
+    sign_in(page, server.base_url, key)
+    open_brain(page)
+    initial = settled(page)
+    page.locator('#observatory-list button').first.click()
+    expect(page.locator("#brain-detail")).to_be_visible()
+    held = []
+    page.route("**/companion-map?*", lambda route: held.append(route))
+    page.evaluate("""() => {
+        const original = Response.prototype.json;
+        Response.prototype.json = async function() {
+            const result = await original.call(this);
+            if (result.contract_version === 'companion-map-v1') window.lateCompanionDecoded = true;
+            return result;
+        };
+    }""")
+    page.select_option("#brain-layer", "companion")
+    expect(page.locator("#brain-summary")).to_have_text("Loading memory graph…")
+    assert len(held) == 1
+    assert snapshot(page)["nodes"] == []
+    expect(page.locator("#brain-detail")).to_be_hidden()
+    expect(page.locator("#observatory-list button")).to_have_count(0)
+    page.select_option("#brain-layer", "memory")
+    current = settled(page, initial["generation"] + 1)
+    assert set(current["nodes"]) == set(initial["nodes"])
+    held[0].fulfill(json=companion)
+    page.wait_for_function("() => window.lateCompanionDecoded === true")
+    after = snapshot(page)
+    assert after["generation"] == current["generation"]
+    assert after["nodes"] == current["nodes"] and after["edges"] == current["edges"]
+    expect(page.locator("#brain-layer")).to_have_value("memory")
+    expect(page.locator("#observatory-list")).not_to_contain_text("Aster")
+
+
 # 6. Languages and layout ----------------------------------------------------------------------------------------------
 
 def test_the_3d_view_reads_in_english_and_chinese_without_sideways_scroll(server, tab):
     page = tab.page
     english = {"#mode-3d": "3D observatory", "#mode-2d": "2D map",
                ".observatory-key h2": "How to read the 3D view", "#observatory-layers summary":
-               "Layers this map does not include yet", "#observatory-list-title": "Memories in this map"}
+               "Graph coverage", "#observatory-list-title": "Memories in this map"}
     chinese = {"#mode-3d": "3D 观测台", "#mode-2d": "2D 图", ".observatory-key h2": "怎样看 3D 视图",
-               "#observatory-layers summary": "记忆图还没有包含的层", "#observatory-list-title": "记忆图里的记忆"}
+               "#observatory-layers summary": "图谱覆盖范围", "#observatory-list-title": "记忆图里的记忆"}
     for language, expected in (("en", english), ("zh", chinese)):
         open_demo(page, server.base_url, f"&lang={language}")
         expect(page.locator("html")).to_have_attribute("lang", "zh-CN" if language == "zh" else "en")

@@ -3,6 +3,35 @@
 // stays in English; elements with the class "user-text" hold what people wrote and are never translated.
 
 const ZH = {
+  "Graph layer": "图谱内容", "Memories": "记忆", "Companion development": "人格、情绪与关系养成",
+  "Reported good news": "用户明确表达的喜讯", "Inferred good news": "推测的积极感受",
+  "Reported distress": "用户明确表达的难过", "Inferred distress": "推测的消极感受",
+  "Plan marked done": "计划被标记为完成", "Shared play": "共同的轻松时刻", "Shared moment": "共同经历",
+  "Recorded mood trigger": "已记录的心情触发依据",
+  "Loading memory graph…": "正在加载记忆图谱…", "Could not load this graph. Try Refresh.": "图谱加载失败，请尝试刷新。",
+  "Open Companion controls": "打开养成设置", "Graph coverage": "图谱覆盖范围",
+  "Memories shows notes, original messages and attached feelings. Companion development shows personality feedback and decisions, simulated mood triggers, relationship settings and commitments. Both are bounded inspection windows, not everything a reply used.":
+    "“记忆”展示笔记、原始消息及相关情感；“人格、情绪与关系养成”展示人格反馈与决定、模拟心情的触发依据、关系设置和承诺。两种图谱都有展示数量限制，也不代表一条回复用到的全部信息。",
+  "Versions, suggestions and your decisions. Available in Companion development.": "人格版本、建议及你的决定，可在养成图谱中查看。",
+  "Triggers and the baseline. Available in Companion development.": "触发依据与基准心情，可在养成图谱中查看。",
+  "Support style, boundaries, promises and familiarity limits. Available in Companion development; complete familiarity aggregates are not included yet.":
+    "支持方式、边界、承诺及熟悉程度上限，可在养成图谱中查看；完整熟悉程度汇总尚未接入。",
+  "Ball: a saved record or derived state": "圆球：保存的记录或推导状态",
+  "Simulated mood is at its baseline.": "模拟心情处于基准状态。",
+  "Simulated mood is responding to the linked triggers.": "模拟心情正受到相连触发依据的影响。",
+  "The saved note marks this commitment done.": "保存的笔记将这项承诺标记为已完成。",
+  "The saved note marks this commitment cancelled.": "保存的笔记将这项承诺标记为已取消。",
+  "The due date passed with no completion recorded.": "日期已过，但尚无完成记录。", "This commitment is still open.": "这项承诺尚未结束。",
+  "based on feedback": "依据反馈", "proposed from feedback": "反馈形成的建议", "accepted proposal": "已接受的建议",
+  "restored from version": "恢复自版本", "baseline from personality": "人格定义的心情基准",
+  "triggered by": "触发依据", "affected by active trigger": "当前生效的心情触发",
+  "based on feedback:": "依据反馈：", "proposed from feedback:": "反馈形成的建议：", "accepted proposal:": "已接受的建议：",
+  "restored from version:": "恢复自版本：", "baseline from personality:": "人格定义的心情基准：",
+  "triggered by:": "触发依据：", "affected by active trigger:": "当前生效的心情触发：",
+  "source for:": "作为来源：", "mentioned by:": "被提及：", "feeling attached:": "附带情感：",
+  "feedback for personality:": "反馈影响了人格：", "feedback for suggestion:": "反馈形成了建议：",
+  "accepted as personality:": "接受后形成的人格：", "restored into version:": "恢复后形成的版本：",
+  "baseline for mood:": "为心情提供基准：", "trigger evidence for:": "为触发提供依据：", "active trigger for mood:": "当前影响的心情：",
   "memBrain · Your memory": "memBrain · 你的记忆",
   "Memory views": "记忆视图",
   "Notes": "笔记", "Plans and dates": "计划与日期", "People": "人物", "Conversations": "对话", "Search": "搜索",
@@ -314,6 +343,10 @@ const ZH = {
 
 // Sentences built from numbers and names; the captured parts are kept as they are.
 const ZH_PATTERNS = [
+  [/^Personality v(\d+): (.+)$/, (_, n, name) => `人格版本 ${n}：${name}`],
+  [/^Simulated mood: (.+)$/, (_, label) => `模拟心情：${MOOD_LABELS[label] ? translate(MOOD_LABELS[label]) : label}`],
+  [/^Familiarity limit: (.+)$/, (_, level) => `熟悉程度上限：${translate(LEVEL_NAMES[level] || level)}`],
+  [/^Version: (\d+)$/, (_, n) => `版本：${n}`],
   [/^Accepted suggestion: (.+), from (\d+) messages \((.+)\)$/, (m, label, n, days) =>
     `接受的建议：${ZH[label] || label}，来自你的 ${n} 条消息（${days}）`],
   [/^(\d+) message\(s\) recorded(?:; latest from (.+?))?(?: on (.+?))?\.$/, (m, n, from, on) =>
@@ -354,8 +387,8 @@ const ZH_PATTERNS = [
   [/^Persona card field ([\w.\[\]]+): (.+)$/s, (m, where, detail) => `个性字段 ${where}：${detail}`],
   [/^The persona card is (\d+) characters when rendered; the limit is 1,200\. Shorten it\. Nothing was saved and nothing was cut\.$/,
     (m, n) => `这份个性设定有 ${n} 个字符，上限是 1,200。请缩短后再保存。没有保存任何内容，也没有截断。`],
-  [/^(\d+) memories and (\d+) links( \(the most recent; more exist\))?\.$/, (m, n, e, more) =>
-    `${n} 条记忆，${e} 条关联${more ? "（只显示最近的，还有更多）" : ""}。`],
+  [/^(\d+) memories and (\d+) links( \(a bounded selection; more exist\))?\.$/, (m, n, e, more) =>
+    `${n} 条记忆，${e} 条关联${more ? "（显示数量有限，还有更多）" : ""}。`],
   [/^(\d+) memor(?:y|ies) · (\d+) links?$/, (m, n, e) => `${n} 条记忆 · ${e} 条关联`],
   [/^Latest recorded recall \((.+)\): (\d+) of (\d+) records it used are lit\.$/, (m, when, shown, used) =>
     `最近一次记录的回忆（${when}）：它用到的 ${used} 条记录中，有 ${shown} 条在图中点亮。`],
@@ -403,7 +436,8 @@ function zhDay(text) {
   const month = "JanFebMarAprMayJunJulAugSepOctNovDec".indexOf(match[2]) / 3 + 1;
   return `${match[3] ? `${match[3]}年` : ""}${month}月${match[1]}日`;
 }
-const BRAIN_STATUS = { intended: "打算中", scheduled: "已安排", done: "已完成", cancelled: "已取消", superseded: "已被取代" };
+const BRAIN_STATUS = { intended: "打算中", scheduled: "已安排", done: "已完成", cancelled: "已取消", superseded: "已被取代",
+  open: "待处理", accepted: "已接受", rejected: "已拒绝", withdrawn: "已撤回", active: "生效中", ended: "已结束" };
 const BRAIN_EDGES = { "derived from": "来自这条消息", "about person": "关于这个人", replaces: "取代了这条",
   "feeling of": "这条笔记上的感受" };
 

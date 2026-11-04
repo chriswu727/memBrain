@@ -24,7 +24,9 @@ VENDORED = {
     "three/three.core.js": "9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6",
     "three/LICENSE": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc",
 }
-EDGE_TYPES = {"derived_from", "about_person", "feeling_of"}
+MEMORY_EDGE_TYPES = {"derived_from", "about_person", "feeling_of"}
+EDGE_TYPES = MEMORY_EDGE_TYPES | {"based_on_feedback", "proposed_from_feedback", "accepted_proposal", "restored_from",
+                                  "baseline_from", "triggered_by", "affected_by"}
 PAGE_SCRIPTS = ["i18n.js", "memory.js", "brain.js", "observatory.js", "showcase.js"]
 
 
@@ -85,7 +87,7 @@ def test_the_vendored_files_are_served_and_shipped_in_the_wheel(monkeypatch):
 def test_the_3d_view_draws_exactly_the_edge_types_the_map_records():
     source = (ROOT / "src" / "membrain" / "memory_map.py").read_text(encoding="utf-8")
     recorded = set(re.findall(r'^\s+edge\(.*, "(\w+)", "\w+"\)$', source, re.MULTILINE))
-    assert recorded == EDGE_TYPES, "the map's edge types changed; update the 3D view's legend and styles"
+    assert recorded == MEMORY_EDGE_TYPES, "the map's edge types changed; update the 3D view's legend and styles"
     script = (WEB / "observatory.js").read_text(encoding="utf-8")
     styles = re.search(r"const OBS_EDGES = \{(.*?)\n\};", script, re.DOTALL).group(1)
     assert set(re.findall(r"^\s+(\w+): \{", styles, re.MULTILINE)) == EDGE_TYPES
@@ -128,8 +130,10 @@ def test_the_view_says_what_its_marks_mean_and_which_layers_are_missing():
         assert wording not in text.lower() and wording not in script.lower(), wording
     layers = re.findall(r'<li data-layer="(\w+)"><strong>[^<]+</strong> <span>', page)
     assert set(layers) == {"assertions", "episodes", "persona", "mood", "relationship"}
-    for layer in ("assertions", "episodes", "persona", "mood", "relationship"):
+    for layer in ("assertions", "episodes"):
         assert re.search(rf'data-layer="{layer}">.*?Not available yet', page, re.DOTALL)
+    for layer in ("persona", "mood", "relationship"):
+        assert re.search(rf'data-layer="{layer}">.*?Available in', page, re.DOTALL)
 
 
 def test_every_string_the_3d_view_writes_has_chinese():
