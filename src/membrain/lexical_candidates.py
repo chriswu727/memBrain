@@ -9,13 +9,15 @@ LEXICAL_RANK_VERSION = "source-origin-frequency-passage-v3"
 
 class LexicalScorer:
     def __init__(self, query, texts, *, origins=None):
-        self.query_terms = cognition._terms(query)
+        self._term_cache = {}
+        self._cached_characters = 0
+        self.query_terms = self._terms(query)
         if origins is None:
-            documents = {tuple(frozenset(part) for part in cognition._terms(text)) for text in texts}
+            documents = {tuple(frozenset(part) for part in self._terms(text)) for text in texts}
         else:
             grouped = {}
             for text, keys in zip(texts, origins, strict=True):
-                terms = cognition._terms(text)
+                terms = self._terms(text)
                 for key in keys:
                     document = grouped.setdefault(key, [set(), set(), set()])
                     for present, part in zip(document, terms, strict=True):
@@ -25,6 +27,16 @@ class LexicalScorer:
                        for index in range(3)]
         self.weights = [{term: (1 + len(documents)) / (1 + frequency[term])
                          for term in query} for query, frequency in zip(self.query_terms, frequencies, strict=True)]
+
+    def _terms(self, text):
+        cached = self._term_cache.get(text)
+        if cached is not None:
+            return cached
+        terms = cognition._terms(text)
+        if len(self._term_cache) < 128 and self._cached_characters + len(text) <= 16384:
+            self._term_cache[text] = terms
+            self._cached_characters += len(text)
+        return terms
 
     @classmethod
     def from_memories(cls, query, memories):
@@ -42,9 +54,9 @@ class LexicalScorer:
         return scores[0] + scores[1] + (0.15 * scores[2] if len(self.query_terms[2] & terms[2]) >= 2 else 0)
 
     def __call__(self, query, text):
-        score = max((self._score(cognition._terms(text[start:end]))
+        score = max((self._score(self._terms(text[start:end]))
                      for start, end in cognition._sentence_spans(text)), default=0.0)
-        return score or self._score(cognition._terms(text))
+        return score or self._score(self._terms(text))
 
 
 def passage_score(query, text):

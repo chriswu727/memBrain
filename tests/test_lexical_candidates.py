@@ -147,3 +147,49 @@ def test_learning_word_channel_preserves_frozen_source_sequence(candidates):
         rows, _ = lexical_rows(conn, candidates.params, candidates.target, "amber turquoise", limit=16,
                                through_sequence=1)
     assert [key(row["document"]) for row in rows] == [key(older)]
+
+
+@pytest.mark.parametrize("query,texts", [
+    ("blue green", ["The blue map belongs to Mara.", "The green cup belongs to Leo."] * 30),
+    ("备考安静", ["备考时需要安静。周末去散步。", "心安。宁静。", "不要打扰我。"] * 30),
+    ("not unless workshop 2.5", ["Do not visit unless invited.", "The workshop starts at 2.5 hours."] * 30),
+])
+def test_term_reuse_preserves_scores_and_source_frequency(query, texts):
+    from membrain import cognition
+
+    class UncachedScorer(LexicalScorer):
+        def _terms(self, text):
+            return cognition._terms(text)
+
+    for origins in (None, [{number % 7} for number in range(len(texts))]):
+        candidate = LexicalScorer(query, texts, origins=origins)
+        reference = UncachedScorer(query, texts, origins=origins)
+        assert candidate.weights == reference.weights
+        assert [candidate(query, text) for text in texts] == [reference(query, text) for text in texts]
+
+
+def test_term_reuse_is_bounded_and_stays_with_one_scorer(monkeypatch):
+    from collections import Counter
+
+    from membrain import cognition
+
+    original, calls = cognition._terms, Counter()
+
+    def counted(text):
+        calls[text] += 1
+        return original(text)
+
+    monkeypatch.setattr(cognition, "_terms", counted)
+    scorer = LexicalScorer("blue map", ["The blue map belongs to Mara."] * 30)
+    for _ in range(30):
+        assert scorer("blue map", "The blue map belongs to Mara.") > 0
+    assert calls["The blue map belongs to Mara."] == 1
+    second = LexicalScorer("blue map", [])
+    second("blue map", "The blue map belongs to Mara.")
+    assert calls["The blue map belongs to Mara."] == 2
+    for number in range(1000):
+        scorer("blue map", f"Unrelated label{number:05d} belongs to the garden.")
+    assert len(scorer._term_cache) <= 128 and scorer._cached_characters <= 16384
+    large = "山" * 16385
+    assert scorer("blue map", large) == scorer("blue map", large) == 0
+    assert calls[large] >= 2 and large not in scorer._term_cache

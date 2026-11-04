@@ -5,7 +5,7 @@ import random
 from pathlib import Path
 
 import pytest
-from jsonschema import Draft202012Validator, FormatChecker
+from jsonschema import Draft202012Validator, FormatChecker, ValidationError
 from test_belief_recall import recall, scenario
 from test_cognition import STAMP, prepare_payload, scope, working
 
@@ -112,9 +112,11 @@ def synthetic(monkeypatch):
     def use(document):
         monkeypatch.setattr(contracts, "schema", lambda: document)
         contracts._linked_definitions.cache_clear()
+        contracts._prepared_root.cache_clear()
         contracts.validator.cache_clear()
     yield use
     contracts._linked_definitions.cache_clear()
+    contracts._prepared_root.cache_clear()
     contracts.validator.cache_clear()
 
 
@@ -164,3 +166,79 @@ def test_recursive_local_definitions_keep_validation_paths_and_the_published_doc
         assert first_error(linked, value) == first_error(reference, value)
     assert document == before
     json.dumps(document)
+
+
+def error_details(error):
+    return (error.validator, list(error.absolute_path), list(error.absolute_schema_path), error.message,
+            [error_details(child) for child in error.context])
+
+
+@pytest.mark.parametrize("definition", sorted(documents()))
+def test_prepared_validation_preserves_all_error_details(definition):
+    value = documents()[definition]
+    candidate, reference = contracts.validator(definition), plain(definition)
+    for broken in mutations(value, 500, seed="full-errors-" + definition):
+        assert [error_details(error) for error in candidate.iter_errors(broken)] == [
+            error_details(error) for error in reference.iter_errors(broken)]
+
+
+def test_prepared_validation_rechecks_mutated_values_and_does_not_retain_them():
+    import gc
+    import weakref
+
+    class Record(dict):
+        pass
+
+    value = Record(copy.deepcopy(documents()["MemoryAssertion"]))
+    validator = contracts.validator("MemoryAssertion")
+    validator.validate(value)
+    value["scope"]["policy_revision"] = "wrong"
+    with pytest.raises(ValidationError) as failed:
+        validator.validate(value)
+    assert list(failed.value.absolute_path) == ["scope", "policy_revision"]
+    del failed
+    value["scope"]["policy_revision"] = 1
+    validator.validate(value)
+    reference = weakref.ref(value)
+    del value
+    gc.collect()
+    assert reference() is None
+
+
+def test_prepared_validation_preserves_an_evolved_format_checker():
+    checker = FormatChecker()
+    checker.checks("date-time")(lambda value: False)
+    value = documents()["RecallTrace"]
+    candidate = contracts.validator("RecallTrace").evolve(format_checker=checker)
+    reference = plain("RecallTrace").evolve(format_checker=checker)
+    assert [error_details(error) for error in candidate.iter_errors(value)] == [
+        error_details(error) for error in reference.iter_errors(value)]
+
+
+def test_prepared_validation_preserves_array_and_conditional_edges(synthetic):
+    definition = {"type": "object", "properties": {
+        "mode": {"enum": ["open", "closed"]},
+        "tuple": {"type": "array", "prefixItems": [{"type": "string"}], "items": False},
+        "values": {"type": "array", "prefixItems": [{"type": "integer"}], "items": {"type": "string"}},
+        "blocked": False},
+        "allOf": [{"if": {"properties": {"mode": {"const": "closed"}}},
+                   "then": {"required": ["tuple"]}, "else": {"required": ["values"]}}]}
+    document = {"$schema": "https://json-schema.org/draft/2020-12/schema", "$defs": {"Item": definition}}
+    synthetic(document)
+    assert contracts._prepared_root() is not None
+    candidate, reference = contracts.validator("Item"), Draft202012Validator({**document, "$ref": "#/$defs/Item"})
+    for value in (None, [], {}, {"mode": "bad"}, {"mode": "closed", "tuple": [1, 2]},
+                  {"mode": "open", "values": [1, "ok", False]}, {"blocked": "anything"},
+                  {"mode": "closed", "tuple": ["ok"]}, {"mode": "open", "values": [1, "ok"]}):
+        assert [error_details(error) for error in candidate.iter_errors(value)] == [
+            error_details(error) for error in reference.iter_errors(value)]
+
+
+def test_unresolved_reference_context_uses_the_plain_validator(synthetic):
+    synthetic({"$schema": "https://json-schema.org/draft/2020-12/schema", "$defs": {
+        "When": {"type": "string", "format": "date-time"},
+        "Item": {"properties": {"at": {"$ref": "#/$defs/When", "description": "local context matters"}}}}})
+    assert contracts._prepared_root() is None
+    assert type(contracts.validator("Item")) is Draft202012Validator
+    with pytest.raises(DomainError):
+        contracts.validate("Item", {"at": "never"})

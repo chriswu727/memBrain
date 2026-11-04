@@ -4,6 +4,7 @@ from importlib.resources import files
 from pathlib import Path
 
 from jsonschema import Draft202012Validator, FormatChecker, ValidationError
+from jsonschema.validators import extend
 
 from .helpers import DomainError
 
@@ -94,9 +95,71 @@ def _linked_definitions() -> dict | None:
 
 
 @lru_cache
-def validator(definition: str | None = None) -> Draft202012Validator:
+def _prepared_root():
+    definitions = _linked_definitions()
+    if definitions is None:
+        return None
+    nodes = _subschemas([value for value in definitions.values() if _local(value) is None])
+    if any("$ref" in node for node in nodes):
+        return None
+    children = {}
+
+    # Linked child schemas contain no references or reference scopes. Only schemas are retained;
+    # every value is checked again, including mutable records and records from another request or owner.
+    def descend(current, instance, subschema, *, path=None, schema_path=None):
+        child = children.get(id(subschema))
+        if child is None or child.format_checker is not current.format_checker:
+            yield from current.descend(instance, subschema, path=path, schema_path=schema_path)
+            return
+        for error in child.iter_errors(instance):
+            if path is not None:
+                error.path.appendleft(path)
+            if schema_path is not None:
+                error.schema_path.appendleft(schema_path)
+            yield error
+
+    def properties(current, properties, instance, schema):
+        if not current.is_type(instance, "object"):
+            return
+        for name, subschema in properties.items():
+            if name in instance:
+                yield from descend(current, instance[name], subschema, path=name, schema_path=name)
+
+    def items(current, subschema, instance, schema):
+        if not isinstance(subschema, dict):
+            yield from Draft202012Validator.VALIDATORS["items"](current, subschema, instance, schema)
+            return
+        if current.is_type(instance, "array"):
+            for index in range(len(schema.get("prefixItems", [])), len(instance)):
+                yield from descend(current, instance[index], subschema, path=index)
+
+    def all_of(current, subschemas, instance, schema):
+        for index, subschema in enumerate(subschemas):
+            yield from descend(current, instance, subschema, schema_path=index)
+
+    def if_clause(current, condition, instance, schema):
+        child = children.get(id(condition))
+        if child is None or child.format_checker is not current.format_checker:
+            yield from Draft202012Validator.VALIDATORS["if"](current, condition, instance, schema)
+            return
+        branch = "then" if child.is_valid(instance) else "else"
+        if branch in schema:
+            yield from descend(current, instance, schema[branch], schema_path=branch)
+
+    cls = extend(Draft202012Validator, {"properties": properties, "items": items,
+                                      "allOf": all_of, "if": if_clause})
+    root = cls({"$schema": schema()["$schema"], "$defs": definitions}, format_checker=FormatChecker())
+    children.update((id(node), root.evolve(schema=node)) for node in nodes)
+    return root
+
+
+@lru_cache
+def validator(definition: str | None = None):
     document = schema()
     if definition is not None:
+        prepared = _prepared_root()
+        if prepared is not None:
+            return prepared.evolve(schema=prepared.schema["$defs"].get(definition, {"$ref": f"{_LOCAL}{definition}"}))
         document = {
             "$schema": document["$schema"],
             "$defs": _linked_definitions() or document["$defs"],

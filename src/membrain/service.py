@@ -247,8 +247,8 @@ class MemoryService:
             vector, vector_snapshot, embedding_calls = query_embedding(self, principal, request)
             with self.database.transaction(principal) as conn, (reading() if action in READ_ACTIONS else _same()):
                 deadline = min(request["payload"].get("budget", {}).get("max_wall_time_ms", 10000), 30000)
-                conn.execute("SELECT set_config('statement_timeout',%s,true)", (str(deadline),))
-                conn.execute("SELECT set_config('lock_timeout',%s,true)", (str(deadline),))
+                conn.execute("SELECT set_config('statement_timeout',%s,true), set_config('lock_timeout',%s,true)",
+                             (str(deadline), str(deadline)))
                 brain = self._brain(conn, principal, request["target"]["brain_ref"])
                 params = self._params(principal, brain["id"])
                 key = request["payload"].get("idempotency_key", request["request_id"])
@@ -725,7 +725,7 @@ class MemoryService:
         tail = self._events(conn, principal, brain, after_sequence=brain["indexed_sequence"], limit=129)
         truncated = len(source_ids) > 1024 or len(tail) > 128
         events = list({event["event_id"]: event for event in events + beliefs["events"] + tail[:128]}.values())
-        working = self._working(conn, principal, brain, target, events)
+        working = self._working_from_events(raw_working, events)
         state = self._state(conn, principal, brain, total)
         state.update(candidate_state)
         state.update(belief_relations=beliefs["relations"], belief_incomplete_versions=beliefs["incomplete_versions"],
