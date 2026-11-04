@@ -281,7 +281,9 @@ def test_tally_refuses_a_resolution_without_a_reason(pipeline, practice, tmp_pat
 
 def test_companion_tally_keeps_type8_when_type4_is_cleared(pipeline, practice, tmp_path):
     scenario, _, _, blind = review_files(practice, tmp_path, [4, 8])
-    put(tmp_path / "resolution-practice.json", {"S01-practice/A": {"remove": [4], "reason": "R5 practice result"}})
+    put(tmp_path / "resolution-practice.json", {"S01-practice/A": {"remove": [4], "rules": {"4": "R5"},
+                                                                   "reason": "R5 practice result"}})
+    put(tmp_path / "r5-practice" / "S01-A.json", {"type4_cleared": True})
     pipeline.tally(tmp_path, blind, str(scenario), "practice", companion=True)
     data = json.loads((tmp_path / "tally-practice.json").read_text())
     assert data["gate"] == "C5"

@@ -252,6 +252,7 @@ def test_the_stub_host_calls_scripted_tools_with_the_current_source_then_replies
 
 
 def test_the_dry_run_refuses_any_connection_off_this_machine(tmp_path, monkeypatch):
+    monkeypatch.setattr(harness, "STUB", True)  # A live arm would stop on the event instead (hardening U2).
     original = socket.socket.connect
     monkeypatch.setattr(socket.socket, "connect", original)
     monkeypatch.setenv("HTTPS_PROXY", "http://proxy.example:3128")
@@ -370,6 +371,7 @@ def test_the_index_wait_uses_the_runtimes_count_of_jobs_that_can_still_run(tmp_p
         def __exit__(self, *exc):
             return False
 
+    monkeypatch.setattr(harness, "STUB", True)  # A live arm would stop on the event instead (hardening U2).
     memory = object.__new__(harness.Memory)
     memory.host = SimpleNamespace(ready_client=lambda directory, user: Client())
     memory.directory, memory.user = tmp_path / "brain", "person"

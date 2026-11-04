@@ -28,6 +28,7 @@ A run directory is never resumed: existing results are refused.
 """
 import asyncio
 import datetime
+import hashlib
 import importlib.util
 import json
 import logging
@@ -116,15 +117,86 @@ def check_billing():
         BILLING.check()
 
 
+def billing_halt(stopping: list):
+    """A shared billing stop met after this turn's paid host call, returned instead of raised: the turn's row is
+    written first (``"stopped_after": "billing_stop"``), then the stop is raised. Nothing is spent in between."""
+    try:
+        check_billing()
+    except Exception as error:  # A blocked or unreadable ledger: the run stops either way.
+        stopping.append("billing_stop")
+        log("billing stopped: this turn's row is written first", type(error).__name__)
+        return error
+    return None
+
+
 def log(*parts):
     print(time.strftime("%H:%M:%S"), *parts, flush=True)
 
 
+class DegradedRun(SystemExit):
+    """A live arm stopped by a harness event: its results are invalid, so it spends nothing more. A SystemExit, so no
+    ``except Exception`` on the way out swallows it and the main block's cleanup still stops the services."""
+
+    def __init__(self, kind: str):
+        super().__init__(3)
+        self.kind = kind
+
+
+_DEFERRED: list | None = None  # While a turn's reply is being recorded: the stopping events, raised after its row.
+
+
+def stops_on_events() -> bool:
+    """A live arm stops on its first harness event; a dry run records every event and goes on."""
+    return not STUB
+
+
+@contextmanager
+def deferred_stop(kinds: list):
+    """After a turn's reply was paid for: a live arm's stop waits until the turn's results row is written, so the
+    paid reply is never lost. The ledger is still blocked at once."""
+    global _DEFERRED
+    _DEFERRED = kinds
+    try:
+        yield kinds
+    finally:
+        _DEFERRED = None
+
+
+def stop_run(kind: str):
+    log("live run stopped: harness event", kind)
+    raise DegradedRun(kind)
+
+
 def harness_event(out: Path, kind: str, **data) -> None:
-    """Record something that may have degraded a run, so it is reported with the results."""
+    """Record something that may have degraded a run, so it is reported with the results. ``data`` holds only kinds,
+    positions and counts, never the scenario's words. Every recorded event makes the run invalid
+    (acceptance_review.py validity), so a live arm stops here, after blocking the shared billing ledger as an
+    interrupted arm does (within ``deferred_stop``, after the turn's row); a dry run records the event and goes on,
+    so its checks see every event."""
     with (out / "harness-events.jsonl").open("a") as stream:
         stream.write(json.dumps({"time": time.time(), "kind": kind, **data}) + "\n")
     log("harness event", kind, data)
+    if not stops_on_events():
+        return
+    try:
+        if BILLING is not None:
+            BILLING.stop("harness_degraded")
+    except Exception as error:  # The stop still happens; the run script's --stop blocks the ledger again.
+        log("ledger stop failed", type(error).__name__)
+    if _DEFERRED is not None:
+        _DEFERRED.append(kind)
+        log("live run stops after this turn's row: harness event", kind)
+        return
+    stop_run(kind)
+
+
+def failure_code(result: dict) -> str:
+    """A failed page action's reason as a fixed code: its message names the scenario's topic, label or text."""
+    if "differing_fields" in result:
+        return "card_differs"
+    if "unknown_removed" in result:
+        return "unknown_removed"
+    return "not_found"
 
 
 def session_start(text: str, year: int = YEAR) -> datetime.datetime:
@@ -179,7 +251,7 @@ def refuse_network(out: Path) -> None:
     def connect(self, address):
         host = address[0] if isinstance(address, tuple) else address
         if self.family in (socket.AF_INET, socket.AF_INET6) and host not in ("127.0.0.1", "::1", "localhost"):
-            harness_event(out, "network_refused", host=str(host))
+            harness_event(out, "network_refused")
             raise OSError(f"dry run: network connection to {host} refused")
         return original(self, address)
 
@@ -363,7 +435,7 @@ class Memory:
                 if dashboard["status"]["pending_jobs"] == 0 and dashboard["status"].get("index_lag", 0) == 0:
                     return
             time.sleep(2)
-        harness_event(self.directory.parent, "index_wait_timed_out", brain=self.directory.name)
+        harness_event(self.directory.parent, "index_wait_timed_out")
 
     def now(self) -> str:
         return self.clock.current(self.directory).isoformat().replace("+00:00", "Z")
@@ -386,6 +458,48 @@ class Memory:
             else:
                 harness_event(self.directory.parent, "message_identity_unknown", session=session, turn=index,
                               role=role, new_messages=len(mine))
+
+
+class ExtractionWatch(logging.Handler):
+    """Arm E: whether note extraction failed since the last look. The extractor's worker catches every error and
+    only logs it, and extract_turn counts provider failures and skipped turns in the installation's extraction
+    status; both are read here as counts, never the error text."""
+
+    FAILURES = ("note extraction failed: %s", "note extraction queue full; turn skipped", "note not saved: %s")
+
+    def __init__(self, directory: Path):
+        import threading
+
+        super().__init__(logging.WARNING)
+        self.directory, self.logged, self.guard = directory, 0, threading.Lock()
+        self.seen = self.counts()
+
+    def emit(self, record: logging.LogRecord) -> None:
+        if record.msg in self.FAILURES:
+            with self.guard:
+                self.logged += 1
+
+    def counts(self) -> tuple[int, int]:
+        from membrain.extraction import extraction_status
+
+        status = extraction_status(self.directory) or {}
+        with self.guard:
+            logged = self.logged
+        return int(status.get("turns_failed") or 0) + int(status.get("turns_skipped") or 0), logged
+
+    def failed(self) -> bool:
+        counts = self.counts()
+        failed, self.seen = counts != self.seen, counts
+        return failed
+
+
+def watch_extraction(directory: Path) -> ExtractionWatch:
+    watch = ExtractionWatch(directory)
+    logger = logging.getLogger("membrain.extraction")
+    logger.addHandler(watch)
+    if not logger.isEnabledFor(logging.WARNING):
+        logger.setLevel(logging.WARNING)
+    return watch
 
 
 # Page actions -------------------------------------------------------------------------------------------------------
@@ -450,6 +564,105 @@ def _card_differs(actual, expected) -> list:
         return ["card"]
     actual, expected = normalize_card(actual), normalize_card(expected)
     return sorted(key for key in {*actual, *expected} if actual.get(key) != expected.get(key))
+
+
+# Which records a page action removed: by their own ids, named by scenario position or a content hash, never by
+# database id or content. One record per entry: {"kind", "ref", "sources", "established": true}, or
+# {"kind", "established": false} for a drop in a count that no id diff accounts for.
+COUNTED = {"messages": ("message",), "feelings": ("feeling",), "boundaries": ("boundary",),
+           "shared_moments": ("shared_moment",), "notes": ("note", "shared_moment", "commitment")}
+
+
+def record_ref(kind: str, sources=None, content=None) -> str:
+    """A removed record's ref, the shared format the review side recomputes. Stable across arms: scenario positions
+    (or, for a record with none, its normalized content) are the same in each arm. ``sources`` are
+    [session_id, turn_index, role] triples; the content itself never reaches the file, only its hash."""
+    if sources:
+        triples = sorted([str(session), int(turn), str(role)] for session, turn, role in sources)
+        return "src:" + hashlib.sha256(json.dumps([kind, triples], separators=(",", ":"), ensure_ascii=False)
+                                       .encode("utf-8")).hexdigest()
+    return "content:" + hashlib.sha256(json.dumps([kind, content if content is not None else {}],
+                                                  separators=(",", ":"), ensure_ascii=False, sort_keys=True)
+                                       .encode("utf-8")).hexdigest()
+
+
+def layer_records(client, positions: dict) -> dict:
+    """Every record of the layers a page action can remove, by its own id, through the SDK calls world() uses:
+    {id: {"kind", "sources", "content"}}, keyed by id alone so that a record whose kind reads differently after the
+    action (a commitment before a relationship reset is a plain note after it) is not taken for removed. ``sources``
+    are the scenario positions of its source messages."""
+    from membrain.notes import list_notes
+    from membrain.persona import normalize_card
+
+    def where(ids) -> list:
+        return sorted({tuple(positions[event]) for event in ids or () if event in positions})
+
+    def words(text) -> str:
+        return " ".join(str(text or "").split())
+
+    records = {}
+    for event, item in _messages(client).items():
+        records[event] = {"kind": "message", "sources": where([event]), "content": None}
+    relationship = client.relationship()
+    moments = {item["id"] for item in relationship.get("shared_moments") or ()}
+    commitments = {item["note_id"] for bucket in (relationship.get("commitments") or {}).values()
+                   for item in bucket}
+    for item in list_notes(client).get("items", []):
+        kind = ("shared_moment" if item["event_id"] in moments else
+                "commitment" if item["event_id"] in commitments else "note")
+        records[item["event_id"]] = {"kind": kind, "sources": where(item.get("source_event_ids")),
+                                             "content": {"text": words(item.get("text"))}}
+    for item in client.affect_records()["records"]:
+        records[item["id"]] = {"kind": "feeling", "sources": where(item.get("source_event_ids")),
+                                            "content": {key: item.get(key) for key in
+                                                        ("label", "valence", "intensity", "basis", "topic")}}
+    for item in relationship.get("boundaries") or ():
+        records[item["id"]] = {"kind": "boundary", "sources": [], "content": {
+            "topic": words(item.get("topic")), "aliases": sorted(words(alias) for alias in item.get("aliases") or ())}}
+    support = relationship.get("support_style")
+    if support:
+        records[support["id"]] = {"kind": "support_style", "sources": [],
+                                                     "content": {"text": words(support.get("text"))}}
+    cap = (relationship.get("familiarity") or {}).get("cap")
+    if cap:  # The cap has no id of its own: it is its level.
+        records["familiarity_cap:" + cap] = {"kind": "familiarity_cap", "sources": [], "content": {"level": cap}}
+    if callable(getattr(client, "persona_versions", None)):
+        for item in client.persona_versions().get("versions", []):
+            records[item["event_id"]] = {"kind": "persona_version", "sources": [], "content": {
+                "version": item.get("version"), "card": normalize_card(item.get("card") or {}),
+                "host_default": bool(item.get("host_default"))}}
+    return records
+
+
+def removed_records(before: dict, after: dict, counts_before: dict | None = None,
+                    counts_after: dict | None = None) -> list:
+    """The records present before and gone after, plus one unestablished entry per unexplained drop in a count."""
+    removed = []
+    for key, entry in before.items():
+        if key in after:
+            continue
+        if entry["kind"] == "message" and not entry["sources"]:
+            removed.append({"kind": "message", "established": False})  # A message with no recorded position.
+            continue
+        removed.append({"kind": entry["kind"], "ref": record_ref(entry["kind"], entry["sources"], entry["content"]),
+                        "sources": [list(source) for source in entry["sources"]], "established": True})
+    def size(value) -> int:  # world() gives counts, and boundaries as a list of topics.
+        return len(value) if isinstance(value, list) else int(value or 0)
+
+    for field, kinds in COUNTED.items():
+        if counts_before is None or counts_after is None or field not in counts_before:
+            continue
+        dropped = size(counts_before[field]) - size(counts_after.get(field))
+        explained = sum(entry["kind"] in kinds for entry in removed)
+        removed += [{"kind": kinds[0], "established": False}] * max(0, dropped - explained)
+    return sorted(removed, key=lambda entry: (entry["kind"], entry.get("ref", ""), not entry["established"]))
+
+
+def message_records(removed: list) -> list:
+    """Arm F: the messages a deletion removed, as removed_records, with the same refs as P's."""
+    return sorted(({"kind": "message", "ref": record_ref("message", [position]),
+                    "sources": [list(position)], "established": True} for position in removed),
+                  key=lambda entry: entry["ref"])
 
 
 def apply_page_action(memory: Memory, action: dict, turns: dict) -> dict:
@@ -616,6 +829,41 @@ def removed_in_p(out: Path, action: dict, earlier: list, timeout: float = 3600) 
     raise SystemExit("P never recorded the deletion F must mirror")
 
 
+# Recording ----------------------------------------------------------------------------------------------------------
+
+TIMED_PAUSE_REFUSED = ("Timed pauses are unavailable in this evaluation. Pause without hours (for the rest of this "
+                       "conversation) and resume when the user asks.")
+
+
+def call_tool(memory: Memory, server, name: str, arguments, out: Path, session: str, index: int) -> str:
+    """One tool call of the host model. A timed pause is refused: its end is wall-clock time (host.pause), so on the
+    scenario clock it would span scenario days, or nothing, depending on how fast the run goes."""
+    if name == "memory_pause" and isinstance(arguments, dict) and arguments.get("hours") is not None:
+        harness_event(out, "timed_pause_refused", session=session, turn=index)
+        return json.dumps({"error": TIMED_PAUSE_REFUSED})
+    return memory.call(server, name, arguments)
+
+
+def intended_unrecorded(module) -> set:
+    """Arm P's turns the scenario means to leave unrecorded: those EXPECT_RECORDING_P marks False, and each turn from
+    an untimed memory_pause that STUB_HOST scripts up to (not including) the memory_resume that ends it in the same
+    session. The resume turn itself is recorded (the user asked for it)."""
+    intended = {(session, turn) for session, turn, expected in getattr(module, "EXPECT_RECORDING_P", ())
+                if expected is False}
+    script = getattr(module, "STUB_HOST", None) or {}
+    for session, turns in module.SESSIONS_LONG:
+        paused_at = None
+        for turn in range(len(turns)):
+            tools = {step.get("tool"): step for step in script.get((session, turn), ())}
+            if "memory_resume" in tools and paused_at is not None:
+                intended |= {(session, at) for at in range(paused_at, turn)}
+                paused_at = None
+            pause = tools.get("memory_pause")
+            if pause is not None and (pause.get("arguments") or {}).get("hours") is None:
+                paused_at = turn
+    return intended
+
+
 # The run --------------------------------------------------------------------------------------------------------------
 
 def load(path: str):
@@ -641,6 +889,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
     if starts != sorted(starts):
         raise SystemExit("sessions must be in time order")
     actions = check_actions(module)
+    intended = intended_unrecorded(module) if arm == "P" else set()
     turns_text = {(session, index, "user"): text for session, turns in sessions for index, text in enumerate(turns)}
     os.environ["TZ"] = "UTC"
     time.tzset()
@@ -655,7 +904,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
     BILLING = None if STUB else billing_transport()
     host = Host(cap=sum(len(turns) for _, turns in sessions) * 5,
                 transport=httpx.MockTransport(stub_host) if stub_host else BILLING)
-    memory = chat = speaker = reference = None
+    memory = chat = speaker = reference = watch = None
     if arm in ("P", "E"):
         cache = os.environ.get("MEMBRAIN_MODEL_CACHE")
         ports = tuple(map(int, os.environ["MEMBRAIN_PORTS"].split(","))) if os.environ.get("MEMBRAIN_PORTS") else None
@@ -675,6 +924,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                                   "stub" if STUB else os.environ["DEEPSEEK_API_KEY"],
                                   transport=httpx.MockTransport(stub_extract) if stub_extract else billing_transport())
             chat = ChatMemory(memory.directory, producer="membrain-proxy", tools=None, extractor=extractor)
+            watch = watch_extraction(memory.directory)
             if chat.user_id(speaker) != user:
                 raise SystemExit("the proxy's memory is not the brain page actions are applied to")
     else:
@@ -699,10 +949,13 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                       "detail": {key: value for key, value in action.items() if key not in ("do", "card")}}
             if memory is not None:
                 with memory.client() as client:
-                    record["before"] = world(client)
+                    record["before"], held = world(client), layer_records(client, memory.positions)
                 record["result"] = apply_page_action(memory, action, turns_text)
                 with memory.client() as client:
-                    record["after"] = world(client)
+                    record["after"], kept = world(client), layer_records(client, memory.positions)
+                removed = removed_records(held, kept, record["before"], record["after"])
+                record["result"]["removed_records"] = removed
+                record["result"]["removed_records_complete"] = all(entry["established"] for entry in removed)
                 record["time"] = memory.now()
                 if chat is not None:
                     chat._forget_blocks(memory.user)  # The next message reads the page's change.
@@ -712,6 +965,8 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                     deletions.append(action)
                 record["before"] = reference.summary()
                 record["result"] = reference.apply(action)
+                record["result"]["removed_records"] = message_records(record["result"].get("removed", []))
+                record["result"]["removed_records_complete"] = True  # F's only records are its messages.
                 record["after"] = reference.summary()
                 if action["do"] in DELETES_MESSAGES:
                     record["after"]["removed_still_in_history"] = reference.contains(action["removed"])
@@ -720,7 +975,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             log("page action", action["do"], "before", session, "turn", before, "result:", record["result"])
             if record["result"].get("failed"):
                 harness_event(out, "page_action_failed", action=action["do"], session=session, turn=before,
-                              reason=record["result"]["failed"])
+                              reason=failure_code(record["result"]))
 
     for (session, turns), start in zip(sessions, starts):
         today = start.date()
@@ -728,8 +983,8 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
         if memory is not None:
             effective = memory.clock.advance(memory.directory, start, run=memory.directory.name)
             if effective > start and session != sessions[0][0]:  # The first was set when the profile was made.
-                harness_event(out, "clock_already_past", session=session, requested=start.isoformat(),
-                              now=effective.isoformat())
+                harness_event(out, "clock_already_past", session=session,
+                              behind_seconds=int((effective - start).total_seconds()))
         date_line = f"Today's date: {today.isoformat()} ({today.strftime('%A')})."
         page_actions(session, 0)
         session_context = None
@@ -780,7 +1035,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                             arguments = json.loads(call["function"]["arguments"] or "{}")
                         except ValueError:
                             arguments = {}
-                        result = memory.call(server, call["function"]["name"], arguments)
+                        result = call_tool(memory, server, call["function"]["name"], arguments, out, session, index)
                         tool_calls.append({"name": call["function"]["name"], "arguments": arguments,
                                            "result": result[:2000]})
                         messages.append({"role": "tool", "tool_call_id": call["id"], "content": result})
@@ -790,19 +1045,28 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             written = [item.get("content") for item in messages[first + 1:]
                        if item.get("role") == "assistant" and item.get("content")]
             reply = "\n\n".join([*written, message.get("content") or ""]).strip()
-            if chat is not None:
-                chat.record(speaker, reply, session=session, turn_id=f"t{index}", prompt=text)
-                recorded = not memory.host.paused(memory.directory, memory.user)
-                chat.extractor.wait(120)
-                check_billing()
-                if chat.extractor._queue.unfinished_tasks:
-                    harness_event(out, "extraction_unfinished", session=session, turn=index)
-            elif memory is not None:
-                resumed = memory.host.turn_resumed(memory.directory, session)
-                recorded = bool(memory.host.finish_turn(memory.directory, session, reply, turn_id=f"t{index}",
-                                                        **({"prompt": text} if resumed else {})))
-            if memory is not None:
-                memory.record_turn(session, index, recorded=recorded)
+            stopping: list[str] = []
+            with deferred_stop(stopping):  # The reply is paid for: its row is written before any stop.
+                # Another arm may have stopped the shared ledger during this turn's host call: then nothing more is
+                # recorded or extracted (extraction would be a further billed request).
+                halted, recorded = billing_halt(stopping), False
+                if halted is None and chat is not None:
+                    chat.record(speaker, reply, session=session, turn_id=f"t{index}", prompt=text)
+                    recorded = not memory.host.paused(memory.directory, memory.user)
+                    chat.extractor.wait(120)
+                    halted = billing_halt(stopping)
+                    if halted is None and chat.extractor._queue.unfinished_tasks:
+                        harness_event(out, "extraction_unfinished", session=session, turn=index)
+                    if halted is None and watch.failed():
+                        harness_event(out, "extraction_failed", session=session, turn=index)
+                elif halted is None and memory is not None:
+                    resumed = memory.host.turn_resumed(memory.directory, session)
+                    recorded = bool(memory.host.finish_turn(memory.directory, session, reply, turn_id=f"t{index}",
+                                                            **({"prompt": text} if resumed else {})))
+                if halted is None and memory is not None:
+                    memory.record_turn(session, index, recorded=recorded)
+                    if not recorded and (session, index) not in intended:
+                        harness_event(out, "turn_not_recorded", session=session, turn=index)
             transcript = [{k: v for k, v in item.items() if k != "reasoning_content"} for item in messages[first:]]
             transcript.append({"role": "assistant", "content": message.get("content") or ""})
             row = {"arm": arm, "scenario": scenario, "session": session, "turn": index, "date": today.isoformat(),
@@ -815,10 +1079,16 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 row["reference_history_items"] = len(prior)
             if memory is not None:
                 row["recorded"] = recorded
+            if stopping:
+                row["stopped_after"] = stopping[0]
             with path.open("a") as stream:
                 stream.write(json.dumps(row, ensure_ascii=False) + "\n")
             log(arm, scenario, session, index, usage.get("total_tokens"),
                 "tools:", [(call["name"], str(call["arguments"])[:80]) for call in tool_calls])
+            if halted is not None:
+                raise halted
+            if stopping:
+                stop_run(stopping[0])
             if reference is not None:  # F's history holds the user's words, not a memory block, and the reply.
                 current += [((session, index, "user"), {"role": "user", "content": text}),
                             ((session, index, "assistant"), {"role": "assistant", "content": reply})]
@@ -839,6 +1109,19 @@ def stop_started() -> None:
         desktop.stop(STARTED.pop())
 
 
+STOP_REASON = re.compile(r"[a-z][a-z0-9_]{0,39}")
+
+
+def stop_reason(arguments: list) -> str:
+    """``--stop`` takes an optional ``--reason CODE``; without it the reason is ``arm_failed``. The ledger keeps the
+    first reason it was given. A malformed reason is refused before the ledger is opened."""
+    if not arguments:
+        return "arm_failed"
+    if len(arguments) == 2 and arguments[0] == "--reason" and STOP_REASON.fullmatch(arguments[1]):
+        return arguments[1]
+    raise SystemExit("usage: c5-harness.py --stop [--reason CODE], CODE matching [a-z][a-z0-9_]{0,39}")
+
+
 def interrupted(signum, frame):
     try:
         if BILLING is not None:
@@ -849,9 +1132,10 @@ def interrupted(signum, frame):
 
 if __name__ == "__main__":
     signal.signal(signal.SIGTERM, interrupted)
-    if sys.argv[1:] == ["--stop"]:
+    if sys.argv[1:2] == ["--stop"]:
+        reason = stop_reason(sys.argv[2:])
         guard = billing_transport(allow_stopped=True)
-        guard.stop("arm_failed")
+        guard.stop(reason)
         guard.close()
         raise SystemExit(0)
     if sys.argv[1:] == ["--preflight"]:
