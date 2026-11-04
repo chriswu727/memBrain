@@ -144,6 +144,7 @@ class MemoryHologram {
     this.lines(hindbrain, 0x4e94d0, .15);
 
     const layout = obsLayout(map), positions = [], nodeColours = [], nodeSizes = [], dendrites = [];
+    this.layout = layout;
     this.nodes = map.nodes.map((node) => node.id);
     this.links = map.edges.filter((edge) => layout[edge.source] && layout[edge.target]);
     const recent = recentIds(map);
@@ -153,7 +154,7 @@ class MemoryHologram {
       nodeColours.push(color.r, color.g, color.b);
       nodeSizes.push(recent.has(node.id) ? 27 : 18);
       const rng = seeded(obsHash(node.id));
-      for (let branch = 0; branch < 5; branch++) {
+      for (let branch = 0; branch < (map.contract_version === "memory-structure-v1" ? 0 : 5); branch++) {
         let a = p;
         const angle = rng() * Math.PI * 2, rise = rng() * 2 - 1;
         for (let j = 1; j <= 4; j++) {
@@ -300,6 +301,7 @@ class MemoryHologram {
     }
     this.renderer = this.scene = this.camera = this.brain = this.drag = null;
     this.paths = this.nodes = this.links = this.signals = null;
+    this.layout = null;
     this.map = null;
     $("brain-show").classList.remove("holographic");
     $("show-simulation").hidden = true;
@@ -313,4 +315,5 @@ window.memoryHologram = Object.freeze({ snapshot: () => ({
   edges: hologram.map ? hologram.links.map((edge) => ({ ...edge })) : [],
   turn: hologram.turn, tilt: hologram.tilt, zoom: hologram.zoom,
   signalCount: hologram.map ? hologram.signalCount : 0,
+  positions: hologram.map ? structuredClone(hologram.layout) : {},
 }) });

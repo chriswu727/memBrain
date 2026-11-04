@@ -905,11 +905,11 @@ def test_the_3d_view_reads_in_english_and_chinese_without_sideways_scroll(server
         if language == "en":
             expect(key).to_contain_text("The brain-shaped shell is an illustrative container, not neuroscience.")
             expect(key).to_contain_text("It is not memory strength, confidence or importance.")
-            expect(page.locator("#observatory-layers")).to_contain_text("Not available yet")
+            expect(page.locator("#observatory-layers")).to_contain_text("Available in Memories")
         else:
             expect(key).to_contain_text("不是神经科学")
             expect(key).to_contain_text("布局权重")
-            expect(page.locator("#observatory-layers")).to_contain_text("暂不可用")
+            expect(page.locator("#observatory-layers")).to_contain_text("可在记忆图谱中查看")
             page.locator("#observatory-layers summary").click()
             for selector in (".brain-modes", ".observatory-key", "#observatory-layers", ".observatory-list-box",
                              "#observatory-labels"):

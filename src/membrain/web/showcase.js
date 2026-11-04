@@ -37,10 +37,11 @@ const SHOW_SULCI = [
 const SHOW_ANCHORS = { plans: [222, 150, 55], commitments: [196, 250, 42], preferences: [316, 104, 45],
   constraints: [446, 78, 38], routines: [582, 122, 50], episodes: [440, 205, 72], people: [352, 352, 36],
   relationship: [488, 340, 40], milestones: [652, 222, 48], other: [632, 382, 36], emotions: [316, 250, 38],
-  persona: [340, 170, 40], mood: [445, 285, 40] };
+  persona: [340, 170, 40], mood: [445, 285, 40], semantic: [370, 210, 45], episodic: [470, 210, 45], schemas: [530, 275, 40] };
 const SHOW_COLOURS = { plans: "#ffa94d", commitments: "#ff8466", preferences: "#b69cff", constraints: "#ff6f9e",
   routines: "#57b8ff", episodes: "#3ee0b0", people: "#ffd54a", relationship: "#e59cf5", milestones: "#7f9bff",
-  other: "#b8c2cc", emotions: "#a6e05a", persona: "#b69cff", mood: "#ffb86b" };
+  other: "#b8c2cc", emotions: "#a6e05a", persona: "#b69cff", mood: "#ffb86b",
+  semantic: "#6ae4ff", episodic: "#9c9aff", schemas: "#e69cff" };
 const MAX_PULSES = 40;
 const showState = { open: false, frame: 0, slots: [], links: [], nodes: {}, opener: null, rendered: null, folds: null };
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -218,6 +219,9 @@ function spacingFor(anchor, count) { return Math.max(4.5, Math.min(13, anchor.re
 
 // Placement: a sunflower spiral per region, oldest at the centre, tightening in crowded regions so clusters stay inside.
 function showLayout(map) {
+  if (map.contract_version === "memory-structure-v1") return Object.fromEntries(Object.entries(obsLayout(map))
+    .map(([id, point]) => [id, { x: 400 + point[0] * 85, y: 250 - point[1] * 85,
+      scale: .8, region: map.nodes.find((node) => node.id === id).region }]));
   const positions = {};
   const groups = {};
   for (const node of map.nodes) (groups[anchorOf(node.region).id] ||= []).push(node);

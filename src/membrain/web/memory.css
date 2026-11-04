@@ -349,3 +349,25 @@ body.showing { overflow: hidden; }
 .proposal-sources li .hint { white-space: nowrap; }
 .persona-proposals-earlier .list { margin-top: 8px; }
 /* End of persona suggestions */
+
+:root { --r-semantic: #36a9bd; --r-episodic: #8583d1; --r-schemas: #b675c7; }
+.brain-node.region-semantic { fill: var(--r-semantic); color: var(--r-semantic); }
+.legend-item.region-semantic .legend-dot, .observatory-item.region-semantic .legend-dot { background: var(--r-semantic); }
+.brain-node.region-episodic { fill: var(--r-episodic); color: var(--r-episodic); }
+.legend-item.region-episodic .legend-dot, .observatory-item.region-episodic .legend-dot { background: var(--r-episodic); }
+.brain-node.region-schemas { fill: var(--r-schemas); color: var(--r-schemas); }
+.legend-item.region-schemas .legend-dot, .observatory-item.region-schemas .legend-dot { background: var(--r-schemas); }
+.edge-swatch.edge-memory_evidence { border-color: var(--r-semantic); }
+.edge-memory_evidence { stroke: var(--r-semantic); }
+.edge-swatch.edge-memory_derivation { border-color: var(--r-semantic); }
+.edge-memory_derivation { stroke: var(--r-semantic); }
+.edge-swatch.edge-episode_evidence { border-color: var(--r-semantic); }
+.edge-episode_evidence { stroke: var(--r-semantic); }
+.edge-swatch.edge-episode_member { border-color: var(--r-semantic); }
+.edge-episode_member { stroke: var(--r-semantic); }
+.edge-swatch.edge-pattern_member { border-color: var(--r-semantic); }
+.edge-pattern_member { stroke: var(--r-semantic); }
+.edge-swatch.edge-association { border-color: var(--r-semantic); }
+.edge-association { stroke: var(--r-semantic); }
+.edge-swatch.edge-belief_relation { border-color: var(--r-semantic); }
+.edge-belief_relation { stroke: var(--r-semantic); }

@@ -31,7 +31,7 @@ class _Graph:
         return ident
 
     def edge(self, source, target, kind, basis):
-        key = source, target, kind
+        key = source, target, kind, basis
         if source not in self.nodes or target not in self.nodes or source == target or key in self.seen:
             return
         if len(self.edges) >= max(100, self.max_edges * 4):

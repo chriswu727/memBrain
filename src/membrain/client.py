@@ -250,11 +250,13 @@ class MemoryClient:
         return self._request("GET", f"v1/brains/{quote(brain, safe='')}/timeline", params=params)
 
     def memory_map(self, *, max_nodes: int = 200, max_edges: int = 400, include_sensitive: bool = False,
-                   trace: bool = False, brain_id: str | None = None) -> JsonObject:
+                   trace: bool = False, structure: bool = False, brain_id: str | None = None) -> JsonObject:
         brain = self._scope(brain_id=brain_id)["brain_ref"]
         params = {"max_nodes": max_nodes, "max_edges": max_edges, "include_sensitive": str(include_sensitive).lower()}
         if trace:
             params["trace"] = "true"
+        if structure:
+            params["structure"] = "true"
         return self._request("GET", f"v1/brains/{quote(brain, safe='')}/memory-map", params=params)
 
     def companion_map(self, *, max_nodes: int = 200, max_edges: int = 400, include_sensitive: bool = False,

@@ -1,7 +1,7 @@
 "use strict";
 // memBrain memory page: the brain view. Draws the memory map (GET /v1/brains/{id}/memory-map) inside a brain
-// silhouette: each region of memory is a fixed area of the brain, each memory a neuron, each link a faint axon.
-// The placement is illustrative; node size is a layout weight, not a measure of memory strength.
+// silhouette. Structural maps share the 3D topology layout; legacy maps use fixed region anchors.
+// The shell is illustrative; node size is a layout weight, not a measure of memory strength.
 
 const BRAIN_SVG = "http://www.w3.org/2000/svg";
 // Region anchors in a side view of the brain facing left (viewBox 0 0 800 520), with their display order.
@@ -19,6 +19,9 @@ const REGIONS = [
   { id: "emotions", label: "Feelings", x: 320, y: 235 },
   { id: "persona", label: "Personality", x: 350, y: 160 },
   { id: "mood", label: "Simulated mood", x: 460, y: 285 },
+  { id: "semantic", label: "Learned assertions", x: 370, y: 210 },
+  { id: "episodic", label: "Consolidated episodes", x: 470, y: 210 },
+  { id: "schemas", label: "Patterns and procedures", x: 530, y: 275 },
 ];
 const BRAIN_OUTLINE = "M150 300 C110 250 115 165 175 120 C225 80 290 62 350 66 C395 40 470 38 520 60 " +
   "C585 62 650 92 690 150 C730 205 728 280 690 320 C668 345 640 352 612 350 C600 375 575 390 545 388 " +
@@ -46,6 +49,8 @@ function regionOf(id) { return REGIONS.find((region) => region.id === id) || REG
 
 // Deterministic placement: a sunflower spiral around the region's anchor, oldest at the centre.
 function layout(map) {
+  if (map.contract_version === "memory-structure-v1") return Object.fromEntries(
+    Object.entries(obsLayout(map)).map(([id, point]) => [id, { x: 400 + point[0] * 85, y: 250 - point[1] * 85 }]));
   const positions = {};
   const groups = {};
   for (const node of map.nodes) (groups[node.region] ||= []).push(node);
@@ -230,6 +235,11 @@ function selectNode(id) {
     : "A feeling your agent inferred; you did not say it", "hint"));
   if (node.traced) detail.append(element("p", "Used by the latest recorded recall", "hint"));
   if (data.version) detail.append(element("p", `Version: ${data.version}`, "hint"));
+  if (data.revision) detail.append(element("p", `${translate("Record revision")}: ${data.revision}`, "hint"));
+  if (data.representation) detail.append(element("p", `${translate("Representation")}: ${translate(data.representation)}`, "hint"));
+  if (data.epistemic_status) detail.append(element("p", `${translate("Evidence status")}: ${translate(data.epistemic_status)}`, "hint"));
+  if (data.lifecycle) detail.append(element("p", `${translate("Lifecycle")}: ${translate(data.lifecycle)}`, "hint"));
+  if (data.statement) detail.append(element("p", data.statement, "user-text"));
   if (data.text) detail.append(element("pre", data.text, "user-text"));
   if (data.reason) detail.append(element("p", data.reason, "user-text"));
   if (node.kind === "simulated_mood") detail.append(element("p",
@@ -273,8 +283,13 @@ function edgeCaption(edge, id) {
     baseline_from: ["baseline from personality:", "baseline for mood:"],
     triggered_by: ["triggered by:", "trigger evidence for:"],
     affected_by: ["affected by active trigger:", "active trigger for mood:"],
+    memory_evidence: ["evidence:", "supports memory:"], memory_derivation: ["derived memory:", "derived into:"],
+    episode_evidence: ["episode source:", "source for episode:"], episode_member: ["episode member:", "member of episode:"],
+    pattern_member: ["pattern member:", "member of pattern:"], association: ["association:", "associated from:"],
+    belief_relation: ["belief relation:", "belief relation from:"],
   };
-  return (labels[edge.type]?.[edge.source === id ? 0 : 1] || `${edge.type.replaceAll("_", " ")}:`) + " ";
+  const caption = labels[edge.type]?.[edge.source === id ? 0 : 1] || `${edge.type.replaceAll("_", " ")}:`;
+  return caption + (["association", "belief_relation"].includes(edge.type) ? ` ${translate(edge.basis)}` : "") + " ";
 }
 
 // The same edit and delete as the Notes tab; the map redraws afterwards.
@@ -331,7 +346,7 @@ async function loadBrain() {
   document.dispatchEvent(new CustomEvent("brain-clear"));
   try {
     const endpoint = layer === "companion" ? "companion-map?max_nodes=200&max_edges=400"
-      : "memory-map?max_nodes=200&max_edges=400&trace=true";
+      : "memory-map?max_nodes=200&max_edges=400&trace=true&structure=true";
     const map = brainState.demo
       ? await (await fetch("/static/memory-map-demo.json")).json()
       : await api(`/v1/brains/${encodeURIComponent(brain)}/${endpoint}`);

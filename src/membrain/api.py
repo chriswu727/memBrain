@@ -512,12 +512,13 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     @app.get("/v1/brains/{brain_id}/memory-map")
     def memory_map(brain_id: str, max_nodes: int = Query(default=200, ge=1, le=500),
                    max_edges: int = Query(default=400, ge=0, le=1000), include_sensitive: bool = False,
-                   trace: bool = False, principal: Principal = Depends(authenticate)):
+                   trace: bool = False, structure: bool = False, principal: Principal = Depends(authenticate)):
         from .memory_map import memory_map as read_memory_map
+        from .structure_map import structure_map
 
         try:
             with reading():
-                return read_memory_map(service, principal, brain_id, max_nodes=max_nodes, max_edges=max_edges,
+                return (structure_map if structure else read_memory_map)(service, principal, brain_id, max_nodes=max_nodes, max_edges=max_edges,
                                        include_sensitive=include_sensitive,
                                        trace=(traces.last(principal, brain_id) or {}) if trace else None)
         except (psycopg.errors.LockNotAvailable, psycopg.errors.QueryCanceled):

@@ -3,8 +3,8 @@
 // three dimensions, with three.js vendored under /static/vendor/three/ (loaded only when the 3D view is first shown).
 //
 // What it shows is exactly the payload: one shape per node, one line per edge of its recorded type, the regions as
-// fixed volumes inside an illustrative shell. Positions come from a hash of each node's region and ID, so the same
-// map always gives the same layout and adding or removing one record never moves another. There is no force
+// logical volumes inside an illustrative shell. Legacy maps use region/ID anchors; structural maps arrange those
+// anchors along recorded links. The same payload gives the same layout. There is no force
 // simulation, no animation loop and no travelling signal: a frame is drawn only after an interaction, a data change
 // or a resize, never while idle, hidden or switched away. Selection goes through brain.js (the same detail panel,
 // edit and delete), so the 3D view and the 2D map always agree.
@@ -27,6 +27,9 @@ const OBS_SPACE = {
   emotions: { at: [-1.05, 0.1, -0.9], size: [0.36, 0.3, 0.4] },
   persona: { at: [-1.0, 0.8, 0.8], size: [0.48, 0.34, 0.4] },
   mood: { at: [0.2, -0.5, 0.9], size: [0.48, 0.34, 0.4] },
+  semantic: { at: [-.6, .4, .1], size: [.9, .7, .7] },
+  episodic: { at: [.6, .4, -.1], size: [.9, .7, .7] },
+  schemas: { at: [1.1, -.4, .2], size: [.7, .5, .6] },
 };
 // Recorded dependency types from the memory and companion maps; unknown types are drawn plain grey.
 const OBS_EDGES = {
@@ -40,6 +43,13 @@ const OBS_EDGES = {
   baseline_from: { color: "--r-mood", dash: [0.14, 0.08], opacity: 0.7 },
   triggered_by: { color: "--r-mood", dash: null, opacity: 0.8 },
   affected_by: { color: "--r-mood", dash: [0.035, 0.05], opacity: 0.95 },
+  memory_evidence: { color: "--r-semantic", dash: null, opacity: .6 },
+  memory_derivation: { color: "--r-semantic", dash: [.14, .08], opacity: .8 },
+  episode_evidence: { color: "--r-episodic", dash: [.035, .05], opacity: .6 },
+  episode_member: { color: "--r-episodic", dash: null, opacity: .8 },
+  pattern_member: { color: "--r-schemas", dash: null, opacity: .8 },
+  association: { color: "--r-schemas", dash: [.14, .08], opacity: .7 },
+  belief_relation: { color: "--r-semantic", dash: [.035, .05], opacity: .9 },
 };
 const OBS_HOME = { theta: 0.35, phi: 1.32, radius: 7.6, target: [0, 0, 0] };
 const OBS_MESSAGES = {
@@ -87,7 +97,26 @@ function obsPosition(node) {
 }
 
 function obsLayout(map) {
-  return Object.fromEntries(map.nodes.map((node) => [node.id, obsPosition(node)]));
+  const anchors = Object.fromEntries(map.nodes.map((node) => [node.id, obsPosition(node)]));
+  if (map.contract_version !== "memory-structure-v1") return anchors;
+  const neighbors = Object.fromEntries(map.nodes.map((node) => [node.id, new Set()]));
+  for (const edge of map.edges) {
+    if (!neighbors[edge.source] || !neighbors[edge.target] || edge.source === edge.target) continue;
+    neighbors[edge.source].add(edge.target);
+    neighbors[edge.target].add(edge.source);
+  }
+  let positions = anchors;
+  for (let step = 0; step < 16; step++) {
+    const next = {};
+    for (const node of map.nodes) {
+      const linked = [...neighbors[node.id]].sort();
+      const pull = ["assertion", "episode", "pattern"].includes(node.kind) ? .68 : .22;
+      next[node.id] = anchors[node.id].map((value, axis) => !linked.length ? value
+        : value * (1 - pull) + pull * linked.reduce((sum, id) => sum + positions[id][axis], 0) / linked.length);
+    }
+    positions = next;
+  }
+  return positions;
 }
 
 // Size is the payload's layout weight (0 to 1), nothing else.

@@ -26,7 +26,8 @@ VENDORED = {
 }
 MEMORY_EDGE_TYPES = {"derived_from", "about_person", "feeling_of"}
 EDGE_TYPES = MEMORY_EDGE_TYPES | {"based_on_feedback", "proposed_from_feedback", "accepted_proposal", "restored_from",
-                                  "baseline_from", "triggered_by", "affected_by"}
+                                  "baseline_from", "triggered_by", "affected_by", "memory_evidence", "memory_derivation",
+                                  "episode_evidence", "episode_member", "pattern_member", "association", "belief_relation"}
 PAGE_SCRIPTS = ["i18n.js", "memory.js", "brain.js", "observatory.js", "hologram.js", "showcase.js"]
 
 
@@ -131,7 +132,7 @@ def test_the_view_says_what_its_marks_mean_and_which_layers_are_missing():
     layers = re.findall(r'<li data-layer="(\w+)"><strong>[^<]+</strong> <span>', page)
     assert set(layers) == {"assertions", "episodes", "persona", "mood", "relationship"}
     for layer in ("assertions", "episodes"):
-        assert re.search(rf'data-layer="{layer}">.*?Not available yet', page, re.DOTALL)
+        assert re.search(rf'data-layer="{layer}">.*?Available in Memories', page, re.DOTALL)
     for layer in ("persona", "mood", "relationship"):
         assert re.search(rf'data-layer="{layer}">.*?Available in', page, re.DOTALL)
 

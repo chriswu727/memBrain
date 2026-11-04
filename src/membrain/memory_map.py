@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import threading
 from collections import OrderedDict, deque
+from contextlib import nullcontext
 
 from .helpers import DomainError, now
 from .notes import NOTES_CONVERSATION, parse_note
@@ -77,7 +78,7 @@ def sensitive_note_ids(conn, params, note_ids):
 
 
 def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, include_sensitive=False,
-               trace: dict | None = None):
+               trace: dict | None = None, _connection=None):
     """Return a bounded sample; region counts describe the sample, not the entire brain.
 
     Weights are layout hints, not inferred activation or recall strength. Recent user messages and note
@@ -92,7 +93,7 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
     if type(include_sensitive) is not bool:
         raise DomainError("validation_failed", "include_sensitive must be a boolean.")
     params = service._params(principal, brain_id)
-    with service.database.transaction(principal) as conn:
+    with (nullcontext(_connection) if _connection is not None else service.database.transaction(principal)) as conn:
         conn.execute("SET LOCAL statement_timeout = '2s'")
         conn.execute("SET LOCAL lock_timeout = '500ms'")
         service._brain(conn, principal, brain_id)

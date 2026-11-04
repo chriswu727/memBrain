@@ -320,7 +320,7 @@ def test_two_reads_that_find_one_pending_erasure_both_succeed_without_it(recover
     import membrain.recovery_authority as authority_module
 
     harness, authority = recovery
-    secret = harness.observe("The alarm code is 9932.")["accepted_event_ids"][0]
+    secret = harness.observe("The alarm code is erase-sensitive-content-9932.")["accepted_event_ids"][0]
     pending(harness, authority, secret)
     original = authority_module.pending_erasure
     both = threading.Barrier(2, timeout=20)
@@ -359,7 +359,7 @@ def test_two_reads_that_find_one_pending_erasure_both_succeed_without_it(recover
     assert len(gated) == 2, "both readers must have seen the pending erasure while sharing the row"
     for name, value in results.items():
         assert not isinstance(value, BaseException), (name, repr(value))
-        assert "9932" not in str(value), name
+        assert "erase-sensitive-content-9932" not in str(value), name
         if "outcome" in value:
             assert value["outcome"] == "completed", (name, value)
     assert raw_event(harness, secret) == {"document": None, "deleted": True}
