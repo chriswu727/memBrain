@@ -153,4 +153,6 @@ The run produces the artifacts a real run produces: per-arm results, `run.log`, 
 
 ## Prospective live billing guard
 
+`c5-harness.py --stop` blocks the shared ledger. It takes an optional `--reason CODE`, where CODE matches `[a-z][a-z0-9_]{0,39}`, and the ledger keeps the first reason it is given. Without `--reason` the reason is `arm_failed`, as before. A malformed reason is refused before the ledger is opened.
+
 Live runs require the approved attempt's shared `C5_BILLING_LEDGER`; host, extraction and retries all reserve against it before HTTP. See [billing control](evaluation-billing.md) for conservative rates, crash reservations and stop rules. The guard is offline-tested and awaiting independent review. It grants no model-use approval. Stub practice still requires no ledger and makes no external request.
