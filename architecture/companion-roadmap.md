@@ -275,6 +275,8 @@ The sections below are the original item descriptions; where they differ, the de
 - **Recall trace.** For the current conversation, the view highlights what recall used. It answers "why did it remember that?".
 - **Local only.** The view reads the local service. It needs no new storage and makes no model calls.
 
+**Owner revision (2026-11-03, required before publication; not yet implemented or accepted):** evolve this into a 3D memory observatory that explains the actual memory model and companion development. First add an interactive local renderer over the current bounded map, then project the missing assertions, episodes, typed associations, persona feedback/decisions, mood triggers and relationship evidence with the same scope and deletion rules. Preserve an accessible 2D/list view. Follow the [projection, visual semantics and browser acceptance requirements](phase-c-design.md#c0-revision-a-3d-memory-observatory); a brain shell and decorative activity alone do not meet this direction. The [storage decision](cognitive-memory-plan.md#storage-decision-for-the-memory-observatory) retains PostgreSQL as the authoritative store. A 3D graph does not require a graph database.
+
 ### C1a. Mood
 
 - **What it is.** Mood is the user's recent emotional trend: the last few reported or observed affects, with the evidence for each. It is shown to the host as context, never as a simulated state of the assistant.
