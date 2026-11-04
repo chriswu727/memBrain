@@ -268,6 +268,18 @@ def answer(value):
     raise SystemExit(0)
 results = []
 for name, args, kwargs in request["calls"]:
+    if name == "wait_model_activation":
+        import time
+        deadline = time.monotonic() + (args[0] if args else 180)
+        while True:
+            state = host.installation_status(directory)
+            if not host._download_marker(directory).exists() and state.get("ready"):
+                results.append({"ready": True, "semantic_recall": state.get("semantic_recall")})
+                break
+            if time.monotonic() >= deadline:
+                answer({"error": "the baseline did not finish model activation", "results": results})
+            time.sleep(0.1)
+        continue
     if name == "methods":
         from membrain.client import MemoryClient
         results.append([method for method in args if callable(getattr(MemoryClient, method, None))])
@@ -708,10 +720,13 @@ def companion_part(out: Path, baseline: str, current_hooks: str) -> None:
     started = time.monotonic()
     for session_id, prompt, reply in COMPANION["turns"]:
         session(home, old_hooks, session_id, prompt, reply)
+    # The frozen baseline restarts after its asynchronous model download; wait before writing its fixtures.
+    activation = sdk(home, [["wait_model_activation", [], {}]])[0]
     before = wait_recorded(home, 0)
     require(f"{prefix}baseline {short} installs through its own hooks and records turns",
             before.get("ready") and before.get("pending_records") == 0 and home.runtime_python().exists(),
-            {"build_id": before.get("build_id"), "runtime": runtime, "install_seconds": round(time.monotonic() - started),
+            {"build_id": before.get("build_id"), "runtime": runtime, "model_activation": activation,
+             "install_seconds": round(time.monotonic() - started),
              "error": before.get("error")})
 
     # 2. Write the companion state through the baseline's own MCP launcher and SDK; never with the candidate.

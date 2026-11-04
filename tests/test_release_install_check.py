@@ -1,5 +1,7 @@
 import importlib.util
+import io
 import json
+import sys
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -268,3 +270,37 @@ def test_the_installed_sdk_fails_on_a_nonzero_exit_even_after_printing_results(r
     monkeypatch.setattr(runner.subprocess, "run", lambda *args, **kwargs: crashed)
     with pytest.raises(RuntimeError, match=r"(?s)exit 1.*printed before crash.*process failed"):
         runner.sdk(home, [["persona", [], {}]])
+
+
+def test_baseline_setup_waits_for_download_and_service_readiness(runner, tmp_path, monkeypatch, capsys):
+    states = iter([{"ready": True, "downloading": True}, {"ready": False, "downloading": False},
+                   {"ready": True, "downloading": False, "semantic_recall": "ready"}])
+    observed = []
+
+    def status(directory):
+        state = next(states)
+        observed.append(state)
+        return state
+
+    marker = SimpleNamespace(exists=lambda: observed[-1]["downloading"])
+    fake = SimpleNamespace(profile_directory=lambda value: tmp_path, installation_status=status,
+                           _download_marker=lambda directory: marker)
+    monkeypatch.setitem(sys.modules, "membrain", SimpleNamespace(host=fake))
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"calls": [["wait_model_activation", [], {}]]})))
+    with pytest.raises(SystemExit) as exited:
+        exec(runner.SDK_SCRIPT, {})
+    assert exited.value.code == 0
+    assert json.loads(capsys.readouterr().out) == {"results": [{"ready": True, "semantic_recall": "ready"}]}
+    assert len(observed) == 3
+
+
+def test_baseline_activation_timeout_remains_a_failed_check(runner, tmp_path, monkeypatch, capsys):
+    fake = SimpleNamespace(profile_directory=lambda value: tmp_path,
+                           installation_status=lambda directory: {"ready": False},
+                           _download_marker=lambda directory: SimpleNamespace(exists=lambda: True))
+    monkeypatch.setitem(sys.modules, "membrain", SimpleNamespace(host=fake))
+    monkeypatch.setattr(sys, "stdin", io.StringIO(json.dumps({"calls": [["wait_model_activation", [0], {}]]})))
+    with pytest.raises(SystemExit):
+        exec(runner.SDK_SCRIPT, {})
+    assert json.loads(capsys.readouterr().out) == {
+        "error": "the baseline did not finish model activation", "results": []}
