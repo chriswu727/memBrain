@@ -55,7 +55,10 @@ def _label(text):
 def sensitive_note_ids(conn, params, note_ids):
     if not note_ids:
         return set()
-    return {row["output_event_id"] for row in conn.execute(
+    # Fresh imports can make the planner repeatedly scan scoped dependencies for each sensitive source.
+    nestloop = conn.execute("SELECT current_setting('enable_nestloop') AS value").fetchone()["value"]
+    conn.execute("SELECT set_config('enable_nestloop','off',true)")
+    protected = {row["output_event_id"] for row in conn.execute(
         "SELECT DISTINCT own.output_event_id FROM memory_event_dependencies own "
         "JOIN memory_event_dependencies marked ON marked.tenant_id=own.tenant_id "
         "AND marked.owner_id=own.owner_id AND marked.brain_id=own.brain_id "
@@ -69,6 +72,8 @@ def sensitive_note_ids(conn, params, note_ids):
         "split_part(n.document->'observed'->'content'->>'text','] ',1) LIKE '%% · sensitive' OR "
         "split_part(n.document->'observed'->'content'->>'text','] ',1) LIKE '%% · sensitive · %%')",
         (*params, list(note_ids), NOTES_CONVERSATION)).fetchall()}
+    conn.execute("SELECT set_config('enable_nestloop',%s,true)", (nestloop,))
+    return protected
 
 
 def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, include_sensitive=False,

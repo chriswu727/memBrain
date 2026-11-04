@@ -13,7 +13,7 @@ from membrain.client import MemoryClient
 from membrain.config import configured_service
 from membrain.helpers import DomainError, Principal, uid
 from membrain.local_profile import load_profile
-from membrain.memory_map import REGIONS, memory_map
+from membrain.memory_map import REGIONS, memory_map, sensitive_note_ids
 from membrain.notes import store_note
 
 
@@ -79,6 +79,22 @@ def test_notes_messages_and_source_links_are_real_and_bounded(brain):
     assert sum(region["count"] for region in result["regions"]) == len(result["nodes"])
     assert [region["id"] for region in result["regions"]] == list(REGIONS.values())
     assert not any("folding stool" in node["label"] for node in result["nodes"])
+
+
+@pytest.mark.parametrize("planner", ["on", "off"])
+def test_sensitive_source_lookup_preserves_protection_and_the_callers_planner_setting(brain, planner):
+    source = say(brain, "A private appointment.")
+    private = note(brain, "Private appointment.", sensitive=True, source_event_ids=[source])
+    shared = note(brain, "The same appointment.", source_event_ids=[source])
+    unrelated = note(brain, "Likes jasmine tea.")
+    service, principal, ident = brain
+    with service.database.transaction(principal) as connection:
+        connection.execute("SELECT set_config('enable_nestloop',%s,true)", (planner,))
+        protected = sensitive_note_ids(connection, service._params(principal, ident), [private, shared, unrelated])
+        assert protected == {private, shared}
+        assert connection.execute("SELECT current_setting('enable_nestloop') AS value").fetchone()["value"] == planner
+        assert sensitive_note_ids(connection, service._params(principal, ident), []) == set()
+        assert connection.execute("SELECT current_setting('enable_nestloop') AS value").fetchone()["value"] == planner
 
 
 def test_sensitive_notes_do_not_leak_through_sources_dates_or_person_links(brain):
