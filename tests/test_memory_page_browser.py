@@ -494,6 +494,31 @@ def test_editing_and_deleting_a_note_on_the_brain_map_redraws_the_map_without_re
     assert same_page(page), "deleting on the map must not reload the page"
 
 
+@pytest.mark.parametrize("mode", ["2d", "3d"])
+def test_masked_map_details_hide_recording_time_and_preserve_public_dates(server, account, page, mode):
+    key, client = account
+    private = client.write_note("A private planetarium appointment.", kind="plan", sensitive=True,
+                                due="2026-11-08")
+    public = client.write_note("Bring the blue folder.", kind="plan")
+    sign_in(page, server.base_url, key)
+    open_view(page, "brain")
+    if mode == "2d":
+        page.locator("#mode-2d").click()
+        selector = '#brain-canvas circle.brain-node'
+    else:
+        selector = '#observatory-list button'
+    page.locator(f'{selector}[data-id="note:{private["note_id"]}"]').click()
+    detail = page.locator("#brain-detail")
+    expect(detail).to_be_visible()
+    expect(detail).to_contain_text("Sensitive memory")
+    expect(detail).not_to_contain_text("planetarium")
+    expect(detail).not_to_contain_text("2026-11-08")
+    expect(detail).not_to_contain_text("Saved:")
+    page.locator(f'{selector}[data-id="note:{public["note_id"]}"]').click()
+    expect(detail).to_contain_text("Bring the blue folder.")
+    expect(detail).to_contain_text("Saved:")
+
+
 # 4. Every companion section in English and Chinese -----------------------------------------------------------------
 
 SECTIONS = {  # selector: (English, Chinese) strings that must render.

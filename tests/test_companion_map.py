@@ -173,10 +173,12 @@ def test_sensitive_shared_moment_and_its_source_are_masked(brain):
     hidden = companion_map(*brain)
     assert "planetarium" not in json.dumps(hidden)
     assert next(node for node in hidden["nodes"] if node["id"] == "note:" + saved["note_id"])["sensitive"]
+    assert all(node["recorded_at"] is None for node in hidden["nodes"] if node.get("masked"))
     visible = companion_map(*brain, include_sensitive=True)
     assert "planetarium" in json.dumps(visible)
     revealed = next(node for node in visible["nodes"] if node["id"] == "note:" + saved["note_id"])
     assert revealed["sensitive"] is True and revealed["masked"] is False
+    assert revealed["recorded_at"] is not None
 
 
 def test_a_sensitive_original_cannot_leak_through_another_affect_or_trigger(brain):

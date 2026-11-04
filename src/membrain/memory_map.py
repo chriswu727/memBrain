@@ -204,7 +204,7 @@ def _project(brain_id, notes, messages, links, hidden_sources, feelings=(), *, m
                       "label": "Sensitive memory" if masked else _label(text),
                       "status": None if masked else fields.get("status"),
                       "date": None if masked else fields.get("due") or fields.get("occurs_at"),
-                      "sensitive": sensitive, "recorded_at": row["recorded_at"],
+                      "sensitive": sensitive, "recorded_at": None if masked else row["recorded_at"],
                       "weight": 1.0 if fields.get("pinned") else 0.5})
     masked_notes = {row["id"] for row in notes if parse_note(row["text"] or "")[0].get("sensitive")} | set(hidden_notes)
     for record in feelings:
@@ -215,13 +215,13 @@ def _project(brain_id, notes, messages, links, hidden_sources, feelings=(), *, m
                       "label": "Sensitive memory" if masked else _label(label), "status": None,
                       "date": None if masked else record["felt_at"], "sensitive": record["note_id"] in masked_notes,
                       "basis": None if masked else record["basis"], "note_id": record["note_id"],
-                      "recorded_at": record["recorded_at"], "weight": 0.25})
+                      "recorded_at": None if masked else record["recorded_at"], "weight": 0.25})
     for row in messages:
         masked = row["id"] in hidden_sources
         nodes.append({"id": "msg:" + row["id"], "region": "episodes", "kind": "message",
                       "label": "Sensitive memory" if masked else _label(row["text"] or ""),
                       "status": None, "date": None, "sensitive": masked,
-                      "recorded_at": row["recorded_at"], "weight": 0.25})
+                      "recorded_at": None if masked else row["recorded_at"], "weight": 0.25})
     available = {node["id"] for node in nodes}
     edges, seen = [], set()
 

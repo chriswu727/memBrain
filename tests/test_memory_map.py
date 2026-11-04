@@ -106,10 +106,14 @@ def test_sensitive_notes_do_not_leak_through_sources_dates_or_person_links(brain
     nodes = {node["id"]: node for node in hidden["nodes"]}
     assert nodes["note:" + private]["label"] == nodes["msg:" + source]["label"] == "Sensitive memory"
     assert nodes["note:" + private]["date"] is None and nodes["note:" + private]["status"] is None
+    assert nodes["note:" + private]["recorded_at"] is None
+    assert nodes["msg:" + source]["recorded_at"] is None
+    assert nodes["note:" + person]["recorded_at"] is not None
     assert not any(edge["target"] == "note:" + person for edge in hidden["edges"])
     assert "appointment" not in json.dumps(hidden)
     visible = memory_map(*brain, include_sensitive=True)
     assert any("appointment" in node["label"] for node in visible["nodes"])
+    assert all(node["recorded_at"] is not None for node in visible["nodes"])
 
 
 def test_erased_sources_and_superseded_notes_disappear_without_a_cache(brain):
@@ -139,6 +143,8 @@ def test_sensitive_evidence_is_not_repeated_by_another_note_or_its_feeling(brain
     hidden = memory_map(*brain)
     assert "planetarium" not in json.dumps(hidden)
     assert next(node for node in hidden["nodes"] if node["id"] == "note:" + dependent)["sensitive"]
+    assert any(node["kind"] == "affect" and node["sensitive"] for node in hidden["nodes"])
+    assert all(node["recorded_at"] is None for node in hidden["nodes"] if node["sensitive"])
     assert "planetarium" in json.dumps(memory_map(*brain, include_sensitive=True))
 
 

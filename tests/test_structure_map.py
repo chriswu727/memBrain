@@ -73,10 +73,15 @@ def test_sensitive_evidence_masks_assertions_episodes_patterns_and_sources(store
     masked = [node for node in result["nodes"] if node.get("masked")]
     assert {"assertion", "episode", "pattern"} <= {node["kind"] for node in masked}
     assert all(node["label"] == "Sensitive memory" and node["details"] == {} for node in masked)
+    assert all(node["recorded_at"] is None for node in result["nodes"] if node.get("sensitive"))
     assert next(node for node in result["nodes"] if node["id"] == "msg:" + sensitive)["label"] == "Sensitive memory"
     revealed = graph(store, include_sensitive=True)
     assert all(not node.get("masked") for node in revealed["nodes"])
     assert any(node["sensitive"] and node["kind"] == "assertion" for node in revealed["nodes"])
+    assert all(node["recorded_at"] is not None for node in revealed["nodes"]
+               if node.get("sensitive") and node["kind"] not in {"episode", "pattern"})
+    original = next(node for node in revealed["nodes"] if node["id"] == "msg:" + sensitive)
+    assert original["recorded_at"] == sources[0]["system_time"]["recorded_at"]
 
 
 @pytest.mark.parametrize("mode", ["erase_content", "suppress_recall"])

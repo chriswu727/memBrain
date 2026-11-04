@@ -25,7 +25,7 @@ class _Graph:
         self.nodes[ident] = {
             "id": ident, "kind": kind, "region": region,
             "label": "Sensitive memory" if masked else neutralize(" ".join(label.split()))[:80],
-            "recorded_at": recorded_at, "sensitive": sensitive, "masked": masked,
+            "recorded_at": None if masked else recorded_at, "sensitive": sensitive, "masked": masked,
             "details": {} if masked else details,
         }
         return ident
