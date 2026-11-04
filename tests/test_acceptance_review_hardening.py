@@ -370,9 +370,9 @@ def test_tally_refuses_an_actions_file_not_made_by_the_digest_command(pipeline, 
 REDO = "redo it once with a fresh, independent resolution reviewer"
 
 
-def rc2_clearing(pipeline, tmp_path, label, rc2=None, records=None, **extra):
+def rc2_clearing(pipeline, tmp_path, label, rc2=None, records=None, mapping=None, **extra):
     """Build the digest from the synthetic runs, then clear S01-case/<label>'s type 8 mark under RC2."""
-    scenario, review, blind, runs = companion_world(tmp_path, records=records)
+    scenario, review, blind, runs = companion_world(tmp_path, mapping, records=records)
     pipeline.actions_digest(review, blind, str(scenario), "practice", runs)
     change = {"remove": [8], "rules": {"8": "RC2"}, "reason": "RC2: see the basis", **extra}
     if rc2 is not None:
@@ -453,8 +453,28 @@ def test_a_content_ref_is_never_matched_across_replies(pipeline, tmp_path):
         rc2_clearing(pipeline, tmp_path, "C", {"basis": "not_removed", "content_ref": SUPPORT_E})
 
 
-def test_a_world_that_holds_only_messages_can_show_a_record_was_not_removed(pipeline, tmp_path):
-    row = rc2_clearing(pipeline, tmp_path, "B", {"basis": "not_removed", "kind": "feeling", "sources": VISA})  # B: F.
+SWAPPED = {"S01-case": {"A": "F", "B": "E", "C": "P"}, "S02-case": {"A": "P", "B": "E", "C": "F"}}
+
+
+@pytest.mark.parametrize("rc2", [{"basis": "not_removed", "kind": "feeling", "sources": VISA},
+                                 {"basis": "not_removed", "kind": "shared_moment", "sources": [[1, 1, "user"]]},
+                                 {"basis": "not_removed", "kind": "note", "sources": VISA},
+                                 {"basis": "not_removed", "content_ref": "content:" + "9" * 64}],
+                         ids=["feeling", "relationship", "note", "content"])
+@pytest.mark.parametrize("label, mapping", [("B", None), ("A", SWAPPED)], ids=["F is B", "F is A"])
+def test_not_removed_never_names_a_kind_the_reference_world_does_not_hold(pipeline, tmp_path, rc2, label, mapping):
+    """The reference arm holds only its conversation: a feeling, note or relationship identity there does not exist,
+    so it can never clear type 8. The refusal is the same whichever label is F and names no arm."""
+    with pytest.raises(SystemExit) as refused:
+        rc2_clearing(pipeline, tmp_path, label, rc2, mapping=mapping)
+    message = str(refused.value)
+    assert message == (f"invalid resolution: S01-case/{label}: RC2: this record kind does not exist in that reply's "
+                       f"world; {pipeline.REDO}")
+    assert not {"F", "P", "E", "arm", "reference"} & set(message.replace(":", " ").replace(";", " ").split())
+
+
+def test_not_removed_on_the_reference_world_may_name_a_message(pipeline, tmp_path):
+    row = rc2_clearing(pipeline, tmp_path, "B", {"basis": "not_removed", "kind": "message", "sources": VISA})  # B: F.
     assert row["resolved"] == []
 
 

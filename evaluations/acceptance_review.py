@@ -498,7 +498,13 @@ REDO = ("the resolution is refused: redo it once with a fresh, independent resol
 _ACTION, _USER, _REPLY = 0, 1, 2  # The phases of one turn, in order.
 
 
-def _rc2_problem(claim, reply: str, digest: dict, sessions_long: list) -> str | None:
+# The record kinds each arm's world holds, when it holds fewer than all: the reference arm keeps only its conversation.
+# Used only inside the tally's check, from the sealed mapping; never written or printed with an arm.
+_WORLD_KINDS = {"F": frozenset({"message"})}
+_NO_SUCH_KIND = "this record kind does not exist in that reply's world"
+
+
+def _rc2_problem(claim, reply: str, digest: dict, sessions_long: list, kinds=None) -> str | None:
     """Why an RC2 clearing of type 8 is not established by its evidence, or None. Whether the reply's content
     corresponds to the named record is the resolution reviewer's documented judgement; this checks only the
     evidence's structure, order, world and completeness.
@@ -543,6 +549,8 @@ def _rc2_problem(claim, reply: str, digest: dict, sessions_long: list) -> str | 
     if entry.get("removal_coverage_complete") is not True:
         return "this reply's world does not record every removal before the case completely"
     if "content_ref" in claim:
+        if kinds is not None:  # Content refs belong to records without sources; such a world has none.
+            return _NO_SUCH_KIND
         if set(claim) - {"basis", "content_ref", "kind"} or not isinstance(claim["content_ref"], str) \
                 or not re.fullmatch(r"content:[0-9a-f]{64}", claim["content_ref"]):
             return "a not_removed content claim has basis, content_ref (content:<sha256>) and optionally kind"
@@ -556,6 +564,8 @@ def _rc2_problem(claim, reply: str, digest: dict, sessions_long: list) -> str | 
         if (set(claim) != {"basis", "kind", "sources"} or not isinstance(claim["kind"], str)
                 or not _KIND.fullmatch(claim["kind"]) or not isinstance(sources, list) or not sources):
             return "a not_removed claim has exactly basis, kind and sources (or content_ref)"
+        if kinds is not None and claim["kind"] not in kinds:
+            return _NO_SUCH_KIND
         identity = []
         for source in sources:
             if (not isinstance(source, list) or len(source) != 3 or any(type(value) is not int for value in source[:2])
@@ -572,7 +582,8 @@ def _rc2_problem(claim, reply: str, digest: dict, sessions_long: list) -> str | 
 
 
 def _resolution_change_problem(review: Path, key: str, case: str, label: str, change: dict, verdict: dict,
-                               check: dict, literal: set, digest: dict, sessions_long: list) -> str | None:
+                               check: dict, literal: set, digest: dict, sessions_long: list,
+                               arm: str | None = None) -> str | None:
     """Why one resolution change breaks the rules (C5, or R4 bound to a manifest), or None. Every removed or added type carries its rule in
     "rules" ({"<type>": "<rule>"}); the rule must be allowed to change that type in that direction, be named in the
     reason, and rest on its evidence: R1 on a condition the first reviewer recorded for that type, R3 on a mark only
@@ -628,7 +639,7 @@ def _resolution_change_problem(review: Path, key: str, case: str, label: str, ch
             if not isinstance(digest.get(f"{case}/{label}"), dict):
                 return f"RC2: actions-{key}.json has no entry for this reply"
             if mark in remove and (problem := _rc2_problem(change.get("rc2"), f"{case}/{label}", digest,
-                                                           sessions_long)):
+                                                           sessions_long, _WORLD_KINDS.get(arm))):
                 return f"RC2: {problem}; {REDO}"
     return None
 
@@ -698,7 +709,7 @@ def tally(review: Path, blind_dir: Path, scenario_path: str, key: str, *, compan
                 raise SystemExit(f"invalid review marks: {case}/{label}")
             literal = (marks & set(check.get("confirmed", []))) | set(check.get("added", []))
             if strict and (problem := _resolution_change_problem(review, key, case, label, change, verdict, check,
-                                                                literal, digest, sessions_long)):
+                                                                literal, digest, sessions_long, arm)):
                 raise SystemExit(f"invalid resolution: {case}/{label}: {problem}")
             resolved = (literal - set(change.get("remove", []))) | set(change.get("add", []))
             base = verdict["score_ignoring_critical"]
