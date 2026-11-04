@@ -27,14 +27,14 @@ def wall_clock_after(monkeypatch):
     evaluation_clock.disable()
 
 
-def profile(tmp_path, name="installation") -> Path:
+def profile(tmp_path, name="installation", *, database_engine="docker") -> Path:
     directory = tmp_path / name
-    ensure_profile(directory)
+    ensure_profile(directory, database_engine=database_engine)
     return directory
 
 
-def evaluation_profile(tmp_path, monkeypatch, when="2026-03-03T21:00:00Z") -> Path:
-    directory = profile(tmp_path)
+def evaluation_profile(tmp_path, monkeypatch, when="2026-03-03T21:00:00Z", *, database_engine="docker") -> Path:
+    directory = profile(tmp_path, database_engine=database_engine)
     evaluation_clock.mark_disposable(directory)
     evaluation_clock.advance(directory, at(when))
     monkeypatch.setenv(ENV, str(directory / CLOCK))
@@ -157,7 +157,7 @@ def service(tmp_path, monkeypatch):
         pytest.skip("embedded PostgreSQL binaries are not installed")
     monkeypatch.setenv("MEMBRAIN_SEMANTIC", "0")
     monkeypatch.setenv("PYTHON_DOTENV_DISABLED", "1")
-    directory = evaluation_profile(tmp_path, monkeypatch)
+    directory = evaluation_profile(tmp_path, monkeypatch, database_engine="embedded")
     try:
         yield directory
     finally:
