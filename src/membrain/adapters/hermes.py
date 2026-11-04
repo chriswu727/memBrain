@@ -104,7 +104,6 @@ class MembrainProvider(_Base):
         self._hermes_home: Path | None = None
         self._session = ""
         self._writes = True
-        self._block = None
         self._user: str | None = None  # None: the owner
 
     @property
@@ -135,13 +134,11 @@ class MembrainProvider(_Base):
     def system_prompt_block(self) -> str:
         if self._directory is None:
             return ""
-        if self._block is None:
-            if self._writes and self._user is None:
-                self._import_user_file()  # USER.md describes the owner, so it only goes into the owner's memory.
-            # Hermes puts its own USER.md and MEMORY.md in the prompt, so notes copied from them are not repeated.
-            self._block = host.session_context(self._directory, self._session, tools=TOOLS,
-                                               skip_imports_from=("hermes",), user_id=self._user)
-        return self._block
+        if self._writes and self._user is None:
+            self._import_user_file()  # USER.md describes the owner, so it only goes into the owner's memory.
+        # Hermes puts its own USER.md and MEMORY.md in the prompt, so notes copied from them are not repeated.
+        return host.session_context(self._directory, self._session, tools=TOOLS,
+                                    skip_imports_from=("hermes",), user_id=self._user)
 
     def _import_user_file(self) -> None:
         """Copy entries of Hermes's USER.md that memBrain does not have yet, once per change of the file."""
@@ -183,8 +180,6 @@ class MembrainProvider(_Base):
     def on_session_switch(self, new_session_id: str, *, parent_session_id: str = "", reset: bool = False,
                           rewound: bool = False, **kwargs) -> None:
         self._session = new_session_id or self._session
-        if reset:
-            self._block = None
 
     def get_tool_schemas(self) -> list[dict[str, Any]]:
         return list(_SCHEMAS)
@@ -218,7 +213,6 @@ class MembrainProvider(_Base):
                     return json.dumps({"context": found or "No matching records."}, ensure_ascii=False)
                 if tool_name == "membrain_boundary":
                     result = client.add_boundary(args.get("topic", ""), args.get("aliases") or ())
-                    self._block = None
                     return json.dumps({"boundaries": result.get("boundaries", [])}, ensure_ascii=False)
         except ValueError as error:
             return json.dumps({"error": str(error)})

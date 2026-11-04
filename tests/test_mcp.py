@@ -41,6 +41,8 @@ def test_protocol_initialize_list_call_and_bound_identity():
         assert request.headers["Authorization"] == "Bearer process-key"
         if request.url.path == "/v1/capabilities":
             return httpx.Response(200, json={"service": "available"})
+        if request.url.path.endswith("/relationship"):
+            return httpx.Response(200, json={"boundaries": []})
         payload = json.loads(request.content)
         calls.append(payload)
         return httpx.Response(200, json=response_for(payload))
@@ -91,8 +93,34 @@ def test_protocol_initialize_list_call_and_bound_identity():
     asyncio.run(run())
 
 
+@pytest.mark.parametrize("failure", ["status", "timeout"])
+def test_relationship_read_failure_is_a_tool_error_without_recalled_context(failure):
+    recalls = []
+
+    def handle(request):
+        if request.url.path.endswith("/relationship"):
+            if failure == "timeout":
+                raise httpx.ReadTimeout("relationship unavailable", request=request)
+            return httpx.Response(503, json={"error": "unavailable"})
+        recalls.append(request)
+        return httpx.Response(200, json=response_for(json.loads(request.content)))
+
+    async def run():
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+            async with create_connected_server_and_client_session(create_server(client)) as session:
+                result = await session.call_tool("memory_recall", {"query": "hiking plans"})
+                assert result.isError
+                assert result.structuredContent is None
+                assert "compact-memory-v1" not in "".join(item.text for item in result.content)
+
+    asyncio.run(run())
+    assert recalls == []
+
+
 def test_protocol_failure_is_tool_error():
     def handle(request):
+        if request.url.path.endswith("/relationship"):
+            return httpx.Response(200, json={"boundaries": []})
         incoming = json.loads(request.content)
         response = response_for(incoming)
         response.pop("result")
@@ -114,6 +142,16 @@ def test_stdio_subprocess_handshake_and_http_roundtrip():
     calls = []
 
     class Handler(BaseHTTPRequestHandler):
+        def do_GET(self):
+            assert self.headers["Authorization"] == "Bearer stdio-key"
+            assert self.path == "/v1/brains/stdio-brain/relationship"
+            data = json.dumps({"boundaries": []}).encode()
+            self.send_response(200)
+            self.send_header("Content-Type", "application/json")
+            self.send_header("Content-Length", str(len(data)))
+            self.end_headers()
+            self.wfile.write(data)
+
         def do_POST(self):
             assert self.headers["Authorization"] == "Bearer stdio-key"
             incoming = json.loads(self.rfile.read(int(self.headers["Content-Length"])))

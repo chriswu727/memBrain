@@ -23,7 +23,7 @@ def test_openclaw_plugin_through_the_real_runtime(tmp_path, monkeypatch):
         result = subprocess.run(["node", "--test", "--test-reporter=tap", "membrain.test.js"], cwd=PLUGIN, env=environment,
                                 capture_output=True, text=True, timeout=300)
         assert result.returncode == 0, result.stdout + result.stderr
-        assert "# pass 7" in result.stdout and "# skipped 0" in result.stdout
+        assert "# pass 8" in result.stdout and "# skipped 0" in result.stdout
     finally:
         try:
             desktop.stop(directory)

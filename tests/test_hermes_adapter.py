@@ -57,6 +57,15 @@ def provider(tmp_path, monkeypatch, client, **kwargs):
     return instance
 
 
+def test_page_deletion_is_reflected_when_the_host_requests_its_block_again(tmp_path, monkeypatch):
+    client = Client(notes=[{"event_id": "n1", "text": "Jordan and the user hiked together.",
+                            "actor_role": "assistant", "recorded_at": "2026-04-01T00:00:00Z"}])
+    instance = provider(tmp_path, monkeypatch, client)
+    assert "Jordan" in instance.system_prompt_block()
+    client.forgotten.append("n1")
+    assert "Jordan" not in instance.system_prompt_block()
+
+
 def test_register_hands_hermes_a_new_provider_each_time():
     registered = []
 
@@ -89,7 +98,7 @@ def test_a_turn_is_recalled_before_and_stored_after_the_reply(tmp_path, monkeypa
     instance = provider(tmp_path, monkeypatch, client, agent_context="primary")
     block = instance.system_prompt_block()
     assert "membrain_note tool" in block and "membrain_pause" in block and "Mom uses a walker. (id: n1)" in block
-    assert instance.system_prompt_block() is block  # Static for the session, as Hermes expects.
+    assert instance.system_prompt_block() == block
     instance.prefetch("Plan Sunday dinner for Mom.", session_id="h1")
     assert client.observed == []
     instance.sync_turn("Plan Sunday dinner for Mom.", "A seated menu.", session_id="h1")

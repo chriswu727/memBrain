@@ -28,6 +28,16 @@ test("the plugin registers its hooks and tools", () => {
   assert.deepEqual(tools, ["membrain_note", "membrain_search", "membrain_boundary", "membrain_pause", "membrain_resume"]);
 });
 
+test("a page edit replaces the context on the next prompt of the same session", async () => {
+  let block = "Jordan and the user hiked together.";
+  const memory = createMembrain({ exec: async (args) => JSON.stringify(args[1] === "session-start"
+    ? { hookSpecificOutput: { additionalContext: block } } : {}) });
+  const ctx = { sessionId: "same-session" };
+  assert.match((await memory.beforePromptBuild({ prompt: "hello" }, ctx)).appendSystemContext, /Jordan/);
+  block = "The earlier memory was removed in the memory page.";
+  assert.doesNotMatch((await memory.beforePromptBuild({ prompt: "hello again" }, ctx)).appendSystemContext, /Jordan/);
+});
+
 test("only the owner's private chats use the owner's memory", () => {
   assert.equal(memoryUser({ memoryAudience: { kind: "owner-private", agentId: "main" }, senderId: "42" }), null);
   assert.equal(memoryUser({ memoryAudience: { kind: "conversation", agentId: "main", sessionKey: "agent:main:telegram:group:7",

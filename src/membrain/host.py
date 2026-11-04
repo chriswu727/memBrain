@@ -858,11 +858,8 @@ def _relationship(client) -> dict | None:
 
 
 def _boundaries(client) -> list[dict]:
-    """Best effort for callers without a snapshot: a failed read shows recall as before rather than nothing."""
-    try:
-        return list((_relationship(client) or {}).get("boundaries") or [])
-    except Exception:
-        return []
+    """Only a missing older route permits recall without boundaries; other read failures must stop recall."""
+    return list((_relationship(client) or {}).get("boundaries") or [])
 
 
 def _acknowledge(client, current: dict | None) -> None:
@@ -1336,17 +1333,15 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
                 _acknowledge(client, current)  # This block is returned below, so its one-time lines are shown.
             except Exception as error:
                 log(directory, f"notes failed: {type(error).__name__}")
-            try:
-                # Notice and history header take about 1,000 characters of the host's limit.
-                # Room for the longest notice, the history block's header and the separators between blocks.
-                reserved = max(len(_session_notice(value, tools, True, roleplay)) for value in (True, False)) + 400
-                budget = min(HISTORY_CHARACTERS, SESSION_CONTEXT_CHARACTERS - reserved) - len(
-                    current["text"] if current else "")
-                boundaries = (current or {}).get("boundaries")
-                history, complete = _history(client, session, budget,
-                                             **({"boundaries": boundaries} if boundaries else {}))
-            except Exception as error:
-                log(directory, f"timeline failed: {type(error).__name__}")
+            if current is not None:
+                try:
+                    # Notice and history header take about 1,000 characters of the host's limit.
+                    # Room for the longest notice, the history block's header and the separators between blocks.
+                    reserved = max(len(_session_notice(value, tools, True, roleplay)) for value in (True, False)) + 400
+                    budget = min(HISTORY_CHARACTERS, SESSION_CONTEXT_CHARACTERS - reserved) - len(current["text"])
+                    history, complete = _history(client, session, budget, boundaries=current["boundaries"])
+                except Exception as error:
+                    log(directory, f"timeline failed: {type(error).__name__}")
     _mark_history(directory, session, complete and history is not None, client.brain_id)
     if current is not None:
         _remember_context(directory, session, client.brain_id, current, options)
