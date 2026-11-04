@@ -969,8 +969,6 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 record["result"]["removed_records"] = removed
                 record["result"]["removed_records_complete"] = all(entry["established"] for entry in removed)
                 record["time"] = memory.now()
-                if chat is not None:
-                    chat._forget_blocks(memory.user)  # The next message reads the page's change.
             else:
                 if action["do"] in DELETES_MESSAGES:
                     action = {**action, "removed": removed_in_p(out, action, deletions)}
