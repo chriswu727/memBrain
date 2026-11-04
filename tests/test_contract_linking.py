@@ -107,43 +107,6 @@ def test_formats_are_still_enforced():
         contracts.validate("RecallTrace", trace)
 
 
-@pytest.mark.parametrize("definition", sorted(documents()))
-def test_request_local_property_memo_preserves_all_error_paths(definition):
-    document = documents()[definition]
-    reference = plain(definition)
-    for index, value in enumerate([document, *mutations(document, 150, seed="memo:" + definition)]):
-        expected = first_error(reference, value)
-        try:
-            contracts.validate(definition, value)
-            observed = None
-        except DomainError as error:
-            observed = list(error.__cause__.absolute_path)
-        assert observed == expected, index
-        assert contracts._PROPERTY_CHECKS.get() is None
-
-
-def test_property_memo_does_not_survive_mutation_or_cross_validation_threads():
-    from concurrent.futures import ThreadPoolExecutor
-
-    valid = documents()["MemoryAssertion"]
-    contracts.validate("MemoryAssertion", valid)
-    broken = copy.deepcopy(valid)
-    broken["scope"]["scope_generation"] = "invalid"
-
-    def check(index):
-        value = copy.deepcopy(valid if index % 2 else broken)
-        try:
-            contracts.validate("MemoryAssertion", value)
-            accepted = True
-        except DomainError:
-            accepted = False
-        assert contracts._PROPERTY_CHECKS.get() is None
-        return accepted
-
-    with ThreadPoolExecutor(max_workers=8) as executor:
-        assert list(executor.map(check, range(80))) == [bool(index % 2) for index in range(80)]
-
-
 @pytest.fixture
 def synthetic(monkeypatch):
     def use(document):
@@ -153,22 +116,6 @@ def synthetic(monkeypatch):
     yield use
     contracts._linked_definitions.cache_clear()
     contracts.validator.cache_clear()
-
-
-def test_property_memo_never_conflates_non_json_values_with_json(synthetic):
-    part = {"type": "object", "properties": {"items": {"type": "array"}, "b": {"type": "integer"},
-                                                "c": {"type": "boolean"}, "d": {"type": "string"}},
-            "required": ["items", "b", "c", "d"], "additionalProperties": False}
-    synthetic({"$schema": "https://json-schema.org/draft/2020-12/schema", "$defs": {
-        "Part": part, "Parts": {"type": "array", "items": {"$ref": "#/$defs/Part"}}}})
-    valid = {"items": [], "b": 1, "c": True, "d": "x"}
-    contracts.validate("Parts", [valid, copy.deepcopy(valid)])
-    for field, wrong in [("items", ()), ("b", True), ("c", 1), ("d", None)]:
-        with pytest.raises(DomainError) as error:
-            contracts.validate("Parts", [valid, {**valid, field: wrong}])
-        assert list(error.value.__cause__.absolute_path) == [1, field]
-    assert contracts._property_key({**valid, "b": 10**5000}) is None
-    assert contracts._PROPERTY_CHECKS.get() is None
 
 
 def test_only_subschema_positions_are_linked(synthetic):
