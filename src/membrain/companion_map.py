@@ -5,7 +5,7 @@ from collections import deque
 
 from . import affect, mood, persona, persona_growth, relationship
 from .helpers import DomainError, now
-from .memory_map import REGIONS
+from .memory_map import REGIONS, sensitive_note_ids
 from .notes import NOTES_CONVERSATION, parse_note
 from .privacy import neutralize
 
@@ -16,7 +16,7 @@ class _Graph:
         self.nodes, self.edges, self.seen = {}, [], set()
         self.truncated = False
 
-    def node(self, ident, kind, region, label, recorded_at=None, *, sensitive=False, **details):
+    def node(self, ident, kind, region, label, recorded_at=None, *, sensitive=False, masked=False, **details):
         if ident in self.nodes:
             return ident
         if len(self.nodes) >= max(100, self.max_nodes * 8):
@@ -24,9 +24,9 @@ class _Graph:
             return None
         self.nodes[ident] = {
             "id": ident, "kind": kind, "region": region,
-            "label": "Sensitive memory" if sensitive else neutralize(" ".join(label.split()))[:80],
-            "recorded_at": recorded_at, "sensitive": sensitive,
-            "details": {} if sensitive else details,
+            "label": "Sensitive memory" if masked else neutralize(" ".join(label.split()))[:80],
+            "recorded_at": recorded_at, "sensitive": sensitive, "masked": masked,
+            "details": {} if masked else details,
         }
         return ident
 
@@ -143,8 +143,10 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
     ).fetchall() if requested else []
     graph.truncated |= len(rows) > graph.max_nodes or len(versions) > graph.max_nodes
     rows = {row["id"]: row for row in rows[:graph.max_nodes]}
+    protected_notes = sensitive_note_ids(conn, params, [row["id"] for row in rows.values()
+                                                       if row["conversation_id"] == NOTES_CONVERSATION])
     hidden = set()
-    if rows and not include_sensitive:
+    if rows:
         hidden = {row["input_event_id"] for row in conn.execute(
             "SELECT DISTINCT d.input_event_id FROM memory_event_dependencies d "
             "JOIN memory_events n ON n.tenant_id=d.tenant_id AND n.owner_id=d.owner_id "
@@ -165,12 +167,13 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
         if not is_note and row["actor_role"] != "user":
             return None
         fields, text = parse_note(row["text"] or "") if is_note else ({}, row["text"] or "")
-        masked = not include_sensitive and (ident in hidden or fields.get("sensitive", False))
+        private = bool(ident in hidden or ident in protected_notes or fields.get("sensitive", False))
         return graph.node(("note:" if is_note else "msg:") + ident,
                           fields.get("kind", "other") if is_note else "message",
                           ("relationship" if fields.get("shared") else REGIONS.get(fields.get("kind"), "other"))
                           if is_note else "episodes", text, row["recorded_at"],
-                          sensitive=masked, event_id=ident, revision=row["revision"],
+                          sensitive=private, masked=private and not include_sensitive,
+                          event_id=ident, revision=row["revision"],
                           actor_role=row["actor_role"], status=fields.get("status"),
                           due=fields.get("due"), occurs_at=fields.get("occurs_at"))
 
@@ -181,10 +184,11 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
     persona_ids = {}
     for version in versions[:graph.max_nodes]:
         feedback = version.get("feedback") or {}
-        masked = not include_sensitive and bool(set(feedback.get("source_event_ids", [])) & hidden)
+        private = bool(set(feedback.get("source_event_ids", [])) & hidden)
         ident = graph.node("persona:" + version["event_id"], "persona", "persona",
                            f"Personality v{version['version']}: {version['card'].get('name') or 'Companion'}",
-                           version["recorded_at"], sensitive=masked, event_id=version["event_id"],
+                           version["recorded_at"], sensitive=private, masked=private and not include_sensitive,
+                           event_id=version["event_id"],
                            version=version["version"], made_by=version["made_by"], action=version["action"],
                            text=persona.render_card(version["card"]))
         persona_ids[version["version"]] = ident
@@ -198,9 +202,10 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
                        "restored_from", "persona_restore")
 
     for proposal in proposals:
-        masked = not include_sensitive and any(source["event_id"] in hidden for source in proposal["sources"])
+        private = any(source["event_id"] in hidden for source in proposal["sources"])
         ident = graph.node("proposal:" + proposal["id"], "persona_proposal", "persona", proposal["label"],
-                           proposal["proposed_at"], sensitive=masked, event_id=proposal["id"],
+                           proposal["proposed_at"], sensitive=private, masked=private and not include_sensitive,
+                           event_id=proposal["id"],
                            status=proposal["status"], version=proposal["version"], decided_at=proposal["decided_at"],
                            withdrawn_because=proposal["withdrawn_because"])
         for source in proposal["sources"]:
@@ -213,24 +218,25 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
 
     for trigger in current_mood["triggers"]:
         source = trigger["source"]
-        masked = False
+        private = False
         if source["kind"] == "affect":
             record = feelings.get(source["id"])
             if record is None:
                 continue
-            masked = not include_sensitive and (record["sensitive"]
-                                                 or bool(set(record["source_event_ids"]) & hidden))
+            private = (record["sensitive"] or record["note_id"] in protected_notes
+                       or bool(set(record["source_event_ids"]) & hidden))
             source_id = graph.node("affect:" + record["id"], "affect", "emotions", record["label"],
-                                   record["recorded_at"], sensitive=masked, basis=record["basis"],
+                                   record["recorded_at"], sensitive=private, masked=private and not include_sensitive,
+                                   basis=record["basis"],
                                    event_id=record["id"])
             graph.edge(source_id, event(record["note_id"]), "feeling_of", "affect_note_id")
         else:
             source_id = event(source["id"])
-            masked = bool(source_id and graph.nodes[source_id]["sensitive"])
+            private = bool(source_id and graph.nodes[source_id]["sensitive"])
         if not source_id:
             continue
         ident = graph.node("trigger:" + trigger["id"], "mood_trigger", "mood", trigger["rule"], trigger["at"],
-                           sensitive=masked,
+                           sensitive=private, masked=private and not include_sensitive,
                            rule=trigger["rule"], status=trigger["status"], reason=neutralize(trigger["reason"]),
                            ended_at=trigger["ended_at"])
         graph.edge(ident, source_id, "triggered_by", "mood_rule_source")
@@ -253,7 +259,7 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
     for group, commitments_in_group in commitments.items():
         for commitment in commitments_in_group:
             ident = event(commitment["note_id"])
-            if ident and not graph.nodes[ident]["sensitive"]:
+            if ident and not graph.nodes[ident]["masked"]:
                 graph.nodes[ident]["details"]["commitment_state"] = group
     for dependency in dependencies:
         target = event(dependency["input_event_id"])

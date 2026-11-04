@@ -114,6 +114,18 @@ def test_erased_sources_and_superseded_notes_disappear_without_a_cache(brain):
     assert {"msg:" + source, "note:" + old, "note:" + current}.isdisjoint(ids)
 
 
+def test_sensitive_evidence_is_not_repeated_by_another_note_or_its_feeling(brain):
+    source = say(brain, "My private planetarium appointment makes me nervous.")
+    note(brain, "Private planetarium appointment.", kind="constraint", sensitive=True, source_event_ids=[source])
+    dependent = note(brain, "The planetarium appointment.", kind="plan", source_event_ids=[source],
+                     affect={"label": "planetarium nerves", "basis": "reported", "valence": -1,
+                             "intensity": 2, "felt_at": "2026-11-03", "topic": "planetarium"})
+    hidden = memory_map(*brain)
+    assert "planetarium" not in json.dumps(hidden)
+    assert next(node for node in hidden["nodes"] if node["id"] == "note:" + dependent)["sensitive"]
+    assert "planetarium" in json.dumps(memory_map(*brain, include_sensitive=True))
+
+
 def test_sensitive_source_stays_masked_when_its_note_is_outside_the_sample(brain):
     source = say(brain, "A private appointment.")
     note(brain, "A private appointment.", kind="constraint", sensitive=True, source_event_ids=[source])

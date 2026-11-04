@@ -52,6 +52,25 @@ def _label(text):
     return neutralize(" ".join(text.split()))[:80]
 
 
+def sensitive_note_ids(conn, params, note_ids):
+    if not note_ids:
+        return set()
+    return {row["output_event_id"] for row in conn.execute(
+        "SELECT DISTINCT own.output_event_id FROM memory_event_dependencies own "
+        "JOIN memory_event_dependencies marked ON marked.tenant_id=own.tenant_id "
+        "AND marked.owner_id=own.owner_id AND marked.brain_id=own.brain_id "
+        "AND marked.input_event_id=own.input_event_id "
+        "JOIN memory_events n ON n.tenant_id=marked.tenant_id AND n.owner_id=marked.owner_id "
+        "AND n.brain_id=marked.brain_id AND n.id=marked.output_event_id "
+        "WHERE own.tenant_id=%s AND own.owner_id=%s AND own.brain_id=%s "
+        "AND own.output_event_id=ANY(%s::text[]) AND n.is_current AND NOT n.deleted "
+        "AND NOT n.suppressed AND NOT n.retired AND n.document IS NOT NULL AND n.conversation_id=%s "
+        "AND left(n.document->'observed'->'content'->>'text',1)='[' AND ("
+        "split_part(n.document->'observed'->'content'->>'text','] ',1) LIKE '%% · sensitive' OR "
+        "split_part(n.document->'observed'->'content'->>'text','] ',1) LIKE '%% · sensitive · %%')",
+        (*params, list(note_ids), NOTES_CONVERSATION)).fetchall()}
+
+
 def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, include_sensitive=False,
                trace: dict | None = None):
     """Return a bounded sample; region counts describe the sample, not the entire brain.
@@ -151,10 +170,11 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
                 "split_part(n.document->'observed'->'content'->>'text','] ',1) LIKE '%% · sensitive · %%')",
                 (*params, [row["id"] for row in chosen_messages], NOTES_CONVERSATION),
             )}
+        hidden_notes = sensitive_note_ids(conn, params, note_ids)
     result = _project(brain_id, chosen_notes, chosen_messages, links, hidden_sources, feelings,
                       max_nodes=max_nodes, max_edges=max_edges, include_sensitive=include_sensitive,
                       truncated=(len(notes) > len(chosen_notes) or len(recent) > len(chosen_messages)
-                                 or len(links) >= max_edges + max_nodes + 1))
+                                 or len(links) >= max_edges + max_nodes + 1), hidden_notes=hidden_notes)
     if trace is not None:
         shown = {row["id"] for row in traced} & {node["id"].split(":", 1)[1] for node in result["nodes"]}
         for node in result["nodes"]:
@@ -164,11 +184,11 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
 
 
 def _project(brain_id, notes, messages, links, hidden_sources, feelings=(), *, max_nodes, max_edges,
-             include_sensitive, truncated):
+             include_sensitive, truncated, hidden_notes=()):
     nodes, fields_by_id = [], {}
     for row in notes:
         fields, text = parse_note(row["text"] or "")
-        sensitive = bool(fields.get("sensitive"))
+        sensitive = bool(fields.get("sensitive")) or row["id"] in hidden_notes
         masked = sensitive and not include_sensitive
         kind = fields.get("kind", "other")
         fields_by_id[row["id"]] = {} if masked else fields
@@ -180,7 +200,7 @@ def _project(brain_id, notes, messages, links, hidden_sources, feelings=(), *, m
                       "date": None if masked else fields.get("due") or fields.get("occurs_at"),
                       "sensitive": sensitive, "recorded_at": row["recorded_at"],
                       "weight": 1.0 if fields.get("pinned") else 0.5})
-    masked_notes = {row["id"] for row in notes if parse_note(row["text"] or "")[0].get("sensitive")}
+    masked_notes = {row["id"] for row in notes if parse_note(row["text"] or "")[0].get("sensitive")} | set(hidden_notes)
     for record in feelings:
         masked = record["note_id"] in masked_notes and not include_sensitive
         label = record["label"] + (f" · {record['topic']}" if record["topic"] else "")

@@ -12,6 +12,8 @@ Help your agent carry useful memories across conversations—with layered recall
 
 *The working brain view, using fictional demo data. Open `membrain plugin ui`, choose Brain, then Showcase. Dots represent memories and lines represent recorded links; the brain shape and glow are illustrative.*
 
+The pre-release source also has a read-only [companion graph API](docs/reference.md): personality versions and explicit feedback, proposal decisions, simulated mood with its source evidence, relationship settings, shared moments and commitment states. Its bounded graph preserves ownership, sensitivity and deletion rules. The 3D renderer and complete learned-memory projection are still in development; this backend is not yet connected to the pictured view, and final acceptance has not passed.
+
 memBrain runs as a local service. Connect your agent's conversation lifecycle once, and the runtime captures messages, prepares relevant memory before replies, and learns in the background. The agent keeps the same brain across process restarts and changes to its configured reply model.
 
 [Claude Code plugin](#claude-code-plugin) · [Why memBrain](#why-membrain) · [Quickstart](#quickstart) · [Python integration](#python-integration) · [How memory works](#how-memory-works) · [Status and verification](#status-and-verification) · [Full reference](docs/reference.md)

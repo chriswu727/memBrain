@@ -12,6 +12,8 @@ memBrain 原名 Agent Memory。已有的安装、数据目录和 `agent_memory` 
 
 *实际运行的大脑视图，使用虚构演示数据。运行 `membrain plugin ui`，选择“大脑”，再打开“展示”。光点代表记忆，连线代表已记录的关联；脑形和发光是示意装饰。*
 
+预发布源码还提供只读的[养成图谱 API](docs/reference.md)：展示人格版本与明确反馈、建议的接受或拒绝、带来源依据的模拟心情，以及关系设置、共同经历和承诺状态。图谱有明确的数量上限，并遵守归属、敏感信息和删除规则。3D 渲染器及完整的学习记忆映射仍在开发；这个后端尚未接入上图，最终验收也尚未通过。
+
 memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后，运行时会自动捕获消息，在回复前准备相关记忆，并在后台学习。进程重启或切换已配置的回复模型后，Agent 仍使用同一个大脑。
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
