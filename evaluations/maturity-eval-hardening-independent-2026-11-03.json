@@ -1,0 +1,29 @@
+{
+  "eval_source": "857f9c54380bc34fde7d90c998ecf635595baadf",
+  "runtime_source": "8dc0ac3627bac741be740c95e67e5407af0a3f28",
+  "files": {
+    "evaluations/acceptance-attempt-driver.py": "2babb22a05d43717843c5491a70d2d90a671b4d54280244667a511d4bc440117",
+    "evaluations/acceptance_review.py": "45a483b20f712b4a38fbab70b31d5d6321354847e15b5de55e9449fc97b3dd40",
+    "evaluations/c5-harness.py": "54ff5d48bd1601edb9132a44a4a1353357e586ff7b3a568fec4145bc1b7b1f41",
+    "evaluations/c5-practice-scenario.py": "ed6b1dd666a6a7a6ca0f2328701dbb4f660141019c54bd9fe883d8eb217c7b03",
+    "evaluations/c5-dry-run-check.py": "46cfb8c020a5f61e38e54df91b59bb8c54c180e31cb3c16515560b9852f7c9f1",
+    "evaluations/c5-precheck.py": "e72d0dadcc21a07642f8b40448c2d6245795f24f1f899d540ed759536113a4f1",
+    "evaluations/evaluation_budget.py": "072d044ed23134e18ef0ae84abf71d2151e7f81fc0a37c97450ccd7c1c7e2cd7",
+    "tests/test_c5_harness_hardening.py": "984cd9ea5bed56fb4363ffd1f36378b3a88df86f2cc0ac6eb05885eeb251381d",
+    "tests/test_acceptance_review_hardening.py": "82b358ce605247b19d84e2691d8febc4bdfb6e85ab4fb7ca963ea4ef50acb6de",
+    "tests/test_acceptance_attempt_driver.py": "9e688c69a28a9ea7f0dccf225785f8e1f95ecb0df84ec26b835c15f68295b532",
+    "evaluations/acceptance-review/companion.md": "0cc0116fa02d4e2c360877ab902c3e2fff5abb3deb882e37fbc20b51f4ad6f5a",
+    "plugins/membrain/skills/membrain/SKILL.md": "12ae207a0941d62db484d1eeedd3df32e53b317cd515c208026465fad48b463a"
+  },
+  "scope": "Selected public synthetic tests only; no held-out scenario copied or opened, no real model call.",
+  "passed": 337,
+  "failed": 0,
+  "skipped": 0,
+  "elapsed_seconds": 32.44,
+  "first_invocation": {
+    "passed": 329,
+    "failed": 8,
+    "reason": "The isolated snapshot omitted the public runbook and plugin skill fixtures. Added only those dependencies, unchanged tests and code, then reran."
+  },
+  "integration_status": "not integrated; scoped independent synthetic tests only, not final plan approval or real-model acceptance"
+}

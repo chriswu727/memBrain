@@ -1,0 +1,31 @@
+{
+  "source_commit": "8dc0ac3627bac741be740c95e67e5407af0a3f28",
+  "runtime_pin": "5d0475d4e318a224bdfab7921eb75b209e42d80e",
+  "workflow_run_id": 41764568355,
+  "job_id": 126360097339,
+  "url": "https://github.com/chriswu727/memBrain/actions/runs/41764568355",
+  "conclusion": "success",
+  "pytest": {
+    "passed": 6579,
+    "skipped": 6,
+    "warnings": 1,
+    "elapsed_seconds": 937.07,
+    "skipped_cases": [
+      "tests/test_desktop_e2e.py::test_cold_start_concurrent_connect_restart_and_mcp_preserve_one_brain SKIPPED [ 38%]",
+      "tests/test_desktop_recovery_e2e.py::test_full_streamed_backup_restores_current_deletions_and_requires_explicit_epoch SKIPPED [ 39%]",
+      "tests/test_desktop_upgrade_e2e.py::test_independent_builds_detect_staleness_upgrade_and_reject_downgrade_without_data_loss SKIPPED [ 40%]",
+      "tests/test_local_embeddings.py::test_real_model_matches_across_languages_and_paraphrase SKIPPED [ 68%]",
+      "tests/test_model_activation.py::test_model_activation_never_interrupts_requests_in_flight SKIPPED [ 74%]",
+      "tests/test_standalone_chat_e2e.py::test_chat_processes_recall_restart_deduplicate_and_block_unknown_generation SKIPPED [ 96%]"
+    ]
+  },
+  "typescript": {
+    "passed": 44,
+    "failed": 0,
+    "strict_typecheck": "passed"
+  },
+  "build": {
+    "sdist": "passed",
+    "wheel": "passed"
+  }
+}
