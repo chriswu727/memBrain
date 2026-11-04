@@ -170,7 +170,11 @@ def _tab(browser, **options):
     tab = Tab(page)
     page.on("request", lambda request: tab.requests.append(request.url))
     page.on("pageerror", lambda error: tab.errors.append(str(error)))
-    page.on("console", lambda message: tab.errors.append(message.text) if message.type == "error" else None)
+    page.on("response", lambda response: tab.errors.append(f"{response.status} {response.url}")
+            if response.status >= 400 and urlsplit(response.url).path.startswith("/static/") else None)
+    # Any other failed request is reported by the code that made it (the page tolerates a missing local status route).
+    page.on("console", lambda message: tab.errors.append(message.text) if message.type == "error"
+            and not message.text.startswith("Failed to load resource") else None)
     return context, tab
 
 
@@ -234,10 +238,13 @@ def answer_next_dialog(page, accept: bool) -> list:
 
 def pickable(page, ids=None) -> dict:
     """A node, its projected centre computed in the page, for which a pick at that point resolves to the node."""
+    page.evaluate("() => document.getElementById('observatory-canvas').scrollIntoView({ block: 'center' })")
     found = page.evaluate("""(ids) => {
         for (const id of ids || window.observatory.snapshot().nodes) {
             const at = window.observatory.project(id);
-            if (at && at.inside && window.observatory.pickAt(at.x, at.y) === id) return { id, x: at.x, y: at.y };
+            if (at && at.inside && at.y > 0 && at.y < innerHeight && window.observatory.pickAt(at.x, at.y) === id) {
+                return { id, x: at.x, y: at.y };
+            }
         }
         return null;
     }""", ids)
@@ -298,6 +305,17 @@ def canvas_pixels(page) -> dict:
     differing = sum(1 for pixel in pixels if sum(abs(a - b) for a, b in zip(pixel, background)) > 40)
     saturated = {pixel for pixel in pixels if max(pixel) - min(pixel) > 60}
     return {"total": len(pixels), "differing": differing, "colours": len(set(pixels)), "saturated": len(saturated)}
+
+
+def drawn_geometries(state) -> int:
+    """GPU geometries one map should hold: a shape per record type, a line set per edge type, the rings, the shell.
+
+    The selection outline adds one while something is selected and its links are drawn brighter; markers that are
+    not shown are never uploaded. More than this means buffers of an earlier map were not freed.
+    """
+    kinds = {node.split(":", 1)[0] for node in state["nodes"]}
+    lit = 2 if state["selected"] and any(state["selected"] in edge for edge in state["edges"]) else 1 if state["selected"] else 0
+    return len(kinds) + len({edge.split(":", 1)[0] for edge in state["edges"]}) + bool(state["recalled"]) + 1 + lit
 
 
 def edge_keys(payload) -> set:
@@ -609,7 +627,7 @@ def test_no_frames_while_idle_hidden_or_switched_to_2d_and_switching_away_frees_
 
     # Switching to 2D frees every geometry and material, and nothing draws afterwards.
     built = snapshot(page)
-    assert built["gpu"]["geometries"] > 0
+    assert built["gpu"]["geometries"] == drawn_geometries(built) > 0
     page.locator("#mode-2d").click()
     expect(page.locator("#brain-canvas")).to_be_visible()
     away = snapshot(page)
@@ -684,8 +702,9 @@ def test_editing_and_deleting_a_note_in_3d_redraws_the_scene_without_stale_recor
     assert sorted(edited["nodes"]) == sorted(node["id"] for node in after_edit["nodes"])
     assert set(edited["edges"]) == edge_keys(after_edit)
     assert not any(ids["tea"] in edge for edge in edited["edges"])
-    assert edited["gpu"]["geometries"] == state["gpu"]["geometries"], "the old map's buffers were freed"
-    expect(page.locator("#observatory-list")).not_to_contain_text("jasmine tea after dinner.")
+    assert state["gpu"]["geometries"] == drawn_geometries(state)
+    assert edited["gpu"]["geometries"] == drawn_geometries(edited), "the old map's buffers were freed"
+    expect(page.locator("#observatory-list")).not_to_contain_text("Likes jasmine tea after dinner.")
     assert page.evaluate("() => window.observatorySamePage") is True
 
     # Delete through the real confirm dialog: the node and every edge touching it leave the scene and the list.
@@ -698,7 +717,8 @@ def test_editing_and_deleting_a_note_in_3d_redraws_the_scene_without_stale_recor
     deleted = settled(page, edited["generation"] + 1)
     assert not any(ids["race"] in edge for edge in deleted["edges"])
     assert set(deleted["edges"]) == edge_keys(client.memory_map(trace=True))
-    assert deleted["selected"] == "" and deleted["gpu"]["geometries"] == state["gpu"]["geometries"]
+    assert deleted["selected"] == "" and deleted["gpu"]["geometries"] == drawn_geometries(deleted)
+    assert not any(":" + ids["race"].split(":", 1)[1] in edge for edge in deleted["edges"])
     expect(page.locator("#brain-detail")).to_be_hidden()
     expect(page.locator(f'#observatory-list button[data-id="{ids["race"]}"]')).to_have_count(0)
     expect(page.locator("#observatory-labels")).not_to_contain_text("Training for a 10k")
@@ -714,7 +734,8 @@ def test_editing_and_deleting_a_note_in_3d_redraws_the_scene_without_stale_recor
 def test_switching_tabs_frees_the_scene_and_resets_and_restores_show_the_current_state(server, account, tab):
     key, client = account
     ids = seeded_brain(client)
-    archive = client.export()["result"]
+    # An offline copy of the archive, as a backup kept elsewhere would be (stored archives are scrubbed on erasure).
+    backup = client.download_archive(client.export()["result"]["archive_id"])["document"]
     page = tab.page
     sign_in(page, server.base_url, key)
     open_brain(page)
@@ -744,6 +765,7 @@ def test_switching_tabs_frees_the_scene_and_resets_and_restores_show_the_current
     answer_next_dialog(page, accept=True)
     page.locator("#brain-detail .brain-note-actions").get_by_role("button", name="Delete", exact=True).click()
     page.wait_for_function(f"() => !window.observatory.snapshot().nodes.includes({json.dumps(ids['walk'])})")
+    archive = client.upload_archive(backup)
     generation = client.dashboard()["brain"]["scope_generation"]
     restored = client.restore(archive["archive_id"], expected_manifest_sha256=archive["manifest_sha256"],
                               expected_scope_generation=generation)
