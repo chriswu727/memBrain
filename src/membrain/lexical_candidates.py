@@ -88,6 +88,29 @@ def historical_support_filter(input_event_ids):
             (list(input_event_ids),))
 
 
+def _merged_rows(conn, where, values, vector, terms, limit):
+    select = ("SELECT a.document,a.event_ids,a.is_current,a.id,a.revision,"
+              "a.embedding <=> %s::vector AS distance FROM memory_assertions a WHERE ")
+    order = "ORDER BY distance NULLS LAST,a.id,a.revision LIMIT %s"
+    # Each channel keeps its own sentinel before deduplication, so overlap cannot hide truncation.
+    return conn.execute(
+        "WITH hashed AS MATERIALIZED (" + select + where + order + "), "
+        "exact AS MATERIALIZED (" + select + where
+        + "AND to_tsvector('simple',a.search_text) @@ to_tsquery('simple',%s) " + order + "), "
+        "ranked AS (SELECT *,0 AS channel,row_number() OVER (ORDER BY distance NULLS LAST,id,revision) AS position "
+        "FROM exact UNION ALL SELECT *,1 AS channel,"
+        "row_number() OVER (ORDER BY distance NULLS LAST,id,revision) AS position FROM hashed), "
+        "selected AS (SELECT DISTINCT ON (document->'memory_id',document->'revision') "
+        "document,event_ids,is_current,channel,position FROM ranked WHERE position<=%s "
+        "ORDER BY document->'memory_id',document->'revision',channel,position) "
+        "SELECT document,event_ids,is_current,"
+        "((SELECT count(*) FROM hashed)>%s OR (SELECT count(*) FROM exact)>%s) AS truncated "
+        "FROM selected ORDER BY channel,position",
+        (vector, *values, limit + 1, vector, *values, " | ".join(_prefixes(terms)), limit + 1,
+         limit, limit, limit),
+    ).fetchall()
+
+
 def lexical_rows(conn, params, target, text, *, limit, through_sequence=None, excluded_versions=(),
                  independent_of_event_ids=()):
     from .candidates import _eligible, _scope_clause
@@ -113,20 +136,26 @@ def lexical_rows(conn, params, target, text, *, limit, through_sequence=None, ex
     select = "SELECT a.document,a.event_ids,a.is_current FROM memory_assertions a WHERE " + where
     order = "ORDER BY a.embedding <=> %s::vector NULLS LAST,a.id,a.revision LIMIT %s"
     vector = _vector(text)
-    hashed = conn.execute(select + order, (*values, vector, limit + 1)).fetchall()
     words = sorted(cognition._terms(text)[0])
     terms = [word for word in words if len(word) <= MAX_TERM_LENGTH][:MAX_QUERY_TERMS]
-    truncated = len(hashed) > limit or len(terms) != len(words)
-    exact = []
-    if terms:
-        expression = " | ".join(_prefixes(terms))
-        exact = conn.execute(
-            select + "AND to_tsvector('simple',a.search_text) @@ to_tsquery('simple',%s) " + order,
-            (*values, expression, vector, limit + 1),
-        ).fetchall()
-        truncated = truncated or len(exact) > limit
+    truncated = len(terms) != len(words)
+    if terms and limit > 0:
+        rows = _merged_rows(conn, where, values, vector, terms, limit)
+        for row in rows:
+            truncated |= row.pop("truncated")
+    else:
+        hashed = conn.execute(select + order, (*values, vector, limit + 1)).fetchall()
+        truncated |= len(hashed) > limit
+        rows = hashed[:limit]
+        if terms:
+            exact = conn.execute(
+                select + "AND to_tsvector('simple',a.search_text) @@ to_tsquery('simple',%s) " + order,
+                (*values, " | ".join(_prefixes(terms)), vector, limit + 1),
+            ).fetchall()
+            truncated |= len(exact) > limit
+            rows = exact[:limit] + rows
     unique = {}
-    for row in exact[:limit] + hashed[:limit]:
+    for row in rows:
         memory = row["document"]
         unique.setdefault((memory["memory_id"], memory["revision"]), row)
     return list(unique.values()), truncated

@@ -72,23 +72,23 @@ def test_word_channel_is_bounded_and_uses_bound_parameters():
     conn = RecordingConnection()
     query = " ".join(f"word{number:04d}" for number in range(MAX_QUERY_TERMS + 5))
     rows, truncated = lexical_rows(conn, ("tenant", "owner", "brain"), {}, query, limit=4)
-    assert not rows and truncated and len(conn.calls) == 2
+    assert not rows and truncated and len(conn.calls) == 1
     sql, params = conn.calls[-1]
     assert "word0000" not in sql
-    assert params[-3].count(" | ") == MAX_QUERY_TERMS - 1
-    assert params[-1] == 5
+    assert params[-5].count(" | ") == MAX_QUERY_TERMS - 1
+    assert params[-4:] == (5, 4, 4, 4)
 
 
 @pytest.mark.parametrize("text,expected_calls,truncated", [
     ("银杏树旁的小学", 1, False), ("x" * 257, 1, True),
-    ("label' | !('private'); --", 2, False),
+    ("label' | !('private'); --", 1, False),
 ])
 def test_unusable_or_non_word_queries_retain_bounded_hash_fallback(text, expected_calls, truncated):
     conn = RecordingConnection()
     assert lexical_rows(conn, ("tenant", "owner", "brain"), {}, text, limit=4) == ([], truncated)
     assert len(conn.calls) == expected_calls
-    if expected_calls == 2:
-        assert conn.calls[-1][1][-3] == "'label':* | 'privat':*"
+    if text.startswith("label"):
+        assert conn.calls[-1][1][-5] == "'label':* | 'privat':*"
 
 
 @pytest.mark.integration
