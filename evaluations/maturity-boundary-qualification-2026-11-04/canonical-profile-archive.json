@@ -1,0 +1,15 @@
+{
+  "canonical_exit_code": 0,
+  "fullscreen_exit_code": 1,
+  "runtime_source": "e749a24e86d45d25d1a06d9fcba223e9adf69fcb",
+  "ports_closed_before_archive": true,
+  "archive": "/Users/yichen/tmp/membrain-final-audit-20261104/canonical-profile-e749a24-v3.tar.gz",
+  "archive_sha256": "fce8152396794b4d973ca88e949241ca471f7cbb957453cf3434cb3117e8d543",
+  "archive_bytes": 299708428,
+  "regular_files_verified": 1487,
+  "original_disposable_profile_removed": true,
+  "registry_preserved": true,
+  "verification": "single forward stream; all regular-file SHA256 values compared",
+  "prior_archive_attempts": "two incomplete archives removed with hashes/errors retained; first verification interrupted to avoid repeated backward gzip seeks",
+  "note": "Private archive contains disposable credentials; never commit. The failing comparison and its fixture are preserved."
+}

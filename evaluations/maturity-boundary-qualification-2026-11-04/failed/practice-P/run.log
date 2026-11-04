@@ -1,0 +1,9 @@
+memBrain EVALUATION CLOCK ENABLED: time is simulated from /Users/yichen/tmp/membrain-final-audit-20261104/public-practice/practice-P/brain-c5-practice-scenario-P/evaluation-clock.json. This must never happen outside a disposable evaluation profile.
+Starting the local memory database and service…
+21:09:53 P c5-practice-scenario start stub proposals
+21:09:55 P c5-practice-scenario s1-arrival 0 4477 tools: []
+21:09:55 P c5-practice-scenario s1-arrival 1 4623 tools: []
+21:09:56 P c5-practice-scenario s1-arrival 2 9754 tools: [('memory_note', '{\'text\': "Mia\'s first design review is on 2026-03-05.", \'kind\': \'plan\', \'status\'')]
+21:09:58 P c5-practice-scenario s2-review 0 10215 tools: [('memory_note', "{'text': 'Mia was promoted at work.', 'kind': 'milestone', 'affect': {'label': '")]
+21:09:58 P c5-practice-scenario s2-review 1 6198 tools: []
+21:09:58 P c5-practice-scenario s2-review 2 12825 tools: [('memory_boundary', "{'topic': 'Tom', 'aliases': ['my ex']}")]

@@ -1,0 +1,10 @@
+{
+  "archive_process_exit_code": 120,
+  "gzip_integrity_exit_code": 1,
+  "gzip_error": "unexpected end of file",
+  "bytes": 178012519,
+  "sha256": "e63ac72eeab38708035c8e1ad9a7f494f38ac252aab76ddf2c7b88a3241df15d",
+  "original_profile_preserved": true,
+  "incomplete_archive_removed": true,
+  "cause": "not established; filesystem has little free space"
+}

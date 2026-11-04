@@ -1,0 +1,13 @@
+21:09:51 F c5-practice-scenario start stub proposals
+21:09:51 F c5-practice-scenario s1-arrival 0 294 tools: []
+21:09:51 F c5-practice-scenario s1-arrival 1 338 tools: []
+21:09:51 F c5-practice-scenario s1-arrival 2 392 tools: []
+21:09:51 F c5-practice-scenario s2-review 0 454 tools: []
+21:09:51 F c5-practice-scenario s2-review 1 498 tools: []
+21:09:51 F c5-practice-scenario s2-review 2 555 tools: []
+21:09:51 F c5-practice-scenario s3-morning 0 607 tools: []
+21:09:51 F c5-practice-scenario s3-morning 1 662 tools: []
+21:09:51 F c5-practice-scenario s3-morning 2 709 tools: []
+21:09:51 page action accept_persona_proposal before s4-weekend turn 0 result: {'removed_records': [], 'removed_records_complete': True}
+21:09:51 F c5-practice-scenario s4-weekend 0 768 tools: []
+21:09:51 F c5-practice-scenario s4-weekend 1 821 tools: []

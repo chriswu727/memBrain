@@ -1,0 +1,18 @@
+{
+  "source_commit": "b406c1981275b33986c986d84bf0a6dca3325f54",
+  "run_id": 41910834961,
+  "job_id": 126857632460,
+  "conclusion": "failure",
+  "python_passed": 7023,
+  "python_failed": 1,
+  "python_skipped": 0,
+  "warnings": 3,
+  "seconds": 1314.3,
+  "failure": "tests/test_roleplay.py::test_roleplay_and_real_life_never_mix_on_a_real_service: obsolete bot._blocks.clear() after removal of personal-context caching",
+  "typescript_and_build": "not run after pytest failure",
+  "log_sha256": "6e91714d28b2f88b268d631f23d0c054cde0786b42a2065bb1aa523c190e6fe7",
+  "followup_source": "ba863a9642f3106a0b3b057021a103483019dc00",
+  "followup_ci_run": 41915395596,
+  "followup_ci_status": "success",
+  "followup_job_id": 126873566604
+}

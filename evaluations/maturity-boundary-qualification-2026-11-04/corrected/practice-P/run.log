@@ -1,0 +1,28 @@
+memBrain EVALUATION CLOCK ENABLED: time is simulated from /Users/yichen/tmp/membrain-final-audit-20261104/public-practice-v2/practice-P/brain-c5-practice-scenario-P/evaluation-clock.json. This must never happen outside a disposable evaluation profile.
+Starting the local memory database and service…
+21:16:53 P c5-practice-scenario start stub proposals
+21:16:56 P c5-practice-scenario s1-arrival 0 4477 tools: []
+21:16:56 P c5-practice-scenario s1-arrival 1 4623 tools: []
+21:16:56 P c5-practice-scenario s1-arrival 2 9754 tools: [('memory_note', '{\'text\': "Mia\'s first design review is on 2026-03-05.", \'kind\': \'plan\', \'status\'')]
+21:16:58 P c5-practice-scenario s2-review 0 10215 tools: [('memory_note', "{'text': 'Mia was promoted at work.', 'kind': 'milestone', 'affect': {'label': '")]
+21:16:58 P c5-practice-scenario s2-review 1 6198 tools: []
+21:16:58 P c5-practice-scenario s2-review 2 12825 tools: [('memory_boundary', "{'topic': 'Tom', 'aliases': ['my ex']}")]
+21:17:00 P c5-practice-scenario s3-morning 0 5573 tools: []
+21:17:01 P c5-practice-scenario s3-morning 1 14042 tools: [('memory_note', "{'text': 'Mia and the companion had a silly pun contest.', 'kind': 'milestone', ")]
+21:17:01 P c5-practice-scenario s3-morning 2 8432 tools: []
+21:17:01 page action accept_persona_proposal before s4-weekend turn 0 result: {'proposal': '713adc6f-37f7-415f-acff-c8f8f90fc231', 'version': 2, 'removed_records': [], 'removed_records_complete': True}
+21:17:03 P c5-practice-scenario s4-weekend 0 5577 tools: []
+21:17:03 P c5-practice-scenario s4-weekend 1 5929 tools: []
+21:17:03 page action delete_message before s5-busy turn 0 result: {'deleted': 1, 'removed': [['s1-arrival', 2, 'user']], 'removed_records': [{'kind': 'feeling', 'ref': 'src:b7b1ed278159ff370f1cffa55436c33911ea8129e24f38b93f5c5534e3018db1', 'sources': [['s1-arrival', 2, 'user']], 'established': True}, {'kind': 'message', 'ref': 'src:7f4c369fb09a6a4bb4bddfe9025df5f546e0464adac5a1af2d6703a74806b208', 'sources': [['s1-arrival', 2, 'user']], 'established': True}, {'kind': 'note', 'ref': 'src:923a4a74aa18f32e1e47f2d16fc1cd7ab4f7c18e4f40e0d50685200876bb4294', 'sources': [['s1-arrival', 2, 'user']], 'established': True}], 'removed_records_complete': True}
+21:17:06 P c5-practice-scenario s5-busy 0 5430 tools: []
+21:17:06 page action clear_feelings before s5-busy turn 1 result: {'removed_records': [{'kind': 'feeling', 'ref': 'src:2823447d1f61d644e721039b57b4331a51cb1b4dce42929344d40998fdc5c40d', 'sources': [['s2-review', 0, 'user']], 'established': True}], 'removed_records_complete': True}
+21:17:06 page action reset_mood before s5-busy turn 1 result: {'removed_records': [], 'removed_records_complete': True}
+21:17:06 P c5-practice-scenario s5-busy 1 6490 tools: []
+21:17:06 page action remove_boundary before s5-busy turn 2 result: {'removed_records': [{'kind': 'boundary', 'ref': 'content:2895ca8ed53028c4c941f6eeea1e22ae665a275bd0d4093fbe54922d49feaa57', 'sources': [], 'established': True}], 'removed_records_complete': True}
+21:17:06 P c5-practice-scenario s5-busy 2 7260 tools: []
+21:17:06 page action reset_relationship before s6-fresh turn 0 result: {'removed_records': [{'kind': 'shared_moment', 'ref': 'src:1a29827aae9414e9bd659e53f3047d35a97a4ac655cde357df27e57ce55e4a6f', 'sources': [['s3-morning', 1, 'user']], 'established': True}], 'removed_records_complete': True}
+21:17:08 P c5-practice-scenario s6-fresh 0 4945 tools: []
+21:17:11 P c5-practice-scenario s7-recording 0 10012 tools: [('memory_pause', '{}')]
+21:17:11 P c5-practice-scenario s7-recording 1 5125 tools: []
+21:17:11 P c5-practice-scenario s7-recording 2 10479 tools: [('memory_resume', '{}')]
+21:17:11 P c5-practice-scenario finished

@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 同步文本运行时已实现，长期记忆质量仍在验证中。SDK 候选版本 `78a225d` 已通过完整 CI：7,000 项 Python 测试（零跳过）、50 项 TypeScript 测试、严格类型检查和打包。新运行时 `e749a24` 修复了边界读取失败和旧宿主上下文重复注入的问题，231 项相关本地测试通过。全新数据集的标准关键词回忆 p95 为 100.47/491.08/520.83 ms（串行/同脑八并发/八脑并发），但完整全屏对照有四个八脑窗口失败，最高 742.02 ms，关闭视图后也有失败，R5 因此重新打开。该运行时的全新安装、文件一致性和完整 CI 仍待完成。较早的 `d4d7126` 通过了 49 项 Mac 安装检查、165 个文件一致性检查和全部 36 个全屏窗口，这些历史结果保留。真实模型 R4/C5 和最终独立复核仍未通过。详见[当前结果与保留的失败](evaluations/maturity-boundary-refresh-2026-11-04.md)及[宿主验证范围](docs/host-compatibility.md)。
+> **预发布阶段。** 同步文本运行时已实现，长期记忆质量仍在验证中。候选版本 `ba863a9`（运行时 `e749a24`）已通过完整 CI：**7,024 项 Python 测试，零跳过；50 项 TypeScript 测试；严格类型检查和打包**。全新 Mac 安装验收 49/49 通过，165 个安装文件与源码一致，图谱和控制流程检查通过。当前零模型公开演练通过了 250 项检查及严格有效性校验。标准关键词回忆 p95 为 100.47/491.08/520.83 ms（串行/同脑八并发/八脑并发），但完整全屏对照有四个八脑窗口失败，最高 742.02 ms，关闭视图后也有失败。**R5、真实模型 R4/C5 和最终独立复核仍未通过。** 此前失败的 CI 和公开演练记录保留。详见[当前验收与失败记录](evaluations/maturity-boundary-qualification-2026-11-04.md)及[宿主验证范围](docs/host-compatibility.md)。
 
 <a id="claude-code-plugin"></a>
 

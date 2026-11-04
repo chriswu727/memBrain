@@ -1,0 +1,19 @@
+{
+  "source_commit": "b406c1981275b33986c986d84bf0a6dca3325f54",
+  "runtime_pin": "e749a24e86d45d25d1a06d9fcba223e9adf69fcb",
+  "protocol": "Public practice only; deterministic host/extractor stubs; keyword recall; no model cache, provider credential or live request. Harness refuses non-loopback sockets.",
+  "completed": true,
+  "arms": {
+    "P": {
+      "returncode": 0
+    },
+    "E": {
+      "returncode": 0
+    },
+    "F": {
+      "returncode": 0
+    }
+  },
+  "tested_harness_sha256": "c7f56749f9e3def988acedfb752ca188b9c1ccffc9a597aadba6c65e85737e2e",
+  "working_tree_change": "remove obsolete private cache invalidation after page actions"
+}

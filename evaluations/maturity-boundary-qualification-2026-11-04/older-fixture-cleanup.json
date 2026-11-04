@@ -1,0 +1,11 @@
+{
+  "removed": "/Users/yichen/tmp/membrain-sql-recall-20261104/perf-38c948a-installation",
+  "scope": "older completed reproducible synthetic performance fixture only",
+  "ports_closed": true,
+  "model_weights_present": false,
+  "regular_file_hashes_preserved": 1497,
+  "raw_database_retained": false,
+  "raw_benchmark_reports_and_samples_retained": true,
+  "newer_failed_fixture_fully_archived": "fce8152396794b4d973ca88e949241ca471f7cbb957453cf3434cb3117e8d543",
+  "registry_not_deleted": true
+}
