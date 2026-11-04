@@ -1,0 +1,17 @@
+{
+  "source_commit": "37fab4463b2faf52d543a3e996938826d51909a3",
+  "command": [
+    "/Users/yichen/tmp/membrain-review-20261029/.venv/bin/python",
+    "evaluations/recall-concurrency-benchmark.py",
+    "--directory",
+    "/Users/yichen/tmp/membrain-goal-polish-20261104/perf-37fab44-installation",
+    "--database-port",
+    "60994",
+    "--api-port",
+    "60995",
+    "--output",
+    "/Users/yichen/tmp/membrain-goal-polish-20261104/canonical-37fab44.json",
+    "--bulk-to",
+    "0"
+  ]
+}

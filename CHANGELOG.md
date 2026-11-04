@@ -6,6 +6,8 @@ memBrain is a human-inspired memory engine for AI agents. It keeps persistent me
 
 ### Included
 
+- Recall binds freshly decoded database records without redundant deep copies, while borrowed records retain copy isolation. Source-unit grouping reuses each candidate's key within the call. Retrieval limits, validation and privacy checks are unchanged; longer fullscreen recall still needs performance headroom.
+- Acceptance tooling binds scenarios and commands to frozen manifests, stops degraded attempts and validates deletion/boundary resolutions against evidence. A bookkeeping failure preserves the already-generated reply and usage before stopping further calls. Public synthetic checks do not constitute real R4/C5 acceptance.
 - Switching the memory page's language or reloading it keeps the selected view. Fictional demo mode remains independent of saved sessions.
 - Restoring historical feelings from a portable archive keeps them visible without treating the restore as a new mood trigger.
 - The dashboard counts queued, running and failed jobs across the whole brain, excluding superseded and cancelled jobs even when older work falls outside its 100 displayed jobs.

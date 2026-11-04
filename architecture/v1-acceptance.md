@@ -14,10 +14,11 @@ Status: **not passed**. Revised on 2026-11-02 for the product that ships: memory
 
 Storage uses embedded PostgreSQL (Docker remains supported). Semantic recall uses a local multilingual model; no model key is needed for memory itself.
 
-**Platforms.** Linux and macOS are tested by the automated suite. The macOS desktop flow still needs one check on a real machine before it is advertised as verified. Windows has launchers but is not certified.
+**Platforms.** Linux and macOS are tested by the automated suite. The current embedded runtime passes the real Mac launcher install/upgrade/recovery checks and installed-package/browser journey; [evidence and remaining limits](../evaluations/maturity-owned-recall-2026-11-04.md) name the exact pin. Windows has launchers but is not certified.
+
+**Companion scope.** Personality, mood and relationship development were outside this original core contract. The owner's later [first-release maturity bar](../docs/releasing.md) now requires the companion layers and C5 before publication; their [Phase C design](phase-c-design.md) defines the additional acceptance.
 
 **Out of scope.**
-- Personality and emotion.
 - The cognition runtime's learning cycles as a supported feature.
 - Streaming, multimodal input and native installers.
 - Any claim that memBrain is better than other memory systems; the published comparisons are reported with their limits.
@@ -67,7 +68,7 @@ This gate follows a plan frozen and independently reviewed before any paid call:
 ### R5 — Local overhead stays bounded
 
 These are development regression budgets, not service-level promises:
-- **Recall.** Warm recall over 1,000 messages stays under 500 ms at p95 on the development fixture ([workflow benchmark](../evaluations/v1-2026-10-30-workflow-benchmark.py)). Since 2026-11-03 the release checklist also has a proposed concurrent bar, which is not yet met: 8 concurrent recalls on one brain at most 1,000 ms p95 (measured 2,582 ms), and on 8 brains at most 600 ms. The conditions are in the [test matrix](../evaluations/maturity-test-matrix.md), gap 20.
+- **Recall.** Warm recall over 1,000 messages stays under 500 ms at p95 on the development fixture ([workflow benchmark](../evaluations/v1-2026-10-30-workflow-benchmark.py)). The concurrent bars are at most 1,000 ms p95 on one brain with eight workers and at most 600 ms on eight brains. Runtime `7d8d45a` passes one unchanged canonical keyword run at 101.47/555.69/564.33 ms (serial/one-brain8/eight-brains8), but its longer fullscreen-open phase reaches 630.51 ms on eight brains. R5 remains open; [all measurements and failures](../evaluations/maturity-owned-recall-2026-11-04.md) are retained. The conditions are in the [test matrix](../evaluations/maturity-test-matrix.md), gap 20.
 - **Hooks.** They never block the host: they return on timeout, and records are queued while the service is unavailable.
 
 ### R6 — Deliver and stop

@@ -321,9 +321,9 @@ The design follows ZifaMem (arXiv 2607.17564). There, emotion tags attached to m
 - **Emotional continuity:** scenario endpoints modelled on ALPSBench: persona grounding, preference following, separating fiction from reality, emotional intelligence.
 - Human review of a sample, and a check that follow-ups are welcome rather than intrusive.
 
-### Milestone v0.3
+### Publication milestone
 
-Phase C ships as **v0.3**.
+Phase C was originally assigned to **v0.3**. The owner's later [first-release maturity bar](../docs/releasing.md) requires these layers and C5 before the first publication. The current `0.1.0` development candidate is not a published release; the earlier milestone does not defer these requirements until after it ships.
 
 ## How we differ from claude-mem
 
