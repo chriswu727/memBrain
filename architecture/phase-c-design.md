@@ -58,6 +58,46 @@ Development is not giving the user an emotion score. The user's feelings are one
    - **Wording on the page.** The trace is labelled "Latest recorded recall" with its time. The page says that it covers message recall only: the notes and history added at the start of a session are not traced. It never says the trace is everything the current reply used.
 4. **Empty and busy maps.** An empty memory shows the empty message. A busy database shows "Memory is busy updating" with a retry.
 
+### C0 revision: a 3D memory observatory
+
+**Owner direction, 2026-11-03: required before publication; planned, not implemented or accepted.** The graph must explain the memory system, including development of personality, mood and relationship. A rotating brain shell alone does not meet this requirement. The existing 2D view remains useful as an accessible inspection mode.
+
+**Current coverage.** `memory_map.py` projects notes, user messages and note-linked affect. Its only edges are `derived_from`, `about_person` and `feeling_of`. It does not currently project the assertion, episode and association tables, persona versions or proposals, mood triggers, or the complete relationship state. Its region counts describe the displayed sample; `weight` is a layout hint. The latest recall trace is transient, caller-scoped message recall, not a complete account of what the host received or used. These limits must stay visible while coverage grows.
+
+**Three questions the product must answer:**
+
+1. What does this agent remember, and what original evidence supports it?
+2. Which records did this particular recall return, and which context contributions are not observed?
+3. What changed in the companion, why did it change, and what can the user correct, reject or reset?
+
+**Model-to-view mapping.** A visual node represents a typed record or a clearly labelled aggregate. An edge represents a recorded relation with its basis; mere spatial proximity is never evidence of a relation.
+
+| Layer | Evidence the view should expose | Coverage at this revision |
+| --- | --- | --- |
+| Sources and curated notes | Original message, speaker, time, note and its source dependencies | Bounded existing map |
+| Learned memory | Assertion ID and revision, sources, applicability, supersession or conflict when recorded | Backend records; graph projection pending |
+| Episodes and associations | Episode membership and typed associations with source evidence | Backend records; graph projection pending |
+| User affect | Reported versus inferred feeling, attached record and evidence | Note-linked affect in existing map |
+| Persona development | Current version, proposal, explicit feedback and accepted/rejected/withdrawn decision | Companion UI; graph projection pending |
+| Simulated mood | Current labelled simulation, baseline, applicable trigger evidence and recovery | Companion UI; graph projection pending |
+| Relationship | Shared moments, commitments, support style, boundaries and reset scope | Shared moments can appear as notes; complete projection pending |
+
+These are conceptual layers, not claims that brain anatomy places plans, people or feelings in the displayed locations. Nodes are software records, not biological neurons or the host model's artificial neurons. Neither pgvector's search index nor a pretty network is the agent's reasoning process.
+
+**Delivery sequence and ownership.**
+
+1. **3D renderer.** Claude's separate visualization session implements genuine depth, orbit, zoom and picking over the existing authenticated bounded payload. ID-derived layout remains stable when unrelated records are added or removed. Selection keeps the existing source details, editing and deletion. Ship local assets with the package; no CDN, analytics, extra API key or model call. Any dependency must have a pinned version, recorded license and an offline installed-package check. The fictional demo stays explicitly labelled and does not read real memory.
+2. **Faithful projection.** Extend the backend contract with the missing typed layers before claiming that the graph represents the full design. Each record uses scoped identity and revision; each displayed relation has authorized endpoints and an explicit basis. The backend applies the same ownership, source validity, deletion, retirement, boundary and reset policies as its corresponding inspection operation. The browser never invents semantic relations or fetches arbitrary records by an unscoped ID. Distinguish empty, omitted by the display budget, unsupported and temporarily unavailable; do not reveal the existence or count of inaccessible records.
+3. **Inspection and change.** Users move from an overview to one record and its bounded neighborhood, then inspect evidence and perform the existing authorized correction or reset. Persona proposals stay visibly pending until accepted. A change refreshes the view from authoritative state; stale selections, details, GPU buffers and caches must not keep deleted content. Restore must not revive it. Relationship controls must explain their scope before resetting.
+4. **Observed recall and development.** Highlight only recorded recall results. Show source-to-note, feedback-to-proposal and trigger-to-mood dependencies where the backend can establish them. A dependency path is not an execution timeline. A timeline or replay is available only when its complete event ordering was recorded and remains authorized; otherwise show the current state and say that history is unavailable. Do not infer personality changes from conversational sentiment or make mood a score of the user.
+5. **Independent acceptance.** Codex reviews model mappings, privacy, installed assets and actual browser behavior, while the recall performance session continues independently. Combine only verified source; final candidate installation and full checks must include the renderer and projection changes. Real-model R4/C5 acceptance remains separate and requires the owner's explicit approval.
+
+**Visual semantics.** Color distinguishes record kinds, with text and shape alternatives. Selection and actual returned records may light up. Node size is uniform or explicitly explained as a layout cue; it must not silently mean confidence, importance, affection or biological activation. Do not animate arbitrary travelling signals as if recall followed those paths. A supported relation may be illustrated on selection with a visible "relationship illustration" label; only an actual recorded sequence may be labelled playback. Unsupported layers say so rather than showing fabricated activity. Rank signals are query-specific ordering values, not probabilities or permanent memory strength.
+
+**Performance and access requirements.** Reuse the existing default 200 nodes/400 edges and hard limits of 500/1,000 in the first renderer; this is a bounded window, not a storage limit or a promise to render the whole database. Larger brains need explicit aggregation or bounded expansion, with counts that say what they measure. Draw on demand, suspend work when hidden, stop after interaction settles, cap pixel density and batch GPU work where applicable. Avoid a continuously running force layout. Reduced-motion, context loss, missing WebGL and renderer initialization failure must retain a useful 2D/list path. The same records and actions must remain reachable by keyboard and screen reader, with a camera reset and a clear exit from showcase mode.
+
+On the reference Mac, measure actual drag/zoom and pick-to-detail latency at 200/400 and 500/1,000 nodes/edges. The proposed acceptance targets are p95 frame time at most 33.3 ms during interaction and p95 local selection response at most 100 ms, after map data is loaded. Report hardware, browser, viewport, pixel ratio, renderer, warm-up and sample counts; these targets have not been measured or passed. Also verify idle/hidden suspension, repeated open/close resource disposal, offline startup, empty/busy/error handling, demo isolation, source correction/deletion/reset and restore. Compare recall with the view open and closed on the same fixed workload: the view must not prevent the unchanged R5 gates from passing. Existing HTTP map benchmarks do not establish frame rate, interaction latency, storage capacity or semantic-recall performance.
+
 ## 1. `persona`: P1 card, then P2 development
 
 **Data.** One persona card per brain, kept as versions:
