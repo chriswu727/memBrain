@@ -20,7 +20,7 @@ import membrain.service as service_module
 from membrain.api import create_app
 from membrain.client import MemoryActionError, default_budget, default_read_fence
 from membrain.config import Settings
-from membrain.contracts import CONTRACT_VERSION
+from membrain.contracts import CONTRACT_VERSION, validate
 from membrain.helpers import DomainError, Principal
 from membrain.service import MemoryService
 
@@ -259,7 +259,8 @@ def test_an_invalid_recall_trace_is_rejected_and_no_trace_is_saved(learning, mon
 
 
 @pytest.mark.integration
-def test_saving_traces_validates_all_of_them_first_and_writes_each_once(learning):
+@pytest.mark.parametrize("validated", [False, True])
+def test_saving_traces_validates_all_of_them_first_and_writes_each_once(learning, validated):
     harness = learning
     harness.observe("The Vancouver library appointment is on Friday.")
     harness.memory.work()
@@ -274,7 +275,14 @@ def test_saving_traces_validates_all_of_them_first_and_writes_each_once(learning
             harness.service._save_traces(conn, harness.principal, brain, broken)
         assert conn.execute("SELECT count(*) AS n FROM memory_traces WHERE tenant_id=%s AND brain_id=%s",
                             (harness.principal.tenant_id, harness.brain)).fetchone()["n"] == before
-        harness.service._save_traces(conn, harness.principal, brain, [*fresh, *returned])  # duplicates are kept once
+        changed = {**fresh[0], "recorded_at": "2000-01-01T00:00:00Z"}
+        batch = [*fresh, changed, *returned]
+        if validated:
+            for trace in batch:
+                validate("RecallTrace", trace)
+        harness.service._save_traces(conn, harness.principal, brain, batch, validated=validated)
+        harness.service._save_traces(conn, harness.principal, brain, [changed], validated=validated)
+        harness.service._save_traces(conn, harness.principal, brain, [], validated=validated)
         rows = conn.execute("SELECT id,document FROM memory_traces WHERE tenant_id=%s AND brain_id=%s AND id=ANY(%s)",
                             (harness.principal.tenant_id, harness.brain, [fresh[0]["trace_id"]])).fetchall()
     assert [row["document"] for row in rows] == [fresh[0]]
