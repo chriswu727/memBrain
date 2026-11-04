@@ -1,0 +1,11 @@
+{
+  "run_id": 41791679217,
+  "source_commit": "e7c677189a381f75d79c56734d107f50c8cb87ad",
+  "conclusion": "failure",
+  "jobs": 0,
+  "observed_cli_message": "This run likely failed because of a workflow file issue.",
+  "diagnosis": "runner context was used in job-level env, where GitHub does not make it available; replaced with github.workspace in 1bfc2b9.",
+  "context_reference": "https://docs.github.com/en/actions/reference/workflows-and-actions/contexts#context-availability",
+  "following_full_run": 41792234847,
+  "following_conclusion": "success"
+}

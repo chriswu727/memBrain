@@ -1,6 +1,8 @@
-# Maturity test matrix (free: no model call)
+# Maturity test matrix (no paid or subscription-backed model call)
 
-Status on 2026-11-03, at `c786238`. This matrix maps every behaviour that a release or a companion claim depends on to the local tests that check it. No entry makes a paid or subscription model call. A behaviour with no free test is listed as a gap, to be added before the [paid acceptance run](maturity-paid-acceptance-plan-draft.md) is proposed.
+This matrix maps every behaviour that a release or a companion claim depends on to the local tests that check it. No entry makes a paid or subscription model call. A behaviour with no free test is listed as a gap, to be added before the [paid acceptance run](maturity-paid-acceptance-plan-draft.md) is proposed.
+
+**Current qualification, 2026-11-04:** runtime `a3ccbda`, full source/test/workflow candidate `1bfc2b9`: **6,631 Python checks passed with zero skips**, 44 TypeScript checks/typecheck and package builds passed. All four Docker journeys and both pinned local-embedding cases ran in CI. Mac launcher acceptance passed **49/49**; 165 installed files matched and both graph layers/3D/2D worked. Stored-topology projection and the fullscreen-open/closed recall comparison are implemented and verified. Canonical serial/one-brain8/eight-brains8 p95 is **109.13/638.32/686.13 ms**; eight-brain R5 still fails its 600 ms target. R4/C5 remain unaccepted. [Current evidence and retained failures](maturity-recall-followup-2026-11-04.md). Dated measurements/status below began at `c786238` and are historical unless explicitly updated; they do not override this qualification.
 
 **Scope.** Part 1 is the core memory release gate: what [R4](../architecture/v1-acceptance.md#r4--memory-is-useful-on-held-out-lives-behavioral-acceptance) scores, plus the install, isolation and overhead gates around it. Part 2 is Phase C, from the [Phase C design](../architecture/phase-c-design.md). Part 3 is the rules that hold across layers. Part 4 lists every gap in one place.
 
@@ -10,7 +12,7 @@ Status on 2026-11-03, at `c786238`. This matrix maps every behaviour that a rele
 
 ## How to run it
 
-All commands run from the repository root. None needs a model key, and none downloads the embedding model when `MEMBRAIN_SEMANTIC=0`.
+All commands run from the repository root and need no remote-model key. Full verification explicitly prepares the pinned local embedding model for its CPU tests; the ordinary suite with `MEMBRAIN_SEMANTIC=0` does not download one automatically.
 
 ```sh
 export MEMBRAIN_SEMANTIC=0 PYTHON_DOTENV_DISABLED=1
@@ -30,7 +32,15 @@ uv run pytest -q -rs tests/test_typed_notes.py tests/test_notes.py tests/test_ho
   tests/test_adversarial.py tests/test_database_isolation.py tests/test_recovery_erasure.py \
   tests/test_backup_transport.py tests/test_desktop_upgrade.py
 
-# Everything, as CI runs it (needs the CI database, see below).
+# Full verification also needs Docker and the pinned local model (needs the CI database below).
+export MEMORY_DESKTOP_E2E=1 MEMORY_CHAT_E2E_PYTHON="$PWD/.venv/bin/python"
+export MEMBRAIN_TEST_EMBEDDING_MODEL="$(mktemp -d)"
+uv run python - <<'PY'
+import os
+from pathlib import Path
+from membrain.local_embeddings import download
+download(Path(os.environ["MEMBRAIN_TEST_EMBEDDING_MODEL"]))
+PY
 uv run membrain migrate && uv run ruff check src tests examples && uv run pytest -v
 (cd sdk/typescript && npm ci && npm test && npm run typecheck)
 ```
@@ -44,7 +54,7 @@ uv run membrain migrate && uv run ruff check src tests examples && uv run pytest
 - The recall overhead benchmark: `uv run python evaluations/v1-2026-10-30-workflow-benchmark.py --directory D --database-port P --api-port Q --output O` (lexical only, no model call).
 - Manual visual inspection supplements the required Chromium suite. On Mac the browser, brain-view, translation, persona-growth and matrix group passed 110 checks, including a demo opened with an existing saved real session. The candidate's first CI run with the Chromium installation step is still pending.
 
-**CI.** The `runtime` job of [`.github/workflows/verify.yml`](../.github/workflows/verify.yml) runs the whole matrix: a `pgvector/pgvector:pg17` service with `MEMORY_DATABASE_URL` set, `MEMBRAIN_SEMANTIC=0`, `uv run membrain migrate`, `uv run ruff check src tests examples`, `uv run pytest -v --durations=15`, the TypeScript SDK tests and typecheck, and `uv build`. It runs on pull requests, on pushes to `main`, by hand (`workflow_dispatch`) and before every PyPI release (`release.yml` calls it). It ignores changes to `**/*.md` and `evaluations/**`, so an edit to this file alone does not run it; the guard runs on the next change to code or tests, or by hand.
+**CI.** The `runtime` job of [`.github/workflows/verify.yml`](../.github/workflows/verify.yml) runs the whole matrix: a `pgvector/pgvector:pg17` service with `MEMORY_DATABASE_URL` set, `MEMBRAIN_SEMANTIC=0`, `MEMORY_DESKTOP_E2E=1`, the literal virtual-environment interpreter for standalone chat, a cached/checksummed local embedding model, required Chromium, migrations, Ruff, pytest, TypeScript tests/typecheck and package builds. A missing local model runtime fails preparation instead of silently skipping. It runs on pull requests, on pushes to `main`, by hand (`workflow_dispatch`) and before every PyPI release (`release.yml` calls it). It ignores changes to `**/*.md` and `evaluations/**`, so an edit to this file alone does not run it; the guard runs on the next change to code or tests, or by hand.
 
 ## Part 1. Core memory release gate
 
@@ -83,6 +93,7 @@ R4 runs held-out scenarios through three arms: the plugin path `P`, the proxy wi
 
 | Acceptance item (design §0) | Free tests | Gap |
 | --- | --- | --- |
+| Stored assertion versions, episodes, patterns, associations and belief relations use exact payload identities in 2D/3D | `tests/test_structure_map.py::test_stored_assertions_episodes_patterns_and_exact_membership`, `tests/test_structure_map.py::test_exact_belief_versions_and_labels_are_projected`, `tests/test_structure_map.py::test_sensitive_evidence_masks_assertions_episodes_patterns_and_sources`, `tests/test_structure_map.py::test_database_graph_is_identical_in_3d_hologram_and_2d` | Bounded current/referenced versions; working state and complete familiarity aggregates are not projected. Shell/projector decoration and simulated signals are labelled. |
 | Showcase mode: every dot is a real memory, every line and pulse a real link; decoration is never a dot or line and is not counted | `tests/test_brain_view.py::test_showcase_dots_lines_and_pulses_come_only_from_the_memory_map`, `tests/test_brain_view.py::test_the_brain_view_draws_every_contract_region_and_is_wired_into_the_page`, `tests/test_memory_observatory_browser.py::test_demo_renders_rotates_zooms_and_picks_the_right_node_without_any_api_request`, `tests/test_memory_observatory_browser.py::test_the_largest_map_the_service_allows_is_drawn_and_picked`, `tests/test_observatory.py::test_the_3d_view_draws_exactly_the_edge_types_the_map_records` | "Recognisable as a brain at a glance" is a browser check only. |
 | `/memory?demo=brain&show=1` opens with fictional data and no API call | `tests/test_brain_view.py::test_the_showcase_is_a_separate_mode_entered_from_the_brain_tab_or_the_address`, `tests/test_brain_view.py::test_the_demo_map_served_to_the_page_is_the_fictional_example`, `tests/test_memory_map.py::test_demo_has_only_fictional_nodes_and_all_edges_have_existing_endpoints`, `tests/test_memory_page_browser.py::test_showcase_shows_fictional_data_and_makes_no_api_request`, `tests/test_memory_observatory_browser.py::test_demo_renders_rotates_zooms_and_picks_the_right_node_without_any_api_request`, `tests/test_observatory.py::test_the_page_loads_three_js_from_the_package_only` | None known. The browser test records every request and finds none under `/v1/`, none to another host and no console error. |
 | Edit and delete from the map, then the map redraws | `tests/test_brain_view.py::test_the_map_shows_the_latest_recorded_recall_honestly_and_edits_notes_like_the_notes_tab`, `tests/test_memory_page_browser.py::test_editing_and_deleting_a_note_on_the_brain_map_redraws_the_map_without_reload`, `tests/test_memory_observatory_browser.py::test_editing_and_deleting_a_note_in_3d_redraws_the_scene_without_stale_records`, `tests/test_memory_observatory_browser.py::test_switching_tabs_frees_the_scene_and_resets_and_restores_show_the_current_state` | None known. |

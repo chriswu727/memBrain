@@ -1,0 +1,59 @@
+{
+  "source_commit": "1bfc2b96632a2f0bc3fe932c90506cd5e2ac9ad0",
+  "runtime_pin": "a3ccbda7503b45611a2affd583aec03604fed904",
+  "run_id": 41792234847,
+  "job_id": 126448442603,
+  "url": "https://github.com/chriswu727/memBrain/actions/runs/41792234847",
+  "conclusion": "success",
+  "pytest": {
+    "passed": 6631,
+    "failed": 0,
+    "skipped": 0,
+    "warnings": 1,
+    "seconds": 1258.55
+  },
+  "typescript": {
+    "passed": 44,
+    "typecheck": "passed"
+  },
+  "ruff": "passed",
+  "build": [
+    "sdist",
+    "wheel"
+  ],
+  "optional_checks": [
+    {
+      "name": "test_cold_start_concurrent_connect_restart_and_mcp_preserve_one_brain",
+      "result": "passed",
+      "line": "2026-11-04T07:33:07.6958538Z tests/test_desktop_e2e.py::test_cold_start_concurrent_connect_restart_and_mcp_preserve_one_brain PASSED [ 38%]"
+    },
+    {
+      "name": "test_full_streamed_backup_restores_current_deletions_and_requires_explicit_epoch",
+      "result": "passed",
+      "line": "2026-11-04T07:33:24.7678877Z tests/test_desktop_recovery_e2e.py::test_full_streamed_backup_restores_current_deletions_and_requires_explicit_epoch PASSED [ 39%]"
+    },
+    {
+      "name": "test_independent_builds_detect_staleness_upgrade_and_reject_downgrade_without_data_loss",
+      "result": "passed",
+      "line": "2026-11-04T07:33:38.0749564Z tests/test_desktop_upgrade_e2e.py::test_independent_builds_detect_staleness_upgrade_and_reject_downgrade_without_data_loss PASSED [ 40%]"
+    },
+    {
+      "name": "test_chat_processes_recall_restart_deduplicate_and_block_unknown_generation",
+      "result": "passed",
+      "line": "2026-11-04T07:47:46.0489367Z tests/test_standalone_chat_e2e.py::test_chat_processes_recall_restart_deduplicate_and_block_unknown_generation PASSED [ 96%]"
+    },
+    {
+      "name": "test_real_model_matches_across_languages_and_paraphrase",
+      "result": "passed",
+      "line": "2026-11-04T07:38:51.4305978Z tests/test_local_embeddings.py::test_real_model_matches_across_languages_and_paraphrase PASSED [ 68%]"
+    },
+    {
+      "name": "test_model_activation_never_interrupts_requests_in_flight",
+      "result": "passed",
+      "line": "2026-11-04T07:44:39.9431024Z tests/test_model_activation.py::test_model_activation_never_interrupts_requests_in_flight PASSED [ 74%]"
+    }
+  ],
+  "summary_line": "2026-11-04T07:48:46.9396379Z ================= 6631 passed, 1 warning in 1258.55s (0:20:58) =================",
+  "paid_or_subscription_backed_model_calls": 0,
+  "local_embedding_model": "Pinned E5 model prepared and tested on CPU"
+}
