@@ -1,0 +1,36 @@
+Traceback (most recent call last):
+  File "/Users/yichen/tmp/membrain-final-audit-20261104/diagnose-recall-v2.py", line 117, in <module>
+    report['responses'] = [record for rows in pool.map(run, range(8)) for record in rows]
+                                              ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/concurrent/futures/_base.py", line 619, in result_iterator
+    yield _result_or_cancel(fs.pop())
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/concurrent/futures/_base.py", line 317, in _result_or_cancel
+    return fut.result(timeout)
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/concurrent/futures/_base.py", line 456, in result
+    return self.__get_result()
+           ^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/concurrent/futures/_base.py", line 401, in __get_result
+    raise self._exception
+  File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/concurrent/futures/thread.py", line 59, in run
+    result = self.fn(*self.args, **self.kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yichen/tmp/membrain-final-audit-20261104/diagnose-recall-v2.py", line 110, in run
+    response = client.recall(f'What is the appointment for project{query_index:04d}?',
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yichen/tmp/membrain-review-20261029/src/membrain/client.py", line 441, in recall
+    return self.action("recall", {
+           ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yichen/tmp/membrain-review-20261029/src/membrain/client.py", line 202, in action
+    return self.send({
+           ^^^^^^^^^^^
+  File "/Users/yichen/tmp/membrain-review-20261029/src/membrain/client.py", line 184, in send
+    response = self._request("POST", "v1/actions", json=dict(request))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yichen/tmp/membrain-review-20261029/src/membrain/client.py", line 158, in _request
+    response.raise_for_status()
+  File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/httpx/_models.py", line 829, in raise_for_status
+    raise HTTPStatusError(message, request=request, response=self)
+httpx.HTTPStatusError: Server error '500 Internal Server Error' for url 'http://127.0.0.1:51626/v1/actions'
+For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/500

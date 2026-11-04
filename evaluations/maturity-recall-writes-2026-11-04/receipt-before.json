@@ -1,0 +1,18 @@
+{
+  "purpose": "real PostgreSQL invalid receipt write regression; not an R5 performance run",
+  "label": "before",
+  "model_calls": 0,
+  "source_sha256": {
+    "src/membrain/service.py": "f59a74d7db676003833dd6fe31d3a630d45c8abf66121125f013a87f84fbab25",
+    "src/membrain/recovery.py": "33e2a807311ca043462e30f8996ebcb9a49233183c25c1e31ca7f9a8c7297451",
+    "tests/test_storage.py": "15f8ad27fe2d98b4b14c2671800539334f63f66e0542d63e7aa2e40ba3487687",
+    "tests/test_recovery_quarantine.py": "472f215b8a428cb56e18af6db38d55b893679ee4ffc4687bd10509ca7fc4903a"
+  },
+  "selection": [
+    "tests/test_storage.py::test_source_edits_do_not_rewrite_invalid_receipts_or_change_replay_semantics",
+    "tests/test_recovery_quarantine.py::test_quarantine_invalidates_valid_receipts_without_rewriting_invalid_ones"
+  ],
+  "exit_code": 1,
+  "source_unchanged": true,
+  "both_ports_closed": true
+}

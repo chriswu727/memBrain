@@ -1,0 +1,12 @@
+...............................................................F........ [ 35%]
+........................................................................ [ 70%]
+...........................................................              [100%]
+=================================== FAILURES ===================================
+__ test_saving_traces_validates_all_of_them_first_and_writes_each_once[True] ___
+tests/test_response_validation.py:282: in test_saving_traces_validates_all_of_them_first_and_writes_each_once
+    validate("RecallTrace", trace)
+    ^^^^^^^^
+E   NameError: name 'validate' is not defined
+=========================== short test summary info ============================
+FAILED tests/test_response_validation.py::test_saving_traces_validates_all_of_them_first_and_writes_each_once[True]
+1 failed, 202 passed in 25.20s

@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/yichen/tmp/membrain-final-audit-20261104/diagnose-recall.py", line 56, in <module>
+    assert settings.embedding_local_directory is None
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

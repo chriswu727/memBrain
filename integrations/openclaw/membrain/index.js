@@ -3,7 +3,7 @@
 import { spawn } from "node:child_process";
 
 const PACKAGE = process.env.MEMBRAIN_PACKAGE ||
-  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/e749a24e86d45d25d1a06d9fcba223e9adf69fcb.zip";
+  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/f1fc97b193f816ccfe4d3988c797060fff2bbbc6.zip";
 
 function run(command, args, { input, timeoutMs = 12_000, env } = {}) {
   return new Promise((resolve) => {
