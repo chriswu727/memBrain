@@ -524,6 +524,20 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
             raise DomainError("dependency_unavailable", "Memory is busy updating. Retry the map shortly.",
                               retryable=True) from None
 
+    @app.get("/v1/brains/{brain_id}/companion-map")
+    def companion_map(brain_id: str, max_nodes: int = Query(default=200, ge=1, le=500),
+                      max_edges: int = Query(default=400, ge=0, le=1000), include_sensitive: bool = False,
+                      principal: Principal = Depends(authenticate)):
+        from .companion_map import companion_map as read_companion_map
+
+        try:
+            with reading():
+                return read_companion_map(service, principal, brain_id, max_nodes=max_nodes,
+                                          max_edges=max_edges, include_sensitive=include_sensitive)
+        except (psycopg.errors.LockNotAvailable, psycopg.errors.QueryCanceled):
+            raise DomainError("dependency_unavailable", "Memory is busy updating. Retry the map shortly.",
+                              retryable=True) from None
+
     @app.get("/v1/brains/{brain_id}/status")
     def memory_status(brain_id: str, principal: Principal = Depends(authenticate)):
         return service.memory_status(principal, brain_id)

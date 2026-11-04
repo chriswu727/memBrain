@@ -62,7 +62,7 @@ Development is not giving the user an emotion score. The user's feelings are one
 
 **Owner direction, 2026-11-03: required before publication; planned, not implemented or accepted.** The graph must explain the memory system, including development of personality, mood and relationship. A rotating brain shell alone does not meet this requirement. The existing 2D view remains useful as an accessible inspection mode.
 
-**Current coverage.** `memory_map.py` projects notes, user messages and note-linked affect. Its only edges are `derived_from`, `about_person` and `feeling_of`. It does not currently project the assertion, episode and association tables, persona versions or proposals, mood triggers, or the complete relationship state. Its region counts describe the displayed sample; `weight` is a layout hint. The latest recall trace is transient, caller-scoped message recall, not a complete account of what the host received or used. These limits must stay visible while coverage grows.
+**Current coverage.** `memory_map.py` projects notes, user messages and note-linked affect. Its only edges are `derived_from`, `about_person` and `feeling_of`. A separate read-only `companion-map` endpoint now projects persona versions/proposals, surviving feedback, simulated mood with source-linked active/ended triggers, relationship settings and shared moments on the integration candidate; it is not yet connected to the renderer. Neither endpoint currently projects the assertion, episode and association tables or the complete relationship aggregates. Region counts describe the displayed sample; `memory-map.weight` is a layout hint. The latest recall trace is transient, caller-scoped message recall, not a complete account of what the host received or used. These limits must stay visible while coverage grows.
 
 **Three questions the product must answer:**
 
@@ -78,9 +78,9 @@ Development is not giving the user an emotion score. The user's feelings are one
 | Learned memory | Assertion ID and revision, sources, applicability, supersession or conflict when recorded | Backend records; graph projection pending |
 | Episodes and associations | Episode membership and typed associations with source evidence | Backend records; graph projection pending |
 | User affect | Reported versus inferred feeling, attached record and evidence | Note-linked affect in existing map |
-| Persona development | Current version, proposal, explicit feedback and accepted/rejected/withdrawn decision | Companion UI; graph projection pending |
-| Simulated mood | Current labelled simulation, baseline, applicable trigger evidence and recovery | Companion UI; graph projection pending |
-| Relationship | Shared moments, commitments, support style, boundaries and reset scope | Shared moments can appear as notes; complete projection pending |
+| Persona development | Current version, proposal, explicit feedback and accepted/rejected/withdrawn decision | Companion UI and companion-map backend; renderer integration pending |
+| Simulated mood | Current labelled simulation, baseline, applicable trigger evidence and recovery | Companion UI and companion-map backend; renderer integration pending |
+| Relationship | Shared moments, commitments, support style, boundaries and reset scope | Settings/shared moments in companion-map; complete projection pending |
 
 These are conceptual layers, not claims that brain anatomy places plans, people or feelings in the displayed locations. Nodes are software records, not biological neurons or the host model's artificial neurons. Neither pgvector's search index nor a pretty network is the agent's reasoning process.
 
