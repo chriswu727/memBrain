@@ -20,6 +20,7 @@ from test_recovery_erasure import pending, raw_event
 from test_recovery_erasure import recovery as recovery
 
 import membrain.service as service_module
+from membrain import cognition
 from membrain.affect import affect_records
 from membrain.client import default_budget, default_read_fence
 from membrain.contracts import CONTRACT_VERSION
@@ -184,13 +185,17 @@ def test_semantic_recall_inspect_and_views_only_make_audited_writes(semantic, mo
 
 def test_a_semantic_recall_applies_a_pending_erasure_before_reading(semantic, monkeypatch):
     harness, authority, _ = semantic
-    secret = harness.observe("The vault combination is 7721.")["accepted_event_ids"][0]
+    secret_text = "VAULT_ERASURE_SECRET_7721"
+    stamp = "2026-11-04T17:29:20.177218Z"
+    monkeypatch.setattr(cognition, "now", lambda: stamp)
+    secret = harness.observe(f"The vault combination is {secret_text}.")["accepted_event_ids"][0]
     drain(harness)
     pending(harness, authority, secret)
     statements = Statements(monkeypatch)
     response = harness.service.handle(harness.principal, recall_request(harness, "vault combination"))
     assert response["outcome"] == "completed", response
-    assert "7721" not in str(response)
+    assert response["result"]["retrieval_snapshot"]["created_at"] == stamp
+    assert secret_text not in str(response) and secret not in str(response)
     assert raw_event(harness, secret) == {"document": None, "deleted": True}
     assert statements.refused == []
     # The erasure itself runs as a write (outside the read marker); the read only took the row exclusively for it.
