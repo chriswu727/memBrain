@@ -73,10 +73,17 @@ import json, os, pathlib, sys
 config = json.loads(pathlib.Path(os.environ["FAKE_CONFIG"]).read_text())
 with open(config["calls"], "a") as calls:
     calls.write(json.dumps(["stop", sys.argv[1:], os.environ.get("C5_BILLING_LEDGER")]) + "\n")
+args = sys.argv[1:]
+if args == ["--stop"]:
+    reason = "arm_failed"
+elif config.get("accept_reason", True) and len(args) == 3 and args[:2] == ["--stop", "--reason"]:
+    reason = args[2]
+else:
+    sys.exit("arms: P, E, F")  # As an older harness answers any argument but a bare --stop.
 ledger = pathlib.Path(os.environ["C5_BILLING_LEDGER"])  # Stands in for the harness's own --stop entry point.
 state = json.loads(ledger.read_text())
 state["blocked"] = True
-state.setdefault("stop_reason", "arm_failed")
+state.setdefault("stop_reason", reason)  # The first recorded reason wins.
 ledger.write_text(json.dumps(state))
 sys.exit(config.get("stop_exit", 0))
 '''
@@ -585,27 +592,52 @@ def test_a_missing_policy_variable_no_longer_skips_the_ledger_policy_check(attem
     assert result.returncode == 2 and summary(result)["stop"] == "policy_binding" and attempt.calls() == []
 
 
-SHARED = {"invalid": (lambda a: {"invalid": ["gamma"]}, "invalid", "invalid"),
-          "inputs_changed": (lambda a: {"modify": {"gamma": [str(a.frozen)]}}, "hash_mismatch", "inputs_changed"),
-          "run_dir_exists": (lambda a: {"touch": {"beta": [str(a.out / "gamma-E")]}}, "run_dir_exists", "not_run")}
+SHARED = {"invalid": (lambda a: {"invalid": ["gamma"]}, "invalid", "invalid", "invalid"),
+          "inputs_changed": (lambda a: {"modify": {"gamma": [str(a.frozen)]}}, "hash_mismatch", "inputs_changed",
+                             "inputs_changed"),
+          "run_dir_exists": (lambda a: {"touch": {"beta": [str(a.out / "gamma-E")]}}, "run_dir_exists", "not_run",
+                             "run_dir_exists")}
+STOP_COMMAND = [sys.executable, "{repo}/evaluations/c5-harness.py", "--stop"]
+
+
+def stop_command(attempt, *extra):
+    return [part.replace("{repo}", str(attempt.repo)) for part in STOP_COMMAND] + list(extra)
 
 
 @pytest.mark.parametrize("name", sorted(SHARED))
 def test_a_stop_the_driver_decides_blocks_the_shared_billing_run(attempt, name):
     attempt.make_live()
-    config, reason, status = SHARED[name]
+    config, reason, status, code = SHARED[name]
     attempt.config.update(config(attempt))
     result = attempt.run_live()
     assert result.returncode == 1 and "delta" not in attempt.runner_keys()
-    assert attempt.stops() == [["stop", ["--stop"], str(attempt.ledger)]]
+    assert attempt.stops() == [["stop", ["--stop", "--reason", code], str(attempt.ledger)]]
+    assert json.loads(attempt.ledger.read_text())["stop_reason"] == code  # The real cause, not arm_failed.
     assert attempt.calls()[-1][0] == "stop"  # After the scenario's own steps, before anything else.
     assert json.loads(attempt.ledger.read_text())["blocked"] is True
     line = summary(result)
     assert line["stop"] == reason and line["scenarios"]["gamma"] == status and line["shared_stop"] == "blocked"
     assert line["pairs"]["R4"] == "complete" and line["eligible"] == ["R4"]
     record = attempt.state()["shared_stop"]
-    assert record["reason"] == reason and record["exit"] == 0
-    assert record["command"] == [sys.executable, str(attempt.repo / "evaluations" / "c5-harness.py"), "--stop"]
+    assert record["reason"] == reason and record["ledger_reason"] == code and record["reason_passed"] is True
+    assert record["exit"] == 0 and record["command"] == stop_command(attempt, "--reason", code)
+    assert [item["exit"] for item in record["attempts"]] == [0]
+
+
+def test_an_older_harness_that_refuses_the_reason_gets_one_bare_stop_and_it_is_recorded(attempt):
+    attempt.make_live()
+    attempt.config.update(invalid=["gamma"], accept_reason=False)
+    result = attempt.run_live()
+    assert result.returncode == 1 and summary(result)["shared_stop"] == "blocked"
+    assert [call[1] for call in attempt.stops()] == [["--stop", "--reason", "invalid"], ["--stop"]]
+    ledger = json.loads(attempt.ledger.read_text())
+    assert ledger["blocked"] is True and ledger["stop_reason"] == "arm_failed"
+    record = attempt.state()["shared_stop"]
+    assert record["reason_passed"] is False and record["ledger_reason"] == "invalid"
+    assert record["command"] == stop_command(attempt) and record["exit"] == 0
+    assert [(item["command"], item["exit"]) for item in record["attempts"]] == [
+        (stop_command(attempt, "--reason", "invalid"), 1), (stop_command(attempt), 0)]
+    assert "refused --reason invalid" in result.stderr
 
 
 @pytest.mark.parametrize("config, reason", [({"fail": ["gamma"]}, "runner_failed"),
@@ -623,7 +655,9 @@ def test_a_failed_shared_stop_is_reported(attempt):
     attempt.config.update(invalid=["alpha"], stop_exit=4)
     result = attempt.run_live()
     assert result.returncode == 1 and summary(result)["shared_stop"] == "failed"
-    assert attempt.state()["shared_stop"]["exit"] == 4 and "shared billing stop FAILED" in result.stderr
+    record = attempt.state()["shared_stop"]
+    assert record["exit"] == 4 and record["reason_passed"] is None and "shared billing stop FAILED" in result.stderr
+    assert [item["exit"] for item in record["attempts"]] == [4, 4]  # With the reason, then once without; no more.
 
 
 def test_offline_mode_never_runs_a_shared_stop(attempt):
