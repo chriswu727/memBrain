@@ -19,7 +19,7 @@ from membrain.mood import reset_mood
 from membrain.notes import store_note
 from membrain.persona import delete_persona_history, set_persona
 from membrain.persona_growth import accept_proposal, persona_proposals
-from membrain.relationship import add_boundary, reset_relationship, set_support_style
+from membrain.relationship import add_boundary, reset_relationship, set_cap, set_support_style
 
 WHEN = "2026-11-03T18:00:00Z"
 
@@ -284,6 +284,38 @@ def test_bounds_and_ownership_hold_for_every_returned_edge(brain):
     service, principal, ident = brain
     with pytest.raises(DomainError, match="Brain is unavailable"):
         companion_map(service, Principal(principal.tenant_id, "someone-else"), ident)
+
+
+def test_old_persona_versions_cannot_hide_other_companion_layers(brain):
+    for version in range(12):
+        set_persona(*brain, {"name": f"Aster {version}"}, made_by="host")
+    add_boundary(*brain, "old workplace")
+    set_support_style(*brain, "Listen first.")
+    graph = companion_map(*brain, max_nodes=8)
+    assert {"simulated_mood", "persona", "boundary", "support_style"} <= {node["kind"] for node in graph["nodes"]}
+    assert any(node["kind"] == "persona" and node["details"]["version"] == 12 for node in graph["nodes"])
+    assert graph["truncated"]
+    assert_graph(graph)
+
+
+def test_commitments_show_actual_states_and_a_cap_is_configuration_not_affection(brain):
+    set_cap(*brain, "getting_to_know")
+    source = say(brain, "You promised to help with the puzzle.")
+    expected = {}
+    for status, state in (("done", "kept"), ("cancelled", "cancelled"), ("intended", "missed")):
+        saved = note(brain, f"Help with the puzzle ({status}).", kind="agent_commitment", status=status,
+                     due="2026-10-01", source_event_ids=[source])
+        expected["note:" + saved["note_id"]] = state
+    graph = companion_map(*brain)
+    actual = {node["id"]: node["details"]["commitment_state"] for node in graph["nodes"]
+              if node["kind"] == "agent_commitment"}
+    assert actual == expected
+    cap = next(node for node in graph["nodes"] if node["kind"] == "relationship_cap")
+    assert cap["details"]["level"] == "getting_to_know"
+    assert all(node["region"] == "commitments" for node in graph["nodes"] if node["kind"] == "agent_commitment")
+    assert_graph(graph)
+    reset_relationship(*brain)
+    assert not any(node["kind"] in ("agent_commitment", "relationship_cap") for node in companion_map(*brain)["nodes"])
 
 
 @pytest.mark.parametrize("arguments", [{"max_nodes": 0}, {"max_nodes": True}, {"max_nodes": 501},

@@ -80,7 +80,7 @@ Development is not giving the user an emotion score. The user's feelings are one
 | User affect | Reported versus inferred feeling, attached record and evidence | Note-linked affect in existing map |
 | Persona development | Current version, proposal, explicit feedback and accepted/rejected/withdrawn decision | Companion UI and companion-map backend; renderer integration pending |
 | Simulated mood | Current labelled simulation, baseline, applicable trigger evidence and recovery | Companion UI and companion-map backend; renderer integration pending |
-| Relationship | Shared moments, commitments, support style, boundaries and reset scope | Settings/shared moments in companion-map; complete projection pending |
+| Relationship | Shared moments, commitments, support style, boundaries and reset scope | Settings, shared moments and commitment states in companion-map; complete aggregates pending |
 
 These are conceptual layers, not claims that brain anatomy places plans, people or feelings in the displayed locations. Nodes are software records, not biological neurons or the host model's artificial neurons. Neither pgvector's search index nor a pretty network is the agent's reasoning process.
 

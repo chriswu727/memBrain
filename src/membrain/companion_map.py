@@ -1,6 +1,8 @@
 """A read-only graph of companion state and its surviving evidence."""
 from __future__ import annotations
 
+from collections import deque
+
 from . import affect, mood, persona, persona_growth, relationship
 from .helpers import DomainError, now
 from .memory_map import REGIONS
@@ -17,7 +19,7 @@ class _Graph:
     def node(self, ident, kind, region, label, recorded_at=None, *, sensitive=False, **details):
         if ident in self.nodes:
             return ident
-        if len(self.nodes) >= self.max_nodes:
+        if len(self.nodes) >= max(100, self.max_nodes * 8):
             self.truncated = True
             return None
         self.nodes[ident] = {
@@ -32,11 +34,25 @@ class _Graph:
         key = source, target, kind
         if source not in self.nodes or target not in self.nodes or source == target or key in self.seen:
             return
-        if len(self.edges) >= self.max_edges:
+        if len(self.edges) >= max(100, self.max_edges * 4):
             self.truncated = True
             return
         self.seen.add(key)
         self.edges.append({"source": source, "target": target, "type": kind, "basis": basis})
+
+    def finish(self):
+        groups = {}
+        for node in self.nodes.values():
+            groups.setdefault(node["kind"], deque()).append(node)
+        kept = {}
+        while len(kept) < self.max_nodes and any(groups.values()):
+            for group in groups.values():
+                if group and len(kept) < self.max_nodes:
+                    node = group.popleft()
+                    kept[node["id"]] = node
+        edges = [edge for edge in self.edges if edge["source"] in kept and edge["target"] in kept]
+        self.truncated |= len(kept) < len(self.nodes) or len(edges) < len(self.edges) or len(edges) > self.max_edges
+        self.nodes, self.edges = kept, edges[:self.max_edges]
 
 
 def companion_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, include_sensitive=False):
@@ -56,8 +72,11 @@ def companion_map(service, principal, brain_id, *, max_nodes=200, max_edges=400,
         current_mood = mood._read(service, conn, principal, brain_id, when)
         state = relationship._state(service, conn, principal, brain_id)
         moments = relationship._moments(service, conn, principal, brain_id, state["after"])
+        commitments = relationship._commitments(service, conn, principal, brain_id, state["after"],
+                                                state["acknowledged"], when.astimezone().date())
         _project(service, conn, principal, brain_id, graph, versions, proposals, current_mood, state,
-                 moments, include_sensitive)
+                 moments, commitments, include_sensitive)
+    graph.finish()
     nodes = list(graph.nodes.values())
     regions = list(dict.fromkeys(node["region"] for node in nodes))
     return {
@@ -67,7 +86,8 @@ def companion_map(service, principal, brain_id, *, max_nodes=200, max_edges=400,
         "regions": [{"id": region, "count": sum(node["region"] == region for node in nodes)}
                     for region in regions],
         "coverage": {"persona": "bounded_versions", "proposals": "stored_only",
-                     "mood": "current_and_bounded_triggers", "relationship": "settings_and_shared_moments",
+                     "mood": "current_and_bounded_triggers",
+                     "relationship": "settings_shared_moments_and_commitments",
                      "learned_memory": "not_projected", "recall": "not_observed"},
         "limitations": ["Positions and node size do not measure memory strength.",
                         "Edges show recorded dependencies, not a reasoning or execution timeline.",
@@ -76,14 +96,17 @@ def companion_map(service, principal, brain_id, *, max_nodes=200, max_edges=400,
 
 
 def _project(service, conn, principal, brain_id, graph, versions, proposals, current_mood, state,
-             moments, include_sensitive):
+             moments, commitments, include_sensitive):
     params = service._params(principal, brain_id)
+    graph.truncated |= len(proposals) > graph.max_nodes
+    proposals = sorted(proposals, key=lambda item: (item["status"] != "open", -item["sequence"]))[:graph.max_nodes]
     requested = set()
     for version in versions:
         requested.update((version.get("feedback") or {}).get("source_event_ids", []))
     for proposal in proposals:
         requested.update(source["event_id"] for source in proposal["sources"])
     requested.update(moment["id"] for moment in moments)
+    requested.update(item["note_id"] for group in commitments.values() for item in group)
     affect_ids = [trigger["source"]["id"] for trigger in current_mood["triggers"]
                   if trigger["source"]["kind"] == "affect"]
     feelings = {record["id"]: record for record in affect._records(
@@ -148,7 +171,8 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
                           ("relationship" if fields.get("shared") else REGIONS.get(fields.get("kind"), "other"))
                           if is_note else "episodes", text, row["recorded_at"],
                           sensitive=masked, event_id=ident, revision=row["revision"],
-                          actor_role=row["actor_role"], status=fields.get("status"))
+                          actor_role=row["actor_role"], status=fields.get("status"),
+                          due=fields.get("due"), occurs_at=fields.get("occurs_at"))
 
     mood_id = graph.node("mood:current", "simulated_mood", "mood", "Simulated mood: " + current_mood["label"],
                          simulated=True, at_baseline=current_mood["at_baseline"], pinned=current_mood["pinned"],
@@ -173,7 +197,7 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
             graph.edge(persona_ids.get(version["version"]), persona_ids.get(version["restored_from"]),
                        "restored_from", "persona_restore")
 
-    for proposal in sorted(proposals, key=lambda item: -item["sequence"])[:graph.max_nodes]:
+    for proposal in proposals:
         masked = not include_sensitive and any(source["event_id"] in hidden for source in proposal["sources"])
         ident = graph.node("proposal:" + proposal["id"], "persona_proposal", "persona", proposal["label"],
                            proposal["proposed_at"], sensitive=masked, event_id=proposal["id"],
@@ -220,8 +244,17 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
     if support and support["text"]:
         graph.node("support:" + support["id"], "support_style", "relationship", support["text"],
                    support["recorded_at"], event_id=support["id"], text=neutralize(support["text"]))
+    cap = state["cap"]
+    if cap and cap["level"] is not None:
+        graph.node("cap:" + cap["id"], "relationship_cap", "relationship", "Familiarity limit: " + cap["level"],
+                   cap["recorded_at"], event_id=cap["id"], level=cap["level"])
     for moment in moments:
         event(moment["id"])
+    for group, commitments_in_group in commitments.items():
+        for commitment in commitments_in_group:
+            ident = event(commitment["note_id"])
+            if ident and not graph.nodes[ident]["sensitive"]:
+                graph.nodes[ident]["details"]["commitment_state"] = group
     for dependency in dependencies:
         target = event(dependency["input_event_id"])
         if target and target.startswith("msg:"):
