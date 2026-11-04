@@ -25,7 +25,7 @@ Live mode is on with `--live`, and whenever `C5_BILLING_LEDGER`, `C5_ATTEMPT_ID`
 
 Wherever a ledger is read, before the start and before each scenario, it must hold `"blocked": false` and a `run_id` equal to `attempt_id`. When `C5_BILLING_POLICY_SHA256` is set, which is always in live mode, its `policy_sha256` must match too. Otherwise the attempt stops with `ledger_blocked` or `ledger_mismatch`.
 
-**Shared stop.** On a stop the driver decides itself (`invalid`, `hash_mismatch`, which includes `inputs_changed`, `run_dir_exists` or `driver_error`), it blocks the shared billing run for every future provider call. It runs the harness's own entry point, `<C5_PYTHON or uv run python> evaluations/c5-harness.py --stop`, as the run script's supervisor does. A signal does not cut it short; after 300 s it is killed and recorded as failed. The driver never writes the ledger itself. The entry point takes no reason, so the ledger records `arm_failed` unless it already has a reason. The driver's own reason is in `shared_stop` in its state file, and a failed stop is reported on stderr.
+**Shared stop.** On a stop the driver decides itself (`invalid`, `hash_mismatch`, which includes `inputs_changed`, `run_dir_exists` or `driver_error`), it blocks the shared billing run for every future provider call. It runs the harness's own entry point, `<C5_PYTHON or uv run python> evaluations/c5-harness.py --stop --reason CODE`, as the run script's supervisor does. CODE is the driver's own cause, so the ledger keeps it; the first recorded reason wins. The cause is `inputs_changed` when the stopped scenario's inputs changed while it ran, and otherwise the stop reason. If that call fails, as with an older harness that accepts only a bare `--stop`, the driver retries once without `--reason`. The ledger then records `arm_failed`, unless it already has a reason, and the state file records `reason_passed: false`. A signal does not cut either call short; after 300 s each is killed and recorded as failed. The driver never writes the ledger itself, and a failed stop is reported on stderr.
 
 The driver adds no shared stop for `runner_failed`, because the supervisor blocks the ledger itself once any arm has started. Nor does it add one for `ledger_blocked`, `ledger_mismatch` or `interrupted`, or for any refusal before the first scenario.
 
@@ -85,7 +85,11 @@ The last line of stdout is a one-line JSON summary of statuses: `mode`, `evidenc
 
 `OUT_ROOT/attempt-state.json` is written to a temporary file, then fsynced and moved into place with `os.replace`. It holds:
 - the attempt: `driver_state_version`, `mode`, `evidence`, `attempt_id`, `manifest` (path), `manifest_sha256`, `repo`, `out_root`, the `runner` and `validity` argument lists, `ledger`, `created_at` and `updated_at`;
-- `shared_stop`: null, or `reason`, `command`, `exit`, `started_at`, `finished_at` and `log`;
+- `shared_stop`: null, or an object with these fields:
+  - `reason`, the driver's stop reason, and `ledger_reason`, the code passed to `--reason`;
+  - `reason_passed`: true, false after the bare-`--stop` fallback, or null when no call succeeded;
+  - `command` and `exit` for the last call, and `attempts`, each call's `command`, `exit`, `started_at` and `finished_at`;
+  - `started_at`, `finished_at` and `log`;
 - the outcome: `result`, which is `running`, `complete`, `stopped` or `interrupted`, and `stop`, which is null or holds `key`, `reason`, `detail` and `at`;
 - `order`;
 - `scenarios`, one entry per key, with these fields:

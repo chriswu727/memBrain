@@ -24,9 +24,10 @@ equal to the ledger's policy_sha256. Its ledger is C5_BILLING_LEDGER (required, 
 refused). On a
 stop the driver decides itself (invalid, hash_mismatch including inputs changed during a scenario, run_dir_exists,
 driver_error) it blocks the shared billing run for every future provider call by running the harness's own entry
-point, `<C5_PYTHON or uv run python> evaluations/c5-harness.py --stop`, exactly as the run script's supervisor does.
-That entry point takes no reason, so the ledger records the harness's own reason ("arm_failed" unless already set);
-the driver's reason is in its state file. Without live mode (offline tests), overrides are allowed, no shared
+point, `<C5_PYTHON or uv run python> evaluations/c5-harness.py --stop --reason CODE`, as the run script's supervisor
+does, with CODE its own cause (invalid, inputs_changed, hash_mismatch, run_dir_exists or driver_error). If that
+fails, as with an older harness that accepts only a bare `--stop`, it retries once without `--reason`, and the state
+file records that the reason could not be passed. Without live mode (offline tests), overrides are allowed, no shared
 stop runs, and the state file and summary say "mode": "offline", "evidence": "offline_test_only".
 
 OUT_ROOT/attempt-state.json is replaced atomically after every step. It records statuses, times, exit codes and log
@@ -246,6 +247,7 @@ LIVE_RUNNER = "evaluations/c5-run-scenario.sh"
 LIVE_VALIDITY = "evaluations/acceptance_review.py"
 LIVE_STOPPER = "evaluations/c5-harness.py"
 SHARED_STOP_SECONDS = 300.0
+_STOP_REASON = re.compile(r"[a-z][a-z0-9_]{0,39}")  # What the harness's `--stop --reason CODE` accepts.
 # Stops the driver decides itself. On these, in live mode, it blocks the shared billing run for every future provider
 # call through the harness's own `--stop` entry point. A failed runner is left to the run script's supervisor, which
 # blocks the ledger itself after any arm started; a ledger already blocked or bound elsewhere needs nothing.
@@ -602,14 +604,34 @@ class Driver:
         one the run script's supervisor uses). The driver never writes the ledger itself. A signal does not cut this
         short; a stopper still running after SHARED_STOP_SECONDS is killed and recorded as failed."""
         log = self.out / LOGS / "shared-stop.log"
-        record = {"reason": self.state["stop"]["reason"], "command": self.stopper, "exit": None,
-                  "started_at": _now(), "finished_at": None, "log": str(log)}
+        stop = self.state["stop"]
+        status = self.state["scenarios"].get(stop["key"], {}).get("status") if stop["key"] else None
+        # The ledger keeps the real cause: a scenario whose inputs changed while it ran, else the stop reason.
+        reason = "inputs_changed" if status == "inputs_changed" else stop["reason"]
+        if not _STOP_REASON.fullmatch(reason):
+            reason = "driver_error"
+        record = {"reason": stop["reason"], "ledger_reason": reason, "reason_passed": None, "command": None,
+                  "exit": None, "attempts": [], "started_at": _now(), "finished_at": None, "log": str(log)}
         self.state["shared_stop"] = record
         self.save()
-        try:
-            record["exit"] = self.spawn(self.stopper, log, protect=SHARED_STOP_SECONDS)
-        except Exception as error:  # Recorded as a failed stop; the attempt is stopped either way.
-            print(f"driver: shared stop error: {type(error).__name__}", file=sys.stderr)
+        # An older harness refuses `--reason` (it accepts only a bare `--stop`); then retry once without it. Blocking
+        # is idempotent and the first recorded reason wins, so the retry never loses an earlier cause.
+        for command in (self.stopper + ["--reason", reason], self.stopper):
+            attempt = {"command": command, "exit": None, "started_at": _now()}
+            record["attempts"].append(attempt)
+            try:
+                attempt["exit"] = self.spawn(command, log, protect=SHARED_STOP_SECONDS)
+            except Exception as error:  # Recorded as a failed stop; the attempt is stopped either way.
+                print(f"driver: shared stop error: {type(error).__name__}", file=sys.stderr)
+            attempt["finished_at"] = _now()
+            record["command"], record["exit"] = command, attempt["exit"]
+            if attempt["exit"] == 0:
+                record["reason_passed"] = "--reason" in command
+                break
+            self.save()
+        if record["reason_passed"] is False:
+            print(f"driver: the harness refused --reason {reason}; the ledger was blocked without the driver's reason",
+                  file=sys.stderr)
         record["finished_at"] = _now()
         if record["exit"] != 0:
             print(f"driver: the shared billing stop FAILED (exit {record['exit']}): block the ledger by hand",
