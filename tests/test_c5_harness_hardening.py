@@ -641,3 +641,28 @@ def test_a_good_synthetic_scenario_passes(tmp_path):
     code, out, err, summary = _precheck(path)
     assert (code, summary["ok"], summary["turns"], summary["actions"]) == (0, True, 3, 1)
     assert PLANT not in out + err
+
+
+def test_billed_host_reply_is_retained_when_memory_bookkeeping_raises(stub_run, shared_ledger, tmp_path, monkeypatch):
+    monkeypatch.setattr(harness, 'STUB', False)
+    monkeypatch.setattr(harness, 'BILLING', None)
+
+    def unavailable(*args, **kwargs):
+        raise RuntimeError('independent synthetic bookkeeping failure')
+
+    monkeypatch.setattr(harness.Memory, 'record_turn', unavailable)
+    with pytest.raises(RuntimeError, match='independent synthetic bookkeeping failure'):
+        stub_run('P', SCENARIO)
+    state = shared_ledger.state()
+    assert len(state['requests']) == 1
+    assert all(entry.get('actual_micros') is not None for entry in state['requests'].values())
+    result = tmp_path / 'run-P/results_zq-synthetic-scenario_P.jsonl'
+    assert result.exists(), 'The host reply was billed but its result row was never written.'
+    rows = [json.loads(line) for line in result.read_text().splitlines()]
+    assert len(rows) == 1 and rows[0]['reply'] == 'Fake reply.' and rows[0]['usage']['total_tokens'] == 15
+    assert rows[0]['stopped_after'] == 'bookkeeping_failed' and rows[0]['recorded'] is None
+    events = [json.loads(line) for line in (tmp_path / 'run-P/harness-events.jsonl').read_text().splitlines()]
+    assert len(events) == 1 and events[0]['kind'] == 'bookkeeping_failed'
+    assert set(events[0]) == {'time', 'kind', 'session', 'turn'}
+    assert shared_ledger.provider.models == [harness.MODEL]
+    assert state['blocked'] is True and state['stop_reason'] == 'harness_degraded'

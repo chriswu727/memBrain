@@ -129,6 +129,18 @@ def billing_halt(stopping: list):
     return None
 
 
+@contextmanager
+def bookkeeping_errors(out: Path, session: str, turn: int, stopping: list):
+    errors = []
+    try:
+        yield errors
+    except Exception as error:
+        errors.append(error)
+        harness_event(out, "bookkeeping_failed", session=session, turn=turn)
+        if "bookkeeping_failed" not in stopping:
+            stopping.append("bookkeeping_failed")
+
+
 def log(*parts):
     print(time.strftime("%H:%M:%S"), *parts, flush=True)
 
@@ -1046,10 +1058,12 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                        if item.get("role") == "assistant" and item.get("content")]
             reply = "\n\n".join([*written, message.get("content") or ""]).strip()
             stopping: list[str] = []
-            with deferred_stop(stopping):  # The reply is paid for: its row is written before any stop.
+            halted, recorded = None, False
+            # The reply is paid for: its row is written before any stop.
+            with deferred_stop(stopping), bookkeeping_errors(out, session, index, stopping) as errors:
                 # Another arm may have stopped the shared ledger during this turn's host call: then nothing more is
                 # recorded or extracted (extraction would be a further billed request).
-                halted, recorded = billing_halt(stopping), False
+                halted = billing_halt(stopping)
                 if halted is None and chat is not None:
                     chat.record(speaker, reply, session=session, turn_id=f"t{index}", prompt=text)
                     recorded = not memory.host.paused(memory.directory, memory.user)
@@ -1078,15 +1092,15 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 row["reference_persona"] = persona_block or ""
                 row["reference_history_items"] = len(prior)
             if memory is not None:
-                row["recorded"] = recorded
+                row["recorded"] = None if errors else recorded
             if stopping:
                 row["stopped_after"] = stopping[0]
             with path.open("a") as stream:
                 stream.write(json.dumps(row, ensure_ascii=False) + "\n")
             log(arm, scenario, session, index, usage.get("total_tokens"),
                 "tools:", [(call["name"], str(call["arguments"])[:80]) for call in tool_calls])
-            if halted is not None:
-                raise halted
+            if errors or halted is not None:
+                raise errors[0] if errors else halted
             if stopping:
                 stop_run(stopping[0])
             if reference is not None:  # F's history holds the user's words, not a memory block, and the reply.
