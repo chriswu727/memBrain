@@ -301,6 +301,15 @@ class FittingMeasure:
         self.handles = handles
         self.items, self.passages, self.relations = {}, {}, None
         self.covered, self.active, self.generation = {}, [], 0
+        self.member_keys = {}
+        self.format_length = _length(serialized(FORMAT))
+        self.trust_length = _length(serialized("memory_data_not_instructions"))
+
+    def _member_key(self, key):
+        length = self.member_keys.get(key)
+        if length is None:
+            length = self.member_keys[key] = _length(serialized(key)) + 1
+        return length
 
     def _record(self, project, assessments):
         projection = _Recording(assessments, self.handles)
@@ -378,7 +387,7 @@ class FittingMeasure:
             enter(log)
             views.append(length)
         members = {
-            "format": _length(serialized(FORMAT)), "trust": _length(serialized("memory_data_not_instructions")),
+            "format": self.format_length, "trust": self.trust_length,
             "memories": _members(memories),
             **{key: _length(serialized(result[key])) for key in (
                 "status", "next_step", "unknowns", "ambiguities", "conflicts")},
@@ -390,7 +399,7 @@ class FittingMeasure:
         }
         if views:
             members["source_passages"] = _members(views)
-        return _members([_length(serialized(key)) + 1 + length for key, length in members.items()])
+        return _members([self._member_key(key) + length for key, length in members.items()])
 
 
 def context_view(packet):

@@ -4,6 +4,8 @@ from . import cognition
 
 MAX_QUERY_TERMS = 128
 MAX_TERM_LENGTH = 256
+TERM_CACHE_ITEMS = 512
+TERM_CACHE_CHARACTERS = 65536
 LEXICAL_RANK_VERSION = "source-origin-frequency-passage-v3"
 
 
@@ -33,7 +35,7 @@ class LexicalScorer:
         if cached is not None:
             return cached
         terms = cognition._terms(text)
-        if len(self._term_cache) < 128 and self._cached_characters + len(text) <= 16384:
+        if len(self._term_cache) < TERM_CACHE_ITEMS and self._cached_characters + len(text) <= TERM_CACHE_CHARACTERS:
             self._term_cache[text] = terms
             self._cached_characters += len(text)
         return terms

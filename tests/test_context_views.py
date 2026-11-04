@@ -376,6 +376,34 @@ def test_fitting_measures_exactly_what_a_whole_render_measures(name, monkeypatch
     assert result["usage"]["context_tokens"] == len(result["model_context"].encode())
 
 
+def test_fitting_reuses_only_metadata_lengths_and_remeasures_changed_values(monkeypatch):
+    from collections import Counter
+
+    from membrain import context_views
+
+    sources, memories, current = scenario(kind="exception")
+    result = cognition.recall(scope(), request("routine"), memories, sources, current)
+    original, calls = context_views.serialized, Counter()
+    names = {"format", "trust", "memories", "status", "next_step", "unknowns", "ambiguities", "conflicts",
+             "limitations", "historical_evidence_status", "sources", "relations", "memory_versions"}
+
+    def serialized(value):
+        if isinstance(value, str) and value in names:
+            calls[value] += 1
+        return original(value)
+
+    monkeypatch.setattr(context_views, "serialized", serialized)
+    measure = context_views.FittingMeasure(context_views.Handles())
+    first = measure(result)
+    assert first == len(cognition.render_recall(result).encode()) and all(calls[key] == 1 for key in names)
+    result["coverage"]["limitations"].append("A new limitation: 青色文件夹 🧠")
+    second = measure(result)
+    assert second > first and second == len(cognition.render_recall(result).encode())
+    assert all(calls[key] == 1 for key in names)
+    fresh = context_views.FittingMeasure(context_views.Handles())
+    assert fresh(result) == second and all(calls[key] == 2 for key in names)
+
+
 def test_a_fitting_measure_follows_changed_resolutions_items_and_passages():
     from test_source_context import recall as source_recall
 

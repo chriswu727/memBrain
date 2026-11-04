@@ -189,7 +189,15 @@ def test_term_reuse_is_bounded_and_stays_with_one_scorer(monkeypatch):
     assert calls["The blue map belongs to Mara."] == 2
     for number in range(1000):
         scorer("blue map", f"Unrelated label{number:05d} belongs to the garden.")
-    assert len(scorer._term_cache) <= 128 and scorer._cached_characters <= 16384
-    large = "山" * 16385
-    assert scorer("blue map", large) == scorer("blue map", large) == 0
-    assert calls[large] >= 2 and large not in scorer._term_cache
+    assert len(scorer._term_cache) == 512 and scorer._cached_characters <= 65536
+    oversized = LexicalScorer("blue map", [])
+    large = "山" * 65537
+    assert oversized("blue map", large) == oversized("blue map", large) == 0
+    assert calls[large] >= 2 and large not in oversized._term_cache
+
+
+def test_term_cache_character_bound_applies_before_the_entry_bound():
+    scorer = LexicalScorer("blue map", [])
+    for number in range(100):
+        scorer("blue map", f"label{number:05d} " + "garden " * 150)
+    assert scorer._cached_characters <= 65536 and len(scorer._term_cache) < 512
