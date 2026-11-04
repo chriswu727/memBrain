@@ -1,0 +1,422 @@
+{
+  "metadata": {
+    "source_commit": "281b06e585b0a9ca6b67e8892f3c6a3d69bc572f",
+    "runtime_pin": "b994ec8080d46ee861f6ed8738a1617929f50d2a",
+    "script_sha256": "a0d485a0729222f66406ea9a98fc2efe10a876eec0bd1e475b6e4eb9903de2e1",
+    "completed": true,
+    "protocol": "unchanged complete closed/open/open/closed workload; added phase API port to output for independent shutdown checks",
+    "exit_code": 1,
+    "source_unchanged": true,
+    "script_unchanged": true,
+    "all_ports_closed": true
+  },
+  "completed": true,
+  "passed": false,
+  "windows": [
+    {
+      "mode": "closed",
+      "cycle": 0,
+      "kind": "serial",
+      "p95_ms": 124.05,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 0,
+      "kind": "one_brain_8_concurrent",
+      "p95_ms": 642.03,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 0,
+      "kind": "eight_brains_8_concurrent",
+      "p95_ms": 614.77,
+      "n": 160,
+      "nonempty": 160,
+      "pass": false
+    },
+    {
+      "mode": "closed",
+      "cycle": 1,
+      "kind": "serial",
+      "p95_ms": 105.11,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 1,
+      "kind": "one_brain_8_concurrent",
+      "p95_ms": 560.78,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 1,
+      "kind": "eight_brains_8_concurrent",
+      "p95_ms": 659.56,
+      "n": 160,
+      "nonempty": 160,
+      "pass": false
+    },
+    {
+      "mode": "closed",
+      "cycle": 2,
+      "kind": "serial",
+      "p95_ms": 104.5,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 2,
+      "kind": "one_brain_8_concurrent",
+      "p95_ms": 554.7,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 2,
+      "kind": "eight_brains_8_concurrent",
+      "p95_ms": 514.12,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 0,
+      "kind": "serial",
+      "p95_ms": 115.89,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 0,
+      "kind": "one_brain_8_concurrent",
+      "p95_ms": 594.14,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 0,
+      "kind": "eight_brains_8_concurrent",
+      "p95_ms": 500.69,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 1,
+      "kind": "serial",
+      "p95_ms": 101.38,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 1,
+      "kind": "one_brain_8_concurrent",
+      "p95_ms": 498.8,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 1,
+      "kind": "eight_brains_8_concurrent",
+      "p95_ms": 493.54,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 2,
+      "kind": "serial",
+      "p95_ms": 101.25,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 2,
+      "kind": "one_brain_8_concurrent",
+      "p95_ms": 616.33,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 2,
+      "kind": "eight_brains_8_concurrent",
+      "p95_ms": 523.29,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 0,
+      "kind": "serial",
+      "p95_ms": 118.21,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 0,
+      "kind": "one_brain_8_concurrent",
+      "p95_ms": 550.55,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 0,
+      "kind": "eight_brains_8_concurrent",
+      "p95_ms": 601.0,
+      "n": 160,
+      "nonempty": 160,
+      "pass": false
+    },
+    {
+      "mode": "open",
+      "cycle": 1,
+      "kind": "serial",
+      "p95_ms": 107.47,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 1,
+      "kind": "one_brain_8_concurrent",
+      "p95_ms": 551.36,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 1,
+      "kind": "eight_brains_8_concurrent",
+      "p95_ms": 519.34,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 2,
+      "kind": "serial",
+      "p95_ms": 104.27,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 2,
+      "kind": "one_brain_8_concurrent",
+      "p95_ms": 548.43,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 2,
+      "kind": "eight_brains_8_concurrent",
+      "p95_ms": 515.59,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 0,
+      "kind": "serial",
+      "p95_ms": 104.83,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 0,
+      "kind": "one_brain_8_concurrent",
+      "p95_ms": 540.62,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 0,
+      "kind": "eight_brains_8_concurrent",
+      "p95_ms": 531.91,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 1,
+      "kind": "serial",
+      "p95_ms": 102.42,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 1,
+      "kind": "one_brain_8_concurrent",
+      "p95_ms": 532.04,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 1,
+      "kind": "eight_brains_8_concurrent",
+      "p95_ms": 532.06,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 2,
+      "kind": "serial",
+      "p95_ms": 104.78,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 2,
+      "kind": "one_brain_8_concurrent",
+      "p95_ms": 495.61,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 2,
+      "kind": "eight_brains_8_concurrent",
+      "p95_ms": 542.51,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    }
+  ],
+  "nonempty": 4080,
+  "passed_windows": 33,
+  "failed_windows": [
+    {
+      "mode": "closed",
+      "cycle": 0,
+      "kind": "eight_brains_8_concurrent",
+      "p95_ms": 614.77,
+      "n": 160,
+      "nonempty": 160,
+      "pass": false
+    },
+    {
+      "mode": "closed",
+      "cycle": 1,
+      "kind": "eight_brains_8_concurrent",
+      "p95_ms": 659.56,
+      "n": 160,
+      "nonempty": 160,
+      "pass": false
+    },
+    {
+      "mode": "open",
+      "cycle": 0,
+      "kind": "eight_brains_8_concurrent",
+      "p95_ms": 601.0,
+      "n": 160,
+      "nonempty": 160,
+      "pass": false
+    }
+  ],
+  "phases": [
+    {
+      "mode": "closed",
+      "renderer": null,
+      "nodes": null,
+      "edges": null,
+      "frames": null,
+      "page_errors": [],
+      "external_requests": [],
+      "artifact_error": null
+    },
+    {
+      "mode": "open",
+      "renderer": {
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+        "vendor": "Google Inc. (Apple)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "nodes": 181,
+      "edges": 66,
+      "frames": 1984,
+      "page_errors": [],
+      "external_requests": [],
+      "artifact_error": null
+    },
+    {
+      "mode": "open",
+      "renderer": {
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+        "vendor": "Google Inc. (Apple)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "nodes": 181,
+      "edges": 66,
+      "frames": 2024,
+      "page_errors": [],
+      "external_requests": [],
+      "artifact_error": null
+    },
+    {
+      "mode": "closed",
+      "renderer": null,
+      "nodes": null,
+      "edges": null,
+      "frames": null,
+      "page_errors": [],
+      "external_requests": [],
+      "artifact_error": null
+    }
+  ]
+}
