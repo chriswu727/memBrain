@@ -2,6 +2,7 @@
 import threading
 import time
 import uuid
+from contextlib import contextmanager
 
 import psycopg
 import pytest
@@ -431,3 +432,189 @@ def test_same_key_reads_and_a_queued_writer_do_not_deadlock(recovery, monkeypatc
     assert first["value"]["outcome"] == second["value"]["outcome"] == "completed"
     assert first["value"]["result"] == second["value"]["result"]
     assert written["value"]["accepted_event_ids"]
+
+
+
+# The desktop worker (semantic model off) polls every brain about once a second: MemoryService.work_once.
+
+
+def idle_worker(harness):
+    worker = MemoryService(harness.database)
+    while worker.work_once(harness.principal, harness.brain):
+        pass
+    return worker
+
+
+def poll(worker, harness):
+    return worker.work_once(harness.principal, harness.brain)
+
+
+def share_now(harness, transaction):
+    """Whether another session gets the brain row FOR SHARE at once (NOWAIT), at this moment."""
+    with transaction(harness.principal) as other:
+        try:
+            with other.transaction():
+                other.execute(*brain_row(harness, "SHARE NOWAIT")).fetchone()
+        except psycopg.errors.LockNotAvailable:
+            return False
+        return True
+
+
+def probing(harness, monkeypatch):
+    """Probe the brain row at the end of every transaction opened from now on, just before it commits, while it
+    still holds everything it locked. Returns the list the probes are appended to (True: a reader would not wait)."""
+    original, probes = harness.database.transaction, []
+
+    @contextmanager
+    def transaction(principal):
+        with original(principal) as conn:
+            yield conn
+            probes.append(share_now(harness, original))
+
+    monkeypatch.setattr(harness.database, "transaction", transaction)
+    return probes
+
+
+def test_an_idle_worker_poll_does_not_hold_off_shared_readers(recovery, monkeypatch):
+    """Before, each poll took the brain row FOR UPDATE to look for a job, so a reader arriving during an idle poll
+    queued behind it (up to 0.8 s in the R5 eight-brain phase)."""
+    harness, _ = recovery
+    worker = idle_worker(harness)
+    probes = probing(harness, monkeypatch)
+    assert poll(worker, harness) == 0
+    assert probes and all(probes), probes
+
+
+def test_an_idle_poll_does_not_wait_for_a_reader_in_progress(recovery, monkeypatch):
+    """Before, an idle poll asked for the row exclusively while a recall held it shared, so the poll waited for the
+    recall (and readers arriving after it queued behind the poll). Now the poll finishes while the recall holds the row,
+    and another reader still gets it at once."""
+    harness, _ = recovery
+    harness.observe("The Vancouver library appointment is on Friday.")
+    worker = idle_worker(harness)
+    held = Held(harness, monkeypatch)
+    thread, first = held.run(lambda: harness.service.handle(
+        harness.principal, recall_request(harness, "library appointment", wall_ms=20000)))
+    polled = {}
+    poller = threading.Thread(target=lambda: polled.update(value=poll(worker, harness)), daemon=True)
+    try:
+        poller.start()
+        until(lambda: "value" in polled or waiting(harness, ROW_WAITS) == 1)
+        finished_while_held = "value" in polled
+        shared = share_now(harness, harness.database.transaction)
+    finally:
+        held.release.set()
+        thread.join(20)
+        poller.join(20)
+    assert not thread.is_alive() and not poller.is_alive(), "deadlock"
+    assert first["value"]["outcome"] == "completed" and polled["value"] == 0
+    assert finished_while_held, "the idle poll waited for the reader's share lock"
+    assert shared
+
+
+def test_an_idle_poll_still_applies_a_pending_erasure_with_no_job_queued(recovery):
+    """With no job this worker claims (the harness queues learning jobs it does not), an erasure the recovery registry
+    holds but the database does not is applied by the next exclusive access; an idle poll is one, as before: it
+    finds the erasure without the lock, then takes the lock and applies it."""
+    harness, authority = recovery
+    secret = harness.observe("The safe combination is 3141.")["accepted_event_ids"][0]
+    worker = idle_worker(harness)
+    with harness.database.transaction(harness.principal) as conn:
+        assert not conn.execute("SELECT 1 FROM memory_jobs WHERE tenant_id=%s AND brain_id=%s AND state "
+                                "NOT IN ('completed','cancelled','superseded') AND kind IN ('extract','rebuild')",
+                                (harness.principal.tenant_id, harness.brain)).fetchone()
+    pending(harness, authority, secret)
+    assert raw_event(harness, secret)["document"] is not None
+    assert poll(worker, harness) == 0
+    assert raw_event(harness, secret) == {"document": None, "deleted": True}
+    with harness.database.transaction(harness.principal) as conn:
+        assert conn.execute("SELECT count(*) AS n FROM memory_erasure_receipts WHERE tenant_id=%s AND brain_id=%s",
+                            (harness.principal.tenant_id, harness.brain)).fetchone()["n"] == 1
+
+
+def test_a_poll_that_finds_a_job_applies_erasures_then_claims_it_under_the_exclusive_lock(recovery, monkeypatch):
+    """A claim is never made around the deletion authority or the brain lock: a poll that finds work takes the row
+    FOR UPDATE, applies any pending erasure first, and claims with the usual lease and fence."""
+    harness, authority = recovery
+    secret = harness.observe("The alarm code is 9932.")["accepted_event_ids"][0]
+    worker = idle_worker(harness)
+    harness.observe("The museum opens at nine.")  # queues its indexing job
+    pending(harness, authority, secret)
+    from membrain.jobs import JobStore
+
+    claimed, real = [], JobStore.claim
+
+    def claim(self, *args, **kwargs):
+        job = real(self, *args, **kwargs)
+        claimed.append(job)
+        return job
+
+    monkeypatch.setattr(JobStore, "claim", claim)
+    probes = probing(harness, monkeypatch)
+    assert poll(worker, harness) == 1
+    assert False in probes, "no transaction of the poll held the brain row exclusively"
+    assert claimed and claimed[0]["state"] == "running" and claimed[0]["fence"] >= 1 and claimed[0]["lease_token"]
+    assert raw_event(harness, secret) == {"document": None, "deleted": True}
+
+
+def test_a_job_queued_just_after_an_empty_poll_is_claimed_by_the_next_poll(recovery, monkeypatch):
+    """No starvation: the poll's look for work finds nothing, a job is queued before the poll returns, and the next
+    poll claims it."""
+    harness, _ = recovery
+    worker = idle_worker(harness)
+    original, queued = harness.database.transaction, []
+
+    @contextmanager
+    def transaction(principal):
+        with original(principal) as conn:
+            yield conn
+        if not queued:  # right after the poll's first transaction (its look for work) has committed
+            queued.append(True)
+            queued.append(harness.observe("The plumber comes on Monday.")["accepted_event_ids"][0])
+
+    monkeypatch.setattr(harness.database, "transaction", transaction)
+    assert poll(worker, harness) == 0
+    monkeypatch.setattr(harness.database, "transaction", original)
+    assert len(queued) == 2
+    assert poll(worker, harness) == 1
+    with harness.database.transaction(harness.principal) as conn:
+        assert conn.execute("SELECT state FROM memory_jobs WHERE tenant_id=%s AND brain_id=%s "
+                            "AND payload->>'event_id'=%s", (harness.principal.tenant_id, harness.brain,
+                                                           queued[1])).fetchone()["state"] == "completed"
+
+
+def test_an_idle_poll_racing_a_writer_neither_deadlocks_nor_loses_its_job(recovery, monkeypatch):
+    """The poll is stopped inside its transaction while a writer starts. Before, the writer waited for the poll's
+    exclusive lock; now it does not. Either way nothing deadlocks and the next poll claims the writer's job."""
+    harness, _ = recovery
+    worker = idle_worker(harness)
+    original = harness.database.transaction
+    inside, release, threads = threading.Event(), threading.Event(), {}
+
+    @contextmanager
+    def transaction(principal):
+        with original(principal) as conn:
+            yield conn
+            if threading.current_thread() is threads.get("poller") and not inside.is_set():
+                inside.set()
+                assert release.wait(20)
+
+    monkeypatch.setattr(harness.database, "transaction", transaction)
+    polled, written = {}, {}
+    threads["poller"] = threading.Thread(target=lambda: polled.update(value=poll(worker, harness)), daemon=True)
+    threads["writer"] = threading.Thread(
+        target=lambda: written.update(value=harness.observe("The dentist moved to Wednesday.")), daemon=True)
+    threads["poller"].start()
+    try:
+        assert inside.wait(20)
+        threads["writer"].start()
+        until(lambda: "value" in written or waiting(harness, ROW_WAITS) == 1)
+    finally:
+        release.set()
+    for thread in threads.values():
+        thread.join(30)
+        assert not thread.is_alive(), "deadlock"
+    assert polled["value"] == 0 and written["value"]["accepted_event_ids"]
+    monkeypatch.setattr(harness.database, "transaction", original)
+    assert poll(worker, harness) == 1
+    assert harness.memory.dashboard()["status"]["index_lag"] == 0
