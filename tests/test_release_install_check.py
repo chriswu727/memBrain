@@ -304,3 +304,34 @@ def test_baseline_activation_timeout_remains_a_failed_check(runner, tmp_path, mo
         exec(runner.SDK_SCRIPT, {})
     assert json.loads(capsys.readouterr().out) == {
         "error": "the baseline did not finish model activation", "results": []}
+
+
+def test_recovery_failure_is_recorded_without_status_or_activation(runner, tmp_path, monkeypatch):
+    calls = []
+    monkeypatch.setattr(runner, "status", lambda home: {"profile": str(tmp_path / "original")})
+    monkeypatch.setattr(runner, "free_ports", lambda: (43201, 43202))
+
+    def membrain(*args):
+        calls.append(args)
+        if args[:2] == ("desktop", "backup"):
+            return SimpleNamespace(returncode=0, stdout='{"registry_path":"test-registry"}', stderr="")
+        assert args[:2] == ("desktop", "restore-backup")
+        assert args[args.index("--api-port") + 1] == "43201"
+        assert args[args.index("--database-port") + 1] == "43202"
+        return SimpleNamespace(returncode=1, stdout="", stderr="The requested local port is already in use.")
+
+    home = SimpleNamespace(base=tmp_path, membrain=membrain)
+    assert runner.backup_and_restore(home, "", "test") is None
+    assert len(calls) == 2
+    assert runner.results[-1]["ok"] is False
+    assert "already in use" in runner.results[-1]["detail"]
+
+
+def test_recovery_ports_are_distinct_and_available(runner):
+    import socket
+
+    api_port, database_port = runner.free_ports()
+    assert api_port != database_port
+    with socket.socket() as api, socket.socket() as database:
+        api.bind(("127.0.0.1", api_port))
+        database.bind(("127.0.0.1", database_port))

@@ -43,6 +43,9 @@ jobs:
       MEMORY_DATABASE_APP_PASSWORD: ci-disposable-app
       # tests/test_memory_page_browser.py fails instead of skipping when Playwright or Chromium is missing.
       MEMBRAIN_REQUIRE_BROWSER: '1'
+      MEMORY_DESKTOP_E2E: '1'
+      MEMORY_CHAT_E2E_PYTHON: ${{ github.workspace }}/.venv/bin/python
+      MEMBRAIN_TEST_EMBEDDING_MODEL: ${{ runner.temp }}/membrain-test-model
     steps:
       - uses: actions/checkout@v4
         with:
@@ -55,6 +58,22 @@ jobs:
           node-version: '22'
       - run: python -m pip install uv
       - run: uv sync --frozen
+      - uses: actions/cache@v4
+        with:
+          path: ${{ env.MEMBRAIN_TEST_EMBEDDING_MODEL }}/models
+          key: local-embedding-${{ runner.os }}-${{ hashFiles('src/membrain/local_embeddings.py') }}
+      - name: Prepare the pinned local embedding model
+        run: |
+          uv run python - <<'PY'
+          import os
+          from pathlib import Path
+          from membrain.local_embeddings import download, installed, runtime_available
+
+          assert runtime_available(), "The local embedding runtime must be installed for full verification."
+          directory = Path(os.environ["MEMBRAIN_TEST_EMBEDDING_MODEL"])
+          download(directory)
+          assert installed(directory) is not None
+          PY
       - run: uv run python -m playwright install --with-deps chromium
       - run: uv run membrain migrate
       - run: uv run ruff check src tests examples

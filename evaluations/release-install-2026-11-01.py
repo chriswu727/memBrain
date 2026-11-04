@@ -337,7 +337,7 @@ def missing(offered, needed) -> list[str]:
     return sorted(set(needed) - set(offered))
 
 
-def backup_and_restore(home: Home, prefix: str, label: str, api_port: int, database_port: int):
+def backup_and_restore(home: Home, prefix: str, label: str):
     """Back up the active installation, restore it into a fresh one, activate and start it.
 
     Returns ``(target, activation)`` once the restore succeeded, or None (the failed step is recorded)."""
@@ -351,11 +351,15 @@ def backup_and_restore(home: Home, prefix: str, label: str, api_port: int, datab
     made = json.loads(result.stdout[:result.stdout.rindex("}") + 1])
     target = home.base / "restored"
     cleanup.append((home, target))
+    api_port, database_port = free_ports()
     restored = home.membrain("desktop", "restore-backup", "--directory", str(target), "--backup", str(backup),
                              "--registry", made["registry_path"], "--request-id", f"{label}-restore",
                              "--api-port", str(api_port), "--database-port", str(database_port))
-    check(f"{prefix}the backup restores into a fresh, quarantined installation", restored.returncode == 0
-          and '"quarantined"' in restored.stdout, (restored.stdout + restored.stderr)[-300:])
+    quarantined = restored.returncode == 0 and '"quarantined"' in restored.stdout
+    check(f"{prefix}the backup restores into a fresh, quarantined installation", quarantined,
+          (restored.stdout + restored.stderr)[-300:])
+    if not quarantined:
+        return None
     state = json.loads(home.membrain("desktop", "recovery-status", "--directory", str(target)).stdout)
     activated = home.membrain(
         "desktop", "activate-recovery", "--directory", str(target), "--recovery-epoch", state["recovery_epoch"],
@@ -379,6 +383,13 @@ def free_port() -> int:
     with socket.socket() as listener:
         listener.bind(("127.0.0.1", 0))
         return listener.getsockname()[1]
+
+
+def free_ports() -> tuple[int, int]:
+    with socket.socket() as api, socket.socket() as database:
+        api.bind(("127.0.0.1", 0))
+        database.bind(("127.0.0.1", 0))
+        return api.getsockname()[1], database.getsockname()[1]
 
 
 def chat(port: int, content: str, session_id: str) -> dict:
@@ -560,7 +571,7 @@ def upgrade_part(out: Path, old: str, pin: str, current_hooks: str) -> None:
         check("the proxy step ran to the end", False, {"type": type(error).__name__, "error": str(error)})
 
     # 6. Backup, restore into a fresh installation, activate it and recall from it.
-    restored = backup_and_restore(home, "", "release", 8798, 55498)
+    restored = backup_and_restore(home, "", "release")
     if restored is not None:
         target, activated = restored
         recalled = home.run("uvx --offline --python 3.12 --from membrain-ai membrain plugin hook user-prompt "
@@ -800,7 +811,7 @@ def companion_part(out: Path, baseline: str, current_hooks: str) -> None:
     companion_checks(home, new_hooks, written, None, "companion after upgrade")
 
     # 4. Back up, restore, activate, and check every item in the restored installation.
-    restored = backup_and_restore(home, prefix, "companion", 8799, 55499)
+    restored = backup_and_restore(home, prefix, "companion")
     require(f"{prefix}the backup restores", restored is not None)
     target, activated = restored
     require(f"{prefix}the restored installation activates", activated.returncode == 0,
