@@ -265,6 +265,51 @@ const ZH = {
   "That suggestion is not available.": "这条建议已不存在。", "That suggestion is no longer open.": "这条建议已经处理过或已撤回。",
   "The card already has this change.": "设定里已经有这项修改。",
   // End of persona suggestions
+  // 3D observatory (observatory.js)
+  "How to show the map": "记忆图的显示方式", "3D observatory": "3D 观测台", "2D map": "2D 图", "Reset camera": "重置视角",
+  "3D memory map. The list of memories holds the same records.": "3D 记忆图。记忆列表里是同样的记录。",
+  "In 3D, drag to rotate and scroll or pinch to zoom. With the map in focus, arrow keys rotate, plus and minus zoom and Home resets the camera. Click a memory to open it.":
+    "在 3D 视图里，拖动可以旋转，滚动或双指捏合可以缩放。选中记忆图后，方向键旋转，加号和减号缩放，Home 键重置视角。点击一条记忆即可打开。",
+  "How to read the 3D view": "怎样看 3D 视图", "Kinds of line": "连线的种类",
+  "derived from": "来源", "about person": "相关人物", "feeling of": "感受所属",
+  "A note and an original message it was saved from.": "一条笔记和它保存时依据的原始消息。",
+  "A note and the person note its “about” field names.": "一条笔记和它的“关于”字段所指的人物笔记。",
+  "A feeling and the note it belongs to.": "一条感受和它所属的笔记。",
+  "Solid, dashed and dotted lines are the only links drawn, each one recorded in memory. Being close together in space means nothing.":
+    "图中只画实线、虚线和点线三种关联，每一条都记录在记忆里。在空间里离得近不代表任何关系。",
+  "Ball: a note": "圆球：一条笔记", "Diamond: an original message you sent": "菱形：你发出的一条原始消息",
+  "Pyramid: a feeling attached to a note": "三角锥：附在笔记上的一条感受",
+  "Gold ring: returned by the latest recorded recall": "金色圆环：最近一次记录的回忆返回的记录",
+  "The gold ring marks only the records the latest recorded message recall returned. It is held in memory until the service restarts and is not everything a reply used.":
+    "金色圆环只标出最近一次记录的消息回忆返回的记录。它只保存在内存里，服务重启后就没有了，也不是一条回复用到的全部记忆。",
+  "Size is the map's layout weight: a pinned note is drawn larger. It is not memory strength, confidence or importance. Colour is the kind of record, as in the list beside the map.":
+    "大小是记忆图的布局权重：置顶的笔记画得大一些。它不代表记忆强度、可信度或重要程度。颜色表示记录的类型，和旁边的列表一致。",
+  "The brain-shaped shell is an illustrative container, not neuroscience. Its areas are kinds of record, not parts of a real brain, and the dots are software records, not neurons.":
+    "大脑形状的外壳只是示意性的容器，不是神经科学。它的各个区域是记录的类型，不是真实大脑的部位；每个点是软件里的一条记录，不是神经元。",
+  "Layers this map does not include yet": "记忆图还没有包含的层",
+  "The map holds notes, original messages you sent and feelings attached to notes. The layers below exist in memory, but the map does not yet include them with their sources, so neither view draws them as memories.":
+    "记忆图包含笔记、你发出的原始消息和附在笔记上的感受。下面这些层在记忆里存在，但记忆图还没有连同来源一起包含它们，所以两种视图都不会把它们画成记忆。",
+  "Learned memory": "学到的记忆", "Assertions, their revisions and sources. Not available yet.": "断言、它们的修订和来源。暂不可用。",
+  "Episodes and associations": "情节与关联",
+  "Episode membership and typed links between memories. Not available yet. “Recent messages” are original messages, not episodes.":
+    "情节包含哪些记录，以及记忆之间有类型的关联。暂不可用。“最近的消息”是原始消息，不是情节。",
+  "Personality development": "个性的变化", "Versions, suggestions and your decisions. Not available yet; the Companion tab shows them.":
+    "版本、建议和你的决定。暂不可用；可以在“伙伴”标签页查看。",
+  "Triggers and the baseline. Not available yet; the Companion tab shows them.": "触发记录和基础心情。暂不可用；可以在“伙伴”标签页查看。",
+  "Relationship evidence": "关系的依据",
+  "Support style, boundaries, promises and familiarity. Not available yet; shared moments appear as notes.":
+    "支持方式、边界、承诺和熟悉程度。暂不可用；共同时刻会作为笔记出现。",
+  "Memories in this map": "记忆图里的记忆",
+  "Arrow keys move through the list and Enter opens a memory. The 3D view marks the one in focus.":
+    "用方向键在列表里移动，按 Enter 打开一条记忆。3D 视图会标出当前聚焦的那一条。",
+  "No memories to list yet.": "还没有可列出的记忆。", "Latest recorded recall": "最近一次记录的回忆",
+  "Loading the 3D view…": "正在加载 3D 视图…",
+  "The 3D view needs WebGL 2, which this browser does not provide or has turned off. Showing the 2D map and the list instead.":
+    "3D 视图需要 WebGL 2，但这个浏览器不支持或已关闭它。改为显示 2D 图和列表。",
+  "The 3D view could not start. Showing the 2D map and the list instead.": "3D 视图无法启动。改为显示 2D 图和列表。",
+  "The 3D view lost its graphics context. Showing the 2D map until the browser restores it.":
+    "3D 视图失去了图形上下文。在浏览器恢复它之前，先显示 2D 图。",
+  // End of the 3D observatory
 };
 
 // Sentences built from numbers and names; the captured parts are kept as they are.

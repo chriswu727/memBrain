@@ -9,6 +9,7 @@
   <script src="/static/i18n.js" defer></script>
   <script src="/static/memory.js" defer></script>
   <script src="/static/brain.js" defer></script>
+  <script src="/static/observatory.js" defer></script>
   <script src="/static/showcase.js" defer></script>
 </head>
 <body>
@@ -86,7 +87,71 @@
     </div>
     <p id="brain-demo" class="card hint" hidden>Demo: fictional memories, not anyone's data.</p>
     <div class="brain-layout">
-      <div id="brain-canvas" class="card brain-canvas"></div>
+      <div class="brain-main">
+        <div class="row brain-modes" role="group" aria-label="How to show the map">
+          <button id="mode-3d" class="secondary" type="button" aria-pressed="true">3D observatory</button>
+          <button id="mode-2d" class="secondary" type="button" aria-pressed="false">2D map</button>
+          <button id="observatory-reset" class="link" type="button" hidden>Reset camera</button>
+        </div>
+        <p id="observatory-status" class="card hint observatory-status" role="status" hidden></p>
+        <div id="observatory" class="card observatory" hidden>
+          <canvas id="observatory-canvas" tabindex="0" aria-describedby="observatory-help"
+            aria-label="3D memory map. The list of memories holds the same records."></canvas>
+          <div id="observatory-labels" class="observatory-labels" aria-hidden="true"></div>
+          <p id="observatory-tip" class="observatory-tip" aria-hidden="true" hidden></p>
+        </div>
+        <div id="brain-canvas" class="card brain-canvas"></div>
+        <p id="observatory-help" class="hint">In 3D, drag to rotate and scroll or pinch to zoom. With the map in focus,
+          arrow keys rotate, plus and minus zoom and Home resets the camera. Click a memory to open it.</p>
+        <div class="observatory-key">
+          <h2>How to read the 3D view</h2>
+          <ul id="observatory-edges" class="observatory-edges" aria-label="Kinds of line">
+            <li data-edge="derived_from"><span class="edge-swatch edge-derived_from" aria-hidden="true"></span>
+              <strong>derived from</strong> <span>A note and an original message it was saved from.</span>
+              <span class="hint edge-count">0</span></li>
+            <li data-edge="about_person"><span class="edge-swatch edge-about_person" aria-hidden="true"></span>
+              <strong>about person</strong> <span>A note and the person note its “about” field names.</span>
+              <span class="hint edge-count">0</span></li>
+            <li data-edge="feeling_of"><span class="edge-swatch edge-feeling_of" aria-hidden="true"></span>
+              <strong>feeling of</strong> <span>A feeling and the note it belongs to.</span>
+              <span class="hint edge-count">0</span></li>
+          </ul>
+          <p class="hint">Solid, dashed and dotted lines are the only links drawn, each one recorded in memory. Being
+            close together in space means nothing.</p>
+          <ul class="observatory-shapes">
+            <li><span class="shape-swatch shape-note" aria-hidden="true"></span>Ball: a note</li>
+            <li><span class="shape-swatch shape-message" aria-hidden="true"></span>Diamond: an original message you sent</li>
+            <li><span class="shape-swatch shape-affect" aria-hidden="true"></span>Pyramid: a feeling attached to a note</li>
+            <li><span class="shape-swatch shape-recalled" aria-hidden="true"></span>Gold ring: returned by the latest
+              recorded recall <span id="observatory-recalled-count" class="hint">0</span></li>
+          </ul>
+          <p class="hint">The gold ring marks only the records the latest recorded message recall returned. It is held
+            in memory until the service restarts and is not everything a reply used.</p>
+          <p class="hint">Size is the map's layout weight: a pinned note is drawn larger. It is not memory strength,
+            confidence or importance. Colour is the kind of record, as in the list beside the map.</p>
+          <p class="hint">The brain-shaped shell is an illustrative container, not neuroscience. Its areas are kinds of
+            record, not parts of a real brain, and the dots are software records, not neurons.</p>
+        </div>
+        <details id="observatory-layers" class="card observatory-layers">
+          <summary>Layers this map does not include yet</summary>
+          <p class="hint">The map holds notes, original messages you sent and feelings attached to notes. The layers
+            below exist in memory, but the map does not yet include them with their sources, so neither view draws
+            them as memories.</p>
+          <ul>
+            <li data-layer="assertions"><strong>Learned memory</strong> <span>Assertions, their revisions and
+              sources. Not available yet.</span></li>
+            <li data-layer="episodes"><strong>Episodes and associations</strong> <span>Episode membership and typed
+              links between memories. Not available yet. “Recent messages” are original messages, not
+              episodes.</span></li>
+            <li data-layer="persona"><strong>Personality development</strong> <span>Versions, suggestions and your
+              decisions. Not available yet; the Companion tab shows them.</span></li>
+            <li data-layer="mood"><strong>Simulated mood</strong> <span>Triggers and the baseline. Not available yet;
+              the Companion tab shows them.</span></li>
+            <li data-layer="relationship"><strong>Relationship evidence</strong> <span>Support style, boundaries,
+              promises and familiarity. Not available yet; shared moments appear as notes.</span></li>
+          </ul>
+        </details>
+      </div>
       <div class="brain-side">
         <p id="brain-summary" class="hint"></p>
         <div id="brain-trace-box" class="brain-trace" hidden>
@@ -96,6 +161,13 @@
         </div>
         <div id="brain-legend" class="brain-legend"></div>
         <div id="brain-detail" class="card brain-detail" hidden></div>
+        <div class="observatory-list-box">
+          <h2 id="observatory-list-title">Memories in this map</h2>
+          <p class="hint">Arrow keys move through the list and Enter opens a memory. The 3D view marks the one in
+            focus.</p>
+          <ol id="observatory-list" class="observatory-list" aria-labelledby="observatory-list-title"></ol>
+          <p id="observatory-list-empty" class="hint">No memories to list yet.</p>
+        </div>
       </div>
     </div>
   </section>

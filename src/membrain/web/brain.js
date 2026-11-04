@@ -190,6 +190,8 @@ function highlight(id) {
   for (const path of root.querySelectorAll(".brain-edge")) {
     path.classList.toggle("lit", Boolean(id) && (path.dataset.source === id || path.dataset.target === id));
   }
+  // The 3D view (observatory.js) mirrors the same selection and region from brainState.
+  document.dispatchEvent(new CustomEvent("brain-highlight", { detail: { id, region } }));
 }
 
 function selectNode(id) {
@@ -273,6 +275,7 @@ async function loadBrain() {
   const map = brainState.demo
     ? await (await fetch("/static/memory-map-demo.json")).json()
     : await api(`/v1/brains/${encodeURIComponent(state.brain)}/memory-map?max_nodes=200&max_edges=400&trace=true`);
+  performance.mark("membrain-map-payload");  // Rendering measurements start here, after the payload arrived.
   renderBrain(map);
 }
 window.loadBrain = loadBrain;
