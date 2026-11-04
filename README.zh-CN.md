@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 同步文本运行时已实现，长期记忆质量仍在验证中。插件和无需 Docker 的嵌入式数据库是新增功能：已在 Linux x86_64 上完成端到端验证，在 Windows 11 上部分实际运行过（数据库、服务、hook、代理、AstrBot 和 OpenClaw），嵌入式运行时也已通过独立的 macOS 安装检查。候选版本 `e5260bc`（运行时 `7d8d45a`）已通过全部 49 项 Mac 安装检查，165 个安装文件与源码一致，安装后的 3D/2D 图谱流程也已通过验证。标准关键词回忆基准达到全部三项时间门槛，但打开全屏展示的较长测试仍超过八脑并发 600 ms 的目标。当前候选版本的完整 CI、稳定并发性能和真实模型行为验收仍待完成。详见[本轮证据](evaluations/maturity-owned-recall-2026-11-04.md)。使用 Docker 的桌面安装也已在 macOS 上验证。详见[支持范围与已知限制](#status-and-verification)。
+> **预发布阶段。** 同步文本运行时已实现，长期记忆质量仍在验证中。插件和无需 Docker 的嵌入式数据库是新增功能：已在 Linux x86_64 上完成端到端验证，在 Windows 11 上部分实际运行过（数据库、服务、hook、代理、AstrBot 和 OpenClaw），嵌入式运行时也已通过独立的 macOS 安装检查。候选版本 `38c948a`（运行时 `60b8b74`）已通过全部 49 项 Mac 安装检查，165 个安装文件与源码一致，安装后的 3D/2D 图谱流程也已通过验证。完整 CI 已通过 6,994 项 Python 测试（零跳过）、44 项 TypeScript 测试、严格类型检查和打包。标准关键词回忆基准的 p95 为 94.78/476.74/528.58 ms（串行/同脑八并发/八脑并发），均达标；完整全屏对照的各阶段汇总也达标，但两个较短窗口仍超过 600 ms。稳定并发性能和真实模型 R4/C5 行为验收仍待完成。详见[本轮证据](evaluations/maturity-bounded-recall-2026-11-04.md)。使用 Docker 的桌面安装也已在 macOS 上验证。详见[支持范围与已知限制](#status-and-verification)。
 
 <a id="claude-code-plugin"></a>
 

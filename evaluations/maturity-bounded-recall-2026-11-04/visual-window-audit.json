@@ -1,0 +1,370 @@
+{
+  "source_commit": "38c948a2f63664db6e169e324fce0522154ec563",
+  "runtime_pin": "60b8b746d5f389ef4a89e50564cc6280284dce44",
+  "original_completed": true,
+  "original_aggregate_passed": true,
+  "protocol": "Offline audit only: reapply the unchanged recall bars to every existing canonical-size cycle. No new request, excluded sample or modification of the original aggregate result.",
+  "windows": [
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 0,
+      "workload": "serial",
+      "n": 20,
+      "p95_ms": 115.44,
+      "bar_ms": 500,
+      "passed": true
+    },
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 0,
+      "workload": "one_brain_8_concurrent",
+      "n": 160,
+      "p95_ms": 597.71,
+      "bar_ms": 1000,
+      "passed": true
+    },
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 0,
+      "workload": "eight_brains_8_concurrent",
+      "n": 160,
+      "p95_ms": 577.31,
+      "bar_ms": 600,
+      "passed": true
+    },
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 1,
+      "workload": "serial",
+      "n": 20,
+      "p95_ms": 102.64,
+      "bar_ms": 500,
+      "passed": true
+    },
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 1,
+      "workload": "one_brain_8_concurrent",
+      "n": 160,
+      "p95_ms": 518.91,
+      "bar_ms": 1000,
+      "passed": true
+    },
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 1,
+      "workload": "eight_brains_8_concurrent",
+      "n": 160,
+      "p95_ms": 580.36,
+      "bar_ms": 600,
+      "passed": true
+    },
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 2,
+      "workload": "serial",
+      "n": 20,
+      "p95_ms": 105.73,
+      "bar_ms": 500,
+      "passed": true
+    },
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 2,
+      "workload": "one_brain_8_concurrent",
+      "n": 160,
+      "p95_ms": 511.98,
+      "bar_ms": 1000,
+      "passed": true
+    },
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 2,
+      "workload": "eight_brains_8_concurrent",
+      "n": 160,
+      "p95_ms": 529.94,
+      "bar_ms": 600,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 0,
+      "workload": "serial",
+      "n": 20,
+      "p95_ms": 114.44,
+      "bar_ms": 500,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 0,
+      "workload": "one_brain_8_concurrent",
+      "n": 160,
+      "p95_ms": 514.45,
+      "bar_ms": 1000,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 0,
+      "workload": "eight_brains_8_concurrent",
+      "n": 160,
+      "p95_ms": 526.4,
+      "bar_ms": 600,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 1,
+      "workload": "serial",
+      "n": 20,
+      "p95_ms": 107.56,
+      "bar_ms": 500,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 1,
+      "workload": "one_brain_8_concurrent",
+      "n": 160,
+      "p95_ms": 520.9,
+      "bar_ms": 1000,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 1,
+      "workload": "eight_brains_8_concurrent",
+      "n": 160,
+      "p95_ms": 524.25,
+      "bar_ms": 600,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 2,
+      "workload": "serial",
+      "n": 20,
+      "p95_ms": 105.64,
+      "bar_ms": 500,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 2,
+      "workload": "one_brain_8_concurrent",
+      "n": 160,
+      "p95_ms": 506.42,
+      "bar_ms": 1000,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 2,
+      "workload": "eight_brains_8_concurrent",
+      "n": 160,
+      "p95_ms": 671.06,
+      "bar_ms": 600,
+      "passed": false
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 0,
+      "workload": "serial",
+      "n": 20,
+      "p95_ms": 109.13,
+      "bar_ms": 500,
+      "passed": true
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 0,
+      "workload": "one_brain_8_concurrent",
+      "n": 160,
+      "p95_ms": 549.42,
+      "bar_ms": 1000,
+      "passed": true
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 0,
+      "workload": "eight_brains_8_concurrent",
+      "n": 160,
+      "p95_ms": 513.33,
+      "bar_ms": 600,
+      "passed": true
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 1,
+      "workload": "serial",
+      "n": 20,
+      "p95_ms": 125.87,
+      "bar_ms": 500,
+      "passed": true
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 1,
+      "workload": "one_brain_8_concurrent",
+      "n": 160,
+      "p95_ms": 503.52,
+      "bar_ms": 1000,
+      "passed": true
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 1,
+      "workload": "eight_brains_8_concurrent",
+      "n": 160,
+      "p95_ms": 549.62,
+      "bar_ms": 600,
+      "passed": true
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 2,
+      "workload": "serial",
+      "n": 20,
+      "p95_ms": 107.34,
+      "bar_ms": 500,
+      "passed": true
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 2,
+      "workload": "one_brain_8_concurrent",
+      "n": 160,
+      "p95_ms": 548.29,
+      "bar_ms": 1000,
+      "passed": true
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 2,
+      "workload": "eight_brains_8_concurrent",
+      "n": 160,
+      "p95_ms": 514.44,
+      "bar_ms": 600,
+      "passed": true
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 0,
+      "workload": "serial",
+      "n": 20,
+      "p95_ms": 106.38,
+      "bar_ms": 500,
+      "passed": true
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 0,
+      "workload": "one_brain_8_concurrent",
+      "n": 160,
+      "p95_ms": 510.07,
+      "bar_ms": 1000,
+      "passed": true
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 0,
+      "workload": "eight_brains_8_concurrent",
+      "n": 160,
+      "p95_ms": 555.2,
+      "bar_ms": 600,
+      "passed": true
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 1,
+      "workload": "serial",
+      "n": 20,
+      "p95_ms": 110.63,
+      "bar_ms": 500,
+      "passed": true
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 1,
+      "workload": "one_brain_8_concurrent",
+      "n": 160,
+      "p95_ms": 544.7,
+      "bar_ms": 1000,
+      "passed": true
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 1,
+      "workload": "eight_brains_8_concurrent",
+      "n": 160,
+      "p95_ms": 605.36,
+      "bar_ms": 600,
+      "passed": false
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 2,
+      "workload": "serial",
+      "n": 20,
+      "p95_ms": 104.33,
+      "bar_ms": 500,
+      "passed": true
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 2,
+      "workload": "one_brain_8_concurrent",
+      "n": 160,
+      "p95_ms": 493.06,
+      "bar_ms": 1000,
+      "passed": true
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 2,
+      "workload": "eight_brains_8_concurrent",
+      "n": 160,
+      "p95_ms": 524.58,
+      "bar_ms": 600,
+      "passed": true
+    }
+  ],
+  "all_windows_passed": false
+}

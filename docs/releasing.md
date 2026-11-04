@@ -2,7 +2,7 @@
 
 **Status on 2026-11-03: release frozen until the product is mature.** The owner decided to release only when everything below is mature ("我们把这些都做到成熟再发"). Until then:
 - no version tag, GitHub release or PyPI upload is made;
-- code changes keep merging through reviewed pull requests once their checks pass;
+- changes continue on the integration branch; the current maturity candidate is not merged into the default branch while performance or behavioural acceptance remains open;
 - development continues: the earlier "new features stopped until the gates pass" rule is replaced by this maturity bar.
 
 The [revised acceptance contract](../architecture/v1-acceptance.md) still defines the core gates, and it matches what ships: host plugins, the MCP server, the proxy, bot adapters and the memory page. The bar below adds to it.
@@ -17,8 +17,8 @@ Every item must be met, with evidence recorded in the repository, before a relea
 - [ ] **R3 — isolation, privacy, deletion.** Existing regressions are green, and no known defect is open, including every review finding on the merged pull requests.
 - [ ] **R4 — behavioural acceptance passes.** Previously, a release could ship with R4 not passed if it said so. That is no longer enough: R4 must pass on new held-out scenarios. It has not passed after six attempts; the [README summary](../README.md#final-behavioral-acceptance-r4-attempts-1-to-6) gives each result, and those failures stay on record. Each further attempt needs its own frozen plan and the owner's approval of any paid run.
 - [ ] **R5 — overhead.** Hooks never block the host, and recall meets both bars below on the reference fixture. A serial result alone does not meet R5.
-  - **Serial:** p95 under 500 ms. Runtime `7d8d45a` measures 101.47 ms in the fresh reference-Mac keyword benchmark.
-  - **Concurrent:** with eight workers, p95 is at most 1,000 ms on one brain and at most 600 ms on eight brains. The same canonical run measures 555.69/564.33 ms and passes, but the longer fullscreen-open phase reaches 630.51 ms on eight brains; R5 remains open. [Current measurements and failures](../evaluations/maturity-owned-recall-2026-11-04.md) and [earlier failures](../evaluations/maturity-free-checks-2026-11-03.md) remain on record. The conditions are in [gap 20 of the test matrix](../evaluations/maturity-test-matrix.md). The bar is unchanged.
+  - **Serial:** p95 under 500 ms. Runtime `60b8b74` measures 94.78 ms in the fresh reference-Mac keyword benchmark.
+  - **Concurrent:** with eight workers, p95 is at most 1,000 ms on one brain and at most 600 ms on eight brains. The same canonical run measures 476.74/528.58 ms and passes. A complete fullscreen comparison passes phase aggregates, but two retained canonical-size windows reach 671.06/605.36 ms on eight brains; R5 stability qualification remains open. [Current measurements and failures](../evaluations/maturity-bounded-recall-2026-11-04.md) and [earlier failures](../evaluations/maturity-free-checks-2026-11-03.md) remain on record. The conditions are in [gap 20 of the test matrix](../evaluations/maturity-test-matrix.md). The bar is unchanged.
 
 **Companion layers ([Phase C](../architecture/phase-c-design.md))**
 - [ ] **C-1 — every step built.** C0 brain map, P1 persona, P2 persona growth, A1 feelings, M1 simulated mood and R1 relationship are implemented, each meeting the acceptance behaviours in the design file.

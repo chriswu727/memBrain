@@ -1,0 +1,18 @@
+{
+  "source_commit": "38c948a2f63664db6e169e324fce0522154ec563",
+  "runtime_pin": "60b8b746d5f389ef4a89e50564cc6280284dce44",
+  "command": [
+    "/Users/yichen/tmp/membrain-review-20261029/.venv/bin/python",
+    "evaluations/recall-concurrency-benchmark.py",
+    "--directory",
+    "/Users/yichen/tmp/membrain-sql-recall-20261104/perf-38c948a-installation",
+    "--database-port",
+    "54175",
+    "--api-port",
+    "54176",
+    "--output",
+    "/Users/yichen/tmp/membrain-sql-recall-20261104/canonical-38c948a.json",
+    "--bulk-to",
+    "0"
+  ]
+}

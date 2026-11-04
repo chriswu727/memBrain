@@ -1,0 +1,347 @@
+{
+  "source_commit": "38c948a2f63664db6e169e324fce0522154ec563",
+  "runtime_pin": "60b8b746d5f389ef4a89e50564cc6280284dce44",
+  "comparisons": {
+    "sql_rejected": {
+      "raw_archive_member": "sql-keys-http-abba.json",
+      "all_context_hashes_equal": true,
+      "phases": [
+        {
+          "variant": "reference",
+          "n": 160,
+          "median_ms": 484.78,
+          "p95_ms": 514.23,
+          "rss_kb": 158304
+        },
+        {
+          "variant": "candidate",
+          "n": 160,
+          "median_ms": 483.48,
+          "p95_ms": 557.97,
+          "rss_kb": 148480
+        },
+        {
+          "variant": "candidate",
+          "n": 160,
+          "median_ms": 465.32,
+          "p95_ms": 540.34,
+          "rss_kb": 152192
+        },
+        {
+          "variant": "reference",
+          "n": 160,
+          "median_ms": 494.0,
+          "p95_ms": 546.28,
+          "rss_kb": 156864
+        }
+      ]
+    },
+    "prepared_types": {
+      "raw_archive_member": "schema-types-http-abba.json",
+      "all_context_hashes_equal": true,
+      "phases": [
+        {
+          "variant": "reference",
+          "n": 160,
+          "median_ms": 502.74,
+          "p95_ms": 572.35,
+          "rss_kb": 160928
+        },
+        {
+          "variant": "candidate",
+          "n": 160,
+          "median_ms": 469.45,
+          "p95_ms": 492.46,
+          "rss_kb": 158224
+        },
+        {
+          "variant": "candidate",
+          "n": 160,
+          "median_ms": 468.28,
+          "p95_ms": 500.49,
+          "rss_kb": 158912
+        },
+        {
+          "variant": "reference",
+          "n": 160,
+          "median_ms": 500.43,
+          "p95_ms": 516.47,
+          "rss_kb": 158176
+        }
+      ]
+    },
+    "fitting_and_parse": {
+      "raw_archive_member": "bundle-http-abba.json",
+      "all_context_hashes_equal": true,
+      "phases": [
+        {
+          "variant": "reference",
+          "n": 160,
+          "median_ms": 490.63,
+          "p95_ms": 757.61,
+          "rss_kb": 150048
+        },
+        {
+          "variant": "candidate",
+          "n": 160,
+          "median_ms": 470.67,
+          "p95_ms": 490.68,
+          "rss_kb": 161600
+        },
+        {
+          "variant": "candidate",
+          "n": 160,
+          "median_ms": 469.59,
+          "p95_ms": 489.81,
+          "rss_kb": 144352
+        },
+        {
+          "variant": "reference",
+          "n": 160,
+          "median_ms": 486.63,
+          "p95_ms": 530.45,
+          "rss_kb": 140352
+        }
+      ]
+    }
+  },
+  "fullscreen": {
+    "raw_archive_member": "visual-observed-abba.json",
+    "completed": true,
+    "aggregate_passed": true,
+    "phases": [
+      {
+        "mode": "closed",
+        "seconds": 67.837,
+        "passes_recall_bars": true,
+        "page_errors": [],
+        "external_requests": [],
+        "p95_ms": {
+          "serial": 111.89,
+          "one_brain_8_concurrent": 560.74,
+          "eight_brains_8_concurrent": 570.31
+        },
+        "eight_brain_window_p95_ms": [
+          577.31,
+          580.36,
+          529.94
+        ],
+        "poll_count": 0
+      },
+      {
+        "mode": "open",
+        "seconds": 68.014,
+        "nodes": 182,
+        "edges": 66,
+        "hologram_frames": 2042,
+        "document_visible": true,
+        "passes_recall_bars": true,
+        "page_errors": [],
+        "external_requests": [],
+        "p95_ms": {
+          "serial": 111.89,
+          "one_brain_8_concurrent": 518.31,
+          "eight_brains_8_concurrent": 527.25
+        },
+        "eight_brain_window_p95_ms": [
+          526.4,
+          524.25,
+          671.06
+        ],
+        "poll_count": 6
+      },
+      {
+        "mode": "open",
+        "seconds": 67.663,
+        "nodes": 182,
+        "edges": 66,
+        "hologram_frames": 2032,
+        "document_visible": true,
+        "passes_recall_bars": true,
+        "page_errors": [],
+        "external_requests": [],
+        "p95_ms": {
+          "serial": 111.6,
+          "one_brain_8_concurrent": 540.09,
+          "eight_brains_8_concurrent": 528.45
+        },
+        "eight_brain_window_p95_ms": [
+          513.33,
+          549.62,
+          514.44
+        ],
+        "poll_count": 6
+      },
+      {
+        "mode": "closed",
+        "seconds": 66.856,
+        "passes_recall_bars": true,
+        "page_errors": [],
+        "external_requests": [],
+        "p95_ms": {
+          "serial": 109.57,
+          "one_brain_8_concurrent": 521.92,
+          "eight_brains_8_concurrent": 551.08
+        },
+        "eight_brain_window_p95_ms": [
+          555.2,
+          605.36,
+          524.58
+        ],
+        "poll_count": 0
+      }
+    ],
+    "browser_events": [
+      {
+        "event": "page_close",
+        "phase_index": 0,
+        "expected": true,
+        "at": 1365775.054430375
+      },
+      {
+        "event": "page_close",
+        "phase_index": 1,
+        "expected": true,
+        "at": 1365845.0489605
+      },
+      {
+        "event": "page_close",
+        "phase_index": 2,
+        "expected": true,
+        "at": 1365914.240867708
+      },
+      {
+        "event": "page_close",
+        "phase_index": 3,
+        "expected": true,
+        "at": 1365982.132634916
+      },
+      {
+        "event": "browser_disconnected",
+        "closing": true,
+        "phase_index": 3,
+        "at": 1365982.389203
+      }
+    ]
+  },
+  "gc_diagnostic": {
+    "n": 1440,
+    "p95_ms": 535.1681250613183,
+    "max_ms": 1064.6184589713812,
+    "completed": true,
+    "server_event_count": 42052,
+    "server_generations": {
+      "0": {
+        "count": 38258,
+        "total_ms": 1338.5050953365862,
+        "max_ms": 5.540083162486553,
+        "collected": 891798,
+        "uncollectable": 0
+      },
+      "1": {
+        "count": 3478,
+        "total_ms": 1256.2998468056321,
+        "max_ms": 9.2312500346452,
+        "collected": 494283,
+        "uncollectable": 0
+      },
+      "2": {
+        "count": 316,
+        "total_ms": 5061.86874397099,
+        "max_ms": 80.3624999243766,
+        "collected": 333182,
+        "uncollectable": 0
+      }
+    },
+    "client_event_count": 1471,
+    "client_generations": {
+      "0": {
+        "count": 1338,
+        "total_ms": 139.31804127059877,
+        "max_ms": 8.915291866287589,
+        "collected": 215689,
+        "uncollectable": 0
+      },
+      "1": {
+        "count": 122,
+        "total_ms": 64.93196287192404,
+        "max_ms": 3.158207982778549,
+        "collected": 40044,
+        "uncollectable": 0
+      },
+      "2": {
+        "count": 11,
+        "total_ms": 62.57429160177708,
+        "max_ms": 6.800625007599592,
+        "collected": 6500,
+        "uncollectable": 0
+      }
+    },
+    "activity_sample_count": 836,
+    "sampling_errors": [],
+    "common_waits": [
+      {
+        "state": "idle in transaction",
+        "type": "Client",
+        "wait": "ClientRead",
+        "samples": 4768
+      },
+      {
+        "state": "idle",
+        "type": "Client",
+        "wait": "ClientRead",
+        "samples": 658
+      },
+      {
+        "state": "active",
+        "type": null,
+        "wait": null,
+        "samples": 644
+      },
+      {
+        "state": "active",
+        "type": "Client",
+        "wait": "ClientRead",
+        "samples": 305
+      },
+      {
+        "state": "active",
+        "type": "IO",
+        "wait": "DataFileRead",
+        "samples": 185
+      },
+      {
+        "state": "active",
+        "type": "LWLock",
+        "wait": "LockManager",
+        "samples": 125
+      },
+      {
+        "state": "active",
+        "type": "Timeout",
+        "wait": "VacuumDelay",
+        "samples": 59
+      },
+      {
+        "state": "idle in transaction",
+        "type": null,
+        "wait": null,
+        "samples": 17
+      }
+    ],
+    "thresholds_unchanged": true,
+    "gc_enabled": true
+  },
+  "ci": {
+    "run": 41889908273,
+    "python_passed": 6994,
+    "python_skipped": 0,
+    "warnings": 3,
+    "typescript_passed": 44,
+    "strict_types": "passed",
+    "ruff": "passed",
+    "sdist_and_wheel": "passed",
+    "raw_archive_member": "ci-38c948a-full.log"
+  },
+  "note": "Full raw comparison/failure/diagnostic data remains in the hash-verified archive. Aggregate fullscreen pass does not override the failing canonical-size windows."
+}
