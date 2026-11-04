@@ -233,6 +233,166 @@ def render_recall(result, handles=_handle):
     return serialized(recall_context_view(result, _shared, handles))
 
 
+def _length(text):
+    return len(text.encode("utf-8"))
+
+
+def _members(lengths):
+    """The length of a serialized JSON array or object whose members (or "key":value pairs) have these lengths."""
+    return 2 + max(0, len(lengths) - 1) + sum(lengths)
+
+
+def _entry(identifier, value):
+    """The length of ``"identifier":value`` in a serialized table."""
+    return _length(serialized(identifier)) + 1 + _length(serialized(value))
+
+
+class _Recording(_Projection):
+    """A projection of one item (or passage) that records each table entry it makes, in order, with the length of
+    the entry the table then holds, so the entries can be made again, with the same checks, in another table."""
+
+    def __init__(self, assessments, handles):
+        super().__init__(assessments, _shared, handles)
+        self.log = []
+
+    def memory(self, value):
+        identifier = super().memory(value)
+        self.log.append(("m", identifier, self.memories[identifier], _entry(identifier, self.memories[identifier])))
+        return identifier
+
+    def source(self, reference):
+        identifier = super().source(reference)
+        self.log.append(("s", identifier, reference, _entry(identifier, self.sources[identifier])))
+        return identifier
+
+    def relation(self, assessment):
+        identifier = super().relation(assessment)
+        self.log.append(("r", identifier, self.relations[identifier], _entry(identifier, self.relations[identifier])))
+        return identifier
+
+
+class _Collision(Exception):
+    pass
+
+
+_NO_RELATIONS = ()
+
+
+class FittingMeasure:
+    """``len(render_recall(result, handles).encode())``, exactly, for the repeated renders of one recall's budget
+    fitting, without serializing the whole context each time.
+
+    The rendered context is one JSON object serialized with sorted keys and no whitespace, so its byte length is the
+    sum of its members' lengths, in whatever order they are written. Each shown item's (and each shown passage's)
+    serialized view is the same from render to render: it depends only on that item, its belief resolution and the
+    recall's relation table. So its length, and the entries its projection makes in the shared tables (memory
+    versions, sources, relations), are recorded the first time, and every measurement makes those entries again, in
+    the same order and with the same checks, into fresh tables, whose lengths it adds to the items'. An item is
+    projected again whenever its belief resolution is another object (``refresh_beliefs`` assigns a new one). Which
+    items and passages are shown is decided as ``recall_context_view`` decides it; whether a passage covers an item is
+    remembered only while the item, its resolution and the active passages are the same objects as when it was
+    decided. When any check would fail, the measurement renders the whole context instead, which raises the same error.
+
+    One instance serves the fitting of one recall, during which nothing of an item or passage changes in place; it is
+    not used once ``factor_relations`` rewrites belief resolutions in place.
+    """
+
+    def __init__(self, handles):
+        self.handles = handles
+        self.items, self.passages, self.relations = {}, {}, None
+        self.covered, self.active, self.generation = {}, [], 0
+
+    def _record(self, project, assessments):
+        projection = _Recording(assessments, self.handles)
+        return _length(serialized(project(projection))), projection.log
+
+    def _item(self, item, assessments):
+        resolution = item.get("belief_resolution")
+        entry = self.items.get(id(item))
+        if (entry is None or entry[0] is not item or entry[1] is not resolution
+                or entry[2] != item["display_mode"]):
+
+            def project(projection):
+                content = projection.content(memory_content(item, _shared))
+                content["sources"] = projection.references(item["memory"]["evidence_refs"])
+                content["display_mode"] = item["display_mode"]
+                return content
+            entry = self.items[id(item)] = (item, resolution, item["display_mode"], *self._record(project, assessments))
+        return entry[3], entry[4]
+
+    def _covered(self, item, passages):
+        resolution = item.get("belief_resolution")
+        entry = self.covered.get(id(item))
+        if entry is None or entry[0] is not item or entry[1] is not resolution or entry[2] != self.generation:
+            entry = self.covered[id(item)] = (item, resolution, self.generation,
+                                              covering_passage(item, passages) is not None)
+        return entry[3]
+
+    def _passage(self, passage, assessments):
+        entry = self.passages.get(id(passage))
+        if entry is None or entry[0] is not passage:
+            entry = self.passages[id(passage)] = (passage, *self._record(
+                lambda projection: {**passage_content(passage, _shared),
+                                    "sources": projection.references([passage["evidence_ref"]])}, assessments))
+        return entry[1], entry[2]
+
+    def __call__(self, result):
+        assessments = result.get("belief_relations", _NO_RELATIONS)  # the same object while the table is unchanged
+        if assessments is not self.relations:
+            self.items, self.passages, self.relations = {}, {}, assessments
+        try:
+            return self._measure(result, assessments)
+        except Exception:  # noqa: BLE001 - a collision, or anything else: the whole render decides, and raises
+            pass
+        return _length(render_recall(result, self.handles))
+
+    def _measure(self, result, assessments):
+        tables = {"m": {}, "s": {}, "r": {}}
+        source_values = {}
+
+        def enter(log):
+            for kind, identifier, value, length in log:
+                if kind == "s":
+                    if identifier in source_values and source_values[identifier] != value:
+                        raise _Collision
+                    source_values[identifier] = value
+                else:
+                    table = tables[kind]
+                    if identifier in table and table[identifier][0] != value:
+                        raise _Collision
+                tables[kind][identifier] = (value, length)
+
+        memories = []
+        passages = active_passages(result)
+        if len(passages) != len(self.active) or any(a is not b for a, b in zip(passages, self.active)):
+            self.active, self.generation = passages, self.generation + 1  # holds them, so no id is reused
+        for item in result["items"]:
+            if item["display_mode"] == "do_not_surface" or self._covered(item, passages):
+                continue
+            length, log = self._item(item, assessments)
+            enter(log)
+            memories.append(length)
+        views = []
+        for passage in passages:
+            length, log = self._passage(passage, assessments)
+            enter(log)
+            views.append(length)
+        members = {
+            "format": _length(serialized(FORMAT)), "trust": _length(serialized("memory_data_not_instructions")),
+            "memories": _members(memories),
+            **{key: _length(serialized(result[key])) for key in (
+                "status", "next_step", "unknowns", "ambiguities", "conflicts")},
+            "limitations": _length(serialized(result["coverage"]["limitations"])),
+            "historical_evidence_status": _length(serialized(
+                result["retrieval_snapshot"]["historical_evidence_status"])),
+            **{name: _members([length for _, length in tables[kind].values()])
+               for name, kind in (("sources", "s"), ("relations", "r"), ("memory_versions", "m"))},
+        }
+        if views:
+            members["source_passages"] = _members(views)
+        return _members([_length(serialized(key)) + 1 + length for key, length in members.items()])
+
+
 def context_view(packet):
     assessments = [assessment for result in packet.get("recall_results", [])
                    for assessment in result.get("belief_relations", [])]

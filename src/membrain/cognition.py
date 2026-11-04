@@ -10,6 +10,7 @@ from typing import Any
 from .applicability import ApplicabilityResult, evaluate_applicability, validate_observation
 from .context_views import (
     FORMAT,
+    FittingMeasure,
     Handles,
     assistant_speech,
     context_view,
@@ -406,11 +407,13 @@ def _usage(budget: dict) -> dict:
     }
 
 
-def _measure(result: dict, handles=None) -> int:
+def _measure(result: dict, handles=None, fitting=None) -> int:
     # The rendered context does not show usage, so recording the count cannot change it: one render settles it.
     # Rendering without usage keeps that true: a renderer that started reading usage would fail here, not miscount.
+    # ``fitting`` (a FittingMeasure) gives the same count as rendering, from the parts earlier renders measured.
     view = {key: value for key, value in result.items() if key != "usage"}
-    count = estimate_tokens(render_recall(view) if handles is None else render_recall(view, handles))
+    count = (fitting(view) if fitting is not None else
+             estimate_tokens(render_recall(view) if handles is None else render_recall(view, handles)))
     result["usage"]["context_tokens"] = count
     return count
 
@@ -907,8 +910,9 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
         result["source_passages"] = passages
     groups = connected_item_groups(result["items"])
     handles = Handles()  # this recall's own: its renders below differ only in which items they show
+    fitting = FittingMeasure(handles)  # valid until factor_relations rewrites belief resolutions in place
     limit = request["budget"]["max_context_tokens"]
-    if _measure(result, handles) > limit and result["items"]:
+    if _measure(result, handles, fitting) > limit and result["items"]:
         original_items, original_traces = result["items"], result["recall_traces"]
         result["items"], result["recall_traces"] = [], []
         result["status"] = "partial"
@@ -921,7 +925,7 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
             candidates = admitted | {item["memory"]["memory_id"] for item in group}
             result["items"] = [item for item in original_items if item["memory"]["memory_id"] in candidates]
             refresh_beliefs(result["items"])
-            fits = _measure(result, handles) <= limit
+            fits = _measure(result, handles, fitting) <= limit
             if not fits and result.get("source_passages"):
                 from .source_context import active_passages
 
@@ -933,7 +937,7 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
                                            for ref in passage["anchor_memory_versions"])}
                 result["source_passages"] = [passage for passage in old_passages
                                              if passage["evidence_ref"]["event_id"] not in newly_active]
-                fits = _measure(result, handles) <= limit
+                fits = _measure(result, handles, fitting) <= limit
                 if not fits:
                     result["source_passages"] = old_passages
             if fits:
@@ -941,7 +945,7 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
         result["items"] = [item for item in original_items if item["memory"]["memory_id"] in admitted]
         result["recall_traces"] = [trace for trace in original_traces if trace["memory_id"] in admitted]
         refresh_beliefs(result["items"])
-    if _measure(result, handles) > limit:
+    if _measure(result, handles, fitting) > limit:
         raise DomainError("budget_exceeded", "Budget cannot hold the minimal recall envelope")
     retain_active_passages(result)
     factor_relations(result)
