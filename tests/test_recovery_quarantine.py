@@ -40,6 +40,32 @@ def apply_quarantine(case, **changes):
     quarantine(case.harness.database, case.harness.principal, **{**case.options, **changes})
 
 
+def test_quarantine_invalidates_valid_receipts_without_rewriting_invalid_ones(restored):
+    harness = restored.harness
+    harness.observe("The retained location is the library.", source_key="location")
+    harness.observe("The corrected location is the cafe.", source_key="location", revision=2)
+
+    def receipts():
+        with harness.database.transaction(harness.principal) as conn:
+            return {row["key"]: row for row in conn.execute(
+                "SELECT brain_id,action,key,request_hash,response,xmin::text AS version FROM memory_requests "
+                "WHERE tenant_id=%s AND owner_id=%s",
+                (harness.principal.tenant_id, harness.principal.principal_id),
+            )}
+
+    before = receipts()
+    invalid = {key: row for key, row in before.items() if row["response"] is None}
+    assert invalid and any(row["response"] is not None for row in before.values())
+    apply_quarantine(restored)
+    after = receipts()
+    assert set(after) == set(before)
+    assert all(row["response"] is None for row in after.values())
+    for key, row in invalid.items():
+        assert after[key] == row
+    apply_quarantine(restored)
+    assert receipts() == after
+
+
 def activate(case):
     harness = case.harness
     case.registry.activate(case.options["recovery_epoch"], case.options["installation_id"],

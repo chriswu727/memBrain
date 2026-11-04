@@ -57,7 +57,8 @@ def quarantine(database, principal, *, source_installation_id, installation_id, 
         )
         conn.execute('DELETE FROM memory_working_states WHERE tenant_id=%s AND owner_id=%s', params)
         conn.execute('DELETE FROM memory_traces WHERE tenant_id=%s AND owner_id=%s', params)
-        conn.execute('UPDATE memory_requests SET response=NULL WHERE tenant_id=%s AND owner_id=%s', params)
+        conn.execute('UPDATE memory_requests SET response=NULL WHERE tenant_id=%s AND owner_id=%s '
+                     'AND response IS NOT NULL', params)
         conn.execute('UPDATE memory_brains SET dependency_generation=dependency_generation+1,scope_generation=scope_generation+1 WHERE tenant_id=%s AND owner_id=%s', params)
         saved = {**checkpoint, 'authority_initialized': True, 'manifest_hash': manifest_hash}
         conn.execute(

@@ -340,7 +340,8 @@ class MemoryService:
             (brain["dependency_generation"], brain["scope_generation"], *self._params(principal, brain["id"])),
         )
         conn.execute(
-            "UPDATE memory_requests SET response=NULL WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s",
+            "UPDATE memory_requests SET response=NULL WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+            "AND response IS NOT NULL",
             self._params(principal, brain["id"]),
         )
 
