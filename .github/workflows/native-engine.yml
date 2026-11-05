@@ -8,12 +8,24 @@ on:
       - 'tests/test_native_bundle_build.py'
       - '.github/workflows/native-engine.yml'
   workflow_dispatch:
+    inputs:
+      platform:
+        description: Platform to qualify after a platform-specific build repair
+        type: choice
+        default: all
+        options:
+          - all
+          - macos-arm64
+          - macos-x86_64
+          - linux-x86_64
+          - linux-aarch64
+          - windows-x86_64
 
 permissions:
   contents: read
 
 concurrency:
-  group: native-engine-${{ github.event.pull_request.number || github.ref }}
+  group: native-engine-${{ github.event.pull_request.number || github.ref }}-${{ inputs.platform || 'all' }}
   cancel-in-progress: true
 
 jobs:
@@ -21,23 +33,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - runner: macos-15
-            target: macos-arm64
-            legacy: '--legacy-upgrade'
-          - runner: macos-15-intel
-            target: macos-x86_64
-            legacy: '--legacy-upgrade'
-          - runner: ubuntu-22.04
-            target: linux-x86_64
-            legacy: '--legacy-upgrade'
-          - runner: ubuntu-22.04-arm
-            target: linux-aarch64
-            legacy: ''
-          - runner: windows-2022
-            target: windows-x86_64
-            legacy: '--legacy-upgrade'
-    runs-on: ${{ matrix.runner }}
+        target: ${{ fromJSON(inputs.platform && inputs.platform != 'all' && format('["{0}"]', inputs.platform) || '["macos-arm64","macos-x86_64","linux-x86_64","linux-aarch64","windows-x86_64"]') }}
+    runs-on: ${{ fromJSON('{"macos-arm64":"macos-15","macos-x86_64":"macos-15-intel","linux-x86_64":"ubuntu-22.04","linux-aarch64":"ubuntu-22.04-arm","windows-x86_64":"windows-2022"}')[matrix.target] }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -45,7 +42,7 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install . 'pytest>=8,<10' 'pytest-asyncio>=1,<2'
-      - if: matrix.legacy != ''
+      - if: matrix.target != 'linux-aarch64'
         run: python -m pip install pgserver==0.1.4
       - run: python -m pytest -q tests/test_native_bundle_build.py
       - name: Build portable vector against the pinned public PostgreSQL distribution
@@ -55,11 +52,16 @@ jobs:
         if: runner.os == 'Windows'
         shell: cmd
         run: |
+          choco install nasm --yes --no-progress
+          if errorlevel 1 exit /b %errorlevel%
+          set "PATH=C:\Program Files\NASM;%PATH%"
+          nasm -v
+          if errorlevel 1 exit /b %errorlevel%
           for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do call "%%i\VC\Auxiliary\Build\vcvars64.bat"
           if errorlevel 1 exit /b %errorlevel%
           python scripts/build_native_bundle.py --work-directory "${{ runner.temp }}/native-build" --output-directory "${{ runner.temp }}/native-artifacts"
       - name: Verify relocated tools, legacy upgrade, vector indexes and backup restore
-        run: python scripts/check_native_bundle.py --artifacts "${{ runner.temp }}/native-artifacts" --work-directory "${{ runner.temp }}/native-check" ${{ matrix.legacy }}
+        run: python scripts/check_native_bundle.py --artifacts "${{ runner.temp }}/native-artifacts" --work-directory "${{ runner.temp }}/native-check" ${{ matrix.target != 'linux-aarch64' && '--legacy-upgrade' || '' }}
       - uses: actions/upload-artifact@v4
         if: always()
         with:
