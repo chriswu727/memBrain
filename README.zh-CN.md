@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 运行时 `47fcb96` 将完整熟悉度计数与有上限的显示列表分开，保留较早共同经历的贡献，并在养成视图中呈现依据。本地行为／浏览器检查覆盖计数、隐私、重置、恢复及 2D／3D／全息视图的真实拓扑一致性。**当前全屏性能测试有 2/36 个窗口未通过**：八脑 p95 分别达到 **645.75 ms** 和 **638.78 ms**，高于 600 ms 门槛；4,080 次召回全部非空。上一批完整 CI 有两项过时的静态类型清单检查失败（7,413 项通过）；修正后的当前运行时完整 CI 仍需完成。性能、安装／宿主、R4/C5 及最终复核仍使发布保持冻结。详见[当前结果及保留的失败](evaluations/maturity-familiarity-map-2026-11-05.md)和[宿主范围](docs/host-compatibility.md)。
+> **预发布阶段。** 运行时 `47fcb96` 将完整熟悉度计数与有上限的显示列表分开，保留较早共同经历的贡献，并在养成视图中呈现依据。本地行为／浏览器检查覆盖计数、隐私、重置、恢复及 2D／3D／全息视图的真实拓扑一致性。**当前全屏性能测试有 2/36 个窗口未通过**：八脑 p95 分别达到 **645.75 ms** 和 **638.78 ms**，高于 600 ms 门槛；4,080 次召回全部非空。上一批完整 CI 有两项过时的静态类型清单检查失败（7,413 项通过）；修正后的当前运行时完整 CI 仍需完成。[当前安装包在参考 Mac 上通过 49 项启动器、升级、MCP、代理和恢复检查](evaluations/maturity-installed-candidate-2026-11-05.md)。[进一步分析](evaluations/maturity-performance-attribution-2026-11-05.md)发现首次召回存在冷启动超时。性能、剩余宿主行为、R4/C5 及最终复核仍使发布保持冻结。详见[当前结果及保留的失败](evaluations/maturity-familiarity-map-2026-11-05.md)和[宿主范围](docs/host-compatibility.md)。
 
 <a id="claude-code-plugin"></a>
 
