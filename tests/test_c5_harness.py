@@ -430,3 +430,60 @@ def test_an_unrecorded_turn_cannot_silently_add_messages_to_memory(memory):
     event = json.loads((memory.directory.parent / "harness-events.jsonl").read_text())
     assert event["kind"] == "unexpected_recording" and event["new_messages"] == 2
     assert "practice privacy error" not in json.dumps(event)
+
+
+@pytest.mark.parametrize("code", [
+    "database_initialization_failed", "native_adoption_blocked", "native_transition_authority",
+    "evaluation_clock_refused", "port_conflict",
+])
+def test_permanent_local_start_errors_do_not_wait_ten_minutes(tmp_path, monkeypatch, code):
+    from membrain import desktop, local_profile
+
+    directory = tmp_path / "disposable"
+    monkeypatch.setattr(harness, "STUB", True)
+    monkeypatch.setattr(local_profile, "ensure_profile", lambda *args, **kwargs: None)
+    monkeypatch.setattr(evaluation_clock, "mark_disposable", lambda *args: None)
+    monkeypatch.setattr(evaluation_clock, "advance", lambda *args, **kwargs: None)
+    monkeypatch.setattr(evaluation_clock, "enable", lambda *args: None)
+    monkeypatch.setattr(host, "ensure_installation", lambda *args: None)
+    error = desktop.DesktopError(code, "A permanent startup failure")
+    def fail(*args):
+        raise error
+    monkeypatch.setattr(host, "start", fail)
+    monkeypatch.setattr(desktop, "status", lambda *args: pytest.fail("Do not poll after a permanent failure"))
+    monkeypatch.setattr(harness.time, "sleep", lambda *args: pytest.fail("Do not hide a permanent failure"))
+    try:
+        with pytest.raises(desktop.DesktopError) as raised:
+            harness.Memory(directory, None, None, datetime.datetime(2026, 3, 2, tzinfo=datetime.UTC))
+        assert raised.value is error
+    finally:
+        harness.STARTED.remove(directory)
+
+
+def test_a_slow_local_start_can_still_finish_becoming_ready(tmp_path, monkeypatch):
+    from membrain import desktop, local_profile
+
+    directory = tmp_path / "disposable"
+    directory_created = []
+    def profile(*args, **kwargs):
+        directory.mkdir()
+        (directory / "service.log").write_text("evaluation_clock_enabled")
+        directory_created.append(directory)
+    monkeypatch.setattr(harness, "STUB", True)
+    monkeypatch.setattr(local_profile, "ensure_profile", profile)
+    monkeypatch.setattr(evaluation_clock, "mark_disposable", lambda *args: None)
+    monkeypatch.setattr(evaluation_clock, "advance", lambda *args, **kwargs: None)
+    monkeypatch.setattr(evaluation_clock, "enable", lambda *args: None)
+    monkeypatch.setattr(host, "ensure_installation", lambda *args: None)
+    def delayed(*args):
+        raise desktop.DesktopError("service_start_timeout", "Service is still starting")
+    monkeypatch.setattr(host, "start", delayed)
+    states = iter([{"ready": False}, {"ready": True}])
+    monkeypatch.setattr(desktop, "status", lambda *args: next(states))
+    slept = []
+    monkeypatch.setattr(harness.time, "sleep", slept.append)
+    try:
+        memory = harness.Memory(directory, None, None, datetime.datetime(2026, 3, 2, tzinfo=datetime.UTC))
+        assert memory.directory == directory and slept == [5] and directory_created == [directory]
+    finally:
+        harness.STARTED.remove(directory)

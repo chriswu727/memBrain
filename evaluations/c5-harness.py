@@ -396,7 +396,9 @@ class Memory:
         try:
             with local_environment():
                 host.start(directory)
-        except desktop.DesktopError:  # A slow start on a loaded machine is waited for, not fatal.
+        except desktop.DesktopError as error:  # A slow start on a loaded machine is waited for, not fatal.
+            if error.code != "service_start_timeout":
+                raise
             deadline = time.monotonic() + 600
             while not desktop.status(directory).get("ready"):
                 if time.monotonic() > deadline:

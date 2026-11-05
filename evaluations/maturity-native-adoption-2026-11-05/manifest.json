@@ -737,6 +737,62 @@
       "sha256": "e057e46f28a8756a21862c66aa55395c889e5ce98c621e3e52c32f3a64f4b1fb",
       "raw_bytes": 981,
       "raw_sha256": "e057e46f28a8756a21862c66aa55395c889e5ce98c621e3e52c32f3a64f4b1fb"
+    },
+    {
+      "path": "ci-full-verify.json",
+      "bytes": 5869,
+      "sha256": "3505d08db4b0f784b9cc4390e4ef23b7c87b0cb01f3085d4c073c3bf4ab00958",
+      "raw_bytes": 5869,
+      "raw_sha256": "3505d08db4b0f784b9cc4390e4ef23b7c87b0cb01f3085d4c073c3bf4ab00958"
+    },
+    {
+      "path": "ci-full-verify.txt.gz",
+      "bytes": 43337,
+      "sha256": "8adededffe8b06057f8623bd1c27cc5ec7f9fab7167f330151e57379363bc6dc",
+      "raw_bytes": 325390,
+      "raw_sha256": "dbc1feaa121d415ea70e96e9e255afb7afb5bdcd4269ae44be68f6f801ca5632"
+    },
+    {
+      "path": "startup-errors-red.txt.gz",
+      "bytes": 1115,
+      "sha256": "f66357dc75c16b034acfaf89ed0a84886987624f1d402a06a111a6468e43228a",
+      "raw_bytes": 6017,
+      "raw_sha256": "10b57d3136cee9534e1142d7c181b5f83f0501a34f188ee24dccb9161574c98a"
+    },
+    {
+      "path": "startup-errors-red-v2.txt.gz",
+      "bytes": 1230,
+      "sha256": "2b1f63b430adffe20c92c5cd75562f5ee461d27760e8c519bf69483c3218f43e",
+      "raw_bytes": 16925,
+      "raw_sha256": "11cc12d8222c5638652d93db85220f50b139caac99e5078f6be710e4e8ca7ab2"
+    },
+    {
+      "path": "startup-errors-green.txt.gz",
+      "bytes": 51,
+      "sha256": "407ef5f23c8aaab61086ef23bc017fced862d838be4494602f9ae09661b7ca59",
+      "raw_bytes": 98,
+      "raw_sha256": "1cce3ba4edbd626a3afe9b79c68de56d985784bdc8b31bee3c1ee66bccaef9b9"
+    },
+    {
+      "path": "full-verify-diagnostic.json",
+      "bytes": 648,
+      "sha256": "92502f9302d377b4951544dda48741f5733a450045d29fe89ed814f552d0b493",
+      "raw_bytes": 648,
+      "raw_sha256": "92502f9302d377b4951544dda48741f5733a450045d29fe89ed814f552d0b493"
+    },
+    {
+      "path": "startup-ruff.txt.gz",
+      "bytes": 169,
+      "sha256": "e7703f9f23c50840fae746d61de8286df674cc5bdf8bfc88812233c02f0b6bd5",
+      "raw_bytes": 183,
+      "raw_sha256": "ceb643553092db9c4e17c7b98925d31e2fa606ac1646b4ac6728ab45ba6135f7"
+    },
+    {
+      "path": "startup-ruff-v2.txt.gz",
+      "bytes": 39,
+      "sha256": "7162964741fdb747d7ab27df2d1a1b64fa0636c4b7fe50ea8493de14cb62cbd4",
+      "raw_bytes": 19,
+      "raw_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
     }
   ],
   "local_installation_status": "uv and pip both failed ENOSPC; partial environment unqualified"
