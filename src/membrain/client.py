@@ -349,6 +349,10 @@ class MemoryClient:
         markers and the ``<membrain-relationship>`` block."""
         return self._request("GET", self._relationship_path(brain_id))
 
+    def relationship_boundaries(self, *, brain_id: str | None = None) -> JsonObject:
+        """Current topic boundaries without computing familiarity, shared moments or commitments."""
+        return self._request("GET", self._relationship_path(brain_id, "/boundaries"))
+
     def set_support_style(self, text: str, *, brain_id: str | None = None) -> JsonObject:
         """How the user likes to be supported ("listen first, advice only when asked"); empty text removes it."""
         return self._request("PUT", self._relationship_path(brain_id, "/support-style"), json={"text": text})

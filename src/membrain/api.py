@@ -654,6 +654,13 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
         with reading():
             return relationship(service, principal, brain_id)
 
+    @app.get("/v1/brains/{brain_id}/relationship/boundaries")
+    def get_relationship_boundaries(brain_id: str, principal: Principal = Depends(authenticate)):
+        from .relationship import relationship_boundaries
+
+        with reading():
+            return relationship_boundaries(service, principal, brain_id)
+
     @app.put("/v1/brains/{brain_id}/relationship/support-style")
     async def put_support_style(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
         from starlette.concurrency import run_in_threadpool

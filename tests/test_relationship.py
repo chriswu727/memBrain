@@ -221,6 +221,42 @@ def test_recall_context_leaves_out_bounded_messages_unless_the_current_message_r
     assert "My ex" in (host.recall_context(client, "Hiking ideas near Mount Tam?", boundaries=[]) or "")
 
 
+def test_recall_refreshes_topic_boundaries_without_loading_full_relationship():
+    from types import SimpleNamespace
+
+    values = iter(([EX], []))
+    client = SimpleNamespace(relationship_boundaries=lambda: {"boundaries": next(values)})
+    assert host._boundaries(client) == [EX]
+    assert host._boundaries(client) == []
+
+
+@pytest.mark.parametrize("status", [404, 405, 401, 403, 500, 503])
+def test_boundary_reader_only_falls_back_for_an_older_route(status):
+    from types import SimpleNamespace
+
+    import httpx
+
+    def unavailable():
+        httpx.Response(status, request=httpx.Request("GET", "http://memory.test/boundaries")).raise_for_status()
+
+    client = SimpleNamespace(relationship_boundaries=unavailable, relationship=lambda: {"boundaries": [EX]})
+    if status in (404, 405):
+        assert host._boundaries(client) == [EX]
+    else:
+        with pytest.raises(httpx.HTTPStatusError):
+            host.recall_context(client, "Hiking ideas?")
+
+
+@pytest.mark.parametrize("response", [None, {}, {"boundaries": None}, {"boundaries": [None]},
+                                      {"boundaries": [{"topic": "my ex", "aliases": "Jordan"}]}])
+def test_invalid_boundary_response_stops_recall(response):
+    from types import SimpleNamespace
+
+    client = SimpleNamespace(relationship_boundaries=lambda: response)
+    with pytest.raises(ValueError, match="invalid topic boundaries"):
+        host.recall_context(client, "Hiking ideas?")
+
+
 # On a real service ----------------------------------------------------------------------------------------------
 
 @pytest.fixture(scope="module")
@@ -416,7 +452,8 @@ def test_sensitive_and_bounded_missed_promises_are_listed_but_not_shown_or_ackno
         private: False, bounded: False, plain: True}
 
 
-def test_mcp_recall_honors_boundaries_with_and_without_an_installation(brain, tmp_path):
+@pytest.mark.parametrize("boundary_route", [True, False])
+def test_mcp_recall_honors_boundaries_with_and_without_an_installation(brain, tmp_path, boundary_route):
     import asyncio
 
     import httpx
@@ -436,6 +473,11 @@ def test_mcp_recall_honors_boundaries_with_and_without_an_installation(brain, tm
             return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
         if path.endswith("/relationship"):
             return httpx.Response(200, json=relationship(service, principal, ident))
+        if path.endswith("/relationship/boundaries"):
+            from membrain.relationship import relationship_boundaries
+
+            return (httpx.Response(200, json=relationship_boundaries(service, principal, ident))
+                    if boundary_route else httpx.Response(404))
         if path.endswith("/timeline/following"):
             return httpx.Response(200, json=service.following(principal, ident, query.get_list("event_id")))
         if path.endswith("/timeline"):
@@ -596,7 +638,8 @@ def test_api_and_sdk_routes_check_keys_owners_and_bodies(installation, brain, ap
     assert client.get(path, headers={"Authorization": "Bearer wrong"}).status_code == 401
     empty = client.get(path).json()
     assert empty["familiarity"]["level"] == "new" and empty["boundaries"] == [] and empty["block"] is None
-    for method, suffix, body in (("GET", "", None), ("PUT", "/support-style", {"text": "x"}),
+    for method, suffix, body in (("GET", "", None), ("GET", "/boundaries", None),
+                                 ("PUT", "/support-style", {"text": "x"}),
                                  ("POST", "/boundaries", {"topic": "x"}), ("DELETE", "/boundaries/x", None),
                                  ("POST", "/cap", {"level": None}), ("POST", "/acknowledge", {"note_ids": []}),
                                  ("POST", "/reset", None)):
@@ -607,6 +650,7 @@ def test_api_and_sdk_routes_check_keys_owners_and_bodies(installation, brain, ap
     assert client.put(path + "/support-style", json={"text": "listen first"}).json()["support_style"]["text"] == "listen first"
     added = client.post(path + "/boundaries", json={"topic": "my ex", "aliases": ["前任"]}).json()["boundaries"]
     assert added[0]["topic"] == "my ex"
+    assert client.get(path + "/boundaries").json() == {"boundaries": added}
     bad = client.post(path + "/boundaries", json={"topic": "x", "extra": 1})
     assert bad.status_code == 422 and bad.json()["error"]["message"].startswith("Relationship request field extra")
     assert client.post(path + "/boundaries", json={"topic": ""}).status_code == 422
@@ -614,6 +658,7 @@ def test_api_and_sdk_routes_check_keys_owners_and_bodies(installation, brain, ap
     assert client.post(path + "/cap", json={"level": "new"}).json()["familiarity"]["cap"] == "new"
     assert client.post(path + "/acknowledge", json={"note_ids": ["unknown"]}).status_code == 200
     assert client.delete(path + "/boundaries/" + added[0]["id"]).json()["boundaries"] == []
+    assert client.get(path + "/boundaries").json() == {"boundaries": []}
     assert client.delete(path + "/boundaries/" + added[0]["id"]).status_code == 404
     reset = client.post(path + "/reset").json()
     assert reset["marker"]["marker"] == "reset" and reset["support_style"] is None and reset["familiarity"]["cap"] is None
@@ -642,13 +687,37 @@ def test_sdk_uses_the_brain_scoped_relationship_routes():
         client.cap_familiarity("familiar")
         client.acknowledge_commitments(["n1"])
         client.reset_relationship()
+        client.relationship_boundaries()
     base = "/v1/brains/my%20brain/relationship"
     assert [(method, path) for method, path, _ in requests] == [
         ("GET", base), ("PUT", base + "/support-style"), ("POST", base + "/boundaries"),
         ("DELETE", base + "/boundaries/b%201"), ("POST", base + "/cap"), ("POST", base + "/acknowledge"),
-        ("POST", base + "/reset")]
+        ("POST", base + "/reset"), ("GET", base + "/boundaries")]
     assert json.loads(requests[2][2]) == {"topic": "my ex", "aliases": ["前任"]}
     assert json.loads(requests[4][2]) == {"level": "familiar"}
+
+
+def test_boundary_projection_matches_reset_and_avoids_history_aggregation(brain, api, monkeypatch):
+    import membrain.relationship as module
+
+    service, principal, ident = brain
+    client, path = api
+    add_boundary(service, principal, ident, "my ex", ["前任"])
+    expected = relationship(service, principal, ident)["boundaries"]
+
+    def unexpected(*args, **kwargs):
+        raise AssertionError("A boundary read must not aggregate relationship history")
+
+    with monkeypatch.context() as patcher:
+        for name in ("_days", "_moments", "_commitments"):
+            patcher.setattr(module, name, unexpected)
+        response = client.get(path + "/boundaries")
+        assert response.status_code == 200 and response.json() == {"boundaries": expected}
+    reset_relationship(service, principal, ident)
+    assert client.get(path + "/boundaries").json() == {"boundaries": []}
+    add_boundary(service, principal, ident, "work", ["工作"])
+    assert client.get(path + "/boundaries").json() == {
+        "boundaries": relationship(service, principal, ident)["boundaries"]}
 
 
 def test_restored_archives_keep_the_relationship_records(installation, brain):
@@ -671,6 +740,9 @@ def test_restored_archives_keep_the_relationship_records(installation, brain):
         client.restore(archive["archive_id"], expected_manifest_sha256=archive["manifest_sha256"],
                        expected_scope_generation=1, mode="new_brain", brain_id=copy)
     restored = relationship(service, principal, copy)
+    from membrain.relationship import relationship_boundaries
+
+    assert relationship_boundaries(service, principal, copy) == {"boundaries": restored["boundaries"]}
     assert [(item["topic"], item["aliases"]) for item in restored["boundaries"]] == [("my ex", ["前任"])]
     assert restored["support_style"]["text"] == "listen first"
     assert restored["familiarity"]["cap"] == "getting_to_know"

@@ -871,6 +871,21 @@ def _relationship(client) -> dict | None:
 
 def _boundaries(client) -> list[dict]:
     """Only a missing older route permits recall without boundaries; other read failures must stop recall."""
+    reader = getattr(client, "relationship_boundaries", None)
+    if callable(reader):
+        try:
+            result = reader()
+        except Exception as error:
+            if getattr(getattr(error, "response", None), "status_code", None) not in (404, 405):
+                raise
+        else:
+            if (not isinstance(result, dict) or not isinstance(result.get("boundaries"), list)
+                    or any(not isinstance(item, dict) or not isinstance(item.get("topic"), str)
+                           or not isinstance(item.get("aliases"), list)
+                           or any(not isinstance(alias, str) for alias in item["aliases"])
+                           for item in result["boundaries"])):
+                raise ValueError("The memory service returned invalid topic boundaries.")
+            return result["boundaries"]
     return list((_relationship(client) or {}).get("boundaries") or [])
 
 

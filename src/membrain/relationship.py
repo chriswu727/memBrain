@@ -341,6 +341,17 @@ def familiarity(days: list[str], moments: int, cap: str | None, today: _datetime
                            for name, need_days, need_moments in THRESHOLDS]}
 
 
+def _boundary_view(state) -> list[dict]:
+    return [{"id": entry["id"], "topic": entry["topic"], "aliases": entry["aliases"],
+             "recorded_at": entry["recorded_at"]} for entry in state["boundaries"]]
+
+
+def relationship_boundaries(service, principal, brain_id: str) -> dict:
+    with service.database.transaction(principal) as conn:
+        service._brain(conn, principal, brain_id)
+        return {"boundaries": _boundary_view(_state(service, conn, principal, brain_id))}
+
+
 def _read(service, conn, principal, brain_id, today) -> dict:
     state = _state(service, conn, principal, brain_id)
     after = state["after"]
@@ -352,8 +363,7 @@ def _read(service, conn, principal, brain_id, today) -> dict:
     return {"familiarity": known,
             "support_style": None if not support or not support["text"] else {
                 "text": support["text"], "id": support["id"], "recorded_at": support["recorded_at"]},
-            "boundaries": [{"id": entry["id"], "topic": entry["topic"], "aliases": entry["aliases"],
-                            "recorded_at": entry["recorded_at"]} for entry in state["boundaries"]],
+            "boundaries": _boundary_view(state),
             "shared_moments": [{key: value for key, value in moment.items() if key != "sequence"}
                                for moment in moments],
             "commitments": commitments,
