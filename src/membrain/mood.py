@@ -14,6 +14,15 @@ Each trigger pushes ``valence`` and ``energy`` away from the baseline, and every
 half-life. The mood is exactly the baseline once it is within 0.25 of it on both axes, or 48 hours after its last
 trigger, whichever comes first; the triggers are then dropped from the current mood (they stay in the history).
 
+Successive feelings about the same thing: a later affect record about the same note, or about the same explicitly
+named ``topic`` (compared after folding case and collapsing spaces; no other matching, and no model), replaces an
+earlier one in the mood from the moment it is recorded. Interview nerves followed by relief make the mood glad; the
+nerves are listed as ``superseded`` from that time, and before it they still explain the mood. A reading the user said
+replaces any earlier reading of the topic; an inferred reading replaces only inferred ones, never a feeling the user
+said. A later reading that cannot trigger on its own (a neutral one, or one on a sensitive note) still ends the earlier
+feeling, and is never listed. Records without a topic replace only records on their own note, so feelings about
+different topics count together. Deleting the later record brings the earlier one back, since nothing is stored.
+
 Triggers are derived, never copied: each names its rule, its source record and its time, so deleting or correcting
 the source (or "Clear feelings", which erases every affect record and writes the affect marker) removes the trigger.
 Only affect records after the latest affect reset marker count, and only shared moments after the latest
@@ -103,9 +112,12 @@ def _affect_triggers(service, conn, principal, brain_id) -> list[dict]:
 
     marker = latest_marker(service, conn, principal, brain_id)
     after = marker["applies_from_sequence"] if marker else 0
+    records = sorted((record for record in _records(service, conn, principal, brain_id, include_imports=False)
+                      if record["sequence"] > after), key=lambda record: record["sequence"])
     triggers = []
-    for record in _records(service, conn, principal, brain_id, include_imports=False):
-        if record["sequence"] <= after or record["sensitive"] or record["valence"] == 0:
+    for index, record in enumerate(records):
+        replaced = next((later for later in records[index + 1:] if _replaces(later, record)), None)
+        if record["sensitive"] or record["valence"] == 0:
             continue
         kind = "good_news" if record["valence"] > 0 else "distress"
         strength = abs(record["valence"]) * (1 + record["intensity"]) / 4
@@ -121,7 +133,25 @@ def _affect_triggers(service, conn, principal, brain_id) -> list[dict]:
                          "source": {"kind": "affect", "id": record["id"], "note_id": record["note_id"],
                                     "label": label, "basis": record["basis"], "topic": topic,
                                     "note_text": record["note_text"]}})
+        if replaced is not None:
+            listed = not replaced["sensitive"] and replaced["valence"] != 0
+            triggers[-1].update(superseded_sequence=replaced["sequence"], superseded_at=replaced["recorded_at"],
+                                superseded_by=f"{replaced['basis']}_{'good_news' if replaced['valence'] > 0 else 'distress'}:"
+                                              f"{replaced['id']}" if listed else None)
     return triggers
+
+
+def _topic(record) -> str | None:
+    topic = " ".join(str(record.get("topic") or "").split()).casefold()
+    return topic or None
+
+
+def _replaces(later, earlier) -> bool:
+    """Whether a later affect record replaces an earlier one in the mood: the same note, or the same named topic, and
+    an inferred reading never replaces one the user said."""
+    if later["basis"] != "reported" and earlier["basis"] == "reported":
+        return False
+    return later["note_id"] == earlier["note_id"] or (_topic(later) is not None and _topic(later) == _topic(earlier))
 
 
 def _plan_triggers(service, conn, principal, brain_id) -> list[dict]:
@@ -314,12 +344,16 @@ def derive(baseline: dict, triggers: list[dict], settings: list[dict], now: _dat
     """
     markers = [entry for entry in settings if "marker" in entry]
     after = markers[-1]["applies_from_sequence"] if markers else 0
-    timeline = sorted([{**trigger, "time": _time(trigger["at"]), "status": "active", "ended_at": None,
-                        "push": RULES[trigger["rule"]]["push"](trigger["strength"])}
-                       for trigger in triggers if trigger["sequence"] > after and trigger["rule"] in RULES]
-                      + [{**entry, "time": _time(entry["recorded_at"])}
-                         for entry in settings if "pinned" in entry],
-                      key=lambda entry: entry["sequence"])
+    counted = [{**trigger, "time": _time(trigger["at"]), "status": "active", "ended_at": None,
+                "push": RULES[trigger["rule"]]["push"](trigger["strength"])}
+               for trigger in triggers if trigger["sequence"] > after and trigger["rule"] in RULES]
+    # A trigger replaced by a later reading of the same thing ends when that reading is recorded (see the module).
+    replacements = [{"replaces": trigger, "sequence": trigger["superseded_sequence"],
+                     "time": _time(trigger["superseded_at"])}
+                    for trigger in counted if trigger.get("superseded_sequence") is not None]
+    timeline = sorted(counted + replacements + [{**entry, "time": _time(entry["recorded_at"])}
+                                                for entry in settings if "pinned" in entry],
+                      key=lambda entry: (entry["sequence"], "replaces" not in entry))
     active, pinned, pinned_at, seen = [], False, None, []
 
     def end(at):
@@ -329,6 +363,14 @@ def derive(baseline: dict, triggers: list[dict], settings: list[dict], now: _dat
 
     for entry in timeline:
         if entry["time"] > now:
+            continue
+        if "replaces" in entry:
+            if active and entry["time"] >= _returns_at(baseline, active):
+                end(_returns_at(baseline, active))
+            replaced = entry["replaces"]
+            if any(trigger is replaced for trigger in active):
+                active[:] = [trigger for trigger in active if trigger is not replaced]
+                replaced["status"], replaced["ended_at"] = "superseded", entry["time"]
             continue
         if "pinned" in entry:
             if entry["pinned"] and not pinned:
@@ -384,7 +426,9 @@ def _public(trigger) -> dict:
     return {"id": _trigger_id(trigger), "rule": trigger["rule"], "label": RULES[trigger["rule"]]["label"],
             "at": _iso(trigger["time"]), "sequence": trigger["sequence"], "reason": trigger["reason"],
             "push": {"valence": round(trigger["push"][0], 2), "energy": round(trigger["push"][1], 2)},
-            "status": trigger["status"], "ended_at": _iso(trigger["ended_at"]), "source": trigger["source"]}
+            "status": trigger["status"], "ended_at": _iso(trigger["ended_at"]),
+            "superseded_by": trigger.get("superseded_by") if trigger["status"] == "superseded" else None,
+            "source": trigger["source"]}
 
 
 def _read(service, conn, principal, brain_id, now) -> dict:

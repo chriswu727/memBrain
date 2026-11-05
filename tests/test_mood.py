@@ -734,3 +734,133 @@ def test_restored_moments_are_imported_and_never_trigger(installation, brain, cl
         client.restore(archive["archive_id"], expected_manifest_sha256=archive["manifest_sha256"],
                        expected_scope_generation=1, mode="new_brain", brain_id=copy)
     assert mood_state(service, principal, copy, now=moment("2027-03-14T21:05:00Z"))["triggers"] == []
+
+
+# Successive feelings about the same topic --------------------------------------------------------------------------
+# A later feeling about the same note, or the same explicitly named topic (case and spacing aside), replaces the earlier
+# one in the mood from the moment it is recorded: interview nerves followed by relief make the mood glad, not a tug of
+# war in which the nerves can still explain it. Distinct topics still count together.
+
+ANXIOUS = {"label": "anxious", "valence": -2, "intensity": 3, "basis": "reported", "topic": "the interview"}
+RELIEVED = {"label": "relieved", "valence": 2, "intensity": 2, "basis": "reported", "topic": "The  Interview"}
+
+
+def statuses(state):
+    return {t["source"]["label"]: t["status"] for t in state["triggers"] if t["source"]["kind"] == "affect"}
+
+
+def forget_note(brain, note_id):
+    service, principal, ident = brain
+    generation = service.dashboard(principal, ident)["brain"]["scope_generation"]
+    result = service.handle(principal, {
+        "message_type": "request", "contract_version": "1.0.0-draft", "request_id": uid(), "action": "forget",
+        "target": {"brain_ref": ident, "conversation_ref": "membrain-notes", "branch_ref": "main"},
+        "payload": {"idempotency_key": uid(), "selector": {"kind": "events", "ids": [note_id]},
+                    "mode": "erase_content", "expected_scope_generation": generation}})
+    assert result["outcome"] == "completed", result
+
+
+def test_relief_about_the_same_topic_replaces_the_earlier_nerves(brain, clock):
+    clock("2027-03-14T09:00:00Z")
+    write(brain, "Job interview at Acme today.", kind="plan", affect=ANXIOUS)
+    assert mood(brain, "2027-03-14T09:05:00Z")["label"] == "concerned"
+    clock("2027-03-14T11:00:00Z")
+    write(brain, "The Acme interview went well.", kind="milestone", affect=RELIEVED)
+    state = mood(brain, "2027-03-14T11:05:00Z")
+    assert state["label"] == "glad" and "relieved" in state["reason"]
+    assert statuses(state) == {"anxious": "superseded", "relieved": "active"}
+    nerves = next(t for t in state["triggers"] if t["source"]["label"] == "anxious")
+    assert nerves["ended_at"] == "2027-03-14T11:00:00Z"
+    # History is kept: before the relief, the nerves still explain the mood at that time.
+    assert mood(brain, "2027-03-14T10:00:00Z")["label"] == "concerned"
+
+
+def test_a_calm_later_reading_of_the_topic_ends_the_earlier_feeling(brain, clock):
+    clock("2027-03-14T09:00:00Z")
+    write(brain, "Job interview at Acme today.", kind="plan", affect=ANXIOUS)
+    clock("2027-03-14T10:00:00Z")
+    write(brain, "Feeling fine about the interview now.", kind="other",
+          affect={"label": "okay", "valence": 0, "intensity": 1, "basis": "reported", "topic": "the interview"})
+    state = mood(brain, "2027-03-14T10:05:00Z")
+    assert state["at_baseline"] and state["block"] is None
+    assert statuses(state) == {"anxious": "superseded"}
+
+
+def test_feelings_about_different_topics_still_count_together(brain, clock):
+    clock("2027-03-14T09:00:00Z")
+    write(brain, "Job interview at Acme today.", kind="plan", affect=ANXIOUS)
+    clock("2027-03-14T10:00:00Z")
+    write(brain, "Got the keys to the new flat.", kind="milestone",
+          affect={"label": "happy", "valence": 2, "intensity": 2, "basis": "reported", "topic": "the new flat"})
+    write(brain, "Mum called.", kind="other",
+          affect={"label": "glad", "valence": 1, "intensity": 1, "basis": "reported"})  # No topic: its own note only.
+    assert statuses(mood(brain, "2027-03-14T10:05:00Z")) == {"anxious": "active", "happy": "active", "glad": "active"}
+
+
+def test_an_inferred_reading_never_replaces_a_feeling_the_user_said(brain, clock):
+    clock("2027-03-14T09:00:00Z")
+    write(brain, "Job interview at Acme today.", kind="plan", affect=ANXIOUS)
+    clock("2027-03-14T10:00:00Z")
+    source = say(brain, "back from the interview, it was fine I guess")["result"]["accepted_event_ids"][0]
+    write(brain, "Back from the interview.", kind="other", source_event_ids=[source],
+          affect={"label": "relieved", "valence": 1, "intensity": 1, "basis": "inferred", "topic": "the interview"})
+    assert statuses(mood(brain, "2027-03-14T10:05:00Z")) == {"anxious": "active", "relieved": "active"}
+
+
+def test_a_said_feeling_replaces_an_inferred_one(brain, clock):
+    clock("2027-03-14T09:00:00Z")
+    source = say(brain, "interview today...")["result"]["accepted_event_ids"][0]
+    write(brain, "Job interview at Acme today.", kind="plan", source_event_ids=[source],
+          affect={**ANXIOUS, "basis": "inferred"})
+    clock("2027-03-14T10:00:00Z")
+    write(brain, "The Acme interview went well.", kind="milestone", affect=RELIEVED)
+    assert statuses(mood(brain, "2027-03-14T10:05:00Z")) == {"anxious": "superseded", "relieved": "active"}
+
+
+def test_deleting_the_later_feeling_brings_the_earlier_one_back(brain, clock):
+    clock("2027-03-14T09:00:00Z")
+    write(brain, "Job interview at Acme today.", kind="plan", affect=ANXIOUS)
+    clock("2027-03-14T10:00:00Z")
+    relief = write(brain, "The Acme interview went well.", kind="milestone", affect=RELIEVED)
+    assert statuses(mood(brain, "2027-03-14T10:05:00Z")) == {"anxious": "superseded", "relieved": "active"}
+    forget_note(brain, relief["note_id"])
+    state = mood(brain, "2027-03-14T10:05:00Z")
+    assert statuses(state) == {"anxious": "active"} and state["label"] == "concerned"
+    assert "went well" not in json.dumps(state)
+
+
+def test_a_sensitive_later_reading_ends_the_feeling_without_being_shown(brain, clock):
+    clock("2027-03-14T09:00:00Z")
+    write(brain, "Job interview at Acme today.", kind="plan", affect=ANXIOUS)
+    clock("2027-03-14T10:00:00Z")
+    write(brain, "Told the interviewer about my diagnosis.", kind="other", sensitive=True,
+          affect={"label": "exposed", "valence": -1, "intensity": 2, "basis": "reported", "topic": "the interview"})
+    state = mood(brain, "2027-03-14T10:05:00Z")
+    assert statuses(state) == {"anxious": "superseded"} and state["at_baseline"]
+    assert "diagnosis" not in json.dumps(state) and "exposed" not in json.dumps(state)
+
+
+def test_a_mood_reset_between_the_feelings_keeps_only_the_later_one(brain, clock):
+    service, principal, ident = brain
+    clock("2027-03-14T09:00:00Z")
+    write(brain, "Job interview at Acme today.", kind="plan", affect=ANXIOUS)
+    clock("2027-03-14T09:30:00Z")
+    reset_mood(service, principal, ident, now=moment("2027-03-14T09:30:00Z"), tz=UTC)
+    clock("2027-03-14T10:00:00Z")
+    write(brain, "The Acme interview went well.", kind="milestone", affect=RELIEVED)
+    assert statuses(mood(brain, "2027-03-14T10:05:00Z")) == {"relieved": "active"}
+
+
+def test_the_replacement_rule_is_the_same_note_or_the_same_named_topic_and_respects_who_said_it():
+    from membrain.mood import _replaces
+
+    def record(note, topic=None, basis="reported"):
+        return {"note_id": note, "topic": topic, "basis": basis}
+
+    assert _replaces(record("n2", " The   INTERVIEW "), record("n1", "the interview"))
+    assert _replaces(record("n1"), record("n1", "the interview"))  # The same note, whatever its topic says.
+    assert not _replaces(record("n2"), record("n1"))  # No topic: only its own note.
+    assert not _replaces(record("n2", "the interview"), record("n1", "the interviews"))  # Exact names only.
+    assert not _replaces(record("n2", "the interview", "inferred"), record("n1", "the interview"))
+    assert _replaces(record("n2", "the interview"), record("n1", "the interview", "inferred"))
+    assert _replaces(record("n2", "the interview", "inferred"), record("n1", "the interview", "inferred"))
