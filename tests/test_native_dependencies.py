@@ -125,13 +125,30 @@ def test_dependency_creation_serializes_concurrent_startup(candidate):
     assert not list(paths[0].parent.glob(".dependency-*"))
 
 
-def test_shared_dependency_is_public_read_only_and_separate_from_private_cache(candidate, monkeypatch):
+@pytest.mark.parametrize("mask", [0o022, 0o027, 0o077])
+def test_shared_dependency_is_public_read_only_and_separate_from_private_cache(candidate, monkeypatch, mask):
     private = native_dependencies.xml_directory(candidate.prefix)
     monkeypatch.setattr(native_dependencies, "_root", lambda shared: candidate.root / "shared")
-    shared = native_dependencies.xml_directory(candidate.prefix, shared=True)
+    previous = os.umask(mask)
+    try:
+        shared = native_dependencies.xml_directory(candidate.prefix, shared=True)
+    finally:
+        os.umask(previous)
     assert shared != private
     assert stat.S_IMODE(shared.stat().st_mode) == 0o755
     assert stat.S_IMODE((shared / "libxml2.so.2").stat().st_mode) == 0o644
+
+
+@pytest.mark.parametrize("mode", [0o700, 0o777])
+def test_existing_shared_dependency_root_permissions_are_not_changed(candidate, monkeypatch, mode):
+    root = candidate.root / "shared"
+    root.mkdir()
+    root.chmod(mode)
+    monkeypatch.setattr(native_dependencies, "_root", lambda shared: root)
+    with pytest.raises(native_bundle.NativeBundleError):
+        native_dependencies.xml_directory(candidate.prefix, shared=True)
+    assert stat.S_IMODE(root.stat().st_mode) == mode
+    assert not list(root.iterdir())
 
 
 def test_low_space_never_publishes_dependency(candidate, monkeypatch):

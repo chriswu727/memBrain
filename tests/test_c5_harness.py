@@ -31,7 +31,8 @@ practice = _load("c5_practice", ROOT / "evaluations" / "c5-practice-scenario.py"
 
 @pytest.fixture(autouse=True)
 def clean_clock(monkeypatch):
-    monkeypatch.delenv(evaluation_clock.ENV, raising=False)
+    # Register restoration even when the variable was absent before the harness writes it directly.
+    monkeypatch.setenv(evaluation_clock.ENV, "")
     yield
     evaluation_clock.disable()
 

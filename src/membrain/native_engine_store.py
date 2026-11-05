@@ -208,10 +208,16 @@ def _preserve(source, store, shared, timeout):
     sources = _roots(source)
     if any(store.is_relative_to(path) or path.is_relative_to(store) for path in sources.values()):
         raise NativeEngineStoreError("invalid")
-    store.mkdir(mode=0o755 if shared else 0o700, parents=True, exist_ok=True)
+    try:
+        store.mkdir(mode=0o755 if shared else 0o700, parents=True)
+    except FileExistsError:
+        pass
+    else:
+        if shared and os.name != "nt":
+            store.chmod(0o755)
     if shared:
         metadata = store.stat()
-        if os.name == "nt" or metadata.st_uid != os.getuid() or metadata.st_mode & 0o022:
+        if os.name == "nt" or metadata.st_uid != os.getuid() or stat.S_IMODE(metadata.st_mode) != 0o755:
             raise NativeEngineStoreError("invalid")
     else:
         _private(store, directory=True)

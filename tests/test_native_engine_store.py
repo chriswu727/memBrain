@@ -207,8 +207,13 @@ if os.name != "nt":
         with pytest.raises(native_engine_store.NativeEngineStoreError):
             native_engine_store.preserve(engine.source, engine.store)
 
-    def test_shared_engine_is_readable_to_service_account_and_rechecked_on_reuse(engine):
-        path = embedded_database._shared_binaries(engine.source, engine.store)
+    @pytest.mark.parametrize("mask", [0o022, 0o027, 0o077])
+    def test_shared_engine_is_readable_to_service_account_and_rechecked_on_reuse(engine, mask):
+        previous = os.umask(mask)
+        try:
+            path = embedded_database._shared_binaries(engine.source, engine.store)
+        finally:
+            os.umask(previous)
         assert engine.store.stat().st_mode & 0o777 == 0o755
         assert path.stat().st_mode & 0o777 == 0o755
         (path / "pgserver/pginstall/lib/vector").write_bytes(b"damaged")
@@ -216,9 +221,11 @@ if os.name != "nt":
         assert repaired != path and path.exists()
         assert (repaired / "pgserver/pginstall/lib/vector").read_bytes() == b"original vector"
 
-    def test_unsafe_shared_store_is_not_reused(engine):
+    @pytest.mark.parametrize("mode", [0o700, 0o777])
+    def test_unsafe_shared_store_is_not_reused(engine, mode):
         engine.store.mkdir(mode=0o777)
-        engine.store.chmod(0o777)
+        engine.store.chmod(mode)
         with pytest.raises(embedded_database.EmbeddedDatabaseError) as error:
             embedded_database._shared_binaries(engine.source, engine.store)
         assert error.value.code == "embedded_database_engine_invalid"
+        assert engine.store.stat().st_mode & 0o777 == mode

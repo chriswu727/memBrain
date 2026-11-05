@@ -88,7 +88,13 @@ def _matches(directory, row, shared):
 
 def _prepare(entry, row, shared):
     root = _directory(_root(shared))
-    root.mkdir(parents=True, mode=0o755 if shared else 0o700, exist_ok=True)
+    mode = 0o755 if shared else 0o700
+    try:
+        root.mkdir(parents=True, mode=mode)
+    except FileExistsError:
+        pass
+    else:
+        root.chmod(mode)
     metadata = root.stat()
     if metadata.st_uid != os.getuid() or stat.S_IMODE(metadata.st_mode) != (0o755 if shared else 0o700):
         raise native_bundle._invalid()
