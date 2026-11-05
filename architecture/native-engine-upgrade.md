@@ -86,8 +86,22 @@ upgrader:
 
 ## Acceptance after integration
 
-The default selector, durable maintenance journal, verified physical backup and
-rollback are still required; the cache component alone does not close them.
+The offline snapshot primitive is implemented in `native_snapshot.py`. It checks
+clean shutdown/control identity, preserves every ordinary file/directory with
+hashes and ownership/mode/timestamp metadata, reserves backup/recovery space and
+binds the completed ZIP64 archive to a private receipt checksum. Recovery writes
+only to a new staging directory, validates it and never promotes it over a live
+cluster. Interrupted attempts remain preserved and unselected. Root/service-account
+ownership and actual original-engine rollback are qualified; a streamed member
+larger than two GiB is also tested. See the
+[snapshot evidence](../evaluations/maturity-native-snapshot-2026-11-04.md).
+
+This primitive is limited to the pre-readiness native upgrade transition. It is
+not a registry-aware user backup/restore command. Its caller must durably bind the
+receipt and original cluster/registry identity, retain the lifecycle lock, prevent
+new user writes, journal staged recovery/promotion and refuse rollback after API
+readiness or registry changes. The default selector and that durable maintenance
+orchestrator are still required; neither cache nor snapshot components close them.
 Once they are implemented, pin every launcher to the integrated
 runtime and rerun actual fresh installation, upgrade, streamed backup/recovery,
 full regression and complete performance acceptance. Existing 9f75361 R1/R5
