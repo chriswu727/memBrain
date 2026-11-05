@@ -146,7 +146,8 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
     protected_notes = sensitive_note_ids(conn, params, [row["id"] for row in rows.values()
                                                        if row["conversation_id"] == NOTES_CONVERSATION])
     hidden = set()
-    if rows:
+    if requested:
+        # Derived nodes stay protected even when their sources fall outside the visible sample.
         hidden = {row["input_event_id"] for row in conn.execute(
             "SELECT DISTINCT d.input_event_id FROM memory_event_dependencies d "
             "JOIN memory_events n ON n.tenant_id=d.tenant_id AND n.owner_id=d.owner_id "
@@ -157,7 +158,7 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
             "AND n.conversation_id=%s AND left(n.document->'observed'->'content'->>'text',1)='[' "
             "AND (split_part(n.document->'observed'->'content'->>'text','] ',1) LIKE '%% · sensitive' "
             "OR split_part(n.document->'observed'->'content'->>'text','] ',1) LIKE '%% · sensitive · %%')",
-            (*params, list(rows), NOTES_CONVERSATION)).fetchall()}
+            (*params, sorted(requested), NOTES_CONVERSATION)).fetchall()}
 
     def event(ident):
         row = rows.get(ident)

@@ -212,6 +212,34 @@ def test_sensitive_feedback_masks_the_proposal_and_accepted_version(brain):
     assert "msg:" + first not in {node["id"] for node in after["nodes"]}
 
 
+@pytest.mark.parametrize("max_nodes", [2, 3, 4])
+@pytest.mark.parametrize("max_edges", [0, 400])
+def test_sensitive_feedback_outside_the_visible_sample_still_masks_derived_nodes(brain, max_nodes, max_edges):
+    set_persona(*brain, {"name": "Aster", "voice": {"register": "formal"}}, made_by="host")
+    first = say(brain, "You're too formal. Please be more casual. My private code is STARLIGHT.")
+    for _ in range(2):
+        say(brain, "You're too formal. Please be more casual.")
+    note(brain, "STARLIGHT is private.", kind="constraint", sensitive=True, source_event_ids=[first])
+    proposal = persona_proposals(*brain, now=WHEN)["proposals"][0]
+    accept_proposal(*brain, proposal["id"], now=WHEN)
+    full = companion_map(*brain)
+    protected = {node["id"] for node in full["nodes"]
+                 if node["kind"] in {"persona", "persona_proposal"} and node["sensitive"]}
+    assert len(protected) == 2
+    bounded = companion_map(*brain, max_nodes=max_nodes, max_edges=max_edges)
+    derived = [node for node in bounded["nodes"] if node["id"] in protected]
+    assert derived
+    assert all(node["sensitive"] and node["masked"] and node["details"] == {}
+               and node["recorded_at"] is None for node in derived)
+    if max_nodes == 2:
+        assert "msg:" + first not in {node["id"] for node in bounded["nodes"]}
+    revealed = companion_map(*brain, max_nodes=max_nodes, max_edges=max_edges, include_sensitive=True)
+    shown = [node for node in revealed["nodes"] if node["id"] in protected]
+    assert {node["id"] for node in shown} == {node["id"] for node in derived}
+    assert all(node["sensitive"] and not node["masked"] and node["details"] and node["recorded_at"]
+               for node in shown)
+
+
 def test_mood_reset_and_time_recovery_do_not_show_active_old_connections(brain, monkeypatch):
     from membrain import mood
 
