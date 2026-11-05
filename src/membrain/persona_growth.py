@@ -394,10 +394,10 @@ def _reserved() -> list[str]:
             MOOD_CONVERSATION, RELATIONSHIP_CONVERSATION, "membrain-memory-page"]
 
 
-def _feedback(service, conn, principal, brain_id, *, after: int, ids=None, seen=()) -> list[dict]:
-    """Messages after ``after`` that count as feedback, oldest first, each with the kinds it gives. With ``ids``,
-    only those messages (to check a suggestion's sources); otherwise the most recent candidates."""
-    rows = conn.execute(
+def _candidates(service, conn, principal, brain_id, *, after: int, ids=None, seen=(), newest=True):
+    """Candidate rows after ``after`` that may count as feedback: the newest ``SCAN_ROWS`` (newest first), or with
+    ``newest=False`` the oldest ``SCAN_ROWS`` (oldest first)."""
+    return conn.execute(
         "SELECT id,sequence,conversation_id,document->'observed'->'content'->>'text' AS text,"
         "document->'system_time'->>'recorded_at' AS recorded_at FROM memory_events "
         f"WHERE {_VISIBLE} AND sequence>%s AND document->'observed'->>'event_kind'='message' "
@@ -416,17 +416,40 @@ def _feedback(service, conn, principal, brain_id, *, after: int, ids=None, seen=
         "AND document->>'imported_producer_ref' NOT LIKE 'membrain-import:%%')) "
         "AND length(document->'observed'->'content'->>'text') <= %s "
         "AND (%s::text[] IS NULL OR id = ANY(%s::text[])) "
-        "AND document->'observed'->'content'->>'text' ~* %s ORDER BY sequence DESC LIMIT %s",
+        "AND document->'observed'->'content'->>'text' ~* %s ORDER BY sequence " + ("DESC" if newest else "ASC")
+        + " LIMIT %s",
         (*service._params(principal, brain_id), after, _reserved(), ids, ARCHIVE_PRODUCER, list(seen), ARCHIVE_PRODUCER,
          SCAN_CHARACTERS, ids, ids, STEMS, SCAN_ROWS)).fetchall()
+
+
+def _items(rows) -> list[dict]:
     result = []
-    for row in reversed(rows):
+    for row in rows:
         kinds = detect(row["text"])
         if kinds:
             result.append({"event_id": row["id"], "sequence": row["sequence"], "text": row["text"],
                            "recorded_at": row["recorded_at"], "conversation_id": row["conversation_id"],
                            "kinds": kinds})
     return result
+
+
+def _feedback(service, conn, principal, brain_id, *, after: int, ids=None, seen=()) -> list[dict]:
+    """Messages after ``after`` that count as feedback, oldest first, each with the kinds it gives. With ``ids``,
+    only those messages (to check a suggestion's sources); otherwise the most recent candidates."""
+    rows = _candidates(service, conn, principal, brain_id, after=after, ids=ids, seen=seen)
+    return _items(reversed(rows))
+
+
+def _first_feedback(service, conn, principal, brain_id, kind: str, *, after: int, seen=()) -> dict | None:
+    """The first message after ``after`` that gives feedback of ``kind``, or None. Every later message is read, in
+    pages of ``SCAN_ROWS``, so however long the history is, an earlier message is never missed; memory stays bounded
+    by one page."""
+    while True:
+        rows = _candidates(service, conn, principal, brain_id, after=after, seen=seen, newest=False)
+        found = next((item for item in _items(rows) if kind in item["kinds"]), None)
+        if found is not None or len(rows) < SCAN_ROWS:
+            return found
+        after = rows[-1]["sequence"]
 
 
 def _current_card(service, conn, principal, brain_id) -> tuple[dict, int]:
@@ -490,18 +513,16 @@ class _State:
         undecided = sorted({source for entry in proposals for source in entry["source_event_ids"]})
         valid = {item["event_id"]: item for item in _feedback(
             service, conn, principal, brain_id, after=self.after, ids=undecided)} if undecided else {}
-        # The newest feedback of each kind after the sources of the undecided suggestions that have an opposite kind:
-        # a suggestion is contradicted when the user asked the opposite way after its newest source.
-        pending = [entry for entry in proposals if entry["id"] not in self.decisions and entry["kind"] in OPPOSITES]
-        newest = [valid[ident]["sequence"] for entry in pending for ident in entry["source_event_ids"]
-                  if ident in valid]
-        self.latest = {}
-        if newest:
-            for item in _feedback(service, conn, principal, brain_id, after=max(self.after, min(newest)),
-                                  seen=_seen(service, conn, principal, brain_id)):
-                for kind in item["kinds"]:
-                    self.latest[kind] = max(self.latest.get(kind, 0), item["sequence"])
+        self._contradiction = lambda kind, after: _first_feedback(
+            service, conn, principal, brain_id, OPPOSITES[kind], after=max(self.after, after),
+            seen=self._seen_ids(service, conn, principal, brain_id))
+        self._seen_cache = None
         self.proposals = [self._status(entry, valid) for entry in proposals]
+
+    def _seen_ids(self, service, conn, principal, brain_id):
+        if self._seen_cache is None:
+            self._seen_cache = _seen(service, conn, principal, brain_id)
+        return self._seen_cache
 
     def _status(self, entry, valid) -> dict:
         kind = entry["kind"]
@@ -524,7 +545,8 @@ class _State:
             return result
         if len(sources) < THRESHOLD:
             return {**result, "status": "withdrawn", "withdrawn_because": "sources_removed"}
-        if kind in OPPOSITES and self.latest.get(OPPOSITES[kind], 0) > max(source["sequence"] for source in sources):
+        # Contradicted: the user gave feedback the opposite way after this suggestion's newest source.
+        if kind in OPPOSITES and self._contradiction(kind, max(source["sequence"] for source in sources)):
             return {**result, "status": "withdrawn", "withdrawn_because": "contradicted"}
         proposed, why_not = _apply(kind, self.card, entry["language"])
         if proposed is None:
