@@ -80,6 +80,9 @@ jobs:
       - name: Diagnose zero-model scenario service startup
         timeout-minutes: 5
         run: uv run pytest -q tests/test_c5_harness.py::test_page_actions_go_through_the_api_and_remove_only_what_they_name -x -o faulthandler_timeout=90
+      - name: Diagnose Linux native loader after startup failure
+        if: failure()
+        run: uv run python scripts/diagnose_native_loader.py
       - run: uv run pytest -v --durations=15
       - run: npm ci && npm test && npm run typecheck
         working-directory: sdk/typescript
