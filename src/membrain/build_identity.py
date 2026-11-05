@@ -4,7 +4,7 @@ import hashlib
 import json
 from pathlib import Path
 
-_RUNTIME_SUFFIXES = {".py", ".json", ".sql", ".yaml", ".html", ".js", ".css"}
+_RUNTIME_SUFFIXES = {".py", ".json", ".sql", ".yaml", ".html", ".js", ".css", ".gz"}
 
 
 def package_manifest(package_root: Path, development_root: Path) -> dict[str, bytes]:

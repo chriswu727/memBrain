@@ -5,12 +5,27 @@ on:
     paths:
       - 'scripts/build_native_bundle.py'
       - 'scripts/check_native_bundle.py'
+      - 'scripts/check_packaged_native.py'
+      - 'scripts/package_native_resources.py'
+      - 'src/membrain/native_bundle.py'
+      - 'src/membrain/build_identity.py'
+      - 'src/membrain/local_profile.py'
+      - 'src/membrain/resources/native/*.json'
+      - 'src/membrain/resources/native/*.gz'
       - 'tests/test_native_bundle_build.py'
+      - 'tests/test_native_bundle.py'
+      - 'tests/test_native_resources.py'
+      - 'tests/test_build_identity.py'
+      - 'tests/test_windows_profile_access.py'
       - '.github/workflows/native-engine.yml'
   workflow_dispatch:
     inputs:
       reuse_run_id:
         description: Optional owned workflow run whose checksummed bundle should be verified without rebuilding
+        type: string
+        required: false
+      windows_reuse_run_id:
+        description: Optional Windows artifact run when its build was qualified separately
         type: string
         required: false
       platform:
@@ -47,9 +62,10 @@ jobs:
         with:
           python-version: '3.12'
       - run: python -m pip install . 'pytest>=8,<10' 'pytest-asyncio>=1,<2'
+      - run: python -m pip install postgresql-binaries==16.15.0
       - if: matrix.target != 'linux-aarch64'
         run: python -m pip install pgserver==0.1.4
-      - run: python -m pytest -q tests/test_native_bundle_build.py tests/test_windows_profile_access.py
+      - run: python -m pytest -q tests/test_native_bundle_build.py tests/test_windows_profile_access.py tests/test_native_bundle.py tests/test_native_resources.py tests/test_build_identity.py
       - name: Download an existing owned candidate for isolated verification
         if: inputs.reuse_run_id != ''
         uses: actions/download-artifact@v4
@@ -57,7 +73,7 @@ jobs:
           name: native-${{ matrix.target }}
           path: ${{ runner.temp }}
           github-token: ${{ github.token }}
-          run-id: ${{ inputs.reuse_run_id }}
+          run-id: ${{ matrix.target == 'windows-x86_64' && inputs.windows_reuse_run_id || inputs.reuse_run_id }}
       - name: Build portable vector against the pinned public PostgreSQL distribution
         if: runner.os != 'Windows' && inputs.reuse_run_id == ''
         run: python scripts/build_native_bundle.py --work-directory "${{ runner.temp }}/native-build" --output-directory "${{ runner.temp }}/native-artifacts"
@@ -74,14 +90,17 @@ jobs:
           if errorlevel 1 exit /b %errorlevel%
           python scripts/build_native_bundle.py --work-directory "${{ runner.temp }}/native-build" --output-directory "${{ runner.temp }}/native-artifacts"
       - name: Verify relocated tools, legacy upgrade, vector indexes and backup restore
-        run: python scripts/check_native_bundle.py --artifacts "${{ runner.temp }}/native-artifacts" --work-directory "${{ runner.temp }}/native-check-current" ${{ matrix.target != 'linux-aarch64' && '--legacy-upgrade' || '' }}
+        run: python scripts/check_native_bundle.py --artifacts "${{ runner.temp }}/native-artifacts" --work-directory "${{ runner.temp }}/native-check-${{ github.run_id }}-${{ github.run_attempt }}" ${{ matrix.target != 'linux-aarch64' && '--legacy-upgrade' || '' }}
+      - name: Verify the installed supplier and packaged native cache without executing its wrapper
+        run: python scripts/check_packaged_native.py --directory "${{ runner.temp }}/packaged-native-${{ github.run_id }}-${{ github.run_attempt }}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: native-${{ matrix.target }}
           path: |
             ${{ runner.temp }}/native-artifacts
-            ${{ runner.temp }}/native-check-current/qualification.json
-            ${{ runner.temp }}/native-check-current/postgres.log
+            ${{ runner.temp }}/native-check-${{ github.run_id }}-${{ github.run_attempt }}/qualification.json
+            ${{ runner.temp }}/native-check-${{ github.run_id }}-${{ github.run_attempt }}/postgres.log
+            ${{ runner.temp }}/packaged-native-${{ github.run_id }}-${{ github.run_attempt }}/result.json
           if-no-files-found: warn
           retention-days: 30
