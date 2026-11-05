@@ -8,6 +8,7 @@ import os
 import subprocess
 import sys
 from pathlib import Path
+from unittest.mock import patch
 
 from membrain import desktop, embedded_database, native_bundle
 from membrain.desktop_backup import backup
@@ -30,6 +31,35 @@ def fingerprint(profile):
         connection.execute("SET enable_seqscan=off")
         nearest = connection.execute("SELECT id FROM adoption_fixture ORDER BY embedding <-> '[9.1,2.4,3.7]'::vector LIMIT 10").fetchall()
     return hashlib.sha256(json.dumps([rows, nearest]).encode()).hexdigest()
+
+
+def check_restart(profile):
+    before = desktop._probe(profile)
+    assert before is not None and before["ready"]
+    documents = {name: (profile.directory / name).read_bytes() if (profile.directory / name).exists() else None for name in (
+        "profile.json", "native-source.json", "native-transition.json")}
+    failure = native_bundle.NativeBundleError("embedded_database_dependencies_missing", "Injected loader failure")
+    with patch.object(native_bundle, "_versions", side_effect=failure):
+        try:
+            desktop.restart(profile.directory)
+        except desktop.DesktopError as error:
+            assert error.code == failure.code
+        else:
+            raise AssertionError("Restart ignored an unavailable target engine")
+    after = desktop._probe(profile)
+    assert after is not None and after["ready"] and after["instance_id"] == before["instance_id"]
+    assert desktop._port_open(profile.database_port)
+    assert all(((profile.directory / name).read_bytes() if (profile.directory / name).exists() else None) == content
+               for name, content in documents.items())
+    with open_client(profile.directory, start_service=False) as client:
+        assert "Biscuit" in json.dumps(client.recall("what is my cat called"))
+    assert desktop.restart(profile.directory)["ready"]
+    restarted = desktop._probe(profile)
+    assert restarted is not None and restarted["instance_id"] != before["instance_id"]
+    with open_client(profile.directory, start_service=False) as client:
+        assert "Biscuit" in json.dumps(client.recall("what is my cat called"))
+    return {"loader_failure_preserves_live_service": True, "rejected_restart_documents_unchanged": True,
+            "verified_restart_changes_instance": True, "http_memory_after_restart": True}
 
 
 def check(directory, cache, *, legacy=False, restore_backup=False, require_root=False):
@@ -115,6 +145,8 @@ def check(directory, cache, *, legacy=False, restore_backup=False, require_root=
         with open_client(profile.directory, start_service=False) as client:
             recalled = client.recall("what is my cat called")
             assert "Biscuit" in json.dumps(recalled)
+        checkpoint("restart_preflight_preserves_live_service")
+        report.update(check_restart(profile))
         report.update(default_native_selector=True, handoff_interruption_exit=87, credentials_preserved=True,
                       original_cluster_preserved=True, admission_before_api=True, http_memory_after_cold_restart=True,
                       legacy_vector_rows_preserved=legacy)

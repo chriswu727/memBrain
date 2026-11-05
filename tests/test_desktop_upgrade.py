@@ -5,7 +5,16 @@ from types import SimpleNamespace
 
 import pytest
 
-from membrain import cli, config, desktop, semantic_provider, storage
+from membrain import (
+    cli,
+    config,
+    desktop,
+    embedded_database,
+    native_adoption,
+    native_bundle,
+    semantic_provider,
+    storage,
+)
 from membrain.config import Settings
 from membrain.local_profile import ensure_profile, load_profile
 from membrain.storage import SchemaCompatibilityError
@@ -87,6 +96,70 @@ def test_offline_restart_can_start_database_without_assuming_schema_compatibilit
     monkeypatch.setattr(desktop, "start", lambda directory: calls.append("start") or {"ready": True})
     assert desktop.restart(profile.directory)["ready"]
     assert calls == ["stop", "start"]
+
+
+@pytest.mark.parametrize("recorded", [False, True])
+@pytest.mark.parametrize("code", ["embedded_database_dependencies_missing", "embedded_database_bundle_invalid",
+                                   "embedded_database_space_low"])
+def test_native_target_failure_preserves_running_service(tmp_path, monkeypatch, recorded, code):
+    profile = ensure_profile(tmp_path / "profile", database_engine="embedded")
+    before = (profile.directory / "profile.json").read_bytes()
+    prefix = tmp_path / "native"
+    layout = SimpleNamespace(binaries=prefix / "bin")
+    monkeypatch.setattr(desktop, "_probe", lambda candidate: running(profile, "old-build"))
+    monkeypatch.setattr(desktop, "_check_database", lambda candidate: None)
+    monkeypatch.setattr(desktop, "stop", forbid)
+    monkeypatch.setattr(desktop, "start", forbid)
+    monkeypatch.setattr(native_adoption, "recorded_layout", lambda candidate: layout if recorded else None)
+
+    def reject(*args):
+        raise native_bundle.NativeBundleError(code, "Target cannot run; existing service preserved.")
+
+    monkeypatch.setattr(embedded_database, "_installation", forbid if recorded else reject)
+    monkeypatch.setattr(native_bundle, "_versions", reject if recorded else forbid)
+    with pytest.raises(desktop.DesktopError) as error:
+        desktop.restart(profile.directory)
+    assert error.value.code == code
+    assert (profile.directory / "profile.json").read_bytes() == before
+    assert not (profile.directory / "native-source.json").exists()
+    assert not (profile.directory / "native-transition.json").exists()
+
+
+@pytest.mark.parametrize("recorded", [False, True])
+def test_native_restart_checks_selected_engine_before_stopping(tmp_path, monkeypatch, recorded):
+    profile = ensure_profile(tmp_path / "profile", database_engine="embedded")
+    calls = []
+    prefix = tmp_path / "native"
+    layout = SimpleNamespace(binaries=prefix / "bin")
+    monkeypatch.setattr(desktop, "_probe", lambda candidate: running(profile, "old-build"))
+    monkeypatch.setattr(desktop, "_check_database", lambda candidate: calls.append("schema"))
+    monkeypatch.setattr(native_adoption, "recorded_layout", lambda candidate: layout if recorded else None)
+    monkeypatch.setattr(embedded_database, "_installation",
+                        forbid if recorded else lambda: calls.append("engine") or prefix)
+
+    def versions(candidate):
+        assert candidate == prefix
+        calls.append("engine")
+
+    monkeypatch.setattr(native_bundle, "_versions", versions if recorded else forbid)
+    monkeypatch.setattr(desktop, "stop", lambda directory: calls.append("stop"))
+    monkeypatch.setattr(desktop, "start", lambda directory: calls.append("start") or {"ready": True})
+    assert desktop.restart(profile.directory)["ready"]
+    assert calls == ["schema", "engine", "stop", "start"]
+    assert load_profile(profile.directory) == profile
+
+
+def test_missing_native_supplier_preserves_running_service(tmp_path, monkeypatch):
+    profile = ensure_profile(tmp_path / "profile", database_engine="embedded")
+    monkeypatch.setattr(desktop, "_probe", lambda candidate: running(profile, "old-build"))
+    monkeypatch.setattr(desktop, "_check_database", lambda candidate: None)
+    monkeypatch.setattr(embedded_database, "_installation", lambda: None)
+    monkeypatch.setattr(desktop, "stop", forbid)
+    monkeypatch.setattr(desktop, "start", forbid)
+    with pytest.raises(desktop.DesktopError) as error:
+        desktop.restart(profile.directory)
+    assert error.value.code == "embedded_database_unavailable"
+    assert load_profile(profile.directory) == profile
 
 
 def test_live_incompatible_database_is_not_reconfigured_by_compose(profile, monkeypatch):

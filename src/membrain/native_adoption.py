@@ -88,6 +88,26 @@ def recorded_layout(profile):
     return source[1] if source else None
 
 
+def check_target(profile):
+    try:
+        layout = recorded_layout(profile)
+        if layout is not None:
+            native_bundle._versions(layout.binaries.parent)
+        elif profile.native_engine is not None:
+            raise _error()
+        elif embedded_database._installation() is None:
+            raise embedded_database.EmbeddedDatabaseError(
+                "embedded_database_unavailable",
+                "The embedded database is not installed for this platform. Install the 'embedded' extra "
+                "or choose the Docker database engine. Existing service and data were preserved.",
+            )
+    except (native_transition.NativeTransitionError, native_engine_store.NativeEngineStoreError,
+            native_snapshot.NativeSnapshotError, native_bundle.NativeBundleError) as error:
+        raise embedded_database.EmbeddedDatabaseError(error.code, str(error)) from None
+    except (OSError, ValueError, TypeError, KeyError, subprocess.SubprocessError):
+        raise _error() from None
+
+
 def require_admitted(profile):
     if profile.database_engine != "embedded":
         return

@@ -392,8 +392,17 @@ def stop(directory: Path | None = None) -> dict:
 def restart(directory: Path | None = None) -> dict:
     profile = load_profile(directory)
     with profile_lock(profile.directory / "lifecycle", timeout=360):
+        profile = load_profile(profile.directory)
         if _probe(profile) is not None or _port_open(profile.database_port):
             _check_database(profile)
+        if profile.database_engine == "embedded":
+            from . import embedded_database
+            from .native_adoption import check_target
+
+            try:
+                check_target(profile)
+            except embedded_database.EmbeddedDatabaseError as error:
+                raise DesktopError(error.code, str(error)) from None
         stop(profile.directory)
         return start(profile.directory)
 
