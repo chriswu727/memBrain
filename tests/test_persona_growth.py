@@ -904,3 +904,104 @@ def test_opposite_kinds_edit_the_same_field_and_are_symmetric():
     for kind, opposite in OPPOSITES.items():
         assert OPPOSITES[opposite] == kind and KINDS[kind]["field"] == KINDS[opposite]["field"] != "traits"
     assert set(KINDS) - set(OPPOSITES) == {"more_playful"}
+
+
+# A contradiction is never forgotten in a long history ------------------------------------------------------------
+
+NEUTRAL = {**CARD, "voice": {**CARD["voice"], "register": "neutral"}}
+FILLER = "the formal dinner was too long"  # Matches the feedback stems but is not feedback.
+
+
+def _contradicted(brain):
+    service, principal, ident = brain
+    set_persona(service, principal, ident, NEUTRAL, made_by="user")
+    for text in ("you're too formal", "be more casual please", "太正式了"):
+        said(brain, text)
+    against = said(brain, "you're too casual")
+    statuses = {p["kind"]: (p["status"], p["withdrawn_because"]) for p in listing(brain)["proposals"]}
+    assert statuses == {"less_formal": ("withdrawn", "contradicted")}
+    return against
+
+
+def _observe_many(brain, texts, size=1000):
+    service, principal, ident = brain
+    for start in range(0, len(texts), size):
+        result = service.handle(principal, {
+            "message_type": "request", "contract_version": "1.0.0-draft", "request_id": uid(), "action": "observe",
+            "target": {"brain_ref": ident, "conversation_ref": "chat", "branch_ref": "main"},
+            "payload": {"idempotency_key": uid(), "events": [{
+                "source_event_key": uid(), "source_revision": 1, "producer_ref": "growth-test", "actor_ref": "user",
+                "actor_role": "user", "event_kind": "message", "content": {"media_type": "text/plain", "text": text},
+                "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
+                "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": [],
+            } for text in texts[start:start + size]]}})
+        assert result["outcome"] == "completed", result
+
+
+def test_a_contradiction_stays_after_many_later_stem_matching_messages(brain, monkeypatch):
+    import membrain.persona_growth as growth
+
+    _contradicted(brain)
+    monkeypatch.setattr(growth, "SCAN_ROWS", 3)
+    for _ in range(5):
+        said(brain, FILLER)
+    statuses = {p["kind"]: (p["status"], p["withdrawn_because"]) for p in listing(brain)["proposals"]}
+    assert statuses == {"less_formal": ("withdrawn", "contradicted")}
+
+
+def test_a_contradiction_stays_past_the_real_scan_limit(brain):
+    import membrain.persona_growth as growth
+
+    _contradicted(brain)
+    _observe_many(brain, [FILLER] * (growth.SCAN_ROWS + 10))
+    statuses = {p["kind"]: (p["status"], p["withdrawn_because"]) for p in listing(brain)["proposals"]}
+    assert statuses == {"less_formal": ("withdrawn", "contradicted")}
+
+
+def test_deleting_the_contradicting_message_reopens_the_suggestion(brain):
+    against = _contradicted(brain)
+    forget(brain, [against])
+    opened = _open(brain)
+    assert [p["kind"] for p in opened] == ["less_formal"]
+    assert all(s["event_id"] != against for s in opened[0]["sources"])
+
+
+def test_contradicting_feedback_before_the_persona_reset_never_blocks_new_feedback(brain):
+    service, principal, ident = brain
+    _contradicted(brain)
+    delete_persona_history(service, principal, ident)
+    assert listing(brain)["proposals"] == []
+    set_persona(service, principal, ident, NEUTRAL, made_by="user")
+    fresh = [said(brain, text) for text in ("you're too formal", "be more casual please", "太正式了")]
+    opened = _open(brain)
+    assert [p["kind"] for p in opened] == ["less_formal"]
+    assert [s["event_id"] for s in opened[0]["sources"]] == fresh
+
+
+def test_a_contradiction_survives_an_archive_restore(brain):
+    service, principal, ident = brain
+    _contradicted(brain)
+    copy_brain = _restored(brain, "Restored contradiction")
+    statuses = {p["kind"]: (p["status"], p["withdrawn_because"])
+                for p in persona_proposals(service, principal, copy_brain)["proposals"]}
+    assert statuses == {"less_formal": ("withdrawn", "contradicted")}
+    # Restored "less formal" feedback before the contradiction still does not count toward a new suggestion.
+    said((service, principal, copy_brain), "you're too formal")
+    assert [p for p in persona_proposals(service, principal, copy_brain)["proposals"] if p["status"] == "open"] == []
+
+
+def test_the_contradiction_check_reads_every_page_of_a_long_history(brain, monkeypatch):
+    import membrain.persona_growth as growth
+
+    service, principal, ident = brain
+    set_persona(service, principal, ident, NEUTRAL, made_by="user")
+    for text in ("you're too formal", "be more casual please", "太正式了"):
+        said(brain, text)
+    monkeypatch.setattr(growth, "SCAN_ROWS", 3)
+    for _ in range(7):  # More than two pages between the suggestion and the contradiction, then more after it.
+        said(brain, FILLER)
+    said(brain, "you're too casual")
+    for _ in range(4):
+        said(brain, FILLER)
+    statuses = {p["kind"]: (p["status"], p["withdrawn_because"]) for p in listing(brain)["proposals"]}
+    assert statuses == {"less_formal": ("withdrawn", "contradicted")}
