@@ -1,0 +1,332 @@
+{
+  "runtime_commit": "174bc506595e9f96e4c38b0c10f737c7f98c639a",
+  "source_commit": "3f8a374f91c8724eb1c1784e9cb6d10ef09a4e52",
+  "scope": "Failed-pool manager draining and bounded 2D projection; independent Claude CLI review, real database/browser guards, performance and installed checks. Failures retained; no model evaluations.",
+  "payloads": [
+    {
+      "file": "build.txt.gz",
+      "bytes": 164,
+      "sha256": "4efb9a162f72ec8a135d36bd3363969e67a82d2f061d57b2bb46c5544ebbcd71",
+      "original_bytes": 299,
+      "original_sha256": "74f4dac1375bb4646833e67482957e98b2fd9ad6f27f657c837a330470a54a28",
+      "gzip": true
+    },
+    {
+      "file": "check-installed.py",
+      "bytes": 2495,
+      "sha256": "90f880b013421ef2ee5eb010a8631dd83d3f0001c1c9da8a562cb96b117914ab",
+      "original_bytes": 2495,
+      "original_sha256": "90f880b013421ef2ee5eb010a8631dd83d3f0001c1c9da8a562cb96b117914ab",
+      "gzip": false
+    },
+    {
+      "file": "check-projection.py",
+      "bytes": 1759,
+      "sha256": "43375258d94dcc37bd8ecfdbb457a632fe0c8167a3c8228f9e69525262b670be",
+      "original_bytes": 1759,
+      "original_sha256": "43375258d94dcc37bd8ecfdbb457a632fe0c8167a3c8228f9e69525262b670be",
+      "gzip": false
+    },
+    {
+      "file": "claude-review-assessment.md",
+      "bytes": 1466,
+      "sha256": "b0ac069178359fd2ea4ad14c76e3647658b8a8b424e5b2a94029c88f741f36da",
+      "original_bytes": 1466,
+      "original_sha256": "b0ac069178359fd2ea4ad14c76e3647658b8a8b424e5b2a94029c88f741f36da",
+      "gzip": false
+    },
+    {
+      "file": "claude-review.md",
+      "bytes": 13004,
+      "sha256": "ee1f99c5fa8ab0550de768e634181d5c6ccb75c1acc5edd6fcd5cca7382f262b",
+      "original_bytes": 13004,
+      "original_sha256": "ee1f99c5fa8ab0550de768e634181d5c6ccb75c1acc5edd6fcd5cca7382f262b",
+      "gzip": false
+    },
+    {
+      "file": "guards-before-run.txt.gz",
+      "bytes": 216,
+      "sha256": "69ad6cbcfbd324a1b73edc4fe4ec29aff68913ca9e92f1fe4d0a5abf0a910ea2",
+      "original_bytes": 285,
+      "original_sha256": "fead00a18ee0825f635a6de2d27791279db62c156db0b71091abb8e6b7b951ce",
+      "gzip": true
+    },
+    {
+      "file": "guards-run.txt.gz",
+      "bytes": 215,
+      "sha256": "c5f8239b16779c1bcd64b9052e4e88ea3761d7149225396130f22d8a8e0fa60d",
+      "original_bytes": 285,
+      "original_sha256": "b09778af5b6766d2850f7674574089af42b89aed29f8849bfa99ca51ac253256",
+      "gzip": true
+    },
+    {
+      "file": "install.txt.gz",
+      "bytes": 206,
+      "sha256": "f4edcc035fe731a2225e820a2aa168814e6d8bf11b224d8dcfdababcc0aa1bca",
+      "original_bytes": 270,
+      "original_sha256": "d010afbdf13784176c505d68ff76691cb5907dd6e672b1a7a61d97ebe3476da6",
+      "gzip": true
+    },
+    {
+      "file": "installed/test_installed_identity.py",
+      "bytes": 435,
+      "sha256": "bb4fec871c67e94e3b7c3a95a7fe12591371bd05f8b62b5b730b99c1be7118ea",
+      "original_bytes": 435,
+      "original_sha256": "bb4fec871c67e94e3b7c3a95a7fe12591371bd05f8b62b5b730b99c1be7118ea",
+      "gzip": false
+    },
+    {
+      "file": "installed-check.json",
+      "bytes": 1066,
+      "sha256": "b06a7a6cea55cc8c1af19626343970c48713052ca8759cb006b5569c81c8111b",
+      "original_bytes": 1066,
+      "original_sha256": "b06a7a6cea55cc8c1af19626343970c48713052ca8759cb006b5569c81c8111b",
+      "gzip": false
+    },
+    {
+      "file": "installed-run.txt.gz",
+      "bytes": 594,
+      "sha256": "32707a676afd151c480ff4bfcad87bcb0e3753d04d4bd5c2d90c26f6d0c8b7ad",
+      "original_bytes": 958,
+      "original_sha256": "ebf339acee12e665daeb3b0106a1c5ffb3c509c943b9d7be2997569ee21a8267",
+      "gzip": true
+    },
+    {
+      "file": "installed-tests.txt.gz",
+      "bytes": 52,
+      "sha256": "0629fd53cd2ac647ddd89652fb7c6ab6eb69c03c0ea137228a7b5647a09f17fe",
+      "original_bytes": 99,
+      "original_sha256": "219671b88523c2ef13126368fe1473d89d0fb11f8ca57acf065067c61113dd4a",
+      "gzip": true
+    },
+    {
+      "file": "integration-guards-before.json",
+      "bytes": 69064,
+      "sha256": "0d2aa08f9b0abc5c5c26a871e32717b76649d84f9a1fcbc0cc4a28e4eba800a6",
+      "original_bytes": 69064,
+      "original_sha256": "0d2aa08f9b0abc5c5c26a871e32717b76649d84f9a1fcbc0cc4a28e4eba800a6",
+      "gzip": false
+    },
+    {
+      "file": "integration-guards-before.txt.gz",
+      "bytes": 4109,
+      "sha256": "a23e85728a57f90de44833810c29be0f66074703ec99d80eb4113a0de67ee9f9",
+      "original_bytes": 66435,
+      "original_sha256": "4a9dca6dcccd758492381db5a02f9daca8d9161430796197a3a89a106ee62360",
+      "gzip": true
+    },
+    {
+      "file": "integration-guards.json",
+      "bytes": 69064,
+      "sha256": "d97f39deeb4099f876b0de40e466d0f52647ce5b7fcc62c26cfc8d974b55b43e",
+      "original_bytes": 69064,
+      "original_sha256": "d97f39deeb4099f876b0de40e466d0f52647ce5b7fcc62c26cfc8d974b55b43e",
+      "gzip": false
+    },
+    {
+      "file": "integration-guards.txt.gz",
+      "bytes": 73,
+      "sha256": "5d688048c835b9a2823c7cb3c6a9c5caa9f5139684ac3122f995b8831de04898",
+      "original_bytes": 191,
+      "original_sha256": "b9990f4c2955db0e266c3d42700fa7c2647138fa5f78a8f3e5c3ccca2243c11e",
+      "gzip": true
+    },
+    {
+      "file": "pin-rejected.txt.gz",
+      "bytes": 102,
+      "sha256": "b391673dc69caa954556c23778ad1a568174ec440a07c24c82256a0b3b9491e1",
+      "original_bytes": 89,
+      "original_sha256": "e9b41befe4a16d8632797fc26b7360b8ed98e1519f066543ce9d20c5efc606c5",
+      "gzip": true
+    },
+    {
+      "file": "pins.txt.gz",
+      "bytes": 50,
+      "sha256": "6c86d29b07ddf0967694b4d851b695c635e3467d41caef3ffcc5bf34276f407c",
+      "original_bytes": 98,
+      "original_sha256": "449f48faab28952069f2e297454c2a3b0f42069bcbc27c7b2b56439fc80297ed",
+      "gzip": true
+    },
+    {
+      "file": "previous-native.json",
+      "bytes": 56054,
+      "sha256": "33f24f588279d8588aa98015d142786a275e4b0ef4a2d1d0e1b9929b5d918333",
+      "original_bytes": 56054,
+      "original_sha256": "33f24f588279d8588aa98015d142786a275e4b0ef4a2d1d0e1b9929b5d918333",
+      "gzip": false
+    },
+    {
+      "file": "previous-verify.json",
+      "bytes": 6097,
+      "sha256": "92c09cba3fff449c76ef51ba44e04030bb58248bcf7421a6faa30ab2ea857e6c",
+      "original_bytes": 6097,
+      "original_sha256": "92c09cba3fff449c76ef51ba44e04030bb58248bcf7421a6faa30ab2ea857e6c",
+      "gzip": false
+    },
+    {
+      "file": "projection-24.png",
+      "bytes": 165884,
+      "sha256": "40125d9c4086a8a352034bd7d2b8ac2fc5ac0ff22b7c4b7ffa0e650e13f5811a",
+      "original_bytes": 165884,
+      "original_sha256": "40125d9c4086a8a352034bd7d2b8ac2fc5ac0ff22b7c4b7ffa0e650e13f5811a",
+      "gzip": false
+    },
+    {
+      "file": "projection-after.txt.gz",
+      "bytes": 51,
+      "sha256": "2c12ea701d8a3b70dee67731f12683fbce2297279ea1d7fdf76c796802ed1bc5",
+      "original_bytes": 98,
+      "original_sha256": "7f4df7862e2f87b53faa9069eed68e0809b2b311f4de1f8170d47a00cf2bd302",
+      "gzip": true
+    },
+    {
+      "file": "projection-before.txt.gz",
+      "bytes": 1044,
+      "sha256": "332d7a0aa58dff256ac341c6c3f53f846bdcd3a8187d79ef9c447698e6e50440",
+      "original_bytes": 4250,
+      "original_sha256": "f0fff0155513eb68fd2f46f7d3c61feb4454348821bb069c8d74faecc2042858",
+      "gzip": true
+    },
+    {
+      "file": "projection-check.json",
+      "bytes": 408,
+      "sha256": "9fa3e4873115b719aa450eb4e63343f889214b3bd6effd12380af5c906697b19",
+      "original_bytes": 408,
+      "original_sha256": "9fa3e4873115b719aa450eb4e63343f889214b3bd6effd12380af5c906697b19",
+      "gzip": false
+    },
+    {
+      "file": "projection-run.txt.gz",
+      "bytes": 205,
+      "sha256": "f110cd9d3af61494abe006613a1da49f3c17bef50937fc622d53964a25494d84",
+      "original_bytes": 306,
+      "original_sha256": "4999312727ab85bfdd1728f732afc5d2760926b2b04acc0d46a18872d6dc471a",
+      "gzip": true
+    },
+    {
+      "file": "readiness-after.txt.gz",
+      "bytes": 52,
+      "sha256": "2ae132a9fa412ee0e1b56aff402791205761cba8044f0d72c79f2d11e02a2228",
+      "original_bytes": 99,
+      "original_sha256": "a4e9d220629899a20c386382749a4864c0594e04df86a7e2b9d98bc822e34616",
+      "gzip": true
+    },
+    {
+      "file": "readiness-before.txt.gz",
+      "bytes": 559,
+      "sha256": "c0806ca4a4b43ecafdd467978a5c3963359e2de8569a3d67cf711bff6da9b5bc",
+      "original_bytes": 1713,
+      "original_sha256": "4206c188572d4c08b911e825c16079f310114dcae66d89a5affa5b9e9a76c212",
+      "gzip": true
+    },
+    {
+      "file": "run-guards-before.py",
+      "bytes": 2663,
+      "sha256": "4b96d2d420fc78cf23752f7817d41befa7db16abab67d99584845d94ecc38067",
+      "original_bytes": 2663,
+      "original_sha256": "4b96d2d420fc78cf23752f7817d41befa7db16abab67d99584845d94ecc38067",
+      "gzip": false
+    },
+    {
+      "file": "run-guards.py",
+      "bytes": 2724,
+      "sha256": "103b4d97b63e91c6ae47f1cff0b7e1a3fbfd0f1476fac7cff75d499d7002933a",
+      "original_bytes": 2724,
+      "original_sha256": "103b4d97b63e91c6ae47f1cff0b7e1a3fbfd0f1476fac7cff75d499d7002933a",
+      "gzip": false
+    },
+    {
+      "file": "visual/compare-visual-permissions.py",
+      "bytes": 13467,
+      "sha256": "1f298db46c4c25e8d88a2504d43e085c2044603b770cfec283706b48a346e641",
+      "original_bytes": 13467,
+      "original_sha256": "1f298db46c4c25e8d88a2504d43e085c2044603b770cfec283706b48a346e641",
+      "gzip": false
+    },
+    {
+      "file": "visual/run-visual.py",
+      "bytes": 2952,
+      "sha256": "7075d971144b4e33f38aa6c5ecc2c2001542961fedb921767dc219c45439d783",
+      "original_bytes": 2952,
+      "original_sha256": "7075d971144b4e33f38aa6c5ecc2c2001542961fedb921767dc219c45439d783",
+      "gzip": false
+    },
+    {
+      "file": "visual/run.txt.gz",
+      "bytes": 2013,
+      "sha256": "7629bca687353ca6b5e2dd1e5da1ad97ed4e90017b9241d8fa46854743b8b508",
+      "original_bytes": 5196,
+      "original_sha256": "52b821a348cf7b5c2ac441153cefd3b384c4e16817a7ea638d54302623e7468d",
+      "gzip": true
+    },
+    {
+      "file": "visual/visual-command.json",
+      "bytes": 85939,
+      "sha256": "2c45264ce3c32ab7611efe8faa5c5d29b99d29a0d7192ac816cf6a2f6730fa13",
+      "original_bytes": 85939,
+      "original_sha256": "2c45264ce3c32ab7611efe8faa5c5d29b99d29a0d7192ac816cf6a2f6730fa13",
+      "gzip": false
+    },
+    {
+      "file": "visual/visual-permissions-0-closed.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false
+    },
+    {
+      "file": "visual/visual-permissions-1-open.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false
+    },
+    {
+      "file": "visual/visual-permissions-1-open.png",
+      "bytes": 460376,
+      "sha256": "05a31c0d0ee9e1872a54353ae1a9d15f4eee8fcb80e6117b4e378918adcad86c",
+      "original_bytes": 460376,
+      "original_sha256": "05a31c0d0ee9e1872a54353ae1a9d15f4eee8fcb80e6117b4e378918adcad86c",
+      "gzip": false
+    },
+    {
+      "file": "visual/visual-permissions-2-open.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false
+    },
+    {
+      "file": "visual/visual-permissions-2-open.png",
+      "bytes": 461295,
+      "sha256": "1269bd69c601c858b22f20b88ebeddc2fb98d2dce92b60a88ea6792da7deadf0",
+      "original_bytes": 461295,
+      "original_sha256": "1269bd69c601c858b22f20b88ebeddc2fb98d2dce92b60a88ea6792da7deadf0",
+      "gzip": false
+    },
+    {
+      "file": "visual/visual-permissions-3-closed.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "gzip": false
+    },
+    {
+      "file": "visual/visual-permissions-abba.json.gz",
+      "bytes": 29852,
+      "sha256": "da16fbbcfc98ed8de1ce0f00098303d940f459e0c4c35257cf96a2e20df26b16",
+      "original_bytes": 204973,
+      "original_sha256": "3da2c3bce445aa898f2b65a511269f43c55d4dd79b8eb87343ced1a240e5b8a7",
+      "gzip": true
+    }
+  ],
+  "credential_scan": {
+    "profile_values_checked": 3,
+    "matches": 0,
+    "scope": "Exact owned benchmark API key and two database passwords; not a universal secret audit."
+  }
+}

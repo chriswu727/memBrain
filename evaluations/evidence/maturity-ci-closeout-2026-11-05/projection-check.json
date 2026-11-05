@@ -1,0 +1,26 @@
+{
+  "completed": true,
+  "occluded_id": "note:c33c2301-e48c-42bd-9270-327a3f86317c",
+  "view_before": {
+    "theta": 0.35,
+    "phi": 1.32,
+    "radius": 7.6,
+    "target": [
+      0,
+      0,
+      0
+    ]
+  },
+  "view_after": {
+    "theta": -4.3309999999999995,
+    "phi": 0.832395751953125,
+    "radius": 7.6,
+    "target": [
+      0,
+      0,
+      0
+    ]
+  },
+  "node_count": 24,
+  "page_errors": []
+}
