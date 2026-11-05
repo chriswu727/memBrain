@@ -1,0 +1,11 @@
+# Acceptance guard and prerequisite review
+
+The evaluation transport now rejects non-string and empty model identifiers as structured billing stops. Previously, a list or object model identifier raised `TypeError` during the frozen-policy lookup. The malformed request made no provider call, but the shared ledger remained unblocked, so another arm could still reserve new work. A direct mock-only reproduction confirmed both cases.
+
+The regression requires a persisted shared stop, no reservation or provider call for the malformed request, and refusal of a subsequent valid request from another arm. Before the fix it reports **two failed, eight passed**; after the fix the billing, harness-hardening and review-pipeline group passes **306 tests in 58.79 seconds**. The matrix guard passes **two tests in 0.35 seconds**. Ruff and whitespace checks pass. The [evidence manifest](evidence/maturity-billing-review-2026-11-05/manifest.json) preserves the original failure and final outputs with verified hashes and compression round trips.
+
+The release matrix and Phase C coverage now reference the implemented persisted working-state projection, derived familiarity summary, native PostgreSQL 16.15 adoption and runtime `174bc50` qualification. Historical failures and their source scope remain intact. The proposed evaluation's cleanup instruction is restricted to its own disposable profiles: an unrelated occupied port does not authorize terminating a user service.
+
+This batch changes evaluation tooling, tests and documentation only. Runtime `174bc506595e9f96e4c38b0c10f737c7f98c639a` and all launcher pins remain unchanged; its completed performance and Mac install/upgrade/recovery results do not need repeating for this change. Current-source full CI/native qualification and real-model R4/C5 remain open.
+
+A separate read-only Claude CLI code/specification review was started with only Read/Grep/Glob tools, disabled hooks, no browser, no MCP configuration and no Desktop access. At this report's capture it is still running, so no independent acceptance conclusion is claimed. It is not a behavioral evaluation: no held-out scenarios have been authored or scored, and no model API evaluation has been authorized or started. Provider rates, policy limits and the owner's explicit approval remain prerequisites before any such run.

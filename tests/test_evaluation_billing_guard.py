@@ -250,10 +250,16 @@ def test_all_published_output_is_reserved_even_when_the_request_limit_is_smaller
 
 
 @pytest.mark.parametrize("changes", [{"tools": [None]}, {"messages": {}}, {"messages": "text"},
-                                    {"messages": ["text"]}])
+                                    {"messages": ["text"]}, {"model": []}, {"model": {}},
+                                    {"model": None}, {"model": 1}, {"model": True}, {"model": ""}])
 def test_malformed_request_shapes_are_structured_stops_before_network(tmp_path, changes):
+    path = ledger(tmp_path)
     with pytest.raises(budget.BudgetStop):
-        send(ledger(tmp_path), lambda request: pytest.fail("malformed request reached provider"), **changes)
+        send(path, lambda request: pytest.fail("malformed request reached provider"), **changes)
+    state = json.loads(path.read_text())
+    assert state["blocked"] and not state["requests"]
+    with pytest.raises(budget.BudgetStop, match="stopped"):
+        send(path, lambda request: pytest.fail("another arm continued after a malformed request"))
 
 
 def test_an_idempotent_stop_handle_cannot_send_a_request_or_clear_the_original_reason(tmp_path):

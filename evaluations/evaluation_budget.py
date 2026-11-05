@@ -121,7 +121,8 @@ class GuardedTransport(httpx.BaseTransport):
             model, output = body["model"], _integer(body["max_tokens"])
             tools, messages = body.get("tools", []), body.get("messages", [])
             tools = [] if tools is None else tools
-            if (not isinstance(body, dict) or not isinstance(tools, list) or not isinstance(messages, list)
+            if (not isinstance(body, dict) or not isinstance(model, str) or not model
+                    or not isinstance(tools, list) or not isinstance(messages, list)
                     or any(not isinstance(tool, dict) for tool in tools)
                     or any(not isinstance(message, dict) for message in messages)):
                 raise BudgetStop("Invalid text completion shape.")

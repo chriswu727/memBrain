@@ -1,0 +1,35 @@
+{
+  "source_before": "e79f4e3a23bc25eede0d76985ae71e896b151443",
+  "runtime_unchanged": "174bc506595e9f96e4c38b0c10f737c7f98c639a",
+  "model_behavior_calls": 0,
+  "files": [
+    {
+      "path": "malformed-model-before.txt.gz",
+      "bytes": 93,
+      "sha256": "2fe9b1ef3c05e42a52e4d0a9de5bfd592639e947af1735ba4c00af3a23682ae9",
+      "original_bytes": 150,
+      "original_sha256": "b23ecf0a434921192330f6dda21c33e64c19608235cf49f8fb4af6320f9e284f"
+    },
+    {
+      "path": "regression-before.txt.gz",
+      "bytes": 1634,
+      "sha256": "965c25743987241cda3470ae5bf2ad67bf534a9fcb3004927face0138568506e",
+      "original_bytes": 9179,
+      "original_sha256": "d023503716c3c145f2f2590f944a0b882785c0febe8f9a0aef4e247295c2368f"
+    },
+    {
+      "path": "guard-and-review-after.txt.gz",
+      "bytes": 78,
+      "sha256": "855c2b4475c0306aed271025b1bb959ebee619714cc5ef8696baefa6d52aa2cc",
+      "original_bytes": 421,
+      "original_sha256": "4d27900faf9bbec3d1b3b5babd623b116ce47a9973143a1c58e77ef5e21f3cf1"
+    },
+    {
+      "path": "matrix-after.txt.gz",
+      "bytes": 50,
+      "sha256": "ac157448be24dddd05a17fabbca46ca07253dffc5c481976cfaa70acdd607343",
+      "original_bytes": 98,
+      "original_sha256": "b1a06b26972c2140d432c34fda543615763c138b875a7c41cc50eedff85f4e4a"
+    }
+  ]
+}
