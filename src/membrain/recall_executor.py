@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import multiprocessing
+import os
 import threading
 import time
 from concurrent.futures import CancelledError, ProcessPoolExecutor, TimeoutError
@@ -9,6 +10,31 @@ from datetime import datetime, timedelta
 
 from . import cognition, helpers
 from .helpers import DomainError
+
+
+def _initialize_worker(barrier):
+    from .contracts import validator
+
+    validator("RecallRequest")
+    barrier.wait()
+
+
+def _worker_ready():
+    return os.getpid()
+
+
+def _stop_failed_pool(pool):
+    # Python 3.12 has no public terminate_workers; a stuck initializer must not keep failed startup alive.
+    processes = tuple((pool._processes or {}).values())
+    pool.shutdown(wait=False, cancel_futures=True)
+    for process in processes:
+        if process.is_alive():
+            process.terminate()
+    for process in processes:
+        process.join(timeout=1)
+        if process.is_alive():
+            process.kill()
+            process.join(timeout=1)
 
 
 def _compute(args, options, deadline, clock):
@@ -41,6 +67,7 @@ class RecallExecutor:
         self._slots = threading.BoundedSemaphore(workers * 4)
         self._lock = threading.Lock()
         self._pool = None
+        self._ready = ()
         self._closed = False
 
     def _executor(self):
@@ -48,9 +75,32 @@ class RecallExecutor:
             if self._closed:
                 raise DomainError("dependency_unavailable", "Recall computation is stopping.", retryable=True)
             if self._pool is None:
-                self._pool = ProcessPoolExecutor(max_workers=self.workers,
-                                                 mp_context=multiprocessing.get_context("spawn"))
+                context = multiprocessing.get_context("spawn")
+                pool = ProcessPoolExecutor(max_workers=self.workers, mp_context=context,
+                                           initializer=_initialize_worker,
+                                           initargs=(context.Barrier(self.workers, timeout=20),))
+                try:
+                    ready = tuple(pool.submit(_worker_ready) for _ in range(self.workers))
+                except BaseException:
+                    _stop_failed_pool(pool)
+                    raise
+                self._pool, self._ready = pool, ready
             return self._pool
+
+    def start(self, *, timeout=20):
+        deadline = time.monotonic() + timeout
+        pool = None
+        try:
+            pool = self._executor()
+            for future in self._ready:
+                future.result(timeout=max(0, deadline - time.monotonic()))
+        except (TimeoutError, CancelledError, BrokenProcessPool, OSError, RuntimeError):
+            with self._lock:
+                if self._pool is pool:
+                    self._pool, self._ready = None, ()
+            if pool is not None:
+                _stop_failed_pool(pool)
+            raise DomainError("dependency_unavailable", "Recall computation startup failed.", retryable=True) from None
 
     def __call__(self, scope, request, memories, events, state, **options):
         started = time.monotonic()
@@ -79,7 +129,7 @@ class RecallExecutor:
         except BrokenProcessPool:
             with self._lock:
                 if self._pool is pool:
-                    self._pool = None
+                    self._pool, self._ready = None, ()
             if pool is not None:
                 pool.shutdown(wait=False, cancel_futures=True)
             raise DomainError("dependency_unavailable", "Recall computation restarted. Retry it.", retryable=True) from None

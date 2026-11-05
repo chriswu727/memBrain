@@ -11,6 +11,7 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import __version__
@@ -299,17 +300,20 @@ def _unmodified_service(service) -> bool:
 def create_app(settings: Settings | None = None, service=None, turns=None, jobs=None) -> FastAPI:
     settings = settings or Settings.from_env()
     resources = ExitStack()
+    recall_runner = None
     if service is None:
         service = resources.enter_context(configured_service(settings))
         if settings.recall_processes:
             from .recall_executor import RecallExecutor
 
-            service.recall_runner = RecallExecutor(settings.recall_processes)
-            resources.callback(service.recall_runner.close)
+            recall_runner = service.recall_runner = RecallExecutor(settings.recall_processes)
+            resources.callback(recall_runner.close)
 
     @asynccontextmanager
     async def lifespan(app):
         try:
+            if recall_runner is not None:
+                await run_in_threadpool(recall_runner.start)
             yield
         finally:
             resources.close()
