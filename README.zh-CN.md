@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 运行时 `c7db087` 已加入同一明确话题的新旧感受更替、情绪计算索引、工作进程就绪检查和启动失败诊断。[本地验证](evaluations/maturity-mood-succession-2026-11-05.md)通过了 374 项行为／集成检查，以及随后 111 项启动／执行器检查。**当前全屏性能测试有 10/36 个工作负载窗口未通过**：九个八脑窗口超过 600 ms（最高 **1,353.78 ms**），一个同脑窗口超过 1,000 ms。4,080 次测量召回全部非空；两个打开画面的阶段均显示 187 个节点和 71 条连边。此前 `6cee3ea` 完整 CI 通过了 7,447 项 Python 和 50 项 TypeScript 测试，五个平台原生检查也已通过；这些结果不能替代改动后运行时的验收。[此前安装包在参考 Mac 上通过了 49 项启动器、升级、MCP、代理和恢复检查](evaluations/maturity-installed-candidate-2026-11-05.md)。当前运行时的性能、安装／CI、剩余[宿主行为](docs/host-compatibility.md)、R4/C5 及最终复核仍使发布保持冻结。历史失败和通过结果保留原有运行时范围。
+> **预发布阶段。** 运行时 `d32e93f` 将完整召回事务放入四个受限工作进程，模型提供方仍由主进程持有。[当前验证](evaluations/maturity-transaction-workers-2026-11-05.md)通过了 **36/36 个全屏性能窗口**：八脑 p95 为 **309.53–417.35 ms**，4,080 次测量召回全部非空，模型调用为零。真实数据库保护检查通过 83 项；安装后的 wheel 与 187 个运行时输入一致，并通过 41 项专项检查。这是参考数据集结果，不代表真实模型行为或完整安装验收。上一源码版本的完整 CI 有两项失败（2D 节点可点击性、启动失败后的子进程清理），五个平台原生 CI 则已通过。当前 CI、完整安装／升级／恢复、剩余[宿主行为](docs/host-compatibility.md)、R4/C5 及最终复核仍使发布保持冻结。[历史失败](evaluations/maturity-mood-succession-2026-11-05.md)保留原有范围。
 
 <a id="claude-code-plugin"></a>
 

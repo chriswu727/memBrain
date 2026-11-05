@@ -1,0 +1,21 @@
+{
+  "source_commit": "3fb6a5ea568213ba1f15c362f2bccabde5d75ac6",
+  "runtime_pin": "f7662854dec82df6251c695fb7cd7a18878e4bed",
+  "model_calls": 0,
+  "protocol": "Retained 1k corpus plus one persisted synthetic working state; closed/open/open/closed, fresh API per phase, browser kept open on blank in closed phases. Real 200-node-limit memory page and fullscreen hologram in open phases, normal page polling retained. Three cycles per phase; each cycle uses the unchanged three recall workloads and 21 canonical queries per worker, discarding each first. Browser events are pumped while recall workers run. Browser process stderr and explicit page crash/close/disconnect events are captured; this adds observability after an unexplained TargetClosed failure, without changing renderer, workloads or bars. Normal 30-second polling remains active; no timing samples discarded beyond the declared warmups. Animation is paused only after measurement for screenshots; capture errors remain failures while subsequent workload phases continue.",
+  "completed": false,
+  "passed": false,
+  "phases": [
+    {
+      "mode": "closed",
+      "closing": true,
+      "api_port": 57005
+    }
+  ],
+  "browser_events": [],
+  "browser": "153.0.8010.12",
+  "execution_error": {
+    "type": "AssertionError",
+    "message": "API exited before health became ready"
+  }
+}
