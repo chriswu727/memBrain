@@ -93,6 +93,9 @@ jobs:
         run: python scripts/check_native_bundle.py --artifacts "${{ runner.temp }}/native-artifacts" --work-directory "${{ runner.temp }}/native-check-${{ github.run_id }}-${{ github.run_attempt }}" ${{ matrix.target != 'linux-aarch64' && '--legacy-upgrade' || '' }}
       - name: Verify the installed supplier and packaged native cache without executing its wrapper
         run: python scripts/check_packaged_native.py --directory "${{ runner.temp }}/packaged-native-${{ github.run_id }}-${{ github.run_attempt }}"
+      - name: Diagnose fresh Windows initialization after an actual failure
+        if: failure() && runner.os == 'Windows'
+        run: python scripts/diagnose_native_initdb.py --directory "${{ runner.temp }}/initdb-diagnosis-${{ github.run_id }}-${{ github.run_attempt }}"
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -102,5 +105,6 @@ jobs:
             ${{ runner.temp }}/native-check-${{ github.run_id }}-${{ github.run_attempt }}/qualification.json
             ${{ runner.temp }}/native-check-${{ github.run_id }}-${{ github.run_attempt }}/postgres.log
             ${{ runner.temp }}/packaged-native-${{ github.run_id }}-${{ github.run_attempt }}/result.json
+            ${{ runner.temp }}/initdb-diagnosis-${{ github.run_id }}-${{ github.run_attempt }}/diagnosis.json
           if-no-files-found: warn
           retention-days: 30
