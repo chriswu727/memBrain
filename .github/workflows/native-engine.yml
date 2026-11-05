@@ -105,6 +105,9 @@ jobs:
       - name: Export only the root qualification summary for the artifact worker
         if: always() && runner.os == 'Linux' && steps.native_root.outcome != 'skipped'
         run: sudo -n cat "${{ runner.temp }}/native-snapshot-root-${{ github.run_id }}-${{ github.run_attempt }}/result.json" > "${{ runner.temp }}/native-snapshot-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json"
+      - name: Verify ZIP64 streaming and bounded memory with a member larger than two GiB
+        if: matrix.target == 'linux-x86_64'
+        run: python scripts/check_native_snapshot.py --directory "${{ runner.temp }}/native-snapshot-large-${{ github.run_id }}-${{ github.run_attempt }}" --cache-directory "${{ runner.temp }}/packaged-native-${{ github.run_id }}-${{ github.run_attempt }}/cache" --legacy-upgrade --large-file-bytes 2147487744
       - name: Diagnose fresh Windows initialization after an actual failure
         if: failure() && runner.os == 'Windows'
         run: python scripts/diagnose_native_initdb.py --directory "${{ runner.temp }}/initdb-diagnosis-${{ github.run_id }}-${{ github.run_attempt }}"
@@ -120,5 +123,6 @@ jobs:
             ${{ runner.temp }}/initdb-diagnosis-${{ github.run_id }}-${{ github.run_attempt }}/diagnosis.json
             ${{ runner.temp }}/native-snapshot-${{ github.run_id }}-${{ github.run_attempt }}/result.json
             ${{ runner.temp }}/native-snapshot-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json
+            ${{ runner.temp }}/native-snapshot-large-${{ github.run_id }}-${{ github.run_attempt }}/result.json
           if-no-files-found: warn
           retention-days: 30

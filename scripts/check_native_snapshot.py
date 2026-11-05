@@ -7,7 +7,9 @@ import importlib.util
 import json
 import os
 import socket
+import sys
 import time
+import zipfile
 from pathlib import Path
 
 from psycopg import sql
@@ -39,7 +41,7 @@ def stop(layout):
             raise RuntimeError("Owned snapshot fixture did not stop")
 
 
-def check(directory, cache_directory, *, legacy, require_root):
+def check(directory, cache_directory, *, legacy, require_root, large_file_bytes=0):
     directory.mkdir(mode=0o700, parents=True, exist_ok=False)
     _private(directory, directory=True)
     if require_root:
@@ -56,6 +58,8 @@ def check(directory, cache_directory, *, legacy, require_root):
     report = {"completed": False, "model_calls": 0, "target": native_bundle.platform_key(),
               "scope": "offline snapshot component only; no automatic upgrader or default selector adoption",
               "legacy_upgrade": legacy, "root_service_account": require_root, "timings_ms": {}, "phase": "created"}
+    assert type(large_file_bytes) is int and large_file_bytes >= 0
+    report["large_file_bytes"] = large_file_bytes
     original = embedded_database._installation
     layouts = []
 
@@ -107,6 +111,11 @@ def check(directory, cache_directory, *, legacy, require_root):
             assert source.account is not None
             os.chown(configuration, 0, source.account[1])
             configuration.chmod(0o640)
+        if large_file_bytes:
+            with (source.data / "membrain-large-snapshot-fixture").open("xb") as stream:
+                stream.truncate(large_file_bytes)
+            if require_root:
+                os.chown(source.data / "membrain-large-snapshot-fixture", 0, source.account[1])
         configuration_bytes = configuration.read_bytes()
         baseline = native_snapshot._inventory(source.data, native_snapshot.DEFAULT_MAX_BYTES)
         checkpoint("snapshot_original")
@@ -114,6 +123,12 @@ def check(directory, cache_directory, *, legacy, require_root):
         receipt = native_snapshot.create(source, directory / "snapshot")
         report["timings_ms"]["snapshot_create_verify"] = (time.perf_counter() - started) * 1000
         native_snapshot.verify(directory / "snapshot", receipt["receipt_sha256"])
+        if large_file_bytes:
+            with zipfile.ZipFile(directory / "snapshot/cluster.zip") as saved:
+                member = saved.getinfo("data/membrain-large-snapshot-fixture")
+                assert member.file_size == large_file_bytes
+                assert large_file_bytes > zipfile.ZIP64_LIMIT and member.extract_version >= 45
+                report["zip64_large_member_verified"] = True
         assert native_snapshot._inventory(source.data, native_snapshot.DEFAULT_MAX_BYTES) == baseline
         checkpoint("upgrade_and_change_original")
         embedded_database._installation = lambda: prefix
@@ -151,6 +166,11 @@ def check(directory, cache_directory, *, legacy, require_root):
         with embedded_database._admin_connection(profile, "agent_memory") as connection:
             assert connection.execute("SHOW server_version").fetchone()[0] == ("16.2" if legacy else "16.15")
             assert connection.execute("SHOW work_mem").fetchone()[0] == "8MB"
+        if large_file_bytes and sys.platform.startswith("linux"):
+            import resource
+
+            report["python_peak_rss_mib"] = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss / 1024
+            assert report["python_peak_rss_mib"] < 512
         report.update(completed=True, snapshot_receipt_sha256=receipt["receipt_sha256"],
                       snapshot_archive_sha256=receipt["archive_sha256"], entries=receipt["entries"],
                       data_bytes=receipt["data_bytes"], original_fingerprint=before,
@@ -181,6 +201,8 @@ if __name__ == "__main__":
     parser.add_argument("--cache-directory", type=Path, required=True)
     parser.add_argument("--legacy-upgrade", action="store_true")
     parser.add_argument("--require-root", action="store_true")
+    parser.add_argument("--large-file-bytes", type=int, default=0)
     arguments = parser.parse_args()
     check(arguments.directory.resolve(), arguments.cache_directory.resolve(),
-          legacy=arguments.legacy_upgrade, require_root=arguments.require_root)
+          legacy=arguments.legacy_upgrade, require_root=arguments.require_root,
+          large_file_bytes=arguments.large_file_bytes)
