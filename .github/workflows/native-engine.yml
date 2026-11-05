@@ -99,8 +99,12 @@ jobs:
       - name: Verify offline snapshot, actual native upgrade and original-engine staged rollback
         run: python scripts/check_native_snapshot.py --directory "${{ runner.temp }}/native-snapshot-${{ github.run_id }}-${{ github.run_attempt }}" --cache-directory "${{ runner.temp }}/packaged-native-${{ github.run_id }}-${{ github.run_attempt }}/cache" ${{ matrix.target != 'linux-aarch64' && '--legacy-upgrade' || '' }}
       - name: Verify Linux root and service-account ownership through snapshot and rollback
+        id: native_root
         if: runner.os == 'Linux'
         run: sudo -n "$(command -v python)" scripts/check_native_snapshot.py --directory "${{ runner.temp }}/native-snapshot-root-${{ github.run_id }}-${{ github.run_attempt }}" --cache-directory "${{ runner.temp }}/native-snapshot-root-cache-${{ github.run_id }}-${{ github.run_attempt }}" --require-root ${{ matrix.target != 'linux-aarch64' && '--legacy-upgrade' || '' }}
+      - name: Export only the root qualification summary for the artifact worker
+        if: always() && runner.os == 'Linux' && steps.native_root.outcome != 'skipped'
+        run: sudo -n cat "${{ runner.temp }}/native-snapshot-root-${{ github.run_id }}-${{ github.run_attempt }}/result.json" > "${{ runner.temp }}/native-snapshot-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json"
       - name: Diagnose fresh Windows initialization after an actual failure
         if: failure() && runner.os == 'Windows'
         run: python scripts/diagnose_native_initdb.py --directory "${{ runner.temp }}/initdb-diagnosis-${{ github.run_id }}-${{ github.run_attempt }}"
@@ -115,6 +119,6 @@ jobs:
             ${{ runner.temp }}/packaged-native-${{ github.run_id }}-${{ github.run_attempt }}/result.json
             ${{ runner.temp }}/initdb-diagnosis-${{ github.run_id }}-${{ github.run_attempt }}/diagnosis.json
             ${{ runner.temp }}/native-snapshot-${{ github.run_id }}-${{ github.run_attempt }}/result.json
-            ${{ runner.temp }}/native-snapshot-root-${{ github.run_id }}-${{ github.run_attempt }}/result.json
+            ${{ runner.temp }}/native-snapshot-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json
           if-no-files-found: warn
           retention-days: 30
