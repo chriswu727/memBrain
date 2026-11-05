@@ -23,6 +23,11 @@ def put(path, value):
     return path
 
 
+def attribution(cause, marks=(4,)):
+    return {"cause": cause, "per_type": {
+        str(mark): {"cause": cause, "evidence": "Public synthetic evidence."} for mark in marks}}
+
+
 @pytest.mark.parametrize("event", ["page_action_failed", "extraction_unfinished", "clock_already_past",
                                     "page_action_unsupported", "network_refused", "future_error"])
 def test_validity_refuses_every_reported_harness_degradation(pipeline, tmp_path, monkeypatch, capsys, event):
@@ -42,6 +47,16 @@ def test_validity_refuses_malformed_harness_event_evidence(pipeline, tmp_path, m
     (tmp_path / "harness-events.jsonl").write_text(event + "\n")
     pipeline.validity([tmp_path])
     assert not json.loads(capsys.readouterr().out)["valid"]
+
+
+@pytest.mark.parametrize("reply", [None, 7, {}, [], "", "  "])
+def test_validity_reports_invalid_reply_without_crashing(pipeline, tmp_path, monkeypatch, capsys, reply):
+    row = {"arm": "P", "scenario": "practice", "session": "s1", "turn": 0, "reply": reply}
+    monkeypatch.setattr(pipeline, "_run", lambda _: ([row], [("s1", 0)], "12:00:00 P practice finished"))
+    result = pipeline.validity([tmp_path])
+    assert result["valid"] is False
+    assert any("reply at turn 1 of 1" in item for item in result["problems"])
+    assert json.loads(capsys.readouterr().out) == result
 
 
 def test_validity_refuses_duplicate_turns_even_when_the_row_count_matches(pipeline, tmp_path, monkeypatch, capsys):
@@ -145,6 +160,36 @@ def tally():
         for label, arm in zip("ABC", "PEF", strict=True)]}
 
 
+@pytest.mark.parametrize("companion,marks", [(False, [1, 4]), (True, [4, 6])])
+@pytest.mark.parametrize("damage", ["missing", "contradiction", "missing_type", "empty_evidence"])
+def test_gate_cannot_pass_with_incomplete_or_contradictory_host_attribution(
+        pipeline, tmp_path, companion, marks, damage):
+    data = tally()
+    if companion:
+        data["gate"] = "C5"
+    for index in (0, 2):
+        row = data["rows"][index]
+        row["resolved"] = marks
+        data["totals"]["resolved"][row["arm"]] = 0
+    put(tmp_path / "tally-practice.json", data)
+    answer = {"cause": "host", "per_type": {
+        str(mark): {"cause": "host", "evidence": "Public synthetic evidence."} for mark in marks}}
+    if damage == "missing":
+        answer.pop("per_type")
+    elif damage == "contradiction":
+        answer["per_type"][str(marks[0])]["cause"] = "memory"
+    elif damage == "missing_type":
+        answer["per_type"].pop(str(marks[0]))
+    else:
+        answer["per_type"][str(marks[0])]["evidence"] = "  "
+    for number in (1, 2):
+        put(tmp_path / "attribution-practice" / f"S01-A.{number}.json", answer)
+    result = pipeline.gate(tmp_path, ["practice"], companion=companion)
+    assert result["C5" if companion else "R4"] is False
+    assert result["arms"]["P"]["memory_caused"] == ["S01-practice/A"]
+    assert result["attributions"]["S01-practice/A"]["answers"] == [None, None]
+
+
 @pytest.mark.parametrize("bad", [
     {"totals": {"resolved": {}}, "rows": []},
     {"totals": {"resolved": {"P": 1, "E": 1}}, "rows": []},
@@ -157,13 +202,28 @@ def test_gate_refuses_missing_evidence_or_reference_arm(pipeline, tmp_path, bad)
     assert not (tmp_path / "gate.json").exists()
 
 
+@pytest.mark.parametrize("cause,passes", [("host", True), ("memory", False)])
+def test_gate_uses_complete_consistent_attribution_without_always_failing(pipeline, tmp_path, cause, passes):
+    data = tally()
+    for index in (0, 2):
+        row = data["rows"][index]
+        row["resolved"] = [1, 4]
+        data["totals"]["resolved"][row["arm"]] = 0
+    put(tmp_path / "tally-practice.json", data)
+    for number in (1, 2):
+        put(tmp_path / "attribution-practice" / f"S01-A.{number}.json", attribution(cause, [1, 4]))
+    result = pipeline.gate(tmp_path, ["practice"])
+    assert result["R4"] is passes
+    assert result["attributions"]["S01-practice/A"]["answers"] == [cause, cause]
+
+
 def test_gate_counts_disagreeing_attributions_as_memory_caused(pipeline, tmp_path):
     data = tally()
     data["totals"]["resolved"]["P"] = 0
     data["rows"][0]["resolved"] = [4]
     put(tmp_path / "tally-practice.json", data)
-    put(tmp_path / "attribution-practice" / "S01-A.1.json", {"cause": "host"})
-    put(tmp_path / "attribution-practice" / "S01-A.2.json", {"cause": "memory"})
+    put(tmp_path / "attribution-practice" / "S01-A.1.json", attribution("host"))
+    put(tmp_path / "attribution-practice" / "S01-A.2.json", attribution("memory"))
     pipeline.gate(tmp_path, ["practice"])
     result = json.loads((tmp_path / "gate.json").read_text())
     assert result["R4"] is False
@@ -212,7 +272,7 @@ def test_gate_counts_nonobject_attribution_as_memory_caused(pipeline, tmp_path):
     data["rows"][0]["resolved"] = [4]
     put(tmp_path / "tally-practice.json", data)
     put(tmp_path / "attribution-practice" / "S01-A.1.json", ["host"])
-    put(tmp_path / "attribution-practice" / "S01-A.2.json", {"cause": "host"})
+    put(tmp_path / "attribution-practice" / "S01-A.2.json", attribution("host"))
     pipeline.gate(tmp_path, ["practice"])
     result = json.loads((tmp_path / "gate.json").read_text())
     assert result["R4"] is False
@@ -303,7 +363,7 @@ def test_companion_boundary_and_deletion_fail_even_when_both_attributors_say_hos
     put(tmp_path / "tally-practice.json", data)
     label = data["rows"][arm_index]["label"]
     for number in (1, 2):
-        put(tmp_path / "attribution-practice" / f"S01-{label}.{number}.json", {"cause": "host"})
+        put(tmp_path / "attribution-practice" / f"S01-{label}.{number}.json", attribution("host", [mark]))
     pipeline.gate(tmp_path, ["practice"], companion=True)
     result = json.loads((tmp_path / "gate-c5.json").read_text())
     arm = data["rows"][arm_index]["arm"]
@@ -351,7 +411,7 @@ def test_gate_refuses_cross_scenario_case_collisions_that_overwrite_attribution(
     for key, cause in (("one", "memory"), ("two", "host")):
         put(tmp_path / f"tally-{key}.json", data)
         for number in (1, 2):
-            put(tmp_path / f"attribution-{key}" / f"S01-A.{number}.json", {"cause": cause})
+            put(tmp_path / f"attribution-{key}" / f"S01-A.{number}.json", attribution(cause))
     with pytest.raises(SystemExit, match="invalid tally: duplicate case"):
         pipeline.gate(tmp_path, ["one", "two"])
     assert not (tmp_path / "gate.json").exists()

@@ -824,7 +824,11 @@ def validity(run_dirs: list[Path]) -> dict:
             problems.append(f"{run}: missing, duplicate or out-of-order turns ({len(rows)} of {len(order)} rows)")
         if any(row["arm"] != arm or row["scenario"] != scenario for row in rows):
             problems.append(f"{run}: mixed arm or scenario identities")
-        problems += [f"{run}: empty reply at {_position(order, row)}" for row in rows if not row["reply"].strip()]
+        for row in rows:
+            if not isinstance(row.get("reply"), str):
+                problems.append(f"{run}: invalid reply at {_position(order, row)}")
+            elif not row["reply"].strip():
+                problems.append(f"{run}: empty reply at {_position(order, row)}")
         lines = [line for line in log.splitlines() if line.strip()]
         if not lines or not lines[-1].endswith(f"{arm} {scenario} finished"):
             problems.append(f"{run}: run.log missing, empty or not ending with the finished line")
@@ -1008,6 +1012,20 @@ def _checked_tally(path: Path, *, companion=False) -> dict:
         raise SystemExit(f"invalid tally {path.name}: {error}") from error
 
 
+def _attribution_cause(answer, marks: list[int]) -> str | None:
+    if not isinstance(answer, dict) or answer.get("cause") not in ("host", "memory"):
+        return None
+    per_type = answer.get("per_type")
+    if not isinstance(per_type, dict) or set(per_type) != {str(mark) for mark in marks}:
+        return None
+    for detail in per_type.values():
+        if (not isinstance(detail, dict) or detail.get("cause") not in ("host", "memory")
+                or not isinstance(detail.get("evidence"), str) or not detail["evidence"].strip()):
+            return None
+    cause = "memory" if any(detail["cause"] == "memory" for detail in per_type.values()) else "host"
+    return cause if answer["cause"] == cause else None
+
+
 def gate(review: Path, keys: list[str], *, companion=False, manifest: Path | None = None) -> dict:
     """The attempt-3 pass rule from the tallies and the attributions (two per gated reply; disagreement or a
     missing or invalid answer counts as memory). C5 also refuses every standing boundary or deletion error.
@@ -1055,7 +1073,7 @@ def gate(review: Path, keys: list[str], *, companion=False, manifest: Path | Non
                         path = review / f"attribution-{key}" / f"{row['case'].split('-')[0]}-{row['label']}.{attempt}.json"
                         try:
                             answer = json.loads(path.read_text())
-                            answers.append(answer.get("cause") if isinstance(answer, dict) else None)
+                            answers.append(_attribution_cause(answer, row["resolved"]))
                         except (OSError, ValueError):
                             answers.append(None)
                     cause = "host" if answers == ["host", "host"] else "memory"

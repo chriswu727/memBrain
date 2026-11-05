@@ -1,0 +1,56 @@
+{
+  "base_head": "ce7916daf006871aa80d03180996cefefe3136a2",
+  "runtime_unchanged": "174bc506595e9f96e4c38b0c10f737c7f98c639a",
+  "checks": "365 passed in 13.80s; Ruff and diff check passed",
+  "files": [
+    {
+      "path": "attribution-before.txt.gz",
+      "bytes": 170,
+      "sha256": "dea37ce68af06beaa1128e05b1935e8edbfc44d3b3e2d807979aefbc3faeb6c6",
+      "original_bytes": 308,
+      "original_sha256": "908e479d94aeeee7302e36cfc2ec1fdb9777732657c6c963a75209b085ed30ca"
+    },
+    {
+      "path": "attribution-regression-before.txt.gz",
+      "bytes": 1392,
+      "sha256": "c285189293f174c839569bb91044440d446155709738a17a31710e0907606de7",
+      "original_bytes": 21539,
+      "original_sha256": "c64b147b0d9d14fbbd87fc6dc16fa97edda04b7fc55b68bbe0c7d160a379ee37"
+    },
+    {
+      "path": "attribution-after.txt.gz",
+      "bytes": 74,
+      "sha256": "0260350a99b5e352b984422e336d45abdd31968aad901527557fc771f31ab48b",
+      "original_bytes": 421,
+      "original_sha256": "e86966b6673b6a6fd5a7e2c2c963a427e70f0644cc155a8da0465b0e89d6af0f"
+    },
+    {
+      "path": "validity-before.txt.gz",
+      "bytes": 1408,
+      "sha256": "0fdab6aad7eb7e30d3e38d41e491e3b21501bbbe291f326c025a15f94559cdeb",
+      "original_bytes": 11538,
+      "original_sha256": "78d89b354a1b73345fbf0c8bcfd0897f56b84ed7e1d7c7ce5f1fe475295665ba"
+    },
+    {
+      "path": "final-tests.txt.gz",
+      "bytes": 80,
+      "sha256": "30a9bc374d66130795392ed5d2deccbdcce333158b1dbc62eceb03c75d0bbf44",
+      "original_bytes": 501,
+      "original_sha256": "db55340232644d1008e384b3068d61b09ad210af454052ba79c5ba76476095a3"
+    },
+    {
+      "path": "claude-review.txt.gz",
+      "bytes": 6019,
+      "sha256": "51c6c32389ddf20033faae36b8dccd7997c647cafb34ff583ff3b402baf63a05",
+      "original_bytes": 14121,
+      "original_sha256": "54ab056aba340a3c274ee345aedc29652f0f049f8e5221f1ca071adb4dabefb0"
+    },
+    {
+      "path": "probe-attribution.py.gz",
+      "bytes": 581,
+      "sha256": "fbbe140a01107563f4649f41724e4070f1a8ca0948e88a4865d8349738745d2d",
+      "original_bytes": 1019,
+      "original_sha256": "f2daf37483e63f801803c8d900296fc576401b1ef3dd336da6267635746d88a5"
+    }
+  ]
+}
