@@ -1,5 +1,7 @@
 # Packaged Linux XML compatibility and installed upgrade qualification
 
+Latest follow-up: [boundary-only recall and current performance failures](maturity-recall-boundaries-2026-11-05.md). It records the completed `11eee62` CI results and the subsequent runtime; this report retains its original checkpoint evidence.
+
 Runtime `603e0a2e233f6f35f85f73010e370c1e434b164f`, frozen at source `9a17e6cc7eb89e51fa9d5019ff0b9c1c10aa7099`, integrates the [qualified XML candidates](maturity-linux-xml-2026-11-05.md). The [five-platform installed-package run](https://github.com/chriswu727/memBrain/actions/runs/42083489224) passes, including **15 real default-startup, interrupted-adoption and HTTP backup/recovery journeys**. Both Linux architectures run on **Ubuntu 26.04**, where the earlier package failed to load. A separate local Mac test passes isolated pinned uv installation and replacement of an active old installation. These checks do not by themselves qualify release performance, the complete host matrix or real R4/C5 behavior.
 
 The runtime build identity is `99d5c45e20d1e29882a9151107f85b1740c027d09e32d772164c34f00fd55ecf`. All nine host installation pins identify this runtime. The schema fingerprint remains `e2f27d492746a4ac9942312b04a07a37cd5f19e44bd7770bcdcbac54a4a23693`.

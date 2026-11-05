@@ -1,0 +1,96 @@
+diff --git a/src/membrain/lexical_candidates.py b/src/membrain/lexical_candidates.py
+index 73cb36e..97569fa 100644
+--- a/src/membrain/lexical_candidates.py
++++ b/src/membrain/lexical_candidates.py
+@@ -13,6 +13,8 @@ class LexicalScorer:
+     def __init__(self, query, texts, *, origins=None):
+         self._term_cache = {}
+         self._cached_characters = 0
++        self._score_cache = {}
++        self._scored_characters = 0
+         self.query_terms = self._terms(query)
+         if origins is None:
+             documents = {tuple(frozenset(part) for part in self._terms(text)) for text in texts}
+@@ -56,9 +58,16 @@ class LexicalScorer:
+         return scores[0] + scores[1] + (0.15 * scores[2] if len(self.query_terms[2] & terms[2]) >= 2 else 0)
+ 
+     def __call__(self, query, text):
++        cached = self._score_cache.get(text)
++        if cached is not None:
++            return cached
+         score = max((self._score(self._terms(text[start:end]))
+                      for start, end in cognition._sentence_spans(text)), default=0.0)
+-        return score or self._score(self._terms(text))
++        score = score or self._score(self._terms(text))
++        if len(self._score_cache) < TERM_CACHE_ITEMS and self._scored_characters + len(text) <= TERM_CACHE_CHARACTERS:
++            self._score_cache[text] = score
++            self._scored_characters += len(text)
++        return score
+ 
+ 
+ def passage_score(query, text):
+diff --git a/tests/test_lexical_candidates.py b/tests/test_lexical_candidates.py
+index 4edf63f..0bbf2c5 100644
+--- a/tests/test_lexical_candidates.py
++++ b/tests/test_lexical_candidates.py
+@@ -210,6 +210,60 @@ def test_source_frequency_counts_origins_with_no_query_terms():
+     assert scorer("amber green", "amber") == scorer("amber green", "green") == 0.5
+ 
+ 
++@pytest.mark.parametrize("query,texts", [
++    ("blue green", ["The blue map belongs to Mara. The green cup belongs to Leo.", "", "unrelated"]),
++    ("备考安静", ["备考时需要安静。周末去散步。", "心安。宁静。", "不要打扰我。"]),
++    ("not unless workshop 2.5", ["Do not visit unless invited.", "The workshop starts at 2.5 hours."]),
++])
++def test_repeated_passage_scores_match_uncached_ranking(query, texts):
++    from membrain import cognition
++
++    for origins in (None, [{number % 2} for number in range(len(texts))]):
++        scorer = LexicalScorer(query, texts, origins=origins)
++        reference = LexicalScorer(query, texts, origins=origins)
++        for text in [*texts, *reversed(texts), *texts]:
++            expected = max((reference._score(cognition._terms(text[start:end]))
++                            for start, end in cognition._sentence_spans(text)), default=0.0)
++            expected = expected or reference._score(cognition._terms(text))
++            assert scorer(query, text) == expected
++
++
++def test_passage_score_reuse_includes_zero_and_is_local_to_its_corpus(monkeypatch):
++    from collections import Counter
++
++    from membrain import cognition
++
++    original, calls = cognition._sentence_spans, Counter()
++
++    def counted(text):
++        calls[text] += 1
++        return original(text)
++
++    monkeypatch.setattr(cognition, "_sentence_spans", counted)
++    first = LexicalScorer("amber green", ["amber", "green"])
++    second = LexicalScorer("amber green", ["amber", "green", "amber island"])
++    for text in ("amber", "unrelated"):
++        assert first("amber green", text) == first("amber green", text)
++        assert calls[text] == 1
++        second("amber green", text)
++        assert calls[text] == 2
++    assert first("amber green", "amber") != second("amber green", "amber")
++    for number in range(1000):
++        first("amber green", f"label{number:05d}")
++    assert len(first._score_cache) == 512 and first._scored_characters <= 65536
++    large = "山" * 65537
++    for _ in range(2):
++        first("amber green", large)
++    assert large not in first._score_cache and calls[large] == 2
++
++
++def test_passage_score_cache_character_limit_precedes_entry_limit():
++    scorer = LexicalScorer("blue map", [])
++    for number in range(100):
++        scorer("blue map", f"label{number:05d} " + "garden " * 150)
++    assert scorer._scored_characters <= 65536 and len(scorer._score_cache) < 512
++
++
+ def test_distinct_ungrouped_documents_keep_their_non_query_identity():
+     scorer = LexicalScorer("amber green", ["amber meadow", "amber island", "green island"])
+     assert scorer.weights == [{"amber": 4 / 3, "green": 2}, {}, {}]

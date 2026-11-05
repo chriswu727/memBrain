@@ -1,0 +1,12 @@
+{"phase": "before", "kind": "serial", "n": 20, "p95_ms": 106.10383306629956, "median_ms": 88.80383358336985}
+{"phase": "before", "kind": "same_brain", "n": 160, "p95_ms": 486.7347909603268, "median_ms": 400.6847710115835}
+{"phase": "before", "kind": "eight_brains", "n": 160, "p95_ms": 480.9559159912169, "median_ms": 387.86558294668794}
+{"phase": "after", "kind": "serial", "n": 20, "p95_ms": 120.94412511214614, "median_ms": 95.24372941814363}
+{"phase": "after", "kind": "same_brain", "n": 160, "p95_ms": 454.32591694407165, "median_ms": 360.66624999511987}
+{"phase": "after", "kind": "eight_brains", "n": 160, "p95_ms": 391.2329999729991, "median_ms": 354.64212496299297}
+{"phase": "after", "kind": "serial", "n": 20, "p95_ms": 83.9544169139117, "median_ms": 70.41060400661081}
+{"phase": "after", "kind": "same_brain", "n": 160, "p95_ms": 361.89049994572997, "median_ms": 352.02885465696454}
+{"phase": "after", "kind": "eight_brains", "n": 160, "p95_ms": 530.2463748957962, "median_ms": 369.3881045328453}
+{"phase": "before", "kind": "serial", "n": 20, "p95_ms": 95.35399987362325, "median_ms": 79.51035408768803}
+{"phase": "before", "kind": "same_brain", "n": 160, "p95_ms": 553.4028329420835, "median_ms": 411.64158354513347}
+{"phase": "before", "kind": "eight_brains", "n": 160, "p95_ms": 588.2397498935461, "median_ms": 406.4551250776276}
