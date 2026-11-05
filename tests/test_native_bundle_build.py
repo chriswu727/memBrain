@@ -59,13 +59,14 @@ def test_bundle_inventory_rejects_external_links(tmp_path):
         builder.inventory(prefix)
 
 
-def test_bundle_includes_licenses_and_exact_file_hashes(tmp_path):
+@pytest.mark.parametrize("license_name", ["COPYRIGHT", "server_license.txt"])
+def test_bundle_includes_licenses_and_exact_file_hashes(tmp_path, license_name):
     prefix, source, output = tmp_path / "prefix", tmp_path / "source", tmp_path / "output"
     (prefix / "lib").mkdir(parents=True)
     (prefix / "share/extension").mkdir(parents=True)
     source.mkdir()
     (source / "LICENSE").write_text("vector license")
-    (prefix / "COPYRIGHT").write_text("postgres license")
+    (prefix / license_name).write_text("postgres license")
     (prefix / "lib/vector.so").write_bytes(b"compiled vector")
     (prefix / "share/extension/vector.control").write_text("control")
     metadata = {}

@@ -77,9 +77,9 @@ def check(artifacts, work, *, legacy):
                               stderr=subprocess.STDOUT if capture else subprocess.DEVNULL,
                               text=True, check=True, timeout=180)
 
-    def connection(database="postgres"):
+    def connection(database="postgres", *, sslmode="prefer"):
         return psycopg.connect(host="127.0.0.1", port=port, user="postgres", password=password,
-                               dbname=database, connect_timeout=5, autocommit=True)
+                               dbname=database, connect_timeout=5, autocommit=True, sslmode=sslmode)
 
     def start(root):
         nonlocal current
@@ -177,7 +177,26 @@ def check(artifacts, work, *, legacy):
             assert hashlib.sha256(json.dumps(rows).encode()).hexdigest() == before["sha256"]
             assert conn.execute("SELECT extversion FROM pg_extension WHERE extname='vector'").fetchone()[0] == VECTOR
         stop()
+        openssl = tool(prefix, "openssl")
+        if not openssl.is_file():
+            openssl = shutil.which("openssl")
+        if not openssl:
+            raise ValueError("OpenSSL is required for the encrypted connection check")
+        request_config = work / "certificate.cnf"
+        request_config.write_text("[req]\ndistinguished_name=dn\n[dn]\n", encoding="utf-8")
+        subprocess.run([str(openssl), "req", "-x509", "-newkey", "rsa:2048", "-nodes", "-days", "1",
+                        "-keyout", str(data / "server.key"), "-out", str(data / "server.crt"),
+                        "-subj", "/CN=localhost", "-config", str(request_config)], env=environment,
+                       stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                       check=True, timeout=90)
+        (data / "server.key").chmod(0o600)
+        with (data / "postgresql.conf").open("a", encoding="utf-8") as stream:
+            stream.write("\nssl=on\nssl_cert_file='server.crt'\nssl_key_file='server.key'\n")
         start(prefix)
+        with connection("agent_memory", sslmode="require") as conn:
+            encrypted = conn.execute("SELECT ssl,version,cipher FROM pg_stat_ssl WHERE pid=pg_backend_pid()").fetchone()
+            assert encrypted and encrypted[0]
+            report["encrypted_connection"] = {"ssl": encrypted[0], "version": encrypted[1], "cipher": encrypted[2]}
         assert fixture_fingerprint() == before
         report.update(completed=True, restart_preserves_rows=True, backup_restore_preserves_rows=True,
                       runtime_dependency_changed=False, qualifications_are_not_release_acceptance=True)

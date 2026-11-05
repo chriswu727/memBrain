@@ -7,6 +7,7 @@ import io
 import json
 import os
 import platform
+import re
 import shutil
 import stat
 import subprocess
@@ -20,6 +21,9 @@ SUPPLIER_VERSION = "16.15.0"
 VECTOR = "0.8.6"
 VECTOR_URL = f"https://codeload.github.com/pgvector/pgvector/tar.gz/refs/tags/v{VECTOR}"
 VECTOR_SHA256 = "10bf9938906e5d643bbc4a7eea104b6f57ba4898e5b76b20e60484ea1d5a7f8f"
+OPENSSL = "3.5.9"
+OPENSSL_URL = f"https://github.com/openssl/openssl/releases/download/openssl-{OPENSSL}/openssl-{OPENSSL}.tar.gz"
+OPENSSL_SHA256 = "603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a"
 WHEELS = {
     ("Darwin", "arm64"): ("macosx_11_0_arm64", "c73c7eacd71da727085aa3a4ebfa60b862ce8eacb72102df691b620d7a66460b"),
     ("Darwin", "x86_64"): ("macosx_10_9_x86_64", "4a1ec8dc225f404c677a43e84472b84e83482c6e7e34c183c44529477dcc6d74"),
@@ -102,6 +106,66 @@ def vector_library(prefix):
     return directory / f"vector.{suffix}"
 
 
+def update_openssl(prefix, work):
+    system, machine = platform.system(), platform.machine()
+    if system == "Linux":
+        return {"source": "operating system", "version": run(["openssl", "version", "-a"], capture=True),
+                "server_dependencies": run(["ldd", tool(prefix, "postgres")], capture=True),
+                "client_dependencies": run(["ldd", tool(prefix, "psql")], capture=True),
+                "scope": "tested host libraries only; distribution compatibility remains a separate gate"}
+    archive = work / "openssl.tar.gz"
+    download(OPENSSL_URL, OPENSSL_SHA256, archive)
+    with tarfile.open(archive) as saved:
+        saved.extractall(work, filter="data")
+    source, installed = work / f"openssl-{OPENSSL}", work / "openssl-installed"
+    target = {("Darwin", "arm64"): "darwin64-arm64-cc", ("Darwin", "x86_64"): "darwin64-x86_64-cc",
+              ("Windows", "AMD64"): "VC-WIN64A"}[(system, machine)]
+    environment = {}
+    if system == "Darwin":
+        environment["MACOSX_DEPLOYMENT_TARGET"] = "11.0" if machine == "arm64" else "10.13"
+    run(["perl", "Configure", target, "shared", "no-tests", f"--prefix={installed}",
+         f"--openssldir={installed / 'ssl'}", "--libdir=lib"], cwd=source, environment=environment)
+    make = ["nmake", "/NOLOGO"] if system == "Windows" else ["make", "-j2"]
+    run([*make, "build_sw"], cwd=source, environment=environment)
+    run([*make, "install_sw"], cwd=source, environment=environment)
+    if system == "Windows":
+        for name in ("libcrypto-3-x64.dll", "libssl-3-x64.dll", "openssl.exe"):
+            shutil.copyfile(installed / "bin" / name, prefix / "bin" / name)
+        for name in ("libcrypto.lib", "libssl.lib"):
+            shutil.copyfile(installed / "lib" / name, prefix / "lib" / name)
+    else:
+        for name in ("libcrypto.3.dylib", "libssl.3.dylib"):
+            shutil.copyfile(installed / "lib" / name, prefix / "lib" / name)
+        shutil.copy2(installed / "bin" / "openssl", prefix / "bin" / "openssl")
+    shutil.copytree(installed / "lib" / "ossl-modules", prefix / "lib" / "ossl-modules")
+    shutil.copytree(installed / "include" / "openssl", prefix / "include" / "openssl", dirs_exist_ok=True)
+    licenses = prefix / "share" / "licenses" / "openssl"
+    licenses.mkdir(parents=True)
+    for name in ("LICENSE.txt", "AUTHORS.md"):
+        shutil.copyfile(source / name, licenses / name)
+    if system == "Darwin":
+        changed = [prefix / "bin" / "openssl", prefix / "lib" / "libcrypto.3.dylib",
+                   prefix / "lib" / "libssl.3.dylib", *sorted((prefix / "lib" / "ossl-modules").glob("*.dylib"))]
+        for path in changed:
+            if run(["otool", "-D", path], capture=True).splitlines()[1:]:
+                run(["install_name_tool", "-id", "@rpath/" + path.name, path])
+            for line in run(["otool", "-L", path], capture=True).splitlines()[1:]:
+                dependency = line.rsplit(" (compatibility version", 1)[0].strip()
+                if dependency.startswith(str(installed) + "/"):
+                    destination = prefix / Path(dependency).relative_to(installed)
+                    relative = os.path.relpath(destination, path.parent)
+                    run(["install_name_tool", "-change", dependency, "@loader_path/" + relative, path])
+                elif not dependency.startswith(("@", "/usr/lib/", "/System/Library/")):
+                    raise ValueError("OpenSSL has an unbundled native dependency")
+            run(["codesign", "--force", "--sign", "-", path])
+            run(["codesign", "--verify", path])
+    version = run([tool(prefix, "openssl"), "version", "-a"], capture=True)
+    if not version.startswith("OpenSSL " + OPENSSL + " "):
+        raise ValueError("Unexpected replacement OpenSSL version")
+    return {"source": OPENSSL_URL, "sha256": OPENSSL_SHA256, "version": version,
+            "target": target, "reason": "replace the supplier's unsupported OpenSSL 3.6.3"}
+
+
 def inspect_library(path):
     system = platform.system()
     if system == "Darwin":
@@ -114,9 +178,17 @@ def inspect_library(path):
             if not dependency.startswith(("/usr/lib/", "/System/Library/")):
                 raise ValueError(f"Unbundled vector dependency: {dependency}")
         commands = run(["otool", "-l", path], capture=True)
+        minimum = "11.0" if platform.machine() == "arm64" else "10.13"
+        minimum_versions = re.findall(r"minos (\d+\.\d+(?:\.\d+)?)", commands)
+        if not minimum_versions:
+            match = re.search(r"cmd LC_VERSION_MIN_MACOSX\s+cmdsize \d+\s+version (\d+\.\d+(?:\.\d+)?)", commands)
+            minimum_versions = [match[1]] if match else []
+        if not minimum_versions or any(tuple(map(int, value.split(".")[:2])) > tuple(map(int, minimum.split("."))) for value in minimum_versions):
+            raise ValueError("Vector deployment target exceeds its declared minimum")
         run(["codesign", "--force", "--sign", "-", path])
         run(["codesign", "--verify", path])
-        return {"architecture": architecture, "dependencies": dependencies, "load_commands": commands}
+        return {"architecture": architecture, "dependencies": dependencies, "load_commands": commands,
+                "minimum_macos": minimum_versions, "declared_minimum_macos": minimum}
     if system == "Windows":
         return {"headers": run(["dumpbin", "/HEADERS", path], capture=True),
                 "dependencies": run(["dumpbin", "/DEPENDENTS", path], capture=True)}
@@ -144,8 +216,11 @@ def write_bundle(prefix, source, output, metadata):
     metadata["files"] = files
     output.mkdir(parents=True, exist_ok=False)
     (output / "manifest.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+    postgres_license = prefix / "COPYRIGHT"
+    if not postgres_license.is_file():
+        postgres_license = prefix / "server_license.txt"
     for name, path in (("PGVECTOR-LICENSE", source / "LICENSE"),
-                       ("POSTGRESQL-COPYRIGHT", prefix / "COPYRIGHT")):
+                       ("POSTGRESQL-COPYRIGHT", postgres_license)):
         if not path.is_file():
             raise ValueError(f"Missing license: {name}")
         shutil.copyfile(path, output / name)
@@ -186,6 +261,7 @@ def build(work, output):
     with tarfile.open(archive) as saved:
         saved.extractall(work, filter="data")
     source = work / f"pgvector-{VECTOR}"
+    openssl = update_openssl(prefix, work)
     versions = {name: run([tool(prefix, name), "--version"], capture=True).strip() for name in TOOLS}
     if not all(value.endswith(" " + POSTGRES) for value in versions.values()):
         raise ValueError("Unexpected PostgreSQL tool version")
@@ -194,6 +270,7 @@ def build(work, output):
                 "runtime_dependency_changed": False, "supplier_python_executed": False,
                 "supplier_wheel": {"filename": filename, "sha256": expected, "archive_sha256": inner_hash},
                 "vector_source": {"url": VECTOR_URL, "sha256": VECTOR_SHA256},
+                "openssl": openssl,
                 "build_options": options, "host": platform.platform(), "tools": versions,
                 "library": inspect_library(vector_library(prefix)),
                 "compiler": run(["cl" if os.name == "nt" else "cc", "--version"], capture=True).strip()
