@@ -41,6 +41,11 @@ on:
         description: Optional Windows artifact run when its build was qualified separately
         type: string
         required: false
+      transition_root_fault:
+        description: Recovery rename interruption for Linux root legacy qualification
+        type: choice
+        default: '2'
+        options: ['1', '2', '3']
       platform:
         description: Platform to qualify after a platform-specific build repair
         type: choice
@@ -122,7 +127,7 @@ jobs:
       - name: Verify Linux root transition and legacy data location across recovery renames
         if: runner.os == 'Linux'
         id: native_transition_root
-        run: sudo -n "$(command -v python)" scripts/check_native_transition.py --directory "${{ runner.temp }}/native-transition-root-${{ github.run_id }}-${{ github.run_attempt }}" --cache-directory "${{ runner.temp }}/native-transition-root-cache-${{ github.run_id }}-${{ github.run_attempt }}" --require-root --legacy-location --rollback-fault 2 ${{ matrix.target != 'linux-aarch64' && '--legacy-upgrade' || '' }}
+        run: sudo -n "$(command -v python)" scripts/check_native_transition.py --directory "${{ runner.temp }}/native-transition-root-${{ github.run_id }}-${{ github.run_attempt }}" --cache-directory "${{ runner.temp }}/native-transition-root-cache-${{ github.run_id }}-${{ github.run_attempt }}" --require-root --legacy-location --rollback-fault ${{ inputs.transition_root_fault || '2' }} ${{ matrix.target != 'linux-aarch64' && '--legacy-upgrade' || '' }}
       - name: Export only the root transition summary
         if: always() && runner.os == 'Linux' && steps.native_transition_root.outcome != 'skipped'
         run: sudo -n cat "${{ runner.temp }}/native-transition-root-${{ github.run_id }}-${{ github.run_attempt }}/result.json" > "${{ runner.temp }}/native-transition-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json"
