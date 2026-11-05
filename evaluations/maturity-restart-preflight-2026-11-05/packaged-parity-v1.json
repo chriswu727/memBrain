@@ -1,0 +1,10 @@
+{
+  "completed": false,
+  "failure": "Verifier compared all wheel files to the runtime-only manifest, which excludes three legal/vendor documents",
+  "extra_files": [
+    "web/vendor/VENDOR.md",
+    "resources/native/NOTICE.md",
+    "web/vendor/three/LICENSE"
+  ],
+  "product_runtime_mismatch_found": false
+}

@@ -14,7 +14,7 @@
     {
       "name": "known-credential-scan.json",
       "bytes": 300,
-      "sha256": "ee0acbfa8172d70e7a3c4e3b96d8ed4c2024047fb7885d36abc73b150373c52b"
+      "sha256": "3cdbc8c26b267ea9972e90c8533da6c6b6818cc8ae3f170fd581defad517959c"
     },
     {
       "name": "native-linux-aarch64--native-adoption-fresh-42070570407-1--result.json",
@@ -102,9 +102,39 @@
       "sha256": "b0a0a41f9f8f97a970ef44e45b21a857aa53c63acd164459e8cb7c037ba5a9ca"
     },
     {
+      "name": "package-privacy-current.json",
+      "bytes": 973,
+      "sha256": "4c3cc7eba9c399661f9eba6541ae37abbb294c845409bcbdcff79f70dcb6fde5"
+    },
+    {
+      "name": "packaged-parity-current.json",
+      "bytes": 783,
+      "sha256": "febe1465b44ecca0f1290a3b5ecc4cebaf07e474e86a537aa17b1f63381fc9a1"
+    },
+    {
+      "name": "packaged-parity-v1.json",
+      "bytes": 309,
+      "sha256": "8ce8e13ccc212a4b8104f50d6c1857ad845956d1c88c772d111413da80e5d0ff"
+    },
+    {
+      "name": "packaging-current.json",
+      "bytes": 557,
+      "sha256": "779836a5b0cde6f750d07f9711e5bfdcb4f0c030610375f33299230da17f0d54"
+    },
+    {
+      "name": "packaging-current.txt.gz",
+      "bytes": 167,
+      "sha256": "7b83c922e0bbadc88f97918d8d31a38f396b9ef9da3fddbbc971371d4a17ce89"
+    },
+    {
+      "name": "packaging-frozen-inputs.json.gz",
+      "bytes": 89663,
+      "sha256": "cd03cfb5e51b4e2ac9541ffe6abb4840a435491123915a59d509ea3f9e232d18"
+    },
+    {
       "name": "qualification.json",
-      "bytes": 699,
-      "sha256": "6685d5e1c6b986029095bde86750dd8218c01e11d30b467e6ea3797d5078542a"
+      "bytes": 949,
+      "sha256": "b2a6bf249b3dc1d2f130fe7ab9afdd92a9e2cf05f7551437cc8459c125201173"
     },
     {
       "name": "restart-green.txt.gz",
@@ -157,9 +187,29 @@
       "sha256": "0f7f6d097ed99ea6e921ae2b61a21cf7585d53117088a4e7b09089a2cf383307"
     },
     {
+      "name": "run_wheel_restart_proof.py.gz",
+      "bytes": 1078,
+      "sha256": "85081e15a6413ca3ec1f89e805832ff2c2292ca552d0da0ed4c8447657519f2a"
+    },
+    {
       "name": "summary.json",
       "bytes": 2639,
       "sha256": "ce21428de36b77d5223493f3bbd740ee7c64016ec1be336a728a96138439b552"
+    },
+    {
+      "name": "wheel-http-proof.json",
+      "bytes": 807,
+      "sha256": "8aa5a8ef58789bc61be5c6e4f569c78a1e9df13620e376f4d7ea300957e3a16d"
+    },
+    {
+      "name": "wheel-http-proof.txt.gz",
+      "bytes": 485,
+      "sha256": "f5b4db846952d73c575cf699e977e16d688446f2a25ce376dca6f3ae5e719d72"
+    },
+    {
+      "name": "wheel-install-current.txt.gz",
+      "bytes": 214,
+      "sha256": "b289bf0e58e3f281fe57e9aa781f373382f398edca320f0ba878393a552a01bc"
     },
     {
       "name": "xml-source--libxml2_2.9.13+dfsg-1ubuntu0.14.debian.tar.xz",

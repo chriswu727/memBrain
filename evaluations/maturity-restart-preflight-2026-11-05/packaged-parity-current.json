@@ -1,0 +1,18 @@
+{
+  "source_head": "8206fcc00699eefb65974b60efcfc7623fbef69a",
+  "runtime": "73ee62ee5796902249ddd20b08ed7e4ad6922b3f",
+  "runtime_inputs": 179,
+  "additional_legal_vendor_documents": 3,
+  "legacy_alias_inputs": 2,
+  "all_bytes_equal": true,
+  "installed_wheel_import": {
+    "build_id": "bd1a653ea57c157c153b5ad09a1364961f04bf3cd5e7e10fab089ecb0fadcb70",
+    "schema_id": "e2f27d492746a4ac9942312b04a07a37cd5f19e44bd7770bcdcbac54a4a23693",
+    "module": "/Users/yichen/tmp/membrain-restart-preflight-20261105/wheel-env312/lib/python3.12/site-packages/membrain/__init__.py"
+  },
+  "new_wheel_installed_without_dependencies": true,
+  "dependencies_reused_read_only": true,
+  "clean_complete_installation_claimed": false,
+  "native_runtime_inputs": 11,
+  "native_packaged_files": 12
+}

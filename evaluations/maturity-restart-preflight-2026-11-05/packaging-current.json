@@ -1,0 +1,19 @@
+{
+  "returncode": 0,
+  "frozen_inputs": 1946,
+  "frozen_inputs_unchanged": true,
+  "source_head": "8206fcc00699eefb65974b60efcfc7623fbef69a",
+  "runtime": "73ee62ee5796902249ddd20b08ed7e4ad6922b3f",
+  "artifacts": [
+    {
+      "name": "membrain_ai-0.1.0-py3-none-any.whl",
+      "bytes": 12859864,
+      "sha256": "dd493da75ea487f29bfb73eb4e958192a43b294b2ebadd93494b1e6e7427d0be"
+    },
+    {
+      "name": "membrain_ai-0.1.0.tar.gz",
+      "bytes": 14670499,
+      "sha256": "1061044180e907071a433e476384bce1d814703c21474e04e30a248b3bc00331"
+    }
+  ]
+}
