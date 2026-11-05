@@ -1,4 +1,5 @@
 import json
+import threading
 from functools import lru_cache
 from importlib.resources import files
 from pathlib import Path
@@ -9,6 +10,7 @@ from jsonschema.validators import extend
 from .helpers import DomainError
 
 CONTRACT_VERSION = "1.0.0-draft"
+_PREPARE_LOCK = threading.RLock()
 
 
 @lru_cache
@@ -163,8 +165,22 @@ def _prepared_root():
 
     cls = extend(Draft202012Validator, {"type": check_type, "properties": properties, "items": items,
                                       "allOf": all_of, "if": if_clause})
+    cls._membrain_keywords = tuple(cls.VALIDATORS.items())
     root = cls({"$schema": schema()["$schema"], "$defs": definitions}, format_checker=FormatChecker())
     children.update((id(node), root.evolve(schema=node)) for node in nodes)
+    cls._membrain_schema = None
+    try:
+        from .native_contracts import _capture_containers, _definitions_snapshot
+
+        cls._membrain_methods = tuple((name, getattr(cls, name)) for name in (
+            "validate", "iter_errors", "is_valid", "descend", "evolve", "is_type"))
+        cls._membrain_nodes = tuple((child, child.schema, child._validators) for child in children.values())
+        cls._membrain_validators = {id(schema): tuple(expected) for child, schema, expected in cls._membrain_nodes}
+        cls._membrain_root_schema = root.schema
+        cls._membrain_containers = _capture_containers([root.schema, *children.values()])
+        cls._membrain_schema = _definitions_snapshot(definitions, root.schema["$schema"])
+    except Exception:  # noqa: BLE001 - accelerator metadata must never prevent reference validation
+        cls._membrain_schema = None
     return root
 
 
@@ -172,7 +188,8 @@ def _prepared_root():
 def validator(definition: str | None = None):
     document = schema()
     if definition is not None:
-        prepared = _prepared_root()
+        with _PREPARE_LOCK:
+            prepared = _prepared_root()
         if prepared is not None:
             return prepared.evolve(schema=prepared.schema["$defs"].get(definition, {"$ref": f"{_LOCAL}{definition}"}))
         document = {
@@ -185,7 +202,13 @@ def validator(definition: str | None = None):
 
 def validate(definition: str | None, value: object) -> None:
     try:
-        validator(definition).validate(value)
+        current = validator(definition)
+        if definition == "ActionResponse":
+            from .native_contracts import accepts_response
+
+            if accepts_response(current, value):
+                return
+        current.validate(value)
     except ValidationError as error:
         path = ".".join(map(str, error.absolute_path)) or "$"
         raise DomainError("validation_failed", f"Invalid {definition or 'contract'} at {path}") from error
