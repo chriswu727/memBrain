@@ -41,6 +41,10 @@ def check(directory, cache_directory=None):
 
     profile = None
     original = embedded_database._installation
+    overrides = {name: str(directory / "host-override") for name in (
+        "PGHOST", "PGPORT", "PGUSER", "PGDATABASE", "DYLD_LIBRARY_PATH", "DYLD_INSERT_LIBRARIES",
+        "LD_LIBRARY_PATH", "LD_PRELOAD", "OPENSSL_CONF", "OPENSSL_MODULES", "MEMBRAIN_NATIVE_OVERRIDE")}
+    inherited = {name: os.environ.get(name) for name in overrides}
     checkpoint("supplier")
     try:
         assert native_bundle.available()
@@ -62,6 +66,7 @@ def check(directory, cache_directory=None):
         profile = ensure_profile(directory / "profile", database_engine="embedded")
         assert closed(profile.api_port) and closed(profile.database_port)
         embedded_database._installation = lambda: prefix
+        os.environ.update(overrides)
         checkpoint("database_start")
         embedded_database.start(profile)
         checkpoint("database_write")
@@ -77,6 +82,7 @@ def check(directory, cache_directory=None):
             profile, "pg_dump", "--username=postgres", "--dbname=agent_memory",
             "--table=cached_fixture", "--data-only", "--inserts")
         assert Path(command[0]).is_relative_to(prefix)
+        assert all(environment.get(name) != value for name, value in overrides.items())
         result = subprocess.run(command, env=environment, capture_output=True, check=True, timeout=10)
         assert b"INSERT INTO public.cached_fixture VALUES (1, '[1,2,3]');" in result.stdout
         checkpoint("database_restart")
@@ -85,6 +91,7 @@ def check(directory, cache_directory=None):
         with embedded_database._admin_connection(profile, "agent_memory") as conn:
             assert conn.execute("SELECT id,embedding::text FROM cached_fixture").fetchall() == [(1, "[1,2,3]")]
         report.update(verified_files=entry["native_files"], restart_preserves_rows=True,
+                      host_native_environment_isolated=True,
                       cached_client_dump_preserves_row=True,
                       supplier_unchanged=before == {path.name: hashlib.sha256(path.read_bytes()).hexdigest()
                                                    for path in archive.parent.iterdir() if path.is_file()},
@@ -104,6 +111,11 @@ def check(directory, cache_directory=None):
                           cleanup_error_code=getattr(error, "code", None))
         finally:
             embedded_database._installation = original
+            for name, value in inherited.items():
+                if value is None:
+                    os.environ.pop(name, None)
+                else:
+                    os.environ[name] = value
             report["ports_closed"] = (closed(profile.api_port) and closed(profile.database_port)
                                       if profile is not None else None)
             report["completed"] = report["completed"] and report["ports_closed"] is True
