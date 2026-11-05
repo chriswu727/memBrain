@@ -29,6 +29,7 @@ from __future__ import annotations
 import datetime as _datetime
 import json
 import re
+from collections.abc import Iterator
 
 from .helpers import DomainError, uid
 from .helpers import today as _clock_today
@@ -186,19 +187,28 @@ def _entry(row) -> dict | None:
     return None
 
 
-def _entries(service, conn, principal, brain_id) -> list[dict]:
-    rows = conn.execute(
-        f"SELECT producer_ref,document FROM memory_events WHERE {_VISIBLE} AND conversation_id=%s "
-        "ORDER BY sequence LIMIT 5000", (*service._params(principal, brain_id), RELATIONSHIP_CONVERSATION)).fetchall()
-    return [entry for entry in map(_entry, rows) if entry is not None]
+def _entries(service, conn, principal, brain_id) -> Iterator[dict]:
+    with conn.cursor(name="relationship_" + uid()) as cursor:
+        cursor.itersize = 256
+        cursor.execute(
+            f"SELECT producer_ref,document FROM memory_events WHERE {_VISIBLE} AND conversation_id=%s "
+            "ORDER BY sequence", (*service._params(principal, brain_id), RELATIONSHIP_CONVERSATION))
+        for row in cursor:
+            entry = _entry(row)
+            if entry is not None:
+                yield entry
 
 
 def _state(service, conn, principal, brain_id) -> dict:
     """The latest marker, the markers newest first, and the records after the latest marker."""
-    entries = _entries(service, conn, principal, brain_id)
-    markers = [entry for entry in entries if "marker" in entry]
+    markers, records = [], []
+    for entry in _entries(service, conn, principal, brain_id):
+        if "marker" in entry:
+            markers.append(entry)
+            records.clear()
+        else:
+            records.append(entry)
     after = markers[-1]["applies_from_sequence"] if markers else 0
-    records = [entry for entry in entries if "kind" in entry and entry["sequence"] > after]
     latest = {kind: next((entry for entry in reversed(records) if entry["kind"] == kind), None)
               for kind in ("support_style", "cap")}
     return {"marker": markers[-1] if markers else None, "markers": list(reversed(markers)), "after": after,
@@ -593,10 +603,11 @@ def reset_relationship(service, principal, brain_id: str, *, today=None) -> dict
             "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND conversation_id=%s AND NOT deleted "
             "AND document IS NOT NULL AND document->'observed'->'content'->>'text' LIKE '[milestone%%'",
             (*params, NOTES_CONVERSATION)) if parse_note(row["text"] or "")[0].get("shared")]
+        marker_ids = {marker["id"] for marker in state["markers"]}
         records = [row["id"] for row in conn.execute(
             "SELECT DISTINCT id FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
             "AND conversation_id=%s AND NOT deleted", (*params, RELATIONSHIP_CONVERSATION))
-            if row["id"] not in {marker["id"] for marker in state["markers"]}]
+            if row["id"] not in marker_ids]
         removed = {"shared_moments": len(moments), "boundaries": len(state["boundaries"]),
                    "support_style": int(bool(state["support_style"] and state["support_style"]["text"])),
                    "cap": int(bool(state["cap"] and state["cap"]["level"])),
