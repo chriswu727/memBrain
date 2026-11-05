@@ -16,7 +16,7 @@ import subprocess
 import tarfile
 from pathlib import Path, PurePosixPath
 
-from .local_profile import _open_private, profile_lock
+from .local_profile import _open_private, _private, profile_lock
 
 RESOURCES = Path(__file__).parent / "resources" / "native"
 POSTGRES = "16.15"
@@ -204,6 +204,13 @@ def _open_archive(archive):
     return archive.open("rb")
 
 
+def _secure_windows_tree(prefix):
+    # mkdir(0700), including tarfile's directories, can bind Owner Rights to Administrators rather than TokenUser.
+    _private(prefix, directory=True)
+    for path in prefix.rglob("*"):
+        _private(path, directory=path.is_dir())
+
+
 def _completed(target, identity, records):
     if target.is_symlink():
         raise _invalid()
@@ -231,7 +238,7 @@ def prepare():
         identity = entry["manifest_sha256"]
         root = _cache_directory()
         with profile_lock(root, timeout=120):
-            base = root / (POSTGRES + "-" + key + "-" + identity[:24])
+            base = root / ("v1-" + POSTGRES + "-" + key + "-" + identity[:24])
             for target in (base, *sorted(root.glob(base.name + "-repair-*"))):
                 if _completed(target, identity, records):
                     _versions(target / "pginstall")
@@ -242,6 +249,7 @@ def prepare():
                                         "Not enough free space to prepare the embedded database. Existing data and engine versions were preserved.")
             staging = root / (".staging-" + secrets.token_hex(12))
             staging.mkdir(mode=0o700)
+            _private(staging, directory=True)
             with _open_archive(archive) as stream:
                 if hashlib.file_digest(stream, "sha256").hexdigest() != entry["supplier"]["archive_sha256"]:
                     raise _invalid()
@@ -260,7 +268,9 @@ def prepare():
                     if name not in records or not member.isfile():
                         raise _invalid()
                 saved.extractall(prefix, filter="data")
-            if os.name != "nt":
+            if os.name == "nt":
+                _secure_windows_tree(prefix)
+            else:
                 for name, row in records.items():
                     path = prefix / name
                     if not path.is_symlink():

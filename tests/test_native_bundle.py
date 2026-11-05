@@ -88,6 +88,25 @@ def test_preparation_is_complete_private_and_reuses_verified_files(candidate):
     assert not list(prefix.parent.parent.glob(".staging-*"))
 
 
+def test_extracted_permissions_are_private_before_native_tools_execute(candidate, monkeypatch):
+    private = native_bundle._private
+    secured = set()
+
+    def secure(path, *, directory=False):
+        private(path, directory=directory)
+        secured.add((path, directory))
+
+    def preflight(prefix):
+        assert (prefix.parent, True) in secured
+        if os.name == "nt":
+            assert (prefix, True) in secured
+            assert all((path, path.is_dir()) in secured for path in prefix.rglob("*"))
+
+    monkeypatch.setattr(native_bundle, "_private", secure)
+    monkeypatch.setattr(native_bundle, "_versions", preflight)
+    native_bundle.prepare()
+
+
 @pytest.mark.parametrize("damage", ["content", "missing", "extra", "marker", "dangling_link"])
 def test_invalid_cache_is_retained_and_repaired_without_moving_live_binaries(candidate, damage, monkeypatch):
     prefix = native_bundle.prepare()
