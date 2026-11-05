@@ -1,0 +1,122 @@
+{
+  "files": {
+    "executor-tests-first.txt.gz": {
+      "bytes": 718,
+      "sha256": "8cc43756b47d773f56b13c2da065b672e9cc5f7ab005ed2f86cf7fb4fe1a35ab"
+    },
+    "executor-parity-detail.txt.gz": {
+      "bytes": 6823,
+      "sha256": "8f62593497928ea8336fdb245f84d596a92c7c8aa21a277b18a241f718cdd59d"
+    },
+    "executor-tests-green.txt.gz": {
+      "bytes": 62,
+      "sha256": "4f72aa34b51bd2386ccce60310e26968239c671a9c430b759c823333b090f223"
+    },
+    "integration-guards.txt.gz": {
+      "bytes": 90,
+      "sha256": "f33b5cfe2ad40b92e0068408a32bb4ce70cc070299ca9d2b2f68c23d847d1eb1"
+    },
+    "integration-guards.json": {
+      "bytes": 67035,
+      "sha256": "80303759e014e829c2306e80785695e997ee09287142193dde05807ce62e27e2"
+    },
+    "run-guards.py": {
+      "bytes": 2342,
+      "sha256": "ff229f45f2433affa3ffc4832bce39e45c25ec40c69dc4eb3d45278c3f2ef475"
+    },
+    "mcp-guards.txt.gz": {
+      "bytes": 52,
+      "sha256": "0d3aacdb54de1417c02c587dc37c91d2c9ed1e2cf8a0bf0d3d509cd6bdce631e"
+    },
+    "previous-verify-failed.txt.gz": {
+      "bytes": 28690,
+      "sha256": "7102a25ace9c2f2335434482c96001e6145ac20ae6b4dd9d205f82f4657684d5"
+    },
+    "previous-job-full.txt.gz": {
+      "bytes": 195192,
+      "sha256": "578c919dba7cc7064b4147b51dfe7835b355dcca1627e9581ca81695dd46fed2"
+    },
+    "previous-verify.json": {
+      "bytes": 4318,
+      "sha256": "ae79ec67cd6ceb3e096045e26e1162c09fc7caa391a1130b9a022fa983c8380a"
+    },
+    "full-recall-profile/cpu-attribution.json": {
+      "bytes": 672034,
+      "sha256": "628f2e92329750012efb5deaad52b99c37f10a24c2b20413eca138d9f90e5341"
+    },
+    "full-recall-profile/run-cpu-attribution.py": {
+      "bytes": 6881,
+      "sha256": "295aaf9901c27a1613325d46da0888ab26e4813e9d1d20b6f2e95dd270db9ab9"
+    },
+    "full-recall-profile/cpu-attribution-worker.py": {
+      "bytes": 6767,
+      "sha256": "8e196e1f1a6740fd0b2243bc46157c571d5756775a51c461179c36186c1ab1e5"
+    },
+    "full-recall-profile/diagnosis.log.gz": {
+      "bytes": 373,
+      "sha256": "e1c8faf0ed48e338860c920f5c6ed0ca81723959139089d36d554d9992662afa"
+    },
+    "process-probe/worker.py": {
+      "bytes": 899,
+      "sha256": "5eb9498f27e69a15ee8b59e6a3584e79899d70b83b8763092320bcecf487bb73"
+    },
+    "process-probe/compare.py": {
+      "bytes": 5917,
+      "sha256": "2b810be1337ec73181e56b127d6958e5b94ed461e88546d975fe99de3f3d7aaf"
+    },
+    "process-probe/process-comparison.json": {
+      "bytes": 436651,
+      "sha256": "708684255af48c075d7d0a803687f1e4da0e6c0641c31b59a46ad3138e05edad"
+    },
+    "process-probe/comparison.log.gz": {
+      "bytes": 402,
+      "sha256": "155f1fc6328b453a57515cf9591b57428f9b269d650cd0d8c49a2f4fb9df78a7"
+    },
+    "production-comparison/worker.py": {
+      "bytes": 403,
+      "sha256": "40c3173ecd7c37120cdb032ebb27a15f16b3cb28b8c05d660ecec24f8a0b92d8"
+    },
+    "production-comparison/compare.py": {
+      "bytes": 6404,
+      "sha256": "028c67153d03ac155cd0161879b2cd5593ef77816842e523d364c5f5c8cc1d65"
+    },
+    "production-comparison/process-comparison.json": {
+      "bytes": 437449,
+      "sha256": "4e43461ba119ab12a7dcdec8fbad2a15a01fad55a03a0521072178437b424771"
+    },
+    "production-comparison/comparison.log.gz": {
+      "bytes": 485,
+      "sha256": "3eaff27ff25036bc48de1abafc4752ed2f5ba2587b04864e0522610fc3c5aa7a"
+    },
+    "visual/run-visual.py": {
+      "bytes": 2672,
+      "sha256": "bd34542ac29078bfcd35aa5fbc2d62dfc19dbdc2da41499ac75d9b5fadb1c425"
+    },
+    "visual/compare-visual-permissions.py": {
+      "bytes": 13274,
+      "sha256": "98ac120bd1d432ab56d7c0854d5685fbdf7c7d0f6f5736695e59cc7adf286733"
+    },
+    "visual/visual-command.json": {
+      "bytes": 83568,
+      "sha256": "25e3b56eae23d976d214e20ecbb49cd951d055df2205c417c0e22e4d560682a4"
+    },
+    "visual/visual-permissions-abba.json": {
+      "bytes": 204983,
+      "sha256": "e7ff565fba1679ddb8daa978df5c030afd69056a6a27ea8defdf046868f31594"
+    },
+    "visual/command.log.gz": {
+      "bytes": 2129,
+      "sha256": "9f09fc4f4df046a5c3fb5ad4a0c940fbc0475d56f969281940a0799cd73dc9b6"
+    },
+    "visual/visual-permissions-1-open.png": {
+      "bytes": 457866,
+      "sha256": "2a0909e94bf8ffefd44b920e4925ff4ceb93a52664cd7274df5e2197a1220480"
+    },
+    "visual/visual-permissions-2-open.png": {
+      "bytes": 458118,
+      "sha256": "d292f16db8de4eabedb99280c0242cc6bca00476abe318ba99ca5adbedfab217"
+    }
+  },
+  "credential_scan": "Exact known credential values in the owned synthetic benchmark profile; not a universal secret detector.",
+  "credentials_checked": 3
+}

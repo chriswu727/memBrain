@@ -34,14 +34,17 @@ def response_for(request):
     }
 
 
-def test_protocol_initialize_list_call_and_bound_identity():
+@pytest.mark.parametrize("legacy", [False, True])
+def test_protocol_initialize_list_call_and_bound_identity(legacy):
     calls = []
 
     def handle(request):
         assert request.headers["Authorization"] == "Bearer process-key"
         if request.url.path == "/v1/capabilities":
             return httpx.Response(200, json={"service": "available"})
-        if request.url.path.endswith("/relationship"):
+        if legacy and request.url.path.endswith("/relationship/boundaries"):
+            return httpx.Response(404)
+        if request.url.path.endswith(("/relationship", "/relationship/boundaries")):
             return httpx.Response(200, json={"boundaries": []})
         payload = json.loads(request.content)
         calls.append(payload)
@@ -94,11 +97,14 @@ def test_protocol_initialize_list_call_and_bound_identity():
 
 
 @pytest.mark.parametrize("failure", ["status", "timeout"])
-def test_relationship_read_failure_is_a_tool_error_without_recalled_context(failure):
+@pytest.mark.parametrize("legacy", [False, True])
+def test_relationship_read_failure_is_a_tool_error_without_recalled_context(failure, legacy):
     recalls = []
 
     def handle(request):
-        if request.url.path.endswith("/relationship"):
+        if legacy and request.url.path.endswith("/relationship/boundaries"):
+            return httpx.Response(404)
+        if request.url.path.endswith(("/relationship", "/relationship/boundaries")):
             if failure == "timeout":
                 raise httpx.ReadTimeout("relationship unavailable", request=request)
             return httpx.Response(503, json={"error": "unavailable"})
@@ -119,7 +125,7 @@ def test_relationship_read_failure_is_a_tool_error_without_recalled_context(fail
 
 def test_protocol_failure_is_tool_error():
     def handle(request):
-        if request.url.path.endswith("/relationship"):
+        if request.url.path.endswith(("/relationship", "/relationship/boundaries")):
             return httpx.Response(200, json={"boundaries": []})
         incoming = json.loads(request.content)
         response = response_for(incoming)
@@ -138,13 +144,21 @@ def test_protocol_failure_is_tool_error():
     asyncio.run(run())
 
 
-def test_stdio_subprocess_handshake_and_http_roundtrip():
+@pytest.mark.parametrize("legacy", [False, True])
+def test_stdio_subprocess_handshake_and_http_roundtrip(legacy):
     calls = []
+    reads = []
 
     class Handler(BaseHTTPRequestHandler):
         def do_GET(self):
             assert self.headers["Authorization"] == "Bearer stdio-key"
-            assert self.path == "/v1/brains/stdio-brain/relationship"
+            reads.append(self.path)
+            assert self.path in ("/v1/brains/stdio-brain/relationship", "/v1/brains/stdio-brain/relationship/boundaries")
+            if legacy and self.path.endswith("/boundaries"):
+                self.send_response(404)
+                self.send_header("Content-Length", "0")
+                self.end_headers()
+                return
             data = json.dumps({"boundaries": []}).encode()
             self.send_response(200)
             self.send_header("Content-Type", "application/json")
@@ -191,6 +205,10 @@ def test_stdio_subprocess_handshake_and_http_roundtrip():
         server.shutdown()
         thread.join(timeout=5)
         server.server_close()
+    expected_reads = ["/v1/brains/stdio-brain/relationship/boundaries"]
+    if legacy:
+        expected_reads.append("/v1/brains/stdio-brain/relationship")
+    assert reads == expected_reads
     assert calls[0]["target"] == {"brain_ref": "stdio-brain"}
 
 

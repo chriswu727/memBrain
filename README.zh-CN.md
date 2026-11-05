@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 当前版本 `edb6707` 在召回只需要最新话题边界时，省去完整关系历史的聚合计算；130 项针对性检查和两项启动器版本检查通过。全屏延迟仍未达到发布要求：**5/36 个窗口未达标**，包括八脑 p95 **869.38 ms**，关闭 3D 后也有超标；当前完整 CI 仍在运行。前一版本 `11eee62` 已通过五个平台的原生验证和完整 CI（7,362 项 Python 测试、50 项 TypeScript 测试、类型检查及打包）。性能、剩余安装与宿主覆盖、真实 R4/C5、图谱和复核门槛仍未全部通过，继续冻结发布。详见[当前证据和失败记录](evaluations/maturity-recall-boundaries-2026-11-05.md)、[安装引擎验证](evaluations/maturity-linux-integration-2026-11-05.md)及[宿主范围](docs/host-compatibility.md)。
+> **预发布阶段。** 运行时 `06f0dd3` 将召回计算移入有容量上限的本地工作进程。完整全屏延迟协议已通过 **36/36 个窗口**，八脑最慢窗口 p95 为 **359.68 ms**，低于 600 ms 门槛，4,080 次召回全部非空。本地通过 322 项针对性检查、两项启动器版本检查和 10 项修正后的 MCP 检查。前一轮完整 CI 有五项旧 MCP 模拟接口测试失败；修正后的完整 CI 与跨平台验证仍需完成。安装与宿主覆盖、预留场景 R4/C5 行为验收、工作记忆／熟悉度图谱和复核仍有缺口，继续冻结发布。详见[当前结果、内存代价及保留的失败](evaluations/maturity-recall-processes-2026-11-05.md)和[宿主范围](docs/host-compatibility.md)。
 
 <a id="claude-code-plugin"></a>
 

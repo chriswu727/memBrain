@@ -7,6 +7,8 @@
 
 The [revised acceptance contract](../architecture/v1-acceptance.md) still defines the core gates, and it matches what ships: host plugins, the MCP server, the proxy, bot adapters and the memory page. The bar below adds to it.
 
+**Latest runtime `06f0dd3` (2026-11-05):** bounded recall processes pass the complete 36/36-window fullscreen latency protocol, with worst serial/same-brain/eight-brain p95 124.04/378.45/359.68 ms. All 4,080 measured recalls are nonempty; current 183-node/66-edge projection matches the API. Local guards pass 322 tests, both launcher-pin checks and 10 corrected MCP checks. Prior full CI failed five obsolete MCP fixtures; corrected full CI and native-platform qualification remain pending. Installed/host, R4/C5, complete graph coverage and review gates remain open. [Current evidence and retained failures](../evaluations/maturity-recall-processes-2026-11-05.md). Older candidate paragraphs below describe their historical runtime only.
+
 ## Maturity bar for the first release
 
 Every item must be met, with evidence recorded in the repository, before a release is prepared. A failed or skipped item blocks the release; it is never only disclosed.
