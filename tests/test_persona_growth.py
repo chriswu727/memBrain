@@ -809,3 +809,98 @@ def test_api_routes_check_keys_owners_and_decisions_and_erase_all_removes_everyt
         left = conn.execute("SELECT count(*) AS value FROM memory_events WHERE brain_id=%s AND conversation_id=%s "
                             "AND NOT deleted", (ident, PROPOSALS_CONVERSATION)).fetchone()["value"]
     assert left == 0
+
+
+# Contradictory feedback ------------------------------------------------------------------------------------------
+# Kinds that edit the same card field in opposite directions. The user's latest direction decides: a suggestion
+# never rests on feedback the user has since contradicted, and two contradictory suggestions are never open at once.
+
+def _open(brain, **kwargs):
+    return [p for p in listing(brain, **kwargs)["proposals"] if p["status"] == "open"]
+
+
+def test_newer_opposite_feedback_withdraws_an_open_suggestion_and_never_leaves_two_open(brain):
+    service, principal, ident = brain
+    set_persona(service, principal, ident, {**CARD, "voice": {**CARD["voice"], "register": "neutral"}},
+                made_by="user")
+    for text in ("you're too formal", "be more casual please", "太正式了"):
+        said(brain, text)
+    assert [p["kind"] for p in _open(brain)] == ["less_formal"]
+    # The user changes direction: one complaint the other way already contradicts the open suggestion.
+    turn = said(brain, "you're too casual")
+    listed = listing(brain)["proposals"]
+    assert _open(brain) == []
+    withdrawn = next(p for p in listed if p["kind"] == "less_formal")
+    assert withdrawn["status"] == "withdrawn" and withdrawn["withdrawn_because"] == "contradicted"
+    # Two more the new way make a suggestion from the new direction only, never two at once.
+    later_two = [said(brain, text) for text in ("you are way too casual now", "be more formal please")]
+    opened = _open(brain)
+    assert [p["kind"] for p in opened] == ["more_formal"]
+    assert [s["event_id"] for s in opened[0]["sources"]] == [turn, *later_two]
+
+
+def test_feedback_before_the_latest_opposite_complaint_does_not_count(brain):
+    service, principal, ident = brain
+    set_persona(service, principal, ident, {**CARD, "voice": {**CARD["voice"], "length": "medium"}}, made_by="user")
+    said(brain, "your replies are too long")
+    said(brain, "Keep it short, please")
+    said(brain, "your replies are too short")  # The other way: the two before it no longer count.
+    said(brain, "回复太长了")
+    assert _open(brain) == []
+    said(brain, "be shorter")
+    assert _open(brain) == []
+    third = said(brain, "you write too much")
+    opened = _open(brain)
+    assert [p["kind"] for p in opened] == ["shorter"] and opened[0]["source_count"] == 3
+    assert opened[0]["sources"][-1]["event_id"] == third
+
+
+def test_an_accepted_change_uses_up_older_feedback_asking_the_opposite_way(brain):
+    service, principal, ident = brain
+    set_persona(service, principal, ident, CARD, made_by="user")
+    # Two old complaints the other way, then three that make the suggestion, which is accepted.
+    said(brain, "you're too casual")
+    said(brain, "be more formal please")
+    for text in ("you're too formal", "be more casual please", "太正式了"):
+        said(brain, text)
+    proposal = _open(brain)[0]
+    assert proposal["kind"] == "less_formal"
+    accept_proposal(service, principal, ident, proposal["id"])
+    # The old complaints were about the card before the change: one new message cannot join them into a suggestion
+    # to undo it. It takes three after the change.
+    said(brain, "you are way too casual now")
+    assert _open(brain) == []
+    said(brain, "you're too casual")
+    assert _open(brain) == []
+    said(brain, "be more formal please")
+    assert [p["kind"] for p in _open(brain)] == ["more_formal"]
+
+
+def test_a_rejected_suggestion_does_not_hide_newer_opposite_feedback(brain):
+    service, principal, ident = brain
+    set_persona(service, principal, ident, {**CARD, "voice": {**CARD["voice"], "length": "medium"}}, made_by="user")
+    start = later(0)
+    for text in ("your replies are too long", "Keep it short, please", "回复太长了"):
+        said(brain, text)
+    reject_proposal(service, principal, ident, _open(brain, now=start)[0]["id"], now=start)
+    for text in ("your replies are too short", "be more detailed", "回答详细一点"):
+        said(brain, text)
+    assert [p["kind"] for p in _open(brain, now=start)] == ["longer"]
+
+
+def test_kinds_on_other_fields_are_not_contradictions(brain):
+    service, principal, ident = brain
+    set_persona(service, principal, ident, CARD, made_by="user")
+    for text in ("you're too formal", "be more casual please", "太正式了"):
+        said(brain, text)
+    for text in ("your replies are too short", "be more detailed", "回答详细一点"):
+        said(brain, text)
+    assert {p["kind"] for p in _open(brain)} == {"less_formal", "longer"}
+
+
+def test_opposite_kinds_edit_the_same_field_and_are_symmetric():
+    from membrain.persona_growth import OPPOSITES
+
+    for kind, opposite in OPPOSITES.items():
+        assert OPPOSITES[opposite] == kind and KINDS[kind]["field"] == KINDS[opposite]["field"] != "traits"
+    assert set(KINDS) - set(OPPOSITES) == {"more_playful"}

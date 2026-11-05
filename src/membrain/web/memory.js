@@ -735,7 +735,8 @@ const PROPOSAL_FIELDS = { traits: "Traits", "voice.register": "Register", "voice
   "voice.emoji": "Emoji use" };
 const PROPOSAL_STATUS = { open: "waiting for you", accepted: "accepted", rejected: "rejected", withdrawn: "withdrawn" };
 const PROPOSAL_WITHDRAWN = { sources_removed: "Withdrawn: fewer than three of its messages are still in memory.",
-  already_in_card: "Withdrawn: the card already has this.", does_not_fit: "Withdrawn: the card has no room for it." };
+  already_in_card: "Withdrawn: the card already has this.", does_not_fit: "Withdrawn: the card has no room for it.",
+  contradicted: "Withdrawn: you later asked for the opposite." };
 
 function proposalValue(values, other, mark) {
   // One side of the change: list entries the other side lacks are marked; an empty value reads "(empty)".
