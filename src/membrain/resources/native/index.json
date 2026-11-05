@@ -39,37 +39,45 @@
     },
     "linux-x86_64": {
       "overlay": "linux-x86_64.tar.gz",
-      "overlay_sha256": "f4139bae432c61671d18e62e873efcbb1f8eff155b0053034b77599e1873b781",
+      "overlay_sha256": "846b660427ef62f8b0a361cca4d740b5908ec0fb48897655b4fdc71347e091f2",
       "manifest": "linux-x86_64.json.gz",
-      "manifest_sha256": "4d0fbbee4449d3d68f2299ea5651969f5dba0b86eac9cb0a35e331af02eebc8f",
+      "manifest_sha256": "dc1d2b61ca167de068c60252a00168612a6951cdc4134799a08a28771ef2b7d9",
       "supplier": {
         "filename": "postgresql_binaries-16.15.0-py3-none-manylinux_2_17_x86_64.whl",
         "sha256": "93bad86ed48ba850a587ed9e3f066a271e7c7ffdaba524f9eeda4cac20efc951",
         "archive_sha256": "77dd669eda3985ea8be26256f6af28d3c8414152ada713797555bb7423b4486a"
       },
       "openssl": "OpenSSL 3.0.2 15 Mar 2022 (Library: OpenSSL 3.0.2 15 Mar 2022)",
-      "candidate_artifact_sha256": "9f46784b2f286de80acc76efa721b4edff63c7ec7d5c5063994924e90c8df380",
-      "candidate_run": 41966197762,
-      "candidate_job": 127043649408,
-      "overlay_files": 48,
-      "native_files": 1363
+      "candidate_artifact_sha256": "06719c32aa16c69164f01e2d92207bca136528e38e6ebafebd36d2c09a87e6ce",
+      "candidate_run": 42079033486,
+      "candidate_job": 127426874258,
+      "overlay_files": 53,
+      "native_files": 1368,
+      "previous": {
+        "manifest": "linux-x86_64-previous.json.gz",
+        "manifest_sha256": "4d0fbbee4449d3d68f2299ea5651969f5dba0b86eac9cb0a35e331af02eebc8f"
+      }
     },
     "linux-aarch64": {
       "overlay": "linux-aarch64.tar.gz",
-      "overlay_sha256": "7143d2630ba0ef163e797bcb74bfcf00514435468c44937a3bfc5b9dde443f73",
+      "overlay_sha256": "ae6b80064f3d25b616117535634415b1369333980ef76323a60709f26fbe7d3a",
       "manifest": "linux-aarch64.json.gz",
-      "manifest_sha256": "32204ae2d1a815907c26f1f4da3150be98feed34bc71cb74f02dcf6669d1edb2",
+      "manifest_sha256": "3d1e0eefa739842e6e781c5d08b9279b5085fe6c9806702bae38578c8702c01b",
       "supplier": {
         "filename": "postgresql_binaries-16.15.0-py3-none-manylinux_2_17_aarch64.whl",
         "sha256": "11d0ddeb1fdf9c5c8b059d658a3da0fd6fc0f420bff450d9204f3a4f3983007f",
         "archive_sha256": "f6d49ffbaea28cf8732785b18afb75bded905667d4ec8e2308a13a30fe0a24d1"
       },
       "openssl": "OpenSSL 3.0.2 15 Mar 2022 (Library: OpenSSL 3.0.2 15 Mar 2022)",
-      "candidate_artifact_sha256": "b3f86336176adfddcd7bb00144f9ac4a839a76102bf04fa3f93a93fdc5377991",
-      "candidate_run": 41966197762,
-      "candidate_job": 127043649409,
-      "overlay_files": 48,
-      "native_files": 1363
+      "candidate_artifact_sha256": "846651a0cc3ea215b028a9affc77cce2ec0f97f199782ce46e561d2a7e8d2c0e",
+      "candidate_run": 42079033486,
+      "candidate_job": 127426873709,
+      "overlay_files": 53,
+      "native_files": 1368,
+      "previous": {
+        "manifest": "linux-aarch64-previous.json.gz",
+        "manifest_sha256": "32204ae2d1a815907c26f1f4da3150be98feed34bc71cb74f02dcf6669d1edb2"
+      }
     },
     "windows-x86_64": {
       "overlay": "windows-x86_64.tar.gz",

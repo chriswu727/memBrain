@@ -4,7 +4,7 @@ import io
 import json
 import tarfile
 
-from membrain import native_bundle
+from membrain import native_bundle, native_dependencies
 
 
 def test_all_packaged_native_overlays_match_their_reviewed_manifests():
@@ -36,5 +36,10 @@ def test_all_packaged_native_overlays_match_their_reviewed_manifests():
         if key.startswith(("macos", "windows")):
             assert "share/licenses/openssl/LICENSE.txt" in names
             assert entry["openssl"].startswith("OpenSSL 3.5.9 ")
+        if key.startswith("linux"):
+            previous = native_bundle._manifest(entry["previous"])
+            assert records.keys() - previous.keys() == native_dependencies.XML_ADDITIONS
+            assert all(records[name] == row for name, row in previous.items())
+            assert native_dependencies.XML_ADDITIONS <= names
         with gzip.open(native_bundle.RESOURCES / entry["manifest"], "rt") as stream:
             assert json.load(stream)["vector"] == "0.8.6"

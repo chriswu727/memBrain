@@ -92,7 +92,10 @@ def check_target(profile):
     try:
         layout = recorded_layout(profile)
         if layout is not None:
-            native_bundle._versions(layout.binaries.parent)
+            if layout.account is not None:
+                native_bundle._versions(layout.binaries.parent, shared=True)
+            else:
+                native_bundle._versions(layout.binaries.parent)
         elif profile.native_engine is not None:
             raise _error()
         elif embedded_database._installation() is None:

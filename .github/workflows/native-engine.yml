@@ -12,6 +12,7 @@ on:
       - 'scripts/check_native_adoption.py'
       - 'scripts/package_native_resources.py'
       - 'src/membrain/native_bundle.py'
+      - 'src/membrain/native_dependencies.py'
       - 'src/membrain/native_engine_store.py'
       - 'src/membrain/embedded_database.py'
       - 'src/membrain/native_snapshot.py'
@@ -28,6 +29,7 @@ on:
       - 'src/membrain/resources/native/*.gz'
       - 'tests/test_native_bundle_build.py'
       - 'tests/test_native_bundle.py'
+      - 'tests/test_native_dependencies.py'
       - 'tests/test_native_engine_store.py'
       - 'tests/test_embedded_environment.py'
       - 'tests/test_native_snapshot.py'
@@ -44,6 +46,14 @@ on:
         description: Build patched Linux candidates on Ubuntu 22 and qualify the same bytes on Ubuntu 26
         type: boolean
         default: false
+      linux_current:
+        description: Qualify installed Linux packages on Ubuntu 26 instead of Ubuntu 22
+        type: boolean
+        default: false
+      linux_reuse_run_id:
+        description: Optional Linux compatibility artifact run when reusing five-platform native candidates
+        type: string
+        required: false
       reuse_run_id:
         description: Optional owned workflow run whose checksummed bundle should be verified without rebuilding
         type: string
@@ -84,7 +94,7 @@ jobs:
       fail-fast: false
       matrix:
         target: ${{ fromJSON(inputs.platform && inputs.platform != 'all' && format('["{0}"]', inputs.platform) || '["macos-arm64","macos-x86_64","linux-x86_64","linux-aarch64","windows-x86_64"]') }}
-    runs-on: ${{ fromJSON('{"macos-arm64":"macos-15","macos-x86_64":"macos-15-intel","linux-x86_64":"ubuntu-22.04","linux-aarch64":"ubuntu-22.04-arm","windows-x86_64":"windows-2022"}')[matrix.target] }}
+    runs-on: ${{ inputs.linux_current && startsWith(matrix.target, 'linux-') && (matrix.target == 'linux-x86_64' && 'ubuntu-26.04' || 'ubuntu-26.04-arm') || fromJSON('{"macos-arm64":"macos-15","macos-x86_64":"macos-15-intel","linux-x86_64":"ubuntu-22.04","linux-aarch64":"ubuntu-22.04-arm","windows-x86_64":"windows-2022"}')[matrix.target] }}
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
@@ -96,14 +106,17 @@ jobs:
       - if: matrix.target != 'linux-aarch64'
         run: python -m pip install pgserver==0.1.4
       - run: python -m pytest -q tests/test_native_bundle_build.py tests/test_windows_profile_access.py tests/test_native_bundle.py tests/test_native_engine_store.py tests/test_native_adoption.py tests/test_native_transition.py tests/test_native_snapshot.py tests/test_native_maintenance.py tests/test_desktop_upgrade.py tests/test_embedded_environment.py tests/test_native_resources.py tests/test_build_identity.py tests/test_local_profile.py::test_empty_lock_file_needs_no_write_before_exclusion tests/test_local_profile.py::test_cross_process_lock_times_out_and_can_be_reused tests/test_local_profile.py::test_nested_locks_and_helpers_are_reentrant
+      - name: Verify Linux dependency cache guards
+        if: runner.os == 'Linux'
+        run: python -m pytest -q tests/test_native_dependencies.py
       - name: Download an existing owned candidate for isolated verification
         if: inputs.reuse_run_id != ''
         uses: actions/download-artifact@v4
         with:
-          name: native-${{ matrix.target }}
+          name: ${{ startsWith(matrix.target, 'linux-') && inputs.linux_reuse_run_id != '' && format('compatibility-{0}', matrix.target) || format('native-{0}', matrix.target) }}
           path: ${{ runner.temp }}
           github-token: ${{ github.token }}
-          run-id: ${{ matrix.target == 'windows-x86_64' && inputs.windows_reuse_run_id || inputs.reuse_run_id }}
+          run-id: ${{ startsWith(matrix.target, 'linux-') && inputs.linux_reuse_run_id || matrix.target == 'windows-x86_64' && inputs.windows_reuse_run_id || inputs.reuse_run_id }}
       - name: Build portable vector against the pinned public PostgreSQL distribution
         if: runner.os != 'Windows' && inputs.reuse_run_id == ''
         run: python scripts/build_native_bundle.py --work-directory "${{ runner.temp }}/native-build" --output-directory "${{ runner.temp }}/native-artifacts"
@@ -134,6 +147,16 @@ jobs:
         if: runner.os == 'Linux'
         id: native_adoption_root
         run: sudo -n "$(command -v python)" scripts/check_native_adoption.py --directory "${{ runner.temp }}/native-adoption-root-${{ github.run_id }}-${{ github.run_attempt }}" --cache-directory "${{ runner.temp }}/native-adoption-root-cache-${{ github.run_id }}-${{ github.run_attempt }}" --require-root --restore-backup ${{ matrix.target != 'linux-aarch64' && '--legacy-upgrade' || '' }}
+      - name: Verify previous engine bindings, actual mapped dependency and HTTP recovery
+        if: runner.os == 'Linux'
+        run: python scripts/check_native_adoption.py --directory "${{ runner.temp }}/native-adoption-previous-${{ github.run_id }}-${{ github.run_attempt }}" --cache-directory "${{ runner.temp }}/native-adoption-previous-cache-${{ github.run_id }}-${{ github.run_attempt }}" --previous-engine --restore-backup ${{ matrix.target != 'linux-aarch64' && '--legacy-upgrade' || '' }}
+      - name: Verify previous engine bindings under the root service account
+        id: previous_root
+        if: runner.os == 'Linux'
+        run: sudo -n "$(command -v python)" scripts/check_native_adoption.py --directory "${{ runner.temp }}/native-adoption-previous-root-${{ github.run_id }}-${{ github.run_attempt }}" --cache-directory "${{ runner.temp }}/native-adoption-previous-root-cache-${{ github.run_id }}-${{ github.run_attempt }}" --previous-engine --require-root --restore-backup ${{ matrix.target != 'linux-aarch64' && '--legacy-upgrade' || '' }}
+      - name: Export only the root previous-engine summary
+        if: always() && runner.os == 'Linux' && steps.previous_root.outcome != 'skipped'
+        run: sudo -n cat "${{ runner.temp }}/native-adoption-previous-root-${{ github.run_id }}-${{ github.run_attempt }}/result.json" > "${{ runner.temp }}/native-adoption-previous-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json"
       - name: Export only the root default admission summary
         if: always() && runner.os == 'Linux' && steps.native_adoption_root.outcome != 'skipped'
         run: sudo -n cat "${{ runner.temp }}/native-adoption-root-${{ github.run_id }}-${{ github.run_attempt }}/result.json" > "${{ runner.temp }}/native-adoption-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json"
@@ -187,6 +210,8 @@ jobs:
             ${{ runner.temp }}/native-adoption-fresh-${{ github.run_id }}-${{ github.run_attempt }}/result.json
             ${{ runner.temp }}/native-adoption-legacy-${{ github.run_id }}-${{ github.run_attempt }}/result.json
             ${{ runner.temp }}/native-adoption-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json
+            ${{ runner.temp }}/native-adoption-previous-${{ github.run_id }}-${{ github.run_attempt }}/result.json
+            ${{ runner.temp }}/native-adoption-previous-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json
             ${{ runner.temp }}/native-transition-${{ github.run_id }}-${{ github.run_attempt }}/*-worker-result.json
             ${{ runner.temp }}/native-transition-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json
             ${{ runner.temp }}/native-maintenance-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json

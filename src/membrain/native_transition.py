@@ -127,13 +127,10 @@ def _identity(profile, layout, versions, identifier=None):
 
 
 def _target(layout):
+    from .native_dependencies import target_manifest
+
     try:
-        index = json.loads((native_bundle.RESOURCES / "index.json").read_text())
-        entry = index["platforms"][native_bundle.platform_key()]
-        records = native_bundle._manifest(entry)
-        if not native_bundle._validate_tree(layout.binaries.parent, records):
-            raise NativeTransitionError("target")
-        return entry["manifest_sha256"]
+        return target_manifest(layout.binaries.parent)
     except (OSError, ValueError, KeyError, TypeError, RuntimeError, native_bundle.NativeBundleError):
         raise NativeTransitionError("target") from None
 

@@ -170,7 +170,7 @@ def _run(layout: _Layout, program: str, *arguments: str, timeout: float = 120,
     if layout.account is not None:
         options.update(user=layout.account[0], group=layout.account[1], extra_groups=[],
                        cwd=str(layout.data.parent))
-    environment = native_environment(layout.binaries.parent)
+    environment = native_environment(layout.binaries.parent, shared=layout.account is not None)
     # pg_ctl leaves the postmaster attached to inherited pipes, so only short-lived tools are captured.
     output = subprocess.PIPE if capture else subprocess.DEVNULL
     return subprocess.run(command, stdin=subprocess.DEVNULL, stdout=output, stderr=subprocess.STDOUT if capture
@@ -331,7 +331,7 @@ def stop(profile) -> None:
 def client_command(profile, program: str, *arguments: str) -> tuple[list[str], dict[str, str]]:
     """Command and environment for pg_dump or pg_restore against the embedded cluster."""
     layout = _layout(profile)
-    environment = native_environment(layout.binaries.parent)
+    environment = native_environment(layout.binaries.parent, shared=layout.account is not None)
     environment.update(PGPASSWORD=profile.admin_password, PGCONNECT_TIMEOUT="5")
     command = [str(layout.binaries / (program + _EXECUTABLE)), "--host=127.0.0.1",
                f"--port={profile.database_port}", *arguments]

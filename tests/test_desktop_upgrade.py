@@ -99,20 +99,22 @@ def test_offline_restart_can_start_database_without_assuming_schema_compatibilit
 
 
 @pytest.mark.parametrize("recorded", [False, True])
+@pytest.mark.parametrize("service_account", [False, True])
 @pytest.mark.parametrize("code", ["embedded_database_dependencies_missing", "embedded_database_bundle_invalid",
                                    "embedded_database_space_low"])
-def test_native_target_failure_preserves_running_service(tmp_path, monkeypatch, recorded, code):
+def test_native_target_failure_preserves_running_service(tmp_path, monkeypatch, recorded, code, service_account):
     profile = ensure_profile(tmp_path / "profile", database_engine="embedded")
     before = (profile.directory / "profile.json").read_bytes()
     prefix = tmp_path / "native"
-    layout = SimpleNamespace(binaries=prefix / "bin")
+    layout = SimpleNamespace(binaries=prefix / "bin", account=(123, 456) if service_account else None)
     monkeypatch.setattr(desktop, "_probe", lambda candidate: running(profile, "old-build"))
     monkeypatch.setattr(desktop, "_check_database", lambda candidate: None)
     monkeypatch.setattr(desktop, "stop", forbid)
     monkeypatch.setattr(desktop, "start", forbid)
     monkeypatch.setattr(native_adoption, "recorded_layout", lambda candidate: layout if recorded else None)
 
-    def reject(*args):
+    def reject(*args, **kwargs):
+        assert kwargs == ({"shared": True} if recorded and service_account else {})
         raise native_bundle.NativeBundleError(code, "Target cannot run; existing service preserved.")
 
     monkeypatch.setattr(embedded_database, "_installation", forbid if recorded else reject)
@@ -126,19 +128,21 @@ def test_native_target_failure_preserves_running_service(tmp_path, monkeypatch, 
 
 
 @pytest.mark.parametrize("recorded", [False, True])
-def test_native_restart_checks_selected_engine_before_stopping(tmp_path, monkeypatch, recorded):
+@pytest.mark.parametrize("service_account", [False, True])
+def test_native_restart_checks_selected_engine_before_stopping(tmp_path, monkeypatch, recorded, service_account):
     profile = ensure_profile(tmp_path / "profile", database_engine="embedded")
     calls = []
     prefix = tmp_path / "native"
-    layout = SimpleNamespace(binaries=prefix / "bin")
+    layout = SimpleNamespace(binaries=prefix / "bin", account=(123, 456) if service_account else None)
     monkeypatch.setattr(desktop, "_probe", lambda candidate: running(profile, "old-build"))
     monkeypatch.setattr(desktop, "_check_database", lambda candidate: calls.append("schema"))
     monkeypatch.setattr(native_adoption, "recorded_layout", lambda candidate: layout if recorded else None)
     monkeypatch.setattr(embedded_database, "_installation",
                         forbid if recorded else lambda: calls.append("engine") or prefix)
 
-    def versions(candidate):
+    def versions(candidate, *, shared=False):
         assert candidate == prefix
+        assert shared is service_account
         calls.append("engine")
 
     monkeypatch.setattr(native_bundle, "_versions", versions if recorded else forbid)

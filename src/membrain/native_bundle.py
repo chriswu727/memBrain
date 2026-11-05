@@ -106,11 +106,16 @@ def _cache_directory():
     return root / "membrain" / "native"
 
 
-def environment(prefix):
+def environment(prefix, *, shared=False):
+    from .native_dependencies import xml_directory
+
     result = {key: value for key, value in os.environ.items()
               if not key.startswith(("PG", "MEMORY_", "MEMBRAIN_", "DYLD_", "LD_"))
               and key not in {"PYTHONPATH", "PYTHONHOME", "OPENSSL_CONF", "OPENSSL_MODULES"}}
     result["LC_ALL"] = "C"
+    dependency = xml_directory(prefix, shared=shared)
+    if dependency is not None:
+        result["LD_LIBRARY_PATH"] = str(dependency)
     if (prefix / "lib" / "ossl-modules").is_dir():
         result.update(OPENSSL_CONF=os.devnull, OPENSSL_MODULES=str(prefix / "lib" / "ossl-modules"))
     return result
@@ -170,9 +175,9 @@ def _tree_matches(prefix, records):
     return actual == records.keys()
 
 
-def _versions(prefix):
+def _versions(prefix, *, shared=False):
     suffix = ".exe" if os.name == "nt" else ""
-    env = environment(prefix)
+    env = environment(prefix, shared=shared)
     for name in TOOLS:
         result = subprocess.run([str(prefix / "bin" / (name + suffix)), "--version"],
                                 env=env, stdin=subprocess.DEVNULL, capture_output=True, timeout=10)

@@ -5,12 +5,19 @@ import argparse
 import hashlib
 import json
 import os
+import shutil
 import subprocess
 import sys
 from pathlib import Path
 from unittest.mock import patch
 
-from membrain import desktop, embedded_database, native_bundle
+from membrain import (
+    desktop,
+    embedded_database,
+    native_bundle,
+    native_dependencies,
+    native_transition,
+)
 from membrain.desktop_backup import backup
 from membrain.desktop_connection import open_client
 from membrain.desktop_restore import activate, restore
@@ -18,8 +25,10 @@ from membrain.local_profile import _private, ensure_profile, load_profile
 from membrain.recovery_profile import authority_for, check_start_allowed, read_document
 
 
-def worker(directory, cache):
+def worker(directory, cache, previous_prefix=None):
     native_bundle._cache_directory = lambda: cache
+    if previous_prefix is not None:
+        embedded_database._installation = lambda: previous_prefix
     embedded_database._start_layout = lambda *args, **kwargs: os._exit(87)
     desktop.start(directory / "profile")
     raise AssertionError("The intended interrupted source start was not reached")
@@ -62,7 +71,7 @@ def check_restart(profile):
             "verified_restart_changes_instance": True, "http_memory_after_restart": True}
 
 
-def check(directory, cache, *, legacy=False, restore_backup=False, require_root=False):
+def check(directory, cache, *, legacy=False, restore_backup=False, require_root=False, previous_engine=False):
     directory.mkdir(mode=0o700, parents=True, exist_ok=False)
     _private(directory, directory=True)
     os.environ["MEMBRAIN_SEMANTIC"] = "0"
@@ -71,6 +80,7 @@ def check(directory, cache, *, legacy=False, restore_backup=False, require_root=
               "restore_requested": restore_backup, "root": require_root, "phase": "created"}
     profile = None
     restored = None
+    previous_prefix = None
 
     def checkpoint(phase):
         report["phase"] = phase
@@ -81,6 +91,20 @@ def check(directory, cache, *, legacy=False, restore_backup=False, require_root=
         if require_root:
             assert os.name != "nt" and os.geteuid() == 0
         assert embedded_database.default_engine() == "embedded"
+        if previous_engine:
+            checkpoint("prepare_exact_predecessor_engine")
+            assert (native_bundle.platform_key() or "").startswith("linux-")
+            prefix = native_bundle.prepare()
+            entry = native_dependencies._entry()
+            previous_prefix = directory / "previous-engine"
+
+            def omit_xml(source, names):
+                return {name for name in names if (Path(source) / name).relative_to(prefix).as_posix()
+                        in native_dependencies.XML_ADDITIONS}
+
+            shutil.copytree(prefix, previous_prefix, ignore=omit_xml)
+            assert native_bundle._validate_tree(previous_prefix, native_bundle._manifest(entry["previous"]))
+            assert not (previous_prefix / native_dependencies.XML_LIBRARY).exists()
         profile = ensure_profile(directory / "profile", database_engine=embedded_database.default_engine())
         before = profile
         original_identity = None
@@ -112,8 +136,9 @@ def check(directory, cache, *, legacy=False, restore_backup=False, require_root=
             result = embedded_database._run(layout, "pg_ctl", "stop", "-D", str(layout.data), "-m", "fast", "-w", "-t", "60")
             assert result.returncode == 0
         checkpoint("interrupt_after_durable_handoff_and_fuse")
+        arguments = (["--previous-prefix", str(previous_prefix)] if previous_prefix else [])
         result = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--worker", "--directory", str(directory),
-                                 "--cache-directory", str(cache)], timeout=360, check=False)
+                                 "--cache-directory", str(cache), *arguments], timeout=360, check=False)
         assert result.returncode == 87
         profile = load_profile(profile.directory)
         assert profile.native_engine == "16.15"
@@ -131,6 +156,20 @@ def check(directory, cache, *, legacy=False, restore_backup=False, require_root=
             "installation_id", "brain_id", "tenant_id", "principal_id", "api_key", "admin_password", "app_password"))
         journal = read_document(profile.directory / "native-transition.json")
         assert journal["phase"] == "admitted"
+        if previous_engine:
+            assert journal["target"]["manifest"] == entry["previous"]["manifest_sha256"]
+            bound = native_transition.recorded_layout(profile)
+            assert not (bound.binaries.parent / native_dependencies.XML_LIBRARY).exists()
+            assert native_bundle._validate_tree(bound.binaries.parent, native_bundle._manifest(entry["previous"]))
+            pid = int((bound.data / "postmaster.pid").read_text().splitlines()[0])
+            mapped = [line.split()[-1] for line in Path(f"/proc/{pid}/maps").read_text().splitlines()
+                      if line.rstrip().endswith("/libxml2.so.2")]
+            assert mapped and len(set(mapped)) == 1
+            library = Path(mapped[0])
+            assert hashlib.sha256(library.read_bytes()).hexdigest() == native_bundle._manifest(entry)[native_dependencies.XML_LIBRARY]["sha256"]
+            assert set(path.name for path in library.parent.iterdir()) == {"libxml2.so.2"}
+            report.update(previous_manifest_bound=True, previous_engine_unchanged=True,
+                          actual_process_loads_verified_dependency=True)
         if original_identity is not None:
             assert journal["system_identifier"] == original_identity and fingerprint(profile) == original_rows
         with embedded_database._admin_connection(profile, "agent_memory") as connection:
@@ -199,9 +238,11 @@ if __name__ == "__main__":
     parser.add_argument("--restore-backup", action="store_true")
     parser.add_argument("--require-root", action="store_true")
     parser.add_argument("--worker", action="store_true")
+    parser.add_argument("--previous-engine", action="store_true")
+    parser.add_argument("--previous-prefix", type=Path)
     args = parser.parse_args()
     if args.worker:
-        worker(args.directory, args.cache_directory)
+        worker(args.directory, args.cache_directory, args.previous_prefix)
     else:
         check(args.directory, args.cache_directory, legacy=args.legacy_upgrade,
-              restore_backup=args.restore_backup, require_root=args.require_root)
+              restore_backup=args.restore_backup, require_root=args.require_root, previous_engine=args.previous_engine)

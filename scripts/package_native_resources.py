@@ -6,6 +6,7 @@ import gzip
 import hashlib
 import io
 import json
+import shutil
 import tarfile
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -24,12 +25,31 @@ def checksum(data):
     return hashlib.sha256(data).hexdigest()
 
 
-def package(artifacts, provenance, output):
+def package(artifacts, provenance, output, *, previous=None):
     records = json.loads(provenance.read_text(encoding="utf-8"))
-    if not records["completed"] or len(records["platforms"]) != 5:
-        raise ValueError("All five candidate platforms must have completed qualification")
+    expected = {"linux-x86_64", "linux-aarch64"} if previous else {
+        "linux-x86_64", "linux-aarch64", "macos-arm64", "macos-x86_64", "windows-x86_64"}
+    if (not records["completed"] or len(records["platforms"]) != len(expected)
+            or {entry["target"] for entry in records["platforms"]} != expected):
+        raise ValueError("Every selected candidate platform must have completed qualification")
     output.mkdir(parents=True, exist_ok=False)
     index = {"contract_version": 1, "postgres": "16.15", "vector": "0.8.6", "platforms": {}}
+    old_index = None
+    if previous:
+        old_index = json.loads((previous / "index.json").read_text(encoding="utf-8"))
+        if ({name: old_index[name] for name in ("contract_version", "postgres", "vector")}
+                != {name: index[name] for name in ("contract_version", "postgres", "vector")}
+                or set(old_index["platforms"]) != {"linux-x86_64", "linux-aarch64", "macos-arm64", "macos-x86_64", "windows-x86_64"}):
+            raise ValueError("Previous resources do not match the native contract")
+        for target, entry in old_index["platforms"].items():
+            if entry.get("previous") is not None:
+                raise ValueError("An additive predecessor is already recorded")
+            for field in ("manifest", "overlay"):
+                name = entry[field]
+                if PurePosixPath(name).name != name or checksum((previous / name).read_bytes()) != entry[field + "_sha256"]:
+                    raise ValueError("Previous resource checksum mismatch")
+                shutil.copyfile(previous / name, output / name)
+            index["platforms"][target] = entry.copy()
     for entry in records["platforms"]:
         target = entry["target"]
         archive = artifacts / f"native-{target}-lts.zip"
@@ -41,6 +61,8 @@ def package(artifacts, provenance, output):
             qualification = json.loads(saved.read("native-artifacts/qualification.json"))
             if not qualification["completed"] or not qualification["port_closed"]:
                 raise ValueError("Candidate qualification is incomplete")
+            if qualification["manifest_sha256"] != checksum(saved.read("native-artifacts/manifest.json")):
+                raise ValueError("Qualification does not describe this candidate manifest")
             if (manifest["postgres"], manifest["vector"]) != (index["postgres"], index["vector"]):
                 raise ValueError("Candidate versions do not match")
             selected = {row["path"]: row for row in manifest["files"] if overlay_path(row["path"])}
@@ -87,6 +109,18 @@ def package(artifacts, provenance, output):
                 "candidate_run": entry["workflow_run"], "candidate_job": entry["job"],
                 "overlay_files": len(files), "native_files": len(full),
             }
+            if previous:
+                old = old_index["platforms"][target]
+                old_bytes = (previous / old["manifest"]).read_bytes()
+                old_rows = {row["path"]: row for row in json.loads(gzip.decompress(old_bytes))["files"]}
+                additions = {"lib/libxml2.so.2", "share/licenses/libxml2/COPYING", "share/licenses/libxml2/Copyright",
+                             "share/licenses/libxml2/debian-copyright", "share/licenses/libxml2/source.json"}
+                if (full.keys() - old_rows.keys() != additions
+                        or any(full.get(name) != row for name, row in old_rows.items())):
+                    raise ValueError("XML compatibility must preserve every previous native file")
+                name = target + "-previous.json.gz"
+                (output / name).write_bytes(old_bytes)
+                index["platforms"][target]["previous"] = {"manifest": name, "manifest_sha256": checksum(old_bytes)}
     (output / "index.json").write_text(json.dumps(index, indent=2) + "\n", encoding="utf-8")
     return index
 
@@ -96,8 +130,9 @@ def main():
     parser.add_argument("--artifacts-directory", type=Path, required=True)
     parser.add_argument("--provenance", type=Path, required=True)
     parser.add_argument("--output-directory", type=Path, required=True)
+    parser.add_argument("--previous-resources", type=Path)
     args = parser.parse_args()
-    result = package(args.artifacts_directory, args.provenance, args.output_directory)
+    result = package(args.artifacts_directory, args.provenance, args.output_directory, previous=args.previous_resources)
     print(json.dumps({"platforms": len(result["platforms"]), "published": False,
                       "resource_bytes": sum(path.stat().st_size for path in args.output_directory.iterdir())}))
 
