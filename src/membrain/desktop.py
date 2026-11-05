@@ -660,8 +660,15 @@ def run(directory: Path | None = None) -> None:
                 supervisor.log("evaluation_clock_enabled_time_is_simulated")
             supervisor.log("service_started")
             supervisor.server.run()
-        except Exception:
-            supervisor.log("service_failed")
+            if not supervisor.server.started and not supervisor.stopped.is_set():
+                raise DesktopError("api_startup_failed", "Local API did not start.")
+        except (Exception, SystemExit) as error:
+            if isinstance(error, SystemExit):
+                if error.code in (None, 0):
+                    raise
+                code = "api_exit_failed" if getattr(supervisor.server, "started", False) else "api_startup_failed"
+                error = DesktopError(code, "Local API exited unsuccessfully.")
+            supervisor.log("service_failed", error)
             raise DesktopError("service_failed", "Local service failed; see the structured log.") from None
         finally:
             supervisor.stopped.set()
