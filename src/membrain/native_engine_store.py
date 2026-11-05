@@ -103,7 +103,11 @@ def _tree(root, prefix="", *, copied=False):
         row = {"path": name}
         if stat.S_ISLNK(metadata.st_mode):
             link = path.readlink()
-            if link.is_absolute() or not path.resolve(strict=True).is_relative_to(root) or not path.is_file():
+            try:
+                resolved = path.resolve(strict=True)
+            except (OSError, RuntimeError):
+                raise NativeEngineStoreError("invalid") from None
+            if link.is_absolute() or not resolved.is_relative_to(root) or not path.is_file():
                 raise NativeEngineStoreError("invalid")
             row.update(kind="link", target=link.as_posix())
         elif stat.S_ISDIR(metadata.st_mode):

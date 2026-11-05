@@ -61,7 +61,7 @@ def test_verified_reuse_does_not_rewrite_files_and_updated_source_has_separate_g
 
 
 @pytest.mark.parametrize("damage", ["bytes", "missing", "extra", "marker", "hardlink"] + (
-    ["symlink", "link_directory", "mode"] if os.name != "nt" else []))
+    ["symlink", "link_directory", "mode", "cycle"] if os.name != "nt" else []))
 def test_damaged_generations_are_preserved_and_repaired_without_moving_live_paths(engine, damage, monkeypatch):
     first = native_engine_store.preserve(engine.source, engine.store)
     vector = first.prefix / "lib/vector"
@@ -82,6 +82,8 @@ def test_damaged_generations_are_preserved_and_repaired_without_moving_live_path
         vector.unlink()
         if damage == "hardlink":
             os.link(engine.source / "lib/vector", vector)
+        elif damage == "cycle":
+            vector.symlink_to("vector")
         else:
             vector.symlink_to(engine.source / "lib/vector")
     with pytest.raises(native_engine_store.NativeEngineStoreError):
@@ -184,6 +186,13 @@ def test_store_cannot_mutate_installed_engine_trees(engine, destination):
 
 
 if os.name != "nt":
+    def test_cyclic_source_link_returns_a_redacted_typed_error(engine):
+        (engine.source / "lib/private-loop").symlink_to("private-loop")
+        with pytest.raises(native_engine_store.NativeEngineStoreError) as error:
+            native_engine_store.preserve(engine.source, engine.store)
+        assert error.value.code == "embedded_database_engine_invalid"
+        assert "private-loop" not in str(error.value)
+
     def test_internal_file_links_are_relocatable_but_external_or_directory_links_fail(engine):
         (engine.source / "lib/vector-alias").symlink_to("vector")
         saved = native_engine_store.preserve(engine.source, engine.store)
