@@ -237,7 +237,7 @@ def answer_next_dialog(page, accept: bool) -> list:
     return seen
 
 
-def pickable(page, ids=None) -> dict:
+def pickable(page, ids=None, *, required=True) -> dict | None:
     """A node, its projected centre computed in the page, for which a pick at that point resolves to the node."""
     page.evaluate("() => document.getElementById('observatory-canvas').scrollIntoView({ block: 'center' })")
     found = page.evaluate("""(ids) => {
@@ -249,12 +249,26 @@ def pickable(page, ids=None) -> dict:
         }
         return null;
     }""", ids)
-    assert found, "no node can be picked at its projected centre"
+    if required:
+        assert found, "no node can be picked at its projected centre"
     return found
 
 
 def click_node(page, node_id: str):
-    target = pickable(page, [node_id])
+    target = pickable(page, [node_id], required=False)
+    # A real 3D node can be behind another; rotate with pointer input until its surface is visible.
+    for step in range(12):
+        if target:
+            break
+        box = page.locator("#observatory-canvas").bounding_box()
+        x, y = box["x"] + box["width"] / 2, box["y"] + box["height"] / 2
+        page.mouse.move(x, y)
+        page.mouse.down()
+        page.mouse.move(x + box["width"] / 4, y + (box["height"] / 6 if step % 3 == 2 else 0), steps=8)
+        page.mouse.up()
+        settled(page)
+        target = pickable(page, [node_id], required=False)
+    assert target, "the node remains occluded after rotating the scene"
     page.mouse.move(target["x"], target["y"])
     page.mouse.down()
     page.mouse.up()

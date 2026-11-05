@@ -26,6 +26,7 @@ def _worker_ready():
 def _stop_failed_pool(pool):
     # Python 3.12 has no public terminate_workers; a stuck initializer must not keep failed startup alive.
     processes = tuple((pool._processes or {}).values())
+    manager = pool._executor_manager_thread
     pool.shutdown(wait=False, cancel_futures=True)
     for process in processes:
         if process.is_alive():
@@ -35,6 +36,9 @@ def _stop_failed_pool(pool):
         if process.is_alive():
             process.kill()
             process.join(timeout=1)
+    # shutdown(wait=False) drops this reference while the manager may still be reaping the same children.
+    if manager is not None:
+        manager.join()
 
 
 def _compute(args, options, deadline, clock):

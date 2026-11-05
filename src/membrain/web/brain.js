@@ -48,10 +48,29 @@ function svg(tag, attributes = {}) {
 
 function regionOf(id) { return REGIONS.find((region) => region.id === id) || REGIONS.find((region) => region.id === "other"); }
 
+function separateBrainNodes(positions) {
+  // Projection removes depth. Reserve distinct cells so every dot, including its stroke, remains clickable.
+  const slots = [];
+  for (let y = 16; y <= 504; y += 24) {
+    for (let x = 16; x <= 784; x += 24) slots.push({ x, y });
+  }
+  const result = {};
+  for (const id of Object.keys(positions).sort()) {
+    const origin = positions[id];
+    let nearest = 0, distance = Infinity;
+    for (let index = 0; index < slots.length; index++) {
+      const candidate = (slots[index].x - origin.x) ** 2 + (slots[index].y - origin.y) ** 2;
+      if (candidate < distance) { distance = candidate; nearest = index; }
+    }
+    result[id] = slots.splice(nearest, 1)[0];
+  }
+  return result;
+}
+
 // Deterministic placement: a sunflower spiral around the region's anchor, oldest at the centre.
 function layout(map) {
-  if (map.contract_version === "memory-structure-v1") return Object.fromEntries(
-    Object.entries(obsLayout(map)).map(([id, point]) => [id, { x: 400 + point[0] * 85, y: 250 - point[1] * 85 }]));
+  if (map.contract_version === "memory-structure-v1") return separateBrainNodes(Object.fromEntries(
+    Object.entries(obsLayout(map)).map(([id, point]) => [id, { x: 400 + point[0] * 85, y: 250 - point[1] * 85 }])));
   const positions = {};
   const groups = {};
   for (const node of map.nodes) (groups[node.region] ||= []).push(node);
@@ -64,7 +83,7 @@ function layout(map) {
       positions[node.id] = { x: anchor.x + distance * Math.cos(angle), y: anchor.y + distance * Math.sin(angle) * 0.8 };
     });
   }
-  return positions;
+  return separateBrainNodes(positions);
 }
 
 function recentIds(map, count = 5) {

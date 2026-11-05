@@ -1,3 +1,4 @@
+import threading
 from contextlib import contextmanager
 from types import SimpleNamespace
 
@@ -8,7 +9,7 @@ from test_recall_executor import STAMP, arguments, canonical
 from membrain import api, cognition
 from membrain.config import Settings
 from membrain.helpers import DomainError
-from membrain.recall_executor import RecallExecutor
+from membrain.recall_executor import RecallExecutor, _stop_failed_pool
 
 
 def test_start_prepares_every_worker_before_the_first_recall():
@@ -93,3 +94,94 @@ def test_api_startup_waits_for_recall_readiness_and_closes_failed_resources(monk
             assert events == ["service opened", "workers starting", "workers ready"]
             assert client.get("/health").status_code == 200
         assert events[-2:] == ["workers closed", "service closed"]
+
+
+def test_failed_pool_cleanup_waits_for_the_manager_to_finish_reaping():
+    released = threading.Event()
+    reaped = threading.Event()
+
+    def manage():
+        released.wait()
+        reaped.set()
+
+    joined = []
+
+    class Manager(threading.Thread):
+        def join(self, timeout=None):
+            joined.append(True)
+            return super().join(timeout)
+
+    manager = Manager(target=manage)
+    manager.start()
+
+    class Process:
+        def is_alive(self):
+            return not reaped.is_set()
+
+        def terminate(self):
+            pass
+
+        def kill(self):
+            pass
+
+        def join(self, timeout=None):
+            pass
+
+    class Pool:
+        _processes = {1: Process()}
+        _executor_manager_thread = manager
+
+        def shutdown(self, *, wait, cancel_futures):
+            assert cancel_futures
+            released.set()
+            if wait:
+                manager.join()
+            self._executor_manager_thread = None
+
+    try:
+        _stop_failed_pool(Pool())
+        assert joined
+        assert not manager.is_alive()
+        assert reaped.is_set()
+    finally:
+        released.set()
+        manager.join()
+
+
+def _blocked_initializer(event):
+    event.wait()
+
+
+@pytest.mark.parametrize("workers", [1, 4])
+def test_failed_start_reaps_blocked_initializers_and_their_manager(monkeypatch, workers):
+    import multiprocessing
+
+    executor = RecallExecutor(workers)
+    event = multiprocessing.get_context("spawn").Event()
+    initialization = executor._initialization
+    original = executor._executor
+    processes, managers = [], []
+
+    def capture():
+        pool = original()
+        processes.extend(pool._processes.values())
+        managers.append(pool._executor_manager_thread)
+        return pool
+
+    monkeypatch.setattr(executor, "_executor", capture)
+    monkeypatch.setattr(executor, "_initialization", lambda context: (_blocked_initializer, (event,)))
+    try:
+        with pytest.raises(DomainError, match="startup"):
+            executor.start(timeout=0.2)
+        assert len(processes) == workers
+        assert all(not process.is_alive() for process in processes)
+        assert all(not manager.is_alive() for manager in managers)
+        assert executor._pool is None
+        monkeypatch.setattr(executor, "_initialization", initialization)
+        executor.start()
+        assert executor(*arguments())["items"]
+    finally:
+        event.set()
+        executor.close()
+    assert all(not process.is_alive() for process in processes)
+    assert all(not manager.is_alive() for manager in managers)

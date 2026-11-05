@@ -238,8 +238,8 @@ class MemoryService:
 
     def respond(self, principal, request):
         """``handle``, plus whether the returned envelope is the very object this call validated as an
-        ActionResponse, unchanged since. Only a completed response is; cached responses and errors are not, so a
-        caller that must return a valid response validates those itself."""
+        ActionResponse, unchanged since. Inline cached responses and errors require caller validation; responses
+        returned by a request worker are validated again in this process before returning a true flag."""
         return self._respond(principal, request)
 
     def _respond(self, principal, request, *, embedding=None):
