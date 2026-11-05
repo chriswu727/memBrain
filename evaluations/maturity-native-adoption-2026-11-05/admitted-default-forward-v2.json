@@ -1,0 +1,11 @@
+{
+  "completed": true,
+  "model_calls": 0,
+  "scope": "ordinary default desktop start on previously admitted nondefault data path",
+  "old_runtime_rejects_profile": true,
+  "ordinary_api_ready": true,
+  "real_http_memory_after_cold_restart": true,
+  "existing_vector_rows": 1000,
+  "adopted_profile_preserves_other_fields": true,
+  "owned_ports_closed": true
+}
