@@ -96,8 +96,18 @@ ownership and actual original-engine rollback are qualified; a streamed member
 larger than two GiB is also tested. See the
 [snapshot evidence](../evaluations/maturity-native-snapshot-2026-11-04.md).
 
-This primitive is limited to the pre-readiness native upgrade transition. It is
-not a registry-aware user backup/restore command. Its caller must durably bind the
+The SQL component is implemented in `native_maintenance.py`: a cluster/operation/
+backup-bound private journal, advisory lock, all-database catalog repair, vector
+upgrade, reindex and verification. Closed databases temporarily allow only
+superusers by setting connection limit zero in the same ALTER that opens them;
+original flags and limits are restored first on resume, even before a missing
+backup is rejected. Actual hard-exit/retry and nonowner statistics checks pass on
+all five platforms, including both Linux root paths. See the
+[maintenance evidence](../evaluations/maturity-native-maintenance-2026-11-05.md).
+It does not stop/start engines or manage API admission.
+
+These primitives are limited to the pre-readiness native upgrade transition. They
+do not provide a registry-aware user backup/restore command. Their caller must durably bind the
 receipt and original cluster/registry identity, retain the lifecycle lock, prevent
 new user writes, journal staged recovery/promotion and refuse rollback after API
 readiness or registry changes. The default selector and that durable maintenance

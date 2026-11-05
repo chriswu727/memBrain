@@ -1,0 +1,16 @@
+{
+  "identity": [
+    160015,
+    "7704590540468629556",
+    "/Users/yichen/tmp/membrain-native-maintenance-20261105/local-check-v3/profile/postgres",
+    "on",
+    "127.0.0.1/32",
+    55433,
+    false,
+    "postgres"
+  ],
+  "error_type": "NativeMaintenanceError",
+  "error_code": "native_maintenance_binding",
+  "sqlstate": null,
+  "detail": "The native maintenance identity, backup or database inventory does not match. API readiness is blocked; existing data and recovery files were preserved."
+}

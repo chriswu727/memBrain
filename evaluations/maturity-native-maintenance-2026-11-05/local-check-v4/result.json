@@ -1,0 +1,17 @@
+{
+  "completed": false,
+  "model_calls": 0,
+  "target": "macos-arm64",
+  "scope": "resumable SQL maintenance component only; default selector and lifecycle orchestrator unchanged",
+  "legacy_upgrade": true,
+  "root_service_account": false,
+  "phase": "interrupt_closed_database_opening",
+  "statistics_visible_before": [
+    0,
+    1
+  ],
+  "worker_returncode": 73,
+  "error_type": "AssertionError",
+  "error_code": null,
+  "ports_closed": true
+}
