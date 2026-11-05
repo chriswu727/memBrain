@@ -72,12 +72,50 @@ def _directory(directory: Path | None) -> Path:
     return path
 
 
+def _windows_user_sid(security, kernel) -> str:
+    import ctypes
+    from ctypes import wintypes
+
+    kernel.GetCurrentProcess.restype = wintypes.HANDLE
+    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel.CloseHandle.restype = wintypes.BOOL
+    security.OpenProcessToken.argtypes = [wintypes.HANDLE, wintypes.DWORD, ctypes.POINTER(wintypes.HANDLE)]
+    security.OpenProcessToken.restype = wintypes.BOOL
+    security.GetTokenInformation.argtypes = [wintypes.HANDLE, wintypes.DWORD, wintypes.LPVOID,
+                                            wintypes.DWORD, ctypes.POINTER(wintypes.DWORD)]
+    security.GetTokenInformation.restype = wintypes.BOOL
+    security.ConvertSidToStringSidW.argtypes = [wintypes.LPVOID, ctypes.POINTER(wintypes.LPWSTR)]
+    security.ConvertSidToStringSidW.restype = wintypes.BOOL
+    kernel.LocalFree.argtypes = [wintypes.LPVOID]
+    kernel.LocalFree.restype = wintypes.LPVOID
+    token, length, text = wintypes.HANDLE(), wintypes.DWORD(), wintypes.LPWSTR()
+    if not security.OpenProcessToken(kernel.GetCurrentProcess(), 0x0008, ctypes.byref(token)):
+        raise LocalProfileError("Could not identify the current Windows user.")
+    try:
+        security.GetTokenInformation(token, 1, None, 0, ctypes.byref(length))
+        if not 0 < length.value <= 65536:
+            raise LocalProfileError("Could not identify the current Windows user.")
+        buffer = ctypes.create_string_buffer(length.value)
+        if not security.GetTokenInformation(token, 1, buffer, length.value, ctypes.byref(length)):
+            raise LocalProfileError("Could not identify the current Windows user.")
+        sid = ctypes.cast(buffer, ctypes.POINTER(wintypes.LPVOID)).contents.value
+        if not security.ConvertSidToStringSidW(sid, ctypes.byref(text)):
+            raise LocalProfileError("Could not identify the current Windows user.")
+        try:
+            return text.value
+        finally:
+            kernel.LocalFree(ctypes.cast(text, wintypes.LPVOID))
+    finally:
+        kernel.CloseHandle(token)
+
+
 def _restrict_windows_access(path: Path) -> None:
     import ctypes
     from ctypes import wintypes
 
     security = ctypes.WinDLL("advapi32", use_last_error=True)
     kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    sid = _windows_user_sid(security, kernel)
     convert = security.ConvertStringSecurityDescriptorToSecurityDescriptorW
     convert.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, ctypes.POINTER(wintypes.LPVOID),
                         ctypes.POINTER(wintypes.DWORD)]
@@ -88,10 +126,11 @@ def _restrict_windows_access(path: Path) -> None:
     kernel.LocalFree.argtypes = [wintypes.LPVOID]
     kernel.LocalFree.restype = wintypes.LPVOID
     descriptor = wintypes.LPVOID()
-    if not convert("D:P(A;OICI;FA;;;OW)", 1, ctypes.byref(descriptor), None):
+    # PostgreSQL's restricted token retains the user SID but drops the Administrators SID that can own elevated-created files.
+    if not convert(f"O:{sid}D:P(A;OICI;FA;;;{sid})", 1, ctypes.byref(descriptor), None):
         raise LocalProfileError("Could not restrict profile access to its Windows owner.")
     try:
-        if not apply(str(path), 0x80000004, descriptor):
+        if not apply(str(path), 0x80000005, descriptor):
             raise LocalProfileError("Could not restrict profile access to its Windows owner.")
     finally:
         kernel.LocalFree(descriptor)

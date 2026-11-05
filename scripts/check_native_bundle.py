@@ -17,6 +17,8 @@ import psycopg
 from build_native_bundle import POSTGRES, TOOLS, VECTOR, digest, tool
 from psycopg import sql
 
+from membrain.local_profile import _private
+
 
 def free_port():
     with socket.socket() as stream:
@@ -46,6 +48,7 @@ def check(artifacts, work, *, legacy):
     if manifest["postgres"] != POSTGRES or manifest["vector"] != VECTOR:
         raise ValueError("Unexpected engine or extension manifest version")
     work.mkdir(mode=0o700, parents=True, exist_ok=False)
+    _private(work, directory=True)
     with tarfile.open(artifacts / "engine.tar.gz") as archive:
         archive.extractall(work, filter="data")
     prefix = work / "pginstall"
@@ -65,6 +68,7 @@ def check(artifacts, work, *, legacy):
     descriptor = os.open(password_file, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600)
     with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
         stream.write(password + "\n")
+    _private(password_file)
     environment = {key: value for key, value in os.environ.items()
                    if not key.startswith(("PG", "MEMORY_", "MEMBRAIN_"))
                    and key not in {"PYTHONPATH", "PYTHONHOME"}}
