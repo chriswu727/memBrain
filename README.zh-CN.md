@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 运行时 `174bc50` 修复了启动失败后的工作进程清理和 2D 点击目标重叠，保留四个完整召回事务工作进程。[当前验证](evaluations/maturity-ci-closeout-2026-11-05.md)通过 140 项数据库／浏览器检查，以及 **36/36 个全屏性能窗口**：八脑 p95 为 **266.21–412.91 ms**，4,080 次测量召回全部非空，模型调用为零。安装后的 wheel 通过 44 项专项检查；[真实 Mac 启动器验收](evaluations/maturity-transaction-install-2026-11-05.md)通过 **49/49 项安装、升级和恢复检查**，两套安装环境均与全部 187 个运行时输入一致。这些结果不代表真实模型行为或其他平台表现。此前源码的 CI 仍在运行；新源码的完整 CI 和原生平台验收、剩余[宿主行为](docs/host-compatibility.md)、R4/C5 及最终复核仍使发布保持冻结。[历史失败与架构证据](evaluations/maturity-transaction-workers-2026-11-05.md)保留原有范围。
+> **预发布阶段。** 运行时 `174bc50` 修复了启动失败后的工作进程清理和 2D 点击目标重叠，保留四个完整召回事务工作进程。[当前验证](evaluations/maturity-ci-closeout-2026-11-05.md)通过 140 项数据库／浏览器检查，以及 **36/36 个全屏性能窗口**：八脑 p95 为 **266.21–412.91 ms**，4,080 次测量召回全部非空，模型调用为零。安装后的 wheel 通过 44 项专项检查；[真实 Mac 启动器验收](evaluations/maturity-transaction-install-2026-11-05.md)通过 **49/49 项安装、升级和恢复检查**，两套安装环境均与全部 187 个运行时输入一致。这些结果不代表真实模型行为或其他平台表现。此前源码的 CI 有两项失败，Intel 原生验收超时；[当前批次已处理两项失败和作业时限](evaluations/maturity-ci-followup-2026-11-05.md)。新源码的完整 CI 和原生平台验收、剩余[宿主行为](docs/host-compatibility.md)、R4/C5 及最终复核仍使发布保持冻结。[历史失败与架构证据](evaluations/maturity-transaction-workers-2026-11-05.md)保留原有范围。
 
 <a id="claude-code-plugin"></a>
 
