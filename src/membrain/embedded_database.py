@@ -6,7 +6,6 @@ row-level security match the Docker engine exactly.
 """
 from __future__ import annotations
 
-import hashlib
 import importlib.util
 import os
 import secrets
@@ -104,35 +103,12 @@ def _service_account(name: str = SERVICE_ACCOUNT) -> tuple[int, int]:
 
 
 def _shared_binaries(source: Path, shared_root: Path = SHARED_ROOT) -> Path:
-    """Copy binaries where an unprivileged account can execute them; root home directories are private."""
-    marker = str(source.resolve())
-    target = shared_root / ("postgres-" + hashlib.sha256(marker.encode()).hexdigest()[:16])
-    if (target / ".complete").is_file():
-        return target
-    shared_root.mkdir(mode=0o755, parents=True, exist_ok=True)
-    staging = shared_root / (".staging-" + secrets.token_hex(8))
+    from .native_engine_store import NativeEngineStoreError, preserve
+
     try:
-        # Keep the wheel's relative layout: binaries locate vendored libraries through
-        # an RPATH such as $ORIGIN/../../../pgserver.libs.
-        shutil.copytree(source, staging / "pgserver" / "pginstall", symlinks=True)
-        vendored = source.parent.parent / "pgserver.libs"
-        if vendored.is_dir():
-            shutil.copytree(vendored, staging / "pgserver.libs", symlinks=True)
-        for directory, _, names in os.walk(staging):
-            os.chmod(directory, 0o755)
-            for name in names:
-                path = Path(directory) / name
-                if not path.is_symlink():
-                    os.chmod(path, 0o755 if os.access(path, os.X_OK) else 0o644)
-        (staging / ".complete").write_text(marker + "\n", encoding="utf-8")
-        try:
-            os.replace(staging, target)
-        except OSError:
-            if not (target / ".complete").is_file():
-                raise
-    finally:
-        shutil.rmtree(staging, ignore_errors=True)
-    return target
+        return preserve(source, shared_root, shared=True).directory
+    except NativeEngineStoreError as error:
+        raise EmbeddedDatabaseError(error.code, str(error)) from None
 
 
 def _traversable(directory: Path) -> bool:

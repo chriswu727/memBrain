@@ -14,7 +14,7 @@ from pathlib import Path
 
 from psycopg import sql
 
-from membrain import embedded_database, native_bundle, native_snapshot
+from membrain import embedded_database, native_bundle, native_engine_store, native_snapshot
 from membrain.local_profile import _private, ensure_profile
 
 
@@ -41,7 +41,7 @@ def stop(layout):
             raise RuntimeError("Owned snapshot fixture did not stop")
 
 
-def check(directory, cache_directory, *, legacy, require_root, large_file_bytes=0):
+def check(directory, cache_directory, *, legacy, require_root, large_file_bytes=0, preserve_engine=False):
     directory.mkdir(mode=0o700, parents=True, exist_ok=False)
     _private(directory, directory=True)
     if require_root:
@@ -49,6 +49,15 @@ def check(directory, cache_directory, *, legacy, require_root, large_file_bytes=
     native_bundle._cache_directory = lambda: cache_directory
     prefix = native_bundle.prepare()
     first = legacy_installation() if legacy else prefix
+    preserved = None
+    if preserve_engine:
+        replaceable = native_engine_store.preserve(first, directory / "replaceable-engine")
+        preserved = native_engine_store.preserve(replaceable.prefix, directory / "preserved-engine")
+        assert preserved.prefix != replaceable.prefix
+        os.replace(replaceable.directory, directory / "offline-engine")
+        assert not replaceable.prefix.exists()
+        assert native_engine_store.verify(preserved.directory, preserved.commitment) == preserved
+        first = preserved.prefix
     suffix = ".exe" if os.name == "nt" else ""
     version = native_bundle.subprocess.check_output(
         [str(first / "bin" / ("postgres" + suffix)), "--version"], env=native_bundle.environment(first))
@@ -58,6 +67,11 @@ def check(directory, cache_directory, *, legacy, require_root, large_file_bytes=
     report = {"completed": False, "model_calls": 0, "target": native_bundle.platform_key(),
               "scope": "offline snapshot component only; no automatic upgrader or default selector adoption",
               "legacy_upgrade": legacy, "root_service_account": require_root, "timings_ms": {}, "phase": "created"}
+    report["preserved_original_engine"] = preserve_engine
+    if preserved:
+        report.update(original_engine_commitment=preserved.commitment,
+                      original_engine_files=preserved.files, original_engine_bytes=preserved.bytes,
+                      replaceable_source_unavailable=True)
     assert type(large_file_bytes) is int and large_file_bytes >= 0
     report["large_file_bytes"] = large_file_bytes
     original = embedded_database._installation
@@ -202,7 +216,8 @@ if __name__ == "__main__":
     parser.add_argument("--legacy-upgrade", action="store_true")
     parser.add_argument("--require-root", action="store_true")
     parser.add_argument("--large-file-bytes", type=int, default=0)
+    parser.add_argument("--preserve-engine", action="store_true")
     arguments = parser.parse_args()
     check(arguments.directory.resolve(), arguments.cache_directory.resolve(),
           legacy=arguments.legacy_upgrade, require_root=arguments.require_root,
-          large_file_bytes=arguments.large_file_bytes)
+          large_file_bytes=arguments.large_file_bytes, preserve_engine=arguments.preserve_engine)
