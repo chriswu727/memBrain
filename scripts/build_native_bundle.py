@@ -195,6 +195,7 @@ def update_xml(prefix, work):
     options = ["--enable-shared", "--disable-static", "--without-python", "--without-icu",
                "--with-iconv", "--with-zlib", "--with-lzma", f"--prefix={installed}", "--libdir=" + str(installed / "lib")]
     environment = {"CFLAGS": "-O2 -fPIC", "CPPFLAGS": "", "LDFLAGS": ""}
+    run(["autoreconf", "-fi"], cwd=source, environment=environment)
     run([source / "configure", *options], cwd=source, environment=environment)
     run(["make", "-j2"], cwd=source, environment=environment)
     run(["make", "check"], cwd=source, environment=environment)
