@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 import psycopg
 from psycopg.types.json import Jsonb
 
-from . import cognition
+from . import cognition, recall_deadline
 from .contracts import CONTRACT_VERSION, validate
 from .helpers import DomainError, deep_copy, digest, now, uid
 
@@ -89,6 +89,7 @@ class MemoryService:
         self.embedding_provider = embedding_provider
         self.access_time_provider = access_time_provider
         self.recall_runner = recall_runner
+        self.request_runner = None
 
     @property
     def embedding_provider(self):
@@ -239,6 +240,9 @@ class MemoryService:
         """``handle``, plus whether the returned envelope is the very object this call validated as an
         ActionResponse, unchanged since. Only a completed response is; cached responses and errors are not, so a
         caller that must return a valid response validates those itself."""
+        return self._respond(principal, request)
+
+    def _respond(self, principal, request, *, embedding=None):
         action = request.get("action", "observe")
         envelope = {
             "message_type": "response", "contract_version": CONTRACT_VERSION,
@@ -250,9 +254,17 @@ class MemoryService:
                 raise DomainError("unsupported_capability", "Collection sharing is not configured.")
             from .vector_jobs import query_embedding
 
-            vector, vector_snapshot, embedding_calls = query_embedding(self, principal, request)
+            vector, vector_snapshot, embedding_calls = (
+                query_embedding(self, principal, request) if embedding is None else embedding)
+            if self.request_runner is not None and action in {"recall", "prepare"}:
+                provider = self.embedding_provider
+                response, _ = self.request_runner(principal, request, (vector, vector_snapshot, embedding_calls),
+                                                  provider.space if provider is not None else None,
+                                                  access_at=self.access_time_provider() if self.access_time_provider else None)
+                validate("ActionResponse", response)
+                return response, True
             with self.database.transaction(principal) as conn, (reading() if action in READ_ACTIONS else _same()):
-                deadline = min(request["payload"].get("budget", {}).get("max_wall_time_ms", 10000), 30000)
+                deadline = recall_deadline.remaining(min(request["payload"].get("budget", {}).get("max_wall_time_ms", 10000), 30000))
                 conn.execute("SELECT set_config('statement_timeout',%s,true), set_config('lock_timeout',%s,true)",
                              (str(deadline), str(deadline)))
                 brain = self._brain(conn, principal, request["target"]["brain_ref"])
@@ -288,8 +300,11 @@ class MemoryService:
                 if embedding_calls:
                     result["usage"]["embedding_calls"] += embedding_calls
                     result["usage"]["actual_cost_microunits"] = None
+                if action in {"recall", "prepare"}:
+                    result["usage"]["elapsed_ms"] = recall_deadline.elapsed(result["usage"]["elapsed_ms"])
                 envelope.update(outcome="completed", server_scope=self._scope(principal, brain, request["target"]), result=result)
                 validate("ActionResponse", envelope)
+                recall_deadline.remaining(deadline)
                 if action == "recall":
                     # Validated just now as RecallTraces inside the response's RecallResult, and unchanged since.
                     self._save_traces(conn, principal, brain, result.get("recall_traces", []), validated=True)
@@ -304,6 +319,7 @@ class MemoryService:
                         "AND id=%s AND kind='query_embedding'",
                         (*params, "query:" + digest([key, action])),
                     )
+                recall_deadline.remaining(deadline)
             return envelope, True
         except DomainError as error:
             envelope.pop("result", None)
@@ -775,7 +791,8 @@ class MemoryService:
         # of the ActionResponse that handle validates, _prepare's as cognition.prepare's RecallResult input. Until
         # then it is only read here, and the traces it carries are validated one by one before they are saved.
         runner = self.recall_runner or cognition.recall
-        result = runner(self._scope(principal, brain, target), query, memories, events, state,
+        timed_query = {**query, "budget": {**query["budget"], "max_wall_time_ms": recall_deadline.remaining(query["budget"]["max_wall_time_ms"])}}
+        result = runner(self._scope(principal, brain, target), timed_query, memories, events, state,
                         access_at=access_at, validate_result=False)
         if recall_plan is None and result["items"]:
             from .pattern_store import load_patterns

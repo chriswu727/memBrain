@@ -18,7 +18,7 @@ class Settings:
     api_keys_file: Path | None = None
     api_keys: dict[str, Principal] = field(default_factory=dict, repr=False)
     max_request_bytes: int = 2_000_000
-    recall_processes: int = field(default_factory=lambda: _environment_integer("MEMBRAIN_RECALL_PROCESSES", 2))
+    recall_processes: int = field(default_factory=lambda: _environment_integer("MEMBRAIN_RECALL_PROCESSES", 4))
     allowed_hosts: tuple[str, ...] = ("localhost", "127.0.0.1", "testserver")
     cognition_base_url: str | None = None
     cognition_api_key: str | None = field(default=None, repr=False)

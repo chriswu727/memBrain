@@ -70,15 +70,18 @@ class RecallExecutor:
         self._ready = ()
         self._closed = False
 
+    def _initialization(self, context):
+        return _initialize_worker, (context.Barrier(self.workers, timeout=20),)
+
     def _executor(self):
         with self._lock:
             if self._closed:
                 raise DomainError("dependency_unavailable", "Recall computation is stopping.", retryable=True)
             if self._pool is None:
                 context = multiprocessing.get_context("spawn")
+                initializer, arguments = self._initialization(context)
                 pool = ProcessPoolExecutor(max_workers=self.workers, mp_context=context,
-                                           initializer=_initialize_worker,
-                                           initargs=(context.Barrier(self.workers, timeout=20),))
+                                           initializer=initializer, initargs=arguments)
                 try:
                     ready = tuple(pool.submit(_worker_ready) for _ in range(self.workers))
                 except BaseException:
@@ -105,21 +108,24 @@ class RecallExecutor:
     def __call__(self, scope, request, memories, events, state, **options):
         started = time.monotonic()
         deadline = started + request["budget"]["max_wall_time_ms"] / 1000
+        clock = (helpers.now(), time.monotonic()) if helpers._scenario_clock is not None else None
+        value = self._run(_compute, ((scope, request, memories, events, state), options, deadline, clock), deadline)
+        if "error" in value:
+            raise DomainError(**value["error"])
+        result = value["result"]
+        result["usage"]["elapsed_ms"] = int((time.monotonic() - started) * 1000)
+        return result
+
+    def _run(self, function, arguments, deadline):
         if not self._slots.acquire(blocking=False):
             raise DomainError("dependency_unavailable", "Recall computation is busy. Retry it.", retryable=True)
         future, pool = None, None
         try:
-            clock = (helpers.now(), time.monotonic()) if helpers._scenario_clock is not None else None
             pool = self._executor()
-            future = pool.submit(_compute, (scope, request, memories, events, state), options, deadline, clock)
+            future = pool.submit(function, *arguments)
             # A timed-out task may still be running; its slot remains occupied until its computation ends.
             future.add_done_callback(lambda _: self._slots.release())
-            value = future.result(timeout=max(0, deadline - time.monotonic()))
-            if "error" in value:
-                raise DomainError(**value["error"])
-            result = value["result"]
-            result["usage"]["elapsed_ms"] = int((time.monotonic() - started) * 1000)
-            return result
+            return future.result(timeout=max(0, deadline - time.monotonic()))
         except TimeoutError:
             if future is not None:
                 future.cancel()

@@ -52,7 +52,7 @@ def test_failed_start_reaps_workers_and_allows_a_new_pool(monkeypatch):
 
 @pytest.mark.parametrize("fail", [False, True])
 def test_api_startup_waits_for_recall_readiness_and_closes_failed_resources(monkeypatch, fail):
-    from membrain import recall_executor
+    from membrain import recall_service_executor
 
     events = []
 
@@ -65,8 +65,11 @@ def test_api_startup_waits_for_recall_readiness_and_closes_failed_resources(monk
             events.append("service closed")
 
     class Executor:
-        def __init__(self, workers):
-            assert workers == 2
+        def __init__(self, workers, settings):
+            assert workers == settings.recall_processes == 4
+
+        def respond(self, *args):
+            raise AssertionError("No request was submitted by this startup check")
 
         def start(self):
             events.append("workers starting")
@@ -78,7 +81,7 @@ def test_api_startup_waits_for_recall_readiness_and_closes_failed_resources(monk
             events.append("workers closed")
 
     monkeypatch.setattr(api, "configured_service", factory)
-    monkeypatch.setattr(recall_executor, "RecallExecutor", Executor)
+    monkeypatch.setattr(recall_service_executor, "RecallServiceExecutor", Executor)
     app = api.create_app(Settings(database_url="unused"))
     if fail:
         with pytest.raises(DomainError, match="startup"):

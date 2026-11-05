@@ -294,7 +294,9 @@ def _unmodified_service(service) -> bool:
     in a subclass or on the instance, is what the route must call, and its response is validated here."""
     kind, own = type(service), getattr(service, "__dict__", {})
     return (isinstance(service, MemoryService) and getattr(kind, "handle", None) is MemoryService.handle
-            and getattr(kind, "respond", None) is MemoryService.respond and "handle" not in own and "respond" not in own)
+            and getattr(kind, "respond", None) is MemoryService.respond
+            and getattr(kind, "_respond", None) is MemoryService._respond
+            and not {"handle", "respond", "_respond"}.intersection(own))
 
 
 def create_app(settings: Settings | None = None, service=None, turns=None, jobs=None) -> FastAPI:
@@ -304,9 +306,10 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     if service is None:
         service = resources.enter_context(configured_service(settings))
         if settings.recall_processes:
-            from .recall_executor import RecallExecutor
+            from .recall_service_executor import RecallServiceExecutor
 
-            recall_runner = service.recall_runner = RecallExecutor(settings.recall_processes)
+            recall_runner = service.recall_runner = RecallServiceExecutor(settings.recall_processes, settings)
+            service.request_runner = recall_runner.respond
             resources.callback(recall_runner.close)
 
     @asynccontextmanager
