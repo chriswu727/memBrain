@@ -1,0 +1,98 @@
+{
+  "completed": true,
+  "scope": "five per-platform candidate results from two runs, not one all-green matrix or default-runtime acceptance",
+  "platforms": [
+    {
+      "target": "macos-arm64",
+      "workflow_run": 41966197762,
+      "job": 127043649433,
+      "artifact_sha256": "ddd1718406bd4bd7a9ead19afc01a63fa29687264df81be6db90eb7ab89f558c",
+      "artifact_bytes": 13029025,
+      "files_verified": 1479,
+      "legacy_upgrade": true,
+      "fixture_rows": 1000,
+      "ports_closed": true,
+      "encrypted_connection": {
+        "ssl": true,
+        "version": "TLSv1.3",
+        "cipher": "TLS_AES_256_GCM_SHA384"
+      },
+      "openssl_source": "https://github.com/openssl/openssl/releases/download/openssl-3.5.9/openssl-3.5.9.tar.gz",
+      "openssl_version": "OpenSSL 3.5.9 29 Sep 2026 (Library: OpenSSL 3.5.9 29 Sep 2026)"
+    },
+    {
+      "target": "macos-x86_64",
+      "workflow_run": 41966197762,
+      "job": 127043649507,
+      "artifact_sha256": "453823a922af3ec789d6a78588d5d421468b0647247cf732453e280f8e1655f5",
+      "artifact_bytes": 13415446,
+      "files_verified": 1479,
+      "legacy_upgrade": true,
+      "fixture_rows": 1000,
+      "ports_closed": true,
+      "encrypted_connection": {
+        "ssl": true,
+        "version": "TLSv1.3",
+        "cipher": "TLS_AES_256_GCM_SHA384"
+      },
+      "openssl_source": "https://github.com/openssl/openssl/releases/download/openssl-3.5.9/openssl-3.5.9.tar.gz",
+      "openssl_version": "OpenSSL 3.5.9 29 Sep 2026 (Library: OpenSSL 3.5.9 29 Sep 2026)"
+    },
+    {
+      "target": "linux-x86_64",
+      "workflow_run": 41966197762,
+      "job": 127043649408,
+      "artifact_sha256": "9f46784b2f286de80acc76efa721b4edff63c7ec7d5c5063994924e90c8df380",
+      "artifact_bytes": 11145129,
+      "files_verified": 1361,
+      "legacy_upgrade": true,
+      "fixture_rows": 1000,
+      "ports_closed": true,
+      "encrypted_connection": {
+        "ssl": true,
+        "version": "TLSv1.3",
+        "cipher": "TLS_AES_256_GCM_SHA384"
+      },
+      "openssl_source": "operating system",
+      "openssl_version": "OpenSSL 3.0.2 15 Mar 2022 (Library: OpenSSL 3.0.2 15 Mar 2022)"
+    },
+    {
+      "target": "linux-aarch64",
+      "workflow_run": 41966197762,
+      "job": 127043649409,
+      "artifact_sha256": "b3f86336176adfddcd7bb00144f9ac4a839a76102bf04fa3f93a93fdc5377991",
+      "artifact_bytes": 10916476,
+      "files_verified": 1361,
+      "legacy_upgrade": false,
+      "fixture_rows": 1000,
+      "ports_closed": true,
+      "encrypted_connection": {
+        "ssl": true,
+        "version": "TLSv1.3",
+        "cipher": "TLS_AES_256_GCM_SHA384"
+      },
+      "openssl_source": "operating system",
+      "openssl_version": "OpenSSL 3.0.2 15 Mar 2022 (Library: OpenSSL 3.0.2 15 Mar 2022)"
+    },
+    {
+      "target": "windows-x86_64",
+      "workflow_run": 41969028210,
+      "job": 127052671478,
+      "artifact_sha256": "251fdc3e51fb0bf039d45f0c6c0f43415f0767efd6d4c7b4c0918365ba040d73",
+      "artifact_bytes": 47402142,
+      "files_verified": 3006,
+      "legacy_upgrade": true,
+      "fixture_rows": 1000,
+      "ports_closed": true,
+      "encrypted_connection": {
+        "ssl": true,
+        "version": "TLSv1.3",
+        "cipher": "TLS_AES_256_GCM_SHA384"
+      },
+      "openssl_source": "https://github.com/openssl/openssl/releases/download/openssl-3.5.9/openssl-3.5.9.tar.gz",
+      "openssl_version": "OpenSSL 3.5.9 29 Sep 2026 (Library: OpenSSL 3.5.9 29 Sep 2026)"
+    }
+  ],
+  "default_runtime_changed": false,
+  "note": "Windows reuses the engine built in run41966608340; only qualification/profile ACL source changed afterward."
+}

@@ -1,0 +1,18 @@
+{
+  "run_id": 41965410671,
+  "job_id": 127041344521,
+  "source": "5c730123c5106fe404a6ceb176e2b0289eab1e78",
+  "runtime_pin": "9f7536110a95dfd02b382382dc97d0991121632f",
+  "conclusion": "success",
+  "python_passed": 7095,
+  "python_skipped": 0,
+  "python_warnings": 3,
+  "python_seconds": 1154.42,
+  "typescript_passed": 50,
+  "typescript_failed": 0,
+  "typescript_skipped": 0,
+  "full_log_bytes": 1528653,
+  "full_log_sha256": "07f906e8ea159529def6142d35dbf9eafd0f69d80d6b1c69766ea547828173bd",
+  "gzip_bytes": 196000,
+  "gzip_sha256": "759bd4a0e316ae7fa44ae6d7d2fcd1c72a99563fa38542813665e60544b428f0"
+}

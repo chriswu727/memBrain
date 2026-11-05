@@ -1,0 +1,1155 @@
+{
+  "completed": true,
+  "endpoint": "https://api.osv.dev/v1/querybatch",
+  "time_utc": "2026-11-05T04:32:46.068726+00:00",
+  "scope": "public locked package versions including development and optional dependencies; does not cover vendored native libraries or prove absence of unknown vulnerabilities",
+  "lockfiles": {
+    "uv.lock": "36f53d745ecd77ffb8e9742877ef29dabea996ccddd515b4ad06eec3e9a5aa0b",
+    "sdk/typescript/package-lock.json": "1293149545a02dda0127d50dd9ee68c145c980199e62f6c4ed74963b8abfd83b"
+  },
+  "queries": [
+    {
+      "package": {
+        "name": "annotated-doc",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.0.5"
+    },
+    {
+      "package": {
+        "name": "annotated-types",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.8.0"
+    },
+    {
+      "package": {
+        "name": "anyio",
+        "ecosystem": "PyPI"
+      },
+      "version": "4.15.1"
+    },
+    {
+      "package": {
+        "name": "arrow",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.4.0"
+    },
+    {
+      "package": {
+        "name": "attrs",
+        "ecosystem": "PyPI"
+      },
+      "version": "26.1.0"
+    },
+    {
+      "package": {
+        "name": "build",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.6.1"
+    },
+    {
+      "package": {
+        "name": "certifi",
+        "ecosystem": "PyPI"
+      },
+      "version": "2026.10.19"
+    },
+    {
+      "package": {
+        "name": "cffi",
+        "ecosystem": "PyPI"
+      },
+      "version": "2.1.1"
+    },
+    {
+      "package": {
+        "name": "click",
+        "ecosystem": "PyPI"
+      },
+      "version": "8.5.0"
+    },
+    {
+      "package": {
+        "name": "colorama",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.4.6"
+    },
+    {
+      "package": {
+        "name": "cryptography",
+        "ecosystem": "PyPI"
+      },
+      "version": "50.0.2"
+    },
+    {
+      "package": {
+        "name": "fastapi",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.161.0"
+    },
+    {
+      "package": {
+        "name": "fasteners",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.20"
+    },
+    {
+      "package": {
+        "name": "filelock",
+        "ecosystem": "PyPI"
+      },
+      "version": "4.2.4"
+    },
+    {
+      "package": {
+        "name": "flatbuffers",
+        "ecosystem": "PyPI"
+      },
+      "version": "25.12.19"
+    },
+    {
+      "package": {
+        "name": "fqdn",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.6.0"
+    },
+    {
+      "package": {
+        "name": "fsspec",
+        "ecosystem": "PyPI"
+      },
+      "version": "2026.9.0"
+    },
+    {
+      "package": {
+        "name": "greenlet",
+        "ecosystem": "PyPI"
+      },
+      "version": "3.5.6"
+    },
+    {
+      "package": {
+        "name": "h11",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.16.0"
+    },
+    {
+      "package": {
+        "name": "hf-xet",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.7.0"
+    },
+    {
+      "package": {
+        "name": "httpcore",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.0.9"
+    },
+    {
+      "package": {
+        "name": "httpcore2",
+        "ecosystem": "PyPI"
+      },
+      "version": "2.16.0"
+    },
+    {
+      "package": {
+        "name": "httpx",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.28.1"
+    },
+    {
+      "package": {
+        "name": "httpx-sse",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.4.3"
+    },
+    {
+      "package": {
+        "name": "httpx2",
+        "ecosystem": "PyPI"
+      },
+      "version": "2.16.0"
+    },
+    {
+      "package": {
+        "name": "httpx2-jsfetch",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.0"
+    },
+    {
+      "package": {
+        "name": "huggingface-hub",
+        "ecosystem": "PyPI"
+      },
+      "version": "2.3.0"
+    },
+    {
+      "package": {
+        "name": "idna",
+        "ecosystem": "PyPI"
+      },
+      "version": "3.20"
+    },
+    {
+      "package": {
+        "name": "iniconfig",
+        "ecosystem": "PyPI"
+      },
+      "version": "2.3.1"
+    },
+    {
+      "package": {
+        "name": "isoduration",
+        "ecosystem": "PyPI"
+      },
+      "version": "20.11.0"
+    },
+    {
+      "package": {
+        "name": "jsonpointer",
+        "ecosystem": "PyPI"
+      },
+      "version": "3.4"
+    },
+    {
+      "package": {
+        "name": "jsonschema",
+        "ecosystem": "PyPI"
+      },
+      "version": "4.26.0"
+    },
+    {
+      "package": {
+        "name": "jsonschema-rs",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.60.3"
+    },
+    {
+      "package": {
+        "name": "jsonschema-specifications",
+        "ecosystem": "PyPI"
+      },
+      "version": "2025.9.1"
+    },
+    {
+      "package": {
+        "name": "mcp",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.30.0"
+    },
+    {
+      "package": {
+        "name": "numpy",
+        "ecosystem": "PyPI"
+      },
+      "version": "2.5.4"
+    },
+    {
+      "package": {
+        "name": "onnxruntime",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.31.1"
+    },
+    {
+      "package": {
+        "name": "opentelemetry-api",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.45.1"
+    },
+    {
+      "package": {
+        "name": "packaging",
+        "ecosystem": "PyPI"
+      },
+      "version": "26.3"
+    },
+    {
+      "package": {
+        "name": "pgserver",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.1.4"
+    },
+    {
+      "package": {
+        "name": "platformdirs",
+        "ecosystem": "PyPI"
+      },
+      "version": "4.13.6"
+    },
+    {
+      "package": {
+        "name": "playwright",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.63.0"
+    },
+    {
+      "package": {
+        "name": "pluggy",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.7.0"
+    },
+    {
+      "package": {
+        "name": "protobuf",
+        "ecosystem": "PyPI"
+      },
+      "version": "7.36.2"
+    },
+    {
+      "package": {
+        "name": "psutil",
+        "ecosystem": "PyPI"
+      },
+      "version": "7.2.2"
+    },
+    {
+      "package": {
+        "name": "psycopg",
+        "ecosystem": "PyPI"
+      },
+      "version": "3.3.6"
+    },
+    {
+      "package": {
+        "name": "psycopg-binary",
+        "ecosystem": "PyPI"
+      },
+      "version": "3.3.6"
+    },
+    {
+      "package": {
+        "name": "psycopg-pool",
+        "ecosystem": "PyPI"
+      },
+      "version": "3.3.3"
+    },
+    {
+      "package": {
+        "name": "pycparser",
+        "ecosystem": "PyPI"
+      },
+      "version": "3.12"
+    },
+    {
+      "package": {
+        "name": "pydantic",
+        "ecosystem": "PyPI"
+      },
+      "version": "2.14.1"
+    },
+    {
+      "package": {
+        "name": "pydantic-core",
+        "ecosystem": "PyPI"
+      },
+      "version": "2.50.1"
+    },
+    {
+      "package": {
+        "name": "pydantic-settings",
+        "ecosystem": "PyPI"
+      },
+      "version": "2.16.1"
+    },
+    {
+      "package": {
+        "name": "pyee",
+        "ecosystem": "PyPI"
+      },
+      "version": "13.0.1"
+    },
+    {
+      "package": {
+        "name": "pygments",
+        "ecosystem": "PyPI"
+      },
+      "version": "2.21.0"
+    },
+    {
+      "package": {
+        "name": "pyjwt",
+        "ecosystem": "PyPI"
+      },
+      "version": "2.15.1"
+    },
+    {
+      "package": {
+        "name": "pyproject-hooks",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.3.3"
+    },
+    {
+      "package": {
+        "name": "pytest",
+        "ecosystem": "PyPI"
+      },
+      "version": "9.1.1"
+    },
+    {
+      "package": {
+        "name": "pytest-asyncio",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.4.0"
+    },
+    {
+      "package": {
+        "name": "python-dateutil",
+        "ecosystem": "PyPI"
+      },
+      "version": "3.0.0"
+    },
+    {
+      "package": {
+        "name": "python-dotenv",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.2.4"
+    },
+    {
+      "package": {
+        "name": "python-multipart",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.0.32"
+    },
+    {
+      "package": {
+        "name": "pywin32",
+        "ecosystem": "PyPI"
+      },
+      "version": "312"
+    },
+    {
+      "package": {
+        "name": "pyyaml",
+        "ecosystem": "PyPI"
+      },
+      "version": "6.0.3"
+    },
+    {
+      "package": {
+        "name": "referencing",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.37.0"
+    },
+    {
+      "package": {
+        "name": "rfc3339-validator",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.1.4"
+    },
+    {
+      "package": {
+        "name": "rfc3987",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.3.8"
+    },
+    {
+      "package": {
+        "name": "rpds-py",
+        "ecosystem": "PyPI"
+      },
+      "version": "2026.9.1"
+    },
+    {
+      "package": {
+        "name": "ruff",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.17.2"
+    },
+    {
+      "package": {
+        "name": "six",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.17.0"
+    },
+    {
+      "package": {
+        "name": "sse-starlette",
+        "ecosystem": "PyPI"
+      },
+      "version": "3.5.0"
+    },
+    {
+      "package": {
+        "name": "starlette",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.9.0"
+    },
+    {
+      "package": {
+        "name": "tokenizers",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.23.3"
+    },
+    {
+      "package": {
+        "name": "tqdm",
+        "ecosystem": "PyPI"
+      },
+      "version": "4.70.1"
+    },
+    {
+      "package": {
+        "name": "truststore",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.10.5"
+    },
+    {
+      "package": {
+        "name": "typing-extensions",
+        "ecosystem": "PyPI"
+      },
+      "version": "4.16.0"
+    },
+    {
+      "package": {
+        "name": "typing-inspection",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.4.4"
+    },
+    {
+      "package": {
+        "name": "tzdata",
+        "ecosystem": "PyPI"
+      },
+      "version": "2026.5"
+    },
+    {
+      "package": {
+        "name": "uri-template",
+        "ecosystem": "PyPI"
+      },
+      "version": "1.3.0"
+    },
+    {
+      "package": {
+        "name": "uvicorn",
+        "ecosystem": "PyPI"
+      },
+      "version": "0.54.0"
+    },
+    {
+      "package": {
+        "name": "webcolors",
+        "ecosystem": "PyPI"
+      },
+      "version": "25.10.0"
+    },
+    {
+      "package": {
+        "name": "@types/node",
+        "ecosystem": "npm"
+      },
+      "version": "22.20.5"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-aix-ppc64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-darwin-arm64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-darwin-x64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-freebsd-arm64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-freebsd-x64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-linux-arm",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-linux-arm64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-linux-loong64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-linux-mips64el",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-linux-ppc64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-linux-riscv64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-linux-s390x",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-linux-x64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-netbsd-arm64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-netbsd-x64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-openbsd-arm64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-openbsd-x64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-sunos-x64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-win32-arm64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "@typescript/typescript-win32-x64",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "typescript",
+        "ecosystem": "npm"
+      },
+      "version": "7.0.2"
+    },
+    {
+      "package": {
+        "name": "undici-types",
+        "ecosystem": "npm"
+      },
+      "version": "6.21.0"
+    }
+  ],
+  "results": [
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    },
+    {
+      "vulns": []
+    }
+  ],
+  "pages": [
+    {
+      "results": [
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {},
+        {}
+      ]
+    }
+  ],
+  "packages_checked": 103,
+  "packages_with_advisories": 0
+}

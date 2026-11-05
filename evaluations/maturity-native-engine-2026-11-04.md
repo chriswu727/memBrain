@@ -1,6 +1,6 @@
 # Native engine update: isolated macOS qualification
 
-The distributed dependency is still pgserver 0.1.4 / PostgreSQL 16.2. **This work does not change the installed runtime, launcher pins or release status.** It prepares an independently buildable PostgreSQL 16.15 wheel and verifies old data and installed native tools on this Apple Silicon Mac. R3 remains open; the current runtime's R5 still fails one eight-brain window at 892.11 ms.
+The distributed dependency is still pgserver 0.1.4 / PostgreSQL 16.2. **This work does not change the installed runtime, launcher pins or release status.** It prepares an independently buildable PostgreSQL 16.15 wheel and verifies old data and installed native tools on this Apple Silicon Mac. At this earlier snapshot, R3 remained open and runtime `d4f0c03` failed one R5 window at 892.11 ms. Later installed runtime `9f75361` passes complete R5; the [subsequent native supplier candidate and Windows ACL repair](maturity-native-suppliers-2026-11-04.md) retain separate source and acceptance scopes.
 
 ## Build and provenance
 
