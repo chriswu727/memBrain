@@ -10,6 +10,7 @@ from test_memory_observatory_browser import _tab
 from test_memory_observatory_browser import browser as _browser
 from test_pattern_store import populated
 from test_pattern_store import store as _store
+from test_working_map import saved_state
 
 from membrain.api import create_app
 from membrain.client import MemoryClient
@@ -125,7 +126,7 @@ def test_read_does_not_change_learning_or_access_state(store):
                                         "tenant_id=%s AND owner_id=%s AND brain_id=%s ORDER BY to_jsonb(t)::text",
                                         store.service._params(store.principal, store.brain_id)).fetchall()
                     for table in ("memory_assertions", "memory_episodes", "memory_associations", "memory_pattern_views",
-                                  "memory_access_state", "memory_jobs", "memory_requests")}
+                                  "memory_access_state", "memory_jobs", "memory_requests", "memory_working_states")}
 
     before = snapshot()
     graph(store)
@@ -168,6 +169,7 @@ def test_invalid_limits_are_rejected(store, options):
 @pytest.mark.parametrize("language", ["en", "zh"])
 def test_database_graph_is_identical_in_3d_hologram_and_2d(store, browser, preview, language):
     sources, _, _, _, _ = populated(store)
+    saved_state(store, sources[0])
     payload = graph(store)
     preview.set_map(payload)
     context, tab = _tab(browser)
@@ -177,6 +179,10 @@ def test_database_graph_is_identical_in_3d_hologram_and_2d(store, browser, previ
         page.wait_for_function("() => window.observatory.snapshot().nodes.length > 0")
         expected = {node["id"] for node in payload["nodes"]}
         assert set(page.evaluate("window.observatory.snapshot().nodes")) == expected
+        working = next(node for node in payload["nodes"] if node["kind"] == "working_item")
+        page.evaluate("id => selectNode(id)", working["id"])
+        assert ("expired" if language == "en" else "已过期") in page.locator("#brain-detail").inner_text()
+        assert ("inferred" if language == "en" else "推断") in page.locator("#brain-detail").inner_text()
         positions = page.evaluate("map => window.observatory.layout(map)", payload)
         shuffled = {**payload, "nodes": list(reversed(payload["nodes"])), "edges": list(reversed(payload["edges"]))}
         assert page.evaluate("map => window.observatory.layout(map)", shuffled) == positions

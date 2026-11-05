@@ -371,3 +371,8 @@ body.showing { overflow: hidden; }
 .edge-association { stroke: var(--r-semantic); }
 .edge-swatch.edge-belief_relation { border-color: var(--r-semantic); }
 .edge-belief_relation { stroke: var(--r-semantic); }
+:root { --r-working: #d9ad55; }
+.brain-node.region-working { fill: var(--r-working); color: var(--r-working); }
+.legend-item.region-working .legend-dot, .observatory-item.region-working .legend-dot { background: var(--r-working); }
+.edge-swatch.edge-working_member, .edge-swatch.edge-working_evidence { border-color: var(--r-working); }
+.edge-working_member, .edge-working_evidence { stroke: var(--r-working); }

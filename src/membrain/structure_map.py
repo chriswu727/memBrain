@@ -6,6 +6,7 @@ from .companion_map import _Graph
 from .helpers import DomainError, now
 from .memory_map import _COLUMNS, _VISIBLE, memory_map
 from .notes import NOTES_CONVERSATION
+from .working_map import load_working, project_working, working_sources
 
 
 def memory_key(identifier, revision):
@@ -43,6 +44,7 @@ def structure_map(service, principal, brain_id, *, max_nodes=200, max_edges=400,
         conn.execute("SET LOCAL statement_timeout = '2s'")
         conn.execute("SET LOCAL lock_timeout = '500ms'")
         brain = service._brain(conn, principal, brain_id)
+        working = load_working(conn, params, graph)
         assertions = conn.execute(
             "SELECT id,revision,document,event_ids,is_current FROM memory_assertions "
             "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND is_current "
@@ -61,10 +63,10 @@ def structure_map(service, principal, brain_id, *, max_nodes=200, max_edges=400,
             "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND NOT invalidated AND NOT deleted "
             "AND document IS NOT NULL ORDER BY created_at DESC,id LIMIT %s", (*params, max_nodes // 8 + 1),
         ).fetchall()
-        base = memory_map(service, principal, brain_id, max_nodes=max(1, max_nodes // 2) if assertions or episodes or patterns else max_nodes,
+        base = memory_map(service, principal, brain_id, max_nodes=max(1, max_nodes // 2) if assertions or episodes or patterns or working else max_nodes,
                           max_edges=max_edges, include_sensitive=include_sensitive, trace=trace, _connection=conn)
         graph.nodes.update((node["id"], node) for node in base["nodes"])
-        graph.truncated = base["truncated"]
+        graph.truncated |= base["truncated"]
         cap = max(1, max_nodes // 3)
         graph.truncated |= len(assertions) > cap or len(episodes) > max_nodes // 8 or len(patterns) > max_nodes // 8
         assertions, episodes, patterns = assertions[:cap], episodes[:max_nodes // 8], patterns[:max_nodes // 8]
@@ -94,7 +96,7 @@ def structure_map(service, principal, brain_id, *, max_nodes=200, max_edges=400,
         source_ids = {identifier for row in known.values() for identifier in memory_sources(row["document"])}
         source_ids.update(identifier for row in [*episodes, *patterns] for identifier in row["event_ids"])
         # Root lists can be much larger than the visible sample. Resolve privacy before bounding source nodes.
-        protected = _protected_sources(conn, params, source_ids)
+        protected = _protected_sources(conn, params, source_ids | working_sources(working))
         for row in known.values():
             doc = row["document"]
             representation = doc.get("representation", "semantic_anchor")
@@ -155,6 +157,7 @@ def structure_map(service, principal, brain_id, *, max_nodes=200, max_edges=400,
                 graph.edge("pattern:" + row["id"], memory_key(ref["memory_id"], ref["revision"]),
                            "pattern_member", "source_memory_versions")
         _relations(conn, params, graph, known, max_edges)
+        project_working(service, conn, principal, brain, graph, working, protected, include_sensitive)
     graph.finish()
     nodes = list(graph.nodes.values())
     trace_result = {**base["trace"], "shown": sum(bool(node.get("traced")) for node in nodes)} if base.get("trace") else None
@@ -165,8 +168,9 @@ def structure_map(service, principal, brain_id, *, max_nodes=200, max_edges=400,
             "regions": [{"id": region, "count": sum(node["region"] == region for node in nodes)}
                         for region in dict.fromkeys(node["region"] for node in nodes)],
             "coverage": {"records": "bounded_current_and_referenced_versions", "relationships": "stored_only",
-                         "companion": "separate_graph", "working_state": "not_projected"},
+                         "companion": "separate_graph", "working_state": "bounded_stored_versions_with_current_evidence"},
             "limitations": ["A bounded sample, not the entire database.",
+                            "Working-state documents over 64 KiB are omitted; text previews are limited to 2048 characters.",
                             "Positions are a visualization of recorded topology, not biological anatomy.",
                             "Travelling signals are simulated, not a live execution trace."]}
 

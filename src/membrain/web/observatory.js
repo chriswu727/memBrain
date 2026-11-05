@@ -30,6 +30,7 @@ const OBS_SPACE = {
   semantic: { at: [-.6, .4, .1], size: [.9, .7, .7] },
   episodic: { at: [.6, .4, -.1], size: [.9, .7, .7] },
   schemas: { at: [1.1, -.4, .2], size: [.7, .5, .6] },
+  working: { at: [-1.1, -.1, .4], size: [.7, .6, .6] },
 };
 // Recorded dependency types from the memory and companion maps; unknown types are drawn plain grey.
 const OBS_EDGES = {
@@ -50,6 +51,8 @@ const OBS_EDGES = {
   pattern_member: { color: "--r-schemas", dash: null, opacity: .8 },
   association: { color: "--r-schemas", dash: [.14, .08], opacity: .7 },
   belief_relation: { color: "--r-semantic", dash: [.035, .05], opacity: .9 },
+  working_member: { color: "--r-working", dash: null, opacity: .8 },
+  working_evidence: { color: "--r-working", dash: [.035, .05], opacity: .6 },
 };
 const OBS_HOME = { theta: 0.35, phi: 1.32, radius: 7.6, target: [0, 0, 0] };
 const OBS_MESSAGES = {

@@ -22,6 +22,7 @@ const REGIONS = [
   { id: "semantic", label: "Learned assertions", x: 370, y: 210 },
   { id: "episodic", label: "Consolidated episodes", x: 470, y: 210 },
   { id: "schemas", label: "Patterns and procedures", x: 530, y: 275 },
+  { id: "working", label: "Working memory", x: 245, y: 245 },
 ];
 const BRAIN_OUTLINE = "M150 300 C110 250 115 165 175 120 C225 80 290 62 350 66 C395 40 470 38 520 60 " +
   "C585 62 650 92 690 150 C730 205 728 280 690 320 C668 345 640 352 612 350 C600 375 575 390 545 388 " +
@@ -239,6 +240,14 @@ function selectNode(id) {
   if (data.representation) detail.append(element("p", `${translate("Representation")}: ${translate(data.representation)}`, "hint"));
   if (data.epistemic_status) detail.append(element("p", `${translate("Evidence status")}: ${translate(data.epistemic_status)}`, "hint"));
   if (data.lifecycle) detail.append(element("p", `${translate("Lifecycle")}: ${translate(data.lifecycle)}`, "hint"));
+  if (data.knowledge_state) detail.append(element("p", `${translate("Evidence status")}: ${translate(data.knowledge_state)}`, "hint"));
+  if (node.kind === "working_state" && !node.masked) {
+    detail.append(element("p", `${translate("Conversation")}: ${data.conversation} · ${translate("Branch")}: ${data.branch}`, "user-text"));
+  }
+  if (data.expired) detail.append(element("p", "This stored item has expired; it is not current context.", "hint"));
+  if (data.text_truncated) detail.append(element("p", "Text preview is truncated.", "hint"));
+  if (data.due_time?.start) detail.append(element("p", `${translate("Due")}: ${data.due_time.start}`, "hint"));
+  if (node.kind === "open_loop") detail.append(element("p", "A due date does not establish completion.", "hint"));
   if (data.statement) detail.append(element("p", data.statement, "user-text"));
   if (data.text) detail.append(element("pre", data.text, "user-text"));
   if (data.reason) detail.append(element("p", data.reason, "user-text"));
@@ -287,6 +296,8 @@ function edgeCaption(edge, id) {
     episode_evidence: ["episode source:", "source for episode:"], episode_member: ["episode member:", "member of episode:"],
     pattern_member: ["pattern member:", "member of pattern:"], association: ["association:", "associated from:"],
     belief_relation: ["belief relation:", "belief relation from:"],
+    working_member: ["state item:", "stored in state:"],
+    working_evidence: ["state evidence:", "evidence for state:"],
   };
   const caption = labels[edge.type]?.[edge.source === id ? 0 : 1] || `${edge.type.replaceAll("_", " ")}:`;
   return caption + (["association", "belief_relation"].includes(edge.type) ? ` ${translate(edge.basis)}` : "") + " ";

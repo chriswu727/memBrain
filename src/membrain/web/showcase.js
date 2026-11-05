@@ -37,11 +37,12 @@ const SHOW_SULCI = [
 const SHOW_ANCHORS = { plans: [222, 150, 55], commitments: [196, 250, 42], preferences: [316, 104, 45],
   constraints: [446, 78, 38], routines: [582, 122, 50], episodes: [440, 205, 72], people: [352, 352, 36],
   relationship: [488, 340, 40], milestones: [652, 222, 48], other: [632, 382, 36], emotions: [316, 250, 38],
-  persona: [340, 170, 40], mood: [445, 285, 40], semantic: [370, 210, 45], episodic: [470, 210, 45], schemas: [530, 275, 40] };
+  persona: [340, 170, 40], mood: [445, 285, 40], semantic: [370, 210, 45], episodic: [470, 210, 45], schemas: [530, 275, 40],
+  working: [245, 245, 40] };
 const SHOW_COLOURS = { plans: "#ffa94d", commitments: "#ff8466", preferences: "#b69cff", constraints: "#ff6f9e",
   routines: "#57b8ff", episodes: "#3ee0b0", people: "#ffd54a", relationship: "#e59cf5", milestones: "#7f9bff",
   other: "#b8c2cc", emotions: "#a6e05a", persona: "#b69cff", mood: "#ffb86b",
-  semantic: "#6ae4ff", episodic: "#9c9aff", schemas: "#e69cff" };
+  semantic: "#6ae4ff", episodic: "#9c9aff", schemas: "#e69cff", working: "#ffcf70" };
 const MAX_PULSES = 40;
 const showState = { open: false, frame: 0, slots: [], links: [], nodes: {}, opener: null, rendered: null, folds: null };
 const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
