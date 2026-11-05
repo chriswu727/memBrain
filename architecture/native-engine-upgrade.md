@@ -25,7 +25,11 @@ concurrent processes, extract into a new staging directory, validate all require
 tools/resources and their manifest, and publish the complete directory atomically.
 A failed preparation must preserve existing data and must not silently select
 16.2. Root service-account execution and relative native library paths must work
-from the final cache, not just the compiler directory.
+from the final cache, not just the compiler directory. Embedded database tools and
+backup clients now use the shared native environment filter, including loader and
+OpenSSL overrides and bundled module selection; service-account options are
+preserved. The [environment qualification](../evaluations/maturity-native-environment-2026-11-05.md)
+records actual injected-host journeys on all five platforms.
 
 The private cache component is implemented in `native_bundle.py`: source and
 overlay checksums, complete native manifests, private staging, process/thread
@@ -83,6 +87,32 @@ upgrader:
 - Verify database version, extension version, protected view definitions, index
   readiness, representative vector operations and restart before declaring the
   installation ready. Journals, backups and credentials stay private.
+
+## Durable lifecycle boundary still to implement
+
+The parent controller must hold the profile lifecycle lock and the data-parent
+maintenance lock across the transition. Before stopping a live process, verify its
+loopback SQL identity, actual data directory, owning role and version; refuse an
+unknown server or a downgrade. Keep a verified original-engine prefix outside any
+replaceable tool environment when original-engine rollback is promised. A backup
+of data alone does not preserve the executable or old vector library.
+
+The parent journal must distinguish backup preparation, target maintenance,
+bootstrap/restart verification, recovery staging/promotion and API admission. Bind
+the immutable original backup to the original cluster plus both the recovery
+binding document and deletion-registry head. Recheck these independent authorities
+before restoring: bootstrap may initialize or reconcile them before an API exists.
+An absent binding is an explicit original state, not permission to ignore a newly
+created binding or registry.
+
+Persist admission **before** launching the API process. A launch timeout or failed
+health check cannot prove that no user write occurred. Once admission is durable,
+retry on the target engine; never automatically replace its data with the old
+snapshot. Recovery promotion must journal and reconcile each rename among the
+exact original, preserved-failed and verified-stage paths. Existing directories
+must not be overwritten. Preserve the failed SQL journal separately when returning
+to an older physical snapshot; a completed target journal does not describe that
+restored catalog. These are integration requirements, not implemented behavior.
 
 ## Acceptance after integration
 
