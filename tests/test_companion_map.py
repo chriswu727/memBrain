@@ -275,6 +275,8 @@ def test_archive_restore_keeps_companion_records_without_retriggering_historical
     assert {"persona", "boundary"} <= {node["kind"] for node in graph["nodes"]}
     assert any("first puzzle" in node["label"] for node in graph["nodes"])
     assert not any(node["kind"] == "mood_trigger" for node in graph["nodes"])
+    assert (graph["familiarity"]["days"], graph["familiarity"]["shared_moments"]) == (1, 1)
+    assert not graph["familiarity"]["masked"]
 
 
 def test_python_client_preserves_scope_and_explicit_sensitive_opt_in():

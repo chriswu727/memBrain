@@ -83,7 +83,7 @@ function nodeText(node) {
     const label = node.label || "(no text)";
     return translate(label.charAt(0).toUpperCase() + label.slice(1));
   }
-  if (["persona", "persona_proposal", "simulated_mood", "relationship_cap"].includes(node.kind)) return translate(node.label || "(no text)");
+  if (["persona", "persona_proposal", "simulated_mood", "relationship_cap", "relationship_reset"].includes(node.kind)) return translate(node.label || "(no text)");
   return node.label || "(no text)";
 }
 
@@ -152,8 +152,25 @@ function renderBrain(map) {
     : "No memories yet. Talk with your agent, then come back.";
   $("brain-demo").hidden = !(map.demo || brainState.demo);
   renderTrace(map.trace);
+  renderFamiliarity(map.familiarity);
   selectNode(brainState.selected && map.nodes.some((node) => node.id === brainState.selected) ? brainState.selected : "");
   document.dispatchEvent(new CustomEvent("brain-map", { detail: map }));
+}
+
+function renderFamiliarity(summary) {
+  const panel = $("brain-familiarity");
+  panel.replaceChildren();
+  panel.hidden = !summary;
+  if (!summary) return;
+  panel.append(element("strong", "Familiarity"));
+  if (summary.masked) {
+    panel.append(element("p", "Familiarity includes sensitive evidence and is hidden here.", "hint"));
+    return;
+  }
+  panel.append(element("p", `${translate(summary.label)} · ${translate("Conversation days")}: ${summary.days} · ${translate("Shared moments")}: ${summary.shared_moments}`));
+  if (summary.cap) panel.append(element("p", `${translate("Familiarity limit")}: ${translate(summary.cap.replaceAll("_", " "))}`, "hint"));
+  panel.append(element("p", "Derived from records after the latest reset; not a measure of affection.", "hint"));
+  if (summary.evidence?.shared_moments_truncated) panel.append(element("p", "Only some contributing shared moments fit in this graph.", "hint"));
 }
 
 // The trace is the latest message recall the service recorded, not everything a reply used: notes and history added
@@ -247,6 +264,7 @@ function selectNode(id) {
   if (data.expired) detail.append(element("p", "This stored item has expired; it is not current context.", "hint"));
   if (data.text_truncated) detail.append(element("p", "Text preview is truncated.", "hint"));
   if (data.due_time?.start) detail.append(element("p", `${translate("Due")}: ${data.due_time.start}`, "hint"));
+  if (node.kind === "relationship_reset") detail.append(element("p", "Familiarity counts only records after this reset.", "hint"));
   if (node.kind === "open_loop") detail.append(element("p", "A due date does not establish completion.", "hint"));
   if (data.statement) detail.append(element("p", data.statement, "user-text"));
   if (data.text) detail.append(element("pre", data.text, "user-text"));
@@ -354,6 +372,7 @@ async function loadBrain() {
   $("brain-legend").replaceChildren();
   $("brain-trace-box").hidden = true;
   $("brain-summary").textContent = "Loading memory graph…";
+  renderFamiliarity(null);
   document.dispatchEvent(new CustomEvent("brain-clear"));
   try {
     const endpoint = layer === "companion" ? "companion-map?max_nodes=200&max_edges=400"

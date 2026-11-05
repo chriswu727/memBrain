@@ -186,13 +186,14 @@
             <li data-layer="mood"><strong>Simulated mood</strong> <span>Triggers and the baseline. Available in
               Companion development.</span></li>
             <li data-layer="relationship"><strong>Relationship evidence</strong> <span>Support style, boundaries,
-              promises and familiarity limits. Available in Companion development; complete familiarity
-              aggregates are not included yet.</span></li>
+              promises and familiarity limits. Companion development includes a derived familiarity summary
+              with its stored evidence; the summary is not an extra neuron.</span></li>
           </ul>
         </details>
       </div>
       <div class="brain-side">
         <p id="brain-summary" class="hint"></p>
+        <div id="brain-familiarity" class="card" hidden></div>
         <div id="brain-trace-box" class="brain-trace" hidden>
           <p id="brain-trace"></p>
           <p class="hint">Covers message recall only. Notes and history added when a session starts are not traced,

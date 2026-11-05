@@ -922,3 +922,41 @@ def test_the_3d_view_reads_in_english_and_chinese_without_sideways_scroll(server
             assert box["width"] <= size["width"] and box["height"] >= 200
         page.set_viewport_size(DESKTOP)
     page.goto(f"{server.base_url}/memory?demo=brain&lang=en")
+
+
+@pytest.mark.parametrize("language,heading,days", [("en", "Familiarity", "Conversation days"),
+                                                  ("zh", "熟悉程度", "对话天数")])
+def test_familiarity_summary_is_localized_and_clears_when_switching_layers(server, account, tab, language, heading, days):
+    key, client = account
+    source = client.observe("We solved our first puzzle.", conversation_id="chat", branch_id="main",
+                            source_event_key="familiarity-" + language)["result"]["accepted_event_ids"][0]
+    client.write_note("We solved our first puzzle.", kind="milestone", shared=True, source_event_ids=[source])
+    page = tab.page
+    sign_in(page, server.base_url, key)
+    page.goto(f"{server.base_url}/memory?lang={language}")
+    open_brain(page)
+    initial = settled(page)
+    page.select_option("#brain-layer", "companion")
+    current = settled(page, initial["generation"] + 1)
+    expect(page.locator("#brain-familiarity")).to_contain_text(heading)
+    expect(page.locator("#brain-familiarity")).to_contain_text(days + ": 1")
+    expect(page.locator("#brain-familiarity")).to_contain_text("1")
+    graph = client.companion_map()
+    assert sorted(current["nodes"]) == sorted(n["id"] for n in graph["nodes"])
+    assert graph["edges"]
+    page.locator("#brain-showcase").click()
+    page.wait_for_function("() => window.memoryHologram.snapshot().ready")
+    hologram = page.evaluate("window.memoryHologram.snapshot()")
+    assert sorted(hologram["nodeIds"]) == sorted(n["id"] for n in graph["nodes"])
+    assert hologram["edges"] == graph["edges"]
+    page.locator("#show-close").click()
+    page.locator("#mode-2d").click()
+    assert set(page.locator(".brain-node").evaluate_all("nodes => nodes.map(n => n.dataset.id)")) == set(current["nodes"])
+    client.reset_relationship()
+    page.locator('#tabs button[data-view="notes"]').click()
+    open_brain(page)
+    expect(page.locator("#brain-familiarity")).to_contain_text(days + ": 0")
+    reset_graph = client.companion_map()
+    assert reset_graph["familiarity"]["evidence"]["reset_node"] in {n["id"] for n in reset_graph["nodes"]}
+    page.select_option("#brain-layer", "memory")
+    expect(page.locator("#brain-familiarity")).to_be_hidden()

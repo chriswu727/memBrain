@@ -486,6 +486,7 @@ async function loadRelationship() {
   const moments = $("moments");
   moments.replaceChildren();
   if (!data.shared_moments.length) moments.append(element("p", "No shared moments yet. When you and your companion do something together, your agent can keep it here.", "empty"));
+  if (data.shared_moments_truncated) moments.append(element("p", "Only the latest shared moments are listed; familiarity counts all retained moments.", "hint"));
   for (const moment of data.shared_moments) moments.append(momentItem(moment));
   const record = data.commitments;
   $("commitments-summary").textContent = `Kept: ${record.kept.length} · missed: ${record.missed.length} · cancelled: ${record.cancelled.length} · open: ${record.open.length}`;

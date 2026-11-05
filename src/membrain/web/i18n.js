@@ -14,8 +14,8 @@ const ZH = {
     "“记忆”展示笔记、原始消息及相关情感；“人格、情绪与关系养成”展示人格反馈与决定、模拟心情的触发依据、关系设置和承诺。两种图谱都有展示数量限制，也不代表一条回复用到的全部信息。",
   "Versions, suggestions and your decisions. Available in Companion development.": "人格版本、建议及你的决定，可在养成图谱中查看。",
   "Triggers and the baseline. Available in Companion development.": "触发依据与基准心情，可在养成图谱中查看。",
-  "Support style, boundaries, promises and familiarity limits. Available in Companion development; complete familiarity aggregates are not included yet.":
-    "支持方式、边界、承诺及熟悉程度上限，可在养成图谱中查看；完整熟悉程度汇总尚未接入。",
+  "Support style, boundaries, promises and familiarity limits. Companion development includes a derived familiarity summary with its stored evidence; the summary is not an extra neuron.":
+    "支持方式、边界、承诺及熟悉程度上限。养成图谱包含熟悉度汇总及其存储依据；汇总由规则计算，并非额外的神经元。",
   "Ball: a saved record or derived state": "圆球：保存的记录或推导状态",
   "Simulated mood is at its baseline.": "模拟心情处于基准状态。",
   "Simulated mood is responding to the linked triggers.": "模拟心情正受到相连触发依据的影响。",
@@ -275,6 +275,13 @@ const ZH = {
   "What you and your companion share: moments you had together, how familiar you are, how you like to be supported and the topics it should not bring up. Your agent receives it in its own block.":
     "你和伙伴之间的关系：一起经历的时刻、彼此有多熟悉、你希望被怎样支持，以及它不该提起的话题。agent 会在单独的一段里收到这些。",
   "Familiarity": "熟悉程度",
+  "Only the latest shared moments are listed; familiarity counts all retained moments.": "这里只列出最近的共同经历；熟悉度会统计全部保留的共同经历。",
+  "Conversation days": "对话天数", "Familiarity limit": "熟悉程度上限",
+  "Relationship reset": "关系重置",
+  "Familiarity counts only records after this reset.": "熟悉度仅统计此次重置后的记录。",
+  "Familiarity includes sensitive evidence and is hidden here.": "熟悉度包含敏感依据，已在此隐藏。",
+  "Derived from records after the latest reset; not a measure of affection.": "根据最近一次重置后的记录计算，不代表情感深度。",
+  "Only some contributing shared moments fit in this graph.": "本图只展示了部分参与计算的共同经历。",
   "Worked out from the days you talked and the moments you shared. Nobody sets it, and it is not a score of you. You can keep it at a lower level.":
     "根据你们聊天的天数和共同的时刻推算出来。没有人设定它，它也不是对你的评分。你可以让它停在较低的程度。",
   "Keep familiarity at most": "熟悉程度最多到", "No limit": "不限制", "Save limit": "保存上限",

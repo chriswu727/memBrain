@@ -4,6 +4,7 @@ from __future__ import annotations
 from collections import deque
 
 from . import affect, mood, persona, persona_growth, relationship
+from .familiarity_map import load_familiarity, visible_evidence
 from .helpers import DomainError, now
 from .memory_map import REGIONS, sensitive_note_ids
 from .notes import NOTES_CONVERSATION, parse_note
@@ -71,7 +72,10 @@ def companion_map(service, principal, brain_id, *, max_nodes=200, max_edges=400,
         proposals = persona_growth._State(service, conn, principal, brain_id).proposals
         current_mood = mood._read(service, conn, principal, brain_id, when)
         state = relationship._state(service, conn, principal, brain_id)
-        moments = relationship._moments(service, conn, principal, brain_id, state["after"])
+        moment_state, familiarity = load_familiarity(
+            service, conn, principal, brain_id, state, when.astimezone().date(), include_sensitive)
+        moments = moment_state["items"]
+        graph.truncated |= moment_state["truncated"]
         commitments = relationship._commitments(service, conn, principal, brain_id, state["after"],
                                                 state["acknowledged"], when.astimezone().date())
         _project(service, conn, principal, brain_id, graph, versions, proposals, current_mood, state,
@@ -83,14 +87,17 @@ def companion_map(service, principal, brain_id, *, max_nodes=200, max_edges=400,
         "brain_id": brain_id, "contract_version": "companion-map-v1", "generated_at": now(),
         "limits": {"max_nodes": max_nodes, "max_edges": max_edges},
         "nodes": nodes, "edges": graph.edges, "truncated": graph.truncated,
+        "familiarity": visible_evidence(familiarity, moment_state, state, graph),
         "regions": [{"id": region, "count": sum(node["region"] == region for node in nodes)}
                     for region in regions],
         "coverage": {"persona": "bounded_versions", "proposals": "stored_only",
                      "mood": "current_and_bounded_triggers",
                      "relationship": "settings_shared_moments_and_commitments",
+                     "familiarity": "derived_summary_and_bounded_stored_evidence",
                      "learned_memory": "not_projected", "recall": "not_observed"},
         "limitations": ["Positions and node size do not measure memory strength.",
                         "Edges show recorded dependencies, not a reasoning or execution timeline.",
+                        "Familiarity is a rule-derived summary, not a stored neuron or a measure of affection.",
                         "This authenticated local view is not an anonymized public export."],
     }
 
@@ -244,6 +251,10 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
         if trigger["status"] == "active":
             graph.edge(mood_id, ident, "affected_by", "active_mood_trigger")
 
+    marker = state["marker"]
+    if marker:
+        graph.node("relationship-reset:" + marker["id"], "relationship_reset", "relationship", "Relationship reset",
+                   marker["recorded_at"], event_id=marker["id"], after_sequence=marker["applies_from_sequence"])
     for boundary in state["boundaries"]:
         graph.node("boundary:" + boundary["id"], "boundary", "relationship", boundary["topic"],
                    boundary["recorded_at"], event_id=boundary["id"], aliases=boundary["aliases"])

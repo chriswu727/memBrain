@@ -709,7 +709,7 @@ def test_boundary_projection_matches_reset_and_avoids_history_aggregation(brain,
         raise AssertionError("A boundary read must not aggregate relationship history")
 
     with monkeypatch.context() as patcher:
-        for name in ("_days", "_moments", "_commitments"):
+        for name in ("_days", "_moment_state", "_commitments"):
             patcher.setattr(module, name, unexpected)
         response = client.get(path + "/boundaries")
         assert response.status_code == 200 and response.json() == {"boundaries": expected}

@@ -222,36 +222,50 @@ def latest_marker(service, conn, principal, brain_id) -> dict | None:
     return _state(service, conn, principal, brain_id)["marker"]
 
 
-def _notes(service, conn, principal, brain_id, kind: str, after: int, limit: int) -> list[dict]:
-    rows = conn.execute(
+def _iter_notes(service, conn, principal, brain_id, kind: str, after: int, limit: int | None):
+    query = (
         "SELECT id,sequence,document->'observed'->'content'->>'text' AS text,"
         "document->'observed'->>'actor_role' AS actor_role,document->'system_time'->>'recorded_at' AS recorded_at,"
         "ARRAY(SELECT d.input_event_id FROM memory_event_dependencies d WHERE d.tenant_id=memory_events.tenant_id "
         "AND d.owner_id=memory_events.owner_id AND d.brain_id=memory_events.brain_id "
         "AND d.output_event_id=memory_events.id ORDER BY d.input_event_id) AS source_event_ids "
         f"FROM memory_events WHERE {_VISIBLE} AND conversation_id=%s AND sequence>%s "
-        "AND document->'observed'->'content'->>'text' LIKE %s ORDER BY sequence DESC LIMIT %s",
-        (*service._params(principal, brain_id), NOTES_CONVERSATION, after, f"[{kind}%", limit)).fetchall()
-    result = []
-    for row in rows:
-        fields, sentence = parse_note(row["text"] or "")
-        if fields.get("kind") == kind:
-            result.append({"id": row["id"], "sequence": row["sequence"], "text": sentence, "fields": fields,
-                           "actor_role": row["actor_role"], "recorded_at": row["recorded_at"], "stored": row["text"],
-                           "source_event_ids": list(row["source_event_ids"] or [])})
-    return result
+        "AND document->'observed'->'content'->>'text' LIKE %s ORDER BY sequence DESC")
+    params = (*service._params(principal, brain_id), NOTES_CONVERSATION, after, f"[{kind}%")
+    if limit is not None:
+        query += " LIMIT %s"
+        params = (*params, limit)
+    with conn.cursor(name="relationship_notes_" + uid()) as cursor:
+        cursor.itersize = 256
+        cursor.execute(query, params)
+        for row in cursor:
+            fields, sentence = parse_note(row["text"] or "")
+            if fields.get("kind") == kind:
+                yield {"id": row["id"], "sequence": row["sequence"], "text": sentence, "fields": fields,
+                       "actor_role": row["actor_role"], "recorded_at": row["recorded_at"], "stored": row["text"],
+                       "source_event_ids": list(row["source_event_ids"] or [])}
 
 
-def _moments(service, conn, principal, brain_id, after) -> list[dict]:
-    """Shared moments after the marker, oldest first by their date (or when they were saved)."""
-    notes = _notes(service, conn, principal, brain_id, "milestone", after, 5 * MAX_MOMENTS)
-    moments = [{"id": note["id"], "text": note["text"], "occurs_at": note["fields"].get("occurs_at"),
-                "sensitive": bool(note["fields"].get("sensitive")), "recorded_at": note["recorded_at"],
-                "written_by_user": note["actor_role"] == "user", "source_event_ids": note["source_event_ids"],
-                "sequence": note["sequence"], "note_text": note["stored"]}
-               for note in notes if note["fields"].get("shared")][:MAX_MOMENTS]
-    return sorted(moments, key=lambda moment: ((moment["occurs_at"] or (moment["recorded_at"] or "")[:10]),
-                                               moment["sequence"]))
+def _notes(service, conn, principal, brain_id, kind: str, after: int, limit: int) -> list[dict]:
+    return list(_iter_notes(service, conn, principal, brain_id, kind, after, limit))
+
+
+def _moment_state(service, conn, principal, brain_id, after, *, protected=frozenset()) -> dict:
+    moments, total, sensitive = [], 0, False
+    for note in _iter_notes(service, conn, principal, brain_id, "milestone", after, None):
+        if not note["fields"].get("shared"):
+            continue
+        total += 1
+        sensitive |= bool(note["fields"].get("sensitive") or note["id"] in protected
+                          or protected.intersection(note["source_event_ids"]))
+        if len(moments) < MAX_MOMENTS:
+            moments.append({"id": note["id"], "text": note["text"], "occurs_at": note["fields"].get("occurs_at"),
+                            "sensitive": bool(note["fields"].get("sensitive")), "recorded_at": note["recorded_at"],
+                            "written_by_user": note["actor_role"] == "user", "source_event_ids": note["source_event_ids"],
+                            "sequence": note["sequence"], "note_text": note["stored"]})
+    moments.sort(key=lambda moment: ((moment["occurs_at"] or (moment["recorded_at"] or "")[:10]), moment["sequence"]))
+    return {"items": moments, "total": total, "truncated": total > len(moments), "sensitive": sensitive}
+
 
 
 def _date(value) -> _datetime.date | None:
@@ -365,12 +379,14 @@ def relationship_boundaries(service, principal, brain_id: str) -> dict:
 def _read(service, conn, principal, brain_id, today) -> dict:
     state = _state(service, conn, principal, brain_id)
     after = state["after"]
-    moments = _moments(service, conn, principal, brain_id, after)
+    moment_state = _moment_state(service, conn, principal, brain_id, after)
+    moments = moment_state["items"]
     commitments = _commitments(service, conn, principal, brain_id, after, state["acknowledged"], today)
     cap = state["cap"]["level"] if state["cap"] else None
-    known = familiarity(_days(service, conn, principal, brain_id, after), len(moments), cap, today)
+    known = familiarity(_days(service, conn, principal, brain_id, after), moment_state["total"], cap, today)
     support = state["support_style"]
-    return {"familiarity": known,
+    return {"familiarity": known, "shared_moments_total": moment_state["total"],
+            "shared_moments_truncated": moment_state["truncated"],
             "support_style": None if not support or not support["text"] else {
                 "text": support["text"], "id": support["id"], "recorded_at": support["recorded_at"]},
             "boundaries": _boundary_view(state),
@@ -595,7 +611,8 @@ def reset_relationship(service, principal, brain_id: str, *, today=None) -> dict
         conn.execute("SET LOCAL lock_timeout = '5s'")
         brain = service._brain(conn, principal, brain_id)
         state = _state(service, conn, principal, brain_id)
-        moments = _moments(service, conn, principal, brain_id, 0)
+        moment_state = _moment_state(service, conn, principal, brain_id, 0)
+        moments = moment_state["items"]
         params = service._params(principal, brain_id)
         # Earlier versions of a moment that was edited are hidden, not deleted: they go too.
         hidden = [row["id"] for row in conn.execute(
@@ -608,7 +625,7 @@ def reset_relationship(service, principal, brain_id: str, *, today=None) -> dict
             "SELECT DISTINCT id FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
             "AND conversation_id=%s AND NOT deleted", (*params, RELATIONSHIP_CONVERSATION))
             if row["id"] not in marker_ids]
-        removed = {"shared_moments": len(moments), "boundaries": len(state["boundaries"]),
+        removed = {"shared_moments": moment_state["total"], "boundaries": len(state["boundaries"]),
                    "support_style": int(bool(state["support_style"] and state["support_style"]["text"])),
                    "cap": int(bool(state["cap"] and state["cap"]["level"])),
                    "acknowledgements": len(state["acknowledged"])}
