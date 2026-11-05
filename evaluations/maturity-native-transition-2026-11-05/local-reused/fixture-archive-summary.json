@@ -1,0 +1,10 @@
+{
+  "owned_terminal_synthetic_pgdata_only": true,
+  "ports_closed_before_removal": true,
+  "files_verified": 1589,
+  "directories_verified": 28,
+  "archive_bytes": 9425522,
+  "archive_sha256": "ad0778a3d1a04d829a9024949849427966ba69051b4f44d7aad7423268889ed8",
+  "archive_mode": "0600",
+  "profiles_journals_snapshots_engines_logs_preserved": true
+}

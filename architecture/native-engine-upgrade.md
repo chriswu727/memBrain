@@ -88,7 +88,7 @@ upgrader:
   readiness, representative vector operations and restart before declaring the
   installation ready. Journals, backups and credentials stay private.
 
-## Durable lifecycle boundary still to implement
+## Durable lifecycle controller and remaining integration
 
 The engine preservation primitive is implemented in `native_engine_store.py`.
 It verifies complete content-addressed copies, including packaged libraries outside
@@ -98,6 +98,20 @@ are preserved and repaired elsewhere. Actual preserved-engine upgrade/recovery
 passes on all five platforms, including Linux service-account paths. See the
 [engine-store evidence](../evaluations/maturity-native-engine-store-2026-11-05.md).
 The source must already be trusted; this primitive does not establish provenance.
+
+The internal controller is implemented in `native_transition.py`. Its private
+installation-side journal survives disappearance of the data pathname; it binds
+engines, cluster, paths/account and the original recovery binding/deletion head.
+It prepares an immutable original snapshot, performs SQL maintenance/restart,
+resumes exclusive recovery renames and archives the failed target SQL journal
+before original-engine restart. Application setup/reconciliation precedes durable
+admission; rollback is forbidden afterward, including after a launch timeout.
+Actual process-death/recovery/application-admission journeys pass on five platforms
+and both Linux legacy service-account paths, including the missing-data window.
+See the [transition evidence](../evaluations/maturity-native-transition-2026-11-05.md).
+Default selection, installer handoff and the normal API launch path do not yet use
+this controller. Its first operation requires an owned running original source;
+fresh/cold source handling remains part of that integration.
 
 The parent controller must hold the profile lifecycle lock and the data-parent
 maintenance lock across the transition. Before stopping a live process, verify its
@@ -110,6 +124,9 @@ An installer can remove the old tools before the new runtime first launches.
 Preserve and bind the original engine before replacing that environment, or supply
 an independently verified original-engine input. Do not infer a stopped cluster's
 patch version from PG_VERSION or trust a legacy marker as proof of binary integrity.
+An interrupted handoff must also prevent older startup code from admitting traffic
+or restarting old libraries against an upgraded catalog after locks are released.
+The installer and startup guard must cover the environment-replacement interval.
 
 The parent journal must distinguish backup preparation, target maintenance,
 bootstrap/restart verification, recovery staging/promotion and API admission. Bind
@@ -126,7 +143,8 @@ snapshot. Recovery promotion must journal and reconcile each rename among the
 exact original, preserved-failed and verified-stage paths. Existing directories
 must not be overwritten. Preserve the failed SQL journal separately when returning
 to an older physical snapshot; a completed target journal does not describe that
-restored catalog. These are integration requirements, not implemented behavior.
+restored catalog. These boundaries are implemented inside the controller; the
+installer/default startup must still invoke them consistently.
 
 ## Acceptance after integration
 
@@ -154,8 +172,8 @@ These primitives are limited to the pre-readiness native upgrade transition. The
 do not provide a registry-aware user backup/restore command. Their caller must durably bind the
 receipt and original cluster/registry identity, retain the lifecycle lock, prevent
 new user writes, journal staged recovery/promotion and refuse rollback after API
-readiness or registry changes. The default selector and that durable maintenance
-orchestrator are still required; neither cache nor snapshot components close them.
+readiness or registry changes. The controller is now qualified internally; default
+selection, installer handoff and startup adoption are still required.
 Once they are implemented, pin every launcher to the integrated
 runtime and rerun actual fresh installation, upgrade, streamed backup/recovery,
 full regression and complete performance acceptance. Existing 9f75361 R1/R5
