@@ -4,7 +4,7 @@ from pathlib import Path
 
 WEB = Path(__file__).resolve().parents[1] / "src" / "membrain" / "web"
 REGIONS = ["people", "constraints", "preferences", "plans", "commitments", "routines", "milestones", "relationship",
-           "other", "episodes", "emotions", "persona", "mood", "semantic", "episodic", "schemas"]
+           "other", "episodes", "emotions", "persona", "mood", "semantic", "episodic", "schemas", "working"]
 
 
 def test_the_demo_map_served_to_the_page_is_the_fictional_example():

@@ -25,7 +25,7 @@ VENDORED = {
     "three/LICENSE": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc",
 }
 MEMORY_EDGE_TYPES = {"derived_from", "about_person", "feeling_of"}
-EDGE_TYPES = MEMORY_EDGE_TYPES | {"based_on_feedback", "proposed_from_feedback", "accepted_proposal", "restored_from",
+EDGE_TYPES = MEMORY_EDGE_TYPES | {"working_member", "working_evidence", "based_on_feedback", "proposed_from_feedback", "accepted_proposal", "restored_from",
                                   "baseline_from", "triggered_by", "affected_by", "memory_evidence", "memory_derivation",
                                   "episode_evidence", "episode_member", "pattern_member", "association", "belief_relation"}
 PAGE_SCRIPTS = ["i18n.js", "memory.js", "brain.js", "observatory.js", "hologram.js", "showcase.js"]
@@ -133,8 +133,10 @@ def test_the_view_says_what_its_marks_mean_and_which_layers_are_missing():
     assert set(layers) == {"assertions", "episodes", "persona", "mood", "relationship"}
     for layer in ("assertions", "episodes"):
         assert re.search(rf'data-layer="{layer}">.*?Available in Memories', page, re.DOTALL)
-    for layer in ("persona", "mood", "relationship"):
+    for layer in ("persona", "mood"):
         assert re.search(rf'data-layer="{layer}">.*?Available in', page, re.DOTALL)
+    assert "Companion development includes a derived familiarity summary" in text
+    assert "the summary is not an extra neuron." in text
 
 
 def test_every_string_the_3d_view_writes_has_chinese():
