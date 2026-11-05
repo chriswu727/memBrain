@@ -43,6 +43,8 @@ def check(artifacts, work, *, legacy):
         if Path(name).name != name or digest(artifacts / name) != row["sha256"]:
             raise ValueError("Artifact checksum mismatch")
     manifest = json.loads((artifacts / "manifest.json").read_text(encoding="utf-8"))
+    if manifest["postgres"] != POSTGRES or manifest["vector"] != VECTOR:
+        raise ValueError("Unexpected engine or extension manifest version")
     work.mkdir(mode=0o700, parents=True, exist_ok=False)
     with tarfile.open(artifacts / "engine.tar.gz") as archive:
         archive.extractall(work, filter="data")
@@ -72,10 +74,14 @@ def check(artifacts, work, *, legacy):
     current = first
 
     def command(root, program, *arguments, capture=False):
-        return subprocess.run([str(tool(root, program)), *map(str, arguments)], env=environment,
+        capture = capture or program == "initdb"
+        result = subprocess.run([str(tool(root, program)), *map(str, arguments)], env=environment,
                               stdin=subprocess.DEVNULL, stdout=subprocess.PIPE if capture else subprocess.DEVNULL,
                               stderr=subprocess.STDOUT if capture else subprocess.DEVNULL,
-                              text=True, check=True, timeout=180)
+                              text=True, check=False, timeout=180)
+        if result.returncode:
+            raise RuntimeError(f"{program} failed with exit code {result.returncode}: {result.stdout or ''}")
+        return result
 
     def connection(database="postgres", *, sslmode="prefer"):
         return psycopg.connect(host="127.0.0.1", port=port, user="postgres", password=password,
