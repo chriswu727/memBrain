@@ -1,0 +1,377 @@
+{
+  "runtime": "603e0a2e233f6f35f85f73010e370c1e434b164f",
+  "completed": true,
+  "passed": false,
+  "windows": [
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 0,
+      "workload": "serial",
+      "p95_ms": 112.11,
+      "nonempty": 20,
+      "n": 20,
+      "passed": true
+    },
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 0,
+      "workload": "one_brain_8_concurrent",
+      "p95_ms": 460.43,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 0,
+      "workload": "eight_brains_8_concurrent",
+      "p95_ms": 526.87,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 1,
+      "workload": "serial",
+      "p95_ms": 98.32,
+      "nonempty": 20,
+      "n": 20,
+      "passed": true
+    },
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 1,
+      "workload": "one_brain_8_concurrent",
+      "p95_ms": 425.67,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 1,
+      "workload": "eight_brains_8_concurrent",
+      "p95_ms": 456.62,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 2,
+      "workload": "serial",
+      "p95_ms": 90.27,
+      "nonempty": 20,
+      "n": 20,
+      "passed": true
+    },
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 2,
+      "workload": "one_brain_8_concurrent",
+      "p95_ms": 425.8,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 0,
+      "mode": "closed",
+      "cycle": 2,
+      "workload": "eight_brains_8_concurrent",
+      "p95_ms": 435.98,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 0,
+      "workload": "serial",
+      "p95_ms": 138.35,
+      "nonempty": 20,
+      "n": 20,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 0,
+      "workload": "one_brain_8_concurrent",
+      "p95_ms": 577.87,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 0,
+      "workload": "eight_brains_8_concurrent",
+      "p95_ms": 583.53,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 1,
+      "workload": "serial",
+      "p95_ms": 99.31,
+      "nonempty": 20,
+      "n": 20,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 1,
+      "workload": "one_brain_8_concurrent",
+      "p95_ms": 723.14,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 1,
+      "workload": "eight_brains_8_concurrent",
+      "p95_ms": 458.22,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 2,
+      "workload": "serial",
+      "p95_ms": 94.84,
+      "nonempty": 20,
+      "n": 20,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 2,
+      "workload": "one_brain_8_concurrent",
+      "p95_ms": 503.85,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 1,
+      "mode": "open",
+      "cycle": 2,
+      "workload": "eight_brains_8_concurrent",
+      "p95_ms": 513.41,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 0,
+      "workload": "serial",
+      "p95_ms": 125.26,
+      "nonempty": 20,
+      "n": 20,
+      "passed": true
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 0,
+      "workload": "one_brain_8_concurrent",
+      "p95_ms": 525.24,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 0,
+      "workload": "eight_brains_8_concurrent",
+      "p95_ms": 490.89,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 1,
+      "workload": "serial",
+      "p95_ms": 96.33,
+      "nonempty": 20,
+      "n": 20,
+      "passed": true
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 1,
+      "workload": "one_brain_8_concurrent",
+      "p95_ms": 580.76,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 1,
+      "workload": "eight_brains_8_concurrent",
+      "p95_ms": 671.78,
+      "nonempty": 160,
+      "n": 160,
+      "passed": false
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 2,
+      "workload": "serial",
+      "p95_ms": 98.66,
+      "nonempty": 20,
+      "n": 20,
+      "passed": true
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 2,
+      "workload": "one_brain_8_concurrent",
+      "p95_ms": 503.78,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 2,
+      "mode": "open",
+      "cycle": 2,
+      "workload": "eight_brains_8_concurrent",
+      "p95_ms": 619.51,
+      "nonempty": 160,
+      "n": 160,
+      "passed": false
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 0,
+      "workload": "serial",
+      "p95_ms": 95.65,
+      "nonempty": 20,
+      "n": 20,
+      "passed": true
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 0,
+      "workload": "one_brain_8_concurrent",
+      "p95_ms": 551.19,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 0,
+      "workload": "eight_brains_8_concurrent",
+      "p95_ms": 455.86,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 1,
+      "workload": "serial",
+      "p95_ms": 100.75,
+      "nonempty": 20,
+      "n": 20,
+      "passed": true
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 1,
+      "workload": "one_brain_8_concurrent",
+      "p95_ms": 449.17,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 1,
+      "workload": "eight_brains_8_concurrent",
+      "p95_ms": 490.77,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 2,
+      "workload": "serial",
+      "p95_ms": 96.26,
+      "nonempty": 20,
+      "n": 20,
+      "passed": true
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 2,
+      "workload": "one_brain_8_concurrent",
+      "p95_ms": 442.52,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    },
+    {
+      "phase": 3,
+      "mode": "closed",
+      "cycle": 2,
+      "workload": "eight_brains_8_concurrent",
+      "p95_ms": 431.92,
+      "nonempty": 160,
+      "n": 160,
+      "passed": true
+    }
+  ],
+  "nonempty": 4080,
+  "artifact_errors": [
+    {
+      "type": "TimeoutError",
+      "message": "Page.screenshot: Timeout 10000ms exceeded.\nCall log:\n  - taking page screenshot\n  - waiting for fonts to load...\n  - fonts loaded\n"
+    }
+  ],
+  "screenshot_visually_inspected": "visual-permissions-2-open.png",
+  "first_screenshot_absent": true,
+  "model_calls": 0
+}

@@ -1,0 +1,1482 @@
+{
+  "conclusion": "success",
+  "headSha": "9a17e6cc7eb89e51fa9d5019ff0b9c1c10aa7099",
+  "jobs": [
+    {
+      "completedAt": "2026-11-05T18:29:22Z",
+      "conclusion": "success",
+      "databaseId": 127442370504,
+      "name": "native (macos-arm64)",
+      "startedAt": "2026-11-05T18:26:52Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-11-05T18:26:56Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-11-05T18:26:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:05Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v4",
+          "number": 2,
+          "startedAt": "2026-11-05T18:26:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:05Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@v5",
+          "number": 3,
+          "startedAt": "2026-11-05T18:27:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:19Z",
+          "conclusion": "success",
+          "name": "Run python -m pip install . 'pytest>=8,<10' 'pytest-asyncio>=1,<2'",
+          "number": 4,
+          "startedAt": "2026-11-05T18:27:05Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:21Z",
+          "conclusion": "success",
+          "name": "Run python -m pip install postgresql-binaries==16.15.0",
+          "number": 5,
+          "startedAt": "2026-11-05T18:27:19Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:23Z",
+          "conclusion": "success",
+          "name": "Run python -m pip install pgserver==0.1.4",
+          "number": 6,
+          "startedAt": "2026-11-05T18:27:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:29Z",
+          "conclusion": "success",
+          "name": "Run python -m pytest -q tests/test_native_bundle_build.py tests/test_windows_profile_access.py tests/test_native_bundle.py tests/test_native_engine_store.py tests/test_native_adoption.py tests/test_native_transition.py tests/test_native_snapshot.py tests/test_native_maintenance.py tests/test_desktop_upgrade.py tests/test_embedded_environment.py tests/test_native_resources.py tests/test_build_identity.py tests/test_local_profile.py::test_empty_lock_file_needs_no_write_before_exclusion tests/test_local_profile.py::test_cross_process_lock_times_out_and_can_be_reused tests/test_local_profile.py::test_nested_locks_and_helpers_are_reentrant",
+          "number": 7,
+          "startedAt": "2026-11-05T18:27:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:29Z",
+          "conclusion": "skipped",
+          "name": "Verify Linux dependency cache guards",
+          "number": 8,
+          "startedAt": "2026-11-05T18:27:29Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:30Z",
+          "conclusion": "success",
+          "name": "Download an existing owned candidate for isolated verification",
+          "number": 9,
+          "startedAt": "2026-11-05T18:27:29Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:30Z",
+          "conclusion": "skipped",
+          "name": "Build portable vector against the pinned public PostgreSQL distribution",
+          "number": 10,
+          "startedAt": "2026-11-05T18:27:30Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:30Z",
+          "conclusion": "skipped",
+          "name": "Build portable Windows vector with the Visual Studio toolchain",
+          "number": 11,
+          "startedAt": "2026-11-05T18:27:30Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:36Z",
+          "conclusion": "success",
+          "name": "Verify relocated tools, legacy upgrade, vector indexes and backup restore",
+          "number": 12,
+          "startedAt": "2026-11-05T18:27:30Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:40Z",
+          "conclusion": "success",
+          "name": "Verify the installed supplier and packaged native cache without executing its wrapper",
+          "number": 13,
+          "startedAt": "2026-11-05T18:27:36Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:47Z",
+          "conclusion": "success",
+          "name": "Verify interrupted SQL maintenance and actual nonowner statistics protection",
+          "number": 14,
+          "startedAt": "2026-11-05T18:27:40Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:21Z",
+          "conclusion": "success",
+          "name": "Verify default fresh startup, interrupted admission and real HTTP backup recovery",
+          "number": 15,
+          "startedAt": "2026-11-05T18:27:47Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:51Z",
+          "conclusion": "success",
+          "name": "Verify ordinary legacy upgrade, HTTP memory and backup recovery",
+          "number": 16,
+          "startedAt": "2026-11-05T18:28:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:51Z",
+          "conclusion": "skipped",
+          "name": "Verify default admission and recovery under Linux root and legacy service account",
+          "number": 17,
+          "startedAt": "2026-11-05T18:28:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:51Z",
+          "conclusion": "skipped",
+          "name": "Verify previous engine bindings, actual mapped dependency and HTTP recovery",
+          "number": 18,
+          "startedAt": "2026-11-05T18:28:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:51Z",
+          "conclusion": "skipped",
+          "name": "Verify previous engine bindings under the root service account",
+          "number": 19,
+          "startedAt": "2026-11-05T18:28:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:51Z",
+          "conclusion": "skipped",
+          "name": "Export only the root previous-engine summary",
+          "number": 20,
+          "startedAt": "2026-11-05T18:28:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:51Z",
+          "conclusion": "skipped",
+          "name": "Export only the root default admission summary",
+          "number": 21,
+          "startedAt": "2026-11-05T18:28:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:51Z",
+          "conclusion": "skipped",
+          "name": "Verify SQL maintenance under Linux root and its PostgreSQL service account",
+          "number": 22,
+          "startedAt": "2026-11-05T18:28:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:51Z",
+          "conclusion": "skipped",
+          "name": "Export only the root SQL maintenance summary",
+          "number": 23,
+          "startedAt": "2026-11-05T18:28:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:59Z",
+          "conclusion": "success",
+          "name": "Verify offline snapshot, actual native upgrade and original-engine staged rollback",
+          "number": 24,
+          "startedAt": "2026-11-05T18:28:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:15Z",
+          "conclusion": "success",
+          "name": "Verify durable native transition, recovery process death and admission barrier",
+          "number": 25,
+          "startedAt": "2026-11-05T18:28:59Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:15Z",
+          "conclusion": "skipped",
+          "name": "Verify Linux root transition and legacy data location across recovery renames",
+          "number": 26,
+          "startedAt": "2026-11-05T18:29:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:15Z",
+          "conclusion": "skipped",
+          "name": "Export only the root transition summary",
+          "number": 27,
+          "startedAt": "2026-11-05T18:29:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:15Z",
+          "conclusion": "skipped",
+          "name": "Verify Linux root and service-account ownership through snapshot and rollback",
+          "number": 28,
+          "startedAt": "2026-11-05T18:29:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:15Z",
+          "conclusion": "skipped",
+          "name": "Export only the root qualification summary for the artifact worker",
+          "number": 29,
+          "startedAt": "2026-11-05T18:29:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:15Z",
+          "conclusion": "skipped",
+          "name": "Verify ZIP64 streaming and bounded memory with a member larger than two GiB",
+          "number": 30,
+          "startedAt": "2026-11-05T18:29:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:15Z",
+          "conclusion": "skipped",
+          "name": "Diagnose fresh Windows initialization after an actual failure",
+          "number": 31,
+          "startedAt": "2026-11-05T18:29:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:17Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@v4",
+          "number": 32,
+          "startedAt": "2026-11-05T18:29:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:18Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@v5",
+          "number": 63,
+          "startedAt": "2026-11-05T18:29:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:18Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v4",
+          "number": 64,
+          "startedAt": "2026-11-05T18:29:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:19Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 65,
+          "startedAt": "2026-11-05T18:29:18Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chriswu727/memBrain/actions/runs/42083489224/job/127442370504"
+    },
+    {
+      "completedAt": "2026-11-05T18:28:17Z",
+      "conclusion": "success",
+      "databaseId": 127442370913,
+      "name": "native (linux-x86_64)",
+      "startedAt": "2026-11-05T18:21:52Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-11-05T18:21:54Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-11-05T18:21:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:21:58Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v4",
+          "number": 2,
+          "startedAt": "2026-11-05T18:21:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:21:58Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@v5",
+          "number": 3,
+          "startedAt": "2026-11-05T18:21:58Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:09Z",
+          "conclusion": "success",
+          "name": "Run python -m pip install . 'pytest>=8,<10' 'pytest-asyncio>=1,<2'",
+          "number": 4,
+          "startedAt": "2026-11-05T18:21:58Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:10Z",
+          "conclusion": "success",
+          "name": "Run python -m pip install postgresql-binaries==16.15.0",
+          "number": 5,
+          "startedAt": "2026-11-05T18:22:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:11Z",
+          "conclusion": "success",
+          "name": "Run python -m pip install pgserver==0.1.4",
+          "number": 6,
+          "startedAt": "2026-11-05T18:22:10Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:18Z",
+          "conclusion": "success",
+          "name": "Run python -m pytest -q tests/test_native_bundle_build.py tests/test_windows_profile_access.py tests/test_native_bundle.py tests/test_native_engine_store.py tests/test_native_adoption.py tests/test_native_transition.py tests/test_native_snapshot.py tests/test_native_maintenance.py tests/test_desktop_upgrade.py tests/test_embedded_environment.py tests/test_native_resources.py tests/test_build_identity.py tests/test_local_profile.py::test_empty_lock_file_needs_no_write_before_exclusion tests/test_local_profile.py::test_cross_process_lock_times_out_and_can_be_reused tests/test_local_profile.py::test_nested_locks_and_helpers_are_reentrant",
+          "number": 7,
+          "startedAt": "2026-11-05T18:22:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:19Z",
+          "conclusion": "success",
+          "name": "Verify Linux dependency cache guards",
+          "number": 8,
+          "startedAt": "2026-11-05T18:22:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:21Z",
+          "conclusion": "success",
+          "name": "Download an existing owned candidate for isolated verification",
+          "number": 9,
+          "startedAt": "2026-11-05T18:22:19Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:21Z",
+          "conclusion": "skipped",
+          "name": "Build portable vector against the pinned public PostgreSQL distribution",
+          "number": 10,
+          "startedAt": "2026-11-05T18:22:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:21Z",
+          "conclusion": "skipped",
+          "name": "Build portable Windows vector with the Visual Studio toolchain",
+          "number": 11,
+          "startedAt": "2026-11-05T18:22:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:24Z",
+          "conclusion": "success",
+          "name": "Verify relocated tools, legacy upgrade, vector indexes and backup restore",
+          "number": 12,
+          "startedAt": "2026-11-05T18:22:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:27Z",
+          "conclusion": "success",
+          "name": "Verify the installed supplier and packaged native cache without executing its wrapper",
+          "number": 13,
+          "startedAt": "2026-11-05T18:22:24Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:33Z",
+          "conclusion": "success",
+          "name": "Verify interrupted SQL maintenance and actual nonowner statistics protection",
+          "number": 14,
+          "startedAt": "2026-11-05T18:22:27Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:23:06Z",
+          "conclusion": "success",
+          "name": "Verify default fresh startup, interrupted admission and real HTTP backup recovery",
+          "number": 15,
+          "startedAt": "2026-11-05T18:22:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:23:41Z",
+          "conclusion": "success",
+          "name": "Verify ordinary legacy upgrade, HTTP memory and backup recovery",
+          "number": 16,
+          "startedAt": "2026-11-05T18:23:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:24:21Z",
+          "conclusion": "success",
+          "name": "Verify default admission and recovery under Linux root and legacy service account",
+          "number": 17,
+          "startedAt": "2026-11-05T18:23:41Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:13Z",
+          "conclusion": "success",
+          "name": "Verify previous engine bindings, actual mapped dependency and HTTP recovery",
+          "number": 18,
+          "startedAt": "2026-11-05T18:24:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:26:06Z",
+          "conclusion": "success",
+          "name": "Verify previous engine bindings under the root service account",
+          "number": 19,
+          "startedAt": "2026-11-05T18:25:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:26:06Z",
+          "conclusion": "success",
+          "name": "Export only the root previous-engine summary",
+          "number": 20,
+          "startedAt": "2026-11-05T18:26:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:26:06Z",
+          "conclusion": "success",
+          "name": "Export only the root default admission summary",
+          "number": 21,
+          "startedAt": "2026-11-05T18:26:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:26:19Z",
+          "conclusion": "success",
+          "name": "Verify SQL maintenance under Linux root and its PostgreSQL service account",
+          "number": 22,
+          "startedAt": "2026-11-05T18:26:06Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:26:19Z",
+          "conclusion": "success",
+          "name": "Export only the root SQL maintenance summary",
+          "number": 23,
+          "startedAt": "2026-11-05T18:26:19Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:26:30Z",
+          "conclusion": "success",
+          "name": "Verify offline snapshot, actual native upgrade and original-engine staged rollback",
+          "number": 24,
+          "startedAt": "2026-11-05T18:26:19Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:26:52Z",
+          "conclusion": "success",
+          "name": "Verify durable native transition, recovery process death and admission barrier",
+          "number": 25,
+          "startedAt": "2026-11-05T18:26:30Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:17Z",
+          "conclusion": "success",
+          "name": "Verify Linux root transition and legacy data location across recovery renames",
+          "number": 26,
+          "startedAt": "2026-11-05T18:26:52Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:17Z",
+          "conclusion": "success",
+          "name": "Export only the root transition summary",
+          "number": 27,
+          "startedAt": "2026-11-05T18:27:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:33Z",
+          "conclusion": "success",
+          "name": "Verify Linux root and service-account ownership through snapshot and rollback",
+          "number": 28,
+          "startedAt": "2026-11-05T18:27:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:33Z",
+          "conclusion": "success",
+          "name": "Export only the root qualification summary for the artifact worker",
+          "number": 29,
+          "startedAt": "2026-11-05T18:27:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:11Z",
+          "conclusion": "success",
+          "name": "Verify ZIP64 streaming and bounded memory with a member larger than two GiB",
+          "number": 30,
+          "startedAt": "2026-11-05T18:27:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:11Z",
+          "conclusion": "skipped",
+          "name": "Diagnose fresh Windows initialization after an actual failure",
+          "number": 31,
+          "startedAt": "2026-11-05T18:28:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:13Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@v4",
+          "number": 32,
+          "startedAt": "2026-11-05T18:28:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:14Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@v5",
+          "number": 63,
+          "startedAt": "2026-11-05T18:28:13Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:14Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v4",
+          "number": 64,
+          "startedAt": "2026-11-05T18:28:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:14Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 65,
+          "startedAt": "2026-11-05T18:28:14Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chriswu727/memBrain/actions/runs/42083489224/job/127442370913"
+    },
+    {
+      "completedAt": "2026-11-05T18:29:52Z",
+      "conclusion": "success",
+      "databaseId": 127442370938,
+      "name": "native (windows-x86_64)",
+      "startedAt": "2026-11-05T18:21:52Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-11-05T18:21:54Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-11-05T18:21:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:04Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v4",
+          "number": 2,
+          "startedAt": "2026-11-05T18:21:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:04Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@v5",
+          "number": 3,
+          "startedAt": "2026-11-05T18:22:04Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:35Z",
+          "conclusion": "success",
+          "name": "Run python -m pip install . 'pytest>=8,<10' 'pytest-asyncio>=1,<2'",
+          "number": 4,
+          "startedAt": "2026-11-05T18:22:04Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:46Z",
+          "conclusion": "success",
+          "name": "Run python -m pip install postgresql-binaries==16.15.0",
+          "number": 5,
+          "startedAt": "2026-11-05T18:22:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:50Z",
+          "conclusion": "success",
+          "name": "Run python -m pip install pgserver==0.1.4",
+          "number": 6,
+          "startedAt": "2026-11-05T18:22:46Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:23:11Z",
+          "conclusion": "success",
+          "name": "Run python -m pytest -q tests/test_native_bundle_build.py tests/test_windows_profile_access.py tests/test_native_bundle.py tests/test_native_engine_store.py tests/test_native_adoption.py tests/test_native_transition.py tests/test_native_snapshot.py tests/test_native_maintenance.py tests/test_desktop_upgrade.py tests/test_embedded_environment.py tests/test_native_resources.py tests/test_build_identity.py tests/test_local_profile.py::test_empty_lock_file_needs_no_write_before_exclusion tests/test_local_profile.py::test_cross_process_lock_times_out_and_can_be_reused tests/test_local_profile.py::test_nested_locks_and_helpers_are_reentrant",
+          "number": 7,
+          "startedAt": "2026-11-05T18:22:50Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:23:11Z",
+          "conclusion": "skipped",
+          "name": "Verify Linux dependency cache guards",
+          "number": 8,
+          "startedAt": "2026-11-05T18:23:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:23:14Z",
+          "conclusion": "success",
+          "name": "Download an existing owned candidate for isolated verification",
+          "number": 9,
+          "startedAt": "2026-11-05T18:23:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:23:14Z",
+          "conclusion": "skipped",
+          "name": "Build portable vector against the pinned public PostgreSQL distribution",
+          "number": 10,
+          "startedAt": "2026-11-05T18:23:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:23:14Z",
+          "conclusion": "skipped",
+          "name": "Build portable Windows vector with the Visual Studio toolchain",
+          "number": 11,
+          "startedAt": "2026-11-05T18:23:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:23:23Z",
+          "conclusion": "success",
+          "name": "Verify relocated tools, legacy upgrade, vector indexes and backup restore",
+          "number": 12,
+          "startedAt": "2026-11-05T18:23:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:23:35Z",
+          "conclusion": "success",
+          "name": "Verify the installed supplier and packaged native cache without executing its wrapper",
+          "number": 13,
+          "startedAt": "2026-11-05T18:23:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:23:48Z",
+          "conclusion": "success",
+          "name": "Verify interrupted SQL maintenance and actual nonowner statistics protection",
+          "number": 14,
+          "startedAt": "2026-11-05T18:23:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:26:09Z",
+          "conclusion": "success",
+          "name": "Verify default fresh startup, interrupted admission and real HTTP backup recovery",
+          "number": 15,
+          "startedAt": "2026-11-05T18:23:48Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:25Z",
+          "conclusion": "success",
+          "name": "Verify ordinary legacy upgrade, HTTP memory and backup recovery",
+          "number": 16,
+          "startedAt": "2026-11-05T18:26:09Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:25Z",
+          "conclusion": "skipped",
+          "name": "Verify default admission and recovery under Linux root and legacy service account",
+          "number": 17,
+          "startedAt": "2026-11-05T18:28:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:25Z",
+          "conclusion": "skipped",
+          "name": "Verify previous engine bindings, actual mapped dependency and HTTP recovery",
+          "number": 18,
+          "startedAt": "2026-11-05T18:28:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:25Z",
+          "conclusion": "skipped",
+          "name": "Verify previous engine bindings under the root service account",
+          "number": 19,
+          "startedAt": "2026-11-05T18:28:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:25Z",
+          "conclusion": "skipped",
+          "name": "Export only the root previous-engine summary",
+          "number": 20,
+          "startedAt": "2026-11-05T18:28:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:25Z",
+          "conclusion": "skipped",
+          "name": "Export only the root default admission summary",
+          "number": 21,
+          "startedAt": "2026-11-05T18:28:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:25Z",
+          "conclusion": "skipped",
+          "name": "Verify SQL maintenance under Linux root and its PostgreSQL service account",
+          "number": 22,
+          "startedAt": "2026-11-05T18:28:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:25Z",
+          "conclusion": "skipped",
+          "name": "Export only the root SQL maintenance summary",
+          "number": 23,
+          "startedAt": "2026-11-05T18:28:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:43Z",
+          "conclusion": "success",
+          "name": "Verify offline snapshot, actual native upgrade and original-engine staged rollback",
+          "number": 24,
+          "startedAt": "2026-11-05T18:28:25Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:43Z",
+          "conclusion": "success",
+          "name": "Verify durable native transition, recovery process death and admission barrier",
+          "number": 25,
+          "startedAt": "2026-11-05T18:28:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:43Z",
+          "conclusion": "skipped",
+          "name": "Verify Linux root transition and legacy data location across recovery renames",
+          "number": 26,
+          "startedAt": "2026-11-05T18:29:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:43Z",
+          "conclusion": "skipped",
+          "name": "Export only the root transition summary",
+          "number": 27,
+          "startedAt": "2026-11-05T18:29:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:43Z",
+          "conclusion": "skipped",
+          "name": "Verify Linux root and service-account ownership through snapshot and rollback",
+          "number": 28,
+          "startedAt": "2026-11-05T18:29:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:43Z",
+          "conclusion": "skipped",
+          "name": "Export only the root qualification summary for the artifact worker",
+          "number": 29,
+          "startedAt": "2026-11-05T18:29:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:43Z",
+          "conclusion": "skipped",
+          "name": "Verify ZIP64 streaming and bounded memory with a member larger than two GiB",
+          "number": 30,
+          "startedAt": "2026-11-05T18:29:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:43Z",
+          "conclusion": "skipped",
+          "name": "Diagnose fresh Windows initialization after an actual failure",
+          "number": 31,
+          "startedAt": "2026-11-05T18:29:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:47Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@v4",
+          "number": 32,
+          "startedAt": "2026-11-05T18:29:43Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:47Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@v5",
+          "number": 63,
+          "startedAt": "2026-11-05T18:29:47Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:49Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v4",
+          "number": 64,
+          "startedAt": "2026-11-05T18:29:47Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:49Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 65,
+          "startedAt": "2026-11-05T18:29:49Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chriswu727/memBrain/actions/runs/42083489224/job/127442370938"
+    },
+    {
+      "completedAt": "2026-11-05T18:30:06Z",
+      "conclusion": "success",
+      "databaseId": 127442371140,
+      "name": "native (macos-x86_64)",
+      "startedAt": "2026-11-05T18:22:22Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-11-05T18:22:26Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-11-05T18:22:24Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:33Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v4",
+          "number": 2,
+          "startedAt": "2026-11-05T18:22:26Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:33Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@v5",
+          "number": 3,
+          "startedAt": "2026-11-05T18:22:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:15Z",
+          "conclusion": "success",
+          "name": "Run python -m pip install . 'pytest>=8,<10' 'pytest-asyncio>=1,<2'",
+          "number": 4,
+          "startedAt": "2026-11-05T18:22:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:17Z",
+          "conclusion": "success",
+          "name": "Run python -m pip install postgresql-binaries==16.15.0",
+          "number": 5,
+          "startedAt": "2026-11-05T18:25:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:20Z",
+          "conclusion": "success",
+          "name": "Run python -m pip install pgserver==0.1.4",
+          "number": 6,
+          "startedAt": "2026-11-05T18:25:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:34Z",
+          "conclusion": "success",
+          "name": "Run python -m pytest -q tests/test_native_bundle_build.py tests/test_windows_profile_access.py tests/test_native_bundle.py tests/test_native_engine_store.py tests/test_native_adoption.py tests/test_native_transition.py tests/test_native_snapshot.py tests/test_native_maintenance.py tests/test_desktop_upgrade.py tests/test_embedded_environment.py tests/test_native_resources.py tests/test_build_identity.py tests/test_local_profile.py::test_empty_lock_file_needs_no_write_before_exclusion tests/test_local_profile.py::test_cross_process_lock_times_out_and_can_be_reused tests/test_local_profile.py::test_nested_locks_and_helpers_are_reentrant",
+          "number": 7,
+          "startedAt": "2026-11-05T18:25:20Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:34Z",
+          "conclusion": "skipped",
+          "name": "Verify Linux dependency cache guards",
+          "number": 8,
+          "startedAt": "2026-11-05T18:25:34Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:38Z",
+          "conclusion": "success",
+          "name": "Download an existing owned candidate for isolated verification",
+          "number": 9,
+          "startedAt": "2026-11-05T18:25:34Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:38Z",
+          "conclusion": "skipped",
+          "name": "Build portable vector against the pinned public PostgreSQL distribution",
+          "number": 10,
+          "startedAt": "2026-11-05T18:25:38Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:38Z",
+          "conclusion": "skipped",
+          "name": "Build portable Windows vector with the Visual Studio toolchain",
+          "number": 11,
+          "startedAt": "2026-11-05T18:25:38Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:46Z",
+          "conclusion": "success",
+          "name": "Verify relocated tools, legacy upgrade, vector indexes and backup restore",
+          "number": 12,
+          "startedAt": "2026-11-05T18:25:38Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:54Z",
+          "conclusion": "success",
+          "name": "Verify the installed supplier and packaged native cache without executing its wrapper",
+          "number": 13,
+          "startedAt": "2026-11-05T18:25:46Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:26:12Z",
+          "conclusion": "success",
+          "name": "Verify interrupted SQL maintenance and actual nonowner statistics protection",
+          "number": 14,
+          "startedAt": "2026-11-05T18:25:54Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:27:33Z",
+          "conclusion": "success",
+          "name": "Verify default fresh startup, interrupted admission and real HTTP backup recovery",
+          "number": 15,
+          "startedAt": "2026-11-05T18:26:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:57Z",
+          "conclusion": "success",
+          "name": "Verify ordinary legacy upgrade, HTTP memory and backup recovery",
+          "number": 16,
+          "startedAt": "2026-11-05T18:27:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:57Z",
+          "conclusion": "skipped",
+          "name": "Verify default admission and recovery under Linux root and legacy service account",
+          "number": 17,
+          "startedAt": "2026-11-05T18:28:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:57Z",
+          "conclusion": "skipped",
+          "name": "Verify previous engine bindings, actual mapped dependency and HTTP recovery",
+          "number": 18,
+          "startedAt": "2026-11-05T18:28:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:57Z",
+          "conclusion": "skipped",
+          "name": "Verify previous engine bindings under the root service account",
+          "number": 19,
+          "startedAt": "2026-11-05T18:28:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:57Z",
+          "conclusion": "skipped",
+          "name": "Export only the root previous-engine summary",
+          "number": 20,
+          "startedAt": "2026-11-05T18:28:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:57Z",
+          "conclusion": "skipped",
+          "name": "Export only the root default admission summary",
+          "number": 21,
+          "startedAt": "2026-11-05T18:28:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:57Z",
+          "conclusion": "skipped",
+          "name": "Verify SQL maintenance under Linux root and its PostgreSQL service account",
+          "number": 22,
+          "startedAt": "2026-11-05T18:28:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:28:57Z",
+          "conclusion": "skipped",
+          "name": "Export only the root SQL maintenance summary",
+          "number": 23,
+          "startedAt": "2026-11-05T18:28:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:21Z",
+          "conclusion": "success",
+          "name": "Verify offline snapshot, actual native upgrade and original-engine staged rollback",
+          "number": 24,
+          "startedAt": "2026-11-05T18:28:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:56Z",
+          "conclusion": "success",
+          "name": "Verify durable native transition, recovery process death and admission barrier",
+          "number": 25,
+          "startedAt": "2026-11-05T18:29:21Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:56Z",
+          "conclusion": "skipped",
+          "name": "Verify Linux root transition and legacy data location across recovery renames",
+          "number": 26,
+          "startedAt": "2026-11-05T18:29:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:56Z",
+          "conclusion": "skipped",
+          "name": "Export only the root transition summary",
+          "number": 27,
+          "startedAt": "2026-11-05T18:29:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:56Z",
+          "conclusion": "skipped",
+          "name": "Verify Linux root and service-account ownership through snapshot and rollback",
+          "number": 28,
+          "startedAt": "2026-11-05T18:29:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:56Z",
+          "conclusion": "skipped",
+          "name": "Export only the root qualification summary for the artifact worker",
+          "number": 29,
+          "startedAt": "2026-11-05T18:29:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:56Z",
+          "conclusion": "skipped",
+          "name": "Verify ZIP64 streaming and bounded memory with a member larger than two GiB",
+          "number": 30,
+          "startedAt": "2026-11-05T18:29:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:29:56Z",
+          "conclusion": "skipped",
+          "name": "Diagnose fresh Windows initialization after an actual failure",
+          "number": 31,
+          "startedAt": "2026-11-05T18:29:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:30:00Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@v4",
+          "number": 32,
+          "startedAt": "2026-11-05T18:29:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:30:00Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@v5",
+          "number": 63,
+          "startedAt": "2026-11-05T18:30:00Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:30:00Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v4",
+          "number": 64,
+          "startedAt": "2026-11-05T18:30:00Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:30:01Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 65,
+          "startedAt": "2026-11-05T18:30:01Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chriswu727/memBrain/actions/runs/42083489224/job/127442371140"
+    },
+    {
+      "completedAt": "2026-11-05T18:25:58Z",
+      "conclusion": "success",
+      "databaseId": 127442371245,
+      "name": "native (linux-aarch64)",
+      "startedAt": "2026-11-05T18:21:54Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-11-05T18:21:57Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-11-05T18:21:55Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:01Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v4",
+          "number": 2,
+          "startedAt": "2026-11-05T18:21:57Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:01Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@v5",
+          "number": 3,
+          "startedAt": "2026-11-05T18:22:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:19Z",
+          "conclusion": "success",
+          "name": "Run python -m pip install . 'pytest>=8,<10' 'pytest-asyncio>=1,<2'",
+          "number": 4,
+          "startedAt": "2026-11-05T18:22:01Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:23Z",
+          "conclusion": "success",
+          "name": "Run python -m pip install postgresql-binaries==16.15.0",
+          "number": 5,
+          "startedAt": "2026-11-05T18:22:19Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:23Z",
+          "conclusion": "skipped",
+          "name": "Run python -m pip install pgserver==0.1.4",
+          "number": 6,
+          "startedAt": "2026-11-05T18:22:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:30Z",
+          "conclusion": "success",
+          "name": "Run python -m pytest -q tests/test_native_bundle_build.py tests/test_windows_profile_access.py tests/test_native_bundle.py tests/test_native_engine_store.py tests/test_native_adoption.py tests/test_native_transition.py tests/test_native_snapshot.py tests/test_native_maintenance.py tests/test_desktop_upgrade.py tests/test_embedded_environment.py tests/test_native_resources.py tests/test_build_identity.py tests/test_local_profile.py::test_empty_lock_file_needs_no_write_before_exclusion tests/test_local_profile.py::test_cross_process_lock_times_out_and_can_be_reused tests/test_local_profile.py::test_nested_locks_and_helpers_are_reentrant",
+          "number": 7,
+          "startedAt": "2026-11-05T18:22:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:31Z",
+          "conclusion": "success",
+          "name": "Verify Linux dependency cache guards",
+          "number": 8,
+          "startedAt": "2026-11-05T18:22:30Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:32Z",
+          "conclusion": "success",
+          "name": "Download an existing owned candidate for isolated verification",
+          "number": 9,
+          "startedAt": "2026-11-05T18:22:31Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:32Z",
+          "conclusion": "skipped",
+          "name": "Build portable vector against the pinned public PostgreSQL distribution",
+          "number": 10,
+          "startedAt": "2026-11-05T18:22:32Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:32Z",
+          "conclusion": "skipped",
+          "name": "Build portable Windows vector with the Visual Studio toolchain",
+          "number": 11,
+          "startedAt": "2026-11-05T18:22:32Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:35Z",
+          "conclusion": "success",
+          "name": "Verify relocated tools, legacy upgrade, vector indexes and backup restore",
+          "number": 12,
+          "startedAt": "2026-11-05T18:22:32Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:38Z",
+          "conclusion": "success",
+          "name": "Verify the installed supplier and packaged native cache without executing its wrapper",
+          "number": 13,
+          "startedAt": "2026-11-05T18:22:35Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:22:42Z",
+          "conclusion": "success",
+          "name": "Verify interrupted SQL maintenance and actual nonowner statistics protection",
+          "number": 14,
+          "startedAt": "2026-11-05T18:22:38Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:23:08Z",
+          "conclusion": "success",
+          "name": "Verify default fresh startup, interrupted admission and real HTTP backup recovery",
+          "number": 15,
+          "startedAt": "2026-11-05T18:22:42Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:23:08Z",
+          "conclusion": "skipped",
+          "name": "Verify ordinary legacy upgrade, HTTP memory and backup recovery",
+          "number": 16,
+          "startedAt": "2026-11-05T18:23:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:23:33Z",
+          "conclusion": "success",
+          "name": "Verify default admission and recovery under Linux root and legacy service account",
+          "number": 17,
+          "startedAt": "2026-11-05T18:23:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:24:12Z",
+          "conclusion": "success",
+          "name": "Verify previous engine bindings, actual mapped dependency and HTTP recovery",
+          "number": 18,
+          "startedAt": "2026-11-05T18:23:33Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:24:51Z",
+          "conclusion": "success",
+          "name": "Verify previous engine bindings under the root service account",
+          "number": 19,
+          "startedAt": "2026-11-05T18:24:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:24:51Z",
+          "conclusion": "success",
+          "name": "Export only the root previous-engine summary",
+          "number": 20,
+          "startedAt": "2026-11-05T18:24:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:24:51Z",
+          "conclusion": "success",
+          "name": "Export only the root default admission summary",
+          "number": 21,
+          "startedAt": "2026-11-05T18:24:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:24:59Z",
+          "conclusion": "success",
+          "name": "Verify SQL maintenance under Linux root and its PostgreSQL service account",
+          "number": 22,
+          "startedAt": "2026-11-05T18:24:51Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:24:59Z",
+          "conclusion": "success",
+          "name": "Export only the root SQL maintenance summary",
+          "number": 23,
+          "startedAt": "2026-11-05T18:24:59Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:08Z",
+          "conclusion": "success",
+          "name": "Verify offline snapshot, actual native upgrade and original-engine staged rollback",
+          "number": 24,
+          "startedAt": "2026-11-05T18:24:59Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:23Z",
+          "conclusion": "success",
+          "name": "Verify durable native transition, recovery process death and admission barrier",
+          "number": 25,
+          "startedAt": "2026-11-05T18:25:08Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:42Z",
+          "conclusion": "success",
+          "name": "Verify Linux root transition and legacy data location across recovery renames",
+          "number": 26,
+          "startedAt": "2026-11-05T18:25:23Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:42Z",
+          "conclusion": "success",
+          "name": "Export only the root transition summary",
+          "number": 27,
+          "startedAt": "2026-11-05T18:25:42Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:53Z",
+          "conclusion": "success",
+          "name": "Verify Linux root and service-account ownership through snapshot and rollback",
+          "number": 28,
+          "startedAt": "2026-11-05T18:25:42Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:53Z",
+          "conclusion": "success",
+          "name": "Export only the root qualification summary for the artifact worker",
+          "number": 29,
+          "startedAt": "2026-11-05T18:25:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:53Z",
+          "conclusion": "skipped",
+          "name": "Verify ZIP64 streaming and bounded memory with a member larger than two GiB",
+          "number": 30,
+          "startedAt": "2026-11-05T18:25:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:53Z",
+          "conclusion": "skipped",
+          "name": "Diagnose fresh Windows initialization after an actual failure",
+          "number": 31,
+          "startedAt": "2026-11-05T18:25:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:55Z",
+          "conclusion": "success",
+          "name": "Run actions/upload-artifact@v4",
+          "number": 32,
+          "startedAt": "2026-11-05T18:25:53Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:56Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@v5",
+          "number": 63,
+          "startedAt": "2026-11-05T18:25:55Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:56Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v4",
+          "number": 64,
+          "startedAt": "2026-11-05T18:25:56Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-05T18:25:56Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 65,
+          "startedAt": "2026-11-05T18:25:56Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chriswu727/memBrain/actions/runs/42083489224/job/127442371245"
+    },
+    {
+      "completedAt": "2026-11-05T18:21:48Z",
+      "conclusion": "skipped",
+      "databaseId": 127442372869,
+      "name": "linux-build",
+      "startedAt": "2026-11-05T18:21:49Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/chriswu727/memBrain/actions/runs/42083489224/job/127442372869"
+    },
+    {
+      "completedAt": "2026-11-05T18:21:48Z",
+      "conclusion": "skipped",
+      "databaseId": 127442373034,
+      "name": "linux-current",
+      "startedAt": "2026-11-05T18:21:49Z",
+      "status": "completed",
+      "steps": [],
+      "url": "https://github.com/chriswu727/memBrain/actions/runs/42083489224/job/127442373034"
+    }
+  ],
+  "status": "completed"
+}

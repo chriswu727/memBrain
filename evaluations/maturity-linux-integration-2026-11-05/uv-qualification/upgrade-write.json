@@ -1,0 +1,11 @@
+{
+  "build_id": "bd1a653ea57c157c153b5ad09a1364961f04bf3cd5e7e10fab089ecb0fadcb70",
+  "package_root": "/Users/yichen/tmp/membrain-xml-integration-20261105/uv-qualification/upgrade/tools/membrain-ai/lib/python3.12/site-packages/membrain",
+  "python_prefix": "/Users/yichen/tmp/membrain-xml-integration-20261105/uv-qualification/upgrade/tools/membrain-ai",
+  "previous_state": null,
+  "ready": true,
+  "recall_preserved": true,
+  "instance_id": "914c6c6d-1372-4e8c-9e78-951f93e2affa",
+  "direct_url": "https://github.com/chriswu727/membrain/archive/73ee62ee5796902249ddd20b08ed7e4ad6922b3f.zip",
+  "package_digest": "3170c1fa3fa839ab56199f3868fd7ce45886645c555e1b6a46eb7aedb0ae63d4"
+}

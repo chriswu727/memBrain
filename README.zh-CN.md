@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 当前候选已打包经过验证的 Linux XML 兼容库，并通过独立校验的依赖缓存保留旧引擎绑定。原生候选已通过 Ubuntu 22、26 的 x86 和 ARM 真实数据库验证；本次接入的安装包及中断升级验收仍在进行。此前运行版本 `73ee62e` 通过五个平台的重启、接入与备份恢复验证，覆盖十一条安装包流程（Linux 使用 Ubuntu 22）。此前 `9f75361` 通过 **49/49** 项全新安装检查及 **36/36** 个全屏回忆窗口（最慢八脑窗口 p95 **465.93 ms**）；这些结果仍只代表对应版本。当前完整应用 CI、固定版本全新安装与升级、性能验收、真实 R4/C5 及剩余图谱／复核门槛尚未全部通过，继续冻结发布。详见 [Linux 候选证据](evaluations/maturity-linux-xml-2026-11-05.md)、[原生升级接入证据](evaluations/maturity-native-adoption-2026-11-05.md)、[此前回忆证据](evaluations/maturity-recall-cache-2026-11-04.md)及[宿主范围](docs/host-compatibility.md)。
+> **预发布阶段。** 运行版本 `603e0a2` 通过五个平台的原生验证及十五条安装、升级和恢复流程，覆盖 Ubuntu 26 的两种 Linux 架构；Mac 隔离 uv 安装及运行中环境替换也通过。但完整全屏性能测试有 2/36 个窗口未达标（八脑 p95 **671.78/619.51 ms**），完整应用 CI 也失败。当前版本 `11eee62` 已修复场景测试的时钟环境泄漏和共享目录权限问题，**238** 项针对性检查通过，完整及原生 CI 重跑结果仍待确认。性能、剩余安装与宿主覆盖、真实 R4/C5、图谱及复核门槛仍未全部通过，继续冻结发布。详见[当前证据和保留的失败](evaluations/maturity-linux-integration-2026-11-05.md)、[Linux 构建证据](evaluations/maturity-linux-xml-2026-11-05.md)及[宿主范围](docs/host-compatibility.md)。
 
 <a id="claude-code-plugin"></a>
 

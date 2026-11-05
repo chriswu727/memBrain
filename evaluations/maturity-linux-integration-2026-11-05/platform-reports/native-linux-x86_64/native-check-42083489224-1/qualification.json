@@ -1,0 +1,173 @@
+{
+  "completed": true,
+  "model_calls": 0,
+  "legacy_upgrade": true,
+  "tools": {
+    "postgres": "postgres (PostgreSQL) 16.15",
+    "pg_ctl": "pg_ctl (PostgreSQL) 16.15",
+    "initdb": "initdb (PostgreSQL) 16.15",
+    "pg_dump": "pg_dump (PostgreSQL) 16.15",
+    "pg_restore": "pg_restore (PostgreSQL) 16.15",
+    "psql": "psql (PostgreSQL) 16.15",
+    "pg_config": "PostgreSQL 16.15"
+  },
+  "manifest_sha256": "c7e2eabbfd987e43a4135e2cbb077affb9d19fd57688848c177b0832bc776f40",
+  "stages": [
+    {
+      "name": "original_fixture",
+      "extension": "0.6.2",
+      "rows": 1000,
+      "sha256": "faf135540c27957b849939a1f239b8e83f17f454114964a41cb7101b4bbb8143"
+    },
+    {
+      "name": "engine_and_vector_upgraded",
+      "extension": "0.8.6",
+      "rows": 1000,
+      "sha256": "faf135540c27957b849939a1f239b8e83f17f454114964a41cb7101b4bbb8143"
+    }
+  ],
+  "host": "Linux-7.0.0-1019-azure-x86_64-with-glibc2.43",
+  "os_release": {
+    "NAME": "Ubuntu",
+    "ID": "ubuntu",
+    "PRETTY_NAME": "Ubuntu 26.04.1 LTS",
+    "VERSION_ID": "26.04",
+    "VERSION": "26.04.1 LTS (Resolute Raccoon)",
+    "VERSION_CODENAME": "resolute",
+    "ID_LIKE": "debian",
+    "HOME_URL": "https://www.ubuntu.com/",
+    "SUPPORT_URL": "https://help.ubuntu.com/",
+    "BUG_REPORT_URL": "https://bugs.launchpad.net/ubuntu/",
+    "PRIVACY_POLICY_URL": "https://www.ubuntu.com/legal/terms-and-policies/privacy-policy",
+    "UBUNTU_CODENAME": "resolute",
+    "LOGO": "ubuntu-logo"
+  },
+  "server_dependencies": "\tlinux-vdso.so.1 (0x00007dc9f7a2d000)\n\tlibzstd.so.1 => /usr/lib/x86_64-linux-gnu/libzstd.so.1 (0x00007dc9f7961000)\n\tliblz4.so.1 => /usr/lib/x86_64-linux-gnu/liblz4.so.1 (0x00007dc9f7936000)\n\tlibxml2.so.2 => /home/runner/work/_temp/native-check-42083489224-1/pginstall/bin/../lib/libxml2.so.2 (0x00007dc9f6e90000)\n\tlibssl.so.3 => /usr/lib/x86_64-linux-gnu/libssl.so.3 (0x00007dc9f6d7f000)\n\tlibcrypto.so.3 => /usr/lib/x86_64-linux-gnu/libcrypto.so.3 (0x00007dc9f6600000)\n\tlibgssapi_krb5.so.2 => /usr/lib/x86_64-linux-gnu/libgssapi_krb5.so.2 (0x00007dc9f6d27000)\n\tlibz.so.1 => /usr/lib/x86_64-linux-gnu/libz.so.1 (0x00007dc9f6d09000)\n\tlibm.so.6 => /usr/lib/x86_64-linux-gnu/libm.so.6 (0x00007dc9f6c27000)\n\tlibc.so.6 => /usr/lib/x86_64-linux-gnu/libc.so.6 (0x00007dc9f6200000)\n\tlibxxhash.so.0 => /usr/lib/x86_64-linux-gnu/libxxhash.so.0 (0x00007dc9f7921000)\n\tliblzma.so.5 => /usr/lib/x86_64-linux-gnu/liblzma.so.5 (0x00007dc9f65ca000)\n\tlibkrb5.so.3 => /usr/lib/x86_64-linux-gnu/libkrb5.so.3 (0x00007dc9f64fe000)\n\tlibk5crypto.so.3 => /usr/lib/x86_64-linux-gnu/libk5crypto.so.3 (0x00007dc9f64d0000)\n\tlibcom_err.so.2 => /usr/lib/x86_64-linux-gnu/libcom_err.so.2 (0x00007dc9f6c1f000)\n\tlibkrb5support.so.0 => /usr/lib/x86_64-linux-gnu/libkrb5support.so.0 (0x00007dc9f64c3000)\n\t/lib64/ld-linux-x86-64.so.2 (0x00007dc9f7a2f000)\n\tlibkeyutils.so.1 => /usr/lib/x86_64-linux-gnu/libkeyutils.so.1 (0x00007dc9f64bc000)\n\tlibresolv.so.2 => /usr/lib/x86_64-linux-gnu/libresolv.so.2 (0x00007dc9f64a9000)\n",
+  "xml_queries": {
+    "unicode": true,
+    "namespaces": true,
+    "xmltable": true,
+    "malformed_rejected": true
+  },
+  "vector_query_plans": {
+    "<->": [
+      {
+        "Plan": {
+          "Node Type": "Limit",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Startup Cost": 167.5,
+          "Total Cost": 168.19,
+          "Plan Rows": 10,
+          "Plan Width": 12,
+          "Plans": [
+            {
+              "Node Type": "Index Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Scan Direction": "Forward",
+              "Index Name": "fixture_hnsw",
+              "Relation Name": "fixture",
+              "Alias": "fixture",
+              "Startup Cost": 167.5,
+              "Total Cost": 236.0,
+              "Plan Rows": 1000,
+              "Plan Width": 12,
+              "Order By": "(embedding <-> '[9.123,2.456,3.789]'::vector)"
+            }
+          ]
+        }
+      }
+    ],
+    "<#>": [
+      {
+        "Plan": {
+          "Node Type": "Limit",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Startup Cost": 10000000048.11,
+          "Total Cost": 10000000048.13,
+          "Plan Rows": 10,
+          "Plan Width": 12,
+          "Plans": [
+            {
+              "Node Type": "Sort",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Startup Cost": 10000000048.11,
+              "Total Cost": 10000000050.61,
+              "Plan Rows": 1000,
+              "Plan Width": 12,
+              "Sort Key": [
+                "((embedding <#> '[9.123,2.456,3.789]'::vector))"
+              ],
+              "Plans": [
+                {
+                  "Node Type": "Seq Scan",
+                  "Parent Relationship": "Outer",
+                  "Parallel Aware": false,
+                  "Async Capable": false,
+                  "Relation Name": "fixture",
+                  "Alias": "fixture",
+                  "Startup Cost": 10000000000.0,
+                  "Total Cost": 10000000026.5,
+                  "Plan Rows": 1000,
+                  "Plan Width": 12
+                }
+              ]
+            }
+          ]
+        }
+      }
+    ],
+    "<=>": [
+      {
+        "Plan": {
+          "Node Type": "Limit",
+          "Parallel Aware": false,
+          "Async Capable": false,
+          "Startup Cost": 45.0,
+          "Total Cost": 45.69,
+          "Plan Rows": 10,
+          "Plan Width": 12,
+          "Plans": [
+            {
+              "Node Type": "Index Scan",
+              "Parent Relationship": "Outer",
+              "Parallel Aware": false,
+              "Async Capable": false,
+              "Scan Direction": "Forward",
+              "Index Name": "fixture_ivfflat",
+              "Relation Name": "fixture",
+              "Alias": "fixture",
+              "Startup Cost": 45.0,
+              "Total Cost": 113.5,
+              "Plan Rows": 1000,
+              "Plan Width": 12,
+              "Order By": "(embedding <=> '[9.123,2.456,3.789]'::vector)"
+            }
+          ]
+        }
+      }
+    ]
+  },
+  "catalog_repair_databases": [
+    "agent_memory",
+    "postgres",
+    "template0",
+    "template1"
+  ],
+  "catalog_script_sha256": "2a4edf00e85f28ac5cd8867477d572a5e7f609f416da18a00e18442a15baf83d",
+  "encrypted_connection": {
+    "ssl": true,
+    "version": "TLSv1.3",
+    "cipher": "TLS_AES_256_GCM_SHA384"
+  },
+  "restart_preserves_rows": true,
+  "backup_restore_preserves_rows": true,
+  "runtime_dependency_changed": false,
+  "qualifications_are_not_release_acceptance": true,
+  "port_closed": true
+}

@@ -1,0 +1,105 @@
+{
+  "total_count": 5,
+  "artifacts": [
+    {
+      "id": 13442710062,
+      "node_id": "MDg6QXJ0aWZhY3QxMzQ0MjcxMDA2Mg==",
+      "name": "native-linux-aarch64",
+      "size_in_bytes": 11641057,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13442710062",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13442710062/zip",
+      "expired": false,
+      "digest": "sha256:77e2631f946997cf7453bad4000f15ad6190b03a2069f9d38d07362ea909ad3d",
+      "created_at": "2026-11-05T18:25:55Z",
+      "updated_at": "2026-11-05T18:25:55Z",
+      "expires_at": "2026-12-05T18:25:53Z",
+      "workflow_run": {
+        "id": 42083489224,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "integration/maturity-candidate",
+        "head_sha": "9a17e6cc7eb89e51fa9d5019ff0b9c1c10aa7099"
+      }
+    },
+    {
+      "id": 13442274352,
+      "node_id": "MDg6QXJ0aWZhY3QxMzQ0MjI3NDM1Mg==",
+      "name": "native-windows-x86_64",
+      "size_in_bytes": 47407000,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13442274352",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13442274352/zip",
+      "expired": false,
+      "digest": "sha256:1fe635dca76dbe04f8e59709fbbb8c95e1bff57b6b2cee9acf2269896a189e76",
+      "created_at": "2026-11-05T18:29:46Z",
+      "updated_at": "2026-11-05T18:29:46Z",
+      "expires_at": "2026-12-05T18:29:43Z",
+      "workflow_run": {
+        "id": 42083489224,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "integration/maturity-candidate",
+        "head_sha": "9a17e6cc7eb89e51fa9d5019ff0b9c1c10aa7099"
+      }
+    },
+    {
+      "id": 13442219615,
+      "node_id": "MDg6QXJ0aWZhY3QxMzQ0MjIxOTYxNQ==",
+      "name": "native-macos-x86_64",
+      "size_in_bytes": 13420299,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13442219615",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13442219615/zip",
+      "expired": false,
+      "digest": "sha256:a898781af1634b8c239bfc4f963173fd0ffd381644d0827a554f8cff2ddf760e",
+      "created_at": "2026-11-05T18:29:59Z",
+      "updated_at": "2026-11-05T18:29:59Z",
+      "expires_at": "2026-12-05T18:29:57Z",
+      "workflow_run": {
+        "id": 42083489224,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "integration/maturity-candidate",
+        "head_sha": "9a17e6cc7eb89e51fa9d5019ff0b9c1c10aa7099"
+      }
+    },
+    {
+      "id": 13442129331,
+      "node_id": "MDg6QXJ0aWZhY3QxMzQ0MjEyOTMzMQ==",
+      "name": "native-linux-x86_64",
+      "size_in_bytes": 11887360,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13442129331",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13442129331/zip",
+      "expired": false,
+      "digest": "sha256:4e68a6b32186a8d7661db68da03815b2d4fa2b26aa67d2577eef96f6e9292649",
+      "created_at": "2026-11-05T18:28:13Z",
+      "updated_at": "2026-11-05T18:28:13Z",
+      "expires_at": "2026-12-05T18:28:11Z",
+      "workflow_run": {
+        "id": 42083489224,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "integration/maturity-candidate",
+        "head_sha": "9a17e6cc7eb89e51fa9d5019ff0b9c1c10aa7099"
+      }
+    },
+    {
+      "id": 13441398452,
+      "node_id": "MDg6QXJ0aWZhY3QxMzQ0MTM5ODQ1Mg==",
+      "name": "native-macos-arm64",
+      "size_in_bytes": 13033875,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13441398452",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13441398452/zip",
+      "expired": false,
+      "digest": "sha256:2a2ca2017c8b38c395539b07cccf5c040d880bf9fa55d66b9ac882e20477997c",
+      "created_at": "2026-11-05T18:29:17Z",
+      "updated_at": "2026-11-05T18:29:17Z",
+      "expires_at": "2026-12-05T18:29:16Z",
+      "workflow_run": {
+        "id": 42083489224,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "integration/maturity-candidate",
+        "head_sha": "9a17e6cc7eb89e51fa9d5019ff0b9c1c10aa7099"
+      }
+    }
+  ]
+}

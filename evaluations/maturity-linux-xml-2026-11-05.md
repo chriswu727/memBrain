@@ -1,5 +1,7 @@
 # Linux XML ABI candidate qualification — 2026-11-05
 
+Subsequent packaged integration, installed recovery checks and retained full-CI/performance failures are recorded in the [integration follow-up](maturity-linux-integration-2026-11-05.md). This report retains its original candidate-only scope.
+
 The existing packaged Linux PostgreSQL 16.15 executable cannot load on Ubuntu 26 because it requires `libxml2.so.2`. Candidate build `cc599cc` supplies a separately compiled, security-patched library without changing any existing engine file. The [qualification run](https://github.com/chriswu727/memBrain/actions/runs/42079033486) is terminal **SUCCESS** on x86_64 and ARM64, both on Ubuntu 22.04 and on Ubuntu 26.04. The same Ubuntu 22 build artifacts are downloaded and relocated on Ubuntu 26; they are not rebuilt there.
 
 This qualifies the native candidates, **not the currently shipped package**. Runtime commit and all nine installation pins remain `73ee62ee5796902249ddd20b08ed7e4ad6922b3f`; packaged resources, migration SQL and schema are unchanged. Installed-package integration, already-admitted engine revision handling and full application verification remain required. [Hashed public evidence](maturity-linux-xml-2026-11-05/manifest.json).
