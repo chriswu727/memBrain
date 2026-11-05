@@ -1,0 +1,8 @@
+{
+  "reason": "User confirms manually closing the blank Chromium window in preceding run; prior TargetClosedError and partial samples retained",
+  "change": "Pre-measurement static document title on blank page; no application, animation or renderer loaded during closed phase; no change to runtime, workloads, warmups, limits or bars",
+  "fresh_canonical": true,
+  "complete_four_phases_required": true,
+  "do_not_stitch_partial_results": true,
+  "prior_root": "/Users/yichen/tmp/membrain-companion-privacy-20261104"
+}

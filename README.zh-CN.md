@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 候选版本 `d4f0c03` 修复伴侣图在受保护反馈落在可见来源样本之外时的隐私问题。**85 项图谱／浏览器检查和四项固定版本／矩阵检查通过**，零跳过。该版本的全新安装已通过49/49、166个文件全部一致，安装后的低节点上限隐私检查也已通过；完整 CI 与完整性能复验仍在进行。此前的原生校验版本通过 201 项本地检查、49/49 安装验收及166个文件一致性检查，全部36个全屏性能窗口达标（最慢八脑窗口 p95为471.41 ms），完整 CI 已通过 7,068 项 Python／50 项 TypeScript 测试、零跳过。真实模型 R4/C5 和最终复核仍未通过。详见[当前修复](evaluations/maturity-companion-privacy-2026-11-04.md)、[原生校验证据和保留的失败记录](evaluations/maturity-native-validation-2026-11-04.md)及[宿主验证范围](docs/host-compatibility.md)。
+> **预发布阶段。** 候选版本 `d4f0c03` 修复伴侣图在低节点上限下的隐私问题。全新安装通过 **49/49**，**166 个安装文件全部一致**；完整 CI 通过 **7,074 项 Python／50 项 TypeScript 测试**、零跳过，以及严格类型检查、Ruff 和打包。标准召回达标，但完整全屏验收只有 **35/36 个窗口通过**，一个八脑窗口达到 **892.11 ms**，所以 **R5 仍未通过**。内置 PostgreSQL 16.2 还需安全更新；真实模型 R4/C5、剩余图谱覆盖与最终复核仍未通过，继续冻结发布。详见[当前验收与保留的失败记录](evaluations/maturity-companion-privacy-2026-11-04.md)、[此前原生校验证据](evaluations/maturity-native-validation-2026-11-04.md)及[宿主范围](docs/host-compatibility.md)。
 
 <a id="claude-code-plugin"></a>
 

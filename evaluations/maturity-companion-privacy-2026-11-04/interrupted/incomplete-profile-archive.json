@@ -1,0 +1,14 @@
+{
+  "source": "7f2c5fee252286fcd61572ed379280d4e46b7e63",
+  "runtime_pin": "d4f0c03689459f84a2e3d25358e74479d1aa2968",
+  "reason": "retain the stopped incomplete privacy qualification after unexpected blank page closure; preserve all raw data, profiles and registry",
+  "archive": "/Users/yichen/tmp/membrain-companion-privacy-20261104/canonical-profile-privacy-incomplete.tar.gz",
+  "archive_sha256": "da263fa6c988fc2e10089e9af54919e7078587b2f62d7ccbfda0d71dea4b6894",
+  "archive_bytes": 246237640,
+  "regular_files_verified": 1479,
+  "ports_closed_before_archive": true,
+  "original_owned_database_removed": true,
+  "profile_preserved": true,
+  "registry_preserved": true,
+  "never_commit_archive_or_profiles": true
+}

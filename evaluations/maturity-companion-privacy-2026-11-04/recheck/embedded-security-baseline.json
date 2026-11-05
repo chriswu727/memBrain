@@ -1,0 +1,20 @@
+{
+  "status": "open release dependency baseline; no demonstrated memBrain API exploit",
+  "observed_embedded_server": "PostgreSQL16.2, pgserver0.1.4",
+  "observation": "failed-pg-statistics.json and archived postgres.log",
+  "upstream_current_minor_verified": "16.15",
+  "pgserver_latest_pypi": "0.1.4, released2024-06-08",
+  "confirmed_upstream_fix_example": {
+    "cve": "CVE-2024-10976",
+    "fixed_in_16": "16.5",
+    "affected_before": "16.5",
+    "scope": "row-security query-plan reuse under role changes; applicability to memBrain API not demonstrated"
+  },
+  "sources": [
+    "https://www.postgresql.org/support/versioning/",
+    "https://www.postgresql.org/support/security/16/",
+    "https://www.postgresql.org/support/security/CVE-2024-10976/",
+    "https://pypi.org/project/pgserver/"
+  ],
+  "next": "Provide updated verified native engine; inspect all intervening release notes and any required catalog fixes; validate existing-profile upgrade/backup/recovery, vector extension and platform packaging. Do not assume installation/regression passes certify security or publish old engine."
+}

@@ -1,0 +1,87 @@
+{
+  "completed": true,
+  "passed": false,
+  "exit_code": 1,
+  "passed_windows": 35,
+  "total_windows": 36,
+  "failed_windows": [
+    {
+      "phase": 0,
+      "cycle": 2,
+      "name": "eight_brains_8_concurrent",
+      "p95_ms": 892.11
+    }
+  ],
+  "nonempty": 4080,
+  "phase_eight_p95_ms": [
+    718.24,
+    465.29,
+    461.72,
+    445.91
+  ],
+  "graph": [
+    {
+      "nodes": 181,
+      "edges": 66,
+      "hologram_frames": 1630,
+      "page_errors": [],
+      "external_requests": [],
+      "artifact_error": null
+    },
+    {
+      "nodes": 181,
+      "edges": 66,
+      "hologram_frames": 1560,
+      "page_errors": [],
+      "external_requests": [],
+      "artifact_error": null
+    }
+  ],
+  "source_unchanged": true,
+  "driver_unchanged": true,
+  "ports_closed": true,
+  "browser_events_with_approx_utc": [
+    {
+      "event": "page_close",
+      "phase_index": 0,
+      "expected": true,
+      "at": 1390311.013737875,
+      "utc": "2026-11-05T01:52:33.977306+00:00"
+    },
+    {
+      "event": "page_close",
+      "phase_index": 1,
+      "expected": true,
+      "at": 1390370.272590958,
+      "utc": "2026-11-05T01:53:33.236159+00:00"
+    },
+    {
+      "event": "page_close",
+      "phase_index": 2,
+      "expected": true,
+      "at": 1390426.813967208,
+      "utc": "2026-11-05T01:54:29.777535+00:00"
+    },
+    {
+      "event": "page_close",
+      "phase_index": 3,
+      "expected": true,
+      "at": 1390482.173268333,
+      "utc": "2026-11-05T01:55:25.136836+00:00"
+    },
+    {
+      "event": "browser_disconnected",
+      "closing": true,
+      "phase_index": 3,
+      "at": 1390482.444663958,
+      "utc": "2026-11-05T01:55:25.408232+00:00"
+    }
+  ],
+  "phase_seconds": [
+    57.264,
+    57.491,
+    55.04,
+    54.417
+  ],
+  "docs_commit_utc": "2026-11-04T18:53:17-07:00"
+}

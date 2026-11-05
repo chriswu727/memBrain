@@ -1,0 +1,29 @@
+{
+  "source_commit": "7f2c5fee252286fcd61572ed379280d4e46b7e63",
+  "runtime_pin": "d4f0c03689459f84a2e3d25358e74479d1aa2968",
+  "run_id": 41949997913,
+  "job_id": 126991429673,
+  "conclusion": "success",
+  "python_passed": 7074,
+  "python_skipped": 0,
+  "python_warnings": 3,
+  "seconds": 1375.5,
+  "typescript_passed": 50,
+  "typescript_failed": 0,
+  "typescript_skipped": 0,
+  "strict_types": "pass",
+  "ruff_ci_scope": "pass",
+  "sdist_wheel": "pass",
+  "full_log_bytes": 1525723,
+  "full_log_sha256": "a470f64f5b4f71602a3724f93428d6fda281a8dd7f70a78725d4ecd1719e8db6",
+  "gzip_bytes": 189884,
+  "gzip_sha256": "8864ccb6606608d4ae727f48dc201c4bc0364c964346511bc57ff583ee6c0d18",
+  "actual_docker_journeys": [
+    "desktop",
+    "recovery",
+    "upgrade",
+    "standalone_chat"
+  ],
+  "real_pinned_cpu_model": "pass",
+  "activation_cases": "pass"
+}

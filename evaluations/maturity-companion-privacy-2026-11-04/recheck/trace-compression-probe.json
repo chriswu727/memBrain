@@ -1,0 +1,89 @@
+{
+  "purpose": "lossless trace row compression space/CPU probe on session-local temporary tables; not R5 or production write timing",
+  "model_calls": 0,
+  "completed": true,
+  "arms": [
+    {
+      "index": 0,
+      "toast_tuple_target": 2040,
+      "insert_wall_ms": 20.278167,
+      "all_columns_identical": true,
+      "differences": 0,
+      "relation_bytes": 6864896,
+      "sizes": {
+        "n": 5000,
+        "average_document_bytes": "1148.0000000000000000",
+        "document_bytes": 5740000
+      },
+      "compression_methods": [
+        {
+          "method": null,
+          "n": 5000
+        }
+      ]
+    },
+    {
+      "index": 1,
+      "toast_tuple_target": 1024,
+      "insert_wall_ms": 11.115,
+      "all_columns_identical": true,
+      "differences": 0,
+      "relation_bytes": 6864896,
+      "sizes": {
+        "n": 5000,
+        "average_document_bytes": "1148.0000000000000000",
+        "document_bytes": 5740000
+      },
+      "compression_methods": [
+        {
+          "method": null,
+          "n": 5000
+        }
+      ]
+    },
+    {
+      "index": 2,
+      "toast_tuple_target": 1024,
+      "insert_wall_ms": 11.803125,
+      "all_columns_identical": true,
+      "differences": 0,
+      "relation_bytes": 6864896,
+      "sizes": {
+        "n": 5000,
+        "average_document_bytes": "1148.0000000000000000",
+        "document_bytes": 5740000
+      },
+      "compression_methods": [
+        {
+          "method": null,
+          "n": 5000
+        }
+      ]
+    },
+    {
+      "index": 3,
+      "toast_tuple_target": 2040,
+      "insert_wall_ms": 10.551458,
+      "all_columns_identical": true,
+      "differences": 0,
+      "relation_bytes": 6864896,
+      "sizes": {
+        "n": 5000,
+        "average_document_bytes": "1148.0000000000000000",
+        "document_bytes": 5740000
+      },
+      "compression_methods": [
+        {
+          "method": null,
+          "n": 5000
+        }
+      ]
+    }
+  ],
+  "limitations": "Temporary tables omit WAL and production indexes; sample/cache/order effects remain. No production table/configuration or retention setting is changed.",
+  "sample_rows": 5000,
+  "base_rows_before": 236691,
+  "base_rows_after": 236691,
+  "base_configuration_unchanged": true,
+  "ports_closed": true
+}

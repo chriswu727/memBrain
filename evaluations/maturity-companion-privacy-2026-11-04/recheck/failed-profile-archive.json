@@ -1,0 +1,14 @@
+{
+  "source": "7f2c5fee252286fcd61572ed379280d4e46b7e63",
+  "runtime_pin": "d4f0c03689459f84a2e3d25358e74479d1aa2968",
+  "reason": "retain the stopped complete35/36 failure before CPU/SQL attribution; preserve original database, profile and registry",
+  "archive": "/Users/yichen/tmp/membrain-companion-privacy-recheck-20261104/canonical-profile-privacy-failed.tar.gz",
+  "archive_sha256": "4e313b24179577abb41c39869675d69f0dab455be6850d1d968d4af741e2fc14",
+  "archive_bytes": 304005901,
+  "regular_files_verified": 1487,
+  "ports_closed_before_archive": true,
+  "original_owned_database_removed": false,
+  "profile_preserved": true,
+  "registry_preserved": true,
+  "never_commit_archive_or_profiles": true
+}
