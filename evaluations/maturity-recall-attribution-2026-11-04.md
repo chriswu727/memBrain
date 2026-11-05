@@ -1,0 +1,13 @@
+# Current recall CPU attribution
+
+Runtime `d4f0c03` on the original PostgreSQL 16.2 is instrumented on an isolated APFS copy of the archived failed synthetic corpus. The private failed archive's SHA256 is verified before copying. No original cluster, ranking/budget/retention setting, source code or GC policy changes. This is diagnosis, **not a new R5 qualification or a reproduction of the 892.11 ms window**.
+
+Three cold serial requests are followed by eight brains with twenty queries each. All **163 recalls complete with nonempty context**, zero model/embedding calls. The API is deliberately terminated with return code **-15** after collecting results; all owned API/database ports close, source hashes match and the diagnostic profile is retained.
+
+The 160 concurrent requests take 8.318 seconds and use 9,103.409 ms process CPU. Within them, measured recall processing uses 5,607.949 ms thread CPU; candidate collection uses 3,237.703 ms. These categories are inclusive and overlap, so they must not be added. Response validation uses 379.315 ms and JSON response encoding 144.674 ms. Full-generation GC runs 26 times, using 415.741 ms thread CPU, with maximum observed collection wall time 21.461 ms. These measurements support inspecting candidate computation first; they do not prove the cause of the historical failed window.
+
+Database execute wall times include scheduling/server waits; row decoding is measured separately. The merged lexical query totals 5,675.144 ms execute wall but only 170.399 ms client thread CPU across 160 calls. Trace insertion totals 1,883.913 ms execute wall / 42.607 ms client CPU. Parallel request totals overlap and cannot be interpreted as elapsed time or pure server execution. Instrumentation itself adds overhead. The serial group includes cold schema compilation, connections and cache state and is not a warm performance baseline.
+
+Next work is a function-level profile of candidate collection and a controlled result-equivalence experiment for any proposed optimization. No GC tuning, response encoder replacement, admission cap, trace omission or unchanged valid qualification rerun is justified by this report. The complete earlier R5 result remains **35/36 windows pass, one eight-brain p95 892.11 ms fails**, as recorded in the [current qualification](maturity-companion-privacy-2026-11-04.md).
+
+[Allowlisted driver, instrumentation, raw metrics and summary](maturity-recall-attribution-2026-11-04/manifest.json) exclude the database copy, profiles, registry, credentials and private archives. No paid/subscription model or Claude call is made.

@@ -1,0 +1,63 @@
+{
+  "purpose": "CPU/SQL/row-decode/GC attribution on isolated failed corpus; not R5 or proven failure causality",
+  "runtime_pin": "d4f0c03689459f84a2e3d25358e74479d1aa2968",
+  "source_head": "5d5270249641e057661b09c9f274e0a8e19be858",
+  "excluded": [
+    "database copy",
+    "profiles",
+    "registry",
+    "credentials/DSNs",
+    "private archives"
+  ],
+  "files": [
+    {
+      "path": "run-cpu-attribution.py",
+      "bytes": 7304,
+      "sha256": "c7a91a5de4966cf89c5ad9c499c3db5d2d6a80ba310ed7ee99bd7cfc66346006",
+      "raw_bytes": 7304,
+      "raw_sha256": "c7a91a5de4966cf89c5ad9c499c3db5d2d6a80ba310ed7ee99bd7cfc66346006"
+    },
+    {
+      "path": "cpu-attribution-worker.py",
+      "bytes": 5430,
+      "sha256": "e46725f5acecea99074c83e28996f72222f0c331dfa0ea6e4710b25d31b8d566",
+      "raw_bytes": 5430,
+      "raw_sha256": "e46725f5acecea99074c83e28996f72222f0c331dfa0ea6e4710b25d31b8d566"
+    },
+    {
+      "path": "cpu-attribution.json.gz",
+      "bytes": 138974,
+      "sha256": "704e7ce79fc7eb4d757f6ce1e9c4d08f77138420b2d3f2a0ef20a3490a473a6c",
+      "raw_bytes": 2123934,
+      "raw_sha256": "453696dd5d5093cf59096372ab44dd28bebb3b40aa5618f0cea68ef82d683147"
+    },
+    {
+      "path": "cpu-attribution.log.gz",
+      "bytes": 339,
+      "sha256": "4b920ebd9dc11163ae32b2d52f955447965b64bd5978cd079e2916e33796ba7d",
+      "raw_bytes": 518,
+      "raw_sha256": "1a068c13c4f44430f7d042b21c7193ca7d6e9767c58df0bd45170b3f6a692903"
+    },
+    {
+      "path": "cpu-attribution-api.log.gz",
+      "bytes": 20,
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "summary.json.gz",
+      "bytes": 4346,
+      "sha256": "dcab985458ea186491661395d195884f31fe3655ab9988f6b80c4cc7e93634e1",
+      "raw_bytes": 26608,
+      "raw_sha256": "a6b01d4c77d235b9ce58adc4770fcebb2177944d56c11d8e309b8c7271080e87"
+    },
+    {
+      "path": "credential-scan.json",
+      "bytes": 137,
+      "sha256": "c80ebe2f7b4e15dc34a796a0eb7209315b0731dc7625ef0982fdc9df33181d30",
+      "raw_bytes": 137,
+      "raw_sha256": "c80ebe2f7b4e15dc34a796a0eb7209315b0731dc7625ef0982fdc9df33181d30"
+    }
+  ]
+}
