@@ -1,0 +1,149 @@
+{
+  "source_head": "6da213b",
+  "runtime": "174bc506595e9f96e4c38b0c10f737c7f98c639a",
+  "scope": "public stub practice and offline policy probe; no real model or external network",
+  "owned_credential_values_scanned": 6,
+  "credential_matches": 0,
+  "files": [
+    {
+      "path": "practice-check.txt.gz",
+      "bytes": 235,
+      "sha256": "950d035cb6451926c02e332742faff4da150a492522b6c60534a8ac3a54af2d8",
+      "original_bytes": 673,
+      "original_sha256": "010f206e79fc09d5a4f457c9a2e48e816e0903bcfcf2cdc5d606b0983bc4cfef"
+    },
+    {
+      "path": "practice-validity.json.gz",
+      "bytes": 138,
+      "sha256": "f79a07d589de0127fcdd78c6de9efae466c4db68349a4de6bc0dcba6dffb22a6",
+      "original_bytes": 148,
+      "original_sha256": "9b4052ac98431a8b6d2caec761df981c62a623e4edb517965cafdc971eae4024"
+    },
+    {
+      "path": "practice-ports.json.gz",
+      "bytes": 69,
+      "sha256": "1fc6eeac2c96553c54e498c260b175cbd48acf2d3af2eb3ad49fcfde1bb35777",
+      "original_bytes": 57,
+      "original_sha256": "54a3a7d83800cacbb341e0383aa21c98402e3a53a75aede8a16f8070ee57eec1"
+    },
+    {
+      "path": "practice-journal-check.json.gz",
+      "bytes": 133,
+      "sha256": "f0525231aaeb42c0e0a4a44a78d97ee42652804cdff32155fd1a3227ec6d038d",
+      "original_bytes": 381,
+      "original_sha256": "7c5c0b44d43c73ffab69dc9d3ce5e82424999267c8db75aa263e3bdcf4fe0bfa"
+    },
+    {
+      "path": "policy-check.json.gz",
+      "bytes": 188,
+      "sha256": "16e2b6a02edb54a485d189a948376e1ed33202b5f9614551b2222d040f40c37f",
+      "original_bytes": 219,
+      "original_sha256": "89368599deb8c91edb3c26f8551a4179d0081268be9af09b46f054eebb90caa3"
+    },
+    {
+      "path": "probe-policy.py.gz",
+      "bytes": 950,
+      "sha256": "101dda948f365b766cd55f3614267340af6b45b5b9a7527e543ee14122d54212",
+      "original_bytes": 1945,
+      "original_sha256": "26f6861c388314a0338e99cb35df4c9c6a57a72617dcc1ccd40e719f72d59268"
+    },
+    {
+      "path": "practice--inputs.json.gz",
+      "bytes": 381,
+      "sha256": "7f0c201d83dce741f1a645f7245e5c3aa710bfbbdf2a4fee90088d365babe6f2",
+      "original_bytes": 586,
+      "original_sha256": "8eee148ded06bc1e96a4197d26a7748dfac47ca297995b114ba9212a013f7d9d"
+    },
+    {
+      "path": "practice--completion.json.gz",
+      "bytes": 84,
+      "sha256": "f8a603832f325341a76dbfedee75d33596a9de6bef18b9510e23f1041b678fd2",
+      "original_bytes": 88,
+      "original_sha256": "e2c00d7afc2b8797488d6277d601930113958d60462eb1fb8c67c3b24121968f"
+    },
+    {
+      "path": "practice--dry-P--run.log.gz",
+      "bytes": 1311,
+      "sha256": "756290e7551be342aa90cfa0f7b9b50ba154d3c1cf0851b0e2df9a49615e9a77",
+      "original_bytes": 3697,
+      "original_sha256": "88ebec2d8a03f15ec6b9e93d5c30c49b3661f4c4153580edcc8eba733b68eaec"
+    },
+    {
+      "path": "practice--dry-P--page-actions.jsonl.gz",
+      "bytes": 965,
+      "sha256": "07b6eb035bdd2948bf4d1df77e20455f876b59bcd3f67adbc28bc4bc7df4ff73",
+      "original_bytes": 4908,
+      "original_sha256": "4765e080a6e80ed872d4ae81920fc66d980089fee01e1fb731fa598967ea0f79"
+    },
+    {
+      "path": "practice--dry-P--host-rounds.jsonl.gz",
+      "bytes": 1135,
+      "sha256": "af51e9541965a6a88aa0870e50ae31cf2faa5cc4ff6f4c31557d9c08c5603407",
+      "original_bytes": 11196,
+      "original_sha256": "27ddb746bad39d67e219fd95c44dfe94bda0763c9add5774d06c580d37ac7619"
+    },
+    {
+      "path": "practice--dry-P--results_c5-practice-scenario_P.jsonl.gz",
+      "bytes": 7180,
+      "sha256": "b06abbc7255fafdf4eeac182608eac07197a26f67d3f991ef26120a88c0d7ddc",
+      "original_bytes": 151800,
+      "original_sha256": "b5cf8af2f72f6aafd8fc0e57c80c6d6818c7e4b21de630f6ba4a38e13899d1e2"
+    },
+    {
+      "path": "practice--dry-E--run.log.gz",
+      "bytes": 1073,
+      "sha256": "0b937849e963c96319540800e9e014d3944c75cb0f8761167758ba6d0c9c47da",
+      "original_bytes": 3329,
+      "original_sha256": "f6ced2380530f74540bc99fb12978a17fef11cadffbd9708c791eebe41e7cb08"
+    },
+    {
+      "path": "practice--dry-E--results_c5-practice-scenario_E.jsonl.gz",
+      "bytes": 6055,
+      "sha256": "05513a964bd03d23403f0f8faa338c240803497967a98c25d7b696d4725bec85",
+      "original_bytes": 205842,
+      "original_sha256": "532226a745a68be2787e4684603ef4e9368f9afb92f642217f2216dbb44ac56a"
+    },
+    {
+      "path": "practice--dry-E--page-actions.jsonl.gz",
+      "bytes": 986,
+      "sha256": "1e2b4b6ca4116ad206abc31cf72bf5508839e3e321969b7207cf60a873dc26d9",
+      "original_bytes": 5481,
+      "original_sha256": "b52ffcf4aba3507b990ebd5b499ac4768651079b7373a2467b757cd2b1321da9"
+    },
+    {
+      "path": "practice--dry-E--host-rounds.jsonl.gz",
+      "bytes": 614,
+      "sha256": "cbe9271e85921ac96e898aa9e3993942d57a145121f4b8fca30f9278c0951d77",
+      "original_bytes": 6830,
+      "original_sha256": "f45c5e1703bfa458a58972153425b14f1c13ede5d9c81fa1f2f6fc2c8c0ca750"
+    },
+    {
+      "path": "practice--dry-F--results_c5-practice-scenario_F.jsonl.gz",
+      "bytes": 2157,
+      "sha256": "164e44eba66e8eddc09cf82ad44d506fdbae9d2db93249502d249a50b88e799f",
+      "original_bytes": 28258,
+      "original_sha256": "0691b37480dc61245d82eccee9e0ca6737ef0cfee2bc3c6477d26b0ccebe7bed"
+    },
+    {
+      "path": "practice--dry-F--run.log.gz",
+      "bytes": 523,
+      "sha256": "cd85ec558f3d532d930a20eaf9faa39e2bf378943b431470374181cf6b85eee8",
+      "original_bytes": 2123,
+      "original_sha256": "dbb73f557283f4c502599c12114b22bc139d683d00268426f3d7a4d6cb45da78"
+    },
+    {
+      "path": "practice--dry-F--page-actions.jsonl.gz",
+      "bytes": 458,
+      "sha256": "bc9dbbf1ebf21387decb21614e70cafa88f2391fdf82139a5add21773c24cb90",
+      "original_bytes": 1905,
+      "original_sha256": "1c11387b984cfce333eff6016deb94fd024848cd3de4a3fa0b26a76d33035c71"
+    },
+    {
+      "path": "practice--dry-F--host-rounds.jsonl.gz",
+      "bytes": 542,
+      "sha256": "8bb0f932f6cce51d46c39e1034d0c68da3dbc6722d71b5651268f109540751ad",
+      "original_bytes": 5715,
+      "original_sha256": "0a7e000d968571aefb15620fca13935fb4fb6004b593b5761b9db39708bfe142"
+    }
+  ]
+}
