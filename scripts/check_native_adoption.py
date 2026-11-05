@@ -151,7 +151,8 @@ def check(directory, cache, *, legacy=False, restore_backup=False, require_root=
     finally:
         for owned in (restored, profile):
             if owned is not None:
-                desktop.stop(owned.directory)
+                if desktop._port_open(owned.api_port) or desktop._port_open(owned.database_port):
+                    desktop.stop(owned.directory)
                 assert not desktop._port_open(owned.api_port) and not desktop._port_open(owned.database_port)
         report["owned_ports_closed"] = True
         checkpoint(report["phase"])

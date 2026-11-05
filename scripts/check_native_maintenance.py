@@ -77,7 +77,7 @@ def check(directory, cache, *, legacy, require_root):
     directory.mkdir(mode=0o700, parents=True, exist_ok=False)
     _private(directory, directory=True)
     report = {"completed": False, "model_calls": 0, "target": native_bundle.platform_key(),
-              "scope": "resumable SQL maintenance component only; default selector and lifecycle orchestrator unchanged",
+              "scope": "isolated resumable SQL maintenance qualification; ordinary default API startup is qualified separately",
               "legacy_upgrade": legacy, "root_service_account": require_root, "phase": "created"}
     profile = None
     original = embedded_database._installation

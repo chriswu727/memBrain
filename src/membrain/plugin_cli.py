@@ -109,10 +109,13 @@ def dispatch(args) -> None:
         raise SystemExit(plugin.run_tool(args.name, directory))
     if args.plugin_command == "mcp":
         from .desktop_connection import run_mcp
-        from .host import installed_tool_python, running_from_uv_cache
+        from .host import installed_tool_matches, installed_tool_python, running_from_uv_cache
 
         durable = installed_tool_python() if running_from_uv_cache() else None
         if durable is not None:
+            if not installed_tool_matches(durable):
+                print("The installed memBrain tool differs from this MCP runtime. Update the tool using the same package source as this MCP configuration, then reconnect. Existing data was preserved.", file=sys.stderr)
+                raise SystemExit(1)
             # Serve MCP from the installed tool so the service it starts outlives uv cache cleanups.
             import subprocess
 

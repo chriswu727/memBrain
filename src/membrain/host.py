@@ -217,6 +217,18 @@ def installed_tool_python() -> Path | None:
     return python if python.exists() else None
 
 
+def installed_tool_matches(python: Path) -> bool:
+    from .build_identity import BUILD_ID
+
+    try:
+        result = subprocess.run([str(python), "-I", "-c",
+                                 "from membrain.build_identity import BUILD_ID; print(BUILD_ID)"],
+                                capture_output=True, text=True, timeout=10, check=False)
+        return result.returncode == 0 and result.stdout.strip() == BUILD_ID
+    except (OSError, subprocess.SubprocessError):
+        return False
+
+
 def running_from_uv_cache() -> bool:
     """Whether this process runs from an environment uv built in its cache (``uvx --from <url>``).
 

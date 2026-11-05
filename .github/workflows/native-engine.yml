@@ -128,7 +128,7 @@ jobs:
       - name: Verify default admission and recovery under Linux root and legacy service account
         if: runner.os == 'Linux'
         id: native_adoption_root
-        run: sudo -n "$(command -v python)" scripts/check_native_adoption.py --directory "${{ runner.temp }}/native-adoption-root-${{ github.run_id }}-${{ github.run_attempt }}" --cache-directory "${{ runner.temp }}/packaged-native-${{ github.run_id }}-${{ github.run_attempt }}/cache" --require-root --restore-backup ${{ matrix.target != 'linux-aarch64' && '--legacy-upgrade' || '' }}
+        run: sudo -n "$(command -v python)" scripts/check_native_adoption.py --directory "${{ runner.temp }}/native-adoption-root-${{ github.run_id }}-${{ github.run_attempt }}" --cache-directory "${{ runner.temp }}/native-adoption-root-cache-${{ github.run_id }}-${{ github.run_attempt }}" --require-root --restore-backup ${{ matrix.target != 'linux-aarch64' && '--legacy-upgrade' || '' }}
       - name: Export only the root default admission summary
         if: always() && runner.os == 'Linux' && steps.native_adoption_root.outcome != 'skipped'
         run: sudo -n cat "${{ runner.temp }}/native-adoption-root-${{ github.run_id }}-${{ github.run_attempt }}/result.json" > "${{ runner.temp }}/native-adoption-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json"
