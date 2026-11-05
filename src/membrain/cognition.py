@@ -89,8 +89,10 @@ def _stem(word: str) -> str:
     if len(word) >= 5 and word.endswith(("ies", "ied")):
         return word[:-3] + "y"
     for suffix in ("ing", "ed"):
+        if not word.endswith(suffix):
+            continue
         base = word[:-len(suffix)]
-        if word.endswith(suffix) and not word.endswith("eed") and len(base) >= 3 and re.search("[aeiouy]", base):
+        if not word.endswith("eed") and len(base) >= 3 and re.search("[aeiouy]", base):
             if len(base) >= 4 and base[-1] == base[-2] and base[-1] not in "aeiouylsz":
                 base = base[:-1]
             word = base
@@ -362,11 +364,12 @@ def _scope_allows(source: dict, scope: dict) -> bool:
 def _terms(text: str) -> tuple[set[str], set[str], set[str]]:
     normalized = unicodedata.normalize("NFKC", text).casefold()
     normalized = normalized.replace("’", "'")
-    normalized = re.sub(r"\bwon't\b", "will not", normalized)
-    normalized = re.sub(r"\bcan't\b", "can not", normalized)
-    normalized = re.sub(r"\bshan't\b", "shall not", normalized)
-    normalized = re.sub(r"n't\b", " not", normalized)
-    normalized = re.sub(r"'(?:m|re|ve|ll|d|s)\b", " ", normalized)
+    if "'" in normalized:
+        normalized = re.sub(r"\bwon't\b", "will not", normalized)
+        normalized = re.sub(r"\bcan't\b", "can not", normalized)
+        normalized = re.sub(r"\bshan't\b", "shall not", normalized)
+        normalized = re.sub(r"n't\b", " not", normalized)
+        normalized = re.sub(r"'(?:m|re|ve|ll|d|s)\b", " ", normalized)
     words = {_stem(word) for word in re.findall(r"[a-z0-9_]+", normalized) if word not in _IGNORED_TERMS}
     runs = re.findall(r"[\u3400-\u9fff]+", _CJK_FILLERS.sub(" ", normalized))
     singles = {char for run in runs for char in run if char not in "的了是吗呢么在我你他她和有"}

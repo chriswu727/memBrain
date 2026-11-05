@@ -11,6 +11,7 @@ import importlib.util
 import os
 import secrets
 import shutil
+import stat
 import subprocess
 import time
 from dataclasses import dataclass
@@ -199,6 +200,49 @@ def _failure(code: str, summary: str, layout: _Layout) -> EmbeddedDatabaseError:
     return EmbeddedDatabaseError(code, summary + detail)
 
 
+def _configuration(profile, buffers: int = 128) -> str:
+    return ("\n# memBrain embedded engine\n"
+            "listen_addresses = '127.0.0.1'\n"
+            f"port = {profile.database_port}\n"
+            "unix_socket_directories = ''\n"
+            "max_connections = 50\n"
+            f"shared_buffers = {buffers}MB\n")
+
+
+def _update_managed_defaults(profile, layout: _Layout) -> None:
+    path = layout.data / "postgresql.conf"
+    if path.is_symlink():
+        return
+    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
+    with os.fdopen(descriptor, "rb") as stream:
+        metadata = os.fstat(stream.fileno())
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1 or metadata.st_size > 1024 * 1024:
+            return
+        original = stream.read()
+    replacements = []
+    for newline in (b"\n", b"\r\n"):
+        old = _configuration(profile, 32).encode().replace(b"\n", newline)
+        if original.count(old) == 1:
+            replacements.append((old, _configuration(profile).encode().replace(b"\n", newline)))
+    if len(replacements) != 1:
+        return
+    old, new = replacements[0]
+    temporary = path.parent / (".configuration-" + secrets.token_hex(8))
+    try:
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(original.replace(old, new, 1))
+            if os.name != "nt":
+                os.fchmod(stream.fileno(), stat.S_IMODE(metadata.st_mode))
+                if _running_as_root() or os.fstat(stream.fileno()).st_gid != metadata.st_gid:
+                    os.fchown(stream.fileno(), metadata.st_uid if _running_as_root() else -1, metadata.st_gid)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def _initialize(profile, layout: _Layout) -> None:
     if (layout.data / "PG_VERSION").is_file():
         return
@@ -219,12 +263,7 @@ def _initialize(profile, layout: _Layout) -> None:
                                         "The embedded database could not be initialized." + (
                                             f" initdb reported:\n{detail}" if detail else ""))
         with open(staging / "postgresql.conf", "a", encoding="utf-8") as stream:
-            stream.write("\n# memBrain embedded engine\n"
-                         "listen_addresses = '127.0.0.1'\n"
-                         f"port = {profile.database_port}\n"
-                         "unix_socket_directories = ''\n"
-                         "max_connections = 50\n"
-                         "shared_buffers = 32MB\n")
+            stream.write(_configuration(profile))
         os.replace(staging, layout.data)
     finally:
         password_file.unlink(missing_ok=True)
@@ -247,6 +286,14 @@ def start(profile) -> None:
     layout = _layout(profile)
     _initialize(profile, layout)
     if _run(layout, "pg_ctl", "status", "-D", str(layout.data), timeout=30).returncode != 0:
+        try:
+            _update_managed_defaults(profile, layout)
+        except OSError:
+            raise EmbeddedDatabaseError(
+                "database_configuration_failed",
+                "The embedded database configuration could not be updated. Existing data was preserved. "
+                "Check file access and available disk space before retrying.",
+            ) from None
         result = _run(layout, "pg_ctl", "start", "-D", str(layout.data), "-l", str(layout.log),
                       "-w", "-t", "90", timeout=120)
         if result.returncode:

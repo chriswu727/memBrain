@@ -134,3 +134,124 @@ def test_root_installations_keep_new_clusters_with_their_data_when_reachable(tmp
     (tmp_path / "shared" / "clusters" / "a" / "data" / "PG_VERSION").write_text("17")
     layout = embedded_database._layout(SimpleNamespace(directory=reachable, installation_id="a"))
     assert layout.data == tmp_path / "shared" / "clusters" / "a" / "data"  # Existing clusters stay where they are.
+
+
+@pytest.mark.parametrize("newline", [b"\n", b"\r\n"])
+def test_managed_buffer_migration_preserves_custom_bytes_permissions_and_is_idempotent(tmp_path, newline):
+    profile = SimpleNamespace(database_port=55433)
+    layout = embedded_database._Layout(tmp_path, tmp_path, tmp_path / "log", None)
+    path = tmp_path / "postgresql.conf"
+    before = b"# earlier settings\n" + embedded_database._configuration(profile, 32).encode().replace(b"\n", newline)
+    after = b"# keep my later setting\nshared_buffers = 64MB\n"
+    path.write_bytes(before + after)
+    path.chmod(0o600)
+    metadata = path.stat()
+    embedded_database._update_managed_defaults(profile, layout)
+    expected = b"# earlier settings\n" + embedded_database._configuration(profile).encode().replace(b"\n", newline) + after
+    assert path.read_bytes() == expected
+    assert path.stat().st_mode == metadata.st_mode
+    assert (path.stat().st_uid, path.stat().st_gid) == (metadata.st_uid, metadata.st_gid)
+    changed = path.stat()
+    embedded_database._update_managed_defaults(profile, layout)
+    assert path.read_bytes() == expected and path.stat().st_mtime_ns == changed.st_mtime_ns
+
+
+@pytest.mark.parametrize("kind", ["custom", "ambiguous", "symlink", "hardlink"])
+def test_custom_or_linked_engine_configuration_is_not_rewritten(tmp_path, kind):
+    profile = SimpleNamespace(database_port=55433)
+    layout = embedded_database._Layout(tmp_path, tmp_path, tmp_path / "log", None)
+    path = tmp_path / "postgresql.conf"
+    original = embedded_database._configuration(profile, 64 if kind == "custom" else 32).encode()
+    if kind == "ambiguous":
+        original *= 2
+    if kind in {"symlink", "hardlink"}:
+        target = tmp_path / "custom.conf"
+        target.write_bytes(original)
+        if kind == "symlink":
+            path.symlink_to(target)
+        else:
+            os.link(target, path)
+    else:
+        path.write_bytes(original)
+    embedded_database._update_managed_defaults(profile, layout)
+    assert path.read_bytes() == original
+    if kind == "symlink":
+        assert path.is_symlink()
+
+
+def test_failed_buffer_configuration_replacement_preserves_the_original(tmp_path, monkeypatch):
+    profile = SimpleNamespace(database_port=55433)
+    layout = embedded_database._Layout(tmp_path, tmp_path, tmp_path / "log", None)
+    path = tmp_path / "postgresql.conf"
+    original = embedded_database._configuration(profile, 32).encode()
+    path.write_bytes(original)
+
+    def interrupted(*args):
+        raise OSError("simulated replacement failure")
+
+    monkeypatch.setattr(embedded_database.os, "replace", interrupted)
+    with pytest.raises(OSError, match="simulated replacement failure"):
+        embedded_database._update_managed_defaults(profile, layout)
+    assert path.read_bytes() == original
+    assert not list(tmp_path.glob(".configuration-*"))
+
+
+@pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
+def test_buffer_default_applies_to_fresh_and_stopped_managed_clusters_without_hot_changes(tmp_path):
+    profile = ensure_profile(tmp_path / "brain", database_engine="embedded")
+    layout = embedded_database._layout(profile)
+    try:
+        embedded_database.start(profile)
+        with embedded_database._admin_connection(profile, "postgres") as conn:
+            assert conn.execute("SHOW shared_buffers").fetchone()[0] == "128MB"
+        embedded_database.stop(profile)
+        path = layout.data / "postgresql.conf"
+        original = path.read_bytes().replace(embedded_database._configuration(profile).encode(),
+                                             embedded_database._configuration(profile, 32).encode())
+        path.write_bytes(original)
+        result = embedded_database._run(layout, "pg_ctl", "start", "-D", str(layout.data),
+                                         "-l", str(layout.log), "-w", "-t", "90")
+        assert result.returncode == 0
+        embedded_database.start(profile)
+        with embedded_database._admin_connection(profile, "postgres") as conn:
+            assert conn.execute("SHOW shared_buffers").fetchone()[0] == "32MB"
+        assert path.read_bytes() == original
+        embedded_database.stop(profile)
+        embedded_database.start(profile)
+        with embedded_database._admin_connection(profile, "postgres") as conn:
+            assert conn.execute("SHOW shared_buffers").fetchone()[0] == "128MB"
+    finally:
+        embedded_database.stop(profile)
+    assert not embedded_database.running(profile)
+
+
+@pytest.mark.skipif(not hasattr(os, "mkfifo"), reason="named pipes are unavailable on this platform")
+def test_buffer_migration_does_not_wait_on_a_named_pipe(tmp_path):
+    profile = SimpleNamespace(database_port=55433)
+    layout = embedded_database._Layout(tmp_path, tmp_path, tmp_path / "log", None)
+    path = tmp_path / "postgresql.conf"
+    os.mkfifo(path)
+    embedded_database._update_managed_defaults(profile, layout)
+    assert path.exists() and not path.is_file()
+
+
+def test_buffer_configuration_failure_is_reported_before_starting_the_database(tmp_path, monkeypatch):
+    layout = embedded_database._Layout(tmp_path, tmp_path, tmp_path / "log", None)
+    calls = []
+    monkeypatch.setattr(embedded_database, "_layout", lambda profile: layout)
+    monkeypatch.setattr(embedded_database, "_initialize", lambda *args: None)
+
+    def status(layout, program, *args, **kwargs):
+        calls.append((program, args[0]))
+        return subprocess.CompletedProcess([program], 1)
+
+    def unavailable(*args):
+        raise OSError("private configuration path")
+
+    monkeypatch.setattr(embedded_database, "_run", status)
+    monkeypatch.setattr(embedded_database, "_update_managed_defaults", unavailable)
+    with pytest.raises(embedded_database.EmbeddedDatabaseError) as error:
+        embedded_database.start(SimpleNamespace())
+    assert error.value.code == "database_configuration_failed"
+    assert "private configuration path" not in str(error.value)
+    assert calls == [("pg_ctl", "status")]

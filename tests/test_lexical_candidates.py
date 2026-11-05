@@ -201,3 +201,16 @@ def test_term_cache_character_bound_applies_before_the_entry_bound():
     for number in range(100):
         scorer("blue map", f"label{number:05d} " + "garden " * 150)
     assert scorer._cached_characters <= 65536 and len(scorer._term_cache) < 512
+
+
+def test_source_frequency_counts_origins_with_no_query_terms():
+    scorer = LexicalScorer("amber green", ["amber", "unrelated", "green", "another unrelated"],
+                           origins=[{"a"}, {"b"}, {"c"}, {"b"}])
+    assert scorer.weights == [{"amber": 2, "green": 2}, {}, {}]
+    assert scorer("amber green", "amber") == scorer("amber green", "green") == 0.5
+
+
+def test_distinct_ungrouped_documents_keep_their_non_query_identity():
+    scorer = LexicalScorer("amber green", ["amber meadow", "amber island", "green island"])
+    assert scorer.weights == [{"amber": 4 / 3, "green": 2}, {}, {}]
+    assert scorer("amber green", "green") > scorer("amber green", "amber")

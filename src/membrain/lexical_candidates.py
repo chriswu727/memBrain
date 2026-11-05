@@ -22,10 +22,10 @@ class LexicalScorer:
                 terms = self._terms(text)
                 for key in keys:
                     document = grouped.setdefault(key, [set(), set(), set()])
-                    for present, part in zip(document, terms, strict=True):
-                        present.update(part)
+                    for present, part, query_part in zip(document, terms, self.query_terms, strict=True):
+                        present.update(part & query_part)
             documents = list(grouped.values())
-        frequencies = [Counter(term for document in documents for term in document[index])
+        frequencies = [Counter(term for document in documents for term in self.query_terms[index] if term in document[index])
                        for index in range(3)]
         self.weights = [{term: (1 + len(documents)) / (1 + frequency[term])
                          for term in query} for query, frequency in zip(self.query_terms, frequencies, strict=True)]
