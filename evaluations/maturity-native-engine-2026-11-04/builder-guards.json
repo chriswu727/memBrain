@@ -1,0 +1,15 @@
+{
+  "completed": true,
+  "checks": [
+    "checksum",
+    "traversal",
+    "symlink",
+    "existing_directory_retained",
+    "unsupported_platform_no_write",
+    "all_wheel_record_hashes_and_members"
+  ],
+  "passed": 6,
+  "failed": 0,
+  "wheel_record_members": 1653,
+  "no_models": true
+}

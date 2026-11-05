@@ -1,0 +1,206 @@
+{
+  "purpose": "isolated native engine build, existing-profile/catalog compatibility and relocated installed-wheel qualification; no runtime switch or release pass",
+  "frozen_runtime_pin": "d4f0c03689459f84a2e3d25358e74479d1aa2968",
+  "previous_verified_ci_source": "7f2c5fee252286fcd61572ed379280d4e46b7e63",
+  "builder_sha256": "2f3e0a1fc256e65f63aa2c55e835e4248d79728649af72d82a1f9c7877de06eb",
+  "excluded": [
+    "profiles",
+    "registries",
+    "private database dumps",
+    "binary wheels",
+    "source archives",
+    "compiler trees",
+    "credentials/DSNs"
+  ],
+  "files": [
+    {
+      "path": "build-engine.py",
+      "bytes": 2639,
+      "sha256": "87fb973641229b2904d430f75563ec79c6c180e1642715e2ba2e7c7cbb3f44cc",
+      "raw_bytes": 2639,
+      "raw_sha256": "87fb973641229b2904d430f75563ec79c6c180e1642715e2ba2e7c7cbb3f44cc"
+    },
+    {
+      "path": "build-result.json",
+      "bytes": 1973,
+      "sha256": "07e482f98401087ed618c11987acd3979ead0ad940f351f140234c32b480e443",
+      "raw_bytes": 1973,
+      "raw_sha256": "07e482f98401087ed618c11987acd3979ead0ad940f351f140234c32b480e443"
+    },
+    {
+      "path": "build.log.gz",
+      "bytes": 39477,
+      "sha256": "f8966e38c5ee82e3f9e000a18220e8425d9506a74f1f72743edb160ca212c140",
+      "raw_bytes": 980713,
+      "raw_sha256": "7855a6b3d6bd27f14e81fe7c8f720832bc36afe7108d5478e982ff5fcdb567a7"
+    },
+    {
+      "path": "check-upgrade.py",
+      "bytes": 5189,
+      "sha256": "44869d0fb516c42e7bbb0e8bd62da76bb716e09fa8747403bb0ed296ededca0d",
+      "raw_bytes": 5189,
+      "raw_sha256": "44869d0fb516c42e7bbb0e8bd62da76bb716e09fa8747403bb0ed296ededca0d"
+    },
+    {
+      "path": "upgrade-result.json",
+      "bytes": 20326,
+      "sha256": "46e7aef3fe5202a00630ed7f980d10d904797484b67effd3163cea2f0a6049c4",
+      "raw_bytes": 20326,
+      "raw_sha256": "46e7aef3fe5202a00630ed7f980d10d904797484b67effd3163cea2f0a6049c4"
+    },
+    {
+      "path": "upgrade.log.gz",
+      "bytes": 148,
+      "sha256": "6df1b94292f2e7c1ebcdac781ab9864787f950d22c85ca839c9cc5c341cb67fe",
+      "raw_bytes": 189,
+      "raw_sha256": "aac394dfe38917ed161c1288f78bef31d0d0211cb6d91469a1cd715fdccc4d68"
+    },
+    {
+      "path": "run-compatibility-tests-v1.py",
+      "bytes": 3778,
+      "sha256": "510f9ddb71233ec0c80ee85efda7475d282d6cb40e50eb9ce770ba0595395256",
+      "raw_bytes": 3778,
+      "raw_sha256": "510f9ddb71233ec0c80ee85efda7475d282d6cb40e50eb9ce770ba0595395256"
+    },
+    {
+      "path": "compatibility-v1.log.gz",
+      "bytes": 601,
+      "sha256": "6f25e84ac362f9d472833cc5c771f034328c093edd798bd37e1790ae1c1730ef",
+      "raw_bytes": 1849,
+      "raw_sha256": "4b74ec62b411fe2c83337d835065190d80acaa51f289d1aa7c533c2c36d0419d"
+    },
+    {
+      "path": "compatibility-result-v1.json",
+      "bytes": 43330,
+      "sha256": "3c3f7c1fd95798ac9932e29bc495e8d44bc191d9f8cd06eab85d9942d6c55173",
+      "raw_bytes": 43330,
+      "raw_sha256": "3c3f7c1fd95798ac9932e29bc495e8d44bc191d9f8cd06eab85d9942d6c55173"
+    },
+    {
+      "path": "run-compatibility-tests.py",
+      "bytes": 3812,
+      "sha256": "799933a30b2150df0a6673f6b60c4c8a05fde7b033aa88f6f3079e6dccc5ec2b",
+      "raw_bytes": 3812,
+      "raw_sha256": "799933a30b2150df0a6673f6b60c4c8a05fde7b033aa88f6f3079e6dccc5ec2b"
+    },
+    {
+      "path": "compatibility-result.json",
+      "bytes": 90393,
+      "sha256": "9b2fe01426c64bec47818b8693ee240b63fa0b64d06627342b9a77e1c5f66ada",
+      "raw_bytes": 90393,
+      "raw_sha256": "9b2fe01426c64bec47818b8693ee240b63fa0b64d06627342b9a77e1c5f66ada"
+    },
+    {
+      "path": "compatibility.log.gz",
+      "bytes": 74,
+      "sha256": "51a904e5d26c50ec974468d23f95e6e9c4a222e97b6833bcc4e65f0be94dca83",
+      "raw_bytes": 341,
+      "raw_sha256": "879973659ee460d1f9dd6cca0d49d98fe44f4f778769f6717f0f5ec103f02fcd"
+    },
+    {
+      "path": "build_embedded_postgres-v1.py",
+      "bytes": 8002,
+      "sha256": "125bc809b2c5b5ae088148246c937b14a516224aa0f85b0cd758170f2ce6f756",
+      "raw_bytes": 8002,
+      "raw_sha256": "125bc809b2c5b5ae088148246c937b14a516224aa0f85b0cd758170f2ce6f756"
+    },
+    {
+      "path": "wheel-build.log.gz",
+      "bytes": 40214,
+      "sha256": "6e0ba0728aa08c7c6173d3f498ff94637df4564830aa9f5ebad003149e3dab85",
+      "raw_bytes": 993577,
+      "raw_sha256": "cfa8586e2db4e0c61a48df78332887c64bd963a30deda0378f6d9ccfb6959774"
+    },
+    {
+      "path": "wheel-tag-v1-failure.json",
+      "bytes": 244,
+      "sha256": "aa2857eaaf7b08bd7aa9e695c610b52931d31e46de283a1f3ad443fc2780c747",
+      "raw_bytes": 244,
+      "raw_sha256": "aa2857eaaf7b08bd7aa9e695c610b52931d31e46de283a1f3ad443fc2780c747"
+    },
+    {
+      "path": "wheel-build-v2.log.gz",
+      "bytes": 40185,
+      "sha256": "2466e4643cc00233c8561a0185351ad415b44f8cb4401a0e108ef5b8e2d56997",
+      "raw_bytes": 994768,
+      "raw_sha256": "ce1af7032ae4a588536feef109ff31a19fc4daf12732c257930df43e6c3c8964"
+    },
+    {
+      "path": "wheel-result.json",
+      "bytes": 290,
+      "sha256": "92f61c157b8f563467fc02b96df3681ce40a4984c8204948092bec10a985133a",
+      "raw_bytes": 290,
+      "raw_sha256": "92f61c157b8f563467fc02b96df3681ce40a4984c8204948092bec10a985133a"
+    },
+    {
+      "path": "wheel-install.log.gz",
+      "bytes": 217,
+      "sha256": "8131a9bd465cbbdd2df7ac4145d4b3228c60c73604b0f2e697816afa18eeaf72",
+      "raw_bytes": 337,
+      "raw_sha256": "2a41ed49c26dce46b87781edf2232bc7eafc30be4b85bb0c63c5c3f271012774"
+    },
+    {
+      "path": "check-installed-wheel.py",
+      "bytes": 1916,
+      "sha256": "82bc68bf430af84d6a4db7529f9d8d22dc689f63d296c3f52c7ea1a7258c91f0",
+      "raw_bytes": 1916,
+      "raw_sha256": "82bc68bf430af84d6a4db7529f9d8d22dc689f63d296c3f52c7ea1a7258c91f0"
+    },
+    {
+      "path": "installed-wheel-result.json",
+      "bytes": 957,
+      "sha256": "f2a80abd3a5fe3e68a5ba53ae945cc818881409700ad07fac6bf324722d6e584",
+      "raw_bytes": 957,
+      "raw_sha256": "f2a80abd3a5fe3e68a5ba53ae945cc818881409700ad07fac6bf324722d6e584"
+    },
+    {
+      "path": "run-installed-compatibility-tests.py",
+      "bytes": 3671,
+      "sha256": "80c5729c61bc9f8f8f05775efc064447ba0022732bb191b6dcef427a06eab36b",
+      "raw_bytes": 3671,
+      "raw_sha256": "80c5729c61bc9f8f8f05775efc064447ba0022732bb191b6dcef427a06eab36b"
+    },
+    {
+      "path": "installed-compatibility-result.json",
+      "bytes": 48925,
+      "sha256": "882be3f5834478876bb79d1424723ff8a7db6b96a8e7489d8f2be31d6fe7216d",
+      "raw_bytes": 48925,
+      "raw_sha256": "882be3f5834478876bb79d1424723ff8a7db6b96a8e7489d8f2be31d6fe7216d"
+    },
+    {
+      "path": "installed-wheel.log.gz",
+      "bytes": 359,
+      "sha256": "c6992a37d133b60585d59beea2e67f15c4774bc6a977405c056e8ac56b0d60e9",
+      "raw_bytes": 878,
+      "raw_sha256": "9becdef3afb3034bd5486bd49e8da89ef18146736a065c7f673ec9c92c5bbbb5"
+    },
+    {
+      "path": "check-builder-guards.py",
+      "bytes": 3100,
+      "sha256": "e055bef2d8bd1bc0250c36dc936b9ea6d221f72488f8f57ee8caaa1de5af168e",
+      "raw_bytes": 3100,
+      "raw_sha256": "e055bef2d8bd1bc0250c36dc936b9ea6d221f72488f8f57ee8caaa1de5af168e"
+    },
+    {
+      "path": "builder-guards.json",
+      "bytes": 288,
+      "sha256": "36cadb83222ff92f865c1e3f28c9771a4c28aeba93057cca9388d1c4f97f1a0e",
+      "raw_bytes": 288,
+      "raw_sha256": "36cadb83222ff92f865c1e3f28c9771a4c28aeba93057cca9388d1c4f97f1a0e"
+    },
+    {
+      "path": "builder-guards.log.gz",
+      "bytes": 185,
+      "sha256": "000576ac281038219f4cc1d0a32ba8f518d8038ddd7c829aec39295341ea5a14",
+      "raw_bytes": 246,
+      "raw_sha256": "16335a4bbb8e1c7ffdceef7c9c1a85189d2c4f354aacce0dd741d63dec46a992"
+    },
+    {
+      "path": "credential-scan.json",
+      "bytes": 138,
+      "sha256": "12e554662192b0323472950d1edcddf398e50d6b1ba907f31e20eb8933304e45",
+      "raw_bytes": 138,
+      "raw_sha256": "12e554662192b0323472950d1edcddf398e50d6b1ba907f31e20eb8933304e45"
+    }
+  ]
+}
