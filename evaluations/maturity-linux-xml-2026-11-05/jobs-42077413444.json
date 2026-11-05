@@ -1,0 +1,289 @@
+{
+  "total_count": 4,
+  "jobs": [
+    {
+      "id": 127421210953,
+      "run_id": 42077413444,
+      "workflow_name": "Native engine qualification",
+      "head_branch": "integration/maturity-candidate",
+      "run_url": "https://api.github.com/repos/chriswu727/memBrain/actions/runs/42077413444",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVUGw4c8AAAAdquVhSQ",
+      "head_sha": "2a19ba0de3264e8bdaed749d3cfb87869808cbd9",
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/jobs/127421210953",
+      "html_url": "https://github.com/chriswu727/memBrain/actions/runs/42077413444/job/127421210953",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-05T17:43:36Z",
+      "started_at": "2026-11-05T17:43:38Z",
+      "completed_at": "2026-11-05T17:44:25Z",
+      "name": "linux-build (linux-x86_64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-05T17:43:39Z",
+          "completed_at": "2026-11-05T17:43:39Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-05T17:43:39Z",
+          "completed_at": "2026-11-05T17:43:43Z"
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-05T17:43:43Z",
+          "completed_at": "2026-11-05T17:43:43Z"
+        },
+        {
+          "name": "Run python -m pip install . 'pytest>=8,<10'",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-05T17:43:43Z",
+          "completed_at": "2026-11-05T17:43:54Z"
+        },
+        {
+          "name": "Run python -m pytest -q tests/test_native_bundle_build.py",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-05T17:43:54Z",
+          "completed_at": "2026-11-05T17:43:55Z"
+        },
+        {
+          "name": "Run python scripts/build_native_bundle.py --work-directory \"/home/runner/work/_temp/native-build\" --output-directory \"/home/runner/work/_temp/native-artifacts\"",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 6,
+          "started_at": "2026-11-05T17:43:55Z",
+          "completed_at": "2026-11-05T17:44:21Z"
+        },
+        {
+          "name": "Qualify the built candidate on Ubuntu 22",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-11-05T17:44:21Z",
+          "completed_at": "2026-11-05T17:44:21Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-05T17:44:21Z",
+          "completed_at": "2026-11-05T17:44:22Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 15,
+          "started_at": "2026-11-05T17:44:22Z",
+          "completed_at": "2026-11-05T17:44:22Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-11-05T17:44:22Z",
+          "completed_at": "2026-11-05T17:44:22Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-11-05T17:44:23Z",
+          "completed_at": "2026-11-05T17:44:23Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chriswu727/memBrain/check-runs/127421210953",
+      "labels": [
+        "ubuntu-22.04"
+      ],
+      "runner_id": 1000006674,
+      "runner_name": "GitHub Actions 1000006674",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 127421211552,
+      "run_id": 42077413444,
+      "workflow_name": "Native engine qualification",
+      "head_branch": "integration/maturity-candidate",
+      "run_url": "https://api.github.com/repos/chriswu727/memBrain/actions/runs/42077413444",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVUGw4c8AAAAdquVjoA",
+      "head_sha": "2a19ba0de3264e8bdaed749d3cfb87869808cbd9",
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/jobs/127421211552",
+      "html_url": "https://github.com/chriswu727/memBrain/actions/runs/42077413444/job/127421211552",
+      "status": "completed",
+      "conclusion": "failure",
+      "created_at": "2026-11-05T17:43:36Z",
+      "started_at": "2026-11-05T17:43:41Z",
+      "completed_at": "2026-11-05T17:44:47Z",
+      "name": "linux-build (linux-aarch64)",
+      "steps": [
+        {
+          "name": "Set up job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 1,
+          "started_at": "2026-11-05T17:43:41Z",
+          "completed_at": "2026-11-05T17:43:43Z"
+        },
+        {
+          "name": "Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 2,
+          "started_at": "2026-11-05T17:43:43Z",
+          "completed_at": "2026-11-05T17:43:46Z"
+        },
+        {
+          "name": "Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 3,
+          "started_at": "2026-11-05T17:43:46Z",
+          "completed_at": "2026-11-05T17:43:46Z"
+        },
+        {
+          "name": "Run python -m pip install . 'pytest>=8,<10'",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 4,
+          "started_at": "2026-11-05T17:43:46Z",
+          "completed_at": "2026-11-05T17:43:55Z"
+        },
+        {
+          "name": "Run python -m pytest -q tests/test_native_bundle_build.py",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 5,
+          "started_at": "2026-11-05T17:43:55Z",
+          "completed_at": "2026-11-05T17:43:56Z"
+        },
+        {
+          "name": "Run python scripts/build_native_bundle.py --work-directory \"/home/runner/work/_temp/native-build\" --output-directory \"/home/runner/work/_temp/native-artifacts\"",
+          "status": "completed",
+          "conclusion": "failure",
+          "number": 6,
+          "started_at": "2026-11-05T17:43:56Z",
+          "completed_at": "2026-11-05T17:44:43Z"
+        },
+        {
+          "name": "Qualify the built candidate on Ubuntu 22",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 7,
+          "started_at": "2026-11-05T17:44:43Z",
+          "completed_at": "2026-11-05T17:44:43Z"
+        },
+        {
+          "name": "Run actions/upload-artifact@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 8,
+          "started_at": "2026-11-05T17:44:43Z",
+          "completed_at": "2026-11-05T17:44:45Z"
+        },
+        {
+          "name": "Post Run actions/setup-python@v5",
+          "status": "completed",
+          "conclusion": "skipped",
+          "number": 15,
+          "started_at": "2026-11-05T17:44:45Z",
+          "completed_at": "2026-11-05T17:44:45Z"
+        },
+        {
+          "name": "Post Run actions/checkout@v4",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 16,
+          "started_at": "2026-11-05T17:44:45Z",
+          "completed_at": "2026-11-05T17:44:45Z"
+        },
+        {
+          "name": "Complete job",
+          "status": "completed",
+          "conclusion": "success",
+          "number": 17,
+          "started_at": "2026-11-05T17:44:45Z",
+          "completed_at": "2026-11-05T17:44:45Z"
+        }
+      ],
+      "check_run_url": "https://api.github.com/repos/chriswu727/memBrain/check-runs/127421211552",
+      "labels": [
+        "ubuntu-22.04-arm"
+      ],
+      "runner_id": 1000006675,
+      "runner_name": "GitHub Actions 1000006675",
+      "runner_group_id": 0,
+      "runner_group_name": "GitHub Actions"
+    },
+    {
+      "id": 127421214559,
+      "run_id": 42077413444,
+      "workflow_name": "Native engine qualification",
+      "head_branch": "integration/maturity-candidate",
+      "run_url": "https://api.github.com/repos/chriswu727/memBrain/actions/runs/42077413444",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVUGw4c8AAAAdquVvXw",
+      "head_sha": "2a19ba0de3264e8bdaed749d3cfb87869808cbd9",
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/jobs/127421214559",
+      "html_url": "https://github.com/chriswu727/memBrain/actions/runs/42077413444/job/127421214559",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-11-05T17:43:36Z",
+      "started_at": "2026-11-05T17:43:36Z",
+      "completed_at": "2026-11-05T17:43:36Z",
+      "name": "native",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/chriswu727/memBrain/check-runs/127421214559",
+      "labels": [],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    },
+    {
+      "id": 127421875178,
+      "run_id": 42077413444,
+      "workflow_name": "Native engine qualification",
+      "head_branch": "integration/maturity-candidate",
+      "run_url": "https://api.github.com/repos/chriswu727/memBrain/actions/runs/42077413444",
+      "run_attempt": 1,
+      "node_id": "CR_kwDOVUGw4c8AAAAdqu-D6g",
+      "head_sha": "2a19ba0de3264e8bdaed749d3cfb87869808cbd9",
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/jobs/127421875178",
+      "html_url": "https://github.com/chriswu727/memBrain/actions/runs/42077413444/job/127421875178",
+      "status": "completed",
+      "conclusion": "skipped",
+      "created_at": "2026-11-05T17:44:47Z",
+      "started_at": "2026-11-05T17:44:47Z",
+      "completed_at": "2026-11-05T17:44:47Z",
+      "name": "linux-current",
+      "steps": [],
+      "check_run_url": "https://api.github.com/repos/chriswu727/memBrain/check-runs/127421875178",
+      "labels": [
+        "ubuntu-26.04-arm"
+      ],
+      "runner_id": null,
+      "runner_name": null,
+      "runner_group_id": null,
+      "runner_group_name": null
+    }
+  ]
+}

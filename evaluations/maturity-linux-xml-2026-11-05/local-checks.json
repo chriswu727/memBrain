@@ -1,0 +1,17 @@
+{
+  "source_head": "cc599cc",
+  "local_tests": {
+    "command": ".venv/bin/python -m pytest -q tests/test_native_bundle_build.py tests/test_native_resources.py",
+    "passed": 24,
+    "failed": 0,
+    "skipped": 0,
+    "evidence_scope": "observed local tool output; no raw pytest log saved"
+  },
+  "ruff": "passed for changed Python scripts and builder tests",
+  "git_diff_check": "passed",
+  "workflow_yaml": "parsed successfully",
+  "runtime_and_resources_diff_from_68da678": "empty",
+  "model_calls": 0,
+  "default_branch_merged": false,
+  "published": false
+}
