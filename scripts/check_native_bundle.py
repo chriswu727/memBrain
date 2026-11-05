@@ -146,7 +146,7 @@ def check(artifacts, work, *, legacy):
             document = '<memory xmlns="urn:membrain"><entry id="7">记忆 &amp; mémoire</entry></memory>'
             assert conn.execute("SELECT xpath('/m:memory/m:entry/text()', %s::xml, ARRAY[ARRAY['m','urn:membrain']])::text[]",
                                 (document,)).fetchone()[0] == ["记忆 &amp; mémoire"]
-            assert conn.execute("SELECT id, content FROM XMLTABLE(XMLNAMESPACES('urn:membrain' AS m), '/m:memory/m:entry' PASSING %s::xml COLUMNS id integer PATH '@id', content text PATH '.')",
+            assert conn.execute("SELECT id, content FROM XMLTABLE(XMLNAMESPACES('urn:membrain' AS m), '/m:memory/m:entry' PASSING (%s::xml) COLUMNS id integer PATH '@id', content text PATH '.')",
                                 (document,)).fetchall() == [(7, "记忆 & mémoire")]
             try:
                 conn.execute("SELECT XMLPARSE(DOCUMENT '<memory>')")

@@ -181,7 +181,7 @@ def inspect_xml_library(path):
     allowed = {"libc.so.6", "libm.so.6", "libz.so.1", "liblzma.so.5", "libpthread.so.0", "libdl.so.2"}
     if (re.findall(r"\(SONAME\).*\[(.*?)\]", dynamic) != ["libxml2.so.2"]
             or not needed or needed - allowed or re.search(r"\((?:RPATH|RUNPATH)\)", dynamic)):
-        raise ValueError("XML compatibility library has an unexpected ABI or dependency")
+        raise ValueError("XML compatibility library has an unexpected ABI or dependency:\n" + dynamic)
     return {"dynamic": dynamic, "needed": sorted(needed),
             "symbol_versions": run(["readelf", "--version-info", path], capture=True)}
 
@@ -229,6 +229,7 @@ def update_xml(prefix, work):
                 "test_corpus": {"url": XML_TEST_URL, "sha256": XML_TEST_SHA256},
                 "options": [option for option in options if not option.startswith(("--prefix=", "--libdir="))],
                 "upstream_checks_passed": True, "encoding_roundtrips": sorted(encodings),
+                "external_w3c_conformance_suite": "not installed; not included in make-check evidence",
                 "library_sha256": digest(destination), **inspection}
     (licenses / "source.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     return metadata
