@@ -1,0 +1,13 @@
+{
+  "owned_completed_clusters": 4,
+  "regular_files_verified": 5096,
+  "directories_verified": 108,
+  "archive_bytes": 25556231,
+  "archive_sha256": "22e1bf47c34f7ba1b2641dc369756dbe031a5bd7fb5748055e6f161bb0cca34a",
+  "private_mode": "0o600",
+  "ports_closed": true,
+  "only_database_data_removed": true,
+  "all_profiles_registries_logs_scripts_results_binaries_and_packages_preserved": true,
+  "contains_failed_client_version_probe": true,
+  "production_backup_or_rollback_claimed": false
+}

@@ -1,0 +1,15 @@
+{
+  "completed": false,
+  "model_calls": 0,
+  "phase": "client_version",
+  "scope": "candidate cache integration only; default embedded selector is not overridden in the product",
+  "cache_preexisting": true,
+  "timings_ms": {
+    "first_prepare": 1835.2918750606477,
+    "warm_prepare": 169.29470817558467
+  },
+  "target": "macos-arm64",
+  "error_type": "CalledProcessError",
+  "error_code": null,
+  "ports_closed": true
+}

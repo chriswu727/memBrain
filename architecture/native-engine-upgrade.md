@@ -11,8 +11,9 @@ supplier wheel tag.
 [`build_native_bundle.py`](../scripts/build_native_bundle.py) records source and
 file hashes, native dependencies, compiler information, licenses and tool
 versions. [`check_native_bundle.py`](../scripts/check_native_bundle.py) relocates
-the artifact before exercising it. Binary archives remain qualification
-artifacts, with no package publication or default-engine change.
+the artifact before exercising it. Whole-server archives remain qualification
+artifacts; reviewed extension/crypto overlays are packaged in the source/wheel
+candidate. There is no package publication or default-engine change.
 
 ## Distribution boundary
 
@@ -25,6 +26,18 @@ tools/resources and their manifest, and publish the complete directory atomicall
 A failed preparation must preserve existing data and must not silently select
 16.2. Root service-account execution and relative native library paths must work
 from the final cache, not just the compiler directory.
+
+The private cache component is implemented in `native_bundle.py`: source and
+overlay checksums, complete native manifests, private staging, process/thread
+serialization, tool preflight and atomic publication. Corrupt generations are
+retained and repaired into a new generation without moving a running server's
+binary directory. Incomplete staging directories left by process death are
+ignored and retained. Windows extraction explicitly binds every native file and
+directory to TokenUser; Python's temporary Owner Rights ACL can otherwise name
+Administrators, which PostgreSQL removes from its restricted token. Qualification
+and retained failures are recorded in the
+[cache report](../evaluations/maturity-native-cache-2026-11-04.md). This component
+is not yet selected by the production embedded engine.
 
 The supported platform contract must name actual native library requirements.
 In particular, the inspected Linux binaries depend on libssl.so.3, libcrypto.so.3,
@@ -41,9 +54,12 @@ upgrader:
 - Detect the running server version, not only PG_VERSION, which records the
   major version. A live 16.2 process must not survive a successful update by
   satisfying a generic pg_ctl status check.
-- Verify the new cache and preserve a private recoverable backup before stopping
-  the old server. Check disk capacity and backup integrity before any extension
-  catalog change. Refuse an unexpected major version explicitly.
+- Verify the new cache before stopping the old server. Quiesce the API, stop the
+  owned server, and create and verify a private cold full-cluster backup before
+  loading the new engine or changing catalogs. A backup failure leaves the
+  original stopped cluster intact. Reserve space for both the backup and staged
+  rollback, preserve roles/custom configuration, and refuse unsupported external
+  tablespace/WAL links or an unexpected major version explicitly.
 - Keep custom settings, loopback binding, SCRAM credentials, role isolation and
   the existing root/legacy cluster locations. Do not discard a cluster to make
   initialization succeed.
@@ -62,14 +78,17 @@ upgrader:
   PostgreSQL/extension release notes for required index work. After that catalog
   upgrade, running the old 0.6.2 library is not a valid rollback. Rollback must
   restore the pre-upgrade backup; retry must use the new engine and extension.
+  Automatic rollback is limited to the pre-readiness transition: never restore
+  an old snapshot after new user writes or deletion-registry changes.
 - Verify database version, extension version, protected view definitions, index
   readiness, representative vector operations and restart before declaring the
   installation ready. Journals, backups and credentials stay private.
 
 ## Acceptance after integration
 
-The default selector, atomic cache, durable maintenance journal and rollback are
-still required. Once they are implemented, pin every launcher to the integrated
+The default selector, durable maintenance journal, verified physical backup and
+rollback are still required; the cache component alone does not close them.
+Once they are implemented, pin every launcher to the integrated
 runtime and rerun actual fresh installation, upgrade, streamed backup/recovery,
 full regression and complete performance acceptance. Existing 9f75361 R1/R5
 results retain their original scope; neither a candidate builder nor a targeted

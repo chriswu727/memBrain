@@ -1,0 +1,84 @@
+{
+  "source": "5636ddf5df14208dc7ed5c5ebe0f21d1edd8c88d",
+  "workflow_run": 41975951731,
+  "whole_run_conclusion": "failure",
+  "passing_cache_reports": [
+    {
+      "completed": true,
+      "model_calls": 0,
+      "phase": "complete",
+      "scope": "candidate cache integration only; default embedded selector is not overridden in the product",
+      "cache_preexisting": false,
+      "timings_ms": {
+        "first_prepare": 3889.170691000004,
+        "warm_prepare": 1266.354389000071
+      },
+      "target": "macos-x86_64",
+      "verified_files": 1481,
+      "restart_preserves_rows": true,
+      "cached_client_dump_preserves_row": true,
+      "supplier_unchanged": true,
+      "supplier_python_executed": false,
+      "cache_prefix": "/Users/runner/work/_temp/packaged-native-41975951731-1/cache/16.15-macos-x86_64-eb9fa3db01624a8917e8cb06/pginstall",
+      "ports_closed": true
+    },
+    {
+      "completed": true,
+      "model_calls": 0,
+      "phase": "complete",
+      "scope": "candidate cache integration only; default embedded selector is not overridden in the product",
+      "cache_preexisting": false,
+      "timings_ms": {
+        "first_prepare": 1356.2302499999532,
+        "warm_prepare": 360.4657090000387
+      },
+      "target": "macos-arm64",
+      "verified_files": 1481,
+      "restart_preserves_rows": true,
+      "cached_client_dump_preserves_row": true,
+      "supplier_unchanged": true,
+      "supplier_python_executed": false,
+      "cache_prefix": "/Users/runner/work/_temp/packaged-native-41975951731-1/cache/16.15-macos-arm64-07a6b6b1a87819b37e967e1c/pginstall",
+      "ports_closed": true
+    },
+    {
+      "completed": true,
+      "model_calls": 0,
+      "phase": "complete",
+      "scope": "candidate cache integration only; default embedded selector is not overridden in the product",
+      "cache_preexisting": false,
+      "timings_ms": {
+        "first_prepare": 751.2688939999919,
+        "warm_prepare": 241.0046100000045
+      },
+      "target": "linux-aarch64",
+      "verified_files": 1363,
+      "restart_preserves_rows": true,
+      "cached_client_dump_preserves_row": true,
+      "supplier_unchanged": true,
+      "supplier_python_executed": false,
+      "cache_prefix": "/home/runner/work/_temp/packaged-native-41975951731-1/cache/16.15-linux-aarch64-32204ae2d1a815907c26f1f4/pginstall",
+      "ports_closed": true
+    },
+    {
+      "completed": true,
+      "model_calls": 0,
+      "phase": "complete",
+      "scope": "candidate cache integration only; default embedded selector is not overridden in the product",
+      "cache_preexisting": false,
+      "timings_ms": {
+        "first_prepare": 593.0546369999661,
+        "warm_prepare": 176.71210399998927
+      },
+      "target": "linux-x86_64",
+      "verified_files": 1363,
+      "restart_preserves_rows": true,
+      "cached_client_dump_preserves_row": true,
+      "supplier_unchanged": true,
+      "supplier_python_executed": false,
+      "cache_prefix": "/home/runner/work/_temp/packaged-native-41975951731-1/cache/16.15-linux-x86_64-4d0fbbee4449d3d68f2299ea/pginstall",
+      "ports_closed": true
+    }
+  ],
+  "windows_fresh_initialization": "failed; separate repair qualification pending"
+}

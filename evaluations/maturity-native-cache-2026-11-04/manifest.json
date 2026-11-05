@@ -1,0 +1,217 @@
+{
+  "scope": "private native cache component, source-scoped platform checks and Windows repairs; no production engine adoption, final R1/R5 or release",
+  "source": "113e34047624911ca5275824cacb8f71befd41a8",
+  "installed_pin": "9f7536110a95dfd02b382382dc97d0991121632f",
+  "model_calls": 0,
+  "excluded": [
+    "profiles and credentials",
+    "private physical database archives",
+    "wheel/package/model/compiler caches",
+    "large raw bootstrap SQL diagnostics"
+  ],
+  "files": [
+    {
+      "path": "cache-guards-v2.log.gz",
+      "bytes": 52,
+      "sha256": "6f302a04ebc7f5658a51c3bb063351234f0e1d582b1abbeebce133dc5bfbbdcd",
+      "raw_bytes": 99,
+      "raw_sha256": "9b9f530bfb77a0e4430cb9b731484a8bdb51b982d8336729e28c1eb17f751cbb"
+    },
+    {
+      "path": "cache-guards-acl.log.gz",
+      "bytes": 52,
+      "sha256": "6f19986cc01e24bfe10768ae0ea1239916a26998952470b3c8a880e3e2be9d0c",
+      "raw_bytes": 99,
+      "raw_sha256": "ea2d153381a6a45808283260f31c4b1693d344349cb2efe74b1ebca91c276f20"
+    },
+    {
+      "path": "cache-and-lock-guards.log.gz",
+      "bytes": 62,
+      "sha256": "d4fb81870baec92c42d16b6d1a290628fe62dbd0c494b7e23541b670b0c8b07d",
+      "raw_bytes": 180,
+      "raw_sha256": "e14dd98f488ed71e5e236a84f197e9bbc2be8ccdd292fec92d7b61428fac81e2"
+    },
+    {
+      "path": "first-failed-attempt.json",
+      "bytes": 620,
+      "sha256": "24dcfdfcdbc36ace53f9edcb4addeb06dc478aba55cebe58a62851ce118cb5ab",
+      "raw_bytes": 620,
+      "raw_sha256": "24dcfdfcdbc36ace53f9edcb4addeb06dc478aba55cebe58a62851ce118cb5ab"
+    },
+    {
+      "path": "installed-supplier-diagnostic/result.json",
+      "bytes": 424,
+      "sha256": "bc4d5afd6f01034fed4670c17f6489d4dae75bf83598fde48b49b94cdfc1dba4",
+      "raw_bytes": 424,
+      "raw_sha256": "bc4d5afd6f01034fed4670c17f6489d4dae75bf83598fde48b49b94cdfc1dba4"
+    },
+    {
+      "path": "installed-supplier-dump-check/result.json",
+      "bytes": 681,
+      "sha256": "216868767d270664abde203f57a506387ba02150c77af27cf9796b1fb296c4c4",
+      "raw_bytes": 681,
+      "raw_sha256": "216868767d270664abde203f57a506387ba02150c77af27cf9796b1fb296c4c4"
+    },
+    {
+      "path": "acl-cold-install-check/result.json",
+      "bytes": 682,
+      "sha256": "55ed90e936220d698b97c36ea8def597e9dd84061d104a7851f788c15a9ad51c",
+      "raw_bytes": 682,
+      "raw_sha256": "55ed90e936220d698b97c36ea8def597e9dd84061d104a7851f788c15a9ad51c"
+    },
+    {
+      "path": "wheel-parity-current.json",
+      "bytes": 1465,
+      "sha256": "cd2daa8b184171022eaf0fd77e462a3f3dcc5a811f2e66da776ced2062468cb5",
+      "raw_bytes": 1465,
+      "raw_sha256": "cd2daa8b184171022eaf0fd77e462a3f3dcc5a811f2e66da776ced2062468cb5"
+    },
+    {
+      "path": "wheel-installed-lock-check/result.json",
+      "bytes": 680,
+      "sha256": "dec8ce4b33c52c77a1dd1fea55d8b9124fd11728be50b9b500f9b13becbaeb7f",
+      "raw_bytes": 680,
+      "raw_sha256": "dec8ce4b33c52c77a1dd1fea55d8b9124fd11728be50b9b500f9b13becbaeb7f"
+    },
+    {
+      "path": "four-platform-cache-results.json",
+      "bytes": 3207,
+      "sha256": "841687d7e344de76c6b5f4585b95d5936586aaef59ee0a9e9da274ecbeb3854d",
+      "raw_bytes": 3207,
+      "raw_sha256": "841687d7e344de76c6b5f4585b95d5936586aaef59ee0a9e9da274ecbeb3854d"
+    },
+    {
+      "path": "windows-cache-result.json",
+      "bytes": 905,
+      "sha256": "d66c2a07344f985101cf86ad0bd517a140c004fde5289ef751e86e8e89cdded1",
+      "raw_bytes": 905,
+      "raw_sha256": "d66c2a07344f985101cf86ad0bd517a140c004fde5289ef751e86e8e89cdded1"
+    },
+    {
+      "path": "windows-initdb-diagnosis-summary.json",
+      "bytes": 1200,
+      "sha256": "5dce8073dae90cf21ce2c3a570dbf83a5fdd3fc60d7b480494540cbdd57399ce",
+      "raw_bytes": 1200,
+      "raw_sha256": "5dce8073dae90cf21ce2c3a570dbf83a5fdd3fc60d7b480494540cbdd57399ce"
+    },
+    {
+      "path": "windows-cache-failed.log.gz",
+      "bytes": 10962,
+      "sha256": "85ad75b7c55c8c51e7c43f0164a9fb683b4b943a0aaa29c1a15e7c8ca75e534e",
+      "raw_bytes": 47056,
+      "raw_sha256": "54ad7668cc4f273de6cf6c8ac1faadec5dc3cf730a09828f9e880bb27c609049"
+    },
+    {
+      "path": "windows-cache-diagnosis.log.gz",
+      "bytes": 11167,
+      "sha256": "20dd3adc7d488076ffbbc37494637b3d3455fff79f97477818ddbcbc6f196a18",
+      "raw_bytes": 48960,
+      "raw_sha256": "af91812fa495b856a13750016d82207dc5388bcb8d5fcf2b831e817d82790a5b"
+    },
+    {
+      "path": "windows-acl-repair.log.gz",
+      "bytes": 11586,
+      "sha256": "e041ddc4878e3b999bde80d765f4e2e4ef47c59bf66437474bc98b6b3e1e30ec",
+      "raw_bytes": 86091,
+      "raw_sha256": "8e24b6962a0d53855d2e83f344aeef869756be9ad0e160bd4b4d6032fcd650a6"
+    },
+    {
+      "path": "windows-cache-pass.log.gz",
+      "bytes": 12118,
+      "sha256": "3ff457d939d02ac7826dad363fde6a77c4f3f0080bb93e3e611638a120fa9b89",
+      "raw_bytes": 89038,
+      "raw_sha256": "643f7973aef99be33a0ee452320ce5d4ce0463d4a502e89d294f33f000d23704"
+    },
+    {
+      "path": "native-cache-matrix.log.gz",
+      "bytes": 57418,
+      "sha256": "6369326b4cb8736195285ff6acfdb0705e4275dc9e39166cc80d7c6c11e755ec",
+      "raw_bytes": 431159,
+      "raw_sha256": "80ce7b59aa26c350b399b59cdc9fe7532db6f6ddd78c10301027008156c1e9aa"
+    },
+    {
+      "path": "source-scope.json",
+      "bytes": 15615,
+      "sha256": "4a9439513a3686aa9403a4bb560e2f7a8abebe92b419c4787a47e01a2a638906",
+      "raw_bytes": 15615,
+      "raw_sha256": "4a9439513a3686aa9403a4bb560e2f7a8abebe92b419c4787a47e01a2a638906"
+    },
+    {
+      "path": "cryptography-wheel-review.json",
+      "bytes": 1679,
+      "sha256": "342cbcd7bae0c1f1f89556eaf6ba4a1e3ac7b2d0a2ef67275b9fae84a8a2f1bf",
+      "raw_bytes": 1679,
+      "raw_sha256": "342cbcd7bae0c1f1f89556eaf6ba4a1e3ac7b2d0a2ef67275b9fae84a8a2f1bf"
+    },
+    {
+      "path": "package-resources.log.gz",
+      "bytes": 80,
+      "sha256": "4adff6b66230b9012fc3ff34647041db73d6a5afec98267adafc0cecdba5bac6",
+      "raw_bytes": 65,
+      "raw_sha256": "6f1b1efbce65d78d72d8b6955dee9736714cbd6e6eb6a2f0d9b45620c0fdbfe5"
+    },
+    {
+      "path": "build-lock.log.gz",
+      "bytes": 162,
+      "sha256": "932beaf4312e5860bac2b337e7441e902cca50044cf751220409a6d09164a413",
+      "raw_bytes": 291,
+      "raw_sha256": "4d34a2a58a077f68e0987d5cc3a95c7c539aae51625b0a2c7906b3f82fa61b71"
+    },
+    {
+      "path": "check-real-cache.py",
+      "bytes": 2581,
+      "sha256": "aca94114aa1238b2b11ea920c20b1ef3febdd4fd843f6ac325ae8441160b3c86",
+      "raw_bytes": 2581,
+      "raw_sha256": "aca94114aa1238b2b11ea920c20b1ef3febdd4fd843f6ac325ae8441160b3c86"
+    },
+    {
+      "path": "real-cache-result.json",
+      "bytes": 14877,
+      "sha256": "ee2f3687943cae92d14e302b57eaac52bcff8e5af34630bc1f135302844a1d32",
+      "raw_bytes": 14877,
+      "raw_sha256": "ee2f3687943cae92d14e302b57eaac52bcff8e5af34630bc1f135302844a1d32"
+    },
+    {
+      "path": "real-cache.log.gz",
+      "bytes": 234,
+      "sha256": "ca1365d7a1f4befda6817581b99e3ddb782e6f5e5002a5103845656dd4e08cd5",
+      "raw_bytes": 403,
+      "raw_sha256": "d5d9e3abc8e8c17e98a30c02f9403f75f87af96d8ac973577b35ed07fac4f229"
+    },
+    {
+      "path": "archive-completed-cache-clusters.py",
+      "bytes": 2901,
+      "sha256": "8e0de7b2f97e653c633b7e64c7c5efcc1726d2117863f7728f7dcb76549be70a",
+      "raw_bytes": 2901,
+      "raw_sha256": "8e0de7b2f97e653c633b7e64c7c5efcc1726d2117863f7728f7dcb76549be70a"
+    },
+    {
+      "path": "completed-cache-clusters-archive.json",
+      "bytes": 493,
+      "sha256": "37892e7c689b497dea645ac6d726475eb299198f0622007156be731d25907dd1",
+      "raw_bytes": 493,
+      "raw_sha256": "37892e7c689b497dea645ac6d726475eb299198f0622007156be731d25907dd1"
+    },
+    {
+      "path": "share-cache-blocks.py",
+      "bytes": 2366,
+      "sha256": "3874e5054294ee2101be1bfb04e5f52bf4824c7c427e3a13ef07df05207f2ec4",
+      "raw_bytes": 2366,
+      "raw_sha256": "3874e5054294ee2101be1bfb04e5f52bf4824c7c427e3a13ef07df05207f2ec4"
+    },
+    {
+      "path": "cache-block-sharing.json",
+      "bytes": 416,
+      "sha256": "ff4fb13b3b4dfb5d5a5b89701aa88dec4d1b62b2fc62a1c6d5aa77544ccc4bad",
+      "raw_bytes": 416,
+      "raw_sha256": "ff4fb13b3b4dfb5d5a5b89701aa88dec4d1b62b2fc62a1c6d5aa77544ccc4bad"
+    },
+    {
+      "path": "credential-scan.json",
+      "bytes": 221,
+      "sha256": "1e0e2fcb62b15e1333c7b7e25c8e0cbc6b4afc30a3d5af8b24a2161950b1622e",
+      "raw_bytes": 221,
+      "raw_sha256": "1e0e2fcb62b15e1333c7b7e25c8e0cbc6b4afc30a3d5af8b24a2161950b1622e"
+    }
+  ]
+}

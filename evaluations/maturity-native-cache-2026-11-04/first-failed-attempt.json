@@ -1,0 +1,10 @@
+{
+  "exit_code": 120,
+  "log_bytes": 0,
+  "result_document_exists": false,
+  "root_cause": "unknown; low free disk space observed but not proven causal",
+  "database_data_present_at_inspection": false,
+  "retained": true,
+  "subsequent_diagnostic": "installed-supplier-diagnostic/result.json; database initialized and vector row written; pg_dump version invocation failed because --version followed connection arguments; script repaired to exercise an actual dump",
+  "source_and_wheel_smoke": "installed-supplier-dump-check/result.json and wheel-installed-check/result.json passed, ports closed; no paid/model calls"
+}
