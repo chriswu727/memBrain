@@ -1,6 +1,6 @@
 # Bounded candidate channels: merged reads
 
-Runtime candidate `28c0b3ed34484b29550b6d2c011a819bcbce016b` merges the keyword and feature-hash candidate reads before transferring and decoding duplicate documents. All nine launchers pin this revision. **256 local regression tests pass with zero skips. Full CI, fresh installation and complete canonical/fullscreen R5 qualification are pending for this candidate.** The [previous complete R5 failure](maturity-release-qualification-2026-11-04.md) remains historical evidence, not a pass for this change. Publication remains frozen.
+Runtime candidate `28c0b3ed34484b29550b6d2c011a819bcbce016b` merges the keyword and feature-hash candidate reads before transferring and decoding duplicate documents. All nine launchers pin this revision. **256 local regression tests pass with zero skips. Fresh canonical recall passes, but the complete fullscreen R5 comparison FAILS: 33/36 windows pass, including 9/12 eight-brain windows.** Full CI and fresh installation are pending. The [previous complete R5 failure](maturity-release-qualification-2026-11-04.md) remains historical evidence, not a pass for this change. Publication remains frozen.
 
 ## Implementation
 
@@ -31,8 +31,28 @@ The new differential regression compares **144 combinations** of query, limit an
 
 Ruff passes the exact CI scope, `src tests examples`; `git diff --check` passes. The retained broader `ruff check .` scan, before this checkpoint's raw scripts are archived, fails with **74 findings, all in archived evaluation scripts**, including previously retained raw evidence. Its machine-readable output is preserved; those evidence files are not rewritten to manufacture a clean scan. Four immutable-pin/matrix guards also pass. No full-suite or release pass is claimed from these checks.
 
+## Shipping runtime: canonical passes, complete R5 fails
+
+Source `26db0e08bb86396aa64c6b79ad0f2fc6fd0d4c8d`, pin `28c0b3e`, is frozen during the original canonical benchmark and complete closed/open/open/closed protocol. The drivers differ from the prior qualification only in owned paths/output labels and runtime identity; their exact diff is retained. Context/candidate limits, 21 rounds per worker with only the declared first warmup excluded, all workloads, normal page polling and release bars remain unchanged. No provider is called.
+
+The fresh standard benchmark exits 0: serial/one-brain-eight/eight-brain-eight p95 is **129.91/511.87/595.15 ms**, all **340 recalls nonempty**. Map p95 at 200/500 nodes is **12.39/15.24 ms**. Source hashes remain unchanged and both ports close. The eight-brain result has little margin below 600 ms; it does not establish sustained success.
+
+The complete fullscreen comparison finishes and exits 1. All **4,080 recalls** are nonempty. Serial and same-brain windows pass; three eight-brain windows fail:
+
+| Phase | Cycle (zero-based) | Eight-brain p95 ms | Bar ms |
+|---|---:|---:|---:|
+| Open 1 | 2 | 703.72 | 600 |
+| Open 2 | 0 | 606.04 | 600 |
+| Closed 2 | 1 | 664.84 | 600 |
+
+Eight-brain aggregate p95 by phase is **524.24/600.00/585.34/535.21 ms**. Passing aggregate figures do not override failed windows. The merged read reduces work in the controlled prototype, but this qualification does **not** demonstrate that it solves sustained tail latency or improves every production timing over earlier runtimes. No unchanged rerun is used to select a green result.
+
+Both open phases use actual **ANGLE Metal on Apple M4**. The renderer's **186 node IDs and 66 edges** match the API before and after measurement. Normal status polls remain active, the page stays visible and the animation advances **1,945/1,928 frames**. Both post-measurement screenshots are visually inspected; page/external-request/artifact errors are zero. Source and driver hashes stay fixed; all six ports close. Visual correctness does not pass the failed latency gate.
+
+The stopped failed fixture and its registry are privately archived. All **1,486 regular files** are hash-verified against the archive before removing only the owned disposable profile; the existing registry remains in place. Archive SHA-256 is `98c8ee798d41c59fca91bf699c66835d903f9110535b50fac5bb060379b3ca6e` (304,286,168 bytes). The private archive, inventory, credentials and profiles are excluded from Git. The separate completed regression cluster is removed only after port and hash checks; its profile, registry, packages and logs remain.
+
 ## Remaining qualification
 
-Next, run the unchanged canonical keyword benchmark and complete closed/open/open/closed fullscreen protocol on the pinned candidate, with all raw windows, graph identities, polling, visual artifacts and shutdown checks. Full CI and actual installation parity are also required. Real R4/C5 still requires separate authorization; independent/privacy/design review and working-state/full-familiarity graph coverage remain open. No paid/subscription evaluation, additional Claude call, schedule, merge, tag or publication is performed.
+Next, finish the already-running full CI and execute actual installation/parity checks for this pin. R5 stays open: further work must explain or control tail latency while preserving the same quality and release bars, rather than repeating this unchanged qualification. Real R4/C5 still requires separate authorization; independent/privacy/design review and working-state/full-familiarity graph coverage remain open. No paid/subscription evaluation, additional Claude call, schedule, merge, tag or publication is performed.
 
 The [allowlisted manifest](maturity-lexical-channels-2026-11-04/manifest.json) contains prototype scripts, raw compressed samples, successful regression outputs and the failed broad lint output. Private archives, registry/profile/connection files and response fixtures are excluded.

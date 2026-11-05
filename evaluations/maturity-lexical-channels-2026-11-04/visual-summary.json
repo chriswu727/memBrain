@@ -1,0 +1,83 @@
+{
+  "completed": true,
+  "passed": false,
+  "passed_windows": 33,
+  "windows": 36,
+  "nonempty": 4080,
+  "failed_windows": [
+    {
+      "phase": 1,
+      "cycle": 2,
+      "name": "eight_brains_8_concurrent",
+      "p95_ms": 703.72,
+      "pass": false
+    },
+    {
+      "phase": 2,
+      "cycle": 0,
+      "name": "eight_brains_8_concurrent",
+      "p95_ms": 606.04,
+      "pass": false
+    },
+    {
+      "phase": 3,
+      "cycle": 1,
+      "name": "eight_brains_8_concurrent",
+      "p95_ms": 664.84,
+      "pass": false
+    }
+  ],
+  "eight_phase_aggregate_p95": [
+    524.24,
+    600.0,
+    585.34,
+    535.21
+  ],
+  "browser_events": [
+    {
+      "event": "page_close",
+      "phase_index": 0,
+      "expected": true,
+      "at": 1383649.842026083
+    },
+    {
+      "event": "page_close",
+      "phase_index": 1,
+      "expected": true,
+      "at": 1383716.90920175
+    },
+    {
+      "event": "page_close",
+      "phase_index": 2,
+      "expected": true,
+      "at": 1383782.969465541
+    },
+    {
+      "event": "page_close",
+      "phase_index": 3,
+      "expected": true,
+      "at": 1383845.44038175
+    },
+    {
+      "event": "browser_disconnected",
+      "closing": true,
+      "phase_index": 3,
+      "at": 1383845.641606
+    }
+  ],
+  "screenshots_visually_inspected": true,
+  "source_unchanged": true,
+  "six_ports_closed": true,
+  "eight_windows": 12,
+  "eight_passed": 9,
+  "identities_match": true,
+  "actual_nodes": 186,
+  "actual_edges": 66,
+  "metal": true,
+  "normal_polls": true,
+  "frames": [
+    1945,
+    1928
+  ],
+  "page_outside_artifact_errors": 0
+}
