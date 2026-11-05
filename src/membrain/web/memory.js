@@ -837,7 +837,8 @@ const MOOD_RULES = { reported_good_news: "Good news you shared", inferred_good_n
   plan_done: "A plan noted done", reported_distress: "Something hard you shared",
   inferred_distress: "Something hard, inferred", shared_play: "A shared joke",
   shared_moment: "A moment you shared" };
-const MOOD_STATUS = { active: "active", ended: "back at baseline", pinned: "ignored while pinned" };
+const MOOD_STATUS = { active: "active", ended: "back at baseline", pinned: "ignored while pinned",
+  superseded: "replaced by a later feeling about the same thing" };
 const two = (value) => String(value).padStart(2, "0");
 function moodTime(value) {
   const moment = new Date(value);
