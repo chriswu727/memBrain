@@ -346,6 +346,8 @@ By default, each planning attempt has a 15-second limit, and each model output i
 
 ### Configuring situation understanding and long-term learning
 
+The HTTP service runs recall scoring and context construction in two local worker processes by default. Database reads, scope and deletion locks, final response validation, trace writes and request receipts remain in the API process. The worker queue is bounded to four admitted requests per worker, including running requests. Queue and transfer time count against the computation budget; overload and worker failure return retryable errors without automatically replaying a request. Set `MEMBRAIN_RECALL_PROCESSES` to `0` for inline execution or `1`–`4` for a worker count, then restart the service. Desktop startup also reads this environment variable. Workers start lazily and consume additional memory; embedded `MemoryService` instances stay inline unless explicitly given a recall runner.
+
 All additional model providers are disabled by default. To enable server-side cognition in a development deployment, set the complete configuration below in `.env`, then restart the service and worker:
 
 ```dotenv

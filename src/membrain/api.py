@@ -301,6 +301,11 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     resources = ExitStack()
     if service is None:
         service = resources.enter_context(configured_service(settings))
+        if settings.recall_processes:
+            from .recall_executor import RecallExecutor
+
+            service.recall_runner = RecallExecutor(settings.recall_processes)
+            resources.callback(service.recall_runner.close)
 
     @asynccontextmanager
     async def lifespan(app):

@@ -14,9 +14,22 @@ from membrain.client import default_budget, default_read_fence
 from membrain.contracts import CONTRACT_VERSION
 from membrain.helpers import uid
 from membrain.notes import store_note
+from membrain.recall_executor import RecallExecutor
 from membrain.service import MemoryService
 
 pytestmark = pytest.mark.integration
+
+
+@pytest.fixture(params=[False, True], ids=["inline", "process"])
+def recall_recovery(recovery, request):
+    harness, _ = recovery
+    executor = RecallExecutor(2) if request.param else None
+    harness.service.recall_runner = executor
+    try:
+        yield recovery
+    finally:
+        if executor is not None:
+            executor.close()
 
 
 def recall_request(harness, query, *, request_id=None, wall_ms=1000):
@@ -90,8 +103,8 @@ def test_a_recall_in_progress_does_not_make_the_map_busy(recovery, monkeypatch):
     held_recall(harness, monkeypatch, lambda: harness.memory.memory_map()["nodes"])
 
 
-def test_an_erasure_still_waits_for_reads_and_reads_wait_for_it(recovery, monkeypatch):
-    harness, authority = recovery
+def test_an_erasure_still_waits_for_reads_and_reads_wait_for_it(recall_recovery, monkeypatch):
+    harness, authority = recall_recovery
     secret = harness.observe("The locker code is 4471.")["accepted_event_ids"][0]
     held = Held(harness, monkeypatch)
     thread, first = held.run(lambda: harness.service.handle(
@@ -117,8 +130,8 @@ def test_an_erasure_still_waits_for_reads_and_reads_wait_for_it(recovery, monkey
     assert all(item["event_id"] != secret for item in harness.service.timeline(harness.principal, harness.brain)["items"])
 
 
-def test_a_pending_erasure_is_applied_before_a_shared_read(recovery):
-    harness, authority = recovery
+def test_a_pending_erasure_is_applied_before_a_shared_read(recall_recovery):
+    harness, authority = recall_recovery
     secret = harness.observe("The alarm code is 9932.")["accepted_event_ids"][0]
     pending(harness, authority, secret)
     response = harness.service.handle(harness.principal, recall_request(harness, "alarm code"))
@@ -129,8 +142,8 @@ def test_a_pending_erasure_is_applied_before_a_shared_read(recovery):
     assert "1188" not in str(harness.memory.timeline(roles=("user",)))
 
 
-def test_concurrent_recalls_with_one_request_id_store_one_response(recovery, monkeypatch):
-    harness, _ = recovery
+def test_concurrent_recalls_with_one_request_id_store_one_response(recall_recovery, monkeypatch):
+    harness, _ = recall_recovery
     harness.observe("The dentist is on Tuesday.")
     request = recall_request(harness, "dentist", request_id=str(uuid.uuid4()), wall_ms=20000)
     held = Held(harness, monkeypatch)

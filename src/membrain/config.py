@@ -18,6 +18,7 @@ class Settings:
     api_keys_file: Path | None = None
     api_keys: dict[str, Principal] = field(default_factory=dict, repr=False)
     max_request_bytes: int = 2_000_000
+    recall_processes: int = field(default_factory=lambda: _environment_integer("MEMBRAIN_RECALL_PROCESSES", 2))
     allowed_hosts: tuple[str, ...] = ("localhost", "127.0.0.1", "testserver")
     cognition_base_url: str | None = None
     cognition_api_key: str | None = field(default=None, repr=False)
@@ -39,6 +40,8 @@ class Settings:
     recovery_installation_id: str | None = None
 
     def __post_init__(self):
+        if type(self.recall_processes) is not int or not 0 <= self.recall_processes <= 4:
+            raise ValueError("MEMBRAIN_RECALL_PROCESSES must be an integer from 0 to 4")
         self.semantic_policy()
         validate_cognition_transport(self.cognition_reasoning_effort, self.cognition_thinking,
                                      self.cognition_max_envelope_bytes)

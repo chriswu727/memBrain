@@ -79,13 +79,16 @@ def _same():
 
 class MemoryService:
     def __init__(self, database, *, semantic_processor=None, embedding_provider=None,
-                 access_time_provider=None):
+                 access_time_provider=None, recall_runner=None):
         if access_time_provider is not None and not callable(access_time_provider):
             raise ValueError("The access time provider must be callable.")
+        if recall_runner is not None and not callable(recall_runner):
+            raise ValueError("The recall runner must be callable.")
         self.database = database
         self.semantic_processor = semantic_processor
         self.embedding_provider = embedding_provider
         self.access_time_provider = access_time_provider
+        self.recall_runner = recall_runner
 
     @property
     def embedding_provider(self):
@@ -771,8 +774,9 @@ class MemoryService:
         # Both callers validate this result in full later, after their last change to it: _recall's as the result
         # of the ActionResponse that handle validates, _prepare's as cognition.prepare's RecallResult input. Until
         # then it is only read here, and the traces it carries are validated one by one before they are saved.
-        result = cognition.recall(self._scope(principal, brain, target), query, memories, events, state,
-                                  access_at=access_at, validate_result=False)
+        runner = self.recall_runner or cognition.recall
+        result = runner(self._scope(principal, brain, target), query, memories, events, state,
+                        access_at=access_at, validate_result=False)
         if recall_plan is None and result["items"]:
             from .pattern_store import load_patterns
 
