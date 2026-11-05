@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 候选版本 `1ca3cb2` 为大规模召回响应加入带保护的原生校验。**201 项真实 PostgreSQL 本地检查通过、零跳过**，另有四项安装固定版本／矩阵检查、CI 范围 Ruff 和打包通过。当前版本的完整 CI、全新安装和完整 R5 验收尚待完成。此前版本通过 7,032 项 Python／50 项 TypeScript 测试与 49/49 安装检查，但全屏对照有 3/12 个八脑窗口失败（最高 703.72 ms）；这些结果不能替代新候选版本的验收。真实模型 R4/C5 与最终独立、隐私和设计复核仍未通过。详见[当前实现与验证](evaluations/maturity-native-validation-2026-11-04.md)、[此前验收与失败记录](evaluations/maturity-lexical-channels-2026-11-04.md)及[宿主验证范围](docs/host-compatibility.md)。
+> **预发布阶段。** 候选版本 `d4f0c03` 修复伴侣图在受保护反馈落在可见来源样本之外时的隐私问题。**85 项图谱／浏览器检查和四项固定版本／矩阵检查通过**，零跳过。该版本的完整 CI、全新安装与性能验收尚待完成。此前的原生校验版本通过 201 项本地检查、49/49 安装验收及166个文件一致性检查，全部36个全屏性能窗口达标（最慢八脑窗口 p95为471.41ms），完整 CI 正在运行。真实模型 R4/C5 和最终复核仍未通过。详见[当前修复](evaluations/maturity-companion-privacy-2026-11-04.md)、[原生校验证据和保留的失败记录](evaluations/maturity-native-validation-2026-11-04.md)及[宿主验证范围](docs/host-compatibility.md)。
 
 <a id="claude-code-plugin"></a>
 

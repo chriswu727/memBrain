@@ -1,0 +1,7 @@
+{
+  "incorrect_argument": "1ca3cb251b7502ca9b0bde7c2338a923720178eb",
+  "exit_code": 1,
+  "changed_launchers": false,
+  "reason": "git rev-parse --verify rejected unknown commit before launcher writes",
+  "corrected_runtime": "1ca3cb23381650e245c8320906b9c467a9e3ecd7"
+}
