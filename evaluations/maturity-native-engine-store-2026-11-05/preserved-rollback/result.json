@@ -1,0 +1,19 @@
+{
+  "completed": false,
+  "model_calls": 0,
+  "target": "macos-arm64",
+  "scope": "offline snapshot component only; no automatic upgrader or default selector adoption",
+  "legacy_upgrade": true,
+  "root_service_account": false,
+  "timings_ms": {},
+  "phase": "initialize_original",
+  "preserved_original_engine": true,
+  "original_engine_commitment": "b1a424dabb1e1d78d14fadf8ba094ffcb37530cc78b84ee463dcb9f1c9b32942",
+  "original_engine_files": 1642,
+  "original_engine_bytes": 28660722,
+  "replaceable_source_unavailable": true,
+  "large_file_bytes": 0,
+  "error_type": "EmbeddedDatabaseError",
+  "error_code": "database_initialization_failed",
+  "ports_closed": true
+}

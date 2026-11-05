@@ -1,0 +1,11 @@
+{
+  "terminal_owned_completed_clusters": 1,
+  "regular_files_verified": 1580,
+  "directories_verified": 28,
+  "archive_bytes": 8675460,
+  "archive_sha256": "2b097eb486d853f9a8d5ef8407c357318fc14f50e655daa9e0e30c44bbae43d5",
+  "mode": "0o600",
+  "ports_closed": true,
+  "only_owned_generated_pgdata_removed": true,
+  "all_profiles_journals_snapshots_logs_packages_models_and_binaries_preserved": true
+}

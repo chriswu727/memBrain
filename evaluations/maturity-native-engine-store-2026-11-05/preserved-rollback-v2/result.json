@@ -1,0 +1,19 @@
+{
+  "completed": false,
+  "model_calls": 0,
+  "target": "macos-arm64",
+  "scope": "offline snapshot component only; no automatic upgrader or default selector adoption",
+  "legacy_upgrade": true,
+  "root_service_account": false,
+  "timings_ms": {},
+  "phase": "snapshot_original",
+  "preserved_original_engine": true,
+  "original_engine_commitment": "24bd1f4e0f451740df985a664e58d01f13a801624b12ba520e7296c96154d68d",
+  "original_engine_files": 1645,
+  "original_engine_bytes": 29257986,
+  "replaceable_source_unavailable": true,
+  "large_file_bytes": 0,
+  "error_type": "NativeSnapshotError",
+  "error_code": "native_snapshot_space_low",
+  "ports_closed": true
+}

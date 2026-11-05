@@ -1,0 +1,7 @@
+{
+  "source": "8420d0f1f4fb10ccc87b9c73e71241df26f958bb",
+  "runtime_inputs": 177,
+  "all_sdist_runtime_inputs_match": true,
+  "schema_and_migrations_included": true,
+  "archive_sha256": "1fa98c6349dad2209d688959c6596f868855492b0250a0f6d8865c17b182f2f5"
+}

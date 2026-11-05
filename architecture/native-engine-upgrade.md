@@ -90,12 +90,26 @@ upgrader:
 
 ## Durable lifecycle boundary still to implement
 
+The engine preservation primitive is implemented in `native_engine_store.py`.
+It verifies complete content-addressed copies, including packaged libraries outside
+pginstall, and can validate a recorded copy without its original Python environment.
+Root execution now uses it instead of marker-only shared copies; damaged generations
+are preserved and repaired elsewhere. Actual preserved-engine upgrade/recovery
+passes on all five platforms, including Linux service-account paths. See the
+[engine-store evidence](../evaluations/maturity-native-engine-store-2026-11-05.md).
+The source must already be trusted; this primitive does not establish provenance.
+
 The parent controller must hold the profile lifecycle lock and the data-parent
 maintenance lock across the transition. Before stopping a live process, verify its
 loopback SQL identity, actual data directory, owning role and version; refuse an
 unknown server or a downgrade. Keep a verified original-engine prefix outside any
 replaceable tool environment when original-engine rollback is promised. A backup
 of data alone does not preserve the executable or old vector library.
+
+An installer can remove the old tools before the new runtime first launches.
+Preserve and bind the original engine before replacing that environment, or supply
+an independently verified original-engine input. Do not infer a stopped cluster's
+patch version from PG_VERSION or trust a legacy marker as proof of binary integrity.
 
 The parent journal must distinguish backup preparation, target maintenance,
 bootstrap/restart verification, recovery staging/promotion and API admission. Bind
