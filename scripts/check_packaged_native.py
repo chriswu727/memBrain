@@ -26,7 +26,7 @@ def check(directory, cache_directory=None):
     cache_directory = cache_directory or directory / "cache"
     native_bundle._cache_directory = lambda: cache_directory
     report = {"completed": False, "model_calls": 0, "phase": "created",
-              "scope": "candidate cache integration only; default embedded selector is not overridden in the product",
+              "scope": "isolated native cache and SQL transport qualification; ordinary API startup is qualified separately",
               "cache_preexisting": cache_directory.exists(),
               "timings_ms": {}}
 
@@ -68,7 +68,8 @@ def check(directory, cache_directory=None):
         embedded_database._installation = lambda: prefix
         os.environ.update(overrides)
         checkpoint("database_start")
-        embedded_database.start(profile)
+        embedded_database._start_layout(profile, embedded_database._layout(profile),
+                                               initialize=not embedded_database._layout(profile).data.exists())
         checkpoint("database_write")
         with embedded_database._admin_connection(profile, "agent_memory") as conn:
             assert conn.execute("SHOW server_version").fetchone()[0] == "16.15"
@@ -87,7 +88,8 @@ def check(directory, cache_directory=None):
         assert b"INSERT INTO public.cached_fixture VALUES (1, '[1,2,3]');" in result.stdout
         checkpoint("database_restart")
         embedded_database.stop(profile)
-        embedded_database.start(profile)
+        embedded_database._start_layout(profile, embedded_database._layout(profile),
+                                               initialize=not embedded_database._layout(profile).data.exists())
         with embedded_database._admin_connection(profile, "agent_memory") as conn:
             assert conn.execute("SELECT id,embedding::text FROM cached_fixture").fetchall() == [(1, "[1,2,3]")]
         report.update(verified_files=entry["native_files"], restart_preserves_rows=True,

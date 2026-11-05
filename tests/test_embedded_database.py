@@ -238,7 +238,7 @@ def test_buffer_migration_does_not_wait_on_a_named_pipe(tmp_path):
 def test_buffer_configuration_failure_is_reported_before_starting_the_database(tmp_path, monkeypatch):
     layout = embedded_database._Layout(tmp_path, tmp_path, tmp_path / "log", None)
     calls = []
-    monkeypatch.setattr(embedded_database, "_layout", lambda profile: layout)
+    (layout.data / "PG_VERSION").write_text("16\n")
     monkeypatch.setattr(embedded_database, "_initialize", lambda *args: None)
 
     def status(layout, program, *args, **kwargs):
@@ -251,7 +251,7 @@ def test_buffer_configuration_failure_is_reported_before_starting_the_database(t
     monkeypatch.setattr(embedded_database, "_run", status)
     monkeypatch.setattr(embedded_database, "_update_managed_defaults", unavailable)
     with pytest.raises(embedded_database.EmbeddedDatabaseError) as error:
-        embedded_database.start(SimpleNamespace())
+        embedded_database._start_layout(SimpleNamespace(), layout)
     assert error.value.code == "database_configuration_failed"
     assert "private configuration path" not in str(error.value)
     assert calls == [("pg_ctl", "status")]

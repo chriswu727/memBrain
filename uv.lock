@@ -660,6 +660,7 @@ dependencies = [
 [package.optional-dependencies]
 embedded = [
     { name = "pgserver", marker = "(python_full_version < '3.13' and platform_machine == 'x86_64') or (python_full_version < '3.13' and sys_platform != 'linux')" },
+    { name = "postgresql-binaries", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'darwin') or (platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32')" },
 ]
 semantic = [
     { name = "numpy" },
@@ -675,6 +676,7 @@ dev = [
     { name = "onnxruntime" },
     { name = "pgserver", marker = "(python_full_version < '3.13' and platform_machine == 'x86_64') or (python_full_version < '3.13' and sys_platform != 'linux')" },
     { name = "playwright" },
+    { name = "postgresql-binaries", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'darwin') or (platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32')" },
     { name = "pytest" },
     { name = "pytest-asyncio" },
     { name = "ruff" },
@@ -690,7 +692,8 @@ requires-dist = [
     { name = "mcp", specifier = ">=1.26,<2" },
     { name = "numpy", marker = "extra == 'semantic'", specifier = ">=1.26,<3" },
     { name = "onnxruntime", marker = "extra == 'semantic'", specifier = ">=1.17,<2" },
-    { name = "pgserver", marker = "(python_full_version < '3.13' and platform_machine == 'x86_64' and extra == 'embedded') or (python_full_version < '3.13' and sys_platform != 'linux' and extra == 'embedded')", specifier = ">=0.1.4,<0.2" },
+    { name = "pgserver", marker = "(python_full_version < '3.13' and platform_machine == 'x86_64' and extra == 'embedded') or (python_full_version < '3.13' and sys_platform != 'linux' and extra == 'embedded')", specifier = "==0.1.4" },
+    { name = "postgresql-binaries", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin' and extra == 'embedded') or (platform_machine == 'x86_64' and sys_platform == 'darwin' and extra == 'embedded') or (platform_machine == 'aarch64' and sys_platform == 'linux' and extra == 'embedded') or (platform_machine == 'x86_64' and sys_platform == 'linux' and extra == 'embedded') or (platform_machine == 'AMD64' and sys_platform == 'win32' and extra == 'embedded')", specifier = "==16.15.0" },
     { name = "psycopg", extras = ["binary", "pool"], specifier = ">=3.2,<4" },
     { name = "python-dotenv", specifier = ">=1,<2" },
     { name = "tokenizers", marker = "extra == 'semantic'", specifier = ">=0.15,<1" },
@@ -706,6 +709,7 @@ dev = [
     { name = "onnxruntime", specifier = ">=1.17,<2" },
     { name = "pgserver", marker = "(python_full_version < '3.13' and platform_machine == 'x86_64') or (python_full_version < '3.13' and sys_platform != 'linux')", specifier = ">=0.1.4,<0.2" },
     { name = "playwright", specifier = ">=1.63,<1.64" },
+    { name = "postgresql-binaries", marker = "(platform_machine == 'arm64' and sys_platform == 'darwin') or (platform_machine == 'x86_64' and sys_platform == 'darwin') or (platform_machine == 'aarch64' and sys_platform == 'linux') or (platform_machine == 'x86_64' and sys_platform == 'linux') or (platform_machine == 'AMD64' and sys_platform == 'win32')", specifier = "==16.15.0" },
     { name = "pytest", specifier = ">=8,<10" },
     { name = "pytest-asyncio", specifier = ">=1,<2" },
     { name = "ruff", specifier = ">=0.12" },
@@ -889,6 +893,18 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/bf/db/7fc19e6f2dc92a966727031389fc2e08b558f0f25eb7403c1119ad4713cd/pluggy-1.7.0.tar.gz", hash = "sha256:d1eaa46ebb595891b860ab086b4d09c8588af65ebd4361b8e8f4bb8920b90ba8", size = 123304, upload-time = "2026-10-15T09:50:58.343Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/40/9e/2b38731e0fc536806f16490e1a12d7f0dc2a1235aa8cc07bcc75416a7daa/pluggy-1.7.0-py3-none-any.whl", hash = "sha256:7dd7b0d8832ba3cb632c306926ded123429211b83641b35dc5c41ad2d34f9bec", size = 27082, upload-time = "2026-10-15T09:50:56.808Z" },
+]
+
+[[package]]
+name = "postgresql-binaries"
+version = "16.15.0"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/37/8c/f854f31e4ccafae96a803fc8ed7d32ae308f4399efea20c80d92f13e712e/postgresql_binaries-16.15.0-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:4a1ec8dc225f404c677a43e84472b84e83482c6e7e34c183c44529477dcc6d74", size = 12267083, upload-time = "2026-09-20T14:54:17.103Z" },
+    { url = "https://files.pythonhosted.org/packages/5c/8f/e255d47e3e13e4429a3ff76112d137a1ad3fce052936ef70caced5856114/postgresql_binaries-16.15.0-py3-none-macosx_11_0_arm64.whl", hash = "sha256:c73c7eacd71da727085aa3a4ebfa60b862ce8eacb72102df691b620d7a66460b", size = 11953672, upload-time = "2026-09-20T14:54:21.01Z" },
+    { url = "https://files.pythonhosted.org/packages/34/72/a71ea5cb4cba31db9ab504a33ad24dc8af724f61d1611b4dd34cc19aa07e/postgresql_binaries-16.15.0-py3-none-manylinux_2_17_aarch64.whl", hash = "sha256:11d0ddeb1fdf9c5c8b059d658a3da0fd6fc0f420bff450d9204f3a4f3983007f", size = 10705602, upload-time = "2026-09-20T14:54:56.512Z" },
+    { url = "https://files.pythonhosted.org/packages/7d/69/2b754b23f456bda51047bc8e9469d2407efd0021006ea52d0e7ec77a1ed9/postgresql_binaries-16.15.0-py3-none-manylinux_2_17_x86_64.whl", hash = "sha256:93bad86ed48ba850a587ed9e3f066a271e7c7ffdaba524f9eeda4cac20efc951", size = 10924106, upload-time = "2026-09-20T14:54:20.206Z" },
+    { url = "https://files.pythonhosted.org/packages/60/31/48badb929dbc6235b4c14e8ce03bcab612c2740bb4f4cf2288383a3b7853/postgresql_binaries-16.15.0-py3-none-win_amd64.whl", hash = "sha256:5b4bc720edb424c132840849684cdc864bd828dff96097ee667337eb351623b0", size = 46282985, upload-time = "2026-09-20T14:54:19.911Z" },
 ]
 
 [[package]]

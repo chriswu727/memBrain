@@ -251,6 +251,10 @@ def status(directory: Path | None = None) -> dict:
     result = _probe(profile)
     if result is not None:
         result["configuration_current"] = result.get("configuration") == _fingerprint(profile)
+        if profile.database_engine == "embedded":
+            transition = read_document(profile.directory / "native-transition.json")
+            if profile.native_engine is None or transition is None or transition.get("phase") != "admitted":
+                result["configuration_current"] = False
         if not result["configuration_current"]:
             result.update(ready=False, state="restart_required")
         return result
@@ -274,14 +278,27 @@ def _check_database(profile, *, require_current=False) -> dict:
 
 
 def _prepare_database(profile) -> None:
-    from .cli import bootstrap
-    from .service import MemoryService
-    from .storage import Database
+    if profile.database_engine == "embedded":
+        from . import embedded_database
+        from .native_adoption import prepare
 
+        try:
+            prepare(profile, _bootstrap_application, preflight=_check_database)
+        except embedded_database.EmbeddedDatabaseError as error:
+            raise DesktopError(error.code, str(error)) from None
+        return
     if _port_open(profile.database_port):
         _check_database(profile)
     _database_up(profile)
     _check_database(profile)
+    _bootstrap_application(profile)
+
+
+def _bootstrap_application(profile) -> None:
+    from .cli import bootstrap
+    from .service import MemoryService
+    from .storage import Database
+
     try:
         with contextlib.redirect_stdout(io.StringIO()):
             bootstrap(profile.settings(), app_password=profile.app_password)
@@ -312,7 +329,7 @@ def start(directory: Path | None = None) -> dict:
         profile = load_profile(profile.directory)
         from .recovery_profile import check_start_allowed
 
-        check_start_allowed(profile, allow_initializing=True)
+        check_start_allowed(profile, allow_initializing=True, allow_native_upgrade=True)
         existing = status(profile.directory)
         if existing["state"] == "restart_required":
             raise DesktopError("restart_required", "Configuration changed; run desktop restart to apply it.")
@@ -326,6 +343,7 @@ def start(directory: Path | None = None) -> dict:
             raise DesktopError("port_conflict", "The saved API port belongs to another service. Free that port and retry; no process was stopped.")
         print("Starting the local memory database and service…", file=sys.stderr)
         _prepare_database(profile)
+        profile = load_profile(profile.directory)
         process = _launch(profile)
         deadline = time.monotonic() + 35
         while time.monotonic() < deadline:

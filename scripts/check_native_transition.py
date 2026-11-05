@@ -205,7 +205,8 @@ def check(directory, cache, *, legacy, require_root, legacy_location, fault, reu
                 embedded_database._initialize(profile, initial)
             else:
                 source = embedded_database._layout(profile)
-            embedded_database.start(profile)
+            embedded_database._start_layout(profile, embedded_database._layout(profile),
+                                               initialize=not embedded_database._layout(profile).data.exists())
             source = embedded_database._layout(profile)
         checkpoint("initialize_original_fixture")
         with embedded_database._admin_connection(profile, "postgres") as connection:

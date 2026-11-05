@@ -1,6 +1,6 @@
 """Embedded PostgreSQL for desktop and plugin installations without Docker.
 
-Only the PostgreSQL and pgvector binaries from the optional ``pgserver`` wheel are used. The cluster
+Only verified PostgreSQL and pgvector binaries are used. The cluster
 listens on 127.0.0.1 with password authentication, so connection strings, migrations, roles and
 row-level security match the Docker engine exactly.
 """
@@ -36,7 +36,7 @@ class EmbeddedDatabaseError(RuntimeError):
         super().__init__(message)
 
 
-def _installation() -> Path | None:
+def _legacy_installation() -> Path | None:
     try:
         spec = importlib.util.find_spec("pgserver")
     except (ImportError, ValueError):
@@ -50,8 +50,16 @@ def _installation() -> Path | None:
     return root
 
 
+def _installation() -> Path | None:
+    from .native_bundle import prepare
+
+    return prepare()
+
+
 def available() -> bool:
-    return _installation() is not None
+    from .native_bundle import available as supplier_available
+
+    return supplier_available()
 
 
 def default_engine() -> str:
@@ -121,6 +129,11 @@ def _traversable(directory: Path) -> bool:
 
 
 def _layout(profile) -> _Layout:
+    from .native_adoption import recorded_layout
+
+    recorded = recorded_layout(profile)
+    if recorded is not None:
+        return recorded
     source = _installation()
     if source is None:
         raise EmbeddedDatabaseError(
@@ -128,6 +141,10 @@ def _layout(profile) -> _Layout:
             "The embedded database is not installed for this platform. Install the 'embedded' extra "
             "or choose the Docker database engine.",
         )
+    return _layout_from_source(profile, source)
+
+
+def _layout_from_source(profile, source) -> _Layout:
     if not _running_as_root():
         return _Layout(source / "bin", profile.directory / "postgres", profile.directory / "postgres.log", None)
     legacy = (LEGACY_SHARED_ROOT / "clusters" / profile.installation_id / "data" / "PG_VERSION").is_file()
@@ -259,8 +276,18 @@ def running(profile) -> bool:
 
 
 def start(profile) -> None:
-    layout = _layout(profile)
-    _initialize(profile, layout)
+    from .native_adoption import start_source
+
+    start_source(profile)
+
+
+def _start_layout(profile, layout, *, initialize=False) -> None:
+    if initialize:
+        if layout.data.exists() or layout.data.is_symlink():
+            raise EmbeddedDatabaseError("database_initialization_conflict", "The database initialization path already exists; existing data was preserved.")
+        _initialize(profile, layout)
+    elif not (layout.data / "PG_VERSION").is_file():
+        raise EmbeddedDatabaseError("database_missing", "The recorded database is missing; restore it before starting. Existing paths were preserved.")
     if _run(layout, "pg_ctl", "status", "-D", str(layout.data), timeout=30).returncode != 0:
         try:
             _update_managed_defaults(profile, layout)

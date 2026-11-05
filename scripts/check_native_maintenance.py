@@ -102,7 +102,8 @@ def check(directory, cache, *, legacy, require_root):
         assert closed(profile.api_port) and closed(profile.database_port)
         checkpoint("initialize_fixture")
         source = embedded_database._layout(profile)
-        embedded_database.start(profile)
+        embedded_database._start_layout(profile, embedded_database._layout(profile),
+                                               initialize=not embedded_database._layout(profile).data.exists())
         with embedded_database._admin_connection(profile, "postgres") as connection:
             connection.execute(sql.SQL("CREATE ROLE maintenance_probe LOGIN NOSUPERUSER NOCREATEDB NOCREATEROLE PASSWORD {}").format(sql.Literal(profile.app_password)))
             connection.execute(sql.SQL("CREATE DATABASE {} WITH CONNECTION LIMIT 3").format(sql.Identifier(CLOSED)))
@@ -134,7 +135,8 @@ def check(directory, cache, *, legacy, require_root):
         embedded_database._installation = lambda: prefix
         layout = embedded_database._layout(profile)
         assert layout.data == source.data
-        embedded_database.start(profile)
+        embedded_database._start_layout(profile, embedded_database._layout(profile),
+                                               initialize=not embedded_database._layout(profile).data.exists())
         operation = str(uuid4())
         checkpoint("interrupt_closed_database_opening")
         result = subprocess.run([sys.executable, str(Path(__file__).resolve()), "--worker", "--directory", str(directory),
@@ -187,7 +189,8 @@ def check(directory, cache, *, legacy, require_root):
         checkpoint("repeat_and_restart")
         native_maintenance.maintain(profile, layout, directory / "snapshot", receipt["receipt_sha256"], operation)
         embedded_database.stop(profile)
-        embedded_database.start(profile)
+        embedded_database._start_layout(profile, embedded_database._layout(profile),
+                                               initialize=not embedded_database._layout(profile).data.exists())
         assert flags(profile) == original_flags and fingerprint(profile) == original_rows
         assert statistics_visible(profile) == [0, 0]
         report.update(completed=True, database_count=len(original_flags), snapshot_receipt_sha256=receipt["receipt_sha256"],

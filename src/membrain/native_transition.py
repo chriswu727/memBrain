@@ -583,7 +583,7 @@ def session(profile, target_layout=None, *, original=None, retry_rolled_back=Fal
             stack.enter_context(profile_lock(profile.directory / "supervisor", timeout=0))
             if _open_port(profile.api_port):
                 raise NativeTransitionError("active")
-            check_start_allowed(profile, allow_initializing=True)
+            check_start_allowed(profile, allow_initializing=True, allow_native_upgrade=True)
             _target(layout)
             if document is not None:
                 handle.journal = document

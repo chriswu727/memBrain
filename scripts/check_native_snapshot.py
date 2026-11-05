@@ -102,7 +102,8 @@ def check(directory, cache_directory, *, legacy, require_root, large_file_bytes=
         embedded_database._installation = lambda: first
         source = embedded_database._layout(profile)
         layouts.append(source)
-        embedded_database.start(profile)
+        embedded_database._start_layout(profile, embedded_database._layout(profile),
+                                               initialize=not embedded_database._layout(profile).data.exists())
         with embedded_database._admin_connection(profile, "postgres") as connection:
             connection.execute(sql.SQL("CREATE ROLE snapshot_owner LOGIN PASSWORD {} NOSUPERUSER NOCREATEDB NOCREATEROLE NOREPLICATION NOBYPASSRLS").format(sql.Literal(profile.app_password)))
             connection.execute("CREATE DATABASE snapshot_secondary OWNER snapshot_owner")
@@ -149,7 +150,8 @@ def check(directory, cache_directory, *, legacy, require_root, large_file_bytes=
         upgraded = embedded_database._layout(profile)
         layouts.append(upgraded)
         assert upgraded.data == source.data
-        embedded_database.start(profile)
+        embedded_database._start_layout(profile, embedded_database._layout(profile),
+                                               initialize=not embedded_database._layout(profile).data.exists())
         with embedded_database._admin_connection(profile, "agent_memory") as connection:
             assert connection.execute("SHOW server_version").fetchone()[0] == "16.15"
             connection.execute("ALTER EXTENSION vector UPDATE TO '0.8.6'")

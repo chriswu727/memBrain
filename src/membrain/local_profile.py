@@ -239,6 +239,7 @@ class DesktopProfile:
     principal_id: str
     cognition: dict | None = field(default=None, repr=False)
     database_engine: str = "docker"
+    native_engine: str | None = None
 
     @property
     def base_url(self) -> str:
@@ -321,11 +322,15 @@ def _cognition(value) -> dict | None:
 
 def _validate(document, directory: Path) -> DesktopProfile:
     fields = {field.name for field in DesktopProfile.__dataclass_fields__.values()} - {"directory"}
-    optional = {"database_engine"}
+    optional = {"database_engine", "native_engine"}
     if not isinstance(document, dict) or not (fields - optional) | {"version"} <= set(document) <= fields | {"version"}:
         raise LocalProfileError("Profile is incomplete or contains unknown fields; restore its original configuration.")
     if document.get("database_engine", "docker") not in ("docker", "embedded"):
         raise LocalProfileError("Profile database engine must be docker or embedded.")
+    if "native_engine" in document and (
+        document["native_engine"] != "16.15" or document.get("database_engine") != "embedded"
+    ):
+        raise LocalProfileError("Profile native engine is unsupported.")
     if type(document["version"]) is not int or document["version"] != PROFILE_VERSION:
         raise LocalProfileError("Profile version is unsupported.")
     for name in ("installation_id", "brain_id", "tenant_id", "principal_id"):
@@ -391,6 +396,8 @@ def _save(profile: DesktopProfile) -> None:
     document = {name: getattr(profile, name) for name in DesktopProfile.__dataclass_fields__ if name != "directory"}
     if profile.database_engine == "docker":
         del document["database_engine"]  # Keep profiles written before engine selection byte-compatible.
+    if profile.native_engine is None:
+        del document["native_engine"]
     document["version"] = PROFILE_VERSION
     _validate(document, profile.directory)
     destination = profile.directory / PROFILE_FILE
@@ -413,6 +420,18 @@ def _save(profile: DesktopProfile) -> None:
                 os.close(descriptor)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def adopt_native_engine(profile: DesktopProfile) -> DesktopProfile:
+    with profile_lock(profile.directory):
+        current = _load(profile.directory)
+        if current != profile or current.database_engine != "embedded":
+            raise LocalProfileError("Profile changed; reload it before adopting the native engine.")
+        if current.native_engine == "16.15":
+            return current
+        result = replace(current, native_engine="16.15")
+        _save(result)
+        return result
 
 
 def _available_port(requested: int | None, preferred: int, excluded: set[int]) -> int:
