@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 候选版本 `9f75361` 减少词法计算，并在冷启动时安全迁移内置数据库的受管缓存默认值。全新安装通过 **49/49**，**166 个安装文件全部一致**，完整全屏回忆验收 **36/36 个窗口全部达标**（最慢八脑窗口 p95 **465.93 ms**）；完整 CI 通过 **7,086 项 Python／50 项 TypeScript 测试**、零跳过，以及严格类型检查、Ruff 和打包。PostgreSQL 16.2 安全基线、真实 R4/C5 和剩余图谱／复核门槛尚未通过，继续冻结发布。详见[当前证据](evaluations/maturity-recall-cache-2026-11-04.md)、[保留的前版 892.11 ms 失败](evaluations/maturity-companion-privacy-2026-11-04.md)及[宿主范围](docs/host-compatibility.md)。
+> **预发布阶段。** 内置引擎候选版本 `f441e4a` 已在普通启动流程中接入经过验证的 PostgreSQL 16.15／pgvector 0.8.6，并加入升级中断恢复及旧版程序保护。跨平台启动和恢复验证仍在进行。此前候选版本 `9f75361` 通过 **49/49** 项全新安装检查及 **36/36** 个全屏回忆窗口（最慢八脑窗口 p95 **465.93 ms**）；这些结果仍只代表此前候选版本。当前安装候选验证、真实 R4/C5 和剩余图谱／复核门槛尚未通过，继续冻结发布。详见[原生升级证据](evaluations/maturity-native-transition-2026-11-05.md)、[此前回忆证据](evaluations/maturity-recall-cache-2026-11-04.md)及[宿主范围](docs/host-compatibility.md)。
 
 <a id="claude-code-plugin"></a>
 
@@ -106,7 +106,9 @@ membrain desktop chat
 
 在 `setup` 中填写用于记忆学习的模型配置。`configure-chat --use-cognition` 明确选择复用这份配置来生成回复。如需使用不同的回复模型，请运行不带该参数的 `membrain desktop configure-chat`。
 
-设置会创建一个持久大脑，并启动数据库、API 和后台任务处理器。在 macOS、Windows 或 Linux x86_64 上使用 Python 3.12 并安装 `embedded` 附加组件时，数据库以嵌入式 PostgreSQL 运行，无需 Docker；其他环境下设置会使用 Docker Desktop（可用 `--database docker|embedded` 指定）。无需克隆仓库，也无需分别启动这些服务。如果终端找不到安装后的命令，请运行 `uv tool update-shell`，然后重新打开终端。
+设置会创建一个持久大脑，并启动数据库、API 和后台任务处理器。在 macOS ARM64／x86_64、Windows x86_64 或 Linux ARM64／x86_64 上使用 Python 3.12 并安装 `embedded` 附加组件时，数据库使用嵌入式 PostgreSQL 16.15 和 pgvector 0.8.6，无需 Docker；其他环境下设置会使用 Docker Desktop（可用 `--database docker|embedded` 指定）。无需克隆仓库，也无需分别启动这些服务。如果终端找不到安装后的命令，请运行 `uv tool update-shell`，然后重新打开终端。
+
+旧版内置数据库首次升级时，会先保存原引擎和冷备份，再修改数据库目录，因此需要额外的可用磁盘空间。数据库维护、应用初始化和恢复检查全部成功后，API 才会启动。采用新引擎后，旧版程序会拒绝该配置；请让已安装的工具和 MCP 配置使用相同的软件包来源。升级失败会阻止就绪，并保留现有数据和恢复文件。
 
 **数据存储在本地；模型处理取决于你配置的提供方。** 聊天和语义学习可能产生 API 费用，并将相关内容发送给该提供方。跳过认知模型配置后，仍可使用存储和词面回忆，但模型驱动的学习会被禁用。较慢的推理模型可能需要显式启用[推理预设并调整提供方配置](docs/reference.md#desktop-setup)。
 
