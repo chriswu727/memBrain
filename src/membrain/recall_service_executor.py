@@ -13,9 +13,9 @@ from .recall_executor import RecallExecutor
 _SERVICE = None
 
 
-def _initialize_service(settings, barrier):
+def _initialize_service(settings, principals, barrier):
     global _SERVICE
-    manager = configured_service(settings)
+    manager = configured_service(settings, principals=principals)
     _SERVICE = manager.__enter__()
     Finalize(None, manager.__exit__, args=(None, None, None), exitpriority=10)
     validator("ActionRequest")
@@ -52,6 +52,7 @@ def _respond(principal, request, embedding, space, started, deadline, clock, acc
 class RecallServiceExecutor(RecallExecutor):
     def __init__(self, workers, settings):
         super().__init__(workers)
+        self._principals = tuple(set(settings.principals().values()))
         self._settings = replace(
             settings, recall_processes=0, api_keys={}, api_keys_file=None, migration_database_url=None,
             cognition_base_url=None, cognition_api_key=None, cognition_model=None,
@@ -61,7 +62,7 @@ class RecallServiceExecutor(RecallExecutor):
         )
 
     def _initialization(self, context):
-        return _initialize_service, (self._settings, context.Barrier(self.workers, timeout=20))
+        return _initialize_service, (self._settings, self._principals, context.Barrier(self.workers, timeout=20))
 
     def respond(self, principal, request, embedding, space, *, access_at=None):
         started = time.monotonic()

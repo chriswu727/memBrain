@@ -8,8 +8,10 @@ from test_turns import turns as turns
 from test_vector_jobs import drain, provider
 
 from membrain.config import Settings
+from membrain.deletion_registry import DeletionRegistry
 from membrain.helpers import Principal, now, uid
 from membrain.recall_service_executor import RecallServiceExecutor
+from membrain.recovery_authority import RecoveryAuthority
 
 pytestmark = pytest.mark.integration
 
@@ -165,3 +167,25 @@ def test_deadline_after_receipt_write_rolls_back_receipt_and_traces(turns, execu
     assert inserted == [True]
     assert result["response"][0]["error"]["code"] == "budget_exceeded"
     assert receipts(turns, request) == [] and trace_count() == before
+
+
+def test_registered_recovery_owner_is_retained_without_credentials(turns, tmp_path):
+    prepare(turns)
+    installation = uid()
+    registry = DeletionRegistry.create(tmp_path / "registry", installation)
+    authority = RecoveryAuthority(registry, installation)
+    authority.initialize(turns.database, turns.principal)
+    turns.database.recovery_authority = authority
+    settings = Settings(database_url=turns.database.dsn, api_keys={"private-auth-hash": turns.principal},
+                        recovery_registry_path=registry.directory, recovery_registry_id=registry.registry_id,
+                        recovery_installation_id=installation)
+    runner = RecallServiceExecutor(2, settings)
+    try:
+        assert not runner._settings.api_keys
+        assert runner._principals == (turns.principal,)
+        runner.start()
+        turns.service.request_runner = runner.respond
+        response = turns.service.handle(turns.principal, recall_request(turns.brain))
+        assert response["outcome"] == "completed" and response["result"]["items"], response
+    finally:
+        runner.close()

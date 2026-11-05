@@ -14,6 +14,8 @@ def supervisor(tmp_path, monkeypatch):
     import membrain.recovery_authority
     from membrain.storage import Database
 
+    # There is no database here, and spawned processes cannot inherit the fixture's database stubs.
+    monkeypatch.setenv("MEMBRAIN_RECALL_PROCESSES", "0")
     monkeypatch.setattr(Database, "check_compatibility", lambda *args, **kwargs: None)
     monkeypatch.setattr(membrain.recovery_authority, "configure_authority", lambda *args: None)
     profile = ensure_profile(tmp_path / "profile")
@@ -147,6 +149,7 @@ def test_downloaded_model_activates_in_place_and_is_never_reported_as_needing_a_
     from membrain import host, local_embeddings
     from membrain.storage import Database
 
+    monkeypatch.setenv("MEMBRAIN_RECALL_PROCESSES", "0")
     monkeypatch.setattr(Database, "check_compatibility", lambda *args, **kwargs: None)
     monkeypatch.setattr(membrain.recovery_authority, "configure_authority", lambda *args: None)
     monkeypatch.setattr(local_embeddings, "runtime_available", lambda: True)

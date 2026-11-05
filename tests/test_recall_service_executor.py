@@ -21,6 +21,7 @@ def test_workers_receive_no_models_or_provider_credentials():
     try:
         child = executor._settings
         assert child.database_url == settings.database_url
+        assert executor._principals == (PRINCIPAL,)
         assert child.migration_database_url is None
         assert not child.api_keys and child.api_keys_file is None
         assert child.cognition_base_url is child.cognition_api_key is child.cognition_model is None

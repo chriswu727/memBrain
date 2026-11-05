@@ -244,8 +244,8 @@ def archive_barrier(database, conn, principal):
         authority.assert_reconciled(conn, principal)
 
 
-def configure_authority(database, settings):
-    principals = set(settings.principals().values())
+def configure_authority(database, settings, *, principals=None):
+    principals = set(settings.principals().values() if principals is None else principals)
     if settings.recovery_registry_path is not None:
         authority = RecoveryAuthority(
             DeletionRegistry(settings.recovery_registry_path, settings.recovery_registry_id),

@@ -140,7 +140,7 @@ def _environment_integer(name, default):
 
 
 @contextmanager
-def configured_service(settings: Settings):
+def configured_service(settings: Settings, *, principals=None):
     from .embeddings import ChatCompletionsEmbeddingProvider
     from .semantic import SemanticProcessor
     from .semantic_provider import ChatCompletionsSemanticProvider
@@ -157,7 +157,10 @@ def configured_service(settings: Settings):
 
     with ExitStack() as resources:
         resources.callback(database.close)
-        configure_authority(database, settings)
+        if principals is None:
+            configure_authority(database, settings)
+        else:
+            configure_authority(database, settings, principals=principals)
         processor, embedding = None, None
         if settings.cognition_base_url is not None:
             provider = resources.enter_context(ChatCompletionsSemanticProvider(
