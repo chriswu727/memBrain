@@ -1,0 +1,131 @@
+FFFF                                                                     [100%]
+=================================== FAILURES ===================================
+___________ test_start_prepares_every_worker_before_the_first_recall ___________
+
+    def test_start_prepares_every_worker_before_the_first_recall():
+        executor = RecallExecutor(2)
+        try:
+>           executor.start()
+            ^^^^^^^^^^^^^^
+E           AttributeError: 'RecallExecutor' object has no attribute 'start'
+
+tests/test_recall_readiness.py:17: AttributeError
+____________ test_failed_start_reaps_workers_and_allows_a_new_pool _____________
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x106f5f3e0>
+
+    def test_failed_start_reaps_workers_and_allows_a_new_pool(monkeypatch):
+        executor = RecallExecutor(2)
+        original = executor._executor
+        processes = []
+    
+        def capture():
+            pool = original()
+            processes.extend(pool._processes.values())
+            return pool
+    
+        monkeypatch.setattr(executor, "_executor", capture)
+        try:
+            with pytest.raises(DomainError, match="startup"):
+>               executor.start(timeout=0)
+                ^^^^^^^^^^^^^^
+E               AttributeError: 'RecallExecutor' object has no attribute 'start'
+
+tests/test_recall_readiness.py:43: AttributeError
+_ test_api_startup_waits_for_recall_readiness_and_closes_failed_resources[False] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x106f5f800>
+fail = False
+
+    @pytest.mark.parametrize("fail", [False, True])
+    def test_api_startup_waits_for_recall_readiness_and_closes_failed_resources(monkeypatch, fail):
+        from membrain import recall_executor
+    
+        events = []
+    
+        @contextmanager
+        def factory(settings):
+            events.append("service opened")
+            try:
+                yield SimpleNamespace()
+            finally:
+                events.append("service closed")
+    
+        class Executor:
+            def __init__(self, workers):
+                assert workers == 2
+    
+            def start(self):
+                events.append("workers starting")
+                if fail:
+                    raise DomainError("dependency_unavailable", "worker startup failed", retryable=True)
+                events.append("workers ready")
+    
+            def close(self):
+                events.append("workers closed")
+    
+        monkeypatch.setattr(api, "configured_service", factory)
+        monkeypatch.setattr(recall_executor, "RecallExecutor", Executor)
+        app = api.create_app(Settings(database_url="unused"))
+        if fail:
+            with pytest.raises(DomainError, match="startup"):
+                with TestClient(app):
+                    pytest.fail("The application accepted requests before its workers became ready")
+            assert events == ["service opened", "workers starting", "workers closed", "service closed"]
+        else:
+            with TestClient(app) as client:
+>               assert events == ["service opened", "workers starting", "workers ready"]
+E               AssertionError: assert ['service opened'] == ['service ope...orkers ready']
+E                 
+E                 Right contains 2 more items, first extra item: 'workers starting'
+E                 Use -v to get more diff
+
+tests/test_recall_readiness.py:90: AssertionError
+_ test_api_startup_waits_for_recall_readiness_and_closes_failed_resources[True] _
+
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1071ed880>
+fail = True
+
+    @pytest.mark.parametrize("fail", [False, True])
+    def test_api_startup_waits_for_recall_readiness_and_closes_failed_resources(monkeypatch, fail):
+        from membrain import recall_executor
+    
+        events = []
+    
+        @contextmanager
+        def factory(settings):
+            events.append("service opened")
+            try:
+                yield SimpleNamespace()
+            finally:
+                events.append("service closed")
+    
+        class Executor:
+            def __init__(self, workers):
+                assert workers == 2
+    
+            def start(self):
+                events.append("workers starting")
+                if fail:
+                    raise DomainError("dependency_unavailable", "worker startup failed", retryable=True)
+                events.append("workers ready")
+    
+            def close(self):
+                events.append("workers closed")
+    
+        monkeypatch.setattr(api, "configured_service", factory)
+        monkeypatch.setattr(recall_executor, "RecallExecutor", Executor)
+        app = api.create_app(Settings(database_url="unused"))
+        if fail:
+            with pytest.raises(DomainError, match="startup"):
+                with TestClient(app):
+>                   pytest.fail("The application accepted requests before its workers became ready")
+E                   Failed: The application accepted requests before its workers became ready
+
+tests/test_recall_readiness.py:86: Failed
+=========================== short test summary info ============================
+FAILED tests/test_recall_readiness.py::test_start_prepares_every_worker_before_the_first_recall
+FAILED tests/test_recall_readiness.py::test_failed_start_reaps_workers_and_allows_a_new_pool
+FAILED tests/test_recall_readiness.py::test_api_startup_waits_for_recall_readiness_and_closes_failed_resources[False]
+FAILED tests/test_recall_readiness.py::test_api_startup_waits_for_recall_readiness_and_closes_failed_resources[True]
+4 failed in 0.61s

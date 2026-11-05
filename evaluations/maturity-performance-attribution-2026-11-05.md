@@ -25,6 +25,8 @@ An instrumented real API, using the normal two-worker runtime and retained corpu
 
 Inclusive stages overlap. SQL wall time includes scheduling and server waits; this is not a proof that query execution alone caused the previous R5 failures. Instrumentation adds overhead. Client p95 was 617.55/428.20 ms, and these diagnostic windows do not replace the release protocol. The evidence points toward candidate processing and API-side contention as worthwhile targets, while audit writes alone do not account for the full observed latency.
 
+**Subsequent interpretation correction:** the diagnostic worker constructs its application at module import, so spawned workers repeat application initialization. The recorded 5,138.42 ms rejection is preserved, but cannot establish an ordinary-production cold-start timeout. An [import-safe direct SDK comparison](maturity-recall-readiness-2026-11-05.md) completed all eight requests without fallback: baseline first recalls took 832.35/401.72 ms, versus 320.87/321.06 ms with eager worker readiness. This does not isolate every source of startup cost or qualify concurrent R5 performance.
+
 ## Deferred document query prototype
 
 A query variant delayed fetching large memory documents until after the hashed and exact channels selected their candidates. It preserved both channel sentinels, document-key deduplication and ordering. Across 96 paired comparisons (eight brains, three queries, four repetitions), returned rows and truncation flags matched exactly.

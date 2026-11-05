@@ -1,0 +1,87 @@
+{
+  "scope": "Local real-database integration guards and import-safe direct recall startup diagnostic; no model calls. Original failed baseline extraction retained.",
+  "runtime_commit": "96e80d7",
+  "payloads": [
+    {
+      "file": "before.txt",
+      "bytes": 5533,
+      "sha256": "e05446d1a96eeddd66a88fb5441b3a52ecd334ab3fb30d4e2181e8bc9a602867"
+    },
+    {
+      "file": "after.txt",
+      "bytes": 99,
+      "sha256": "a8fa2899e40955b6eb5f34354b03ba0a20cc311ddb79c93fa6afee3703870621"
+    },
+    {
+      "file": "integration-guards.txt",
+      "bytes": 432,
+      "sha256": "b939c54ee18747aaf344213613928ae3275c8f268d8ffae76251e4ca62c37a3e"
+    },
+    {
+      "file": "integration-guards.json",
+      "bytes": 67939,
+      "sha256": "eed71a03ab355f1eacab941a9b963372426b90a1735ab237c0a1454c3303708b"
+    },
+    {
+      "file": "run-guards.py",
+      "bytes": 2361,
+      "sha256": "dc9fa19dd6c86543b0b4d47f7fc118053143449ed4ef05701ec0506985caf651"
+    },
+    {
+      "file": "cold-worker.py",
+      "bytes": 323,
+      "sha256": "4a4e09159b35b2f3059f846d72b97d45e90f7fc268eb65971ba2a220ca51cfee"
+    },
+    {
+      "file": "cold-probe.py",
+      "bytes": 4601,
+      "sha256": "4f7b9a01adcbf0ab40b41e23b8440e5dcf230163f0a9193b2cef4a5bedd179d2"
+    },
+    {
+      "file": "cold-probe.json",
+      "bytes": 109153,
+      "sha256": "f9eb5c5a1b3501d2b72403e142b977e7a231974742511f5c067f94d96b960187"
+    },
+    {
+      "file": "cold-probe.txt",
+      "bytes": 1965,
+      "sha256": "741364f8b82bba98a22eadbd607a664b04176843822c2b1b05542ef1e6faf039"
+    },
+    {
+      "file": "cold-probe-setup-failed.json",
+      "bytes": 101951,
+      "sha256": "5f6f235922cec0ffa476a32e251e9d54b76bbd1568e726431d2dbaa28a5b45ff"
+    },
+    {
+      "file": "cold-probe-setup-failed.txt",
+      "bytes": 277,
+      "sha256": "f7d6477522c4be7310948922af2b4a8ed572e9015aa75f7893650fcdd2646af2"
+    },
+    {
+      "file": "cold-0-baseline-setup-failed.log",
+      "bytes": 1342,
+      "sha256": "ac656d2156e6db9ba7f9923a2584a4f9e65da79f6d1714b49d36684bf4e00193"
+    },
+    {
+      "file": "cold-0-baseline.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "cold-1-ready.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "cold-2-ready.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "file": "cold-3-baseline.log",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  ],
+  "exact_profile_credential_values_scanned": 3
+}
