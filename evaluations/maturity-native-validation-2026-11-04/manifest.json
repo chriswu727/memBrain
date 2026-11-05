@@ -607,10 +607,26 @@
     {
       "path": "credential-scan.json",
       "source": "generated exact-value credential scan",
-      "bytes": 223,
-      "sha256": "e476f5ab51777d5307397a0f2c2c58c3c879288b5ab14281d976c9729e28932a",
-      "raw_sha256": "e476f5ab51777d5307397a0f2c2c58c3c879288b5ab14281d976c9729e28932a",
-      "raw_bytes": 223
+      "bytes": 199,
+      "sha256": "72bcf73a719611822ad084937fb80de3a6806ed1108a3de6bfd8a22707596638",
+      "raw_sha256": "72bcf73a719611822ad084937fb80de3a6806ed1108a3de6bfd8a22707596638",
+      "raw_bytes": 199
+    },
+    {
+      "path": "ci-efc8eb6.log.gz",
+      "source": "ci-efc8eb6.log.gz",
+      "bytes": 189412,
+      "sha256": "17fb6a34cef2ba698e8ceef2db106e60d434bc1b9facf89a6113247e330a3ba4",
+      "raw_sha256": "c3974fbdd1805ff944f0b64607fb32709ba68e1398ae345dd0afbfb8ab21b288",
+      "raw_bytes": 1524827
+    },
+    {
+      "path": "ci-result.json",
+      "source": "ci-result.json",
+      "bytes": 884,
+      "sha256": "485014bb8923e390cb6d3e02927020f0409f951762311d21dbf8d83ee793e735",
+      "raw_sha256": "485014bb8923e390cb6d3e02927020f0409f951762311d21dbf8d83ee793e735",
+      "raw_bytes": 884
     }
   ]
 }

@@ -1,6 +1,6 @@
 # Guarded native recall-response validation
 
-Runtime `1ca3cb23381650e245c8320906b9c467a9e3ecd7` adds compiled native validation for completed recall responses with at least 16 items. All nine launchers pinned this revision during the frozen qualification; the [subsequent privacy follow-up](maturity-companion-privacy-2026-11-04.md) is tracked separately. **201 local PostgreSQL-backed regression checks pass, zero skips; CI-scope Ruff and sdist/wheel builds pass. Fresh installation passes 49/49 and all 166 installed files match. Canonical recall and all 36 fullscreen workload windows pass. Full CI is running.** Publication remains frozen. The previous runtime's [7,032 Python/50 TypeScript passes, 49-check installation and failed R5 windows](maturity-lexical-channels-2026-11-04.md) remain evidence for that revision only.
+Runtime `1ca3cb23381650e245c8320906b9c467a9e3ecd7` adds compiled native validation for completed recall responses with at least 16 items. All nine launchers pinned this revision during the frozen qualification; the [subsequent privacy follow-up](maturity-companion-privacy-2026-11-04.md) is tracked separately. **201 local PostgreSQL-backed regression checks pass, zero skips; CI-scope Ruff and sdist/wheel builds pass. Fresh installation passes 49/49 and all 166 installed files match. Canonical recall and all 36 fullscreen workload windows pass. Full CI passes 7,068 Python/50 TypeScript tests, zero skips, strict types, Ruff and package builds.** Publication remains frozen. The previous runtime's [7,032 Python/50 TypeScript passes, 49-check installation and failed R5 windows](maturity-lexical-channels-2026-11-04.md) remain evidence for that revision only.
 
 ## Validation boundary
 
@@ -33,7 +33,7 @@ Earlier logs are retained: one test-authoring attempt used a dictionary monkeypa
 
 Source `efc8eb60b2ee91583bb46afc00f431e64d947057`, pin `1ca3cb2`, stays unchanged throughout the original canonical and complete fullscreen protocols. Only owned paths/output labels and runtime identity differ from the prior drivers; the exact diff is retained. All workloads, context/candidate limits, 21 rounds with only the declared first warmup excluded, page polling and release bars remain unchanged. No model is called.
 
-Fresh canonical p95 is **87.33/428.25/458.26 ms** (serial/one-brain-eight/eight-brain-eight), all **340 recalls nonempty**; map200/map500 p95 is **10.99/14.72 ms**, with no errors. Source hashes remain fixed and both ports close.
+Fresh canonical p95 is **87.33/428.25/458.26 ms** (serial/one-brain-eight/eight-brain-eight), all **340 recalls nonempty**; map 200/map 500 p95 is **10.99/14.72 ms**, with no errors. Source hashes remain fixed and both ports close.
 
 Complete closed/open/open/closed qualification exits0, completed/passed true: **36/36 workload windows**, including **12/12 eight-brain windows**, pass. All **4,080 recalls are nonempty**. Worst eight-brain window p95 is **471.41 ms**; phase aggregate p95 is438.43/447.23/450.33/448.34ms. Individual eight-brain window p95 values are428.83/443.77/436.55,442.88/458.36/437.32,471.41/448.17/440.33,448.59/443.22/448.34ms. None is discarded.
 
@@ -47,7 +47,7 @@ The unchanged frozen release checker passes **49/49**, zero failures, including 
 
 The actual installed interpreter verifies **166 exact package/schema/migration files**, zero unexpected files or mismatches, and installed `jsonschema-rs0.60.3`. Added fixture writes settle before snapshots. Three recording-time privacy paths, explicit reveal of original times, live boundary refresh, both graph layers/fullscreen/2D pass; no page or outside-request errors, stop0, screenshot inspected. All five owned installation/follow-up profiles have both API/database ports independently checked closed.
 
-## Independent graph review: reproduced and repaired privacy boundary
+## Additional graph review: reproduced and repaired privacy boundary
 
 After those frozen checks finish, an external regression reveals an existing companion-map defect: with `max_nodes=2`, a sensitive-feedback-derived persona can remain unmasked when the protected source lies outside the bounded source sample. The same fixture at3/4nodes passes: **one failure/two passes** are retained.
 
@@ -55,9 +55,9 @@ Follow-up source `d4f0c03689459f84a2e3d25358e74479d1aa2968` resolves protection 
 
 ## Full CI and open gates
 
-[Verify41947100144](https://github.com/chriswu727/memBrain/actions/runs/41947100144), job126981919797, is running at source `efc8eb6`; frozen sync/model setup/migration/Ruff have passed and Python is still executing. TypeScript/types/build remain pending. No full CI pass is claimed yet.
+[Verify 41947100144](https://github.com/chriswu727/memBrain/actions/runs/41947100144), job `126981919797`, completes successfully for source `efc8eb6`: **7,068 Python passes, zero skips**, three existing Python fork/multithreading deprecation warnings,1,291.08 seconds; **50 TypeScript passes, zero failures/skips**, strict types, Ruff and both package builds pass. All four actual Docker desktop/recovery/upgrade/standalone-chat journeys, the pinned CPU multilingual model and activation cases pass. The [complete compressed log](maturity-native-validation-2026-11-04/ci-efc8eb6.log.gz) and [metadata](maturity-native-validation-2026-11-04/ci-result.json) retain the evidence. This CI input precedes the companion privacy repair.
 
 The new privacy follow-up needs coherent launcher pins and final qualification; the preceding native pin has49/166installation and36/36performance evidence. Real R4/C5 remains unapproved. Final independent/privacy/design review and working-state/full-familiarity graph coverage remain open. There is no schedule, new Claude call, merge, tag or publication.
 
 
-The [allowlisted manifest](maturity-native-validation-2026-11-04/manifest.json) preserves75 artifacts plus the manifest, including raw compressed samples, failed logs, drivers and inspected screenshots. An exact-value scan checks35 credential/DSN values from7 owned profiles and finds no match; private fixtures, archives, file inventories, registries and profiles are excluded.
+The [allowlisted manifest](maturity-native-validation-2026-11-04/manifest.json) preserves 77 artifacts plus the manifest, including raw compressed samples, failed logs, drivers and inspected screenshots. An exact-value scan checks35 credential/DSN values from7 owned profiles and finds no match; private fixtures, archives, file inventories, registries and profiles are excluded.
