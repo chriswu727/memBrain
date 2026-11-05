@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 候选版本 `28c0b3e` 将有界关键词与哈希候选读取合并后再解码，已通过 **256 项本地回归测试、零跳过**。标准召回 p95 为 **129.91/511.87/595.15 ms**（串行/同脑八并发/八脑并发），但完整全屏对照有 **3/12 个八脑窗口失败**，最高 **703.72 ms**。**R5 仍未通过**。全新安装检查已通过 **49/49**，**165 个安装文件全部一致**；完整 CI 尚待完成。真实模型 R4/C5 与最终独立、隐私和设计复核仍未通过。详见[当前实现与验证](evaluations/maturity-lexical-channels-2026-11-04.md)、[此前验收与失败记录](evaluations/maturity-release-qualification-2026-11-04.md)及[宿主验证范围](docs/host-compatibility.md)。
+> **预发布阶段。** 候选版本 `28c0b3e` 将有界关键词与哈希候选读取合并后再解码，已通过 **256 项本地回归测试、零跳过**。标准召回 p95 为 **129.91/511.87/595.15 ms**（串行/同脑八并发/八脑并发），但完整全屏对照有 **3/12 个八脑窗口失败**，最高 **703.72 ms**。**R5 仍未通过**。全新安装检查已通过 **49/49**，**165 个安装文件全部一致**；完整 CI 已通过 **7,032 项 Python／50 项 TypeScript 测试**、零跳过，以及严格类型检查和打包。真实模型 R4/C5 与最终独立、隐私和设计复核仍未通过。详见[当前实现与验证](evaluations/maturity-lexical-channels-2026-11-04.md)、[此前验收与失败记录](evaluations/maturity-release-qualification-2026-11-04.md)及[宿主验证范围](docs/host-compatibility.md)。
 
 <a id="claude-code-plugin"></a>
 

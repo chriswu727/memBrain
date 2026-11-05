@@ -1,6 +1,6 @@
 # Bounded candidate channels: merged reads
 
-Runtime candidate `28c0b3ed34484b29550b6d2c011a819bcbce016b` merges the keyword and feature-hash candidate reads before transferring and decoding duplicate documents. All nine launchers pin this revision. **256 local regression tests pass with zero skips. Fresh installation passes 49/49 and all 165 installed files match. Fresh canonical recall passes, but the complete fullscreen R5 comparison FAILS: 33/36 windows pass, including 9/12 eight-brain windows.** Full CI is pending. The [previous complete R5 failure](maturity-release-qualification-2026-11-04.md) remains historical evidence, not a pass for this change. Publication remains frozen.
+Runtime candidate `28c0b3ed34484b29550b6d2c011a819bcbce016b` merges the keyword and feature-hash candidate reads before transferring and decoding duplicate documents. All nine launchers pin this revision. **256 local regression tests pass with zero skips. Fresh installation passes 49/49 and all 165 installed files match. Full CI at source `26db0e0` passes 7,032 Python/50 TypeScript tests, zero skips, strict types, Ruff and package builds. Fresh canonical recall passes, but the complete fullscreen R5 comparison FAILS: 33/36 windows pass, including 9/12 eight-brain windows.** The [previous complete R5 failure](maturity-release-qualification-2026-11-04.md) remains historical evidence, not a pass for this change. Publication remains frozen.
 
 ## Implementation
 
@@ -59,8 +59,14 @@ The follow-up uses the **actual installed interpreter**, checks all **165 packag
 
 This re-establishes current R1 evidence. It does not close R2, R5, behavioural acceptance or remaining graph/review coverage.
 
+## Full CI
+
+[Verify run 41937676016](https://github.com/chriswu727/memBrain/actions/runs/41937676016), job `126950171377`, finishes successfully for source `26db0e08bb86396aa64c6b79ad0f2fc6fd0d4c8d`. The complete saved job log contains **7,032 Python passes, zero skips**, three existing multiprocessing/fork deprecation warnings, and a duration of 1,250.19 seconds. All four actual Docker desktop/recovery/upgrade/standalone-chat journeys, the pinned CPU multilingual model and activation cases pass. TypeScript reports **50 passed, zero failed/skipped**; strict compilation, CI-scope Ruff and both sdist/wheel builds succeed. The [compressed complete log](maturity-lexical-channels-2026-11-04/ci-26db0e0.log.gz) and [metadata](maturity-lexical-channels-2026-11-04/ci-result.json) retain the evidence.
+
+This CI run verifies the merged-read runtime only. Subsequent native-validation experiments and uncommitted implementation work are not included. R2 remains open for matrix/final-scope gaps, and a green suite does not close the failed R5 or real behavioural acceptance.
+
 ## Remaining qualification
 
-Next, finish the already-running full CI. R5 stays open: further work must explain or control tail latency while preserving the same quality and release bars, rather than repeating this unchanged qualification. Real R4/C5 still requires separate authorization; independent/privacy/design review and working-state/full-familiarity graph coverage remain open. No paid/subscription evaluation, additional Claude call, schedule, merge, tag or publication is performed.
+R5 stays open: further work must explain or control tail latency while preserving the same quality and release bars, rather than repeating this unchanged qualification. Real R4/C5 still requires separate authorization; independent/privacy/design review and working-state/full-familiarity graph coverage remain open. No paid/subscription evaluation, additional Claude call, schedule, merge, tag or publication is performed.
 
 The [allowlisted manifest](maturity-lexical-channels-2026-11-04/manifest.json) contains prototype scripts, raw compressed samples, successful regression outputs and the failed broad lint output. Private archives, registry/profile/connection files and response fixtures are excluded.

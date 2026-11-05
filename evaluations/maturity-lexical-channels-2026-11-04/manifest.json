@@ -1,5 +1,5 @@
 {
-  "purpose": "Allowlisted candidate merge/regression/install/visual qualification: install49/165PASS, canonicalPASS, completeR5FAIL33/36, CIpending",
+  "purpose": "Merged-read candidate: install49/165PASS, CI7032/50PASS, canonicalPASS, completeR5FAIL33/36; native candidate excluded",
   "runtime_pin": "28c0b3ed34484b29550b6d2c011a819bcbce016b",
   "prototype_source": "ed95232b164a0d314e051af8b2c00b1c3fcead4a",
   "files": {
@@ -56,6 +56,8 @@
     "visual-permissions-abba.json": "538ca524cb3419a12d4c1741446f88c185082d3b7687574561e6db91c670efa8",
     "visual-permissions-abba.log": "4dae7f2a10a7d2c02088baf41ce9e2fe16e1c53054e66f0743fa22f56822b1c1",
     "visual-summary.json": "420b3e751a7e082f98edc964e3323fe87cbbc11deaa01951bc393a56b1404413",
-    "wider-run.log": "e8ad5f16a72cc626355ed59d6183b377d3c560abddbd7805d45b1cc4bfb597a7"
+    "wider-run.log": "e8ad5f16a72cc626355ed59d6183b377d3c560abddbd7805d45b1cc4bfb597a7",
+    "ci-result.json": "d9be2049e58903da1615dafe379d41d5925b97c2fe19c09921a5ba70220ca5f2",
+    "ci-26db0e0.log.gz": "3714a11ff7a498091e90bab8f18dc7f61b1625ae37ba3d1662b3796b58f57a54"
   }
 }
