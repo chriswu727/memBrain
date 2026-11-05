@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 运行时 `491a592` 将真实保存的工作记忆节点与依据连线接入所有大脑视图。完整全屏延迟协议通过 **36/36 个窗口**，八脑最慢窗口 p95 为 **362.81 ms**，低于 600 ms 门槛，4,080 次召回全部非空；本地 104 项数据库／浏览器检查通过。上一版召回工作进程运行时已通过完整 CI（7,400 项 Python 和 50 项 TypeScript 测试）及五平台原生验证。本次图谱更新的完整 CI、剩余安装与宿主覆盖、预留场景 R4/C5 行为验收、熟悉度表示和最终复核仍未完成。详见[当前结果及保留的失败](evaluations/maturity-working-map-2026-11-05.md)和[宿主范围](docs/host-compatibility.md)。
+> **预发布阶段。** 运行时 `c1c2bb2` 修复关系记录超过 5,000 条后当前话题边界、熟悉度上限和重置可能失效的问题；本地 84 项关系／隐私／MCP 检查通过。完整全屏协议通过 **36/36 个窗口**，八脑最慢窗口 p95 为 **399.40 ms**，低于 600 ms 门槛，4,080 次召回全部非空。真实工作记忆图谱此前通过 104 项数据库／浏览器检查。上一版召回工作进程运行时已通过完整 CI（7,400 项 Python 和 50 项 TypeScript 测试）及五平台原生验证。当前运行时的完整 CI、剩余安装与宿主覆盖、R4/C5 行为验收、熟悉度表示和最终复核仍未完成。详见[当前结果及保留的回归失败](evaluations/maturity-relationship-history-2026-11-05.md)、[工作记忆图谱证据](evaluations/maturity-working-map-2026-11-05.md)和[宿主范围](docs/host-compatibility.md)。
 
 <a id="claude-code-plugin"></a>
 

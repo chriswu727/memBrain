@@ -27,7 +27,7 @@ The complete closed/open/open/closed protocol used a fresh production API for ea
 | Workload | Worst p95 | Bar |
 | --- | ---: | ---: |
 | Serial | 102.43 ms | 500 ms |
-| Eight requests, same brain | 360.99 ms | 600 ms |
+| Eight requests, same brain | 360.99 ms | 1,000 ms |
 | Eight requests, eight brains | 362.81 ms | 600 ms |
 
 Both open phases rendered throughout measurement (1,234 and 1,261 frames); screenshots were taken after measurement with motion paused. Both screenshots were inspected. No page errors or external browser requests were recorded. Source/driver hashes remained unchanged and all owned ports closed. The corpus is eight brains with 1,000 messages each and 100 notes in the first brain, plus the declared working state. No model calls were made. These are bounded reference-corpus measurements, not capacity or arbitrary-device guarantees; prior recall quality/equivalence evidence remains in the [worker report](maturity-recall-processes-2026-11-05.md).
