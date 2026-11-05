@@ -107,7 +107,7 @@ def test_extracted_permissions_are_private_before_native_tools_execute(candidate
     native_bundle.prepare()
 
 
-@pytest.mark.parametrize("damage", ["content", "missing", "extra", "marker", "dangling_link"])
+@pytest.mark.parametrize("damage", ["content", "missing", "extra", "marker", "dangling_link", "cycle"])
 def test_invalid_cache_is_retained_and_repaired_without_moving_live_binaries(candidate, damage, monkeypatch):
     prefix = native_bundle.prepare()
     replace = native_bundle.os.replace
@@ -127,7 +127,7 @@ def test_invalid_cache_is_retained_and_repaired_without_moving_live_binaries(can
         (prefix.parent / ".complete").write_bytes(b"\xff" * 64)
     else:
         (prefix / "lib/vector").unlink()
-        (prefix / "lib/vector").symlink_to(prefix / "missing")
+        (prefix / "lib/vector").symlink_to("vector" if damage == "cycle" else prefix / "missing")
     repaired = native_bundle.prepare()
     assert repaired != prefix
     assert native_bundle.prepare() == repaired

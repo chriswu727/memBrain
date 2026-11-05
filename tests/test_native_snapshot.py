@@ -56,6 +56,33 @@ def create(cluster):
     return native_snapshot.create(cluster.layout, cluster.backup)
 
 
+@pytest.mark.parametrize("running", [False, True])
+def test_unclean_identity_probe_never_allows_unclean_or_running_snapshot(cluster, monkeypatch, running):
+    (cluster.layout.data / "postmaster.pid").write_bytes(b"stale or active process identity")
+    calls = []
+
+    def run(layout, program, *args, **kwargs):
+        calls.append(program)
+        if program == "pg_ctl":
+            return subprocess.CompletedProcess([], 0 if running else 3)
+        output = ("pg_control version number: 1300\nCatalog version number: 202307071\n"
+                  "Database system identifier: 1234567890123456789\nDatabase cluster state: in production\n"
+                  "Latest checkpoint location: 0/1234ABCD\n")
+        return subprocess.CompletedProcess([], 0, stdout=output.encode())
+
+    monkeypatch.setattr(native_snapshot.embedded_database, "_run", run)
+    if running:
+        with pytest.raises(native_snapshot.NativeSnapshotError) as error:
+            native_snapshot._control(cluster.layout, clean=False)
+        assert error.value.code == "native_snapshot_not_stopped" and calls == ["pg_ctl"]
+    else:
+        assert native_snapshot._control(cluster.layout, clean=False)["system_identifier"] == "1234567890123456789"
+    with pytest.raises(native_snapshot.NativeSnapshotError) as error:
+        create(cluster)
+    assert error.value.code == "native_snapshot_not_stopped"
+    assert not (cluster.backup / "receipt.json").exists()
+
+
 def rewrite(cluster, receipt, transform_manifest=None, transform_members=None):
     archive = cluster.backup / "cluster.zip"
     with zipfile.ZipFile(archive) as saved:

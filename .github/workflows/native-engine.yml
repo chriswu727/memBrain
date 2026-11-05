@@ -8,12 +8,14 @@ on:
       - 'scripts/check_packaged_native.py'
       - 'scripts/check_native_snapshot.py'
       - 'scripts/check_native_maintenance.py'
+      - 'scripts/check_native_transition.py'
       - 'scripts/package_native_resources.py'
       - 'src/membrain/native_bundle.py'
       - 'src/membrain/native_engine_store.py'
       - 'src/membrain/embedded_database.py'
       - 'src/membrain/native_snapshot.py'
       - 'src/membrain/native_maintenance.py'
+      - 'src/membrain/native_transition.py'
       - 'src/membrain/build_identity.py'
       - 'src/membrain/local_profile.py'
       - 'src/membrain/resources/native/*.json'
@@ -24,6 +26,7 @@ on:
       - 'tests/test_embedded_environment.py'
       - 'tests/test_native_snapshot.py'
       - 'tests/test_native_maintenance.py'
+      - 'tests/test_native_transition.py'
       - 'tests/test_native_resources.py'
       - 'tests/test_build_identity.py'
       - 'tests/test_windows_profile_access.py'
@@ -75,7 +78,7 @@ jobs:
       - run: python -m pip install postgresql-binaries==16.15.0
       - if: matrix.target != 'linux-aarch64'
         run: python -m pip install pgserver==0.1.4
-      - run: python -m pytest -q tests/test_native_bundle_build.py tests/test_windows_profile_access.py tests/test_native_bundle.py tests/test_native_engine_store.py tests/test_native_snapshot.py tests/test_native_maintenance.py tests/test_embedded_environment.py tests/test_native_resources.py tests/test_build_identity.py tests/test_local_profile.py::test_empty_lock_file_needs_no_write_before_exclusion tests/test_local_profile.py::test_cross_process_lock_times_out_and_can_be_reused tests/test_local_profile.py::test_nested_locks_and_helpers_are_reentrant
+      - run: python -m pytest -q tests/test_native_bundle_build.py tests/test_windows_profile_access.py tests/test_native_bundle.py tests/test_native_engine_store.py tests/test_native_transition.py tests/test_native_snapshot.py tests/test_native_maintenance.py tests/test_embedded_environment.py tests/test_native_resources.py tests/test_build_identity.py tests/test_local_profile.py::test_empty_lock_file_needs_no_write_before_exclusion tests/test_local_profile.py::test_cross_process_lock_times_out_and_can_be_reused tests/test_local_profile.py::test_nested_locks_and_helpers_are_reentrant
       - name: Download an existing owned candidate for isolated verification
         if: inputs.reuse_run_id != ''
         uses: actions/download-artifact@v4
@@ -114,6 +117,15 @@ jobs:
         run: sudo -n cat "${{ runner.temp }}/native-maintenance-root-${{ github.run_id }}-${{ github.run_attempt }}/result.json" > "${{ runner.temp }}/native-maintenance-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json"
       - name: Verify offline snapshot, actual native upgrade and original-engine staged rollback
         run: python scripts/check_native_snapshot.py --directory "${{ runner.temp }}/native-snapshot-${{ github.run_id }}-${{ github.run_attempt }}" --cache-directory "${{ runner.temp }}/packaged-native-${{ github.run_id }}-${{ github.run_attempt }}/cache" --preserve-engine ${{ matrix.target != 'linux-aarch64' && '--legacy-upgrade' || '' }}
+      - name: Verify durable native transition, recovery process death and admission barrier
+        run: python scripts/check_native_transition.py --directory "${{ runner.temp }}/native-transition-${{ github.run_id }}-${{ github.run_attempt }}" --cache-directory "${{ runner.temp }}/packaged-native-${{ github.run_id }}-${{ github.run_attempt }}/cache" ${{ matrix.target != 'linux-aarch64' && '--legacy-upgrade' || '' }}
+      - name: Verify Linux root transition and legacy data location across recovery renames
+        if: runner.os == 'Linux'
+        id: native_transition_root
+        run: sudo -n "$(command -v python)" scripts/check_native_transition.py --directory "${{ runner.temp }}/native-transition-root-${{ github.run_id }}-${{ github.run_attempt }}" --cache-directory "${{ runner.temp }}/native-transition-root-cache-${{ github.run_id }}-${{ github.run_attempt }}" --require-root --legacy-location --rollback-fault 2 ${{ matrix.target != 'linux-aarch64' && '--legacy-upgrade' || '' }}
+      - name: Export only the root transition summary
+        if: always() && runner.os == 'Linux' && steps.native_transition_root.outcome != 'skipped'
+        run: sudo -n cat "${{ runner.temp }}/native-transition-root-${{ github.run_id }}-${{ github.run_attempt }}/result.json" > "${{ runner.temp }}/native-transition-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json"
       - name: Verify Linux root and service-account ownership through snapshot and rollback
         id: native_root
         if: runner.os == 'Linux'
@@ -142,6 +154,9 @@ jobs:
             ${{ runner.temp }}/native-snapshot-large-${{ github.run_id }}-${{ github.run_attempt }}/result.json
             ${{ runner.temp }}/native-maintenance-${{ github.run_id }}-${{ github.run_attempt }}/result.json
             ${{ runner.temp }}/native-maintenance-${{ github.run_id }}-${{ github.run_attempt }}/worker-result.json
+            ${{ runner.temp }}/native-transition-${{ github.run_id }}-${{ github.run_attempt }}/result.json
+            ${{ runner.temp }}/native-transition-${{ github.run_id }}-${{ github.run_attempt }}/*-worker-result.json
+            ${{ runner.temp }}/native-transition-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json
             ${{ runner.temp }}/native-maintenance-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json
           if-no-files-found: warn
           retention-days: 30

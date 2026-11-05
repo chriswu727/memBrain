@@ -142,8 +142,11 @@ def _inventory(data, max_bytes):
     return root, rows
 
 
-def _control(layout):
-    if (layout.data / "postmaster.pid").exists():
+def _control(layout, *, clean=True):
+    if clean and (layout.data / "postmaster.pid").exists():
+        raise NativeSnapshotError("not_stopped")
+    if not clean and embedded_database._run(
+            layout, "pg_ctl", "status", "-D", str(layout.data), timeout=30).returncode == 0:
         raise NativeSnapshotError("not_stopped")
     _metadata(layout.data / "PG_VERSION")
     with _data_file(layout.data / "PG_VERSION") as stream:
@@ -163,7 +166,8 @@ def _control(layout):
             or not identifier.isdecimal() or not 0 < int(identifier) < 2**64
             or re.fullmatch(r"[0-9A-F]{1,8}/[0-9A-F]{1,8}", checkpoint) is None):
         raise NativeSnapshotError("unsupported")
-    if fields.get("Database cluster state") != "shut down":
+    if fields.get("Database cluster state") not in (
+            {"shut down"} if clean else {"shut down", "in production", "in crash recovery", "starting up", "shutting down"}):
         raise NativeSnapshotError("not_stopped")
     return {"system_identifier": identifier, "checkpoint": checkpoint}
 

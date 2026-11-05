@@ -141,7 +141,7 @@ def _manifest(entry):
 def _validate_tree(prefix, records):
     try:
         return _tree_matches(prefix, records)
-    except (OSError, ValueError):
+    except (OSError, ValueError, RuntimeError):
         return False
 
 
