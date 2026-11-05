@@ -26,6 +26,8 @@ OPENSSL_URL = f"https://github.com/openssl/openssl/releases/download/openssl-{OP
 OPENSSL_SHA256 = "603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a"
 XML_VERSION = "2.9.13+dfsg-1ubuntu0.14"
 XML_SOURCE_URL = "https://archive.ubuntu.com/ubuntu/pool/main/libx/libxml2/"
+XML_TEST_URL = "https://download.gnome.org/sources/libxml2/2.9/libxml2-2.9.13.tar.xz"
+XML_TEST_SHA256 = "276130602d12fe484ecc03447ee5e759d0465558fbc9d6bd144e3745306ebf0e"
 XML_SOURCES = {
     "libxml2_2.9.13+dfsg.orig.tar.xz": "13cf2e55e603c34143486f4082cbf202859ac1eec5130b8d8e5e3c06a9902d8a",
     f"libxml2_{XML_VERSION}.debian.tar.xz": "25ff38d4356a491aa49c415cff6460453793694a72e4c9a894b94128e65b8040",
@@ -191,7 +193,11 @@ def update_xml(prefix, work):
         download(XML_SOURCE_URL + name.replace("+", "%2B"), expected, work / name)
     source, installed = work / "libxml-source", work / "libxml-installed"
     # Inputs are pinned against the previously verified signed Ubuntu source descriptor.
-    run(["dpkg-source", "--no-check", "-x", work / f"libxml2_{XML_VERSION}.dsc", source])
+    run(["dpkg-source", "--no-check", "--skip-patches", "-x", work / f"libxml2_{XML_VERSION}.dsc", source])
+    corpus = work / "libxml-upstream-tests.tar.xz"
+    download(XML_TEST_URL, XML_TEST_SHA256, corpus)
+    restore_xml_tests(corpus, source)
+    run(["dpkg-source", "--before-build", source])
     options = ["--enable-shared", "--disable-static", "--without-python", "--without-icu",
                "--with-iconv", "--with-zlib", "--with-lzma", f"--prefix={installed}", "--libdir=" + str(installed / "lib")]
     environment = {"CFLAGS": "-O2 -fPIC", "CPPFLAGS": "", "LDFLAGS": ""}
@@ -220,11 +226,36 @@ def update_xml(prefix, work):
                            ("debian-copyright", source / "debian" / "copyright")):
         shutil.copyfile(original, licenses / name)
     metadata = {"version": XML_VERSION, "source_url": XML_SOURCE_URL, "sources": XML_SOURCES,
+                "test_corpus": {"url": XML_TEST_URL, "sha256": XML_TEST_SHA256},
                 "options": [option for option in options if not option.startswith(("--prefix=", "--libdir="))],
                 "upstream_checks_passed": True, "encoding_roundtrips": sorted(encodings),
                 "library_sha256": digest(destination), **inspection}
     (licenses / "source.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     return metadata
+
+
+def restore_xml_tests(archive, source):
+    with tarfile.open(archive) as saved:
+        for member in saved:
+            path = Path(member.name)
+            if len(path.parts) < 3 or path.parts[:2] not in {
+                    ("libxml2-2.9.13", "test"), ("libxml2-2.9.13", "result")}:
+                continue
+            if ".." in path.parts or not (member.isfile() or member.isdir() or member.islnk()):
+                raise ValueError("Unexpected upstream XML test member")
+            if member.islnk():
+                linked = Path(member.linkname)
+                if (len(linked.parts) < 3 or linked.parts[:2] not in {
+                        ("libxml2-2.9.13", "test"), ("libxml2-2.9.13", "result")}
+                        or ".." in linked.parts or not saved.getmember(member.linkname).isfile()):
+                    raise ValueError("Unexpected upstream XML test link")
+            destination = source.joinpath(*path.parts[1:])
+            if member.isdir():
+                destination.mkdir(parents=True, exist_ok=True)
+            else:
+                destination.parent.mkdir(parents=True, exist_ok=True)
+                with saved.extractfile(member) as incoming, destination.open("xb") as outgoing:
+                    shutil.copyfileobj(incoming, outgoing)
 
 
 def inspect_library(path):

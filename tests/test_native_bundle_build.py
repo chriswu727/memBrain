@@ -145,3 +145,35 @@ def test_xml_overlay_keeps_library_and_license_but_not_build_tools():
     assert packager.overlay_path("share/licenses/libxml2/source.json")
     assert not packager.overlay_path("lib/libxml2.so.16")
     assert not packager.overlay_path("bin/xmllint")
+
+
+def test_xml_test_corpus_restores_only_data_and_materializes_internal_links(tmp_path):
+    archive, source = tmp_path / "upstream.tar", tmp_path / "source"
+    with tarfile.open(archive, "w") as saved:
+        for name in ("test/fixture", "result/fixture", "parser.c"):
+            member = tarfile.TarInfo("libxml2-2.9.13/" + name)
+            member.size = 7
+            saved.addfile(member, io.BytesIO(b"fixture"))
+        link = tarfile.TarInfo("libxml2-2.9.13/test/linked")
+        link.type, link.linkname = tarfile.LNKTYPE, "libxml2-2.9.13/test/fixture"
+        saved.addfile(link)
+    builder.restore_xml_tests(archive, source)
+    assert (source / "test/linked").read_bytes() == b"fixture"
+    assert (source / "test/linked").stat().st_nlink == 1
+    assert (source / "result/fixture").read_bytes() == b"fixture"
+    assert not (source / "parser.c").exists()
+
+
+@pytest.mark.parametrize("name,kind,target", [
+    ("test/../../escape", tarfile.REGTYPE, ""),
+    ("test/linked", tarfile.SYMTYPE, "/outside"),
+    ("test/linked", tarfile.LNKTYPE, "libxml2-2.9.13/parser.c"),
+])
+def test_xml_test_corpus_rejects_traversal_and_external_links(tmp_path, name, kind, target):
+    archive = tmp_path / "upstream.tar"
+    with tarfile.open(archive, "w") as saved:
+        member = tarfile.TarInfo("libxml2-2.9.13/" + name)
+        member.type, member.linkname = kind, target
+        saved.addfile(member)
+    with pytest.raises(ValueError, match="Unexpected upstream XML test"):
+        builder.restore_xml_tests(archive, tmp_path / "source")
