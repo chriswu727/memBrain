@@ -4,6 +4,8 @@
 
 ## Purpose
 
+**2026-11-05 follow-up:** a bounded independent CLI review of the billing guard, harness and this plan completed. It found a returned-round evidence gap, now reproduced and repaired with offline tests; see [review scope and evidence](maturity-round-evidence-2026-11-05.md). The manifest/scoring review, frozen provider policy, final candidate CI and explicit execution approval remain open. This review is not a behavioral acceptance result or spending authorization.
+
 One paid behavioural run that answers two questions with one pipeline:
 - **R4 (core memory):** is memory useful on held-out lives, under the [revised rule](../architecture/v1-acceptance.md#r4--memory-is-useful-on-held-out-lives-behavioral-acceptance)? It has not passed in six attempts. Since attempt 6, recall leaves out the assistant's own earlier replies unless asked (commit `ac93f33`); no paid run has tested that.
 - **C5 (companion layers):** do the persona, feelings, mood and relationship layers behave as the [Phase C design](../architecture/phase-c-design.md#evaluation-step-6) requires, when a real host model uses them? No paid run has tested Phase C.

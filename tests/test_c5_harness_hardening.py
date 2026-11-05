@@ -357,6 +357,7 @@ class _FakeProvider:
 
     def __init__(self, after=None):
         self.models, self.after = [], after or {}
+        self.messages = {}
 
     def __call__(self, request):
         import httpx
@@ -365,7 +366,8 @@ class _FakeProvider:
         self.models.append(model)
         content = json.dumps({"notes": []}) if model == "fake-extract" else "Fake reply."
         response = httpx.Response(200, json={
-            "model": model, "choices": [{"message": {"role": "assistant", "content": content}}],
+            "model": model, "choices": [{"message": self.messages.get(
+                len(self.models), {"role": "assistant", "content": content})}],
             "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}})
         if len(self.models) in self.after:
             self.after[len(self.models)]()
@@ -433,6 +435,56 @@ def test_an_arm_writes_its_paid_row_before_a_stop_another_arm_made_during_its_ca
     state = shared_ledger.state()
     assert state["blocked"] is True and state["stop_reason"] == "arm_failed"
     assert [entry.get("actual_micros") is not None for entry in state["requests"].values()] == [True]
+
+
+@pytest.mark.parametrize("stop_at", ["before_tool", "before_next_round"])
+def test_a_stopped_tool_turn_keeps_each_billed_round_without_claiming_a_complete_reply(
+        stub_run, shared_ledger, tmp_path, monkeypatch, stop_at):
+    monkeypatch.setattr(harness, "STUB", False)
+    monkeypatch.setattr(harness, "BILLING", None)
+    message = {"role": "assistant", "content": "Let me check that memory.",
+               "reasoning_content": "private reasoning fixture",
+               "tool_calls": [{"id": "call-1", "type": "function",
+                               "function": {"name": "memory_recall", "arguments": '{"query":"Lisbon"}'}}]}
+    shared_ledger.provider.messages[1] = message
+    tools = []
+
+    def tool(*args):
+        tools.append(args[2])
+        shared_ledger.other_arm.stop("arm_failed")
+        return "No matching memory."
+
+    monkeypatch.setattr(harness, "call_tool", tool)
+    if stop_at == "before_tool":
+        shared_ledger.provider.after[1] = lambda: shared_ledger.other_arm.stop("arm_failed")
+    with pytest.raises(harness.billing_module().BudgetStop):
+        stub_run("P", SCENARIO)
+    directory = tmp_path / "run-P"
+    (row,) = [json.loads(line) for line in (directory / "host-rounds.jsonl").read_text().splitlines()]
+    assert (row["arm"], row["session"], row["turn"], row["round"]) == ("P", "s1", 0, 0)
+    assert row["message"] == {k: v for k, v in message.items() if k != "reasoning_content"}
+    assert row["usage"]["total_tokens"] == 15
+    result = directory / "results_zq-synthetic-scenario_P.jsonl"
+    assert not result.exists() or not result.read_text().strip()
+    assert shared_ledger.provider.models == [harness.MODEL]
+    assert tools == ([] if stop_at == "before_tool" else ["memory_recall"])
+    state = shared_ledger.state()
+    assert state["blocked"] and state["stop_reason"] == "arm_failed"
+    assert len(state["requests"]) == 1 and all("actual_micros" in r for r in state["requests"].values())
+
+
+def test_a_partial_round_journal_cannot_be_resumed_even_without_a_completed_turn(tmp_path, monkeypatch):
+    scenario = tmp_path / "zq-practice.py"
+    scenario.write_text(SCENARIO + "\nSTUB_HOST = {}\n")
+    monkeypatch.setattr(harness, "STUB", True)
+    monkeypatch.setattr(harness, "refuse_network", lambda out: None)
+    journal = tmp_path / "host-rounds.jsonl"
+    original = '{"round":0,"message":{"content":"Partial reply."}}\n'
+    journal.write_text(original)
+    monkeypatch.setattr(harness, "Host", lambda **kwargs: pytest.fail("resumed run initialized a host"))
+    with pytest.raises(SystemExit, match="never resumed"):
+        harness.run("F", str(scenario), tmp_path)
+    assert journal.read_text() == original
 
 
 def _fresh_ledger(path: Path) -> dict:

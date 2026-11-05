@@ -896,8 +896,9 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
     scenario = Path(scenario_path).stem
     out.mkdir(parents=True, exist_ok=True)
     path = out / f"results_{scenario}_{arm}.jsonl"
-    if path.exists():
-        raise SystemExit(f"{path} exists: a run is never resumed")
+    for existing in (path, out / "host-rounds.jsonl"):
+        if existing.exists():
+            raise SystemExit(f"{existing} exists: a run is never resumed")
     year = getattr(module, "YEAR", YEAR)
     starts = [session_start(turns[0], year) for _, turns in sessions]
     if starts != sorted(starts):
@@ -1036,10 +1037,18 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 for round_ in range(4):  # At most three tool rounds, then a final answer without tools.
                     offer = schemas if schemas and len(tool_calls) < 6 and round_ < 3 else None
                     message, call_usage = host.call(messages, offer)
+                    with (out / "host-rounds.jsonl").open("a") as stream:
+                        stream.write(json.dumps({"arm": arm, "scenario": scenario, "session": session,
+                                                 "turn": index, "round": round_, "usage": call_usage,
+                                                 "message": {k: v for k, v in message.items()
+                                                             if k != "reasoning_content"}}, ensure_ascii=False) + "\n")
+                        stream.flush()
+                        os.fsync(stream.fileno())
                     add_usage(usage, call_usage)
                     calls = message.get("tool_calls") or []
                     if not calls:
                         break
+                    check_billing()
                     messages.append({k: v for k, v in message.items()
                                      if k in ("role", "content", "tool_calls", "reasoning_content")})
                     for call in calls:

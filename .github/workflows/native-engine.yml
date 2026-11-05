@@ -105,7 +105,7 @@ jobs:
       matrix:
         target: ${{ fromJSON(inputs.platform && inputs.platform != 'all' && format('["{0}"]', inputs.platform) || '["macos-arm64","macos-x86_64","linux-x86_64","linux-aarch64","windows-x86_64"]') }}
     runs-on: ${{ inputs.linux_current && startsWith(matrix.target, 'linux-') && (matrix.target == 'linux-x86_64' && 'ubuntu-26.04' || 'ubuntu-26.04-arm') || fromJSON('{"macos-arm64":"macos-15","macos-x86_64":"macos-15-intel","linux-x86_64":"ubuntu-22.04","linux-aarch64":"ubuntu-22.04-arm","windows-x86_64":"windows-2022"}')[matrix.target] }}
-    timeout-minutes: 30
+    timeout-minutes: ${{ matrix.target == 'macos-x86_64' && 45 || 30 }}
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
