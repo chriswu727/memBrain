@@ -7,9 +7,14 @@
       "sha256": "ad00bf8facb424a112a51482bdc57b9cece95657b71381af9f034315552b9dc0"
     },
     {
+      "name": "delivery-format-check-failure.txt.gz",
+      "bytes": 126,
+      "sha256": "807ff535cd3e657776cf379ace15a15a48f17e381d2f3d8d3da1533e86bcb291"
+    },
+    {
       "name": "known-credential-scan.json",
       "bytes": 300,
-      "sha256": "5966b22962096cc3e1f704ec1136b5f496d82a0360202aa63325f01afe7e65b0"
+      "sha256": "ee0acbfa8172d70e7a3c4e3b96d8ed4c2024047fb7885d36abc73b150373c52b"
     },
     {
       "name": "native-linux-aarch64--native-adoption-fresh-42070570407-1--result.json",
@@ -182,9 +187,9 @@
       "sha256": "dcd68b8bcb393f74dc220dce66629c4b7355f9102bfd6a3aa64d4620a2660546"
     },
     {
-      "name": "xml-source--uploader-key.asc",
-      "bytes": 9187,
-      "sha256": "106fc41c47cc0959f42427d34e88508f0a2963a74a389f80322632f2c8e95088"
+      "name": "xml-source--uploader-key.asc.gz",
+      "bytes": 6918,
+      "sha256": "10f61f66e71f7ad036769feeacda246a2ac1194af8ea553c6d98cbd687c57332"
     }
   ]
 }
