@@ -17,6 +17,14 @@ every reserved conversation never count. Feedback given before a decision on a s
 by that decision, so a rejected suggestion is never offered again from the same messages; a new one needs new
 feedback, and after a rejection none of that kind is offered for ``PAUSE``.
 
+Contradictory feedback: some kinds edit the same card field in opposite directions (``OPPOSITES``: more casual and
+more formal, shorter and longer, fewer and more emoji). The user's latest direction decides. Feedback of one kind
+counts only after the latest feedback of the opposite kind, and after the latest accepted change the opposite way
+(the earlier messages were about the card before that change). An open suggestion is withdrawn ("contradicted") once
+the user gives feedback the opposite way after its newest source, so two contradictory suggestions are never open at
+once. Nothing is deleted: the messages stay, and a suggestion of either kind needs ``THRESHOLD`` messages given after
+the latest change of direction.
+
 Suggestions and decisions are ``system`` events in a reserved conversation, like persona versions: never learned,
 recalled or counted as messages, refused from outside writers, kept by export and archive restore (read back
 strictly), and removed by erasing all memory or by "Delete personality history". A suggestion stores the source
@@ -128,6 +136,10 @@ KINDS = {
                      r"(?:^|{B})(?:你)?(?:能不能|可不可以|可以|请)(?:用|发|加)(?:点|些|一点|一些)(?:表情|emoji)"],
     },
 }
+
+# Kinds that edit the same card field in opposite directions; the user's latest direction decides (see above).
+OPPOSITES = {"less_formal": "more_formal", "more_formal": "less_formal", "shorter": "longer", "longer": "shorter",
+             "less_emoji": "more_emoji", "more_emoji": "less_emoji"}
 
 # Pattern pieces. A clause starts at the start of the message or after punctuation.
 _B = r"[.!?;:,，。！？；：、~～\n]\s*"
@@ -478,6 +490,17 @@ class _State:
         undecided = sorted({source for entry in proposals for source in entry["source_event_ids"]})
         valid = {item["event_id"]: item for item in _feedback(
             service, conn, principal, brain_id, after=self.after, ids=undecided)} if undecided else {}
+        # The newest feedback of each kind after the sources of the undecided suggestions that have an opposite kind:
+        # a suggestion is contradicted when the user asked the opposite way after its newest source.
+        pending = [entry for entry in proposals if entry["id"] not in self.decisions and entry["kind"] in OPPOSITES]
+        newest = [valid[ident]["sequence"] for entry in pending for ident in entry["source_event_ids"]
+                  if ident in valid]
+        self.latest = {}
+        if newest:
+            for item in _feedback(service, conn, principal, brain_id, after=max(self.after, min(newest)),
+                                  seen=_seen(service, conn, principal, brain_id)):
+                for kind in item["kinds"]:
+                    self.latest[kind] = max(self.latest.get(kind, 0), item["sequence"])
         self.proposals = [self._status(entry, valid) for entry in proposals]
 
     def _status(self, entry, valid) -> dict:
@@ -501,6 +524,8 @@ class _State:
             return result
         if len(sources) < THRESHOLD:
             return {**result, "status": "withdrawn", "withdrawn_because": "sources_removed"}
+        if kind in OPPOSITES and self.latest.get(OPPOSITES[kind], 0) > max(source["sequence"] for source in sources):
+            return {**result, "status": "withdrawn", "withdrawn_because": "contradicted"}
         proposed, why_not = _apply(kind, self.card, entry["language"])
         if proposed is None:
             return {**result, "status": "withdrawn", "withdrawn_because": why_not}
@@ -509,9 +534,9 @@ class _State:
     def open(self, kind):
         return next((item for item in self.proposals if item["kind"] == kind and item["status"] == "open"), None)
 
-    def last_decision(self, kind):
-        decided = [item for item in self.proposals if item["kind"] == kind and item["status"] in ("accepted",
-                                                                                                  "rejected")]
+    def last_decision(self, kind, *, accepted_only=False):
+        statuses = ("accepted",) if accepted_only else ("accepted", "rejected")
+        decided = [item for item in self.proposals if item["kind"] == kind and item["status"] in statuses]
         return max(decided, key=lambda item: item["decision_sequence"]) if decided else None
 
 
@@ -542,6 +567,11 @@ def _sync(service, conn, principal, brain, now: _datetime.datetime, kinds=None) 
             feedback = _feedback(service, conn, principal, brain["id"], after=state.after,
                                  seen=_seen(service, conn, principal, brain["id"]))
         after = max(state.after, last["decision_sequence"] if last else 0)
+        opposite = OPPOSITES.get(kind)
+        if opposite:
+            accepted = state.last_decision(opposite, accepted_only=True)
+            after = max(after, accepted["decision_sequence"] if accepted else 0,
+                        *(item["sequence"] for item in feedback if opposite in item["kinds"]))
         sources = [item for item in feedback if kind in item["kinds"] and item["sequence"] > after][-MAX_SOURCES:]
         if len(sources) < THRESHOLD:
             continue
