@@ -8,5 +8,10 @@
   "new_model_calls": 0,
   "initial_auxiliary_environment_failure": "Python 3.9 cannot import Python 3.12 dependencies; no service started",
   "linux_26_abi_fixed": false,
-  "cross_platform_restart_qualification": "pending"
+  "cross_platform_restart_qualification": "SUCCESS",
+  "native_matrix_run": 42070570407,
+  "native_journeys": 11,
+  "native_guards_mac_linux": 246,
+  "native_guards_windows": 236,
+  "native_skips": 0
 }
