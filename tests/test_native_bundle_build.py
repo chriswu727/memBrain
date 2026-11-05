@@ -119,6 +119,18 @@ def test_xml_library_accepts_old_soname_without_icu(tmp_path, monkeypatch):
     assert builder.inspect_xml_library(tmp_path / "libxml2.so.2")["needed"] == ["libc.so.6", "libz.so.1"]
 
 
+@pytest.mark.parametrize("machine", ["x86_64", "aarch64"])
+def test_xml_arm_dynamic_loader_is_allowed_only_on_arm(tmp_path, monkeypatch, machine):
+    dynamic = "(SONAME) Library soname: [libxml2.so.2]\n(NEEDED) Shared library: [libc.so.6]\n(NEEDED) Shared library: [ld-linux-aarch64.so.1]"
+    monkeypatch.setattr(builder.platform, "machine", lambda: machine)
+    monkeypatch.setattr(builder, "run", lambda *a, **kw: dynamic)
+    if machine == "aarch64":
+        assert builder.inspect_xml_library(tmp_path / "libxml2.so.2")["needed"] == ["ld-linux-aarch64.so.1", "libc.so.6"]
+    else:
+        with pytest.raises(ValueError, match="unexpected ABI or dependency"):
+            builder.inspect_xml_library(tmp_path / "libxml2.so.2")
+
+
 def test_build_commands_do_not_inherit_loader_overrides(monkeypatch):
     monkeypatch.setenv("LD_PRELOAD", "/untrusted/lib.so")
     monkeypatch.setenv("LD_LIBRARY_PATH", "/untrusted")

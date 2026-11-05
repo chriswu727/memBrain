@@ -179,6 +179,8 @@ def inspect_xml_library(path):
     dynamic = run(["readelf", "-d", path], capture=True)
     needed = set(re.findall(r"\(NEEDED\).*\[(.*?)\]", dynamic))
     allowed = {"libc.so.6", "libm.so.6", "libz.so.1", "liblzma.so.5", "libpthread.so.0", "libdl.so.2"}
+    if platform.machine() == "aarch64":
+        allowed.add("ld-linux-aarch64.so.1")
     if (re.findall(r"\(SONAME\).*\[(.*?)\]", dynamic) != ["libxml2.so.2"]
             or not needed or needed - allowed or re.search(r"\((?:RPATH|RUNPATH)\)", dynamic)):
         raise ValueError("XML compatibility library has an unexpected ABI or dependency:\n" + dynamic)
