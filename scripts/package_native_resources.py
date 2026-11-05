@@ -14,7 +14,8 @@ from pathlib import Path, PurePosixPath
 def overlay_path(name):
     path = PurePosixPath(name)
     return (name.startswith(("share/extension/vector", "include/server/extension/vector/", "include/openssl/", "lib/ossl-modules/",
-                             "share/licenses/openssl/", "lib/libcrypto", "lib/libssl"))
+                             "share/licenses/openssl/", "share/licenses/libxml2/", "lib/libcrypto", "lib/libssl"))
+            or name == "lib/libxml2.so.2"
             or path.name in {"vector.so", "vector.dylib", "vector.dll", "openssl", "openssl.exe",
                              "libcrypto-3-x64.dll", "libssl-3-x64.dll"})
 

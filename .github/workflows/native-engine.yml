@@ -40,6 +40,10 @@ on:
       - '.github/workflows/native-engine.yml'
   workflow_dispatch:
     inputs:
+      linux_compatibility:
+        description: Build patched Linux candidates on Ubuntu 22 and qualify the same bytes on Ubuntu 26
+        type: boolean
+        default: false
       reuse_run_id:
         description: Optional owned workflow run whose checksummed bundle should be verified without rebuilding
         type: string
@@ -75,6 +79,7 @@ concurrency:
 
 jobs:
   native:
+    if: ${{ !inputs.linux_compatibility }}
     strategy:
       fail-fast: false
       matrix:
@@ -186,4 +191,71 @@ jobs:
             ${{ runner.temp }}/native-transition-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json
             ${{ runner.temp }}/native-maintenance-root-result-${{ github.run_id }}-${{ github.run_attempt }}.json
           if-no-files-found: warn
+          retention-days: 30
+
+  linux-build:
+    if: inputs.linux_compatibility
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [linux-x86_64, linux-aarch64]
+    runs-on: ${{ matrix.target == 'linux-x86_64' && 'ubuntu-22.04' || 'ubuntu-22.04-arm' }}
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install . 'pytest>=8,<10'
+      - run: python -m pytest -q tests/test_native_bundle_build.py
+      - run: python scripts/build_native_bundle.py --work-directory "${{ runner.temp }}/native-build" --output-directory "${{ runner.temp }}/native-artifacts"
+      - name: Qualify the built candidate on Ubuntu 22
+        run: python scripts/check_native_bundle.py --artifacts "${{ runner.temp }}/native-artifacts" --work-directory "${{ runner.temp }}/native-check"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compatibility-${{ matrix.target }}
+          path: |
+            ${{ runner.temp }}/native-artifacts
+            ${{ runner.temp }}/native-check/qualification.json
+            ${{ runner.temp }}/native-build/libxml-source/config.log
+            ${{ runner.temp }}/native-build/libxml-source/test-suite.log
+          retention-days: 30
+
+  linux-current:
+    needs: linux-build
+    if: inputs.linux_compatibility
+    strategy:
+      fail-fast: false
+      matrix:
+        target: [linux-x86_64, linux-aarch64]
+    runs-on: ${{ matrix.target == 'linux-x86_64' && 'ubuntu-26.04' || 'ubuntu-26.04-arm' }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install .
+      - uses: actions/download-artifact@v4
+        with:
+          name: compatibility-${{ matrix.target }}
+          path: ${{ runner.temp }}/candidate
+      - name: Require the intended host and a real patched candidate
+        run: |
+          python - <<'PY'
+          import json, platform
+          from pathlib import Path
+          assert platform.freedesktop_os_release()['VERSION_ID'] == '26.04'
+          manifest = json.loads(Path('${{ runner.temp }}/candidate/native-artifacts/manifest.json').read_text())
+          assert manifest['libxml2']['version'] == '2.9.13+dfsg-1ubuntu0.14'
+          assert manifest['libxml2']['upstream_checks_passed']
+          PY
+      - name: Qualify the relocated Ubuntu 22 candidate on Ubuntu 26
+        run: python scripts/check_native_bundle.py --artifacts "${{ runner.temp }}/candidate/native-artifacts" --work-directory "${{ runner.temp }}/native-check"
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: compatibility-ubuntu26-${{ matrix.target }}
+          path: ${{ runner.temp }}/native-check/qualification.json
           retention-days: 30

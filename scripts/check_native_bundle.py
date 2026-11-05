@@ -6,6 +6,8 @@ import hashlib
 import importlib.util
 import json
 import os
+import platform
+import re
 import secrets
 import shutil
 import socket
@@ -18,6 +20,7 @@ from build_native_bundle import POSTGRES, TOOLS, VECTOR, digest, tool
 from psycopg import sql
 
 from membrain.local_profile import _private
+from membrain.native_bundle import environment as native_environment
 
 
 def free_port():
@@ -56,7 +59,8 @@ def check(artifacts, work, *, legacy):
         path = prefix / row["path"]
         if not path.resolve(strict=True).is_relative_to(prefix) or digest(path) != row["sha256"]:
             raise ValueError("Relocated engine differs from its manifest")
-    versions = {name: subprocess.check_output([tool(prefix, name), "--version"], text=True).strip()
+    versions = {name: subprocess.check_output([tool(prefix, name), "--version"], text=True,
+                                              env=native_environment(prefix)).strip()
                 for name in TOOLS}
     if not all(value.endswith(" " + POSTGRES) for value in versions.values()):
         raise ValueError("Relocated tools do not match the pinned version")
@@ -69,12 +73,20 @@ def check(artifacts, work, *, legacy):
     with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
         stream.write(password + "\n")
     _private(password_file)
-    environment = {key: value for key, value in os.environ.items()
-                   if not key.startswith(("PG", "MEMORY_", "MEMBRAIN_"))
-                   and key not in {"PYTHONPATH", "PYTHONHOME"}}
+    environment = native_environment(prefix)
     environment.update(PGPASSWORD=password, PGCONNECT_TIMEOUT="5", LC_ALL="C")
     report = {"completed": False, "model_calls": 0, "legacy_upgrade": legacy,
-              "tools": versions, "manifest_sha256": digest(artifacts / "manifest.json"), "stages": []}
+              "tools": versions, "manifest_sha256": digest(artifacts / "manifest.json"), "stages": [],
+              "host": platform.platform(),
+              "os_release": platform.freedesktop_os_release() if platform.system() == "Linux" else None}
+    if platform.system() == "Linux" and manifest.get("libxml2"):
+        dependencies = subprocess.check_output(["ldd", str(tool(prefix, "postgres"))],
+                                               text=True, env=environment)
+        resolved_xml = re.search(r"libxml2\.so\.2 => (.+?) \(", dependencies)
+        if (not resolved_xml or Path(resolved_xml[1]).resolve() != (prefix / "lib/libxml2.so.2").resolve()
+                or "not found" in dependencies):
+            raise ValueError("Relocated PostgreSQL did not resolve the bundled XML library")
+        report["server_dependencies"] = dependencies
     current = first
 
     def command(root, program, *arguments, capture=False):
@@ -131,6 +143,19 @@ def check(artifacts, work, *, legacy):
             assert conn.execute("SHOW server_version").fetchone()[0] == POSTGRES
             assert conn.execute("SELECT extversion FROM pg_extension WHERE extname='vector'").fetchone()[0] == VECTOR
             assert conn.execute("SELECT '[1,2,3]'::vector <-> '[4,5,6]'::vector").fetchone()[0] == 27 ** 0.5
+            document = '<memory xmlns="urn:membrain"><entry id="7">记忆 &amp; mémoire</entry></memory>'
+            assert conn.execute("SELECT xpath('/m:memory/m:entry/text()', %s::xml, ARRAY[ARRAY['m','urn:membrain']])::text[]",
+                                (document,)).fetchone()[0] == ["记忆 &amp; mémoire"]
+            assert conn.execute("SELECT id, content FROM XMLTABLE(XMLNAMESPACES('urn:membrain' AS m), '/m:memory/m:entry' PASSING %s::xml COLUMNS id integer PATH '@id', content text PATH '.')",
+                                (document,)).fetchall() == [(7, "记忆 & mémoire")]
+            try:
+                conn.execute("SELECT XMLPARSE(DOCUMENT '<memory>')")
+            except psycopg.errors.InvalidXmlDocument:
+                pass
+            else:
+                raise ValueError("Malformed XML was accepted")
+            report["xml_queries"] = {"unicode": True, "namespaces": True, "xmltable": True,
+                                     "malformed_rejected": True}
             plans = {}
             report["vector_query_plans"] = plans
             for operator in ("<->", "<#>", "<=>"):

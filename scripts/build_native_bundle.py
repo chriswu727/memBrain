@@ -24,6 +24,13 @@ VECTOR_SHA256 = "10bf9938906e5d643bbc4a7eea104b6f57ba4898e5b76b20e60484ea1d5a7f8
 OPENSSL = "3.5.9"
 OPENSSL_URL = f"https://github.com/openssl/openssl/releases/download/openssl-{OPENSSL}/openssl-{OPENSSL}.tar.gz"
 OPENSSL_SHA256 = "603f5602e2eef00d77fbd429d34dcd5822bb301757a1bc9cdb24c670f1eb859a"
+XML_VERSION = "2.9.13+dfsg-1ubuntu0.14"
+XML_SOURCE_URL = "https://archive.ubuntu.com/ubuntu/pool/main/libx/libxml2/"
+XML_SOURCES = {
+    "libxml2_2.9.13+dfsg.orig.tar.xz": "13cf2e55e603c34143486f4082cbf202859ac1eec5130b8d8e5e3c06a9902d8a",
+    f"libxml2_{XML_VERSION}.debian.tar.xz": "25ff38d4356a491aa49c415cff6460453793694a72e4c9a894b94128e65b8040",
+    f"libxml2_{XML_VERSION}.dsc": "0c43450d95fb5a935610d86e06aa52d56a58d3a7e6348fd4d993b7054e71cf53",
+}
 WHEELS = {
     ("Darwin", "arm64"): ("macosx_11_0_arm64", "c73c7eacd71da727085aa3a4ebfa60b862ce8eacb72102df691b620d7a66460b"),
     ("Darwin", "x86_64"): ("macosx_10_9_x86_64", "4a1ec8dc225f404c677a43e84472b84e83482c6e7e34c183c44529477dcc6d74"),
@@ -48,7 +55,7 @@ def download(url, expected, path):
 
 def run(command, *, cwd=None, capture=False, environment=None):
     cleaned = {key: value for key, value in os.environ.items()
-               if not key.startswith(("PG", "MEMORY_", "MEMBRAIN_"))
+               if not key.startswith(("PG", "MEMORY_", "MEMBRAIN_", "LD_", "DYLD_"))
                and key not in {"MAKEFLAGS", "MFLAGS", "MAKELEVEL", "PYTHONPATH", "PYTHONHOME"}}
     cleaned.update(environment or {})
     return subprocess.run(list(map(str, command)), cwd=cwd, env=cleaned, check=True,
@@ -166,6 +173,59 @@ def update_openssl(prefix, work):
             "target": target, "reason": "replace the supplier's unsupported OpenSSL 3.6.3"}
 
 
+def inspect_xml_library(path):
+    dynamic = run(["readelf", "-d", path], capture=True)
+    needed = set(re.findall(r"\(NEEDED\).*\[(.*?)\]", dynamic))
+    allowed = {"libc.so.6", "libm.so.6", "libz.so.1", "liblzma.so.5", "libpthread.so.0", "libdl.so.2"}
+    if (re.findall(r"\(SONAME\).*\[(.*?)\]", dynamic) != ["libxml2.so.2"]
+            or not needed or needed - allowed or re.search(r"\((?:RPATH|RUNPATH)\)", dynamic)):
+        raise ValueError("XML compatibility library has an unexpected ABI or dependency")
+    return {"dynamic": dynamic, "needed": sorted(needed),
+            "symbol_versions": run(["readelf", "--version-info", path], capture=True)}
+
+
+def update_xml(prefix, work):
+    if platform.system() != "Linux":
+        return None
+    for name, expected in XML_SOURCES.items():
+        download(XML_SOURCE_URL + name.replace("+", "%2B"), expected, work / name)
+    source, installed = work / "libxml-source", work / "libxml-installed"
+    # Inputs are pinned against the previously verified signed Ubuntu source descriptor.
+    run(["dpkg-source", "--no-check", "-x", work / f"libxml2_{XML_VERSION}.dsc", source])
+    options = ["--enable-shared", "--disable-static", "--without-python", "--without-icu",
+               "--with-iconv", "--with-zlib", "--with-lzma", f"--prefix={installed}", "--libdir=" + str(installed / "lib")]
+    environment = {"CFLAGS": "-O2 -fPIC", "CPPFLAGS": "", "LDFLAGS": ""}
+    run([source / "configure", *options], cwd=source, environment=environment)
+    run(["make", "-j2"], cwd=source, environment=environment)
+    run(["make", "check"], cwd=source, environment=environment)
+    run(["make", "install"], cwd=source, environment=environment)
+    encodings = {"GB18030": "记忆", "SHIFT_JIS": "記憶", "ISO-8859-1": "mémoire"}
+    for encoding, content in encodings.items():
+        document = work / f"xml-{encoding}.xml"
+        document.write_bytes(f'<?xml version="1.0" encoding="{encoding}"?><memory>{content}</memory>'.encode(encoding))
+        converted = run([installed / "bin" / "xmllint", "--encode", "UTF-8", document], capture=True)
+        if f"<memory>{content}</memory>" not in converted:
+            raise ValueError("XML encoding conversion changed the input")
+    library = installed / "lib" / "libxml2.so.2"
+    if not library.resolve(strict=True).is_relative_to(installed):
+        raise ValueError("XML compatibility library escapes its build prefix")
+    inspection = inspect_xml_library(library)
+    destination = prefix / "lib" / library.name
+    shutil.copyfile(library, destination)
+    destination.chmod(0o755)
+    licenses = prefix / "share" / "licenses" / "libxml2"
+    licenses.mkdir(parents=True)
+    for name, original in (("COPYING", source / "COPYING"), ("Copyright", source / "Copyright"),
+                           ("debian-copyright", source / "debian" / "copyright")):
+        shutil.copyfile(original, licenses / name)
+    metadata = {"version": XML_VERSION, "source_url": XML_SOURCE_URL, "sources": XML_SOURCES,
+                "options": [option for option in options if not option.startswith(("--prefix=", "--libdir="))],
+                "upstream_checks_passed": True, "encoding_roundtrips": sorted(encodings),
+                "library_sha256": digest(destination), **inspection}
+    (licenses / "source.json").write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
+    return metadata
+
+
 def inspect_library(path):
     system = platform.system()
     if system == "Darwin":
@@ -261,6 +321,7 @@ def build(work, output):
     with tarfile.open(archive) as saved:
         saved.extractall(work, filter="data")
     source = work / f"pgvector-{VECTOR}"
+    xml = update_xml(prefix, work)
     openssl = update_openssl(prefix, work)
     versions = {name: run([tool(prefix, name), "--version"], capture=True).strip() for name in TOOLS}
     if not all(value.endswith(" " + POSTGRES) for value in versions.values()):
@@ -270,7 +331,7 @@ def build(work, output):
                 "runtime_dependency_changed": False, "supplier_python_executed": False,
                 "supplier_wheel": {"filename": filename, "sha256": expected, "archive_sha256": inner_hash},
                 "vector_source": {"url": VECTOR_URL, "sha256": VECTOR_SHA256},
-                "openssl": openssl,
+                "openssl": openssl, "libxml2": xml,
                 "build_options": options, "host": platform.platform(), "tools": versions,
                 "library": inspect_library(vector_library(prefix)),
                 "compiler": run(["cl" if os.name == "nt" else "cc", "--version"], capture=True).strip()

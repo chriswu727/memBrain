@@ -99,3 +99,49 @@ def test_builder_rejects_unknown_platform_before_creating_paths(tmp_path, monkey
     with pytest.raises(ValueError, match="Unsupported platform"):
         builder.build(tmp_path / "work", tmp_path / "output")
     assert not list(tmp_path.iterdir())
+
+
+@pytest.mark.parametrize("dynamic", [
+    "(SONAME) Library soname: [libxml2.so.16]\n(NEEDED) Shared library: [libc.so.6]",
+    "(SONAME) Library soname: [libxml2.so.2]\n(NEEDED) Shared library: [libicuuc.so.70]",
+    "(SONAME) Library soname: [libxml2.so.2]\n(NEEDED) Shared library: [libc.so.6]\n(RUNPATH) [/build/private]",
+    "(SONAME) Library soname: [libxml2.so.2]",
+])
+def test_xml_library_rejects_wrong_abi_or_unbundled_dependencies(tmp_path, monkeypatch, dynamic):
+    monkeypatch.setattr(builder, "run", lambda *a, **kw: dynamic)
+    with pytest.raises(ValueError, match="unexpected ABI or dependency"):
+        builder.inspect_xml_library(tmp_path / "libxml2.so.2")
+
+
+def test_xml_library_accepts_old_soname_without_icu(tmp_path, monkeypatch):
+    dynamic = "(SONAME) Library soname: [libxml2.so.2]\n(NEEDED) Shared library: [libc.so.6]\n(NEEDED) Shared library: [libz.so.1]"
+    monkeypatch.setattr(builder, "run", lambda *a, **kw: dynamic)
+    assert builder.inspect_xml_library(tmp_path / "libxml2.so.2")["needed"] == ["libc.so.6", "libz.so.1"]
+
+
+def test_build_commands_do_not_inherit_loader_overrides(monkeypatch):
+    monkeypatch.setenv("LD_PRELOAD", "/untrusted/lib.so")
+    monkeypatch.setenv("LD_LIBRARY_PATH", "/untrusted")
+    monkeypatch.setenv("DYLD_LIBRARY_PATH", "/untrusted")
+    calls = []
+
+    def execute(command, **kwargs):
+        calls.append(kwargs)
+        return subprocess.CompletedProcess(command, 0, stdout="done")
+
+    import subprocess
+    monkeypatch.setattr(builder.subprocess, "run", execute)
+    assert builder.run(["test-tool"], capture=True) == "done"
+    assert not any(key.startswith(("LD_", "DYLD_")) for key in calls[0]["env"])
+
+
+def test_xml_overlay_keeps_library_and_license_but_not_build_tools():
+    spec = importlib.util.spec_from_file_location(
+        "package_native_resources", Path(__file__).parents[1] / "scripts/package_native_resources.py")
+    packager = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(packager)
+    assert packager.overlay_path("lib/libxml2.so.2")
+    assert packager.overlay_path("share/licenses/libxml2/Copyright")
+    assert packager.overlay_path("share/licenses/libxml2/source.json")
+    assert not packager.overlay_path("lib/libxml2.so.16")
+    assert not packager.overlay_path("bin/xmllint")
