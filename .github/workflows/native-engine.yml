@@ -1,0 +1,72 @@
+name: Native engine qualification
+
+on:
+  pull_request:
+    paths:
+      - 'scripts/build_native_bundle.py'
+      - 'scripts/check_native_bundle.py'
+      - 'tests/test_native_bundle_build.py'
+      - '.github/workflows/native-engine.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: native-engine-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  native:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            target: macos-arm64
+            legacy: '--legacy-upgrade'
+          - runner: macos-15-intel
+            target: macos-x86_64
+            legacy: '--legacy-upgrade'
+          - runner: ubuntu-22.04
+            target: linux-x86_64
+            legacy: '--legacy-upgrade'
+          - runner: ubuntu-22.04-arm
+            target: linux-aarch64
+            legacy: ''
+          - runner: windows-2022
+            target: windows-x86_64
+            legacy: '--legacy-upgrade'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install 'psycopg[binary]>=3.2,<4' 'pytest>=8,<10'
+      - if: matrix.legacy != ''
+        run: python -m pip install pgserver==0.1.4
+      - run: python -m pytest -q tests/test_native_bundle_build.py
+      - name: Build portable vector against the pinned public PostgreSQL distribution
+        if: runner.os != 'Windows'
+        run: python scripts/build_native_bundle.py --work-directory "${{ runner.temp }}/native-build" --output-directory "${{ runner.temp }}/native-artifacts"
+      - name: Build portable Windows vector with the Visual Studio toolchain
+        if: runner.os == 'Windows'
+        shell: cmd
+        run: |
+          for /f "usebackq tokens=*" %%i in (`"%ProgramFiles(x86)%\Microsoft Visual Studio\Installer\vswhere.exe" -latest -products * -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath`) do call "%%i\VC\Auxiliary\Build\vcvars64.bat"
+          if errorlevel 1 exit /b %errorlevel%
+          python scripts/build_native_bundle.py --work-directory "${{ runner.temp }}/native-build" --output-directory "${{ runner.temp }}/native-artifacts"
+      - name: Verify relocated tools, legacy upgrade, vector indexes and backup restore
+        run: python scripts/check_native_bundle.py --artifacts "${{ runner.temp }}/native-artifacts" --work-directory "${{ runner.temp }}/native-check" ${{ matrix.legacy }}
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: native-${{ matrix.target }}
+          path: |
+            ${{ runner.temp }}/native-artifacts
+            ${{ runner.temp }}/native-check/qualification.json
+            ${{ runner.temp }}/native-check/postgres.log
+          if-no-files-found: warn
+          retention-days: 30
