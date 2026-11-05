@@ -807,6 +807,20 @@
       "sha256": "d9e313c6c8ec28c940ef0ce74656ef707fd4c09c7ee329c02db9df80937cd673",
       "raw_bytes": 85763,
       "raw_sha256": "4a46127051e458407dbf5a3e2bf967a94afa535c0e2a6b92a820dba4d8be6c49"
+    },
+    {
+      "path": "ci-42030170096.json",
+      "bytes": 6417,
+      "sha256": "5b4876b17db30c8f380d3cbb852837403c93efb93cc4be2b7c6f416d80b6e3d0",
+      "raw_bytes": 6417,
+      "raw_sha256": "5b4876b17db30c8f380d3cbb852837403c93efb93cc4be2b7c6f416d80b6e3d0"
+    },
+    {
+      "path": "ci-42030170096.txt.gz",
+      "bytes": 20227,
+      "sha256": "451a97d11bbf9ede4b605bbe55d8c9c29cc06ef7006f76625964d0aef08c0cee",
+      "raw_bytes": 98106,
+      "raw_sha256": "5f016bf3d853bfa0265175c55e8f18cee04082def506f08e7587086577a1cd03"
     }
   ],
   "local_installation_status": "uv and pip both failed ENOSPC; partial environment unqualified"

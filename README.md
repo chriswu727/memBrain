@@ -18,7 +18,7 @@ memBrain runs as a local service. Connect your agent's conversation lifecycle on
 
 [Claude Code plugin](#claude-code-plugin) · [Why memBrain](#why-membrain) · [Quickstart](#quickstart) · [Python integration](#python-integration) · [How memory works](#how-memory-works) · [Status and verification](#status-and-verification) · [Full reference](docs/reference.md)
 
-> **Pre-release.** Native engine candidate `f441e4a` adopts verified PostgreSQL 16.15 / pgvector 0.8.6 through ordinary startup, with interrupted-upgrade recovery and an old-runtime guard. Five-platform startup and backup/recovery qualification passes eleven journeys; complete application CI and current pinned clean-install qualification remain separate gates. Earlier candidate `9f75361` passed **49/49** fresh-install checks and **36/36** fullscreen recall windows (worst eight-brain p95 **465.93 ms**); those results remain evidence for that earlier candidate. Current installed-candidate verification, real R4/C5 and remaining graph/review gates stay open, so publication remains frozen. [Native adoption evidence](evaluations/maturity-native-adoption-2026-11-05.md), [earlier recall evidence](evaluations/maturity-recall-cache-2026-11-04.md) and [host scope](docs/host-compatibility.md).
+> **Pre-release.** Native engine candidate `f441e4a` adopts verified PostgreSQL 16.15 / pgvector 0.8.6 through ordinary startup, with interrupted-upgrade recovery and an old-runtime guard. Five-platform startup and backup/recovery qualification passes eleven journeys (Linux uses Ubuntu22.04); Ubuntu26.04 native startup currently fails because libxml2.so.2 is absent; complete application CI and current pinned clean-install qualification remain separate gates. Earlier candidate `9f75361` passed **49/49** fresh-install checks and **36/36** fullscreen recall windows (worst eight-brain p95 **465.93 ms**); those results remain evidence for that earlier candidate. Current installed-candidate verification, real R4/C5 and remaining graph/review gates stay open, so publication remains frozen. [Native adoption evidence](evaluations/maturity-native-adoption-2026-11-05.md), [earlier recall evidence](evaluations/maturity-recall-cache-2026-11-04.md) and [host scope](docs/host-compatibility.md).
 
 <a id="claude-code-plugin"></a>
 
@@ -28,7 +28,7 @@ Tell your agent:
 
 > Install the memBrain plugin: `claude plugin install membrain --marketplace chriswu727/membrain`
 
-Inside a Claude Code session you can also run `/plugin install membrain --marketplace chriswu727/membrain`. The only prerequisite is [uv](https://docs.astral.sh/uv/). There is no Docker, setup wizard or extra model API key.
+Inside a Claude Code session you can also run `/plugin install membrain --marketplace chriswu727/membrain`. Install [uv](https://docs.astral.sh/uv/) first. Supported native hosts use the bundled database without Docker, a setup wizard or an extra model API key. Linux also needs compatible system libraries; see the current pre-release limitation above.
 
 From the next session on, the plugin:
 

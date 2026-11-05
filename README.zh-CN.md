@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 内置引擎候选版本 `f441e4a` 已在普通启动流程中接入经过验证的 PostgreSQL 16.15／pgvector 0.8.6，并加入升级中断恢复及旧版程序保护。五个平台的启动及备份恢复验证已通过十一条完整流程；完整应用 CI 和当前固定版本的全新安装仍需单独验收。此前候选版本 `9f75361` 通过 **49/49** 项全新安装检查及 **36/36** 个全屏回忆窗口（最慢八脑窗口 p95 **465.93 ms**）；这些结果仍只代表此前候选版本。当前安装候选验证、真实 R4/C5 和剩余图谱／复核门槛尚未通过，继续冻结发布。详见[原生升级接入证据](evaluations/maturity-native-adoption-2026-11-05.md)、[此前回忆证据](evaluations/maturity-recall-cache-2026-11-04.md)及[宿主范围](docs/host-compatibility.md)。
+> **预发布阶段。** 内置引擎候选版本 `f441e4a` 已在普通启动流程中接入经过验证的 PostgreSQL 16.15／pgvector 0.8.6，并加入升级中断恢复及旧版程序保护。五个平台的启动及备份恢复验证已通过十一条完整流程（Linux使用Ubuntu22.04）；Ubuntu26.04的原生启动目前因缺少libxml2.so.2而失败；完整应用 CI 和当前固定版本的全新安装仍需单独验收。此前候选版本 `9f75361` 通过 **49/49** 项全新安装检查及 **36/36** 个全屏回忆窗口（最慢八脑窗口 p95 **465.93 ms**）；这些结果仍只代表此前候选版本。当前安装候选验证、真实 R4/C5 和剩余图谱／复核门槛尚未通过，继续冻结发布。详见[原生升级接入证据](evaluations/maturity-native-adoption-2026-11-05.md)、[此前回忆证据](evaluations/maturity-recall-cache-2026-11-04.md)及[宿主范围](docs/host-compatibility.md)。
 
 <a id="claude-code-plugin"></a>
 
@@ -28,7 +28,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 > 安装 memBrain 插件：`claude plugin install membrain --marketplace chriswu727/membrain`
 
-也可以在 Claude Code 会话中运行 `/plugin install membrain --marketplace chriswu727/membrain`。唯一的前置条件是 [uv](https://docs.astral.sh/uv/)。不需要 Docker、配置向导或额外的模型 API key。
+也可以在 Claude Code 会话中运行 `/plugin install membrain --marketplace chriswu727/membrain`。请先安装[uv](https://docs.astral.sh/uv/)。受支持的原生环境使用内置数据库，无需Docker、配置向导或额外的模型API key。Linux还需要兼容的系统库，当前预发布限制见上文。
 
 从下一个会话开始，插件会：
 
