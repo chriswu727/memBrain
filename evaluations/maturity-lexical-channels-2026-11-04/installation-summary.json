@@ -1,0 +1,20 @@
+{
+  "source": "38e61ad47f239c69c5fe6fb6c8f10d7ea58da760",
+  "runtime_pin": "28c0b3ed34484b29550b6d2c011a819bcbce016b",
+  "install_passed": 49,
+  "install_failed": 0,
+  "harness_sha256": "1c6c20e4815864e42225c803659f35f29ae5330d379efbc7a76565fb48e8e9e4",
+  "cache_override_only": true,
+  "model_evaluation_calls": 0,
+  "installed_files": 165,
+  "installed_mismatches": 0,
+  "unexpected_package_files": 0,
+  "masked_graph_paths": 3,
+  "live_boundary_refresh": true,
+  "both_graph_layers": true,
+  "fullscreen_and_2d": true,
+  "page_outside_errors": 0,
+  "stop_returncode": 0,
+  "screenshot_visually_inspected": true,
+  "profiles_checked_stopped": 5
+}

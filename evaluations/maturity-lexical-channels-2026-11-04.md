@@ -1,6 +1,6 @@
 # Bounded candidate channels: merged reads
 
-Runtime candidate `28c0b3ed34484b29550b6d2c011a819bcbce016b` merges the keyword and feature-hash candidate reads before transferring and decoding duplicate documents. All nine launchers pin this revision. **256 local regression tests pass with zero skips. Fresh canonical recall passes, but the complete fullscreen R5 comparison FAILS: 33/36 windows pass, including 9/12 eight-brain windows.** Full CI and fresh installation are pending. The [previous complete R5 failure](maturity-release-qualification-2026-11-04.md) remains historical evidence, not a pass for this change. Publication remains frozen.
+Runtime candidate `28c0b3ed34484b29550b6d2c011a819bcbce016b` merges the keyword and feature-hash candidate reads before transferring and decoding duplicate documents. All nine launchers pin this revision. **256 local regression tests pass with zero skips. Fresh installation passes 49/49 and all 165 installed files match. Fresh canonical recall passes, but the complete fullscreen R5 comparison FAILS: 33/36 windows pass, including 9/12 eight-brain windows.** Full CI is pending. The [previous complete R5 failure](maturity-release-qualification-2026-11-04.md) remains historical evidence, not a pass for this change. Publication remains frozen.
 
 ## Implementation
 
@@ -51,8 +51,16 @@ Both open phases use actual **ANGLE Metal on Apple M4**. The renderer's **186 no
 
 The stopped failed fixture and its registry are privately archived. All **1,486 regular files** are hash-verified against the archive before removing only the owned disposable profile; the existing registry remains in place. Archive SHA-256 is `98c8ee798d41c59fca91bf699c66835d903f9110535b50fac5bb060379b3ca6e` (304,286,168 bytes). The private archive, inventory, credentials and profiles are excluded from Git. The separate completed regression cluster is removed only after port and hash checks; its profile, registry, packages and logs remain.
 
+## Fresh installation and installed-runtime verification
+
+The unchanged release checker passes **49/49 checks**, zero failures, on source/evidence head `38e61ad` with the same `28c0b3e` runtime. The original basic and companion baselines remain frozen. The only wrapper override is the location of an existing owned download cache; homes/installations are fresh. It exercises actual launcher upgrade, cross-session recall, all three MCP launchers, correction/deletion, restart, proxy, backup/restore/activation and preservation of companion persona, simulated mood, reported feelings, shared moments, boundaries and support style. No paid/subscription model evaluation is called. The release-harness SHA-256 is `1c6c20e4815864e42225c803659f35f29ae5330d379efbc7a76565fb48e8e9e4`.
+
+The follow-up uses the **actual installed interpreter**, checks all **165 package/schema/migration files** against current source, and finds zero mismatches or unexpected files. It verifies recording-time masking on all three graph paths, explicit reveal of original times, and a boundary edit changing the next host context rather than replaying the cached contribution. After all fixture writes, pending jobs/index lag are recorded as **3/3 → 0/0** before graph snapshots. The actual installed API and browser agree on both graph layers; fullscreen and 2D work, with zero page errors or outside requests. Stop exits 0; the screenshot is visually inspected. All API/database ports of the five owned installation/follow-up profiles are independently checked closed.
+
+This re-establishes current R1 evidence. It does not close R2, R5, behavioural acceptance or remaining graph/review coverage.
+
 ## Remaining qualification
 
-Next, finish the already-running full CI and execute actual installation/parity checks for this pin. R5 stays open: further work must explain or control tail latency while preserving the same quality and release bars, rather than repeating this unchanged qualification. Real R4/C5 still requires separate authorization; independent/privacy/design review and working-state/full-familiarity graph coverage remain open. No paid/subscription evaluation, additional Claude call, schedule, merge, tag or publication is performed.
+Next, finish the already-running full CI. R5 stays open: further work must explain or control tail latency while preserving the same quality and release bars, rather than repeating this unchanged qualification. Real R4/C5 still requires separate authorization; independent/privacy/design review and working-state/full-familiarity graph coverage remain open. No paid/subscription evaluation, additional Claude call, schedule, merge, tag or publication is performed.
 
 The [allowlisted manifest](maturity-lexical-channels-2026-11-04/manifest.json) contains prototype scripts, raw compressed samples, successful regression outputs and the failed broad lint output. Private archives, registry/profile/connection files and response fixtures are excluded.

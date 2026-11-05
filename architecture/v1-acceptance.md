@@ -14,7 +14,7 @@ Status: **not passed**. Revised on 2026-11-02 for the product that ships: memory
 
 Storage uses embedded PostgreSQL (Docker remains supported). Semantic recall uses a local multilingual model; no model key is needed for memory itself.
 
-**Platforms.** Linux and macOS are tested by the automated suite. Previous embedded runtimes pass the real Mac launcher install/upgrade/recovery checks and installed-package/browser journey; candidate `28c0b3e` needs its own [installed-runtime requalification](../evaluations/maturity-lexical-channels-2026-11-04.md); [evidence and remaining limits](../evaluations/maturity-owned-recall-2026-11-04.md) name the exact pin. Windows has launchers but is not certified.
+**Platforms.** Linux and macOS are tested by the automated suite. Previous embedded runtimes pass the real Mac launcher install/upgrade/recovery checks and installed-package/browser journey; candidate `28c0b3e` also passes fresh 49/49 checks and exact 165-file [installed-runtime requalification](../evaluations/maturity-lexical-channels-2026-11-04.md); [evidence and remaining limits](../evaluations/maturity-owned-recall-2026-11-04.md) name the exact pin. Windows has launchers but is not certified.
 
 **Companion scope.** Personality, mood and relationship development were outside this original core contract. The owner's later [first-release maturity bar](../docs/releasing.md) now requires the companion layers and C5 before publication; their [Phase C design](phase-c-design.md) defines the additional acceptance.
 
