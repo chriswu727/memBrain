@@ -144,6 +144,20 @@
       "sha256": "8bb0f932f6cce51d46c39e1034d0c68da3dbc6722d71b5651268f109540751ad",
       "original_bytes": 5715,
       "original_sha256": "0a7e000d968571aefb15620fca13935fb4fb6004b593b5761b9db39708bfe142"
+    },
+    {
+      "path": "claude-scoring-followup.txt.gz",
+      "bytes": 2751,
+      "sha256": "910c7974e807bf33236006d98ea12f6cd81ba1749ca51190cc4837f414d14eb7",
+      "original_bytes": 5887,
+      "original_sha256": "68afb242c3997185c8e16dfe8263ec5fa5c14bd8bfa6af649a55ccb1f497bbeb"
     }
-  ]
+  ],
+  "independent_review": {
+    "source": "6da213b",
+    "status": "completed",
+    "reported_turns": 14,
+    "duration_ms": 320771,
+    "scope": "ordinary read-only CLI code review, no scenarios, real replies or Desktop; not behavioral evidence"
+  }
 }
