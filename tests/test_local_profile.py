@@ -319,6 +319,18 @@ def test_hardlinked_profile_is_not_read_or_replaced(tmp_path):
         load_profile(profile.directory)
 
 
+def test_empty_lock_file_needs_no_write_before_exclusion(tmp_path, monkeypatch):
+    (tmp_path / ".profile.lock").touch(mode=0o600)
+
+    def forbidden_write(*arguments):
+        pytest.fail("A competing process may already have locked this empty file's first byte")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(os, "write", forbidden_write)
+        with profile_lock(tmp_path):
+            assert (tmp_path / ".profile.lock").stat().st_size == 0
+
+
 def test_nested_locks_and_helpers_are_reentrant(tmp_path):
     with profile_lock(tmp_path):
         profile = ensure_profile(tmp_path)

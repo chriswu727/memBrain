@@ -50,7 +50,7 @@ def check(directory):
                        "output": result.stdout.decode("utf-8", "replace"),
                        "version_file_created": (work / "data/PG_VERSION").is_file()}
                 report["attempts"].append(row)
-                print(json.dumps(row), flush=True)
+                print(json.dumps({key: value for key, value in row.items() if key != "output"}), flush=True)
             finally:
                 password.unlink(missing_ok=True)
                 (directory / "diagnosis.json").write_text(json.dumps(report, indent=2) + "\n", encoding="utf-8")

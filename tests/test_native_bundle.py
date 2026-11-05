@@ -276,6 +276,9 @@ print(native_bundle.prepare(),flush=True)
     try:
         with ThreadPoolExecutor(max_workers=4) as executor:
             results = list(executor.map(lambda process: process.communicate("go\n", timeout=30), processes))
+        if any(process.returncode != 0 for process in processes):
+            print(json.dumps([{"returncode": process.returncode, "stdout": output[0], "stderr": output[1]}
+                              for process, output in zip(processes, results, strict=True)]))
         assert all(process.returncode == 0 for process in processes), results
         assert len({stdout.strip() for stdout, _ in results}) == 1
         assert all(stdout.startswith("ready\n") for stdout, _ in results)

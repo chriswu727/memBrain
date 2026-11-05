@@ -190,8 +190,7 @@ def profile_lock(directory: Path | None = None, *, timeout: float = 30.0):
             yield path
             return
         descriptor = _open_private(path / ".profile.lock", os.O_CREAT | os.O_RDWR)
-        if os.fstat(descriptor).st_size == 0:
-            os.write(descriptor, b"\0")
+        # Windows supports locks beyond EOF; a sentinel write can race with another creator's byte lock.
         deadline = time.monotonic() + timeout
         while True:
             try:
