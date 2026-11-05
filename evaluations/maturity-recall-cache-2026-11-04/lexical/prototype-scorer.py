@@ -1,0 +1,161 @@
+from collections import Counter
+
+from . import cognition
+
+MAX_QUERY_TERMS = 128
+MAX_TERM_LENGTH = 256
+TERM_CACHE_ITEMS = 512
+TERM_CACHE_CHARACTERS = 65536
+LEXICAL_RANK_VERSION = "source-origin-frequency-passage-v3"
+
+
+class LexicalScorer:
+    def __init__(self, query, texts, *, origins=None):
+        self._term_cache = {}
+        self._cached_characters = 0
+        self.query_terms = self._terms(query)
+        if origins is None:
+            documents = {tuple(frozenset(part) for part in self._terms(text)) for text in texts}
+        else:
+            grouped = {}
+            for text, keys in zip(texts, origins, strict=True):
+                terms = self._terms(text)
+                for key in keys:
+                    document = grouped.setdefault(key, [set(), set(), set()])
+                    for present, part, query_part in zip(document, terms, self.query_terms, strict=True):
+                        present.update(part & query_part)
+            documents = list(grouped.values())
+        frequencies = [Counter(term for document in documents for term in self.query_terms[index] if term in document[index])
+                       for index in range(3)]
+        self.weights = [{term: (1 + len(documents)) / (1 + frequency[term])
+                         for term in query} for query, frequency in zip(self.query_terms, frequencies, strict=True)]
+
+    def _terms(self, text):
+        cached = self._term_cache.get(text)
+        if cached is not None:
+            return cached
+        terms = cognition._terms(text)
+        if len(self._term_cache) < TERM_CACHE_ITEMS and self._cached_characters + len(text) <= TERM_CACHE_CHARACTERS:
+            self._term_cache[text] = terms
+            self._cached_characters += len(text)
+        return terms
+
+    @classmethod
+    def from_memories(cls, query, memories):
+        memories = list(memories)
+        origins = [
+            {("source", ref["event_id"], ref["event_revision"], ref["source_content_sha256"])
+             for ref in memory["evidence_refs"] if ref["relationship"] == "supports"}
+            or {("memory", memory["memory_id"], memory["revision"])}
+            for memory in memories]
+        return cls(query, [memory["statement"] for memory in memories], origins=origins)
+
+    def _score(self, terms):
+        scores = [sum(weight[term] for term in query & present) / max(1, sum(weight.values()))
+                  for query, present, weight in zip(self.query_terms, terms, self.weights, strict=True)]
+        return scores[0] + scores[1] + (0.15 * scores[2] if len(self.query_terms[2] & terms[2]) >= 2 else 0)
+
+    def __call__(self, query, text):
+        score = max((self._score(self._terms(text[start:end]))
+                     for start, end in cognition._sentence_spans(text)), default=0.0)
+        return score or self._score(self._terms(text))
+
+
+def passage_score(query, text):
+    query_terms = cognition._terms(query)
+    score = max((cognition._lexical_score_terms(query_terms, cognition._terms(text[start:end]))
+                 for start, end in cognition._sentence_spans(text)), default=0.0)
+    # Character-only cues can meet the existing overlap floor only across passages.
+    return score or cognition._lexical_score_terms(query_terms, cognition._terms(text))
+
+
+def _prefixes(terms):
+    """Terms are word stems, so stored forms ('running', 'married') are matched by stem prefix."""
+    for term in terms:
+        if len(term) < 3 or not term.isalpha():
+            yield "'" + term + "'"
+            continue
+        yield "'" + term + "':*"
+        if term.endswith("y") and len(term) >= 4:
+            yield "'" + term[:-1] + "i':*"
+
+
+def historical_support_filter(input_event_ids):
+    if not input_event_ids:
+        return "", ()
+    return ("AND EXISTS (SELECT 1 FROM jsonb_array_elements(a.document->'evidence_refs') support "
+            "WHERE support->>'relationship'='supports' AND NOT (support->>'event_id'=ANY(%s::text[]))) ",
+            (list(input_event_ids),))
+
+
+def _merged_rows(conn, where, values, vector, terms, limit):
+    select = ("SELECT a.document,a.event_ids,a.is_current,a.id,a.revision,"
+              "a.embedding <=> %s::vector AS distance FROM memory_assertions a WHERE ")
+    order = "ORDER BY distance NULLS LAST,a.id,a.revision LIMIT %s"
+    # Each channel keeps its own sentinel before deduplication, so overlap cannot hide truncation.
+    return conn.execute(
+        "WITH hashed AS MATERIALIZED (" + select + where + order + "), "
+        "exact AS MATERIALIZED (" + select + where
+        + "AND to_tsvector('simple',a.search_text) @@ to_tsquery('simple',%s) " + order + "), "
+        "ranked AS (SELECT *,0 AS channel,row_number() OVER (ORDER BY distance NULLS LAST,id,revision) AS position "
+        "FROM exact UNION ALL SELECT *,1 AS channel,"
+        "row_number() OVER (ORDER BY distance NULLS LAST,id,revision) AS position FROM hashed), "
+        "selected AS (SELECT DISTINCT ON (document->'memory_id',document->'revision') "
+        "document,event_ids,is_current,channel,position FROM ranked WHERE position<=%s "
+        "ORDER BY document->'memory_id',document->'revision',channel,position) "
+        "SELECT document,event_ids,is_current,"
+        "((SELECT count(*) FROM hashed)>%s OR (SELECT count(*) FROM exact)>%s) AS truncated "
+        "FROM selected ORDER BY channel,position",
+        (vector, *values, limit + 1, vector, *values, " | ".join(_prefixes(terms)), limit + 1,
+         limit, limit, limit),
+    ).fetchall()
+
+
+def lexical_rows(conn, params, target, text, *, limit, through_sequence=None, excluded_versions=(),
+                 independent_of_event_ids=()):
+    from .candidates import _eligible, _scope_clause
+    from .service import _vector
+
+    clause, scope_params = _scope_clause("a", target)
+    where = _eligible() + clause
+    where += "AND a.embedding_model='lexical-feature-hash' AND a.embedding_version='v1-d256-blake2s' "
+    values = (*params, *scope_params)
+    support_clause, support_params = historical_support_filter(independent_of_event_ids)
+    where += support_clause
+    values += support_params
+    if excluded_versions:
+        where += "AND (a.id,a.revision) NOT IN (SELECT * FROM unnest(%s::text[],%s::bigint[])) "
+        values += ([key[0] for key in excluded_versions], [key[1] for key in excluded_versions])
+    if through_sequence is not None:
+        where += (
+            "AND NOT EXISTS (SELECT 1 FROM memory_events future WHERE future.tenant_id=a.tenant_id "
+            "AND future.owner_id=a.owner_id AND future.brain_id=a.brain_id AND future.id=ANY(a.event_ids) "
+            "AND future.is_current AND future.sequence>%s) "
+        )
+        values += (through_sequence,)
+    select = "SELECT a.document,a.event_ids,a.is_current FROM memory_assertions a WHERE " + where
+    order = "ORDER BY a.embedding <=> %s::vector NULLS LAST,a.id,a.revision LIMIT %s"
+    vector = _vector(text)
+    words = sorted(cognition._terms(text)[0])
+    terms = [word for word in words if len(word) <= MAX_TERM_LENGTH][:MAX_QUERY_TERMS]
+    truncated = len(terms) != len(words)
+    if terms and limit > 0:
+        rows = _merged_rows(conn, where, values, vector, terms, limit)
+        for row in rows:
+            truncated |= row.pop("truncated")
+    else:
+        hashed = conn.execute(select + order, (*values, vector, limit + 1)).fetchall()
+        truncated |= len(hashed) > limit
+        rows = hashed[:limit]
+        if terms:
+            exact = conn.execute(
+                select + "AND to_tsvector('simple',a.search_text) @@ to_tsquery('simple',%s) " + order,
+                (*values, " | ".join(_prefixes(terms)), vector, limit + 1),
+            ).fetchall()
+            truncated |= len(exact) > limit
+            rows = exact[:limit] + rows
+    unique = {}
+    for row in rows:
+        memory = row["document"]
+        unique.setdefault((memory["memory_id"], memory["revision"]), row)
+    return list(unique.values()), truncated

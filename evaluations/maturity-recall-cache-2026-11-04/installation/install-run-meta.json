@@ -1,0 +1,12 @@
+{
+  "source_head": "c7acd84dcf472c1cbb7419d6d57455ed359ebc29",
+  "runtime_pin": "9f7536110a95dfd02b382382dc97d0991121632f",
+  "harness_sha256": "1c6c20e4815864e42225c803659f35f29ae5330d379efbc7a76565fb48e8e9e4",
+  "wrapper_sha256": "c6c68b6098783b749782dc77fb2df01e945a7ca1e3b62795b2d19187f2d7616c",
+  "shared_download_cache": "/Users/yichen/tmp/membrain-tail-attribution-20261104/install-final/uv-cache",
+  "changes": "download cache location only; fresh homes and frozen baselines unchanged",
+  "provider_credentials_removed": true,
+  "model_evaluation_calls": 0,
+  "completed": true,
+  "exit_code": 0
+}

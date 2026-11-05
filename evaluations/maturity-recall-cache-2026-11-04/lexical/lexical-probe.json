@@ -1,0 +1,39 @@
+{
+  "purpose": "fixed ABBA pure lexical CPU probe with exact token/weight/score equivalence; not HTTP, SQL or R5 acceptance",
+  "model_calls": 0,
+  "completed": true,
+  "arms": [
+    {
+      "index": 0,
+      "prototype": false,
+      "iterations": 50,
+      "median_cpu_ms": 2.7720000000000002,
+      "weights_and_scores_exact": true
+    },
+    {
+      "index": 1,
+      "prototype": true,
+      "iterations": 50,
+      "median_cpu_ms": 2.356,
+      "weights_and_scores_exact": true
+    },
+    {
+      "index": 2,
+      "prototype": true,
+      "iterations": 50,
+      "median_cpu_ms": 2.364,
+      "weights_and_scores_exact": true
+    },
+    {
+      "index": 3,
+      "prototype": false,
+      "iterations": 50,
+      "median_cpu_ms": 2.7895,
+      "weights_and_scores_exact": true
+    }
+  ],
+  "token_equivalence_examples": 5278,
+  "memory_count": 252,
+  "fixture_sha256": "959fb6f031127b072d74903bd15ec15d5da9f66f1a8766715765c71ed9aebeaa",
+  "ports_closed": true
+}

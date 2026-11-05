@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 新候选版本 `9f75361` 减少重复词法计算，将内置数据库的受管缓存默认值设为 128 MB，并在冷启动时安全迁移旧默认值。本地 PostgreSQL 测试通过 268 项；最终内置引擎组通过 19 项、零跳过。全新安装、完整 CI 和完整 R5 验收仍待验证。此前 `d4f0c03` 通过 49/49 安装验收及 7,074 项 Python／50 项 TypeScript CI 测试，但一个全屏八脑窗口达到 892.11 ms，未达标。PostgreSQL 16.2 安全基线、真实 R4/C5 和最终图谱／复核门槛仍未通过，继续冻结发布。详见[当前候选版本](evaluations/maturity-recall-cache-2026-11-04.md)、[保留的前版验收](evaluations/maturity-companion-privacy-2026-11-04.md)及[宿主范围](docs/host-compatibility.md)。
+> **预发布阶段。** 候选版本 `9f75361` 减少词法计算，并在冷启动时安全迁移内置数据库的受管缓存默认值。全新安装通过 **49/49**，**166 个安装文件全部一致**，完整全屏回忆验收 **36/36 个窗口全部达标**（最慢八脑窗口 p95 **465.93 ms**）；完整 CI 通过 **7,086 项 Python／50 项 TypeScript 测试**、零跳过，以及严格类型检查、Ruff 和打包。PostgreSQL 16.2 安全基线、真实 R4/C5 和剩余图谱／复核门槛尚未通过，继续冻结发布。详见[当前证据](evaluations/maturity-recall-cache-2026-11-04.md)、[保留的前版 892.11 ms 失败](evaluations/maturity-companion-privacy-2026-11-04.md)及[宿主范围](docs/host-compatibility.md)。
 
 <a id="claude-code-plugin"></a>
 

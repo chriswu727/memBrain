@@ -1,0 +1,14 @@
+{
+  "source": "c7acd84dcf472c1cbb7419d6d57455ed359ebc29",
+  "runtime_pin": "9f7536110a95dfd02b382382dc97d0991121632f",
+  "reason": "retain the stopped passing recall-cache fixture and its raw data while freeing owned temporary database blocks",
+  "archive": "/Users/yichen/tmp/membrain-recall-cache-20261104/canonical-profile-recall-cache.tar.gz",
+  "archive_sha256": "c4e660a0da63e6757a62de6f341cb8b7423de6d5a181f34272bbf6974792e69c",
+  "archive_bytes": 303061267,
+  "regular_files_verified": 1485,
+  "ports_closed_before_archive": true,
+  "original_owned_database_removed": true,
+  "profile_preserved": true,
+  "registry_preserved": true,
+  "never_commit_archive_or_profiles": true
+}
