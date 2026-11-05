@@ -115,8 +115,7 @@ def _affect_triggers(service, conn, principal, brain_id) -> list[dict]:
     records = sorted((record for record in _records(service, conn, principal, brain_id, include_imports=False)
                       if record["sequence"] > after), key=lambda record: record["sequence"])
     triggers = []
-    for index, record in enumerate(records):
-        replaced = next((later for later in records[index + 1:] if _replaces(later, record)), None)
+    for record, replaced in zip(records, _successors(records), strict=True):
         if record["sensitive"] or record["valence"] == 0:
             continue
         kind = "good_news" if record["valence"] > 0 else "distress"
@@ -152,6 +151,23 @@ def _replaces(later, earlier) -> bool:
     if later["basis"] != "reported" and earlier["basis"] == "reported":
         return False
     return later["note_id"] == earlier["note_id"] or (_topic(later) is not None and _topic(later) == _topic(earlier))
+
+
+def _successors(records):
+    nearest, result = {}, []
+    for record in reversed(records):
+        keys = [("note", record["note_id"])]
+        topic = _topic(record)
+        if topic is not None:
+            keys.append(("topic", topic))
+        candidates = [nearest[(basis, key)] for key in keys for basis in ("reported", "inferred")
+                      if (basis, key) in nearest]
+        result.append(min((later for later in candidates if _replaces(later, record)),
+                          key=lambda later: later["sequence"], default=None))
+        # Retain both bases: a nearer inference must not hide a later reported correction.
+        for key in keys:
+            nearest[(record["basis"], key)] = record
+    return list(reversed(result))
 
 
 def _plan_triggers(service, conn, principal, brain_id) -> list[dict]:
