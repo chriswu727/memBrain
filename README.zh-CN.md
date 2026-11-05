@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 运行时 `47fcb96` 将完整熟悉度计数与有上限的显示列表分开，保留较早共同经历的贡献，并在养成视图中呈现依据。本地行为／浏览器检查覆盖计数、隐私、重置、恢复及 2D／3D／全息视图的真实拓扑一致性。**当前全屏性能测试有 2/36 个窗口未通过**：八脑 p95 分别达到 **645.75 ms** 和 **638.78 ms**，高于 600 ms 门槛；4,080 次召回全部非空。修正后的 `99d3133` 完整 CI 通过了 7,431 项 Python 和 50 项 TypeScript 测试，五个平台的原生检查也已通过。[当前安装包在参考 Mac 上通过 49 项启动器、升级、MCP、代理和恢复检查](evaluations/maturity-installed-candidate-2026-11-05.md)。此前分析脚本的首次召回超时涉及导入时创建应用，在正常启动入口未复现。[新的工作进程就绪流程和已集成的人格修复](evaluations/maturity-recall-readiness-2026-11-05.md)通过了 345 项本地检查；改动后的运行时仍需完整验收。性能、剩余宿主行为、R4/C5 及最终复核仍使发布保持冻结。详见[当前结果及保留的失败](evaluations/maturity-familiarity-map-2026-11-05.md)和[宿主范围](docs/host-compatibility.md)。
+> **预发布阶段。** 运行时 `c7db087` 已加入同一明确话题的新旧感受更替、情绪计算索引、工作进程就绪检查和启动失败诊断。[本地验证](evaluations/maturity-mood-succession-2026-11-05.md)通过了 374 项行为／集成检查，以及随后 111 项启动／执行器检查。**当前全屏性能测试有 10/36 个工作负载窗口未通过**：九个八脑窗口超过 600 ms（最高 **1,353.78 ms**），一个同脑窗口超过 1,000 ms。4,080 次测量召回全部非空；两个打开画面的阶段均显示 187 个节点和 71 条连边。此前 `6cee3ea` 完整 CI 通过了 7,447 项 Python 和 50 项 TypeScript 测试，五个平台原生检查也已通过；这些结果不能替代改动后运行时的验收。[此前安装包在参考 Mac 上通过了 49 项启动器、升级、MCP、代理和恢复检查](evaluations/maturity-installed-candidate-2026-11-05.md)。当前运行时的性能、安装／CI、剩余[宿主行为](docs/host-compatibility.md)、R4/C5 及最终复核仍使发布保持冻结。历史失败和通过结果保留原有运行时范围。
 
 <a id="claude-code-plugin"></a>
 

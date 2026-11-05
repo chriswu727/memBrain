@@ -1,0 +1,6 @@
+{'count': 50, 'topics': 'distinct', 'trigger_count': 36, 'equal': True, 'median_cpu_ms': {'baseline': 0.457396, 'candidate': 0.0675625}}
+{'count': 50, 'topics': 'repeated', 'trigger_count': 36, 'equal': True, 'median_cpu_ms': {'baseline': 0.1871255, 'candidate': 0.1050835}}
+{'count': 250, 'topics': 'distinct', 'trigger_count': 182, 'equal': True, 'median_cpu_ms': {'baseline': 10.89575, 'candidate': 0.345979}}
+{'count': 250, 'topics': 'repeated', 'trigger_count': 182, 'equal': True, 'median_cpu_ms': {'baseline': 0.9743120000000001, 'candidate': 0.5232085}}
+{'count': 501, 'topics': 'distinct', 'trigger_count': 364, 'equal': True, 'median_cpu_ms': {'baseline': 43.2171255, 'candidate': 0.6505000000000001}}
+{'count': 501, 'topics': 'repeated', 'trigger_count': 364, 'equal': True, 'median_cpu_ms': {'baseline': 2.0226455, 'candidate': 1.030854}}

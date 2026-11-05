@@ -1,0 +1,12 @@
+{"api_and_worker_rss_kib": 253440, "phase": "before", "kind": "serial", "n": 20, "p95_ms": 132.70312501117587, "median_ms": 91.78127103950828}
+{"api_and_worker_rss_kib": 256848, "phase": "before", "kind": "same_brain", "n": 160, "p95_ms": 616.3141669239849, "median_ms": 376.3118335045874}
+{"api_and_worker_rss_kib": 269664, "phase": "before", "kind": "eight_brains", "n": 160, "p95_ms": 573.8909170031548, "median_ms": 365.76685460750014}
+{"api_and_worker_rss_kib": 273680, "phase": "after", "kind": "serial", "n": 20, "p95_ms": 191.9895000755787, "median_ms": 98.49889553152025}
+{"api_and_worker_rss_kib": 314768, "phase": "after", "kind": "same_brain", "n": 160, "p95_ms": 474.2475829552859, "median_ms": 323.4554170630872}
+{"api_and_worker_rss_kib": 309072, "phase": "after", "kind": "eight_brains", "n": 160, "p95_ms": 502.26574996486306, "median_ms": 368.15002106595784}
+{"api_and_worker_rss_kib": 344272, "phase": "after", "kind": "serial", "n": 20, "p95_ms": 143.1404168251902, "median_ms": 103.64489548373967}
+{"api_and_worker_rss_kib": 316544, "phase": "after", "kind": "same_brain", "n": 160, "p95_ms": 594.0447920002043, "median_ms": 397.20270864199847}
+{"api_and_worker_rss_kib": 311536, "phase": "after", "kind": "eight_brains", "n": 160, "p95_ms": 390.46629099175334, "median_ms": 328.382458537817}
+{"api_and_worker_rss_kib": 245872, "phase": "before", "kind": "serial", "n": 20, "p95_ms": 108.52437489666045, "median_ms": 94.64629204012454}
+{"api_and_worker_rss_kib": 261200, "phase": "before", "kind": "same_brain", "n": 160, "p95_ms": 525.9658331051469, "median_ms": 390.7689164625481}
+{"api_and_worker_rss_kib": 267872, "phase": "before", "kind": "eight_brains", "n": 160, "p95_ms": 469.86062498763204, "median_ms": 400.9422709932551}

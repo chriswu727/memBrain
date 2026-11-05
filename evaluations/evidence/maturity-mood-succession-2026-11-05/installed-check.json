@@ -1,0 +1,27 @@
+{
+  "runtime_commit": "c7db08733e09bb30e90b2200458cefeb105811db",
+  "build_id": "44d734997161280f8970f267340636184f01985fa3a98bea82f24a4a77200014",
+  "schema_id": "e2f27d492746a4ac9942312b04a07a37cd5f19e44bd7770bcdcbac54a4a23693",
+  "runtime_files_equal": 185,
+  "installed_path": "/Users/yichen/tmp/membrain-mood-succession-20261105/installed/site/membrain",
+  "exit_code": 0,
+  "source_and_installed_unchanged": true,
+  "scope": "Installed wheel with existing read-only development dependencies; not a clean dependency install, launcher upgrade or R1 qualification.",
+  "artifacts": [
+    {
+      "file": ".gitignore",
+      "bytes": 1,
+      "sha256": "684888c0ebb17f374298b65ee2807526c066094c701bcc7ebbe1c1095f494fc1"
+    },
+    {
+      "file": "membrain_ai-0.1.0-py3-none-any.whl",
+      "bytes": 14446930,
+      "sha256": "c8cb4689f691cba0f3c8167c43cb00a33e5237662ac25570f3bbd5946f55eb8a"
+    },
+    {
+      "file": "membrain_ai-0.1.0.tar.gz",
+      "bytes": 16277881,
+      "sha256": "0bd4e896d076f9544d41a5622ee0062fed78b20f56886661be568513349022e7"
+    }
+  ]
+}
