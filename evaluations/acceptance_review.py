@@ -27,6 +27,8 @@ tally and gate accept --manifest PATH, the frozen attempt manifest (load_manifes
 file in its gate's pair with the manifest's hash, and gate R4 (or C5) needs exactly that pair's keys, each tally made
 with that manifest. Every tally records its scenario's key, file stem and sha256.
 A failed gate, R4 or C5, writes its report (gate.json or gate-c5.json) and then exits nonzero.
+validity and diagnose accept --scenario PATH for scenarios outside this script's directory. The driver supplies
+the manifest-bound path; without it, historical runs retain their evaluations/<scenario>.py lookup.
 
 Final score of a reply: 0 when a critical error stands, otherwise the first reviewer's score_ignoring_critical.
 A mark stands when the first reviewer made it and the second confirmed it, or the second added it; written
@@ -789,13 +791,16 @@ def attribution_inputs(review: Path, blind_dir: Path, scenario_path: str, key: s
         print(out / f"{case.split('-')[0]}-{label}.md")
 
 
-def _run(run: Path) -> tuple[list[dict], list[tuple[str, int]], str]:
+def _run(run: Path, scenario_path: Path | None = None) -> tuple[list[dict], list[tuple[str, int]], str]:
     """A run directory's result rows, the scenario's turns in order (session, turn) and its log ("" if none)."""
     results = list(run.glob("results_*.jsonl"))
     rows = [json.loads(line) for line in results[0].read_text().splitlines()] if len(results) == 1 else []
     order = []
-    if rows:
-        scenario = load(str(Path(__file__).parent / (rows[0]["scenario"] + ".py")))
+    if rows or scenario_path is not None:
+        if scenario_path is not None and rows and rows[0]["scenario"] != scenario_path.stem:
+            raise ValueError("scenario identity mismatch")
+        source = scenario_path if scenario_path is not None else Path(__file__).parent / (rows[0]["scenario"] + ".py")
+        scenario = load(str(source))
         order = [(session, index) for session, turns in scenario.SESSIONS_LONG for index in range(len(turns))]
     log = (run / "run.log").read_text(errors="replace") if (run / "run.log").exists() else ""
     return rows, order, log
@@ -807,7 +812,7 @@ def _position(order: list, row: dict) -> str:
     return f"turn {order.index(key) + 1} of {len(order)}" if key in order else "an unknown turn"
 
 
-def validity(run_dirs: list[Path]) -> dict:
+def validity(run_dirs: list[Path], scenario_path: Path | None = None) -> dict:
     """Refuse an attempt whose runs degraded: a missing or unfinished log, missing or empty replies, a call cap, a
     harness error or an index timeout in any arm. Names turns by position only. Prints the reference arm's largest
     prompt and each arm's count of retried empty replies."""
@@ -815,7 +820,11 @@ def validity(run_dirs: list[Path]) -> dict:
     if not run_dirs:
         problems.append("No run directories supplied")
     for run in run_dirs:
-        rows, order, log = _run(run)
+        try:
+            rows, order, log = _run(run, scenario_path) if scenario_path is not None else _run(run)
+        except (Exception, SystemExit) as error:
+            problems.append(f"{run}: unreadable or mismatched scenario/results ({_class_name(type(error).__name__)})")
+            continue
         if not rows:
             problems.append(f"{run}: expected one results file with rows")
             continue
@@ -884,14 +893,18 @@ def _event_position(event: dict, sessions: list) -> str | None:
     return where + (f", message {turn + 1}" if type(turn) is int and turn >= 0 else "")
 
 
-def diagnose(run_dirs: list[Path]) -> None:
+def diagnose(run_dirs: list[Path], scenario_path: Path | None = None) -> None:
     """What an invalid run's diagnosis may read, per run directory: how far each arm got and its empty replies, by
     position; each harness event's kind, with a count per kind and positions (session index, message) where the event
     has them; and counts of the log's error lines by kind and exception class name. It never prints a payload string,
     a session id, an exception message, a log line or any input, reply, context or transcript: those can carry
     held-out content (attempt 3 lost a scenario that way)."""
     for run in run_dirs:
-        rows, order, log = _run(run)
+        try:
+            rows, order, log = _run(run, scenario_path) if scenario_path is not None else _run(run)
+        except (Exception, SystemExit) as error:
+            print(f"== {run.name}: unreadable or mismatched scenario/results ({_class_name(type(error).__name__)})")
+            continue
         sessions = list(dict.fromkeys(session for session, _ in order))
         print(f"== {run.name}: {len(rows)} of {len(order)} turns done"
               + (f"; last done {_position(order, rows[-1])}" if rows else ""))
@@ -1103,6 +1116,13 @@ def gate(review: Path, keys: list[str], *, companion=False, manifest: Path | Non
 
 if __name__ == "__main__":
     command, *args = sys.argv[1:]
+    scenario_path = None
+    if "--scenario" in args:
+        at = args.index("--scenario")
+        if command not in ("validity", "diagnose") or args.count("--scenario") != 1 or at + 1 >= len(args):
+            raise SystemExit("--scenario PATH is valid once for validity or diagnose")
+        scenario_path = Path(args[at + 1])
+        del args[at:at + 2]
     companion = "--companion" in args
     if companion:
         if command not in ("verdicts", "tally", "gate") or args.count("--companion") != 1:
@@ -1122,7 +1142,7 @@ if __name__ == "__main__":
     elif command == "attribution-inputs":
         attribution_inputs(Path(args[0]), Path(args[1]), args[2], args[3], Path(args[4]))
     elif command == "validity":
-        if not validity([Path(arg) for arg in args])["valid"]:
+        if not validity([Path(arg) for arg in args], scenario_path)["valid"]:
             raise SystemExit(1)
     elif command == "r5-inputs":
         r5_inputs(Path(args[0]), Path(args[1]), args[2], args[3], Path(args[4]))
@@ -1133,7 +1153,7 @@ if __name__ == "__main__":
     elif command == "verdicts":
         verdicts(Path(args[0]), args[1], companion=companion)
     elif command == "diagnose":
-        diagnose([Path(arg) for arg in args])
+        diagnose([Path(arg) for arg in args], scenario_path)
     elif command == "gate":
         result = gate(Path(args[0]), args[1:], companion=companion, manifest=manifest)
         if not result["C5" if companion else "R4"]:

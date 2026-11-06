@@ -350,6 +350,7 @@ class Driver:
         self.runner = _command(args.runner or LIVE_RUNNER, self.repo)
         self.validity = (_command(args.validity, self.repo) if args.validity
                          else [sys.executable, str(self.repo / LIVE_VALIDITY), "validity"])
+        self.default_validity = not args.validity
         # The run script's own interpreter choice, so the harness can load its billing guard.
         python = [os.environ["C5_PYTHON"]] if os.environ.get("C5_PYTHON") else ["uv", "run", "python"]
         self.stopper = python + [str(self.repo / LIVE_STOPPER), "--stop"] if self.live else None
@@ -581,7 +582,8 @@ class Driver:
         record.update(status="validating")
         record["logs"].append(str(validity_log))
         self.save()
-        code = self.spawn(self.validity + [str(self.run_dir(key, arm)) for arm in ARMS], validity_log)
+        validity_args = ["--scenario", scenario] if self.default_validity else []
+        code = self.spawn(self.validity + validity_args + [str(self.run_dir(key, arm)) for arm in ARMS], validity_log)
         record.update(validity_exit=code, validity_finished_at=_now())
         if self.signal is not None:
             record["status"] = "interrupted"

@@ -59,8 +59,16 @@ sys.exit(3 if key in config.get("fail", []) else 0)
 VALIDITY = r'''
 import json, os, pathlib, sys
 config = json.loads(pathlib.Path(os.environ["FAKE_CONFIG"]).read_text())
-runs = [pathlib.Path(arg) for arg in sys.argv[1:] if arg != "validity"]
+args = [arg for arg in sys.argv[1:] if arg != "validity"]
+scenario = None
+if "--scenario" in args:
+    index = args.index("--scenario")
+    scenario = pathlib.Path(args[index + 1])
+    del args[index:index + 2]
+runs = [pathlib.Path(arg) for arg in args]
 key = runs[0].name.rsplit("-", 1)[0]
+if scenario is not None:
+    assert scenario.is_absolute() and scenario.name == key + ".py" and scenario.is_file()
 with open(config["calls"], "a") as calls:
     calls.write(json.dumps(["validity", key, [run.name for run in runs]]) + "\n")
 print((runs[0] / "run.log").read_text())

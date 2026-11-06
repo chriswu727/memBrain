@@ -1,13 +1,15 @@
 # Acceptance attempt driver
 
-[`acceptance-attempt-driver.py`](acceptance-attempt-driver.py) turns the paid plan's prose run rules into checks: the run order, no new scenario after a failed or invalid one, every input frozen by hash and checked before each scenario, and scenario keys bound to gates. It is offline tooling. Its tests use only synthetic files and fake runner and validity scripts; nothing here has been run against a model. It grants no approval to run anything.
+[`acceptance-attempt-driver.py`](acceptance-attempt-driver.py) turns the paid plan's prose run rules into checks: the run order, no new scenario after a failed or invalid one, every input frozen by hash and checked before each scenario, and scenario keys bound to gates. Offline tests use synthetic files, including a real validity CLI check with a fake runner; they make no model calls. Live execution needs separate approval. The first approved maturity attempt [stopped on a scenario-path defect](maturity-attempt-stop-2026-11-05.md); it is not accepted behavioral evidence.
 
 ```
 python3 evaluations/acceptance-attempt-driver.py run --manifest M --out OUT_ROOT
     [--repo ROOT] [--runner CMD] [--validity CMD] [--ledger LEDGER] [--grace SECONDS] [--live]
 ```
 
-The runner defaults to `evaluations/c5-run-scenario.sh` and is called as `RUNNER SCENARIO OUT_ROOT KEY`, with an absolute scenario path and `OUT_ROOT`. The validity check defaults to `python evaluations/acceptance_review.py validity`, using the driver's own interpreter, and is called on `OUT_ROOT/KEY-P OUT_ROOT/KEY-E OUT_ROOT/KEY-F`. Both run with the repository as their working directory and inherit the environment. Their output goes only to `OUT_ROOT/driver-logs/KEY.runner.log` and `KEY.validity.log`. `--grace` must be a finite number of seconds above 0 and at most 600; anything else, including NaN or infinity, is refused.
+The runner defaults to `evaluations/c5-run-scenario.sh` and is called as `RUNNER SCENARIO OUT_ROOT KEY`, with an absolute scenario path and `OUT_ROOT`. The validity check defaults to `python evaluations/acceptance_review.py validity`, using the driver's own interpreter, and receives `--scenario SCENARIO OUT_ROOT/KEY-P OUT_ROOT/KEY-E OUT_ROOT/KEY-F`. This is the same absolute, manifest-bound scenario path the runner receives, including private subdirectories. Offline custom validity commands still receive only the three run directories. Both run with the repository as their working directory and inherit the environment. Their output goes only to `OUT_ROOT/driver-logs/KEY.runner.log` and `KEY.validity.log`. `--grace` must be a finite number of seconds above 0 and at most 600; anything else, including NaN or infinity, is refused.
+
+For diagnosis, `acceptance_review.py diagnose --scenario SCENARIO RUN_DIR...` uses the explicit scenario for turn positions without printing its content. Direct validity/diagnose commands without `--scenario` retain the historical `evaluations/<scenario>.py` lookup. An explicit path must match the result rows' scenario stem. A tooling repair never resumes a stopped attempt or converts its original invalid result into accepted evidence.
 
 ## Live mode
 
