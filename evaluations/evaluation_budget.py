@@ -11,6 +11,12 @@ from pathlib import Path
 
 import httpx
 
+_ERROR_CLASSES = {getattr(httpx, name): name for name in (
+    "ConnectTimeout", "ReadTimeout", "WriteTimeout", "PoolTimeout", "TimeoutException",
+    "ConnectError", "ReadError", "WriteError", "CloseError", "RemoteProtocolError",
+    "LocalProtocolError", "ProxyError", "UnsupportedProtocol", "DecodingError", "HTTPError")}
+_ERROR_CLASSES.update({SystemExit: "SystemExit", KeyboardInterrupt: "KeyboardInterrupt"})
+
 
 class BudgetStop(RuntimeError):
     pass
@@ -161,9 +167,11 @@ class GuardedTransport(httpx.BaseTransport):
             state = self._state()
             entry = state["requests"][ident]
             rate = state["models"][entry["model"]]
+            failure = {"kind": "provider_http_status", "http_status": response.status_code}
             try:
                 if not 200 <= response.status_code < 300:
                     raise BudgetStop("Provider billing is unknown for this HTTP status.")
+                failure = {"kind": "response_billing"}
                 data = response.json()
                 usage = data["usage"]
                 prompt = _integer(usage["prompt_tokens"])
@@ -178,6 +186,8 @@ class GuardedTransport(httpx.BaseTransport):
                     raise BudgetStop("Response charge exceeds its reservation.")
             except (httpx.HTTPError, ValueError, KeyError, TypeError, BudgetStop):
                 state["blocked"] = True
+                state.setdefault("stop_reason", failure["kind"])
+                entry["failure"] = failure
                 _write(self.path, state)
                 raise BudgetStop("Billing evidence is uncertain; its reservation is retained and the run is stopped.") from None
             entry["actual_micros"] = actual
@@ -200,10 +210,13 @@ class GuardedTransport(httpx.BaseTransport):
         try:
             response = self.transport.handle_request(request)
             response.read()
-        except BaseException:
+        except BaseException as error:
             with _locked(self.path):
                 state = self._state()
                 state["blocked"] = True
+                state.setdefault("stop_reason", "provider_transport")
+                state["requests"][ident]["failure"] = {
+                    "kind": "provider_transport", "error_class": _ERROR_CLASSES.get(type(error), "other")}
                 _write(self.path, state)
             raise BudgetStop("An interrupted provider request retains its billing reservation; the run is stopped.") from None
         self._settle(ident, response)

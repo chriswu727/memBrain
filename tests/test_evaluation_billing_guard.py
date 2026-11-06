@@ -116,6 +116,92 @@ def test_provider_failures_never_release_money_for_an_automatic_retry(tmp_path, 
         send(path, lambda request: pytest.fail("failed run retried externally"))
 
 
+@pytest.mark.parametrize("failure,expected", [
+    ("timeout", {"kind": "provider_transport", "error_class": "ReadTimeout"}),
+    ("body_timeout", {"kind": "provider_transport", "error_class": "ReadTimeout"}),
+    ("interrupt", {"kind": "provider_transport", "error_class": "SystemExit"}),
+    ("unknown_class", {"kind": "provider_transport", "error_class": "other"}),
+    ("http", {"kind": "provider_http_status", "http_status": 503}),
+    ("malformed", {"kind": "response_billing"}),
+    ("other_model", {"kind": "response_billing"}),
+])
+def test_provider_stop_records_safe_cause_without_releasing_reservation(tmp_path, failure, expected):
+    path = ledger(tmp_path)
+    original_policy = json.loads(path.read_text())["policy_sha256"]
+    secret = "PRIVATE-PROVIDER-BODY-AND-EXCEPTION"
+
+    def handler(request):
+        if failure == "timeout":
+            raise httpx.ReadTimeout(secret, request=request)
+        if failure == "body_timeout":
+            class InterruptedBody(httpx.SyncByteStream):
+                def __iter__(self):
+                    yield secret.encode()
+                    raise httpx.ReadTimeout(secret, request=request)
+            return httpx.Response(200, stream=InterruptedBody())
+        if failure == "interrupt":
+            raise SystemExit(secret)
+        if failure == "unknown_class":
+            raise type(secret, (RuntimeError,), {})(secret)
+        if failure == "http":
+            return httpx.Response(503, content=secret, headers={"x-private": secret})
+        if failure == "malformed":
+            return httpx.Response(200, content=secret)
+        return reply(model=secret)
+
+    with pytest.raises(budget.BudgetStop) as error:
+        send(path, handler)
+    stopped = guarded(path, allow_stopped=True, transport=httpx.MockTransport(
+        lambda request: pytest.fail("stopped guard sent another request")))
+    stopped.stop("arm_failed")
+    state = json.loads(path.read_text())
+    entry, = state["requests"].values()
+    assert entry["failure"] == expected
+    assert state["stop_reason"] == expected["kind"]
+    assert state["blocked"] and "actual_micros" not in entry and entry["reserved_micros"] == 1200
+    assert budget.policy_hash(state) == original_policy
+    assert secret not in path.read_text() + str(error.value)
+    assert "billing-message-fixture-441892" not in path.read_text()
+    assert "billing-key-fixture-4499209" not in path.read_text()
+    with pytest.raises(budget.BudgetStop, match="stopped"):
+        stopped.check()
+
+
+def test_concurrent_shutdown_keeps_the_first_provider_failure_and_both_reservations(tmp_path):
+    path = ledger(tmp_path)
+    arrived = threading.Barrier(2)
+    first_failed = threading.Event()
+
+    def first(request):
+        arrived.wait(timeout=10)
+        return httpx.Response(503)
+
+    def second(request):
+        arrived.wait(timeout=10)
+        assert first_failed.wait(10)
+        raise SystemExit("private interrupted request")
+
+    def run_first():
+        try:
+            with pytest.raises(budget.BudgetStop):
+                send(path, first)
+        finally:
+            first_failed.set()
+
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        one = pool.submit(run_first)
+        two = pool.submit(send, path, second)
+        one.result()
+        with pytest.raises(budget.BudgetStop):
+            two.result()
+    state = json.loads(path.read_text())
+    assert state["blocked"] and state["stop_reason"] == "provider_http_status"
+    assert {entry["failure"]["kind"] for entry in state["requests"].values()} == {
+        "provider_http_status", "provider_transport"}
+    assert all("actual_micros" not in entry for entry in state["requests"].values())
+    assert sum(entry["reserved_micros"] for entry in state["requests"].values()) == 2400
+
+
 @pytest.mark.parametrize("changes", [{"model": "other"}, {"max_tokens": 101}, {"max_tokens": True},
                                     {"max_tokens": 0}, {"stream": True}, {"enable_search": True},
                                     {"tools": [{"type": "web_search"}]},
