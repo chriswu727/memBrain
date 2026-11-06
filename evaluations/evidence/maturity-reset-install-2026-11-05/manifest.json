@@ -1,0 +1,111 @@
+{
+  "head": "fba5d2607c3c6f7dc1c8c13e6f30e44a74d48ef5",
+  "runtime": "cc2a60176499c97bc7423199363dbd9311452dcf",
+  "checks": "49 installed journeys; 14 installed reset assertions; 2 x 187 runtime input equality; 4 profiles / 8 ports closed",
+  "retained_failures": "Two probe invocations selected the retired original installation and were refused by recovery authority before exercising reset; the first environment hypothesis was incorrect. Corrected selector uses activated restored instance; no authority bypass or source edit.",
+  "privacy_scan": {
+    "exact_owned_credential_values": 12,
+    "payloads": 14,
+    "matches": 0
+  },
+  "files": [
+    {
+      "path": "install-final--results.json.gz",
+      "bytes": 4949,
+      "sha256": "36d706929e606d34f746755a94340b0338489faebd920841e1f5a6c700d3357a",
+      "original_bytes": 23135,
+      "original_sha256": "cd7bbf85ca60289ac45bbb77c61905957eda7f5e3b0e21f8f9c7fcd349d78523"
+    },
+    {
+      "path": "install-run-meta.json.gz",
+      "bytes": 399,
+      "sha256": "0320a0e4ce1f541658531d35ba46cbfe93d4e5cd3cc20f5b577f3a2d26a6ce3e",
+      "original_bytes": 591,
+      "original_sha256": "5e56665ca7730388d411e9e78d4337e1a97f2d51b64333b081a4a138c1f012d6"
+    },
+    {
+      "path": "run-install.log.gz",
+      "bytes": 4677,
+      "sha256": "29229caaa7cbc891325baaf65bd3649585219923ffdec42e5575c5fa311fd880",
+      "original_bytes": 16183,
+      "original_sha256": "161cd66ae401967de3cebdd962efe426bf8ec43cd047c57b7b226103f5884854"
+    },
+    {
+      "path": "installed-and-ports.json.gz",
+      "bytes": 488,
+      "sha256": "eca84183cb0ce3c699fbd33b9ed0e23b853a843bb1c211034800844ea379ef2b",
+      "original_bytes": 2403,
+      "original_sha256": "43cbc6f89ffbf63247ac57d62ce40402f84d92df5699de3ceb47aaeab4f48ede"
+    },
+    {
+      "path": "installed-reset.json.gz",
+      "bytes": 399,
+      "sha256": "c570217e37e4e512929bfbcf73b0f2d4bb0842cd59b4ca7a948a77d068a8cae9",
+      "original_bytes": 1441,
+      "original_sha256": "0c2d4e379da1d2b8d2bee070547f8656025b2eaca9ee44e4bb28d222d29774f1"
+    },
+    {
+      "path": "installed-reset-run.txt.gz",
+      "bytes": 174,
+      "sha256": "4ce79e4fbc2bb5da1887e1a224eb4a1a50a5b36caa99a8b5c1afefaf17680026",
+      "original_bytes": 184,
+      "original_sha256": "687318247c7a42f2a38a9acec0a53016fe199d8f52595c7a312dcdd589f975af"
+    },
+    {
+      "path": "installed-reset-retired-original-first.json.gz",
+      "bytes": 222,
+      "sha256": "e57ce79c1f6b10eabac15b7ad14e01e6d6072d4170147d5099cc3bd6042f242c",
+      "original_bytes": 296,
+      "original_sha256": "e16a6d7a8141b7ce2dec99353064f24a3fd79c8499d5453c00913cb95af8d5d8"
+    },
+    {
+      "path": "installed-reset-retired-original-second.json.gz",
+      "bytes": 222,
+      "sha256": "e57ce79c1f6b10eabac15b7ad14e01e6d6072d4170147d5099cc3bd6042f242c",
+      "original_bytes": 296,
+      "original_sha256": "e16a6d7a8141b7ce2dec99353064f24a3fd79c8499d5453c00913cb95af8d5d8"
+    },
+    {
+      "path": "installed-reset-run-retired-original-first.txt.gz",
+      "bytes": 412,
+      "sha256": "a2a370092e1384f083ba83169ed6dca11856f0f1d1fd711d3f09409e73403c0d",
+      "original_bytes": 1111,
+      "original_sha256": "5dda122ed7f7c88b9865b3864b6609cbb7e7bf1d0ee7ddf467eb36f8533cfd5a"
+    },
+    {
+      "path": "installed-reset-run-retired-original-second.txt.gz",
+      "bytes": 412,
+      "sha256": "a2a370092e1384f083ba83169ed6dca11856f0f1d1fd711d3f09409e73403c0d",
+      "original_bytes": 1111,
+      "original_sha256": "5dda122ed7f7c88b9865b3864b6609cbb7e7bf1d0ee7ddf467eb36f8533cfd5a"
+    },
+    {
+      "path": "check-installed-reset.py.gz",
+      "bytes": 1435,
+      "sha256": "fa0f5e5fcd093147963c9bb43c6945fa3d0871350f8e3241bda81fd94c61ab6e",
+      "original_bytes": 4292,
+      "original_sha256": "1ffb16f050971309385588361e813fa3eee19fbf62937f1eff0e73deaea16a9e"
+    },
+    {
+      "path": "check-installed-and-ports.py.gz",
+      "bytes": 1019,
+      "sha256": "47b7a006232e0c0b03c3872308d5b21c9dcce78f6f5810aa149857d1b4430402",
+      "original_bytes": 2194,
+      "original_sha256": "cb6d531c56945a88dea955a9a449af12a3fc7c7b0864244f57db73f6b0ad77fd"
+    },
+    {
+      "path": "run-install.py.gz",
+      "bytes": 957,
+      "sha256": "da83b4822006c78a2839bff03d582ec4ffb887afaccb06229c52fef5ac9fd00c",
+      "original_bytes": 1985,
+      "original_sha256": "51262e6477cc85f687e27304562c7e1819d7f9c1e7790d73a5c09bf08deb413e"
+    },
+    {
+      "path": "frozen-inputs.json.gz",
+      "bytes": 9274,
+      "sha256": "4c20f46a09927b9d7aca03686aaa611768734106dec36def027956d3c123c74d",
+      "original_bytes": 18634,
+      "original_sha256": "6d156009d8c03c8d616dc3c4a4c78df836f8dad5e635e5fb82a1b10006211f82"
+    }
+  ]
+}
