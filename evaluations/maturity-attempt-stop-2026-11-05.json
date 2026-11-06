@@ -41,5 +41,29 @@
     "run/s1-P/results_s1_P.jsonl": "af4fb2c8813c4f374ed1cdac783000bfe4ddacdf7713ba568443f07e3bd2d16a",
     "run/s1-E/results_s1_E.jsonl": "36526bbfa1df3eaa71716263519dbc094d2890abca35c58c218a37fa34c286a3",
     "run/s1-F/results_s1_F.jsonl": "0af0e99efce7aba76451d4ebdbef60585018c774a8c0a33171718719f6b384c7"
+  },
+  "repair_ci": {
+    "head": "b419c34ee8cf1d3b2dba9ef40ef5069e535c305c",
+    "verify_run": 42163852124,
+    "verify_job": 127715586180,
+    "verify_log_sha256": "00f6076ed33376797e4ad8ecad5fee39c902edb5abbc390db882d6e1578124ee",
+    "python_passed": 7553,
+    "python_warnings": 3,
+    "python_skipped": 0,
+    "typescript_passed": 50,
+    "typescript_skipped": 0,
+    "native_run": 42163852169,
+    "native_jobs": {
+      "native (linux-x86_64)": "success",
+      "native (macos-x86_64)": "success",
+      "native (linux-aarch64)": "success",
+      "native (windows-x86_64)": "success",
+      "native (macos-arm64)": "success",
+      "linux-build": "skipped",
+      "linux-current": "skipped"
+    },
+    "ruff": "passed",
+    "typescript_strict_types": "passed",
+    "wheel_and_sdist": "built"
   }
 }
