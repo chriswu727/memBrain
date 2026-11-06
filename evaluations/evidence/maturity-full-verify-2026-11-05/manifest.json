@@ -1,0 +1,33 @@
+{
+  "head": "ce7916daf006871aa80d03180996cefefe3136a2",
+  "run_id": 42129750153,
+  "job_id": 127603065456,
+  "conclusion": "success",
+  "python": {
+    "passed": 7514,
+    "warnings": 3,
+    "skipped": 0,
+    "seconds": 2080.35
+  },
+  "typescript": {
+    "passed": 50,
+    "failed": 0,
+    "skipped": 0
+  },
+  "files": [
+    {
+      "path": "verify-ce7916d-complete.log.gz",
+      "bytes": 200831,
+      "sha256": "0ddc3fbd942b05e970865c89b42e6c799792e3cb629168282d6568bd54aec123",
+      "original_bytes": 1594107,
+      "original_sha256": "17946388071966b704fdf44f6ab74d9296c89386a64dfad04811ac8455d82df8"
+    },
+    {
+      "path": "verify-ce7916d.json.gz",
+      "bytes": 794,
+      "sha256": "de5a979a52f929c5991764dc1257a8e4b6294c711c264e12cfbf573343e4241b",
+      "original_bytes": 4246,
+      "original_sha256": "f32be7ecd19e42d39c63f128fafccda1073fac6b06bdca928663261b0c0d3a2a"
+    }
+  ]
+}
