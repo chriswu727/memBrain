@@ -30,6 +30,18 @@ def _outside_boundaries(response, boundaries, *, drop_shared=False):
     return {**response, "items": kept}
 
 
+def _without_reset_commitments(saved, relationship):
+    from .notes import parse_note
+
+    after = max((marker["applies_from_sequence"] for marker in ((relationship or {}).get("markers") or [])
+                 if marker.get("marker") == "reset"), default=0)
+    if not after or saved is None:
+        return saved
+    return {**saved, "items": [item for item in saved.get("items", [])
+                               if parse_note(item.get("text") or "")[0].get("kind") != "agent_commitment"
+                               or (type(item.get("sequence")) is int and item["sequence"] > after)]}
+
+
 def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, persona=None, mood=None,
              relationship=None):
     """Saved memory for the host's context. The persona block comes first, apart from the user's memory, with its
@@ -44,6 +56,7 @@ def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, perso
     mood_block = render_mood(mood)
     bond = relationship_context(relationship)
     boundaries = (relationship or {}).get("boundaries") or []
+    saved = _without_reset_commitments(saved, relationship)
     saved = _outside_boundaries(saved, boundaries, drop_shared=bond["block"] is not None)
     shared = _outside_boundaries(shared, boundaries)
     blocks = [persona_block, mood_block, bond["block"],

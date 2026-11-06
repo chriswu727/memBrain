@@ -154,6 +154,26 @@ def test_a_sensitive_missed_promise_is_listed_but_never_raised_automatically():
     assert context["block"] is None and context["once"] == []
 
 
+@pytest.mark.parametrize("sequence", [5, 10, None, True, "11"])
+def test_snapshot_does_not_automatically_repeat_pre_reset_commitments(sequence):
+    def item(ident, text, kind, sequence):
+        return {"event_id": ident, "text": format_note(text, kind=kind, status="intended"),
+                "actor_role": "assistant", "recorded_at": "2027-03-01", "sequence": sequence}
+
+    saved = {"items": [item("old", "Send the old recipe.", "agent_commitment", sequence),
+                       item("new", "Send the new map.", "agent_commitment", 11),
+                       item("plan", "Visit the museum.", "plan", 5)]}
+    shared = {"items": [item("shared", "Send the group invitation.", "agent_commitment", 1)]}
+    bond = state(markers=[{"marker": "reset", "applies_from_sequence": 10},
+                          {"marker": "reset", "applies_from_sequence": 3}])
+    current = snapshot(saved, brain_id="b", tools=None, shared=shared, relationship=bond)
+    assert "Send the old recipe." not in current["text"]
+    assert "Send the new map." in current["text"] and "Visit the museum." in current["text"]
+    assert "Send the group invitation." in current["text"]
+    assert "Send the old recipe." in snapshot(saved, brain_id="b", tools=None, relationship=state())["text"]
+    assert len(saved["items"]) == 3
+
+
 def test_snapshot_keeps_bounded_notes_and_shared_moments_out_of_the_notes_block():
     saved = {"items": [
         {"event_id": "n1", "text": "Prefers short replies.", "actor_role": "assistant", "recorded_at": "2027-03-01"},
@@ -495,6 +515,32 @@ def test_mcp_recall_honors_boundaries_with_and_without_an_installation(brain, tm
             assert "best in spring" in quiet and "every Sunday" not in quiet, directory
             _, raised = asyncio.run(server.call_tool("memory_recall", {"query": "Jordan at Mount Tam"}))
             assert "every Sunday" in json.dumps(raised, ensure_ascii=False), directory
+
+
+def test_reset_removes_old_promises_from_host_context_and_survives_restore(brain):
+    service, principal, ident = brain
+    say(brain, "We discussed sending the old recipe.")
+    old = note(brain, "Send the old recipe.", kind="agent_commitment", status="intended")["note_id"]
+    note(brain, "Visit the museum.", kind="plan", status="scheduled")
+    reset_relationship(*brain)
+    note(brain, "Send the new map.", kind="agent_commitment", status="intended")
+
+    def check(target):
+        saved = service.timeline(principal, target, roles=("assistant", "user"),
+                                 conversation_id=notes.NOTES_CONVERSATION)
+        context = snapshot(saved, brain_id=target, tools=None,
+                           relationship=relationship(service, principal, target))["text"]
+        assert "Send the old recipe." not in context
+        assert "Send the new map." in context and "Visit the museum." in context
+        assert any("Send the old recipe." in item["text"] for item in saved["items"])
+        assert any("We discussed sending the old recipe." in item["text"]
+                   for item in service.timeline(principal, target, roles=("user",))["items"])
+
+    check(ident)
+    assert service.timeline(principal, ident, roles=("assistant",), event_ids=[old])["items"]
+    copied = restore_copy(service, principal, ident, "Reset commitments")
+    check(copied)
+    check(restore_copy(service, principal, copied, "Reset commitments twice"))
 
 
 def test_reset_starts_familiarity_again_and_nothing_from_before_the_marker_returns(brain, monkeypatch):
