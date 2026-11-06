@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 运行时 `174bc50` 修复了启动失败后的工作进程清理和 2D 点击目标重叠，保留四个完整召回事务工作进程。[当前验证](evaluations/maturity-ci-closeout-2026-11-05.md)通过 140 项数据库／浏览器检查，以及 **36/36 个全屏性能窗口**：八脑 p95 为 **266.21–412.91 ms**，4,080 次测量召回全部非空，模型调用为零。安装后的 wheel 通过 44 项专项检查；[真实 Mac 启动器验收](evaluations/maturity-transaction-install-2026-11-05.md)通过 **49/49 项安装、升级和恢复检查**，两套安装环境均与全部 187 个运行时输入一致。这些结果不代表真实模型行为或其他平台表现。此前源码的 CI 有两项失败，Intel 原生验收超时；[当前批次已处理两项失败和作业时限](evaluations/maturity-ci-followup-2026-11-05.md)。`ce7916d` 的[五平台原生验收](evaluations/maturity-native-closeout-2026-11-05.md)现已全部通过。`ce7916d` 的[完整 Verify](evaluations/maturity-full-verify-2026-11-05.md)通过 7,514 项 Python、50 项 TypeScript 测试及严格类型、Ruff 和构建检查。后续评测工具改动仍需自己的 CI；剩余[宿主行为](docs/host-compatibility.md)、R4/C5 及最终复核仍使发布保持冻结。[历史失败与架构证据](evaluations/maturity-transaction-workers-2026-11-05.md)保留原有范围。
+> **预发布阶段。** 运行时 `cc2a601` 修复了关系重置后旧承诺仍自动出现的问题。[本次修复](evaluations/maturity-relationship-reset-2026-11-05.md)通过 286 项相关测试，包含两次归档恢复；新候选的完整 CI 和安装包验收仍待完成。此前候选 `288c64d` 已通过 7,530 项 Python、50 项 TypeScript 测试、严格类型、Ruff、构建和全部五平台原生验证。未改动的召回路径曾在 `174bc50` 上通过 [36/36 个全屏性能窗口](evaluations/maturity-ci-closeout-2026-11-05.md)：八脑 p95 为 **266.21–412.91 ms**，4,080 次召回全部非空，模型调用为零。该运行时也通过 [49/49 项真实 Mac 安装、升级和恢复检查](evaluations/maturity-transaction-install-2026-11-05.md)，两套安装环境均与 187 个运行时输入一致。这些结果各自对应其源码版本，不代表真实模型行为或通用容量。[宿主覆盖范围](docs/host-compatibility.md)、R4/C5 和新候选最终验证仍使发布保持冻结；历史失败保留在链接的证据中。
 
 <a id="claude-code-plugin"></a>
 
