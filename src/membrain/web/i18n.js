@@ -358,6 +358,7 @@ const ZH = {
   "Withdrawn: fewer than three of its messages are still in memory.": "已撤回：它引用的消息留在记忆里的已不足三条。",
   "Withdrawn: the card already has this.": "已撤回：设定里已经有这一项。",
   "Withdrawn: you later asked for the opposite.": "已撤回：你之后提出了相反的要求。",
+  "Withdrawn: you already decided on this feedback. A new suggestion needs new feedback.": "已撤回：你已就这组反馈作出决定。新的建议需要新的反馈。",
   "Withdrawn: the card has no room for it.": "已撤回：设定里放不下这一项。", "Withdrawn.": "已撤回。",
   "(empty)": "（空）", "What you said:": "你说过的话：", "Change to the card (everything else stays):": "对设定的修改（其他内容不变）：",
   "Accept": "接受", "Reject": "拒绝", "accepted suggestion": "接受的建议", "The messages behind this change were deleted.": "这次修改所依据的消息已被删除。",

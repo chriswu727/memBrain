@@ -736,6 +736,7 @@ const PROPOSAL_FIELDS = { traits: "Traits", "voice.register": "Register", "voice
 const PROPOSAL_STATUS = { open: "waiting for you", accepted: "accepted", rejected: "rejected", withdrawn: "withdrawn" };
 const PROPOSAL_WITHDRAWN = { sources_removed: "Withdrawn: fewer than three of its messages are still in memory.",
   already_in_card: "Withdrawn: the card already has this.", does_not_fit: "Withdrawn: the card has no room for it.",
+  feedback_used: "Withdrawn: you already decided on this feedback. A new suggestion needs new feedback.",
   contradicted: "Withdrawn: you later asked for the opposite." };
 
 function proposalValue(values, other, mark) {

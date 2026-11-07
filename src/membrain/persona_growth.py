@@ -509,6 +509,12 @@ class _State:
         self.records = _records(service, conn, principal, brain_id)
         self.card, self.version = _current_card(service, conn, principal, brain_id)
         self.decisions = {entry["proposal_id"]: entry for entry in self.records if entry["type"] == "decision"}
+        self.decision_sequences, self.accepted_sequences = {}, {}
+        for decision in self.decisions.values():
+            kind = decision["kind"]
+            self.decision_sequences[kind] = max(self.decision_sequences.get(kind, 0), decision["sequence"])
+            if decision["decision"] == "accepted":
+                self.accepted_sequences[kind] = max(self.accepted_sequences.get(kind, 0), decision["sequence"])
         proposals = [entry for entry in self.records if entry["type"] == "proposal"]
         undecided = sorted({source for entry in proposals for source in entry["source_event_ids"]})
         valid = {item["event_id"]: item for item in _feedback(
@@ -545,6 +551,13 @@ class _State:
             return result
         if len(sources) < THRESHOLD:
             return {**result, "status": "withdrawn", "withdrawn_because": "sources_removed"}
+        after = self.feedback_cutoff(kind)
+        # Decisions outlive their feedback messages; deleting or revising those messages cannot reopen
+        # an older suggestion from before the decision.
+        if after and (entry["sequence"] <= after or sum(
+                source["sequence"] > after for source in sources) < THRESHOLD):
+            reason = "feedback_used" if after == self.decision_sequences.get(kind) else "contradicted"
+            return {**result, "status": "withdrawn", "withdrawn_because": reason}
         # Contradicted: the user gave feedback the opposite way after this suggestion's newest source.
         if kind in OPPOSITES and self._contradiction(kind, max(source["sequence"] for source in sources)):
             return {**result, "status": "withdrawn", "withdrawn_because": "contradicted"}
@@ -555,6 +568,10 @@ class _State:
 
     def open(self, kind):
         return next((item for item in self.proposals if item["kind"] == kind and item["status"] == "open"), None)
+
+    def feedback_cutoff(self, kind):
+        return max(self.after, self.decision_sequences.get(kind, 0),
+                   self.accepted_sequences.get(OPPOSITES.get(kind), 0))
 
     def last_decision(self, kind, *, accepted_only=False):
         statuses = ("accepted",) if accepted_only else ("accepted", "rejected")
@@ -588,12 +605,10 @@ def _sync(service, conn, principal, brain, now: _datetime.datetime, kinds=None) 
         if feedback is None:
             feedback = _feedback(service, conn, principal, brain["id"], after=state.after,
                                  seen=_seen(service, conn, principal, brain["id"]))
-        after = max(state.after, last["decision_sequence"] if last else 0)
+        after = state.feedback_cutoff(kind)
         opposite = OPPOSITES.get(kind)
         if opposite:
-            accepted = state.last_decision(opposite, accepted_only=True)
-            after = max(after, accepted["decision_sequence"] if accepted else 0,
-                        *(item["sequence"] for item in feedback if opposite in item["kinds"]))
+            after = max([after, *(item["sequence"] for item in feedback if opposite in item["kinds"])])
         sources = [item for item in feedback if kind in item["kinds"] and item["sequence"] > after][-MAX_SOURCES:]
         if len(sources) < THRESHOLD:
             continue
