@@ -1,6 +1,6 @@
 # Long-source recall and bounded local encoding
 
-Development build `80dec3b1782ede0349ceafe436f481ed8fb7ea16957bd62f435c74cdd9fe011a` adds overlapping local passage vectors while preserving the original assertion, source evidence and parent vector. Migration 026 adds private auxiliary index rows and an index-coverage version. This work is not yet qualified or delivered as an installed release candidate. Launcher pins still identify the preceding runtime.
+Development build `80dec3b1782ede0349ceafe436f481ed8fb7ea16957bd62f435c74cdd9fe011a` adds overlapping local passage vectors while preserving the original assertion, source evidence and parent vector. Migration 026 adds private auxiliary index rows and an index-coverage version. This work is not yet qualified or delivered as an installed release candidate. The development launchers now pin runtime `3b4720ec3f6cde49b672ff6844f8bc8db02dfce9` for fresh installed-package qualification; the delivered integration candidate remains unchanged.
 
 ## User-visible defect and repair
 
