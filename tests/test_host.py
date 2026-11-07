@@ -415,7 +415,7 @@ def test_the_message_that_asks_to_go_back_on_the_record_is_stored(tmp_path, monk
     host.prompt_context(tmp_path, "s", prompt, turn_id="t2", user_id=user)
     assert "Tuesday" not in host._session_marker(tmp_path, "s").read_text()  # Not kept while paused.
     assert not host.turn_resumed(tmp_path, "s")
-    host.resume(tmp_path, user_id=user, current_turn=True)
+    host.resume(tmp_path, user_id=user, current_turn=True, session="s")
     assert host.turn_resumed(tmp_path, "s")
     host.finish_turn(tmp_path, "s", "Noted the new return date.", turn_id="t2", prompt=prompt, user_id=user)
     assert [(item["role"], item["text"]) for item in client.observed] == [
@@ -434,12 +434,12 @@ def test_a_turn_paused_and_resumed_in_the_same_message_stays_unstored(tmp_path, 
     host.pause(tmp_path)
     host.prompt_context(tmp_path, "s", "off the record: secret", turn_id="t1")
     host.pause(tmp_path)  # Paused again during this turn.
-    host.resume(tmp_path, current_turn=True)
+    host.resume(tmp_path, current_turn=True, session="s")
     assert not host.turn_resumed(tmp_path, "s")
     host.finish_turn(tmp_path, "s", "ok", turn_id="t1", prompt="off the record: secret")
     host.prompt_context(tmp_path, "s2", "off the record: other secret", turn_id="t1")
     host.pause(tmp_path)  # A turn that began on the record and was paused cannot be brought back either.
-    host.resume(tmp_path, current_turn=True)
+    host.resume(tmp_path, current_turn=True, session="s2")
     host.finish_turn(tmp_path, "s2", "ok", turn_id="t1", prompt="off the record: other secret")
     assert client.observed == []
 
@@ -452,7 +452,7 @@ def test_resuming_for_one_user_does_not_store_another_users_paused_turn(tmp_path
     host.pause(tmp_path, user_id="bob")
     host.prompt_context(tmp_path, "a", "alice secret", turn_id="t1", user_id="alice")
     host.prompt_context(tmp_path, "b", "bob secret", turn_id="t1", user_id="bob")
-    host.resume(tmp_path, user_id="alice", current_turn=True)
+    host.resume(tmp_path, user_id="alice", current_turn=True, session="a")
     assert host.turn_resumed(tmp_path, "a") and not host.turn_resumed(tmp_path, "b")
 
 
@@ -464,7 +464,7 @@ def test_resuming_brings_back_only_the_turn_that_asked_not_the_same_users_other_
     host.prompt_context(tmp_path, "private", "off the record: my diagnosis", turn_id="t1", user_id="alice")
     host.prompt_context(tmp_path, "asks", "Back on the record: flight moved to the 28th.", turn_id="t1",
                         user_id="alice")
-    # A host that knows the conversation passes it; one that does not gets only the latest paused turn.
+    # A host that knows the conversation can resume that turn without reviving another private exchange.
     host.resume(tmp_path, user_id="alice", current_turn=True, session="asks")
     assert host.turn_resumed(tmp_path, "asks") and not host.turn_resumed(tmp_path, "private")
     host.finish_turn(tmp_path, "private", "ok", turn_id="t1", prompt="off the record: my diagnosis", user_id="alice")
@@ -474,8 +474,9 @@ def test_resuming_brings_back_only_the_turn_that_asked_not_the_same_users_other_
     host.prompt_context(tmp_path, "private2", "off the record: other secret", turn_id="t2", user_id="alice")
     monkeypatch.setattr(host.time, "time", lambda: 10 ** 10)  # The asking turn starts later.
     host.prompt_context(tmp_path, "asks2", "Back on the record please.", turn_id="t2", user_id="alice")
-    host.resume(tmp_path, user_id="alice", current_turn=True)
-    assert host.turn_resumed(tmp_path, "asks2") and not host.turn_resumed(tmp_path, "private2")
+    result = host.resume(tmp_path, user_id="alice", current_turn=True)
+    assert result["reason"] == "session_required"
+    assert not host.turn_resumed(tmp_path, "asks2") and not host.turn_resumed(tmp_path, "private2")
 
 
 def test_a_conversation_pause_holds_in_the_role_play_where_it_was_asked(tmp_path, monkeypatch):
@@ -513,7 +514,7 @@ def test_the_stop_hook_stores_a_resumed_turn_from_the_transcript(tmp_path, monke
     host.pause(tmp_path, conversation=True)
     payload = {"session_id": "s", "prompt": prompt, "transcript_path": str(transcript)}
     plugin.user_prompt(payload, tmp_path)
-    host.resume(tmp_path, current_turn=True)
+    host.resume(tmp_path, current_turn=True, session="s")
     plugin.stop(payload, tmp_path)
     assert [(item["role"], item["text"]) for item in client.observed] == [("user", prompt), ("assistant", "Noted.")]
 

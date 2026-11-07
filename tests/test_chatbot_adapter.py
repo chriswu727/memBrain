@@ -168,6 +168,29 @@ def test_astrbot_plugin_files_are_complete():
     assert "name: astrbot_plugin_membrain" in (PLUGIN / "metadata.yaml").read_text()
 
 
+@pytest.mark.parametrize("has_session", [False, True])
+def test_astrbot_resume_uses_the_request_event_session(tmp_path, monkeypatch, has_session):
+    from test_host import Client
+
+    module, _ = _load_astrbot_plugin(monkeypatch, tmp_path)
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda *args: client)
+    instance = module.MembrainPlugin.__new__(module.MembrainPlugin)
+    instance.memory = ChatMemory(tmp_path)
+    event = Event("1001", "Resume recording please.")
+    if has_session:
+        event.set_extra("membrain", {"session": "requester"})
+    user = instance.memory.user_id(module._speaker(event))
+    host.pause(tmp_path, user_id=user)
+    host.prompt_context(tmp_path, "requester", event.text, user_id=user)
+    host.prompt_context(tmp_path, "private", "Unrelated private synthetic detail.", user_id=user)
+    asyncio.run(instance.membrain_resume(event))
+    assert host.turn_resumed(tmp_path, "requester") == has_session
+    assert not host.turn_resumed(tmp_path, "private")
+    assert host.finish_turn(tmp_path, "private", "Private reply", prompt="Unrelated private synthetic detail.",
+                            user_id=user) == []
+
+
 @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
 def test_astrbot_plugin_remembers_each_qq_user_separately_through_a_real_service(tmp_path, monkeypatch):
     module, handlers = _load_astrbot_plugin(monkeypatch, tmp_path)

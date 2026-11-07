@@ -3,7 +3,7 @@
 import { spawn } from "node:child_process";
 
 const PACKAGE = process.env.MEMBRAIN_PACKAGE ||
-  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/89d510360fbdfa55b97801204c277259c783548b.zip";
+  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/816662f6241da587895aa2e1109346ef60eb2050.zip";
 
 function run(command, args, { input, timeoutMs = 12_000, env } = {}) {
   return new Promise((resolve) => {
@@ -139,10 +139,12 @@ const DENIED = Symbol("denied");
 export function createMembrain({ exec = membrain, directory } = {}) {
   const env = directory ? { MEMBRAIN_DIRECTORY: directory } : undefined;
   const prompts = new Map();  // session -> the current turn's prompt, dropped when the turn ends
-  const users = new Map();  // session key -> memory user (OWNER for the owner), learned from the turn's hooks
+  const users = new Map();  // Session aliases -> memory owner and canonical session, learned from the turn's hooks.
   const remember = (ctx) => {
     const user = memoryUser(ctx);
-    for (const key of [ctx?.sessionKey, ctx?.sessionId]) if (key) users.set(key, user ?? OWNER);
+    for (const key of [ctx?.sessionKey, ctx?.sessionId]) {
+      if (key) users.set(key, { user: user ?? OWNER, session: ctx?.sessionId || ctx?.sessionKey });
+    }
     return user;
   };
   const confirmed = new Set();  // Memory users the installed runtime has confirmed it keeps apart.
@@ -190,16 +192,27 @@ export function createMembrain({ exec = membrain, directory } = {}) {
     // The memory a tool call in this conversation may use: DENIED when it cannot be told safely.
     toolUser(ctx) {
       for (const key of [ctx?.sessionKey, ctx?.sessionId]) {
-        if (key && users.has(key)) return users.get(key);
+        if (key && users.has(key)) return users.get(key).user;
       }
       return ctx?.messageChannel ? DENIED : OWNER;  // A local run with no channel is the owner.
     },
-    async tool(name, params, user = OWNER) {
+    toolSession(ctx) {
+      for (const key of [ctx?.sessionKey, ctx?.sessionId]) {
+        if (key && users.has(key)) return users.get(key).session;
+      }
+      return ctx?.sessionId || ctx?.sessionKey;
+    },
+    async tool(name, params, user = OWNER, session) {
       if (user === DENIED || (user !== OWNER && !confirmed.has(user))) {
         return JSON.stringify({ error: "memBrain tools are not available in this conversation." });
       }
       const input = user === OWNER ? (params ?? {}) : { ...(params ?? {}), membrain_user: user };
-      const output = await exec(["tool", name.replace("membrain_", "")], { input, env,
+      const scoped = { ...input };
+      if (name === "membrain_resume") {
+        delete scoped.session_id;
+        if (session) scoped.session_id = session;
+      }
+      const output = await exec(["tool", name.replace("membrain_", "")], { input: scoped, env,
         timeoutMs: 20_000 });
       return output || JSON.stringify({ error: "memBrain is not available yet; it may still be installing." });
     },
@@ -230,7 +243,8 @@ export function definePlugin({ install = installRuntime, exec } = {}) {
           ...spec,
           label: spec.name,
           async execute(_id, params) {
-            return { content: [{ type: "text", text: await memory.tool(spec.name, params, memory.toolUser(ctx)) }] };
+            return { content: [{ type: "text", text: await memory.tool(spec.name, params, memory.toolUser(ctx),
+              memory.toolSession(ctx)) }] };
           },
         }));
       }
