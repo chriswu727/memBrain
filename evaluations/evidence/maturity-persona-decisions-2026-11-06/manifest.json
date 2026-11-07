@@ -4,6 +4,7 @@
   "model_calls": 0,
   "files": {
     "installed-parity.json": "69bbad43a1b9184e6505cffe8b98ec3e1702234e6c91f808ac3efcb1ec6ef0db",
-    "validation.json": "6c8fce31ff561e1363fab43b7e4a24d1d9b156a804a873280bfc40b6d151993e"
+    "validation.json": "6c8fce31ff561e1363fab43b7e4a24d1d9b156a804a873280bfc40b6d151993e",
+    "ci/manifest.json": "9476e8bb462bcb8c2efa66ccc9d9b16494c594faf6567153bb5d04179b78b7c8"
   }
 }
