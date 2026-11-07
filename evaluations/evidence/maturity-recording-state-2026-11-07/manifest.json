@@ -1,0 +1,157 @@
+{
+  "source_head": "1cfb12b8513c478d8d4a5cfc9f6412c5139385f8",
+  "runtime_pin": "89d510360fbdfa55b97801204c277259c783548b",
+  "build_id": "44c034fefd9278d180578307e2169d6ed630f101ff2736a4c6ba7e8e1462a319",
+  "scope": "Public synthetic local verification only. Includes original failures and corrected-environment results. Full CI pending. No hidden scenarios, model responses, credentials or database contents.",
+  "privacy": {
+    "profiles_checked": 27,
+    "known_credentials_checked": 69,
+    "all_absent": true
+  },
+  "files": [
+    {
+      "path": "before.log.gz",
+      "bytes": 1962,
+      "sha256": "95b8ab773ad646944d5481ae46b4f65563ea419735b4d74e5ec888aa71632d96",
+      "original_sha256": "ccafa70bd88559e8a92a91de6c6ac99ffb6c51a10a6fa49243da8dcfe3f70990"
+    },
+    {
+      "path": "after.log.gz",
+      "bytes": 52,
+      "sha256": "e53299112bdc34d759a491589da263619be31bcc9ef57669bcd89805978d772e",
+      "original_sha256": "ac7c25693dfc563ad7109629a2bd23f552f2780ef9f81a003f17af0541800754"
+    },
+    {
+      "path": "related.log.gz",
+      "bytes": 1533,
+      "sha256": "eb989637ec3999a7c1e65768479d7c1da9daf8289b125ca58da373685b1bc0d7",
+      "original_sha256": "a4f06210a106a29b089c80218050db7ff6b05640cafa7827c82cec5f0cba1c6e"
+    },
+    {
+      "path": "related-summary.json.gz",
+      "bytes": 254,
+      "sha256": "783270fb95a22b810738b28092b98f609f235fff791375a7773d9cdc2ebad394",
+      "original_sha256": "0752a4cdf55c8a4ff4a459255f3ebc6f8d77dfec679652cfef2aad5231c0d896"
+    },
+    {
+      "path": "related-fixed-env.log.gz",
+      "bytes": 81,
+      "sha256": "63f924cb29c04c2ea9589140aac3c8f61aa09697b27755858396cc311ac93ae3",
+      "original_sha256": "53aa4519900a621f0e3cb23244f1172db07fe089b679c4722f589ad2b2d4e14a"
+    },
+    {
+      "path": "related-fixed-env-summary.json.gz",
+      "bytes": 253,
+      "sha256": "731fa528de80282941d4b52e0ede2cb33e5d561e15778cb079cb16055e377020",
+      "original_sha256": "c381ab5f00a7ceb3e6a18a2776d7d2455f1858526b278384310bf60d5b2123f8"
+    },
+    {
+      "path": "runtime-identity.json.gz",
+      "bytes": 407,
+      "sha256": "8b783c85fac1827ceb41f3db407a771b7e28aeb9e0a9efcdde5c7a37e3d91e1d",
+      "original_sha256": "d6ff3039e052610e0f778bae13b50c2c46582b74d4d00e48cb5f9bc897ab2513"
+    },
+    {
+      "path": "related-ports.json.gz",
+      "bytes": 563,
+      "sha256": "036b2e66ce041a770a48789ecf0b769f74d56235478c3ff4bf8758fc07a622a2",
+      "original_sha256": "14232c17e7ab202d95fb869f5e9432c0ea4e123be0e504c534b5007ea5ede79c"
+    },
+    {
+      "path": "install-run-meta.json.gz",
+      "bytes": 399,
+      "sha256": "0b54d5b6d1dd61874a590841c1b4402c2ae6309d272e2e4a6fc6eac61d568d82",
+      "original_sha256": "39bf6582c9f06b656b14f0a191e6efbfc1c14c6d4f6e40ab8a6183de884d49c4"
+    },
+    {
+      "path": "install-final/results.json.gz",
+      "bytes": 4949,
+      "sha256": "76f42147c65da1665696a0d33da5348c7b70a73acf278379474768abb4f745f7",
+      "original_sha256": "3c9ab952ec24401ccd993fd710164c0840b41a056ab405ab849039f861f7218e"
+    },
+    {
+      "path": "installed-and-ports.json.gz",
+      "bytes": 497,
+      "sha256": "7a942ed3be6170f15a242be000528fc1241a67bf069206443ae185fcf299261f",
+      "original_sha256": "f7d4976f0f7e0e7f838bf1379dc6f90d519ee3c2e0edcf9890c7b584dcef5177"
+    },
+    {
+      "path": "installed-tests.log.gz",
+      "bytes": 228,
+      "sha256": "a743938bb346d765b5cbef94efcd36273f62dd04dc076d24694ba026990765ef",
+      "original_sha256": "7d3fbeaaa257ca28cb2449264dd22bd8eb71368c254f522f21a9a4bc28b7e692"
+    },
+    {
+      "path": "installed-tests-summary.json.gz",
+      "bytes": 59,
+      "sha256": "e5fdd1c440e702aefd238d63c61e129352ba3b0391dddac40fd924b9bd44b0f5",
+      "original_sha256": "b34ce3f1e92edc0d5032740d601e72c7f45262a0f2f38ba36ff4a87e93a63724"
+    },
+    {
+      "path": "public-practice-result.json.gz",
+      "bytes": 13939,
+      "sha256": "e4b1e77e819ca6d5df180725f787dca82057b2a9a542d15249e0c6081f634e3f",
+      "original_sha256": "87f5dbb6844e2f8940562070258ea05b55c5211321fb7ecc7f310fd1de901fe2"
+    },
+    {
+      "path": "public-practice-checks.json.gz",
+      "bytes": 235,
+      "sha256": "950d035cb6451926c02e332742faff4da150a492522b6c60534a8ac3a54af2d8",
+      "original_sha256": "010f206e79fc09d5a4f457c9a2e48e816e0903bcfcf2cdc5d606b0983bc4cfef"
+    },
+    {
+      "path": "public-practice-validity.json.gz",
+      "bytes": 143,
+      "sha256": "95224533dd74618f79c77633a1a65f3a9201ded0ae83a973ff4d26fa7366b269",
+      "original_sha256": "6944038cca8acff562db9cd7c2a568a9247b231f148804609380a096bb60c6b4"
+    },
+    {
+      "path": "journal-checks.json.gz",
+      "bytes": 135,
+      "sha256": "792b3829148868c96ceb8b92a9a50f4c72330b49307526e7e6458f7560083014",
+      "original_sha256": "c484c7c5d063141ebd4bf3f43992616fa8343d97c2a807d7937c098404428be2"
+    },
+    {
+      "path": "run-related.py.gz",
+      "bytes": 680,
+      "sha256": "b1794cc5df1d574ea227af6fe51028e0a8c2b388b5c50586d07bcbe0f46f62d3",
+      "original_sha256": "7e1c58c5983ff8899c0d1e0482b94038a6cd28781415d7c790f2fddbe8b14fdb"
+    },
+    {
+      "path": "run-related-fixed-env.py.gz",
+      "bytes": 679,
+      "sha256": "2b8b935322446bf82f77a0cf65fa18edb75ef105a2a29ac972ee866363249f6f",
+      "original_sha256": "8e82cb881fb3f784de625e5ba730bbcd167b85f41f08bc3350ed0b84311c924b"
+    },
+    {
+      "path": "run-install.py.gz",
+      "bytes": 932,
+      "sha256": "d1d6982acdde1318e6793a9302b45ec6150b5160b6329d25821d9a0529d71302",
+      "original_sha256": "fd444c09f9853ecd9422cfba98eeab0de769c6247d05f0d8f606273e89ca09b5"
+    },
+    {
+      "path": "run-public-practice.py.gz",
+      "bytes": 1677,
+      "sha256": "dbcf9a3ce45262482a1314288a1deb6f5040dda77df8bb7cf3b1e1c5a5739438",
+      "original_sha256": "dc9bb072fea28c3040e4915270a7f3c32945f31f75df7e3af0dec6ea2fb02f79"
+    },
+    {
+      "path": "run-installed-tests.py.gz",
+      "bytes": 798,
+      "sha256": "8c1fd5e2c52da7476a67b38f9ccfa29c0dd3fabde1f40113614c2450c7ee1935",
+      "original_sha256": "0f1d7d2fb096e01a67ebc4d05197e43c087b2d53a25c7ac1e831a0b1d031a094"
+    },
+    {
+      "path": "check-installed-and-ports.py.gz",
+      "bytes": 1025,
+      "sha256": "72fe1186347fd1ed3d3e1efc002add8b431c8229cce9dfdaf570111cb2d92afe",
+      "original_sha256": "e57657004cb0ca2c8f19db5dc7562e7f2479c79f8442e8a66f1e2f15a4074908"
+    },
+    {
+      "path": "check-journals.py.gz",
+      "bytes": 418,
+      "sha256": "47532f4ccbd13f4574f48be7caeb0021ac778a46e4bd25c6d35ad612ec7cb6de",
+      "original_sha256": "cea24667081e4da1d9423cc596a3ceaccaa673179a0526707898d5addce0453a"
+    }
+  ]
+}

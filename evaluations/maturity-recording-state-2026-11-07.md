@@ -8,7 +8,13 @@ A new public synthetic regression suite first reported 9 failures and 1 pass on 
 
 The initial broader run is preserved: 3 failures and 50 passes, then operator interruption. The parent imported current source through PYTHONPATH, while isolated service children used the preceding execution checkout's interpreter environment. Their build identities differed, and service readiness timed out. A separate development interpreter whose isolated imports point to this worktree corrected the test environment. No runtime startup check was weakened. The corrected complete run above passed.
 
-All nine launchers pin this runtime. Exact-head CI, a fresh installation check and public deterministic rehearsal are pending; results from earlier runtimes are not claimed for this one.
+All nine launchers pin this runtime; both pin checks pass. Fresh Mac installation passes all 49 upgrade, MCP, restart, proxy, companion and recovery checks. Both installed homes match all 197 runtime inputs, and all eight profile ports close. Running the 11 new regressions against the installed package also passes (0.31 seconds).
+
+The public deterministic rehearsal passes 250 checks and strict validity: 18 turns per arm, 24/18/18 returned-round journal rows, no reasoning content, unchanged frozen public inputs and all four ports closed. It uses keyword recall and direct parallel stubs, not a real model or the shell supervisor.
+
+The [24-payload evidence manifest](evidence/maturity-recording-state-2026-11-07/manifest.json) preserves initial failures, final passes, public receipts and reproduction wrappers. All payload hashes and decompression were verified, and all 69 known credential values from 27 synthetic profiles are absent. The two temporary related-test directories were removed only after their 17 profiles' ports were closed; test logs and receipts remain. Installed packages, model caches and sealed acceptance evidence were retained.
+
+[Verify 42405234407](https://github.com/chriswu727/memBrain/actions/runs/42405234407) and [five-platform Native 42405234716](https://github.com/chriswu727/memBrain/actions/runs/42405234716) are still running on source-equivalent launcher commit `1cfb12b8513c478d8d4a5cfc9f6412c5139385f8`. They are not claimed as passes. Results from earlier runtimes are not claimed for this one.
 
 ## Acceptance limit
 
