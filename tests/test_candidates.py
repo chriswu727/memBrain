@@ -31,16 +31,17 @@ class Candidates:
     def params(self):
         return self.principal.tenant_id, self.principal.principal_id, self.brain_id
 
-    def add(self, text, *, branch="main", conversation="current", visibility="private", **changes):
+    def add(self, text, *, branch="main", conversation="current", visibility="private", role="user", **changes):
         result = self.service.handle(self.principal, {
             "contract_version": CONTRACT_VERSION, "message_type": "request", "request_id": uid(),
             "action": "observe", "target": {**self.target, "conversation_ref": conversation, "branch_ref": branch},
             "payload": {"idempotency_key": uid(), "events": [{
                 "producer_ref": "candidates-test", "source_event_key": uid(), "source_revision": 1,
-                "actor_ref": "user", "actor_role": "user", "event_kind": "message",
+                "actor_ref": role, "actor_role": role, "event_kind": "message",
                 "content": {"media_type": "text/plain", "text": text},
                 "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
-                "interpretation_hint": "real_world_report", "delivery_state": "received",
+                "interpretation_hint": "real_world_report",
+                "delivery_state": "delivered" if role == "assistant" else "received",
             }]},
         })
         assert result["outcome"] == "completed", result
@@ -58,9 +59,9 @@ class Candidates:
                          "AND brain_id=%s AND id=%s AND revision=%s", (Jsonb(memory), *self.params, memory["memory_id"], memory["revision"]))
         return memory
 
-    def query(self, text, *, budget=64000, intent="explore", recall_plan=None, query_embedding=None):
+    def query(self, text, *, budget=64000, intent="explore", recall_plan=None, query_embedding=None, cues=()):
         query = {"query": text, "intent": intent, "budget": default_budget(budget),
-                 "read_fence": default_read_fence(), "cue_event_ids": [], "additional_cues": []}
+                 "read_fence": default_read_fence(), "cue_event_ids": [], "additional_cues": list(cues)}
         with self.database.transaction(self.principal) as conn:
             brain = self.service._brain(conn, self.principal, self.brain_id)
             return collect_candidates(conn, self.service, self.principal, brain, self.target, query,
@@ -111,6 +112,25 @@ def test_lexical_feature_hash_neighbours_without_actual_overlap_are_not_positive
     memories, state = candidates.query("zygomatic")
     assert memories == []
     assert state["rank_signals"] == {}
+
+
+@pytest.mark.parametrize("semantic", [False, True])
+@pytest.mark.parametrize("query,intent,include_speech", [
+    ("kettle", "explore", False), ("kettle", "current_fact", False),
+    ("Which kettle did you recommend?", "explore", True), ("kettle", "exact_quote", True),
+])
+def test_cues_rank_candidates_without_changing_speech_eligibility(candidates, semantic, query, intent,
+                                                                include_speech):
+    owned = candidates.add("I own a blue kettle.")
+    suggested = candidates.add("Consider a red kettle instead.", role="assistant")
+    if semantic:
+        candidates.embed(owned, [1.0, 0.0, 0.0])
+        candidates.embed(suggested, [1.0, 0.0, 0.0])
+    memories, collected = candidates.query(query, intent=intent, cues=["Which kettle did you recommend?"],
+                                            query_embedding=query_vector() if semantic else None)
+    assert key(owned) in collected["candidate_versions"]
+    assert (key(suggested) in collected["candidate_versions"]) is include_speech
+    assert (key(suggested) in [key(memory) for memory in memories]) is include_speech
 
 
 def test_branch_and_conversation_scope_are_filtered_before_top_k(candidates):

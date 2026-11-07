@@ -137,7 +137,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
         from .source_context import source_unit_candidates
 
         rows, truncated = lexical_rows(conn, params, target, text, limit=scan_limit)
-        if not cognition.speech_requested({**query, "query": text}):
+        if not cognition.speech_requested(query):
             rows = [row for row in rows if not assistant_speech(row["document"])]
         score_text = LexicalScorer.from_memories(text, [row["document"] for row in rows])
         lexical = [(score_text(text, row["document"]["statement"]), row)
@@ -172,7 +172,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
             if service.embedding_provider and service.embedding_provider.space != space:
                 raise DomainError("validation_failed", "Query embedding space differs from the configured space.")
             vector = "[" + ",".join(str(value) for value in query_embedding.vectors[0]) + "]"
-            speech = cognition.speech_requested({**query, "query": text})
+            speech = cognition.speech_requested(query)
 
             def nearest(script_clause, script_params, limit):
                 found = conn.execute(
@@ -281,7 +281,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
             item["rank_signals"].append({"method": "association", "score": score,
                                         "meaning": "ranking_only_not_probability", "model_or_index_version": version})
         ranked = list(combined.values())
-        if not cognition.speech_requested({**query, "query": text}):
+        if not cognition.speech_requested(query):
             ranked = [item for item in ranked if not assistant_speech(documents[(item["memory_id"], item["revision"])])]
         usage_rows = conn.execute(
             "SELECT memory_id,memory_revision,external_uses,successes,failures,last_external_use_at,last_reinforcement_at "

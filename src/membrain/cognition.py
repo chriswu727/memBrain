@@ -730,7 +730,7 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
                       for index, item in enumerate(state.get("selected_versions", []))}
     selecting = "selected_versions" in state
     historical = history_status != "not_requested"
-    include_speech = speech_requested({**request, "query": query})
+    include_speech = speech_requested(request)
     from .lexical_candidates import LexicalScorer
 
     score_text = LexicalScorer.from_memories(query, [memory for memory in candidates

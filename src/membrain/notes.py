@@ -585,7 +585,8 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
         from .affect import AFFECT_CONVERSATION
 
         if len(available) != len(sources) or any(
-                event["scope"]["conversation_id"] in (NOTES_CONVERSATION, AFFECT_CONVERSATION) for event in available):
+                event["scope"]["conversation_id"] in (NOTES_CONVERSATION, AFFECT_CONVERSATION)
+                or event["observed"]["delivery_state"] in ("draft", "cancelled") for event in available):
             raise DomainError("source_unavailable", "A note source is unavailable in this brain.")
         shared_refused = None
         if fields.get("shared"):

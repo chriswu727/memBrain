@@ -1126,11 +1126,17 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
     cannot be read. Messages about a boundary topic the user set are left out unless ``query`` (the current
     message) raises it; ``boundaries`` are read from the service when not given.
     """
+    from .context_views import assistant_speech
     from .relationship import kept_out
 
     if boundaries is None:
         boundaries = _boundaries(client)
     response = recall(client, query, cues)
+    include_speech = bool(ASKS_ABOUT_ASSISTANT.search(query or ""))
+    if not include_speech:
+        result = response.get("result") or {}
+        response = {**response, "result": {**result, "items": [item for item in result.get("items", [])
+                    if not assistant_speech(item.get("memory") or {})]}}
     questions: set = set()
     sources = _sources(response, current_conversation, questions=questions)
     if not sources:
@@ -1150,6 +1156,7 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
     starts = dict(sources)
     ranked = [messages[event_id] for event_id, _ in sources if event_id in messages
               and messages[event_id].get("conversation_id") != current_conversation
+              and (include_speech or messages[event_id].get("actor_role") != "assistant")
               and not kept_out(messages[event_id].get("text") or "", boundaries, query)]
     try:
         # The next message holds the answer to a recalled question, or the reaction to a recalled statement.
@@ -1157,7 +1164,7 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
                            + [item for item in ranked if item["event_id"] not in questions])
     except Exception:
         replies = {}
-    if not ASKS_ABOUT_ASSISTANT.search(query or ""):
+    if not include_speech:
         # Hosts restated the assistant's own earlier suggestions as facts about the user ("Mum's folding stool, the
         # one mentioned before"), however the lines were labelled. Its replies come back only when asked about.
         replies = {key: item for key, item in replies.items() if item.get("actor_role") != "assistant"}

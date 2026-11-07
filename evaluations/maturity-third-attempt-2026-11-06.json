@@ -1,0 +1,109 @@
+{
+  "attempt_id": "maturity-20261106b",
+  "R4": false,
+  "gate_exit": 1,
+  "C5": "INELIGIBLE",
+  "totals": {
+    "P": 17.5,
+    "E": 20.5,
+    "F": 19.0
+  },
+  "per_scenario_totals": {
+    "s1": {
+      "F": 10.0,
+      "P": 9.5,
+      "E": 10.0
+    },
+    "s2": {
+      "P": 8.0,
+      "E": 10.5,
+      "F": 9
+    }
+  },
+  "critical_replies": {
+    "P": 3,
+    "E": 0,
+    "F": 2
+  },
+  "critical_type_counts": {
+    "P": {
+      "4": 2,
+      "1": 1
+    },
+    "E": {},
+    "F": {
+      "4": 2
+    }
+  },
+  "attribution_counts": {
+    "P": {
+      "memory": 2,
+      "host": 1,
+      "passes": false,
+      "not_worse": false
+    },
+    "E": {
+      "memory": 0,
+      "host": 0,
+      "passes": true,
+      "not_worse": true
+    }
+  },
+  "resolution_change_counts": {
+    "s1": {
+      "replies": 9,
+      "removed_types": {
+        "4": 9
+      },
+      "added_types": {},
+      "rules": {
+        "R2": 9
+      }
+    },
+    "s2": {
+      "replies": 6,
+      "removed_types": {
+        "4": 6
+      },
+      "added_types": {},
+      "rules": {
+        "R2": 6
+      }
+    }
+  },
+  "r5": {
+    "judgments": 38,
+    "valid": 38,
+    "candidate_replies": 19,
+    "cleared": 0
+  },
+  "review_retries": 0,
+  "artifact_sha256": {
+    "gate.json": "424ca3636b4147e718fa92a68e620fa9833738f8077126e1aac84af79e13fc2b",
+    "tally-s1.json": "46841aabc7ce23e0b8fac8e8b6e69b702bbb101aacad81d7f87dda7ffee3f0c0",
+    "tally-s2.json": "f2de19fc28e16b596cbf14e1aa2b06d3b4f4b0957108bb3677770b504f39804d",
+    "resolution-s1.json": "acf7fb0305adede36b58dcbbc2652f36df10069d55e2765a62bc299be50501ff",
+    "resolution-s2.json": "5965cb63c326926907863f27750425805f033387ee1002d5c4a03760661018f2",
+    "resolution-audit-s1.json": "15915365c0be9537397bdd61913a249e9a084b7c23b2307956d5c5cbef28c029",
+    "resolution-audit-s2.json": "6968ec3762e49e4ada8cb8fec7e440a743c9efa5bbce81b5b5c41b2a3d650e64",
+    "verdicts-s1.json": "5c12c878bce3253bc8ae98b1ccd3dc7cf13237af1c4f9e01b00e6172e56cec94",
+    "verdicts-s2.json": "ef488006f6fec20dc61254f6b6fd0d46d303b6d1abaf23b1d01255d7033aa31b",
+    "scoring-progress.json": "120ff20304ed88f957e6ea57360db4db9ac2846548a4c857e932c1d4259159ce",
+    "final-check.json": "dafa77bedbe3403329b8c79ad8438e39b047b19af480a085326d2749e0810aad"
+  },
+  "attribution_validation": {
+    "valid_judgments": 6,
+    "missing": 0,
+    "invalid": 0,
+    "disagreeing_pairs": 0
+  },
+  "frozen_verification": {
+    "frozen_hash_count": 513,
+    "hash_mismatch_count": 0,
+    "head_verified": true,
+    "manifest_sha256": "8d7e47907efc18c8cf13d6b6f619c39e825d214c5d533624eeae964073327db0",
+    "attribution_valid": 6,
+    "attribution_invalid": 0,
+    "attribution_missing": 0
+  }
+}
