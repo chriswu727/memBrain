@@ -1,29 +1,8 @@
 {
   "build_id": "ab07bee3e01c7bd12f7972150219d930dd6c01bdf0459d63a1b4182afec1e6e3",
   "schema_id": "478061ac77337fd25d87174df1185ab1d40ad4d4216290078fb26fd2f519fe39",
-  "status": "Local source and installed checks complete; full Verify pending. Not R4/C5 acceptance.",
+  "status": "Local source, installed and full Verify checks passed. Not R4/C5 acceptance.",
   "files": [
-    {
-      "path": "predecessor-diversity/verify-log-receipt.json.gz",
-      "bytes": 379,
-      "sha256": "d69f85438b8796b1659dc8ef9a8aebdeaf780ba0623208ca7f2867a2c5b26151",
-      "original_bytes": 644,
-      "original_sha256": "8abcd07e52a67455d5f4794359c2b252a3980c5aabc0eaf1200797de9e6b802d"
-    },
-    {
-      "path": "predecessor-diversity/verify-pytest.log.gz",
-      "bytes": 185207,
-      "sha256": "b3156e42832a204b28bf889e5770ee224d4bb90c0fcb6b4fd5b5ddea4331515e",
-      "original_bytes": 1527971,
-      "original_sha256": "8710559d246a80623131ab4d853b7ceda50b0418d596353b52a195a7d8f298ab"
-    },
-    {
-      "path": "predecessor-diversity/verify-status-final.json.gz",
-      "bytes": 852,
-      "sha256": "cf5f12c3afc816dfb5afd8dc3b8a38e563ebcd4c988e4bbfb6029930b99d8e5a",
-      "original_bytes": 6417,
-      "original_sha256": "ca1ee3caaec5d9ee3e8dff4b8243ad2ed4f7d8d4b085e134343eac60e2c03e32"
-    },
     {
       "path": "baseline-cleanup.json.gz",
       "bytes": 80,
@@ -86,6 +65,34 @@
       "sha256": "bd7d15afda1ac9c48d1c8ddbf91fe31fe3e562da8a52750ee276c5c768aef97f",
       "original_bytes": 1629,
       "original_sha256": "dc3a1857c92dd2100537547f64c580cb702230f94fca59a8145a1aa8e04fc15e"
+    },
+    {
+      "path": "ci/verify-complete.log.gz",
+      "bytes": 208222,
+      "sha256": "f99c0952572591009e9982de3545a62eb6c76f80d26b99de9d913ef2fb7507b6",
+      "original_bytes": 1646327,
+      "original_sha256": "a241b1a041360216cd19f29742011e131d7370e1228bd34e7cd5d42e7d069205"
+    },
+    {
+      "path": "ci/verify-log-receipt.json.gz",
+      "bytes": 374,
+      "sha256": "70e9f8412b748c3d616e8b13f56b0dd9743bc9e89ef05b087fdcf3d1e85f236d",
+      "original_bytes": 644,
+      "original_sha256": "5e8de916fb108f3ba14196ddc2157d6c8c620195ccc65daddb23532f98109d91"
+    },
+    {
+      "path": "ci/verify-pytest.log.gz",
+      "bytes": 183866,
+      "sha256": "dec8e4b7cb2479a62babe71183e4c553cf57669c7b3070428082c5c91f3b0d67",
+      "original_bytes": 1524879,
+      "original_sha256": "78b3c22a704814e7a13cfd97a4dfe2c3b7b3c42e65e2336e9a8f2acdae21d657"
+    },
+    {
+      "path": "ci/verify-status-final.json.gz",
+      "bytes": 854,
+      "sha256": "cdc6d5ea01287c73304a7b9229962dd4f3cf9da3a5e752823c7a51caf6c83bbf",
+      "original_bytes": 6417,
+      "original_sha256": "b8cde299542777550ce22be2b10ed5a337d588814e841865397e1a0de34ad25a"
     },
     {
       "path": "ci/watch_verify.py.gz",
@@ -200,6 +207,27 @@
       "original_sha256": "787498e9137834ff5b9dbb94255efdc98c46385ee2a719003335ac2c039f38dd"
     },
     {
+      "path": "predecessor-diversity/verify-log-receipt.json.gz",
+      "bytes": 379,
+      "sha256": "d69f85438b8796b1659dc8ef9a8aebdeaf780ba0623208ca7f2867a2c5b26151",
+      "original_bytes": 644,
+      "original_sha256": "8abcd07e52a67455d5f4794359c2b252a3980c5aabc0eaf1200797de9e6b802d"
+    },
+    {
+      "path": "predecessor-diversity/verify-pytest.log.gz",
+      "bytes": 185207,
+      "sha256": "b3156e42832a204b28bf889e5770ee224d4bb90c0fcb6b4fd5b5ddea4331515e",
+      "original_bytes": 1527971,
+      "original_sha256": "8710559d246a80623131ab4d853b7ceda50b0418d596353b52a195a7d8f298ab"
+    },
+    {
+      "path": "predecessor-diversity/verify-status-final.json.gz",
+      "bytes": 852,
+      "sha256": "cf5f12c3afc816dfb5afd8dc3b8a38e563ebcd4c988e4bbfb6029930b99d8e5a",
+      "original_bytes": 6417,
+      "original_sha256": "ca1ee3caaec5d9ee3e8dff4b8243ad2ed4f7d8d4b085e134343eac60e2c03e32"
+    },
+    {
       "path": "ruff.log.gz",
       "bytes": 39,
       "sha256": "f3af4d142827f5aad2eb0c72d556d325488a57fb6219aac10afeb51085667d53",
@@ -218,5 +246,15 @@
     "owned_credential_values": 6,
     "matches": 0,
     "private_profiles_dumps_excluded": true
+  },
+  "full_verify": {
+    "run": "42375927924",
+    "head": "0e9fb042a1206b8307b5eca93f1430244bd52e91",
+    "python_passed": 7820,
+    "python_warnings": 3,
+    "python_skipped": 0,
+    "typescript_passed": 53,
+    "typescript_skipped": 0,
+    "ruff_typecheck_build": "passed"
   }
 }

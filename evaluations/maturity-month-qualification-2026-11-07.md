@@ -1,12 +1,12 @@
 # Installed qualification of the current maturity candidate
 
-Runtime `f5e265c262b66e0c4f3ddb58a079c6fa14e625a4` combines source-diversity recall, local-query contention reduction, decision-bound personality evidence and month-precision plans. The latest local installation and visual/performance qualification passes. Five-platform native qualification also passes. Full Verify is still running; this candidate has not been promoted to integration or released.
+Runtime `f5e265c262b66e0c4f3ddb58a079c6fa14e625a4` combines source-diversity recall, local-query contention reduction, decision-bound personality evidence and month-precision plans. The latest local installation and visual/performance qualification passes. Five-platform native qualification also passes. Full Verify passes 7,834 Python tests and 53 TypeScript tests, with zero skips, strict types, Ruff and builds. This candidate has not been promoted to integration or released; the subsequent sign-in repair is still in CI.
 
 ## Installation
 
 The unchanged release-install harness passes **49/49 checks** through actual launcher commands in fresh isolated homes. It upgrades both frozen baselines, preserves earlier memory and cross-session recall, exercises MCP correction/deletion, restart, backup activation and refusal of the retired original, and preserves personality, affect, mood pin, boundaries, shared moments and support style across upgrade and restore. The only wrapper adjustment is reuse of the existing download cache; there are no text-model or subscription calls. Both installed environments match all **197 source runtime inputs**, and all four synthetic profiles have closed service/database ports.
 
-The separate installed regression results remain scoped: 43 date/notes/relationship-privacy checks on this runtime, and 220 personality/graph/migration checks on its immediately preceding personality runtime. Current full CI will verify the combined source. These counts are not added into a claimed new full local suite.
+The separate installed regression results remain scoped: 43 date/notes/relationship-privacy checks on this runtime, and 220 personality/graph/migration checks on its immediately preceding personality runtime. The completed full CI verifies the combined source. These counts are not added into a claimed new full local suite.
 
 The wheel and a newly built source distribution both match all 197 canonical runtime inputs, including the contract and migrations; the two legacy `agent_memory` alias files also match. Both distributions include the exact MIT license and matching package/dependency metadata. The source archive excludes the evaluations directory and checked credential-file paths. Source archive SHA-256: `0fae7fdaaeb732abec0136e8ebc474620e30918583fbb7f005ab7a862bd3007e` (16,346,001 bytes); wheel SHA-256: `5cb3a4257eb4d0cf3b10c3921431998241864a2e47cbf8b4f64942092e1f2438` (14,468,150 bytes). These are local verification artifacts, not a published release.
 
@@ -30,9 +30,9 @@ Before/after streaming hashes match for all rows in five authoritative tables: o
 
 The earlier local-query full Verify [42374506491](https://github.com/chriswu727/memBrain/actions/runs/42374506491) finished with 7,809 passed, one failed and three warnings. It has the same inherited legacy passage-fixture failure already fixed in this candidate. Its failed log is retained here; no predecessor full-suite pass is claimed.
 
-## Remaining gates
+## CI and release gates
 
-- Verify [42376625930](https://github.com/chriswu727/memBrain/actions/runs/42376625930), launcher head `4dc274c995d15223f904277389f2b52975964bee`: running.
+- Verify [42376625930](https://github.com/chriswu727/memBrain/actions/runs/42376625930), launcher head `4dc274c995d15223f904277389f2b52975964bee`: **passed**, with 7,834 Python tests, 53 TypeScript tests, zero skips, strict types, Ruff and builds. The three Python warnings concern fork use in existing process-isolation tests; workflow-tool Node deprecation warnings are also retained. [Raw logs and receipt](evidence/maturity-month-precision-2026-11-07/manifest.json).
 - Five-platform native qualification [42377065217](https://github.com/chriswu727/memBrain/actions/runs/42377065217), source-equivalent documentation head `6b20aca1f1fe7dad4cd16711152d65108569e001`: **all five platforms pass**. It reuses checksummed binaries from run 42368702659 and checks current packages, including Ubuntu 26; the native binaries are not rebuilt. Five artifact archives were collected with hashes; all 47 unique qualification summaries completed with zero model calls and all recorded port closures successful. Their stage-level results and raw logs are retained, including the distinct component versus installed-adoption scopes.
 - R4 remains failed, C5 incomplete and final review open. No new paid/subscription behavioral evaluation ran. Main merge, tag and publication remain frozen.
 

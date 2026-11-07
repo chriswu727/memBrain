@@ -34,6 +34,12 @@
       "original_sha256": "db5a1a5e6dbfb1a23a1a6efbf5833d4a8cedcfaef196c0c63c590504dd380b76"
     },
     {
+      "path": "close_predecessor_ci.py.gz",
+      "bytes": 1273,
+      "sha256": "680f2ebf62857023dcc4028cf266e7fbc6a1ba08ea401325be6ff3e26bc16faf",
+      "original_sha256": "f99dbdc01c0e4db434952413d46e81abb41e1edd788aca88f87795bed5b9b7f0"
+    },
+    {
       "path": "first-fixed.log.gz",
       "bytes": 51,
       "sha256": "6f3adc78625eebfc6aee9e46e28e0498d4078ea7e5c49bc82440b5057f0c8bad",
@@ -59,9 +65,9 @@
     },
     {
       "path": "package_evidence.py.gz",
-      "bytes": 1058,
-      "sha256": "c4a029a705740535954ebb401d58432010f4cd9e2c1dbb9190c14800dabd65a6",
-      "original_sha256": "5f6e9630c7b6b1232cddf3163d27887012b42f8f6f202b22c4637914edb2785d"
+      "bytes": 1087,
+      "sha256": "c08bda8b85e90920d5db8c123f7152c2ea4eb5a4c40a7230ad110e9917e660f9",
+      "original_sha256": "8f67e6ac01155834445b85f7f8b28f695c83c44cb35198cd80c4d8fc82ee77e4"
     },
     {
       "path": "pins.log.gz",

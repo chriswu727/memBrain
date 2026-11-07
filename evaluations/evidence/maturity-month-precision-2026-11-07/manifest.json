@@ -1,7 +1,7 @@
 {
   "build_id": "f000dd0c0b0a431d2ca20a7add9304acfd8f6e0da9f46395f6588496ebabb52f",
   "schema_id": "478061ac77337fd25d87174df1185ab1d40ad4d4216290078fb26fd2f519fe39",
-  "status": "Local source and installed checks complete; full Verify pending. Not R4/C5 acceptance.",
+  "status": "Local source, installed and full Verify checks passed. Not R4/C5 acceptance.",
   "files": [
     {
       "path": "baseline-cleanup.json.gz",
@@ -37,6 +37,34 @@
       "sha256": "2ea9640c924588118bb778353c07209fdfb5dd154ab66f9d1d122d2953c5d92c",
       "original_bytes": 1629,
       "original_sha256": "7c546f163f8645d447935d49f40b3f35db8c6566e173a71f1d304681b3c9e96a"
+    },
+    {
+      "path": "ci/verify-complete.log.gz",
+      "bytes": 209110,
+      "sha256": "aca4649f1fa47ad6deee40f643fee44c52010d4572a630aa2b711445ca8cfc3d",
+      "original_bytes": 1649035,
+      "original_sha256": "851bf22cbbcc2aeebba36df0219b4e073365dbc7238458b61bfbe577c9b31944"
+    },
+    {
+      "path": "ci/verify-log-receipt.json.gz",
+      "bytes": 377,
+      "sha256": "afa17e9931f7cf19372c4361ea157c86bcfae4b6e8ce20684b0a0e6fa5199e94",
+      "original_bytes": 644,
+      "original_sha256": "a6c4c263f5c19172c002d3ff8349654b120ce05e6e8c73c5e7f9c5ef7dad8fca"
+    },
+    {
+      "path": "ci/verify-pytest.log.gz",
+      "bytes": 184595,
+      "sha256": "a9f496c8a69b2735bc1982c192122645abb483be7a3b4820affcd2f452ac605b",
+      "original_bytes": 1527121,
+      "original_sha256": "aff35e9a6ef92902b751853af4ed5bf93e35d6da78fb369a9ee35da2b2032c68"
+    },
+    {
+      "path": "ci/verify-status-final.json.gz",
+      "bytes": 863,
+      "sha256": "e2dd701c9cd7c785e138c908153791bfdfec04b878bdac1d60032e59d3f9720e",
+      "original_bytes": 6417,
+      "original_sha256": "019011fa814e60b8a0b96cf1a19f8748a4069c4d9c2e3eca7f79dc4c03b263eb"
     },
     {
       "path": "ci/watch_verify.py.gz",
@@ -134,5 +162,15 @@
     "owned_credential_values": 6,
     "matches": 0,
     "private_profiles_dumps_excluded": true
+  },
+  "full_verify": {
+    "run": "42376625930",
+    "head": "4dc274c995d15223f904277389f2b52975964bee",
+    "python_passed": 7834,
+    "python_warnings": 3,
+    "python_skipped": 0,
+    "typescript_passed": 53,
+    "typescript_skipped": 0,
+    "ruff_typecheck_build": "passed"
   }
 }
