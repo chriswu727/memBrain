@@ -1273,6 +1273,25 @@
       "sha256": "b8f3133b43b81339f37118752301c72ee15159690e6d524a9535a6ce7c89a936",
       "raw_sha256": "29093b0432772da8a5e7c7987d00bf3e3a4f59a0286713e7b62fb4cb43dc8c0d",
       "raw_bytes": 21908
+    },
+    {
+      "path": "post-scoring-public-reproduction/test_public_gap.py.gz",
+      "sha256": "14a2ccdc0f0ad8dff45e6733bd9c3bfdd7e93300b6bf63898dee887a8ac1d8c0",
+      "raw_sha256": "e74edf4bcfd87f6368efe2178373de2fba68d82ad363a5ea2f24903e4b895122",
+      "raw_bytes": 1197
+    },
+    {
+      "path": "post-scoring-public-reproduction/baseline.log.gz",
+      "sha256": "c9639ecfbfc7cb4b9d13c9db9bd094522a7323515f1842e96c3dc546816cdfae",
+      "raw_sha256": "f4d015931e87c556f2d62cc62cd115fa4280f8e1868d71102c3bf5ea3e22e1ad",
+      "raw_bytes": 5122
     }
-  ]
+  ],
+  "post_scoring_public_reproduction": {
+    "runtime_commit": "cebc6d829536fb2ab45e92a5d16ecc67e8d14597",
+    "build_id": "5f8ad59f4ef931f000b1c2531eb0f735262823e550fd825bffb206d9336fc11e",
+    "expected_failed_assertions": 2,
+    "provider_calls": 0,
+    "purpose": "New synthetic English/Chinese direct off-record requests remain persisted by tool-free ChatMemory; source inspection shows recording path unchanged from frozen runtime. This diagnoses an open gap, not a repair or new acceptance."
+  }
 }
