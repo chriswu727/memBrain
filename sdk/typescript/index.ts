@@ -303,6 +303,17 @@ function memoryContent(item: RecallItem): JsonObject {
   if (item.presentation?.level === "summary" && item.memory.recall_summary) {
     result.statement = item.memory.recall_summary.statement;
     result.recall_detail = "summary_expandable";
+  } else if (item.memory.derivation?.method === "direct_capture" && item.matched_statement_span) {
+    const span = item.matched_statement_span, characters = Array.from(item.memory.statement);
+    if (Number.isInteger(span.start) && Number.isInteger(span.end) && span.unit === "unicode_code_point"
+        && 0 <= span.start && span.start < span.end && span.end <= characters.length
+        && span.end - span.start <= 400 && characters.length > 400) {
+      result.statement = characters.slice(span.start, span.end).join("");
+      result.statement_span = { ...span };
+      result.statement_characters = characters.length;
+      result.recall_detail = "matched_excerpt_expandable";
+      result.excerpt_use = "partial_original_statement_not_an_independent_fact";
+    }
   }
   if (item.applicability !== undefined) result.applicability = item.applicability;
   if (item.belief_resolution !== undefined) result.belief_resolution = item.belief_resolution;
@@ -545,6 +556,14 @@ export class MemoryClient {
   }
   sourceMessages(messages: readonly NoteSource[], brainId?: string): Promise<JsonObject> {
     return this.#request("POST", `${this.#brainPath(brainId)}/source-messages`, { messages });
+  }
+  recallWindows(windows: readonly { memory_id: string; revision: number;
+    span: { start: number; end: number; unit: "unicode_code_point" } }[], query: string,
+    options: ScopeOptions = {}): Promise<JsonObject> {
+    const scope = this.#scope(options);
+    return this.#request("POST", `v1/brains/${encodeURIComponent(scope.brain_ref)}/recall-windows`, {
+      windows, query, conversation_id: scope.conversation_ref ?? null, branch_id: scope.branch_ref ?? null,
+    });
   }
   writeNote(text: string, options: { requestId?: string; brainId?: string; replaces?: readonly string[];
     sourceEventIds?: readonly string[]; sourceMessages?: readonly NoteSource[];

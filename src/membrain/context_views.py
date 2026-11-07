@@ -96,6 +96,12 @@ def memory_content(item, copier=copy.deepcopy):
     if item.get("presentation", {}).get("level") == "summary" and memory.get("recall_summary"):
         result["statement"] = memory["recall_summary"]["statement"]
         result["recall_detail"] = "summary_expandable"
+    else:
+        from .recall_excerpt import matched_excerpt
+
+        excerpt = matched_excerpt(item)
+        if excerpt is not None:
+            result.update(excerpt)
     for key in ("applicability", "belief_resolution", "source_act"):
         if key in item:
             result[key] = copier(item[key])

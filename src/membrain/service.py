@@ -1014,7 +1014,9 @@ class MemoryService:
              memory["statement"], _vector(memory["statement"])),
         )
         if self.embedding_provider:
-            job_id = "embed:" + digest([memory["memory_id"], memory["revision"], self.embedding_provider.space.descriptor()])
+            from .vector_jobs import embedding_job_id
+
+            job_id = embedding_job_id(memory["memory_id"], memory["revision"], self.embedding_provider)
             conn.execute(
                 "INSERT INTO memory_jobs(tenant_id,owner_id,brain_id,id,kind,payload,state,source_event_ids,source_memory_ids) "
                 "VALUES(%s,%s,%s,%s,'embed',%s,'queued',%s,%s) ON CONFLICT DO NOTHING",
@@ -1626,6 +1628,15 @@ class MemoryService:
                 {"reference": reference(item["observed"]), "event_id": item["event_id"],
                  "actor_role": item["observed"]["actor_role"], "text": item["observed"]["content"].get("text") or ""}
                 for item in documents]}
+
+    def recall_windows(self, principal, brain_id, windows, query, *, conversation_id=None, branch_id=None):
+        from .recall_windows import read, validate_request
+
+        target = {'brain_ref': brain_id, 'conversation_ref': conversation_id, 'branch_ref': branch_id}
+        validate_request(windows, query, target)
+        with reading(), self.database.transaction(principal) as conn:
+            brain = self._brain(conn, principal, brain_id)
+            return read(self, conn, principal, brain, windows, query, target)
 
     def timeline(self, principal, brain_id, *, roles=("user",), max_characters=8000, max_item_characters=1500,
                  limit=200, exclude_conversation=None, event_ids=None, conversation_id=None, before_sequence=None):

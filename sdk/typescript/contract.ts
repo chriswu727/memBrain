@@ -436,6 +436,7 @@ export type RecallItem = {
     policy_version: "cue-sensitive-resolution-v1";
   };
   "memory": MemoryAssertion;
+  "matched_statement_span"?: { start: number; end: number; unit: "unicode_code_point" };
   "applicability"?: MemoryApplicability;
   "belief_resolution"?: BeliefResolution;
   "rank_signals": (RankSignal)[];

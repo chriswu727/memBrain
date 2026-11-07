@@ -16,7 +16,8 @@ from pathlib import Path
 
 import httpx
 
-from .embeddings import EmbeddingRequest, EmbeddingResult, EmbeddingSpace
+from .embedding_passages import inference_batches, token_passages
+from .embeddings import EmbeddingPassage, EmbeddingRequest, EmbeddingResult, EmbeddingSpace
 from .helpers import digest
 from .outbound import provider_transport
 
@@ -29,6 +30,7 @@ FILES = {
     "tokenizer.json": ("0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39", 17082730),
 }
 MAX_TOKENS = 512
+DOCUMENT_INDEX_VERSION = "local-overlapping-token-passages-v1"
 PREFIXES = {"document": "passage: ", "query": "query: "}
 _DIRECTORY = "models/" + MODEL + "-" + REVISION[:12]
 
@@ -125,6 +127,7 @@ class LocalEmbeddingProvider:
         self._lock = threading.Lock()
         self._session = None
         self._tokenizer = None
+        self._document_tokenizer = None
         self._ready = False
 
     @property
@@ -137,8 +140,13 @@ class LocalEmbeddingProvider:
     def space(self) -> EmbeddingSpace:
         return SPACE
 
+    @property
+    def document_index_version(self) -> str:
+        return DOCUMENT_INDEX_VERSION
+
     def close(self) -> None:
         self._session = self._tokenizer = None
+        self._document_tokenizer = None
 
     def __enter__(self) -> LocalEmbeddingProvider:
         return self
@@ -155,6 +163,9 @@ class LocalEmbeddingProvider:
                 from tokenizers import Tokenizer
 
                 tokenizer = Tokenizer.from_file(str(self._directory / "tokenizer.json"))
+                document_tokenizer = Tokenizer.from_file(str(self._directory / "tokenizer.json"))
+                document_tokenizer.no_truncation()
+                document_tokenizer.no_padding()
                 tokenizer.enable_truncation(MAX_TOKENS)
                 tokenizer.enable_padding(pad_id=tokenizer.token_to_id("<pad>") or 0, pad_token="<pad>")
                 options = onnxruntime.SessionOptions()
@@ -165,6 +176,7 @@ class LocalEmbeddingProvider:
                     providers=["CPUExecutionProvider"])
                 self._inputs = {item.name for item in self._session.get_inputs()}
                 self._tokenizer = tokenizer
+                self._document_tokenizer = document_tokenizer
         return self._session, self._tokenizer
 
     def _validated(self, request):
@@ -192,9 +204,43 @@ class LocalEmbeddingProvider:
 
         texts, fingerprint, size = self._validated(request)
         session, tokenizer = self._load()
+        if request.purpose == "document":
+            windows = [token_passages(self._document_tokenizer, text, PREFIXES['document'], max_tokens=MAX_TOKENS)
+                       for text in texts]
+            encoded = tokenizer.encode_batch([PREFIXES['document'] + text for text in texts])
+            head_ids = [tuple(token for token, mask in zip(item.ids, item.attention_mask, strict=True) if mask)
+                        for item in encoded]
+            passage_ids = [window.ids for document in windows if len(document) > 1 for window in document]
+            output, tokens = [], 0
+            pad = tokenizer.token_to_id("<pad>") or 0
+            batches = (batch for group in (head_ids, passage_ids)
+                       for batch in inference_batches(group, max_batch_size=self._max_batch_size))
+            for batch in batches:
+                width = max(len(window) for window in batch)
+                ids = numpy.array([(*window, *([pad] * (width - len(window)))) for window in batch],
+                                  dtype=numpy.int64)
+                mask = numpy.array([[1] * len(window) + [0] * (width - len(window)) for window in batch],
+                                   dtype=numpy.int64)
+                output.extend(self._vectors(session, ids, mask))
+                tokens += int(mask.sum())
+            vectors, passages, cursor = output[:len(texts)], [], len(texts)
+            for document in windows:
+                passages.append(tuple(EmbeddingPassage(window.start, window.end, output[cursor + index])
+                                      for index, window in enumerate(document)) if len(document) > 1 else ())
+                if len(document) > 1:
+                    cursor += len(document)
+            return EmbeddingResult(SPACE, tuple(vectors), {"input_tokens": tokens, "total_tokens": tokens},
+                                   fingerprint, size, tuple(passages), DOCUMENT_INDEX_VERSION)
         encoded = tokenizer.encode_batch([PREFIXES[request.purpose] + text for text in texts])
         ids = numpy.array([item.ids for item in encoded], dtype=numpy.int64)
         mask = numpy.array([item.attention_mask for item in encoded], dtype=numpy.int64)
+        vectors = self._vectors(session, ids, mask)
+        tokens = int(mask.sum())
+        return EmbeddingResult(SPACE, vectors, {"input_tokens": tokens, "total_tokens": tokens}, fingerprint, size)
+
+    def _vectors(self, session, ids, mask):
+        import numpy
+
         feeds = {"input_ids": ids, "attention_mask": mask}
         if "token_type_ids" in self._inputs:
             feeds["token_type_ids"] = numpy.zeros_like(ids)
@@ -202,6 +248,4 @@ class LocalEmbeddingProvider:
         weights = mask[..., None].astype(numpy.float32)
         pooled = (hidden * weights).sum(axis=1) / numpy.maximum(weights.sum(axis=1), 1.0)
         pooled /= numpy.maximum(numpy.linalg.norm(pooled, axis=1, keepdims=True), 1e-12)
-        tokens = int(mask.sum())
-        vectors = tuple(tuple(float(value) for value in row) for row in pooled)
-        return EmbeddingResult(SPACE, vectors, {"input_tokens": tokens, "total_tokens": tokens}, fingerprint, size)
+        return tuple(tuple(float(value) for value in row) for row in pooled)

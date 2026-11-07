@@ -1,11 +1,46 @@
 import json
+import math
 import time
 
 from psycopg.types.json import Jsonb
 
-from .embeddings import EmbeddingRequest, EmbeddingResult, EmbeddingSpace
+from .embeddings import EmbeddingPassage, EmbeddingRequest, EmbeddingResult, EmbeddingSpace
 from .helpers import DomainError, digest, uid
 from .jobs import JobStore
+
+
+def document_index_version(provider):
+    return getattr(provider, "document_index_version", "single-vector-v1")
+
+
+def embedding_job_id(memory_id, revision, provider):
+    identity = [memory_id, revision, provider.space.descriptor()]
+    version = document_index_version(provider)
+    if version != "single-vector-v1":
+        identity.append(version)
+    return "embed:" + digest(identity)
+
+
+def _validate_result(provider, request, result):
+    if (not isinstance(result, EmbeddingResult) or result.space != provider.space
+            or not isinstance(result.vectors, (tuple, list)) or len(result.vectors) != len(request.texts)):
+        raise DomainError("invalid_evidence", "Embedding response does not match its request.")
+    for vector in result.vectors:
+        if (not isinstance(vector, (tuple, list)) or len(vector) != result.space.dimensions or not any(vector)
+                or any(type(value) not in (int, float) or not math.isfinite(value) for value in vector)):
+            raise DomainError("invalid_evidence", "Embedding response must contain finite nonzero vectors.")
+    if request.purpose == 'query':
+        if result.passages is not None:
+            raise DomainError("invalid_evidence", "Query embedding cannot publish document passages.")
+        return
+    if result.document_index_version != document_index_version(provider):
+        raise DomainError("invalid_evidence", "Embedding document index version does not match its provider.")
+    if result.passages is None:
+        if result.document_index_version != 'single-vector-v1':
+            raise DomainError("invalid_evidence", "A passage index must declare document coverage.")
+    elif (not isinstance(result.passages, (tuple, list)) or len(result.passages) != len(request.texts)
+          or any(not isinstance(parts, (tuple, list)) or len(parts) > 1024 for parts in result.passages)):
+        raise DomainError("invalid_evidence", "Passage coverage must align with every requested document.")
 
 
 def _call(service, principal, brain_id, job, request):
@@ -18,8 +53,7 @@ def _call(service, principal, brain_id, job, request):
             result = provider(request)
         except Exception:
             raise DomainError("dependency_unavailable", "Embedding model is unavailable.", True) from None
-        if result.space != provider.space or len(result.vectors) != len(request.texts):
-            raise DomainError("invalid_evidence", "Embedding response does not match its request.")
+        _validate_result(provider, request, result)
         return result
     lease = {"lease_token": job["lease_token"], "fence": job["fence"]}
     try:
@@ -35,8 +69,8 @@ def _call(service, principal, brain_id, job, request):
         raise DomainError("budget_exceeded", "Embedding was already reserved.")
     try:
         result = provider(request)
-        if (result.space != provider.space or len(result.vectors) != len(request.texts)
-                or result.request_fingerprint != metadata["request_fingerprint"]):
+        _validate_result(provider, request, result)
+        if result.request_fingerprint != metadata["request_fingerprint"]:
             raise DomainError("invalid_evidence", "Embedding response does not match its request.")
     except Exception:
         jobs.settle_operation(principal, brain_id, job["id"], **lease, operation_id=operation_id, outcome="uncertain")
@@ -61,10 +95,25 @@ def embed_memory(service, principal, brain_id, job):
         statement = row["document"]["statement"]
     result = _call(service, principal, brain_id, job, EmbeddingRequest((statement,)))
 
-    _publish_embedding(service, principal, brain_id, job, statement, result, result.vectors[0])
+    _publish_embedding(service, principal, brain_id, job, statement, result, result.vectors[0],
+                       passages=result.passages[0] if result.passages is not None else ())
 
 
-def _publish_embedding(service, principal, brain_id, job, statement, result, vector):
+def _publish_embedding(service, principal, brain_id, job, statement, result, vector, *, passages=()):
+    if result.document_index_version != document_index_version(service.embedding_provider):
+        raise DomainError("invalid_evidence", "Embedding document index version does not match its provider.")
+    previous_end = 0
+    for index, passage in enumerate(passages):
+        if (not isinstance(passage, EmbeddingPassage) or type(passage.start) is not int
+                or type(passage.end) is not int or not 0 <= passage.start < passage.end <= len(statement)
+                or (index == 0 and passage.start != 0) or passage.start > previous_end
+                or passage.end <= previous_end or len(passage.vector) != result.space.dimensions
+                or not any(passage.vector)
+                or any(type(value) not in (int, float) or not math.isfinite(value) for value in passage.vector)):
+            raise DomainError("invalid_evidence", "Embedding passages must cover the unchanged source with finite vectors.")
+        previous_end = passage.end
+    if passages and (previous_end != len(statement) or len(passages) > 1024):
+        raise DomainError("invalid_evidence", "Embedding passages do not cover the complete source within bounds.")
     params, version = service._params(principal, brain_id), job["payload"]
     def publish(conn, _):
         row = conn.execute(
@@ -76,10 +125,25 @@ def _publish_embedding(service, principal, brain_id, job, statement, result, vec
             raise DomainError("source_unavailable", "Embedding source changed.")
         conn.execute(
             "INSERT INTO memory_embeddings(tenant_id,owner_id,brain_id,memory_id,memory_revision,model,model_version,"
-            "dimensions,content_hash,embedding) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::vector) ON CONFLICT DO NOTHING",
+            "dimensions,content_hash,embedding,document_index_version) "
+            "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::vector,%s) "
+            "ON CONFLICT (tenant_id,brain_id,memory_id,memory_revision,model,model_version) DO UPDATE SET "
+            "content_hash=EXCLUDED.content_hash,embedding=EXCLUDED.embedding,dimensions=EXCLUDED.dimensions,"
+            "document_index_version=EXCLUDED.document_index_version",
             (*params, version["memory_id"], version["revision"], result.space.model, result.space.model_version,
-             result.space.dimensions, digest(statement), json.dumps(vector)),
+             result.space.dimensions, digest(statement), json.dumps(vector), result.document_index_version),
         )
+        identity = (*params, version["memory_id"], version["revision"], result.space.model, result.space.model_version)
+        conn.execute("DELETE FROM memory_embedding_passages WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+                     "AND memory_id=%s AND memory_revision=%s AND model=%s AND model_version=%s", identity)
+        if passages:
+            with conn.cursor() as cursor:
+                cursor.executemany(
+                    "INSERT INTO memory_embedding_passages(tenant_id,owner_id,brain_id,memory_id,memory_revision,"
+                    "model,model_version,passage_index,start_offset,end_offset,embedding) "
+                    "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::vector)",
+                    [(*identity, index, passage.start, passage.end, json.dumps(passage.vector))
+                     for index, passage in enumerate(passages)])
 
     JobStore(service.database).complete(principal, brain_id, job["id"], lease_token=job["lease_token"],
                                        fence=job["fence"], publish=publish)
@@ -177,12 +241,14 @@ def queue_missing_embeddings(service, principal, brain_id, *, after=("", 0), lim
             "AND a.brain_id=%s AND a.is_current AND NOT a.invalidated AND NOT a.suppressed AND NOT a.deleted "
             "AND a.document IS NOT NULL AND (a.id,a.revision) > (%s,%s) AND NOT EXISTS (SELECT 1 FROM memory_embeddings v "
             "WHERE v.tenant_id=a.tenant_id AND v.owner_id=a.owner_id AND v.brain_id=a.brain_id AND v.memory_id=a.id "
-            "AND v.memory_revision=a.revision AND v.model=%s AND v.model_version=%s) ORDER BY a.id,a.revision LIMIT %s",
-            (*params, after[0], after[1], space.model, space.model_version, limit),
+            "AND v.memory_revision=a.revision AND v.model=%s AND v.model_version=%s "
+            "AND v.document_index_version=%s) ORDER BY a.id,a.revision LIMIT %s",
+            (*params, after[0], after[1], space.model, space.model_version,
+             document_index_version(service.embedding_provider), limit),
         ).fetchall()
         queued = 0
         for row in rows:
-            job_id = "embed:" + digest([row["id"], row["revision"], space.descriptor()])
+            job_id = embedding_job_id(row["id"], row["revision"], service.embedding_provider)
             queued += conn.execute(
                 "INSERT INTO memory_jobs(tenant_id,owner_id,brain_id,id,kind,payload,state,source_event_ids,source_memory_ids) "
                 "VALUES(%s,%s,%s,%s,'embed',%s,'queued',%s,%s) ON CONFLICT DO NOTHING",
@@ -230,9 +296,10 @@ def embed_local_batch(service, principal, brain_id, first, *, limit=32):
         texts = tuple(lookup[(job["payload"]["memory_id"], job["payload"]["revision"])] for job in valid)
         result = _call(service, principal, brain_id, valid[0], EmbeddingRequest(texts))
         failure = None
-        for job, statement, vector in zip(valid, texts, result.vectors, strict=True):
+        for index, (job, statement, vector) in enumerate(zip(valid, texts, result.vectors, strict=True)):
             try:
-                _publish_embedding(service, principal, brain_id, job, statement, result, vector)
+                _publish_embedding(service, principal, brain_id, job, statement, result, vector,
+                                   passages=result.passages[index] if result.passages is not None else ())
             except DomainError as error:
                 failure = error
                 try:

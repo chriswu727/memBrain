@@ -1616,6 +1616,17 @@
         "memory": {
           "$ref": "#/$defs/MemoryAssertion"
         },
+        "matched_statement_span": {
+          "type": "object",
+          "description": "Ranking-only match within the original statement, in Unicode code points. This does not create an independent assertion or change source authority.",
+          "properties": {
+            "start": { "type": "integer", "minimum": 0 },
+            "end": { "type": "integer", "minimum": 1 },
+            "unit": { "const": "unicode_code_point" }
+          },
+          "required": ["start", "end", "unit"],
+          "additionalProperties": false
+        },
         "rank_signals": {
           "type": "array",
           "items": {

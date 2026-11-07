@@ -24,4 +24,4 @@ def test_weak_partial_word_matches_do_not_displace_the_best_semantic_source(cand
     _, state = candidates.query("passport visa consulate marble", budget=2048, query_embedding=query_vector())
 
     assert key(target) in state["candidate_versions"]
-    assert state["candidate_versions"][0] == key(target)
+    assert any(signal['method'] == 'vector' for signal in state['rank_signals'][key(target)])

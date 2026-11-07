@@ -509,6 +509,17 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     def dashboard(brain_id: str, principal: Principal = Depends(authenticate)):
         return service.dashboard(principal, brain_id)
 
+    @app.post("/v1/brains/{brain_id}/recall-windows")
+    async def recall_windows(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
+        body = await read_document(request)
+        if set(body) - {'windows', 'query', 'conversation_id', 'branch_id'}:
+            raise DomainError('validation_failed', 'Unknown recall window fields.')
+        from starlette.concurrency import run_in_threadpool
+
+        return await run_in_threadpool(service.recall_windows, principal, brain_id, body.get('windows'),
+                                      body.get('query'), conversation_id=body.get('conversation_id'),
+                                      branch_id=body.get('branch_id'))
+
     @app.get("/v1/brains/{brain_id}/timeline")
     def timeline(brain_id: str, role: list[str] = Query(default=["user"]), max_characters: int = 8000,
                  max_item_characters: int = 1500, limit: int = 200, exclude_conversation: str | None = None,

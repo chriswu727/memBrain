@@ -273,6 +273,14 @@ class MemoryClient:
         return self._request("POST", f"v1/brains/{quote(brain, safe='')}/recall-trace",
                              json={"event_ids": list(event_ids)[:50]}, timeout=TRACE_TIMEOUT)
 
+    def recall_windows(self, windows: Sequence[Mapping[str, Any]], query: str, *,
+                       conversation_id: str | None = None, branch_id: str | None = None,
+                       brain_id: str | None = None) -> JsonObject:
+        scope = self._scope(conversation_id, branch_id, brain_id)
+        return self._request('POST', f"v1/brains/{quote(scope['brain_ref'], safe='')}/recall-windows",
+                             json={'windows': [dict(item) for item in windows], 'query': query,
+                                   'conversation_id': scope.get('conversation_ref'), 'branch_id': scope.get('branch_ref')})
+
     def source_messages(self, references: Sequence[Mapping[str, Any]]) -> JsonObject:
         """Read only the exact original message revisions still available in this brain."""
         brain = self._scope()["brain_ref"]

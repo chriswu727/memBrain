@@ -829,6 +829,15 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
             "retrieved_from": "unindexed_tail" if tail else "index",
             "display_mode": "explicit_recollection" if historical else "background_context",
         }
+        matched_span = state.get("matched_statement_spans", {}).get((memory["memory_id"], memory["revision"]))
+        if matched_span is not None and request.get('detail_level') != 'full' and request['intent'] != 'exact_quote':
+            item["matched_statement_span"] = deep_copy(matched_span)
+            if memory['derivation']['method'] == 'direct_capture' and len(memory['evidence_refs']) == 1:
+                reference = memory['evidence_refs'][0]
+                source = event_map[reference['event_id']]
+                act = next((segment['act'] for segment in evidence_segments(source)
+                            if segment.get('span') == reference.get('span')), 'unknown')
+                item['source_act'] = {'act': act, 'rule_version': RULE_VERSION}
         from .recall_resolution import presentation
 
         source_texts = [_content_text(event_map[ref["event_id"]]["observed"]["content"])[

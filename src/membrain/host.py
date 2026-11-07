@@ -1048,7 +1048,8 @@ def _informative(text: str) -> bool:
     return letters >= 8 and letters >= 0.6 * len(compact)
 
 
-def _sources(response: dict, current_conversation: str | None, *, questions: set | None = None
+def _sources(response: dict, current_conversation: str | None, *, questions: set | None = None,
+             qualifiers: dict | None = None
              ) -> list[tuple[str, int | None]]:
     """Source messages of recalled statements in rank order, with where the best-ranked statement starts.
 
@@ -1079,7 +1080,26 @@ def _sources(response: dict, current_conversation: str | None, *, questions: set
             if event_id in seen:
                 continue
             seen.add(event_id)
-            sources.append((event_id, (ref.get("span") or {}).get("start")))
+            start = (ref.get("span") or {}).get("start")
+            matched = item.get("matched_statement_span") or {}
+            span = ref.get("span") or {}
+            if (memory.get("derivation", {}).get("method") == "direct_capture"
+                    and len(memory.get("evidence_refs") or []) == 1 and type(start) is int
+                    and type(span.get("end")) is int and span['end'] - start == len(match.group(3))
+                    and type(matched.get("start")) is int and type(matched.get("end")) is int
+                    and matched.get("unit") == "unicode_code_point"
+                    and match.start(3) <= matched['start'] < matched['end'] <= len(statement)):
+                start += matched['start'] - match.start(3)
+                if qualifiers is not None:
+                    labels = []
+                    world = memory.get('world')
+                    if isinstance(world, str) and world not in ('real_world', 'unknown'):
+                        labels.append(world.replace('_', ' '))
+                    act = (item.get('source_act') or {}).get('act', match.group(2))
+                    if act not in ('direct_statement', 'unknown', 'not_applicable'):
+                        labels.append(act.replace('_', ' ') + ' excerpt')
+                    qualifiers[event_id] = ', '.join(labels)
+            sources.append((event_id, start))
     return sources[:MAX_MESSAGES]
 
 
@@ -1135,7 +1155,8 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
         response = {**response, "result": {**result, "items": [item for item in result.get("items", [])
                     if not assistant_speech(item.get("memory") or {})]}}
     questions: set = set()
-    sources = _sources(response, current_conversation, questions=questions)
+    qualifiers: dict = {}
+    sources = _sources(response, current_conversation, questions=questions, qualifiers=qualifiers)
     if not sources:
         _trace(client, [])  # A miss replaces the previous trace, so the page never shows an older hit as current.
         return None
@@ -1144,6 +1165,9 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
                                 max_characters=200_000, max_item_characters=20_000, limit=len(sources))
     except Exception:
         _trace(client, [])  # The fallback lines are statements, not records the map can point to.
+        result = response.get('result') or {}
+        response = {**response, 'result': {**result, 'items': [item for item in result.get('items', [])
+                                                            if not item.get('matched_statement_span')]}}
         if boundaries:
             items = [item for item in (response.get("result") or {}).get("items", [])
                      if not kept_out((item.get("memory") or {}).get("statement") or "", boundaries, query)]
@@ -1151,6 +1175,9 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
         return render_context(response, current_conversation=current_conversation, limit=limit)
     messages = {item["event_id"]: item for item in found.get("items", [])}
     starts = dict(sources)
+    from .host_windows import apply as apply_windows
+
+    apply_windows(client, response, query, messages, starts, qualifiers)
     ranked = [messages[event_id] for event_id, _ in sources if event_id in messages
               and messages[event_id].get("conversation_id") != current_conversation
               and (include_speech or messages[event_id].get("actor_role") != "assistant")
@@ -1178,6 +1205,8 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
             if not item or item["event_id"] in selected:
                 continue
             speaker = _SPEAKERS.get(item.get("actor_role"), "remembered")
+            if qualifiers.get(item['event_id']):
+                speaker += ', ' + qualifiers[item['event_id']]
             text = neutralize(" ".join(_window(item["text"], starts.get(item["event_id"])).split()))
             line = f"- [{(item.get('recorded_at') or '')[:10] or 'undated'} · {speaker}] {text}"
             available = limit - used - 1

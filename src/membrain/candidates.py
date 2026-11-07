@@ -126,6 +126,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
     include_speech = cognition.speech_requested(query)
     text = " ".join([query["query"], *query.get("additional_cues", [])])
     documents, rankings, versions = {}, {}, {}
+    matched_spans = {}
     truncated = False
 
     def remember(rows, *, dependencies=False):
@@ -197,19 +198,32 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
 
             def nearest(script_clause, script_params, limit):
                 found = conn.execute(
-                    "SELECT a.document,v.content_hash,(v.embedding <=> %s::vector) AS distance "
+                    "SELECT a.document,v.content_hash,best.distance,best.start_offset,best.end_offset "
                     "FROM memory_assertions a JOIN memory_embeddings v ON v.tenant_id=a.tenant_id "
                     "AND v.owner_id=a.owner_id AND v.brain_id=a.brain_id AND v.memory_id=a.id "
-                    "AND v.memory_revision=a.revision WHERE " + _eligible(include_speech=include_speech) + scope_sql
+                    "AND v.memory_revision=a.revision JOIN LATERAL ("
+                    "SELECT * FROM (SELECT (v.embedding <=> %s::vector) AS distance,"
+                    "NULL::integer AS start_offset,NULL::integer AS end_offset UNION ALL "
+                    "SELECT (p.embedding <=> %s::vector),p.start_offset,p.end_offset "
+                    "FROM memory_embedding_passages p WHERE p.tenant_id=v.tenant_id AND p.owner_id=v.owner_id "
+                    "AND p.brain_id=v.brain_id AND p.memory_id=v.memory_id AND p.memory_revision=v.memory_revision "
+                    "AND p.model=v.model AND p.model_version=v.model_version) matches "
+                    "ORDER BY distance,start_offset NULLS LAST LIMIT 1) best ON true WHERE "
+                    + _eligible(include_speech=include_speech) + scope_sql
                     + "AND v.model=%s AND v.model_version=%s AND v.dimensions=%s " + script_clause
                     + "ORDER BY distance,a.id LIMIT %s",
-                    (vector, *params, *scope_params, space.model, space.model_version, space.dimensions,
+                    (vector, vector, *params, *scope_params, space.model, space.model_version, space.dimensions,
                      *script_params, limit + 1),
                 ).fetchall()
                 usable = [row for row in found[:limit] if row["distance"] is not None
                           and math.isfinite(row["distance"]) and row["distance"] < 1
                           and row["content_hash"] == digest(row["document"]["statement"])
                           and (include_speech or not assistant_speech(row["document"]))]
+                for row in usable:
+                    if (type(row['start_offset']) is int and type(row['end_offset']) is int
+                            and 0 <= row['start_offset'] < row['end_offset'] <= len(row['document']['statement'])):
+                        matched_spans[(row['document']['memory_id'], row['document']['revision'])] = {
+                            'start': row['start_offset'], 'end': row['end_offset'], 'unit': 'unicode_code_point'}
                 return usable, len(found) > limit
 
             rows, more = nearest("", (), scan_limit)
@@ -220,7 +234,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
                                (_CJK.pattern,), CROSS_SCRIPT_CANDIDATES)
             rows = _interleave(rows, other)
             rankings["vector"] = remember(rows)
-            versions["vector"] = "embedding-space:" + space.fingerprint + ":script-balanced-v2"
+            versions["vector"] = "embedding-space:" + space.fingerprint + ":script-balanced-passages-v3"
         direct_ranked = _direct_candidates(rankings, versions, lexical_scores, limit=512)
         seeds = source_unit_candidates(direct_ranked, documents, limit=candidate_limit)
         seed_ids = [item["memory_id"] for item in seeds]
@@ -339,6 +353,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
     return list(closure.memories), {
         "access_usage": usage if recall_plan is None else {},
         "candidate_versions": roots, "rank_signals": signals, "valid_dependency_versions": dependencies,
+        "matched_statement_spans": {key: span for key, span in matched_spans.items() if key in root_set},
         "candidate_truncated": truncated,
         "source_truncated": closure.truncated or bool(closure.missing_versions) or bool(closure.cycle_versions),
     }
