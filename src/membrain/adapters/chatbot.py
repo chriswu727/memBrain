@@ -201,8 +201,8 @@ class ChatMemory:
         return host.export_user(self.directory, self.user_id(speaker))
 
     def resume(self, speaker: Speaker, *, current_turn: bool = True, session: str | None = None) -> dict:
-        """Resume recording for this speaker; by default their current message (which asked for it) is stored.
-        Pass the conversation's ``session`` when known, so only that conversation's paused turn comes back."""
+        """Resume recording for this speaker. Pass the conversation's ``session`` to include its current message
+        when it asked to resume; without a session only future messages are recorded."""
         user = self.user_id(speaker)
         result = host.resume(self.directory, user_id=user, current_turn=current_turn, session=session)
         return result

@@ -104,7 +104,7 @@ STUB_HOST = {
     ("s2-review", 2): [{"tool": "memory_boundary", "arguments": {"topic": "Tom", "aliases": ["my ex"]}}],
     ("s3-morning", 1): [{"tool": "memory_note", "arguments": PUNS, "source": "current"}],
     ("s7-recording", 0): [{"tool": "memory_pause", "arguments": {}}],
-    ("s7-recording", 2): [{"tool": "memory_resume", "arguments": {}}],
+    ("s7-recording", 2): [{"tool": "memory_resume", "arguments": {"session_id": "s7-recording"}}],
 }
 STUB_EXTRACT = {
     ("s1-arrival", 2): [{**REVIEW, "affect": NERVOUS}],

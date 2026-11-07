@@ -51,7 +51,8 @@ ASKS_ABOUT_ASSISTANT = re.compile(
 ASSISTANT_LINES = ('Lines marked "assistant said" are your own earlier replies: a suggestion, draft or plan there is '
                    'not the user\'s decision or a fact about the user unless a "user said" line confirms it.')
 
-TOOL_NAMES = {"note": "memory_note", "recall": "memory_recall", "pause": "memory_pause", "resume": "memory_resume"}
+TOOL_NAMES = {"note": "memory_note", "recall": "memory_recall", "pause": "memory_pause", "resume": "memory_resume",
+              "resume_session": "session_id"}
 
 
 def notes_notice(tools: dict | None = TOOL_NAMES) -> str:
@@ -71,10 +72,13 @@ def privacy_notice(tools: dict | None = TOOL_NAMES) -> str:
             "<private>…</private> is never stored.")
 
 
-def _recording_notice(is_paused: bool, tools: dict | None) -> str:
+def _recording_notice(is_paused: bool, tools: dict | None, *, session: str | None = None) -> str:
     if not is_paused:
         return ""
     resume_tool = (tools or {}).get("resume")
+    session_argument = (tools or {}).get("resume_session")
+    if resume_tool and session_argument and session is not None:
+        resume_tool += f" with {session_argument}={json.dumps(session, ensure_ascii=False)}"
     action = (f"If the user explicitly asks to resume, call {resume_tool} before claiming recording is on. "
               "Otherwise keep it paused."
               if resume_tool else "Recording must be resumed using the host's memory controls "
@@ -473,27 +477,19 @@ def resume(directory: Path, user_id: str | None = None, *, current_turn: bool = 
     """Turn recording back on. ``current_turn`` is for an agent resuming because the user's current message asked
     it to ("back on the record"): that message and its reply are then stored, when the turn began while paused and
     was not paused again during it. Only one turn is brought back: the one in ``session`` when the host knows it,
-    otherwise this user's most recently started paused turn, so a private turn in another of their conversations
-    stays unrecorded. A resume from anywhere else stores nothing from a turn already in progress."""
+    otherwise no turn already in progress is brought back. The host must identify the conversation rather than
+    guessing which paused exchange requested recording. A resume from anywhere else stores nothing from a turn
+    already in progress."""
+    if session is not None and (not isinstance(session, str) or not 1 <= len(session) <= 200):
+        raise ValueError("A resume session must contain 1 to 200 characters.")
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         _pause_file(directory, user_id).unlink(missing_ok=True)
         if current_turn:
-            wanted = _session_marker(directory, session).stem if session is not None else None
-            candidates = []
-            for marker in (state_directory(directory) / "sessions").glob("*.json"):
-                try:
-                    state = json.loads(marker.read_text(encoding="utf-8"))
-                except (OSError, ValueError):
-                    continue
-                if not isinstance(state, dict) or state.get("paused_turn") != "prompt":
-                    continue
-                if wanted is not None and marker.stem != wanted:
-                    continue
-                owner = state.get("user_id")
-                if user_id is None or owner == user_id or real_life_user(owner) == user_id:
-                    candidates.append((float(state.get("paused_at") or 0), marker.stem, marker, state))
-            if candidates:
-                _, _, marker, state = max(candidates, key=lambda item: item[:2])
+            if session is None:
+                return {"recording": "on", "current_turn_resumed": False, "reason": "session_required"}
+            marker, state = _session_marker(directory, session), session_state(directory, session)
+            owner = state.get("user_id")
+            if state.get("paused_turn") == "prompt" and (owner == user_id or real_life_user(owner) == user_id):
                 state["resumed_turn"] = True
                 _write_state(marker, state)
     return {"recording": "on"}
@@ -919,7 +915,7 @@ def _stage(directory: Path, session: str, record: dict, prompt: str) -> dict | N
             state.pop("pending", None)
             state.pop("resumed_turn", None)
             state["paused_turn"] = "prompt"  # Paused when it arrived; the message itself is not kept.
-            state["paused_at"] = time.time()  # A resume without a session brings back only the latest such turn.
+            state["paused_at"] = time.time()
             earlier = None
         else:
             state.pop("paused_turn", None)
@@ -1452,7 +1448,7 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
         if earlier:
             deliver(directory, None, earlier)
         start_in_background(directory)
-        return _recording_notice(paused(directory, user_id), tools) or None
+        return _recording_notice(paused(directory, user_id), tools, session=session) or None
     source = ""
     if include_source and not paused(directory, user_id):
         source = ("<membrain-source>\nWhen saving a note based on the current user message, pass source_messages="
@@ -1486,7 +1482,7 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
                 _acknowledge(client, current)
         except Exception as error:
             log(directory, f"notes refresh failed: {type(error).__name__}")
-        recording = _recording_notice(paused(directory, user_id), tools)
+        recording = _recording_notice(paused(directory, user_id), tools, session=session)
         prefix = "\n\n".join(part for part in (recording, source, refreshed) if part)
         try:
             flush(client, directory)

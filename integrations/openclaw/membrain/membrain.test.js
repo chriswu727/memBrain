@@ -79,6 +79,24 @@ test("a runtime that cannot keep people apart gets nothing from someone else's c
   assert.equal(calls.length, 1);
 });
 
+test("resume uses the host's canonical session instead of model-supplied scope", async () => {
+  const calls = [], tools = [], hooks = new Map();
+  definePlugin({ install: () => {}, exec: async (args, { input }) => {
+    calls.push(input);
+    return "{}";
+  } }).register({ pluginConfig: {}, on: (name, handler) => hooks.set(name, handler),
+    registerTool: (factory) => tools.push(factory) });
+  await hooks.get("before_prompt_build")({ prompt: "Resume recording please." },
+    { sessionId: "requester", sessionKey: "requester-alias" });
+  const resume = tools.map(factory => factory({ sessionKey: "requester-alias" }))
+    .find(tool => tool.name === "membrain_resume");
+  await resume.execute("call", { session_id: "unrelated-private-session" });
+  assert.equal(calls.at(-1).session_id, "requester");
+  const unscoped = tools.map(factory => factory({})).find(tool => tool.name === "membrain_resume");
+  await unscoped.execute("call", { session_id: "unrelated-private-session" });
+  assert.equal(calls.at(-1).session_id, undefined);
+});
+
 test("the last assistant text is found in OpenClaw transcripts", () => {
   assert.equal(lastAssistantText([{ role: "user", content: "hi" }, { role: "assistant", content: [
     { type: "thinking", thinking: "..." }, { type: "text", text: "Hello!" }] }, { role: "toolResult", content: "x" }]),
@@ -111,7 +129,8 @@ test("memory carries across OpenClaw sessions through the real runtime",
       { sessionId: "oc-2" });
     await memory.agentEnd({ success: true, messages: [{ role: "assistant", content: "Understood." }] },
       { sessionId: "oc-2" });
-    assert.deepEqual(JSON.parse(await memory.tool("membrain_resume", {})), { recording: "on" });
+    assert.deepEqual(JSON.parse(await memory.tool("membrain_resume", {})),
+      { recording: "on", current_turn_resumed: false, reason: "session_required" });
     const third = await memory.beforePromptBuild({ prompt: "Hello again", messages: [] }, { sessionId: "oc-3" });
     assert.doesNotMatch(third.appendSystemContext, /groom's speech/);
     const shared = JSON.parse(await memory.tool("membrain_note", {
