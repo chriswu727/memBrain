@@ -57,7 +57,7 @@ def apply_erasure(service, conn, principal, brain, *, event_ids, memory_ids, mod
     )
     conn.execute(
         'UPDATE memory_assertions SET suppressed=true,deleted=deleted OR %s,'
-        "document=CASE WHEN %s THEN NULL ELSE document END,search_text='',embedding=NULL "
+        "document=CASE WHEN %s THEN NULL ELSE document END,search_text='',embedding=NULL,source_han_majority=NULL "
         'WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=ANY(%s::text[])',
         (erase, erase, *params, sorted(memory_ids)),
     )

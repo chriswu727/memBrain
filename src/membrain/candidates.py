@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import math
-import re
 
 from . import cognition
 from .context_views import assistant_speech
@@ -9,9 +8,30 @@ from .dynamics import access_state, rank_weight
 from .embeddings import EmbeddingResult
 from .helpers import DomainError, digest, now
 from .retrieval import RANK_METHODS, fuse_rankings, resolve_dependency_closure
+from .source_scripts import han_majority as _han_majority
+from .source_scripts import nonletter_pattern as _nonletter_pattern
 
-_CJK = re.compile("[\u3400-\u9fff]")
 CROSS_SCRIPT_CANDIDATES = 16
+
+
+def _other_script_clause(text):
+    # Capture envelopes contain speaker IDs and English act labels, not the source's writing system.
+    source = (
+        "(CASE WHEN a.document #>> '{derivation,method}'='direct_capture' "
+        "AND jsonb_array_length(a.document->'evidence_refs')=1 "
+        "AND a.document #>> '{evidence_refs,0,span,unit}'='unicode_code_point' "
+        "AND jsonb_typeof(a.document #> '{evidence_refs,0,span,start}')='number' "
+        "AND jsonb_typeof(a.document #> '{evidence_refs,0,span,end}')='number' "
+        "THEN right(a.search_text,LEAST(length(a.search_text),GREATEST(0,"
+        "(a.document #>> '{evidence_refs,0,span,end}')::numeric-"
+        "(a.document #>> '{evidence_refs,0,span,start}')::numeric))::integer) "
+        "ELSE a.search_text END)"
+    )
+    return (
+        f"AND coalesce(a.source_han_majority,length(regexp_replace({source} COLLATE \"C\",%s,'','g')) * 2 "
+        f"> length(regexp_replace({source} COLLATE \"C\",%s,'','g'))) = %s ",
+        ("[^\u3400-\u9fff]", _nonletter_pattern(), not _han_majority(text)),
+    )
 
 
 def _interleave(primary, other, every=3):
@@ -230,11 +250,11 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
             truncated = truncated or more
             # Small multilingual models score same-language text higher, so a fact stated in another script can
             # rank below many loosely related sentences. Interleave the closest other-script memories.
-            other, _ = nearest("AND a.search_text " + ("!~" if _CJK.search(text) else "~") + " %s ",
-                               (_CJK.pattern,), CROSS_SCRIPT_CANDIDATES)
+            script_clause, script_params = _other_script_clause(text)
+            other, _ = nearest(script_clause, script_params, CROSS_SCRIPT_CANDIDATES)
             rows = _interleave(rows, other)
             rankings["vector"] = remember(rows)
-            versions["vector"] = "embedding-space:" + space.fingerprint + ":script-balanced-passages-v3"
+            versions["vector"] = "embedding-space:" + space.fingerprint + ":script-balanced-source-passages-v4"
         direct_ranked = _direct_candidates(rankings, versions, lexical_scores, limit=512)
         seeds = source_unit_candidates(direct_ranked, documents, limit=candidate_limit)
         seed_ids = [item["memory_id"] for item in seeds]

@@ -47,6 +47,7 @@ ALLOWED = (
     re.compile(r"^UPDATE memory_cache_maintenance SET request_action=%s,request_key=%s,trace_id=%s,"),
     re.compile(r"^UPDATE memory_requests SET response=NULL WHERE .* AND response IS NOT NULL AND \(action,key\) IN "),
     re.compile(r"^DELETE FROM memory_traces WHERE .* AND id=ANY\(%s::text\[\]\) AND document->>'kind'='candidate_hit'$"),
+    re.compile(r"^UPDATE memory_assertions a SET source_han_majority=projection.majority FROM unnest\("),
     re.compile(r"^UPDATE memory_jobs SET result=NULL WHERE .* AND id=%s AND kind='query_embedding'$"),
 )
 

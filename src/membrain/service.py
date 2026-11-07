@@ -10,7 +10,7 @@ from datetime import UTC, datetime
 import psycopg
 from psycopg.types.json import Jsonb
 
-from . import cognition, recall_deadline
+from . import cognition, recall_deadline, source_scripts
 from .contracts import CONTRACT_VERSION, validate
 from .helpers import DomainError, deep_copy, digest, now, uid
 
@@ -1018,12 +1018,12 @@ class MemoryService:
         memory = self._rebind(memory, principal, brain)
         validate("MemoryAssertion", memory)
         conn.execute(
-            "INSERT INTO memory_assertions(tenant_id,owner_id,brain_id,id,revision,document,event_ids,memory_ids,search_text,embedding) "
-            "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::vector) ON CONFLICT(tenant_id,brain_id,id,revision) DO NOTHING",
+            "INSERT INTO memory_assertions(tenant_id,owner_id,brain_id,id,revision,document,event_ids,memory_ids,search_text,embedding,source_han_majority) "
+            "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::vector,%s) ON CONFLICT(tenant_id,brain_id,id,revision) DO NOTHING",
             (*self._params(principal, brain["id"]), memory["memory_id"], memory["revision"], Jsonb(memory),
              list({r["event_id"] for r in memory["evidence_refs"]} | set(memory.get("root_event_ids", []))),
              list({r["memory_id"] for r in memory["derivation"]["source_memory_versions"]}),
-             memory["statement"], _vector(memory["statement"])),
+             memory["statement"], _vector(memory["statement"]), source_scripts.classify(memory)),
         )
         if self.embedding_provider:
             from .vector_jobs import embedding_job_id
@@ -1637,6 +1637,7 @@ class MemoryService:
                 conn.execute("SET LOCAL lock_timeout='100'")
                 brain = self._brain(conn, principal, brain_id)
                 maintain(conn, self._params(principal, brain["id"]))
+                source_scripts.maintain(conn, self._params(principal, brain["id"]))
         return result
 
     def source_messages(self, principal, brain_id, references):
