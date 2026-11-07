@@ -1,0 +1,29 @@
+{
+  "run_id": 42405234407,
+  "job_id": 128501388886,
+  "source_commit": "89d510360fbdfa55b97801204c277259c783548b",
+  "qualified_head": "1cfb12b8513c478d8d4a5cfc9f6412c5139385f8",
+  "python": "7851 passed, 3 warnings in 1951.62s; zero skips",
+  "typescript": "53 passed; zero failures",
+  "strict_types": "passed",
+  "ruff": "passed",
+  "builds": [
+    "sdist",
+    "wheel"
+  ],
+  "warnings": "Three Python fork deprecation warnings; runner Node 20 action deprecation and punycode warnings retained in raw log.",
+  "files": [
+    {
+      "path": "verify-job.log.gz",
+      "sha256": "02eef81a4ded56028f74bbce29288c5fd231f6225239bd51cf007843eb00226d",
+      "uncompressed_sha256": "49ac0f76f08fcd587bae431856f9c12d462aec004683ae4f1cd5de82b4eda456",
+      "bytes": 208948
+    },
+    {
+      "path": "verify-jobs-final.json.gz",
+      "sha256": "c21cc02945ea5c70ac35099f087397a0bc1c64b9579aafd8ee5e25025e896c19",
+      "uncompressed_sha256": "de46dc534351f8648ba25832603878b2f40ea79b768c9de353b49a92292407ac",
+      "bytes": 558
+    }
+  ]
+}
