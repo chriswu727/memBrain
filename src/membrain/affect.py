@@ -127,13 +127,31 @@ def record_affect(service, conn, principal, brain, *, note_id, affect, request_i
 def _records(service, conn, principal, brain_id, limit=MAX_RECORDS + 1, *, ids=None, include_imports=True) -> list[dict]:
     """Current records whose note is still current, newest first, each with its note and evidence."""
     params = service._params(principal, brain_id)
-    rows = conn.execute(
-        f"SELECT producer_ref,document FROM memory_events WHERE {_VISIBLE} AND conversation_id=%s "
-        "AND document->'observed'->'content'->>'text' NOT LIKE %s "
-        "AND (%s::text[] IS NULL OR id=ANY(%s::text[])) ORDER BY sequence DESC LIMIT %s",
-        (*params, AFFECT_CONVERSATION, '{"affect_marker"%', ids, ids, limit)).fetchall()
-    records = [entry for entry in map(_entry, rows) if entry and "marker" not in entry]
     marker = latest_marker(service, conn, principal, brain_id)
+    cutoff = marker["applies_from_sequence"] if marker else 0
+    before, result = None, []
+    batch_size = 256
+    while len(result) < limit:
+        rows = conn.execute(
+            f"SELECT sequence,producer_ref,document FROM memory_events WHERE {_VISIBLE} AND conversation_id=%s "
+            "AND document->'observed'->'content'->>'text' NOT LIKE %s "
+            "AND (%s::text[] IS NULL OR id=ANY(%s::text[])) AND sequence>%s "
+            "AND (%s::bigint IS NULL OR sequence<%s) AND (%s OR producer_ref<>%s) "
+            "ORDER BY sequence DESC LIMIT %s",
+            (*params, AFFECT_CONVERSATION, '{"affect_marker"%', ids, ids, cutoff,
+             before, before, include_imports, ARCHIVE_PRODUCER, batch_size),
+        ).fetchall()
+        valid = _valid_records(service, conn, principal, brain_id, rows, marker, include_imports)
+        result.extend(valid[:limit - len(result)])
+        if len(rows) < batch_size:
+            break
+        before = rows[-1]["sequence"]
+    return result
+
+
+def _valid_records(service, conn, principal, brain_id, rows, marker, include_imports):
+    params = service._params(principal, brain_id)
+    records = [entry for entry in map(_entry, rows) if entry and "marker" not in entry]
     if marker:  # Erased by the reset; kept out here too, so nothing before the marker can count.
         records = [record for record in records if record["sequence"] > marker["applies_from_sequence"]]
     related_ids = list({value for record in records for value in (record["note_id"], record["id"])})
