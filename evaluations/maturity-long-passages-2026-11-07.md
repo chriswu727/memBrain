@@ -1,6 +1,6 @@
 # Long-source recall and bounded local encoding
 
-Development build `80dec3b1782ede0349ceafe436f481ed8fb7ea16957bd62f435c74cdd9fe011a` adds overlapping local passage vectors while preserving the original assertion, source evidence and parent vector. Migration 026 adds private auxiliary index rows and an index-coverage version. This work is not yet qualified or delivered as an installed release candidate. The development launchers now pin runtime `3b4720ec3f6cde49b672ff6844f8bc8db02dfce9` for fresh installed-package qualification; the delivered integration candidate remains unchanged.
+Development build `80dec3b1782ede0349ceafe436f481ed8fb7ea16957bd62f435c74cdd9fe011a` adds overlapping local passage vectors while preserving the original assertion, source evidence and parent vector. Migration 026 adds private auxiliary index rows and an index-coverage version. Fresh installed-package qualification passes below, but full scale and CI gates remain open; this work is not yet delivered to the integration candidate. The nine development launchers pin runtime `3b4720ec3f6cde49b672ff6844f8bc8db02dfce9`.
 
 ## User-visible defect and repair
 
@@ -51,4 +51,10 @@ The final bounded-encoding build passes **508 related Python tests**, including 
 
 Candidate `badc404`, still the delivered integration head, failed [Verify 42359121591](https://github.com/chriswu727/memBrain/actions/runs/42359121591): **7,710 passed, one failed, three warnings**; subsequent TypeScript/build steps were skipped. The failure is an absolute-first ordering assertion. Twenty-four paired diagnostics show the old and new SQL paths retain identical roots; a separate 24-case counterfactual confirms the pre-fusion defect excludes the target every time. The development regression therefore checks bounded admission plus vector support, while the pure ranking test still checks weak-versus-strong lexical weighting. This is a supported test-contract correction, not a claim that the current candidate CI passed. Its native run passes all five platforms and 47 audited summaries.
 
-The [evidence manifest](evidence/maturity-long-passages-2026-11-07/manifest.json) records raw payload hashes. Fresh installation, package parity, full network/scale qualification, updated launcher pins and candidate CI must precede integration delivery. R4 remains failed and C5 incomplete. No new paid/subscription behavioral evaluation ran; no main merge, tag or release is authorized.
+## Exact installed package
+
+Fresh launcher installation and upgrade, MCP, proxy, restart, companion-state preservation and streamed backup/restore pass **49/49 checks**. Both installed homes match all **192 runtime inputs**, build `80dec3b...` and schema `2d5ed57efb283d0e9a28fba22777ef7bae452a5843d07cce8cde0e7e9fe6826e`. Four profiles and all eight ports close. The actual installed package, resolved before test-only dependencies and without source shadowing, passes **171 related tests**. Its disposable test database stops and is removed. Four launcher-pin/matrix checks pass.
+
+Development head `bc449e04163fd017ac33cd095274527798da2dce` is running [Verify 42363211463](https://github.com/chriswu727/memBrain/actions/runs/42363211463) and [Native 42363213186](https://github.com/chriswu727/memBrain/actions/runs/42363213186). Native checks reuse the verified previous engine artifacts and run all five platforms, including current Ubuntu. Neither pending run is a pass.
+
+The [evidence manifest](evidence/maturity-long-passages-2026-11-07/manifest.json) records 51 raw payload hashes. All payloads decompress to their recorded bytes, and scanning against the four owned installation profiles finds zero credential matches. Full network/scale qualification and CI must still precede integration delivery. R4 remains failed and C5 incomplete. No new paid/subscription behavioral evaluation ran; no main merge, tag or release is authorized.

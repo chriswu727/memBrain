@@ -205,6 +205,60 @@
       "path": "candidate-native-summary-audit.json.gz",
       "bytes": 9476,
       "sha256": "770a3826b324b501b62e398d5b21f98c129164c83156380ae7f93d1280d001e2"
+    },
+    {
+      "path": "delivery-run-install.py.gz",
+      "bytes": 1990,
+      "sha256": "99f225f3531c80d3a85918b0ac6e1c20a46cbc687cd382b3c308e9e7dbaa9642"
+    },
+    {
+      "path": "delivery-check-installed-and-ports.py.gz",
+      "bytes": 2201,
+      "sha256": "8ce710de7db5ca8ea540cae2d3d5bf13b2f7052fcf0aeeaa51ffbb5cc8accd84"
+    },
+    {
+      "path": "delivery-install-run-meta.json.gz",
+      "bytes": 590,
+      "sha256": "1fd3d3460d63f801c5020d4043e880de613d93cf0dbba95d48b91ff0e8727e40"
+    },
+    {
+      "path": "delivery-install.log.gz",
+      "bytes": 16182,
+      "sha256": "06b47411c7621e35e817961a9b756a7be82430ed4d08cb14e039e80f7aaf4407"
+    },
+    {
+      "path": "delivery-installed-and-ports.json.gz",
+      "bytes": 2475,
+      "sha256": "1164bb4ade664449aeabde060eefc67eb7701e574f0b4f83865dfccc73d60e81"
+    },
+    {
+      "path": "delivery-installed-regression.log.gz",
+      "bytes": 261,
+      "sha256": "30b8544d89f0242405d47a5686b558d22a7af060826a993d32d9ef528d4ce84f"
+    },
+    {
+      "path": "delivery-install-results.json.gz",
+      "bytes": 23132,
+      "sha256": "7bcfe50a4065ac87c116e0e4fec08751aa2ee591a07b63760f03fc9a5ac81869"
+    },
+    {
+      "path": "installed-regression-cleanup.json.gz",
+      "bytes": 70,
+      "sha256": "fed07233ea8472fd75f50c09414c439dece7d68be5d13b33604bc1eeeb52f660"
+    },
+    {
+      "path": "ruff-final.log.gz",
+      "bytes": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "pins.log.gz",
+      "bytes": 98,
+      "sha256": "364ee67226095f20328ed9d08b9d81815746d90891434ba3cb3a67fbce00f5c9"
     }
-  ]
+  ],
+  "owned_installation_credential_scan": {
+    "profiles": 4,
+    "matches": 0
+  }
 }
