@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 九个启动器均固定到运行时 `4115e90`。[登录并发修复](evaluations/maturity-ui-code-atomicity-2026-11-07.md)通过了 155 项相关源码测试和 7 项安装包检查。此前运行时 `f5e265c` 的[验收](evaluations/maturity-month-qualification-2026-11-07.md)通过了 49 项真实 Mac 安装／升级／恢复检查，两套全新安装中的 197 个运行时输入完全一致，五个受支持平台的原生验证全部通过。全部 36 个全屏召回窗口通过，4,080 次样本均非空；最慢窗口的单路／同库八路／八库并发 p95 为 **235.34／308.34／310.41 ms**。真实 3D 视图与存储中的 187 个节点和 71 条类型化连线一致。这些是参考语料上的关键词召回测量，不代表通用容量或语义质量。当前候选的完整 CI 尚待完成。[宿主覆盖限制](docs/host-compatibility.md)和[历史失败](docs/releasing.md)均保留；R4、C5 和最终发布审查通过前，发布保持冻结。
+> **预发布阶段。** 九个启动器均固定到运行时 `4115e90`。[登录并发修复](evaluations/maturity-ui-code-atomicity-2026-11-07.md)通过了 155 项相关源码测试和 7 项安装包检查。此前运行时 `f5e265c` 的[验收](evaluations/maturity-month-qualification-2026-11-07.md)通过了 49 项真实 Mac 安装／升级／恢复检查，两套全新安装中的 197 个运行时输入完全一致，五个受支持平台的原生验证全部通过。全部 36 个全屏召回窗口通过，4,080 次样本均非空；最慢窗口的单路／同库八路／八库并发 p95 为 **235.34／308.34／310.41 ms**。真实 3D 视图与存储中的 187 个节点和 71 条类型化连线一致。这些是参考语料上的关键词召回测量，不代表通用容量或语义质量。当前整合版本的完整 CI 已通过 7,838 项 Python 测试、53 项 TypeScript 测试，零跳过，严格类型检查、Ruff 和构建均通过；当前版本的五平台原生验证也全部通过。较早源码 CI 达到任务时限而取消的记录保留在上述报告中。[宿主覆盖限制](docs/host-compatibility.md)和[历史失败](docs/releasing.md)均保留；R4、C5 和最终发布审查通过前，发布保持冻结。
 
 > **最新行为验收结果：** [第三次验收 `maturity-20261106b`](evaluations/maturity-third-attempt-2026-11-06.md)已完成 R4 评分：插件模式 17.5 分（未通过），提取模式 20.5 分（通过），全历史参照组 19 分。C5 中途中断，未达到可评分条件。之后的源码修复尚未通过新一轮行为验收，发布仍冻结。
 

@@ -1,7 +1,7 @@
 {
   "build_id": "09051895b947ff192b1c277af3ca5fc2f5ac7f3d3021be66cb751201cf8f57b8",
   "schema_id": "478061ac77337fd25d87174df1185ab1d40ad4d4216290078fb26fd2f519fe39",
-  "status": "Local source, installed and native checks passed. Source CI hit its 45-minute limit after 7838 Python passes; integration Verify pending.",
+  "status": "Local source, installed, five-platform native and full integration Verify passed. Earlier source CI execution-limit cancellation retained. Not R4/C5 acceptance.",
   "files": [
     {
       "path": "baseline.log.gz",
@@ -616,6 +616,12 @@
       "original_sha256": "e0ccbbf63231e3a74391ec9cd69f42de7c5f8d56b2e3f3733a310851c92ef438"
     },
     {
+      "path": "integration-ci/docs-only-cancellations.json.gz",
+      "bytes": 333,
+      "sha256": "7708657ad3c467884886e141ea0db7b7417dfea8921a2024739f75907383a83f",
+      "original_sha256": "c8c56ae15964f73d9a8b558c8e1b495c393bbbcdc6e21bd4136783a1e446e98e"
+    },
+    {
       "path": "integration-ci/native-stage-audit.json.gz",
       "bytes": 1900,
       "sha256": "e79e3e4a3678f1b683c2475b1c54ae659fbefbb5f53746a80d1a73c6e7c58826",
@@ -634,6 +640,30 @@
       "original_sha256": "eb27d24b763ff5e621fb98561d7c1fbd636779e9f1e88e228e13a9529da3d6f6"
     },
     {
+      "path": "integration-ci/verify-complete.log.gz",
+      "bytes": 207839,
+      "sha256": "cef665dfb70a6a6e4c1f2a515e61b963f99fbdc6eb038d8357b6d82e7b92dc40",
+      "original_sha256": "e70b17aa70e3f96a2425dee8cc0a2677c7cd08423b27e53096b32c5c13afab8d"
+    },
+    {
+      "path": "integration-ci/verify-log-receipt.json.gz",
+      "bytes": 377,
+      "sha256": "803c0dde953e445b2b6556946e3af48d270e57e9cc44f1b4877b5f1e5448562f",
+      "original_sha256": "4636ed30cc3db60343bc79a65b244e1a509ab4878fadc1ece8d89b46a2557620"
+    },
+    {
+      "path": "integration-ci/verify-pytest.log.gz",
+      "bytes": 183264,
+      "sha256": "9a5f3bf107e4c2c4b1220458ef20ef62eab938c4591399201e790e7c08646ec0",
+      "original_sha256": "c48c31af88414cd9aed55bd7a33330aa2b790885c41a07417b0cf33853906a40"
+    },
+    {
+      "path": "integration-ci/verify-status-final.json.gz",
+      "bytes": 838,
+      "sha256": "8ba43de196c1ba1963b6c89a69580d3826b0bcc76d983afc3c44f9ed10d7b7ea",
+      "original_sha256": "8ea719b1817819deaec3f569591b282db537d11edc2c602b16bbc6993eac2e5c"
+    },
+    {
       "path": "integration-ci/watch_native.py.gz",
       "bytes": 410,
       "sha256": "083be7775635d332de8449096f1339b876399cb83c2e98385e2eaa0da6c4ba2d",
@@ -647,15 +677,15 @@
     },
     {
       "path": "integration-sync.log.gz",
-      "bytes": 5950,
-      "sha256": "b681c3653a732ebef39a75e04e12328e4f9b45716ba5b02b4192016b72434708",
-      "original_sha256": "4a575ba0b3d0db1f61667ef4264213c1c3f46fbe526ba0d3023cbabb92616804"
+      "bytes": 1554,
+      "sha256": "214a63ebb6011ac4857fb92c1b82da525d682292e75992613ed876baeeb145ff",
+      "original_sha256": "7914fd7cc0fbd795c9326a006370d96525fc2ba7d5a53c299d2ddcf96bd654ac"
     },
     {
       "path": "package_evidence.py.gz",
-      "bytes": 1493,
-      "sha256": "d7161e7551e0479187f1d3b5341f1aafb2a092192f9e1fb5bed9773fe40b7945",
-      "original_sha256": "7048aaf1ee823d725b1e36e4c0d26ab8a6f81a7f038f5b402c6bef9de5ce867e"
+      "bytes": 1616,
+      "sha256": "9fcce6c72720df6377cb591ff71653d193f496730cc94651f51480fbfcb9d2ef",
+      "original_sha256": "31efcb2ee99520449b7d8023643d1334bef18fb3e233839bb5db2774fef03f38"
     },
     {
       "path": "pins.log.gz",
@@ -670,6 +700,17 @@
       "original_sha256": "1054a240f638d80219be978a026f9f9d9b313e11fafd1ee13b3c444eb65377fb"
     }
   ],
+  "integration_verify": {
+    "run": 42380382170,
+    "head": "ee564c5d75fcee5db0f8d6eee73e0e41a49e0ff1",
+    "conclusion": "success",
+    "python_passed": 7838,
+    "python_warnings": 3,
+    "python_skipped": 0,
+    "typescript_passed": 53,
+    "typescript_skipped": 0,
+    "ruff_typecheck_build": "passed"
+  },
   "source_verify": {
     "run": 42378912858,
     "head": "fdbc80a6bff27ca1ab57c190466021445021651e",
