@@ -160,7 +160,7 @@ Each version records who made it (host, user or accepted feedback) and why.
  "source_event_ids": ["…"], "felt_at": "2027-03-12", "topic": "Friday's interview"}
 ```
 
-- **`basis`** is `reported` (the user said it) or `inferred` (read by the host or the extraction model). An inferred record must have a source message.
+- **`basis`** is `reported` (the user said it) or `inferred` (read by the host or the extraction model). An inferred record is visible only when its own reading has a resolved, current user-message source. Assistant messages, unsent drafts and unresolved references cannot establish a user feeling. This applies to native and restored records.
 - **Who writes it.** The host writes records with the note tool; in the proxy, the optional extraction model does. No model call is added for affect.
 
 **Context.** A record shows on the line of the note it belongs to:
@@ -181,7 +181,7 @@ There is no overall score of the user's emotions.
 3. After the user deletes that message, session 3's context has neither the note's affect nor the interview, and the page no longer lists the record.
 
 **Reset scope.**
-- "Clear feelings" deletes every affect record, reported and inferred, and writes an affect reset marker. Extraction and inference never re-read messages from before the marker to recreate records.
+- "Clear feelings" deletes every affect record, reported and inferred, and writes an affect reset marker. Extraction and inference never re-read messages from before the marker to recreate records, including sources inherited when replacing a note. Explicit sources identify a new reading independently of older note dependencies; a genuinely new post-reset feeling remains valid. Pending references resolve into that reading's own dependency edges and survive archive restore.
 - It also deletes the `agent_mood` triggers that came from those records.
 - It leaves notes, messages, `persona` and `relationship` untouched.
 
@@ -195,6 +195,7 @@ There is no overall score of the user's emotions.
 **Triggers.** Mood changes only through listed rules over events already stored, with no model call:
 - the user reports good news (a reported positive affect, or a plan marked done) → glad;
 - the user reports distress → concerned, and less playful;
+- a supported inferred feeling follows the corresponding good-news/distress rule at half strength and remains explicitly labelled inferred;
 - a shared joke or play, from a relationship moment → playful; any other shared moment → glad.
 
 Absence, silence, or the user leaving are **never** triggers, so there is no "I missed you" sadness and no guilt.

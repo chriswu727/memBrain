@@ -640,10 +640,11 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
         if affect is not None:
             from .affect import record_affect
 
+            explicit_reading = bool(arguments.get("source_event_ids") or arguments.get("source_messages"))
             result.update(record_affect(service, conn, principal, brain, note_id=note_id, affect=affect,
                                         request_id=request_id, producer=arguments.get("producer", NOTE_PRODUCER),
-                                        source_event_ids=arguments.get("source_event_ids", []),
-                                        source_messages=arguments.get("source_messages", [])))
+                                        source_event_ids=arguments.get("source_event_ids", []) if explicit_reading else linked,
+                                        source_messages=arguments.get("source_messages", []) if explicit_reading else references))
         conn.execute(
             "INSERT INTO memory_requests(tenant_id,owner_id,brain_id,action,key,request_hash,response) "
             "VALUES(%s,%s,%s,'note',%s,%s,%s)", (*params, request_id, fingerprint, Jsonb(result)))

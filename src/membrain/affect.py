@@ -60,7 +60,8 @@ def _entry(row) -> dict | None:
             return None
         checked = check_affect(record, sourced=True)
         entry = {**base, "note_id": note_id, **checked, "topic": checked.get("topic"), "written_by": author,
-                 "read_from": list(sources), "_from_archive": row["producer_ref"] == ARCHIVE_PRODUCER}
+                 "read_from": list(sources), "_sources_bound": "source_references" in observed,
+                 "_from_archive": row["producer_ref"] == ARCHIVE_PRODUCER}
     except (ValueError, KeyError, TypeError, AttributeError):
         return None
     return entry
@@ -93,9 +94,10 @@ def record_affect(service, conn, principal, brain, *, note_id, affect, request_i
     for ref in source_messages:
         row = conn.execute(
             f"SELECT id FROM memory_events WHERE {_VISIBLE} AND producer_ref=%s AND source_key=%s "
-            "AND source_revision=%s AND conversation_id IS DISTINCT FROM %s",
+            "AND source_revision=%s AND (conversation_id IS NULL OR NOT (conversation_id=ANY(%s::text[]))) "
+            "AND document->'observed'->>'delivery_state' NOT IN ('draft','cancelled')",
             (*params, ref["producer_ref"], ref["source_event_key"], ref["source_revision"],
-             NOTES_CONVERSATION)).fetchone()
+             [NOTES_CONVERSATION, AFFECT_CONVERSATION])).fetchone()
         if row and row["id"] not in explicit:
             explicit.append(row["id"])  # A reference not recorded yet is newer than any marker.
     marker = latest_marker(service, conn, principal, brain["id"])
@@ -113,7 +115,8 @@ def record_affect(service, conn, principal, brain, *, note_id, affect, request_i
         "actor_ref": producer, "actor_role": "system", "event_kind": "message",
         "content": {"media_type": "text/plain", "text": json.dumps(stored, ensure_ascii=False, sort_keys=True)},
         "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
-        "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": []})
+        "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": [],
+        "source_references": list(source_messages)})
     for source in [note_id, *explicit]:
         conn.execute(
             "INSERT INTO memory_event_dependencies(tenant_id,owner_id,brain_id,input_event_id,output_event_id) "
@@ -133,34 +136,45 @@ def _records(service, conn, principal, brain_id, limit=MAX_RECORDS + 1, *, ids=N
     marker = latest_marker(service, conn, principal, brain_id)
     if marker:  # Erased by the reset; kept out here too, so nothing before the marker can count.
         records = [record for record in records if record["sequence"] > marker["applies_from_sequence"]]
-    note_ids = list({record["note_id"] for record in records})
-    notes = {row["id"]: row for row in conn.execute(
-        "SELECT id,document->'observed'->'content'->>'text' AS text,"
+    related_ids = list({value for record in records for value in (record["note_id"], record["id"])})
+    related = {row["id"]: row for row in conn.execute(
+        "SELECT id,conversation_id,document->'observed'->'content'->>'text' AS text,"
         "ARRAY(SELECT d.input_event_id FROM memory_event_dependencies d JOIN memory_events s "
         "ON s.tenant_id=d.tenant_id AND s.owner_id=d.owner_id AND s.brain_id=d.brain_id AND s.id=d.input_event_id "
         "WHERE d.tenant_id=memory_events.tenant_id AND d.owner_id=memory_events.owner_id "
         "AND d.brain_id=memory_events.brain_id AND d.output_event_id=memory_events.id AND s.is_current "
         "AND NOT s.deleted AND NOT s.suppressed AND NOT s.retired AND s.document IS NOT NULL "
         "ORDER BY s.sequence) AS sources "
-        f"FROM memory_events WHERE {_VISIBLE} AND conversation_id=%s AND id=ANY(%s::text[])",
-        (*params, NOTES_CONVERSATION, note_ids))} if note_ids else {}
+        f"FROM memory_events WHERE {_VISIBLE} AND conversation_id=ANY(%s::text[]) AND id=ANY(%s::text[])",
+        (*params, [NOTES_CONVERSATION, AFFECT_CONVERSATION], related_ids))} if related_ids else {}
     read_from = list({value for record in records for value in record["read_from"]}
-                     | {value for note in notes.values() for value in note["sources"]})
+                     | {value for item in related.values() for value in item["sources"]})
     visible = {row["id"]: row for row in conn.execute(
-        "SELECT id,conversation_id,producer_ref,document->'observed'->>'actor_role' AS actor_role "
-        f"FROM memory_events WHERE {_VISIBLE} AND id=ANY(%s::text[])", (*params, read_from))} if read_from else {}
+        "SELECT id,sequence,conversation_id,producer_ref,document->'observed'->>'actor_role' AS actor_role "
+        f"FROM memory_events WHERE {_VISIBLE} AND id=ANY(%s::text[]) "
+        "AND (conversation_id IS NULL OR NOT (conversation_id=ANY(%s::text[]))) "
+        "AND document->'observed'->>'delivery_state' NOT IN ('draft','cancelled')",
+        (*params, read_from, [NOTES_CONVERSATION, AFFECT_CONVERSATION]))} if read_from else {}
     result = []
     for record in records:
         imported = record.pop("_from_archive")
+        bound = record.pop("_sources_bound")
         if imported and not include_imports:
             continue
-        note = notes.get(record["note_id"])
-        if note is None:
+        note = related.get(record["note_id"])
+        if note is None or note["conversation_id"] != NOTES_CONVERSATION:
             continue  # Its note was corrected or deleted; the cascade removes the record with it.
         fields, sentence = parse_note(note["text"] or "")
-        sources = [value for value in record.pop("read_from") if value in visible]
-        sources += [value for value in note["sources"] if value not in sources]
-        if imported and record["basis"] == "inferred" and not any(
+        sources = record.pop("read_from")
+        if bound:
+            # An unresolved reading must not borrow evidence inherited by its note.
+            sources += related[record["id"]]["sources"]
+        elif not sources:
+            sources = note["sources"]
+        sources = list(dict.fromkeys(value for value in sources if value in visible))
+        if marker and any(visible[source]["sequence"] < marker["applies_from_sequence"] for source in sources):
+            continue
+        if record["basis"] == "inferred" and not any(
                 visible[source]["actor_role"] == "user" and visible[source]["conversation_id"] != NOTES_CONVERSATION
                 and visible[source]["producer_ref"] != "membrain-memory-page" for source in sources):
             continue
