@@ -21,7 +21,7 @@ from pathlib import Path
 
 from .. import host
 
-TOOLS = {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause"}
+TOOLS = {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause", "resume": "membrain_resume"}
 GROUP_MEMORY = ("separate", "shared")
 PREVIOUS_EXCHANGES = 2000
 
@@ -110,7 +110,7 @@ class ChatMemory:
                                      roleplay=roleplay, share_real_life=share)
         recalled = host.prompt_context(self.directory, session, text, turn_id=turn_id, producer=self.producer,
                                        user_id=self.user_id(speaker), roleplay=roleplay,
-                                       include_source=bool(self.tools))  # The source hint is for the note tool.
+                                       include_source=bool(self.tools), tools=self.tools)  # The source hint is for the note tool.
         return "\n\n".join(part for part in (block, recalled) if part) or None
 
     def record(self, speaker: Speaker, reply: str | None, *, session: str, turn_id: str | None = None,

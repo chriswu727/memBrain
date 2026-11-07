@@ -51,7 +51,7 @@ ASKS_ABOUT_ASSISTANT = re.compile(
 ASSISTANT_LINES = ('Lines marked "assistant said" are your own earlier replies: a suggestion, draft or plan there is '
                    'not the user\'s decision or a fact about the user unless a "user said" line confirms it.')
 
-TOOL_NAMES = {"note": "memory_note", "recall": "memory_recall", "pause": "memory_pause"}
+TOOL_NAMES = {"note": "memory_note", "recall": "memory_recall", "pause": "memory_pause", "resume": "memory_resume"}
 
 
 def notes_notice(tools: dict | None = TOOL_NAMES) -> str:
@@ -69,6 +69,17 @@ def privacy_notice(tools: dict | None = TOOL_NAMES) -> str:
         return "Text inside <private>…</private> is never stored."
     return (f"If the user asks you not to remember something, call {tools['pause']}; text inside "
             "<private>…</private> is never stored.")
+
+
+def _recording_notice(is_paused: bool, tools: dict | None) -> str:
+    if not is_paused:
+        return ""
+    resume_tool = (tools or {}).get("resume")
+    action = (f"If the user explicitly asks to resume, call {resume_tool} before claiming recording is on. "
+              "Otherwise keep it paused."
+              if resume_tool else "Recording must be resumed using the host's memory controls "
+              "before new messages can be remembered.")
+    return "Recording is currently paused: new messages are not being remembered. " + action
 
 
 NOTES_NOTICE = notes_notice()
@@ -1363,9 +1374,10 @@ def _session_notice(complete: bool, tools: dict | None, is_paused: bool, rolepla
                       "When a request depends on the user's personal context and nothing relevant is shown, search "
                       f"with the {tools['recall']} tool using a few concrete keywords before answering. "
                       if tools else "") + notes_notice(tools))
-    notice = " ".join((notice.strip(), privacy_notice(tools))) + (
-        " Recording is currently paused: new messages are not being remembered. Tell the user once, early in this "
-        "conversation, and offer to resume." if is_paused else "")
+    notice = " ".join(part for part in (notice.strip(), privacy_notice(tools),
+                                       _recording_notice(is_paused, tools)) if part)
+    if is_paused:
+        notice += " Tell the user once, early in this conversation, and offer to resume."
     if roleplay:
         notice = (f"This is a role-play with the character {' '.join(roleplay.split())}. The memory below is this "
                   "story's own: it is fiction, not facts about the user's real life, and nothing said here is kept "
@@ -1396,7 +1408,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
         return (resumed + "memBrain is starting or unavailable. Earlier memory has not been loaded; do not claim it is "
                 "active or that you remember earlier sessions. Continue helping normally. Memory will be "
                 "retried on the next message. Run membrain plugin setup to check the connection. "
-                + privacy_notice(tools) + (" Recording is currently paused." if paused(directory, user_id) else ""))
+                + privacy_notice(tools) + " " + _recording_notice(paused(directory, user_id), tools)).strip()
     else:
         with client:
             flush(client, directory)
@@ -1440,7 +1452,7 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
         if earlier:
             deliver(directory, None, earlier)
         start_in_background(directory)
-        return None
+        return _recording_notice(paused(directory, user_id), tools) or None
     source = ""
     if include_source and not paused(directory, user_id):
         source = ("<membrain-source>\nWhen saving a note based on the current user message, pass source_messages="
@@ -1474,7 +1486,8 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
                 _acknowledge(client, current)
         except Exception as error:
             log(directory, f"notes refresh failed: {type(error).__name__}")
-        prefix = "\n\n".join(part for part in (source, refreshed) if part)
+        recording = _recording_notice(paused(directory, user_id), tools)
+        prefix = "\n\n".join(part for part in (recording, source, refreshed) if part)
         try:
             flush(client, directory)
             if earlier:

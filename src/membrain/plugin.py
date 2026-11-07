@@ -43,7 +43,8 @@ PRODUCERS = {"claude-code": PRODUCER, "codex": "membrain-codex", "openclaw": "me
              "workbuddy": "membrain-workbuddy"}
 TRANSCRIPT_TAIL_BYTES = 2 * 1024 * 1024
 # Hosts that run the MCP bridge use its tool names; others call ``membrain plugin tool`` under these names.
-HOST_TOOLS = {"openclaw": {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause"}}
+HOST_TOOLS = {"openclaw": {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause",
+                           "resume": "membrain_resume"}}
 TOOLS = ("note", "search", "pause", "resume", "boundary")
 # Hosts that put their own memory files in the prompt; notes imported from them are not shown to them again.
 HOST_SKIPS = {"codex": ("codex",), "openclaw": ("openclaw",)}

@@ -31,7 +31,7 @@ except ImportError:  # pragma: no cover - exercised only without Hermes installe
 PRODUCER = "membrain-hermes"
 LOCAL_PLATFORMS = frozenset({"cli", "local", "tui", "acp"})  # Hermes run on the owner's own computer.
 IMPORT_PRODUCER = "membrain-import:hermes"  # Notes that mirror Hermes's own USER.md.
-TOOLS = {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause"}
+TOOLS = {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause", "resume": "membrain_resume"}
 _SCHEMAS = [
     {"name": "membrain_note", "description": NOTE_TOOL_DESCRIPTION,
      "parameters": {"type": "object", "properties": {
