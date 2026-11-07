@@ -18,11 +18,11 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 九个启动器均固定到运行时 `816662f6`。[会话绑定的记录恢复修复](evaluations/maturity-resume-scope-2026-11-07.md)防止恢复请求误将其他会话的私密轮次重新纳入记录。已通过 253 项相关本地测试、49 项全新 Mac 安装检查、20 项安装包回归及 250 项公开演练检查；完整集成 CI 尚待完成。此前的[记录状态运行时](evaluations/maturity-recording-state-2026-11-07.md)已通过 7,851 项 Python、53 项 TypeScript 测试及五平台原生验证。更早的[敏感图谱](evaluations/maturity-sensitive-structure-2026-11-07.md)、[安装及全屏性能结果](evaluations/maturity-month-qualification-2026-11-07.md)保留原运行时范围。[宿主覆盖限制](docs/host-compatibility.md)和[历史失败](docs/releasing.md)均保留；R4、C5 和最终发布审查通过前，发布保持冻结。
+> **预发布阶段。** 九个启动器均固定到运行时 `816662f6`。[会话绑定的记录恢复修复](evaluations/maturity-resume-scope-2026-11-07.md)防止恢复请求误将其他会话的私密轮次重新纳入记录。已通过 253 项相关本地测试、49 项全新 Mac 安装检查、20 项安装包回归及 250 项公开演练检查；完整 Verify 已通过 7,862 项 Python、53 项 TypeScript 测试、类型检查、Ruff 和构建，五平台原生验证通过，47 份结果已核对。此前的[记录状态运行时](evaluations/maturity-recording-state-2026-11-07.md)已通过 7,851 项 Python、53 项 TypeScript 测试及五平台原生验证。更早的[敏感图谱](evaluations/maturity-sensitive-structure-2026-11-07.md)、[安装及全屏性能结果](evaluations/maturity-month-qualification-2026-11-07.md)保留原运行时范围。[宿主覆盖限制](docs/host-compatibility.md)和[历史失败](docs/releasing.md)均保留；R4、C5 和最终发布审查通过前，发布保持冻结。
 
 > **最近一次验收执行：** [第四次验收](evaluations/maturity-fourth-attempt-2026-11-07.md)在 S1 因记录控制检查失败而停止。S2／C1／C2 未运行，两项行为门槛都不具备评分条件。[此前已评分的 R4 结果](evaluations/maturity-third-attempt-2026-11-06.md)仍是插件模式 17.5 分（未通过）、提取模式 20.5 分（通过）、参照组 19 分，C5 未完成。
 
-> **当前发布状态：** 当前修复已通过本地验证，完整集成 CI 尚待完成；本轮获授权的行为验收已停止。账本已封锁，无效运行的私有证据已保留，没有自动重跑授权。源码改进不能替代 R4／C5，也不代表可以发布。
+> **当前发布状态：** 当前修复已通过本地及完整集成验证；本轮获授权的行为验收已停止。账本已封锁，无效运行的私有证据已保留，没有自动重跑授权。源码改进不能替代 R4／C5，也不代表可以发布。
 
 <a id="claude-code-plugin"></a>
 
