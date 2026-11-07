@@ -1137,6 +1137,41 @@
       "sha256": "a5f95c7faa63890a13307140b61e0631352cc1fedad8066fc05bf2d1ab6333c5",
       "original_bytes": 55,
       "original_sha256": "206c98c516881b90c47adc25c7cd690e215dd0e73baf3f9f8bc9e304fb8e703e"
+    },
+    {
+      "path": "qualification/ci/verify-status-final.json.gz",
+      "bytes": 848,
+      "sha256": "44dcc07f6bd31afead42617c7e23bbfd8b545ea8a2ca6f5dfe5cfc04605e1563",
+      "original_bytes": 6417,
+      "original_sha256": "4714b13f8d7e6613c7795f392270170b036fb1b083dd959b8b78ed0125358ca2"
+    },
+    {
+      "path": "qualification/ci/verify-log-receipt.json.gz",
+      "bytes": 379,
+      "sha256": "6c944dbe462b4220993d2fb31303860c25c70fd4c779b5a4e7605219e044ed46",
+      "original_bytes": 644,
+      "original_sha256": "b84d191f7eaa4565222872193569299ff41cf903d650143519db0fdec9d66d41"
+    },
+    {
+      "path": "qualification/ci/verify-complete.log.gz",
+      "bytes": 206885,
+      "sha256": "0466280785d739ecaaa61e5279f1b1392758ca91507d30ef26dd199b4b2931d5",
+      "original_bytes": 1634448,
+      "original_sha256": "8666551cd52db14af974c514d35a421b336674c25f0ddf4720322074796b96f3"
+    },
+    {
+      "path": "qualification/ci/verify-pytest.log.gz",
+      "bytes": 182575,
+      "sha256": "3002629e551efbf817e5b9bdaa906bc9ece6e02f0d77d42901dffb8539c3b4ad",
+      "original_bytes": 1513353,
+      "original_sha256": "251f23f550720547d692ae8c1f849bb60994e2b6eaddfa1b762869d3b2f047ee"
+    },
+    {
+      "path": "qualification/ci/verify-collection.log.gz",
+      "bytes": 379,
+      "sha256": "6c944dbe462b4220993d2fb31303860c25c70fd4c779b5a4e7605219e044ed46",
+      "original_bytes": 644,
+      "original_sha256": "b84d191f7eaa4565222872193569299ff41cf903d650143519db0fdec9d66d41"
     }
   ],
   "owned_installation_credential_scan": {
