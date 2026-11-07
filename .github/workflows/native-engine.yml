@@ -117,7 +117,9 @@ jobs:
         run: python -m pip install pgserver==0.1.4
       - run: python -m pytest -q tests/test_native_bundle_build.py tests/test_windows_profile_access.py tests/test_native_bundle.py tests/test_native_engine_store.py tests/test_native_adoption.py tests/test_native_transition.py tests/test_native_snapshot.py tests/test_native_maintenance.py tests/test_desktop_upgrade.py tests/test_embedded_environment.py tests/test_native_resources.py tests/test_build_identity.py tests/test_local_profile.py::test_empty_lock_file_needs_no_write_before_exclusion tests/test_local_profile.py::test_cross_process_lock_times_out_and_can_be_reused tests/test_local_profile.py::test_nested_locks_and_helpers_are_reentrant
       - name: Verify spawned recall workers
-        run: python -m pytest -q tests/test_recall_executor.py tests/test_recall_readiness.py tests/test_recall_service_executor.py tests/test_desktop_startup_failures.py
+        env:
+          PYTHONUNBUFFERED: "1"
+        run: python -X faulthandler -m pytest -vv -s -o faulthandler_timeout=60 --durations=20 tests/test_recall_executor.py tests/test_recall_readiness.py tests/test_recall_service_executor.py tests/test_desktop_startup_failures.py
       - name: Verify Linux dependency cache guards
         if: runner.os == 'Linux'
         run: python -m pytest -q tests/test_native_dependencies.py

@@ -37,6 +37,10 @@ class NoteSource(RuntimeBody):
     source_revision: RuntimeRevision = 1
 
 
+class SourceMessagesRead(RuntimeBody):
+    messages: Annotated[list[NoteSource], Field(min_length=1, max_length=64)]
+
+
 class RecallTrace(RuntimeBody):
     event_ids: Annotated[list[RuntimeIdentifier], Field(max_length=50)]
 
@@ -56,6 +60,9 @@ class NoteWrite(RuntimeBody):
     replaces: Annotated[list[RuntimeIdentifier], Field(max_length=100)] = []
     source_event_ids: Annotated[list[RuntimeIdentifier], Field(max_length=64)] = []
     source_messages: Annotated[list[NoteSource], Field(max_length=64)] = []
+    context_source_messages: Annotated[list[NoteSource], Field(max_length=64)] = []
+    require_current_sources: bool = False
+    expected_dependency_generation: RuntimeCounter | None = None
     role: Literal["user", "assistant"] = "assistant"
     producer: Annotated[str, Field(min_length=1, max_length=120)] = "membrain-notes"
     kind: str | None = None
@@ -559,6 +566,12 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     def following(brain_id: str, event_id: list[str] = Query(default=[]),
                   principal: Principal = Depends(authenticate)):
         return service.following(principal, brain_id, event_id)
+
+    @app.post("/v1/brains/{brain_id}/source-messages")
+    def source_messages(brain_id: str, body: SourceMessagesRead, principal: Principal = Depends(authenticate)):
+        from .note_sources import read_messages
+
+        return read_messages(service, principal, brain_id, [ref.model_dump() for ref in body.messages])
 
     @app.post("/v1/brains/{brain_id}/notes")
     async def write_note(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):

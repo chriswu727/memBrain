@@ -273,6 +273,12 @@ class MemoryClient:
         return self._request("POST", f"v1/brains/{quote(brain, safe='')}/recall-trace",
                              json={"event_ids": list(event_ids)[:50]}, timeout=TRACE_TIMEOUT)
 
+    def source_messages(self, references: Sequence[Mapping[str, Any]]) -> JsonObject:
+        """Read only the exact original message revisions still available in this brain."""
+        brain = self._scope()["brain_ref"]
+        return self._request("POST", f"v1/brains/{quote(brain, safe='')}/source-messages",
+                             json={"messages": [dict(ref) for ref in references]})
+
     def write_note(self, text: str, *, request_id: str | None = None, **fields) -> JsonObject:
         brain = self._scope()["brain_ref"]
         return self._request("POST", f"v1/brains/{quote(brain, safe='')}/notes",

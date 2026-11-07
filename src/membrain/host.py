@@ -114,9 +114,6 @@ def log(directory: Path, event: str) -> None:
         pass
 
 
-_ENSURED_BRAINS: set[tuple[str, str]] = set()
-
-
 def user_brain_id(user_id: str) -> str:
     """The stable brain for one user of a multi-user host (a QQ or Telegram bot, a live-stream audience)."""
     from .helpers import digest
@@ -164,10 +161,10 @@ def use_brain(client, user_id: str | None):
         client.brain_id = home
         return client
     brain = user_brain_id(user_id)
-    key = (str(getattr(client, "base_url", "")), brain)
-    if key not in _ENSURED_BRAINS:
+    ensured = client.__dict__.setdefault("_membrain_ensured", set())
+    if brain not in ensured:
         client.ensure_brain(brain, ("user " + user_id)[:120])
-        _ENSURED_BRAINS.add(key)
+        ensured.add(brain)
     client.brain_id = brain
     return client
 

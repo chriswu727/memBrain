@@ -7,7 +7,6 @@ from pathlib import Path
 import pytest
 
 from membrain import evaluation_clock
-from membrain import host as membrain_host
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -207,8 +206,6 @@ def stub_run(tmp_path, monkeypatch):
     environment, handlers = dict(os.environ), list(logging.getLogger("membrain.extraction").handlers)
     monkeypatch.setattr(harness, "STUB", True)
     monkeypatch.setattr(socket.socket, "connect", socket.socket.connect)  # refuse_network replaces it.
-    # Brains already created are remembered by service URL; an earlier test's service may have had these ports.
-    monkeypatch.setattr(membrain_host, "_ENSURED_BRAINS", set())
     for name in ("MEMBRAIN_MODEL_CACHE", evaluation_clock.ENV):
         os.environ.pop(name, None)
     os.environ.update({"MEMBRAIN_SEMANTIC": "0", "PYTHON_DOTENV_DISABLED": "1",

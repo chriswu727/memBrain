@@ -87,6 +87,8 @@ export type MapOptions = {
   includeSensitive?: boolean;
 };
 export type MemoryMapOptions = MapOptions & { trace?: boolean; structure?: boolean };
+export type NoteSource = { producer_ref: string; source_event_key: string; source_revision: number };
+
 export type NoteAffect = {
   label: string;
   valence: -2 | -1 | 0 | 1 | 2;
@@ -541,8 +543,12 @@ export class MemoryClient {
     if (options.beforeSequence !== undefined) query.set("before_sequence", String(options.beforeSequence));
     return this.#request("GET", `v1/brains/${brain}/timeline?${query}`);
   }
+  sourceMessages(messages: readonly NoteSource[], brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/source-messages`, { messages });
+  }
   writeNote(text: string, options: { requestId?: string; brainId?: string; replaces?: readonly string[];
-    sourceEventIds?: readonly string[]; sourceMessages?: readonly { producer_ref: string; source_event_key: string; source_revision: number }[];
+    sourceEventIds?: readonly string[]; sourceMessages?: readonly NoteSource[];
+    contextSourceMessages?: readonly NoteSource[]; requireCurrentSources?: boolean; expectedDependencyGeneration?: number;
     kind?: string; status?: string; about?: string; aliases?: readonly string[]; due?: string; occursAt?: string;
     pinned?: boolean; sensitive?: boolean; shared?: boolean; affect?: NoteAffect;
     role?: "user" | "assistant" } = {}): Promise<JsonObject> {
@@ -553,7 +559,9 @@ export class MemoryClient {
       ...Object.fromEntries(Object.entries({ kind: options.kind, status: options.status, about: options.about,
         aliases: options.aliases, due: options.due, occurs_at: options.occursAt, pinned: options.pinned,
         sensitive: options.sensitive, shared: options.shared, affect: options.affect,
-        role: options.role }).filter(([, value]) => value !== undefined)),
+        role: options.role, context_source_messages: options.contextSourceMessages,
+        require_current_sources: options.requireCurrentSources,
+        expected_dependency_generation: options.expectedDependencyGeneration }).filter(([, value]) => value !== undefined)),
     });
   }
   persona(brainId?: string): Promise<JsonObject> {

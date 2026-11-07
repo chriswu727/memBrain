@@ -60,9 +60,8 @@ class ChatMemory:
         self.roleplay, self.share_real_life = roleplay or None, share_real_life
         # Optional: a model that saves notes from each turn, for bots whose own model cannot call the note tool.
         self.extractor = extractor
-        # The last recorded exchange per person and conversation, so a short follow-up ("cancelled it",
-        # "moved to Friday") is read with what it answers. Kept in this process only.
-        self._previous: OrderedDict[tuple[str, str], tuple[str, str]] = OrderedDict()
+        # Exact references let short follow-ups use their context without caching erased message text.
+        self._previous: OrderedDict[tuple[str, str], tuple[dict, ...]] = OrderedDict()
         self._lock = threading.Lock()
         host.state_directory(self.directory)
 
@@ -126,20 +125,19 @@ class ChatMemory:
             if self.extractor is not None and message is not None:
                 sources = [{"producer_ref": record["producer_ref"], "source_event_key": record["source_event_key"],
                             "source_revision": 1} for record in records]
-                user, text = self.memory_user(speaker, roleplay), prompt or message["text"]
+                user = self.memory_user(speaker, roleplay)
                 with self._lock:
-                    previous = self._previous.pop((user, session), None)
-                    self._previous[(user, session)] = (text, reply or "")
+                    previous = self._previous.pop((user, session), ())
+                    self._previous[(user, session)] = tuple(sources)
                     while len(self._previous) > PREVIOUS_EXCHANGES:
                         self._previous.popitem(last=False)
-                self._extract(user, text, reply or "", sources, previous)
+                self._extract(user, sources, previous)
 
-    def _extract(self, user: str, prompt: str, reply: str, sources: list[dict],
-                 previous: tuple[str, str] | None = None) -> None:
+    def _extract(self, user: str, sources: list[dict], previous_sources: tuple[dict, ...] = ()) -> None:
         from ..extraction import extract_turn
 
         def task():
-            extract_turn(self.directory, self.extractor, user, prompt, reply, sources=sources, previous=previous)
+            extract_turn(self.directory, self.extractor, user, sources=sources, previous_sources=previous_sources)
 
         if not self.extractor.submit(task):
             from ..extraction import record_outcome

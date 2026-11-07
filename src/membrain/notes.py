@@ -258,7 +258,8 @@ def parse_note(stored: str) -> tuple[dict, str]:
     return fields, match.group(2)
 
 
-def save_note(client, text: str, *, replaces=(), producer: str = NOTE_PRODUCER, source_event_ids=(), source_messages=(), **fields) -> dict:
+def save_note(client, text: str, *, replaces=(), producer: str = NOTE_PRODUCER, source_event_ids=(), source_messages=(),
+              context_source_messages=(), require_current_sources=False, expected_dependency_generation=None, **fields) -> dict:
     """Save one note; ``replaces`` lists IDs of notes it supersedes, which stop being shown.
 
     ``fields`` are the optional typed-note fields (``NOTE_FIELDS``); without them the note is plain text.
@@ -275,9 +276,15 @@ def save_note(client, text: str, *, replaces=(), producer: str = NOTE_PRODUCER, 
         parsed, sentence = parse_note(text)
         if affect is not None:
             parsed["affect"] = affect
+        if require_current_sources:
+            parsed["require_current_sources"] = True
+        if context_source_messages:
+            parsed["context_source_messages"] = list(context_source_messages)
+        if expected_dependency_generation is not None:
+            parsed["expected_dependency_generation"] = expected_dependency_generation
         return writer(sentence, replaces=list(replaces), producer=producer,
                       source_event_ids=list(source_event_ids), source_messages=list(source_messages), **parsed)
-    if source_event_ids or source_messages:
+    if source_event_ids or source_messages or context_source_messages or require_current_sources or expected_dependency_generation is not None:
         raise ValueError("This client does not support source-linked notes.")
     if affect is not None:
         raise ValueError("This client does not support feelings on notes.")
@@ -550,11 +557,24 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
         if affect is not None:
             affect = check_affect(affect, sourced=bool(arguments.get("source_event_ids")
                                                        or arguments.get("source_messages")))
+        strict_sources = arguments.get("require_current_sources", False)
+        generation = arguments.get("expected_dependency_generation")
+        if type(strict_sources) is not bool or (generation is not None and (
+                type(generation) is not int or not 0 <= generation <= 2**63 - 1)):
+            raise ValueError("Source checks require a boolean and a nonnegative dependency generation.")
+        if arguments.get("context_source_messages") and not strict_sources:
+            raise ValueError("Context source messages require current-source validation.")
     except (TypeError, ValueError) as error:
         raise DomainError("validation_failed", str(error)) from None
     request_id = arguments["request_id"]
     if arguments.get("producer") in ("memory-service", "archive-import"):
         raise DomainError("invalid_evidence", "Reserved producers cannot write notes.")
+    arguments = dict(arguments)
+    for name in ("require_current_sources", "context_source_messages"):
+        if not arguments.get(name):
+            arguments.pop(name, None)
+    if generation is None:
+        arguments.pop("expected_dependency_generation", None)
     params = service._params(principal, brain_id)
     fingerprint = digest(arguments)
     with service.database.transaction(principal) as conn:
@@ -569,6 +589,16 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
             if cached["response"] is None:
                 raise DomainError("version_conflict", "This note request was invalidated; use a new request ID.")
             return cached["response"]
+        if generation is not None and generation != brain["dependency_generation"]:
+            raise DomainError("version_conflict", "Memory changed after the source context was read.")
+        strict_events = []
+        if strict_sources:
+            from .note_sources import resolve
+
+            requested = [*arguments.get("source_messages", []), *arguments.get("context_source_messages", [])]
+            strict_events = resolve(service, conn, principal, brain, requested)
+            if len(strict_events) != len({digest(ref) for ref in requested}):
+                raise DomainError("source_unavailable", "An exact note source is no longer available.")
         replaces = list(dict.fromkeys(arguments.get("replaces", [])))
         old = conn.execute(
             "SELECT id,document FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
@@ -578,6 +608,7 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
         if len(stale) != len(replaces):
             raise DomainError("version_conflict", "A note changed or is unavailable. Refresh before correcting it.")
         sources = set(arguments.get("source_event_ids", []))
+        sources.update(event["event_id"] for event in strict_events)
         sources.update(row["input_event_id"] for row in conn.execute(
             "SELECT input_event_id FROM memory_event_dependencies WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
             "AND output_event_id=ANY(%s::text[])", (*params, stale)))
@@ -606,7 +637,7 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
                 text = format_note(scrub(arguments["text"]), **{**fields, "shared": False})
         from .note_sources import reference
 
-        references = list(arguments.get("source_messages", []))
+        references = [*arguments.get("source_messages", []), *arguments.get("context_source_messages", [])]
         references.extend(reference(event["observed"]) for event in available)
         references.extend(ref for row in old for ref in row["document"]["observed"].get("source_references", []))
         references = list({digest(ref): ref for ref in references}.values())
@@ -645,6 +676,8 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
                                         request_id=request_id, producer=arguments.get("producer", NOTE_PRODUCER),
                                         source_event_ids=arguments.get("source_event_ids", []) if explicit_reading else linked,
                                         source_messages=arguments.get("source_messages", []) if explicit_reading else references))
+        if strict_sources or generation is not None:
+            result["dependency_generation"] = brain["dependency_generation"]
         conn.execute(
             "INSERT INTO memory_requests(tenant_id,owner_id,brain_id,action,key,request_hash,response) "
             "VALUES(%s,%s,%s,'note',%s,%s,%s)", (*params, request_id, fingerprint, Jsonb(result)))
