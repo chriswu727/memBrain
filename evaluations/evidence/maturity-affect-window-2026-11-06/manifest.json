@@ -1,0 +1,160 @@
+{
+  "runtime_commit": "5048e13090202d3dd201227429d4d4cde66bd180",
+  "scope": "Synthetic affect valid-window red/green regressions, related tests, installed wheel parity and direct-service timing; not R4/C5 or R5",
+  "model_calls": 0,
+  "independent_review": {
+    "scope": "Committed affect window implementation and tests",
+    "complete": true,
+    "remaining_findings": [],
+    "tests_run_by_reviewer": false
+  },
+  "files": [
+    {
+      "path": "after-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "f191f6f3ffcb7319da09a40ced22934faf16923dfeaecfcc42ad3460c0b06bfb",
+      "original_bytes": 70,
+      "original_sha256": "fed07233ea8472fd75f50c09414c439dece7d68be5d13b33604bc1eeeb52f660"
+    },
+    {
+      "path": "after.log.gz",
+      "bytes": 50,
+      "sha256": "63acb795c6ba1e52739353d61346216144e52504f8df970548d2a20737e7aef0",
+      "original_bytes": 98,
+      "original_sha256": "14e14a32c796c52ab682df6b3517707496421c676cf658ba6c9f8d682a26d430"
+    },
+    {
+      "path": "baseline-red-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "9fbfbb8362a71aa1c9e79d39c08bf2c3a02e3880308831780e197c0583a19fb9",
+      "original_bytes": 70,
+      "original_sha256": "04499e0936f09123686ac45602fb93e20f0dad2f67afab09aadf961adf7d51d5"
+    },
+    {
+      "path": "baseline-red.log.gz",
+      "bytes": 1067,
+      "sha256": "ad1fb56058e624ab67c927fb2591d768064a26d1ec3acfb720823baff8c1d941",
+      "original_bytes": 3108,
+      "original_sha256": "b8d3340789a43a9113e998e426c6669da6fb0d5ce8e523f81338faaebf00dde0"
+    },
+    {
+      "path": "build.log.gz",
+      "bytes": 132,
+      "sha256": "c4ce30c5c11b8c7879f0b3bb5a3bcf7d7727c1538c13750ee3c4f97623ec80b8",
+      "original_bytes": 134,
+      "original_sha256": "1138d83507eaabcc5a83364a07de713a44b9f6310d21b2426c1b9a37d1e21b47"
+    },
+    {
+      "path": "cold-window-after.log.gz",
+      "bytes": 859,
+      "sha256": "5eb4c5e81eb18c699708e2e8823520d8f5e17096ba6d93bd341bc1f9b0e9753a",
+      "original_bytes": 1724,
+      "original_sha256": "a7d4d0c2fee02a9e61d68e40cdf0cc1beb2b870fe80a205882ad333d6dcbb2cd"
+    },
+    {
+      "path": "cold-window-before.log.gz",
+      "bytes": 245,
+      "sha256": "e0fb417342e6210424b35bc4c4ca83d6f6b0e59d9417a4dd62d955897b6d54b7",
+      "original_bytes": 400,
+      "original_sha256": "a8324029f364d2994717ff65d4c15ddf84c42607f806fab7b1abccad64a6463a"
+    },
+    {
+      "path": "cold-window.json.gz",
+      "bytes": 1289,
+      "sha256": "ccdd26c8f41913e84ede003773eb3963198a171dde35c2b57d41ec4ebab0dad9",
+      "original_bytes": 3461,
+      "original_sha256": "2c435f16ab2f6b79267b0fed80ae42f715d6693f7226e97f21518c3b7dd5c953"
+    },
+    {
+      "path": "cold-window.log.gz",
+      "bytes": 578,
+      "sha256": "32796a15f028f5c6283334b43083bfbe1176f11043cbd2a1f320f44a14771f84",
+      "original_bytes": 1259,
+      "original_sha256": "c8b87c62bf88090a37aded7cb1361da24422ac2b4ef746c7816f741ac90801df"
+    },
+    {
+      "path": "cold-window.py.gz",
+      "bytes": 2831,
+      "sha256": "d0cbf738dfeddd462f055e824da6a1840db30e70010a96b438d1c6f68ba3a24e",
+      "original_bytes": 7471,
+      "original_sha256": "90909537f89fd7961e1d2a6810e51b11c537d3348d6e8187f9a55daaae95d15e"
+    },
+    {
+      "path": "fixed-affect.py.gz",
+      "bytes": 4679,
+      "sha256": "0dbb29d936cef2d6380a68a4f62623138458861e56e8e0e5e225206c2174a7d2",
+      "original_bytes": 15804,
+      "original_sha256": "6f09da428762a88bc96d443874923a0a356b7a48d081743ffa172366a6f00296"
+    },
+    {
+      "path": "installed-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "f191f6f3ffcb7319da09a40ced22934faf16923dfeaecfcc42ad3460c0b06bfb",
+      "original_bytes": 70,
+      "original_sha256": "fed07233ea8472fd75f50c09414c439dece7d68be5d13b33604bc1eeeb52f660"
+    },
+    {
+      "path": "installed-parity.json.gz",
+      "bytes": 9358,
+      "sha256": "1f41f23d7d762bfc0649d0567aee8c3c6dd5179bc542c94c0b72605167d99444",
+      "original_bytes": 18748,
+      "original_sha256": "67ae3de9a2d481aa310066a7c0c9c1cf22146f3a5bfd06d1fd549a72f274e33c"
+    },
+    {
+      "path": "installed.log.gz",
+      "bytes": 53,
+      "sha256": "60f3412068c19ed81888aa234bc4b762697b935790556129f177187bc48b5026",
+      "original_bytes": 100,
+      "original_sha256": "4cf3b25de0a922e2d6631f13fbe03462f70cc963dedb72060eb8b1fcb7567acf"
+    },
+    {
+      "path": "related-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "f191f6f3ffcb7319da09a40ced22934faf16923dfeaecfcc42ad3460c0b06bfb",
+      "original_bytes": 70,
+      "original_sha256": "fed07233ea8472fd75f50c09414c439dece7d68be5d13b33604bc1eeeb52f660"
+    },
+    {
+      "path": "related.log.gz",
+      "bytes": 82,
+      "sha256": "370737e34f883758fe51f4dec98c7402cfb6dc57b841abff6b063b0d4ce1e614",
+      "original_bytes": 351,
+      "original_sha256": "ff5627b682486ad8b47dd361d76e03ca477c84b3be5db296ed86efb77d95886a"
+    },
+    {
+      "path": "run_tests.py.gz",
+      "bytes": 649,
+      "sha256": "224f3af36688acd7d605ec3e353c4edaa42dd85394ec4882765c530f5c0f02a6",
+      "original_bytes": 1307,
+      "original_sha256": "5005c0a94e3cd1dae8f79ce14208b93af82463becaa0988b1ee9ff2db1d7999b"
+    },
+    {
+      "path": "succession-history-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "f191f6f3ffcb7319da09a40ced22934faf16923dfeaecfcc42ad3460c0b06bfb",
+      "original_bytes": 70,
+      "original_sha256": "fed07233ea8472fd75f50c09414c439dece7d68be5d13b33604bc1eeeb52f660"
+    },
+    {
+      "path": "succession-history.log.gz",
+      "bytes": 53,
+      "sha256": "017f8690261c23f373d9ea4e8ae6995840ee3f5403a543635411c620dcf749fb",
+      "original_bytes": 100,
+      "original_sha256": "74fde2ef272e3e9fdac71f21dae55ed7978abbc4d23f3b77fa8b87f1b4b5202e"
+    },
+    {
+      "path": "tail-red-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "9fbfbb8362a71aa1c9e79d39c08bf2c3a02e3880308831780e197c0583a19fb9",
+      "original_bytes": 70,
+      "original_sha256": "04499e0936f09123686ac45602fb93e20f0dad2f67afab09aadf961adf7d51d5"
+    },
+    {
+      "path": "tail-red.log.gz",
+      "bytes": 1174,
+      "sha256": "8d3d9d948932e69c3e1e4a89d51411318a9b3fdfc4a5cdd156a3ed7e5a4f6495",
+      "original_bytes": 3539,
+      "original_sha256": "64222b9b41f63e2cd1602101f7abe6f2a3d0a26c62e3cf5e9c5d8f61879767fa"
+    }
+  ]
+}
