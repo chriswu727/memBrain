@@ -7,7 +7,6 @@ from test_note_workflow import write
 from test_timeline import Brain
 
 from membrain.helpers import DomainError, Principal, uid
-from membrain.note_sources import read_messages
 from membrain.notes import store_note
 
 pytestmark = pytest.mark.integration
@@ -20,7 +19,7 @@ def source(brain, text="My appointment is on Thursday."):
 
 
 def read(brain, references):
-    return read_messages(brain.service, brain.principal, brain.brain, references)
+    return brain.service.source_messages(brain.principal, brain.brain, references)
 
 
 def test_exact_source_reads_are_scoped_and_do_not_include_notes(brain):
@@ -31,7 +30,7 @@ def test_exact_source_reads_are_scoped_and_do_not_include_notes(brain):
     assert read(other, [ref])["items"] == []
     foreign = Principal(uid(), uid())
     with pytest.raises(DomainError):
-        read_messages(brain.service, foreign, brain.brain, [ref])
+        brain.service.source_messages(foreign, brain.brain, [ref])
     note = write(brain, "A note cannot pose as an original message.")
     with brain.service.database.transaction(brain.principal) as conn:
         metadata = brain.service._brain(conn, brain.principal, brain.brain)

@@ -1616,6 +1616,17 @@ class MemoryService:
 
         return LearningEngine(self).work_once(principal, brain_id)
 
+    def source_messages(self, principal, brain_id, references):
+        from .note_sources import reference, resolve
+
+        with reading(), self.database.transaction(principal) as conn:
+            brain = self._brain(conn, principal, brain_id)
+            documents = resolve(self, conn, principal, brain, references)
+            return {"dependency_generation": brain["dependency_generation"], "items": [
+                {"reference": reference(item["observed"]), "event_id": item["event_id"],
+                 "actor_role": item["observed"]["actor_role"], "text": item["observed"]["content"].get("text") or ""}
+                for item in documents]}
+
     def timeline(self, principal, brain_id, *, roles=("user",), max_characters=8000, max_item_characters=1500,
                  limit=200, exclude_conversation=None, event_ids=None, conversation_id=None, before_sequence=None):
         """Original messages, newest first, within a character budget.

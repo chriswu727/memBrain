@@ -35,18 +35,6 @@ def resolve(service, conn, principal, brain, references):
     return [documents[key] for key in dict.fromkeys(keys) if key in documents]
 
 
-def read_messages(service, principal, brain_id, references):
-    from .service import reading
-
-    with reading(), service.database.transaction(principal) as conn:
-        brain = service._brain(conn, principal, brain_id)
-        documents = resolve(service, conn, principal, brain, references)
-        return {"dependency_generation": brain["dependency_generation"], "items": [
-            {"reference": reference(item["observed"]), "event_id": item["event_id"],
-             "actor_role": item["observed"]["actor_role"], "text": item["observed"]["content"].get("text") or ""}
-            for item in documents]}
-
-
 def reference(observed):
     return {name: observed[name] for name in ("producer_ref", "source_event_key", "source_revision")}
 

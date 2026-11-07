@@ -569,9 +569,7 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
 
     @app.post("/v1/brains/{brain_id}/source-messages")
     def source_messages(brain_id: str, body: SourceMessagesRead, principal: Principal = Depends(authenticate)):
-        from .note_sources import read_messages
-
-        return read_messages(service, principal, brain_id, [ref.model_dump() for ref in body.messages])
+        return service.source_messages(principal, brain_id, [ref.model_dump() for ref in body.messages])
 
     @app.post("/v1/brains/{brain_id}/notes")
     async def write_note(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
