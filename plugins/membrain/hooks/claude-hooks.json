@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "command -v uvx >/dev/null 2>&1 && uv tool install --quiet --python 3.12 \"${MEMBRAIN_PACKAGE:-membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/fb249da5d75b29a2eea0dcf6a19b29f0d2e29cc3.zip}\" >/dev/null 2>&1; uvx --offline --python 3.12 --from membrain-ai membrain plugin start >/dev/null 2>&1; true",
+            "command": "command -v uvx >/dev/null 2>&1 && uv tool install --quiet --python 3.12 \"${MEMBRAIN_PACKAGE:-membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/80becc1edf7a77a01f60be6aab2170b10ac4abb7.zip}\" >/dev/null 2>&1; uvx --offline --python 3.12 --from membrain-ai membrain plugin start >/dev/null 2>&1; true",
             "async": true
           }
         ]
