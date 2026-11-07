@@ -1,6 +1,6 @@
 # Maturity test matrix (no paid or subscription-backed model call)
 
-**Current free acceptance preparation (2026-11-07):** Runtime `4115e90` passes its own [49-check fresh Mac installation, two 197-input installed comparisons and 250-check public stub rehearsal](maturity-acceptance-preparation-2026-11-07.md). Strict validity passes; all test ports close. The [next R4/C5 proposal](maturity-acceptance-proposal-2026-11-07.md) awaits explicit authorization. Public checks do not change the failed R4 or incomplete C5 results.
+**Current free acceptance preparation (2026-11-07):** Runtime `4115e90` passes its own [49-check fresh Mac installation, two 197-input installed comparisons and 250-check public stub rehearsal](maturity-acceptance-preparation-2026-11-07.md). Strict validity passes; all test ports close. The [next R4/C5 attempt](maturity-acceptance-execution-2026-11-07.md) is now explicitly authorized and preparing fresh isolated scenarios. Public checks do not change the failed R4 or incomplete C5 results.
 
 This matrix maps every behaviour that a release or a companion claim depends on to the local tests that check it. No entry makes a paid or subscription model call. A behaviour with no free test is listed as a gap, to be added before the [paid acceptance run](maturity-paid-acceptance-plan-draft.md) is proposed.
 
