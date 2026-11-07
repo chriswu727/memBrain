@@ -30,6 +30,14 @@ The capacity probe uses a fresh service, one explicitly recorded warmup per clie
 
 Observed concurrent P95 falls approximately **47%** in this ordered comparison; it is not a population-wide latency guarantee. All measured requests and warmups retain actual semantic inference without fallback and include their expected source. The old query-job count stays **767 before and after**, showing no new query jobs were persisted. All original source/assertion/vector hashes remain unchanged; runtime files stayed fixed and every service/database port closed.
 
-These are public development fixtures, not fresh held-out acceptance. R4 remains failed and C5 incomplete. No main merge, tag or release is authorized by this report. Installed-package qualification and full CI are pending. The preceding batch's 3D/structural and five-platform native results are historical evidence; this patch changes query inference only and does not claim those runs were repeated on this runtime.
+## Installed package and delivery status
+
+All nine launchers pin runtime `8e1dc90753cc028214179673102150ff55706629`; four pin/matrix checks pass. A built wheel was installed into a separate environment, sharing only unchanged test dependencies. This is not a fresh dependency-install test. All 197 installed runtime inputs match the source, and the installed package passes the same 92 regression checks in 11.85 seconds, including the expired-cache assertion.
+
+The installed package then ran the original 20 questions through its ordinary HTTP service and actual cached ONNX model on the unchanged 10,000-source corpus. API, source selection, graph trace and final context all score 20/20; median is 363.384 ms, P95 536.783 ms, and cold-inclusive maximum 1,153.287 ms. Original core hashes and source files remain unchanged, and ports close. Wheel SHA-256: `fdaaab60beeae78d0d4bdb70656461fd099ab4f1011d902d678f8da6a5fedb8f`.
+
+Full Verify [42374506491](https://github.com/chriswu727/memBrain/actions/runs/42374506491) is running on exact launcher head `cfe071c4225db54b57e15e7c60dfd6ddd57673c8`. This successor is not yet promoted to the integration branch. The preceding batch's 3D/structural and five-platform native results are historical evidence; this patch changes query inference only and does not claim those runs were repeated on this runtime.
+
+These are public development fixtures, not fresh held-out acceptance. R4 remains failed and C5 incomplete. No main merge, tag or release is authorized by this report.
 
 Runtime build: `4f0ceb425c274678203a2db8bac48f986700d5d3d7c6dda617f503096209e8ab`. Schema 028 is unchanged. Failures, timing wrappers, full public responses and raw capacity samples are retained in [the checksummed evidence manifest](evidence/maturity-local-query-2026-11-07/manifest.json). Private profiles and corpus dumps are excluded.

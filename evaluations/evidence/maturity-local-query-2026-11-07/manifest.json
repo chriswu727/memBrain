@@ -1,7 +1,7 @@
 {
   "build_id": "4f0ceb425c274678203a2db8bac48f986700d5d3d7c6dda617f503096209e8ab",
   "schema_id": "478061ac77337fd25d87174df1185ab1d40ad4d4216290078fb26fd2f519fe39",
-  "status": "Focused guards and real local-model public replay/capacity passed; installed verification and full CI pending. Not R4/C5 acceptance.",
+  "status": "Source and installed guards, real local-model public replay/capacity, and installed package replay passed; full CI pending. Not R4/C5 acceptance.",
   "files": [
     {
       "path": "diagnosis/action-profile.json.gz",
@@ -60,6 +60,27 @@
       "original_sha256": "4169dc585bc5ef097bdb16ff9f554c84dc63e1d6f82165198bca1583ff4bda79"
     },
     {
+      "path": "build.log.gz",
+      "bytes": 133,
+      "sha256": "e65650816f49dba065da1fcbcd5b1d3c42c51c594c32ea8e078fa668af58eac9",
+      "original_bytes": 134,
+      "original_sha256": "6ba3ed25d422e4c16ca10652d5794bf43ee7061f90c225ac4a94b4c0d89fbd5e"
+    },
+    {
+      "path": "ci/collect_verify.py.gz",
+      "bytes": 761,
+      "sha256": "88cccc3680032b8afab319175f7aa79d07edf7edcddc42140b265881478a18c4",
+      "original_bytes": 1629,
+      "original_sha256": "973277d77bb9ddad4f421649b0fbe34774696e3d45c8318e8eb8f73ea736777d"
+    },
+    {
+      "path": "ci/watch_verify.py.gz",
+      "bytes": 236,
+      "sha256": "dabf7f65a278b25f83983fcb6789ea2c20f7dcc67e974889e1570d2c0d523e9f",
+      "original_bytes": 294,
+      "original_sha256": "250e7fb8b3714b7a311cc7f159a6fe12cf56b27352b289b5ba8eae16e3405c95"
+    },
+    {
       "path": "first-fixed-cleanup.json.gz",
       "bytes": 80,
       "sha256": "f191f6f3ffcb7319da09a40ced22934faf16923dfeaecfcc42ad3460c0b06bfb",
@@ -88,11 +109,67 @@
       "original_sha256": "eb867d71bd9697257251da71e9d759f4e9021835bbca952faa9b60c483f35e07"
     },
     {
+      "path": "install-wheel.log.gz",
+      "bytes": 206,
+      "sha256": "2e51e64654fd1234ea89197da03a13cb1d93b88d87f0d40fcc662b8581426d0a",
+      "original_bytes": 319,
+      "original_sha256": "75d43279474d3136c2bdfb5272331d71d7172c185d2097433065a0fad3f21c9d"
+    },
+    {
+      "path": "installed-guards-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "f191f6f3ffcb7319da09a40ced22934faf16923dfeaecfcc42ad3460c0b06bfb",
+      "original_bytes": 70,
+      "original_sha256": "fed07233ea8472fd75f50c09414c439dece7d68be5d13b33604bc1eeeb52f660"
+    },
+    {
+      "path": "installed-guards.log.gz",
+      "bytes": 62,
+      "sha256": "e9d117f5065a11a2671be77a5593074680d5809dbdab96ca00372f9a06cbed9d",
+      "original_bytes": 180,
+      "original_sha256": "234e0b1e66d2c926074a86e0e5f9c743cfdac9a96546bcad36221dcca8328f0b"
+    },
+    {
+      "path": "installed-parity.json.gz",
+      "bytes": 487,
+      "sha256": "38b151a7555c2fee3ecf9748430d29f309c1893431ad4cd78c5d1774e9c0d7d3",
+      "original_bytes": 725,
+      "original_sha256": "d0ca207ccdf241779682f9cd52ed24f229ece5364b9c96791629ba40ea1755be"
+    },
+    {
+      "path": "installed-semantic/report.json.gz",
+      "bytes": 468238,
+      "sha256": "a64f83f5899016e9047dd107cf1dbfe186c572ebae42c606d42a8878a82ef0ac",
+      "original_bytes": 7737458,
+      "original_sha256": "0adeae529271608e011eeca3e43a631a38549e74effcc1b772f536ea2ffea1c0"
+    },
+    {
+      "path": "installed-semantic.log.gz",
+      "bytes": 263,
+      "sha256": "ad16de1d84b2e74b518eccd3961409c389c1a6231c79c40aa5e7e825d83423fd",
+      "original_bytes": 404,
+      "original_sha256": "990dda4c969e20b167daf00bf6d5caebbc02472b9152adadce1a7cf7298670fe"
+    },
+    {
+      "path": "installed_semantic.py.gz",
+      "bytes": 3158,
+      "sha256": "be1e468e9718c41533d5691355a7d8649fb67524cc53325af770dd93c4d1392f",
+      "original_bytes": 9032,
+      "original_sha256": "cdc1b4ca36cdf113bc4ad63f898f90284bb4c43e5b896cbf60ee09900fd0c023"
+    },
+    {
       "path": "package_evidence.py.gz",
-      "bytes": 1139,
-      "sha256": "e126aff1248188e0f092190b7dc55c8ec902b8abf7cf951f3bb3522fe3962215",
-      "original_bytes": 2467,
-      "original_sha256": "aa6db20fdaaf0e0c34b7ed150675fe5e0586af8751a8811d060ded12ed80d4b7"
+      "bytes": 1191,
+      "sha256": "a5446249d18fe514d14ecf633efa12d624b47a084768dd16f1fce0533a2ab809",
+      "original_bytes": 2643,
+      "original_sha256": "5b2e5efd23814e6c92eafdc411a057bac9ce949bb384026a0ecedb2d0adb8823"
+    },
+    {
+      "path": "pins.log.gz",
+      "bytes": 52,
+      "sha256": "33b0c32c4616486f8eb4080ec0eec83b66c8995a0e3a1ece53001c878c120369",
+      "original_bytes": 98,
+      "original_sha256": "364ee67226095f20328ed9d08b9d81815746d90891434ba3cb3a67fbce00f5c9"
     },
     {
       "path": "replay-expiry-cleanup.json.gz",
