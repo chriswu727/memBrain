@@ -1,0 +1,15 @@
+{
+  "candidate": "df3ceaee0989ace2db6eed8fb102cd06f8c112fe",
+  "runtime": "f9bcf2e0301af39027d5afc07b9afe7469232aab",
+  "benchmark_sha256": "f14199685a22ebe6e293776e01318b58df6ec906aba74071a98c0ba9f02691fc",
+  "model_calls": 0,
+  "fixture": "Fresh synthetic 1000 messages per brain, eight brains, 100 notes in first brain; no bulk-write extension",
+  "scope": "Installed keyword recall; excludes client startup and answer generation; no browser, semantic model or full R5 visual qualification",
+  "all_benchmark_ports_closed": true,
+  "synthetic_database_removed": true,
+  "files": {
+    "installed-parity.json": "6585e31763df113f241f0f60629dba70c007c2a319d259e0e4eb858552a1c793",
+    "canonical-performance.json": "c9ed25491758d7a5a1c0fd96970507955ae582c2495242b0d279a17c3b5a836f",
+    "ci/manifest.json": "42d84952839e6adfcece142067c30b8791785d88359e51c8025316a7d8b07cb3"
+  }
+}
