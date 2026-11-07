@@ -1,0 +1,4 @@
+{
+  "query": "SELECT id,conversation_id,document->'observed'->'content'->>'text' AS text,ARRAY(SELECT d.input_event_id FROM memory_event_dependencies d JOIN memory_events s ON s.tenant_id=d.tenant_id AND s.owner_id=d.owner_id AND s.brain_id=d.brain_id AND s.id=d.input_event_id WHERE d.tenant_id=memory_events.tenant_id AND d.owner_id=memory_events.owner_id AND d.brain_id=memory_events.brain_id AND d.output_event_id=memory_events.id AND s.is_current AND NOT s.deleted AND NOT s.suppressed AND NOT s.retired AND s.document IS NOT NULL ORDER BY s.sequence) AS sources FROM memory_events WHERE tenant_id=$1 AND owner_id=$2 AND brain_id=$3 AND is_current AND NOT deleted AND NOT suppressed AND NOT retired AND document IS NOT NULL AND conversation_id=ANY($4::text[]) AND id=ANY($5::text[])",
+  "seconds_observed": 150.441291
+}

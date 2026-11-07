@@ -1,0 +1,37 @@
+{
+  "scope": "first direct service reads with autovacuum disabled only on the disposable fixture event/dependency tables; 3-second per-statement deadline; not canonical/R5",
+  "model_calls": 0,
+  "fixture": {
+    "affect": 500,
+    "completed_plans": 200,
+    "shared_moments": 200,
+    "sensitive_source_every": 10
+  },
+  "fixture_seconds": 14.83,
+  "before": {
+    "mood": {
+      "completed": false,
+      "sqlstate": "57014",
+      "reason": "three_second_statement_timeout",
+      "elapsed_ms": 3027.2
+    },
+    "relationship": {
+      "completed": true,
+      "elapsed_ms": 29.73
+    }
+  },
+  "after": {
+    "mood": {
+      "completed": false,
+      "sqlstate": "57014",
+      "reason": "three_second_statement_timeout",
+      "elapsed_ms": 3026.3
+    },
+    "relationship": {
+      "completed": true,
+      "elapsed_ms": 34.82
+    }
+  },
+  "database_port_closed": true,
+  "synthetic_profile_removed": true
+}

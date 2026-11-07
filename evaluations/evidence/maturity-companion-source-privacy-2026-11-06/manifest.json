@@ -1,0 +1,111 @@
+{
+  "runtime": "004a0f17d30f6627a093bb301978ad4fb80f2dd8",
+  "pinned_candidate": "d3dbe888fec7ddbf7a72664458d05bc1a9bef0f3",
+  "model_calls": 0,
+  "validation": {
+    "original_privacy_failures": 17,
+    "final_affected_passed": 228,
+    "final_installed_passed": 36,
+    "installed_runtime_inputs_matched": 187,
+    "launcher_pin_checks": 2,
+    "ruff": "passed",
+    "diff_check": "passed",
+    "source_reviews": "No remaining blocking finding",
+    "initial_cold_query_seconds_observed": 150.441291,
+    "controlled_baseline_mood": "SQL57014 at3second statement deadline",
+    "controlled_runtime_difference": [
+      "affect.py"
+    ],
+    "final_cold_mood_ms": 130.99,
+    "final_warm_mood_p95_ms": 126.35,
+    "final_cold_relationship_ms": 35.59,
+    "final_warm_relationship_p95_ms": 35.18,
+    "service_profiles_removed_with_closed_ports": 16,
+    "full_ci": "Pending combined candidate qualification"
+  },
+  "files": {
+    "installed-parity.json": "e359b964c221b500b57055c3a79660340e959ed97c663cb3c7aaf93ab0270ff1",
+    "before-query-parity.json": "1ca6128c82262af018db56a182c0e4c00b136432aae06e6ec98fe709f82df2f5",
+    "service-fixture-cleanup.json.gz": "bdbe95b820f1cc3d775f961c5ac31c14fc0275e45ae5ac72b5f7c1ec64e9e1bc",
+    "cold-before.json": "5f6d0fe150640e8001c35fb48bf650e87a928876111b92d2e7456150198ed20f",
+    "cold-final.py": "a3410f70b594e906e7c641fde00637b3716bb7290147edd9c29f7aa535b9aa92",
+    "after.log.gz": "75009e1941a98c9b0d8beae87d1d5cb605fb1f3e9d06cb48337d2bf1a18f7c34",
+    "relationship-after.log.gz": "c01146b05f10e606780f3b77ff53762bd35ec6be8ff2773753be12a62d590bc8",
+    "cold-before.log.gz": "e5ce887404aa59e6edb24db072bf4eddd5df4f02426a0dbb9a933190be585bad",
+    "slow-query.json": "7e9da0f4bab6ab329da0f8ab478c9d67e160a7e289dcc32bfcb537cc2586930f",
+    "relationship-before.log.gz": "cdf302b88d1d3543b5e8cd2a6011caa229a41cd3382327f296b1833c12f11f59",
+    "installed.log.gz": "01921f38c7d29f557a7ecfe01fcc14984600990827e0460e0c6b54334fd180e3",
+    "related.log.gz": "f9b2f1974e7762f8c650f23f9fe0467efa1ad8c787c91cc21197ecef7abc5313",
+    "final-installed.log.gz": "db6515d5aa1ae39f0d1ded662714217ed5f30ea5fabcd1496377f2595b3add9d",
+    "performance.json": "abfe33235493fc84742469a035129e45d1054a974c27ad4966de52d506a35b3d",
+    "cold-final.json": "4db7bc880c5cb630cf1137434e7e331cfd632d4946d64f1f7df62ab560f1ce38",
+    "final-related.log.gz": "5fd992d0f7deb4993d3f18909118d6ed6ca7d51bc2048bd65bad680f291bdaad",
+    "performance.log.gz": "8d5a2506ac96822261f9b71efd78d8a3e08006b797c73f2ec1f1a1d5fd18df91",
+    "before.log.gz": "8d27c931e0a8a1f567c86395f2416dea02857328d786daf1751ed3c573c9988f",
+    "performance.py": "d09b4f39560b7af7843c7be61de10ae7b30a06b1a17d9427049d0a8e67e33053",
+    "cold-performance.py": "bfc08f940c3f74b46d35e24f175b215a40c7c93abd193275a84af4cc380b6dfd",
+    "cold-final.log.gz": "d3b5e66dfce319bb6b0d1589d545ba9abab0119dd42731d2c4ab2730d209e021"
+  },
+  "raw_logs": [
+    {
+      "path": "before.log.gz",
+      "raw_sha256": "9fc490ed9d52ff05aef707bb46a3ddd2365001c1ed16687330bbd79b644cd957",
+      "raw_bytes": 9733
+    },
+    {
+      "path": "after.log.gz",
+      "raw_sha256": "3bb6430ae0194f1241f42185a292676102510092091d376e1507df39d19559d5",
+      "raw_bytes": 98
+    },
+    {
+      "path": "relationship-before.log.gz",
+      "raw_sha256": "18b34ab6573ed114dd5ae1c832b542e6b2c11e7807abdc4ecd8fc97ff6c7b37a",
+      "raw_bytes": 17961
+    },
+    {
+      "path": "relationship-after.log.gz",
+      "raw_sha256": "055830e82c7ee6af1cece1033f2f71cd35037e561c3b958b1bfdbf0d896931ff",
+      "raw_bytes": 99
+    },
+    {
+      "path": "related.log.gz",
+      "raw_sha256": "db23ea0d6d5ebeb0e232b7a080fe619bb492fbf1b54eaf1fdd8ce1fa320e9322",
+      "raw_bytes": 351
+    },
+    {
+      "path": "installed.log.gz",
+      "raw_sha256": "f85f23035bb52257f450ea98e5dbae99e2ca14039982706429f1541e2c50bd7a",
+      "raw_bytes": 100
+    },
+    {
+      "path": "final-related.log.gz",
+      "raw_sha256": "abcec7405c2c1ae932bc42c18431881c9dabf12916f6607c81b132cd2af99a0d",
+      "raw_bytes": 351
+    },
+    {
+      "path": "final-installed.log.gz",
+      "raw_sha256": "2ee13854e184ace3201e6b5975a338fd66e5b9f673dc6118997a4d22384cf6c5",
+      "raw_bytes": 100
+    },
+    {
+      "path": "performance.log.gz",
+      "raw_sha256": "067f92dd6335c63a294c61f84db41815e55ddb93c25026c4dbbe48e970e4afca",
+      "raw_bytes": 794
+    },
+    {
+      "path": "cold-before.log.gz",
+      "raw_sha256": "58e9769e54ef76fa278956ffbc0588519d114b11262cc33bb6322a685cdc92a9",
+      "raw_bytes": 815
+    },
+    {
+      "path": "cold-final.log.gz",
+      "raw_sha256": "86953da7ef0f2e537fe4e8228d738cec06626f46be7dcfb87241e5d6b008640d",
+      "raw_bytes": 864
+    },
+    {
+      "path": "service-fixture-cleanup.json.gz",
+      "raw_sha256": "256114b5cbe4630be85501db0adeafa68ba11945dead5b02ef333be8a40830e7",
+      "raw_bytes": 2797
+    }
+  ]
+}
