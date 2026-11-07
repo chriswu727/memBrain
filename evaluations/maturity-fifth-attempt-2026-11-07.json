@@ -1,0 +1,328 @@
+{
+  "gate": {
+    "R4": false,
+    "arms": {
+      "P": {
+        "total": 20.0,
+        "reference": 15.5,
+        "not_worse": true,
+        "reference_critical": 4,
+        "passes": true,
+        "memory_caused_count": 0,
+        "host_caused_count": 0
+      },
+      "E": {
+        "total": 16.0,
+        "reference": 15.5,
+        "not_worse": true,
+        "reference_critical": 4,
+        "passes": false,
+        "memory_caused_count": 1,
+        "host_caused_count": 4
+      }
+    },
+    "gate_sha256": "664803146cabd28438932251f0801eec972e9817d5dd10a75013611ee866f6d3",
+    "manifest": {
+      "attempt_id": "maturity-20261107b",
+      "sha256": "8534c07c3ff88c7d67c2b1a6fe5db95afe56f79a0124a67d490e8d98ee7582c7",
+      "scenarios": [
+        {
+          "key": "s1",
+          "path": "evaluations/.maturity-heldout-20261107b/s1/scenario_s1.py",
+          "sha256": "0dcf08231a9abf776ef3e9cd23699bb82df6bdeb311e978a6f5fca28e1696c82"
+        },
+        {
+          "key": "s2",
+          "path": "evaluations/.maturity-heldout-20261107b/s2/scenario_s2.py",
+          "sha256": "29093b0432772da8a5e7c7987d00bf3e3a4f59a0286713e7b62fb4cb43dc8c0d"
+        }
+      ]
+    }
+  },
+  "scoring": {
+    "per_scenario": {
+      "s1": {
+        "E": 10,
+        "F": 8,
+        "P": 9.5
+      },
+      "s2": {
+        "E": 6.0,
+        "F": 7.5,
+        "P": 10.5
+      }
+    },
+    "critical_replies": [
+      {
+        "case": "S109",
+        "label": "A",
+        "arm": "F",
+        "types": [
+          4
+        ],
+        "attribution": null,
+        "answers": null
+      },
+      {
+        "case": "S109",
+        "label": "B",
+        "arm": "E",
+        "types": [
+          4
+        ],
+        "attribution": "host",
+        "answers": [
+          "host",
+          "host"
+        ]
+      },
+      {
+        "case": "S202",
+        "label": "B",
+        "arm": "E",
+        "types": [
+          4
+        ],
+        "attribution": "host",
+        "answers": [
+          "host",
+          "host"
+        ]
+      },
+      {
+        "case": "S204",
+        "label": "B",
+        "arm": "E",
+        "types": [
+          4
+        ],
+        "attribution": "host",
+        "answers": [
+          "host",
+          "host"
+        ]
+      },
+      {
+        "case": "S206",
+        "label": "B",
+        "arm": "F",
+        "types": [
+          4
+        ],
+        "attribution": null,
+        "answers": null
+      },
+      {
+        "case": "S207",
+        "label": "A",
+        "arm": "E",
+        "types": [
+          4
+        ],
+        "attribution": "host",
+        "answers": [
+          "host",
+          "host"
+        ]
+      },
+      {
+        "case": "S207",
+        "label": "B",
+        "arm": "F",
+        "types": [
+          4
+        ],
+        "attribution": null,
+        "answers": null
+      },
+      {
+        "case": "S210",
+        "label": "B",
+        "arm": "F",
+        "types": [
+          4
+        ],
+        "attribution": null,
+        "answers": null
+      },
+      {
+        "case": "S210",
+        "label": "C",
+        "arm": "E",
+        "types": [
+          2
+        ],
+        "attribution": "memory",
+        "answers": [
+          "memory",
+          "memory"
+        ]
+      }
+    ],
+    "resolution_changes": [
+      {
+        "scenario": "s1",
+        "case": "S111",
+        "label": "C",
+        "remove": [
+          4
+        ],
+        "add": [],
+        "rules": {
+          "4": "R2"
+        }
+      },
+      {
+        "scenario": "s2",
+        "case": "S201",
+        "label": "A",
+        "remove": [
+          4
+        ],
+        "add": [],
+        "rules": {
+          "4": "R2"
+        }
+      },
+      {
+        "scenario": "s2",
+        "case": "S202",
+        "label": "C",
+        "remove": [
+          4
+        ],
+        "add": [],
+        "rules": {
+          "4": "R2"
+        }
+      },
+      {
+        "scenario": "s2",
+        "case": "S204",
+        "label": "A",
+        "remove": [
+          4
+        ],
+        "add": [],
+        "rules": {
+          "4": "R2"
+        }
+      },
+      {
+        "scenario": "s2",
+        "case": "S204",
+        "label": "B",
+        "remove": [
+          1
+        ],
+        "add": [],
+        "rules": {
+          "1": "R2"
+        }
+      },
+      {
+        "scenario": "s2",
+        "case": "S204",
+        "label": "C",
+        "remove": [
+          1,
+          4
+        ],
+        "add": [],
+        "rules": {
+          "1": "R2",
+          "4": "R2"
+        }
+      },
+      {
+        "scenario": "s2",
+        "case": "S205",
+        "label": "A",
+        "remove": [
+          4
+        ],
+        "add": [],
+        "rules": {
+          "4": "R2"
+        }
+      },
+      {
+        "scenario": "s2",
+        "case": "S205",
+        "label": "B",
+        "remove": [
+          4
+        ],
+        "add": [],
+        "rules": {
+          "4": "R2"
+        }
+      },
+      {
+        "scenario": "s2",
+        "case": "S205",
+        "label": "C",
+        "remove": [
+          4
+        ],
+        "add": [],
+        "rules": {
+          "4": "R2"
+        }
+      },
+      {
+        "scenario": "s2",
+        "case": "S207",
+        "label": "A",
+        "remove": [],
+        "add": [
+          4
+        ],
+        "rules": {
+          "4": "R2"
+        }
+      },
+      {
+        "scenario": "s2",
+        "case": "S208",
+        "label": "B",
+        "remove": [
+          4
+        ],
+        "add": [],
+        "rules": {
+          "4": "R2"
+        }
+      },
+      {
+        "scenario": "s2",
+        "case": "S210",
+        "label": "C",
+        "remove": [
+          4
+        ],
+        "add": [],
+        "rules": {
+          "4": "R2"
+        }
+      }
+    ],
+    "r5": {
+      "s1": {
+        "replies": 3,
+        "cleared": 0
+      },
+      "s2": {
+        "replies": 15,
+        "cleared": 0
+      }
+    },
+    "attribution_disagreements": 0
+  },
+  "C5": "invalid and unscored",
+  "conservative_settled_cny": 39.63431,
+  "unknown_reservations": 0,
+  "observed_balance_initial_cny": 179.1,
+  "observed_balance_final_cny": 170.79,
+  "release_ready": false
+}
