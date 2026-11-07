@@ -1,0 +1,607 @@
+{
+  "source_head": "64f0de22a591e0df3bc8fa7360bcc21cbc71343b",
+  "runtime_pin": "004a0f17d30f6627a093bb301978ad4fb80f2dd8",
+  "verify_run": 42341798976,
+  "verify_conclusion": "cancelled",
+  "superseded_by": "72f2541e09dd7a2ed6c36f818459a7606076c14d",
+  "reason": "New runtime ee644c9 completed source, installed, real launcher and R5 qualification; updating integration to that runtime superseded the preceding full Verify run. No passing full Verify result is claimed for64f0de2.",
+  "native_run": 42341798959,
+  "native_conclusion": "success",
+  "files": [
+    {
+      "path": "verify-run.json.gz",
+      "bytes": 797,
+      "sha256": "472ebf1df03343446b038cac6f5c62cac80448c481484312b68487e4e23e5126",
+      "original_bytes": 4252,
+      "original_sha256": "5f5052b2f5a05dfed23460379adb39822ab52af7a88ec1b25331a630ba592210"
+    },
+    {
+      "path": "native-run.json.gz",
+      "bytes": 2930,
+      "sha256": "bc51aaaa4e0628b37f38f8642f83e2b9a5320f9b229af869d2f652db5b516c8d",
+      "original_bytes": 40087,
+      "original_sha256": "e7b2dea91730ddd7bf69190dd4750748051c67ebb557e3e6ca93e919c78c2d0b"
+    },
+    {
+      "path": "verify-job.log.gz",
+      "bytes": 195127,
+      "sha256": "e06f57c0a6593b8da48d387c6745cbd3a8ca1181365ed5acc4984924d749938b",
+      "original_bytes": 1575568,
+      "original_sha256": "8ad06cbccce28b06c2c5695d1dd497433c964f383d553b7ead654870edd7e77a"
+    },
+    {
+      "path": "native-complete.log.gz",
+      "bytes": 442088,
+      "sha256": "5e14a737819b713049da6c43126e798dcab1b8906f8a052183a7b72a998fe108",
+      "original_bytes": 11047452,
+      "original_sha256": "c6c9bbc625bf02a3742214e313b04ef7cbed3fb11c3220187bcd17bc21abeb32"
+    },
+    {
+      "path": "artifact-receipts.json.gz",
+      "bytes": 3688,
+      "sha256": "a04070ecd5407abb4f26cfddbecce24d52275042db76b3d26205e83dae7ee9ff",
+      "original_bytes": 18323,
+      "original_sha256": "96579185c0bdb4ed0b88101c5d4aafb2811cbb121904274ed6683c40fafbd2ab"
+    },
+    {
+      "path": "native-summary-audit.json.gz",
+      "bytes": 569,
+      "sha256": "82a2317c6671f10e39622db21ef7dd44f8e01d006d1333a0c757c7c273c2eeb0",
+      "original_bytes": 9476,
+      "original_sha256": "b41d2d7274113e783bd4ec6138377d62a5a63eaa4ae848426e5be3ae2c40233d"
+    },
+    {
+      "path": "collect_artifacts.py.gz",
+      "bytes": 870,
+      "sha256": "9fcd994e08a08142b0bd79b5065542ddc77ad99fb92130a0674624e5d79c5c80",
+      "original_bytes": 1917,
+      "original_sha256": "6c502cac33d18d1d010786eb5250d2cb4f4c9b781a2c749ec042f1f3327756da"
+    },
+    {
+      "path": "audit_artifacts.py.gz",
+      "bytes": 885,
+      "sha256": "68980207b9821e33685e2c9324bc70637ff297544774dbd3a25404a104b67b89",
+      "original_bytes": 1884,
+      "original_sha256": "415472e1af8f511ce87df9e5892ad3177a7173cef0c771ab5579003891963c9d"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-adoption-fresh-42341798959-1/result.json.gz",
+      "bytes": 335,
+      "sha256": "641ca40524a4fd0c5d86d113bafaba6c8701f13090f8c1fd4123550fe2741b26",
+      "original_bytes": 749,
+      "original_sha256": "8123e48276bbd12f791705df87678689273a96425205dddca13dcfc908da36c6"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-adoption-previous-42341798959-1/result.json.gz",
+      "bytes": 381,
+      "sha256": "bba14b292ae0c1aea8f960b084c15d93c42779c8d8b76b03cffccb73f4f62df5",
+      "original_bytes": 873,
+      "original_sha256": "f61e10daf466e862581b8f1eccf3317ed20db471b2b81204b7d4b87401a0239d"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-adoption-previous-root-result-42341798959-1.json.gz",
+      "bytes": 383,
+      "sha256": "f8d5fd2eceaa3a7c8d7ba9952c8c746d1dd5acc452aa431206b652577b48dc9f",
+      "original_bytes": 872,
+      "original_sha256": "5ce3bf3c0e7221ad223e3d1f7529cb74aecc9f011e0e82b00323652ec214c9b8"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-adoption-root-result-42341798959-1.json.gz",
+      "bytes": 336,
+      "sha256": "d47363533b3fcd5750dbf74e009d2bf3eed530c1bb537ae6dbe8383341cf1434",
+      "original_bytes": 748,
+      "original_sha256": "5de61715f8a0f28cad55386d08b52322d6596042f9d832f83805d3dc84d7736b"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-artifacts/artifacts.json.gz",
+      "bytes": 392,
+      "sha256": "5bedd17edf1a74329e97d67d71e569f3c2ba92b79036afe08f59454707605042",
+      "original_bytes": 658,
+      "original_sha256": "be4159e21f6fdd2f1c8e4076b60a8bf95817ce5d580ceb70e7a9cef84fab8a8e"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-artifacts/manifest.json.gz",
+      "bytes": 79192,
+      "sha256": "faf61257381f7e81bd8d60e693009a35b46821ad227b1baf3d42d6e60da20626",
+      "original_bytes": 325534,
+      "original_sha256": "ee5465ba0d0d24c66470724437b65091191f411252713545f38d6e76dbc5dd18"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-artifacts/qualification.json.gz",
+      "bytes": 1735,
+      "sha256": "16a378429e45a543106b9d19569b93a6592a833fefc73a399b052e83b9c01281",
+      "original_bytes": 6578,
+      "original_sha256": "af3c05987c03e554567c24e56e146ceb6ced5deef11cd43cecb5a2b7c72dd090"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-check-42341798959-1/qualification.json.gz",
+      "bytes": 1735,
+      "sha256": "16a378429e45a543106b9d19569b93a6592a833fefc73a399b052e83b9c01281",
+      "original_bytes": 6578,
+      "original_sha256": "af3c05987c03e554567c24e56e146ceb6ced5deef11cd43cecb5a2b7c72dd090"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-maintenance-42341798959-1/result.json.gz",
+      "bytes": 540,
+      "sha256": "4423c3fca43b085fe443e53a9371db8fbb05777b842285687bde893a6ae23a46",
+      "original_bytes": 976,
+      "original_sha256": "d185933a293a89fec89cdfdeea733e046978a43a9e257acf346fa858f4fcc9cd"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-maintenance-42341798959-1/worker-result.json.gz",
+      "bytes": 62,
+      "sha256": "a5f95c7faa63890a13307140b61e0631352cc1fedad8066fc05bf2d1ab6333c5",
+      "original_bytes": 55,
+      "original_sha256": "206c98c516881b90c47adc25c7cd690e215dd0e73baf3f9f8bc9e304fb8e703e"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-maintenance-root-result-42341798959-1.json.gz",
+      "bytes": 541,
+      "sha256": "d5e0cb432f2153caa17ad9988234d6208c84639a88cf5829ecc94eba8b1fc05d",
+      "original_bytes": 975,
+      "original_sha256": "9d014e5c50e4ee941e7ac65d4234f9abcab4e5cba22c1c04347ac9df98d36404"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-snapshot-42341798959-1/result.json.gz",
+      "bytes": 686,
+      "sha256": "e05d19ef67a18b59bf7eb9b4093929c69068809208b27d75f1689d5e29faede2",
+      "original_bytes": 1320,
+      "original_sha256": "ce0138d169e43b2d5d96fc9037491e3d271053e25d442bac6f96908a30070aaf"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-snapshot-root-result-42341798959-1.json.gz",
+      "bytes": 685,
+      "sha256": "1eb18f9502009b279c8824be82bfc7e0ea361c5eb552c4bc42c30b343ee8484f",
+      "original_bytes": 1318,
+      "original_sha256": "e2e6e827a8e4133d8338e25b7a068e820a43468d0f70f51d01c8bb956bf66e97"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-transition-42341798959-1/admission-worker-result.json.gz",
+      "bytes": 62,
+      "sha256": "a25485cdfe6c60330832ae45a0e1107f7a6d69643316a596bf53caba598ff37f",
+      "original_bytes": 55,
+      "original_sha256": "dd6c60b7c767737c415915fbf0395b47c765071d2e2cfbb1900385688b0a07af"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-transition-42341798959-1/result.json.gz",
+      "bytes": 469,
+      "sha256": "6b2ac10ef1b94bed0d09e99d7415dfcce0c5c22e88a3fdb71bef0fd8c6b4f1a1",
+      "original_bytes": 956,
+      "original_sha256": "d584ddd476e26fc26f76000731ff03225ac0d73509279ec6ad6f8bead12c1b29"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-transition-42341798959-1/rollback-worker-result.json.gz",
+      "bytes": 62,
+      "sha256": "78fdbe2266574e6bc1a0371a6d27a1e47d54451922469f7678ce5e8b66aef2df",
+      "original_bytes": 55,
+      "original_sha256": "9515a57f352d578693b973f16ffffeab5fa4b9a492ba094f1a547bb228cd005a"
+    },
+    {
+      "path": "artifacts/linux-aarch64/native-transition-root-result-42341798959-1.json.gz",
+      "bytes": 469,
+      "sha256": "38bd6327361ff0ab3ae455bf8d904740219a179ec6a3a235405da6173d6757f6",
+      "original_bytes": 954,
+      "original_sha256": "3b62c10171461f3c07954eebd5a2a4a2e032e8257700888fe0428b5b8a035b22"
+    },
+    {
+      "path": "artifacts/linux-aarch64/packaged-native-42341798959-1/result.json.gz",
+      "bytes": 425,
+      "sha256": "c535f5daa841689b905ba79d19dfa61e81e5cf3c466ea75ef0f3e8e43e1830c8",
+      "original_bytes": 719,
+      "original_sha256": "96475a6b95b2da98852097cd776815f39a4e94d4f30ca89de0e792d5e9217830"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-adoption-fresh-42341798959-1/result.json.gz",
+      "bytes": 335,
+      "sha256": "641ca40524a4fd0c5d86d113bafaba6c8701f13090f8c1fd4123550fe2741b26",
+      "original_bytes": 749,
+      "original_sha256": "8123e48276bbd12f791705df87678689273a96425205dddca13dcfc908da36c6"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-adoption-legacy-42341798959-1/result.json.gz",
+      "bytes": 333,
+      "sha256": "1810fba0f64ead7edd3733bc225c5f3e329af8bad4eb8a32731fd11c821ac78d",
+      "original_bytes": 747,
+      "original_sha256": "b0a0a41f9f8f97a970ef44e45b21a857aa53c63acd164459e8cb7c037ba5a9ca"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-adoption-previous-42341798959-1/result.json.gz",
+      "bytes": 379,
+      "sha256": "09c5f6c5ddb9466c9cae09ddc66c154043d96a9e094f41ffaa696c39477448f1",
+      "original_bytes": 871,
+      "original_sha256": "07aea2a8c3b0d6cf2f3ac43860c7074dc590422be42ec0e43755906e7a3f8f9d"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-adoption-previous-root-result-42341798959-1.json.gz",
+      "bytes": 375,
+      "sha256": "df72e358d68a0018279c633cd076feb1463ce8ae835e73386c1eaa2f16759dec",
+      "original_bytes": 870,
+      "original_sha256": "a61187757d567b93cd2abe3e5a9c8d7b4c6b66e14390ce0d17c7e0b07517a4e2"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-adoption-root-result-42341798959-1.json.gz",
+      "bytes": 328,
+      "sha256": "9018662a5aa1c0ad5f2e4c6859446ff11e44b8dedd1569dc28313e6045cb7f68",
+      "original_bytes": 746,
+      "original_sha256": "c7990a5677c0e67202fb05ecceade6487d5dd5f22359112610bd69f451b50d48"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-artifacts/artifacts.json.gz",
+      "bytes": 392,
+      "sha256": "0ab2ceae8d09ae4034b6209c24765d14f717147307c00f9a0fc4341adf6a1a0c",
+      "original_bytes": 658,
+      "original_sha256": "4b6ec3580d968f696796660d613a381429935140ec3a5ee59bc64694ca9f0929"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-artifacts/manifest.json.gz",
+      "bytes": 79360,
+      "sha256": "0dea66f57a87cc32842711e1bbdf705675dbcebb73e0f3dc3558abd01a13267c",
+      "original_bytes": 325513,
+      "original_sha256": "4e27a2edc103c4c9dc808630a6e3eaba697c2143cd745b63cb2f5a8a11c2df2b"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-artifacts/qualification.json.gz",
+      "bytes": 1756,
+      "sha256": "86fabe1bc85280665e8268cec0b08fa62aeb0fa750357304a1131d412810c3ac",
+      "original_bytes": 6562,
+      "original_sha256": "1265a764a5fd9e2466f3931d0a81f6f417c8e7b81232705b5779907d5b8db1df"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-check-42341798959-1/qualification.json.gz",
+      "bytes": 1756,
+      "sha256": "86fabe1bc85280665e8268cec0b08fa62aeb0fa750357304a1131d412810c3ac",
+      "original_bytes": 6562,
+      "original_sha256": "1265a764a5fd9e2466f3931d0a81f6f417c8e7b81232705b5779907d5b8db1df"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-maintenance-42341798959-1/result.json.gz",
+      "bytes": 542,
+      "sha256": "bfdfca29bcbc37f70aea6cd9d472493660412397b35daf78735170343f787c95",
+      "original_bytes": 974,
+      "original_sha256": "f1d884417c78e056a4c5d9aae1799a434c2f7e7c8d1fad834c25cc5ef87606d0"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-maintenance-42341798959-1/worker-result.json.gz",
+      "bytes": 62,
+      "sha256": "a5f95c7faa63890a13307140b61e0631352cc1fedad8066fc05bf2d1ab6333c5",
+      "original_bytes": 55,
+      "original_sha256": "206c98c516881b90c47adc25c7cd690e215dd0e73baf3f9f8bc9e304fb8e703e"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-maintenance-root-result-42341798959-1.json.gz",
+      "bytes": 538,
+      "sha256": "6d7b7bccdcc7b1ab9c540d8b5e8fa9808ae401fe0aafc3c3509344b6c8b28be5",
+      "original_bytes": 973,
+      "original_sha256": "e6b52c93281f288d1afaabe26c14dd79ccd60d9d023d455883ed5e44b7d1b391"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-snapshot-42341798959-1/result.json.gz",
+      "bytes": 689,
+      "sha256": "b09d718000be9d4df801313efbae3d4c31747708d838e669e96e54295f474e00",
+      "original_bytes": 1318,
+      "original_sha256": "2c34ec8cf9d345254fad3f01b8458527f693d2d0adf1305ddc1b2ffd2cb814ef"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-snapshot-large-42341798959-1/result.json.gz",
+      "bytes": 644,
+      "sha256": "852f7dfbf5d65bfb1d36b690f04fda4dee7e5fbabd33b2127fbc1dd6f3d7bd9f",
+      "original_bytes": 1194,
+      "original_sha256": "aa00a7d48655ec26f63dc60f80599aa77fb12b4ea21bfeb386f28ef6a359f080"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-snapshot-root-result-42341798959-1.json.gz",
+      "bytes": 681,
+      "sha256": "d2bd3ea672abee944131a1b7505abd98e9c925f7ee1de414b2766016e858e7e2",
+      "original_bytes": 1317,
+      "original_sha256": "87ca575cc99f71c15986bf9b191643ea223274a2f6987330a8bc118365f0e224"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-transition-42341798959-1/admission-worker-result.json.gz",
+      "bytes": 62,
+      "sha256": "a25485cdfe6c60330832ae45a0e1107f7a6d69643316a596bf53caba598ff37f",
+      "original_bytes": 55,
+      "original_sha256": "dd6c60b7c767737c415915fbf0395b47c765071d2e2cfbb1900385688b0a07af"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-transition-42341798959-1/result.json.gz",
+      "bytes": 468,
+      "sha256": "89b288b5003c09400c29894ab9926ebe703eb5dd2e49235b009c25d2447a36b3",
+      "original_bytes": 954,
+      "original_sha256": "67f4431a3d27e4888370422f907d2ff50105764613e81411cb39f1cbdcff469d"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-transition-42341798959-1/rollback-worker-result.json.gz",
+      "bytes": 62,
+      "sha256": "78fdbe2266574e6bc1a0371a6d27a1e47d54451922469f7678ce5e8b66aef2df",
+      "original_bytes": 55,
+      "original_sha256": "9515a57f352d578693b973f16ffffeab5fa4b9a492ba094f1a547bb228cd005a"
+    },
+    {
+      "path": "artifacts/linux-x86_64/native-transition-root-result-42341798959-1.json.gz",
+      "bytes": 469,
+      "sha256": "338ead879a0a34e96a7fdac171d4bd076fdb4e2f2b14e9dac94b3527bf4b8fb0",
+      "original_bytes": 952,
+      "original_sha256": "1be57fee076bca9c09842fdb287c3b77066935c5a89db021aafc819944bb56ce"
+    },
+    {
+      "path": "artifacts/linux-x86_64/packaged-native-42341798959-1/result.json.gz",
+      "bytes": 427,
+      "sha256": "5dbd0ec068a82d50426c3fadd6a4da612f3a79bf93392286e3ef150d49c22c63",
+      "original_bytes": 718,
+      "original_sha256": "79cf7b5e3e10cf3a093f876138de3d61b325df2077c577ae2f7622271d8921e4"
+    },
+    {
+      "path": "artifacts/macos-arm64/native-adoption-fresh-42341798959-1/result.json.gz",
+      "bytes": 335,
+      "sha256": "641ca40524a4fd0c5d86d113bafaba6c8701f13090f8c1fd4123550fe2741b26",
+      "original_bytes": 749,
+      "original_sha256": "8123e48276bbd12f791705df87678689273a96425205dddca13dcfc908da36c6"
+    },
+    {
+      "path": "artifacts/macos-arm64/native-adoption-legacy-42341798959-1/result.json.gz",
+      "bytes": 333,
+      "sha256": "1810fba0f64ead7edd3733bc225c5f3e329af8bad4eb8a32731fd11c821ac78d",
+      "original_bytes": 747,
+      "original_sha256": "b0a0a41f9f8f97a970ef44e45b21a857aa53c63acd164459e8cb7c037ba5a9ca"
+    },
+    {
+      "path": "artifacts/macos-arm64/native-artifacts/artifacts.json.gz",
+      "bytes": 394,
+      "sha256": "77a695c0b79c37b2835004dc727b761e33264f76b52dff27fe9cd78a445ed0d4",
+      "original_bytes": 657,
+      "original_sha256": "990711c4452929042d26f017d81399fda2109e6594384c1e3af978ef931a56dc"
+    },
+    {
+      "path": "artifacts/macos-arm64/native-artifacts/manifest.json.gz",
+      "bytes": 78687,
+      "sha256": "39bf0ef39787dd56748b949ef8ef999b260273ca84a7b1838e8f6bc52342cfb7",
+      "original_bytes": 284595,
+      "original_sha256": "6e86d937cc7caf27249e54984e70a73d50602e056bc665f795543355461dad78"
+    },
+    {
+      "path": "artifacts/macos-arm64/native-artifacts/qualification.json.gz",
+      "bytes": 1169,
+      "sha256": "03fa4a11e9d9cfc585e188dbb90a5491b0a4265a9c842bc5db6a6ba5cbefaf65",
+      "original_bytes": 4649,
+      "original_sha256": "f1379a7060b2914806921813d545cc8ab58036beefee5b381858a57592a9ba15"
+    },
+    {
+      "path": "artifacts/macos-arm64/native-check-42341798959-1/qualification.json.gz",
+      "bytes": 1169,
+      "sha256": "03fa4a11e9d9cfc585e188dbb90a5491b0a4265a9c842bc5db6a6ba5cbefaf65",
+      "original_bytes": 4649,
+      "original_sha256": "f1379a7060b2914806921813d545cc8ab58036beefee5b381858a57592a9ba15"
+    },
+    {
+      "path": "artifacts/macos-arm64/native-maintenance-42341798959-1/result.json.gz",
+      "bytes": 540,
+      "sha256": "9d73c68f979a6550a57dedb398a4f58393ffe1f92fb131de5936e4df68f93289",
+      "original_bytes": 973,
+      "original_sha256": "561c69ffad48d8566bc621db0226a0c2869704f03b2819f9133d2d6717bbbda6"
+    },
+    {
+      "path": "artifacts/macos-arm64/native-maintenance-42341798959-1/worker-result.json.gz",
+      "bytes": 62,
+      "sha256": "a5f95c7faa63890a13307140b61e0631352cc1fedad8066fc05bf2d1ab6333c5",
+      "original_bytes": 55,
+      "original_sha256": "206c98c516881b90c47adc25c7cd690e215dd0e73baf3f9f8bc9e304fb8e703e"
+    },
+    {
+      "path": "artifacts/macos-arm64/native-snapshot-42341798959-1/result.json.gz",
+      "bytes": 685,
+      "sha256": "bd3162169ede35ffeef9d6639da666b45f77aca89a873d8fb5427cce24fb05e8",
+      "original_bytes": 1316,
+      "original_sha256": "ba1a0b0b5eb26440837c014f3249b79420b1b22a24eaefda329946cf9d7ccb43"
+    },
+    {
+      "path": "artifacts/macos-arm64/native-transition-42341798959-1/admission-worker-result.json.gz",
+      "bytes": 62,
+      "sha256": "a25485cdfe6c60330832ae45a0e1107f7a6d69643316a596bf53caba598ff37f",
+      "original_bytes": 55,
+      "original_sha256": "dd6c60b7c767737c415915fbf0395b47c765071d2e2cfbb1900385688b0a07af"
+    },
+    {
+      "path": "artifacts/macos-arm64/native-transition-42341798959-1/result.json.gz",
+      "bytes": 467,
+      "sha256": "b5bc142d554e43c5ac9e4fc9287dc90ba320047651601b493a531919ff82c663",
+      "original_bytes": 953,
+      "original_sha256": "81efb347f9ff05e9bc501b02b0c88f7143c44fc2227b8d8beb2a8cb808f6c912"
+    },
+    {
+      "path": "artifacts/macos-arm64/native-transition-42341798959-1/rollback-worker-result.json.gz",
+      "bytes": 62,
+      "sha256": "78fdbe2266574e6bc1a0371a6d27a1e47d54451922469f7678ce5e8b66aef2df",
+      "original_bytes": 55,
+      "original_sha256": "9515a57f352d578693b973f16ffffeab5fa4b9a492ba094f1a547bb228cd005a"
+    },
+    {
+      "path": "artifacts/macos-arm64/packaged-native-42341798959-1/result.json.gz",
+      "bytes": 424,
+      "sha256": "14755a2c227bbfac6f0d1e2af457b430367708ae9da9955dcf9b07bc64820c88",
+      "original_bytes": 716,
+      "original_sha256": "032d6bce25ad4180e2bc2e54f291833eac501f8712ee8c466e6d970a437e9cb7"
+    },
+    {
+      "path": "artifacts/macos-x86_64/native-adoption-fresh-42341798959-1/result.json.gz",
+      "bytes": 335,
+      "sha256": "641ca40524a4fd0c5d86d113bafaba6c8701f13090f8c1fd4123550fe2741b26",
+      "original_bytes": 749,
+      "original_sha256": "8123e48276bbd12f791705df87678689273a96425205dddca13dcfc908da36c6"
+    },
+    {
+      "path": "artifacts/macos-x86_64/native-adoption-legacy-42341798959-1/result.json.gz",
+      "bytes": 333,
+      "sha256": "1810fba0f64ead7edd3733bc225c5f3e329af8bad4eb8a32731fd11c821ac78d",
+      "original_bytes": 747,
+      "original_sha256": "b0a0a41f9f8f97a970ef44e45b21a857aa53c63acd164459e8cb7c037ba5a9ca"
+    },
+    {
+      "path": "artifacts/macos-x86_64/native-artifacts/artifacts.json.gz",
+      "bytes": 392,
+      "sha256": "97559898ab62acd135411774aaf8910010506cbb1da4e2db3ad934431e17d3e2",
+      "original_bytes": 658,
+      "original_sha256": "2d9bf2e9b025aa781a83ef803657af7d4714c29b27f60fa22d5079a0b9f1c358"
+    },
+    {
+      "path": "artifacts/macos-x86_64/native-artifacts/manifest.json.gz",
+      "bytes": 78613,
+      "sha256": "0933b9adfab4699b34a90bb9e0ae460c67c7140d98219e2935ead9c13a188b0b",
+      "original_bytes": 284044,
+      "original_sha256": "36c2a46653fac8eb4b8e0e3d559b5e92bd0cb1b9d8f7fc964ca17446947948c1"
+    },
+    {
+      "path": "artifacts/macos-x86_64/native-artifacts/qualification.json.gz",
+      "bytes": 1168,
+      "sha256": "1f1124a592c0b39dff8ee98646c42da44b6b6c138ae56d95da0483f6061e8523",
+      "original_bytes": 4651,
+      "original_sha256": "154fed9df6ce1b637e91c94cb9c567055bc517cefef42fc33f7c10bb5250bb2d"
+    },
+    {
+      "path": "artifacts/macos-x86_64/native-check-42341798959-1/qualification.json.gz",
+      "bytes": 1168,
+      "sha256": "1f1124a592c0b39dff8ee98646c42da44b6b6c138ae56d95da0483f6061e8523",
+      "original_bytes": 4651,
+      "original_sha256": "154fed9df6ce1b637e91c94cb9c567055bc517cefef42fc33f7c10bb5250bb2d"
+    },
+    {
+      "path": "artifacts/macos-x86_64/native-maintenance-42341798959-1/result.json.gz",
+      "bytes": 541,
+      "sha256": "70a5b58dc402b81b074b8fb9a2467aea870377add4d71ce9727c15eab56ea495",
+      "original_bytes": 974,
+      "original_sha256": "905d9f7958e346d8566e7714d62d2852b97ce24118b62754508d2d1d399a2bad"
+    },
+    {
+      "path": "artifacts/macos-x86_64/native-maintenance-42341798959-1/worker-result.json.gz",
+      "bytes": 62,
+      "sha256": "a5f95c7faa63890a13307140b61e0631352cc1fedad8066fc05bf2d1ab6333c5",
+      "original_bytes": 55,
+      "original_sha256": "206c98c516881b90c47adc25c7cd690e215dd0e73baf3f9f8bc9e304fb8e703e"
+    },
+    {
+      "path": "artifacts/macos-x86_64/native-snapshot-42341798959-1/result.json.gz",
+      "bytes": 686,
+      "sha256": "2b39a6841a5f43460bb49cd91285c35bbb3410891fbbf2ed6fb6bc21458ff194",
+      "original_bytes": 1318,
+      "original_sha256": "d3ee6cfa8f20e082e2d1dda12529c25296bcee9a78b6fe62d0fbe0e1a67f28af"
+    },
+    {
+      "path": "artifacts/macos-x86_64/native-transition-42341798959-1/admission-worker-result.json.gz",
+      "bytes": 62,
+      "sha256": "a25485cdfe6c60330832ae45a0e1107f7a6d69643316a596bf53caba598ff37f",
+      "original_bytes": 55,
+      "original_sha256": "dd6c60b7c767737c415915fbf0395b47c765071d2e2cfbb1900385688b0a07af"
+    },
+    {
+      "path": "artifacts/macos-x86_64/native-transition-42341798959-1/result.json.gz",
+      "bytes": 468,
+      "sha256": "70e1c234c9d26212b80e4828a8d8c814188b04424c755b4233f0e46b2a668734",
+      "original_bytes": 954,
+      "original_sha256": "80c55b776b4d803352be68669fc5ab939c7873c442a4f093771c53e782de5225"
+    },
+    {
+      "path": "artifacts/macos-x86_64/native-transition-42341798959-1/rollback-worker-result.json.gz",
+      "bytes": 62,
+      "sha256": "78fdbe2266574e6bc1a0371a6d27a1e47d54451922469f7678ce5e8b66aef2df",
+      "original_bytes": 55,
+      "original_sha256": "9515a57f352d578693b973f16ffffeab5fa4b9a492ba094f1a547bb228cd005a"
+    },
+    {
+      "path": "artifacts/macos-x86_64/packaged-native-42341798959-1/result.json.gz",
+      "bytes": 427,
+      "sha256": "44d579daf3bb6b61e3c25494500c0249889452936e496b12edc9fd6175477103",
+      "original_bytes": 719,
+      "original_sha256": "e8c37332eefc68cd450dc9178d8fef76cc9723bcf16aba992cb541f86295ad90"
+    },
+    {
+      "path": "artifacts/windows-x86_64/native-adoption-fresh-42341798959-1/result.json.gz",
+      "bytes": 341,
+      "sha256": "f366815345c911518b54ed4234994be8fc982030f37ce971211cbdc5e6ae612a",
+      "original_bytes": 773,
+      "original_sha256": "90de5a8b57b1c1816e4bee43ca389b1bf92111e6b3b2d45351c6032e49a7027a"
+    },
+    {
+      "path": "artifacts/windows-x86_64/native-adoption-legacy-42341798959-1/result.json.gz",
+      "bytes": 339,
+      "sha256": "ba7b13de891ce570dc3151c081e38db4e8750cb7abd0e58adbf6ae2fda72a24f",
+      "original_bytes": 771,
+      "original_sha256": "7a4210eeaeb2d92756f6f51669c46d1ad2f8caf3c72eb1ad5800d435c50b721b"
+    },
+    {
+      "path": "artifacts/windows-x86_64/native-artifacts/artifacts.json.gz",
+      "bytes": 398,
+      "sha256": "d4475e5e8bf01660c3bbc76d1972769529ccfb9575e3614de1e3e50615765a08",
+      "original_bytes": 680,
+      "original_sha256": "c6055d3d25e2fc4fce6cf89be016230f453faa8200c2ff3d3c2e550cb577928b"
+    },
+    {
+      "path": "artifacts/windows-x86_64/native-artifacts/manifest.json.gz",
+      "bytes": 147460,
+      "sha256": "59180ff156745afec75881b475e9d4b0110587fc0711f17f311343ff13c15a06",
+      "original_bytes": 588203,
+      "original_sha256": "0dc359e149d39543c259948a9ae4994f635492673d72c891e3e0f03adfa69b9b"
+    },
+    {
+      "path": "artifacts/windows-x86_64/native-artifacts/qualification.json.gz",
+      "bytes": 1177,
+      "sha256": "36c00e4bb784d11aae489a3238240f934feaa3305419b6cc5fa26f4ada912e14",
+      "original_bytes": 4812,
+      "original_sha256": "c7ef0f3229056a9b98a48c8f86444e956332e8cb22f45ebbb6265433cb1aa9ec"
+    },
+    {
+      "path": "artifacts/windows-x86_64/native-check-42341798959-1/qualification.json.gz",
+      "bytes": 1177,
+      "sha256": "36c00e4bb784d11aae489a3238240f934feaa3305419b6cc5fa26f4ada912e14",
+      "original_bytes": 4812,
+      "original_sha256": "c7ef0f3229056a9b98a48c8f86444e956332e8cb22f45ebbb6265433cb1aa9ec"
+    },
+    {
+      "path": "artifacts/windows-x86_64/native-maintenance-42341798959-1/result.json.gz",
+      "bytes": 548,
+      "sha256": "43e558c43008a1d2b7bedbaf711130ddf3ab2edb69ff5156e99d566865e3758b",
+      "original_bytes": 1003,
+      "original_sha256": "75e41895672b5c2f87a445db5645bc0ee610c002b8a8d23cbe5c33aae21a8e76"
+    },
+    {
+      "path": "artifacts/windows-x86_64/native-maintenance-42341798959-1/worker-result.json.gz",
+      "bytes": 65,
+      "sha256": "176042b36d4c5101bf078c0fcae873630f48e9ab76229597e96aed161e2d60e5",
+      "original_bytes": 60,
+      "original_sha256": "b9ed968fd1446a2a5e0c91461fc0ccc9e4e0bebbb6ad6c293c5457430de33d87"
+    },
+    {
+      "path": "artifacts/windows-x86_64/native-snapshot-42341798959-1/result.json.gz",
+      "bytes": 696,
+      "sha256": "9d5e8093f2ff77a02d924a6e0b3caeb1013cd12455d7d4e272047a6933bbddbe",
+      "original_bytes": 1350,
+      "original_sha256": "365ed2a86513dbebf25f3a4d3bb526a1278f3fe6c25e0753073eea3c678d608e"
+    },
+    {
+      "path": "artifacts/windows-x86_64/native-transition-42341798959-1/admission-worker-result.json.gz",
+      "bytes": 65,
+      "sha256": "55aed7a5cdaf91e4ef83c1c1ae764d855eb3a85c06f79adccdd6cfa6a523640a",
+      "original_bytes": 60,
+      "original_sha256": "db774bc223fd1b83f419cfc268614c0afcbd52a82b727583e83d5890d42c5a54"
+    },
+    {
+      "path": "artifacts/windows-x86_64/native-transition-42341798959-1/result.json.gz",
+      "bytes": 474,
+      "sha256": "1ea9d81ddf89ddf7899c9f0fea61e42fb2979c4a71c741c3f9211c5190f8e5c8",
+      "original_bytes": 981,
+      "original_sha256": "756244de4af6932709ce7652f4ff45bd3e961bd63e2f8ff3af65d0250dd83f2a"
+    },
+    {
+      "path": "artifacts/windows-x86_64/native-transition-42341798959-1/rollback-worker-result.json.gz",
+      "bytes": 65,
+      "sha256": "3b28e9662b8052b58d4151205cc41b645ab269cbde878db6eccf7f99768753c7",
+      "original_bytes": 60,
+      "original_sha256": "83c46af17e6f311938e0d48fce8db5ca0cb51a58e322fad2e8251a746dd793bc"
+    },
+    {
+      "path": "artifacts/windows-x86_64/packaged-native-42341798959-1/result.json.gz",
+      "bytes": 433,
+      "sha256": "9edc8496bcf8c07553fc4466840ecda90647fe6a06d7615726654f69e23abbd3",
+      "original_bytes": 735,
+      "original_sha256": "067cec2625a41ee0283ea8563ee737318420145b7af257e3059cfeb60ad30565"
+    }
+  ]
+}
