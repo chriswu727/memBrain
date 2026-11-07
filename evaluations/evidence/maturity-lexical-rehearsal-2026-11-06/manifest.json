@@ -1,0 +1,163 @@
+{
+  "source_commit": "22bf714919d8a7deb2c7d17ac0a3472c232293de",
+  "runtime_pin": "fb249da5d75b29a2eea0dcf6a19b29f0d2e29cc3",
+  "scope": "Frozen public practice with deterministic stubs; not real behavioral acceptance",
+  "model_calls": 0,
+  "credential_matches": 0,
+  "files": [
+    {
+      "path": "checks.json.gz",
+      "bytes": 235,
+      "sha256": "950d035cb6451926c02e332742faff4da150a492522b6c60534a8ac3a54af2d8",
+      "original_bytes": 673,
+      "original_sha256": "010f206e79fc09d5a4f457c9a2e48e816e0903bcfcf2cdc5d606b0983bc4cfef"
+    },
+    {
+      "path": "driver.log.gz",
+      "bytes": 199,
+      "sha256": "6a342263b533d42d3f39844ad370a6afb633021dda9b998751df9eb032f8ca3a",
+      "original_bytes": 295,
+      "original_sha256": "2305ba3670a85124a4ad3fcfa2d4f23e6f99d29faca68ff5fc10d9bcd7aff015"
+    },
+    {
+      "path": "manifest.json.gz",
+      "bytes": 27925,
+      "sha256": "982919e599e9d3b0dbc37a234828796510c2ed579d73edb27465f14accc41360",
+      "original_bytes": 62724,
+      "original_sha256": "1dddd7d978b6c42cdcd1690bf569f818b2d240008078bd4a4ec8fdcf3b3076b6"
+    },
+    {
+      "path": "metadata.json.gz",
+      "bytes": 319,
+      "sha256": "c03994b0cfd978cae7ec2310afe74925b6c93a949769800f14180dac59408531",
+      "original_bytes": 457,
+      "original_sha256": "b45fc198d98c06f2b6ccbd0e0ee3a0a99ed30ded9d9a1872776592169643acca"
+    },
+    {
+      "path": "ports.json.gz",
+      "bytes": 54,
+      "sha256": "c966bc8bd51bd22754cf6097ef79b851d6d2eb488b5f0d9d9e6cc8f29f957e0f",
+      "original_bytes": 69,
+      "original_sha256": "9897256fa0d2e2e655f3071c40198f008baa8fde9282854d4c7d57bf7de40d6b"
+    },
+    {
+      "path": "run.log.gz",
+      "bytes": 313,
+      "sha256": "7b1ebc33d629ffc1a80fa3cd773fc38ef98e85945bbd7149a001b70cd65124f1",
+      "original_bytes": 437,
+      "original_sha256": "f72adec8a071078c125840a4597d4813045abd535395e78ca076d34ebb5ba457"
+    },
+    {
+      "path": "run.py.gz",
+      "bytes": 1441,
+      "sha256": "47071e5811db0c8d6d80eab135c926e03e0dc7e8eb72c2817cde85672aa8d93a",
+      "original_bytes": 3069,
+      "original_sha256": "a97369efdf539a4298393dbbe5906e2361ff6c369ea45386313c2da45e101960"
+    },
+    {
+      "path": "run/attempt-state.json.gz",
+      "bytes": 637,
+      "sha256": "472306a0024219d49633d6c264f4fc0d2a718986d0baa2cbec4e0e4e4d778f6e",
+      "original_bytes": 2002,
+      "original_sha256": "478721c835f947f63b580e7fc82cb5726c57aa672fd2ca864c1cd9265cd9e76f"
+    },
+    {
+      "path": "run/driver-logs/practice.runner.log.gz",
+      "bytes": 65,
+      "sha256": "0ea0c32bd4c9db245ea6e083de736d00ca787ba6c0cf716b3a88841511ac94c8",
+      "original_bytes": 107,
+      "original_sha256": "164c14b0e0738a339be94ac85aafe800981a5df3684b0d905ba9899e2260f2d8"
+    },
+    {
+      "path": "run/driver-logs/practice.validity.log.gz",
+      "bytes": 143,
+      "sha256": "95224533dd74618f79c77633a1a65f3a9201ded0ae83a973ff4d26fa7366b269",
+      "original_bytes": 163,
+      "original_sha256": "6944038cca8acff562db9cd7c2a568a9247b231f148804609380a096bb60c6b4"
+    },
+    {
+      "path": "run/practice-E/host-rounds.jsonl.gz",
+      "bytes": 614,
+      "sha256": "cbe9271e85921ac96e898aa9e3993942d57a145121f4b8fca30f9278c0951d77",
+      "original_bytes": 6830,
+      "original_sha256": "f45c5e1703bfa458a58972153425b14f1c13ede5d9c81fa1f2f6fc2c8c0ca750"
+    },
+    {
+      "path": "run/practice-E/page-actions.jsonl.gz",
+      "bytes": 984,
+      "sha256": "427d43352a12484dbf1024bacc22df589a74bf3da7760f27cfc78df7b50221b3",
+      "original_bytes": 5481,
+      "original_sha256": "6a30b017cceff822301101caa1e6cfacdb39a4972aaae707aa2f816d42fb5bc5"
+    },
+    {
+      "path": "run/practice-E/results_c5-practice-scenario_E.jsonl.gz",
+      "bytes": 6033,
+      "sha256": "b5396c54e719bbcf9b45b086812264161378462003c85705c0f99cbfcf470ca6",
+      "original_bytes": 205842,
+      "original_sha256": "837d042f0b9c91cbd34fabc739c1334ee2ecba90fc8f828864aad6465a4c9ecd"
+    },
+    {
+      "path": "run/practice-E/run.log.gz",
+      "bytes": 1064,
+      "sha256": "8128b7add16474b448ff2060b06c06114f31851cfdef608d939d57c97709c0c7",
+      "original_bytes": 3326,
+      "original_sha256": "93bb21faf021185b00e769a7f4cde5844bc630020dbbda87c367e4e9464627bc"
+    },
+    {
+      "path": "run/practice-F/host-rounds.jsonl.gz",
+      "bytes": 542,
+      "sha256": "8bb0f932f6cce51d46c39e1034d0c68da3dbc6722d71b5651268f109540751ad",
+      "original_bytes": 5715,
+      "original_sha256": "0a7e000d968571aefb15620fca13935fb4fb6004b593b5761b9db39708bfe142"
+    },
+    {
+      "path": "run/practice-F/page-actions.jsonl.gz",
+      "bytes": 458,
+      "sha256": "bc9dbbf1ebf21387decb21614e70cafa88f2391fdf82139a5add21773c24cb90",
+      "original_bytes": 1905,
+      "original_sha256": "1c11387b984cfce333eff6016deb94fd024848cd3de4a3fa0b26a76d33035c71"
+    },
+    {
+      "path": "run/practice-F/results_c5-practice-scenario_F.jsonl.gz",
+      "bytes": 2157,
+      "sha256": "164e44eba66e8eddc09cf82ad44d506fdbae9d2db93249502d249a50b88e799f",
+      "original_bytes": 28258,
+      "original_sha256": "0691b37480dc61245d82eccee9e0ca6737ef0cfee2bc3c6477d26b0ccebe7bed"
+    },
+    {
+      "path": "run/practice-F/run.log.gz",
+      "bytes": 509,
+      "sha256": "eaafda3a696a0944bb8090cb6305d172db4fc61dc267c37afa721559782a0bfa",
+      "original_bytes": 2123,
+      "original_sha256": "b222d57191dcc8b92778088328180613e34834423c74db094a9c1d5dee863498"
+    },
+    {
+      "path": "run/practice-P/host-rounds.jsonl.gz",
+      "bytes": 1135,
+      "sha256": "af51e9541965a6a88aa0870e50ae31cf2faa5cc4ff6f4c31557d9c08c5603407",
+      "original_bytes": 11196,
+      "original_sha256": "27ddb746bad39d67e219fd95c44dfe94bda0763c9add5774d06c580d37ac7619"
+    },
+    {
+      "path": "run/practice-P/page-actions.jsonl.gz",
+      "bytes": 962,
+      "sha256": "cc75c4ce37c07cb3d50a8d723595f4be97116721e3c0f4095dc9cc16cbfdb584",
+      "original_bytes": 4908,
+      "original_sha256": "c6d8bc0d4a85c44444fab99394783e2ece0c6b140557b9bfbd61c884bcd987fb"
+    },
+    {
+      "path": "run/practice-P/results_c5-practice-scenario_P.jsonl.gz",
+      "bytes": 7189,
+      "sha256": "fb908460ba13bb10f40bb90414f4b8e4252598f3ca7489d1c2e01ea9a8f4dca8",
+      "original_bytes": 151800,
+      "original_sha256": "8076ed5880799528f31d927b0e727e0de671c809393a1595133b59ce616d2086"
+    },
+    {
+      "path": "run/practice-P/run.log.gz",
+      "bytes": 1303,
+      "sha256": "3edb4dc79e48bec68ca4bffd8223452f21c3d390b328ebf52010aed8ef10b229",
+      "original_bytes": 3694,
+      "original_sha256": "b03a51ac5dfa31ace8c86a6f74797cd1983e7a1b42f35bd8ee0445ba4befbea3"
+    }
+  ]
+}
