@@ -224,18 +224,19 @@ def test_an_invalid_recall_result_is_rejected_when_preparing_context(learning, m
 
 
 @pytest.mark.integration
-def test_a_recall_saves_exactly_the_traces_it_returns(learning):
+def test_a_recall_receipt_saves_exactly_the_traces_it_returns(learning):
     harness = learning
     harness.observe("The Vancouver library appointment is on Friday.")
     harness.memory.work()
-    response = harness.service.handle(harness.principal, recall_request(harness.brain))
+    request = recall_request(harness.brain)
+    response = harness.service.handle(harness.principal, request)
     returned = response["result"]["recall_traces"]
     assert response["outcome"] == "completed" and returned
     with harness.database.transaction(harness.principal) as conn:
-        saved = {row["id"]: row["document"] for row in conn.execute(
-            "SELECT id,document FROM memory_traces WHERE tenant_id=%s AND brain_id=%s AND document->>'recall_id'=%s",
-            (harness.principal.tenant_id, harness.brain, response["result"]["recall_id"]))}
-    assert saved == {trace["trace_id"]: trace for trace in returned}
+        saved = conn.execute(
+            "SELECT response FROM memory_requests WHERE tenant_id=%s AND brain_id=%s AND action='recall' AND key=%s",
+            (harness.principal.tenant_id, harness.brain, request["request_id"])).fetchone()["response"]
+    assert saved["result"]["recall_traces"] == returned
 
 
 @pytest.mark.integration

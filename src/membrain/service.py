@@ -305,9 +305,8 @@ class MemoryService:
                 envelope.update(outcome="completed", server_scope=self._scope(principal, brain, request["target"]), result=result)
                 validate("ActionResponse", envelope)
                 recall_deadline.remaining(deadline)
-                if action == "recall":
-                    # Validated just now as RecallTraces inside the response's RecallResult, and unchanged since.
-                    self._save_traces(conn, principal, brain, result.get("recall_traces", []), validated=True)
+                # Passive recall diagnostics remain in the replay receipt. Only actual selections and
+                # feedback need separate durable trace rows for learning.
                 conn.execute(
                     "INSERT INTO memory_requests(tenant_id,owner_id,brain_id,action,key,request_hash,response) "
                     "VALUES(%s,%s,%s,%s,%s,%s,%s)",

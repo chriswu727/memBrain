@@ -1,0 +1,187 @@
+{
+  "scope": "Duplicate passive recall diagnostic writes only. Public synthetic fixtures, no paid or subscription calls. Historical candidate rows and unbounded response cache remain.",
+  "files": [
+    {
+      "path": "baseline-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "9fbfbb8362a71aa1c9e79d39c08bf2c3a02e3880308831780e197c0583a19fb9",
+      "original_bytes": 70,
+      "original_sha256": "04499e0936f09123686ac45602fb93e20f0dad2f67afab09aadf961adf7d51d5"
+    },
+    {
+      "path": "baseline-cost.json.gz",
+      "bytes": 3225,
+      "sha256": "7a4ce3e029cb509bca6113e121933fc06d31863c5df16b8e26793e00e9fdafed",
+      "original_bytes": 470703,
+      "original_sha256": "a20797e4c43172dd0d8bb23fa0fd33bf9b7dc7364d1e4fb5cee645feb4d12f02"
+    },
+    {
+      "path": "baseline.log.gz",
+      "bytes": 1094,
+      "sha256": "ca39b9816b2cab503a796863651759a5550fd12a076b43cf64ad4b8d2a507bd3",
+      "original_bytes": 6436,
+      "original_sha256": "e3b96e393da9c969889b2f08c970e85ffff434fdfbd43cf66f571eddc0b9382e"
+    },
+    {
+      "path": "cost-baseline-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "9fbfbb8362a71aa1c9e79d39c08bf2c3a02e3880308831780e197c0583a19fb9",
+      "original_bytes": 70,
+      "original_sha256": "04499e0936f09123686ac45602fb93e20f0dad2f67afab09aadf961adf7d51d5"
+    },
+    {
+      "path": "cost-baseline-v2-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "f191f6f3ffcb7319da09a40ced22934faf16923dfeaecfcc42ad3460c0b06bfb",
+      "original_bytes": 70,
+      "original_sha256": "fed07233ea8472fd75f50c09414c439dece7d68be5d13b33604bc1eeeb52f660"
+    },
+    {
+      "path": "cost-baseline-v2.log.gz",
+      "bytes": 49,
+      "sha256": "45445a5fd989750a8533808f4ac28136550e86e2ce4ef8f0c75fbb21219c072c",
+      "original_bytes": 98,
+      "original_sha256": "d2b0b1cb427c160e3bf5066edfdf222428e2d9ff6df23ff9279f108533ad4006"
+    },
+    {
+      "path": "cost-baseline.log.gz",
+      "bytes": 777,
+      "sha256": "01ad8611e1b8f17598caad45fac69ce14d6c9953c41560b84eb7a1af6bf34722",
+      "original_bytes": 5253,
+      "original_sha256": "cb27ba8c9ff1b37490584970ec98ac9f3243d2f2ef0f25513e7dd48a2357af3d"
+    },
+    {
+      "path": "cost-fixed-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "f191f6f3ffcb7319da09a40ced22934faf16923dfeaecfcc42ad3460c0b06bfb",
+      "original_bytes": 70,
+      "original_sha256": "fed07233ea8472fd75f50c09414c439dece7d68be5d13b33604bc1eeeb52f660"
+    },
+    {
+      "path": "cost-fixed.log.gz",
+      "bytes": 49,
+      "sha256": "7b331bc0289ac45e2ee5e902e2394488764757d4b1fc36af15eeeb0aaf56426b",
+      "original_bytes": 98,
+      "original_sha256": "9e06e75314832422b4599039f434e4302030856f18fc60cab5dd64e6e9edb2c2"
+    },
+    {
+      "path": "fixed-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "9fbfbb8362a71aa1c9e79d39c08bf2c3a02e3880308831780e197c0583a19fb9",
+      "original_bytes": 70,
+      "original_sha256": "04499e0936f09123686ac45602fb93e20f0dad2f67afab09aadf961adf7d51d5"
+    },
+    {
+      "path": "fixed-contract-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "f191f6f3ffcb7319da09a40ced22934faf16923dfeaecfcc42ad3460c0b06bfb",
+      "original_bytes": 70,
+      "original_sha256": "fed07233ea8472fd75f50c09414c439dece7d68be5d13b33604bc1eeeb52f660"
+    },
+    {
+      "path": "fixed-contract.log.gz",
+      "bytes": 62,
+      "sha256": "3dc9c2d8f6b7a9d1b6a64dbbbce5336d665026036679801f7545ba2fdb7d5499",
+      "original_bytes": 181,
+      "original_sha256": "1b9362d3f60fcd93d459ce22cf3019961ac1ca1635ee3422f2ff8aa4ad864013"
+    },
+    {
+      "path": "fixed-cost.json.gz",
+      "bytes": 3220,
+      "sha256": "f7172b17a50a1fe797fcfa7986ba427f22baed201cae08835b434db3f008221a",
+      "original_bytes": 471094,
+      "original_sha256": "02a3eb5974f216b9d0501bd27432f86dce891f7e64739a1aa219bdbb5b693f07"
+    },
+    {
+      "path": "fixed.log.gz",
+      "bytes": 927,
+      "sha256": "c5065ffdfa4ba45ffe9eaa5410a14f85a50985f72e0331c2138ad3ff1bb1a229",
+      "original_bytes": 2274,
+      "original_sha256": "6dadb41a99821d370a1868e2c526c932a534430855c1959638eb9606e9be664a"
+    },
+    {
+      "path": "independent-corpus-comparison.json.gz",
+      "bytes": 301,
+      "sha256": "4fe6f9597908ff0a0110aa6b0c1c2618cccc4266db9eaa9cd221810edf8fa7cb",
+      "original_bytes": 463,
+      "original_sha256": "07d00dd380393843e8c9eab3b214117f151461c18e8d41c79beaf8f7b51689cc"
+    },
+    {
+      "path": "run_tests.py.gz",
+      "bytes": 690,
+      "sha256": "6df3b31ed1962fcef641fde824e2ac6075413d3d51f2ecc51f9677f1e459fb4d",
+      "original_bytes": 1443,
+      "original_sha256": "0a533fab0ff38540c98c913e3f4a7a28b1e03e154d24fdb7e2911c602799e430"
+    },
+    {
+      "path": "same-corpus-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "f191f6f3ffcb7319da09a40ced22934faf16923dfeaecfcc42ad3460c0b06bfb",
+      "original_bytes": 70,
+      "original_sha256": "fed07233ea8472fd75f50c09414c439dece7d68be5d13b33604bc1eeeb52f660"
+    },
+    {
+      "path": "same-corpus.json.gz",
+      "bytes": 354,
+      "sha256": "d8f38fe057949fdc8eac74087bf01695b690321c7b4d07e34e7b50ae8164a2c0",
+      "original_bytes": 2913,
+      "original_sha256": "ea540255d5cfa978e5f4dbaf800e33f2d28f0911bf1d7778958ec614e52516ed"
+    },
+    {
+      "path": "same-corpus.log.gz",
+      "bytes": 49,
+      "sha256": "87523c8085d3ec3989528c514057aa8cf10dd2969c194a37c21f9e2081ff05da",
+      "original_bytes": 98,
+      "original_sha256": "4c1d70bc70c2221300b17f315e1384e26ab66137234ed663e4093b48bfadd9ca"
+    },
+    {
+      "path": "storage_cost_initial.py.gz",
+      "bytes": 796,
+      "sha256": "ade6c019627e072bddb939e80e6eaa30f33fffe3ecaa7778fa2144ecee1170a3",
+      "original_bytes": 1516,
+      "original_sha256": "6a98397b95c56393088ec2d6b67147b81afb42b8594198830e1e501ce576e075"
+    },
+    {
+      "path": "test_same_corpus.py.gz",
+      "bytes": 1036,
+      "sha256": "09df4b8c165751fc73097d177261fc8bb483bc04095d14e725a881684e868d10",
+      "original_bytes": 2321,
+      "original_sha256": "9db8e465bb36acae68e84358ebd1f39828d365fe8f6430c716c27d95d4b89a05"
+    },
+    {
+      "path": "test_storage_cost.py.gz",
+      "bytes": 796,
+      "sha256": "f3f290ad542c7730c27602a1231d69d4b3663a42f57f83408c0e480e16ed2438",
+      "original_bytes": 1520,
+      "original_sha256": "c236c27dc173e45291e5f0bf96681258b710af9b8db5fbe16a5dea0e379ba68e"
+    },
+    {
+      "path": "operational/operational-storage-audit.json.gz",
+      "bytes": 1177,
+      "sha256": "99ff37d465788ebc0609443385d9ebc3c8eacc74e6331b07d2f3985f45bf82a7",
+      "original_bytes": 2364,
+      "original_sha256": "b385f6e8f9a79f352b60f0e7e444ec86653b5088ac8f31d51f255a882c35c4a6"
+    },
+    {
+      "path": "operational/storage_distribution.py.gz",
+      "bytes": 805,
+      "sha256": "0eaafd7dd872662d4b6bb17354e836a51783083de0cf6640650a31f97acc127b",
+      "original_bytes": 1815,
+      "original_sha256": "82146fa4772dd9b545477c48841f1b6165b9a79d07a4e0b23846354ccb6ec682"
+    },
+    {
+      "path": "operational/storage-distribution.json.gz",
+      "bytes": 456,
+      "sha256": "67f944378f15bfe63ee8c3a4f0880494ff9e54685608e3b7b16fb627bc1b15bb",
+      "original_bytes": 1683,
+      "original_sha256": "db0b8242cd7ffd01d6c646551f3e8733c1aaf8ff2804fa83da3021d0497c5bd3"
+    },
+    {
+      "path": "operational/storage-distribution.log.gz",
+      "bytes": 456,
+      "sha256": "67f944378f15bfe63ee8c3a4f0880494ff9e54685608e3b7b16fb627bc1b15bb",
+      "original_bytes": 1683,
+      "original_sha256": "db0b8242cd7ffd01d6c646551f3e8733c1aaf8ff2804fa83da3021d0497c5bd3"
+    }
+  ]
+}
