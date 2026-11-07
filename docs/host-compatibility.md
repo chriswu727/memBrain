@@ -30,7 +30,7 @@ memBrain cannot withdraw text already supplied to a model, or erase a host's ind
 
 ## What was actually exercised
 
-- **Shared installed runtime on macOS:** runtime `fb249da` passed [49 fresh launcher checks and two 187-input installed comparisons](../evaluations/maturity-lexical-cue-2026-11-06.md#exact-runtime-installation-and-fullscreen-qualification), including MCP, proxy, companion preservation, upgrade/restart and backup/restore. This is not a claim that every native macOS host application ran. The earlier `d4d7126` result remains scoped to its own runtime.
+- **Shared installed runtime on macOS:** runtime `6c47349` passed [49 fresh launcher checks and two 187-input installed comparisons](../evaluations/maturity-extraction-sources-2026-11-07.md#verification), including MCP, proxy, companion preservation, upgrade/restart and backup/restore. This is not a claim that every native macOS host application ran. The earlier `d4d7126` result remains scoped to its own runtime.
 - **Claude Code on Linux x86_64:** local-marketplace install and separate sessions ran with a local model stub, demonstrating recording and cross-session injection. This verifies integration rather than real model answer quality. Native Codex, WorkBuddy and CodeBuddy journeys are not inferred from that result.
 - **Windows 11:** earlier evidence covers the embedded service, both shell launchers, and partial AstrBot/OpenClaw integration. Native Claude Code/Codex and a complete current-candidate host/model matrix are not verified there.
 - **OpenClaw:** its JavaScript suite is also driven through a real embedded runtime by `tests/test_openclaw_plugin.py`. This is separate from a full native OpenClaw/model acceptance.

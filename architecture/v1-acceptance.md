@@ -68,7 +68,7 @@ This gate follows a plan frozen and independently reviewed before any paid call:
 
 ### R5 — Local overhead stays bounded
 
-Current runtime `fb249da` passes [all 36 fullscreen reference windows](../evaluations/maturity-lexical-cue-2026-11-06.md#exact-runtime-installation-and-fullscreen-qualification), with 4,080 nonempty recalls and worst serial/same-brain/eight-brain p95 256.35/318.31/295.06 ms. This covers the declared keyword fixture, not arbitrary capacity or semantic quality.
+Current runtime `6c47349` passes [all 36 fullscreen reference windows](../evaluations/maturity-extraction-sources-2026-11-07.md#exact-runtime-installation-and-fullscreen-qualification), with 4,080 nonempty recalls and worst serial/same-brain/eight-brain p95 253.86/382.11/407.80 ms. This covers the declared keyword fixture, not arbitrary capacity or semantic quality.
 
 Historical candidate `9f75361` passes fresh canonical 88.91/433.97/447.56 ms and all 36 complete fullscreen windows, worst eight-brain p95 465.93 ms, with 4,080 nonempty recalls. This is verified for the frozen development protocol; no prior pass is inherited.
 
