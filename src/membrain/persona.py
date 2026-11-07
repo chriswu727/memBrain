@@ -250,25 +250,31 @@ def persona_versions(service, principal, brain_id: str) -> dict:
 
 
 def _quote_feedback(service, conn, principal, brain_id, versions) -> None:
-    """Add ``feedback_messages`` to versions accepted from feedback (P2): the source messages that still exist, read
-    now. A version stores only their ids, so a deleted message is never quoted, from this brain or a restored one."""
-    ids = sorted({ident for version in versions for ident in ((version.get("feedback") or {}).get("source_event_ids")
-                                                              or [])})
+    """Quote current feedback only when that revision preceded the accepted persona version. Edited or erased
+    messages must not rewrite an earlier decision's evidence, including after archive restore."""
+    pairs = [(version["event_id"], ident) for version in versions
+             for ident in (version.get("feedback") or {}).get("source_event_ids", [])]
     rows = conn.execute(
-        "SELECT id,left(document->'observed'->'content'->>'text',160) AS text,"
-        "document->'system_time'->>'recorded_at' AS recorded_at FROM memory_events "
-        "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=ANY(%s::text[]) AND is_current AND NOT deleted "
-        "AND NOT suppressed AND NOT retired AND document IS NOT NULL "
-        "AND document->'observed'->>'actor_role'='user'",
-        (*service._params(principal, brain_id), ids)).fetchall() if ids else []
-    found = {row["id"]: row for row in rows}
+        "SELECT p.id AS persona_id,e.id,left(e.document->'observed'->'content'->>'text',160) AS text,"
+        "e.document->'system_time'->>'recorded_at' AS recorded_at "
+        "FROM unnest(%s::text[],%s::text[]) AS refs(persona_id,source_id) "
+        "JOIN memory_events p ON p.id=refs.persona_id "
+        "JOIN memory_events e ON e.id=refs.source_id AND e.tenant_id=p.tenant_id "
+        "AND e.owner_id=p.owner_id AND e.brain_id=p.brain_id "
+        "WHERE p.tenant_id=%s AND p.owner_id=%s AND p.brain_id=%s "
+        "AND p.is_current AND NOT p.deleted AND NOT p.suppressed AND NOT p.retired AND p.document IS NOT NULL "
+        "AND e.is_current AND NOT e.deleted AND NOT e.suppressed AND NOT e.retired AND e.document IS NOT NULL "
+        "AND e.sequence<p.sequence AND e.document->'observed'->>'actor_role'='user'",
+        ([pair[0] for pair in pairs], [pair[1] for pair in pairs],
+         *service._params(principal, brain_id))).fetchall() if pairs else []
+    found = {(row["persona_id"], row["id"]): row for row in rows}
     for version in versions:
         feedback = version.get("feedback")
         if feedback:
             version["feedback_messages"] = [
-                {"event_id": ident, "text": " ".join((found[ident]["text"] or "").split()),
-                 "recorded_at": found[ident]["recorded_at"]}
-                for ident in feedback.get("source_event_ids") or [] if ident in found]
+                {"event_id": ident, "text": " ".join((row["text"] or "").split()), "recorded_at": row["recorded_at"]}
+                for ident in feedback.get("source_event_ids") or []
+                if (row := found.get((version["event_id"], ident))) is not None]
 
 
 def _reason(value) -> str | None:

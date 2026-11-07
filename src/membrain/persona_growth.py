@@ -535,6 +535,8 @@ class _State:
         sources = [valid[ident] for ident in entry["source_event_ids"]
                    if ident in valid and kind in valid[ident]["kinds"]]
         decision = self.decisions.get(entry["id"])
+        if decision is not None:
+            sources = [source for source in sources if source["sequence"] < decision["sequence"]]
         result = {"id": entry["id"], "kind": kind, "label": KINDS[kind]["label"][0], "language": entry["language"],
                   "proposed_at": entry["proposed_at"], "sequence": entry["sequence"], "status": "open",
                   "withdrawn_because": None, "decided_at": None, "version": None, "paused_until": None,

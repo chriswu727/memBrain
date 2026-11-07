@@ -107,9 +107,10 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
     params = service._params(principal, brain_id)
     graph.truncated |= len(proposals) > graph.max_nodes
     proposals = sorted(proposals, key=lambda item: (item["status"] != "open", -item["sequence"]))[:graph.max_nodes]
+    persona._quote_feedback(service, conn, principal, brain_id, versions)
     requested = set()
     for version in versions:
-        requested.update((version.get("feedback") or {}).get("source_event_ids", []))
+        requested.update(source["event_id"] for source in version.get("feedback_messages", []))
     for proposal in proposals:
         requested.update(source["event_id"] for source in proposal["sources"])
     requested.update(moment["id"] for moment in moments)
@@ -191,8 +192,8 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
                          evaluated_at=current_mood["now"])
     persona_ids = {}
     for version in versions[:graph.max_nodes]:
-        feedback = version.get("feedback") or {}
-        private = bool(set(feedback.get("source_event_ids", [])) & hidden)
+        sources = [source["event_id"] for source in version.get("feedback_messages", [])]
+        private = bool(set(sources) & hidden)
         ident = graph.node("persona:" + version["event_id"], "persona", "persona",
                            f"Personality v{version['version']}: {version['card'].get('name') or 'Companion'}",
                            version["recorded_at"], sensitive=private, masked=private and not include_sensitive,
@@ -200,7 +201,7 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
                            version=version["version"], made_by=version["made_by"], action=version["action"],
                            text=persona.render_card(version["card"]))
         persona_ids[version["version"]] = ident
-        for source in feedback.get("source_event_ids", []):
+        for source in sources:
             graph.edge(ident, event(source), "based_on_feedback", "accepted_persona_feedback")
     if versions and current_mood["baseline"]["source"] == "persona":
         graph.edge(mood_id, persona_ids.get(versions[0]["version"]), "baseline_from", "persona_baseline_mood")
