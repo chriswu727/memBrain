@@ -32,4 +32,11 @@ The complete closed/open/open/closed fullscreen comparison also passed **all 36 
 
 There were no page errors or external HTTP requests. Source/driver hashes remained unchanged and every fixture port closed. The [complete installed/visual evidence](evidence/maturity-recall-episode-installed-2026-11-06/manifest.json) retains the two exact source heads, runtime pin, scripts, all timings, screenshots and cleanup checks. Published payloads contain none of the owned test-profile credential values.
 
-This qualifies keyword recall on the established reference fixture, with semantic processing disabled and no model calls. It does not establish arbitrary capacity or semantic/longitudinal quality. Current-candidate full CI is still pending. R4 remains failed, C5 incomplete, and release remains frozen.
+This qualifies keyword recall on the established reference fixture, with semantic processing disabled and no model calls. It does not establish arbitrary capacity or semantic/longitudinal quality. Full Verify for integration `72f2541` was superseded by the later affect-window repair before completion; no full Verify pass is claimed. R4 remains failed, C5 incomplete, and release remains frozen.
+
+
+## CI disposition for this predecessor
+
+Native qualification [42344062943](https://github.com/chriswu727/memBrain/actions/runs/42344062943) passed all five platforms on integration head `72f2541e09dd7a2ed6c36f818459a7606076c14d`. The artifact audit verified 47 completed summaries, zero model calls and every recorded port closure; five identical duplicate qualification summaries were excluded.
+
+Verify [42344062942](https://github.com/chriswu727/memBrain/actions/runs/42344062942) was cancelled by workflow concurrency when integration advanced to `3dbefa2`, after the independently reproduced affect-window repair completed its scoped tests, fresh 49-check installation and complete 36-window R5 qualification. The cancelled run is not a passing result and was not restarted to search for a green outcome. [Raw job logs, artifact receipts and hashes](evidence/maturity-recall-episode-installed-2026-11-06/ci/manifest.json) preserve both outcomes. The successor requires its own full CI.
