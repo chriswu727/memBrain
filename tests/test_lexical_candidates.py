@@ -75,8 +75,9 @@ def test_word_channel_is_bounded_and_uses_bound_parameters():
     assert not rows and truncated and len(conn.calls) == 1
     sql, params = conn.calls[-1]
     assert "word0000" not in sql
-    assert params[-5].count(" | ") == MAX_QUERY_TERMS - 1
-    assert params[-4:] == (5, 4, 4, 4)
+    assert [value for value in params if isinstance(value, list)][-1] == [
+        f"'word{number:04d}'" for number in range(MAX_QUERY_TERMS)]
+    assert params[-5:] == (5, 5, 4, 4, 4)
 
 
 @pytest.mark.parametrize("text,expected_calls,truncated", [
@@ -88,7 +89,8 @@ def test_unusable_or_non_word_queries_retain_bounded_hash_fallback(text, expecte
     assert lexical_rows(conn, ("tenant", "owner", "brain"), {}, text, limit=4) == ([], truncated)
     assert len(conn.calls) == expected_calls
     if text.startswith("label"):
-        assert conn.calls[-1][1][-5] == "'label':* | 'privat':*"
+        assert [value for value in conn.calls[-1][1] if isinstance(value, list)][-1] == [
+            "'label':*", "'privat':*"]
 
 
 @pytest.mark.integration
@@ -115,6 +117,38 @@ def test_exact_label_survives_real_hash_collisions_beyond_candidate_limit(candid
     assert state["candidate_versions"] == [key(wanted)]
     assert state["candidate_truncated"]
     assert not state["source_truncated"]
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("target_text", [
+    "Fictional memorykey000526: Mira and Theo plan a planetarium visit on route 17.",
+    "The copper inventory label memorykey000526 refers to shelf seventeen.",
+])
+def test_rare_cue_survives_common_query_terms_and_real_hash_collisions(candidates, target_text):
+    query = "What is the visit plan associated with memorykey000526?"
+    wanted = candidates.add(target_text)
+    vector = json.loads(_vector(query))
+
+    def similarity(statement):
+        return sum(a * b for a, b in zip(vector, json.loads(_vector(statement)), strict=True))
+
+    threshold = similarity(wanted["statement"])
+    distractors = []
+    for number in range(10000):
+        text = f"The visit plan associated with unrelated{number:06d} follows route {number % 17 + 1}."
+        if similarity("user user (direct_statement): " + text) > threshold + 1e-6:
+            distractors.append(text)
+            if len(distractors) == 20:
+                break
+    assert len(distractors) == 20
+    for text in distractors:
+        candidates.add(text)
+    with candidates.database.transaction(candidates.principal) as conn:
+        rows, truncated = lexical_rows(conn, candidates.params, candidates.target, query, limit=16)
+    assert key(wanted) in [key(row["document"]) for row in rows]
+    assert truncated and len(rows) <= 32
+    _, state = candidates.query(query, budget=2048)
+    assert key(wanted) in state["candidate_versions"]
 
 
 @pytest.mark.integration

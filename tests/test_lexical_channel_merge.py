@@ -18,9 +18,9 @@ from membrain.service import _vector
 
 
 def _separate_channels(conn, params, target, text, *, limit, through_sequence=None, excluded_versions=(),
-                       independent_of_event_ids=()):
+                       independent_of_event_ids=(), include_speech=True):
     clause, scope_params = _scope_clause("a", target)
-    where = _eligible() + clause
+    where = _eligible(include_speech=include_speech) + clause
     where += "AND a.embedding_model='lexical-feature-hash' AND a.embedding_version='v1-d256-blake2s' "
     support, support_params = historical_support_filter(independent_of_event_ids)
     where += support
@@ -43,7 +43,26 @@ def _separate_channels(conn, params, target, text, *, limit, through_sequence=No
     terms = [word for word in words if len(word) <= MAX_TERM_LENGTH][:MAX_QUERY_TERMS]
     truncated = len(hashed) > limit or len(terms) != len(words)
     exact = []
-    if terms:
+    if terms and limit:
+        pools = {}
+        for term in terms:
+            matches = conn.execute(
+                "SELECT a.document,a.event_ids,a.is_current,a.id,a.revision,"
+                "a.embedding <=> %s::vector AS distance FROM memory_assertions a WHERE " + where
+                + "AND to_tsvector('simple',a.search_text) @@ to_tsquery('simple',%s) " + order,
+                (vector, *values, " | ".join(_prefixes([term])), vector, limit + 1),
+            ).fetchall()
+            for row in matches:
+                candidate = pools.setdefault((row["id"], row["revision"]), [row, len(matches), 0])
+                candidate[1] = min(candidate[1], len(matches))
+                candidate[2] += 1
+        ordered = sorted(pools.values(), key=lambda item: (
+            item[1], -item[2], item[0]["distance"] is None, item[0]["distance"] or 0,
+            item[0]["id"], item[0]["revision"]))
+        exact = [{name: row[name] for name in ("document", "event_ids", "is_current")}
+                 for row, _, _ in ordered[:limit + 1]]
+        truncated |= len(exact) > limit
+    elif terms:
         exact = conn.execute(select + "AND to_tsvector('simple',a.search_text) @@ to_tsquery('simple',%s) " + order,
                              (*values, " | ".join(_prefixes(terms)), vector, limit + 1)).fetchall()
         truncated |= len(exact) > limit
@@ -62,11 +81,13 @@ def test_merged_channels_match_independent_reads_with_all_filters_and_limits(can
     candidates.add("The amber map has another owner.", conversation="hidden", visibility="conversation")
     candidates.add("The amber map is on a private fork.", branch="fork")
     candidates.add("The amber map has been withdrawn.", lifecycle="dormant")
+    candidates.add("Perhaps take an amber map.", role="assistant")
     foreign = Candidates(candidates.database)
     foreign.add("The amber map contains another person's secret.")
-    queries = ["amber map", "银杏树", "missing", "label' | !('private'); --", "x" * 257,
+    queries = ["amber map", "amber_map amber__map green cup", "银杏树", "missing",
+               "label' | !('private'); --", "x" * 257,
                " ".join(f"word{number:04d}" for number in range(MAX_QUERY_TERMS + 1))]
-    options = [{}, {"through_sequence": 1}, {"through_sequence": 0}, {"excluded_versions": [key(first)]},
+    options = [{}, {"include_speech": False}, {"through_sequence": 1}, {"through_sequence": 0}, {"excluded_versions": [key(first)]},
                {"independent_of_event_ids": [first["evidence_refs"][0]["event_id"]]},
                {"through_sequence": 2, "excluded_versions": [key(second)],
                 "independent_of_event_ids": [first["evidence_refs"][0]["event_id"]]}]

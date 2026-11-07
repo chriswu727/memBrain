@@ -89,25 +89,37 @@ def historical_support_filter(input_event_ids):
 
 
 def _merged_rows(conn, where, values, vector, terms, limit):
-    select = ("SELECT a.document,a.event_ids,a.is_current,a.id,a.revision,"
-              "a.embedding <=> %s::vector AS distance FROM memory_assertions a WHERE ")
-    order = "ORDER BY distance NULLS LAST,a.id,a.revision LIMIT %s"
+    order = "ORDER BY distance NULLS LAST,id,revision LIMIT %s"
+    # Project eligible rows once: per-term scans must not repeat document eligibility and tokenization.
     # Each channel keeps its own sentinel before deduplication, so overlap cannot hide truncation.
     return conn.execute(
-        "WITH hashed AS MATERIALIZED (" + select + where + order + "), "
-        "exact AS MATERIALIZED (" + select + where
-        + "AND to_tsvector('simple',a.search_text) @@ to_tsquery('simple',%s) " + order + "), "
-        "ranked AS (SELECT *,0 AS channel,row_number() OVER (ORDER BY distance NULLS LAST,id,revision) AS position "
-        "FROM exact UNION ALL SELECT *,1 AS channel,"
+        "WITH eligible AS MATERIALIZED (SELECT a.tenant_id,a.owner_id,a.brain_id,a.id,a.revision,"
+        "a.embedding <=> %s::vector AS distance,to_tsvector('simple',a.search_text) AS lexemes "
+        "FROM memory_assertions a WHERE " + where + "), "
+        "hashed AS MATERIALIZED (SELECT * FROM eligible " + order + "), "
+        "queries AS MATERIALIZED (SELECT term_id,to_tsquery('simple',query) AS query "
+        "FROM unnest(%s::text[]) WITH ORDINALITY term(query,term_id)), "
+        "term_candidates AS MATERIALIZED (SELECT matches.*,"
+        "count(*) OVER (PARTITION BY term.term_id) AS frequency FROM queries term "
+        "CROSS JOIN LATERAL (SELECT tenant_id,owner_id,brain_id,id,revision,distance "
+        "FROM eligible WHERE lexemes @@ term.query " + order + ") matches), "
+        "exact AS MATERIALIZED (SELECT tenant_id,owner_id,brain_id,id,revision,distance,"
+        "min(frequency) AS rarity,count(*) AS coverage FROM term_candidates "
+        "GROUP BY tenant_id,owner_id,brain_id,id,revision,distance "
+        "ORDER BY rarity,coverage DESC,distance NULLS LAST,id,revision LIMIT %s), "
+        "ranked AS (SELECT tenant_id,owner_id,brain_id,id,revision,0 AS channel,row_number() OVER "
+        "(ORDER BY rarity,coverage DESC,distance NULLS LAST,id,revision) AS position FROM exact UNION ALL "
+        "SELECT tenant_id,owner_id,brain_id,id,revision,1 AS channel,"
         "row_number() OVER (ORDER BY distance NULLS LAST,id,revision) AS position FROM hashed), "
-        "selected AS (SELECT DISTINCT ON (document->'memory_id',document->'revision') "
-        "document,event_ids,is_current,channel,position FROM ranked WHERE position<=%s "
-        "ORDER BY document->'memory_id',document->'revision',channel,position) "
+        "selected AS (SELECT DISTINCT ON (a.document->'memory_id',a.document->'revision') "
+        "a.document,a.event_ids,a.is_current,channel,position FROM ranked JOIN memory_assertions a "
+        "USING (tenant_id,owner_id,brain_id,id,revision) WHERE position<=%s "
+        "ORDER BY a.document->'memory_id',a.document->'revision',channel,position) "
         "SELECT document,event_ids,is_current,"
         "((SELECT count(*) FROM hashed)>%s OR (SELECT count(*) FROM exact)>%s) AS truncated "
         "FROM selected ORDER BY channel,position",
-        (vector, *values, limit + 1, vector, *values, " | ".join(_prefixes(terms)), limit + 1,
-         limit, limit, limit),
+        (vector, *values, limit + 1, [" | ".join(_prefixes([term])) for term in terms],
+         limit + 1, limit + 1, limit, limit, limit),
     ).fetchall()
 
 
