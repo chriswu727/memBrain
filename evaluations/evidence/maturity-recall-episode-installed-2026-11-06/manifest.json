@@ -1,0 +1,131 @@
+{
+  "install_source_head": "5c728c9d62253cf59eda4294420c3de50d9a01f5",
+  "visual_source_head": "38e335dd68a0dc1ccdd5b718815d2763bb3db988",
+  "runtime_pin": "ee644c99691546871465e15ddd9f12b394ff8a4e",
+  "scope": "49 clean-home installation checks and the complete 36-window fullscreen recall comparison; no behavioral model evaluation",
+  "privacy_scan": {
+    "owned_credential_values": 15,
+    "matches": 0
+  },
+  "files": [
+    {
+      "path": "run-install.py.gz",
+      "bytes": 966,
+      "sha256": "346a843df6b0120d87b55aaf514c0a00495b98afc1f3c261465874e84f1645b4",
+      "original_bytes": 1995,
+      "original_sha256": "df1f64b6f06a4eaeafa1c84ce563c409bba331b0581d115e4ed96ac67d6d523d"
+    },
+    {
+      "path": "install.log.gz",
+      "bytes": 4680,
+      "sha256": "581852ed981d99a83012b77900cfaf8892c61f434f3c481bf0f8ca1a70cd42c0",
+      "original_bytes": 16182,
+      "original_sha256": "4a71060445118971d9a380a757f66d4f47a9b2bd05c24945fc2f2b01735ddde2"
+    },
+    {
+      "path": "install-run-meta.json.gz",
+      "bytes": 397,
+      "sha256": "01d0a6d3b9d264e5f619353d0d4a9b0aeeb56a64192aa052efddcedb1387643b",
+      "original_bytes": 590,
+      "original_sha256": "9ffb98606f8d11ef8b396a87e8d1fee2b81c55b8d079b54c45a454b773418d0b"
+    },
+    {
+      "path": "install-final/results.json.gz",
+      "bytes": 4951,
+      "sha256": "757fb5b773a81d60c9301f2245f475cb5a532b0bb1b8e7ac54bcbe1760ac63aa",
+      "original_bytes": 23132,
+      "original_sha256": "c0ff3c18e285ab73e9655f733edba9a5f61cefcc054684de669bc56db25fafba"
+    },
+    {
+      "path": "check-installed-and-ports.py.gz",
+      "bytes": 1025,
+      "sha256": "cce329575c635fa9ebfd44640d9834d698c14404c2bdb8a2636a82e6ab816ded",
+      "original_bytes": 2206,
+      "original_sha256": "14906fcb9394c7cbbe6736c97a85b39bb7dd194af33b7ef5677839f51d22d111"
+    },
+    {
+      "path": "installed-and-ports.json.gz",
+      "bytes": 501,
+      "sha256": "ce13608a8f0134fad2acbb417f68034e0d2b7cac2d030fc0b324b171854f43c2",
+      "original_bytes": 2483,
+      "original_sha256": "7cd872659cba3364a983a920489bc92edccd5e98d232362d704816d8d732b78a"
+    },
+    {
+      "path": "visual/compare-visual-permissions.py.gz",
+      "bytes": 4413,
+      "sha256": "053fbf3f996fd974a5fbe50b31c98eb0c2b464d70bfdd281c04f8b41c18c449b",
+      "original_bytes": 13479,
+      "original_sha256": "7daed30baeaea37c2cf5acbbe0363417308c7a24eb2b959e1865efa3838c525c"
+    },
+    {
+      "path": "visual/run-visual.py.gz",
+      "bytes": 1353,
+      "sha256": "abe596ceb4172159f7fb84b65bcba6963e2be0d52d82f164c8b8e787f7bd9b10",
+      "original_bytes": 2964,
+      "original_sha256": "fe0e7b07ddde9706da76208b07c55cf6324b59eedde3a3fd21cf83780103be0a"
+    },
+    {
+      "path": "visual/run.log.gz",
+      "bytes": 2133,
+      "sha256": "cbdd30d86e980f2410b71c7a9af01a812ee586c309297b9bd92685fe004af3e8",
+      "original_bytes": 5499,
+      "original_sha256": "77c5192b1bc6288550a81f5ffe38e93f04800a6500a36801435b8efecbf302e9"
+    },
+    {
+      "path": "visual/visual-command.json.gz",
+      "bytes": 28758,
+      "sha256": "9ae64c563c563f745500603b396ed600227f7d6afc2c2c9a5fd8a82505a73f91",
+      "original_bytes": 93832,
+      "original_sha256": "6ef8d5c5a5e3dae9562ca989913cedb5375c130237854b7721843145eeb23980"
+    },
+    {
+      "path": "visual/visual-permissions-0-closed.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "visual/visual-permissions-1-open.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "visual/visual-permissions-1-open.png",
+      "bytes": 460733,
+      "sha256": "25d37bfb8f87ba24868b91d721700d68e2dd43a3a6dad945c8df0b6e7f26ee24",
+      "original_bytes": 460733,
+      "original_sha256": "25d37bfb8f87ba24868b91d721700d68e2dd43a3a6dad945c8df0b6e7f26ee24"
+    },
+    {
+      "path": "visual/visual-permissions-2-open.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "visual/visual-permissions-2-open.png",
+      "bytes": 460110,
+      "sha256": "4908b080c8d198726d5610e3f2515c239f8992159151cc77adf631c84a367e7c",
+      "original_bytes": 460110,
+      "original_sha256": "4908b080c8d198726d5610e3f2515c239f8992159151cc77adf631c84a367e7c"
+    },
+    {
+      "path": "visual/visual-permissions-3-closed.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "visual/visual-permissions-abba.json.gz",
+      "bytes": 29093,
+      "sha256": "30e47987be7a752de24ef1a77afdfc05e142030256371f64fe43f2d9d6a7496a",
+      "original_bytes": 205520,
+      "original_sha256": "be13c17327e92d253c3e6fdeae797a418b35d8ca20b348282048b6c415790a3b"
+    }
+  ]
+}
