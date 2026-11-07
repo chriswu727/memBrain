@@ -446,10 +446,10 @@ def _save_episode(conn, service, principal, brain, batch, document, memories, ro
         (*params, document["episode_id"], document["revision"], batch.scope["conversation_id"] or "",
          batch.scope["branch_id"] or "", document["state"], Jsonb(document), sorted(root_ids)),
     )
-    member_ids = {ref["event_id"] for ref in document["member_refs"]}
+    member_versions = {(ref["event_id"], ref["revision"]) for ref in document["member_refs"]}
     position = 0
     for memory in memories:
-        if not {ref["event_id"] for ref in memory["evidence_refs"]}.issubset(member_ids):
+        if not _refs(memory).issubset(member_versions):
             continue
         role = {"episode_outline": "outline", "semantic_anchor": "anchor", "schema": "schema"}.get(
             memory.get("representation"), "fragment",
@@ -492,7 +492,21 @@ def _publish_episode(conn, service, principal, brain, batch, action, snapshot, c
     for event in sorted(lookup.values(), key=lambda value: value["sequence"]):
         fragments.extend(service._publish(conn, principal, brain, memory)
                          for memory in service._current_captures(conn, principal, brain, event))
-    memories = {memory["memory_id"]: memory for memory in fragments + claims}
+    inherited = []
+    if previous:
+        rows = conn.execute(
+            "SELECT a.document FROM memory_episode_members m JOIN memory_assertions a "
+            "ON a.tenant_id=m.tenant_id AND a.owner_id=m.owner_id AND a.brain_id=m.brain_id "
+            "AND a.id=m.memory_id AND a.revision=m.memory_revision "
+            "WHERE m.tenant_id=%s AND m.owner_id=%s AND m.brain_id=%s "
+            "AND m.episode_id=%s AND m.episode_revision=%s AND a.is_current "
+            "AND NOT a.invalidated AND NOT a.deleted AND NOT a.suppressed AND a.document IS NOT NULL "
+            "AND a.document->>'lifecycle' IN ('active','dormant') "
+            "ORDER BY m.position,m.memory_id,m.memory_revision",
+            (*service._params(principal, brain["id"]), previous["episode_id"], previous["revision"]),
+        ).fetchall()
+        inherited = [service._rebind(row["document"], principal, brain) for row in rows]
+    memories = {memory["memory_id"]: memory for memory in inherited + fragments + claims}
 
     def document(identifier, revision, refs, state):
         return {"episode_id": identifier, "revision": revision, "scope": copy.deepcopy(batch.scope),
