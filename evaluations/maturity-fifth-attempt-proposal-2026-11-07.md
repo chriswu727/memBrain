@@ -1,6 +1,6 @@
 # Proposed fifth maturity acceptance attempt
 
-**Awaiting explicit execution approval. Free qualification is complete.** This proposal grants no execution authority and includes no automatic retry. No hidden scenarios, execution checkout, ledger, subscription-backed reviewers or provider calls have been created for this proposal.
+**Approved on November 7, 2026.** The owner authorized this one round within the 280 CNY ceiling; see the [execution binding](maturity-acceptance-execution-2026-11-07b.md). The proposal below is retained as submitted. At submission, free qualification was complete and no hidden scenarios, execution checkout, ledger, subscription-backed reviewers or provider calls had been created for this proposal. No automatic retry is included.
 
 ## Candidate and prerequisites
 
