@@ -258,7 +258,11 @@ def parse_note(stored: str) -> tuple[dict, str]:
     return fields, match.group(2)
 
 
-def save_note(client, text: str, *, replaces=(), producer: str = NOTE_PRODUCER, source_event_ids=(), source_messages=(),
+class NoteValidationError(ValueError):
+    pass
+
+
+def save_note(client, text: str, *, replaces=(), producer: str = NOTE_PRODUCER, request_id=None, source_event_ids=(), source_messages=(),
               context_source_messages=(), require_current_sources=False, expected_dependency_generation=None, **fields) -> dict:
     """Save one note; ``replaces`` lists IDs of notes it supersedes, which stop being shown.
 
@@ -266,11 +270,16 @@ def save_note(client, text: str, *, replaces=(), producer: str = NOTE_PRODUCER, 
     """
     unknown = set(fields) - set(NOTE_FIELDS)
     if unknown:
-        raise ValueError(f"Unknown note fields: {', '.join(sorted(unknown))}.")
+        raise NoteValidationError(f"Unknown note fields: {', '.join(sorted(unknown))}.")
+    if request_id is not None and (not isinstance(request_id, str) or not 1 <= len(request_id) <= 120):
+        raise NoteValidationError("A note request ID must contain 1 to 120 characters.")
     affect = fields.pop("affect", None)
-    if affect is not None:
-        affect = check_affect(affect, sourced=bool(source_event_ids or source_messages))
-    text = format_note(text, **fields)
+    try:
+        if affect is not None:
+            affect = check_affect(affect, sourced=bool(source_event_ids or source_messages))
+        text = format_note(text, **fields)
+    except ValueError as error:
+        raise NoteValidationError(str(error)) from error
     writer = getattr(client, "write_note", None)
     if callable(writer):
         parsed, sentence = parse_note(text)
@@ -282,8 +291,12 @@ def save_note(client, text: str, *, replaces=(), producer: str = NOTE_PRODUCER, 
             parsed["context_source_messages"] = list(context_source_messages)
         if expected_dependency_generation is not None:
             parsed["expected_dependency_generation"] = expected_dependency_generation
+        if request_id is not None:
+            parsed["request_id"] = request_id
         return writer(sentence, replaces=list(replaces), producer=producer,
                       source_event_ids=list(source_event_ids), source_messages=list(source_messages), **parsed)
+    if request_id is not None:
+        raise ValueError("This client does not support idempotent note writes.")
     if source_event_ids or source_messages or context_source_messages or require_current_sources or expected_dependency_generation is not None:
         raise ValueError("This client does not support source-linked notes.")
     if affect is not None:

@@ -229,7 +229,7 @@ def record_outcome(directory, *, saved: int | None = None, error: Exception | st
                    skipped: bool = False) -> None:
     """Count one turn's extraction outcome in the installation's state, so a failing provider is visible.
 
-    Messages are recorded either way; only the notes drawn from them are missing while extraction fails.
+    Messages are recorded either way; failures mean some note writes could not be confirmed.
     """
     from . import host
 
@@ -244,6 +244,7 @@ def record_outcome(directory, *, saved: int | None = None, error: Exception | st
             state = {}
         for key in ("turns_read", "notes_saved", "turns_failed", "turns_skipped", "failed_since_success"):
             state[key] = int(state.get(key) or 0)
+        state["notes_saved"] += saved or 0
         if skipped:
             state["turns_skipped"] += 1
             state["failed_since_success"] += 1
@@ -254,7 +255,6 @@ def record_outcome(directory, *, saved: int | None = None, error: Exception | st
             state["last_failure_at"], state["last_error"] = now, _error_name(error)
         else:
             state["turns_read"] += 1
-            state["notes_saved"] += saved or 0
             state["failed_since_success"] = 0
             state["last_success_at"] = now
         temporary = path.with_name(f".{STATUS_FILE}.{os.getpid()}.tmp")
@@ -303,7 +303,7 @@ def extract_turn(directory, extractor: Extractor, user_id: str | None, *,
     """Read exact live turn revisions and save notes with the sources actually sent to the provider."""
     from . import host
     from .client import MemoryActionError
-    from .notes import list_notes, render_notes, save_note
+    from .notes import NoteValidationError, list_notes, render_notes, save_note
 
     if host.paused(directory, user_id):
         return []
@@ -340,32 +340,46 @@ def extract_turn(directory, extractor: Extractor, user_id: str | None, *,
                     continue
                 record_outcome(directory, error=error)
                 raise
+        save_error = None
         for note in proposed:
             text, replaces = note.pop("text"), note.pop("replaces")
-            if host.paused(directory, user_id):
-                record_outcome(directory, error="recording_paused")
-                return saved
-            try:
-                result = save_note(client, host.scrub(text), replaces=tuple(replaces), producer=PRODUCER,
-                                   source_messages=list(sources), context_source_messages=list(earlier_refs),
-                                   require_current_sources=True, expected_dependency_generation=generation, **note)
-            except (MemoryActionError, httpx.HTTPStatusError) as error:
-                if isinstance(error, MemoryActionError):
-                    code = error.code
-                else:
-                    try:
-                        code = error.response.json().get("error", {}).get("code")
-                    except (ValueError, AttributeError):
-                        code = None
-                if code in ("source_unavailable", "version_conflict"):
-                    record_outcome(directory, error="source_context_changed")
+            request_id = _helpers.uid()
+            for attempt in range(len(delays) + 1):
+                if host.paused(directory, user_id):
+                    record_outcome(directory, saved=len(saved), error="recording_paused")
                     return saved
-                _logger.warning("note not saved: %s", type(error).__name__)
-                continue
-            except Exception as error:  # One bad proposal must not lose the others.
-                _logger.warning("note not saved: %s", type(error).__name__)
-                continue
-            generation = result["dependency_generation"]
-            saved.append({"text": text, **note, **result})
-    record_outcome(directory, saved=len(saved))
+                try:
+                    result = save_note(client, host.scrub(text), replaces=tuple(replaces), producer=PRODUCER,
+                                       request_id=request_id, source_messages=list(sources),
+                                       context_source_messages=list(earlier_refs), require_current_sources=True,
+                                       expected_dependency_generation=generation, **note)
+                    if (not isinstance(result, dict) or not isinstance(result.get("note_id"), str)
+                            or not result["note_id"] or type(result.get("dependency_generation")) is not int
+                            or not 0 <= result["dependency_generation"] <= 2**63 - 1):
+                        raise ValueError("Invalid note delivery response.")
+                except Exception as error:
+                    code = error.code if isinstance(error, MemoryActionError) else None
+                    status = error.response.status_code if isinstance(error, httpx.HTTPStatusError) else None
+                    if isinstance(error, httpx.HTTPStatusError):
+                        try:
+                            code = error.response.json().get("error", {}).get("code")
+                        except (ValueError, AttributeError):
+                            pass
+                    if code in ("source_unavailable", "version_conflict"):
+                        record_outcome(directory, saved=len(saved), error="source_context_changed")
+                        return saved
+                    if attempt < len(delays) and _retryable(error):
+                        time.sleep(delays[attempt])
+                        continue
+                    save_error = error
+                    _logger.warning("note delivery unconfirmed: %s", type(error).__name__)
+                    if not (isinstance(error, NoteValidationError) or status == 422
+                            or isinstance(error, MemoryActionError) and code == "validation_failed"):
+                        record_outcome(directory, saved=len(saved), error=error)
+                        return saved
+                    break
+                generation = result["dependency_generation"]
+                saved.append({"text": text, **note, **result})
+                break
+    record_outcome(directory, saved=len(saved), error=save_error)
     return saved

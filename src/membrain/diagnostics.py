@@ -38,10 +38,10 @@ def diagnose(directory: Path) -> dict:
     if extraction is not None:
         failing = int(extraction.get("failed_since_success") or 0)
         add("note_extraction", "warning" if failing else "pass",
-            f"{failing} turns not read for notes since {extraction.get('last_success_at') or 'the start'} "
+            f"{failing} turns with incomplete note extraction since {extraction.get('last_success_at') or 'the start'} "
             f"(last error: {extraction.get('last_error')}); messages are still recorded and recalled." if failing
             else f"{extraction.get('turns_read', 0)} turns read; {extraction.get('notes_saved', 0)} notes saved.",
-            "Check MEMBRAIN_EXTRACT_MODEL, its base URL and key, and the provider's status." if failing else None)
+            "Check the memory service and MEMBRAIN_EXTRACT_MODEL, its base URL, key and provider status." if failing else None)
     pending = status["pending_records"]
     add("queue", "warning" if pending else "pass", f"{pending} records waiting for delivery.",
         "Run membrain plugin start to replay filtered records." if pending else None)
