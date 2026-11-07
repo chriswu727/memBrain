@@ -15,6 +15,7 @@ from membrain.helpers import DomainError, Principal, uid
 from membrain.local_profile import load_profile
 from membrain.memory_map import REGIONS, memory_map, sensitive_note_ids
 from membrain.notes import store_note
+from membrain.structure_map import memory_key, structure_map
 
 
 @pytest.fixture(scope="module")
@@ -299,3 +300,38 @@ def test_sdk_uses_the_brain_scoped_route_and_explicit_sensitive_flag():
         assert client.memory_map(max_nodes=20, max_edges=0) == {"nodes": []}
     assert requests[0].url.path == "/v1/brains/my-brain/memory-map"
     assert dict(requests[0].url.params) == {"max_nodes": "20", "max_edges": "0", "include_sensitive": "false"}
+
+
+@pytest.mark.parametrize("origin", ["standalone", "shared_source"])
+def test_sensitive_user_note_captures_stay_masked_in_structure(brain, origin):
+    service, principal, ident = brain
+    source = say(brain, "An original private note source.") if origin == "shared_source" else None
+    private = note(brain, "The private appointment code is cobalt-finch-729.", role="user",
+                   sensitive=origin == "standalone", source_event_ids=[source] if source else [])
+    if source:
+        note(brain, "This shared source is sensitive.", sensitive=True, source_event_ids=[source])
+    public = note(brain, "The public hobby is paper folding.", role="user")
+    for _ in range(100):
+        if not service.work_once(principal, ident):
+            break
+    else:
+        pytest.fail("Literal note indexing did not finish")
+    with service.database.transaction(principal) as connection:
+        rows = connection.execute(
+            "SELECT id,revision,event_ids FROM memory_assertions WHERE tenant_id=%s AND owner_id=%s "
+            "AND brain_id=%s AND is_current AND NOT invalidated AND NOT deleted",
+            service._params(principal, ident)).fetchall()
+    private_ids = {memory_key(row["id"], row["revision"]) for row in rows if private in row["event_ids"]}
+    public_ids = {memory_key(row["id"], row["revision"]) for row in rows if public in row["event_ids"]}
+    assert private_ids and public_ids
+    hidden = structure_map(*brain)
+    nodes = {node["id"]: node for node in hidden["nodes"]}
+    assert private_ids | public_ids <= nodes.keys()
+    assert "cobalt-finch-729" not in json.dumps(hidden)
+    assert all(nodes[key]["masked"] and nodes[key]["sensitive"] and nodes[key]["details"] == {}
+               for key in private_ids)
+    assert all(not nodes[key]["masked"] for key in public_ids)
+    revealed = structure_map(*brain, include_sensitive=True)
+    visible = {node["id"]: node for node in revealed["nodes"]}
+    assert "cobalt-finch-729" in json.dumps(revealed)
+    assert all(visible[key]["sensitive"] and not visible[key]["masked"] for key in private_ids)

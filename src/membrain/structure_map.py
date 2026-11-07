@@ -4,7 +4,7 @@ from __future__ import annotations
 from .archive_views import memory_parents, memory_sources
 from .companion_map import _Graph
 from .helpers import DomainError, now
-from .memory_map import _COLUMNS, _VISIBLE, memory_map
+from .memory_map import _COLUMNS, _VISIBLE, memory_map, sensitive_note_ids
 from .notes import NOTES_CONVERSATION
 from .working_map import load_working, project_working, working_sources
 
@@ -20,7 +20,7 @@ def episode_key(identifier, revision):
 def _protected_sources(conn, params, ids):
     if not ids:
         return set()
-    return {row["input_event_id"] for row in conn.execute(
+    protected = {row["input_event_id"] for row in conn.execute(
         "SELECT DISTINCT d.input_event_id FROM memory_event_dependencies d JOIN memory_events n "
         "ON n.tenant_id=d.tenant_id AND n.owner_id=d.owner_id AND n.brain_id=d.brain_id AND n.id=d.output_event_id "
         "WHERE d.tenant_id=%s AND d.owner_id=%s AND d.brain_id=%s AND d.input_event_id=ANY(%s::text[]) "
@@ -30,6 +30,17 @@ def _protected_sources(conn, params, ids):
         "split_part(n.document->'observed'->'content'->>'text','] ',1) LIKE '%% · sensitive · %%')",
         (*params, sorted(ids), NOTES_CONVERSATION),
     ).fetchall()}
+    protected.update(sensitive_note_ids(conn, params, ids))
+    protected.update(row["id"] for row in conn.execute(
+        "SELECT id FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+        "AND id=ANY(%s::text[]) AND conversation_id=%s AND is_current AND NOT deleted "
+        "AND NOT suppressed AND NOT retired AND document IS NOT NULL "
+        "AND left(document->'observed'->'content'->>'text',1)='[' AND ("
+        "split_part(document->'observed'->'content'->>'text','] ',1) LIKE '%% · sensitive' OR "
+        "split_part(document->'observed'->'content'->>'text','] ',1) LIKE '%% · sensitive · %%')",
+        (*params, sorted(ids), NOTES_CONVERSATION),
+    ).fetchall())
+    return protected
 
 
 def structure_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, include_sensitive=False, trace=None):
