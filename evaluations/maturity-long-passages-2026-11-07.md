@@ -1,6 +1,6 @@
 # Long-source recall and bounded local encoding
 
-Development build `80dec3b1782ede0349ceafe436f481ed8fb7ea16957bd62f435c74cdd9fe011a` adds overlapping local passage vectors while preserving the original assertion, source evidence and parent vector. Migration 026 adds private auxiliary index rows and an index-coverage version. Fresh installed-package qualification passes below, but full scale and CI gates remain open; this work is not yet delivered to the integration candidate. The nine development launchers pin runtime `3b4720ec3f6cde49b672ff6844f8bc8db02dfce9`.
+Development build `80dec3b1782ede0349ceafe436f481ed8fb7ea16957bd62f435c74cdd9fe011a` adds overlapping local passage vectors while preserving the original assertion, source evidence and parent vector. Migration 026 adds private auxiliary index rows and an index-coverage version. Fresh installed-package qualification passes below, including installed HTTP, full R5 and public scale checks, but full CI remains open; this work is not yet delivered to the integration candidate. The nine development launchers pin runtime `3b4720ec3f6cde49b672ff6844f8bc8db02dfce9`.
 
 ## User-visible defect and repair
 
@@ -43,7 +43,7 @@ A disposable synthetic fixture contains 10,001 assertions with 384-dimensional v
 | No passage rows | 162.08 ms | 167.46 ms | 16,384 bytes |
 | 1,000 parents with eight passages each | 174.50 ms | 181.89 ms | 18,251,776 bytes |
 
-The parent vector table and indexes occupy 21,987,328 bytes. The older path medians are 180.70 and 187.81 ms, but one old-path sample takes 8,824.47 ms. No query-plan/statistics evidence was captured to explain that outlier, so **no retrieval speedup is claimed**. Initial probe invocations failed because the test import path was absent and a fixture referenced a nonexistent column; both logs remain. Full installed scale and fullscreen R5 checks remain outstanding for this new build.
+The parent vector table and indexes occupy 21,987,328 bytes. The older path medians are 180.70 and 187.81 ms, but one old-path sample takes 8,824.47 ms. No query-plan/statistics evidence was captured to explain that outlier, so **no retrieval speedup is claimed**. Initial probe invocations failed because the test import path was absent and a fixture referenced a nonexistent column; both logs remain. Subsequent installed public scale and fullscreen R5 checks are recorded below; the synthetic timing comparison remains limited.
 
 ## Verification and remaining gates
 
@@ -55,6 +55,30 @@ Candidate `badc404`, still the delivered integration head, failed [Verify 423591
 
 Fresh launcher installation and upgrade, MCP, proxy, restart, companion-state preservation and streamed backup/restore pass **49/49 checks**. Both installed homes match all **192 runtime inputs**, build `80dec3b...` and schema `2d5ed57efb283d0e9a28fba22777ef7bae452a5843d07cce8cde0e7e9fe6826e`. Four profiles and all eight ports close. The actual installed package, resolved before test-only dependencies and without source shadowing, passes **171 related tests**. Its disposable test database stops and is removed. Four launcher-pin/matrix checks pass.
 
-Development head `bc449e04163fd017ac33cd095274527798da2dce` is running [Verify 42363211463](https://github.com/chriswu727/memBrain/actions/runs/42363211463) and [Native 42363213186](https://github.com/chriswu727/memBrain/actions/runs/42363213186). Native checks reuse the verified previous engine artifacts and run all five platforms, including current Ubuntu. Neither pending run is a pass.
+Development head `bc449e04163fd017ac33cd095274527798da2dce` is still running [Verify 42363211463](https://github.com/chriswu727/memBrain/actions/runs/42363211463). [Native 42363213186](https://github.com/chriswu727/memBrain/actions/runs/42363213186) passes all five platforms, including current Ubuntu. Its downloaded artifacts contain 47 audited completed summaries, zero model calls and closed recorded ports. Native checks reuse the verified previous engine artifacts. Pending Verify is not a pass.
 
-The [evidence manifest](evidence/maturity-long-passages-2026-11-07/manifest.json) records 51 raw payload hashes. All payloads decompress to their recorded bytes, and scanning against the four owned installation profiles finds zero credential matches. Full network/scale qualification and CI must still precede integration delivery. R4 remains failed and C5 incomplete. No new paid/subscription behavioral evaluation ran; no main merge, tag or release is authorized.
+The [evidence manifest](evidence/maturity-long-passages-2026-11-07/manifest.json) now records 177 raw payloads, including interrupted preparation attempts. Every archived payload matches its recorded hash and bytes; the added qualification payloads contain zero matches against 21 owned credential values. Private corpus dumps and profiles are excluded. Full CI must still precede integration delivery. R4 remains failed and C5 incomplete. No new paid/subscription behavioral evaluation ran; no main merge, tag or release is authorized.
+
+
+## Installed HTTP and full host scale qualification
+
+The actual installed `3b4720e` runtime, with a checksum-verified cached model and a fresh temporary database, delivers the final passport detail through ordinary HTTP and `host.recall_context` for sources of 3,965, 28,045 and 47,645 characters. All exact source references appear in the trace and host output stays within its existing 9,000-character ceiling. Deleting each source makes its previously valid source-window request return no windows. A separate source with a privacy boundary phrase outside the final cropped excerpt is correctly excluded by the server's whole-source check, even when the host supplies an empty boundary list. All owned ports close and the temporary installation is removed.
+
+The same original 1,000- and 10,000-message public corpora were preserved before additive schema 026 upgrade. Core table contents were checked with bounded streaming hashes; operational request/trace tables were verified by exact counts. Private compressed corpus snapshots exclude operational history and are not product recovery bundles. After migration, all existing vectors retain their legacy coverage marker. The normal service then backfills the new coverage version in 12.634 and 110.665 seconds respectively; all 1,000/10,000 vectors are current and jobs have settled before querying.
+
+The original twenty questions, exact source identities, host budgets and complete host path are unchanged. Each query runs once, with no warmups, retries, generation or semantic judge. Each corpus starts a fresh service.
+
+| Corpus | API target | Host source selection | Final trace and context | Full-context P95 | Maximum |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| 1,000 messages | 18/20 | 17/20 | 17/20 | 432.867 ms | 1,122.672 ms |
+| 10,000 messages | 17/20 | 17/20 | 17/20 | 502.528 ms | 1,138.801 ms |
+
+These retain the previous `fc149df` hit counts; the three previously missing host cases remain missing. The passage repair addresses long-source truncation, not those separate admission failures. Source hashes remain unchanged and all ports close. Timings are descriptive single-run observations, not a statistically established speedup or general accuracy claim.
+
+## Fullscreen R5 and storage findings
+
+The frozen driver runs the installed package with the original synthetic fixture in closed/open/open/closed order, three cycles per phase. All **36 windows pass**, and all **4,080 recalls are nonempty**. Worst-window P95 is **255.07 ms serial, 334.14 ms for eight concurrent requests to one brain, and 419.86 ms for eight brains**. Both visible phases contain exactly **187 stored-structure nodes and 71 edges**, with 991 and 1,037 rendered frames, no page errors and no page external requests. Chromium 153.0.8010.12 reports Apple M4 Metal hardware rendering. Source/driver hashes remain unchanged; all ports close. Browser-internal stderr warnings are retained and are not counted as page errors.
+
+Two fixture-preparation attempts were interrupted and preserved: the first materialized large operational payloads in client memory, and the second streamed them unnecessarily and assumed no legacy vectors. Neither reached migration. The corrected preparation hashes the 24 core tables, counts the two operational tables, preserves all 60 legacy vectors and existing working nodes/edges, then upgrades successfully. Its private corpus snapshot excludes operational history; all original operational rows remain in the database.
+
+The read-only storage audit exposed millions of duplicate candidate diagnostics and unbounded recall response caching. That led to the separately tested [passive diagnostic storage repair](maturity-recall-diagnostics-2026-11-07.md); its runtime is **not** the `3b4720e` installed runtime measured here. Eight stopped, already-qualified old temporary installation profile directories were removed after receipt and port checks, freeing about 2.1 GB. Installed packages, source, evidence, current installations, public corpora and sealed evaluation data were retained.
