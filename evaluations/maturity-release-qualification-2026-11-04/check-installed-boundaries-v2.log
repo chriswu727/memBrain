@@ -1,0 +1,44 @@
+Starting the local memory database and service…
+{
+  "source_commit": "281b06e585b0a9ca6b67e8892f3c6a3d69bc572f",
+  "runtime_pin": "b994ec8080d46ee861f6ed8738a1617929f50d2a",
+  "completed": true,
+  "package_root": "/Users/yichen/tmp/membrain-release-qualification-20261104/install-final/uv-tools/membrain-ai/lib/python3.12/site-packages/membrain",
+  "build_id": "94fdf7b67a709e043e8fec321f598a2e7b411b2e6a208f46e10fb11b2afae04b",
+  "cache_replay_prevented": true,
+  "masked_recording_times_verified": true,
+  "graph_index_status": {
+    "after_new_writes": {
+      "pending_jobs": 3,
+      "index_lag": 3,
+      "extraction": "deterministic_source_capture",
+      "candidate_index": "lexical-and-structural-cues",
+      "access_policy": "contextual-access-v2"
+    },
+    "before_snapshot": {
+      "pending_jobs": 0,
+      "index_lag": 0,
+      "extraction": "deterministic_source_capture",
+      "candidate_index": "lexical-and-structural-cues",
+      "access_policy": "contextual-access-v2"
+    }
+  },
+  "versions": {
+    "membrain-ai": "0.1.0",
+    "jsonschema": "4.26.0",
+    "referencing": "0.37.0",
+    "fastapi": "0.162.0",
+    "psycopg": "3.3.8"
+  },
+  "checked_files": 165,
+  "mismatches": [],
+  "unexpected_package_files": [],
+  "browser": "153.0.8010.12",
+  "scene_nodes": 10,
+  "scene_edges": 8,
+  "page_errors": [],
+  "external_requests": [],
+  "both_layers": true,
+  "fallback_2d": true,
+  "stop_returncode": 0
+}

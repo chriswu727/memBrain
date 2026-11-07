@@ -78,3 +78,20 @@ test("note writes preserve explicit sources and retry identity while timeline cu
   await client.following(["event one"]);
   assert.deepEqual(requests[3].url.searchParams.getAll("event_id"), ["event one"]);
 });
+
+test("exact source reads and guarded writes preserve the dependency generation including zero", async () => {
+  const requests: { url: URL; init?: RequestInit }[] = [];
+  const client = new MemoryClient({ baseUrl: "http://memory.test", apiKey: "test-key", brainId: "home",
+    fetch: async (input, init) => { requests.push({ url: new URL(String(input)), init }); return Response.json({}); } });
+  const sources = Object.freeze([{ producer_ref: "host", source_event_key: "turn:user", source_revision: 2 }]);
+  await client.sourceMessages(sources, "brain /?#");
+  assert.equal(requests[0].url.pathname, "/v1/brains/brain%20%2F%3F%23/source-messages");
+  assert.deepEqual(JSON.parse(String(requests[0].init?.body)), { messages: sources });
+  await client.writeNote("The plan changed.", { sourceMessages: sources, contextSourceMessages: sources,
+    requireCurrentSources: true, expectedDependencyGeneration: 0 });
+  const body = JSON.parse(String(requests[1].init?.body));
+  assert.deepEqual(body.source_messages, sources);
+  assert.deepEqual(body.context_source_messages, sources);
+  assert.equal(body.require_current_sources, true);
+  assert.equal(body.expected_dependency_generation, 0);
+});

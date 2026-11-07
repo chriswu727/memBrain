@@ -1,0 +1,10 @@
+{
+  "profiles_confirmed_stopped_by_port": [
+    "home/Library/Application Support/memBrain/profile.json",
+    "companion/restored/profile.json",
+    "companion/home/Library/Application Support/memBrain/profile.json"
+  ],
+  "removed_fixture_kb": 1422808,
+  "retained": "install-a0d4682/results.json and install-a0d4682.log",
+  "scope": "Stopped task-owned failed acceptance homes, caches and databases only"
+}

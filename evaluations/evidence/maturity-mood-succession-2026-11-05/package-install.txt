@@ -1,0 +1,5 @@
+Using CPython 3.12.13 interpreter at: .venv/bin/python
+Resolved 1 package in 8ms
+Prepared 1 package in 59ms
+Installed 1 package in 5ms
+ + membrain-ai==0.1.0 (from file:///Users/yichen/tmp/membrain-mood-succession-20261105/installed/dist/membrain_ai-0.1.0-py3-none-any.whl)

@@ -1,0 +1,16 @@
+{
+  "full_verify_run": 42021033658,
+  "head": "233f2cfc44c889f998f67299507b241f8485424c",
+  "conclusion": "cancelled",
+  "job_timeout_minutes": 45,
+  "last_progress_percent": 14,
+  "known_setup_errors": 4,
+  "whole_suite_summary_available": false,
+  "typescript_and_build_steps_ran": false,
+  "cause_observed": "C5 memory fixture broadly swallowed DesktopError and polled readiness600seconds after permanent startup errors; underlying actual startup cause not yet diagnosed",
+  "regression_red": "five failures,one pass",
+  "regression_green": "six pass",
+  "model_calls": 0,
+  "native_runtime_changed": false,
+  "diagnostic_only_followup": true
+}

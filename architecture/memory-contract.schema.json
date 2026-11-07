@@ -90,6 +90,11 @@
             "null"
           ],
           "format": "date-time"
+        },
+        "restored_from_recorded_at": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Only on an event restored from an archive: when the server first recorded the original event (the earliest across repeated restores, never later than recorded_at). recorded_at stays the time this copy was ingested. It is a recording time, never a time the event occurred."
         }
       },
       "required": [
@@ -1610,6 +1615,17 @@
         },
         "memory": {
           "$ref": "#/$defs/MemoryAssertion"
+        },
+        "matched_statement_span": {
+          "type": "object",
+          "description": "Ranking-only match within the original statement, in Unicode code points. This does not create an independent assertion or change source authority.",
+          "properties": {
+            "start": { "type": "integer", "minimum": 0 },
+            "end": { "type": "integer", "minimum": 1 },
+            "unit": { "const": "unicode_code_point" }
+          },
+          "required": ["start", "end", "unit"],
+          "additionalProperties": false
         },
         "rank_signals": {
           "type": "array",

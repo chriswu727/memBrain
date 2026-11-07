@@ -1,0 +1,52 @@
+{
+  "completed": true,
+  "scope": "existing synthetic business database and control database only",
+  "model_calls": 0,
+  "databases": {
+    "agent_memory": {
+      "server_version": "16.15",
+      "extensions": [
+        [
+          "plpgsql",
+          "1.0"
+        ],
+        [
+          "vector",
+          "0.8.6"
+        ]
+      ],
+      "partitioned_tables": 0,
+      "gist_brin_indexes": 0,
+      "logical_replication_slots": 0,
+      "output_plugin_libraries": "pgoutput, test_decoding",
+      "application_role_privileges": [
+        [
+          false,
+          false,
+          false
+        ]
+      ]
+    },
+    "postgres": {
+      "server_version": "16.15",
+      "extensions": [
+        [
+          "plpgsql",
+          "1.0"
+        ]
+      ],
+      "partitioned_tables": 0,
+      "gist_brin_indexes": 0,
+      "logical_replication_slots": 0,
+      "output_plugin_libraries": "pgoutput, test_decoding",
+      "application_role_privileges": [
+        [
+          false,
+          false,
+          false
+        ]
+      ]
+    }
+  },
+  "ports_closed": true
+}

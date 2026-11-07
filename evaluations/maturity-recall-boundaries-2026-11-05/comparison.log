@@ -1,0 +1,8 @@
+{"phase": "before", "kind": "serial", "p95_ms": 28.188542, "cpu_ms": 99.318416}
+{"phase": "before", "kind": "eight_brains", "p95_ms": 139.187708, "cpu_ms": 1106.194915}
+{"phase": "after", "kind": "serial", "p95_ms": 23.696084, "cpu_ms": 99.196375}
+{"phase": "after", "kind": "eight_brains", "p95_ms": 140.23125, "cpu_ms": 1140.329421}
+{"phase": "after", "kind": "serial", "p95_ms": 31.411958, "cpu_ms": 111.343125}
+{"phase": "after", "kind": "eight_brains", "p95_ms": 124.401458, "cpu_ms": 1088.485372}
+{"phase": "before", "kind": "serial", "p95_ms": 23.459583, "cpu_ms": 90.59021}
+{"phase": "before", "kind": "eight_brains", "p95_ms": 117.944791, "cpu_ms": 1095.647626}

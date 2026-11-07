@@ -1,0 +1,77 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+________ test_failed_session_snapshot_never_returns_unfiltered_history _________
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-1247/test_failed_session_snapshot_n0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1045d2ae0>
+
+    def test_failed_session_snapshot_never_returns_unfiltered_history(tmp_path, monkeypatch):
+        histories = []
+        monkeypatch.setattr(host, "flush", lambda *args: None)
+        monkeypatch.setattr(host, "_finish_pending", lambda *args: None)
+        monkeypatch.setattr(host, "_finish_abandoned", lambda *args: None)
+        monkeypatch.setattr(host, "_history", lambda *args, **kwargs: histories.append(args) or
+                            ("Jordan and the user hiked together.", True))
+        monkeypatch.setattr(host, "_saved_context", lambda client, *args: host._relationship(client))
+    
+        def handle(request):
+            return httpx.Response(503, json={"error": "temporarily unavailable"})
+    
+        with MemoryClient("http://memory.test", "key", "brain", transport=httpx.MockTransport(handle)) as client:
+            monkeypatch.setattr(host, "ready_client", lambda *args: client)
+            context = host.session_context(tmp_path, "session")
+>       assert "Jordan" not in context
+E       AssertionError: assert 'Jordan' not in 'memBrain me...ed together.'
+E         
+E         'Jordan' is contained here:
+E            stored.
+E           
+E           Jordan and the user hiked together.
+E         ? ++++++
+
+tests/test_boundary_read_failures.py:68: AssertionError
+___ test_outside_edits_are_reflected_on_the_next_request_in_the_same_session ___
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-1247/test_outside_edits_are_reflect0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x108418f80>
+
+    def test_outside_edits_are_reflected_on_the_next_request_in_the_same_session(tmp_path, monkeypatch):
+        text = ["Jordan and the user hiked together."]
+        monkeypatch.setattr(host, "session_context", lambda *args, **kwargs: text[0])
+        monkeypatch.setattr(host, "prompt_context", lambda *args, **kwargs: None)
+        memory, speaker = ChatMemory(tmp_path), Speaker("discord", "mei")
+        assert "Jordan" in memory.context(speaker, "hello", session="same")
+        text[0] = "The earlier memory was removed in the memory page."
+>       assert "Jordan" not in memory.context(speaker, "hello again", session="same")
+E       AssertionError: assert 'Jordan' not in 'Jordan and ...ed together.'
+E         
+E         'Jordan' is contained here:
+E           Jordan and the user hiked together.
+E         ? ++++++
+
+tests/test_chatbot_adapter.py:57: AssertionError
+____ test_page_deletion_is_reflected_when_the_host_requests_its_block_again ____
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-1247/test_page_deletion_is_reflecte0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10841d580>
+
+    def test_page_deletion_is_reflected_when_the_host_requests_its_block_again(tmp_path, monkeypatch):
+        client = Client(notes=[{"event_id": "n1", "text": "Jordan and the user hiked together.",
+                                "actor_role": "assistant", "recorded_at": "2026-04-01T00:00:00Z"}])
+        instance = provider(tmp_path, monkeypatch, client)
+        assert "Jordan" in instance.system_prompt_block()
+        client.forgotten.append("n1")
+>       assert "Jordan" not in instance.system_prompt_block()
+E       AssertionError: assert 'Jordan' not in 'memBrain me...brain-notes>'
+E         
+E         'Jordan' is contained here:
+E           26-04-01] Jordan and the user hiked together. (id: n1)
+E         ?           ++++++
+E           </membrain-notes>
+
+tests/test_hermes_adapter.py:66: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_boundary_read_failures.py::test_failed_session_snapshot_never_returns_unfiltered_history
+FAILED tests/test_chatbot_adapter.py::test_outside_edits_are_reflected_on_the_next_request_in_the_same_session
+FAILED tests/test_hermes_adapter.py::test_page_deletion_is_reflected_when_the_host_requests_its_block_again
+3 failed, 42 deselected in 0.53s

@@ -1,0 +1,7 @@
+Starting the local memory database and service…
+{"before_contains_topic": true, "after_contains_topic": true, "model_calls": 0}
+Traceback (most recent call last):
+  File "/Users/yichen/tmp/membrain-final-audit-20261104/check-cache.py", line 24, in <module>
+    assert result['before_contains_topic'] and not result['after_contains_topic']
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+AssertionError

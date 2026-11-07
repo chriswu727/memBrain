@@ -270,6 +270,7 @@ def test_mcp_from_a_uv_cache_environment_hands_over_to_the_installed_tool(tmp_pa
     monkeypatch.setattr(host.sys, "prefix", str(tmp_path / ".cache" / "uv" / "archive-v0" / "abc"))
     assert host.running_from_uv_cache()
     calls = []
+    monkeypatch.setattr(host, "installed_tool_matches", lambda candidate: candidate == python)
     monkeypatch.setattr(subprocess, "call", lambda command: calls.append(command) or 0)
     args = argparse.Namespace(plugin_command="mcp", directory=tmp_path / "brain")
     with pytest.raises(SystemExit) as stopped:
@@ -278,6 +279,50 @@ def test_mcp_from_a_uv_cache_environment_hands_over_to_the_installed_tool(tmp_pa
     assert calls == [[str(python), "-m", "membrain.cli", "plugin", "mcp", "--directory", str(tmp_path / "brain")]]
     monkeypatch.setattr(host.sys, "prefix", str(tools / "membrain-ai"))
     assert not host.running_from_uv_cache()
+
+
+@pytest.mark.parametrize("result", ["same", "stale", "failed", "missing", "timeout"])
+def test_installed_tool_handoff_requires_exact_build_identity(tmp_path, monkeypatch, result):
+    import subprocess
+    from types import SimpleNamespace
+
+    from membrain.build_identity import BUILD_ID
+
+    python = tmp_path / "python"
+    calls = []
+
+    def run(command, **options):
+        calls.append((command, options))
+        if result == "missing":
+            raise FileNotFoundError()
+        if result == "timeout":
+            raise subprocess.TimeoutExpired(command, 10)
+        return SimpleNamespace(returncode=1 if result == "failed" else 0,
+                               stdout=BUILD_ID + "\n" if result == "same" else "old-build\n")
+
+    monkeypatch.setattr(subprocess, "run", run)
+    assert host.installed_tool_matches(python) is (result == "same")
+    command, options = calls[0]
+    assert command[:3] == [str(python), "-I", "-c"]
+    assert options["timeout"] == 10 and options["capture_output"] and options["check"] is False
+
+
+def test_mcp_never_delegates_to_a_stale_installed_runtime(tmp_path, monkeypatch, capsys):
+    import argparse
+    import subprocess
+
+    from membrain import plugin, plugin_cli
+
+    monkeypatch.setattr(host, "running_from_uv_cache", lambda: True)
+    monkeypatch.setattr(host, "installed_tool_python", lambda: tmp_path / "old-python")
+    monkeypatch.setattr(host, "installed_tool_matches", lambda candidate: False)
+    monkeypatch.setattr(subprocess, "call", lambda *args: pytest.fail("Do not launch the old runtime"))
+    monkeypatch.setattr(plugin, "ensure_installation", lambda *args: pytest.fail("Do not touch the profile"))
+    with pytest.raises(SystemExit) as stopped:
+        plugin_cli.dispatch(argparse.Namespace(plugin_command="mcp", directory=tmp_path / "brain"))
+    assert stopped.value.code == 1 and not (tmp_path / "brain").exists()
+    output = capsys.readouterr()
+    assert output.out == "" and "Update the tool" in output.err
 
 
 @pytest.mark.parametrize("user_id", [None, "alice", "alice|roleplay:Ada"])

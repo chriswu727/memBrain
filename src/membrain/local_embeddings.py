@@ -2,7 +2,9 @@
 
 The model (multilingual-e5-small, int8 ONNX export, MIT licence) runs in-process with ONNX Runtime. Its files are
 downloaded once into the installation directory, pinned to a revision and verified by SHA-256. Without the optional
-``semantic`` extra or before the download finishes, recall stays lexical.
+``semantic`` extra or before the download finishes, recall stays lexical. A local profile configures the provider
+before the download; it reports ready once the verified files are in place and then loads on first use, so a running
+service starts using the model without a restart.
 """
 from __future__ import annotations
 
@@ -14,7 +16,8 @@ from pathlib import Path
 
 import httpx
 
-from .embeddings import EmbeddingRequest, EmbeddingResult, EmbeddingSpace
+from .embedding_passages import inference_batches, token_passages
+from .embeddings import EmbeddingPassage, EmbeddingRequest, EmbeddingResult, EmbeddingSpace
 from .helpers import digest
 from .outbound import provider_transport
 
@@ -27,6 +30,7 @@ FILES = {
     "tokenizer.json": ("0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39", 17082730),
 }
 MAX_TOKENS = 512
+DOCUMENT_INDEX_VERSION = "local-overlapping-token-passages-v1"
 PREFIXES = {"document": "passage: ", "query": "query: "}
 _DIRECTORY = "models/" + MODEL + "-" + REVISION[:12]
 
@@ -49,14 +53,26 @@ def model_directory(installation: Path) -> Path:
     return Path(installation) / _DIRECTORY
 
 
+def complete(directory: Path) -> bool:
+    """Whether every pinned file is in ``directory`` with its expected size.
+
+    ``download`` moves a file to its final name only after its SHA-256 matched, so a complete directory holds the
+    verified model.
+    """
+    for name, (_, size) in FILES.items():
+        path = Path(directory) / name
+        try:
+            if not path.is_file() or path.is_symlink() or path.stat().st_size != size:
+                return False
+        except OSError:
+            return False
+    return True
+
+
 def installed(installation: Path) -> Path | None:
     """Return the model directory when every pinned file is present with its expected size."""
     directory = model_directory(installation)
-    for name, (_, size) in FILES.items():
-        path = directory / name
-        if not path.is_file() or path.is_symlink() or path.stat().st_size != size:
-            return None
-    return directory
+    return directory if complete(directory) else None
 
 
 def _source(name: str) -> str:
@@ -95,7 +111,12 @@ def download(installation: Path, *, timeout: float = 600.0, transport: httpx.Bas
 
 
 class LocalEmbeddingProvider:
-    """In-process ``EmbeddingProvider`` for the pinned multilingual model."""
+    """In-process ``EmbeddingProvider`` for the pinned multilingual model.
+
+    The provider may be created before its model directory exists. ``ready`` stays false until every pinned file is
+    in place; ``MemoryService`` treats a provider that is not ready as absent. Once ready it stays ready, and the
+    model loads on the first request, under a lock.
+    """
 
     metered = False  # No cost or network call: exempt from model-call budgets and the operation ledger.
 
@@ -106,13 +127,26 @@ class LocalEmbeddingProvider:
         self._lock = threading.Lock()
         self._session = None
         self._tokenizer = None
+        self._document_tokenizer = None
+        self._ready = False
+
+    @property
+    def ready(self) -> bool:
+        if not self._ready and complete(self._directory):
+            self._ready = True
+        return self._ready
 
     @property
     def space(self) -> EmbeddingSpace:
         return SPACE
 
+    @property
+    def document_index_version(self) -> str:
+        return DOCUMENT_INDEX_VERSION
+
     def close(self) -> None:
         self._session = self._tokenizer = None
+        self._document_tokenizer = None
 
     def __enter__(self) -> LocalEmbeddingProvider:
         return self
@@ -121,12 +155,17 @@ class LocalEmbeddingProvider:
         self.close()
 
     def _load(self):
+        if not self.ready:
+            raise LocalEmbeddingError("The local embedding model is not installed yet.")
         with self._lock:
             if self._session is None:
                 import onnxruntime
                 from tokenizers import Tokenizer
 
                 tokenizer = Tokenizer.from_file(str(self._directory / "tokenizer.json"))
+                document_tokenizer = Tokenizer.from_file(str(self._directory / "tokenizer.json"))
+                document_tokenizer.no_truncation()
+                document_tokenizer.no_padding()
                 tokenizer.enable_truncation(MAX_TOKENS)
                 tokenizer.enable_padding(pad_id=tokenizer.token_to_id("<pad>") or 0, pad_token="<pad>")
                 options = onnxruntime.SessionOptions()
@@ -137,6 +176,7 @@ class LocalEmbeddingProvider:
                     providers=["CPUExecutionProvider"])
                 self._inputs = {item.name for item in self._session.get_inputs()}
                 self._tokenizer = tokenizer
+                self._document_tokenizer = document_tokenizer
         return self._session, self._tokenizer
 
     def _validated(self, request):
@@ -164,9 +204,43 @@ class LocalEmbeddingProvider:
 
         texts, fingerprint, size = self._validated(request)
         session, tokenizer = self._load()
+        if request.purpose == "document":
+            windows = [token_passages(self._document_tokenizer, text, PREFIXES['document'], max_tokens=MAX_TOKENS)
+                       for text in texts]
+            encoded = tokenizer.encode_batch([PREFIXES['document'] + text for text in texts])
+            head_ids = [tuple(token for token, mask in zip(item.ids, item.attention_mask, strict=True) if mask)
+                        for item in encoded]
+            passage_ids = [window.ids for document in windows if len(document) > 1 for window in document]
+            output, tokens = [], 0
+            pad = tokenizer.token_to_id("<pad>") or 0
+            batches = (batch for group in (head_ids, passage_ids)
+                       for batch in inference_batches(group, max_batch_size=self._max_batch_size))
+            for batch in batches:
+                width = max(len(window) for window in batch)
+                ids = numpy.array([(*window, *([pad] * (width - len(window)))) for window in batch],
+                                  dtype=numpy.int64)
+                mask = numpy.array([[1] * len(window) + [0] * (width - len(window)) for window in batch],
+                                   dtype=numpy.int64)
+                output.extend(self._vectors(session, ids, mask))
+                tokens += int(mask.sum())
+            vectors, passages, cursor = output[:len(texts)], [], len(texts)
+            for document in windows:
+                passages.append(tuple(EmbeddingPassage(window.start, window.end, output[cursor + index])
+                                      for index, window in enumerate(document)) if len(document) > 1 else ())
+                if len(document) > 1:
+                    cursor += len(document)
+            return EmbeddingResult(SPACE, tuple(vectors), {"input_tokens": tokens, "total_tokens": tokens},
+                                   fingerprint, size, tuple(passages), DOCUMENT_INDEX_VERSION)
         encoded = tokenizer.encode_batch([PREFIXES[request.purpose] + text for text in texts])
         ids = numpy.array([item.ids for item in encoded], dtype=numpy.int64)
         mask = numpy.array([item.attention_mask for item in encoded], dtype=numpy.int64)
+        vectors = self._vectors(session, ids, mask)
+        tokens = int(mask.sum())
+        return EmbeddingResult(SPACE, vectors, {"input_tokens": tokens, "total_tokens": tokens}, fingerprint, size)
+
+    def _vectors(self, session, ids, mask):
+        import numpy
+
         feeds = {"input_ids": ids, "attention_mask": mask}
         if "token_type_ids" in self._inputs:
             feeds["token_type_ids"] = numpy.zeros_like(ids)
@@ -174,6 +248,4 @@ class LocalEmbeddingProvider:
         weights = mask[..., None].astype(numpy.float32)
         pooled = (hidden * weights).sum(axis=1) / numpy.maximum(weights.sum(axis=1), 1.0)
         pooled /= numpy.maximum(numpy.linalg.norm(pooled, axis=1, keepdims=True), 1e-12)
-        tokens = int(mask.sum())
-        vectors = tuple(tuple(float(value) for value in row) for row in pooled)
-        return EmbeddingResult(SPACE, vectors, {"input_tokens": tokens, "total_tokens": tokens}, fingerprint, size)
+        return tuple(tuple(float(value) for value in row) for row in pooled)

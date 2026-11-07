@@ -1,0 +1,37 @@
+{
+  "source_commit": "37fab4463b2faf52d543a3e996938826d51909a3",
+  "runtime_pin": "7d8d45a84856ecff6463d7b83ca85c723e296be3",
+  "reference_commit": "cbacab434154bc07740c83e619855d920c7d8145",
+  "abba_note": "Run before the runtime commit with six modified files; reference snapshots match the parent revision and candidate file hashes match the runtime commit. Original measurements are unchanged.",
+  "runtime_byte_parity": true,
+  "files": {
+    "src/membrain/service.py": {
+      "reference_sha256": "ff9a8e32aadcb45e37319d7713e5fd2e44bc0e9c142acf9eeb72139f1ad0bee4",
+      "candidate_sha256": "f59a74d7db676003833dd6fe31d3a630d45c8abf66121125f013a87f84fbab25"
+    },
+    "src/membrain/candidates.py": {
+      "reference_sha256": "50d3207aaf3e9b06382736e1aa54a54be6eba214f4b15f8c5ccc700a7ce3a3be",
+      "candidate_sha256": "c62c3f9a117ee1f30a3ae8dd9e6a2a984bea018a376646c0e3beb74898503aff"
+    },
+    "src/membrain/belief_store.py": {
+      "reference_sha256": "d6de6832af627a42a51107acccce5467ce690e50590010cf7e72e22bad0f4787",
+      "candidate_sha256": "c8bb52c43c05c1cea802e6a45fa1043a9dd602c9bdb1f5258fbbe8cab29bb33d"
+    },
+    "src/membrain/source_candidates.py": {
+      "reference_sha256": "fc8c17b265e2ac8c4eff8ec4efd96eb4b2776bead3b446c80cdba88da813f311",
+      "candidate_sha256": "c068a3cd5295b100f18741977618af44f65c026a8a3394dbce31fc2dc5ffddff"
+    },
+    "src/membrain/source_passages.py": {
+      "reference_sha256": "a655675c8d9fa0bd2a226cd14806d9068797db92461d925dec22456a54053964",
+      "candidate_sha256": "e043a4f872f2d63ceab72c94a30c655489fa7f048a67c7a1627d632d5b949ff9"
+    },
+    "src/membrain/source_context.py": {
+      "reference_sha256": "4ed2d2d6ea12aa985b037bc252bf219fdee28b17942ee3a712614ab2324ab4b7",
+      "candidate_sha256": "a06c83aecfa738c34b260c82f43ea453aabd46fb59e0e0780794c921396b686a"
+    }
+  },
+  "context_parity": {
+    "measured_recalls": 640,
+    "rendered_contexts_equal": true
+  }
+}

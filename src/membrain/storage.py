@@ -76,6 +76,6 @@ class Database:
         connection = self.pool.connection() if self.pool is not None else psycopg.connect(
             self.dsn, row_factory=dict_row, connect_timeout=5)
         with connection as conn:
-            conn.execute("SELECT set_config('app.tenant_id', %s, true)", (principal.tenant_id,))
-            conn.execute("SELECT set_config('app.principal_id', %s, true)", (principal.principal_id,))
+            conn.execute("SELECT set_config('app.tenant_id', %s, true), set_config('app.principal_id', %s, true)",
+                         (principal.tenant_id, principal.principal_id))
             yield conn

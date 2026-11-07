@@ -1,0 +1,146 @@
+{
+  "runtime_pin": "ee644c99691546871465e15ddd9f12b394ff8a4e",
+  "retained_failures": "Episode first invocation: nine setup permission errors from missing migration URL in the isolated test wrapper; corrected wrapper then reproduced four membership failures and five passing controls. Candidate baseline: thirteen failing regressions.",
+  "files": [
+    {
+      "path": "episode/before.log.gz",
+      "bytes": 1416,
+      "sha256": "82cbb9fdcc85c53b7620d5938b895c5a4d886f1e8ed4a8835a5e95067d5e00b7",
+      "original_bytes": 20215,
+      "original_sha256": "10f711010694e3bb070cfeb56f437aef3a1857344a552b393f50c3b3bfd72780"
+    },
+    {
+      "path": "episode/before-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "9fbfbb8362a71aa1c9e79d39c08bf2c3a02e3880308831780e197c0583a19fb9",
+      "original_bytes": 70,
+      "original_sha256": "04499e0936f09123686ac45602fb93e20f0dad2f67afab09aadf961adf7d51d5"
+    },
+    {
+      "path": "episode/before-migrator.log.gz",
+      "bytes": 1768,
+      "sha256": "d3c74fda516bc0baf38345c9977e7b4a01361adbdbd771a3c72583bd4198bb40",
+      "original_bytes": 10606,
+      "original_sha256": "6a7ed1211baeb73ea4226687745e44764ca489ae3f628089db7a2d7f12f33ab1"
+    },
+    {
+      "path": "episode/before-migrator-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "9fbfbb8362a71aa1c9e79d39c08bf2c3a02e3880308831780e197c0583a19fb9",
+      "original_bytes": 70,
+      "original_sha256": "04499e0936f09123686ac45602fb93e20f0dad2f67afab09aadf961adf7d51d5"
+    },
+    {
+      "path": "episode/after.log.gz",
+      "bytes": 66,
+      "sha256": "a6ffbd97799797f218eabb5028d6155a9507454890f504085cf80e608e5c5971",
+      "original_bytes": 113,
+      "original_sha256": "40306e321bed83c4a70611377494f70ecbf2fd91953bf7da9cc464a95a519105"
+    },
+    {
+      "path": "episode/after-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "f191f6f3ffcb7319da09a40ced22934faf16923dfeaecfcc42ad3460c0b06bfb",
+      "original_bytes": 70,
+      "original_sha256": "fed07233ea8472fd75f50c09414c439dece7d68be5d13b33604bc1eeeb52f660"
+    },
+    {
+      "path": "episode/final-focused.log.gz",
+      "bytes": 67,
+      "sha256": "429af0afb54285f3143311e18a2eb2c1e6b21acd0f211e423a2307791cdbf2cb",
+      "original_bytes": 114,
+      "original_sha256": "b3a2238ba5d2183062f28cb9e5909d9399c0264b5d9730e1f1c98217234ed50a"
+    },
+    {
+      "path": "episode/final-focused-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "f191f6f3ffcb7319da09a40ced22934faf16923dfeaecfcc42ad3460c0b06bfb",
+      "original_bytes": 70,
+      "original_sha256": "fed07233ea8472fd75f50c09414c439dece7d68be5d13b33604bc1eeeb52f660"
+    },
+    {
+      "path": "episode/combined.log.gz",
+      "bytes": 77,
+      "sha256": "d33c0a5dcb61e02e11755441d70366b802766db9bd47c43bc8caf90bcfd82c6d",
+      "original_bytes": 421,
+      "original_sha256": "481bed2090737bf2dfb77383fe97c4509fcfb2bce6a924cf398f6ed16b72fbd6"
+    },
+    {
+      "path": "episode/combined-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "f191f6f3ffcb7319da09a40ced22934faf16923dfeaecfcc42ad3460c0b06bfb",
+      "original_bytes": 70,
+      "original_sha256": "fed07233ea8472fd75f50c09414c439dece7d68be5d13b33604bc1eeeb52f660"
+    },
+    {
+      "path": "episode/installed.log.gz",
+      "bytes": 52,
+      "sha256": "9ee472eb9e73cbdd0284452fe72a830211903beec6d32121f2135a115749523f",
+      "original_bytes": 99,
+      "original_sha256": "ec88d05abd9ba3ba948b281236ce2a982f0aeb7bc13262e7d6fade6170da21cc"
+    },
+    {
+      "path": "episode/installed-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "f191f6f3ffcb7319da09a40ced22934faf16923dfeaecfcc42ad3460c0b06bfb",
+      "original_bytes": 70,
+      "original_sha256": "fed07233ea8472fd75f50c09414c439dece7d68be5d13b33604bc1eeeb52f660"
+    },
+    {
+      "path": "episode/installed-parity.json.gz",
+      "bytes": 9321,
+      "sha256": "8c2293e594caf9c44d04a417ac8f5ea02c0f3c10c245cf47f51842bea7759c4e",
+      "original_bytes": 18697,
+      "original_sha256": "897da62fc3a566bd35fa58008a1407c08e53a2c64a4d853aff85f8236bbdc623"
+    },
+    {
+      "path": "episode/run_tests.py.gz",
+      "bytes": 649,
+      "sha256": "224f3af36688acd7d605ec3e353c4edaa42dd85394ec4882765c530f5c0f02a6",
+      "original_bytes": 1307,
+      "original_sha256": "5005c0a94e3cd1dae8f79ce14208b93af82463becaa0988b1ee9ff2db1d7999b"
+    },
+    {
+      "path": "episode/build.log.gz",
+      "bytes": 134,
+      "sha256": "c2b466b654b0b5942cc1084c1dc15dc9724aa02db50216a3a9ba1d4abcf215d4",
+      "original_bytes": 139,
+      "original_sha256": "d37f47b3303a32ef1516392a0b29b2e26d9694fb8a839846783ec1a6ca57836b"
+    },
+    {
+      "path": "candidate/affected.log.gz",
+      "bytes": 73,
+      "sha256": "d7cdb6b791837e20380bbf221a999f5653411d86854340df75a119383c266480",
+      "original_bytes": 340,
+      "original_sha256": "67191cd9541b48b7340774c39b9764642cc43ed7f2c60cd726a67c774a2f8bbe"
+    },
+    {
+      "path": "candidate/after.log.gz",
+      "bytes": 52,
+      "sha256": "d505a6cb1626e40d191af34d1b3c6da63d8156e19c00c14f80413a9e965acaf7",
+      "original_bytes": 99,
+      "original_sha256": "349f45ccbca96d9fa739474b34175a7ac546bab056ec0c700c9a1cacd5a07d38"
+    },
+    {
+      "path": "candidate/before.log.gz",
+      "bytes": 2146,
+      "sha256": "108503c70a13a51433134fcba979c992e14b64d1fc1c1db57813924366d40be3",
+      "original_bytes": 21087,
+      "original_sha256": "68f5c8a8423a7f24b6b5aca0ab31a70efc4e453fcccf2d0884141556e5e0f622"
+    },
+    {
+      "path": "candidate/run_checks.py.gz",
+      "bytes": 1030,
+      "sha256": "54469417ebecb4b25792aa27001cdf5167322de043a735cf2e85a0bc964a6a0a",
+      "original_bytes": 2479,
+      "original_sha256": "68698ab2b2549bff8afe60d06684d9c6bdf81e857845d124181ef67250854dbd"
+    },
+    {
+      "path": "candidate/summary.json.gz",
+      "bytes": 94,
+      "sha256": "a9d3955e4be6df4753f9449b6af804ce5cd10b2e76be6c98e4987c2f87851144",
+      "original_bytes": 104,
+      "original_sha256": "37692fa0d7bf81cf106b73305034a4016da4e4ab8413d68632ca8192995c2f8c"
+    }
+  ]
+}

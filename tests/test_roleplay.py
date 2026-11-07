@@ -56,7 +56,6 @@ def test_roleplay_and_real_life_never_mix_on_a_real_service(tmp_path):
         bot.record(hao, "Captain Vale narrows her eyes.", session=story, turn_id="2", roleplay="Captain Vale")
         bot.note(hao, "Hao's character hid gold in the lighthouse.", roleplay="Captain Vale")
 
-        bot._blocks.clear()
         real_life = bot.context(hao, "What do you know about me?", session="real-2", turn_id="3")
         assert "Mei is allergic to sesame" in real_life
         assert "lighthouse" not in real_life and "smuggler" not in real_life

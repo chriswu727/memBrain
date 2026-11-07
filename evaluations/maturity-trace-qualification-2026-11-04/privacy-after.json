@@ -1,0 +1,28 @@
+{
+  "purpose": "real PostgreSQL graph masking regression; not an R5 performance run",
+  "label": "after",
+  "model_calls": 0,
+  "source_sha256": {
+    "src/membrain/service.py": "8007ca7b190c1482eb06cb6bea11bf069a7ea03eb04a4d8e2039bd4ccdc69a24",
+    "src/membrain/recovery.py": "61e037d4a1901dec5ac060411499fe28b96f640a8038b5a51a55819654db016c",
+    "tests/test_storage.py": "c6290fff8d0ec1c55bc3e359f0d88c8993b7f85220f8770a1b4fe3eb25ba25be",
+    "tests/test_recovery_quarantine.py": "472f215b8a428cb56e18af6db38d55b893679ee4ffc4687bd10509ca7fc4903a",
+    "tests/test_response_validation.py": "3e65f0a9dadaa35e200849399658df6b5d83056e8f40dfea43b3e2f672209f83",
+    "src/membrain/memory_map.py": "7504cb0b77badc0ace22cd097d0eb909a3fa80674b26ec3eea51aca8288e6d20",
+    "src/membrain/companion_map.py": "e2a441762b27aa7235beb662fb66d6eb7f57b08cc1a256271afee5b553b7ade0",
+    "tests/test_memory_map.py": "4cacbe79531475ea367ba9a7344ecbdfab48fe1dff0916b1c668c0c4e14c1048",
+    "tests/test_structure_map.py": "69d556d6fe83d969051579c6a6871ba8c9efb4f0bba2fe425aabb6cc16974d6d",
+    "tests/test_companion_map.py": "d32341c191f5709f9bc976e0963253810ac07370ecc6a7b5cf07efbb82a56978"
+  },
+  "selection": [
+    "tests/test_memory_map.py",
+    "tests/test_structure_map.py",
+    "tests/test_companion_map.py",
+    "tests/test_memory_observatory_browser.py",
+    "tests/test_memory_page_browser.py",
+    "tests/test_observatory.py"
+  ],
+  "exit_code": 1,
+  "source_unchanged": true,
+  "both_ports_closed": true
+}

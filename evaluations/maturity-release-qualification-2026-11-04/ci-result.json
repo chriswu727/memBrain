@@ -1,0 +1,27 @@
+{
+  "source_commit": "281b06e585b0a9ca6b67e8892f3c6a3d69bc572f",
+  "run_id": 41927888667,
+  "job_id": 126917730802,
+  "conclusion": "success",
+  "python_passed": 7029,
+  "python_skipped": 0,
+  "warnings": 3,
+  "seconds": 1291.54,
+  "typescript_passed": 50,
+  "typescript_skipped": 0,
+  "strict_types": "pass",
+  "ruff": "pass",
+  "sdist_wheel": "pass",
+  "full_log_sha256": "d11bf02fda263cd9a06b0c40d6ea76d103b491395161a1e81075f824d3098fc4",
+  "gzip_sha256": "ab23f459f433441de7bd52668d880bd5ba5016a357b52f16e0748bdfa228af47",
+  "log_bytes": 1519309,
+  "gzip_bytes": 188663,
+  "actual_docker_journeys": {
+    "desktop": "pass",
+    "recovery": "pass",
+    "upgrade": "pass",
+    "chat": "pass"
+  },
+  "real_local_model": "pass",
+  "activation": "pass"
+}

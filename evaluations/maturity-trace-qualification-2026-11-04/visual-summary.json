@@ -1,0 +1,341 @@
+{
+  "metadata": {
+    "source_commit": "9b9bad016ad7223991c98ee74e34ddb49ceb95b4",
+    "runtime_pin": "f1fc97b193f816ccfe4d3988c797060fff2bbbc6",
+    "script_sha256": "9b326594542b01d8802854f9801b1624e2d3f4708891fce1c20e109736ce30cd",
+    "completed": true,
+    "protocol": "unchanged complete closed/open/open/closed workload; added phase API port to output for independent shutdown checks",
+    "exit_code": 0,
+    "source_unchanged": true,
+    "script_unchanged": true,
+    "all_ports_closed": true
+  },
+  "windows": [
+    {
+      "mode": "closed",
+      "cycle": 0,
+      "kind": "serial",
+      "p95": 98.25,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 0,
+      "kind": "one_brain_8_concurrent",
+      "p95": 566.3,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 0,
+      "kind": "eight_brains_8_concurrent",
+      "p95": 526.73,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 1,
+      "kind": "serial",
+      "p95": 103.52,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 1,
+      "kind": "one_brain_8_concurrent",
+      "p95": 580.23,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 1,
+      "kind": "eight_brains_8_concurrent",
+      "p95": 540.06,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 2,
+      "kind": "serial",
+      "p95": 100.51,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 2,
+      "kind": "one_brain_8_concurrent",
+      "p95": 609.43,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 2,
+      "kind": "eight_brains_8_concurrent",
+      "p95": 494.88,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 0,
+      "kind": "serial",
+      "p95": 116.44,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 0,
+      "kind": "one_brain_8_concurrent",
+      "p95": 513.08,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 0,
+      "kind": "eight_brains_8_concurrent",
+      "p95": 513.04,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 1,
+      "kind": "serial",
+      "p95": 104.98,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 1,
+      "kind": "one_brain_8_concurrent",
+      "p95": 516.09,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 1,
+      "kind": "eight_brains_8_concurrent",
+      "p95": 515.22,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 2,
+      "kind": "serial",
+      "p95": 104.56,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 2,
+      "kind": "one_brain_8_concurrent",
+      "p95": 515.87,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 2,
+      "kind": "eight_brains_8_concurrent",
+      "p95": 484.0,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 0,
+      "kind": "serial",
+      "p95": 107.63,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 0,
+      "kind": "one_brain_8_concurrent",
+      "p95": 507.76,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 0,
+      "kind": "eight_brains_8_concurrent",
+      "p95": 489.28,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 1,
+      "kind": "serial",
+      "p95": 107.63,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 1,
+      "kind": "one_brain_8_concurrent",
+      "p95": 506.65,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 1,
+      "kind": "eight_brains_8_concurrent",
+      "p95": 511.32,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 2,
+      "kind": "serial",
+      "p95": 107.04,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 2,
+      "kind": "one_brain_8_concurrent",
+      "p95": 497.49,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "open",
+      "cycle": 2,
+      "kind": "eight_brains_8_concurrent",
+      "p95": 521.32,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 0,
+      "kind": "serial",
+      "p95": 107.23,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 0,
+      "kind": "one_brain_8_concurrent",
+      "p95": 531.58,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 0,
+      "kind": "eight_brains_8_concurrent",
+      "p95": 496.86,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 1,
+      "kind": "serial",
+      "p95": 110.81,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 1,
+      "kind": "one_brain_8_concurrent",
+      "p95": 507.35,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 1,
+      "kind": "eight_brains_8_concurrent",
+      "p95": 556.7,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 2,
+      "kind": "serial",
+      "p95": 104.66,
+      "n": 20,
+      "nonempty": 20,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 2,
+      "kind": "one_brain_8_concurrent",
+      "p95": 472.17,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    },
+    {
+      "mode": "closed",
+      "cycle": 2,
+      "kind": "eight_brains_8_concurrent",
+      "p95": 513.7,
+      "n": 160,
+      "nonempty": 160,
+      "pass": true
+    }
+  ],
+  "nonempty": 4080,
+  "passed": true
+}

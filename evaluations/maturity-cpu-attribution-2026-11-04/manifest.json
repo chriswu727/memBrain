@@ -1,0 +1,30 @@
+{
+  "purpose": "Allowlisted CPU/scheduling diagnosis; no shipping runtime change or new R5 qualification",
+  "source_commit": "cab954408d8cb72ff56c2c97aacf7b7a259219d4",
+  "runtime_pin": "b994ec8080d46ee861f6ed8738a1617929f50d2a",
+  "files": {
+    "admission-arm-0.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "admission-arm-1.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "admission-arm-2.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "admission-arm-3.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "admission-arm-4.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "admission-arm-5.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "admission-arm-6.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "admission-arm-7.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "admission-prototype-worker.py": "38b8045cc4ce330a435caef03b73c40c7d3c00059fe696ecb98142cec1167d20",
+    "admission-prototype.json.gz": "2df1bc1e0afadb3f613bb12b383055b288a335d33ac5efc1dca58456d7ed8eb7",
+    "admission-prototype.log": "852d4aefe1e269432e7c0639d8c7aa20c3fcddd2e023a2540840149c2a4e4c5f",
+    "core-single-thread-profile.json.gz": "5d849f0cb6b92798852b671aa83c343808072999afd29cef06ff26d4a27d5a49",
+    "core-single-thread-profile.log": "2622e22f5f645ef54fe7e782a60d6389d89649f24701929984e79630b9ca3746",
+    "cpu-attribution-api.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "cpu-attribution-worker.py": "7e09e4d1a93448e06a54cddfcf78af5fbdca2c9a5d03146802623bfd1adacaca",
+    "cpu-attribution.json.gz": "931dca5bf09bc355d695d2e2da0a6b7aa743894cce6e04b47ddc43b1889a2d51",
+    "cpu-attribution.log": "87eb71feaa87ae4d866a53c2f7b84651ef5b8b9e0a53a37ccb50e4f6d3bfd9bd",
+    "credential-scan.json": "64316833a49d19cee63fb6a603765b45bae41e996b7730a670391b7adea9ecda",
+    "positive-checks.py": "aa5dd1963a83c163526af606650b5abcf46c2155a97f0c566330aae37dddf43c",
+    "run-admission-prototype.py": "edde752326200788c62f06c3c3637b831ce476f1ab676b05af9ac1bb6fa1b1e2",
+    "run-core-single-thread.py": "17c839fa92e07b65f4d9fc615c4318517353900e3e661160230554124175aac8",
+    "run-cpu-attribution.py": "d20266ea4bb45b57f9dc295c0d281a2d9cd264a87b0fa72801b056018708a577",
+    "validation-experiment.json": "63c802f0be37d6e962db2f86baf0794d7c23032d7295182313e55e9b48db9455"
+  }
+}

@@ -1,0 +1,81 @@
+{
+  "attempt_id": "maturity-20261107",
+  "source_head": "8b0e1caa75df7e3db31e6b59b2a4a77cb276b07f",
+  "runtime_pin": "86e7f1fed2ba00d08b3cb9509beb50e4cf811f4b",
+  "build_id": "eb152d9724f67904fb1bafb38896b2ea03c5495f78a7b1470a4e729b5ca399ef",
+  "checked_at": "2026-11-07T19:02:14.723157+00:00",
+  "execution_session": 44881,
+  "execution_terminal_exit": 1,
+  "result": "stopped",
+  "stop_reason": "runner_failed",
+  "ledger_stop_reason": "harness_degraded",
+  "scenario_status": {
+    "c1": "not_run",
+    "c2": "not_run",
+    "s1": "runner_failed",
+    "s2": "not_run"
+  },
+  "eligible": {
+    "C5": false,
+    "R4": false
+  },
+  "completed_turns": {
+    "s1": {
+      "P": 40,
+      "E": 30,
+      "F": 39
+    }
+  },
+  "planned_turns_per_arm": 64,
+  "failure_position": {
+    "session": 10,
+    "message": 4
+  },
+  "harness_event": "turn_not_recorded",
+  "control_metadata": "Prior message called memory_pause and was not recorded; failing message had a nonempty reply, no tool calls and recorded=false; pause file remained present. No user or reply text was inspected by operator.",
+  "scope_limit": "This establishes missing resume invocation at the stop, not the semantic adequacy of the hidden user request or a measured benefit from any proposed repair. No database failure is established by this evidence.",
+  "billing": {
+    "limit_cny": 280,
+    "blocked": true,
+    "reserved_requests": 163,
+    "settled_requests": 162,
+    "conservative_settled_cny": 9.933585,
+    "unknown_reserved_cny": 20.054016,
+    "unknown_failure_codes": [
+      {
+        "error_class": "SystemExit",
+        "kind": "provider_transport"
+      }
+    ],
+    "observed_account_balance_decrease": {
+      "CNY": "0.97",
+      "USD": "0.00"
+    },
+    "balance_limit": "Account balance change is separate from conservative guard accounting and is not attributed as a final invoice; unknown reservation remains held."
+  },
+  "manifest_sha256": "590e0298169cf097afea1dc66f59d7e8debd3b4e8b7ff3d7b9bbf99026acb956",
+  "frozen_files_unchanged": 656,
+  "scenario_hashes_unchanged": 4,
+  "ports": [
+    {
+      "port": 8893,
+      "closed": true
+    },
+    {
+      "port": 55533,
+      "closed": true
+    },
+    {
+      "port": 8894,
+      "closed": true
+    },
+    {
+      "port": 55534,
+      "closed": true
+    }
+  ],
+  "no_automatic_retry": true,
+  "original_ledger_preserved_blocked": true,
+  "private_invalid_run_retained_not_published": true,
+  "new_R4_or_C5_score": false
+}

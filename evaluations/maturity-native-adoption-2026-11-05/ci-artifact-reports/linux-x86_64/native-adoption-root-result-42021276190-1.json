@@ -1,0 +1,20 @@
+{
+  "completed": true,
+  "model_calls": 0,
+  "legacy_upgrade": true,
+  "restore_requested": true,
+  "root": true,
+  "phase": "completed",
+  "default_native_selector": true,
+  "handoff_interruption_exit": 87,
+  "credentials_preserved": true,
+  "original_cluster_preserved": true,
+  "admission_before_api": true,
+  "http_memory_after_cold_restart": true,
+  "legacy_vector_rows_preserved": true,
+  "private_backup_restore": true,
+  "quarantine_blocks_api": true,
+  "restored_memory_recalled": true,
+  "restored_credentials_rotated": true,
+  "owned_ports_closed": true
+}

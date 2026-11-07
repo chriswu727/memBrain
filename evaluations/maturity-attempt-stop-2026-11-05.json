@@ -1,0 +1,69 @@
+{
+  "attempt_id": "maturity-20261105a",
+  "candidate": "f9241471beb22d9ddaa7b1e94a35237ab8a0d601",
+  "result": "invalid",
+  "stop_key": "s1",
+  "cause": "validity scenario path lookup",
+  "original_log_confirms_missing_scenario_path": true,
+  "not_run": [
+    "s2",
+    "c1",
+    "c2"
+  ],
+  "r4_eligible": false,
+  "c5_eligible": false,
+  "requests": 300,
+  "settled_requests": 300,
+  "conservative_cny": 23.151185,
+  "unsettled_cny": 0,
+  "balance_before_cny": "199.22",
+  "balance_after_cny": "195.46",
+  "observed_balance_change_cny": "3.76",
+  "balance_scope": "Account snapshots may include unrelated concurrent activity.",
+  "ports": {
+    "8893": "closed",
+    "55533": "closed",
+    "8894": "closed",
+    "55534": "closed"
+  },
+  "postmortem_turn_counts": {
+    "P": 66,
+    "E": 66,
+    "F": 66
+  },
+  "postmortem_diagnosis_is_not_acceptance": true,
+  "private_evidence_sha256": {
+    "attempt-manifest.json": "a7107e57d5c40099c61e94ebbea747539ddd6dd1a16c7ccad3e7961fe0622f0a",
+    "run/attempt-state.json": "0db16d6ca571c7e5a802098725e7a45ea68852da0c93e9c81c2b932ca5f9ed49",
+    "billing-ledger.json": "91ca357bc9f5d4ce1a155b363afb053016fa0f80e62e0fee908610502a975c7c",
+    "balance-observations.jsonl": "6fe7c39c6cee258e0963cbbe660283be09781ad8c1584286582b5de226e7e7c0",
+    "run/driver-logs/s1.validity.log": "dfda9e1aff178ca1ad5c0786654f02c5c2d69e91c2d55ed2078fe8b020fd86d4",
+    "run/s1-P/results_s1_P.jsonl": "af4fb2c8813c4f374ed1cdac783000bfe4ddacdf7713ba568443f07e3bd2d16a",
+    "run/s1-E/results_s1_E.jsonl": "36526bbfa1df3eaa71716263519dbc094d2890abca35c58c218a37fa34c286a3",
+    "run/s1-F/results_s1_F.jsonl": "0af0e99efce7aba76451d4ebdbef60585018c774a8c0a33171718719f6b384c7"
+  },
+  "repair_ci": {
+    "head": "b419c34ee8cf1d3b2dba9ef40ef5069e535c305c",
+    "verify_run": 42163852124,
+    "verify_job": 127715586180,
+    "verify_log_sha256": "00f6076ed33376797e4ad8ecad5fee39c902edb5abbc390db882d6e1578124ee",
+    "python_passed": 7553,
+    "python_warnings": 3,
+    "python_skipped": 0,
+    "typescript_passed": 50,
+    "typescript_skipped": 0,
+    "native_run": 42163852169,
+    "native_jobs": {
+      "native (linux-x86_64)": "success",
+      "native (macos-x86_64)": "success",
+      "native (linux-aarch64)": "success",
+      "native (windows-x86_64)": "success",
+      "native (macos-arm64)": "success",
+      "linux-build": "skipped",
+      "linux-current": "skipped"
+    },
+    "ruff": "passed",
+    "typescript_strict_types": "passed",
+    "wheel_and_sdist": "built"
+  }
+}

@@ -39,8 +39,8 @@ def retain_active_passages(result):
         result.pop("source_passages")
 
 
-def passage_content(passage):
-    return {key: copy.deepcopy(passage[key]) for key in (
+def passage_content(passage, copier=copy.deepcopy):
+    return {key: copier(passage[key]) for key in (
         "actor_role", "delivery_state", "world", "text", "recorded_at",
     )} | {"use": SOURCE_CONTEXT_USE}
 
@@ -80,12 +80,13 @@ def _unit_key(memory):
 
 
 def source_unit_candidates(ranked, documents, *, limit, expand=False):
-    literal_keys = {_unit_key(documents[_version(item)]) for item in ranked
+    units = {_version(item): _unit_key(documents[_version(item)]) for item in ranked}
+    literal_keys = {units[_version(item)] for item in ranked
                     if documents[_version(item)]["derivation"]["method"] == "direct_capture"} - {None}
     groups = {}
     for item in ranked:
         memory = documents[_version(item)]
-        unit = _unit_key(memory)
+        unit = units[_version(item)]
         key = ("unit", unit) if unit in literal_keys else ("memory", *_version(memory))
         groups.setdefault(key, []).append(item)
     selected = list(groups.values())[:min(128, limit)]
@@ -114,11 +115,15 @@ def covering_passage(item, passages):
     references = memory["evidence_refs"]
     if not references or any(ref["relationship"] != "supports" or "span" not in ref for ref in references):
         return None
+    capture = None  # _literal_capture(memory), computed once, when first needed
     for passage in passages:
         if not literal and passage["policy_version"] != SOURCE_CONTEXT_VERSION:
             continue
-        if literal and passage["policy_version"] == SOURCE_CONTEXT_VERSION and not _literal_capture(memory):
-            continue
+        if literal and passage["policy_version"] == SOURCE_CONTEXT_VERSION:
+            if capture is None:
+                capture = _literal_capture(memory)
+            if not capture:
+                continue
         full = passage["evidence_ref"]
         if all(_source(ref) == _source(full) and ref["span"]["unit"] == full["span"]["unit"]
                and full["span"]["start"] <= ref["span"]["start"] < ref["span"]["end"] <= full["span"]["end"]

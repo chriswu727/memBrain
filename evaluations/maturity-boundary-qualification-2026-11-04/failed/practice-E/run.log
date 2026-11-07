@@ -1,0 +1,18 @@
+memBrain EVALUATION CLOCK ENABLED: time is simulated from /Users/yichen/tmp/membrain-final-audit-20261104/public-practice/practice-E/brain-c5-practice-scenario-E/evaluation-clock.json. This must never happen outside a disposable evaluation profile.
+Starting the local memory database and service…
+21:09:53 E c5-practice-scenario start stub proposals
+21:09:55 E c5-practice-scenario s1-arrival 0 339 tools: []
+21:09:55 E c5-practice-scenario s1-arrival 1 596 tools: []
+21:09:56 E c5-practice-scenario s1-arrival 2 863 tools: []
+21:09:58 E c5-practice-scenario s2-review 0 899 tools: []
+21:09:58 E c5-practice-scenario s2-review 1 1850 tools: []
+21:09:58 E c5-practice-scenario s2-review 2 2819 tools: []
+Traceback (most recent call last):
+  File "/Users/yichen/tmp/membrain-review-20261029/evaluations/c5-harness.py", line 1162, in <module>
+    run(sys.argv[1], sys.argv[2], Path(sys.argv[3]))
+  File "/Users/yichen/tmp/membrain-review-20261029/evaluations/c5-harness.py", line 1001, in run
+    page_actions(session, 0)
+  File "/Users/yichen/tmp/membrain-review-20261029/evaluations/c5-harness.py", line 973, in page_actions
+    chat._forget_blocks(memory.user)  # The next message reads the page's change.
+    ^^^^^^^^^^^^^^^^^^^
+AttributeError: 'ChatMemory' object has no attribute '_forget_blocks'

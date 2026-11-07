@@ -1,0 +1,91 @@
+{
+  "scope": "embedded subprocess environment isolation and existing native SQL/snapshot components; no default native adoption",
+  "runtime_source": "ca85119b2170606135cd8e8548098331da3afa41",
+  "installed_pin": "9f7536110a95dfd02b382382dc97d0991121632f",
+  "model_calls": 0,
+  "excluded": [
+    "profiles/credentials",
+    "private journals/snapshots/databases",
+    "private cluster archives",
+    "packages/models/binaries"
+  ],
+  "files": [
+    {
+      "path": "guards.log.gz",
+      "bytes": 69,
+      "sha256": "d1d3d6a069a4a3a61dbe790f9ed6e7f26acc4a268ca8def70f5fe18977c4f0ce",
+      "raw_bytes": 260,
+      "raw_sha256": "4957ce7cc44b5216bafa62a8fa24b2b1118da09e6c8f15d52098119690d1eb47"
+    },
+    {
+      "path": "build-guards.log.gz",
+      "bytes": 52,
+      "sha256": "d64a3377d041ebb808d3cabec3d1a7a4873699df3f1a8fbeeb34fdec803f9fb9",
+      "raw_bytes": 99,
+      "raw_sha256": "40bfd4344a3eb1c606998014b2da30a6e67c7e7643e444298223a1d22650e0c7"
+    },
+    {
+      "path": "build.log.gz",
+      "bytes": 162,
+      "sha256": "f1fd9f3467e260bd8e6b59b5bf552fb67c45901969525837336a35e719acd210",
+      "raw_bytes": 293,
+      "raw_sha256": "3afb34814994e2549ad083f51fccb0798a7693cd8e03dccde15ea64e5e8877dd"
+    },
+    {
+      "path": "wheel-parity.json",
+      "bytes": 990,
+      "sha256": "ad3d3e5de37810dd79c0311d54c6184c640ae7c1367ac81ff960ebafcd92a3b6",
+      "raw_bytes": 990,
+      "raw_sha256": "ad3d3e5de37810dd79c0311d54c6184c640ae7c1367ac81ff960ebafcd92a3b6"
+    },
+    {
+      "path": "wheel-check.log.gz",
+      "bytes": 579,
+      "sha256": "a8a63e0c1e3c0a45b3793a569e08eb90b64b7ba5453cdb703083ccad31318886",
+      "raw_bytes": 975,
+      "raw_sha256": "54bccce239ed0eb77225d33640a12d8967b756fe24e540bfab267d5d882ba3c9"
+    },
+    {
+      "path": "check-installed-maintenance.py",
+      "bytes": 3949,
+      "sha256": "f4312edce487a992800258f5361a23fe30da656e1bf9943e7bc475a2da9fb188",
+      "raw_bytes": 3949,
+      "raw_sha256": "f4312edce487a992800258f5361a23fe30da656e1bf9943e7bc475a2da9fb188"
+    },
+    {
+      "path": "host-overrides.log.gz",
+      "bytes": 457,
+      "sha256": "8e394aa5f15a800a124e2f946f8a5eb87013461411caa3c0afe60a67ec09178c",
+      "raw_bytes": 806,
+      "raw_sha256": "aff6c673a953164dcc7356f8cbd272d435977253f0bdab5c57b0f0d28831d42f"
+    },
+    {
+      "path": "host-overrides/result.json",
+      "bytes": 726,
+      "sha256": "bc09626e3536dd4d5b64b88c1264df106baad2dc46751e2c6985d33e17a0b3e7",
+      "raw_bytes": 726,
+      "raw_sha256": "bc09626e3536dd4d5b64b88c1264df106baad2dc46751e2c6985d33e17a0b3e7"
+    },
+    {
+      "path": "ci-41993173758.log.gz",
+      "bytes": 68198,
+      "sha256": "30fb6f115233d3c684ebc35d4bfa55e620f1a629ad842a5acdb25e02f3a62501",
+      "raw_bytes": 538967,
+      "raw_sha256": "e5078aeedde077a08280f850f6462d267499d69e3b54976730f23ad5d6db5c16"
+    },
+    {
+      "path": "platform-results.json",
+      "bytes": 25199,
+      "sha256": "ecea68581afe1fe7c293667666ee7129c33a319088f6ceff6a4096eb71b7365b",
+      "raw_bytes": 25199,
+      "raw_sha256": "ecea68581afe1fe7c293667666ee7129c33a319088f6ceff6a4096eb71b7365b"
+    },
+    {
+      "path": "credential-scan.json",
+      "bytes": 221,
+      "sha256": "01b7422fa6d7bc7ef4d3b2d13d6f97b29f96fd69a104853885c3d215bdac6976",
+      "raw_bytes": 221,
+      "raw_sha256": "01b7422fa6d7bc7ef4d3b2d13d6f97b29f96fd69a104853885c3d215bdac6976"
+    }
+  ]
+}

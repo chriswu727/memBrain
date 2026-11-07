@@ -1,0 +1,11 @@
+{
+  "source_commit": "c7acd84dcf472c1cbb7419d6d57455ed359ebc29",
+  "runtime_pin": "9f7536110a95dfd02b382382dc97d0991121632f",
+  "script_sha256": "5eebee04beb5d19386f7da54033ce65327475f285f7f788167c369288fdca6e5",
+  "completed": true,
+  "protocol": "unchanged complete closed/open/open/closed workload; added phase API port to output for independent shutdown checks",
+  "exit_code": 0,
+  "source_unchanged": true,
+  "script_unchanged": true,
+  "all_ports_closed": true
+}

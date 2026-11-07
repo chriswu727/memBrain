@@ -1,0 +1,26 @@
+{
+  "status": "draft_not_approved",
+  "checked_on": "2026-11-05",
+  "sources": [
+    "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+    "https://api-docs.deepseek.com/api/create-chat-completion/"
+  ],
+  "proposed_limit_cny": "280",
+  "endpoint": "https://api.deepseek.com/chat/completions",
+  "models": {
+    "deepseek-v4-pro": {
+      "context_tokens": 1048576,
+      "max_output_tokens": 393216,
+      "input_cny_per_million": "9",
+      "output_cny_per_million": "27",
+      "response_models": ["deepseek-v4-pro"]
+    },
+    "deepseek-flash": {
+      "context_tokens": 1048576,
+      "max_output_tokens": 393216,
+      "input_cny_per_million": "2",
+      "output_cny_per_million": "8",
+      "response_models": ["deepseek-flash"]
+    }
+  }
+}

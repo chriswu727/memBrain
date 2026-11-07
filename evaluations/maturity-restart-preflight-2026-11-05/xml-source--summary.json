@@ -1,0 +1,33 @@
+{
+  "source_version": "2.9.13+dfsg-1ubuntu0.14",
+  "source_urls": {
+    "libxml2_2.9.13+dfsg-1ubuntu0.14.dsc": "https://archive.ubuntu.com/ubuntu/pool/main/libx/libxml2/libxml2_2.9.13%2Bdfsg-1ubuntu0.14.dsc",
+    "libxml2_2.9.13+dfsg-1ubuntu0.14.debian.tar.xz": "https://archive.ubuntu.com/ubuntu/pool/main/libx/libxml2/libxml2_2.9.13%2Bdfsg-1ubuntu0.14.debian.tar.xz",
+    "uploader-key.asc": "https://keyserver.ubuntu.com/pks/lookup?op=get&search=0xB4D12556696F9490FD4EDF520F6403BC84D8956F"
+  },
+  "sha256": {
+    "libxml2_2.9.13+dfsg-1ubuntu0.14.dsc": "0c43450d95fb5a935610d86e06aa52d56a58d3a7e6348fd4d993b7054e71cf53",
+    "libxml2_2.9.13+dfsg-1ubuntu0.14.debian.tar.xz": "25ff38d4356a491aa49c415cff6460453793694a72e4c9a894b94128e65b8040",
+    "uploader-key.asc": "106fc41c47cc0959f42427d34e88508f0a2963a74a389f80322632f2c8e95088"
+  },
+  "dsc_signature_exit": 0,
+  "signature_trust_scope": "Cryptographic signature checked against key fetched from Ubuntu keyserver; independently compared source version with official Ubuntu security notice. No general key-owner trust assertion.",
+  "patch_count": 38,
+  "patches_named_for_2026_CVEs": [
+    "CVE-2026-0989.patch",
+    "CVE-2026-0990.patch",
+    "CVE-2026-0992.patch",
+    "CVE-2026-6653.patch",
+    "CVE-2026-86140.patch",
+    "CVE-2026-74860.patch",
+    "CVE-2026-76781.patch",
+    "CVE-2026-86138.patch",
+    "CVE-2026-86142.patch",
+    "CVE-2026-86143.patch",
+    "CVE-2026-86144.patch"
+  ],
+  "supplier_postgres_runpath": "$ORIGIN/../lib",
+  "runtime_modified": false,
+  "binary_build_completed": false,
+  "admitted_manifest_policy": "Still requires explicit design/verification before adding files to an already bound native target."
+}

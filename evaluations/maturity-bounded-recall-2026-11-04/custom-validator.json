@@ -1,0 +1,155 @@
+{
+  "before": [
+    {
+      "schema": {
+        "properties": {
+          "value": {
+            "type": "integer"
+          }
+        }
+      },
+      "expected": [
+        true,
+        false
+      ],
+      "actual": [
+        false,
+        true
+      ]
+    },
+    {
+      "schema": {
+        "items": {
+          "type": "integer"
+        }
+      },
+      "expected": [
+        true,
+        false
+      ],
+      "actual": [
+        false,
+        true
+      ]
+    },
+    {
+      "schema": {
+        "allOf": [
+          {
+            "type": "integer"
+          }
+        ]
+      },
+      "expected": [
+        true,
+        false
+      ],
+      "actual": [
+        false,
+        true
+      ]
+    },
+    {
+      "schema": {
+        "if": {
+          "type": "integer"
+        },
+        "then": {
+          "const": "alias"
+        },
+        "else": {
+          "const": 1
+        }
+      },
+      "expected": [
+        true,
+        true,
+        false,
+        false
+      ],
+      "actual": [
+        false,
+        false,
+        false,
+        false
+      ]
+    }
+  ],
+  "after": [
+    {
+      "schema": {
+        "properties": {
+          "value": {
+            "type": "integer"
+          }
+        }
+      },
+      "expected": [
+        true,
+        false
+      ],
+      "actual": [
+        true,
+        false
+      ]
+    },
+    {
+      "schema": {
+        "items": {
+          "type": "integer"
+        }
+      },
+      "expected": [
+        true,
+        false
+      ],
+      "actual": [
+        true,
+        false
+      ]
+    },
+    {
+      "schema": {
+        "allOf": [
+          {
+            "type": "integer"
+          }
+        ]
+      },
+      "expected": [
+        true,
+        false
+      ],
+      "actual": [
+        true,
+        false
+      ]
+    },
+    {
+      "schema": {
+        "if": {
+          "type": "integer"
+        },
+        "then": {
+          "const": "alias"
+        },
+        "else": {
+          "const": 1
+        }
+      },
+      "expected": [
+        true,
+        true,
+        false,
+        false
+      ],
+      "actual": [
+        true,
+        true,
+        false,
+        false
+      ]
+    }
+  ],
+  "completed": true
+}

@@ -1,0 +1,20 @@
+{
+  "completed": true,
+  "runtime_inputs": 179,
+  "native_resources": 12,
+  "source_wheel_sdist_parity": true,
+  "build_id": "41a4d5a9e3233561adae4d8100d3e8824f7bf1d26641850bbe79271642c3f032",
+  "schema_id": "e2f27d492746a4ac9942312b04a07a37cd5f19e44bd7770bcdcbac54a4a23693",
+  "artifacts": [
+    {
+      "name": "membrain_ai-0.1.0-py3-none-any.whl",
+      "bytes": 12859445,
+      "sha256": "f07d70339a83ac3b49566c59bfed47f025eaf130ba5fe986d3c9c3066b8362b1"
+    },
+    {
+      "name": "membrain_ai-0.1.0.tar.gz",
+      "bytes": 14667597,
+      "sha256": "fe3dbbceb34ee3114b78956ed4fcc906c768944644d0420837a110890c21d1dd"
+    }
+  ]
+}

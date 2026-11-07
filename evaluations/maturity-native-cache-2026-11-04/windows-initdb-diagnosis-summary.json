@@ -1,0 +1,42 @@
+{
+  "source": "94744fa54dc864e7384ea028b755c0362d00e7d5",
+  "run": 41976853167,
+  "job": 127077597426,
+  "diagnostic_only": true,
+  "primary_acceptance": "not reached; unit guard failure",
+  "artifact_id": 13391903874,
+  "raw_bytes": 89293169,
+  "raw_sha256": "e7e4b6ebd799b627a3c53c7307daa837aa154d190203bb4be36c59c5b78f9910",
+  "raw_retained_locally": true,
+  "raw_not_copied_into_repository": "large bootstrap SQL debug output; no user data; only summary and checksum committed",
+  "attempts": [
+    {
+      "controlled_environment": false,
+      "private_password": false,
+      "returncode": 0,
+      "output_bytes": 21440131,
+      "version_file_created": true
+    },
+    {
+      "controlled_environment": false,
+      "private_password": true,
+      "returncode": 0,
+      "output_bytes": 21440130,
+      "version_file_created": true
+    },
+    {
+      "controlled_environment": true,
+      "private_password": false,
+      "returncode": 0,
+      "output_bytes": 21440131,
+      "version_file_created": true
+    },
+    {
+      "controlled_environment": true,
+      "private_password": true,
+      "returncode": 0,
+      "output_bytes": 21440129,
+      "version_file_created": true
+    }
+  ]
+}

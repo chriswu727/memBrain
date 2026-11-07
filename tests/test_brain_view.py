@@ -4,7 +4,7 @@ from pathlib import Path
 
 WEB = Path(__file__).resolve().parents[1] / "src" / "membrain" / "web"
 REGIONS = ["people", "constraints", "preferences", "plans", "commitments", "routines", "milestones", "relationship",
-           "other", "episodes", "emotions"]
+           "other", "episodes", "emotions", "persona", "mood", "semantic", "episodic", "schemas", "working"]
 
 
 def test_the_demo_map_served_to_the_page_is_the_fictional_example():
@@ -16,7 +16,7 @@ def test_the_demo_map_served_to_the_page_is_the_fictional_example():
 def test_the_brain_view_draws_every_contract_region_and_is_wired_into_the_page():
     script = (WEB / "brain.js").read_text(encoding="utf-8")
     assert sorted(re.findall(r'\{ id: "(\w+)", label:', script)) == sorted(REGIONS)
-    assert "/memory-map?max_nodes=200&max_edges=400" in script
+    assert "memory-map?max_nodes=200&max_edges=400" in script
     page = (WEB / "memory.html").read_text(encoding="utf-8")
     assert '<script src="/static/brain.js" defer></script>' in page and 'id="view-brain"' in page
     assert 'data-view="brain"' in page
@@ -43,7 +43,7 @@ def test_the_showcase_is_a_separate_mode_entered_from_the_brain_tab_or_the_addre
     memory = (WEB / "memory.js").read_text(encoding="utf-8")
     # Read before the sign-in link's query string is removed, then honoured once the brain map is loaded.
     assert memory.index('get("show") === "1"') < memory.index("history.replaceState")
-    assert 'show(SHOWCASE ? "brain" : "notes")' in memory and "if (SHOWCASE) window.openShowcase();" in memory
+    assert 'show(SHOWCASE ? "brain" : view)' in memory and "if (SHOWCASE) window.openShowcase();" in memory
     script = (WEB / "showcase.js").read_text(encoding="utf-8")
     assert "if (DEMO && SHOWCASE) openShowcase();" in script
     assert 'event.key === "Escape"' in script and '$("show-close").addEventListener("click", closeShowcase)' in script

@@ -1,0 +1,27 @@
+{
+  "runtime_commit": "d32e93f8ace920cb016a574f69a75a9bb3a205f2",
+  "build_id": "c86dddc8c5656a8e150ff3b7f3a68466fafaf6145d26c92a87251e769aced9f6",
+  "schema_id": "e2f27d492746a4ac9942312b04a07a37cd5f19e44bd7770bcdcbac54a4a23693",
+  "runtime_files_equal": 187,
+  "installed_path": "/Users/yichen/tmp/membrain-host-attribution-20261105/installed/site/membrain",
+  "exit_code": 0,
+  "source_and_installed_unchanged": true,
+  "scope": "Installed wheel with existing read-only development dependencies; not a clean dependency install, launcher upgrade or R1 qualification.",
+  "artifacts": [
+    {
+      "file": ".gitignore",
+      "bytes": 1,
+      "sha256": "684888c0ebb17f374298b65ee2807526c066094c701bcc7ebbe1c1095f494fc1"
+    },
+    {
+      "file": "membrain_ai-0.1.0-py3-none-any.whl",
+      "bytes": 14449293,
+      "sha256": "c041eef3deba95849409bbdf87614d430c7e0778b65c70bb2b0bacbcdb4d8419"
+    },
+    {
+      "file": "membrain_ai-0.1.0.tar.gz",
+      "bytes": 16282821,
+      "sha256": "1881e7e3d2cec3bc0d58bca6d6e16de0ad0e3a5aefcaf5bdbd0c0982e7ddc17f"
+    }
+  ]
+}

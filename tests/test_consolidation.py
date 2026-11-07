@@ -305,6 +305,96 @@ def test_episode_split_closes_prefix_and_opens_suffix(memory):
                for row in current)
 
 
+@pytest.mark.parametrize("representation,kind,role", [
+    ("semantic_anchor", "reported_preference", "anchor"),
+    ("episode_outline", "reported_fact", "outline"),
+    ("schema", "inferred_pattern", "schema"),
+])
+def test_episode_transitions_keep_existing_semantic_members(memory, representation, kind, role):
+    from membrain.structure_map import episode_key, memory_key, structure_map
+
+    sources = [memory.observe("工作时我希望直接获得建议。")]
+    initial = memory.batch(*sources)
+    proposal = claim(sources[0], representation=representation, claim_kind=kind)
+    metadata = memory.publish(initial, run(initial, proposals(proposal, episodes=[episode(sources[0])])))
+    semantic_id = metadata["memory_versions"][0]["memory_id"]
+    previous = memory.rows("memory_episodes")[0]["document"]
+    assert any(row["memory_id"] == semantic_id and row["role"] == role
+               for row in memory.rows("memory_episode_members"))
+    for transition in ("continue", "close", "reopen"):
+        sources.append(memory.observe("继续讨论工作中的建议。"))
+        batch = memory.batch(*sources, episodes=(previous,))
+        boundary = {"event_id": sources[-1]["event_id"], "revision": 1} if transition == "close" else None
+        action = episode(sources[-1], action=transition, episode_id=previous["episode_id"],
+                         expected_revision=previous["revision"], boundary_ref=boundary)
+        memory.publish(batch, run(batch, proposals(episodes=[action])))
+        current = next(row["document"] for row in memory.rows("memory_episodes") if row["is_current"])
+        members = [row for row in memory.rows("memory_episode_members")
+                   if row["episode_id"] == current["episode_id"] and row["episode_revision"] == current["revision"]]
+        assert [(row["memory_revision"], row["role"]) for row in members
+                if row["memory_id"] == semantic_id] == [(1, role)]
+        graph = structure_map(memory.service, memory.principal, memory.brain_id)
+        assert {"source": episode_key(current["episode_id"], current["revision"]),
+                "target": memory_key(semantic_id, 1), "type": "episode_member", "basis": role} in graph["edges"]
+        previous = current
+
+
+def test_episode_split_keeps_semantic_members_only_with_all_their_evidence(memory):
+    first = memory.observe("工作时我希望直接获得建议。")
+    second = memory.observe("考试时我希望先讨论自己的思路。")
+    refs = [{"event_id": source["event_id"], "revision": 1} for source in (first, second)]
+    initial = memory.batch(first, second)
+    proposed = [claim(first, proposal_id="work"),
+                claim(second, proposal_id="study", statement="用户报告考试时希望先讨论自己的思路。"),
+                claim(first, proposal_id="both", statement="用户报告不同场合有不同的讨论偏好。",
+                      evidence_refs=[reference(first), reference(second)]),
+                claim(first, proposal_id="contested", counterexamples=[reference(second, "contradicts")])]
+    metadata = memory.publish(initial, run(initial, proposals(*proposed, episodes=[episode(first, member_refs=refs)])))
+    identifiers = [item["memory_id"] for item in metadata["memory_versions"]]
+    assert len(identifiers) == 4
+    previous = memory.rows("memory_episodes")[0]["document"]
+    batch = memory.batch(first, second, episodes=(previous,))
+    action = episode(first, action="split", episode_id=previous["episode_id"], expected_revision=1,
+                     member_refs=refs, boundary_ref=refs[1])
+    memory.publish(batch, run(batch, proposals(episodes=[action])))
+    current = [row["document"] for row in memory.rows("memory_episodes") if row["is_current"]]
+    assert len(current) == 2
+    for document in current:
+        actual = {row["memory_id"] for row in memory.rows("memory_episode_members")
+                  if row["episode_id"] == document["episode_id"]
+                  and row["episode_revision"] == document["revision"] and row["role"] == "anchor"}
+        assert actual == {identifiers[0 if document["state"] == "closed" else 1]}
+
+
+@pytest.mark.parametrize("change", ["invalidated=true", "deleted=true", "suppressed=true",
+                                   "is_current=false", "document=NULL",
+                                   "document=jsonb_set(document,'{lifecycle}','\"retracted\"')"])
+def test_episode_transition_does_not_restore_unavailable_semantic_member(memory, change):
+    first = memory.observe("工作时我希望直接获得建议。")
+    initial = memory.batch(first)
+    metadata = memory.publish(initial, run(initial, proposals(claim(first), episodes=[episode(first)])))
+    semantic_id = metadata["memory_versions"][0]["memory_id"]
+    previous = memory.rows("memory_episodes")[0]["document"]
+    with memory.database.transaction(memory.principal) as conn:
+        conn.execute("UPDATE memory_assertions SET " + change
+                     + " WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=%s",
+                     (*memory.service._params(memory.principal, memory.brain_id), semantic_id))
+        if change == "is_current=false":
+            replacement = conn.execute(
+                "SELECT document FROM memory_assertions WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=%s",
+                (*memory.service._params(memory.principal, memory.brain_id), semantic_id),
+            ).fetchone()["document"]
+            replacement["revision"] = 2
+            brain = memory.service._brain(conn, memory.principal, memory.brain_id)
+            memory.service._publish(conn, memory.principal, brain, replacement)
+    second = memory.observe("继续讨论工作中的建议。")
+    batch = memory.batch(first, second, episodes=(previous,))
+    action = episode(second, action="continue", episode_id=previous["episode_id"], expected_revision=1)
+    memory.publish(batch, run(batch, proposals(episodes=[action])))
+    assert all(row["memory_id"] != semantic_id for row in memory.rows("memory_episode_members")
+               if row["episode_revision"] == 2)
+
+
 def test_legacy_episode_without_organization_statement_remains_a_valid_frozen_parent(memory):
     first = memory.observe("开始讨论复习计划。")
     initial = memory.batch(first)

@@ -72,23 +72,25 @@ def test_word_channel_is_bounded_and_uses_bound_parameters():
     conn = RecordingConnection()
     query = " ".join(f"word{number:04d}" for number in range(MAX_QUERY_TERMS + 5))
     rows, truncated = lexical_rows(conn, ("tenant", "owner", "brain"), {}, query, limit=4)
-    assert not rows and truncated and len(conn.calls) == 2
+    assert not rows and truncated and len(conn.calls) == 1
     sql, params = conn.calls[-1]
     assert "word0000" not in sql
-    assert params[-3].count(" | ") == MAX_QUERY_TERMS - 1
-    assert params[-1] == 5
+    assert [value for value in params if isinstance(value, list)][-1] == [
+        f"'word{number:04d}'" for number in range(MAX_QUERY_TERMS)]
+    assert params[-5:] == (5, 5, 4, 4, 4)
 
 
 @pytest.mark.parametrize("text,expected_calls,truncated", [
     ("银杏树旁的小学", 1, False), ("x" * 257, 1, True),
-    ("label' | !('private'); --", 2, False),
+    ("label' | !('private'); --", 1, False),
 ])
 def test_unusable_or_non_word_queries_retain_bounded_hash_fallback(text, expected_calls, truncated):
     conn = RecordingConnection()
     assert lexical_rows(conn, ("tenant", "owner", "brain"), {}, text, limit=4) == ([], truncated)
     assert len(conn.calls) == expected_calls
-    if expected_calls == 2:
-        assert conn.calls[-1][1][-3] == "'label':* | 'privat':*"
+    if text.startswith("label"):
+        assert [value for value in conn.calls[-1][1] if isinstance(value, list)][-1] == [
+            "'label':*", "'privat':*"]
 
 
 @pytest.mark.integration
@@ -115,6 +117,38 @@ def test_exact_label_survives_real_hash_collisions_beyond_candidate_limit(candid
     assert state["candidate_versions"] == [key(wanted)]
     assert state["candidate_truncated"]
     assert not state["source_truncated"]
+
+
+@pytest.mark.integration
+@pytest.mark.parametrize("target_text", [
+    "Fictional memorykey000526: Mira and Theo plan a planetarium visit on route 17.",
+    "The copper inventory label memorykey000526 refers to shelf seventeen.",
+])
+def test_rare_cue_survives_common_query_terms_and_real_hash_collisions(candidates, target_text):
+    query = "What is the visit plan associated with memorykey000526?"
+    wanted = candidates.add(target_text)
+    vector = json.loads(_vector(query))
+
+    def similarity(statement):
+        return sum(a * b for a, b in zip(vector, json.loads(_vector(statement)), strict=True))
+
+    threshold = similarity(wanted["statement"])
+    distractors = []
+    for number in range(10000):
+        text = f"The visit plan associated with unrelated{number:06d} follows route {number % 17 + 1}."
+        if similarity("user user (direct_statement): " + text) > threshold + 1e-6:
+            distractors.append(text)
+            if len(distractors) == 20:
+                break
+    assert len(distractors) == 20
+    for text in distractors:
+        candidates.add(text)
+    with candidates.database.transaction(candidates.principal) as conn:
+        rows, truncated = lexical_rows(conn, candidates.params, candidates.target, query, limit=16)
+    assert key(wanted) in [key(row["document"]) for row in rows]
+    assert truncated and len(rows) <= 32
+    _, state = candidates.query(query, budget=2048)
+    assert key(wanted) in state["candidate_versions"]
 
 
 @pytest.mark.integration
@@ -147,3 +181,70 @@ def test_learning_word_channel_preserves_frozen_source_sequence(candidates):
         rows, _ = lexical_rows(conn, candidates.params, candidates.target, "amber turquoise", limit=16,
                                through_sequence=1)
     assert [key(row["document"]) for row in rows] == [key(older)]
+
+
+@pytest.mark.parametrize("query,texts", [
+    ("blue green", ["The blue map belongs to Mara.", "The green cup belongs to Leo."] * 30),
+    ("备考安静", ["备考时需要安静。周末去散步。", "心安。宁静。", "不要打扰我。"] * 30),
+    ("not unless workshop 2.5", ["Do not visit unless invited.", "The workshop starts at 2.5 hours."] * 30),
+])
+def test_term_reuse_preserves_scores_and_source_frequency(query, texts):
+    from membrain import cognition
+
+    class UncachedScorer(LexicalScorer):
+        def _terms(self, text):
+            return cognition._terms(text)
+
+    for origins in (None, [{number % 7} for number in range(len(texts))]):
+        candidate = LexicalScorer(query, texts, origins=origins)
+        reference = UncachedScorer(query, texts, origins=origins)
+        assert candidate.weights == reference.weights
+        assert [candidate(query, text) for text in texts] == [reference(query, text) for text in texts]
+
+
+def test_term_reuse_is_bounded_and_stays_with_one_scorer(monkeypatch):
+    from collections import Counter
+
+    from membrain import cognition
+
+    original, calls = cognition._terms, Counter()
+
+    def counted(text):
+        calls[text] += 1
+        return original(text)
+
+    monkeypatch.setattr(cognition, "_terms", counted)
+    scorer = LexicalScorer("blue map", ["The blue map belongs to Mara."] * 30)
+    for _ in range(30):
+        assert scorer("blue map", "The blue map belongs to Mara.") > 0
+    assert calls["The blue map belongs to Mara."] == 1
+    second = LexicalScorer("blue map", [])
+    second("blue map", "The blue map belongs to Mara.")
+    assert calls["The blue map belongs to Mara."] == 2
+    for number in range(1000):
+        scorer("blue map", f"Unrelated label{number:05d} belongs to the garden.")
+    assert len(scorer._term_cache) == 512 and scorer._cached_characters <= 65536
+    oversized = LexicalScorer("blue map", [])
+    large = "山" * 65537
+    assert oversized("blue map", large) == oversized("blue map", large) == 0
+    assert calls[large] >= 2 and large not in oversized._term_cache
+
+
+def test_term_cache_character_bound_applies_before_the_entry_bound():
+    scorer = LexicalScorer("blue map", [])
+    for number in range(100):
+        scorer("blue map", f"label{number:05d} " + "garden " * 150)
+    assert scorer._cached_characters <= 65536 and len(scorer._term_cache) < 512
+
+
+def test_source_frequency_counts_origins_with_no_query_terms():
+    scorer = LexicalScorer("amber green", ["amber", "unrelated", "green", "another unrelated"],
+                           origins=[{"a"}, {"b"}, {"c"}, {"b"}])
+    assert scorer.weights == [{"amber": 2, "green": 2}, {}, {}]
+    assert scorer("amber green", "amber") == scorer("amber green", "green") == 0.5
+
+
+def test_distinct_ungrouped_documents_keep_their_non_query_identity():
+    scorer = LexicalScorer("amber green", ["amber meadow", "amber island", "green island"])
+    assert scorer.weights == [{"amber": 4 / 3, "green": 2}, {}, {}]
+    assert scorer("amber green", "green") > scorer("amber green", "amber")

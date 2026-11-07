@@ -1,0 +1,40 @@
+{
+  "phase": "closed",
+  "phase_index": 3,
+  "time": 1793918577.9695842,
+  "api_pid": 6159,
+  "processes": [
+    {
+      "pid": 6159,
+      "parent": 5793,
+      "rss_kib": 114944
+    },
+    {
+      "pid": 6162,
+      "parent": 6159,
+      "rss_kib": 4496
+    },
+    {
+      "pid": 6163,
+      "parent": 6159,
+      "rss_kib": 76080
+    },
+    {
+      "pid": 6164,
+      "parent": 6159,
+      "rss_kib": 74304
+    },
+    {
+      "pid": 6165,
+      "parent": 6159,
+      "rss_kib": 74048
+    },
+    {
+      "pid": 6166,
+      "parent": 6159,
+      "rss_kib": 73968
+    }
+  ],
+  "total_rss_kib": 417840,
+  "scope": "One API-and-descendants RSS sample during qualification; not peak, excludes PostgreSQL and browser, no local model installed."
+}

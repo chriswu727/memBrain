@@ -1,6 +1,6 @@
 from . import cognition
 
-SOURCE_ROUTE_VERSION = "exact-word-hash-and-source-unit-origin-v4"
+SOURCE_ROUTE_VERSION = "exact-word-hash-and-source-unit-origin-v5"
 
 
 def _matching_references(memory, events, scope, query, superseded, score_text=None):
@@ -24,7 +24,7 @@ def _matching_references(memory, events, scope, query, superseded, score_text=No
 
 def source_candidates(conn, service, principal, brain, target, query, seeds, *,
                       source_limit, scan_limit, through_sequence, excluded_versions=(), independent_of_event_ids=(),
-                      score_text=None):
+                      score_text=None, include_speech=True):
     from .candidates import _eligible, _scope_clause
     from .lexical_candidates import historical_support_filter
 
@@ -38,7 +38,7 @@ def source_candidates(conn, service, principal, brain, target, query, seeds, *,
         available = conn.execute(
             "SELECT DISTINCT source.event_id FROM memory_assertions a "
             "CROSS JOIN LATERAL unnest(a.event_ids) AS source(event_id) WHERE "
-            + _eligible() + clause + support_clause
+            + _eligible(include_speech=include_speech) + clause + support_clause
             + "AND a.document->>'epistemic_status'='derived_inference' "
             "AND a.document->>'lifecycle' IN ('active','dormant') "
             "AND a.event_ids && %s::text[] AND source.event_id=ANY(%s::text[]) "
@@ -70,7 +70,7 @@ def source_candidates(conn, service, principal, brain, target, query, seeds, *,
         excluded_params = ([key[0] for key in excluded_versions], [key[1] for key in excluded_versions])
     rows = conn.execute(
         "SELECT a.document,a.event_ids,a.is_current FROM memory_assertions a WHERE "
-        + _eligible() + clause + support_clause + exclusions
+        + _eligible(include_speech=include_speech) + clause + support_clause + exclusions
         + "AND a.document->>'epistemic_status'='derived_inference' "
         "AND a.document->>'lifecycle' IN ('active','dormant') "
         "AND a.event_ids && %s::text[] "
@@ -84,7 +84,7 @@ def source_candidates(conn, service, principal, brain, target, query, seeds, *,
     truncated = truncated or len(rows) > scan_limit
     ranked = []
     for row in rows[:scan_limit]:
-        matches = _matching_references(service._rebind(row["document"], principal, brain),
+        matches = _matching_references(service._bind_document(row["document"], principal, brain),
                                        events, scope, query, superseded, score_text)
         scores = [score for score, reference in matches
                   if any(cognition.evidence_overlaps(reference, seed) for seed in seed_refs)]

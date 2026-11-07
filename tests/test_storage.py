@@ -111,6 +111,44 @@ def test_source_edit_preserves_history_and_rejects_version_reuse(runtime):
     assert rows[1]["document"]["observed"]["content"]["text"] == "The meeting is at the cafe."
 
 
+def test_source_edits_do_not_rewrite_invalid_receipts_or_change_replay_semantics(runtime):
+    requests = [runtime.observe_request(f"Meeting location version {revision}.", revision=revision)
+                for revision in range(1, 4)]
+    for request in requests[:2]:
+        assert runtime.send(request)["outcome"] == "completed"
+    other = Runtime(runtime.service, runtime.principal)
+    other_request = other.observe_request("A separate brain's location.")
+    other_response = other.send(other_request)
+    assert other_response["outcome"] == "completed"
+
+    def receipts():
+        with runtime.service.database.transaction(runtime.principal) as conn:
+            return {row["key"]: row for row in conn.execute(
+                "SELECT brain_id,action,key,request_hash,response,xmin::text AS version FROM memory_requests "
+                "WHERE tenant_id=%s AND owner_id=%s",
+                (runtime.principal.tenant_id, runtime.principal.principal_id),
+            )}
+
+    before = receipts()
+    first, second, third = [request["payload"]["idempotency_key"] for request in requests]
+    other_key = other_request["payload"]["idempotency_key"]
+    assert before[first]["response"] is None and before[second]["response"] is not None
+    completed = runtime.send(requests[2])
+    assert completed["outcome"] == "completed"
+    after = receipts()
+    assert set(after) == set(before) | {third}
+    assert after[first] == before[first]
+    assert after[other_key] == before[other_key]
+    assert after[second]["response"] is None
+    assert after[second]["request_hash"] == before[second]["request_hash"]
+    assert runtime.send(requests[2]) == completed
+    assert other.send(other_request) == other_response
+    assert runtime.send(requests[0])["error"]["code"] == "version_conflict"
+    conflicting = copy.deepcopy(requests[0])
+    conflicting["payload"]["events"][0]["content"]["text"] = "Different request with the same key."
+    assert runtime.send(conflicting)["error"]["code"] == "idempotency_conflict"
+
+
 @pytest.mark.parametrize("scope_field", ["conversation_ref", "branch_ref"])
 def test_source_identity_cannot_silently_cross_scope(runtime, scope_field):
     request = runtime.observe_request("A message belongs to its actual conversation.")

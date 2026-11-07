@@ -1,0 +1,74 @@
+[
+  {
+    "profile": "perf-37fab44-installation",
+    "kind": "api",
+    "port": 60995,
+    "listening": false
+  },
+  {
+    "profile": "perf-37fab44-installation",
+    "kind": "database",
+    "port": 60994,
+    "listening": false
+  },
+  {
+    "profile": "installed-followup-smoke",
+    "kind": "api",
+    "port": 8788,
+    "listening": false
+  },
+  {
+    "profile": "installed-followup-smoke",
+    "kind": "database",
+    "port": 55433,
+    "listening": false
+  },
+  {
+    "profile": "install-final/home/Library/Application Support/memBrain",
+    "kind": "api",
+    "port": 8788,
+    "listening": false
+  },
+  {
+    "profile": "install-final/home/Library/Application Support/memBrain",
+    "kind": "database",
+    "port": 55433,
+    "listening": false
+  },
+  {
+    "profile": "install-final/restored",
+    "kind": "api",
+    "port": 50926,
+    "listening": false
+  },
+  {
+    "profile": "install-final/restored",
+    "kind": "database",
+    "port": 50927,
+    "listening": false
+  },
+  {
+    "profile": "install-final/companion/home/Library/Application Support/memBrain",
+    "kind": "api",
+    "port": 51001,
+    "listening": false
+  },
+  {
+    "profile": "install-final/companion/home/Library/Application Support/memBrain",
+    "kind": "database",
+    "port": 51002,
+    "listening": false
+  },
+  {
+    "profile": "install-final/companion/restored",
+    "kind": "api",
+    "port": 51262,
+    "listening": false
+  },
+  {
+    "profile": "install-final/companion/restored",
+    "kind": "database",
+    "port": 51263,
+    "listening": false
+  }
+]

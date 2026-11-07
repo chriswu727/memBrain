@@ -1,0 +1,62 @@
+
+> @membrain/client@0.1.0 test
+> node --test *.test.ts
+
+✔ cognitive budget reads preserve used limits and encode scope (29.679208ms)
+✔ budget changes preserve immutable policy and explicit retry identity (0.831333ms)
+✔ budget 409 propagates without automatic resubmission (0.637458ms)
+✔ budget 503 propagates without automatic resubmission (0.222833ms)
+✔ budget timeout propagates without automatic resubmission (0.1655ms)
+✔ all actions preserve contract envelope, scope, budgets, and lifecycle limitations (61.038291ms)
+✔ observation keys survive retries and agree with the Python canonical format (2.782542ms)
+✔ preparation preserves evidence selection, generation, and recent-context controls (0.929333ms)
+✔ action rejection and HTTP failure cannot appear successful (0.612667ms)
+✔ timeouts are not retried with fresh identifiers (0.902791ms)
+✔ rendered context matches Python and excludes control-plane metadata (0.723792ms)
+✔ prepare and recall projections agree byte-for-byte with Python Unicode handles and shared certificates (59.238209ms)
+✔ inline relation certificates and shared tables produce the same rendered recall (1.258417ms)
+✔ missing or conflicting relation certificates fail closed (0.606833ms)
+✔ context helpers accept action responses and propagate rejected actions (1.880208ms)
+✔ authoritative Python context preserves numeric text and budget across a real protocol round trip (267.647ms)
+✔ legacy contexts respect declared usage and preserve successful compatible rendering (2.487541ms)
+✔ shortened recall agrees with Python while full source detail stays inspectable (249.634417ms)
+✔ bounded original source contexts agree with Python including pinned and inactive anchors (165.755708ms)
+✔ plain episode report coverage is versioned and agrees with Python (161.347958ms)
+✔ every companion operation retains explicit brain scope, authentication and recovery acknowledgement (36.190458ms)
+✔ persona mutations preserve immutable cards, explicit user decisions and host defaults (0.413125ms)
+✔ relationship and mood controls preserve removal, false and bounded acknowledgements (0.316ms)
+✔ map windows keep zero edges and require explicit sensitive-content opt-in (0.356459ms)
+✔ unscoped companion requests fail before contacting a service (0.2185ms)
+✔ a denied companion request never falls back to the owner's brain or retries (0.17225ms)
+✔ optional learning summaries preserve legacy absence and disclose only accounting (5.561875ms)
+✔ cognitive usage preserves unknown totals and encodes the brain identity (35.965ms)
+✔ learning progress uses the runtime endpoint and preserves an incomplete summary (0.236875ms)
+✔ learning endpoints encode identities and allow an explicit brain override (0.233042ms)
+✔ explicit learning retries preserve request identity and return the queued child directly (0.349709ms)
+✔ learning retry HTTP 401 is surfaced without an automatic retry (0.686459ms)
+✔ learning retry HTTP 404 is surfaced without an automatic retry (0.297375ms)
+✔ learning retry HTTP 409 is surfaced without an automatic retry (0.464417ms)
+✔ learning retry HTTP 503 is surfaced without an automatic retry (0.189708ms)
+✔ a lost retry response keeps the caller's stable request ID and is never retried automatically (0.250917ms)
+✔ learning endpoints require a brain and reject non-object success responses (0.321875ms)
+✔ recovery metadata uses only an explicitly acknowledged epoch: undefined (35.969ms)
+✔ recovery metadata uses only an explicitly acknowledged epoch: 8d8e9a28-4d16-407d-9cf1-e15ae67cfc80 (0.297625ms)
+✔ invalid recovery epoch is rejected before transport: "" (0.201084ms)
+✔ invalid recovery epoch is rejected before transport: "not-an-epoch" (0.040208ms)
+✔ invalid recovery epoch is rejected before transport: "8D8E9A28-4D16-407D-9CF1-E15AE67CFC80" (0.039ms)
+✔ invalid recovery epoch is rejected before transport: "x\r\nInjected: yes" (0.032542ms)
+✔ scope lookup preserves exact identities and exposes an old reserved turn (29.328083ms)
+✔ an empty scope is returned without starting or claiming a turn (0.23675ms)
+✔ scope lookup errors are surfaced without an automatic retry (0.279792ms)
+✔ timeline sends roles, budgets and the excluded conversation as query parameters (43.164875ms)
+✔ ensureBrain creates or reuses a named brain with PUT (0.207333ms)
+✔ notes preserve shared moments and evidence-backed feelings including neutral values (0.443459ms)
+✔ note writes preserve explicit sources and retry identity while timeline cursors stay encoded (0.502167ms)
+ℹ tests 50
+ℹ suites 0
+ℹ pass 50
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1182.7235

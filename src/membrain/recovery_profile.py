@@ -127,9 +127,13 @@ def ensure_authority(profile):
         return authority
 
 
-def check_start_allowed(profile, *, allow_initializing=False):
+def check_start_allowed(profile, *, allow_initializing=False, allow_native_upgrade=False):
     if read_document(profile.directory / MAINTENANCE_FILE) is not None:
         raise RegistryError('deletion_in_progress')
+    if not allow_native_upgrade and profile.database_engine == 'embedded':
+        from .native_adoption import require_admitted
+
+        require_admitted(profile)
     binding = load_binding(profile)
     allowed = ('active', 'initializing') if allow_initializing else ('active',)
     if binding is not None and binding['state'] not in allowed:

@@ -72,12 +72,50 @@ def _directory(directory: Path | None) -> Path:
     return path
 
 
+def _windows_user_sid(security, kernel) -> str:
+    import ctypes
+    from ctypes import wintypes
+
+    kernel.GetCurrentProcess.restype = wintypes.HANDLE
+    kernel.CloseHandle.argtypes = [wintypes.HANDLE]
+    kernel.CloseHandle.restype = wintypes.BOOL
+    security.OpenProcessToken.argtypes = [wintypes.HANDLE, wintypes.DWORD, ctypes.POINTER(wintypes.HANDLE)]
+    security.OpenProcessToken.restype = wintypes.BOOL
+    security.GetTokenInformation.argtypes = [wintypes.HANDLE, wintypes.DWORD, wintypes.LPVOID,
+                                            wintypes.DWORD, ctypes.POINTER(wintypes.DWORD)]
+    security.GetTokenInformation.restype = wintypes.BOOL
+    security.ConvertSidToStringSidW.argtypes = [wintypes.LPVOID, ctypes.POINTER(wintypes.LPWSTR)]
+    security.ConvertSidToStringSidW.restype = wintypes.BOOL
+    kernel.LocalFree.argtypes = [wintypes.LPVOID]
+    kernel.LocalFree.restype = wintypes.LPVOID
+    token, length, text = wintypes.HANDLE(), wintypes.DWORD(), wintypes.LPWSTR()
+    if not security.OpenProcessToken(kernel.GetCurrentProcess(), 0x0008, ctypes.byref(token)):
+        raise LocalProfileError("Could not identify the current Windows user.")
+    try:
+        security.GetTokenInformation(token, 1, None, 0, ctypes.byref(length))
+        if not 0 < length.value <= 65536:
+            raise LocalProfileError("Could not identify the current Windows user.")
+        buffer = ctypes.create_string_buffer(length.value)
+        if not security.GetTokenInformation(token, 1, buffer, length.value, ctypes.byref(length)):
+            raise LocalProfileError("Could not identify the current Windows user.")
+        sid = ctypes.cast(buffer, ctypes.POINTER(wintypes.LPVOID)).contents.value
+        if not security.ConvertSidToStringSidW(sid, ctypes.byref(text)):
+            raise LocalProfileError("Could not identify the current Windows user.")
+        try:
+            return text.value
+        finally:
+            kernel.LocalFree(ctypes.cast(text, wintypes.LPVOID))
+    finally:
+        kernel.CloseHandle(token)
+
+
 def _restrict_windows_access(path: Path) -> None:
     import ctypes
     from ctypes import wintypes
 
     security = ctypes.WinDLL("advapi32", use_last_error=True)
     kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    sid = _windows_user_sid(security, kernel)
     convert = security.ConvertStringSecurityDescriptorToSecurityDescriptorW
     convert.argtypes = [wintypes.LPCWSTR, wintypes.DWORD, ctypes.POINTER(wintypes.LPVOID),
                         ctypes.POINTER(wintypes.DWORD)]
@@ -88,10 +126,11 @@ def _restrict_windows_access(path: Path) -> None:
     kernel.LocalFree.argtypes = [wintypes.LPVOID]
     kernel.LocalFree.restype = wintypes.LPVOID
     descriptor = wintypes.LPVOID()
-    if not convert("D:P(A;OICI;FA;;;OW)", 1, ctypes.byref(descriptor), None):
+    # PostgreSQL's restricted token retains the user SID but drops the Administrators SID that can own elevated-created files.
+    if not convert(f"O:{sid}D:P(A;OICI;FA;;;{sid})", 1, ctypes.byref(descriptor), None):
         raise LocalProfileError("Could not restrict profile access to its Windows owner.")
     try:
-        if not apply(str(path), 0x80000004, descriptor):
+        if not apply(str(path), 0x80000005, descriptor):
             raise LocalProfileError("Could not restrict profile access to its Windows owner.")
     finally:
         kernel.LocalFree(descriptor)
@@ -108,7 +147,9 @@ def _private(path: Path, *, directory: bool = False) -> None:
     else:
         if metadata.st_uid != os.getuid() or (not directory and metadata.st_nlink != 1):
             raise LocalProfileError("Profile files must belong exclusively to the current user.")
-        path.chmod(0o700 if directory else 0o600)
+        mode = 0o700 if directory else 0o600
+        if stat.S_IMODE(metadata.st_mode) != mode:
+            path.chmod(mode)
 
 
 def _open_private(path: Path, flags: int) -> int:
@@ -149,8 +190,7 @@ def profile_lock(directory: Path | None = None, *, timeout: float = 30.0):
             yield path
             return
         descriptor = _open_private(path / ".profile.lock", os.O_CREAT | os.O_RDWR)
-        if os.fstat(descriptor).st_size == 0:
-            os.write(descriptor, b"\0")
+        # Windows supports locks beyond EOF; a sentinel write can race with another creator's byte lock.
         deadline = time.monotonic() + timeout
         while True:
             try:
@@ -199,6 +239,7 @@ class DesktopProfile:
     principal_id: str
     cognition: dict | None = field(default=None, repr=False)
     database_engine: str = "docker"
+    native_engine: str | None = None
 
     @property
     def base_url(self) -> str:
@@ -237,10 +278,14 @@ class DesktopProfile:
 
 
 def _local_embeddings(directory: Path) -> str | None:
-    from .local_embeddings import installed, runtime_available
+    """The local model directory whenever the runtime is installed, whether or not the model is downloaded yet.
 
-    model = installed(directory)
-    return str(model) if model is not None and runtime_available() else None
+    The setting must not change when the download finishes: the service's provider reports itself not ready until
+    the verified files are in place and is then used in place, so finishing the download never needs a restart.
+    """
+    from .local_embeddings import model_directory, runtime_available
+
+    return str(model_directory(directory)) if runtime_available() else None
 
 
 def _cognition(value) -> dict | None:
@@ -277,11 +322,15 @@ def _cognition(value) -> dict | None:
 
 def _validate(document, directory: Path) -> DesktopProfile:
     fields = {field.name for field in DesktopProfile.__dataclass_fields__.values()} - {"directory"}
-    optional = {"database_engine"}
+    optional = {"database_engine", "native_engine"}
     if not isinstance(document, dict) or not (fields - optional) | {"version"} <= set(document) <= fields | {"version"}:
         raise LocalProfileError("Profile is incomplete or contains unknown fields; restore its original configuration.")
     if document.get("database_engine", "docker") not in ("docker", "embedded"):
         raise LocalProfileError("Profile database engine must be docker or embedded.")
+    if "native_engine" in document and (
+        document["native_engine"] != "16.15" or document.get("database_engine") != "embedded"
+    ):
+        raise LocalProfileError("Profile native engine is unsupported.")
     if type(document["version"]) is not int or document["version"] != PROFILE_VERSION:
         raise LocalProfileError("Profile version is unsupported.")
     for name in ("installation_id", "brain_id", "tenant_id", "principal_id"):
@@ -347,6 +396,8 @@ def _save(profile: DesktopProfile) -> None:
     document = {name: getattr(profile, name) for name in DesktopProfile.__dataclass_fields__ if name != "directory"}
     if profile.database_engine == "docker":
         del document["database_engine"]  # Keep profiles written before engine selection byte-compatible.
+    if profile.native_engine is None:
+        del document["native_engine"]
     document["version"] = PROFILE_VERSION
     _validate(document, profile.directory)
     destination = profile.directory / PROFILE_FILE
@@ -369,6 +420,18 @@ def _save(profile: DesktopProfile) -> None:
                 os.close(descriptor)
     finally:
         temporary.unlink(missing_ok=True)
+
+
+def adopt_native_engine(profile: DesktopProfile) -> DesktopProfile:
+    with profile_lock(profile.directory):
+        current = _load(profile.directory)
+        if current != profile or current.database_engine != "embedded":
+            raise LocalProfileError("Profile changed; reload it before adopting the native engine.")
+        if current.native_engine == "16.15":
+            return current
+        result = replace(current, native_engine="16.15")
+        _save(result)
+        return result
 
 
 def _available_port(requested: int | None, preferred: int, excluded: set[int]) -> int:

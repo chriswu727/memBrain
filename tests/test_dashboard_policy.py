@@ -9,7 +9,8 @@ from membrain.service import MemoryService
 def test_dashboard_reports_the_effective_default_access_policy(monkeypatch):
     @contextmanager
     def transaction(principal):
-        yield SimpleNamespace(execute=lambda *args: [])
+        yield SimpleNamespace(execute=lambda query, *args: SimpleNamespace(fetchone=lambda: {"count": 0})
+                              if query.startswith("SELECT count(*)") else [])
 
     service = MemoryService(SimpleNamespace(transaction=transaction))
     brain = {"id": "brain", "name": "test", "scope_generation": 1, "dependency_generation": 1,

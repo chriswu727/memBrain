@@ -111,13 +111,14 @@ def test_a_bot_without_tools_gets_notes_from_extraction(tmp_path):
                           expected_scope_generation=generation)
             assert list_notes(client)["items"] == []
 
-        # A terse follow-up in the same conversation is read with the exchange before it.
+        # An externally erased exchange must not be sent to the provider again.
         memory.context(alice, "actually it's peanuts, not sesame", session="a1", turn_id="t2")
         memory.record(alice, "Got it, peanuts.", session="a1", turn_id="t2", prompt="actually it's peanuts, not sesame")
         extractor.wait()
         assert len(seen) == 2
         content = seen[1]["messages"][1]["content"]
-        assert "Previous exchange" in content and "always carry an EpiPen" in content
+        assert "Previous exchange" not in content
+        assert "always carry an EpiPen" not in content
     finally:
         try:
             desktop.stop(directory)

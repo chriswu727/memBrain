@@ -1,0 +1,143 @@
+{
+  "runtime_pin": "84e973a8686ee6716bcf11123498a914a28db804",
+  "fixture": "Actual structure-map responses from a fictional 1000-message database fixture; not a dense maximum-edge test",
+  "machine": {
+    "system": "Darwin",
+    "release": "24.6.0",
+    "machine": "arm64",
+    "cpu": "Apple M4",
+    "logical_cpus": 10
+  },
+  "runs": [
+    {
+      "nodes": 185,
+      "edges": 66,
+      "first_frame_after_payload_ms": {
+        "cold_including_three_js_load": 85.7,
+        "warm": {
+          "samples": 5,
+          "median_ms": 20.1,
+          "p95_ms": 30.5,
+          "max_ms": 30.5
+        }
+      },
+      "interaction_frame_render_ms": {
+        "samples": 53,
+        "median_ms": 1.8,
+        "p95_ms": 3.0,
+        "max_ms": 3.2
+      },
+      "interaction_input_to_frame_ms": {
+        "samples": 53,
+        "median_ms": 13.6,
+        "p95_ms": 29.9,
+        "max_ms": 31.4
+      },
+      "pick_to_detail_ms": {
+        "samples": 20,
+        "median_ms": 1.8,
+        "p95_ms": 2.0,
+        "max_ms": 2.9
+      },
+      "pick_to_frame_ms": {
+        "samples": 20,
+        "median_ms": 13.0,
+        "p95_ms": 14.9,
+        "max_ms": 14.9
+      },
+      "js_heap_used_mb_after_load": 4.26,
+      "js_heap_total_mb_after_load": 4.78,
+      "idle_10s": {
+        "raf_calls": 0,
+        "frames": 0
+      },
+      "hidden_2s_with_input": {
+        "raf": 0,
+        "renders": 0
+      },
+      "gpu_memory": {
+        "geometries": 4,
+        "textures": 0
+      },
+      "node_limit": 200,
+      "renderer": {
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+        "vendor": "Google Inc. (Apple)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "hologram": {
+        "elapsed_ms": 5003,
+        "frames": 138,
+        "frames_per_second": 27.58,
+        "paused_frames_500ms": 0
+      },
+      "page_errors": []
+    },
+    {
+      "nodes": 416,
+      "edges": 166,
+      "first_frame_after_payload_ms": {
+        "cold_including_three_js_load": 62.9,
+        "warm": {
+          "samples": 5,
+          "median_ms": 25,
+          "p95_ms": 41.7,
+          "max_ms": 41.7
+        }
+      },
+      "interaction_frame_render_ms": {
+        "samples": 53,
+        "median_ms": 1.6,
+        "p95_ms": 2.4,
+        "max_ms": 3.9
+      },
+      "interaction_input_to_frame_ms": {
+        "samples": 53,
+        "median_ms": 12.5,
+        "p95_ms": 28.6,
+        "max_ms": 30.4
+      },
+      "pick_to_detail_ms": {
+        "samples": 20,
+        "median_ms": 4.3,
+        "p95_ms": 5.7,
+        "max_ms": 7.5
+      },
+      "pick_to_frame_ms": {
+        "samples": 20,
+        "median_ms": 13.15,
+        "p95_ms": 15.3,
+        "max_ms": 15.7
+      },
+      "js_heap_used_mb_after_load": 4.44,
+      "js_heap_total_mb_after_load": 5.05,
+      "idle_10s": {
+        "raf_calls": 0,
+        "frames": 0
+      },
+      "hidden_2s_with_input": {
+        "raf": 0,
+        "renders": 0
+      },
+      "gpu_memory": {
+        "geometries": 4,
+        "textures": 0
+      },
+      "node_limit": 500,
+      "renderer": {
+        "renderer": "ANGLE (Apple, ANGLE Metal Renderer: Apple M4, Unspecified Version)",
+        "vendor": "Google Inc. (Apple)",
+        "version": "WebGL 2.0 (OpenGL ES 3.0 Chromium)"
+      },
+      "hologram": {
+        "elapsed_ms": 5003.099999904633,
+        "frames": 137,
+        "frames_per_second": 27.38,
+        "paused_frames_500ms": 0
+      },
+      "page_errors": []
+    }
+  ],
+  "browser": "153.0.8010.12",
+  "completed": true
+}

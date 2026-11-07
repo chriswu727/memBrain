@@ -1,0 +1,596 @@
+{
+  "run_id": 41991396178,
+  "head_sha": "dc7aae46c03345749ead3bb8909e45e7ee4d3f1f",
+  "conclusion": "success",
+  "platforms": {
+    "linux-x86_64": {
+      "summaries": [
+        {
+          "completed": true,
+          "legacy_upgrade": true,
+          "fixture_rows": 1000,
+          "port_closed": true,
+          "catalog_repair_databases": [
+            "agent_memory",
+            "postgres",
+            "template0",
+            "template1"
+          ]
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "phase": "complete",
+          "scope": "candidate cache integration only; default embedded selector is not overridden in the product",
+          "cache_preexisting": false,
+          "timings_ms": {
+            "first_prepare": 897.3726380000357,
+            "warm_prepare": 293.0635539999571
+          },
+          "target": "linux-x86_64",
+          "verified_files": 1363,
+          "restart_preserves_rows": true,
+          "cached_client_dump_preserves_row": true,
+          "supplier_unchanged": true,
+          "supplier_python_executed": false,
+          "cache_prefix": "/home/runner/work/_temp/packaged-native-41991396178-1/cache/v1-16.15-linux-x86_64-4d0fbbee4449d3d68f2299ea/pginstall",
+          "ports_closed": true
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "target": "linux-x86_64",
+          "scope": "resumable SQL maintenance component only; default selector and lifecycle orchestrator unchanged",
+          "legacy_upgrade": true,
+          "root_service_account": false,
+          "phase": "complete",
+          "statistics_visible_before": [
+            0,
+            1
+          ],
+          "worker_returncode": 73,
+          "ordinary_connection_error_sqlstate": null,
+          "database_count": 5,
+          "snapshot_receipt_sha256": "0c9661b2f0118f4e0fc6596fc658bfdf3f68ea4810276d1178d24ef41a49392c",
+          "deliberate_worker_exit": 73,
+          "interrupted_opening_blocks_ordinary_role": true,
+          "flags_restored_before_backup_rejection": true,
+          "closed_flags_limits_and_acls_preserved": true,
+          "resumed_all_database_catalog_repair": true,
+          "public_and_custom_schema_vector_upgraded": true,
+          "complete_vector_rows_and_nearest_results_preserved": true,
+          "nonowner_statistics_hidden_after_repair": true,
+          "repeat_and_restart_verified": true,
+          "ports_closed": true
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "target": "linux-x86_64",
+          "scope": "resumable SQL maintenance component only; default selector and lifecycle orchestrator unchanged",
+          "legacy_upgrade": true,
+          "root_service_account": true,
+          "phase": "complete",
+          "statistics_visible_before": [
+            0,
+            1
+          ],
+          "worker_returncode": 73,
+          "ordinary_connection_error_sqlstate": null,
+          "database_count": 5,
+          "snapshot_receipt_sha256": "e901bbd66734deb9018b81ee60eeec2ca1b0abe162d8ee11c184d459feea3b5b",
+          "deliberate_worker_exit": 73,
+          "interrupted_opening_blocks_ordinary_role": true,
+          "flags_restored_before_backup_rejection": true,
+          "closed_flags_limits_and_acls_preserved": true,
+          "resumed_all_database_catalog_repair": true,
+          "public_and_custom_schema_vector_upgraded": true,
+          "complete_vector_rows_and_nearest_results_preserved": true,
+          "nonowner_statistics_hidden_after_repair": true,
+          "repeat_and_restart_verified": true,
+          "ports_closed": true
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "target": "linux-x86_64",
+          "scope": "offline snapshot component only; no automatic upgrader or default selector adoption",
+          "legacy_upgrade": true,
+          "root_service_account": false,
+          "timings_ms": {
+            "snapshot_create_verify": 1321.5912530000082,
+            "staged_restore_verify": 2826.9848060000413
+          },
+          "phase": "complete",
+          "large_file_bytes": 0,
+          "snapshot_receipt_sha256": "44a1233322e54f6b126b769acb7f26dc029a289ff76e59225dd401e7a1968c3c",
+          "snapshot_archive_sha256": "c38d1c56133dd88728f16b81d427855293dcc667de29c9bb37b382d109c11531",
+          "entries": 1606,
+          "data_bytes": 55122090,
+          "original_fingerprint": "5ab46801a98e6757b98fb4feedef6c3a966d875e6bd68cb9d50ba404e284fe3a",
+          "original_unchanged_during_snapshot": true,
+          "upgraded_original_preserved_during_restore": true,
+          "restored_complete_bytes_modes_owners_timestamps": true,
+          "roles_second_database_vector_indexes_and_rows_restored": true,
+          "original_engine_and_vector_restored": true,
+          "custom_configuration_preserved": true,
+          "ports_closed": true
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "target": "linux-x86_64",
+          "scope": "offline snapshot component only; no automatic upgrader or default selector adoption",
+          "legacy_upgrade": true,
+          "root_service_account": true,
+          "timings_ms": {
+            "snapshot_create_verify": 1882.6436229999786,
+            "staged_restore_verify": 3204.4580059999817
+          },
+          "phase": "complete",
+          "large_file_bytes": 0,
+          "snapshot_receipt_sha256": "c93552bb6786bde929ab181d59558beb889a52856611bf18989c721f569b5fe9",
+          "snapshot_archive_sha256": "cecf8141e2eae52ac344b8284408754788342be19a25fbbd4261253359a77994",
+          "entries": 1606,
+          "data_bytes": 55113871,
+          "original_fingerprint": "7af709a45d331dfd342c0fe7f7394fe31e76c8ca48d3f3380e851578811923e5",
+          "original_unchanged_during_snapshot": true,
+          "upgraded_original_preserved_during_restore": true,
+          "restored_complete_bytes_modes_owners_timestamps": true,
+          "roles_second_database_vector_indexes_and_rows_restored": true,
+          "original_engine_and_vector_restored": true,
+          "custom_configuration_preserved": true,
+          "ports_closed": true
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "target": "linux-x86_64",
+          "scope": "offline snapshot component only; no automatic upgrader or default selector adoption",
+          "legacy_upgrade": true,
+          "root_service_account": false,
+          "timings_ms": {
+            "snapshot_create_verify": 13568.215335000048,
+            "staged_restore_verify": 21758.938845000044
+          },
+          "phase": "complete",
+          "large_file_bytes": 2147487744,
+          "zip64_large_member_verified": true,
+          "python_peak_rss_mib": 53.36328125,
+          "snapshot_receipt_sha256": "d30927f367aba06706fd673c387ac3a9b6ad5d136c372991e48a41d3d2d01951",
+          "snapshot_archive_sha256": "a9fc2c9c27ee12a9b3ab2c5954d9cd5a6965fa4b7e27cb4e72f42a26be560d8d",
+          "entries": 1607,
+          "data_bytes": 2202593456,
+          "original_fingerprint": "cd1e5683a2cccce27617327bc0d9869fed9223ec8d4995e04f8edfe3c8c5a683",
+          "original_unchanged_during_snapshot": true,
+          "upgraded_original_preserved_during_restore": true,
+          "restored_complete_bytes_modes_owners_timestamps": true,
+          "roles_second_database_vector_indexes_and_rows_restored": true,
+          "original_engine_and_vector_restored": true,
+          "custom_configuration_preserved": true,
+          "ports_closed": true
+        }
+      ],
+      "guards": 135,
+      "seconds": 3.5,
+      "skips": 0
+    },
+    "macos-x86_64": {
+      "summaries": [
+        {
+          "completed": true,
+          "legacy_upgrade": true,
+          "fixture_rows": 1000,
+          "port_closed": true,
+          "catalog_repair_databases": [
+            "agent_memory",
+            "postgres",
+            "template0",
+            "template1"
+          ]
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "phase": "complete",
+          "scope": "candidate cache integration only; default embedded selector is not overridden in the product",
+          "cache_preexisting": false,
+          "timings_ms": {
+            "first_prepare": 3979.1371399999775,
+            "warm_prepare": 1459.440227000016
+          },
+          "target": "macos-x86_64",
+          "verified_files": 1481,
+          "restart_preserves_rows": true,
+          "cached_client_dump_preserves_row": true,
+          "supplier_unchanged": true,
+          "supplier_python_executed": false,
+          "cache_prefix": "/Users/runner/work/_temp/packaged-native-41991396178-1/cache/v1-16.15-macos-x86_64-eb9fa3db01624a8917e8cb06/pginstall",
+          "ports_closed": true
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "target": "macos-x86_64",
+          "scope": "resumable SQL maintenance component only; default selector and lifecycle orchestrator unchanged",
+          "legacy_upgrade": true,
+          "root_service_account": false,
+          "phase": "complete",
+          "statistics_visible_before": [
+            0,
+            1
+          ],
+          "worker_returncode": 73,
+          "ordinary_connection_error_sqlstate": null,
+          "database_count": 5,
+          "snapshot_receipt_sha256": "afb2ecc883d6ac0d8a1bf71bda4501dd7374842a7d2c7667cdda0cd5cb63c815",
+          "deliberate_worker_exit": 73,
+          "interrupted_opening_blocks_ordinary_role": true,
+          "flags_restored_before_backup_rejection": true,
+          "closed_flags_limits_and_acls_preserved": true,
+          "resumed_all_database_catalog_repair": true,
+          "public_and_custom_schema_vector_upgraded": true,
+          "complete_vector_rows_and_nearest_results_preserved": true,
+          "nonowner_statistics_hidden_after_repair": true,
+          "repeat_and_restart_verified": true,
+          "ports_closed": true
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "target": "macos-x86_64",
+          "scope": "offline snapshot component only; no automatic upgrader or default selector adoption",
+          "legacy_upgrade": true,
+          "root_service_account": false,
+          "timings_ms": {
+            "snapshot_create_verify": 4275.045643999988,
+            "staged_restore_verify": 3400.6095690000393
+          },
+          "phase": "complete",
+          "large_file_bytes": 0,
+          "snapshot_receipt_sha256": "e2a35b1d73d76149ac93548c56b03856f7e20bb0438a687978eb37301db3b0f9",
+          "snapshot_archive_sha256": "3c64a68aa10526e8d4af239cd2d38aeb58ec2858de7266fca618bae27d189ac6",
+          "entries": 1606,
+          "data_bytes": 55482530,
+          "original_fingerprint": "37b05c2f401117e1003c938ef0e166e657e757dafb42ce9dfce66568c42bbb7a",
+          "original_unchanged_during_snapshot": true,
+          "upgraded_original_preserved_during_restore": true,
+          "restored_complete_bytes_modes_owners_timestamps": true,
+          "roles_second_database_vector_indexes_and_rows_restored": true,
+          "original_engine_and_vector_restored": true,
+          "custom_configuration_preserved": true,
+          "ports_closed": true
+        }
+      ],
+      "guards": 135,
+      "seconds": 6.36,
+      "skips": 0
+    },
+    "macos-arm64": {
+      "summaries": [
+        {
+          "completed": true,
+          "legacy_upgrade": true,
+          "fixture_rows": 1000,
+          "port_closed": true,
+          "catalog_repair_databases": [
+            "agent_memory",
+            "postgres",
+            "template0",
+            "template1"
+          ]
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "phase": "complete",
+          "scope": "candidate cache integration only; default embedded selector is not overridden in the product",
+          "cache_preexisting": false,
+          "timings_ms": {
+            "first_prepare": 825.7080409999844,
+            "warm_prepare": 254.06491600000436
+          },
+          "target": "macos-arm64",
+          "verified_files": 1481,
+          "restart_preserves_rows": true,
+          "cached_client_dump_preserves_row": true,
+          "supplier_unchanged": true,
+          "supplier_python_executed": false,
+          "cache_prefix": "/Users/runner/work/_temp/packaged-native-41991396178-1/cache/v1-16.15-macos-arm64-07a6b6b1a87819b37e967e1c/pginstall",
+          "ports_closed": true
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "target": "macos-arm64",
+          "scope": "resumable SQL maintenance component only; default selector and lifecycle orchestrator unchanged",
+          "legacy_upgrade": true,
+          "root_service_account": false,
+          "phase": "complete",
+          "statistics_visible_before": [
+            0,
+            1
+          ],
+          "worker_returncode": 73,
+          "ordinary_connection_error_sqlstate": null,
+          "database_count": 5,
+          "snapshot_receipt_sha256": "a3515759850099b5e714981b2e4efb69f270c6ab20ada1a506654cd3d02fc0a3",
+          "deliberate_worker_exit": 73,
+          "interrupted_opening_blocks_ordinary_role": true,
+          "flags_restored_before_backup_rejection": true,
+          "closed_flags_limits_and_acls_preserved": true,
+          "resumed_all_database_catalog_repair": true,
+          "public_and_custom_schema_vector_upgraded": true,
+          "complete_vector_rows_and_nearest_results_preserved": true,
+          "nonowner_statistics_hidden_after_repair": true,
+          "repeat_and_restart_verified": true,
+          "ports_closed": true
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "target": "macos-arm64",
+          "scope": "offline snapshot component only; no automatic upgrader or default selector adoption",
+          "legacy_upgrade": true,
+          "root_service_account": false,
+          "timings_ms": {
+            "snapshot_create_verify": 872.9331250000314,
+            "staged_restore_verify": 818.866082999989
+          },
+          "phase": "complete",
+          "large_file_bytes": 0,
+          "snapshot_receipt_sha256": "f499ca8a63ef6f87882252575a6b6cf76d856f8c78a0be4c76b8175aa4837c68",
+          "snapshot_archive_sha256": "7598594990b31585691cee32c5a5290a502182ad415dfe202a626945c70e892b",
+          "entries": 1606,
+          "data_bytes": 55482530,
+          "original_fingerprint": "95f8b63f2106b21858426dc2cbf6d2c79cd46bff9835a7c35d2b52b9dd1d4048",
+          "original_unchanged_during_snapshot": true,
+          "upgraded_original_preserved_during_restore": true,
+          "restored_complete_bytes_modes_owners_timestamps": true,
+          "roles_second_database_vector_indexes_and_rows_restored": true,
+          "original_engine_and_vector_restored": true,
+          "custom_configuration_preserved": true,
+          "ports_closed": true
+        }
+      ],
+      "guards": 135,
+      "seconds": 2.08,
+      "skips": 0
+    },
+    "linux-aarch64": {
+      "summaries": [
+        {
+          "completed": true,
+          "legacy_upgrade": false,
+          "fixture_rows": 1000,
+          "port_closed": true,
+          "catalog_repair_databases": [
+            "agent_memory",
+            "postgres",
+            "template0",
+            "template1"
+          ]
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "phase": "complete",
+          "scope": "candidate cache integration only; default embedded selector is not overridden in the product",
+          "cache_preexisting": false,
+          "timings_ms": {
+            "first_prepare": 777.0786779999526,
+            "warm_prepare": 241.40130099999624
+          },
+          "target": "linux-aarch64",
+          "verified_files": 1363,
+          "restart_preserves_rows": true,
+          "cached_client_dump_preserves_row": true,
+          "supplier_unchanged": true,
+          "supplier_python_executed": false,
+          "cache_prefix": "/home/runner/work/_temp/packaged-native-41991396178-1/cache/v1-16.15-linux-aarch64-32204ae2d1a815907c26f1f4/pginstall",
+          "ports_closed": true
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "target": "linux-aarch64",
+          "scope": "resumable SQL maintenance component only; default selector and lifecycle orchestrator unchanged",
+          "legacy_upgrade": false,
+          "root_service_account": false,
+          "phase": "complete",
+          "statistics_visible_before": [
+            0,
+            0
+          ],
+          "worker_returncode": 73,
+          "ordinary_connection_error_sqlstate": null,
+          "database_count": 5,
+          "snapshot_receipt_sha256": "2d59f809bb951467af565730e8abffb0cfbbee797f4de8905eda34c55e923b53",
+          "deliberate_worker_exit": 73,
+          "interrupted_opening_blocks_ordinary_role": true,
+          "flags_restored_before_backup_rejection": true,
+          "closed_flags_limits_and_acls_preserved": true,
+          "resumed_all_database_catalog_repair": true,
+          "public_and_custom_schema_vector_upgraded": true,
+          "complete_vector_rows_and_nearest_results_preserved": true,
+          "nonowner_statistics_hidden_after_repair": true,
+          "repeat_and_restart_verified": true,
+          "ports_closed": true
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "target": "linux-aarch64",
+          "scope": "resumable SQL maintenance component only; default selector and lifecycle orchestrator unchanged",
+          "legacy_upgrade": false,
+          "root_service_account": true,
+          "phase": "complete",
+          "statistics_visible_before": [
+            0,
+            0
+          ],
+          "worker_returncode": 73,
+          "ordinary_connection_error_sqlstate": null,
+          "database_count": 5,
+          "snapshot_receipt_sha256": "9237e01ed8de5b3ab187a8d2247e68bb27998a6d60a1142ff89603dcd852bd87",
+          "deliberate_worker_exit": 73,
+          "interrupted_opening_blocks_ordinary_role": true,
+          "flags_restored_before_backup_rejection": true,
+          "closed_flags_limits_and_acls_preserved": true,
+          "resumed_all_database_catalog_repair": true,
+          "public_and_custom_schema_vector_upgraded": true,
+          "complete_vector_rows_and_nearest_results_preserved": true,
+          "nonowner_statistics_hidden_after_repair": true,
+          "repeat_and_restart_verified": true,
+          "ports_closed": true
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "target": "linux-aarch64",
+          "scope": "offline snapshot component only; no automatic upgrader or default selector adoption",
+          "legacy_upgrade": false,
+          "root_service_account": false,
+          "timings_ms": {
+            "snapshot_create_verify": 1102.4393019999934,
+            "staged_restore_verify": 1807.03348499992
+          },
+          "phase": "complete",
+          "large_file_bytes": 0,
+          "snapshot_receipt_sha256": "df0ed49b8d0133ef112160d8def9e1dacdd7c00e651d11d138f3c7c2db51cceb",
+          "snapshot_archive_sha256": "6bed9442f5ef471d5377c872b4ce9f5bf3383f619bf17c3b858015768f61a365",
+          "entries": 1606,
+          "data_bytes": 55212156,
+          "original_fingerprint": "e9ea7521abd69b79b41393c28965e256cb4938969c4fc58052c4df0b5c14d008",
+          "original_unchanged_during_snapshot": true,
+          "upgraded_original_preserved_during_restore": true,
+          "restored_complete_bytes_modes_owners_timestamps": true,
+          "roles_second_database_vector_indexes_and_rows_restored": true,
+          "original_engine_and_vector_restored": true,
+          "custom_configuration_preserved": true,
+          "ports_closed": true
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "target": "linux-aarch64",
+          "scope": "offline snapshot component only; no automatic upgrader or default selector adoption",
+          "legacy_upgrade": false,
+          "root_service_account": true,
+          "timings_ms": {
+            "snapshot_create_verify": 1108.5454880000043,
+            "staged_restore_verify": 1794.0517729999783
+          },
+          "phase": "complete",
+          "large_file_bytes": 0,
+          "snapshot_receipt_sha256": "f1a899e73ca23668b69312775c52fbf0a1081b4e62664acc76ee2e687596a6bf",
+          "snapshot_archive_sha256": "94562c52463e42603dd473d8368686c534a298f9c95c8cc555127434f624bc64",
+          "entries": 1606,
+          "data_bytes": 55212099,
+          "original_fingerprint": "e52e59fd46ed6f6c56a6fada8c35374f611cb853782315e74c5f9425af5548e7",
+          "original_unchanged_during_snapshot": true,
+          "upgraded_original_preserved_during_restore": true,
+          "restored_complete_bytes_modes_owners_timestamps": true,
+          "roles_second_database_vector_indexes_and_rows_restored": true,
+          "original_engine_and_vector_restored": true,
+          "custom_configuration_preserved": true,
+          "ports_closed": true
+        }
+      ],
+      "guards": 135,
+      "seconds": 2.63,
+      "skips": 0
+    },
+    "windows-x86_64": {
+      "summaries": [
+        {
+          "completed": true,
+          "legacy_upgrade": true,
+          "fixture_rows": 1000,
+          "port_closed": true,
+          "catalog_repair_databases": [
+            "agent_memory",
+            "postgres",
+            "template0",
+            "template1"
+          ]
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "phase": "complete",
+          "scope": "candidate cache integration only; default embedded selector is not overridden in the product",
+          "cache_preexisting": false,
+          "timings_ms": {
+            "first_prepare": 4370.723600000019,
+            "warm_prepare": 1030.7186000000002
+          },
+          "target": "windows-x86_64",
+          "verified_files": 3008,
+          "restart_preserves_rows": true,
+          "cached_client_dump_preserves_row": true,
+          "supplier_unchanged": true,
+          "supplier_python_executed": false,
+          "cache_prefix": "D:\\a\\_temp\\packaged-native-41991396178-1\\cache\\v1-16.15-windows-x86_64-49f0e50de8aabe2db95ebf57\\pginstall",
+          "ports_closed": true
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "target": "windows-x86_64",
+          "scope": "resumable SQL maintenance component only; default selector and lifecycle orchestrator unchanged",
+          "legacy_upgrade": true,
+          "root_service_account": false,
+          "phase": "complete",
+          "statistics_visible_before": [
+            0,
+            1
+          ],
+          "worker_returncode": 73,
+          "ordinary_connection_error_sqlstate": null,
+          "database_count": 5,
+          "snapshot_receipt_sha256": "17c54ed04ec83ba0338bb74962782341eeb5d026f328c002a49d43aa4b7c21cf",
+          "deliberate_worker_exit": 73,
+          "interrupted_opening_blocks_ordinary_role": true,
+          "flags_restored_before_backup_rejection": true,
+          "closed_flags_limits_and_acls_preserved": true,
+          "resumed_all_database_catalog_repair": true,
+          "public_and_custom_schema_vector_upgraded": true,
+          "complete_vector_rows_and_nearest_results_preserved": true,
+          "nonowner_statistics_hidden_after_repair": true,
+          "repeat_and_restart_verified": true,
+          "ports_closed": true
+        },
+        {
+          "completed": true,
+          "model_calls": 0,
+          "target": "windows-x86_64",
+          "scope": "offline snapshot component only; no automatic upgrader or default selector adoption",
+          "legacy_upgrade": true,
+          "root_service_account": false,
+          "timings_ms": {
+            "snapshot_create_verify": 1498.9313000000095,
+            "staged_restore_verify": 1727.1274999999946
+          },
+          "phase": "complete",
+          "large_file_bytes": 0,
+          "snapshot_receipt_sha256": "4f8d59b3701f53d95ae0b1d3da7ba65ce9898ac239d80fe41cc67bbd1a067ce4",
+          "snapshot_archive_sha256": "d7b15e706140ffe2c9521de3fccd60eb5abf1e1a09b621baaa2f72a260622733",
+          "entries": 1607,
+          "data_bytes": 55117215,
+          "original_fingerprint": "24ed20df7183d5064346af5d868840635a980537625ee178c2a45c824b01936b",
+          "original_unchanged_during_snapshot": true,
+          "upgraded_original_preserved_during_restore": true,
+          "restored_complete_bytes_modes_owners_timestamps": true,
+          "roles_second_database_vector_indexes_and_rows_restored": true,
+          "original_engine_and_vector_restored": true,
+          "custom_configuration_preserved": true,
+          "ports_closed": true
+        }
+      ],
+      "guards": 134,
+      "seconds": 6.8,
+      "skips": 0
+    }
+  }
+}

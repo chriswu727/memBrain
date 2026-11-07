@@ -22,11 +22,9 @@ DESTRUCTIVE = ToolAnnotations(readOnlyHint=False, destructiveHint=True, idempote
 
 
 def _boundaries(client: MemoryClient) -> list[dict[str, Any]]:
-    """The user's boundaries, best effort: an older service without the relationship route has none."""
-    try:
-        return list(client.relationship().get("boundaries") or [])
-    except Exception:
-        return []
+    from membrain import host
+
+    return host._boundaries(client)
 
 
 def _outside_boundaries(response: dict[str, Any], boundaries, query: str) -> dict[str, Any]:
@@ -114,11 +112,11 @@ def create_server(client: MemoryClient, *, directory=None) -> FastMCP:
                     additional_cues=additional_cues or (), cue_event_ids=cue_event_ids or (),
                     budget={**default_budget(max_context_tokens), "max_embedding_calls": embedding_calls}, **retrieval)
 
+            boundaries = await asyncio.to_thread(_boundaries, client)
             try:
                 response = await asyncio.to_thread(recall, 1)
             except MemoryActionError:
                 response = await asyncio.to_thread(recall, 0)  # Without a usable query embedding, keyword recall still works.
-            boundaries = await asyncio.to_thread(_boundaries, client)
             return {"action": "recall", "outcome": response["outcome"],
                     "context": recalled_context(_outside_boundaries(response, boundaries, query)),
                     "context_tokens": response["result"]["usage"]["context_tokens"]}

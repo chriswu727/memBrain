@@ -1,9 +1,9 @@
 """A bounded view of recorded notes and their sources, without inferred semantic links."""
 from __future__ import annotations
 
-import json
 import threading
 from collections import OrderedDict, deque
+from contextlib import nullcontext
 
 from .helpers import DomainError, now
 from .notes import NOTES_CONVERSATION, parse_note
@@ -53,8 +53,32 @@ def _label(text):
     return neutralize(" ".join(text.split()))[:80]
 
 
+def sensitive_note_ids(conn, params, note_ids):
+    if not note_ids:
+        return set()
+    # Fresh imports can make the planner repeatedly scan scoped dependencies for each sensitive source.
+    nestloop = conn.execute("SELECT current_setting('enable_nestloop') AS value").fetchone()["value"]
+    conn.execute("SELECT set_config('enable_nestloop','off',true)")
+    protected = {row["output_event_id"] for row in conn.execute(
+        "SELECT DISTINCT own.output_event_id FROM memory_event_dependencies own "
+        "JOIN memory_event_dependencies marked ON marked.tenant_id=own.tenant_id "
+        "AND marked.owner_id=own.owner_id AND marked.brain_id=own.brain_id "
+        "AND marked.input_event_id=own.input_event_id "
+        "JOIN memory_events n ON n.tenant_id=marked.tenant_id AND n.owner_id=marked.owner_id "
+        "AND n.brain_id=marked.brain_id AND n.id=marked.output_event_id "
+        "WHERE own.tenant_id=%s AND own.owner_id=%s AND own.brain_id=%s "
+        "AND own.output_event_id=ANY(%s::text[]) AND n.is_current AND NOT n.deleted "
+        "AND NOT n.suppressed AND NOT n.retired AND n.document IS NOT NULL AND n.conversation_id=%s "
+        "AND left(n.document->'observed'->'content'->>'text',1)='[' AND ("
+        "split_part(n.document->'observed'->'content'->>'text','] ',1) LIKE '%% · sensitive' OR "
+        "split_part(n.document->'observed'->'content'->>'text','] ',1) LIKE '%% · sensitive · %%')",
+        (*params, list(note_ids), NOTES_CONVERSATION)).fetchall()}
+    conn.execute("SELECT set_config('enable_nestloop',%s,true)", (nestloop,))
+    return protected
+
+
 def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, include_sensitive=False,
-               trace: dict | None = None):
+               trace: dict | None = None, _connection=None):
     """Return a bounded sample; region counts describe the sample, not the entire brain.
 
     Weights are layout hints, not inferred activation or recall strength. Recent user messages and note
@@ -69,7 +93,7 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
     if type(include_sensitive) is not bool:
         raise DomainError("validation_failed", "include_sensitive must be a boolean.")
     params = service._params(principal, brain_id)
-    with service.database.transaction(principal) as conn:
+    with (nullcontext(_connection) if _connection is not None else service.database.transaction(principal)) as conn:
         conn.execute("SET LOCAL statement_timeout = '2s'")
         conn.execute("SET LOCAL lock_timeout = '500ms'")
         service._brain(conn, principal, brain_id)
@@ -94,23 +118,27 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
         note_budget = max(1, max_nodes * 3 // 4) if recent or traced_messages else max_nodes
         chosen_notes = list({row["id"]: row for row in [*traced_notes, *notes]}.values())[:note_budget]
         note_ids = [row["id"] for row in chosen_notes]
-        from .affect import AFFECT_CONVERSATION, AFFECT_PRODUCER
+        from .affect import AFFECT_CONVERSATION, AFFECT_PRODUCER, ARCHIVE_PRODUCER, _records
 
-        # One node per affect record of a shown note, linked to it. The whole record is read (it is bounded JSON:
-        # a few short fields and at most 64 source ids), since a cut record cannot be parsed and would vanish. They share the episode budget, taking at most
-        # half of it while there are messages, so a note's source messages stay in the sample.
+        # Feelings share the episode budget, leaving room for a note's source messages.
         room = max_nodes - len(chosen_notes)
         room = room // 2 if recent or traced_messages else room
-        feelings = conn.execute(
-            "SELECT e.id,d.input_event_id AS note_id,e.document->'observed'->'content'->>'text' AS text,"
-            "e.document->'system_time'->>'recorded_at' AS recorded_at FROM memory_event_dependencies d "
+        feeling_ids = conn.execute(
+            "SELECT e.id FROM memory_event_dependencies d "
             "JOIN memory_events e ON e.tenant_id=d.tenant_id AND e.owner_id=d.owner_id "
             "AND e.brain_id=d.brain_id AND e.id=d.output_event_id "
             "WHERE d.tenant_id=%s AND d.owner_id=%s AND d.brain_id=%s AND d.input_event_id=ANY(%s::text[]) "
             "AND e.is_current AND NOT e.deleted AND NOT e.suppressed AND NOT e.retired AND e.document IS NOT NULL "
-            "AND e.conversation_id=%s AND e.producer_ref=%s ORDER BY e.sequence DESC LIMIT %s",
-            (*params, note_ids, AFFECT_CONVERSATION, AFFECT_PRODUCER, room),
+            "AND e.conversation_id=%s AND e.producer_ref=ANY(%s::text[]) ORDER BY e.sequence DESC LIMIT %s",
+            (*params, note_ids, AFFECT_CONVERSATION, [AFFECT_PRODUCER, ARCHIVE_PRODUCER], room),
         ).fetchall() if note_ids and room > 0 else []
+        feelings = [record for record in _records(service, conn, principal, brain_id, limit=room,
+                                                 ids=[row["id"] for row in feeling_ids])
+                    if record["note_id"] in note_ids] if feeling_ids else []
+        if note_ids:
+            # Fresh bulk imports can make the planner join every recent event to every note dependency.
+            nestloop = conn.execute("SELECT current_setting('enable_nestloop') AS value").fetchone()["value"]
+            conn.execute("SELECT set_config('enable_nestloop','off',true)")
         links = conn.execute(
             "SELECT d.output_event_id,d.input_event_id,e.sequence FROM memory_event_dependencies d "
             "JOIN memory_events e ON e.tenant_id=d.tenant_id AND e.owner_id=d.owner_id "
@@ -123,6 +151,8 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
             "ORDER BY e.sequence DESC,d.output_event_id LIMIT %s",
             (*params, note_ids, NOTES_CONVERSATION, max_edges + max_nodes + 1),
         ).fetchall() if note_ids else []
+        if note_ids:
+            conn.execute("SELECT set_config('enable_nestloop',%s,true)", (nestloop,))
         source_ids = list(dict.fromkeys(row["input_event_id"] for row in links))[:max_nodes]
         sources = conn.execute(
             f"SELECT {_COLUMNS} FROM memory_events WHERE {_VISIBLE} AND id=ANY(%s::text[]) "
@@ -146,10 +176,11 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
                 "split_part(n.document->'observed'->'content'->>'text','] ',1) LIKE '%% · sensitive · %%')",
                 (*params, [row["id"] for row in chosen_messages], NOTES_CONVERSATION),
             )}
+        hidden_notes = sensitive_note_ids(conn, params, note_ids)
     result = _project(brain_id, chosen_notes, chosen_messages, links, hidden_sources, feelings,
                       max_nodes=max_nodes, max_edges=max_edges, include_sensitive=include_sensitive,
                       truncated=(len(notes) > len(chosen_notes) or len(recent) > len(chosen_messages)
-                                 or len(links) >= max_edges + max_nodes + 1))
+                                 or len(links) >= max_edges + max_nodes + 1), hidden_notes=hidden_notes)
     if trace is not None:
         shown = {row["id"] for row in traced} & {node["id"].split(":", 1)[1] for node in result["nodes"]}
         for node in result["nodes"]:
@@ -158,22 +189,12 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
     return result
 
 
-def _feeling(row) -> dict | None:
-    try:
-        stored = json.loads(row["text"] or "")
-        affect = stored["affect"]
-        return {"label": str(affect["label"]), "basis": str(affect["basis"]), "felt_at": affect.get("felt_at"),
-                "topic": affect.get("topic")}
-    except (ValueError, KeyError, TypeError):
-        return None
-
-
 def _project(brain_id, notes, messages, links, hidden_sources, feelings=(), *, max_nodes, max_edges,
-             include_sensitive, truncated):
+             include_sensitive, truncated, hidden_notes=()):
     nodes, fields_by_id = [], {}
     for row in notes:
         fields, text = parse_note(row["text"] or "")
-        sensitive = bool(fields.get("sensitive"))
+        sensitive = bool(fields.get("sensitive")) or row["id"] in hidden_notes
         masked = sensitive and not include_sensitive
         kind = fields.get("kind", "other")
         fields_by_id[row["id"]] = {} if masked else fields
@@ -183,27 +204,24 @@ def _project(brain_id, notes, messages, links, hidden_sources, feelings=(), *, m
                       "label": "Sensitive memory" if masked else _label(text),
                       "status": None if masked else fields.get("status"),
                       "date": None if masked else fields.get("due") or fields.get("occurs_at"),
-                      "sensitive": sensitive, "recorded_at": row["recorded_at"],
+                      "sensitive": sensitive, "recorded_at": None if masked else row["recorded_at"],
                       "weight": 1.0 if fields.get("pinned") else 0.5})
-    masked_notes = {row["id"] for row in notes if parse_note(row["text"] or "")[0].get("sensitive")}
-    for row in feelings:
-        record = _feeling(row)
-        if record is None:
-            continue
-        masked = row["note_id"] in masked_notes and not include_sensitive
+    masked_notes = {row["id"] for row in notes if parse_note(row["text"] or "")[0].get("sensitive")} | set(hidden_notes)
+    for record in feelings:
+        masked = record["note_id"] in masked_notes and not include_sensitive
         label = record["label"] + (f" · {record['topic']}" if record["topic"] else "")
         # A feeling is evidence about one note, never a score: no weight beyond the layout default.
-        nodes.append({"id": "affect:" + row["id"], "region": "emotions", "kind": "affect",
+        nodes.append({"id": "affect:" + record["id"], "region": "emotions", "kind": "affect",
                       "label": "Sensitive memory" if masked else _label(label), "status": None,
-                      "date": None if masked else record["felt_at"], "sensitive": row["note_id"] in masked_notes,
-                      "basis": None if masked else record["basis"], "note_id": row["note_id"],
-                      "recorded_at": row["recorded_at"], "weight": 0.25})
+                      "date": None if masked else record["felt_at"], "sensitive": record["note_id"] in masked_notes,
+                      "basis": None if masked else record["basis"], "note_id": record["note_id"],
+                      "recorded_at": None if masked else record["recorded_at"], "weight": 0.25})
     for row in messages:
         masked = row["id"] in hidden_sources
         nodes.append({"id": "msg:" + row["id"], "region": "episodes", "kind": "message",
                       "label": "Sensitive memory" if masked else _label(row["text"] or ""),
                       "status": None, "date": None, "sensitive": masked,
-                      "recorded_at": row["recorded_at"], "weight": 0.25})
+                      "recorded_at": None if masked else row["recorded_at"], "weight": 0.25})
     available = {node["id"] for node in nodes}
     edges, seen = [], set()
 

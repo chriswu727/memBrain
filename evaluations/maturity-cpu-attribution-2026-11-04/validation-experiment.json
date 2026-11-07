@@ -1,0 +1,13 @@
+{
+  "status": "exploratory, rejected for shipping",
+  "provenance": "Prior tool result; original benchmark command and execution log were not retained as files. Not independently re-executed to replace that result.",
+  "fixture_items": 51,
+  "fixture_bytes": 241026,
+  "iterations": 20,
+  "reference_median_cpu_ms": 8.487833,
+  "positive_check_median_cpu_ms": 5.9305205,
+  "differential_documents": 1806,
+  "positive_acceptances": 258,
+  "observed_false_acceptances": 0,
+  "limitations": "Limited sampled differential inputs, not proof of compatibility. No evolved/custom checker coverage or full suite. Private fixture excluded. Prototype is not imported by production."
+}

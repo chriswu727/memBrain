@@ -99,7 +99,7 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 /* Brain view */
 :root { --r-plans: #d9822b; --r-commitments: #c4573a; --r-preferences: #8a6fd1; --r-constraints: #d14d72;
   --r-routines: #3f8fbf; --r-episodes: #4aa38a; --r-people: #e0b341; --r-relationship: #c76fb5;
-  --r-milestones: #5b7fd6; --r-other: #8b9a94; --r-emotions: #7fa83a; }
+  --r-milestones: #5b7fd6; --r-other: #8b9a94; --r-emotions: #7fa83a; --r-persona: #9b73d7; --r-mood: #d98b40; }
 .brain-layout { display: grid; grid-template-columns: minmax(0, 2.2fr) minmax(220px, 1fr); gap: 14px; align-items: start; }
 @media (max-width: 760px) { .brain-layout { grid-template-columns: 1fr; } }
 .brain-canvas { padding: 8px; background: radial-gradient(circle at 45% 40%, var(--wash), var(--card) 70%); }
@@ -135,18 +135,74 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 @keyframes brain-fire { 0%, 100% { filter: none; } 50% { filter: drop-shadow(0 0 5px currentColor) brightness(1.25); } }
 @keyframes brain-signal { to { stroke-dashoffset: -20; } }
 @media (prefers-reduced-motion: reduce) { .brain-node.recent, .brain-edge.lit { animation: none; } }
-.brain-node.region-plans { fill: var(--r-plans); color: var(--r-plans); } .legend-item.region-plans .legend-dot { background: var(--r-plans); }
-.brain-node.region-commitments { fill: var(--r-commitments); color: var(--r-commitments); } .legend-item.region-commitments .legend-dot { background: var(--r-commitments); }
-.brain-node.region-preferences { fill: var(--r-preferences); color: var(--r-preferences); } .legend-item.region-preferences .legend-dot { background: var(--r-preferences); }
-.brain-node.region-constraints { fill: var(--r-constraints); color: var(--r-constraints); } .legend-item.region-constraints .legend-dot { background: var(--r-constraints); }
-.brain-node.region-routines { fill: var(--r-routines); color: var(--r-routines); } .legend-item.region-routines .legend-dot { background: var(--r-routines); }
-.brain-node.region-episodes { fill: var(--r-episodes); color: var(--r-episodes); } .legend-item.region-episodes .legend-dot { background: var(--r-episodes); }
-.brain-node.region-people { fill: var(--r-people); color: var(--r-people); } .legend-item.region-people .legend-dot { background: var(--r-people); }
-.brain-node.region-relationship { fill: var(--r-relationship); color: var(--r-relationship); } .legend-item.region-relationship .legend-dot { background: var(--r-relationship); }
-.brain-node.region-milestones { fill: var(--r-milestones); color: var(--r-milestones); } .legend-item.region-milestones .legend-dot { background: var(--r-milestones); }
-.brain-node.region-other { fill: var(--r-other); color: var(--r-other); } .legend-item.region-other .legend-dot { background: var(--r-other); }
-.brain-node.region-emotions { fill: var(--r-emotions); color: var(--r-emotions); } .legend-item.region-emotions .legend-dot { background: var(--r-emotions); }
+.brain-node.region-plans { fill: var(--r-plans); color: var(--r-plans); } .legend-item.region-plans .legend-dot, .observatory-item.region-plans .legend-dot { background: var(--r-plans); }
+.brain-node.region-commitments { fill: var(--r-commitments); color: var(--r-commitments); } .legend-item.region-commitments .legend-dot, .observatory-item.region-commitments .legend-dot { background: var(--r-commitments); }
+.brain-node.region-preferences { fill: var(--r-preferences); color: var(--r-preferences); } .legend-item.region-preferences .legend-dot, .observatory-item.region-preferences .legend-dot { background: var(--r-preferences); }
+.brain-node.region-constraints { fill: var(--r-constraints); color: var(--r-constraints); } .legend-item.region-constraints .legend-dot, .observatory-item.region-constraints .legend-dot { background: var(--r-constraints); }
+.brain-node.region-routines { fill: var(--r-routines); color: var(--r-routines); } .legend-item.region-routines .legend-dot, .observatory-item.region-routines .legend-dot { background: var(--r-routines); }
+.brain-node.region-episodes { fill: var(--r-episodes); color: var(--r-episodes); } .legend-item.region-episodes .legend-dot, .observatory-item.region-episodes .legend-dot { background: var(--r-episodes); }
+.brain-node.region-people { fill: var(--r-people); color: var(--r-people); } .legend-item.region-people .legend-dot, .observatory-item.region-people .legend-dot { background: var(--r-people); }
+.brain-node.region-relationship { fill: var(--r-relationship); color: var(--r-relationship); } .legend-item.region-relationship .legend-dot, .observatory-item.region-relationship .legend-dot { background: var(--r-relationship); }
+.brain-node.region-milestones { fill: var(--r-milestones); color: var(--r-milestones); } .legend-item.region-milestones .legend-dot, .observatory-item.region-milestones .legend-dot { background: var(--r-milestones); }
+.brain-node.region-other { fill: var(--r-other); color: var(--r-other); } .legend-item.region-other .legend-dot, .observatory-item.region-other .legend-dot { background: var(--r-other); }
+.brain-node.region-emotions { fill: var(--r-emotions); color: var(--r-emotions); } .legend-item.region-emotions .legend-dot, .observatory-item.region-emotions .legend-dot { background: var(--r-emotions); }
 .edge-feeling_of { stroke: var(--r-emotions); }
+.brain-node.region-persona { fill: var(--r-persona); color: var(--r-persona); }
+.legend-item.region-persona .legend-dot, .observatory-item.region-persona .legend-dot { background: var(--r-persona); }
+.brain-node.region-mood { fill: var(--r-mood); color: var(--r-mood); }
+.legend-item.region-mood .legend-dot, .observatory-item.region-mood .legend-dot { background: var(--r-mood); }
+.edge-based_on_feedback, .edge-proposed_from_feedback, .edge-accepted_proposal, .edge-restored_from { stroke: var(--r-persona); }
+.edge-baseline_from, .edge-triggered_by, .edge-affected_by { stroke: var(--r-mood); }
+.edge-swatch.edge-based_on_feedback, .edge-swatch.edge-proposed_from_feedback,
+.edge-swatch.edge-accepted_proposal, .edge-swatch.edge-restored_from { border-color: var(--r-persona); }
+.edge-swatch.edge-baseline_from, .edge-swatch.edge-triggered_by, .edge-swatch.edge-affected_by { border-color: var(--r-mood); }
+.edge-swatch.edge-proposed_from_feedback, .edge-swatch.edge-restored_from, .edge-swatch.edge-baseline_from { border-top-style: dashed; }
+.edge-swatch.edge-affected_by { border-top-style: dotted; }
+/* 3D observatory (observatory.js): the same map in depth, plus a keyboard list and a key to every mark. */
+.brain-main { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.brain-modes { gap: 8px; flex-wrap: wrap; align-items: center; }
+.brain-modes button[aria-pressed="true"] { border-color: var(--accent); background: var(--wash); color: var(--accent); font-weight: 600; }
+.brain-modes .link { margin-left: auto; }
+.observatory-status { border-left: 3px solid var(--accent); margin: 0; }
+.observatory { position: relative; padding: 0; overflow: hidden; background: radial-gradient(circle at 45% 40%, var(--wash), var(--card) 70%); }
+.observatory canvas { display: block; width: 100%; aspect-ratio: 16 / 10; min-height: 300px; max-height: 560px;
+  touch-action: none; cursor: grab; }
+.observatory canvas.over-node { cursor: pointer; }
+.observatory canvas:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+.observatory-labels { position: absolute; inset: 0; pointer-events: none; overflow: hidden; }
+.observatory-label { position: absolute; left: 0; top: 0; font-size: 12px; font-weight: 600; color: var(--muted);
+  white-space: nowrap; text-shadow: 0 0 3px var(--card); }
+.observatory-tip { position: absolute; left: 0; top: 0; margin: 0; max-width: min(320px, 70%); padding: 4px 8px; font-size: 13px;
+  background: var(--card); border: 1px solid var(--border); border-radius: 6px; pointer-events: none; overflow-wrap: anywhere; }
+.observatory-key { font-size: 14px; }
+.observatory-key h2 { font-size: 15px; }
+.observatory-key ul { list-style: none; padding: 0; margin: 0 0 6px; }
+.observatory-key li { margin: 3px 0; display: flex; gap: 8px; align-items: baseline; flex-wrap: wrap; }
+.observatory-key p { margin: 4px 0; }
+.edge-count { margin-left: auto; }
+.edge-swatch { display: inline-block; width: 28px; height: 0; border-top: 2px solid var(--accent); flex: none; align-self: center; }
+.edge-swatch.edge-about_person { border-top-style: dashed; border-color: var(--r-people); }
+.edge-swatch.edge-feeling_of { border-top-style: dotted; border-top-width: 3px; border-color: var(--r-emotions); }
+.shape-swatch { display: inline-block; width: 12px; height: 12px; flex: none; background: var(--muted); align-self: center; }
+.shape-note { border-radius: 50%; }
+.shape-message { transform: rotate(45deg) scale(.85); }
+.shape-affect { clip-path: polygon(50% 0, 100% 100%, 0 100%); }
+.shape-recalled { border-radius: 50%; background: none; border: 2px solid var(--trace, #e0a100); }
+.observatory-layers summary { cursor: pointer; font-weight: 600; }
+.observatory-layers ul { padding-left: 18px; margin: 6px 0 0; }
+.observatory-layers li { margin: 4px 0; overflow-wrap: anywhere; }
+.observatory-list-box h2 { font-size: 15px; margin: 0; }
+.observatory-list-box p { margin: 2px 0 6px; }
+.observatory-list { list-style: none; padding: 0; margin: 0; max-height: 320px; overflow-y: auto; overflow-x: hidden;
+  border: 1px solid var(--border); border-radius: 8px; }
+.observatory-item { white-space: normal; display: flex; gap: 6px; align-items: baseline; width: 100%; text-align: left; background: none; color: var(--ink);
+  border: 0; border-radius: 0; padding: 4px 8px; font-size: 13px; overflow-wrap: anywhere; }
+.observatory-item:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+.observatory-item[aria-current="true"] { background: var(--wash); font-weight: 600; }
+.observatory-item .legend-dot { align-self: center; }
+.observatory-item-region { color: var(--muted); flex: none; }
+.observatory-item .user-text, .observatory-item .muted { min-width: 0; }
+.observatory-recalled { margin-left: auto; flex: none; font-size: 12px; color: var(--ink); border: 1px solid var(--trace, #e0a100); border-radius: 99px; padding: 0 6px; }
 /* Feelings */
 .feeling-basis { font-weight: 600; }
 .feeling-note { border-left: 3px solid var(--border); padding-left: 10px; }
@@ -250,6 +306,22 @@ body.showing { overflow: hidden; }
   .show-brand span { display: block; }
   .show-legend { gap: 2px 12px; font-size: 12px; }
 }
+.brain-show.holographic { display: block; padding: 0; background: radial-gradient(ellipse at 50% 48%, #071b2a 0%, #030915 48%, #010309 100%); }
+.holographic .show-stage { position: absolute; inset: 0; margin: 0; aspect-ratio: auto; }
+.holographic .show-stage > svg, .holographic .show-foot, .holographic .show-brand span { display: none; }
+.holographic .show-top { position: absolute; inset: 0 0 auto; z-index: 2; padding: 22px 28px; pointer-events: none; }
+.holographic .show-brand strong { font-size: 13px; letter-spacing: .16em; color: #7daabf; font-weight: 500; }
+.show-controls { display: flex; gap: 8px; pointer-events: auto; }
+.show-controls .show-close { min-width: 36px; height: 36px; padding: 0 8px; font-size: 19px; border-radius: 50%; }
+.holographic .show-controls { opacity: .35; transition: opacity .25s; }
+.holographic .show-controls:hover, .holographic .show-controls:focus-within { opacity: 1; }
+.hologram-canvas { display: block; width: 100%; height: 100%; touch-action: none; cursor: grab; }
+.hologram-canvas:active { cursor: grabbing; }
+.show-simulation { position: absolute; bottom: 16px; left: 28px; margin: 0; font-size: 10px; letter-spacing: .12em; color: #6890a2; pointer-events: none; }
+@media (max-width: 600px) {
+  .holographic .show-top { padding: 16px; }
+  .show-simulation { left: 16px; font-size: 9px; }
+}
 /* Companion mood (M1), inside the Personality tab. */
 .mood-now { display: inline-flex; gap: 8px; align-items: baseline; }
 .mood-why { display: grid; gap: 4px; margin: 8px 0; }
@@ -260,3 +332,47 @@ body.showing { overflow: hidden; }
 .mood-trigger .feeling-note { margin-top: 6px; display: grid; gap: 2px; }
 .mood-active { background: var(--accent); color: var(--paper); }
 .mood-pinned { border: 1px dashed var(--border); }
+/* Persona suggestions from feedback (P2), in the Companion tab below the current card. */
+.persona-proposals .list { margin-top: 10px; }
+.persona-proposal { display: grid; gap: 6px; }
+.persona-proposal > p { margin: 0; }
+.proposal-open { border-color: var(--accent); }
+.proposal-diff { margin: 0; }
+.proposal-diff dd { align-items: baseline; }
+.proposal-diff del { color: var(--danger); background: var(--danger-wash); border-radius: 4px; padding: 0 4px; }
+.proposal-diff ins { color: var(--accent); background: var(--wash); border-radius: 4px; padding: 0 4px;
+  text-decoration: none; font-weight: 600; }
+.proposal-arrow { color: var(--muted); }
+.proposal-sources ul { margin: 2px 0 0; padding-left: 20px; display: grid; gap: 2px; }
+.proposal-sources li q { margin-right: 8px; overflow-wrap: anywhere; }
+.proposal-sources p { margin: 0; }
+.proposal-sources li .hint { white-space: nowrap; }
+.persona-proposals-earlier .list { margin-top: 8px; }
+/* End of persona suggestions */
+
+:root { --r-semantic: #36a9bd; --r-episodic: #8583d1; --r-schemas: #b675c7; }
+.brain-node.region-semantic { fill: var(--r-semantic); color: var(--r-semantic); }
+.legend-item.region-semantic .legend-dot, .observatory-item.region-semantic .legend-dot { background: var(--r-semantic); }
+.brain-node.region-episodic { fill: var(--r-episodic); color: var(--r-episodic); }
+.legend-item.region-episodic .legend-dot, .observatory-item.region-episodic .legend-dot { background: var(--r-episodic); }
+.brain-node.region-schemas { fill: var(--r-schemas); color: var(--r-schemas); }
+.legend-item.region-schemas .legend-dot, .observatory-item.region-schemas .legend-dot { background: var(--r-schemas); }
+.edge-swatch.edge-memory_evidence { border-color: var(--r-semantic); }
+.edge-memory_evidence { stroke: var(--r-semantic); }
+.edge-swatch.edge-memory_derivation { border-color: var(--r-semantic); }
+.edge-memory_derivation { stroke: var(--r-semantic); }
+.edge-swatch.edge-episode_evidence { border-color: var(--r-semantic); }
+.edge-episode_evidence { stroke: var(--r-semantic); }
+.edge-swatch.edge-episode_member { border-color: var(--r-semantic); }
+.edge-episode_member { stroke: var(--r-semantic); }
+.edge-swatch.edge-pattern_member { border-color: var(--r-semantic); }
+.edge-pattern_member { stroke: var(--r-semantic); }
+.edge-swatch.edge-association { border-color: var(--r-semantic); }
+.edge-association { stroke: var(--r-semantic); }
+.edge-swatch.edge-belief_relation { border-color: var(--r-semantic); }
+.edge-belief_relation { stroke: var(--r-semantic); }
+:root { --r-working: #d9ad55; }
+.brain-node.region-working { fill: var(--r-working); color: var(--r-working); }
+.legend-item.region-working .legend-dot, .observatory-item.region-working .legend-dot { background: var(--r-working); }
+.edge-swatch.edge-working_member, .edge-swatch.edge-working_evidence { border-color: var(--r-working); }
+.edge-working_member, .edge-working_evidence { stroke: var(--r-working); }

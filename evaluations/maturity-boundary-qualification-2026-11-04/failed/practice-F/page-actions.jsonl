@@ -1,0 +1,1 @@
+{"session": "s4-weekend", "before_turn": 0, "action": "accept_persona_proposal", "detail": {"match": "casual"}, "before": {"history_items": 18, "persona_version": 1}, "result": {"removed_records": [], "removed_records_complete": true}, "after": {"history_items": 18, "persona_version": 2}}

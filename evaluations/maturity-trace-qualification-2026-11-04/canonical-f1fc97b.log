@@ -1,0 +1,57 @@
+Starting the local memory database and service…
+{"serial": {"n": 20, "median_ms": 86.77, "p95_ms": 100.86, "max_ms": 105.26, "nonempty": 20}}
+{"one_brain_8_concurrent": {"n": 160, "median_ms": 460.7, "p95_ms": 505.47, "max_ms": 557.92, "nonempty": 160}}
+{"eight_brains_8_concurrent": {"n": 160, "median_ms": 462.45, "p95_ms": 509.02, "max_ms": 536.1, "nonempty": 160}}
+{"map_200": {"n": 20, "median_ms": 10.9, "p95_ms": 11.28, "max_ms": 11.38, "errors": []}}
+{"map_500": {"n": 20, "median_ms": 14.03, "p95_ms": 14.57, "max_ms": 14.73, "errors": []}}
+{
+  "machine": {
+    "cpu": "arm",
+    "cores": 10,
+    "os": "macOS-15.7.4-arm64-arm-64bit",
+    "python": "3.12.13",
+    "postgresql": "PostgreSQL 16.2 on aarch64-apple-darwin23.5.0, compiled by Apple clang version 15.0.0 (clang-1500.0.40.1), 64-bit"
+  },
+  "met": {
+    "serial_p95_ms": true,
+    "one_brain_8_concurrent_p95_ms": true,
+    "eight_brains_8_concurrent_p95_ms": true
+  },
+  "lock_waits": {
+    "setup": {
+      "waiting_samples": 5,
+      "max_wait_ms": 45.7,
+      "holders": [
+        {
+          "last_statement": "SELECT document FROM memory_assertions",
+          "waiting_samples": 3,
+          "max_open_ms": 14.3,
+          "transactions": 3,
+          "states": [
+            "active",
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT id FROM memory_events",
+          "waiting_samples": 1,
+          "max_open_ms": 42.9,
+          "transactions": 1,
+          "states": [
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT document FROM memory_events",
+          "waiting_samples": 1,
+          "max_open_ms": 46.6,
+          "transactions": 1,
+          "states": [
+            "active"
+          ]
+        }
+      ]
+    }
+  }
+}
+{"source_commit": "9b9bad016ad7223991c98ee74e34ddb49ceb95b4", "runtime_pin": "f1fc97b193f816ccfe4d3988c797060fff2bbbc6", "command": ["/Users/yichen/tmp/membrain-review-20261029/.venv/bin/python", "evaluations/recall-concurrency-benchmark.py", "--directory", "/Users/yichen/tmp/membrain-trace-batch-20261104/perf-f1fc97b-installation", "--database-port", "60463", "--api-port", "60464", "--output", "/Users/yichen/tmp/membrain-trace-batch-20261104/canonical-f1fc97b.json", "--bulk-to", "0"], "disk_free_before": 4151672832, "exit_code": 0, "source_unchanged": true, "both_ports_closed": true, "disk_free_after": 3753861120}

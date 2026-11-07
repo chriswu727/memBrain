@@ -1,0 +1,13 @@
+{
+  "ci.json": "90c26d3c9bdf492314f3fee5fba3eb135137858234330ac182ef55be81447dfa",
+  "install-final.json": "f72602c7c20e159c3ca54c6de65510a923f53524b5802e586452ad96652670b5",
+  "ci-file-failure.json": "2c301f2e1c4939139260a69ae21f8fc2c15507a2b38d8e1f29dc6e03c51f3a57",
+  "installed-package.json": "07b519b67a683a404524de8b293d2d3e16c52416dcbfa1a394a0cf54a4c59bc9",
+  "runtime-abba.json": "e992d832858ef97e49a46585f09f6e19443a02e51890a31c4a9d102110aa3eb1",
+  "failed-fixture-cleanup.json": "4fab7f386d4b5481517cae8141c5a9552efbfb8e3f1dcb738f22cd6c6b442e49",
+  "visual-recall-abba.json": "061d973de1734b96614b7778196af344b59af5f5b17a28358f4662ff19e30ccf",
+  "heap-diagnostic.json": "39bee9f006570723905a64878d8d2a9d8c0a014c3147c278f6eab858ba2fad99",
+  "recall-canonical.json": "0cfbf4957adfe806c87652d05ad1d4148cf4027a307a1dc150c696314b564a35",
+  "logs-and-harnesses.tar.gz": "2c63e6d363f58316357af6e413a1de7afcf87749dadc322cad7e17860ef427be",
+  "install-first-failed.json": "4ffa5121fe619f41588a3210481a885d52b62cba9c77cef3f4cb443d23928c57"
+}

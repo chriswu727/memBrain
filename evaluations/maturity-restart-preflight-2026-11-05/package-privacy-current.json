@@ -1,0 +1,25 @@
+{
+  "completed": true,
+  "exact_values_checked": 270,
+  "environment_files_read": [],
+  "profile_files_read": 90,
+  "scope": "Exact known credentials from this batch's synthetic profiles/current preserved fixture, repository dotenv files and MEMORY_/MEMBRAIN_ process secrets; not a general secret detector or final independent privacy review",
+  "artifacts": [
+    {
+      "artifact": "membrain_ai-0.1.0-py3-none-any.whl",
+      "sha256": "dd493da75ea487f29bfb73eb4e958192a43b294b2ebadd93494b1e6e7427d0be",
+      "file_members": 189,
+      "uncompressed_bytes_scanned": 16547545,
+      "forbidden_member_names": [],
+      "known_credential_matching_members": []
+    },
+    {
+      "artifact": "membrain_ai-0.1.0.tar.gz",
+      "sha256": "1061044180e907071a433e476384bce1d814703c21474e04e30a248b3bc00331",
+      "file_members": 593,
+      "uncompressed_bytes_scanned": 22863939,
+      "forbidden_member_names": [],
+      "known_credential_matching_members": []
+    }
+  ]
+}

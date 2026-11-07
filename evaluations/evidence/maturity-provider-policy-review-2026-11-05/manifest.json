@@ -1,0 +1,29 @@
+{
+  "review_source": "ee039e7",
+  "reported_turns": 4,
+  "duration_ms": 139138,
+  "scope": "ordinary code review plus offline mock probe; no model evaluation",
+  "files": [
+    {
+      "path": "claude-review.txt.gz",
+      "bytes": 2229,
+      "sha256": "9663c11ee93abb440aadf494b7d3f973768729e12a6c892cf567b87d6b4caf47",
+      "original_bytes": 4566,
+      "original_sha256": "ae229abfacd218bbde2bdac1c458245a90d52726fcd446e65a5639b23b9cb018"
+    },
+    {
+      "path": "policy-check.json.gz",
+      "bytes": 188,
+      "sha256": "16e2b6a02edb54a485d189a948376e1ed33202b5f9614551b2222d040f40c37f",
+      "original_bytes": 219,
+      "original_sha256": "89368599deb8c91edb3c26f8551a4179d0081268be9af09b46f054eebb90caa3"
+    },
+    {
+      "path": "probe-policy.py.gz",
+      "bytes": 950,
+      "sha256": "101dda948f365b766cd55f3614267340af6b45b5b9a7527e543ee14122d54212",
+      "original_bytes": 1945,
+      "original_sha256": "26f6861c388314a0338e99cb35df4c9c6a57a72617dcc1ccd40e719f72d59268"
+    }
+  ]
+}

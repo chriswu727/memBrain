@@ -1,0 +1,91 @@
+{
+  "attempt_id": "maturity-20261106a",
+  "candidate": "1a0083d419512920e354eeeb8e972fdffd73a171",
+  "result": "stopped",
+  "stop": {
+    "at": "2026-11-06T18:44:34+00:00",
+    "detail": "the runner exited 1",
+    "key": "s2",
+    "reason": "runner_failed"
+  },
+  "scenario_statuses": {
+    "c1": "not_run",
+    "c2": "not_run",
+    "s1": "valid",
+    "s2": "runner_failed"
+  },
+  "eligible": {
+    "C5": false,
+    "R4": false
+  },
+  "safe_diagnosis": {
+    "s2-P": {
+      "completed_turns": 8,
+      "expected_turns": 63
+    },
+    "s2-E": {
+      "completed_turns": 5,
+      "expected_turns": 63
+    },
+    "s2-F": {
+      "completed_turns": 5,
+      "expected_turns": 63,
+      "exception_classes": {
+        "BudgetStop": 1
+      }
+    }
+  },
+  "request_count": 325,
+  "settled_count": 322,
+  "settled_conservative_cny": 20.445113,
+  "unsettled_reservation_cny": 60.162048,
+  "total_budget_accounted_cny": 80.607161,
+  "limit_cny": 280,
+  "ledger_blocked": true,
+  "recorded_stop_reason": "arm_failed",
+  "underlying_failure": "Not recorded; do not infer a transport timeout, HTTP status or malformed response from BudgetStop alone.",
+  "balance_before_cny": "195.22",
+  "balance_terminal_cny": "190.88",
+  "observed_balance_change_cny": "4.34",
+  "balance_scope": "Account snapshots may include unrelated activity or delayed billing; not a final invoice.",
+  "ports_closed": [
+    8893,
+    55533,
+    8894,
+    55534
+  ],
+  "private_evidence_sha256": {
+    "attempt-manifest.json": "51a7653b6b5a37245461932b44e26f71a20cf449be35b9f60745ab83a3737626",
+    "run/attempt-state.json": "8e16e9b421b07161a8c2844259d8dfc32fa54fa353e53b6c75f108dec04d0715",
+    "billing-ledger.json": "538f27ce8937fe9bdf36ccad6a99dff8579b460612e0c3897b4e026e35eb43c5",
+    "initial-balance.json": "d645a48e1c4757da1ed601b1f7e9d8582b725a94eb0bf7510e328836b6aa8f18",
+    "balance-observations.jsonl": "3f1973867c633075301fdb9e536c6a43d954ae8b21e0c82cab85f691f0f9db4f",
+    "run/driver-logs/s1.validity.log": "e574c119425a2dad488cd706629653ee7d8c6656db9bb10a17d8c84965038056",
+    "run/s1-P/results_s1_P.jsonl": "9e86c97fadf49ae659c1722cd28252ee791e8db0e08c740a0844bcb0aab7ab3b",
+    "run/s1-E/results_s1_E.jsonl": "7a3604a1cb0a60fd665867f9330ac0197ee17a409781c959da9ea089efeea0ed",
+    "run/s1-F/results_s1_F.jsonl": "d26e19aaae420b29f13c96db08410c101457ecefec854d6c1ee4bdcb04e920e0",
+    "run/s2-P/results_s2_P.jsonl": "77f6155296bc699fe6d1b4c036a15783d7714f772ce2e38d371ecb147272c8fb",
+    "run/s2-E/results_s2_E.jsonl": "4be096cf26224435b4f8f58559754a717e96c949ea043a575d363208ff248172",
+    "run/s2-F/results_s2_F.jsonl": "b096ef92f4b80d7820341b6513e05b6889788555bc3d5d3c2dd202a38a993712"
+  },
+  "prospective_diagnostic_repair": {
+    "source": "aa06963628bc1080672d630a46219dd4d00876c5",
+    "verify_run": 42274698669,
+    "verify_conclusion": "success",
+    "python_passed": 7561,
+    "python_warnings": 3,
+    "python_skipped": 0,
+    "typescript_passed": 50,
+    "typescript_skipped": 0,
+    "native_run": 42274698659,
+    "native_conclusion": "success",
+    "native_platforms_passed": 5,
+    "native_unique_summary_count": 47,
+    "optional_dispatch_only_jobs_skipped": [
+      "linux-build",
+      "linux-current"
+    ],
+    "evidence_manifest": "evidence/maturity-billing-diagnostics-2026-11-06/manifest.json",
+    "does_not_revalidate_stopped_attempt": true
+  }
+}

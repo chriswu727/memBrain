@@ -1,0 +1,59 @@
+--- a/evaluations/c5-harness.py
++++ b/evaluations/c5-harness.py
+@@ -129,0 +130,12 @@
++
++
++@contextmanager
++def bookkeeping_errors(out: Path, session: str, turn: int, stopping: list):
++    errors = []
++    try:
++        yield errors
++    except Exception as error:
++        errors.append(error)
++        harness_event(out, "bookkeeping_failed", session=session, turn=turn)
++        if "bookkeeping_failed" not in stopping:
++            stopping.append("bookkeeping_failed")
+@@ -1049 +1061,3 @@
+-            with deferred_stop(stopping):  # The reply is paid for: its row is written before any stop.
++            halted, recorded = None, False
++            # The reply is paid for: its row is written before any stop.
++            with deferred_stop(stopping), bookkeeping_errors(out, session, index, stopping) as errors:
+@@ -1052 +1066 @@
+-                halted, recorded = billing_halt(stopping), False
++                halted = billing_halt(stopping)
+@@ -1081 +1095 @@
+-                row["recorded"] = recorded
++                row["recorded"] = None if errors else recorded
+@@ -1088,2 +1102,2 @@
+-            if halted is not None:
+-                raise halted
++            if errors or halted is not None:
++                raise errors[0] if errors else halted
+--- a/tests/test_c5_harness_hardening.py
++++ b/tests/test_c5_harness_hardening.py
+@@ -643,0 +644,25 @@
++
++
++def test_billed_host_reply_is_retained_when_memory_bookkeeping_raises(stub_run, shared_ledger, tmp_path, monkeypatch):
++    monkeypatch.setattr(harness, 'STUB', False)
++    monkeypatch.setattr(harness, 'BILLING', None)
++
++    def unavailable(*args, **kwargs):
++        raise RuntimeError('independent synthetic bookkeeping failure')
++
++    monkeypatch.setattr(harness.Memory, 'record_turn', unavailable)
++    with pytest.raises(RuntimeError, match='independent synthetic bookkeeping failure'):
++        stub_run('P', SCENARIO)
++    state = shared_ledger.state()
++    assert len(state['requests']) == 1
++    assert all(entry.get('actual_micros') is not None for entry in state['requests'].values())
++    result = tmp_path / 'run-P/results_zq-synthetic-scenario_P.jsonl'
++    assert result.exists(), 'The host reply was billed but its result row was never written.'
++    rows = [json.loads(line) for line in result.read_text().splitlines()]
++    assert len(rows) == 1 and rows[0]['reply'] == 'Fake reply.' and rows[0]['usage']['total_tokens'] == 15
++    assert rows[0]['stopped_after'] == 'bookkeeping_failed' and rows[0]['recorded'] is None
++    events = [json.loads(line) for line in (tmp_path / 'run-P/harness-events.jsonl').read_text().splitlines()]
++    assert len(events) == 1 and events[0]['kind'] == 'bookkeeping_failed'
++    assert set(events[0]) == {'time', 'kind', 'session', 'turn'}
++    assert shared_ledger.provider.models == [harness.MODEL]
++    assert state['blocked'] is True and state['stop_reason'] == 'harness_degraded'

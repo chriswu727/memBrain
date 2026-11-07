@@ -1,0 +1,25 @@
+FFF                                                                      [100%]
+=================================== FAILURES ===================================
+____ test_sensitive_notes_do_not_leak_through_sources_dates_or_person_links ____
+tests/test_memory_map.py:109: in test_sensitive_notes_do_not_leak_through_sources_dates_or_person_links
+    assert nodes["note:" + private]["recorded_at"] is None
+E   AssertionError: assert '2026-11-04T22:34:51.070416Z' is None
+---------------------------- Captured stderr setup -----------------------------
+Starting the local memory database and service…
+____ test_sensitive_evidence_masks_assertions_episodes_patterns_and_sources ____
+tests/test_structure_map.py:76: in test_sensitive_evidence_masks_assertions_episodes_patterns_and_sources
+    assert all(node["recorded_at"] is None for node in result["nodes"] if node.get("sensitive"))
+E   assert False
+E    +  where False = all(<generator object test_sensitive_evidence_masks_assertions_episodes_patterns_and_sources.<locals>.<genexpr> at 0x117a63370>)
+____________ test_sensitive_shared_moment_and_its_source_are_masked ____________
+tests/test_companion_map.py:176: in test_sensitive_shared_moment_and_its_source_are_masked
+    assert all(node["recorded_at"] is None for node in hidden["nodes"] if node.get("masked"))
+E   assert False
+E    +  where False = all(<generator object test_sensitive_shared_moment_and_its_source_are_masked.<locals>.<genexpr> at 0x117b7a330>)
+---------------------------- Captured stderr setup -----------------------------
+Starting the local memory database and service…
+=========================== short test summary info ============================
+FAILED tests/test_memory_map.py::test_sensitive_notes_do_not_leak_through_sources_dates_or_person_links
+FAILED tests/test_structure_map.py::test_sensitive_evidence_masks_assertions_episodes_patterns_and_sources
+FAILED tests/test_companion_map.py::test_sensitive_shared_moment_and_its_source_are_masked
+3 failed in 3.56s

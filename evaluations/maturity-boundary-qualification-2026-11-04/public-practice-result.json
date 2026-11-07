@@ -1,0 +1,17 @@
+{
+  "source_commit": "b406c1981275b33986c986d84bf0a6dca3325f54",
+  "runtime_pin": "e749a24e86d45d25d1a06d9fcba223e9adf69fcb",
+  "protocol": "Public practice only; deterministic host/extractor stubs; keyword recall; no model cache, provider credential or live request. Harness refuses non-loopback sockets.",
+  "completed": false,
+  "arms": {
+    "P": {
+      "returncode": 143
+    },
+    "E": {
+      "returncode": 1
+    },
+    "F": {
+      "returncode": 143
+    }
+  }
+}

@@ -1,0 +1,21 @@
+{
+  "purpose": "real PostgreSQL invalid receipt write regression; not an R5 performance run",
+  "label": "trace-ordered",
+  "model_calls": 0,
+  "source_sha256": {
+    "src/membrain/service.py": "8007ca7b190c1482eb06cb6bea11bf069a7ea03eb04a4d8e2039bd4ccdc69a24",
+    "src/membrain/recovery.py": "61e037d4a1901dec5ac060411499fe28b96f640a8038b5a51a55819654db016c",
+    "tests/test_storage.py": "c6290fff8d0ec1c55bc3e359f0d88c8993b7f85220f8770a1b4fe3eb25ba25be",
+    "tests/test_recovery_quarantine.py": "472f215b8a428cb56e18af6db38d55b893679ee4ffc4687bd10509ca7fc4903a",
+    "tests/test_response_validation.py": "3e65f0a9dadaa35e200849399658df6b5d83056e8f40dfea43b3e2f672209f83"
+  },
+  "selection": [
+    "tests/test_response_validation.py",
+    "tests/test_feedback_dynamics.py",
+    "tests/test_autonomous_feedback.py",
+    "tests/test_dynamics.py"
+  ],
+  "exit_code": 0,
+  "source_unchanged": true,
+  "both_ports_closed": true
+}

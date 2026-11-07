@@ -14,10 +14,11 @@ Status: **not passed**. Revised on 2026-11-02 for the product that ships: memory
 
 Storage uses embedded PostgreSQL (Docker remains supported). Semantic recall uses a local multilingual model; no model key is needed for memory itself.
 
-**Platforms.** Linux and macOS are tested by the automated suite. The macOS desktop flow still needs one check on a real machine before it is advertised as verified. Windows has launchers but is not certified.
+**Platforms.** Linux and macOS are tested by the automated suite. Previous embedded runtimes pass the real Mac launcher install/upgrade/recovery checks and installed-package/browser journey; candidate `28c0b3e` also passes fresh 49/49 checks and exact 165-file [installed-runtime requalification](../evaluations/maturity-lexical-channels-2026-11-04.md); [evidence and remaining limits](../evaluations/maturity-owned-recall-2026-11-04.md) name the exact pin. Windows has launchers but is not certified.
+
+**Companion scope.** Personality, mood and relationship development were outside this original core contract. The owner's later [first-release maturity bar](../docs/releasing.md) now requires the companion layers and C5 before publication; their [Phase C design](phase-c-design.md) defines the additional acceptance.
 
 **Out of scope.**
-- Personality and emotion.
 - The cognition runtime's learning cycles as a supported feature.
 - Streaming, multimodal input and native installers.
 - Any claim that memBrain is better than other memory systems; the published comparisons are reported with their limits.
@@ -62,12 +63,17 @@ This gate follows a plan frozen and independently reviewed before any paid call:
   - it has no more host-caused critical errors than the reference.
 - **Why this rule.** The [gate review](../evaluations/v1-2026-11-03-gate-review.md) explains the change. The first rule (at least 20 of 22 and no critical error, attempts 1 and 2) could not be met even by the reference arm with perfect information, so it measured the host model rather than memBrain.
 - **If it fails.** The cause is repaired, and the gate is retried only on new scenarios.
-- **Status (2026-11-07): not passed after six attempts.** The [README summary](../README.md#final-behavioral-acceptance-r4-attempts-1-to-6) and the [attempt 6 report](../evaluations/v1-2026-11-07-final-acceptance-6.md) give the details. Both memory paths score above the whole-history reference. The remaining failures are the host restating recalled assistant suggestions as user facts; recall leaves those replies out since commit `ac93f33`, which no paid run has tested yet. On 2026-11-07 the owner chose to close the current problems and move on to the next phase rather than run a seventh attempt. On 2026-11-03 the owner set a maturity bar for the first release ([release checklist](../docs/releasing.md)): R4 must pass before release, so stating the failure is no longer enough.
+- **Current status:** the [third maturity attempt](../evaluations/maturity-third-attempt-2026-11-06.md) completed R4 and failed for the plugin, while its extraction arm passed; C5 stopped incomplete. Subsequent runtime repairs and the [proposal-action tooling repair](../evaluations/maturity-proposal-selection-2026-11-06.md) have public regression evidence but no fresh real-model acceptance. Any further attempt requires new held-out scenarios and separate approval.
+- **Historical status (report dated 2026-11-07): not passed after six attempts.** The [README summary](../README.md#final-behavioral-acceptance-r4-attempts-1-to-6) and the [attempt 6 report](../evaluations/v1-2026-11-07-final-acceptance-6.md) give the details. Both memory paths score above the whole-history reference. The remaining failures are the host restating recalled assistant suggestions as user facts; recall leaves those replies out since commit `ac93f33`, which no paid run has tested yet. On 2026-11-07 the owner chose to close the current problems and move on to the next phase rather than run a seventh attempt. On 2026-11-03 the owner set a maturity bar for the first release ([release checklist](../docs/releasing.md)): R4 must pass before release, so stating the failure is no longer enough.
 
 ### R5 — Local overhead stays bounded
 
+Current runtime `fc149df` passes [all 36 fullscreen reference windows](../evaluations/maturity-semantic-balance-2026-11-07.md#exact-runtime-installation-and-fullscreen-qualification), with 4,080 nonempty recalls and worst serial/same-brain/eight-brain p95 422.79/317.04/546.25 ms. This covers the declared keyword fixture, not arbitrary capacity or semantic quality.
+
+Historical candidate `9f75361` passes fresh canonical 88.91/433.97/447.56 ms and all 36 complete fullscreen windows, worst eight-brain p95 465.93 ms, with 4,080 nonempty recalls. This is verified for the frozen development protocol; no prior pass is inherited.
+
 These are development regression budgets, not service-level promises:
-- **Recall.** Warm recall over 1,000 messages stays under 500 ms at p95 on the development fixture ([workflow benchmark](../evaluations/v1-2026-10-30-workflow-benchmark.py)). Since 2026-11-03 the release checklist also has a proposed concurrent bar, which is not yet met: 8 concurrent recalls on one brain at most 1,000 ms p95 (measured 2,582 ms), and on 8 brains at most 600 ms. The conditions are in the [test matrix](../evaluations/maturity-test-matrix.md), gap 20.
+- **Recall.** Warm recall over 1,000 messages stays under 500 ms at p95 on the development fixture ([workflow benchmark](../evaluations/v1-2026-10-30-workflow-benchmark.py)). Concurrent bars are at most 1,000 ms p95 on one brain with eight workers and at most 600 ms on eight brains. [Current frozen results](../evaluations/maturity-recall-cache-2026-11-04.md) meet these unchanged bars. Previous `d4f0c03` fails a complete fullscreen eight-brain window at **892.11 ms**, despite passing canonical recall; [that failure](../evaluations/maturity-companion-privacy-2026-11-04.md), [earlier release qualification failures](../evaluations/maturity-release-qualification-2026-11-04.md) and [other dated results](../evaluations/maturity-boundary-refresh-2026-11-04.md) remain preserved and scoped to their pins. The separately interrupted manual-window-close attempt is not counted as a completed pass. Conditions remain in [matrix gap 20](../evaluations/maturity-test-matrix.md).
 - **Hooks.** They never block the host: they return on timeout, and records are queued while the service is unavailable.
 
 ### R6 — Deliver and stop

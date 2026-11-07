@@ -1,0 +1,100 @@
+{
+  "source_head": "ba863a9642f3106a0b3b057021a103483019dc00",
+  "installed_launcher_source": "b406c1981275b33986c986d84bf0a6dca3325f54",
+  "runtime_pin": "e749a24e86d45d25d1a06d9fcba223e9adf69fcb",
+  "runtime_changes_after_installation": false,
+  "installation_passed": 49,
+  "installed_files_match": 165,
+  "installed_cache_replay_prevented": true,
+  "harness_followup_passed": 483,
+  "harness_warnings": 2,
+  "roleplay_passed": 6,
+  "public_practice_checks": 250,
+  "public_practice_strict_valid": true,
+  "r5": "fails retained complete fullscreen comparison, not repeated",
+  "latest_ci": {
+    "source_commit": "ba863a9642f3106a0b3b057021a103483019dc00",
+    "runtime_pin": "e749a24e86d45d25d1a06d9fcba223e9adf69fcb",
+    "run_id": 41915395596,
+    "job_id": 126873566604,
+    "conclusion": "success",
+    "python_passed": 7024,
+    "python_skipped": 0,
+    "warnings": 3,
+    "seconds": 947.71,
+    "typescript_passed": 50,
+    "typescript_failed": 0,
+    "typescript_skipped": 0,
+    "strict_types": "pass",
+    "ruff": "pass",
+    "sdist_wheel": "pass",
+    "docker_cases": {
+      "test_desktop_e2e.py": [
+        "tests/test_desktop_e2e.py::test_cold_start_concurrent_connect_restart_and_mcp_preserve_one_brain PASSED [ 41%]"
+      ],
+      "test_desktop_recovery_e2e.py": [
+        "tests/test_desktop_recovery_e2e.py::test_full_streamed_backup_restores_current_deletions_and_requires_explicit_epoch PASSED [ 42%]"
+      ],
+      "test_desktop_upgrade_e2e.py": [
+        "tests/test_desktop_upgrade_e2e.py::test_independent_builds_detect_staleness_upgrade_and_reject_downgrade_without_data_loss PASSED [ 43%]"
+      ],
+      "test_standalone_chat_e2e.py": [
+        "tests/test_standalone_chat_e2e.py::test_chat_processes_recall_restart_deduplicate_and_block_unknown_generation PASSED [ 96%]"
+      ]
+    },
+    "full_log_sha256": "b68d7a8e047c96aea3d0ee41b299fb23a3329050f3d2685fbcf0ac9adbfa3ef9"
+  },
+  "model_evaluation_calls": 0,
+  "file_hashes": {
+    "storage-diagnosis-v2.py": "fdab23656b1425ee13d7db61d2dd7c694ea6c2bfccce29e42aee218e54d6419f",
+    "storage-diagnosis-v2.log": "b1c0f0702f0f16dcf4dc72af620c8003e3d29e282198242c858e8f2eaa6385b4",
+    "harness-followup-tests.log": "42cc24f1b11949722af5bf07f613b3ef36558abf15edadb819bf58c30d3d7e2c",
+    "ci-b406-result.json": "5d6ca6bfd4ab5861588386f05af9edfa766f1513aa81e809a2413b4827b920cc",
+    "public-practice-result.json": "984ce2623835b7cc2cf78852659f8f73a79ffd819cfce9f16bedc59f181091bf",
+    "qualification-ports.json": "64b439c30eff0d38e8b9325aa0d5b6790fb76b1ba43d053cf993ca88db83e48b",
+    "installation-summary.json": "917b43203bbde1ae17ad046ca4db1e61ce44bb1c2a8cbafcd644c924d8fe27fd",
+    "run-public-practice-v2.py": "a874446fa6b785fd196235b8f468f97a50c7df03277ac7b84e4ba8e58d2d7325",
+    "public-practice-v2-validity.json": "6944038cca8acff562db9cd7c2a568a9247b231f148804609380a096bb60c6b4",
+    "ci-ba863a9.log.gz": "0a7a7a2c77d24135f4c7104952c640c92331cba5000779fc9e9b60c81b31dec5",
+    "check-installed-boundaries.py": "a96a91625d28234aa4c122bd697aad0678b7bc4071202ba5cd25fc9eeb2bc819",
+    "run-public-practice.py": "6a92a060eb652eb17b53027e5a583c16b602d2ac20ea190e83755a47295ce106",
+    "canonical-profile-archive.json": "ebea02d7470755f3f90862b27cdd799a7231197c25a0925fd066b8881c932e44",
+    "ci-b406.log.gz": "5f9b39c13e3eb2c88a69affa3bdcef8c42ef11d6ca7cdd2048b0aa64930fd7ec",
+    "verify-cold-profile.py": "3c6973284445bb96daadf452b74755e959937e17c8f5a84726b3573c05158d7d",
+    "installed-followup-hologram.png": "51ca95aef12de2a666d601043439124a4e3890b6446368975209421374ce30cc",
+    "public-practice-v2-result.json": "79555ad7e085ed37a2279d9e04b93cd248468bd7f780247ecc0be36574b8f7c0",
+    "installed-followup-smoke.json": "8ec549d9602bdcc5fe5773fb12fa75377e0a11ff62bc5538b7d581c788b99466",
+    "roleplay-after.log": "3ba0fd6da0f1d935b89ca699626b759cd9587e578cf9d3f8419183f5222d4b1c",
+    "ci-ba863a9-result.json": "76dd8bd8eeb3a73cf25cd7150d4d190b4fcef7452fd84cd2c78843c3e8688fd9",
+    "archive-incomplete.json": "fdce0f8a62bd8500f7f86822700fc7903c1be233de4fa770f738d81cd6be9da6",
+    "archive-incomplete-v2.json": "e6568b6ea5b180b6edd82a5b5ae6b4a46324f55d4079d40424362aeceec7c0aa",
+    "install-run-meta.json": "e3b99898afec6f0aae17f23c4398754718a3452a1e3be24e22d5177c2442616a",
+    "public-practice-v2-check.log": "010f206e79fc09d5a4f457c9a2e48e816e0903bcfcf2cdc5d606b0983bc4cfef",
+    "run-install.py": "adf2af0bec17e7eb2915fa68e15d41a81b978b25385fb646649514b6b25ee143",
+    "storage-diagnosis.json": "83c67dde3775cefbd2bc3f0fbcc99eeae377bf9f166c04187b2352e02177ff3f",
+    "older-fixture-cleanup.json": "a67d78b4f98d4859537c57fb685f9f016857e43dc66af04c9c1240fbdcc29c85",
+    "storage-diagnosis.py": "708fb71cb0d127881cc266e677d684ba80cff4dee5fc1dc3a55ffc98193838b1",
+    "storage-diagnosis-v2.json": "7fe70c8de6f745826aa7712bc2def8cd7c7d6abed5d95454432eb36643f76626",
+    "public-practice-validity-failed.json": "a98287442f764c8f11c0442fd253244f1c1a7d5874d78c1500c05349e4b106b0",
+    "failed/practice-F/results_c5-practice-scenario_F.jsonl": "9623c324e75ecb976a4cd44815ec5610ba557c67041a47e80e8035745a64b36c",
+    "failed/practice-F/run.log": "4577fc4bed18ad6fccb35780df4b3eb9a5b70cb4a06373269baea9600d9e3339",
+    "failed/practice-F/page-actions.jsonl": "b5c8a5a41070f9e1e6e6124419ecabce00ca7703f870d28db42ea0cc119c0f07",
+    "failed/practice-P/run.log": "2661aff8fbeacc9838311513910b295e05b7da5501e040cf0910da1bb5ce4643",
+    "failed/practice-P/results_c5-practice-scenario_P.jsonl": "4a9402490758bbebb6d1ea730d7f0596c9f492bc2556876187c266882f08e477",
+    "failed/practice-E/run.log": "4023df518610f6b31340984b7fe0fb71995124588d18987620d1af74a46dd105",
+    "failed/practice-E/results_c5-practice-scenario_E.jsonl": "a3ca3c390a4fc83be81aef45537ee5a5d8c33c02f94d0a67ffe4fe8245325922",
+    "corrected/practice-F/results_c5-practice-scenario_F.jsonl": "0691b37480dc61245d82eccee9e0ca6737ef0cfee2bc3c6477d26b0ccebe7bed",
+    "corrected/practice-F/run.log": "11adcd68ebdd9b6e78be018d72b10a35875260adb2de106e218b8acd0f5d55b0",
+    "corrected/practice-F/page-actions.jsonl": "1c11387b984cfce333eff6016deb94fd024848cd3de4a3fa0b26a76d33035c71",
+    "corrected/practice-P/run.log": "9d7879268e3502ba1b341b38bb3dc04f0b3535c39e86ea3b0e073fa2d6b1c742",
+    "corrected/practice-P/page-actions.jsonl": "e34ff50a53a00b4f98b60ad0d7fe4263349f1ccd49f645b768c4bbacdb2c4b24",
+    "corrected/practice-P/results_c5-practice-scenario_P.jsonl": "2a426842fc4933fa601bdc7d29ad137a40fa6c8a9870f6095f5ed585e9f3861e",
+    "corrected/practice-E/run.log": "34588d966186d294bad5e0852dac97723a2ec29306c338879c2270bc6c906439",
+    "corrected/practice-E/results_c5-practice-scenario_E.jsonl": "fa9f90e44af8904142b363de56c3c7676e43c87cd5f918b1bc6fcb1ecaf642eb",
+    "corrected/practice-E/page-actions.jsonl": "3e1a355f19e2e27c597ebef311a40eb44e0a9c89b48e56fe4ce34d2cce92128a"
+  },
+  "tested_sources_sha256": {
+    "evaluations/c5-harness.py": "c7f56749f9e3def988acedfb752ca188b9c1ccffc9a597aadba6c65e85737e2e",
+    "tests/test_roleplay.py": "e7577314f76feeaf2164156b023d43f1f3dffd23916dd448f79a7cb3c7a61637"
+  }
+}

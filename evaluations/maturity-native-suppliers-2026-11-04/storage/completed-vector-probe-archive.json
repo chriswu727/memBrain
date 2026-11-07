@@ -1,0 +1,11 @@
+{
+  "owned_completed_clusters": 3,
+  "regular_files_verified": 4442,
+  "archive_bytes": 25460749,
+  "archive_sha256": "429025166eaa48a8b48ff5c8cb2f17c704e1015418f4afe94ae0e3a00fdddde7",
+  "private_mode": "0o600",
+  "ports_closed": true,
+  "only_database_data_removed": true,
+  "all_logs_scripts_results_and_binaries_preserved": true,
+  "contains_failed_planner_attempt": true
+}

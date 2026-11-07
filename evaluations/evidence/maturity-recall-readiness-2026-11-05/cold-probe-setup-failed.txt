@@ -1,0 +1,5 @@
+Traceback (most recent call last):
+  File "/Users/yichen/tmp/membrain-recall-readiness-20261105/cold-probe.py", line 45, in <module>
+    assert process.poll() is None, f'API startup failed: {mode}'
+           ^^^^^^^^^^^^^^^^^^^^^^
+AssertionError: API startup failed: baseline

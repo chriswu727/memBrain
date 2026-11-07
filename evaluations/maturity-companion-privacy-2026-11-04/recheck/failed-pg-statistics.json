@@ -1,0 +1,636 @@
+{
+  "purpose": "read-only PostgreSQL statistics after completed failed R5; no performance acceptance",
+  "model_calls": 0,
+  "server": {
+    "version": "PostgreSQL 16.2 on aarch64-apple-darwin23.5.0, compiled by Apple clang version 15.0.0 (clang-1500.0.40.1), 64-bit",
+    "clock_timestamp": "2026-11-04 19:08:53.691413-07:00",
+    "pg_postmaster_start_time": "2026-11-04 19:08:53.546442-07:00",
+    "database_bytes": 668455395
+  },
+  "tables": [
+    {
+      "relname": "memory_access_state",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_archives",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_assertions",
+      "n_live_tup": 16020,
+      "n_dead_tup": 0,
+      "n_tup_ins": 16000,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": "2026-11-04 18:47:40.062576-07:00",
+      "autovacuum_count": 1,
+      "last_autoanalyze": "2026-11-04 18:47:40.200437-07:00",
+      "autoanalyze_count": 1
+    },
+    {
+      "relname": "memory_associations",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_belief_relations",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_brains",
+      "n_live_tup": 9,
+      "n_dead_tup": 0,
+      "n_tup_ins": 9,
+      "n_tup_upd": 16200,
+      "n_tup_del": 0,
+      "last_autovacuum": "2026-11-04 18:52:17.564037-07:00",
+      "autovacuum_count": 2,
+      "last_autoanalyze": "2026-11-04 18:52:17.579088-07:00",
+      "autoanalyze_count": 2
+    },
+    {
+      "relname": "memory_cognitive_budget_changes",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_cognitive_budgets",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_cognitive_operations",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_embeddings",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_episode_members",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_episodes",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_erasure_receipts",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_event_dependencies",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_events",
+      "n_live_tup": 8100,
+      "n_dead_tup": 0,
+      "n_tup_ins": 8100,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": "2026-11-04 18:47:38.943567-07:00",
+      "autovacuum_count": 1,
+      "last_autoanalyze": "2026-11-04 18:47:38.971411-07:00",
+      "autoanalyze_count": 1
+    },
+    {
+      "relname": "memory_feedback_contributions",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_jobs",
+      "n_live_tup": 8100,
+      "n_dead_tup": 156,
+      "n_tup_ins": 8100,
+      "n_tup_upd": 16200,
+      "n_tup_del": 0,
+      "last_autovacuum": "2026-11-04 18:47:40.593366-07:00",
+      "autovacuum_count": 1,
+      "last_autoanalyze": "2026-11-04 18:47:40.636036-07:00",
+      "autoanalyze_count": 1
+    },
+    {
+      "relname": "memory_migrations",
+      "n_live_tup": 25,
+      "n_dead_tup": 0,
+      "n_tup_ins": 25,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_pattern_views",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_recovery_installations",
+      "n_live_tup": 1,
+      "n_dead_tup": 1,
+      "n_tup_ins": 1,
+      "n_tup_upd": 1,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_recovery_quarantine",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_requests",
+      "n_live_tup": 4915,
+      "n_dead_tup": 0,
+      "n_tup_ins": 4901,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": "2026-11-04 18:54:14.643819-07:00",
+      "autovacuum_count": 2,
+      "last_autoanalyze": "2026-11-04 18:55:14.727724-07:00",
+      "autoanalyze_count": 5
+    },
+    {
+      "relname": "memory_runtime_turn_transitions",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_runtime_turns",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_tombstones",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    },
+    {
+      "relname": "memory_traces",
+      "n_live_tup": 236244,
+      "n_dead_tup": 0,
+      "n_tup_ins": 236691,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": "2026-11-04 18:55:17.564843-07:00",
+      "autovacuum_count": 4,
+      "last_autoanalyze": "2026-11-04 18:55:18.500790-07:00",
+      "autoanalyze_count": 4
+    },
+    {
+      "relname": "memory_working_states",
+      "n_live_tup": 0,
+      "n_dead_tup": 0,
+      "n_tup_ins": 0,
+      "n_tup_upd": 0,
+      "n_tup_del": 0,
+      "last_autovacuum": null,
+      "autovacuum_count": 0,
+      "last_autoanalyze": null,
+      "autoanalyze_count": 0
+    }
+  ],
+  "bgwriter": [
+    {
+      "checkpoints_timed": 0,
+      "checkpoints_req": 3,
+      "checkpoint_write_time": 5.0,
+      "checkpoint_sync_time": 13.0,
+      "buffers_checkpoint": 280,
+      "buffers_clean": 56513,
+      "maxwritten_clean": 389,
+      "buffers_backend": 317000,
+      "buffers_backend_fsync": 0,
+      "buffers_alloc": 3634076,
+      "stats_reset": "2026-11-04 18:46:18.474135-07:00"
+    }
+  ],
+  "wal": [
+    {
+      "wal_records": 1536190,
+      "wal_fpi": 2458,
+      "wal_bytes": "747820262",
+      "wal_buffers_full": 423,
+      "wal_write": 46131,
+      "wal_sync": 0,
+      "wal_write_time": 0.0,
+      "wal_sync_time": 0.0,
+      "stats_reset": "2026-11-04 18:46:18.474135-07:00"
+    }
+  ],
+  "settings": [
+    {
+      "name": "autovacuum_analyze_scale_factor",
+      "setting": "0.1",
+      "unit": null
+    },
+    {
+      "name": "autovacuum_analyze_threshold",
+      "setting": "50",
+      "unit": null
+    },
+    {
+      "name": "autovacuum_naptime",
+      "setting": "60",
+      "unit": "s"
+    },
+    {
+      "name": "autovacuum_vacuum_scale_factor",
+      "setting": "0.2",
+      "unit": null
+    },
+    {
+      "name": "autovacuum_vacuum_threshold",
+      "setting": "50",
+      "unit": null
+    },
+    {
+      "name": "checkpoint_timeout",
+      "setting": "300",
+      "unit": "s"
+    },
+    {
+      "name": "max_wal_size",
+      "setting": "1024",
+      "unit": "MB"
+    },
+    {
+      "name": "min_wal_size",
+      "setting": "80",
+      "unit": "MB"
+    },
+    {
+      "name": "shared_buffers",
+      "setting": "4096",
+      "unit": "8kB"
+    },
+    {
+      "name": "track_io_timing",
+      "setting": "off",
+      "unit": null
+    }
+  ],
+  "relation_sizes": [
+    {
+      "relname": "memory_traces",
+      "table_bytes": 323362816,
+      "index_bytes": 44515328,
+      "total_bytes": 367878144,
+      "n_live_tup": 236244,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_requests",
+      "table_bytes": 185057280,
+      "index_bytes": 1048576,
+      "total_bytes": 186105856,
+      "n_live_tup": 4915,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_assertions",
+      "table_bytes": 52871168,
+      "index_bytes": 10715136,
+      "total_bytes": 63586304,
+      "n_live_tup": 16020,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_events",
+      "table_bytes": 19972096,
+      "index_bytes": 8626176,
+      "total_bytes": 28598272,
+      "n_live_tup": 8100,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_jobs",
+      "table_bytes": 3579904,
+      "index_bytes": 7864320,
+      "total_bytes": 11444224,
+      "n_live_tup": 8100,
+      "n_dead_tup": 156
+    },
+    {
+      "relname": "memory_brains",
+      "table_bytes": 1368064,
+      "index_bytes": 32768,
+      "total_bytes": 1400832,
+      "n_live_tup": 9,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_pattern_views",
+      "table_bytes": 8192,
+      "index_bytes": 57344,
+      "total_bytes": 65536,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_belief_relations",
+      "table_bytes": 8192,
+      "index_bytes": 57344,
+      "total_bytes": 65536,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_feedback_contributions",
+      "table_bytes": 8192,
+      "index_bytes": 49152,
+      "total_bytes": 57344,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_associations",
+      "table_bytes": 8192,
+      "index_bytes": 40960,
+      "total_bytes": 49152,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_runtime_turns",
+      "table_bytes": 8192,
+      "index_bytes": 32768,
+      "total_bytes": 40960,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_episodes",
+      "table_bytes": 8192,
+      "index_bytes": 32768,
+      "total_bytes": 40960,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_migrations",
+      "table_bytes": 16384,
+      "index_bytes": 16384,
+      "total_bytes": 32768,
+      "n_live_tup": 25,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_recovery_installations",
+      "table_bytes": 16384,
+      "index_bytes": 16384,
+      "total_bytes": 32768,
+      "n_live_tup": 1,
+      "n_dead_tup": 1
+    },
+    {
+      "relname": "memory_erasure_receipts",
+      "table_bytes": 8192,
+      "index_bytes": 16384,
+      "total_bytes": 24576,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_cognitive_operations",
+      "table_bytes": 8192,
+      "index_bytes": 16384,
+      "total_bytes": 24576,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_episode_members",
+      "table_bytes": 8192,
+      "index_bytes": 16384,
+      "total_bytes": 24576,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_cognitive_budget_changes",
+      "table_bytes": 8192,
+      "index_bytes": 16384,
+      "total_bytes": 24576,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_event_dependencies",
+      "table_bytes": 8192,
+      "index_bytes": 16384,
+      "total_bytes": 24576,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_runtime_turn_transitions",
+      "table_bytes": 8192,
+      "index_bytes": 8192,
+      "total_bytes": 16384,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_tombstones",
+      "table_bytes": 8192,
+      "index_bytes": 8192,
+      "total_bytes": 16384,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_cognitive_budgets",
+      "table_bytes": 8192,
+      "index_bytes": 8192,
+      "total_bytes": 16384,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_working_states",
+      "table_bytes": 8192,
+      "index_bytes": 8192,
+      "total_bytes": 16384,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_access_state",
+      "table_bytes": 8192,
+      "index_bytes": 8192,
+      "total_bytes": 16384,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_embeddings",
+      "table_bytes": 8192,
+      "index_bytes": 8192,
+      "total_bytes": 16384,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_recovery_quarantine",
+      "table_bytes": 8192,
+      "index_bytes": 8192,
+      "total_bytes": 16384,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    },
+    {
+      "relname": "memory_archives",
+      "table_bytes": 8192,
+      "index_bytes": 8192,
+      "total_bytes": 16384,
+      "n_live_tup": 0,
+      "n_dead_tup": 0
+    }
+  ],
+  "completed": true,
+  "ports_closed": true
+}

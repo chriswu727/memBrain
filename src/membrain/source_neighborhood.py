@@ -35,7 +35,7 @@ def _superseded_references(conn, params, event_ids, limit):
 
 def source_neighborhood_candidates(conn, service, principal, brain, target, seeds, *,
                                    through_sequence, seed_limit=8, event_limit=16, scan_limit=64,
-                                   excluded_versions=(), independent_of_event_ids=()):
+                                   excluded_versions=(), independent_of_event_ids=(), include_speech=True):
     from .candidates import _eligible, _scope_clause
     from .lexical_candidates import historical_support_filter
 
@@ -63,7 +63,7 @@ def source_neighborhood_candidates(conn, service, principal, brain, target, seed
     excluded = set(excluded_versions)
     clause, scope_params = _scope_clause("a", target)
     support_clause, support_params = historical_support_filter(excluded_events)
-    eligible = (_eligible() + clause + support_clause
+    eligible = (_eligible(include_speech=include_speech) + clause + support_clause
                 + "AND a.document->>'lifecycle' IN ('active','dormant') "
                 "AND NOT EXISTS (SELECT 1 FROM memory_events future WHERE future.tenant_id=a.tenant_id "
                 "AND future.owner_id=a.owner_id AND future.brain_id=a.brain_id AND future.id=ANY(a.event_ids) "

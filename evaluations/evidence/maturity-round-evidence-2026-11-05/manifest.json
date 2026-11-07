@@ -1,0 +1,77 @@
+{
+  "source_before": "e1da921ea126cf27c4cd42a02d5327c43304149a",
+  "runtime_unchanged": "174bc506595e9f96e4c38b0c10f737c7f98c639a",
+  "model_behavior_calls": 0,
+  "files": [
+    {
+      "path": "claude-review.txt.gz",
+      "bytes": 2558,
+      "sha256": "136fa499f79502c1448b9186f7d8852452c2a9e65c084f4c0dabaa968f5ede6c",
+      "original_bytes": 5558,
+      "original_sha256": "4b1425750c345bdff8db57dc3ad563ffbdce152797ad2b3e9781679f32b8ac4a"
+    },
+    {
+      "path": "claude-review-meta.json.gz",
+      "bytes": 136,
+      "sha256": "4210f9de0df9aa71c3a46ee3a6cbf0e7500c6df35451cc77f1f2af14c217e648",
+      "original_bytes": 148,
+      "original_sha256": "3223240450036c3d629eb0743691efb173ad6bdd237cabd9ae0ad523d3f2632b"
+    },
+    {
+      "path": "prompt.txt.gz",
+      "bytes": 735,
+      "sha256": "5a220874cae9e418fd2ca629431ddb6a9aadad0e12cfd9f7834616fb1b2fface",
+      "original_bytes": 1344,
+      "original_sha256": "f18684759fb94f7c5e978a943c6182309eeba3523cc3026f9834fe5ff5f7fd00"
+    },
+    {
+      "path": "round-journal-before.txt.gz",
+      "bytes": 1641,
+      "sha256": "196abdb593e97644408fc4c39f80301f1c1f53ce20cead58683089757a1e5e02",
+      "original_bytes": 8570,
+      "original_sha256": "2e45468240e0eb84f403618709048df42de7914d695b8fcf5d18bf1351a783fb"
+    },
+    {
+      "path": "round-journal-after.txt.gz",
+      "bytes": 392,
+      "sha256": "91d6f18b3c9576fc9dacd5313785d6777f70fe790b06fe8302224767be3f4dd5",
+      "original_bytes": 1035,
+      "original_sha256": "43bcb5f214fa0a15fcff120d89ee231c7c61bc28171c121085b7b2a9311fcf32"
+    },
+    {
+      "path": "round-resume-before.txt.gz",
+      "bytes": 678,
+      "sha256": "f025c00f30a447bb4b5eb97140e3cbd9390f188210e62c7431f0f51f4ebd297f",
+      "original_bytes": 1526,
+      "original_sha256": "92d23e9568309c02c0e606ec41f3dc105b522deeb09d532ad9b454c00cebff19"
+    },
+    {
+      "path": "round-resume-before-stub.txt.gz",
+      "bytes": 775,
+      "sha256": "0f8a08497bbc258c71993763b93f8da72ca02fa702f7e1dd62ca90af121aed91",
+      "original_bytes": 2106,
+      "original_sha256": "2a6beb5590e1e217fbbfe9ad485c6b025c7d14b02cf51100556e74681ecd6f7b"
+    },
+    {
+      "path": "round-final-focused.txt.gz",
+      "bytes": 67,
+      "sha256": "02ef45a1c03df4ef1360550e5d44944dfe097a4b5e1f4e937567ede72eb265a7",
+      "original_bytes": 114,
+      "original_sha256": "a249ae23ebf6d477cb8d42ab7d5b45879af856e02f64a4f6e03ffb29c88457c5"
+    },
+    {
+      "path": "native-intel-job.json.gz",
+      "bytes": 1849,
+      "sha256": "14d42a34589f99ed78f821dbce64b6094f5008df73b4d37a04489018cd4499ab",
+      "original_bytes": 8629,
+      "original_sha256": "569a8a70767cf35ea569b1d0c89cf10ea04dfeac999ea47a5ad1db6842dee4ec"
+    },
+    {
+      "path": "native-intel-annotations.json.gz",
+      "bytes": 425,
+      "sha256": "4cbb51f2cbb8e0403ac2701807243db65acdae84adc61a73b3e9d58ba90c4e52",
+      "original_bytes": 880,
+      "original_sha256": "5449e4da135a475612209c7705edb0b9705ef6decd049679f9e6b2f46b46985d"
+    }
+  ]
+}

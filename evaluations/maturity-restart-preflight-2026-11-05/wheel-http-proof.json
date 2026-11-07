@@ -1,0 +1,19 @@
+{
+  "completed": true,
+  "model_calls": 0,
+  "build_id": "bd1a653ea57c157c153b5ad09a1364961f04bf3cd5e7e10fab089ecb0fadcb70",
+  "new_database_created": false,
+  "new_dependencies_installed": false,
+  "failure_injected": "NativeBundleError in target tool loader",
+  "installed_package": "/Users/yichen/tmp/membrain-restart-preflight-20261105/wheel-env312/lib/python3.12/site-packages/membrain/__init__.py",
+  "dependencies_reused_read_only": true,
+  "clean_complete_installation_claimed": false,
+  "free_before_MiB": 560,
+  "loader_failure_preserves_live_service": true,
+  "rejected_restart_documents_unchanged": true,
+  "verified_restart_changes_instance": true,
+  "http_memory_after_restart": true,
+  "existing_vector_rows_preserved": 1000,
+  "owned_ports_closed": true,
+  "frozen_inputs_unchanged": true
+}

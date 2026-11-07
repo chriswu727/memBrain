@@ -1,0 +1,27 @@
+{
+  "completed": true,
+  "model_calls": 0,
+  "scope": "installed wheel engine verification and real preserved-engine restart; no automatic transition or final installation acceptance",
+  "build_id": "d185985f2809be7e1dd63be55729e6d8915a541e48108083d7e3b76a9067fc09",
+  "exact_runtime_files": 177,
+  "native_resource_files": 12,
+  "engine_store_from_installed_wheel": true,
+  "original_engine_files": 1645,
+  "original_engine_commitment": "24bd1f4e0f451740df985a664e58d01f13a801624b12ba520e7296c96154d68d",
+  "original_engine_restart_and_complete_sql_fingerprint_verified": true,
+  "ports_closed": true,
+  "source_and_checks_unchanged": true,
+  "frozen_files": 439,
+  "distributions": [
+    {
+      "name": "membrain_ai-0.1.0-py3-none-any.whl",
+      "bytes": 12848101,
+      "sha256": "37fd7347b69886d1b6356d404e2317b5f22ca91c3381f38860f6c3d61eab328f"
+    },
+    {
+      "name": "membrain_ai-0.1.0.tar.gz",
+      "bytes": 14644666,
+      "sha256": "1fa98c6349dad2209d688959c6596f868855492b0250a0f6d8865c17b182f2f5"
+    }
+  ]
+}

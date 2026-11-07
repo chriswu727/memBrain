@@ -58,6 +58,29 @@ def test_a_note_cannot_claim_sources_from_another_brain_and_failure_is_atomic(br
     assert brain.timeline(roles=("assistant",), conversation_id=NOTES_CONVERSATION)["items"] == []
 
 
+@pytest.mark.parametrize("delivery_state", ["draft", "cancelled"])
+def test_unspoken_messages_cannot_ground_notes_or_replace_valid_notes(brain, delivery_state):
+    current = write(brain, "The user has not chosen a travel date.")
+    source = brain.action("observe", {"idempotency_key": uid(), "events": [{
+        "source_event_key": uid(), "source_revision": 1, "producer_ref": "timeline-test",
+        "actor_ref": "assistant", "actor_role": "assistant", "event_kind": "message",
+        "content": {"media_type": "text/plain", "text": "Perhaps travel on December 12."},
+        "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
+        "interpretation_hint": "unknown", "delivery_state": delivery_state, "parent_source_event_keys": [],
+    }]})["accepted_event_ids"][0]
+    with pytest.raises(DomainError, match="source is unavailable") as failure:
+        write(brain, "Travel on December 12.", source_event_ids=[source], replaces=[current["note_id"]])
+    assert failure.value.code == "source_unavailable"
+    saved = brain.timeline(roles=("assistant",), conversation_id=NOTES_CONVERSATION)["items"]
+    assert [note["event_id"] for note in saved] == [current["note_id"]]
+
+
+def test_delivered_assistant_promises_remain_valid_sources_for_commitments(brain):
+    source = brain.say("I will help draft your packing list.", role="assistant")
+    saved = write(brain, "Help draft the packing list.", source_event_ids=[source], kind="agent_commitment")
+    assert saved["source_event_ids"] == [source]
+
+
 def test_note_replacement_cannot_suppress_original_messages_and_scrubs_secrets(brain):
     message = brain.say("Original user message.")
     with pytest.raises(DomainError):

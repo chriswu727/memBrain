@@ -1,0 +1,572 @@
+{
+  "purpose": "public supplier 16.15 with resource-only legacy vector upgrade on isolated APFS clone; no default integration or R5 pass",
+  "completed": true,
+  "model_calls": 0,
+  "stages": [
+    {
+      "stage": "old_16_2_clone",
+      "result": {
+        "version": "16.2",
+        "tables": {
+          "memory_access_state": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_archives": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_assertions": {
+            "rows": 16000,
+            "sha256": "fba15ccf1fb08ed2c867dca088f22d6e1b2017fe34da38ac391736597e212074"
+          },
+          "memory_associations": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_belief_relations": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_brains": {
+            "rows": 9,
+            "sha256": "e8bc0063cac18b22241735461e95f307b596d30d29c1751ba2e111815b219558"
+          },
+          "memory_cognitive_budget_changes": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_cognitive_budgets": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_cognitive_operations": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_embeddings": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_episode_members": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_episodes": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_erasure_receipts": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_event_dependencies": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_events": {
+            "rows": 8100,
+            "sha256": "594d7c1ea7167ca050abc4803b2306b2f1117eadf8e35dde0b6dd216321c2959"
+          },
+          "memory_feedback_contributions": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_jobs": {
+            "rows": 8100,
+            "sha256": "8a05b336902dc4823aac25d14e9c139d3e3003d1000aaca661b8589125eecfe5"
+          },
+          "memory_migrations": {
+            "rows": 25,
+            "sha256": "76510e904db1d84aa5f996764d9d64bde6069d087abff27f772d5bf3c03a28b4"
+          },
+          "memory_pattern_views": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_recovery_installations": {
+            "rows": 1,
+            "sha256": "589e0881fb998c690bce604215c4a4c64f34ef0d53fc06e6ee90e9b8b4c71aca"
+          },
+          "memory_recovery_quarantine": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_requests": {
+            "rows": 4901,
+            "sha256": "5fe9945ad36c95957f4f6f2a5d65f3792a98d9da3d7fb3b0c1ffdbd7ec1d5485"
+          },
+          "memory_runtime_turn_transitions": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_runtime_turns": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_tombstones": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_traces": {
+            "rows": 236691,
+            "sha256": "0abef8fdd0fa2b4fd62e2bc3e4d3c387f2c772763b0a007dd4c0b16f174d735e"
+          },
+          "memory_working_states": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "extensions": [
+          [
+            "plpgsql",
+            "1.0"
+          ],
+          [
+            "vector",
+            "0.6.2"
+          ]
+        ],
+        "vector_distance": 5.196152422706632,
+        "invalid_indexes": [],
+        "protected_views": [
+          [
+            "pg_stats_ext",
+            false
+          ],
+          [
+            "pg_stats_ext_exprs",
+            false
+          ]
+        ]
+      }
+    },
+    {
+      "stage": "new_16_15_before_catalog_repair",
+      "result": {
+        "version": "16.15",
+        "tables": {
+          "memory_access_state": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_archives": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_assertions": {
+            "rows": 16000,
+            "sha256": "fba15ccf1fb08ed2c867dca088f22d6e1b2017fe34da38ac391736597e212074"
+          },
+          "memory_associations": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_belief_relations": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_brains": {
+            "rows": 9,
+            "sha256": "e8bc0063cac18b22241735461e95f307b596d30d29c1751ba2e111815b219558"
+          },
+          "memory_cognitive_budget_changes": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_cognitive_budgets": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_cognitive_operations": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_embeddings": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_episode_members": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_episodes": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_erasure_receipts": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_event_dependencies": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_events": {
+            "rows": 8100,
+            "sha256": "594d7c1ea7167ca050abc4803b2306b2f1117eadf8e35dde0b6dd216321c2959"
+          },
+          "memory_feedback_contributions": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_jobs": {
+            "rows": 8100,
+            "sha256": "8a05b336902dc4823aac25d14e9c139d3e3003d1000aaca661b8589125eecfe5"
+          },
+          "memory_migrations": {
+            "rows": 25,
+            "sha256": "76510e904db1d84aa5f996764d9d64bde6069d087abff27f772d5bf3c03a28b4"
+          },
+          "memory_pattern_views": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_recovery_installations": {
+            "rows": 1,
+            "sha256": "589e0881fb998c690bce604215c4a4c64f34ef0d53fc06e6ee90e9b8b4c71aca"
+          },
+          "memory_recovery_quarantine": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_requests": {
+            "rows": 4901,
+            "sha256": "5fe9945ad36c95957f4f6f2a5d65f3792a98d9da3d7fb3b0c1ffdbd7ec1d5485"
+          },
+          "memory_runtime_turn_transitions": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_runtime_turns": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_tombstones": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_traces": {
+            "rows": 236691,
+            "sha256": "0abef8fdd0fa2b4fd62e2bc3e4d3c387f2c772763b0a007dd4c0b16f174d735e"
+          },
+          "memory_working_states": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "extensions": [
+          [
+            "plpgsql",
+            "1.0"
+          ],
+          [
+            "vector",
+            "0.6.2"
+          ]
+        ],
+        "vector_distance": 5.196152422706632,
+        "invalid_indexes": [],
+        "protected_views": [
+          [
+            "pg_stats_ext",
+            false
+          ],
+          [
+            "pg_stats_ext_exprs",
+            false
+          ]
+        ]
+      }
+    },
+    {
+      "stage": "new_16_15_after_repeated_catalog_repair",
+      "result": {
+        "version": "16.15",
+        "tables": {
+          "memory_access_state": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_archives": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_assertions": {
+            "rows": 16000,
+            "sha256": "fba15ccf1fb08ed2c867dca088f22d6e1b2017fe34da38ac391736597e212074"
+          },
+          "memory_associations": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_belief_relations": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_brains": {
+            "rows": 9,
+            "sha256": "e8bc0063cac18b22241735461e95f307b596d30d29c1751ba2e111815b219558"
+          },
+          "memory_cognitive_budget_changes": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_cognitive_budgets": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_cognitive_operations": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_embeddings": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_episode_members": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_episodes": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_erasure_receipts": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_event_dependencies": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_events": {
+            "rows": 8100,
+            "sha256": "594d7c1ea7167ca050abc4803b2306b2f1117eadf8e35dde0b6dd216321c2959"
+          },
+          "memory_feedback_contributions": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_jobs": {
+            "rows": 8100,
+            "sha256": "8a05b336902dc4823aac25d14e9c139d3e3003d1000aaca661b8589125eecfe5"
+          },
+          "memory_migrations": {
+            "rows": 25,
+            "sha256": "76510e904db1d84aa5f996764d9d64bde6069d087abff27f772d5bf3c03a28b4"
+          },
+          "memory_pattern_views": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_recovery_installations": {
+            "rows": 1,
+            "sha256": "589e0881fb998c690bce604215c4a4c64f34ef0d53fc06e6ee90e9b8b4c71aca"
+          },
+          "memory_recovery_quarantine": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_requests": {
+            "rows": 4901,
+            "sha256": "5fe9945ad36c95957f4f6f2a5d65f3792a98d9da3d7fb3b0c1ffdbd7ec1d5485"
+          },
+          "memory_runtime_turn_transitions": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_runtime_turns": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_tombstones": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_traces": {
+            "rows": 236691,
+            "sha256": "0abef8fdd0fa2b4fd62e2bc3e4d3c387f2c772763b0a007dd4c0b16f174d735e"
+          },
+          "memory_working_states": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "extensions": [
+          [
+            "plpgsql",
+            "1.0"
+          ],
+          [
+            "vector",
+            "0.6.2"
+          ]
+        ],
+        "vector_distance": 5.196152422706632,
+        "invalid_indexes": [],
+        "protected_views": [
+          [
+            "pg_stats_ext",
+            true
+          ],
+          [
+            "pg_stats_ext_exprs",
+            true
+          ]
+        ]
+      }
+    },
+    {
+      "stage": "new_16_15_restarted",
+      "result": {
+        "version": "16.15",
+        "tables": {
+          "memory_access_state": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_archives": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_assertions": {
+            "rows": 16000,
+            "sha256": "fba15ccf1fb08ed2c867dca088f22d6e1b2017fe34da38ac391736597e212074"
+          },
+          "memory_associations": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_belief_relations": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_brains": {
+            "rows": 9,
+            "sha256": "e8bc0063cac18b22241735461e95f307b596d30d29c1751ba2e111815b219558"
+          },
+          "memory_cognitive_budget_changes": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_cognitive_budgets": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_cognitive_operations": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_embeddings": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_episode_members": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_episodes": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_erasure_receipts": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_event_dependencies": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_events": {
+            "rows": 8100,
+            "sha256": "594d7c1ea7167ca050abc4803b2306b2f1117eadf8e35dde0b6dd216321c2959"
+          },
+          "memory_feedback_contributions": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_jobs": {
+            "rows": 8100,
+            "sha256": "8a05b336902dc4823aac25d14e9c139d3e3003d1000aaca661b8589125eecfe5"
+          },
+          "memory_migrations": {
+            "rows": 25,
+            "sha256": "76510e904db1d84aa5f996764d9d64bde6069d087abff27f772d5bf3c03a28b4"
+          },
+          "memory_pattern_views": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_recovery_installations": {
+            "rows": 1,
+            "sha256": "589e0881fb998c690bce604215c4a4c64f34ef0d53fc06e6ee90e9b8b4c71aca"
+          },
+          "memory_recovery_quarantine": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_requests": {
+            "rows": 4901,
+            "sha256": "5fe9945ad36c95957f4f6f2a5d65f3792a98d9da3d7fb3b0c1ffdbd7ec1d5485"
+          },
+          "memory_runtime_turn_transitions": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_runtime_turns": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_tombstones": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          },
+          "memory_traces": {
+            "rows": 236691,
+            "sha256": "0abef8fdd0fa2b4fd62e2bc3e4d3c387f2c772763b0a007dd4c0b16f174d735e"
+          },
+          "memory_working_states": {
+            "rows": 0,
+            "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+          }
+        },
+        "extensions": [
+          [
+            "plpgsql",
+            "1.0"
+          ],
+          [
+            "vector",
+            "0.6.2"
+          ]
+        ],
+        "vector_distance": 5.196152422706632,
+        "invalid_indexes": [],
+        "protected_views": [
+          [
+            "pg_stats_ext",
+            true
+          ],
+          [
+            "pg_stats_ext_exprs",
+            true
+          ]
+        ]
+      }
+    }
+  ],
+  "fingerprint_algorithm": "sort SHA256 of every complete row, preserving duplicates; no server-side text sort",
+  "catalog_script_sha256": "2a4edf00e85f28ac5cd8867477d572a5e7f609f416da18a00e18442a15baf83d",
+  "catalog_repair_databases": [
+    "agent_memory",
+    "postgres",
+    "template0",
+    "template1"
+  ],
+  "all_user_rows_identical": true,
+  "vector_version_preserved": true,
+  "invalid_indexes": 0,
+  "original_cluster_not_started_or_modified": true,
+  "ports_closed": true
+}

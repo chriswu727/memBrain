@@ -1,6 +1,6 @@
 # Phase C design: personality, mood and relationship development
 
-**Status.** Steps 0 to 4 (brain map, persona, affect, mood, relationship) are implemented and merged as of 2026-11-03; P2 and C5 are next. Scheduled by the owner on 2026-11-03. This turns the Phase C items in the [companion roadmap](companion-roadmap.md) into an order of work and the behaviours each step must show before it merges.
+**Status.** Steps 0 to 4 (brain map, persona, affect, mood, relationship) are implemented and merged as of 2026-11-03. Step 5 (P2) is implemented and reviewed on the pre-release integration candidate, including local and browser tests. The C5 harness has passed public stub checks; real-model C5 acceptance remains incomplete after the [third maturity attempt](../evaluations/maturity-third-attempt-2026-11-06.md). Final candidate acceptance and publication remain pending; see the [maturity checks](../evaluations/maturity-free-checks-2026-11-03.md). Requested by the owner on 2026-11-03; ongoing work is tracked by an active Goal, without a schedule. This turns the Phase C items in the [companion roadmap](companion-roadmap.md) into an order of work and the behaviours each step must show before it merges.
 
 **How acceptance works.** Acceptance is local tests and browser checks. No step here authorises a new paid or subscription model run. A paid behavioural run comes only with a separate plan the owner approves.
 
@@ -52,11 +52,52 @@ Development is not giving the user an emotion score. The user's feelings are one
    - `/memory?demo=brain&show=1` opens it with fictional data and no API call.
 2. **Edit and delete from the map.** Selecting a note on the map offers the same edit and delete as the Notes tab. After a change, the map redraws.
 3. **Recall trace.** The map can light up the records the latest message recall used.
-   - The service keeps the last 20 recalls, in memory only and never stored.
+   - For this visualization overlay, the service keeps the last 20 message-recall result sets in memory only. Core feedback traces and API idempotency receipts are separate persisted records; the overlay limit does not bound their storage or retention.
    - A recall that finds nothing is reported too, so an older hit is never shown as current.
    - The backend is done (`memory-map?trace=true`).
    - **Wording on the page.** The trace is labelled "Latest recorded recall" with its time. The page says that it covers message recall only: the notes and history added at the start of a session are not traced. It never says the trace is everything the current reply used.
 4. **Empty and busy maps.** An empty memory shows the empty message. A busy database shows "Memory is busy updating" with a retry.
+
+### C0 revision: a 3D memory observatory
+
+**Owner direction, 2026-11-03: required before publication; partially implemented, final acceptance open.** The graph must explain the memory system, including development of personality, mood and relationship. A rotating brain shell alone does not meet this requirement. The existing 2D view remains useful as an accessible inspection mode.
+
+**Current coverage (2026-11-05).** The legacy `memory_map.py` projects notes, user messages and note-linked affect. The page now requests `memory-map?structure=true`, whose `structure_map.py` projection adds bounded stored assertion versions and their evidence/derivations, episodes and membership, patterns, typed associations and belief relations. The separate read-only `companion-map` endpoint projects persona versions/proposals, surviving feedback, simulated mood with source-linked active/ended triggers, relationship settings, shared moments and commitment states. Both payloads reach the same 3D and 2D renderers through the graph-layer selector. [Persisted working-state versions, items and open loops](../evaluations/maturity-working-map-2026-11-05.md) now project their stored membership and currently valid evidence. The companion view adds a [derived familiarity summary](../evaluations/maturity-familiarity-map-2026-11-05.md), with complete visible day/moment counts and bounded references to actual graph records; it does not invent a familiarity neuron. Region counts describe the displayed sample; node weight is a layout hint. The latest recall trace is transient, caller-scoped message recall, not a complete account of what the host received or used. These limits stay visible in Graph coverage; see the [current evidence](../evaluations/maturity-owned-recall-2026-11-04.md).
+
+**Three questions the product must answer:**
+
+1. What does this agent remember, and what original evidence supports it?
+2. Which records did this particular recall return, and which context contributions are not observed?
+3. What changed in the companion, why did it change, and what can the user correct, reject or reset?
+
+**Model-to-view mapping.** A visual node represents a typed record or a clearly labelled aggregate. An edge represents a recorded relation with its basis; mere spatial proximity is never evidence of a relation.
+
+| Layer | Evidence the view should expose | Coverage at this revision |
+| --- | --- | --- |
+| Sources and curated notes | Original message, speaker, time, note and its source dependencies | Bounded existing map |
+| Learned memory | Assertion ID and revision, sources, applicability, supersession or conflict when recorded | Bounded stored versions, evidence/derivations and belief relations in 3D/2D |
+| Episodes and associations | Episode membership and typed associations with source evidence | Bounded stored episodes, membership, patterns and typed associations in 3D/2D |
+| User affect | Reported versus inferred feeling, attached record and evidence | Note-linked affect in existing map |
+| Persona development | Current version, proposal, explicit feedback and accepted/rejected/withdrawn decision | Companion controls and bounded 3D/2D graph; final acceptance pending |
+| Simulated mood | Current labelled simulation, baseline, applicable trigger evidence and recovery | Companion controls and bounded 3D/2D graph; final acceptance pending |
+| Working state | Stored version, item/open-loop membership, knowledge state and valid source evidence | Bounded persisted records in 3D/2D; no invented empty state |
+| Relationship | Shared moments, commitments, support style, boundaries and reset scope | Stored settings/moments/commitments in 3D/2D; derived familiarity summary with bounded evidence |
+
+These are conceptual layers, not claims that brain anatomy places plans, people or feelings in the displayed locations. Nodes are software records, not biological neurons or the host model's artificial neurons. Neither pgvector's search index nor a pretty network is the agent's reasoning process.
+
+**Delivery sequence and ownership.**
+
+1. **3D renderer.** Claude's separate visualization session implements genuine depth, orbit, zoom and picking over the existing authenticated bounded payload. ID-derived layout remains stable when unrelated records are added or removed. Selection keeps the existing source details, editing and deletion. Ship local assets with the package; no CDN, analytics, extra API key or model call. Any dependency must have a pinned version, recorded license and an offline installed-package check. The fictional demo stays explicitly labelled and does not read real memory.
+2. **Faithful projection.** Extend the backend contract with the missing typed layers before claiming that the graph represents the full design. Each record uses scoped identity and revision; each displayed relation has authorized endpoints and an explicit basis. The backend applies the same ownership, source validity, deletion, retirement, boundary and reset policies as its corresponding inspection operation. The browser never invents semantic relations or fetches arbitrary records by an unscoped ID. Distinguish empty, omitted by the display budget, unsupported and temporarily unavailable; do not reveal the existence or count of inaccessible records.
+3. **Inspection and change.** Users move from an overview to one record and its bounded neighborhood, then inspect evidence and perform the existing authorized correction or reset. Persona proposals stay visibly pending until accepted. A change refreshes the view from authoritative state; stale selections, details, GPU buffers and caches must not keep deleted content. Restore must not revive it. Relationship controls must explain their scope before resetting.
+4. **Observed recall and development.** Highlight only recorded recall results. Show source-to-note, feedback-to-proposal and trigger-to-mood dependencies where the backend can establish them. A dependency path is not an execution timeline. A timeline or replay is available only when its complete event ordering was recorded and remains authorized; otherwise show the current state and say that history is unavailable. Do not infer personality changes from conversational sentiment or make mood a score of the user.
+5. **Independent acceptance.** Codex reviews model mappings, privacy, installed assets and actual browser behavior, while the recall performance session continues independently. Combine only verified source; final candidate installation and full checks must include the renderer and projection changes. Real-model R4/C5 acceptance remains separate and requires the owner's explicit approval.
+
+**Visual semantics.** Color distinguishes record kinds, with text and shape alternatives. Selection and actual returned records may light up. Node size is uniform or explicitly explained as a layout cue; it must not silently mean confidence, importance, affection or biological activation. Do not animate arbitrary travelling signals as if recall followed those paths. A supported relation may be illustrated on selection with a visible "relationship illustration" label; only an actual recorded sequence may be labelled playback. Unsupported layers say so rather than showing fabricated activity. Rank signals are query-specific ordering values, not probabilities or permanent memory strength.
+
+**Performance and access requirements.** Reuse the existing default 200 nodes/400 edges and hard limits of 500/1,000 in the first renderer; this is a bounded window, not a storage limit or a promise to render the whole database. Larger brains need explicit aggregation or bounded expansion, with counts that say what they measure. Draw on demand, suspend work when hidden, stop after interaction settles, cap pixel density and batch GPU work where applicable. Avoid a continuously running force layout. Reduced-motion, context loss, missing WebGL and renderer initialization failure must retain a useful 2D/list path. The same records and actions must remain reachable by keyboard and screen reader, with a camera reset and a clear exit from showcase mode.
+
+On the reference Mac, measure actual drag/zoom and pick-to-detail latency at 200/400 and 500/1,000 nodes/edges. The proposed acceptance targets are p95 frame time at most 33.3 ms during interaction and p95 local selection response at most 100 ms, after map data is loaded. Report hardware, browser, viewport, pixel ratio, renderer, warm-up and sample counts. Candidate `1018877`/runtime `bd7affa` passed both targets in one hardware-backed Apple M4 run: interaction p95 28.8/26.3 ms and selection p95 2.7/7.1 ms; [measurements and conditions](../evaluations/observatory-render-mac-2026-11-03.json) are retained. Also verify idle/hidden suspension, repeated open/close resource disposal, offline startup, empty/busy/error handling, demo isolation, source correction/deletion/reset and restore. Compare recall with the view open and closed on the same fixed workload: the view must not prevent the unchanged R5 gates from passing. Current runtime `5048e13` passes all 36 windows with worst eight-brain p95 375.13 ms; [current qualification](../evaluations/maturity-affect-window-2026-11-06.md) retains the reference-corpus and model-free limits. The following measurements are historical, with failures retained for their original runtimes. Earlier runtime `d4d7126` passed the complete closed/open/open/closed comparison, all 36 windows, with eight-brain maximum 559.07 ms. Previously measured runtime `e749a24` passes fresh canonical p95 100.47/491.08/520.83 ms but fails four eight-brain windows in its complete comparison (maximum 742.02 ms), including two after the view closes. This reopens R5 without establishing the renderer as the cause. Trace runtime `f1fc97b` subsequently passes canonical 100.86/505.47/509.02 ms and all 36 complete fullscreen windows, eight-brain maximum 556.70 ms. Historical graph-privacy follow-up `b994ec8` passes fresh canonical 97.61/476.12/469.96 ms but fails three eight-brain fullscreen windows (maximum 659.56 ms), including two closed-phase windows. R5 remained open at that runtime; [historical evidence](../evaluations/maturity-release-qualification-2026-11-04.md) retains the whole comparison. [Current measurements and retained failures](../evaluations/maturity-boundary-refresh-2026-11-04.md) preserve every sample. Existing HTTP map benchmarks do not establish frame rate, interaction latency, storage capacity or semantic-recall performance.
 
 ## 1. `persona`: P1 card, then P2 development
 
@@ -91,6 +132,14 @@ Each version records who made it (host, user or accepted feedback) and why.
 - The proposal quotes that feedback. The user accepts or rejects it on the page.
 - A rejected proposal is not offered again for 30 days.
 
+**P2 status (2026-11-03): implemented and reviewed on the pre-release integration candidate; final behavioural acceptance pending.** `src/membrain/persona_growth.py`, tested by `tests/test_persona_growth.py`. Decisions made while building it:
+- **Detection** is a fixed table of seven feedback kinds (more casual, more formal, more playful, shorter, longer, fewer emoji, more emoji), each with narrow English and Chinese patterns and one card edit (`voice.register`, `voice.length`, `voice.emoji` or an added trait). Only the user's own received messages count: not the assistant's, the memory page's, imported conversations, role-play, hypothetical, dreamt or quoted messages, reported speech ("my boss said…") or anything before the persona reset marker. There is no model call.
+- **One proposal per kind** while it is open. It stores the source message ids; the quotes are read from the messages, so a deleted message is never quoted and a proposal left with fewer than three sources is shown as withdrawn. One whose change the card already has is withdrawn too.
+- **A decision uses up the feedback before it.** After a rejection, a new proposal of that kind needs three new messages and comes no sooner than 30 days after the rejection. Old feedback is never re-offered on its own. Existing withdrawn proposals cannot reopen around a later decision by deleting contradictory feedback or revising old sources. An accepted opposite-direction change also consumes earlier feedback. A subsequent proposal needs three eligible sources after the applicable decision; archive restore preserves these boundaries.
+- **Accepting** saves a version with `made_by` "feedback", action "feedback", the proposal id and source ids, and a reason that quotes each message with its date (within the 200-character reason limit). Rollback is the ordinary restore.
+- **Context.** A pending proposal adds nothing to the agent's context, not even a one-line notice: the agent cannot act on it, and a notice would invite it to adopt or argue for a change the user has not accepted.
+- **Storage.** Proposals and decisions are system events in the reserved `membrain-persona-proposals` conversation: never learned from, recalled or counted, refused from outside writers, read back strictly after an archive restore, and erased by "Delete personality history" and by erasing all memory. Listing them stores any proposal that has become due (for example when a pause has ended).
+
 **Cross-session example.**
 1. In sessions 1 and 2, the user asks for more casual replies three times.
 2. Session 3's page shows one proposal ("more casual: from 3 messages").
@@ -111,7 +160,7 @@ Each version records who made it (host, user or accepted feedback) and why.
  "source_event_ids": ["…"], "felt_at": "2027-03-12", "topic": "Friday's interview"}
 ```
 
-- **`basis`** is `reported` (the user said it) or `inferred` (read by the host or the extraction model). An inferred record must have a source message.
+- **`basis`** is `reported` (the user said it) or `inferred` (read by the host or the extraction model). An inferred record is visible only when its own reading has a resolved, current user-message source. Assistant messages, unsent drafts and unresolved references cannot establish a user feeling. This applies to native and restored records.
 - **Who writes it.** The host writes records with the note tool; in the proxy, the optional extraction model does. No model call is added for affect.
 
 **Context.** A record shows on the line of the note it belongs to:
@@ -123,7 +172,8 @@ There is no overall score of the user's emotions.
 **Rules.**
 - **No authority.** Affect never moves a note above a correction or a newer fact.
 - **Corrections cascade.** Correcting or deleting the source deletes the record.
-- **Sensitive notes.** Affect on a `sensitive` note is used only when the user raises the topic.
+- **Valid selection window.** Affect and mood collect supported records before applying the 500-record display window. Pending inferences cannot crowd out supported feelings or hide overflow. Descending sequence batches preserve newest-first ordering and the reset boundary; a valid lookahead determines completeness. This window is not a storage limit.
+- **Sensitive notes.** Affect on a `sensitive` note is used only when the user raises the topic. Sharing an original source with a current sensitive note also makes the derived reading private for automatic mood, shared-moment context and commitment reminders. A private later reading can end an earlier public mood without creating a new trigger or exposing its reason. The records and actual shared-moment counts remain available for authorized inspection.
 - **One record per reading.** A later reading never rewrites an earlier record; it is a new record.
 
 **Cross-session example.**
@@ -132,7 +182,7 @@ There is no overall score of the user's emotions.
 3. After the user deletes that message, session 3's context has neither the note's affect nor the interview, and the page no longer lists the record.
 
 **Reset scope.**
-- "Clear feelings" deletes every affect record, reported and inferred, and writes an affect reset marker. Extraction and inference never re-read messages from before the marker to recreate records.
+- "Clear feelings" deletes every affect record, reported and inferred, and writes an affect reset marker. Extraction and inference never re-read messages from before the marker to recreate records, including sources inherited when replacing a note. Explicit sources identify a new reading independently of older note dependencies; a genuinely new post-reset feeling remains valid. Pending references resolve into that reading's own dependency edges and survive archive restore.
 - It also deletes the `agent_mood` triggers that came from those records.
 - It leaves notes, messages, `persona` and `relationship` untouched.
 
@@ -146,6 +196,7 @@ There is no overall score of the user's emotions.
 **Triggers.** Mood changes only through listed rules over events already stored, with no model call:
 - the user reports good news (a reported positive affect, or a plan marked done) → glad;
 - the user reports distress → concerned, and less playful;
+- a supported inferred feeling follows the corresponding good-news/distress rule at half strength and remains explicitly labelled inferred;
 - a shared joke or play, from a relationship moment → playful; any other shared moment → glad.
 
 Absence, silence, or the user leaving are **never** triggers, so there is no "I missed you" sadness and no guilt.

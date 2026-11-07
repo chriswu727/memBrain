@@ -32,6 +32,18 @@ The automatic text runtime reserves room for host instructions, its memory proto
 
 Trusted local archive restore retains both expressions and their exact source dependencies. Untrusted imports retain existing quarantine/rebuild rules. Corrections, suppression, erasure and source invalidation apply to the whole assertion; a short expression cannot independently resurrect an invalid source.
 
+## Long literal captures
+
+The local embedding provider keeps the original parent vector and adds overlapping passage vectors for statements longer than 400 Unicode code points. Each passage covers at most 400 original characters and 512 model tokens, including the model prefix. Token-dense windows shrink until they fit; normalization never silently removes source coverage. Heads and passages use separate inference batches, capped at 32 vectors, 4,096 padded token positions and 1,048,576 attention positions (batch size times squared sequence width). This avoids padding short passages to a long head's width. Short statements keep their single vector. Query embeddings retain the existing model and representation.
+
+Migration `026_embedding_passages.sql` stores these auxiliary vectors under the original assertion version with owner isolation and cascading deletion. Parent and passage vectors publish atomically after rechecking the unchanged statement and live job lease. Coverage versions enter embedding job identities so existing single-vector documents can be backfilled. Passages are indexing representations, not independent assertions, episodes or graph nodes. Retrieval takes the best head or passage score per parent before applying the existing distinct-parent candidate budget.
+
+A raw recall item can carry `matched_statement_span`; its full assertion remains unchanged. The bounded model view can render an explicitly labeled `matched_excerpt_expandable` for a direct capture, retaining the parent's world, source speech act and qualifications. The excerpt is partial original text, not an independently supported fact. Explicit full-detail and quotation requests retain full statements.
+
+The Python host resolves selected passages through authenticated `POST /v1/brains/{id}/recall-windows`. This endpoint accepts at most 12 distinct exact memory versions and returns at most 700 original source characters per item. It rechecks current parent eligibility, scope, exact source revision/hash/span, superseding corrections, and relationship boundaries against the entire source before cropping. A failed fresh read cannot fall back to an older timeline copy. The existing 9,000-character host-context ceiling remains unchanged. Python and TypeScript SDKs expose the endpoint; custom hosts must adopt it or implement equivalent source-window handling to receive long tails.
+
+Extra vectors increase background encoding work and storage in proportion to long-source coverage. This mechanism does not establish better general semantic accuracy, human-like memory, or longitudinal acceptance. Full network, installation and scale qualification remain separate from source-level diagnostics.
+
 ## Host fidelity and limits
 
 `memory-consumption-v6` and optional `answer-grounding-v3` explicitly apply source fidelity to first-person cards, captions, letters and other autobiographical drafts. Creative wording does not authorize invented remembered times, locations, sensations, actions or feelings. These instructions and optional review are fallible; they do not control arbitrary host models deterministically. An answer reviewer is not silently enabled, and no automatic paid rewrite or retry is added.

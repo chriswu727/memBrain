@@ -1,0 +1,43 @@
+# Recall lexical work and embedded buffer defaults
+
+This follow-up preserves the current recall contract, ranking policy, context/candidate limits, native validation, privacy, complete traces/receipts and retention. It removes unnecessary lexical work and raises the embedded database's managed shared-buffer default from 32 to 128 MB. The latter adds 96 MB shared by the installation, not by every brain. **Runtime `9f75361`, frozen at source `c7acd84`, passes fresh 49/49 installation, 166-file installed parity and all 36 complete fullscreen performance windows (worst eight-brain p95 465.93 ms). Full CI passes **7,086 Python/50 TypeScript tests**, zero skips, strict types, Ruff and builds.** The preceding `d4f0c03` failure at 892.11 ms remains retained; no release gate is closed by the experiments below.
+
+## Lexical computation
+
+Contraction regex replacements are skipped only after Unicode normalization/curly-apostrophe folding confirms there is no apostrophe. Stemming no longer slices words that do not have the tested suffix. Source-origin frequency sets/counters retain only query terms, while preserving the count of every origin, including unmatched origins. Ungrouped document deduplication still uses the complete term identity, so documents differing outside the query remain distinct. The weighting formula and ranking version do not change.
+
+A fixed reference/prototype/prototype/reference pure CPU experiment over 252 actual synthetic stored memories runs 50 iterations per arm. Median CPU is **2.772 / 2.356 / 2.364 / 2.7895 ms**. All weights and scores are exactly equal throughout, and **5,278 tokenization examples** match the reference. This is about a 15% reduction in this small lexical fragment, not a 15% API speedup or an R5 pass.
+
+## Embedded buffers
+
+The same retained isolated synthetic corpus runs a predeclared **32/128/128/32 MB** experiment with fresh APIs, 32 warmups and 160 measured eight-brain recalls per arm. All **640 measured contexts are nonempty and identical by brain/query SHA256**; all 640 large responses use native validation. P95 is **487.66 / 421.49 / 447.64 / 441.89 ms**. The two settings overlap in latency; no consistent latency reduction or cause of the old failed window is established.
+
+Both 128 MB arms record zero assertion/event main-heap cache misses, while both 32 MB arms record roughly 97,000 assertion and 19,000 event misses over the measured work. Assertion TOAST misses fall from roughly 44,000–47,000 to about 1,200. These are PostgreSQL buffer misses, not proof of physical disk reads. The larger default provides cache headroom; it is not presented as a proven solution for all tail latency. Config files and application source remain unchanged during the experiment, GC policy is unchanged and ports close.
+
+Fresh clusters receive 128 MB. On a stopped existing cluster, only one exact generated memBrain configuration block using 32 MB is replaced, atomically. Unrelated bytes and later custom overrides remain intact; customized/ambiguous blocks, symlinks and hardlinks are left alone. LF/CRLF, file permissions and ownership are preserved. A running cluster is neither restarted nor rewritten; its old default is migrated on a later cold start. Failure to update configuration is reported before starting PostgreSQL, without exposing the underlying private exception. No data/catalog migration or change of PostgreSQL version is performed by this update.
+
+## Local verification and retained instrumentation failures
+
+The PostgreSQL-backed runtime/candidate/contracts/storage/privacy group passes **268 tests, zero skips**, before the final typed configuration-error wrapper. Its outer postcheck then fails on a deliberately malformed no-database profile from a validation test. The original failure is retained. A separate terminal inspection checks only profiles with actual database clusters and verifies all eight owned ports closed. The lost pre-run hash receipt is not reconstructed as proof. No passing tests are rerun merely to obtain a clean wrapper exit.
+
+After the typed error wrapper, the final embedded group passes **19 tests, zero skips**, including fresh/default migration, no hot changes, LF/CRLF preservation, custom/ambiguous/link handling, failed atomic replacement, nonblocking FIFO handling and redacted startup failure. CI-scope Ruff and diff checks pass. An earlier no-database local command records 77 passes/three skips; the later PostgreSQL group covers those integration cases without skips.
+
+The first function-profile attempt fails because overlapping cProfile instances conflict. A serial attempt completes but records negative own times with a thread-local clock, so its timing figures are not used as quantitative CPU evidence. Both are retained. The preceding [coarse CPU/SQL/GC attribution](maturity-recall-attribution-2026-11-04.md) remains separate and does not prove failure causality.
+
+To make room for qualification, only 13 stopped, completed, owned synthetic native test clusters are archived with their profiles/registries, with **18,638 regular files** hash-verified before removing database directories. The private archive is 99,980,623 bytes, SHA256 `28fa5e9f41d1a7fc018654d09d526672959efd39420941e0f526182299f8bc7b`. Profiles, registries, models, packages, compiler trees and earlier failed-corpus archives are retained. Private archives and inventories are excluded from Git.
+
+The PostgreSQL 16.2 security baseline, actual R4/C5 evaluation, remaining graph coverage and final reviews remain open. No unapproved paid/subscription model run, new Claude call, subagent, schedule, merge, tag or publication is performed.
+
+## Current frozen qualification
+
+Fresh canonical p95 is **88.91/433.97/447.56 ms** for serial/same-brain-eight/eight-brain-eight, all **340 recalls nonempty**. Map 200/map 500 p95 is 11.29/14.70 ms. Source hashes remain fixed and both ports close.
+
+The complete closed/open/open/closed fullscreen protocol then passes **36/36 windows**, all **4,080 recalls nonempty**. Worst-window p95 is **97.42 ms serial / 457.99 ms same-brain-eight / 465.93 ms eight-brain-eight**. Eight-brain phase p95 is 437.24/460.36/438.24/426.51 ms. The two open phases show **182 real node IDs/66 edges** matching the API, ANGLE Metal on Apple M4, normal polling, visible animation advancing **1,609/1,619 frames**, no page/outside/artifact errors and expected close events only. Both screenshots are visually inspected. Source/driver hashes remain fixed; all six ports close. This meets R5 for this pin and frozen development protocol, not a production SLA or a capacity claim. The preceding 892.11 ms failure remains separately retained.
+
+The original frozen installation checker passes **49/49**, zero failures, with only the download-cache location changed. Actual installed code matches **166 exact files**, no mismatches or unexpected package files. The installed interpreter independently verifies fresh **128 MB** buffers and cold migration from the exact old **32 MB** managed block to **128 MB**, protected feedback at node bounds 2/3/4, three recording-time mask/reveal paths, live boundary refresh, both graph layers/fullscreen/2D and no page/outside errors. Stop succeeds; all five owned profiles' API/database ports are checked closed, and the installed screenshot is inspected. R1 is reverified for this pin.
+
+The stopped passing corpus and registry are privately archived, all **1,485 regular files** verified before removing its database directory. Archive SHA256 is `c4e660a0da63e6757a62de6f341cb8b7423de6d5a181f34272bbf6974792e69c`, 303,061,267 bytes; profile/registry/raw evidence remain. No failed corpus is removed by this archive operation.
+
+[Verify run 41960465361](https://github.com/chriswu727/memBrain/actions/runs/41960465361), job `127025355721`, succeeds for exact source `c7acd84dcf472c1cbb7419d6d57455ed359ebc29`: **7,086 Python tests, zero skips**, three existing Python fork/multithreading deprecation warnings, 1,315.69 seconds; **50 TypeScript passes, zero failures/skips**, strict types, Ruff and both package builds. All four actual Docker journeys, the pinned CPU multilingual model and in-flight activation case pass. Setup/toolchain also emits Node punycode deprecation warnings, retained in the full log. R2 still requires closing matrix/scope gaps; R3, real R4/C5 and final graph/review work remain open. No publication.
+
+[Allowlisted raw experiments, regressions, current qualification and installed checks](maturity-recall-cache-2026-11-04/manifest.json) exclude archives, profiles, registries, private inventories/fixtures, compiler trees, packages and model weights.

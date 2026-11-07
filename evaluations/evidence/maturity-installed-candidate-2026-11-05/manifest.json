@@ -1,0 +1,49 @@
+{
+  "runtime": "47fcb96684b367dd2f6e30d4cdc6cb5657b5fa58",
+  "credential_values_scanned": 12,
+  "credential_matches": 0,
+  "files": [
+    {
+      "path": "run-install.py",
+      "bytes": 1985,
+      "sha256": "0bec57d514240ced062c0cbd61a33050e39fb85a0832da300be9ff183b1a15ff",
+      "original_bytes": 1985,
+      "original_sha256": "0bec57d514240ced062c0cbd61a33050e39fb85a0832da300be9ff183b1a15ff"
+    },
+    {
+      "path": "run-install.log.gz",
+      "bytes": 4668,
+      "sha256": "42a9095710e877d0c194ba147e1d5a3cbd0d632d9f0c698444688e924b030325",
+      "original_bytes": 16184,
+      "original_sha256": "13d6231d5a3bf6ec41e38d8c6a18d4f4023be959e81a201b2bba81a3331f5cf6"
+    },
+    {
+      "path": "install-run-meta.json.gz",
+      "bytes": 397,
+      "sha256": "41e0ba86d783363bc927b8b9c1c31c483bebd2b003900e30ce9c33a44100c04f",
+      "original_bytes": 591,
+      "original_sha256": "5110cb88e69d486204c0ae4d38c0e94fb36ec605b629871327601a1b79a2ebb8"
+    },
+    {
+      "path": "closed-ports.json.gz",
+      "bytes": 233,
+      "sha256": "7bce7d7bd48f6d68d36b07754ad77a78672b5ec05d2473e6a71f04f7391c7fb1",
+      "original_bytes": 1112,
+      "original_sha256": "5f25da1039856aef59b3611eec7e9c1ed26324cc9fc9ae715222b46d4583ef21"
+    },
+    {
+      "path": "install-final/results.json.gz",
+      "bytes": 4949,
+      "sha256": "a4f5d2135d7dc14e2ca80dece9d827fb5cc97558ba77a68452bcf6725ca3c959",
+      "original_bytes": 23135,
+      "original_sha256": "04b5c00b5cbabb008deb6b98bc6db5a3543482e129d3f0cd655a7ea5d8ee4395"
+    },
+    {
+      "path": "install-final/proxy.log.gz",
+      "bytes": 105,
+      "sha256": "ae4e543c80741140b8e01415b372671c303a5b8ccdb33626a283988c7241c8c5",
+      "original_bytes": 111,
+      "original_sha256": "cb2a64c165bbdccfd1b959ba459d8e5ae92554e4071da0f22375cc20a8f34eab"
+    }
+  ]
+}

@@ -1,0 +1,15 @@
+{
+  "completed": true,
+  "model_calls": 0,
+  "scope": "installed wheel offline snapshot component only; no API or automatic upgrade acceptance",
+  "build_id": "734b56cc028be40d4d00f5d4812ef2b6693cb97aa1a78452dc8d4fc4b7db0b5c",
+  "exact_runtime_files": 175,
+  "native_snapshot_from_installed_wheel": true,
+  "phase": "complete",
+  "restore_ms": 1022.6289578713477,
+  "complete_snapshot_metadata_matches": true,
+  "original_engine_rows_roles_second_database_and_indexes_match": true,
+  "ports_closed": true,
+  "source_and_checks_unchanged": true,
+  "frozen_files": 416
+}

@@ -250,12 +250,21 @@ class MemoryClient:
         return self._request("GET", f"v1/brains/{quote(brain, safe='')}/timeline", params=params)
 
     def memory_map(self, *, max_nodes: int = 200, max_edges: int = 400, include_sensitive: bool = False,
-                   trace: bool = False, brain_id: str | None = None) -> JsonObject:
+                   trace: bool = False, structure: bool = False, brain_id: str | None = None) -> JsonObject:
         brain = self._scope(brain_id=brain_id)["brain_ref"]
         params = {"max_nodes": max_nodes, "max_edges": max_edges, "include_sensitive": str(include_sensitive).lower()}
         if trace:
             params["trace"] = "true"
+        if structure:
+            params["structure"] = "true"
         return self._request("GET", f"v1/brains/{quote(brain, safe='')}/memory-map", params=params)
+
+    def companion_map(self, *, max_nodes: int = 200, max_edges: int = 400, include_sensitive: bool = False,
+                      brain_id: str | None = None) -> JsonObject:
+        brain = self._scope(brain_id=brain_id)["brain_ref"]
+        return self._request("GET", f"v1/brains/{quote(brain, safe='')}/companion-map", params={
+            "max_nodes": max_nodes, "max_edges": max_edges, "include_sensitive": str(include_sensitive).lower(),
+        })
 
     def trace_recall(self, event_ids: Sequence[str], *, brain_id: str | None = None) -> JsonObject:
         """Tell the service which records a recall used, so the memory page can show them (kept in memory only)."""
@@ -263,6 +272,20 @@ class MemoryClient:
         # Its own short timeout and no retry: a slow or stuck service must never hold up the reply being prepared.
         return self._request("POST", f"v1/brains/{quote(brain, safe='')}/recall-trace",
                              json={"event_ids": list(event_ids)[:50]}, timeout=TRACE_TIMEOUT)
+
+    def recall_windows(self, windows: Sequence[Mapping[str, Any]], query: str, *,
+                       conversation_id: str | None = None, branch_id: str | None = None,
+                       brain_id: str | None = None) -> JsonObject:
+        scope = self._scope(conversation_id, branch_id, brain_id)
+        return self._request('POST', f"v1/brains/{quote(scope['brain_ref'], safe='')}/recall-windows",
+                             json={'windows': [dict(item) for item in windows], 'query': query,
+                                   'conversation_id': scope.get('conversation_ref'), 'branch_id': scope.get('branch_ref')})
+
+    def source_messages(self, references: Sequence[Mapping[str, Any]]) -> JsonObject:
+        """Read only the exact original message revisions still available in this brain."""
+        brain = self._scope()["brain_ref"]
+        return self._request("POST", f"v1/brains/{quote(brain, safe='')}/source-messages",
+                             json={"messages": [dict(ref) for ref in references]})
 
     def write_note(self, text: str, *, request_id: str | None = None, **fields) -> JsonObject:
         brain = self._scope()["brain_ref"]
@@ -319,6 +342,19 @@ class MemoryClient:
         """Erase every persona version (audited, like deleting notes)."""
         return self._request("DELETE", self._persona_path(brain_id, "/versions"))
 
+    def persona_proposals(self, *, brain_id: str | None = None) -> JsonObject:
+        """Suggestions for a new persona card made from the user's repeated feedback, open ones first, each with
+        the quoted messages, the proposed change and its status (open, accepted, rejected or withdrawn)."""
+        return self._request("GET", self._persona_path(brain_id, "/proposals"))
+
+    def accept_persona_proposal(self, proposal_id: str, *, brain_id: str | None = None) -> JsonObject:
+        """Accept a suggestion: its card becomes a new version made by "feedback". Only the user should do this."""
+        return self._request("POST", self._persona_path(brain_id, f"/proposals/{quote(proposal_id, safe='')}/accept"))
+
+    def reject_persona_proposal(self, proposal_id: str, *, brain_id: str | None = None) -> JsonObject:
+        """Reject a suggestion; none of the same kind is offered again for 30 days."""
+        return self._request("POST", self._persona_path(brain_id, f"/proposals/{quote(proposal_id, safe='')}/reject"))
+
     def _relationship_path(self, brain_id: str | None, suffix: str = "") -> str:
         return f"v1/brains/{quote(self._scope(brain_id=brain_id)['brain_ref'], safe='')}/relationship{suffix}"
 
@@ -326,6 +362,10 @@ class MemoryClient:
         """Familiarity with its reason, support style, boundaries, shared moments, the commitment record, reset
         markers and the ``<membrain-relationship>`` block."""
         return self._request("GET", self._relationship_path(brain_id))
+
+    def relationship_boundaries(self, *, brain_id: str | None = None) -> JsonObject:
+        """Current topic boundaries without computing familiarity, shared moments or commitments."""
+        return self._request("GET", self._relationship_path(brain_id, "/boundaries"))
 
     def set_support_style(self, text: str, *, brain_id: str | None = None) -> JsonObject:
         """How the user likes to be supported ("listen first, advice only when asked"); empty text removes it."""

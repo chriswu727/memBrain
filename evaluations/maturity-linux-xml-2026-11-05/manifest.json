@@ -1,0 +1,144 @@
+{
+  "files": [
+    {
+      "path": "compatibility-linux-aarch64-result.json",
+      "bytes": 60593,
+      "sha256": "01f98e294b3ae9f82f43bf746634afe2344bda6055e46ca13cf289cbbf5328c1"
+    },
+    {
+      "path": "compatibility-linux-x86_64-result.json",
+      "bytes": 60699,
+      "sha256": "5d2f20fb0877b892cfd42882d92885e5261641f2df78bafd389967db0b9aac72"
+    },
+    {
+      "path": "compatibility-ubuntu26-linux-aarch64-result.json",
+      "bytes": 7273,
+      "sha256": "93209673324209a86a7ce615b31c8bc5b21de918c32710776e79cf247aa8ba9e"
+    },
+    {
+      "path": "compatibility-ubuntu26-linux-x86_64-result.json",
+      "bytes": 7256,
+      "sha256": "d6b02e7a0d8d0985c7492ebb19f494eae26643006e655c24346fac1e976a5a88"
+    },
+    {
+      "path": "failed-127420052618.txt.gz",
+      "bytes": 15854,
+      "sha256": "1424958b79e78ff4b72b9d5e14bfc499d9f1d74b1a5681b7401388c7ce5c0433"
+    },
+    {
+      "path": "failed-127420053217.txt.gz",
+      "bytes": 15695,
+      "sha256": "8626aafee6b9fcb7b0bed6c109ab7233e3dce28c049db829a49881e83a32654a"
+    },
+    {
+      "path": "failed-127421210953.txt.gz",
+      "bytes": 67036,
+      "sha256": "9f40ab1d4894205663f4a76b329bf58ea84e6381cf82a015fbf2924572e171aa"
+    },
+    {
+      "path": "failed-127421211552.txt.gz",
+      "bytes": 67980,
+      "sha256": "0230d48307451e2e54f8227515885ed18b0fa464093ead1d71f12b76094fad97"
+    },
+    {
+      "path": "failed-127423974007.txt.gz",
+      "bytes": 23377,
+      "sha256": "fb47fdcb9b60b02261e7c83008e5207d7e7c16061b6120f9a88798d5e852db7a"
+    },
+    {
+      "path": "failed-127423974324.txt.gz",
+      "bytes": 21777,
+      "sha256": "f279c98710b988a41f55043ae80117b7cbc7afc267e052c0cdee60235117fca9"
+    },
+    {
+      "path": "failed-127425629684.txt.gz",
+      "bytes": 22450,
+      "sha256": "f2a8a4be82ac420824b908948a527be0f86f27e537cbcc9f760d504a1133a062"
+    },
+    {
+      "path": "jobs-42077081721.json",
+      "bytes": 10559,
+      "sha256": "cc4b5e920bc6d9534ddcc90fb35a878a5889e80c76b8c961f5dea509e82662ea"
+    },
+    {
+      "path": "jobs-42077413444.json",
+      "bytes": 10559,
+      "sha256": "3cf71b4e15869c92c2e44a8b036a3e408dc2438592ec7bd513ac4cd2f19b7fbc"
+    },
+    {
+      "path": "jobs-42078205260.json",
+      "bytes": 10559,
+      "sha256": "4064d4d7c806b2b159f8ec3412713d8e62c73158788fb54d3b84696cb1177dd2"
+    },
+    {
+      "path": "jobs-42078677946.json",
+      "bytes": 10559,
+      "sha256": "d1789b44e754552470211911710b4d14f7b761ed83f6ea28339181a257d6acec"
+    },
+    {
+      "path": "linux-aarch64-candidate-manifest.json.gz",
+      "bytes": 79191,
+      "sha256": "966b8b47d227df9b2d983b24dbc2e138222c104b2f418d4bf6f97db3ad865e82"
+    },
+    {
+      "path": "linux-x86_64-candidate-manifest.json.gz",
+      "bytes": 79356,
+      "sha256": "bd4bc43a34d9b5932721c7b7da2288ca2f688158b35bc63d76748f6dd469e5ed"
+    },
+    {
+      "path": "local-checks.json",
+      "bytes": 564,
+      "sha256": "6e4a9c4d2815820c93147ea937ea5e0f5090b88c0ee286ec0e40ad4a232ba40f"
+    },
+    {
+      "path": "passed-127425630101.txt.gz",
+      "bytes": 23103,
+      "sha256": "dbb66dbd518f73d403e3f0e6c221045cb77a37c7152fc7ea82e6175bc9fd992e"
+    },
+    {
+      "path": "qualification-summary.json",
+      "bytes": 1193,
+      "sha256": "ac32d5f74bc0a84a46e6126d5db3fec32c0e29a25516c8a71c71a6aaf0b886eb"
+    },
+    {
+      "path": "qualified-127426873709.txt.gz",
+      "bytes": 23033,
+      "sha256": "0fe456ce45ae42a61b6ce603ebac257bbce2df18e3f6fe23787d5903313777a6"
+    },
+    {
+      "path": "qualified-127426874258.txt.gz",
+      "bytes": 23067,
+      "sha256": "86c9aa6d6fe9ddf5c7995d49525a315cea8c152b86cce7c71aa488466e498661"
+    },
+    {
+      "path": "qualified-127427884144.txt.gz",
+      "bytes": 9011,
+      "sha256": "e7162e68323239e8c383e9b5d321e8100e38e3951239e34437613319b927b154"
+    },
+    {
+      "path": "qualified-127427884199.txt.gz",
+      "bytes": 9006,
+      "sha256": "5fb05bdccb9eeb19977691612fe892cbf9e17ae6be91a3b80a6c19608349be15"
+    },
+    {
+      "path": "qualified-artifacts.json",
+      "bytes": 3592,
+      "sha256": "41ebbb3db29ad5c56e16f9ab0278da8ce589681935a33dcb9ec1db3d33a73fa8"
+    },
+    {
+      "path": "qualified-jobs.json",
+      "bytes": 17528,
+      "sha256": "40b830d3ce2990e2f66ba6be30f90e72b8644dbe39778d1db24285181d08c517"
+    },
+    {
+      "path": "qualified-run.json",
+      "bytes": 14215,
+      "sha256": "7424b327fb73c7ecdce3f791267afedbc9ac21840f9c70638bff7c9ccda18570"
+    },
+    {
+      "path": "x86-prior-qualified-candidate-comparison.json",
+      "bytes": 60580,
+      "sha256": "67dc0094aaaaef6f7a9cf2b5e825b02497f7f96a54d7f7229bbc921726f712ef"
+    }
+  ]
+}

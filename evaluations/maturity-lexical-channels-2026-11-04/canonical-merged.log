@@ -1,0 +1,66 @@
+Starting the local memory database and service…
+{"serial": {"n": 20, "median_ms": 88.02, "p95_ms": 129.91, "max_ms": 189.28, "nonempty": 20}}
+{"one_brain_8_concurrent": {"n": 160, "median_ms": 439.43, "p95_ms": 511.87, "max_ms": 537.74, "nonempty": 160}}
+{"eight_brains_8_concurrent": {"n": 160, "median_ms": 456.29, "p95_ms": 595.15, "max_ms": 671.87, "nonempty": 160}}
+{"map_200": {"n": 20, "median_ms": 11.56, "p95_ms": 12.39, "max_ms": 24.76, "errors": []}}
+{"map_500": {"n": 20, "median_ms": 13.98, "p95_ms": 15.24, "max_ms": 23.53, "errors": []}}
+{
+  "machine": {
+    "cpu": "arm",
+    "cores": 10,
+    "os": "macOS-15.7.4-arm64-arm-64bit",
+    "python": "3.12.13",
+    "postgresql": "PostgreSQL 16.2 on aarch64-apple-darwin23.5.0, compiled by Apple clang version 15.0.0 (clang-1500.0.40.1), 64-bit"
+  },
+  "met": {
+    "serial_p95_ms": true,
+    "one_brain_8_concurrent_p95_ms": true,
+    "eight_brains_8_concurrent_p95_ms": true
+  },
+  "lock_waits": {
+    "setup": {
+      "waiting_samples": 5,
+      "max_wait_ms": 44.7,
+      "holders": [
+        {
+          "last_statement": "SELECT document FROM memory_assertions",
+          "waiting_samples": 2,
+          "max_open_ms": 5.9,
+          "transactions": 2,
+          "states": [
+            "active",
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT document FROM memory_events",
+          "waiting_samples": 1,
+          "max_open_ms": 47.5,
+          "transactions": 1,
+          "states": [
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT id FROM memory_events",
+          "waiting_samples": 1,
+          "max_open_ms": 45.7,
+          "transactions": 1,
+          "states": [
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "INSERT INTO memory_jobs(tenant_id,owner_id,brain_id,id,kind,payload,state) VALUES($1,$2,$3,$4,$5,$6,$7)",
+          "waiting_samples": 1,
+          "max_open_ms": 12.6,
+          "transactions": 1,
+          "states": [
+            "active"
+          ]
+        }
+      ]
+    }
+  }
+}
+{"source_commit": "26db0e08bb86396aa64c6b79ad0f2fc6fd0d4c8d", "runtime_pin": "28c0b3ed34484b29550b6d2c011a819bcbce016b", "command": ["/Users/yichen/tmp/membrain-review-20261029/.venv/bin/python", "evaluations/recall-concurrency-benchmark.py", "--directory", "/Users/yichen/tmp/membrain-lexical-union-20261104/perf-merged-installation", "--database-port", "51346", "--api-port", "51347", "--output", "/Users/yichen/tmp/membrain-lexical-union-20261104/canonical-merged.json", "--bulk-to", "0"], "disk_free_before": 2065141760, "exit_code": 0, "source_unchanged": true, "both_ports_closed": true, "disk_free_after": 1669758976}

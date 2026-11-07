@@ -1,15 +1,40 @@
+import contextvars
 import copy
 import hashlib
 import json
 import math
 import re
+from contextlib import contextmanager
+from datetime import UTC, datetime
 
 import psycopg
 from psycopg.types.json import Jsonb
 
-from . import cognition
+from . import cognition, recall_deadline, source_scripts
 from .contracts import CONTRACT_VERSION, validate
-from .helpers import DomainError, digest, now, uid
+from .helpers import DomainError, deep_copy, digest, now, uid
+
+
+def _moment(value):
+    """A time with an offset, in UTC; None when it has no offset or cannot be represented in UTC (a valid date-time
+    such as 0001-01-01T00:00:00+23:59 falls outside the range of dates)."""
+    try:
+        moment = datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return moment.astimezone(UTC) if moment.tzinfo is not None else None
+    except (ValueError, OverflowError):
+        return None
+
+
+def original_recording(event: dict) -> str | None:
+    """When the server first recorded an archived event: the earliest valid recording time the archive carries for
+    it (an earlier restore's ``restored_from_recorded_at`` or its ``recorded_at``), never later than now. A recording
+    time, never an occurrence time; None when the archive carries none."""
+    system_time = event.get("system_time") if isinstance(event.get("system_time"), dict) else {}
+    times = [moment for moment in (_moment(system_time.get(key)) for key in ("restored_from_recorded_at",
+                                                                               "recorded_at")) if moment]
+    if not times:
+        return None
+    return min(*times, _moment(now())).isoformat().replace("+00:00", "Z")
 
 
 def _vector(text):
@@ -24,16 +49,63 @@ def _vector(text):
 
 
 TIMELINE_ROLES = frozenset({"user", "assistant", "operator", "tool"})
+READ_ACTIONS = frozenset({"recall", "inspect"})
+_READING = contextvars.ContextVar("membrain_reading", default=False)
+
+
+@contextmanager
+def reading():
+    """Mark the brain accesses in this block as reads: they share the brain row instead of locking it exclusively.
+
+    Readers then run side by side, while every writer (and erasure, recovery and job leases, which all take the row
+    ``FOR UPDATE``) still waits for them and they for it. A write attempted inside the block fails loudly.
+    """
+    token = _READING.set(True)
+    try:
+        yield
+    finally:
+        _READING.reset(token)
+
+
+def _writable():
+    if _READING.get():
+        raise RuntimeError("A read-only memory request tried to change memory.")
+
+
+@contextmanager
+def _same():
+    yield
+
 
 class MemoryService:
     def __init__(self, database, *, semantic_processor=None, embedding_provider=None,
-                 access_time_provider=None):
+                 access_time_provider=None, recall_runner=None):
         if access_time_provider is not None and not callable(access_time_provider):
             raise ValueError("The access time provider must be callable.")
+        if recall_runner is not None and not callable(recall_runner):
+            raise ValueError("The recall runner must be callable.")
         self.database = database
         self.semantic_processor = semantic_processor
         self.embedding_provider = embedding_provider
         self.access_time_provider = access_time_provider
+        self.recall_runner = recall_runner
+        self.request_runner = None
+
+    @property
+    def embedding_provider(self):
+        """The embedding provider when it can embed now, otherwise ``None``.
+
+        Every caller decides on embeddings through this property, so readiness, not presence, enables them. A local
+        model is configured before its download finishes; until the provider reports ``ready`` the service behaves
+        exactly as without a provider (keyword recall, no embedding jobs, no embedding budget). Readiness only ever
+        moves from false to true, so a caller that saw no provider never meets a half-enabled one later.
+        """
+        provider = self._embedding_provider
+        return provider if provider is not None and getattr(provider, "ready", True) else None
+
+    @embedding_provider.setter
+    def embedding_provider(self, provider):
+        self._embedding_provider = provider
 
     def orient_turn(self, principal, brain_id, turn_id, *, lease_token, expected_revision):
         from .learning import LearningEngine
@@ -45,15 +117,49 @@ class MemoryService:
         return principal.tenant_id, principal.principal_id, brain_id
 
     def _brain(self, conn, principal, brain_id):
-        row = conn.execute(
-            "SELECT * FROM memory_brains WHERE tenant_id=%s AND owner_id=%s AND id=%s FOR UPDATE",
-            self._params(principal, brain_id),
-        ).fetchone()
+        """Lock the brain row for this transaction and apply any erasure the recovery registry holds for it.
+
+        Inside ``reading()`` the row is locked ``FOR SHARE``: reads of one brain no longer wait for each other, but
+        still wait for, and hold off, every transaction that locks it ``FOR UPDATE`` (writes, erasure, restore,
+        recovery and job leases). An erasure recorded in the registry but not yet in the database is never read
+        around: the reader then takes the row exclusively and applies it first, as every other access does.
+
+        A reader never waits for the exclusive lock while it holds the shared one: two readers doing that at once
+        would each wait for the other (a deadlock PostgreSQL resolves by aborting one). The shared lock is taken in a
+        savepoint, and a reader that finds a pending erasure rolls back to it, which gives the row up, before asking
+        for it exclusively. It then applies the erasure, reads the row again and checks that nothing is left pending.
+        Whether an erasure is pending cannot change while the row is held shared: intents are recorded, and applied,
+        only by transactions holding it exclusively, so the check made under the shared lock stays true until commit.
+        """
+        from .recovery_authority import pending_erasure, reconcile_brain
+
+        query = "SELECT * FROM memory_brains WHERE tenant_id=%s AND owner_id=%s AND id=%s FOR "
+        params = self._params(principal, brain_id)
+        reading = _READING.get()
+        if reading:
+            with conn.transaction() as shared:
+                row = conn.execute(query + "SHARE", params).fetchone()
+                if row is None:
+                    raise DomainError("not_found_or_forbidden", "Brain is unavailable.")
+                if not pending_erasure(self.database, conn, principal, row):
+                    return row
+                raise psycopg.Rollback(shared)  # Releases the shared row lock before the exclusive one is requested.
+        row = conn.execute(query + "UPDATE", params).fetchone()
         if row is None:
             raise DomainError("not_found_or_forbidden", "Brain is unavailable.")
-        from .recovery_authority import reconcile_brain
-
-        reconcile_brain(self.database, conn, principal, row)
+        token = _READING.set(False)
+        try:
+            reconcile_brain(self.database, conn, principal, row)
+        finally:
+            _READING.reset(token)
+        if reading:
+            # The row was given up and taken again (another reader may have applied the erasure in between), so
+            # what was read under the shared lock is not trusted: read it again and verify nothing is pending.
+            row = conn.execute(query + "UPDATE", params).fetchone()
+            if row is None:
+                raise DomainError("not_found_or_forbidden", "Brain is unavailable.")
+            if pending_erasure(self.database, conn, principal, row):
+                raise DomainError("deletion_in_progress", "A deletion is still being applied. Retry shortly.", True)
         return row
 
     def _scope(self, principal, brain, target=None):
@@ -71,7 +177,10 @@ class MemoryService:
         }
 
     def _rebind(self, document, principal, brain):
-        result = copy.deepcopy(document)
+        return self._bind_document(deep_copy(document), principal, brain)
+
+    def _bind_document(self, result, principal, brain):
+        """Bind a freshly decoded database document in place; borrowed records use _rebind instead."""
         old_scope = result["scope"]
         scope = self._scope(principal, brain, {
             "conversation_ref": old_scope.get("conversation_id"),
@@ -125,6 +234,15 @@ class MemoryService:
             return self._public_brain(self._brain(conn, principal, brain_id))
 
     def handle(self, principal, request):
+        return self.respond(principal, request)[0]
+
+    def respond(self, principal, request):
+        """``handle``, plus whether the returned envelope is the very object this call validated as an
+        ActionResponse, unchanged since. Inline cached responses and errors require caller validation; responses
+        returned by a request worker are validated again in this process before returning a true flag."""
+        return self._respond(principal, request)
+
+    def _respond(self, principal, request, *, embedding=None):
         action = request.get("action", "observe")
         envelope = {
             "message_type": "response", "contract_version": CONTRACT_VERSION,
@@ -136,28 +254,48 @@ class MemoryService:
                 raise DomainError("unsupported_capability", "Collection sharing is not configured.")
             from .vector_jobs import query_embedding
 
-            vector, vector_snapshot, embedding_calls = query_embedding(self, principal, request)
-            with self.database.transaction(principal) as conn:
-                deadline = min(request["payload"].get("budget", {}).get("max_wall_time_ms", 10000), 30000)
-                conn.execute("SELECT set_config('statement_timeout',%s,true)", (str(deadline),))
-                conn.execute("SELECT set_config('lock_timeout',%s,true)", (str(deadline),))
+            vector, vector_snapshot, embedding_calls = (
+                query_embedding(self, principal, request) if embedding is None else embedding)
+            if self.request_runner is not None and action in {"recall", "prepare"}:
+                provider = self.embedding_provider
+                response, _ = self.request_runner(principal, request, (vector, vector_snapshot, embedding_calls),
+                                                  provider.space if provider is not None else None,
+                                                  access_at=self.access_time_provider() if self.access_time_provider else None)
+                validate("ActionResponse", response)
+                return response, True
+            with self.database.transaction(principal) as conn, (reading() if action in READ_ACTIONS else _same()):
+                deadline = recall_deadline.remaining(min(request["payload"].get("budget", {}).get("max_wall_time_ms", 10000), 30000))
+                conn.execute("SELECT set_config('statement_timeout',%s,true), set_config('lock_timeout',%s,true)",
+                             (str(deadline), str(deadline)))
                 brain = self._brain(conn, principal, request["target"]["brain_ref"])
                 params = self._params(principal, brain["id"])
                 key = request["payload"].get("idempotency_key", request["request_id"])
+                if action in READ_ACTIONS:
+                    # Readers share the brain row, so requests with one idempotency key take turns here instead:
+                    # the second finds the first one's stored response.
+                    conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
+                                 (digest(["request", *params, action, key]),))
                 fingerprint = digest({"action": action, "target": request["target"], "payload": request["payload"]})
+                cached_column = "NULL::jsonb" if action in READ_ACTIONS else "response"
                 existing = conn.execute(
-                    "SELECT request_hash,response FROM memory_requests "
+                    f"SELECT request_hash,{cached_column} AS response FROM memory_requests "
                     "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND action=%s AND key=%s",
                     (*params, action, key),
                 ).fetchone()
                 if existing:
                     if existing["request_hash"] != fingerprint:
                         raise DomainError("idempotency_conflict", "Idempotency key has different content.")
-                    if existing["response"] is None:
-                        raise DomainError("version_conflict", "Cached response was invalidated; use a new request ID.")
-                    response = copy.deepcopy(existing["response"])
+                    if action in READ_ACTIONS:
+                        from .read_cache import load
+
+                        cached = load(conn, params, action, key)
+                    else:
+                        cached = existing["response"]
+                    if cached is None:
+                        raise DomainError("version_conflict", "Cached response expired or was invalidated; use a new request ID.")
+                    response = copy.deepcopy(cached)
                     response["request_id"] = request["request_id"]
-                    return response
+                    return response, False
                 if vector_snapshot:
                     from .learning import validate_snapshot
 
@@ -169,20 +307,30 @@ class MemoryService:
                 if embedding_calls:
                     result["usage"]["embedding_calls"] += embedding_calls
                     result["usage"]["actual_cost_microunits"] = None
+                if action in {"recall", "prepare"}:
+                    result["usage"]["elapsed_ms"] = recall_deadline.elapsed(result["usage"]["elapsed_ms"])
                 envelope.update(outcome="completed", server_scope=self._scope(principal, brain, request["target"]), result=result)
                 validate("ActionResponse", envelope)
+                recall_deadline.remaining(deadline)
+                # Passive recall diagnostics remain in the replay receipt. Only actual selections and
+                # feedback need separate durable trace rows for learning.
                 conn.execute(
                     "INSERT INTO memory_requests(tenant_id,owner_id,brain_id,action,key,request_hash,response) "
                     "VALUES(%s,%s,%s,%s,%s,%s,%s)",
-                    (*params, action, key, fingerprint, Jsonb(envelope)),
+                    (*params, action, key, fingerprint, None if action in READ_ACTIONS else Jsonb(envelope)),
                 )
+                if action in READ_ACTIONS:
+                    from .read_cache import store
+
+                    store(conn, params, action, key, envelope)
                 if embedding_calls:
                     conn.execute(
                         "UPDATE memory_jobs SET result=NULL WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
                         "AND id=%s AND kind='query_embedding'",
                         (*params, "query:" + digest([key, action])),
                     )
-            return envelope
+                recall_deadline.remaining(deadline)
+            return envelope, True
         except DomainError as error:
             envelope.pop("result", None)
             envelope.pop("server_scope", None)
@@ -191,7 +339,16 @@ class MemoryService:
             envelope.pop("result", None)
             envelope.pop("server_scope", None)
             envelope.update(outcome="failed", error={"code": "budget_exceeded", "message": "Database deadline exceeded.", "retryable": True})
+        except psycopg.errors.TransactionRollback:
+            # A deadlock or serialization failure aborted the whole transaction (including any response stored
+            # with it), so nothing was read or changed: the request can simply be sent again.
+            envelope.pop("result", None)
+            envelope.pop("server_scope", None)
+            envelope.update(outcome="failed", error={"code": "dependency_unavailable", "retryable": True,
+                                                     "message": "Memory was busy with another request. Retry it."})
         except psycopg.OperationalError:
+            envelope.pop("result", None)
+            envelope.pop("server_scope", None)
             envelope.update(outcome="failed", error={"code": "dependency_unavailable", "message": "Database is unavailable.", "retryable": True})
         authority = getattr(self.database, "recovery_authority", None)
         if action == "forget" and authority is not None and authority.recorded_intent(principal, request):
@@ -199,9 +356,10 @@ class MemoryService:
                 "code": "deletion_in_progress", "retryable": True,
                 "message": "A durable deletion intent was recorded. Reconcile it before treating deletion as complete.",
             })
-        return envelope
+        return envelope, False
 
     def _advance(self, conn, principal, brain, *, scope=False):
+        _writable()
         brain["dependency_generation"] += 1
         if scope:
             brain["scope_generation"] += 1
@@ -211,11 +369,15 @@ class MemoryService:
             (brain["dependency_generation"], brain["scope_generation"], *self._params(principal, brain["id"])),
         )
         conn.execute(
-            "UPDATE memory_requests SET response=NULL WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s",
+            "UPDATE memory_requests SET response=NULL WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+            "AND response IS NOT NULL",
             self._params(principal, brain["id"]),
         )
+        conn.execute("DELETE FROM memory_read_cache WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s",
+                     self._params(principal, brain["id"]))
 
     def _job(self, conn, principal, brain, kind, payload, state="queued"):
+        _writable()
         job_id = uid()
         conn.execute(
             "INSERT INTO memory_jobs(tenant_id,owner_id,brain_id,id,kind,payload,state) VALUES(%s,%s,%s,%s,%s,%s,%s)",
@@ -286,7 +448,9 @@ class MemoryService:
         return descendants
 
     def _append_event(self, conn, principal, brain, target, incoming, *, event_id=None, imported=False,
-                      segmentation_rule_version=cognition.RULE_VERSION):
+                      segmentation_rule_version=cognition.RULE_VERSION, restored_from_recorded_at=None):
+        _writable()
+        cognition._range(incoming["occurred_time"])
         params = self._params(principal, brain["id"])
         previous = conn.execute(
             "SELECT * FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
@@ -323,7 +487,9 @@ class MemoryService:
             "event_id": previous["id"] if previous else (event_id or uid()),
             "revision": previous["revision"] + 1 if previous else 1,
             "sequence": brain["durable_sequence"], "scope": self._scope(principal, brain, target),
-            "observed": copy.deepcopy(incoming), "system_time": {"recorded_at": now(), "superseded_at": None},
+            "observed": copy.deepcopy(incoming), "system_time": {
+                "recorded_at": now(), "superseded_at": None,
+                **({"restored_from_recorded_at": restored_from_recorded_at} if restored_from_recorded_at else {})},
             "content_sha256": digest(incoming["content"]),
             "origin": "document_import" if imported else {
                 "user": "user_statement", "assistant": "assistant_output", "tool": "tool_observation",
@@ -355,15 +521,17 @@ class MemoryService:
         from .affect import AFFECT_CONVERSATION
         from .mood import MOOD_CONVERSATION
         from .persona import PERSONA_CONVERSATION
+        from .persona_growth import PROPOSALS_CONVERSATION
         from .relationship import RELATIONSHIP_CONVERSATION
 
         # Persona versions are configuration and affect records are evidence kept with notes, not conversation:
         # neither is read for learning, so saving or clearing them never starts a model call. Mood pins and reset
         # markers are settings, and relationship records (support style, boundaries, cap, acknowledgements, reset
-        # markers) are the user's requests, likewise.
+        # markers) are the user's requests, likewise. Persona suggestions and decisions (P2) too.
         if (self.semantic_processor and target.get("conversation_ref") and target.get("branch_ref")
                 and target.get("conversation_ref") not in (PERSONA_CONVERSATION, AFFECT_CONVERSATION,
-                                                           MOOD_CONVERSATION, RELATIONSHIP_CONVERSATION)
+                                                           MOOD_CONVERSATION, RELATIONSHIP_CONVERSATION,
+                                                           PROPOSALS_CONVERSATION)
                 and incoming["delivery_state"] in ("received", "delivered", "partially_delivered")
                 and incoming["event_kind"] not in ("source_correction", "delivery_receipt")):
             from .learning_allocations import CONTRACT_VERSION
@@ -388,6 +556,11 @@ class MemoryService:
             raise DomainError("invalid_evidence", "Relationship records are written through the relationship API.")
         if request["target"].get("conversation_ref") == MOOD_CONVERSATION:
             raise DomainError("invalid_evidence", "The companion's mood is set through the mood API.")
+        from .persona_growth import PROPOSALS_CONVERSATION
+        from .persona_growth import observe_feedback as observe_persona_feedback
+
+        if request["target"].get("conversation_ref") == PROPOSALS_CONVERSATION:
+            raise DomainError("invalid_evidence", "Personality suggestions are made by memBrain from your feedback.")
         for event in request["payload"]["events"]:
             if event["producer_ref"] in ("memory-service", "archive-import") or event["event_kind"] == "source_correction":
                 raise DomainError("invalid_evidence", "Correction audit records are created by the service.")
@@ -397,6 +570,8 @@ class MemoryService:
                 from .feedback import observe_feedback
 
                 observe_feedback(conn, self, principal, brain, request["target"], event_id)
+                # Feedback on the companion's manner may bring a persona suggestion to its threshold (P2).
+                observe_persona_feedback(self, conn, principal, brain, request["target"], event, event_id)
             if job_id:
                 jobs.append(job_id)
         return {"accepted_event_ids": accepted, "duplicate_event_ids": duplicates,
@@ -414,7 +589,7 @@ class MemoryService:
             extra.append(after_sequence)
         selection = " AND (" + " OR ".join(clauses) + ")" if clauses else ""
         ordering = " DESC" if descending else " ASC"
-        return [self._rebind(row["document"], principal, brain) for row in conn.execute(
+        return [self._bind_document(row["document"], principal, brain) for row in conn.execute(
             "SELECT document FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
             "AND is_current AND NOT deleted AND NOT suppressed AND document IS NOT NULL "
             "AND (%s OR NOT retired)" + selection + " ORDER BY sequence" + ordering + " LIMIT %s",
@@ -545,7 +720,8 @@ class MemoryService:
                     observations.append(observation)
         return observations, complete
 
-    def _retrieval(self, conn, principal, brain, target, query, recall_plan=None, query_embedding=None, context_observations=None):
+    def _retrieval(self, conn, principal, brain, target, query, recall_plan=None, query_embedding=None, context_observations=None,
+                   *, save_traces=True):
         params = self._params(principal, brain["id"])
         from .belief_resolution import frozen_relations, resolution_evidence
         from .belief_store import load_belief_relations
@@ -584,7 +760,7 @@ class MemoryService:
         tail = self._events(conn, principal, brain, after_sequence=brain["indexed_sequence"], limit=129)
         truncated = len(source_ids) > 1024 or len(tail) > 128
         events = list({event["event_id"]: event for event in events + beliefs["events"] + tail[:128]}.values())
-        working = self._working(conn, principal, brain, target, events)
+        working = self._working_from_events(raw_working, events)
         state = self._state(conn, principal, brain, total)
         state.update(candidate_state)
         state.update(belief_relations=beliefs["relations"], belief_incomplete_versions=beliefs["incomplete_versions"],
@@ -623,8 +799,13 @@ class MemoryService:
                     and event["scope"]["branch_id"] != target.get("branch_ref"))
         }
         state["verified_working_evidence_refs"] = [r for field in ("items", "open_loops") for item in working[field] for r in item["evidence_refs"]]
-        result = cognition.recall(self._scope(principal, brain, target), query, memories, events, state,
-                                  access_at=access_at)
+        # Both callers validate this result in full later, after their last change to it: _recall's as the result
+        # of the ActionResponse that handle validates, _prepare's as cognition.prepare's RecallResult input. Until
+        # then it is only read here, and the traces it carries are validated one by one before they are saved.
+        runner = self.recall_runner or cognition.recall
+        timed_query = {**query, "budget": {**query["budget"], "max_wall_time_ms": recall_deadline.remaining(query["budget"]["max_wall_time_ms"])}}
+        result = runner(self._scope(principal, brain, target), timed_query, memories, events, state,
+                        access_at=access_at, validate_result=False)
         if recall_plan is None and result["items"]:
             from .pattern_store import load_patterns
 
@@ -656,11 +837,14 @@ class MemoryService:
                     item["memory"]["evidence_refs"] + resolution_evidence(item.get("belief_resolution", {})))
             ):
                 raise DomainError("invalid_evidence", "Selected memory versions are unavailable or unsupported.")
-        self._save_traces(conn, principal, brain, result.get("recall_traces", []))
+        if save_traces:
+            self._save_traces(conn, principal, brain, result.get("recall_traces", []))
         return result, working, state
 
     def _recall(self, conn, principal, brain, request, query_embedding=None):
-        return self._retrieval(conn, principal, brain, request["target"], request["payload"], query_embedding=query_embedding)[0]
+        # handle saves the traces once the response that contains them has been validated.
+        return self._retrieval(conn, principal, brain, request["target"], request["payload"],
+                               query_embedding=query_embedding, save_traces=False)[0]
 
     def _prepare(self, conn, principal, brain, request, query_embedding=None, *, persist_preflight=True):
         payload = request["payload"]
@@ -834,15 +1018,17 @@ class MemoryService:
         memory = self._rebind(memory, principal, brain)
         validate("MemoryAssertion", memory)
         conn.execute(
-            "INSERT INTO memory_assertions(tenant_id,owner_id,brain_id,id,revision,document,event_ids,memory_ids,search_text,embedding) "
-            "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::vector) ON CONFLICT(tenant_id,brain_id,id,revision) DO NOTHING",
+            "INSERT INTO memory_assertions(tenant_id,owner_id,brain_id,id,revision,document,event_ids,memory_ids,search_text,embedding,source_han_majority) "
+            "VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s::vector,%s) ON CONFLICT(tenant_id,brain_id,id,revision) DO NOTHING",
             (*self._params(principal, brain["id"]), memory["memory_id"], memory["revision"], Jsonb(memory),
              list({r["event_id"] for r in memory["evidence_refs"]} | set(memory.get("root_event_ids", []))),
              list({r["memory_id"] for r in memory["derivation"]["source_memory_versions"]}),
-             memory["statement"], _vector(memory["statement"])),
+             memory["statement"], _vector(memory["statement"]), source_scripts.classify(memory)),
         )
         if self.embedding_provider:
-            job_id = "embed:" + digest([memory["memory_id"], memory["revision"], self.embedding_provider.space.descriptor()])
+            from .vector_jobs import embedding_job_id
+
+            job_id = embedding_job_id(memory["memory_id"], memory["revision"], self.embedding_provider)
             conn.execute(
                 "INSERT INTO memory_jobs(tenant_id,owner_id,brain_id,id,kind,payload,state,source_event_ids,source_memory_ids) "
                 "VALUES(%s,%s,%s,%s,'embed',%s,'queued',%s,%s) ON CONFLICT DO NOTHING",
@@ -874,13 +1060,21 @@ class MemoryService:
                 return memory
         raise DomainError("invalid_evidence", "The deterministic extractor cannot substantiate this proposal.")
 
-    def _save_traces(self, conn, principal, brain, traces):
-        for trace in traces:
-            validate("RecallTrace", trace)
+    def _save_traces(self, conn, principal, brain, traces, *, validated=False):
+        """``validated`` only for traces already validated as RecallTraces, unchanged since. Every trace is
+        validated before any is written."""
+        if not validated:
+            for trace in traces:
+                validate("RecallTrace", trace)
+        params = self._params(principal, brain["id"])
+        if traces:
             conn.execute(
-                "INSERT INTO memory_traces(tenant_id,owner_id,brain_id,id,document) VALUES(%s,%s,%s,%s,%s) "
+                "INSERT INTO memory_traces(tenant_id,owner_id,brain_id,id,document) "
+                "SELECT %s,%s,%s,trace.document->>'trace_id',trace.document "
+                "FROM jsonb_array_elements(%s::jsonb) WITH ORDINALITY AS trace(document,position) "
+                "ORDER BY trace.position "
                 "ON CONFLICT(tenant_id,brain_id,id) DO NOTHING",
-                (*self._params(principal, brain["id"]), trace["trace_id"], Jsonb(trace)),
+                (*params, Jsonb(traces)),
             )
 
     def _feedback(self, conn, principal, brain, target, payload, events):
@@ -1183,7 +1377,9 @@ class MemoryService:
         data["retired_event_ids"] = [i for i in data.get("retired_event_ids", []) if i not in erased_events]
         tombstones.extend({"object_kind": "event", "object_id": event_id, "mode": "erase_content"}
                           for event_id in removed_events)
-        data["tombstones"] = list({(t["object_kind"], t["object_id"], t["mode"]): t for t in tombstones}.values())
+        # Re-sanitizing an uploaded archive must not change its manifest through tombstone ordering alone.
+        known = {(t["object_kind"], t["object_id"], t["mode"]): t for t in tombstones}
+        data["tombstones"] = [known[key] for key in sorted(known)]
         return data
 
     def _archive(self, conn, principal, archive_id):
@@ -1282,6 +1478,10 @@ class MemoryService:
         for event in document["events"]:
             if digest(event["observed"]["content"]) != event["content_sha256"]:
                 raise DomainError("invalid_archive", "Archive event hash does not match its content.")
+            # A restore reads these recording times in UTC; one that has no UTC form makes the archive invalid.
+            for key in ("recorded_at", "restored_from_recorded_at"):
+                if key in event["system_time"] and _moment(event["system_time"][key]) is None:
+                    raise DomainError("invalid_archive", "Archive event recording times must be representable in UTC.")
         if not isinstance(document.get("retired_event_ids", []), list) or not all(isinstance(x, str) for x in document.get("retired_event_ids", [])):
             raise DomainError("invalid_archive", "Invalid retired source manifest.")
         excluded = document.get("excluded_deleted_event_ids", [])
@@ -1373,8 +1573,10 @@ class MemoryService:
             incoming["producer_ref"] = "archive-import"
             incoming["source_event_key"] = event["event_id"]
             target = {"conversation_ref": event["scope"]["conversation_id"], "branch_ref": event["scope"]["branch_id"]}
+            # recorded_at stays the time of this ingestion; the archive's own recording time is kept beside it.
             self._append_event(conn, principal, brain, target, incoming, event_id=event["event_id"], imported=True,
-                               segmentation_rule_version=cognition._literal_rule_version(event))
+                               segmentation_rule_version=cognition._literal_rule_version(event),
+                               restored_from_recorded_at=original_recording(event))
             if event["event_id"] in data.get("retired_event_ids", []):
                 conn.execute("UPDATE memory_events SET retired=true WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=%s",
                              (*params, event["event_id"]))
@@ -1426,7 +1628,37 @@ class MemoryService:
     def work_once(self, principal, brain_id):
         from .learning import LearningEngine
 
-        return LearningEngine(self).work_once(principal, brain_id)
+        result = LearningEngine(self).work_once(principal, brain_id)
+        if not result:
+            from .read_cache import maintain
+
+            with reading(), self.database.transaction(principal) as conn:
+                conn.execute("SET LOCAL statement_timeout='1000'")
+                conn.execute("SET LOCAL lock_timeout='100'")
+                brain = self._brain(conn, principal, brain_id)
+                maintain(conn, self._params(principal, brain["id"]))
+                source_scripts.maintain(conn, self._params(principal, brain["id"]))
+        return result
+
+    def source_messages(self, principal, brain_id, references):
+        from .note_sources import reference, resolve
+
+        with reading(), self.database.transaction(principal) as conn:
+            brain = self._brain(conn, principal, brain_id)
+            documents = resolve(self, conn, principal, brain, references)
+            return {"dependency_generation": brain["dependency_generation"], "items": [
+                {"reference": reference(item["observed"]), "event_id": item["event_id"],
+                 "actor_role": item["observed"]["actor_role"], "text": item["observed"]["content"].get("text") or ""}
+                for item in documents]}
+
+    def recall_windows(self, principal, brain_id, windows, query, *, conversation_id=None, branch_id=None):
+        from .recall_windows import read, validate_request
+
+        target = {'brain_ref': brain_id, 'conversation_ref': conversation_id, 'branch_ref': branch_id}
+        validate_request(windows, query, target)
+        with reading(), self.database.transaction(principal) as conn:
+            brain = self._brain(conn, principal, brain_id)
+            return read(self, conn, principal, brain, windows, query, target)
 
     def timeline(self, principal, brain_id, *, roles=("user",), max_characters=8000, max_item_characters=1500,
                  limit=200, exclude_conversation=None, event_ids=None, conversation_id=None, before_sequence=None):
@@ -1456,7 +1688,7 @@ class MemoryService:
             if not 1 <= len(event_ids) <= 100 or any(
                     not isinstance(value, str) or not 1 <= len(value) <= 256 for value in event_ids):
                 raise DomainError("validation_failed", "Timeline event IDs must be 1 to 100 identifiers.")
-        with self.database.transaction(principal) as conn:
+        with reading(), self.database.transaction(principal) as conn:
             brain = self._brain(conn, principal, brain_id)
             rows = conn.execute(
                 "SELECT conversation_id, producer_ref, document, ARRAY(SELECT d.input_event_id FROM memory_event_dependencies d "
@@ -1496,7 +1728,7 @@ class MemoryService:
         if not 1 <= len(event_ids) <= 12 or any(not isinstance(value, str) or not 1 <= len(value) <= 256
                                               for value in event_ids):
             raise DomainError("validation_failed", "Choose 1 to 12 source messages.")
-        with self.database.transaction(principal) as conn:
+        with reading(), self.database.transaction(principal) as conn:
             self._brain(conn, principal, brain_id)
             rows = conn.execute(
                 "SELECT origin.id AS source_event_id, reply.document, reply.conversation_id FROM memory_events origin "
@@ -1519,7 +1751,7 @@ class MemoryService:
     def memory_status(self, principal, brain_id):
         from .notes import NOTES_CONVERSATION
 
-        with self.database.transaction(principal) as conn:
+        with reading(), self.database.transaction(principal) as conn:
             brain = self._brain(conn, principal, brain_id)
             jobs = conn.execute(
                 "SELECT count(*) FILTER (WHERE state IN ('queued','running','failed')) AS pending_jobs, "
@@ -1549,7 +1781,7 @@ class MemoryService:
     def dashboard(self, principal, brain_id):
         from .dynamics import DEFAULT_POLICY
 
-        with self.database.transaction(principal) as conn:
+        with reading(), self.database.transaction(principal) as conn:
             brain = self._brain(conn, principal, brain_id)
             params = self._params(principal, brain_id)
             events = list(reversed(self._events(conn, principal, brain, limit=100, descending=True)))
@@ -1562,8 +1794,12 @@ class MemoryService:
                 "SELECT id,kind,state,attempts,last_error FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
                 "ORDER BY created_at DESC LIMIT 100", params,
             )]
+            pending = conn.execute(
+                "SELECT count(*) AS count FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+                "AND state IN ('queued','running','failed')", params,
+            ).fetchone()["count"]
             return {"brain": self._public_brain(brain), "events": events[-100:], "memories": memories, "jobs": jobs,
-                    "status": {"pending_jobs": sum(j["state"] != "completed" for j in jobs),
+                    "status": {"pending_jobs": pending,
                                "index_lag": brain["durable_sequence"] - brain["indexed_sequence"],
                                "extraction": "verified_semantic_proposals" if self.semantic_processor else "deterministic_source_capture",
                                "candidate_index": "hybrid-semantic-and-lexical" if self.embedding_provider else "lexical-and-structural-cues",

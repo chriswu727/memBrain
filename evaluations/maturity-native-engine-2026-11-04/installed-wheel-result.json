@@ -1,0 +1,40 @@
+{
+  "purpose": "installed native wheel relocation and actual recovery/companion checks with build prefix absent; not release acceptance",
+  "completed": true,
+  "model_calls": 0,
+  "manifest_files_checked": 1646,
+  "tools": [
+    {
+      "name": "postgres",
+      "version": "postgres (PostgreSQL) 16.15"
+    },
+    {
+      "name": "pg_ctl",
+      "version": "pg_ctl (PostgreSQL) 16.15"
+    },
+    {
+      "name": "initdb",
+      "version": "initdb (PostgreSQL) 16.15"
+    },
+    {
+      "name": "pg_dump",
+      "version": "pg_dump (PostgreSQL) 16.15"
+    },
+    {
+      "name": "pg_restore",
+      "version": "pg_restore (PostgreSQL) 16.15"
+    },
+    {
+      "name": "psql",
+      "version": "psql (PostgreSQL) 16.15"
+    },
+    {
+      "name": "pg_config",
+      "version": "PostgreSQL 16.15"
+    }
+  ],
+  "build_prefix_absent_during_execution": true,
+  "tests_exit_code": 0,
+  "build_prefix_absent_after_tests": true,
+  "build_prefix_restored": true
+}

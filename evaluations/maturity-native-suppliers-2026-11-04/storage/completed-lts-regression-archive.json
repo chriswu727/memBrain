@@ -1,0 +1,13 @@
+{
+  "owned_completed_clusters": 10,
+  "regular_files_verified": 14246,
+  "archive_bytes": 75313837,
+  "archive_sha256": "1d84ecae408fb082cf2578eb2cd1b1dcb63171f1ecd18e599018071ccdf916c0",
+  "private_mode": "0o600",
+  "ports_closed": true,
+  "only_database_data_removed": true,
+  "all_logs_scripts_results_and_binaries_preserved": true,
+  "native_regression_passed": 248,
+  "native_regression_skipped": 0,
+  "profiles_and_registries_retained": true
+}

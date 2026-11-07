@@ -1,0 +1,1 @@
+{"attempt":"macosx_15_7_arm64","installation_exit_code":2,"reason":"uv requires the macosx_15_0_arm64 compatibility tag on this host; no installation occurred","retained_wheel":"wheels/membrain_postgres-16.15.0-py3-none-macosx_15_7_arm64.whl"}

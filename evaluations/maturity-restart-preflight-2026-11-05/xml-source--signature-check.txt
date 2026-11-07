@@ -1,0 +1,4 @@
+gpgv: Signature made Tue Oct  6 13:50:14 2026 PDT
+gpgv:                using RSA key B4D12556696F9490FD4EDF520F6403BC84D8956F
+gpgv:                issuer "charles.cochran@canonical.com"
+gpgv: Good signature from "Charles Cochran <charles.cochran@canonical.com>"

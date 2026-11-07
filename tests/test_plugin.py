@@ -348,19 +348,22 @@ def test_start_fetches_the_semantic_model_in_the_background_once(tmp_path, monke
     assert plugin.semantic_state(tmp_path) == "unavailable"
 
 
-def test_fetched_model_restarts_a_running_service_and_clears_the_marker(tmp_path, monkeypatch):
+@pytest.mark.parametrize("state", ["ready", "degraded", "restart_required", "stopped"])
+def test_fetched_model_never_restarts_the_service_and_clears_the_marker(tmp_path, monkeypatch, state):
     from membrain import local_embeddings
 
     (tmp_path / "profile.json").write_text("{}")
     monkeypatch.setattr(local_embeddings, "download", lambda directory: directory)
     monkeypatch.setattr(local_embeddings, "runtime_available", lambda: True)
     monkeypatch.setattr(local_embeddings, "installed", lambda directory: directory)
-    restarted = []
-    monkeypatch.setattr(desktop, "status", lambda directory: {"state": "ready"})
-    monkeypatch.setattr(desktop, "restart", lambda directory: restarted.append(directory))
+    lifecycle = []
+    monkeypatch.setattr(desktop, "status", lambda directory: {"state": state})
+    for name in ("restart", "stop", "start"):
+        monkeypatch.setattr(desktop, name, lambda directory, name=name: lifecycle.append(name))
     host._download_marker(tmp_path).touch()
-    assert plugin.fetch_model(tmp_path) == {"semantic_recall": "ready", "service_restarted": True}
-    assert restarted == [tmp_path] and not host._download_marker(tmp_path).exists()
+    # The running service activates the model in place; a restart would break requests in flight (#29).
+    assert plugin.fetch_model(tmp_path) == {"semantic_recall": "ready", "service_restarted": False, "activated": True}
+    assert lifecycle == [] and not host._download_marker(tmp_path).exists()
 
     def failing(directory):
         raise local_embeddings.LocalEmbeddingError("offline")
@@ -454,6 +457,31 @@ def test_meaning_only_matches_are_capped_and_timeline_failure_falls_back_to_stat
     assert [event for event, _ in host._sources(_response(*items), None)] == [
         f"v{index}" for index in range(min(cap, host.MAX_MESSAGES))]
     assert "Vector match number 0 here." in plugin.recall_context(Client(), "q")
+
+
+@pytest.mark.parametrize("crowding", ["same_source", "current_conversation", "keyword"])
+def test_vector_context_slots_count_eligible_independent_sources(crowding):
+    items = [_source("user user (direct_statement): An earlier discussion contains this detail.",
+                     "shared" if crowding == "same_source" else f"source-{index}",
+                     conversation="current" if crowding == "current_conversation" else "earlier",
+                     methods=("keyword", "vector") if crowding == "keyword" else ("vector",),
+                     score=.1 - index * .001) for index in range(host.VECTOR_ONLY_STATEMENTS)]
+    items.append(_source("user user (direct_statement): My umbrella is inside the hallway cabinet.",
+                         "independent", methods=("vector",), score=.01))
+
+    selected = [event for event, _ in host._sources(_response(*items), "current")]
+
+    assert "independent" in selected
+    assert len(selected) == len(set(selected)) <= host.MAX_MESSAGES
+
+
+def test_do_not_surface_items_neither_consume_slots_nor_leak_through_fallback():
+    hidden = _source("user user (direct_statement): A withheld detail must stay withheld.", "hidden",
+                     methods=("keyword", "vector"), score=1)
+    hidden["display_mode"] = "do_not_surface"
+
+    assert host._sources(_response(hidden), None) == []
+    assert host.render_context(_response(hidden)) is None
 
 
 def test_pasted_blocks_are_compacted_but_short_lines_are_kept():

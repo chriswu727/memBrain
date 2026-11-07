@@ -1,0 +1,24 @@
+{
+  "prior_attempts": [
+    "v1: optional local provider directory is present despite absent weights; stopped before DB start",
+    "v2: concurrent cProfile instances conflict in this Python runtime; SQL rollback evidence retained, instrumentation run failed, API/DB stopped; modified copy removed before fresh hash-verified restore"
+  ],
+  "purpose": "instrumented SQL/cProfile attribution on the retained failed corpus, not R5 qualification",
+  "model_calls": 0,
+  "restored_profile_files_verified": 1485,
+  "registry_unchanged_before_start": true,
+  "completed": true,
+  "limitations": "SQL timers add overhead in 16 concurrent core recalls, CPU profiling only in two separate serial recalls; explicit host keyword-fallback budget/cutoff; omits boundary/timeline/reply/trace API calls, initial unavailable-embedding attempt and browser. Not R5 qualification.",
+  "rollback_order": [
+    "original",
+    "filtered",
+    "filtered",
+    "original"
+  ],
+  "previous_rollback_sql_evidence": "recall-diagnosis-v2.json",
+  "profile_records": 18,
+  "api_exit_code": -15,
+  "ports_closed": true,
+  "source_unchanged": true,
+  "restored_diagnostic_copy_removed": true
+}

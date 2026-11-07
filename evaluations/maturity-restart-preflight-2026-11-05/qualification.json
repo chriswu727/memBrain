@@ -1,0 +1,22 @@
+{
+  "build_id": "bd1a653ea57c157c153b5ad09a1364961f04bf3cd5e7e10fab089ecb0fadcb70",
+  "schema_id": "e2f27d492746a4ac9942312b04a07a37cd5f19e44bd7770bcdcbac54a4a23693",
+  "runtime_commit": "73ee62ee5796902249ddd20b08ed7e4ad6922b3f",
+  "unit_tests_passed": 109,
+  "new_red_cases_failed": 9,
+  "installation_pin_tests_passed": 2,
+  "new_model_calls": 0,
+  "initial_auxiliary_environment_failure": "Python 3.9 cannot import Python 3.12 dependencies; no service started",
+  "linux_26_abi_fixed": false,
+  "cross_platform_restart_qualification": "SUCCESS",
+  "native_matrix_run": 42070570407,
+  "native_journeys": 11,
+  "native_guards_mac_linux": 246,
+  "native_guards_windows": 236,
+  "native_skips": 0,
+  "sdist_and_wheel_from_sdist_build": true,
+  "current_package_byte_parity": true,
+  "installed_wheel_http_with_shared_dependencies": true,
+  "clean_complete_installation_claimed": false,
+  "package_member_inventory_and_known_credential_scan": true
+}

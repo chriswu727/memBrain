@@ -1,0 +1,51 @@
+{
+ "persona": {
+  "passed": 32,
+  "failures": []
+ },
+ "affect": {
+  "passed": 42,
+  "failures": []
+ },
+ "mood": {
+  "passed": 34,
+  "failures": []
+ },
+ "relationship": {
+  "passed": 51,
+  "failures": []
+ },
+ "page_actions": {
+  "passed": 3,
+  "failures": []
+ },
+ "reference": {
+  "passed": 22,
+  "failures": []
+ },
+ "clock": {
+  "passed": 32,
+  "failures": []
+ },
+ "tools": {
+  "passed": 8,
+  "failures": []
+ },
+ "network": {
+  "passed": 3,
+  "failures": []
+ },
+ "run": {
+  "passed": 9,
+  "failures": []
+ },
+ "p2_proposals": "exercised",
+ "deletion_cascade": [
+  [
+   "s1-arrival",
+   2,
+   "user"
+  ]
+ ],
+ "ok": true
+}

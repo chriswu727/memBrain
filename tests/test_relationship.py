@@ -10,6 +10,7 @@ from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
+from psycopg.types.json import Jsonb
 
 from membrain import desktop, embedded_database, host, notes
 from membrain import service as service_module
@@ -153,6 +154,26 @@ def test_a_sensitive_missed_promise_is_listed_but_never_raised_automatically():
     assert context["block"] is None and context["once"] == []
 
 
+@pytest.mark.parametrize("sequence", [5, 10, None, True, "11"])
+def test_snapshot_does_not_automatically_repeat_pre_reset_commitments(sequence):
+    def item(ident, text, kind, sequence):
+        return {"event_id": ident, "text": format_note(text, kind=kind, status="intended"),
+                "actor_role": "assistant", "recorded_at": "2027-03-01", "sequence": sequence}
+
+    saved = {"items": [item("old", "Send the old recipe.", "agent_commitment", sequence),
+                       item("new", "Send the new map.", "agent_commitment", 11),
+                       item("plan", "Visit the museum.", "plan", 5)]}
+    shared = {"items": [item("shared", "Send the group invitation.", "agent_commitment", 1)]}
+    bond = state(markers=[{"marker": "reset", "applies_from_sequence": 10},
+                          {"marker": "reset", "applies_from_sequence": 3}])
+    current = snapshot(saved, brain_id="b", tools=None, shared=shared, relationship=bond)
+    assert "Send the old recipe." not in current["text"]
+    assert "Send the new map." in current["text"] and "Visit the museum." in current["text"]
+    assert "Send the group invitation." in current["text"]
+    assert "Send the old recipe." in snapshot(saved, brain_id="b", tools=None, relationship=state())["text"]
+    assert len(saved["items"]) == 3
+
+
 def test_snapshot_keeps_bounded_notes_and_shared_moments_out_of_the_notes_block():
     saved = {"items": [
         {"event_id": "n1", "text": "Prefers short replies.", "actor_role": "assistant", "recorded_at": "2027-03-01"},
@@ -220,6 +241,42 @@ def test_recall_context_leaves_out_bounded_messages_unless_the_current_message_r
     assert "My ex" in (host.recall_context(client, "Hiking ideas near Mount Tam?", boundaries=[]) or "")
 
 
+def test_recall_refreshes_topic_boundaries_without_loading_full_relationship():
+    from types import SimpleNamespace
+
+    values = iter(([EX], []))
+    client = SimpleNamespace(relationship_boundaries=lambda: {"boundaries": next(values)})
+    assert host._boundaries(client) == [EX]
+    assert host._boundaries(client) == []
+
+
+@pytest.mark.parametrize("status", [404, 405, 401, 403, 500, 503])
+def test_boundary_reader_only_falls_back_for_an_older_route(status):
+    from types import SimpleNamespace
+
+    import httpx
+
+    def unavailable():
+        httpx.Response(status, request=httpx.Request("GET", "http://memory.test/boundaries")).raise_for_status()
+
+    client = SimpleNamespace(relationship_boundaries=unavailable, relationship=lambda: {"boundaries": [EX]})
+    if status in (404, 405):
+        assert host._boundaries(client) == [EX]
+    else:
+        with pytest.raises(httpx.HTTPStatusError):
+            host.recall_context(client, "Hiking ideas?")
+
+
+@pytest.mark.parametrize("response", [None, {}, {"boundaries": None}, {"boundaries": [None]},
+                                      {"boundaries": [{"topic": "my ex", "aliases": "Jordan"}]}])
+def test_invalid_boundary_response_stops_recall(response):
+    from types import SimpleNamespace
+
+    client = SimpleNamespace(relationship_boundaries=lambda: response)
+    with pytest.raises(ValueError, match="invalid topic boundaries"):
+        host.recall_context(client, "Hiking ideas?")
+
+
 # On a real service ----------------------------------------------------------------------------------------------
 
 @pytest.fixture(scope="module")
@@ -253,7 +310,7 @@ def api(installation, brain):
         yield client, f"/v1/brains/{ident}/relationship"
 
 
-def say(brain, text, *, conversation="chat", on=None, monkeypatch=None):
+def say(brain, text, *, conversation="chat", on=None, monkeypatch=None, occurred=None, occurred_end=None):
     """One user message; ``on`` (with ``monkeypatch``) records it on that day, as the service clock reads it."""
     service, principal, ident = brain
     if on is not None:
@@ -264,7 +321,8 @@ def say(brain, text, *, conversation="chat", on=None, monkeypatch=None):
         "payload": {"idempotency_key": uid(), "events": [{
             "source_event_key": uid(), "source_revision": 1, "producer_ref": "relationship-test", "actor_ref": "user",
             "actor_role": "user", "event_kind": "message", "content": {"media_type": "text/plain", "text": text},
-            "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
+            "occurred_time": {"start": occurred, "end": occurred_end, "precision": "exact" if occurred else "unknown",
+                              "basis": "source_explicit" if occurred else "unknown"},
             "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": [],
         }]},
     })
@@ -319,6 +377,22 @@ def test_cross_session_a_boundary_keeps_the_topic_out_until_it_is_removed(instal
     later = host.session_context(directory, "s6", user_id=user)
     later += turn("s6", "Any hiking ideas near Mount Tam this weekend?")
     assert "Mount Tam every Sunday" in later and "海边" in later and "Boundaries:" not in later
+
+
+@pytest.mark.parametrize("occurred,occurred_end", [
+    ("0001-01-01T00:00:00+23:59", None), ("9999-12-31T23:59:59-23:59", None),
+    ("2027-03-20T09:00:00Z", "2027-03-19T09:00:00Z"),
+])
+def test_invalid_occurrence_ranges_are_rejected_before_they_can_reach_the_worker(
+        brain, monkeypatch, occurred, occurred_end):
+    result = say(brain, "A fictional message with an unusable occurrence range.", on="2027-03-20",
+                 monkeypatch=monkeypatch, occurred=occurred, occurred_end=occurred_end)
+    assert result["outcome"] == "rejected" and result["error"]["code"] == "validation_failed"
+    status = brain[0].memory_status(brain[1], brain[2])
+    assert status["recorded_messages"] == 0 and status["pending_jobs"] == 0
+    assert say(brain, "A later valid message.", on="2027-03-20", monkeypatch=monkeypatch)["outcome"] == "completed"
+    known = relationship(*brain, today=TODAY)["familiarity"]
+    assert (known["days"], known["since"]) == (1, "2027-03-20")
 
 
 def test_familiarity_crosses_its_thresholds_with_the_numbers_the_page_shows(brain, monkeypatch):
@@ -398,7 +472,8 @@ def test_sensitive_and_bounded_missed_promises_are_listed_but_not_shown_or_ackno
         private: False, bounded: False, plain: True}
 
 
-def test_mcp_recall_honors_boundaries_with_and_without_an_installation(brain, tmp_path):
+@pytest.mark.parametrize("boundary_route", [True, False])
+def test_mcp_recall_honors_boundaries_with_and_without_an_installation(brain, tmp_path, boundary_route):
     import asyncio
 
     import httpx
@@ -418,6 +493,11 @@ def test_mcp_recall_honors_boundaries_with_and_without_an_installation(brain, tm
             return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
         if path.endswith("/relationship"):
             return httpx.Response(200, json=relationship(service, principal, ident))
+        if path.endswith("/relationship/boundaries"):
+            from membrain.relationship import relationship_boundaries
+
+            return (httpx.Response(200, json=relationship_boundaries(service, principal, ident))
+                    if boundary_route else httpx.Response(404))
         if path.endswith("/timeline/following"):
             return httpx.Response(200, json=service.following(principal, ident, query.get_list("event_id")))
         if path.endswith("/timeline"):
@@ -435,6 +515,32 @@ def test_mcp_recall_honors_boundaries_with_and_without_an_installation(brain, tm
             assert "best in spring" in quiet and "every Sunday" not in quiet, directory
             _, raised = asyncio.run(server.call_tool("memory_recall", {"query": "Jordan at Mount Tam"}))
             assert "every Sunday" in json.dumps(raised, ensure_ascii=False), directory
+
+
+def test_reset_removes_old_promises_from_host_context_and_survives_restore(brain):
+    service, principal, ident = brain
+    say(brain, "We discussed sending the old recipe.")
+    old = note(brain, "Send the old recipe.", kind="agent_commitment", status="intended")["note_id"]
+    note(brain, "Visit the museum.", kind="plan", status="scheduled")
+    reset_relationship(*brain)
+    note(brain, "Send the new map.", kind="agent_commitment", status="intended")
+
+    def check(target):
+        saved = service.timeline(principal, target, roles=("assistant", "user"),
+                                 conversation_id=notes.NOTES_CONVERSATION)
+        context = snapshot(saved, brain_id=target, tools=None,
+                           relationship=relationship(service, principal, target))["text"]
+        assert "Send the old recipe." not in context
+        assert "Send the new map." in context and "Visit the museum." in context
+        assert any("Send the old recipe." in item["text"] for item in saved["items"])
+        assert any("We discussed sending the old recipe." in item["text"]
+                   for item in service.timeline(principal, target, roles=("user",))["items"])
+
+    check(ident)
+    assert service.timeline(principal, ident, roles=("assistant",), event_ids=[old])["items"]
+    copied = restore_copy(service, principal, ident, "Reset commitments")
+    check(copied)
+    check(restore_copy(service, principal, copied, "Reset commitments twice"))
 
 
 def test_reset_starts_familiarity_again_and_nothing_from_before_the_marker_returns(brain, monkeypatch):
@@ -578,7 +684,8 @@ def test_api_and_sdk_routes_check_keys_owners_and_bodies(installation, brain, ap
     assert client.get(path, headers={"Authorization": "Bearer wrong"}).status_code == 401
     empty = client.get(path).json()
     assert empty["familiarity"]["level"] == "new" and empty["boundaries"] == [] and empty["block"] is None
-    for method, suffix, body in (("GET", "", None), ("PUT", "/support-style", {"text": "x"}),
+    for method, suffix, body in (("GET", "", None), ("GET", "/boundaries", None),
+                                 ("PUT", "/support-style", {"text": "x"}),
                                  ("POST", "/boundaries", {"topic": "x"}), ("DELETE", "/boundaries/x", None),
                                  ("POST", "/cap", {"level": None}), ("POST", "/acknowledge", {"note_ids": []}),
                                  ("POST", "/reset", None)):
@@ -589,6 +696,7 @@ def test_api_and_sdk_routes_check_keys_owners_and_bodies(installation, brain, ap
     assert client.put(path + "/support-style", json={"text": "listen first"}).json()["support_style"]["text"] == "listen first"
     added = client.post(path + "/boundaries", json={"topic": "my ex", "aliases": ["前任"]}).json()["boundaries"]
     assert added[0]["topic"] == "my ex"
+    assert client.get(path + "/boundaries").json() == {"boundaries": added}
     bad = client.post(path + "/boundaries", json={"topic": "x", "extra": 1})
     assert bad.status_code == 422 and bad.json()["error"]["message"].startswith("Relationship request field extra")
     assert client.post(path + "/boundaries", json={"topic": ""}).status_code == 422
@@ -596,6 +704,7 @@ def test_api_and_sdk_routes_check_keys_owners_and_bodies(installation, brain, ap
     assert client.post(path + "/cap", json={"level": "new"}).json()["familiarity"]["cap"] == "new"
     assert client.post(path + "/acknowledge", json={"note_ids": ["unknown"]}).status_code == 200
     assert client.delete(path + "/boundaries/" + added[0]["id"]).json()["boundaries"] == []
+    assert client.get(path + "/boundaries").json() == {"boundaries": []}
     assert client.delete(path + "/boundaries/" + added[0]["id"]).status_code == 404
     reset = client.post(path + "/reset").json()
     assert reset["marker"]["marker"] == "reset" and reset["support_style"] is None and reset["familiarity"]["cap"] is None
@@ -624,13 +733,37 @@ def test_sdk_uses_the_brain_scoped_relationship_routes():
         client.cap_familiarity("familiar")
         client.acknowledge_commitments(["n1"])
         client.reset_relationship()
+        client.relationship_boundaries()
     base = "/v1/brains/my%20brain/relationship"
     assert [(method, path) for method, path, _ in requests] == [
         ("GET", base), ("PUT", base + "/support-style"), ("POST", base + "/boundaries"),
         ("DELETE", base + "/boundaries/b%201"), ("POST", base + "/cap"), ("POST", base + "/acknowledge"),
-        ("POST", base + "/reset")]
+        ("POST", base + "/reset"), ("GET", base + "/boundaries")]
     assert json.loads(requests[2][2]) == {"topic": "my ex", "aliases": ["前任"]}
     assert json.loads(requests[4][2]) == {"level": "familiar"}
+
+
+def test_boundary_projection_matches_reset_and_avoids_history_aggregation(brain, api, monkeypatch):
+    import membrain.relationship as module
+
+    service, principal, ident = brain
+    client, path = api
+    add_boundary(service, principal, ident, "my ex", ["前任"])
+    expected = relationship(service, principal, ident)["boundaries"]
+
+    def unexpected(*args, **kwargs):
+        raise AssertionError("A boundary read must not aggregate relationship history")
+
+    with monkeypatch.context() as patcher:
+        for name in ("_days", "_moment_state", "_commitments"):
+            patcher.setattr(module, name, unexpected)
+        response = client.get(path + "/boundaries")
+        assert response.status_code == 200 and response.json() == {"boundaries": expected}
+    reset_relationship(service, principal, ident)
+    assert client.get(path + "/boundaries").json() == {"boundaries": []}
+    add_boundary(service, principal, ident, "work", ["工作"])
+    assert client.get(path + "/boundaries").json() == {
+        "boundaries": relationship(service, principal, ident)["boundaries"]}
 
 
 def test_restored_archives_keep_the_relationship_records(installation, brain):
@@ -653,6 +786,9 @@ def test_restored_archives_keep_the_relationship_records(installation, brain):
         client.restore(archive["archive_id"], expected_manifest_sha256=archive["manifest_sha256"],
                        expected_scope_generation=1, mode="new_brain", brain_id=copy)
     restored = relationship(service, principal, copy)
+    from membrain.relationship import relationship_boundaries
+
+    assert relationship_boundaries(service, principal, copy) == {"boundaries": restored["boundaries"]}
     assert [(item["topic"], item["aliases"]) for item in restored["boundaries"]] == [("my ex", ["前任"])]
     assert restored["support_style"]["text"] == "listen first"
     assert restored["familiarity"]["cap"] == "getting_to_know"
@@ -712,6 +848,88 @@ def test_a_restored_brain_keeps_days_its_messages_carry_and_adds_nothing_to_the_
             "SELECT count(*) AS n FROM memory_events WHERE brain_id=%s AND producer_ref <> 'archive-import'",
             (copy,)).fetchone()["n"]
     assert extra == 0
+
+
+def test_restored_messages_without_a_reported_time_keep_their_days_across_repeated_restores(installation, brain,
+                                                                                             monkeypatch):
+    service, principal, ident = brain
+
+    def said(text):
+        return service.handle(principal, {
+            "message_type": "request", "contract_version": "1.0.0-draft", "request_id": uid(), "action": "observe",
+            "target": {"brain_ref": ident, "conversation_ref": "chat", "branch_ref": "main"},
+            "payload": {"idempotency_key": uid(), "events": [{
+                "source_event_key": uid(), "source_revision": 1, "producer_ref": "relationship-test",
+                "actor_ref": "user", "actor_role": "user", "event_kind": "message",
+                "content": {"media_type": "text/plain", "text": text},
+                "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
+                "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": [],
+            }]}})["outcome"]
+
+    for when in ("2027-03-02T09:00:00Z", "2027-03-05T09:00:00Z", "2027-03-09T09:00:00Z"):
+        monkeypatch.setattr(service_module, "now", lambda when=when: when)
+        assert said(f"Chat recorded at {when}.") == "completed"
+    # A clock that ran ahead recorded this one in the future; a restore never counts a day still to come.
+    monkeypatch.setattr(service_module, "now", lambda: "2027-05-01T09:00:00Z")
+    assert said("Recorded by a clock that ran ahead.") == "completed"
+    monkeypatch.setattr(service_module, "now", lambda: "2027-04-20T08:00:00Z")
+    first = restore_copy(service, principal, ident, "First restore")
+    monkeypatch.setattr(service_module, "now", lambda: "2027-04-25T08:00:00Z")
+    second = restore_copy(service, principal, first, "Restore of the restore")
+    monkeypatch.undo()
+    for copy in (first, second):
+        known = relationship(service, principal, copy, today=TODAY)["familiarity"]
+        assert (known["days"], known["since"]) == (4, "2027-03-02")
+    with service.database.transaction(principal) as conn:
+        rows = conn.execute(
+            "SELECT document FROM memory_events WHERE brain_id=%s AND is_current ORDER BY sequence", (second,)).fetchall()
+        extra = conn.execute(
+            "SELECT count(*) AS n FROM memory_events WHERE brain_id IN (%s,%s) AND producer_ref <> 'archive-import'",
+            (first, second)).fetchone()["n"]
+    assert extra == 0  # Nothing beyond the imported events: the restored brains still equal their archives.
+    times = [row["document"]["system_time"] for row in rows]
+    # recorded_at stays this copy's ingestion; the original recording time is the earliest one, never a future one.
+    assert {time["recorded_at"] for time in times} == {"2027-04-25T08:00:00Z"}
+    assert [time["restored_from_recorded_at"] for time in times] == [
+        "2027-03-02T09:00:00Z", "2027-03-05T09:00:00Z", "2027-03-09T09:00:00Z", "2027-04-20T08:00:00Z"]
+    assert all(row["document"]["observed"]["occurred_time"]["start"] is None for row in rows)  # Never invented.
+
+
+@pytest.mark.parametrize("field", ["recorded_at", "restored_from_recorded_at"])
+@pytest.mark.parametrize("extreme", ["0001-01-01T00:00:00+23:59", "9999-12-31T23:59:59-23:59"])
+def test_an_archive_time_with_no_utc_form_is_an_invalid_archive_and_the_restore_writes_nothing(installation, brain,
+                                                                                              field, extreme):
+    import httpx
+
+    from membrain.client import MemoryActionError, MemoryClient
+    from membrain.helpers import digest
+
+    service, principal, ident = brain
+    note(brain, "Our first conversation.", kind="milestone", shared=True)
+
+    def handle(request):
+        return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
+
+    with MemoryClient("http://memory.test", "k", ident, transport=httpx.MockTransport(handle)) as client:
+        archive_id = client.export()["result"]["archive_id"]
+        document = service.download_archive(principal, archive_id)["document"]
+        document["events"][0]["system_time"][field] = extreme  # Valid as a date-time, but outside UTC's range.
+        with pytest.raises(DomainError) as refused:
+            service.upload_archive(principal, ident, document)
+        assert refused.value.code == "invalid_archive"
+        # An archive stored before this check is refused at restore, and the restore's transaction writes nothing.
+        with service.database.transaction(principal) as conn:
+            conn.execute("UPDATE memory_archives SET document=%s, manifest_hash=%s WHERE id=%s",
+                         (Jsonb(document), digest(document), archive_id))
+        copy = service.create_brain(principal, "Never restored")["id"]
+        with pytest.raises(MemoryActionError) as rejected:
+            client.restore(archive_id, expected_manifest_sha256=digest(document), expected_scope_generation=1,
+                           mode="new_brain", brain_id=copy)
+    response = rejected.value.response
+    assert response["outcome"] == "rejected" and response["error"]["code"] == "invalid_archive", response
+    with service.database.transaction(principal) as conn:
+        written = conn.execute("SELECT count(*) AS n FROM memory_events WHERE brain_id=%s", (copy,)).fetchone()["n"]
+    assert written == 0
 
 
 def test_days_follow_when_a_message_occurred_but_never_a_time_still_to_come(brain, monkeypatch):

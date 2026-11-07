@@ -1,0 +1,534 @@
+{
+  "purpose": "lexical/buffer experiments and retained instrumentation failures; local checks; complete successful R5, fresh installed acceptance and full successful CI",
+  "runtime_pin": "9f7536110a95dfd02b382382dc97d0991121632f",
+  "frozen_source": "c7acd84dcf472c1cbb7419d6d57455ed359ebc29",
+  "excluded": [
+    "private archives",
+    "profiles",
+    "registries",
+    "private file inventories/response fixtures",
+    "package/model/compiler directories",
+    "credentials/DSNs"
+  ],
+  "files": [
+    {
+      "path": "qualification/run-canonical.py",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/run-canonical.py",
+      "bytes": 2859,
+      "sha256": "25788e96e19294c595e0b6cd22f816b58098f50c8c5d84c0ca2fb0c50fa3e347",
+      "raw_bytes": 2859,
+      "raw_sha256": "25788e96e19294c595e0b6cd22f816b58098f50c8c5d84c0ca2fb0c50fa3e347"
+    },
+    {
+      "path": "qualification/canonical-command.json",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/canonical-command.json",
+      "bytes": 47534,
+      "sha256": "e582912b58b3c68061cc0e754afb73ff158880d699d05e92d040353810a5300f",
+      "raw_bytes": 47534,
+      "raw_sha256": "e582912b58b3c68061cc0e754afb73ff158880d699d05e92d040353810a5300f"
+    },
+    {
+      "path": "qualification/canonical-cache.json",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/canonical-cache.json",
+      "bytes": 8433,
+      "sha256": "788e7b787097ba298585c564b48d8275dbf87883ff41714ae4892c464cf3b6ad",
+      "raw_bytes": 8433,
+      "raw_sha256": "788e7b787097ba298585c564b48d8275dbf87883ff41714ae4892c464cf3b6ad"
+    },
+    {
+      "path": "qualification/canonical.log.gz",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/canonical.log",
+      "bytes": 934,
+      "sha256": "c9a7d69bfe6998c80a0dcb2feb062eb0b8b8d82dd8d8593e11e94d1554eee63f",
+      "raw_bytes": 2181,
+      "raw_sha256": "8adbd7c5e197fe40c4645025092df4af713cb2b55e0c071bbdce87a8e7473ae3"
+    },
+    {
+      "path": "qualification/canonical-cache.locks.jsonl.gz",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/canonical-cache.locks.jsonl",
+      "bytes": 434,
+      "sha256": "9c9b08c250705cb2c4c94e2a65e9ec16bf57fc2310976e79e0c6cee323cdde29",
+      "raw_bytes": 1061,
+      "raw_sha256": "eb60e7be52a032e4129a9eca8fccf9842b0f4c6300ea80b3beb4c63b8e7df83b"
+    },
+    {
+      "path": "qualification/run-visual.py",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/run-visual.py",
+      "bytes": 2450,
+      "sha256": "c2d6fbbb9b9f0dae962f236af55af853dcf5033897fd78b6ed90a48dbad43b6d",
+      "raw_bytes": 2450,
+      "raw_sha256": "c2d6fbbb9b9f0dae962f236af55af853dcf5033897fd78b6ed90a48dbad43b6d"
+    },
+    {
+      "path": "qualification/compare-visual-permissions.py",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/compare-visual-permissions.py",
+      "bytes": 13253,
+      "sha256": "5eebee04beb5d19386f7da54033ce65327475f285f7f788167c369288fdca6e5",
+      "raw_bytes": 13253,
+      "raw_sha256": "5eebee04beb5d19386f7da54033ce65327475f285f7f788167c369288fdca6e5"
+    },
+    {
+      "path": "qualification/visual-command.json",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/visual-command.json",
+      "bytes": 470,
+      "sha256": "2235bcac86d0cdf2f5d2995ce5e41a9235663b97a127a3390c6eb84dd894bf3a",
+      "raw_bytes": 470,
+      "raw_sha256": "2235bcac86d0cdf2f5d2995ce5e41a9235663b97a127a3390c6eb84dd894bf3a"
+    },
+    {
+      "path": "qualification/visual-permissions-abba.json.gz",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/visual-permissions-abba.json",
+      "bytes": 29403,
+      "sha256": "9dd315c25ebc59f43c0930037e9284ede516dddec89f0466a5f729cae02b6d4f",
+      "raw_bytes": 204966,
+      "raw_sha256": "90daeff60134e8ef5b8727fb0707eb868f3fe3c31f86c4d1c3f1c8790dd4e316"
+    },
+    {
+      "path": "qualification/visual.log.gz",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/visual.log",
+      "bytes": 2056,
+      "sha256": "a4fe5a189194ac20c4671da34d3de4102857e77d308fa3ef3a7c5c2a828d9fed",
+      "raw_bytes": 5546,
+      "raw_sha256": "b288240f92873280e57ef17dd1687e4c1578c7c771627ca1ada3faab349c8eff"
+    },
+    {
+      "path": "qualification/visual-permissions-0-closed.log.gz",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/visual-permissions-0-closed.log",
+      "bytes": 20,
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "qualification/visual-permissions-1-open.log.gz",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/visual-permissions-1-open.log",
+      "bytes": 20,
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "qualification/visual-permissions-2-open.log.gz",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/visual-permissions-2-open.log",
+      "bytes": 20,
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "qualification/visual-permissions-3-closed.log.gz",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/visual-permissions-3-closed.log",
+      "bytes": 20,
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "qualification/visual-permissions-1-open.png",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/visual-permissions-1-open.png",
+      "bytes": 456526,
+      "sha256": "ffe3c35236c9b665cfe8c3eb38a4831572878da457e9c0f9044e234ae8e43988",
+      "raw_bytes": 456526,
+      "raw_sha256": "ffe3c35236c9b665cfe8c3eb38a4831572878da457e9c0f9044e234ae8e43988"
+    },
+    {
+      "path": "qualification/visual-permissions-2-open.png",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/visual-permissions-2-open.png",
+      "bytes": 456593,
+      "sha256": "e1707b21a59be072bf9e15696ad3b1179c3fc972882cf989c0766d547f775692",
+      "raw_bytes": 456593,
+      "raw_sha256": "e1707b21a59be072bf9e15696ad3b1179c3fc972882cf989c0766d547f775692"
+    },
+    {
+      "path": "qualification/visual-summary.json",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/visual-summary.json",
+      "bytes": 5385,
+      "sha256": "f39d3e40bf7c728a220c5b7d7665df310e4a9dce218cfa8fe32c06e63e93f08c",
+      "raw_bytes": 5385,
+      "raw_sha256": "f39d3e40bf7c728a220c5b7d7665df310e4a9dce218cfa8fe32c06e63e93f08c"
+    },
+    {
+      "path": "qualification/archive-passing-profile.py",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/archive-passing-profile.py",
+      "bytes": 3197,
+      "sha256": "39dda9600173321e7fd1fec03cd6eff386d4a1148ffaf4e266f3d0d191d26f99",
+      "raw_bytes": 3197,
+      "raw_sha256": "39dda9600173321e7fd1fec03cd6eff386d4a1148ffaf4e266f3d0d191d26f99"
+    },
+    {
+      "path": "qualification/passing-profile-archive.json",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/passing-profile-archive.json",
+      "bytes": 686,
+      "sha256": "73a3e67e984ab2750a387988f63d57a0eb689f974222ac3dfa023d4df7191e22",
+      "raw_bytes": 686,
+      "raw_sha256": "73a3e67e984ab2750a387988f63d57a0eb689f974222ac3dfa023d4df7191e22"
+    },
+    {
+      "path": "installation/run-install.py",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/run-install.py",
+      "bytes": 2015,
+      "sha256": "c6c68b6098783b749782dc77fb2df01e945a7ca1e3b62795b2d19187f2d7616c",
+      "raw_bytes": 2015,
+      "raw_sha256": "c6c68b6098783b749782dc77fb2df01e945a7ca1e3b62795b2d19187f2d7616c"
+    },
+    {
+      "path": "installation/install-run-meta.json",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/install-run-meta.json",
+      "bytes": 606,
+      "sha256": "06316ab20e898416e0d852193b70d053281ab1ec6b98f8344c8beb2cc5f29dfe",
+      "raw_bytes": 606,
+      "raw_sha256": "06316ab20e898416e0d852193b70d053281ab1ec6b98f8344c8beb2cc5f29dfe"
+    },
+    {
+      "path": "installation/install-final.log.gz",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/install-final.log",
+      "bytes": 4680,
+      "sha256": "b04944350c58363933154973b814e21949123fe710b2770edbfe74911efd7408",
+      "raw_bytes": 16197,
+      "raw_sha256": "0df5f033d1322eab6bc9974355dfec85d42865eb3bd989e32f5c1c7175da32d8"
+    },
+    {
+      "path": "installation/check-installed-boundaries-v2.py",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/check-installed-boundaries-v2.py",
+      "bytes": 12789,
+      "sha256": "f1e6568c6afba4b66946a970af810e0258f979989ca0ba3186e4192129fc29e0",
+      "raw_bytes": 12789,
+      "raw_sha256": "f1e6568c6afba4b66946a970af810e0258f979989ca0ba3186e4192129fc29e0"
+    },
+    {
+      "path": "installation/check-installed.log.gz",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/check-installed.log",
+      "bytes": 786,
+      "sha256": "ed086048b7e106552b11c47dd37c78f684b18a67a33d3b4b36bb00c331657e1e",
+      "raw_bytes": 1646,
+      "raw_sha256": "6f6a88d6785689e9d0992e60e5efdc0df1138a745cad87b1a7b65ed7c100257f"
+    },
+    {
+      "path": "installation/installed-followup-smoke-v2.json",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/installed-followup-smoke-v2.json",
+      "bytes": 19163,
+      "sha256": "077132d4d378f2af19b99aaec042c9ec2e85e1f8f6587594b800e654a4b0acde",
+      "raw_bytes": 19163,
+      "raw_sha256": "077132d4d378f2af19b99aaec042c9ec2e85e1f8f6587594b800e654a4b0acde"
+    },
+    {
+      "path": "installation/installed-followup-hologram-v2.png",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/installed-followup-hologram-v2.png",
+      "bytes": 565092,
+      "sha256": "1f5bf30c495006d0fa9f5e80a15ee1fae91c1275a4c4b359903e1ff4acf3b700",
+      "raw_bytes": 565092,
+      "raw_sha256": "1f5bf30c495006d0fa9f5e80a15ee1fae91c1275a4c4b359903e1ff4acf3b700"
+    },
+    {
+      "path": "installation/installation-ports.json",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/installation-ports.json",
+      "bytes": 606,
+      "sha256": "bcf2e003e2dce9b150035f2d82b43cab90a4fa11138a57256208e9eed8e42160",
+      "raw_bytes": 606,
+      "raw_sha256": "bcf2e003e2dce9b150035f2d82b43cab90a4fa11138a57256208e9eed8e42160"
+    },
+    {
+      "path": "installation/share-model-blocks.py",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/share-model-blocks.py",
+      "bytes": 3988,
+      "sha256": "8599fbfdde0630b6f2bbd46dce6ce19e536e97c1b8e92988c0a6f941e6eed036",
+      "raw_bytes": 3988,
+      "raw_sha256": "8599fbfdde0630b6f2bbd46dce6ce19e536e97c1b8e92988c0a6f941e6eed036"
+    },
+    {
+      "path": "installation/model-block-sharing-native.json",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/model-block-sharing-native.json",
+      "bytes": 701,
+      "sha256": "61feaee3ed7f77925b6480ec099744e0646d7cedb9a0a5a73bcc5ad9ff2e094c",
+      "raw_bytes": 701,
+      "raw_sha256": "61feaee3ed7f77925b6480ec099744e0646d7cedb9a0a5a73bcc5ad9ff2e094c"
+    },
+    {
+      "path": "installation/share-model-blocks.log.gz",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/share-model-blocks.log",
+      "bytes": 438,
+      "sha256": "046dec907879b8cf8aa63bf545ff566f0c36fdc6544da3b4520235500872f97b",
+      "raw_bytes": 673,
+      "raw_sha256": "05cee82f9006fe4069684f6e9f5c3cb346b77fbd00582e6bab19c3e87b7d5a70"
+    },
+    {
+      "path": "lexical/probe-lexical-work.py",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/probe-lexical-work.py",
+      "bytes": 5413,
+      "sha256": "1169d324ba1193b59437e5c06bc2394a7f455683fb536e35564c2d9afe601ad5",
+      "raw_bytes": 5413,
+      "raw_sha256": "1169d324ba1193b59437e5c06bc2394a7f455683fb536e35564c2d9afe601ad5"
+    },
+    {
+      "path": "lexical/prototype-terms.py",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/prototype-terms.py",
+      "bytes": 2136,
+      "sha256": "ebf4098fbe9d9ee32fd70597012e71a2bffb806b96f9ff806d4ef1399210115a",
+      "raw_bytes": 2136,
+      "raw_sha256": "ebf4098fbe9d9ee32fd70597012e71a2bffb806b96f9ff806d4ef1399210115a"
+    },
+    {
+      "path": "lexical/prototype-scorer.py",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/prototype-scorer.py",
+      "bytes": 7937,
+      "sha256": "3f71881b4bf6999dc9927eb981d30558dd9fc90f4e2a9f56bfd1af1ef144f061",
+      "raw_bytes": 7937,
+      "raw_sha256": "3f71881b4bf6999dc9927eb981d30558dd9fc90f4e2a9f56bfd1af1ef144f061"
+    },
+    {
+      "path": "lexical/lexical-probe.json",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/lexical-probe.json",
+      "bytes": 969,
+      "sha256": "4640429be852f86faa427626e0c25a9b794aa6b791d38aad588f318cb8a1ed83",
+      "raw_bytes": 969,
+      "raw_sha256": "4640429be852f86faa427626e0c25a9b794aa6b791d38aad588f318cb8a1ed83"
+    },
+    {
+      "path": "lexical/lexical-probe.log.gz",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/lexical-probe.log",
+      "bytes": 369,
+      "sha256": "34c2da3b6daa23e038187cbd8bc05077c34d4d97667654559d9c9eda3cd24388",
+      "raw_bytes": 787,
+      "raw_sha256": "fc31c31131d171483524b7172d7bcd20d5bd6f88acfc89d9d81154021149b165"
+    },
+    {
+      "path": "lexical/cpu-attribution-worker-v1.py",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/cpu-attribution-worker-v1.py",
+      "bytes": 6171,
+      "sha256": "40f636e717031c672f46be23539fd967f4ad5b703d8c2611f86d85b67e041ff8",
+      "raw_bytes": 6171,
+      "raw_sha256": "40f636e717031c672f46be23539fd967f4ad5b703d8c2611f86d85b67e041ff8"
+    },
+    {
+      "path": "lexical/run-cpu-attribution-v1.py",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/run-cpu-attribution-v1.py",
+      "bytes": 6799,
+      "sha256": "ffae6d58a704c5d90e00ede2f4c07c2c94712ae689835b5e078e7b93888977da",
+      "raw_bytes": 6799,
+      "raw_sha256": "ffae6d58a704c5d90e00ede2f4c07c2c94712ae689835b5e078e7b93888977da"
+    },
+    {
+      "path": "lexical/profile-v1.log.gz",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/profile-v1.log",
+      "bytes": 929,
+      "sha256": "476f0167bacff461c457d171afd1380355d9533de87665ee060b87c335b07a49",
+      "raw_bytes": 3279,
+      "raw_sha256": "6f531c3b79abbb0161bb299cad5f3197696823c0178ede128d6f5f9a1069346d"
+    },
+    {
+      "path": "lexical/cpu-attribution-v1.json.gz",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/cpu-attribution-v1.json",
+      "bytes": 48274,
+      "sha256": "f6aa0004df8423b2b6c48484a4896f1874c9d481ac9f937524e23fb4278afc76",
+      "raw_bytes": 503420,
+      "raw_sha256": "7ccf9a9c54afe1d57ff1bdf63cf684653ad9d81f0876f56573bf1a248d98b454"
+    },
+    {
+      "path": "lexical/cpu-attribution-api-v1.log.gz",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/cpu-attribution-api-v1.log",
+      "bytes": 2082,
+      "sha256": "298ea0bb7931b64e5ef2e3aeaddd14bfe91bb1ba098e815d67439d578067a406",
+      "raw_bytes": 58350,
+      "raw_sha256": "047a9105007306364ebd2da14a7ba30ae4608c5ad8f0f07c46e1bb182c9988ae"
+    },
+    {
+      "path": "lexical/cpu-attribution-worker.py",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/cpu-attribution-worker.py",
+      "bytes": 2183,
+      "sha256": "db24fbb5a88efc4296c79c067e572f2fea713c39940a69939c80505ec0587287",
+      "raw_bytes": 2183,
+      "raw_sha256": "db24fbb5a88efc4296c79c067e572f2fea713c39940a69939c80505ec0587287"
+    },
+    {
+      "path": "lexical/run-cpu-attribution.py",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/run-cpu-attribution.py",
+      "bytes": 6767,
+      "sha256": "b87b864b3e391685c866e5fb5fa07c6dbe46e298382469667b6ebaf7ff4ad2a5",
+      "raw_bytes": 6767,
+      "raw_sha256": "b87b864b3e391685c866e5fb5fa07c6dbe46e298382469667b6ebaf7ff4ad2a5"
+    },
+    {
+      "path": "lexical/profile.log.gz",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/profile.log",
+      "bytes": 337,
+      "sha256": "fabef147f6412bb713fdce9b382d5bbae853f7e42cfa97d4be37a15a1b7f354e",
+      "raw_bytes": 515,
+      "raw_sha256": "6093f92639d3a347aa6c386e9e1ea094c21524c428a3e550b7ee385de252b0e6"
+    },
+    {
+      "path": "lexical/cpu-attribution.json.gz",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/cpu-attribution.json",
+      "bytes": 70426,
+      "sha256": "8d301edfdb74657c53e597c25dd109ffc930d2704b4686d4855c07ea8bcc6e95",
+      "raw_bytes": 810700,
+      "raw_sha256": "27aefd5b1bfbd5fd9dd4e91b6df67bbb1a82f3eecab0e57c4b303436f4d2be15"
+    },
+    {
+      "path": "lexical/cpu-attribution-api.log.gz",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/cpu-attribution-api.log",
+      "bytes": 20,
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "lexical/initial-regressions.log.gz",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/initial-regressions.log",
+      "bytes": 76,
+      "sha256": "f0bf4edc4c425b0c1a18247e46ab2ec70e7aeddca3e519706f61d5c4d9c2f784",
+      "raw_bytes": 190,
+      "raw_sha256": "3274b02e869e06c971759b4754fc77849dede0db872c9ef04fa1865dbf6d0584"
+    },
+    {
+      "path": "lexical/run-final-regressions.py",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/run-final-regressions.py",
+      "bytes": 2799,
+      "sha256": "11ddc3f1700d388010d6a04e338e4cb835ee695275db20aad9228229da27db90",
+      "raw_bytes": 2799,
+      "raw_sha256": "11ddc3f1700d388010d6a04e338e4cb835ee695275db20aad9228229da27db90"
+    },
+    {
+      "path": "lexical/final-regressions.log.gz",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/final-regressions.log",
+      "bytes": 400,
+      "sha256": "6283a9e242b7e5410e7bf9b256af64569932e496bcea75e020275803f7c33624",
+      "raw_bytes": 1211,
+      "raw_sha256": "3c99552b17d53c9a6ea753a728cdb84da4c1927b4326b4277ee787a074ab1a2f"
+    },
+    {
+      "path": "lexical/check-regression-terminal.py",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/check-regression-terminal.py",
+      "bytes": 1772,
+      "sha256": "f87c65cd795e7a338afda550af32db93cbadbbac62d416fd0d7f2ed7671fcd72",
+      "raw_bytes": 1772,
+      "raw_sha256": "f87c65cd795e7a338afda550af32db93cbadbbac62d416fd0d7f2ed7671fcd72"
+    },
+    {
+      "path": "lexical/final-regression-terminal.json",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/final-regression-terminal.json",
+      "bytes": 43786,
+      "sha256": "0bd0ddf05f0cb50e2e3cac967be5162770ad0d344bba70060c4697e1dcb67329",
+      "raw_bytes": 43786,
+      "raw_sha256": "0bd0ddf05f0cb50e2e3cac967be5162770ad0d344bba70060c4697e1dcb67329"
+    },
+    {
+      "path": "lexical/final-embedded.log.gz",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/final-embedded.log",
+      "bytes": 52,
+      "sha256": "e6977576165e401f90a292ec72c6136d7b6df9abb1620516a7659c7d096f5063",
+      "raw_bytes": 99,
+      "raw_sha256": "7347faaec343e30579684e158066796435e81fa1e734865da8fb3f895ffe2658"
+    },
+    {
+      "path": "lexical/build.log.gz",
+      "source": "/Users/yichen/tmp/membrain-candidate-profile-20261104/build.log",
+      "bytes": 127,
+      "sha256": "070c16d1c82dd9951732feb05eb530c36da1968dc5a4b01c78a12255d2caa48d",
+      "raw_bytes": 183,
+      "raw_sha256": "4bd6eeb857fc7b1cf8f0138ee2ca96675b5d77c0ea8ee0afd11710d1e7e34769"
+    },
+    {
+      "path": "buffers/run-abba.py",
+      "source": "/Users/yichen/tmp/membrain-buffer-abba-20261104/run-abba.py",
+      "bytes": 6968,
+      "sha256": "cc80e40b8c4ab82771d1b72abf00a2b7a61ae193f9173d0de3db746e55fdf34b",
+      "raw_bytes": 6968,
+      "raw_sha256": "cc80e40b8c4ab82771d1b72abf00a2b7a61ae193f9173d0de3db746e55fdf34b"
+    },
+    {
+      "path": "buffers/worker.py",
+      "source": "/Users/yichen/tmp/membrain-buffer-abba-20261104/worker.py",
+      "bytes": 3298,
+      "sha256": "21456956b0d25f9f9de8154d64c249f8483fa7bf2854996badddd757cdbd99d9",
+      "raw_bytes": 3298,
+      "raw_sha256": "21456956b0d25f9f9de8154d64c249f8483fa7bf2854996badddd757cdbd99d9"
+    },
+    {
+      "path": "buffers/buffer-abba.json.gz",
+      "source": "/Users/yichen/tmp/membrain-buffer-abba-20261104/buffer-abba.json",
+      "bytes": 151486,
+      "sha256": "eafe3c4538aca7839d9e0f5a31d0451284d378bdd30cb1583c3cd8573e6f9a06",
+      "raw_bytes": 2073237,
+      "raw_sha256": "129b6b06c6630768ae3ec2a5385067c2a483522fcd2011f684a8783345e47b08"
+    },
+    {
+      "path": "buffers/buffer-abba.log.gz",
+      "source": "/Users/yichen/tmp/membrain-buffer-abba-20261104/buffer-abba.log",
+      "bytes": 364,
+      "sha256": "aaace96884f31a13151ac40190796bedc51551a221d75ee06678ecfa8214cefc",
+      "raw_bytes": 885,
+      "raw_sha256": "bdf748957b1482446ee76b05bf67d2c3ee2ad234fa0445c6d86cf77af125e410"
+    },
+    {
+      "path": "buffers/api-0.log.gz",
+      "source": "/Users/yichen/tmp/membrain-buffer-abba-20261104/api-0.log",
+      "bytes": 20,
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "buffers/api-1.log.gz",
+      "source": "/Users/yichen/tmp/membrain-buffer-abba-20261104/api-1.log",
+      "bytes": 20,
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "buffers/api-2.log.gz",
+      "source": "/Users/yichen/tmp/membrain-buffer-abba-20261104/api-2.log",
+      "bytes": 20,
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "buffers/api-3.log.gz",
+      "source": "/Users/yichen/tmp/membrain-buffer-abba-20261104/api-3.log",
+      "bytes": 20,
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "raw_bytes": 0,
+      "raw_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "storage/archive-completed-test-clusters.py",
+      "source": "/Users/yichen/tmp/membrain-engine-16_15-20261104/archive-completed-test-clusters.py",
+      "bytes": 2805,
+      "sha256": "30663a90e9716825987a703c752bb2814d9ea3b80860809a380fd468406b4ee5",
+      "raw_bytes": 2805,
+      "raw_sha256": "30663a90e9716825987a703c752bb2814d9ea3b80860809a380fd468406b4ee5"
+    },
+    {
+      "path": "storage/completed-test-cluster-archive.json",
+      "source": "/Users/yichen/tmp/membrain-engine-16_15-20261104/completed-test-cluster-archive.json",
+      "bytes": 542,
+      "sha256": "edabd5bb9434fa5e0422b487fd6afaf4be7de1fecf6ccf6461f9c62b8cfb19bb",
+      "raw_bytes": 542,
+      "raw_sha256": "edabd5bb9434fa5e0422b487fd6afaf4be7de1fecf6ccf6461f9c62b8cfb19bb"
+    },
+    {
+      "path": "qualification/ci-c7acd84.log.gz",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/ci-c7acd84.log.gz",
+      "bytes": 189602,
+      "sha256": "a736ccce49c7a48e31ec3e3b21ca5524d2c77c8ca0380bf82058d6a2e2c28557",
+      "raw_bytes": 1527496,
+      "raw_sha256": "4bf209dc9f12a24cb77be3683e8f1ca60c8bc2001117ab4c2e86b98088d77b7a"
+    },
+    {
+      "path": "qualification/ci-result.json",
+      "source": "/Users/yichen/tmp/membrain-recall-cache-20261104/ci-result.json",
+      "bytes": 852,
+      "sha256": "1a2ca2edbd2c903215fa8bd6d067e7c944d0394612794839ba691a0a38f56316",
+      "raw_bytes": 852,
+      "raw_sha256": "1a2ca2edbd2c903215fa8bd6d067e7c944d0394612794839ba691a0a38f56316"
+    },
+    {
+      "path": "credential-scan.json",
+      "bytes": 213,
+      "sha256": "87e58f66aef99449388fe897e32b085fb74b89a111ca80bb6f80b5d2f9ad4a24",
+      "raw_bytes": 213,
+      "raw_sha256": "87e58f66aef99449388fe897e32b085fb74b89a111ca80bb6f80b5d2f9ad4a24"
+    }
+  ]
+}

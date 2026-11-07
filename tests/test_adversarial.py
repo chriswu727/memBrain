@@ -245,3 +245,21 @@ def test_late_extraction_worker_cannot_publish_a_deleted_source(runtime, mode):
     assert secret not in serialized(runtime.recall("暗号"))
     assert retained in serialized(runtime.recall("书店"))
     assert secret not in serialized(runtime.archive()["document"])
+
+
+@pytest.mark.parametrize("completed_tail", [0, 101])
+def test_dashboard_counts_all_active_jobs_and_excludes_terminal_jobs(runtime, completed_tail):
+    states = ["queued", "running", "failed", "superseded", "cancelled", *(["completed"] * completed_tail)]
+    with runtime.service.database.transaction(runtime.principal) as conn:
+        for index, state in enumerate(states):
+            conn.execute(
+                "INSERT INTO memory_jobs (tenant_id,owner_id,brain_id,id,kind,state,payload,created_at) "
+                "VALUES (%s,%s,%s,%s,'extract',%s,'{}'::jsonb,'2026-01-01'::timestamptz + %s * interval '1 second')",
+                (*runtime.service._params(runtime.principal, runtime.brain), uid(), state, index),
+            )
+    dashboard = runtime.dashboard()
+    assert len(dashboard["jobs"]) == min(100, len(states))
+    if completed_tail:
+        assert all(job["state"] == "completed" for job in dashboard["jobs"])
+    assert dashboard["status"]["pending_jobs"] == 3
+    assert runtime.service.memory_status(runtime.principal, runtime.brain)["pending_jobs"] == 3

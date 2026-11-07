@@ -1,0 +1,44 @@
+Starting the local memory database and service…
+{
+  "source_commit": "38e61ad47f239c69c5fe6fb6c8f10d7ea58da760",
+  "runtime_pin": "28c0b3ed34484b29550b6d2c011a819bcbce016b",
+  "completed": true,
+  "package_root": "/Users/yichen/tmp/membrain-lexical-union-20261104/install-final/uv-tools/membrain-ai/lib/python3.12/site-packages/membrain",
+  "build_id": "3d1923130bd19d3f10b533bc2ef791ccd94f1e8144b8673c873cba14e97230a5",
+  "cache_replay_prevented": true,
+  "masked_recording_times_verified": true,
+  "graph_index_status": {
+    "after_new_writes": {
+      "pending_jobs": 3,
+      "index_lag": 3,
+      "extraction": "deterministic_source_capture",
+      "candidate_index": "lexical-and-structural-cues",
+      "access_policy": "contextual-access-v2"
+    },
+    "before_snapshot": {
+      "pending_jobs": 0,
+      "index_lag": 0,
+      "extraction": "deterministic_source_capture",
+      "candidate_index": "lexical-and-structural-cues",
+      "access_policy": "contextual-access-v2"
+    }
+  },
+  "versions": {
+    "membrain-ai": "0.1.0",
+    "jsonschema": "4.26.0",
+    "referencing": "0.37.0",
+    "fastapi": "0.162.0",
+    "psycopg": "3.3.8"
+  },
+  "checked_files": 165,
+  "mismatches": [],
+  "unexpected_package_files": [],
+  "browser": "153.0.8010.12",
+  "scene_nodes": 10,
+  "scene_edges": 8,
+  "page_errors": [],
+  "external_requests": [],
+  "both_layers": true,
+  "fallback_2d": true,
+  "stop_returncode": 0
+}

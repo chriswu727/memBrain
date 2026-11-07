@@ -6,7 +6,16 @@ from types import SimpleNamespace
 import pytest
 from fastapi.testclient import TestClient
 
-from membrain import api, cli, config, embeddings, semantic_provider, service, storage
+from membrain import (
+    api,
+    cli,
+    config,
+    embeddings,
+    recall_service_executor,
+    semantic_provider,
+    service,
+    storage,
+)
 from membrain.config import Settings, configured_service
 from membrain.helpers import Principal
 
@@ -170,6 +179,19 @@ def test_default_factory_constructs_no_external_provider(monkeypatch):
 def test_api_and_worker_share_factory_lifetime(monkeypatch):
     lifetimes = []
 
+    class Runner:
+        def __init__(self, workers, configuration):
+            assert workers == settings.recall_processes and configuration is settings
+
+        def start(self):
+            lifetimes.append("runner started")
+
+        def close(self):
+            lifetimes.append("runner closed")
+
+        def respond(self, *args, **kwargs):
+            pytest.fail("Health checks must not dispatch a recall transaction")
+
     @contextmanager
     def factory(settings):
         lifetimes.append("opened")
@@ -181,11 +203,12 @@ def test_api_and_worker_share_factory_lifetime(monkeypatch):
     monkeypatch.setattr(api, "configured_service", factory)
     monkeypatch.setattr(cli, "configured_service", factory)
     monkeypatch.setattr(cli.signal, "signal", lambda *args: None)
+    monkeypatch.setattr(recall_service_executor, "RecallServiceExecutor", Runner)
     settings = Settings(database_url="unused", api_keys={
         hashlib.sha256(b"key").hexdigest(): Principal("tenant", "owner"),
     })
     with TestClient(api.create_app(settings)) as client:
         assert client.get("/health").status_code == 200
-        assert lifetimes == ["opened"]
+        assert lifetimes == ["opened", "runner started"]
     cli.run_worker(settings, once=True)
-    assert lifetimes == ["opened", "closed", "opened", "closed"]
+    assert lifetimes == ["opened", "runner started", "runner closed", "closed", "opened", "closed"]

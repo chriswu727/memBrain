@@ -1,0 +1,11 @@
+{
+  "canonical_exit_code": 0,
+  "ports_closed_before_archive": true,
+  "archive": "/Users/yichen/tmp/membrain-tail-attribution-20261104/canonical-profile-53d7e32.tar.gz",
+  "archive_sha256": "5032f61b67bb1d393eb97e42c99a6cc777acf1fbd7ecaa79be72d3494ba0acce",
+  "archive_bytes": 75723151,
+  "regular_files_verified": 1463,
+  "original_disposable_profile_removed": true,
+  "registry_preserved": true,
+  "note": "The complete stopped synthetic profile and its registry are retained in a private local archive. Every regular file was compared by SHA-256 before removing only the completed profile. The archive contains disposable credentials and must not be committed."
+}

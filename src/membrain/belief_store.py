@@ -135,7 +135,7 @@ def validate_relation(document):
 def _load_memories(conn, service, principal, brain, versions):
     if not versions:
         return []
-    return [service._rebind(row["document"], principal, brain) for row in conn.execute(
+    return [service._bind_document(row["document"], principal, brain) for row in conn.execute(
         "SELECT document FROM memory_assertions WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
         "AND NOT invalidated AND NOT deleted AND NOT suppressed AND document IS NOT NULL "
         "AND (id,revision) IN (SELECT * FROM unnest(%s::text[],%s::bigint[]))",
@@ -309,6 +309,13 @@ def load_belief_relations(conn, service, principal, brain, scope, memory_version
     memory_cache = {key: None for key in selected}
     memory_cache.update({(memory["memory_id"], memory["revision"]): memory
                          for memory in _load_memories(conn, service, principal, brain, sorted(selected))})
+    endpoint_keys = {key: digest(_ref(key)) for key in selected}
+    linked_endpoints = {row["endpoint_key"] for row in conn.execute(
+        "SELECT probe.endpoint_key FROM unnest(%s::text[]) AS probe(endpoint_key) WHERE EXISTS ("
+        "SELECT 1 FROM memory_belief_relations r WHERE r.tenant_id=%s AND r.owner_id=%s AND r.brain_id=%s "
+        "AND NOT r.invalidated AND NOT r.deleted AND r.endpoint_keys && ARRAY[probe.endpoint_key])",
+        (list(endpoint_keys.values()), *service._params(principal, brain["id"])),
+    ).fetchall()} if selected else set()
     for seed in sorted(selected):
         if seed in completed:
             continue
@@ -335,7 +342,9 @@ def load_belief_relations(conn, service, principal, brain, scope, memory_version
                             _unavailable("Belief parent closure exceeds its depth limit")
                 except (DomainError, ValueError, KeyError, TypeError):
                     failed = True
-            rows = conn.execute(
+            # An unlinked seed needs no per-seed query. The existence result lives only inside this read.
+            isolated = all(key in endpoint_keys and endpoint_keys[key] not in linked_endpoints for key in pending)
+            rows = [] if isolated else conn.execute(
                 "SELECT id,document,endpoint_versions FROM memory_belief_relations "
                 "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND NOT invalidated AND NOT deleted "
                 "AND endpoint_keys && %s::text[] ORDER BY id LIMIT %s",

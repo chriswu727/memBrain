@@ -1,0 +1,15 @@
+{
+  "purpose": "share identical public model blocks only in four completed owned acceptance environments",
+  "method": "APFS clonefile copy-on-write; independently mutable files retained, no hard links",
+  "expected_sha256": "f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193",
+  "bytes_per_file": 118308185,
+  "paths_retained_and_verified": 16,
+  "replaced_with_cow_clones": 15,
+  "stopped_profiles_checked": 16,
+  "free_before": 955183104,
+  "free_after": 2732011520,
+  "measured_free_increase": 1776828416,
+  "same_modes_ownership_mtimes_and_contents": true,
+  "copy_on_write_independence_probe_passed": true,
+  "packages_profiles_registries_and_logs_retained": true
+}

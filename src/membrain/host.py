@@ -51,7 +51,7 @@ ASKS_ABOUT_ASSISTANT = re.compile(
 ASSISTANT_LINES = ('Lines marked "assistant said" are your own earlier replies: a suggestion, draft or plan there is '
                    'not the user\'s decision or a fact about the user unless a "user said" line confirms it.')
 
-TOOL_NAMES = {"note": "memory_note", "recall": "memory_recall", "pause": "memory_pause"}
+TOOL_NAMES = {"note": "memory_note", "recall": "memory_recall", "pause": "memory_pause", "resume": "memory_resume"}
 
 
 def notes_notice(tools: dict | None = TOOL_NAMES) -> str:
@@ -69,6 +69,17 @@ def privacy_notice(tools: dict | None = TOOL_NAMES) -> str:
         return "Text inside <private>…</private> is never stored."
     return (f"If the user asks you not to remember something, call {tools['pause']}; text inside "
             "<private>…</private> is never stored.")
+
+
+def _recording_notice(is_paused: bool, tools: dict | None) -> str:
+    if not is_paused:
+        return ""
+    resume_tool = (tools or {}).get("resume")
+    action = (f"If the user explicitly asks to resume, call {resume_tool} before claiming recording is on. "
+              "Otherwise keep it paused."
+              if resume_tool else "Recording must be resumed using the host's memory controls "
+              "before new messages can be remembered.")
+    return "Recording is currently paused: new messages are not being remembered. " + action
 
 
 NOTES_NOTICE = notes_notice()
@@ -112,9 +123,6 @@ def log(directory: Path, event: str) -> None:
             stream.write(json.dumps({"time": round(time.time(), 3), "event": event[-4000:]}) + "\n")
     except OSError:
         pass
-
-
-_ENSURED_BRAINS: set[tuple[str, str]] = set()
 
 
 def user_brain_id(user_id: str) -> str:
@@ -164,10 +172,10 @@ def use_brain(client, user_id: str | None):
         client.brain_id = home
         return client
     brain = user_brain_id(user_id)
-    key = (str(getattr(client, "base_url", "")), brain)
-    if key not in _ENSURED_BRAINS:
+    ensured = client.__dict__.setdefault("_membrain_ensured", set())
+    if brain not in ensured:
         client.ensure_brain(brain, ("user " + user_id)[:120])
-        _ENSURED_BRAINS.add(key)
+        ensured.add(brain)
     client.brain_id = brain
     return client
 
@@ -215,6 +223,18 @@ def installed_tool_python() -> Path | None:
     root = tools / TOOL_PACKAGE
     python = root / "Scripts" / "python.exe" if os.name == "nt" else root / "bin" / "python"
     return python if python.exists() else None
+
+
+def installed_tool_matches(python: Path) -> bool:
+    from .build_identity import BUILD_ID
+
+    try:
+        result = subprocess.run([str(python), "-I", "-c",
+                                 "from membrain.build_identity import BUILD_ID; print(BUILD_ID)"],
+                                capture_output=True, text=True, timeout=10, check=False)
+        return result.returncode == 0 and result.stdout.strip() == BUILD_ID
+    except (OSError, subprocess.SubprocessError):
+        return False
 
 
 def running_from_uv_cache() -> bool:
@@ -335,20 +355,20 @@ def _fetch_in_background(directory: Path) -> None:
 
 
 def fetch_model(directory: Path) -> dict:
-    """Download the local embedding model, then restart a running service so it starts using it."""
-    from . import desktop
+    """Download the local embedding model; a running service starts using it in place.
+
+    The service was configured with the model's provider before the download, and the provider becomes ready once
+    the verified files are in place. Restarting here would break reads, writes and sessions in flight, so this never
+    restarts the service.
+    """
     from .local_embeddings import download
 
     try:
         download(directory)
         (state_directory(directory) / "model-download-error.json").unlink(missing_ok=True)
         log(directory, "semantic model installed")
-        restarted = False
-        if (Path(directory) / "profile.json").exists() and desktop.status(directory).get("state") in {
-                "ready", "degraded", "restart_required"}:
-            desktop.restart(directory)
-            restarted = True
-        return {"semantic_recall": semantic_state(directory), "service_restarted": restarted}
+        state = semantic_state(directory)
+        return {"semantic_recall": state, "service_restarted": False, "activated": state == "ready"}
     except Exception as error:
         _write_state(state_directory(directory) / "model-download-error.json",
                      {"time": time.time(), "type": type(error).__name__})
@@ -584,15 +604,14 @@ def issue_ui_code(directory: Path) -> str:
     import secrets
 
     code = secrets.token_urlsafe(32)
-    path, now_ = _ui_codes(directory), time.time()
-    try:
-        codes = {key: expiry for key, expiry in json.loads(path.read_text(encoding="utf-8")).items() if expiry > now_}
-    except (OSError, ValueError, AttributeError):
-        codes = {}
-    codes[hashlib.sha256(code.encode()).hexdigest()] = now_ + UI_CODE_SECONDS
-    descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-    with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
-        json.dump(codes, stream)
+    with profile_lock(state_directory(directory) / "ui-codes-lock", timeout=5):
+        path, now_ = _ui_codes(directory), time.time()
+        try:
+            codes = {key: expiry for key, expiry in json.loads(path.read_text(encoding="utf-8")).items() if expiry > now_}
+        except (OSError, ValueError, AttributeError):
+            codes = {}
+        codes[hashlib.sha256(code.encode()).hexdigest()] = now_ + UI_CODE_SECONDS
+        _write_state(path, codes)
     return code
 
 
@@ -610,7 +629,7 @@ def consume_ui_code(directory: Path, code: str) -> bool:
         except (OSError, ValueError):
             return False
         expiry = codes.pop(hashlib.sha256(code.encode()).hexdigest(), None) if isinstance(codes, dict) else None
-        path.write_text(json.dumps(codes), encoding="utf-8")
+        _write_state(path, codes)
     return isinstance(expiry, (int, float)) and expiry > time.time()
 
 
@@ -858,11 +877,23 @@ def _relationship(client) -> dict | None:
 
 
 def _boundaries(client) -> list[dict]:
-    """Best effort for callers without a snapshot: a failed read shows recall as before rather than nothing."""
-    try:
-        return list((_relationship(client) or {}).get("boundaries") or [])
-    except Exception:
-        return []
+    """Only a missing older route permits recall without boundaries; other read failures must stop recall."""
+    reader = getattr(client, "relationship_boundaries", None)
+    if callable(reader):
+        try:
+            result = reader()
+        except Exception as error:
+            if getattr(getattr(error, "response", None), "status_code", None) not in (404, 405):
+                raise
+        else:
+            if (not isinstance(result, dict) or not isinstance(result.get("boundaries"), list)
+                    or any(not isinstance(item, dict) or not isinstance(item.get("topic"), str)
+                           or not isinstance(item.get("aliases"), list)
+                           or any(not isinstance(alias, str) for alias in item["aliases"])
+                           for item in result["boundaries"])):
+                raise ValueError("The memory service returned invalid topic boundaries.")
+            return result["boundaries"]
+    return list((_relationship(client) or {}).get("boundaries") or [])
 
 
 def _acknowledge(client, current: dict | None) -> None:
@@ -979,6 +1010,8 @@ def render_context(response: dict, *, current_conversation: str | None = None,
     result = response.get("result") or {}
     lines, seen = [], set()
     for item in result.get("items", []):
+        if item.get("display_mode") == "do_not_surface":
+            continue
         memory = item.get("memory") or {}
         if (memory.get("scope") or {}).get("conversation_id") == current_conversation:
             continue  # The host already has the current conversation.
@@ -1027,21 +1060,18 @@ def _informative(text: str) -> bool:
     return letters >= 8 and letters >= 0.6 * len(compact)
 
 
-def _sources(response: dict, current_conversation: str | None, *, questions: set | None = None
+def _sources(response: dict, current_conversation: str | None, *, questions: set | None = None,
+             qualifiers: dict | None = None
              ) -> list[tuple[str, int | None]]:
     """Source messages of recalled statements in rank order, with where the best-ranked statement starts.
 
     ``questions`` collects the messages whose matching statement was a question, whose answer is the next message.
     """
-    items = (response.get("result") or {}).get("items", [])
-    vector = sorted((signal.get("score") or 0 for item in items for signal in item.get("rank_signals") or []
-                     if signal.get("method") == "vector"), reverse=True)
-    floor = vector[VECTOR_ONLY_STATEMENTS - 1] if len(vector) >= VECTOR_ONLY_STATEMENTS else 0
-    sources, seen = [], set()
-    for item in items:
+    eligible, vector_scores, keyword_sources = [], {}, set()
+    for item in (response.get("result") or {}).get("items", []):
+        if item.get("display_mode") == "do_not_surface":
+            continue
         signals = {signal.get("method"): signal.get("score") or 0 for signal in item.get("rank_signals") or []}
-        if "keyword" not in signals and signals.get("vector", -1) < floor:
-            continue  # Associations and distant meaning-only matches add noise more often than context.
         memory = item.get("memory") or {}
         if (memory.get("scope") or {}).get("conversation_id") == current_conversation:
             continue
@@ -1049,16 +1079,52 @@ def _sources(response: dict, current_conversation: str | None, *, questions: set
         match = _STATEMENT.match(statement) if isinstance(statement, str) else None
         if not match or not _informative(match.group(3)):
             continue
+        eligible.append((item, memory, match, signals))
         for ref in memory.get("evidence_refs") or []:
             event_id = ref.get("event_id")
             if ref.get("relationship") != "supports" or not isinstance(event_id, str):
+                continue
+            if signals.get("keyword", 0) > 0:
+                keyword_sources.add(event_id)
+            if signals.get("vector", 0) > 0:
+                vector_scores[event_id] = max(vector_scores.get(event_id, 0), signals["vector"])
+    vector_sources = set(sorted((event for event in vector_scores if event not in keyword_sources),
+                                key=lambda event: -vector_scores[event])[:VECTOR_ONLY_STATEMENTS])
+    sources, seen = [], set()
+    for item, memory, match, signals in eligible:
+        statement = memory["statement"]
+        for ref in memory.get("evidence_refs") or []:
+            event_id = ref.get("event_id")
+            if ref.get("relationship") != "supports" or not isinstance(event_id, str):
+                continue
+            if signals.get("keyword", 0) <= 0 and (
+                    event_id not in vector_sources or signals.get("vector", 0) != vector_scores[event_id]):
                 continue
             if questions is not None and match.group(2) == "inquiry":
                 questions.add(event_id)
             if event_id in seen:
                 continue
             seen.add(event_id)
-            sources.append((event_id, (ref.get("span") or {}).get("start")))
+            start = (ref.get("span") or {}).get("start")
+            matched = item.get("matched_statement_span") or {}
+            span = ref.get("span") or {}
+            if (memory.get("derivation", {}).get("method") == "direct_capture"
+                    and len(memory.get("evidence_refs") or []) == 1 and type(start) is int
+                    and type(span.get("end")) is int and span['end'] - start == len(match.group(3))
+                    and type(matched.get("start")) is int and type(matched.get("end")) is int
+                    and matched.get("unit") == "unicode_code_point"
+                    and match.start(3) <= matched['start'] < matched['end'] <= len(statement)):
+                start += matched['start'] - match.start(3)
+                if qualifiers is not None:
+                    labels = []
+                    world = memory.get('world')
+                    if isinstance(world, str) and world not in ('real_world', 'unknown'):
+                        labels.append(world.replace('_', ' '))
+                    act = (item.get('source_act') or {}).get('act', match.group(2))
+                    if act not in ('direct_statement', 'unknown', 'not_applicable'):
+                        labels.append(act.replace('_', ' ') + ' excerpt')
+                    qualifiers[event_id] = ', '.join(labels)
+            sources.append((event_id, start))
     return sources[:MAX_MESSAGES]
 
 
@@ -1102,13 +1168,20 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
     cannot be read. Messages about a boundary topic the user set are left out unless ``query`` (the current
     message) raises it; ``boundaries`` are read from the service when not given.
     """
+    from .context_views import assistant_speech
     from .relationship import kept_out
 
     if boundaries is None:
         boundaries = _boundaries(client)
     response = recall(client, query, cues)
+    include_speech = bool(ASKS_ABOUT_ASSISTANT.search(query or ""))
+    if not include_speech:
+        result = response.get("result") or {}
+        response = {**response, "result": {**result, "items": [item for item in result.get("items", [])
+                    if not assistant_speech(item.get("memory") or {})]}}
     questions: set = set()
-    sources = _sources(response, current_conversation, questions=questions)
+    qualifiers: dict = {}
+    sources = _sources(response, current_conversation, questions=questions, qualifiers=qualifiers)
     if not sources:
         _trace(client, [])  # A miss replaces the previous trace, so the page never shows an older hit as current.
         return None
@@ -1117,6 +1190,9 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
                                 max_characters=200_000, max_item_characters=20_000, limit=len(sources))
     except Exception:
         _trace(client, [])  # The fallback lines are statements, not records the map can point to.
+        result = response.get('result') or {}
+        response = {**response, 'result': {**result, 'items': [item for item in result.get('items', [])
+                                                            if not item.get('matched_statement_span')]}}
         if boundaries:
             items = [item for item in (response.get("result") or {}).get("items", [])
                      if not kept_out((item.get("memory") or {}).get("statement") or "", boundaries, query)]
@@ -1124,8 +1200,12 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
         return render_context(response, current_conversation=current_conversation, limit=limit)
     messages = {item["event_id"]: item for item in found.get("items", [])}
     starts = dict(sources)
+    from .host_windows import apply as apply_windows
+
+    apply_windows(client, response, query, messages, starts, qualifiers)
     ranked = [messages[event_id] for event_id, _ in sources if event_id in messages
               and messages[event_id].get("conversation_id") != current_conversation
+              and (include_speech or messages[event_id].get("actor_role") != "assistant")
               and not kept_out(messages[event_id].get("text") or "", boundaries, query)]
     try:
         # The next message holds the answer to a recalled question, or the reaction to a recalled statement.
@@ -1133,7 +1213,7 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
                            + [item for item in ranked if item["event_id"] not in questions])
     except Exception:
         replies = {}
-    if not ASKS_ABOUT_ASSISTANT.search(query or ""):
+    if not include_speech:
         # Hosts restated the assistant's own earlier suggestions as facts about the user ("Mum's folding stool, the
         # one mentioned before"), however the lines were labelled. Its replies come back only when asked about.
         replies = {key: item for key, item in replies.items() if item.get("actor_role") != "assistant"}
@@ -1150,6 +1230,8 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
             if not item or item["event_id"] in selected:
                 continue
             speaker = _SPEAKERS.get(item.get("actor_role"), "remembered")
+            if qualifiers.get(item['event_id']):
+                speaker += ', ' + qualifiers[item['event_id']]
             text = neutralize(" ".join(_window(item["text"], starts.get(item["event_id"])).split()))
             line = f"- [{(item.get('recorded_at') or '')[:10] or 'undated'} · {speaker}] {text}"
             available = limit - used - 1
@@ -1292,9 +1374,10 @@ def _session_notice(complete: bool, tools: dict | None, is_paused: bool, rolepla
                       "When a request depends on the user's personal context and nothing relevant is shown, search "
                       f"with the {tools['recall']} tool using a few concrete keywords before answering. "
                       if tools else "") + notes_notice(tools))
-    notice = " ".join((notice.strip(), privacy_notice(tools))) + (
-        " Recording is currently paused: new messages are not being remembered. Tell the user once, early in this "
-        "conversation, and offer to resume." if is_paused else "")
+    notice = " ".join(part for part in (notice.strip(), privacy_notice(tools),
+                                       _recording_notice(is_paused, tools)) if part)
+    if is_paused:
+        notice += " Tell the user once, early in this conversation, and offer to resume."
     if roleplay:
         notice = (f"This is a role-play with the character {' '.join(roleplay.split())}. The memory below is this "
                   "story's own: it is fiction, not facts about the user's real life, and nothing said here is kept "
@@ -1325,7 +1408,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
         return (resumed + "memBrain is starting or unavailable. Earlier memory has not been loaded; do not claim it is "
                 "active or that you remember earlier sessions. Continue helping normally. Memory will be "
                 "retried on the next message. Run membrain plugin setup to check the connection. "
-                + privacy_notice(tools) + (" Recording is currently paused." if paused(directory, user_id) else ""))
+                + privacy_notice(tools) + " " + _recording_notice(paused(directory, user_id), tools)).strip()
     else:
         with client:
             flush(client, directory)
@@ -1336,17 +1419,15 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
                 _acknowledge(client, current)  # This block is returned below, so its one-time lines are shown.
             except Exception as error:
                 log(directory, f"notes failed: {type(error).__name__}")
-            try:
-                # Notice and history header take about 1,000 characters of the host's limit.
-                # Room for the longest notice, the history block's header and the separators between blocks.
-                reserved = max(len(_session_notice(value, tools, True, roleplay)) for value in (True, False)) + 400
-                budget = min(HISTORY_CHARACTERS, SESSION_CONTEXT_CHARACTERS - reserved) - len(
-                    current["text"] if current else "")
-                boundaries = (current or {}).get("boundaries")
-                history, complete = _history(client, session, budget,
-                                             **({"boundaries": boundaries} if boundaries else {}))
-            except Exception as error:
-                log(directory, f"timeline failed: {type(error).__name__}")
+            if current is not None:
+                try:
+                    # Notice and history header take about 1,000 characters of the host's limit.
+                    # Room for the longest notice, the history block's header and the separators between blocks.
+                    reserved = max(len(_session_notice(value, tools, True, roleplay)) for value in (True, False)) + 400
+                    budget = min(HISTORY_CHARACTERS, SESSION_CONTEXT_CHARACTERS - reserved) - len(current["text"])
+                    history, complete = _history(client, session, budget, boundaries=current["boundaries"])
+                except Exception as error:
+                    log(directory, f"timeline failed: {type(error).__name__}")
     _mark_history(directory, session, complete and history is not None, client.brain_id)
     if current is not None:
         _remember_context(directory, session, client.brain_id, current, options)
@@ -1371,7 +1452,7 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
         if earlier:
             deliver(directory, None, earlier)
         start_in_background(directory)
-        return None
+        return _recording_notice(paused(directory, user_id), tools) or None
     source = ""
     if include_source and not paused(directory, user_id):
         source = ("<membrain-source>\nWhen saving a note based on the current user message, pass source_messages="
@@ -1405,7 +1486,8 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
                 _acknowledge(client, current)
         except Exception as error:
             log(directory, f"notes refresh failed: {type(error).__name__}")
-        prefix = "\n\n".join(part for part in (source, refreshed) if part)
+        recording = _recording_notice(paused(directory, user_id), tools)
+        prefix = "\n\n".join(part for part in (recording, source, refreshed) if part)
         try:
             flush(client, directory)
             if earlier:

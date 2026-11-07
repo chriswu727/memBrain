@@ -1,0 +1,137 @@
+{
+  "review_id": "maturity-20261107-final-independent-release-source-review",
+  "phase": "final_release_disposition",
+  "same_authorized_review": true,
+  "review_complete": true,
+  "final_release_review_complete": true,
+  "final_release_judgment": "blocked_behavioral_acceptance_not_established",
+  "merge_tag_publication_approved": false,
+  "attempt_id": "maturity-20261107",
+  "reported_execution_identity": {
+    "source_head": "8b0e1caa75df7e3db31e6b59b2a4a77cb276b07f",
+    "runtime_pin": "86e7f1fed2ba00d08b3cb9509beb50e4cf811f4b",
+    "build_id": "eb152d9724f67904fb1bafb38896b2ea03c5495f78a7b1470a4e729b5ca399ef",
+    "manifest_sha256": "590e0298169cf097afea1dc66f59d7e8debd3b4e8b7ff3d7b9bbf99026acb956"
+  },
+  "source_disposition": {
+    "SRC-01": "fixed_and_qualified_in_successor_runtime",
+    "qualified_source": "62e17adc2c45c072001ca0cbb4e6756e585bc3a7",
+    "basis": "The targeted source follow-up resolved the sensitive-note structural projection mechanism. The successor binding review established matching reviewed hashes and successful exact-head CI, native, fresh-install and public qualification, retaining original failures and the fixture-repair follow-up. The final aggregate reports that same qualified runtime and build.",
+    "new_concrete_source_findings": [],
+    "original_affected_runtime_report_preserved": true,
+    "limit": "Source qualification does not establish behavioral gate acceptance. No new source diagnosis is inferred from hidden request semantics or uninspected private execution content."
+  },
+  "behavioral_disposition": {
+    "R4": "ineligible_acceptance_not_established",
+    "C5": "ineligible_acceptance_not_established",
+    "new_behavioral_score": false,
+    "eligible_completed_pair": false,
+    "scenario_status": {
+      "c1": "not_run",
+      "c2": "not_run",
+      "s1": "runner_failed",
+      "s2": "not_run"
+    },
+    "completed_turns": {
+      "s1": {
+        "P": 40,
+        "E": 30,
+        "F": 39
+      }
+    },
+    "planned_turns_per_arm": 64,
+    "basis": "The single attempt stopped during S1 before any eligible pair. S2, C1 and C2 did not run. These incomplete results are neither passing acceptance nor new scored behavioral failures; they cannot replace prior gate dispositions."
+  },
+  "actionable_release_blockers": [
+    {
+      "id": "REL-01",
+      "blocker": "Required eligible R4 and C5 acceptance evidence is absent.",
+      "trigger": "S1 terminated with turn_not_recorded at session 10, message 4; the other three scenarios did not run.",
+      "consequence": "The behavioral release prerequisites remain unmet, so this review does not approve release, merge, tag or publication.",
+      "required_disposition": "Keep release blocked and preserve the invalid attempt as stopped evidence. No validity bypass, pass reinterpretation, ledger reopening or retry is authorized by this review."
+    }
+  ],
+  "grounded_stop_assessment": {
+    "execution_terminal_exit": 1,
+    "stop_reason": "runner_failed",
+    "ledger_stop_reason": "harness_degraded",
+    "harness_event": "turn_not_recorded",
+    "failure_position": {
+      "session": 10,
+      "message": 4
+    },
+    "observed_control_state": "The preceding message invoked memory_pause and was not recorded. The failing message had a nonempty reply, no tool calls and recorded=false, while the pause file remained present. This supports absence of a resume invocation at the stop.",
+    "not_established": [
+      "Whether the hidden request required or adequately specified resuming memory recording.",
+      "Whether responsibility lies with model behavior, scenario wording or a runtime defect.",
+      "A database outage or database write failure.",
+      "An independent provider outage: the interrupted request was reported as provider_transport/SystemExit after the shared stop.",
+      "The effectiveness of any proposed repair or any counterfactual gate outcome."
+    ],
+    "diagnostic_limit": "The aggregate identifies the recording-state boundary to explain in any separately authorized diagnosis; it is insufficient to file a new concrete source bug or change acceptance criteria."
+  },
+  "accounting_and_stop_state": {
+    "limit_cny": 280,
+    "blocked": true,
+    "reserved_requests": 163,
+    "settled_requests": 162,
+    "conservative_settled_cny": 9.933585,
+    "unknown_reserved_cny": 20.054016,
+    "unknown_failure_codes": [
+      {
+        "error_class": "SystemExit",
+        "kind": "provider_transport"
+      }
+    ],
+    "observed_account_balance_decrease": {
+      "CNY": "0.97",
+      "USD": "0.00"
+    },
+    "interpretation": "Conservative ledger accounting, the held unknown reservation and the observed account-balance decrease are separate measures. The 0.97 CNY balance decrease is not a final attributed invoice and does not settle or release the unknown reservation.",
+    "original_ledger_preserved_blocked": true,
+    "no_automatic_retry": true,
+    "retry_authorized_by_this_review": false,
+    "ledger_reopening_authorized_by_this_review": false
+  },
+  "reported_containment": {
+    "frozen_files_unchanged": 656,
+    "scenario_hashes_unchanged": 4,
+    "ports": [
+      {
+        "port": 8893,
+        "closed": true
+      },
+      {
+        "port": 55533,
+        "closed": true
+      },
+      {
+        "port": 8894,
+        "closed": true
+      },
+      {
+        "port": 55534,
+        "closed": true
+      }
+    ],
+    "private_invalid_run_retained_not_published": true,
+    "basis": "Supplied safe aggregate receipt; this reviewer did not inspect the private manifest, ledger, run logs or hidden scenario files."
+  },
+  "evidence": {
+    "safe_summary": "/Users/yichen/tmp/membrain-sensitive-structure-checks-20261107/fourth-attempt-safe-summary.json",
+    "safe_summary_sha256": "ad14947d976248dab3b50c52b268c1c4b69bf31fec42535fd8ff7423a6b79ef6",
+    "safe_summary_checked_at": "2026-11-07T19:02:14.723157+00:00",
+    "prior_review_reports": [
+      "/Users/yichen/tmp/membrain-acceptance-20261107/evaluations/.maturity-heldout-20261107/control/release-source-review.json",
+      "/Users/yichen/tmp/membrain-sensitive-structure-checks-20261107/source-followup-review.json",
+      "/Users/yichen/tmp/membrain-sensitive-structure-checks-20261107/pre-execution-eligibility-review.json",
+      "/Users/yichen/tmp/membrain-sensitive-structure-checks-20261107/successor-binding-review.json"
+    ]
+  },
+  "scope_and_limits": [
+    "This closes the final disposition of the same single authorized independent review. Completion of the review is not release approval.",
+    "Only the permitted safe aggregate, this reviewer's own reports and previously reviewed public qualification evidence support this disposition. No hidden scenario text, replies, criteria, private logs, other-agent files or credentials were inspected.",
+    "No tests, service, database, browser, model or provider workload was executed by this reviewer. Verification reported here is attributed to supplied qualification and execution evidence.",
+    "The final receipt establishes reported frozen-input continuity and matching runtime/build, but does not independently reproduce every preflight or checkout check from the earlier binding conditions. No claim of independently re-audited private execution inputs is made."
+  ]
+}

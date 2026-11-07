@@ -1,0 +1,20 @@
+{
+  "runtime_pin": "9f7536110a95dfd02b382382dc97d0991121632f",
+  "candidate_code": "a5e559befd6c2e54bab1b5923406e282454d6b37",
+  "windows_workflow_repair": "09fd25ce4abc07b1bd44dc3ac96791e0700fe343",
+  "files": {
+    "scripts/build_native_bundle.py": "5983a74e7bc09270239996bf324dbbf7879540bb602cce5bfd410a81ab639a44",
+    "scripts/check_native_bundle.py": "27dc95c51508d606d495121808017b723077a253b6476da6d5d52785012a60cf",
+    "tests/test_native_bundle_build.py": "042a63043728e63ecad6dd4cb5556f47230d0aab2b097a0587626f93469944ec",
+    ".github/workflows/native-engine.yml": "e3f987381874d297ffe46dc9e48bd3c229174442c5901a0e212ff7b59d76d56b"
+  },
+  "application_and_dependency_diff_from_pin": [],
+  "local_checks": {
+    "builder_guards_and_pin_tests_passed": 12,
+    "failed": 0,
+    "skipped": 0,
+    "ruff": "pass",
+    "diff_check": "pass",
+    "stdout_provenance": "tool result; no separate local stdout log was captured"
+  }
+}

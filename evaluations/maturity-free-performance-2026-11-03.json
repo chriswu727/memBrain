@@ -1,0 +1,759 @@
+{
+  "machine": {
+    "cpu": "arm",
+    "cores": 10,
+    "os": "macOS-15.7.4-arm64-arm-64bit",
+    "python": "3.12.13",
+    "postgresql": "PostgreSQL 16.2 on aarch64-apple-darwin23.5.0, compiled by Apple clang version 15.0.0 (clang-1500.0.40.1), 64-bit"
+  },
+  "bars": {
+    "serial_p95_ms": 500,
+    "one_brain_8_concurrent_p95_ms": 1000,
+    "eight_brains_8_concurrent_p95_ms": 600
+  },
+  "conditions": {
+    "fixture": "1000 keyword messages per brain, 8 brains, 100 notes in brain 0",
+    "semantic": "off",
+    "model_calls": 0,
+    "index": "caught up before measuring",
+    "excludes": "client start-up (ready_client) and reply generation",
+    "rounds": "21 per worker; the first is warm-up and discarded",
+    "service": "one local service"
+  },
+  "fixture_seconds": 160.4,
+  "serial": {
+    "n": 20,
+    "median_ms": 293.03,
+    "p95_ms": 480.25,
+    "max_ms": 502.52,
+    "nonempty": 20,
+    "raw_ms": [
+      [
+        502.52,
+        341.89,
+        311.01,
+        480.25,
+        299.14,
+        292.44,
+        281.96,
+        289.96,
+        280.14,
+        286.54,
+        293.62,
+        296.11,
+        277.13,
+        277.15,
+        300.71,
+        299.26,
+        278.17,
+        303.37,
+        282.22,
+        278.66
+      ]
+    ]
+  },
+  "one_brain_8_concurrent": {
+    "n": 160,
+    "median_ms": 2222.54,
+    "p95_ms": 2390.7,
+    "max_ms": 2410.6,
+    "nonempty": 160,
+    "raw_ms": [
+      [
+        2388.5,
+        2409.25,
+        2346.59,
+        2238.14,
+        2257.14,
+        2231.73,
+        2202.53,
+        2209.64,
+        2238.42,
+        2183.2,
+        2206.03,
+        2224.15,
+        2195.36,
+        2183.62,
+        2218.89,
+        2187.55,
+        2205.11,
+        2216.4,
+        2295.24,
+        2205.28
+      ],
+      [
+        2388.5,
+        2407.39,
+        2346.45,
+        2238.65,
+        2256.75,
+        2230.02,
+        2203.81,
+        2209.86,
+        2236.28,
+        2184.63,
+        2205.76,
+        2225.99,
+        2192.7,
+        2184.8,
+        2219.38,
+        2187.58,
+        2203.33,
+        2251.05,
+        2260.86,
+        2207.8
+      ],
+      [
+        2388.43,
+        2410.6,
+        2354.62,
+        2229.56,
+        2258.11,
+        2232.99,
+        2201.06,
+        2209.36,
+        2240.59,
+        2182.58,
+        2205.56,
+        2222.07,
+        2198.54,
+        2182.05,
+        2218.75,
+        2187.24,
+        2207.26,
+        2204.75,
+        2306.73,
+        2202.55
+      ],
+      [
+        2388.48,
+        2406.39,
+        2346.29,
+        2239.37,
+        2255.92,
+        2228.7,
+        2205.38,
+        2209.81,
+        2234.38,
+        2185.69,
+        2205.6,
+        2228.03,
+        2189.71,
+        2186.3,
+        2221.08,
+        2185.97,
+        2201.51,
+        2263.6,
+        2248.67,
+        2209.95
+      ],
+      [
+        2390.02,
+        2403.2,
+        2345.57,
+        2240.72,
+        2254.35,
+        2225.83,
+        2208.52,
+        2209.33,
+        2230.43,
+        2189.07,
+        2204.25,
+        2232.22,
+        2183.83,
+        2188.57,
+        2223.22,
+        2185.89,
+        2197.03,
+        2271.12,
+        2241.94,
+        2214.7
+      ],
+      [
+        2389.2,
+        2404.99,
+        2346.09,
+        2240.03,
+        2255.09,
+        2227.17,
+        2206.99,
+        2209.48,
+        2232.58,
+        2186.96,
+        2205.04,
+        2230.25,
+        2186.82,
+        2187.4,
+        2222.22,
+        2186.22,
+        2198.96,
+        2268.36,
+        2244.32,
+        2212.37
+      ],
+      [
+        2390.34,
+        2401.97,
+        2344.92,
+        2241.81,
+        2253.94,
+        2224.15,
+        2209.9,
+        2209.14,
+        2228.45,
+        2190.84,
+        2203.65,
+        2234.34,
+        2180.81,
+        2189.7,
+        2223.91,
+        2186.55,
+        2194.51,
+        2274.8,
+        2238.45,
+        2216.95
+      ],
+      [
+        2390.7,
+        2400.21,
+        2344.14,
+        2243.14,
+        2252.98,
+        2222.87,
+        2211.35,
+        2209.44,
+        2226.37,
+        2192.15,
+        2203.02,
+        2236.42,
+        2177.77,
+        2190.87,
+        2224.91,
+        2186.11,
+        2192.71,
+        2276.62,
+        2237.67,
+        2218.92
+      ]
+    ]
+  },
+  "eight_brains_8_concurrent": {
+    "n": 160,
+    "median_ms": 2014.78,
+    "p95_ms": 2139.97,
+    "max_ms": 2351.63,
+    "nonempty": 160,
+    "raw_ms": [
+      [
+        1843.21,
+        1993.53,
+        2003.66,
+        2003.11,
+        1989.06,
+        1991.76,
+        2022.92,
+        1985.97,
+        2097.94,
+        1998.68,
+        2025.52,
+        2062.54,
+        2010.75,
+        2012.94,
+        1958.4,
+        2149.77,
+        2014.33,
+        2078.46,
+        2059.34,
+        2096.33
+      ],
+      [
+        2071.31,
+        1870.18,
+        2139.97,
+        1991.57,
+        1893.63,
+        1664.97,
+        1984.85,
+        1994.87,
+        1929.23,
+        2018.08,
+        1904.65,
+        1967.52,
+        2351.63,
+        2221.55,
+        1654.4,
+        1978.7,
+        2238.43,
+        1964.94,
+        2276.1,
+        1748.77
+      ],
+      [
+        2091.95,
+        2001.85,
+        2005.23,
+        1991.13,
+        1997.06,
+        2013.09,
+        1984.2,
+        2120.16,
+        1962.67,
+        2027.95,
+        2071.46,
+        1975.79,
+        2061.25,
+        1948.08,
+        2134.32,
+        2034.6,
+        2074.69,
+        2089.74,
+        2058.06,
+        1899.62
+      ],
+      [
+        2095.58,
+        1999.57,
+        2002.54,
+        1990.44,
+        2002.13,
+        2029.52,
+        1985.63,
+        2078.76,
+        2000.78,
+        2008.87,
+        2080.02,
+        1991.24,
+        2020.13,
+        1952.79,
+        2155.06,
+        2047.12,
+        2063.34,
+        2101.41,
+        2079.17,
+        1858.43
+      ],
+      [
+        2101.91,
+        1997.98,
+        2006.56,
+        1992.78,
+        1997.31,
+        2031.01,
+        1998.23,
+        2078.91,
+        1999.2,
+        2015.84,
+        2043.45,
+        1989.82,
+        2034.84,
+        1947.38,
+        2130.59,
+        2035.93,
+        2074.56,
+        2071.4,
+        2082.28,
+        1899.34
+      ],
+      [
+        2057.34,
+        1999.9,
+        1991.11,
+        1979.63,
+        1991.05,
+        2020.3,
+        1988.62,
+        2066.79,
+        2010.49,
+        2010.63,
+        2079.56,
+        1993.39,
+        1938.38,
+        2054.1,
+        2131.04,
+        2047.88,
+        2076.62,
+        2067.16,
+        2076.55,
+        1906.18
+      ],
+      [
+        2094.95,
+        2006.34,
+        2000.69,
+        1990.58,
+        2015.26,
+        2015.56,
+        1980.54,
+        2051.97,
+        2032.05,
+        2011.69,
+        2075.96,
+        1990.87,
+        2028.92,
+        1958.91,
+        2142.49,
+        2027.04,
+        2074.57,
+        2121.12,
+        2057.19,
+        1870.31
+      ],
+      [
+        2072.06,
+        1757.63,
+        2240.7,
+        2000.46,
+        1990.88,
+        2015.22,
+        1948.16,
+        2108.26,
+        2018.36,
+        2008.12,
+        2079.08,
+        1994.91,
+        1962.76,
+        2030.68,
+        2130.85,
+        2045.53,
+        2084.98,
+        2060.52,
+        2089.9,
+        1913.86
+      ]
+    ]
+  },
+  "map_200": {
+    "n": 20,
+    "median_ms": 10.71,
+    "p95_ms": 18.78,
+    "max_ms": 32.78,
+    "errors": [],
+    "raw_ms": [
+      10.73,
+      10.5,
+      18.78,
+      32.78,
+      13.07,
+      11.38,
+      10.4,
+      11.01,
+      10.53,
+      10.55,
+      10.96,
+      10.27,
+      10.09,
+      10.4,
+      10.44,
+      10.72,
+      10.7,
+      10.9,
+      10.69,
+      10.77
+    ]
+  },
+  "map_500": {
+    "n": 20,
+    "median_ms": 13.75,
+    "p95_ms": 14.37,
+    "max_ms": 16.66,
+    "errors": [],
+    "raw_ms": [
+      14.37,
+      14.37,
+      13.69,
+      13.61,
+      13.91,
+      13.73,
+      13.85,
+      13.77,
+      13.84,
+      13.53,
+      13.43,
+      13.49,
+      13.2,
+      13.25,
+      13.17,
+      13.58,
+      16.66,
+      13.8,
+      13.98,
+      13.85
+    ]
+  },
+  "lock_waits": {
+    "setup": {
+      "waiting_samples": 56,
+      "max_wait_ms": 140.3,
+      "holders": [
+        {
+          "last_statement": "SELECT min(e.sequence) AS value FROM memory_events e JOIN memory_jobs j ON j.tenant_id=e.tenant_id AND j.brain_id=e.brai",
+          "waiting_samples": 32,
+          "max_open_ms": 151.3,
+          "transactions": 22,
+          "states": [
+            "active"
+          ]
+        },
+        {
+          "last_statement": "SELECT document FROM memory_events",
+          "waiting_samples": 7,
+          "max_open_ms": 91.1,
+          "transactions": 7,
+          "states": [
+            "active",
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "INSERT INTO memory_events(tenant_id,owner_id,brain_id,id,revision,sequence,producer_ref,source_key,source_revision,conve",
+          "waiting_samples": 3,
+          "max_open_ms": 195.8,
+          "transactions": 3,
+          "states": [
+            "active",
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "INSERT INTO memory_jobs(tenant_id,owner_id,brain_id,id,kind,payload,state) VALUES($1,$2,$3,$4,$5,$6,$7)",
+          "waiting_samples": 3,
+          "max_open_ms": 111.3,
+          "transactions": 3,
+          "states": [
+            "active",
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT document FROM memory_assertions",
+          "waiting_samples": 3,
+          "max_open_ms": 31.7,
+          "transactions": 3,
+          "states": [
+            "active",
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT * FROM memory_events",
+          "waiting_samples": 2,
+          "max_open_ms": 99.2,
+          "transactions": 2,
+          "states": [
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT sequence,intent_hash FROM memory_erasure_receipts",
+          "waiting_samples": 2,
+          "max_open_ms": 1.3,
+          "transactions": 2,
+          "states": [
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT * FROM memory_recovery_installations",
+          "waiting_samples": 1,
+          "max_open_ms": 2.8,
+          "transactions": 1,
+          "states": [
+            "idle in transaction"
+          ]
+        }
+      ]
+    },
+    "serial": {
+      "waiting_samples": 5,
+      "max_wait_ms": 37.1,
+      "holders": [
+        {
+          "last_statement": "INSERT INTO memory_traces(tenant_id,owner_id,brain_id,id,document) VALUES($1,$2,$3,$4,$5) ON CONFLICT(tenant_id,brain_id",
+          "waiting_samples": 5,
+          "max_open_ms": 232.4,
+          "transactions": 5,
+          "states": [
+            "idle in transaction"
+          ]
+        }
+      ]
+    },
+    "one_brain_8_concurrent": {
+      "waiting_samples": 21133,
+      "max_wait_ms": 1897.8,
+      "holders": [
+        {
+          "last_statement": "SELECT * FROM memory_brains",
+          "waiting_samples": 20270,
+          "max_open_ms": 1909.8,
+          "transactions": 526,
+          "states": [
+            "active",
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT reference.value AS reference FROM memory_events e CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(",
+          "waiting_samples": 333,
+          "max_open_ms": 2116.9,
+          "transactions": 168,
+          "states": [
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "INSERT INTO memory_traces(tenant_id,owner_id,brain_id,id,document) VALUES($1,$2,$3,$4,$5) ON CONFLICT(tenant_id,brain_id",
+          "waiting_samples": 153,
+          "max_open_ms": 2171.7,
+          "transactions": 151,
+          "states": [
+            "active",
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT * FROM memory_recovery_installations",
+          "waiting_samples": 142,
+          "max_open_ms": 1950.0,
+          "transactions": 142,
+          "states": [
+            "active",
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT a.document,a.event_ids,a.is_current FROM memory_assertions a",
+          "waiting_samples": 126,
+          "max_open_ms": 2005.5,
+          "transactions": 124,
+          "states": [
+            "active",
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT id,document,endpoint_versions FROM memory_belief_relations",
+          "waiting_samples": 27,
+          "max_open_ms": 1938.7,
+          "transactions": 27,
+          "states": [
+            "active",
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT origin.id AS source_event_id, reply.document, reply.conversation_id FROM memory_events origin CROSS JOIN LATERAL ",
+          "waiting_samples": 17,
+          "max_open_ms": 88.5,
+          "transactions": 17,
+          "states": [
+            "active",
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT memory_id,memory_revision,external_uses,successes,failures,last_external_use_at,last_reinforcement_at FROM memory",
+          "waiting_samples": 11,
+          "max_open_ms": 1374.6,
+          "transactions": 11,
+          "states": [
+            "idle in transaction"
+          ]
+        }
+      ]
+    },
+    "eight_brains_8_concurrent": {
+      "waiting_samples": 303,
+      "max_wait_ms": 1466.1,
+      "holders": [
+        {
+          "last_statement": "INSERT INTO memory_traces(tenant_id,owner_id,brain_id,id,document) VALUES($1,$2,$3,$4,$5) ON CONFLICT(tenant_id,brain_id",
+          "waiting_samples": 115,
+          "max_open_ms": 1677.9,
+          "transactions": 26,
+          "states": [
+            "active",
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT reference.value AS reference FROM memory_events e CROSS JOIN LATERAL jsonb_array_elements(CASE WHEN jsonb_typeof(",
+          "waiting_samples": 53,
+          "max_open_ms": 1193.7,
+          "transactions": 18,
+          "states": [
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT id,document,endpoint_versions FROM memory_belief_relations",
+          "waiting_samples": 36,
+          "max_open_ms": 1087.9,
+          "transactions": 11,
+          "states": [
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT a.document,a.event_ids,a.is_current FROM memory_assertions a",
+          "waiting_samples": 31,
+          "max_open_ms": 603.3,
+          "transactions": 9,
+          "states": [
+            "active",
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT sequence,intent_hash FROM memory_erasure_receipts",
+          "waiting_samples": 23,
+          "max_open_ms": 1320.9,
+          "transactions": 13,
+          "states": [
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT document FROM memory_events",
+          "waiting_samples": 11,
+          "max_open_ms": 931.4,
+          "transactions": 8,
+          "states": [
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "SELECT * FROM memory_recovery_installations",
+          "waiting_samples": 7,
+          "max_open_ms": 330.9,
+          "transactions": 4,
+          "states": [
+            "idle in transaction"
+          ]
+        },
+        {
+          "last_statement": "INSERT INTO memory_requests(tenant_id,owner_id,brain_id,action,key,request_hash,response) VALUES($1,$2,$3,$4,$5,$6,$7)",
+          "waiting_samples": 6,
+          "max_open_ms": 1623.6,
+          "transactions": 5,
+          "states": [
+            "active",
+            "idle in transaction"
+          ]
+        }
+      ]
+    }
+  },
+  "met": {
+    "serial_p95_ms": true,
+    "one_brain_8_concurrent_p95_ms": false,
+    "eight_brains_8_concurrent_p95_ms": false
+  },
+  "source": {
+    "runtime_revision": "fc7d2f7",
+    "build_id": "f32a502d7f0eae685fc854fe9d12183b98377f11615232208a4c057769e45e79",
+    "benchmark_revision": "8a4965a",
+    "cpu_brand": "Apple M4",
+    "scope": "Baseline only; bulk probe disabled. Not final R5 acceptance."
+  }
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "profile": "install-final/restored",
+    "both_ports_closed": true
+  },
+  {
+    "profile": "install-final/home/Library/Application Support/memBrain",
+    "both_ports_closed": true
+  },
+  {
+    "profile": "install-final/companion/restored",
+    "both_ports_closed": true
+  },
+  {
+    "profile": "install-final/companion/home/Library/Application Support/memBrain",
+    "both_ports_closed": true
+  },
+  {
+    "profile": "installed-followup-smoke-v2",
+    "both_ports_closed": true
+  }
+]

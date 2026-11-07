@@ -21,7 +21,7 @@ PERSONA_CONVERSATION = "membrain-persona"
 PERSONA_PRODUCER = "membrain-persona"
 PERSONA_CHARACTERS = 1200  # The rendered card; the block's fixed header comes on top.
 REASON_CHARACTERS = 200
-MADE_BY = ("host", "user", "feedback")  # "feedback" is reserved for accepted feedback proposals (P2).
+MADE_BY = ("host", "user", "feedback")  # "feedback": saved by accepting a suggestion (persona_growth, P2).
 VOICE_FIELDS = (("register", "register"), ("length", "length"), ("emoji", "emoji"), ("language", "language"))
 MAX_VERSIONS = 200
 EMPTY_CARD = {"name": "", "traits": [], "voice": {name: "" for name, _ in VOICE_FIELDS}, "values": [],
@@ -158,13 +158,31 @@ def _entry(row) -> dict | None:
             card = normalize_card(card)
             if made_by not in MADE_BY or version < 1:
                 return None
+        # Checked inside the guard: a malformed record (from an archive) is ignored, never an error for the page.
+        feedback = _feedback(stored.get("feedback"))
+        if feedback is not None and made_by != "feedback":
+            return None
     except (ValueError, KeyError, TypeError, AttributeError, DomainError):
         return None
     return {"version": version, "card": {**EMPTY_CARD, **card}, "made_by": made_by,
             "reason": stored.get("reason"), "action": stored.get("action", "edit"),
+            "feedback": feedback,
             "restored_from": stored.get("restored_from"), "host_default": bool(stored.get("host_default")),
             "recorded_at": document["system_time"]["recorded_at"], "event_id": document["event_id"],
             "empty": not render_card(card)}
+
+
+def _feedback(value) -> dict | None:
+    """The accepted suggestion a version came from (P2): its id, feedback kind and source message ids."""
+    if value is None:
+        return None
+    if (not isinstance(value, dict) or set(value) != {"proposal_id", "kind", "source_event_ids"}
+            or not all(isinstance(value[key], str) and 0 < len(value[key]) <= 200 for key in ("proposal_id", "kind"))
+            or not isinstance(value["source_event_ids"], list) or not 0 < len(value["source_event_ids"]) <= 20
+            or not all(isinstance(item, str) and 0 < len(item) <= 200 for item in value["source_event_ids"])):
+        raise ValueError("feedback")
+    return {"proposal_id": value["proposal_id"], "kind": value["kind"],
+            "source_event_ids": list(value["source_event_ids"])}
 
 
 def _entries(service, conn, principal, brain_id, limit=MAX_VERSIONS + 1) -> tuple[list, list]:
@@ -201,7 +219,8 @@ def _find(service, conn, principal, brain_id, wanted):
 
 def _none() -> dict:
     return {"version": 0, "card": dict(EMPTY_CARD), "made_by": None, "reason": None, "action": None,
-            "restored_from": None, "host_default": False, "recorded_at": None, "event_id": None, "empty": True}
+            "feedback": None, "restored_from": None, "host_default": False, "recorded_at": None,
+            "event_id": None, "empty": True}
 
 
 def _public(version: dict, **extra) -> dict:
@@ -223,9 +242,39 @@ def persona_versions(service, principal, brain_id: str) -> dict:
     with service.database.transaction(principal) as conn:
         service._brain(conn, principal, brain_id)
         versions, markers = _entries(service, conn, principal, brain_id)
+        versions = versions[:MAX_VERSIONS + 1]
+        _quote_feedback(service, conn, principal, brain_id, versions[:MAX_VERSIONS])
     return {"versions": versions[:MAX_VERSIONS], "complete": len(versions) <= MAX_VERSIONS,
             "current_version": versions[0]["version"] if versions else 0,
             "markers": markers}
+
+
+def _quote_feedback(service, conn, principal, brain_id, versions) -> None:
+    """Quote current feedback only when that revision preceded the accepted persona version. Edited or erased
+    messages must not rewrite an earlier decision's evidence, including after archive restore."""
+    pairs = [(version["event_id"], ident) for version in versions
+             for ident in (version.get("feedback") or {}).get("source_event_ids", [])]
+    rows = conn.execute(
+        "SELECT p.id AS persona_id,e.id,left(e.document->'observed'->'content'->>'text',160) AS text,"
+        "e.document->'system_time'->>'recorded_at' AS recorded_at "
+        "FROM unnest(%s::text[],%s::text[]) AS refs(persona_id,source_id) "
+        "JOIN memory_events p ON p.id=refs.persona_id "
+        "JOIN memory_events e ON e.id=refs.source_id AND e.tenant_id=p.tenant_id "
+        "AND e.owner_id=p.owner_id AND e.brain_id=p.brain_id "
+        "WHERE p.tenant_id=%s AND p.owner_id=%s AND p.brain_id=%s "
+        "AND p.is_current AND NOT p.deleted AND NOT p.suppressed AND NOT p.retired AND p.document IS NOT NULL "
+        "AND e.is_current AND NOT e.deleted AND NOT e.suppressed AND NOT e.retired AND e.document IS NOT NULL "
+        "AND e.sequence<p.sequence AND e.document->'observed'->>'actor_role'='user'",
+        ([pair[0] for pair in pairs], [pair[1] for pair in pairs],
+         *service._params(principal, brain_id))).fetchall() if pairs else []
+    found = {(row["persona_id"], row["id"]): row for row in rows}
+    for version in versions:
+        feedback = version.get("feedback")
+        if feedback:
+            version["feedback_messages"] = [
+                {"event_id": ident, "text": " ".join((row["text"] or "").split()), "recorded_at": row["recorded_at"]}
+                for ident in feedback.get("source_event_ids") or []
+                if (row := found.get((version["event_id"], ident))) is not None]
 
 
 def _reason(value) -> str | None:
@@ -236,30 +285,38 @@ def _reason(value) -> str | None:
     return _clean(value) or None
 
 
-def _save(service, principal, brain_id, choose, *, made_by, reason, action):
+def _save_in(service, conn, principal, brain, choose, *, made_by, reason, action) -> dict:
+    """Save a new version inside the caller's transaction, which holds the brain lock. Returns the saved version
+    with ``unchanged`` false, or the current one with ``unchanged`` true when nothing would change."""
     if made_by not in MADE_BY:
         raise DomainError("validation_failed", f"made_by must be one of {', '.join(MADE_BY)}.")
     reason = _reason(reason)
+    brain_id = brain["id"]
+    versions = _rows(service, conn, principal, brain_id, limit=1)
+    current = versions[0] if versions else _none()
+    card, extra = choose(lambda wanted: _find(service, conn, principal, brain_id, wanted))
+    if card == {**EMPTY_CARD, **current["card"]} and extra.get("host_default", False) == current["host_default"]:
+        return {**current, "unchanged": True}
+    number = current["version"] + 1  # Versions are numbered in order, so the newest has the highest number.
+    stored = {"persona_version": number, "card": card, "made_by": made_by, "reason": reason, "action": action,
+              **extra}
+    incoming = {"source_event_key": "persona-" + uid(), "source_revision": 1, "producer_ref": PERSONA_PRODUCER,
+                "actor_ref": made_by, "actor_role": "system", "event_kind": "message",
+                "content": {"media_type": "text/plain", "text": json.dumps(stored, ensure_ascii=False)},
+                "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
+                "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": []}
+    target = {"brain_ref": brain_id, "conversation_ref": PERSONA_CONVERSATION, "branch_ref": "main"}
+    service._append_event(conn, principal, brain, target, incoming)
+    return {**_rows(service, conn, principal, brain_id, limit=1)[0], "unchanged": False}
+
+
+def _save(service, principal, brain_id, choose, *, made_by, reason, action):
     with service.database.transaction(principal) as conn:
         conn.execute("SET LOCAL lock_timeout = '5s'")
         brain = service._brain(conn, principal, brain_id)  # Locks the brain, so versions are numbered in order.
-        versions = _rows(service, conn, principal, brain_id, limit=1)
-        current = versions[0] if versions else _none()
-        card, extra = choose(lambda wanted: _find(service, conn, principal, brain_id, wanted))
-        if card == {**EMPTY_CARD, **current["card"]} and extra.get("host_default", False) == current["host_default"]:
-            return _public(current, unchanged=True)
-        number = current["version"] + 1  # Versions are numbered in order, so the newest has the highest number.
-        stored = {"persona_version": number, "card": card, "made_by": made_by, "reason": reason, "action": action,
-                  **extra}
-        incoming = {"source_event_key": "persona-" + uid(), "source_revision": 1, "producer_ref": PERSONA_PRODUCER,
-                    "actor_ref": made_by, "actor_role": "system", "event_kind": "message",
-                    "content": {"media_type": "text/plain", "text": json.dumps(stored, ensure_ascii=False)},
-                    "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
-                    "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": []}
-        target = {"brain_ref": brain_id, "conversation_ref": PERSONA_CONVERSATION, "branch_ref": "main"}
-        service._append_event(conn, principal, brain, target, incoming)
-        saved = _rows(service, conn, principal, brain_id, limit=1)[0]
-    return _public(saved, unchanged=False)
+        saved = _save_in(service, conn, principal, brain, choose, made_by=made_by, reason=reason, action=action)
+    unchanged = saved.pop("unchanged")
+    return _public(saved, unchanged=unchanged)
 
 
 def set_persona(service, principal, brain_id: str, card, *, made_by: str, reason: str | None = None,
@@ -309,21 +366,30 @@ def delete_persona_history(service, principal, brain_id: str) -> dict:
     """Erase every version, with the same audited deletion as notes; a later restore of a backup keeps them gone.
 
     A "history deleted" marker is then written with the time and the sequence it applies from, so that a later
-    feedback proposal counts only feedback given after it. Erasing all memory removes the marker too.
+    feedback suggestion counts only feedback given after it. The suggestions and the decisions on them (P2) are
+    erased too: they are part of the personality's history. Erasing all memory removes the marker too.
     """
+    from .persona_growth import PROPOSALS_CONVERSATION
+
     with service.database.transaction(principal) as conn:
         conn.execute("SET LOCAL lock_timeout = '5s'")
         brain = service._brain(conn, principal, brain_id)
         count = len(_rows(service, conn, principal, brain_id, limit=100_000))
-        if not count:
-            return {"deleted_versions": 0, "marker": None}
+        suggestions = conn.execute(
+            "SELECT count(*) AS value FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+            "AND conversation_id=%s AND is_current AND NOT deleted",
+            (*service._params(principal, brain_id), PROPOSALS_CONVERSATION)).fetchone()["value"]
         key = "persona-history-" + uid()
         target = {"brain_ref": brain_id, "conversation_ref": PERSONA_CONVERSATION, "branch_ref": "main"}
-        service._forget(conn, principal, brain, {
-            "request_id": key, "target": target,
-            "payload": {"idempotency_key": key, "selector": {"kind": "conversation", "ids": [PERSONA_CONVERSATION]},
-                        "mode": "erase_content", "expected_scope_generation": brain["scope_generation"]}})
-        brain = service._brain(conn, principal, brain_id)
+        if count or suggestions:
+            service._forget(conn, principal, brain, {
+                "request_id": key, "target": target,
+                "payload": {"idempotency_key": key,
+                            "selector": {"kind": "conversation", "ids": [PERSONA_CONVERSATION, PROPOSALS_CONVERSATION]},
+                            "mode": "erase_content", "expected_scope_generation": brain["scope_generation"]}})
+            brain = service._brain(conn, principal, brain_id)
+        # The marker is written even when there was nothing to erase: it is the cut-off feedback counts from, so
+        # feedback given before the user asked to delete the history never comes back into a suggestion.
         text = json.dumps({"persona_marker": HISTORY_DELETED, "deleted_versions": count})
         service._append_event(conn, principal, brain, target, {
             "source_event_key": key, "source_revision": 1, "producer_ref": PERSONA_PRODUCER,

@@ -720,8 +720,11 @@ class LearningEngine:
         return row
 
     def _literal(self, principal, brain_id, job):
+        from .service import reading
+
         service = self.service
-        with service.database.transaction(principal) as conn:
+        # Only reads: the captures are published below under the exclusive lock, and only for events still current.
+        with reading(), service.database.transaction(principal) as conn:
             brain = service._brain(conn, principal, brain_id)
             event_ids = ([job["payload"]["event_id"]] if job["kind"] == "extract"
                          else job["payload"].get("event_ids", []))
@@ -742,6 +745,12 @@ class LearningEngine:
                             service._publish(conn, principal, brain, memory)
             if len(event_ids) > 128:
                 service._job(conn, principal, brain, "rebuild", {"event_ids": event_ids[128:]})
+            # Runs under the exclusive brain lock once per indexed message. A brain the statistics have not seen yet
+            # (any new one, or one that just took a bulk import) is estimated at one row, and the planner then
+            # compares every pending job with every event (seconds at a few thousand messages, while reads wait).
+            # The hash join answers the same query in milliseconds at any size; the setting is restored after it.
+            nestloop = conn.execute("SELECT current_setting('enable_nestloop') AS value").fetchone()["value"]
+            conn.execute("SELECT set_config('enable_nestloop','off',true)")
             pending = conn.execute(
                 "SELECT min(e.sequence) AS value FROM memory_events e JOIN memory_jobs j ON "
                 "j.tenant_id=e.tenant_id AND j.brain_id=e.brain_id AND j.payload->>'event_id'=e.id "
@@ -749,6 +758,7 @@ class LearningEngine:
                 "WHERE e.tenant_id=%s AND e.owner_id=%s AND e.brain_id=%s AND j.kind='extract' "
                 "AND j.state<>'completed' AND j.id<>%s", (*service._params(principal, brain_id), job["id"]),
             ).fetchone()["value"]
+            conn.execute("SELECT set_config('enable_nestloop',%s,true)", (nestloop,))
             indexed = brain["durable_sequence"] if pending is None else pending - 1
             conn.execute("UPDATE memory_brains SET indexed_sequence=%s WHERE tenant_id=%s AND owner_id=%s AND id=%s",
                          (indexed, *service._params(principal, brain_id)))

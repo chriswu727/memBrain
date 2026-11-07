@@ -52,12 +52,21 @@ class EmbeddingRequest:
 
 
 @dataclass(frozen=True)
+class EmbeddingPassage:
+    start: int
+    end: int
+    vector: tuple[float, ...]
+
+
+@dataclass(frozen=True)
 class EmbeddingResult:
     space: EmbeddingSpace
     vectors: tuple[tuple[float, ...], ...]
     usage: dict[str, int | None] | None
     request_fingerprint: str
     input_bytes: int
+    passages: tuple[tuple[EmbeddingPassage, ...], ...] | None = None
+    document_index_version: str = "single-vector-v1"
 
 
 class EmbeddingProvider(Protocol):

@@ -1,0 +1,24 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_source_edits_do_not_rewrite_invalid_receipts_or_change_replay_semantics _
+tests/test_storage.py:139: in test_source_edits_do_not_rewrite_invalid_receipts_or_change_replay_semantics
+    assert after[first] == before[first]
+E   AssertionError: assert {'brain_id': ...2dfd352', ...} == {'brain_id': ...2dfd352', ...}
+E     
+E     Omitting 5 identical items, use -vv to show
+E     Differing items:
+E     {'version': '740'} != {'version': '737'}
+E     Use -v to get more diff
+__ test_quarantine_invalidates_valid_receipts_without_rewriting_invalid_ones ___
+tests/test_recovery_quarantine.py:64: in test_quarantine_invalidates_valid_receipts_without_rewriting_invalid_ones
+    assert after[key] == row
+E   AssertionError: assert {'brain_id': ...a74bf7f', ...} == {'brain_id': ...a74bf7f', ...}
+E     
+E     Omitting 5 identical items, use -vv to show
+E     Differing items:
+E     {'version': '747'} != {'version': '746'}
+E     Use -v to get more diff
+=========================== short test summary info ============================
+FAILED tests/test_storage.py::test_source_edits_do_not_rewrite_invalid_receipts_or_change_replay_semantics
+FAILED tests/test_recovery_quarantine.py::test_quarantine_invalidates_valid_receipts_without_rewriting_invalid_ones
+2 failed in 0.47s

@@ -1,0 +1,40 @@
+{
+  "run": 42079033486,
+  "head": "cc599cc91783fc2a6d79fe50a45fb1b70bd22e22",
+  "results": [
+    {
+      "artifact": "compatibility-ubuntu26-linux-aarch64",
+      "host": "26.04",
+      "completed": true,
+      "port_closed": true,
+      "model_calls": 0,
+      "artifact_sha256": "26df8847933ca64a5a2ccfd2eb12a8bd271e37ffa146369a5c2a8497538df844"
+    },
+    {
+      "artifact": "compatibility-linux-x86_64",
+      "host": "22.04",
+      "completed": true,
+      "port_closed": true,
+      "model_calls": 0,
+      "artifact_sha256": "06719c32aa16c69164f01e2d92207bca136528e38e6ebafebd36d2c09a87e6ce"
+    },
+    {
+      "artifact": "compatibility-ubuntu26-linux-x86_64",
+      "host": "26.04",
+      "completed": true,
+      "port_closed": true,
+      "model_calls": 0,
+      "artifact_sha256": "89d598009f973a7eb5f8e49eeaeceff7e3de24de90860ad8448c7c26f446a211"
+    },
+    {
+      "artifact": "compatibility-linux-aarch64",
+      "host": "22.04",
+      "completed": true,
+      "port_closed": true,
+      "model_calls": 0,
+      "artifact_sha256": "846651a0cc3ea215b028a9affc77cce2ec0f97f199782ce46e561d2a7e8d2c0e"
+    }
+  ],
+  "runtime_changed": false,
+  "packaged_resources_changed": false
+}

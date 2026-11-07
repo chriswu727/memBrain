@@ -1,0 +1,10 @@
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+_ test_source_edits_do_not_rewrite_invalid_receipts_or_change_replay_semantics _
+tests/test_storage.py:149: in test_source_edits_do_not_rewrite_invalid_receipts_or_change_replay_semantics
+    assert rows[1]["document"]["observed"]["content"]["text"] == "The meeting is at the cafe."
+           ^^^^
+E   NameError: name 'rows' is not defined
+=========================== short test summary info ============================
+FAILED tests/test_storage.py::test_source_edits_do_not_rewrite_invalid_receipts_or_change_replay_semantics
+1 failed, 1 passed in 2.03s

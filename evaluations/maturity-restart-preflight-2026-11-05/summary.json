@@ -1,0 +1,97 @@
+{
+  "run_id": 42070570407,
+  "head": "13fe295a4205cee53ec5f4b97626bd95e81f5ab8",
+  "runtime": "73ee62ee5796902249ddd20b08ed7e4ad6922b3f",
+  "journeys": [
+    {
+      "platform": "native-linux-x86_64",
+      "file": "native-adoption-fresh-42070570407-1/result.json",
+      "legacy": false,
+      "root": false,
+      "all_required_true": true,
+      "model_calls": 0
+    },
+    {
+      "platform": "native-linux-x86_64",
+      "file": "native-adoption-legacy-42070570407-1/result.json",
+      "legacy": true,
+      "root": false,
+      "all_required_true": true,
+      "model_calls": 0
+    },
+    {
+      "platform": "native-linux-x86_64",
+      "file": "native-adoption-root-result-42070570407-1.json",
+      "legacy": true,
+      "root": true,
+      "all_required_true": true,
+      "model_calls": 0
+    },
+    {
+      "platform": "native-windows-x86_64",
+      "file": "native-adoption-fresh-42070570407-1/result.json",
+      "legacy": false,
+      "root": false,
+      "all_required_true": true,
+      "model_calls": 0
+    },
+    {
+      "platform": "native-windows-x86_64",
+      "file": "native-adoption-legacy-42070570407-1/result.json",
+      "legacy": true,
+      "root": false,
+      "all_required_true": true,
+      "model_calls": 0
+    },
+    {
+      "platform": "native-linux-aarch64",
+      "file": "native-adoption-fresh-42070570407-1/result.json",
+      "legacy": false,
+      "root": false,
+      "all_required_true": true,
+      "model_calls": 0
+    },
+    {
+      "platform": "native-linux-aarch64",
+      "file": "native-adoption-root-result-42070570407-1.json",
+      "legacy": false,
+      "root": true,
+      "all_required_true": true,
+      "model_calls": 0
+    },
+    {
+      "platform": "native-macos-x86_64",
+      "file": "native-adoption-fresh-42070570407-1/result.json",
+      "legacy": false,
+      "root": false,
+      "all_required_true": true,
+      "model_calls": 0
+    },
+    {
+      "platform": "native-macos-x86_64",
+      "file": "native-adoption-legacy-42070570407-1/result.json",
+      "legacy": true,
+      "root": false,
+      "all_required_true": true,
+      "model_calls": 0
+    },
+    {
+      "platform": "native-macos-arm64",
+      "file": "native-adoption-fresh-42070570407-1/result.json",
+      "legacy": false,
+      "root": false,
+      "all_required_true": true,
+      "model_calls": 0
+    },
+    {
+      "platform": "native-macos-arm64",
+      "file": "native-adoption-legacy-42070570407-1/result.json",
+      "legacy": true,
+      "root": false,
+      "all_required_true": true,
+      "model_calls": 0
+    }
+  ],
+  "completed": true,
+  "linux_hosts": "Ubuntu 22.04, not Ubuntu 26.04"
+}

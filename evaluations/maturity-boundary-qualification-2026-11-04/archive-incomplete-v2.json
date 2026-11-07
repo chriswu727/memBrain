@@ -1,0 +1,8 @@
+{
+  "archive_process_exit_code": 1,
+  "error": "OSError errno28 No space left on device while adding a tar member",
+  "bytes": 186720841,
+  "sha256": "6c53665b88820f91b346fbc03fc4d162507d89f75d5e00651e837a6018b00354",
+  "original_profile_preserved": true,
+  "incomplete_archive_removed": true
+}

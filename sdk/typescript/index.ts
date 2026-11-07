@@ -67,6 +67,28 @@ export type ScopeOptions = {
   requestId?: string;
 };
 export type BranchOptions = ScopeOptions & { conversationId: string; branchId: string };
+export type PersonaCard = {
+  name?: string;
+  traits?: readonly string[];
+  voice?: { register?: string; length?: string; emoji?: string; language?: string };
+  values?: readonly string[];
+  boundaries?: readonly string[];
+  baseline_mood?: { label: string; valence: -2 | -1 | 0 | 1 | 2; energy: 0 | 1 | 2 | 3 } | null;
+};
+export type PersonaChangeOptions = {
+  brainId?: string;
+  madeBy?: "host" | "user" | "feedback";
+  reason?: string;
+};
+export type MapOptions = {
+  brainId?: string;
+  maxNodes?: number;
+  maxEdges?: number;
+  includeSensitive?: boolean;
+};
+export type MemoryMapOptions = MapOptions & { trace?: boolean; structure?: boolean };
+export type NoteSource = { producer_ref: string; source_event_key: string; source_revision: number };
+
 export type NoteAffect = {
   label: string;
   valence: -2 | -1 | 0 | 1 | 2;
@@ -281,6 +303,17 @@ function memoryContent(item: RecallItem): JsonObject {
   if (item.presentation?.level === "summary" && item.memory.recall_summary) {
     result.statement = item.memory.recall_summary.statement;
     result.recall_detail = "summary_expandable";
+  } else if (item.memory.derivation?.method === "direct_capture" && item.matched_statement_span) {
+    const span = item.matched_statement_span, characters = Array.from(item.memory.statement);
+    if (Number.isInteger(span.start) && Number.isInteger(span.end) && span.unit === "unicode_code_point"
+        && 0 <= span.start && span.start < span.end && span.end <= characters.length
+        && span.end - span.start <= 400 && characters.length > 400) {
+      result.statement = characters.slice(span.start, span.end).join("");
+      result.statement_span = { ...span };
+      result.statement_characters = characters.length;
+      result.recall_detail = "matched_excerpt_expandable";
+      result.excerpt_use = "partial_original_statement_not_an_independent_fact";
+    }
   }
   if (item.applicability !== undefined) result.applicability = item.applicability;
   if (item.belief_resolution !== undefined) result.belief_resolution = item.belief_resolution;
@@ -451,6 +484,18 @@ export class MemoryClient {
     };
   }
 
+  #brainPath(brainId?: string): string {
+    return `v1/brains/${encodeURIComponent(this.#scope({ brainId }).brain_ref)}`;
+  }
+
+  #map(resource: "memory-map" | "companion-map", options: MapOptions,
+    flags: { trace?: boolean; structure?: boolean } = {}): Promise<JsonObject> {
+    const query = new URLSearchParams({ max_nodes: String(options.maxNodes ?? 200),
+      max_edges: String(options.maxEdges ?? 400), include_sensitive: String(options.includeSensitive ?? false) });
+    for (const [name, enabled] of Object.entries(flags)) if (enabled) query.set(name, "true");
+    return this.#request("GET", `${this.#brainPath(options.brainId)}/${resource}?${query}`);
+  }
+
   recovery(): Promise<JsonObject> {
     return this.#request("GET", "v1/recovery");
   }
@@ -509,8 +554,20 @@ export class MemoryClient {
     if (options.beforeSequence !== undefined) query.set("before_sequence", String(options.beforeSequence));
     return this.#request("GET", `v1/brains/${brain}/timeline?${query}`);
   }
+  sourceMessages(messages: readonly NoteSource[], brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/source-messages`, { messages });
+  }
+  recallWindows(windows: readonly { memory_id: string; revision: number;
+    span: { start: number; end: number; unit: "unicode_code_point" } }[], query: string,
+    options: ScopeOptions = {}): Promise<JsonObject> {
+    const scope = this.#scope(options);
+    return this.#request("POST", `v1/brains/${encodeURIComponent(scope.brain_ref)}/recall-windows`, {
+      windows, query, conversation_id: scope.conversation_ref ?? null, branch_id: scope.branch_ref ?? null,
+    });
+  }
   writeNote(text: string, options: { requestId?: string; brainId?: string; replaces?: readonly string[];
-    sourceEventIds?: readonly string[]; sourceMessages?: readonly { producer_ref: string; source_event_key: string; source_revision: number }[];
+    sourceEventIds?: readonly string[]; sourceMessages?: readonly NoteSource[];
+    contextSourceMessages?: readonly NoteSource[]; requireCurrentSources?: boolean; expectedDependencyGeneration?: number;
     kind?: string; status?: string; about?: string; aliases?: readonly string[]; due?: string; occursAt?: string;
     pinned?: boolean; sensitive?: boolean; shared?: boolean; affect?: NoteAffect;
     role?: "user" | "assistant" } = {}): Promise<JsonObject> {
@@ -521,8 +578,85 @@ export class MemoryClient {
       ...Object.fromEntries(Object.entries({ kind: options.kind, status: options.status, about: options.about,
         aliases: options.aliases, due: options.due, occurs_at: options.occursAt, pinned: options.pinned,
         sensitive: options.sensitive, shared: options.shared, affect: options.affect,
-        role: options.role }).filter(([, value]) => value !== undefined)),
+        role: options.role, context_source_messages: options.contextSourceMessages,
+        require_current_sources: options.requireCurrentSources,
+        expected_dependency_generation: options.expectedDependencyGeneration }).filter(([, value]) => value !== undefined)),
     });
+  }
+  persona(brainId?: string): Promise<JsonObject> {
+    return this.#request("GET", `${this.#brainPath(brainId)}/persona`);
+  }
+  setPersona(card: PersonaCard, options: PersonaChangeOptions & { hostDefault?: boolean } = {}): Promise<JsonObject> {
+    return this.#request("PUT", `${this.#brainPath(options.brainId)}/persona`, {
+      card, made_by: options.madeBy ?? "host", host_default: options.hostDefault ?? false, reason: options.reason,
+    });
+  }
+  personaVersions(brainId?: string): Promise<JsonObject> {
+    return this.#request("GET", `${this.#brainPath(brainId)}/persona/versions`);
+  }
+  restorePersona(version: number, options: PersonaChangeOptions = {}): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(options.brainId)}/persona/restore`, {
+      version, made_by: options.madeBy ?? "host", reason: options.reason,
+    });
+  }
+  resetPersona(options: PersonaChangeOptions = {}): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(options.brainId)}/persona/reset`, {
+      made_by: options.madeBy ?? "host", reason: options.reason,
+    });
+  }
+  deletePersonaHistory(brainId?: string): Promise<JsonObject> {
+    return this.#request("DELETE", `${this.#brainPath(brainId)}/persona/versions`);
+  }
+  personaProposals(brainId?: string): Promise<JsonObject> {
+    return this.#request("GET", `${this.#brainPath(brainId)}/persona/proposals`);
+  }
+  acceptPersonaProposal(proposalId: string, brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/persona/proposals/${encodeURIComponent(proposalId)}/accept`);
+  }
+  rejectPersonaProposal(proposalId: string, brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/persona/proposals/${encodeURIComponent(proposalId)}/reject`);
+  }
+  affectRecords(brainId?: string): Promise<JsonObject> {
+    return this.#request("GET", `${this.#brainPath(brainId)}/affect`);
+  }
+  clearAffect(brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/affect/reset`);
+  }
+  mood(brainId?: string): Promise<JsonObject> {
+    return this.#request("GET", `${this.#brainPath(brainId)}/mood`);
+  }
+  pinMood(pinned = true, brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/mood/pin`, { pinned });
+  }
+  resetMood(brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/mood/reset`);
+  }
+  relationship(brainId?: string): Promise<JsonObject> {
+    return this.#request("GET", `${this.#brainPath(brainId)}/relationship`);
+  }
+  setSupportStyle(text: string, brainId?: string): Promise<JsonObject> {
+    return this.#request("PUT", `${this.#brainPath(brainId)}/relationship/support-style`, { text });
+  }
+  addBoundary(topic: string, aliases: readonly string[] = [], brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/relationship/boundaries`, { topic, aliases });
+  }
+  removeBoundary(boundaryId: string, brainId?: string): Promise<JsonObject> {
+    return this.#request("DELETE", `${this.#brainPath(brainId)}/relationship/boundaries/${encodeURIComponent(boundaryId)}`);
+  }
+  capFamiliarity(level: "new" | "getting_to_know" | "familiar" | null, brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/relationship/cap`, { level });
+  }
+  acknowledgeCommitments(noteIds: readonly string[], brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/relationship/acknowledge`, { note_ids: noteIds.slice(0, 50) });
+  }
+  resetRelationship(brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/relationship/reset`);
+  }
+  memoryMap(options: MemoryMapOptions = {}): Promise<JsonObject> {
+    return this.#map("memory-map", options, { trace: options.trace, structure: options.structure });
+  }
+  companionMap(options: MapOptions = {}): Promise<JsonObject> {
+    return this.#map("companion-map", options);
   }
   memoryStatus(brainId?: string): Promise<JsonObject> {
     return this.#request("GET", `v1/brains/${encodeURIComponent(this.#scope({ brainId }).brain_ref)}/status`);

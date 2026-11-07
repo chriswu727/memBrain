@@ -16,6 +16,8 @@ def source(tmp_path):
     (package / "__init__.py").write_text('__version__ = "0.1.0"\n')
     (package / "runtime.py").write_text("state = 'old'\n")
     (package / "resources/desktop-compose.yaml").write_text("services: {}\n")
+    (package / "resources/native").mkdir()
+    (package / "resources/native/binaries.tar.gz").write_bytes(b"reviewed native resources")
     (root / "architecture/memory-contract.schema.json").write_text('{"version": 1}\n')
     (root / "migrations/001_initial.sql").write_text("CREATE TABLE memory_initial(id int);\n")
     return root, package
@@ -33,6 +35,7 @@ def test_source_and_installed_wheel_paths_have_identical_identity(source, tmp_pa
 @pytest.mark.parametrize("relative", [
     "src/membrain/runtime.py", "src/membrain/resources/desktop-compose.yaml",
     "architecture/memory-contract.schema.json", "migrations/001_initial.sql",
+    "src/membrain/resources/native/binaries.tar.gz",
 ])
 def test_shipped_code_contract_resource_and_migration_changes_change_identity(source, relative):
     root, package = source

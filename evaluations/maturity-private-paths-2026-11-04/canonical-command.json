@@ -1,0 +1,19 @@
+{
+  "source_commit": "53d7e323219a40f670ef574e45c2c36e3f32d4ee",
+  "runtime_pin": "d4d71262ab1c7d76600082b9c53b10144bb08a00",
+  "command": [
+    "/Users/yichen/tmp/membrain-review-20261029/.venv/bin/python",
+    "evaluations/recall-concurrency-benchmark.py",
+    "--directory",
+    "/Users/yichen/tmp/membrain-tail-attribution-20261104/perf-53d7e32-installation",
+    "--database-port",
+    "57620",
+    "--api-port",
+    "57621",
+    "--output",
+    "/Users/yichen/tmp/membrain-tail-attribution-20261104/canonical-53d7e32.json",
+    "--bulk-to",
+    "0"
+  ],
+  "exit_code": 0
+}

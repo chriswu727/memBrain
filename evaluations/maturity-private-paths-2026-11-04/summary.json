@@ -1,0 +1,208 @@
+{
+  "source_commit": "53d7e323219a40f670ef574e45c2c36e3f32d4ee",
+  "runtime_pin": "d4d71262ab1c7d76600082b9c53b10144bb08a00",
+  "all_640_context_hashes_equal": true,
+  "comparison": [
+    {
+      "variant": "reference",
+      "n": 160,
+      "median_ms": 466.03,
+      "p95_ms": 528.25,
+      "rss_kb": 151360
+    },
+    {
+      "variant": "candidate",
+      "n": 160,
+      "median_ms": 464.53,
+      "p95_ms": 502.91,
+      "rss_kb": 159536
+    },
+    {
+      "variant": "candidate",
+      "n": 160,
+      "median_ms": 465.8,
+      "p95_ms": 495.2,
+      "rss_kb": 161136
+    },
+    {
+      "variant": "reference",
+      "n": 160,
+      "median_ms": 477.53,
+      "p95_ms": 522.48,
+      "rss_kb": 160736
+    }
+  ],
+  "visual_completed": true,
+  "visual_passed": true,
+  "visual_phases": [
+    {
+      "mode": "closed",
+      "seconds": 66.118,
+      "page_errors": [],
+      "external_requests": [],
+      "p95_ms": {
+        "serial": 111.9,
+        "one_brain_8_concurrent": 509.5,
+        "eight_brains_8_concurrent": 499.63
+      },
+      "windows": [
+        {
+          "serial": 111.43,
+          "one_brain_8_concurrent": 512.55,
+          "eight_brains_8_concurrent": 510.87
+        },
+        {
+          "serial": 111.9,
+          "one_brain_8_concurrent": 495.91,
+          "eight_brains_8_concurrent": 501.42
+        },
+        {
+          "serial": 111.81,
+          "one_brain_8_concurrent": 510.93,
+          "eight_brains_8_concurrent": 490.86
+        }
+      ],
+      "failed_windows": [],
+      "poll_count": 0
+    },
+    {
+      "mode": "open",
+      "seconds": 67.765,
+      "nodes": 182,
+      "edges": 66,
+      "hologram_frames": 2035,
+      "page_errors": [],
+      "external_requests": [],
+      "p95_ms": {
+        "serial": 119.63,
+        "one_brain_8_concurrent": 527.21,
+        "eight_brains_8_concurrent": 530.6
+      },
+      "windows": [
+        {
+          "serial": 123.18,
+          "one_brain_8_concurrent": 532.08,
+          "eight_brains_8_concurrent": 559.07
+        },
+        {
+          "serial": 106.47,
+          "one_brain_8_concurrent": 528.73,
+          "eight_brains_8_concurrent": 504.92
+        },
+        {
+          "serial": 109.81,
+          "one_brain_8_concurrent": 501.26,
+          "eight_brains_8_concurrent": 528.56
+        }
+      ],
+      "failed_windows": [],
+      "poll_count": 6
+    },
+    {
+      "mode": "open",
+      "seconds": 69.367,
+      "nodes": 182,
+      "edges": 66,
+      "hologram_frames": 2055,
+      "page_errors": [],
+      "external_requests": [],
+      "p95_ms": {
+        "serial": 116.88,
+        "one_brain_8_concurrent": 564.85,
+        "eight_brains_8_concurrent": 521.49
+      },
+      "windows": [
+        {
+          "serial": 117.0,
+          "one_brain_8_concurrent": 565.04,
+          "eight_brains_8_concurrent": 523.28
+        },
+        {
+          "serial": 112.62,
+          "one_brain_8_concurrent": 586.02,
+          "eight_brains_8_concurrent": 517.44
+        },
+        {
+          "serial": 112.8,
+          "one_brain_8_concurrent": 521.59,
+          "eight_brains_8_concurrent": 521.18
+        }
+      ],
+      "failed_windows": [],
+      "poll_count": 6
+    },
+    {
+      "mode": "closed",
+      "seconds": 65.909,
+      "page_errors": [],
+      "external_requests": [],
+      "p95_ms": {
+        "serial": 113.15,
+        "one_brain_8_concurrent": 510.28,
+        "eight_brains_8_concurrent": 503.98
+      },
+      "windows": [
+        {
+          "serial": 114.91,
+          "one_brain_8_concurrent": 510.28,
+          "eight_brains_8_concurrent": 505.93
+        },
+        {
+          "serial": 113.15,
+          "one_brain_8_concurrent": 515.86,
+          "eight_brains_8_concurrent": 506.01
+        },
+        {
+          "serial": 110.27,
+          "one_brain_8_concurrent": 498.72,
+          "eight_brains_8_concurrent": 497.24
+        }
+      ],
+      "failed_windows": [],
+      "poll_count": 0
+    }
+  ],
+  "public_practice": {
+    "completed": true,
+    "checks": 250,
+    "validity": {
+      "valid": true,
+      "problems": [],
+      "reference_largest_prompt_tokens": 1163,
+      "empty_replies_retried": {
+        "practice-P (P)": 0,
+        "practice-E (E)": 0,
+        "practice-F (F)": 0
+      }
+    },
+    "real_model_calls": 0
+  },
+  "full_ci": {
+    "run_id": 41897991336,
+    "job_id": 126812543505,
+    "source_commit": "53d7e323219a40f670ef574e45c2c36e3f32d4ee",
+    "status": "success",
+    "python_passed": 7000,
+    "python_skipped": 0,
+    "warnings": 3,
+    "seconds": 1232.1,
+    "typescript_passed": 44,
+    "typescript_skipped": 0,
+    "strict_types": "passed",
+    "ruff": "passed",
+    "sdist_wheel": "passed",
+    "docker_journeys": {
+      "test_desktop_e2e.py": "test_desktop_e2e.py::test_cold_start_concurrent_connect_restart_and_mcp_preserve_one_brain",
+      "test_desktop_recovery_e2e.py": "test_desktop_recovery_e2e.py::test_full_streamed_backup_restores_current_deletions_and_requires_explicit_epoch",
+      "test_desktop_upgrade_e2e.py": "test_desktop_upgrade_e2e.py::test_independent_builds_detect_staleness_upgrade_and_reject_downgrade_without_data_loss",
+      "test_standalone_chat_e2e.py": "test_standalone_chat_e2e.py::test_chat_processes_recall_restart_deduplicate_and_block_unknown_generation"
+    },
+    "real_local_model_activation": "passed"
+  },
+  "native_checks": {
+    "profile_registry": 83,
+    "recovery": 74,
+    "hook_guards": 7,
+    "pin_matrix": 4
+  }
+}

@@ -3,8 +3,7 @@
 import { spawn } from "node:child_process";
 
 const PACKAGE = process.env.MEMBRAIN_PACKAGE ||
-  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/cb694865d795c0f9db954c6de0a5829df5ec061d.zip";
-const BLOCK_MS = 5 * 60 * 1000;
+  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/89d510360fbdfa55b97801204c277259c783548b.zip";
 
 function run(command, args, { input, timeoutMs = 12_000, env } = {}) {
   return new Promise((resolve) => {
@@ -137,9 +136,8 @@ export function memoryUser(ctx) {
 const OWNER = Symbol("owner");
 const DENIED = Symbol("denied");
 
-export function createMembrain({ exec = membrain, now = () => Date.now(), directory } = {}) {
+export function createMembrain({ exec = membrain, directory } = {}) {
   const env = directory ? { MEMBRAIN_DIRECTORY: directory } : undefined;
-  const blocks = new Map();
   const prompts = new Map();  // session -> the current turn's prompt, dropped when the turn ends
   const users = new Map();  // session key -> memory user (OWNER for the owner), learned from the turn's hooks
   const remember = (ctx) => {
@@ -167,11 +165,7 @@ export function createMembrain({ exec = membrain, now = () => Date.now(), direct
       const session = ctx?.sessionId || ctx?.sessionKey;
       if (!session) return undefined;
       const user = remember(ctx);
-      let cached = blocks.get(session);
-      if (!cached || now() - cached.at > BLOCK_MS || cached.user !== user) {
-        cached = { at: now(), user, block: await hook("session-start", { session_id: session }, user) };
-        blocks.set(session, cached);
-      }
+      const block = await hook("session-start", { session_id: session }, user);
       if (user && !confirmed.has(user)) return undefined;  // Never record someone else into the owner's memory.
       const prompt = event?.currentUserMessage ?? event?.prompt ?? "";
       prompts.set(session, prompt);  // Kept in memory for this turn only, for a turn the agent resumes recording in.
@@ -179,7 +173,7 @@ export function createMembrain({ exec = membrain, now = () => Date.now(), direct
         ? await hook("user-prompt", { session_id: session, prompt_id: event?.currentUserMessageId, prompt }, user)
         : null;
       const result = {};
-      if (cached.block) result.appendSystemContext = cached.block;
+      if (block) result.appendSystemContext = block;
       if (recalled) result.prependContext = recalled;
       return Object.keys(result).length ? result : undefined;
     },
@@ -207,7 +201,6 @@ export function createMembrain({ exec = membrain, now = () => Date.now(), direct
       const input = user === OWNER ? (params ?? {}) : { ...(params ?? {}), membrain_user: user };
       const output = await exec(["tool", name.replace("membrain_", "")], { input, env,
         timeoutMs: 20_000 });
-      if (["membrain_note", "membrain_boundary", "membrain_pause", "membrain_resume"].includes(name)) blocks.clear();
       return output || JSON.stringify({ error: "memBrain is not available yet; it may still be installing." });
     },
   };

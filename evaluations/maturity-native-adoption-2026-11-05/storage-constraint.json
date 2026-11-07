@@ -1,0 +1,18 @@
+{
+  "root_filesystem_cannot_create_git_index_lock": true,
+  "ram_device": "/dev/disk5",
+  "ram_bytes": 134217728,
+  "only_new_virtual_device_formatted": true,
+  "private_database_archive_performed": false,
+  "private_database_data_removed": false,
+  "ram_global_ownership_could_not_be_enabled_without_root": true,
+  "no_escalation": true,
+  "ram_contains_only_public_package_and_repository_data": true,
+  "public_partial_installation_cow_failed": true,
+  "partial_file": "membrain/resources/native/macos-arm64.tar.gz",
+  "persistent_original_sha256": "0891606eae5ad54021752307fa56b5a2a046360dcf10a617b24197c7c47fea2a",
+  "identical_public_ram_copy_verified": true,
+  "partial_environment_unqualified": true,
+  "existing_working_installations_models_profiles_journals_archives_unchanged": true,
+  "delivery": "public documentation/evidence commit built in temporary RAM Git repository with read-only original objects; original local checkout synchronization still requires space"
+}

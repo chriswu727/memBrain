@@ -1,0 +1,28 @@
+{
+  "completed": true,
+  "model_calls": 0,
+  "scope": "installed wheel SQL maintenance repeated against previously qualified fixture; no API or default startup adoption",
+  "exact_runtime_files": 176,
+  "build_id": "62361191f739ae5d01f54541e90fb740de927b4072e79b0d56255fdc139d2187",
+  "native_maintenance_from_installed_wheel": true,
+  "complete_rows_and_nearest_results_preserved": true,
+  "catalog_role_protection_verified": true,
+  "repeat_and_restart_verified": true,
+  "ports_closed": true,
+  "source_and_checks_unchanged": true,
+  "frozen_files": 437,
+  "distributions": [
+    {
+      "name": "membrain_ai-0.1.0-py3-none-any.whl",
+      "bytes": 12844933,
+      "sha256": "9f569854c072547362ee2a1c9afbe1d97a71afe14ff42e8fb09e8d3ba9109b2d"
+    },
+    {
+      "name": "membrain_ai-0.1.0.tar.gz",
+      "bytes": 14639860,
+      "sha256": "69467d49f5bd80227bd884ecf596234fade5fabb9f2d2518460cace9805418f2"
+    }
+  ],
+  "runtime_native_resource_files": 11,
+  "native_resource_files": 12
+}

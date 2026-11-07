@@ -1,0 +1,10 @@
+{
+  "purpose": "share identical public native binary blocks only across completed owned prototype prefixes; all files retained with independent COW mutability",
+  "files_cloned": 1477,
+  "logical_bytes_shared": 122761923,
+  "free_before": 182272000,
+  "free_after": 308473856,
+  "contents_permissions_owners_mtimes_verified": true,
+  "archives_profiles_registries_and_logs_unchanged": true,
+  "no_hardlinks": true
+}

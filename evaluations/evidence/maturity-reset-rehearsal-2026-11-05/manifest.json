@@ -1,0 +1,181 @@
+{
+  "source": "fba5d2607c3c6f7dc1c8c13e6f30e44a74d48ef5",
+  "runtime": "cc2a60176499c97bc7423199363dbd9311452dcf",
+  "scope": "Public deterministic practice; keyword recall; no external sockets; no real host/extractor calls. Direct P/E/F harness invocation, not successful shell supervisor qualification.",
+  "retained_failure": "Shell run requested empty model cache; local model download was refused by external-network guard before any turn. Corrected fresh direct keyword run omits model cache.",
+  "credentials_scan": {
+    "exact_owned_values": 9,
+    "matches": 0,
+    "payloads": 24
+  },
+  "files": [
+    {
+      "path": "run.log.gz",
+      "bytes": 87,
+      "sha256": "0b1be3e1c4e50fa4497c5a2b2772b1fca438c82fd465bcf27bf77496e3364bb7",
+      "original_bytes": 100,
+      "original_sha256": "86bda281865878314022ddfbaaaf58060b554ee25387072b4bbbd39174ecc328"
+    },
+    {
+      "path": "completion.json.gz",
+      "bytes": 585,
+      "sha256": "591e101683d4d1fbc873421767336d7a408e4b9538d6727d553669f900b6929c",
+      "original_bytes": 967,
+      "original_sha256": "02777f56c1d78343a72cd8d141f0b3290f7719859df5d4b406713070917dd996"
+    },
+    {
+      "path": "inputs.json.gz",
+      "bytes": 538,
+      "sha256": "a5c93c63e539acc90c434b2855ec459ff15941be39aa95585cf5872ad277f909",
+      "original_bytes": 889,
+      "original_sha256": "bf6a8174159554438774ef5b74d638f6454bcf4aea7a132141121c2ab05b8303"
+    },
+    {
+      "path": "run.py.gz",
+      "bytes": 1016,
+      "sha256": "43bc91b2735d2d1227108db728f025175a7781909cc831b738a7e9f37fb9463f",
+      "original_bytes": 2185,
+      "original_sha256": "9deed53cae093d7c6aa39fff180bdfb96a41b13add6c85b5cc059fbb33fff4c2"
+    },
+    {
+      "path": "practice--dry-P--run.log.gz",
+      "bytes": 1143,
+      "sha256": "1e477a60197aca305468e469b7325a684dcc5a63137b859d65ba45ab6a5770e2",
+      "original_bytes": 5315,
+      "original_sha256": "c1fbfd3705ea8b34b5051201451d583a2ad42adf6857d8c981415182d45a0307"
+    },
+    {
+      "path": "practice--dry-P--harness-events.jsonl.gz",
+      "bytes": 92,
+      "sha256": "65e787a557252259e65c7613d92836d9ba38e5d9e7b8bed2c614968b4d3facdb",
+      "original_bytes": 220,
+      "original_sha256": "06099661cb8fe7694ab20b52e31846d361391ddb0c08567027dd385aa69a1cac"
+    },
+    {
+      "path": "keyword--run.py.gz",
+      "bytes": 1365,
+      "sha256": "d822e6fcb0ace07baf251713f31b155f9756c955e84830b7224b47676567cfd7",
+      "original_bytes": 3032,
+      "original_sha256": "48b16bb22a5145b1c155f69f50a6a0e7112ca450c74124fafa92e6856627c1f9"
+    },
+    {
+      "path": "keyword--completion.json.gz",
+      "bytes": 411,
+      "sha256": "bea79640cf55edd96a8027b20a5d63c98c832b2ee08ae64734f32266a43f4488",
+      "original_bytes": 639,
+      "original_sha256": "52fef44d8a719af544ac1135bd0aaa0cd3da741634fd65e735046413bf7a3936"
+    },
+    {
+      "path": "keyword--inputs.json.gz",
+      "bytes": 339,
+      "sha256": "74731cec6038ac2702ae67c52467adb07f3130b7fb8abefdf4671b7e64b95450",
+      "original_bytes": 524,
+      "original_sha256": "2b763a3f245aa3eb977f7ee0735b71dc5889db4363fe80a406c4530ff2db2756"
+    },
+    {
+      "path": "keyword--practice-check.txt.gz",
+      "bytes": 235,
+      "sha256": "950d035cb6451926c02e332742faff4da150a492522b6c60534a8ac3a54af2d8",
+      "original_bytes": 673,
+      "original_sha256": "010f206e79fc09d5a4f457c9a2e48e816e0903bcfcf2cdc5d606b0983bc4cfef"
+    },
+    {
+      "path": "keyword--practice-validity.json.gz",
+      "bytes": 143,
+      "sha256": "95224533dd74618f79c77633a1a65f3a9201ded0ae83a973ff4d26fa7366b269",
+      "original_bytes": 163,
+      "original_sha256": "6944038cca8acff562db9cd7c2a568a9247b231f148804609380a096bb60c6b4"
+    },
+    {
+      "path": "keyword--qualification.json.gz",
+      "bytes": 246,
+      "sha256": "1efa944f170f298247c4aae82dea4d561b4602edb81333736ac488cb896ae1e2",
+      "original_bytes": 892,
+      "original_sha256": "126b89f3f1b592551cdc5e37d4c0b0024f31116fc72602360b40f433e90ff297"
+    },
+    {
+      "path": "keyword--practice--practice-P--run.log.gz",
+      "bytes": 1299,
+      "sha256": "d24724d74fb0a29d2b81aaf6d52107af9d58aeac910ed29884dd4588d4625df1",
+      "original_bytes": 3704,
+      "original_sha256": "b4ce538f69a270797b98028bb86aab3e18f78983d6b052259db792e405f2b0ed"
+    },
+    {
+      "path": "keyword--practice--practice-P--host-rounds.jsonl.gz",
+      "bytes": 1135,
+      "sha256": "ec8e1a35a68ae91f30bd6067c5c05ce4b10ab84bec8eb3868ba4d3796d27f1c5",
+      "original_bytes": 11196,
+      "original_sha256": "281a57a70216a19fc2129fcc3c3bc6c1847e9160fb7b41339331205811f501e2"
+    },
+    {
+      "path": "keyword--practice--practice-P--page-actions.jsonl.gz",
+      "bytes": 961,
+      "sha256": "aa90689064a115a018dd2ec359a589f493c60326709c233a8739dc02d63e8266",
+      "original_bytes": 4908,
+      "original_sha256": "1cdab0ac0ff42b8ceb01df8268e6d48f3483b06ba2e1025248da9fde1f413994"
+    },
+    {
+      "path": "keyword--practice--practice-P--results_c5-practice-scenario_P.jsonl.gz",
+      "bytes": 7075,
+      "sha256": "5313b49efcbdb36c537c7912c46a601a24d93b562fb3faa7e226d66a8744ec41",
+      "original_bytes": 147804,
+      "original_sha256": "10d43942152ae0c2e16ed0f0daf13a48f0eb37e49114e6bf2ac0a0f89838a1c9"
+    },
+    {
+      "path": "keyword--practice--practice-E--run.log.gz",
+      "bytes": 1062,
+      "sha256": "8620e04c52629330fa4d0c965cd6623ce731031adabe1bc69a8cd9f430d72106",
+      "original_bytes": 3336,
+      "original_sha256": "9b96ef26e7a578721ea8363b82e2f6957889e9b8cc4f0f516b80764e4f08a041"
+    },
+    {
+      "path": "keyword--practice--practice-E--host-rounds.jsonl.gz",
+      "bytes": 630,
+      "sha256": "7ca45dd78f1d549fc16ce8dba0511d48a5c11dca6f07a6878e3d2e472c405e4f",
+      "original_bytes": 6779,
+      "original_sha256": "673886ba47dcfaf5adf940f460fcc85ee5939121bcba0459085206745fc15e50"
+    },
+    {
+      "path": "keyword--practice--practice-E--page-actions.jsonl.gz",
+      "bytes": 986,
+      "sha256": "e98148b94f85ff923f147c00e0b704bac783c611f0f9e01e8b79e9b60ded7243",
+      "original_bytes": 5481,
+      "original_sha256": "ea4c17f006371c5c0b34934277a4aaebec036ca2dd2c5c493ae97ebc6620a144"
+    },
+    {
+      "path": "keyword--practice--practice-E--results_c5-practice-scenario_E.jsonl.gz",
+      "bytes": 5922,
+      "sha256": "af625440d2033cb5281f9fbc03b03f1f4a40589b37f46f75adc8641e6cecf9dc",
+      "original_bytes": 197215,
+      "original_sha256": "e54c12d63b1550b2616b7dc85eed7e111fc086ac8c0c5a42e8292c2c3c30b2bb"
+    },
+    {
+      "path": "keyword--practice--practice-F--run.log.gz",
+      "bytes": 520,
+      "sha256": "154707375af33f1325e7d0da1c871c644be530a5a00f30113cc63842167b21d0",
+      "original_bytes": 2123,
+      "original_sha256": "e0209ada98f48052fc483b7c8032eb7657d27b7d1d15442d9b913242405d841a"
+    },
+    {
+      "path": "keyword--practice--practice-F--host-rounds.jsonl.gz",
+      "bytes": 542,
+      "sha256": "8bb0f932f6cce51d46c39e1034d0c68da3dbc6722d71b5651268f109540751ad",
+      "original_bytes": 5715,
+      "original_sha256": "0a7e000d968571aefb15620fca13935fb4fb6004b593b5761b9db39708bfe142"
+    },
+    {
+      "path": "keyword--practice--practice-F--page-actions.jsonl.gz",
+      "bytes": 458,
+      "sha256": "bc9dbbf1ebf21387decb21614e70cafa88f2391fdf82139a5add21773c24cb90",
+      "original_bytes": 1905,
+      "original_sha256": "1c11387b984cfce333eff6016deb94fd024848cd3de4a3fa0b26a76d33035c71"
+    },
+    {
+      "path": "keyword--practice--practice-F--results_c5-practice-scenario_F.jsonl.gz",
+      "bytes": 2157,
+      "sha256": "164e44eba66e8eddc09cf82ad44d506fdbae9d2db93249502d249a50b88e799f",
+      "original_bytes": 28258,
+      "original_sha256": "0691b37480dc61245d82eccee9e0ca6737ef0cfee2bc3c6477d26b0ccebe7bed"
+    }
+  ]
+}

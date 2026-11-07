@@ -13,8 +13,9 @@ from membrain.client import MemoryClient
 from membrain.config import configured_service
 from membrain.helpers import DomainError, Principal, uid
 from membrain.local_profile import load_profile
-from membrain.memory_map import REGIONS, memory_map
+from membrain.memory_map import REGIONS, memory_map, sensitive_note_ids
 from membrain.notes import store_note
+from membrain.structure_map import memory_key, structure_map
 
 
 @pytest.fixture(scope="module")
@@ -81,6 +82,22 @@ def test_notes_messages_and_source_links_are_real_and_bounded(brain):
     assert not any("folding stool" in node["label"] for node in result["nodes"])
 
 
+@pytest.mark.parametrize("planner", ["on", "off"])
+def test_sensitive_source_lookup_preserves_protection_and_the_callers_planner_setting(brain, planner):
+    source = say(brain, "A private appointment.")
+    private = note(brain, "Private appointment.", sensitive=True, source_event_ids=[source])
+    shared = note(brain, "The same appointment.", source_event_ids=[source])
+    unrelated = note(brain, "Likes jasmine tea.")
+    service, principal, ident = brain
+    with service.database.transaction(principal) as connection:
+        connection.execute("SELECT set_config('enable_nestloop',%s,true)", (planner,))
+        protected = sensitive_note_ids(connection, service._params(principal, ident), [private, shared, unrelated])
+        assert protected == {private, shared}
+        assert connection.execute("SELECT current_setting('enable_nestloop') AS value").fetchone()["value"] == planner
+        assert sensitive_note_ids(connection, service._params(principal, ident), []) == set()
+        assert connection.execute("SELECT current_setting('enable_nestloop') AS value").fetchone()["value"] == planner
+
+
 def test_sensitive_notes_do_not_leak_through_sources_dates_or_person_links(brain):
     source = say(brain, "Mira's private appointment is on November 8.")
     person = note(brain, "Mira is my sister.", kind="person", about="Mira")
@@ -90,10 +107,14 @@ def test_sensitive_notes_do_not_leak_through_sources_dates_or_person_links(brain
     nodes = {node["id"]: node for node in hidden["nodes"]}
     assert nodes["note:" + private]["label"] == nodes["msg:" + source]["label"] == "Sensitive memory"
     assert nodes["note:" + private]["date"] is None and nodes["note:" + private]["status"] is None
+    assert nodes["note:" + private]["recorded_at"] is None
+    assert nodes["msg:" + source]["recorded_at"] is None
+    assert nodes["note:" + person]["recorded_at"] is not None
     assert not any(edge["target"] == "note:" + person for edge in hidden["edges"])
     assert "appointment" not in json.dumps(hidden)
     visible = memory_map(*brain, include_sensitive=True)
     assert any("appointment" in node["label"] for node in visible["nodes"])
+    assert all(node["recorded_at"] is not None for node in visible["nodes"])
 
 
 def test_erased_sources_and_superseded_notes_disappear_without_a_cache(brain):
@@ -112,6 +133,20 @@ def test_erased_sources_and_superseded_notes_disappear_without_a_cache(brain):
     assert result["outcome"] == "completed", result
     ids = {node["id"] for node in memory_map(*brain)["nodes"]}
     assert {"msg:" + source, "note:" + old, "note:" + current}.isdisjoint(ids)
+
+
+def test_sensitive_evidence_is_not_repeated_by_another_note_or_its_feeling(brain):
+    source = say(brain, "My private planetarium appointment makes me nervous.")
+    note(brain, "Private planetarium appointment.", kind="constraint", sensitive=True, source_event_ids=[source])
+    dependent = note(brain, "The planetarium appointment.", kind="plan", source_event_ids=[source],
+                     affect={"label": "planetarium nerves", "basis": "reported", "valence": -1,
+                             "intensity": 2, "felt_at": "2026-11-03", "topic": "planetarium"})
+    hidden = memory_map(*brain)
+    assert "planetarium" not in json.dumps(hidden)
+    assert next(node for node in hidden["nodes"] if node["id"] == "note:" + dependent)["sensitive"]
+    assert any(node["kind"] == "affect" and node["sensitive"] for node in hidden["nodes"])
+    assert all(node["recorded_at"] is None for node in hidden["nodes"] if node["sensitive"])
+    assert "planetarium" in json.dumps(memory_map(*brain, include_sensitive=True))
 
 
 def test_sensitive_source_stays_masked_when_its_note_is_outside_the_sample(brain):
@@ -265,3 +300,38 @@ def test_sdk_uses_the_brain_scoped_route_and_explicit_sensitive_flag():
         assert client.memory_map(max_nodes=20, max_edges=0) == {"nodes": []}
     assert requests[0].url.path == "/v1/brains/my-brain/memory-map"
     assert dict(requests[0].url.params) == {"max_nodes": "20", "max_edges": "0", "include_sensitive": "false"}
+
+
+@pytest.mark.parametrize("origin", ["standalone", "shared_source"])
+def test_sensitive_user_note_captures_stay_masked_in_structure(brain, origin):
+    service, principal, ident = brain
+    source = say(brain, "An original private note source.") if origin == "shared_source" else None
+    private = note(brain, "The private appointment code is cobalt-finch-729.", role="user",
+                   sensitive=origin == "standalone", source_event_ids=[source] if source else [])
+    if source:
+        note(brain, "This shared source is sensitive.", sensitive=True, source_event_ids=[source])
+    public = note(brain, "The public hobby is paper folding.", role="user")
+    for _ in range(100):
+        if not service.work_once(principal, ident):
+            break
+    else:
+        pytest.fail("Literal note indexing did not finish")
+    with service.database.transaction(principal) as connection:
+        rows = connection.execute(
+            "SELECT id,revision,event_ids FROM memory_assertions WHERE tenant_id=%s AND owner_id=%s "
+            "AND brain_id=%s AND is_current AND NOT invalidated AND NOT deleted",
+            service._params(principal, ident)).fetchall()
+    private_ids = {memory_key(row["id"], row["revision"]) for row in rows if private in row["event_ids"]}
+    public_ids = {memory_key(row["id"], row["revision"]) for row in rows if public in row["event_ids"]}
+    assert private_ids and public_ids
+    hidden = structure_map(*brain)
+    nodes = {node["id"]: node for node in hidden["nodes"]}
+    assert private_ids | public_ids <= nodes.keys()
+    assert "cobalt-finch-729" not in json.dumps(hidden)
+    assert all(nodes[key]["masked"] and nodes[key]["sensitive"] and nodes[key]["details"] == {}
+               for key in private_ids)
+    assert all(not nodes[key]["masked"] for key in public_ids)
+    revealed = structure_map(*brain, include_sensitive=True)
+    visible = {node["id"]: node for node in revealed["nodes"]}
+    assert "cobalt-finch-729" in json.dumps(revealed)
+    assert all(visible[key]["sensitive"] and not visible[key]["masked"] for key in private_ids)

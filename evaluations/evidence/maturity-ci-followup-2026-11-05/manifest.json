@@ -1,0 +1,41 @@
+{
+  "previous_ci_head": "f26d1955cafb5ffe764e3a93d48ec7c55fd1a3a8",
+  "runtime_unchanged": "174bc506595e9f96e4c38b0c10f737c7f98c639a",
+  "files": [
+    {
+      "path": "verify-f26d195-direct.log.gz",
+      "bytes": 199120,
+      "sha256": "ccc100bf3a4c21d1e63d9deec4578ca19fa70699fa19e69b76b532b52387d174",
+      "original_bytes": 1589877,
+      "original_sha256": "28e16abd14d4238e37eb2ef150843973a1b6deeaae4279b31760c43f9e0b188e"
+    },
+    {
+      "path": "verify-f26d195-job.json.gz",
+      "bytes": 976,
+      "sha256": "a8a83d0f23fd394998557217efc5644a1b312b9b4a14ba7761a466a5d740ecea",
+      "original_bytes": 4828,
+      "original_sha256": "3a98e9029f6f228d28908f5ff26ff6ecf5d7d5483a1771e594093e6e0d314dca"
+    },
+    {
+      "path": "factory-before.txt.gz",
+      "bytes": 2200,
+      "sha256": "4711278cbdcebb08a69fabe180d90b98e43b27926e68da400be776a8adfa381d",
+      "original_bytes": 14916,
+      "original_sha256": "4bc7615e8cde3e8ae3182b0cd21fe5aeb3c1392d4ec4e2cf004ea0cfbff183f2"
+    },
+    {
+      "path": "factory-after.txt.gz",
+      "bytes": 52,
+      "sha256": "31ceb63ab71d21e22d0b5fa3cfc9198ffc6f010d9715c4a5fe488131288a7837",
+      "original_bytes": 99,
+      "original_sha256": "f4e2061912a3660f5237717575a2cffc64086e11e0eb5bb3662b6df4d34e0d3d"
+    },
+    {
+      "path": "ruff-final.txt.gz",
+      "bytes": 39,
+      "sha256": "f3af4d142827f5aad2eb0c72d556d325488a57fb6219aac10afeb51085667d53",
+      "original_bytes": 19,
+      "original_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    }
+  ]
+}

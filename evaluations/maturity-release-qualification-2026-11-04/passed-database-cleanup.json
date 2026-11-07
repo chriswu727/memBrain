@@ -1,0 +1,61 @@
+{
+  "scope": "stopped, completed task-owned synthetic databases only; packages, profiles, registries, model weights and archives retained",
+  "free_before": 1575104512,
+  "profiles": [
+    {
+      "directory": "/Users/yichen/tmp/membrain-release-qualification-20261104/install-final/home/Library/Application Support/memBrain",
+      "database_bytes": 49892462,
+      "ports_closed": true,
+      "removed": true
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-release-qualification-20261104/install-final/restored",
+      "database_bytes": 49477079,
+      "ports_closed": true,
+      "removed": true
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-release-qualification-20261104/install-final/companion/home/Library/Application Support/memBrain",
+      "database_bytes": 49633650,
+      "ports_closed": true,
+      "removed": true
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-release-qualification-20261104/install-final/companion/restored",
+      "database_bytes": 49468513,
+      "ports_closed": true,
+      "removed": true
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-trace-batch-20261104/masked-time-diagnostic",
+      "database_bytes": 69647305,
+      "ports_closed": true,
+      "removed": true
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-final-audit-20261104/receipt-write-diagnostic",
+      "database_bytes": 93634665,
+      "ports_closed": true,
+      "removed": true
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-final-audit-20261104/sdk-live-installation",
+      "database_bytes": 49556619,
+      "ports_closed": true,
+      "removed": true
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-final-audit-20261104/installed-followup-smoke",
+      "database_bytes": 49517233,
+      "ports_closed": true,
+      "removed": true
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-final-audit-20261104/cache-v2-after-installation",
+      "database_bytes": 49359584,
+      "ports_closed": true,
+      "removed": true
+    }
+  ],
+  "free_after": 2090520576
+}

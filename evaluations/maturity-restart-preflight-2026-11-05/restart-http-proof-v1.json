@@ -1,0 +1,11 @@
+{
+  "completed": false,
+  "model_calls": 0,
+  "build_id": "bd1a653ea57c157c153b5ad09a1364961f04bf3cd5e7e10fab089ecb0fadcb70",
+  "new_database_created": false,
+  "new_dependencies_installed": false,
+  "failure_injected": "NativeBundleError in target tool loader",
+  "free_before_MiB": 344,
+  "owned_ports_closed": true,
+  "frozen_inputs_unchanged": true
+}

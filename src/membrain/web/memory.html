@@ -9,6 +9,8 @@
   <script src="/static/i18n.js" defer></script>
   <script src="/static/memory.js" defer></script>
   <script src="/static/brain.js" defer></script>
+  <script src="/static/observatory.js" defer></script>
+  <script src="/static/hologram.js" defer></script>
   <script src="/static/showcase.js" defer></script>
 </head>
 <body>
@@ -86,9 +88,112 @@
     </div>
     <p id="brain-demo" class="card hint" hidden>Demo: fictional memories, not anyone's data.</p>
     <div class="brain-layout">
-      <div id="brain-canvas" class="card brain-canvas"></div>
+      <div class="brain-main">
+        <div class="row brain-modes" role="group" aria-label="How to show the map">
+          <label for="brain-layer">Graph layer</label>
+          <select id="brain-layer" aria-label="Graph layer">
+            <option value="memory">Memories</option>
+            <option value="companion">Companion development</option>
+          </select>
+          <button id="mode-3d" class="secondary" type="button" aria-pressed="true">3D observatory</button>
+          <button id="mode-2d" class="secondary" type="button" aria-pressed="false">2D map</button>
+          <button id="observatory-reset" class="link" type="button" hidden>Reset camera</button>
+        </div>
+        <p id="observatory-status" class="card hint observatory-status" role="status" hidden></p>
+        <div id="observatory" class="card observatory" hidden>
+          <canvas id="observatory-canvas" tabindex="0" aria-describedby="observatory-help"
+            aria-label="3D memory map. The list of memories holds the same records."></canvas>
+          <div id="observatory-labels" class="observatory-labels" aria-hidden="true"></div>
+          <p id="observatory-tip" class="observatory-tip" aria-hidden="true" hidden></p>
+        </div>
+        <div id="brain-canvas" class="card brain-canvas"></div>
+        <p id="observatory-help" class="hint">In 3D, drag to rotate and scroll or pinch to zoom. With the map in focus,
+          arrow keys rotate, plus and minus zoom and Home resets the camera. Click a memory to open it.</p>
+        <div class="observatory-key">
+          <h2>How to read the 3D view</h2>
+          <ul id="observatory-edges" class="observatory-edges" aria-label="Kinds of line">
+            <li data-edge="derived_from"><span class="edge-swatch edge-derived_from" aria-hidden="true"></span>
+              <strong>derived from</strong> <span>A note and an original message it was saved from.</span>
+              <span class="hint edge-count">0</span></li>
+            <li data-edge="about_person"><span class="edge-swatch edge-about_person" aria-hidden="true"></span>
+              <strong>about person</strong> <span>A note and the person note its “about” field names.</span>
+              <span class="hint edge-count">0</span></li>
+            <li data-edge="feeling_of"><span class="edge-swatch edge-feeling_of" aria-hidden="true"></span>
+              <strong>feeling of</strong> <span>A feeling and the note it belongs to.</span>
+              <span class="hint edge-count">0</span></li>
+            <li data-edge="based_on_feedback"><span class="edge-swatch edge-based_on_feedback" aria-hidden="true"></span>
+              <strong>based on feedback</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="proposed_from_feedback"><span class="edge-swatch edge-proposed_from_feedback" aria-hidden="true"></span>
+              <strong>proposed from feedback</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="accepted_proposal"><span class="edge-swatch edge-accepted_proposal" aria-hidden="true"></span>
+              <strong>accepted proposal</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="restored_from"><span class="edge-swatch edge-restored_from" aria-hidden="true"></span>
+              <strong>restored from version</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="baseline_from"><span class="edge-swatch edge-baseline_from" aria-hidden="true"></span>
+              <strong>baseline from personality</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="triggered_by"><span class="edge-swatch edge-triggered_by" aria-hidden="true"></span>
+              <strong>triggered by</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="affected_by"><span class="edge-swatch edge-affected_by" aria-hidden="true"></span>
+              <strong>affected by active trigger</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="memory_evidence"><span class="edge-swatch edge-memory_evidence" aria-hidden="true"></span>
+              <strong>memory evidence</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="memory_derivation"><span class="edge-swatch edge-memory_derivation" aria-hidden="true"></span>
+              <strong>memory derivation</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="episode_evidence"><span class="edge-swatch edge-episode_evidence" aria-hidden="true"></span>
+              <strong>episode source</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="episode_member"><span class="edge-swatch edge-episode_member" aria-hidden="true"></span>
+              <strong>episode membership</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="pattern_member"><span class="edge-swatch edge-pattern_member" aria-hidden="true"></span>
+              <strong>pattern membership</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="association"><span class="edge-swatch edge-association" aria-hidden="true"></span>
+              <strong>stored association</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="belief_relation"><span class="edge-swatch edge-belief_relation" aria-hidden="true"></span>
+              <strong>belief relation</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="working_member"><span class="edge-swatch edge-working_member" aria-hidden="true"></span>
+              <strong>working membership</strong><span class="hint edge-count">0</span></li>
+            <li data-edge="working_evidence"><span class="edge-swatch edge-working_evidence" aria-hidden="true"></span>
+              <strong>working evidence</strong><span class="hint edge-count">0</span></li>
+          </ul>
+          <p class="hint">Solid, dashed and dotted lines are the only links drawn, each one recorded in memory. Being
+            close together in space means nothing.</p>
+          <ul class="observatory-shapes">
+            <li><span class="shape-swatch shape-note" aria-hidden="true"></span>Ball: a saved record or derived state</li>
+            <li><span class="shape-swatch shape-message" aria-hidden="true"></span>Diamond: an original message you sent</li>
+            <li><span class="shape-swatch shape-affect" aria-hidden="true"></span>Pyramid: a feeling attached to a note</li>
+            <li><span class="shape-swatch shape-recalled" aria-hidden="true"></span>Gold ring: returned by the latest
+              recorded recall <span id="observatory-recalled-count" class="hint">0</span></li>
+          </ul>
+          <p class="hint">The gold ring marks only the records the latest recorded message recall returned. It is held
+            in memory until the service restarts and is not everything a reply used.</p>
+          <p class="hint">Size is the map's layout weight: a pinned note is drawn larger. It is not memory strength,
+            confidence or importance. Colour is the kind of record, as in the list beside the map.</p>
+          <p class="hint">The brain-shaped shell is an illustrative container, not neuroscience. Its areas are kinds of
+            record, not parts of a real brain, and the dots are software records, not neurons.</p>
+        </div>
+        <details id="observatory-layers" class="card observatory-layers">
+          <summary>Graph coverage</summary>
+          <p class="hint">Memories shows notes, original messages and attached feelings. Companion development shows
+            personality feedback and decisions, simulated mood triggers, relationship settings and commitments.
+            Both are bounded inspection windows, not everything a reply used.</p>
+          <ul>
+            <li data-layer="assertions"><strong>Learned memory</strong> <span>Assertions, their revisions and
+              sources. Available in Memories.</span></li>
+            <li data-layer="episodes"><strong>Episodes and associations</strong> <span>Episode membership and typed
+              links between memories. Available in Memories. “Recent messages” are original messages, not
+              episodes.</span></li>
+            <li data-layer="persona"><strong>Personality development</strong> <span>Versions, suggestions and your
+              decisions. Available in Companion development.</span></li>
+            <li data-layer="mood"><strong>Simulated mood</strong> <span>Triggers and the baseline. Available in
+              Companion development.</span></li>
+            <li data-layer="relationship"><strong>Relationship evidence</strong> <span>Support style, boundaries,
+              promises and familiarity limits. Companion development includes a derived familiarity summary
+              with its stored evidence; the summary is not an extra neuron.</span></li>
+          </ul>
+        </details>
+      </div>
       <div class="brain-side">
         <p id="brain-summary" class="hint"></p>
+        <div id="brain-familiarity" class="card" hidden></div>
         <div id="brain-trace-box" class="brain-trace" hidden>
           <p id="brain-trace"></p>
           <p class="hint">Covers message recall only. Notes and history added when a session starts are not traced,
@@ -96,6 +201,13 @@
         </div>
         <div id="brain-legend" class="brain-legend"></div>
         <div id="brain-detail" class="card brain-detail" hidden></div>
+        <div class="observatory-list-box">
+          <h2 id="observatory-list-title">Memories in this map</h2>
+          <p class="hint">Arrow keys move through the list and Enter opens a memory. The 3D view marks the one in
+            focus.</p>
+          <ol id="observatory-list" class="observatory-list" aria-labelledby="observatory-list-title"></ol>
+          <p id="observatory-list-empty" class="hint">No memories to list yet.</p>
+        </div>
       </div>
     </div>
   </section>
@@ -131,6 +243,19 @@
         <button id="persona-reset" class="secondary">Reset personality</button>
       </div>
     </div>
+    <!-- Persona suggestions from feedback (P2) -->
+    <div class="card persona-proposals" id="persona-proposals-card">
+      <div class="persona-title"><h2>Suggestions from your feedback</h2><span id="persona-proposals-open" class="tag" hidden></span></div>
+      <p class="hint">When you give your companion the same kind of feedback on how it talks three times, in any
+        conversations, memBrain suggests a change to its card here and quotes what you said. Nothing changes until
+        you accept. If you reject a suggestion, none of the same kind is offered again for 30 days.</p>
+      <div id="persona-proposals" class="list"></div>
+      <details id="persona-proposals-earlier" class="persona-proposals-earlier" hidden>
+        <summary>Earlier suggestions</summary>
+        <div id="persona-proposals-history" class="list"></div>
+      </details>
+    </div>
+    <!-- End of persona suggestions -->
     <!-- Companion mood (M1, agent_mood) -->
     <div class="card mood-card" id="mood">
       <div class="persona-title"><h2>Simulated mood</h2><span id="mood-now" class="mood-now"></span></div>
@@ -352,9 +477,14 @@
 <section id="brain-show" class="brain-show" tabindex="-1" role="dialog" aria-modal="true" aria-labelledby="show-title" hidden>
   <div class="show-top">
     <p class="show-brand"><strong>memBrain</strong> <span id="show-title">Your memory as a brain</span></p>
-    <button id="show-close" class="show-close" type="button" aria-label="Close showcase (Esc)">Close</button>
+    <div class="show-controls">
+      <button id="show-pause" class="show-close" type="button" aria-label="Pause signal animation" aria-pressed="false">Ⅱ</button>
+      <button id="show-fullscreen" class="show-close" type="button" aria-label="Full screen">⛶</button>
+      <button id="show-close" class="show-close" type="button" aria-label="Close showcase (Esc)">×</button>
+    </div>
   </div>
   <div id="show-stage" class="show-stage"></div>
+  <p id="show-simulation" class="show-simulation" hidden><span id="show-fictional">Demo · </span><span>Simulated signals</span></p>
   <div class="show-foot">
     <p class="show-caption"><span id="show-counts">Loading the memory map…</span><span id="show-demo" class="show-demo" hidden>Fictional demo data</span><span id="show-more" hidden>Only the most recent memories are shown.</span></p>
     <div id="show-legend" class="show-legend"></div>

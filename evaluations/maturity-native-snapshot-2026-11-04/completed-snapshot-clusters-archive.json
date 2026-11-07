@@ -1,0 +1,12 @@
+{
+  "owned_completed_clusters": 3,
+  "regular_files_verified": 4740,
+  "directories_verified": 84,
+  "original_regular_bytes": 216919495,
+  "archive_bytes": 25625383,
+  "archive_sha256": "a9a2ab50b643821e4c7bc988e24eae51230371f0cc44d9fe8d6d014dba7df403",
+  "private_mode": "0o600",
+  "ports_closed": true,
+  "only_generated_pgdata_removed": true,
+  "all_profiles_receipts_logs_packages_models_binaries_and_native_snapshot_zip_preserved": true
+}

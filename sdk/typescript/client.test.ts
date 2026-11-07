@@ -25,6 +25,47 @@ function fixture() {
   return { requests, client };
 }
 
+test("recall window reads preserve the exact memory spans and conversation scope", async () => {
+  let body: any, path: string;
+  const client = new MemoryClient({ baseUrl: "http://memory.test", apiKey: "test-key", brainId: "brain",
+    fetch: async (input, init) => {
+      path = String(input);
+      body = JSON.parse(init?.body as string);
+      return Response.json({ items: [] });
+    } });
+  const windows = [{ memory_id: "long-memory", revision: 2,
+    span: { start: 28000, end: 28300, unit: "unicode_code_point" as const } }];
+  await client.recallWindows(windows, "passport", { conversationId: "chat", branchId: "main" });
+  assert.ok(path!.endsWith("/v1/brains/brain/recall-windows"));
+  assert.deepEqual(body, { windows, query: "passport", conversation_id: "chat", branch_id: "main" });
+});
+
+test("bounded Unicode excerpts preserve original source acts and agree with Python", () => {
+  const python = fileURLToPath(new URL("../../.venv/bin/python", import.meta.url));
+  const raw = execFileSync(python, ["-c", [
+    "import json,sys",
+    "sys.path.insert(0,'tests')",
+    "from test_cognition import event,request,scope,state",
+    "from membrain import cognition",
+    "source=event('What about '+('🧠图谱 '*250)+'the passport in the blue drawer?')",
+    "memory=cognition.extract_event(source)[0]",
+    "end=len(memory['statement'])",
+    "current=state()",
+    "current['matched_statement_spans']={(memory['memory_id'],memory['revision']):{'start':end-80,'end':end,'unit':'unicode_code_point'}}",
+    "result=cognition.recall(scope(),request('passport'),[memory],[source],current)",
+    "print(json.dumps({'result':result,'expected':cognition.render_recall(result)}))",
+  ].join("\n")], { cwd: fileURLToPath(new URL("../../", import.meta.url)), encoding: "utf8" });
+  const { result, expected } = JSON.parse(raw);
+  delete result.model_context;
+  delete result.usage;
+  assert.equal(recalledContext(result), expected);
+  const memory = JSON.parse(expected).memories[0];
+  assert.equal(memory.recall_detail, "matched_excerpt_expandable");
+  assert.equal(memory.source_act.act, "inquiry");
+  assert.ok(memory.statement.includes("🧠"));
+  assert.ok(Array.from(memory.statement).length <= 400);
+});
+
 test("all actions preserve contract envelope, scope, budgets, and lifecycle limitations", async () => {
   const { requests, client } = fixture();
   const branch = { conversationId: "chat", branchId: "main" };

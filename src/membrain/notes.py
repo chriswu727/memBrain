@@ -7,11 +7,20 @@ attribution, deletion and backup behaviour, and are never presented as the user'
 """
 from __future__ import annotations
 
+import calendar
 import datetime as _datetime
 import re
 
+from . import helpers as _helpers
 from .helpers import uid
 from .privacy import neutralize, scrub
+
+
+def _clock_today() -> _datetime.date:
+    """The evaluation scenario clock's date when one is enabled; otherwise this module's own date, which older
+    evaluation harnesses replace through ``_datetime``."""
+    return _helpers.today() if _helpers._scenario_clock is not None else _datetime.date.today()
+
 
 NOTES_CONVERSATION = "membrain-notes"
 NOTE_CHARACTERS = 300  # The sentence; a typed note's header comes on top.
@@ -34,7 +43,8 @@ NOTE_TOOL_DESCRIPTION = (
     "constraints, plans and their changes) so it is shown at the start of every later session. One fact per note, "
     "under 300 characters, with dates when they matter. Set kind when it is clear: person (with about = their name, "
     "aliases, and the relation in the text), constraint, preference, plan (with status intended until the user "
-    "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD), routine, milestone (shared true when it "
+    "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD or YYYY-MM when the day is unknown), "
+    "routine, milestone (shared true when it "
     "is a moment you and the user shared: a first conversation, a goal reached together, a shared joke), relationship, or "
     "agent_commitment for something you promised to do. Status done means everything in the note has happened: a "
     "purchase paid for but not yet delivered, or a booking still ahead, is scheduled, with its date. "
@@ -52,8 +62,10 @@ NOTE_FIELDS = {
     "aliases": {"type": "array", "items": {"type": "string"},
                 "description": "Other names for that person, e.g. 'the sparky' or a nickname."},
     "status": {"type": "string", "enum": list(STATUSES), "description": "For plans and commitments."},
-    "due": {"type": "string", "description": "YYYY-MM-DD by which a plan or commitment should happen."},
-    "occurs_at": {"type": "string", "description": "YYYY-MM-DD on which an event happens."},
+    "due": {"type": "string", "description": "YYYY-MM-DD by which a plan or commitment should happen; "
+                                                "use YYYY-MM when only the month is known."},
+    "occurs_at": {"type": "string", "description": "YYYY-MM-DD on which an event happens; "
+                                                      "use YYYY-MM when only the month is known."},
     "pinned": {"type": "boolean", "description": "Always show this note."},
     "sensitive": {"type": "boolean", "description": "Health, money or other private matters."},
     "shared": {"type": "boolean", "description": "With kind milestone: a moment the user and you shared, such as "
@@ -126,7 +138,7 @@ def _name(value, field: str) -> str:
 def _date(value, field: str) -> str:
     value = str(value).strip()
     if not _DATE.fullmatch(value):
-        raise ValueError(f"{field} must be a date as YYYY-MM-DD.")
+        raise ValueError(f"{field} must be a date as YYYY-MM-DD or YYYY-MM.")
     try:
         _datetime.date.fromisoformat(value if len(value) == 10 else value + "-01")
     except ValueError:
@@ -162,7 +174,7 @@ def check_affect(value, *, sourced: bool, today: _datetime.date | None = None) -
     topic = " ".join(scrub(str(value.get("topic") or "")).split())
     if len(topic) > 80:
         raise ValueError("affect.topic must be at most 80 characters.")
-    felt_at = _date(value.get("felt_at") or (today or _datetime.date.today()).isoformat(), "affect.felt_at")
+    felt_at = _date(value.get("felt_at") or (today or _clock_today()).isoformat(), "affect.felt_at")
     if len(felt_at) != 10:
         raise ValueError("affect.felt_at must be a full date as YYYY-MM-DD.")
     record = {"label": label, **numbers, "basis": basis, "felt_at": felt_at}
@@ -172,7 +184,7 @@ def check_affect(value, *, sourced: bool, today: _datetime.date | None = None) -
 def affect_phrase(record: dict, today: _datetime.date | None = None) -> str:
     """How one affect record reads on its note's line. An inferred feeling is never phrased as something said."""
     when = _as_date(record.get("felt_at"))
-    today = today or _datetime.date.today()
+    today = today or _clock_today()
     day = "" if when is None else f", {when.day} {_MONTHS[when.month - 1]}" + (
         f" {when.year}" if when.year != today.year else "")
     label = " ".join(str(record.get("label") or "").split())
@@ -250,26 +262,46 @@ def parse_note(stored: str) -> tuple[dict, str]:
     return fields, match.group(2)
 
 
-def save_note(client, text: str, *, replaces=(), producer: str = NOTE_PRODUCER, source_event_ids=(), source_messages=(), **fields) -> dict:
+class NoteValidationError(ValueError):
+    pass
+
+
+def save_note(client, text: str, *, replaces=(), producer: str = NOTE_PRODUCER, request_id=None, source_event_ids=(), source_messages=(),
+              context_source_messages=(), require_current_sources=False, expected_dependency_generation=None, **fields) -> dict:
     """Save one note; ``replaces`` lists IDs of notes it supersedes, which stop being shown.
 
     ``fields`` are the optional typed-note fields (``NOTE_FIELDS``); without them the note is plain text.
     """
     unknown = set(fields) - set(NOTE_FIELDS)
     if unknown:
-        raise ValueError(f"Unknown note fields: {', '.join(sorted(unknown))}.")
+        raise NoteValidationError(f"Unknown note fields: {', '.join(sorted(unknown))}.")
+    if request_id is not None and (not isinstance(request_id, str) or not 1 <= len(request_id) <= 120):
+        raise NoteValidationError("A note request ID must contain 1 to 120 characters.")
     affect = fields.pop("affect", None)
-    if affect is not None:
-        affect = check_affect(affect, sourced=bool(source_event_ids or source_messages))
-    text = format_note(text, **fields)
+    try:
+        if affect is not None:
+            affect = check_affect(affect, sourced=bool(source_event_ids or source_messages))
+        text = format_note(text, **fields)
+    except ValueError as error:
+        raise NoteValidationError(str(error)) from error
     writer = getattr(client, "write_note", None)
     if callable(writer):
         parsed, sentence = parse_note(text)
         if affect is not None:
             parsed["affect"] = affect
+        if require_current_sources:
+            parsed["require_current_sources"] = True
+        if context_source_messages:
+            parsed["context_source_messages"] = list(context_source_messages)
+        if expected_dependency_generation is not None:
+            parsed["expected_dependency_generation"] = expected_dependency_generation
+        if request_id is not None:
+            parsed["request_id"] = request_id
         return writer(sentence, replaces=list(replaces), producer=producer,
                       source_event_ids=list(source_event_ids), source_messages=list(source_messages), **parsed)
-    if source_event_ids or source_messages:
+    if request_id is not None:
+        raise ValueError("This client does not support idempotent note writes.")
+    if source_event_ids or source_messages or context_source_messages or require_current_sources or expected_dependency_generation is not None:
         raise ValueError("This client does not support source-linked notes.")
     if affect is not None:
         raise ValueError("This client does not support feelings on notes.")
@@ -306,7 +338,7 @@ def _line(item: dict, fields: dict, sentence: str, feelings: tuple[str, ...] = (
         status = fields.get("status", "intended")
         # A deadline met early is done; an event date still ahead ("delivery on the 8th") has not happened yet.
         dated = _as_date(fields.get("occurs_at"))
-        if status == "done" and dated is not None and dated > _datetime.date.today():
+        if status == "done" and dated is not None and dated > _clock_today():
             # "Paid in full, delivery on the 8th" saved as done: the dated part has not happened yet.
             tags.append(f"done so far; {when} is still ahead, so that has not happened yet")
             when = ""
@@ -352,8 +384,8 @@ def _priority(entry) -> int:
 
 
 def _date_passed(fields: dict) -> bool:
-    when = _as_date(fields.get("occurs_at")) or _as_date(fields.get("due"))
-    return when is not None and when < _datetime.date.today()
+    when = _as_date(fields.get("occurs_at"), end=True) or _as_date(fields.get("due"), end=True)
+    return when is not None and when < _clock_today()
 
 
 def select_notes(parsed: list, budget: int = NOTES_CHARACTERS) -> tuple[list, int]:
@@ -462,11 +494,12 @@ def render_notes(response: dict, *, tool: str | None = "memory_note", skip_impor
                if tool else "") + more + "\n" + "\n".join(body) + "\n</membrain-notes>")
 
 
-def _as_date(value: str | None) -> _datetime.date | None:
+def _as_date(value: str | None, *, end: bool = False) -> _datetime.date | None:
     if not value:
         return None
     try:
-        return _datetime.date.fromisoformat(value if len(value) == 10 else value + "-01")
+        day = _datetime.date.fromisoformat(value if len(value) == 10 else value + "-01")
+        return day.replace(day=calendar.monthrange(day.year, day.month)[1]) if end and len(value) == 7 else day
     except ValueError:
         return None
 
@@ -474,7 +507,7 @@ def _as_date(value: str | None) -> _datetime.date | None:
 def render_coming_up(response: dict, *, today: _datetime.date | None = None, skip_imports_from=(),
                      budget: int = 1500) -> str | None:
     """Open plans and commitments that are due soon, overdue, or undated, with today's date."""
-    today = today or _datetime.date.today()
+    today = today or _clock_today()
     soon, passed, undated = [], [], []
     planned = []
     for item, fields, sentence in _parsed(response, skip_imports_from):
@@ -484,7 +517,8 @@ def render_coming_up(response: dict, *, today: _datetime.date | None = None, ski
         status = fields.get("status", "intended" if fields.get("kind") != "milestone" else None)
         if status not in OPEN_STATUSES + (None,):
             continue
-        when = _as_date(fields.get("due") or fields.get("occurs_at"))
+        date = fields.get("due") or fields.get("occurs_at")
+        when, end = _as_date(date), _as_date(date, end=True)
         who = f"{fields['about']}: " if fields.get("about") else ""
         label = neutralize(f"{who}{sentence} (id: {item['event_id']})")
         if when is None:
@@ -492,12 +526,13 @@ def render_coming_up(response: dict, *, today: _datetime.date | None = None, ski
                 undated.append(f"- Your open commitment: {label}")
             elif fields.get("kind") == "plan" and status in OPEN_STATUSES:
                 planned.append(f"- Planned, not confirmed done: {label}")
-        elif when < today and status:
-            passed.append(f"- {when.isoformat()} has passed and this is still marked {status}: {label}")
-        elif today <= when <= today + _datetime.timedelta(days=COMING_UP_DAYS):
+        elif end < today and status:
+            passed.append(f"- {date} has passed and this is still marked {status}: {label}")
+        elif today <= end and when <= today + _datetime.timedelta(days=COMING_UP_DAYS):
             days = (when - today).days
-            relative = "today" if days == 0 else "tomorrow" if days == 1 else f"in {days} days"
-            soon.append(f"- {when.isoformat()} ({relative}): {label}")
+            relative = "day unspecified" if len(date) == 7 else (
+                "today" if days == 0 else "tomorrow" if days == 1 else f"in {days} days")
+            soon.append(f"- {date} ({relative}): {label}")
     # Overdue and open items first: they are the ones to follow up on, and must not be crowded out by the week ahead.
     lines = sorted(passed) + undated + sorted(soon) + planned
     if not lines:
@@ -542,11 +577,24 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
         if affect is not None:
             affect = check_affect(affect, sourced=bool(arguments.get("source_event_ids")
                                                        or arguments.get("source_messages")))
+        strict_sources = arguments.get("require_current_sources", False)
+        generation = arguments.get("expected_dependency_generation")
+        if type(strict_sources) is not bool or (generation is not None and (
+                type(generation) is not int or not 0 <= generation <= 2**63 - 1)):
+            raise ValueError("Source checks require a boolean and a nonnegative dependency generation.")
+        if arguments.get("context_source_messages") and not strict_sources:
+            raise ValueError("Context source messages require current-source validation.")
     except (TypeError, ValueError) as error:
         raise DomainError("validation_failed", str(error)) from None
     request_id = arguments["request_id"]
     if arguments.get("producer") in ("memory-service", "archive-import"):
         raise DomainError("invalid_evidence", "Reserved producers cannot write notes.")
+    arguments = dict(arguments)
+    for name in ("require_current_sources", "context_source_messages"):
+        if not arguments.get(name):
+            arguments.pop(name, None)
+    if generation is None:
+        arguments.pop("expected_dependency_generation", None)
     params = service._params(principal, brain_id)
     fingerprint = digest(arguments)
     with service.database.transaction(principal) as conn:
@@ -561,6 +609,16 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
             if cached["response"] is None:
                 raise DomainError("version_conflict", "This note request was invalidated; use a new request ID.")
             return cached["response"]
+        if generation is not None and generation != brain["dependency_generation"]:
+            raise DomainError("version_conflict", "Memory changed after the source context was read.")
+        strict_events = []
+        if strict_sources:
+            from .note_sources import resolve
+
+            requested = [*arguments.get("source_messages", []), *arguments.get("context_source_messages", [])]
+            strict_events = resolve(service, conn, principal, brain, requested)
+            if len(strict_events) != len({digest(ref) for ref in requested}):
+                raise DomainError("source_unavailable", "An exact note source is no longer available.")
         replaces = list(dict.fromkeys(arguments.get("replaces", [])))
         old = conn.execute(
             "SELECT id,document FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
@@ -570,6 +628,7 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
         if len(stale) != len(replaces):
             raise DomainError("version_conflict", "A note changed or is unavailable. Refresh before correcting it.")
         sources = set(arguments.get("source_event_ids", []))
+        sources.update(event["event_id"] for event in strict_events)
         sources.update(row["input_event_id"] for row in conn.execute(
             "SELECT input_event_id FROM memory_event_dependencies WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
             "AND output_event_id=ANY(%s::text[])", (*params, stale)))
@@ -577,7 +636,8 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
         from .affect import AFFECT_CONVERSATION
 
         if len(available) != len(sources) or any(
-                event["scope"]["conversation_id"] in (NOTES_CONVERSATION, AFFECT_CONVERSATION) for event in available):
+                event["scope"]["conversation_id"] in (NOTES_CONVERSATION, AFFECT_CONVERSATION)
+                or event["observed"]["delivery_state"] in ("draft", "cancelled") for event in available):
             raise DomainError("source_unavailable", "A note source is unavailable in this brain.")
         shared_refused = None
         if fields.get("shared"):
@@ -597,7 +657,7 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
                 text = format_note(scrub(arguments["text"]), **{**fields, "shared": False})
         from .note_sources import reference
 
-        references = list(arguments.get("source_messages", []))
+        references = [*arguments.get("source_messages", []), *arguments.get("context_source_messages", [])]
         references.extend(reference(event["observed"]) for event in available)
         references.extend(ref for row in old for ref in row["document"]["observed"].get("source_references", []))
         references = list({digest(ref): ref for ref in references}.values())
@@ -631,10 +691,13 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
         if affect is not None:
             from .affect import record_affect
 
+            explicit_reading = bool(arguments.get("source_event_ids") or arguments.get("source_messages"))
             result.update(record_affect(service, conn, principal, brain, note_id=note_id, affect=affect,
                                         request_id=request_id, producer=arguments.get("producer", NOTE_PRODUCER),
-                                        source_event_ids=arguments.get("source_event_ids", []),
-                                        source_messages=arguments.get("source_messages", [])))
+                                        source_event_ids=arguments.get("source_event_ids", []) if explicit_reading else linked,
+                                        source_messages=arguments.get("source_messages", []) if explicit_reading else references))
+        if strict_sources or generation is not None:
+            result["dependency_generation"] = brain["dependency_generation"]
         conn.execute(
             "INSERT INTO memory_requests(tenant_id,owner_id,brain_id,action,key,request_hash,response) "
             "VALUES(%s,%s,%s,'note',%s,%s,%s)", (*params, request_id, fingerprint, Jsonb(result)))

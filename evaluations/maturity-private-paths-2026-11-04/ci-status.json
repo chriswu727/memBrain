@@ -1,0 +1,22 @@
+{
+  "run_id": 41897991336,
+  "job_id": 126812543505,
+  "source_commit": "53d7e323219a40f670ef574e45c2c36e3f32d4ee",
+  "status": "success",
+  "python_passed": 7000,
+  "python_skipped": 0,
+  "warnings": 3,
+  "seconds": 1232.1,
+  "typescript_passed": 44,
+  "typescript_skipped": 0,
+  "strict_types": "passed",
+  "ruff": "passed",
+  "sdist_wheel": "passed",
+  "docker_journeys": {
+    "test_desktop_e2e.py": "test_desktop_e2e.py::test_cold_start_concurrent_connect_restart_and_mcp_preserve_one_brain",
+    "test_desktop_recovery_e2e.py": "test_desktop_recovery_e2e.py::test_full_streamed_backup_restores_current_deletions_and_requires_explicit_epoch",
+    "test_desktop_upgrade_e2e.py": "test_desktop_upgrade_e2e.py::test_independent_builds_detect_staleness_upgrade_and_reject_downgrade_without_data_loss",
+    "test_standalone_chat_e2e.py": "test_standalone_chat_e2e.py::test_chat_processes_recall_restart_deduplicate_and_block_unknown_generation"
+  },
+  "real_local_model_activation": "passed"
+}

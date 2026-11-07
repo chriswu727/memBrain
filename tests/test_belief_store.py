@@ -92,6 +92,29 @@ def load(store, memories, **changes):
                                      [version(memory) for memory in memories])
 
 
+def test_unlinked_candidates_share_one_bounded_relation_probe(store):
+    memories = []
+    for index in range(32):
+        source = store.observe(f"Project {index} meets at the library on Friday.")
+        memories.append(cognition.extract_event(source)[0])
+    with store.database.transaction(store.principal) as conn:
+        brain = store.service._brain(conn, store.principal, store.brain_id)
+        for memory in memories:
+            store.service._publish(conn, store.principal, brain, memory)
+        scope = store.service._scope(store.principal, brain, {"conversation_ref": "test", "branch_ref": "main"})
+        queries = []
+
+        class Counted:
+            def execute(self, statement, *args, **kwargs):
+                queries.append(statement)
+                return conn.execute(statement, *args, **kwargs)
+
+        result = load_belief_relations(Counted(), store.service, store.principal, brain, scope,
+                                      [version(memory) for memory in memories])
+    assert result == {"relations": [], "memories": [], "events": [], "incomplete_versions": []}
+    assert sum("memory_belief_relations" in query for query in queries) == 1
+
+
 def test_published_relation_preserves_old_fact_exact_versions_and_invalidates_prepared_generation_once(store):
     sources, old, new, batch, result, before, metadata = linked(store)
     saved = rows(store)

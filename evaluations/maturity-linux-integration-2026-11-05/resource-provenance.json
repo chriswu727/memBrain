@@ -1,0 +1,17 @@
+{
+  "completed": true,
+  "platforms": [
+    {
+      "target": "linux-x86_64",
+      "artifact_sha256": "06719c32aa16c69164f01e2d92207bca136528e38e6ebafebd36d2c09a87e6ce",
+      "workflow_run": 42079033486,
+      "job": 127426874258
+    },
+    {
+      "target": "linux-aarch64",
+      "artifact_sha256": "846651a0cc3ea215b028a9affc77cce2ec0f97f199782ce46e561d2a7e8d2c0e",
+      "workflow_run": 42079033486,
+      "job": 127426873709
+    }
+  ]
+}

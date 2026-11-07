@@ -1,0 +1,273 @@
+{
+  "source_commit": "1bfc2b96632a2f0bc3fe932c90506cd5e2ac9ad0",
+  "purpose": "Python heap diagnostic with tracemalloc, not a latency benchmark or an RSS capacity gate. Same keyword corpus, no model calls. Full collection after each 72-request batch; four batches per implementation.",
+  "completed": true,
+  "phases": [
+    {
+      "variant": "reference",
+      "batches": [
+        {
+          "completed_recalls": 72,
+          "before_bytes": 26866749,
+          "peak_bytes": 55721900,
+          "after_gc_bytes": 26448889,
+          "collected": 1073,
+          "tracked_objects": 101891,
+          "gc_stats": [
+            {
+              "collections": 2683,
+              "collected": 70732,
+              "uncollectable": 0
+            },
+            {
+              "collections": 243,
+              "collected": 29427,
+              "uncollectable": 0
+            },
+            {
+              "collections": 23,
+              "collected": 16737,
+              "uncollectable": 0
+            }
+          ],
+          "rss_kb": 492672
+        },
+        {
+          "completed_recalls": 144,
+          "before_bytes": 26970224,
+          "peak_bytes": 43306224,
+          "after_gc_bytes": 26610428,
+          "collected": 512,
+          "tracked_objects": 102083,
+          "gc_stats": [
+            {
+              "collections": 5146,
+              "collected": 143766,
+              "uncollectable": 0
+            },
+            {
+              "collections": 466,
+              "collected": 55445,
+              "uncollectable": 0
+            },
+            {
+              "collections": 44,
+              "collected": 32924,
+              "uncollectable": 0
+            }
+          ],
+          "rss_kb": 248752
+        },
+        {
+          "completed_recalls": 216,
+          "before_bytes": 28960398,
+          "peak_bytes": 50990113,
+          "after_gc_bytes": 28533886,
+          "collected": 1139,
+          "tracked_objects": 101989,
+          "gc_stats": [
+            {
+              "collections": 7597,
+              "collected": 215439,
+              "uncollectable": 0
+            },
+            {
+              "collections": 688,
+              "collected": 81263,
+              "uncollectable": 0
+            },
+            {
+              "collections": 65,
+              "collected": 50629,
+              "uncollectable": 0
+            }
+          ],
+          "rss_kb": 253760
+        },
+        {
+          "completed_recalls": 288,
+          "before_bytes": 28957940,
+          "peak_bytes": 48390214,
+          "after_gc_bytes": 28569216,
+          "collected": 901,
+          "tracked_objects": 102076,
+          "gc_stats": [
+            {
+              "collections": 10065,
+              "collected": 289649,
+              "uncollectable": 0
+            },
+            {
+              "collections": 912,
+              "collected": 104433,
+              "uncollectable": 0
+            },
+            {
+              "collections": 86,
+              "collected": 68512,
+              "uncollectable": 0
+            }
+          ],
+          "rss_kb": 254176
+        }
+      ],
+      "cold": {
+        "before_bytes": 24374360,
+        "peak_bytes": 24608335,
+        "after_gc_bytes": 24351032,
+        "collected": 20,
+        "tracked_objects": 97516,
+        "gc_stats": [
+          {
+            "collections": 207,
+            "collected": 1476,
+            "uncollectable": 0
+          },
+          {
+            "collections": 18,
+            "collected": 244,
+            "uncollectable": 0
+          },
+          {
+            "collections": 2,
+            "collected": 52,
+            "uncollectable": 0
+          }
+        ]
+      }
+    },
+    {
+      "variant": "prebuilt",
+      "batches": [
+        {
+          "completed_recalls": 72,
+          "before_bytes": 34439019,
+          "peak_bytes": 62461267,
+          "after_gc_bytes": 34021351,
+          "collected": 710,
+          "tracked_objects": 105820,
+          "gc_stats": [
+            {
+              "collections": 2739,
+              "collected": 69543,
+              "uncollectable": 0
+            },
+            {
+              "collections": 248,
+              "collected": 27365,
+              "uncollectable": 0
+            },
+            {
+              "collections": 23,
+              "collected": 19720,
+              "uncollectable": 0
+            }
+          ],
+          "rss_kb": 617152
+        },
+        {
+          "completed_recalls": 144,
+          "before_bytes": 34580244,
+          "peak_bytes": 57403957,
+          "after_gc_bytes": 34170312,
+          "collected": 1138,
+          "tracked_objects": 105984,
+          "gc_stats": [
+            {
+              "collections": 5258,
+              "collected": 140767,
+              "uncollectable": 0
+            },
+            {
+              "collections": 476,
+              "collected": 52683,
+              "uncollectable": 0
+            },
+            {
+              "collections": 44,
+              "collected": 38393,
+              "uncollectable": 0
+            }
+          ],
+          "rss_kb": 526752
+        },
+        {
+          "completed_recalls": 216,
+          "before_bytes": 35581479,
+          "peak_bytes": 54942522,
+          "after_gc_bytes": 35170358,
+          "collected": 1202,
+          "tracked_objects": 106011,
+          "gc_stats": [
+            {
+              "collections": 7769,
+              "collected": 212496,
+              "uncollectable": 0
+            },
+            {
+              "collections": 704,
+              "collected": 78531,
+              "uncollectable": 0
+            },
+            {
+              "collections": 65,
+              "collected": 56313,
+              "uncollectable": 0
+            }
+          ],
+          "rss_kb": 395696
+        },
+        {
+          "completed_recalls": 288,
+          "before_bytes": 35614332,
+          "peak_bytes": 57910373,
+          "after_gc_bytes": 35155528,
+          "collected": 1150,
+          "tracked_objects": 105909,
+          "gc_stats": [
+            {
+              "collections": 10301,
+              "collected": 286076,
+              "uncollectable": 0
+            },
+            {
+              "collections": 934,
+              "collected": 102104,
+              "uncollectable": 0
+            },
+            {
+              "collections": 86,
+              "collected": 74354,
+              "uncollectable": 0
+            }
+          ],
+          "rss_kb": 397104
+        }
+      ],
+      "cold": {
+        "before_bytes": 31542258,
+        "peak_bytes": 31776115,
+        "after_gc_bytes": 31518763,
+        "collected": 20,
+        "tracked_objects": 97482,
+        "gc_stats": [
+          {
+            "collections": 209,
+            "collected": 1454,
+            "uncollectable": 0
+          },
+          {
+            "collections": 19,
+            "collected": 154,
+            "uncollectable": 0
+          },
+          {
+            "collections": 2,
+            "collected": 60,
+            "uncollectable": 0
+          }
+        ]
+      }
+    }
+  ]
+}

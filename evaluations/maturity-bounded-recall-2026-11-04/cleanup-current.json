@@ -1,0 +1,96 @@
+{
+  "all_closed": true,
+  "profiles": [
+    {
+      "directory": "/Users/yichen/tmp/membrain-sql-recall-20261104/perf-ded4ae2-installation",
+      "ports": {
+        "api": {
+          "port": 53234,
+          "closed": true
+        },
+        "database": {
+          "port": 53233,
+          "closed": true
+        }
+      }
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-sql-recall-20261104/perf-38c948a-installation",
+      "ports": {
+        "api": {
+          "port": 54176,
+          "closed": true
+        },
+        "database": {
+          "port": 54175,
+          "closed": true
+        }
+      }
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-sql-recall-20261104/installed-followup-smoke",
+      "ports": {
+        "api": {
+          "port": 8788,
+          "closed": true
+        },
+        "database": {
+          "port": 55433,
+          "closed": true
+        }
+      }
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-sql-recall-20261104/install-final/home/Library/Application Support/memBrain",
+      "ports": {
+        "api": {
+          "port": 8788,
+          "closed": true
+        },
+        "database": {
+          "port": 55433,
+          "closed": true
+        }
+      }
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-sql-recall-20261104/install-final/restored",
+      "ports": {
+        "api": {
+          "port": 55602,
+          "closed": true
+        },
+        "database": {
+          "port": 55603,
+          "closed": true
+        }
+      }
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-sql-recall-20261104/install-final/companion/home/Library/Application Support/memBrain",
+      "ports": {
+        "api": {
+          "port": 55677,
+          "closed": true
+        },
+        "database": {
+          "port": 55678,
+          "closed": true
+        }
+      }
+    },
+    {
+      "directory": "/Users/yichen/tmp/membrain-sql-recall-20261104/install-final/companion/restored",
+      "ports": {
+        "api": {
+          "port": 55935,
+          "closed": true
+        },
+        "database": {
+          "port": 55936,
+          "closed": true
+        }
+      }
+    }
+  ]
+}

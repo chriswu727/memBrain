@@ -40,6 +40,49 @@ def apply_quarantine(case, **changes):
     quarantine(case.harness.database, case.harness.principal, **{**case.options, **changes})
 
 
+def test_quarantine_invalidates_valid_receipts_without_rewriting_invalid_ones(restored):
+    harness = restored.harness
+    harness.observe("The retained location is the library.", source_key="location")
+    harness.observe("The corrected location is the cafe.", source_key="location", revision=2)
+
+    def receipts():
+        with harness.database.transaction(harness.principal) as conn:
+            return {row["key"]: row for row in conn.execute(
+                "SELECT brain_id,action,key,request_hash,response,xmin::text AS version FROM memory_requests "
+                "WHERE tenant_id=%s AND owner_id=%s",
+                (harness.principal.tenant_id, harness.principal.principal_id),
+            )}
+
+    before = receipts()
+    invalid = {key: row for key, row in before.items() if row["response"] is None}
+    assert invalid and any(row["response"] is not None for row in before.values())
+    apply_quarantine(restored)
+    after = receipts()
+    assert set(after) == set(before)
+    assert all(row["response"] is None for row in after.values())
+    for key, row in invalid.items():
+        assert after[key] == row
+    apply_quarantine(restored)
+    assert receipts() == after
+
+
+def test_quarantine_removes_bounded_read_responses_and_cleanup_cursors(restored):
+    from test_response_validation import recall_request
+
+    harness = restored.harness
+    harness.observe("The library appointment is beside the blue fountain.")
+    harness.memory.work()
+    request = recall_request(harness.brain)
+    response = harness.service.handle(harness.principal, request)
+    assert response["outcome"] == "completed"
+    assert records(restored, "memory_read_cache")
+    apply_quarantine(restored)
+    assert records(restored, "memory_read_cache") == []
+    assert records(restored, "memory_cache_maintenance") == []
+    activate(restored)
+    assert harness.service.handle(harness.principal, request)["error"]["code"] == "version_conflict"
+
+
 def activate(case):
     harness = case.harness
     case.registry.activate(case.options["recovery_epoch"], case.options["installation_id"],
@@ -188,7 +231,10 @@ def test_quarantine_preserves_sources_assertions_receipts_and_all_accounting(res
     phases = ("started", "captured", "prepared", "generating", "generated", "delivering", "delivered",
               "committed", "completed", "failed")
     turns = {phase: turn_at(case, phase) for phase in phases}
-    harness.memory.recall("retained original statement", conversation_id="chat", branch_id="main")
+    recalled = harness.memory.recall("retained original statement", conversation_id="chat", branch_id="main")
+    # Snapshots from older runtimes can contain durable candidate diagnostics.
+    with harness.database.transaction(harness.principal) as conn:
+        harness.service._save_traces(conn, harness.principal, {"id": harness.brain}, recalled["result"]["recall_traces"])
     for state in ("queued", "running", "failed", "cancelled", "superseded", "completed"):
         seeded_job(case, state)
     running = seeded_job(case)

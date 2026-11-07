@@ -1,0 +1,16 @@
+Traceback (most recent call last):
+  File "/Users/yichen/tmp/membrain-recall-readiness-20261105/cold-worker.py", line 8, in <module>
+    uvicorn.run(create_app(load_profile(Path(sys.argv[1])).settings()),
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yichen/tmp/membrain-recall-readiness-20261105/baseline47/src/membrain/local_profile.py", line 262, in settings
+    from .recovery_profile import profile_settings
+  File "/Users/yichen/tmp/membrain-recall-readiness-20261105/baseline47/src/membrain/recovery_profile.py", line 12, in <module>
+    from .storage import Database
+  File "/Users/yichen/tmp/membrain-recall-readiness-20261105/baseline47/src/membrain/storage.py", line 6, in <module>
+    from .build_identity import MIGRATIONS, SCHEMA_ID
+  File "/Users/yichen/tmp/membrain-recall-readiness-20261105/baseline47/src/membrain/build_identity.py", line 38, in <module>
+    _MANIFEST = package_manifest(_ROOT, _ROOT.parents[1])
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/Users/yichen/tmp/membrain-recall-readiness-20261105/baseline47/src/membrain/build_identity.py", line 28, in package_manifest
+    raise RuntimeError("The installed package is missing its contract or database migrations.")
+RuntimeError: The installed package is missing its contract or database migrations.

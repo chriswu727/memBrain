@@ -1,0 +1,64 @@
+{
+  "purpose": "isolated native PostgreSQL 16.15 compatibility prototype; not a distributed wheel or release pass",
+  "completed": true,
+  "sources": [
+    {
+      "url": "https://ftp.postgresql.org/pub/source/v16.15/postgresql-16.15.tar.bz2",
+      "sha256": "c1575341fa7bd40f5274ea465b34390f4dc64cdd0770af327005caaeb9f6b7ed",
+      "upstream_checksum_matches": true
+    },
+    {
+      "url": "https://codeload.github.com/pgvector/pgvector/tar.gz/refs/tags/v0.6.2",
+      "sha256": "a11cc249a9f3f3d7b13069a1696f2915ac28991a72d7ba4e2bcfdceddbaeae49",
+      "version_preserved_from_current_wheel": true,
+      "separate_upstream_checksum_available": false
+    }
+  ],
+  "commands": [
+    {
+      "argv": [
+        "/Users/yichen/tmp/membrain-engine-16_15-20261104/postgresql-16.15/configure",
+        "--prefix=/Users/yichen/tmp/membrain-engine-16_15-20261104/pginstall",
+        "--without-readline",
+        "--without-icu"
+      ],
+      "cwd": "/Users/yichen/tmp/membrain-engine-16_15-20261104/postgresql-16.15",
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "make",
+        "-j4"
+      ],
+      "cwd": "/Users/yichen/tmp/membrain-engine-16_15-20261104/postgresql-16.15",
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "make",
+        "install"
+      ],
+      "cwd": "/Users/yichen/tmp/membrain-engine-16_15-20261104/postgresql-16.15",
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "make",
+        "-j4",
+        "PG_CONFIG=/Users/yichen/tmp/membrain-engine-16_15-20261104/pginstall/bin/pg_config"
+      ],
+      "cwd": "/Users/yichen/tmp/membrain-engine-16_15-20261104/pgvector-0.6.2",
+      "returncode": 0
+    },
+    {
+      "argv": [
+        "make",
+        "install",
+        "PG_CONFIG=/Users/yichen/tmp/membrain-engine-16_15-20261104/pginstall/bin/pg_config"
+      ],
+      "cwd": "/Users/yichen/tmp/membrain-engine-16_15-20261104/pgvector-0.6.2",
+      "returncode": 0
+    }
+  ],
+  "version": "postgres (PostgreSQL) 16.15"
+}

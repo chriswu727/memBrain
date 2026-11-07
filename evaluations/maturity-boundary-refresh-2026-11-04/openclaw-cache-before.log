@@ -1,0 +1,28 @@
+✖ a page edit replaces the context on the next prompt of the same session (1.660792ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 62.520583
+
+✖ failing tests:
+
+test at membrain.test.js:31:1
+✖ a page edit replaces the context on the next prompt of the same session (1.660792ms)
+  AssertionError [ERR_ASSERTION]: The input was expected to not match the regular expression /Jordan/. Input:
+  
+  'Jordan and the user hiked together.'
+  
+      at TestContext.<anonymous> (file:///Users/yichen/tmp/membrain-review-20261029/integrations/openclaw/membrain/membrain.test.js:38:10)
+      at async Test.run (node:internal/test_runner/test:1125:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:358:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'Jordan and the user hiked together.',
+    expected: /Jordan/,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }

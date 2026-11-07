@@ -1,0 +1,38 @@
+{
+  "source_commit": "26db0e08bb86396aa64c6b79ad0f2fc6fd0d4c8d",
+  "runtime_pin": "28c0b3ed34484b29550b6d2c011a819bcbce016b",
+  "run_id": 41937676016,
+  "job_id": 126950171377,
+  "conclusion": "success",
+  "python_passed": 7032,
+  "python_skipped": 0,
+  "warnings": 3,
+  "warning_kind": "DeprecationWarning for fork in multi-threaded process in3 test executions",
+  "seconds": 1250.19,
+  "typescript_passed": 50,
+  "typescript_failed": 0,
+  "typescript_skipped": 0,
+  "strict_types": "pass",
+  "ruff_ci_scope": "pass",
+  "sdist_wheel": "pass",
+  "actual_docker_journeys": [
+    "desktop",
+    "recovery",
+    "upgrade",
+    "standalone_chat"
+  ],
+  "real_pinned_cpu_model": "pass",
+  "activation_cases": "pass",
+  "required_passed_tests": [
+    "tests/test_desktop_e2e.py::test_cold_start_concurrent_connect_restart_and_mcp_preserve_one_brain",
+    "tests/test_desktop_recovery_e2e.py::test_full_streamed_backup_restores_current_deletions_and_requires_explicit_epoch",
+    "tests/test_desktop_upgrade_e2e.py::test_independent_builds_detect_staleness_upgrade_and_reject_downgrade_without_data_loss",
+    "tests/test_standalone_chat_e2e.py::test_chat_processes_recall_restart_deduplicate_and_block_unknown_generation",
+    "tests/test_local_embeddings.py::test_real_model_matches_across_languages_and_paraphrase"
+  ],
+  "log_sha256": "8529ba275a19a2ac274580a243b740d7c8825c0818e4636434d7e4777eaf67fd",
+  "gzip_sha256": "3714a11ff7a498091e90bab8f18dc7f61b1625ae37ba3d1662b3796b58f57a54",
+  "saved_log_bytes": 1519468,
+  "gzip_bytes": 188508,
+  "native_candidate_not_in_this_run": true
+}

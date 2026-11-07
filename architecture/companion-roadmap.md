@@ -1,6 +1,6 @@
 # Roadmap: memory for chat and life agents
 
-Status: **in progress.** Workflow hardening now includes source-linked notes, structured editing and People/Plans views, a readiness panel and `membrain doctor`, bounded connection reuse, local embedding batches, ranked recall budgets and automatic code PR verification. Real-model behavior and external package publishing remain separate acceptance gates. Implemented so far: A3 privacy controls, A2 memory page, the shared `membrain.host` layer, A4 adapters (Hermes, Codex, OpenClaw, WorkBuddy and CodeBuddy, AstrBot and the OpenAI-compatible proxy; real-host status in [plugin mode](plugin-mode.md)) and A5 host-memory import. Everything else is planned. This document turns the competitive review of 2026-10-27 into phased work. Implemented and verified behaviour is described in [plugin mode](plugin-mode.md) and the [evaluation reports](../evaluations/).
+Status: **in progress.** Workflow hardening now includes source-linked notes, structured editing and People/Plans views, a readiness panel and `membrain doctor`, bounded connection reuse, local embedding batches, ranked recall budgets and automatic code PR verification. Real-model behavior and external package publishing remain separate acceptance gates. Implemented so far: A3 privacy controls, A2 memory page, the shared `membrain.host` layer, A4 adapters (Hermes, Codex, OpenClaw, WorkBuddy and CodeBuddy, AstrBot and the OpenAI-compatible proxy; real-host status in [plugin mode](plugin-mode.md)) and A5 host-memory import. Phase C layers and persona proposals are also implemented on the integration candidate; the bounded 3D/2D projections expose stored memory and companion records. Real-model R4/C5 acceptance and final independent review remain open. The dated baseline below is historical; later sections carry their own implementation status. This document turns the competitive review of 2026-10-27 into phased work. Implemented and verified behaviour is described in [plugin mode](plugin-mode.md) and the [evaluation reports](../evaluations/).
 
 ## Positioning
 
@@ -250,9 +250,9 @@ Phase B ships as **v0.2**, together with the OpenClaw adapter and SillyTavern.
 
 Goal: a companion that stays itself and remembers how the user felt, without manipulation.
 
-**Scheduled next (owner, 2026-11-07).** Phase C starts after the 0.1 closeout, with personality, emotional memory and mood as separate items. It adds a visual memory map: a brain-shaped view on the memory page, with regions for people, plans, preferences, episodes and emotional memories, whose activity can be seen as memory is used. The view is built on the existing notes and recall data.
+**Scheduled by the owner, brought forward on 2026-11-03.** Phase C develops personality, emotional memory and mood as separate items. It adds a visual memory map: a brain-shaped view on the memory page, with regions for people, plans, preferences, episodes and emotional memories, whose activity can be seen as memory is used. The view is built on the existing notes and recall data.
 
-**Status (2026-11-03).** Steps 0 to 4 are implemented and merged: the brain map with showcase mode and recall trace (#22), the persona card (#23), affect records (#24), the simulated mood (#25) and the relationship layer (#26). Each passed CI and code review, with every review finding fixed by a regression test. Not yet built: P2 persona development and C5 evaluation. No paid behavioural run has tested Phase C.
+**Status (2026-11-03).** Steps 0 to 4 are implemented and merged: the brain map with showcase mode and recall trace (#22), the persona card (#23), affect records (#24), the simulated mood (#25) and the relationship layer (#26). Each passed CI and code review, with every review finding fixed by a regression test. P2 persona development from feedback is implemented and reviewed on the pre-release integration candidate, including local and browser tests. The C5 harness has passed public stub checks; real-model C5 acceptance has not run. Final candidate acceptance and publication remain pending; see the [maturity checks](../evaluations/maturity-free-checks-2026-11-03.md). No paid behavioural run has tested Phase C.
 
 **Order of work (owner, 2026-11-03).** Phase C develops the companion's own state in four layers, kept apart: `user_affect` (what the user felt, reported apart from inferred), `persona` (stable character, versioned, changed only by explicit feedback), `agent_mood` (a short-term simulated mood with recorded triggers that recovers to baseline) and `relationship` (shared moments, familiarity, boundaries). Each layer can be seen, explained, adjusted and reset on the memory page. The data, a cross-session example and the reset scope for each layer are in [Phase C design](phase-c-design.md). Order:
 
@@ -274,6 +274,8 @@ The sections below are the original item descriptions; where they differ, the de
 - **What it does.** Each region shows its size and its most recent activity. Selecting a region lists its items, which can be edited and deleted as on the rest of the page.
 - **Recall trace.** For the current conversation, the view highlights what recall used. It answers "why did it remember that?".
 - **Local only.** The view reads the local service. It needs no new storage and makes no model calls.
+
+**Owner revision (2026-11-03, required before publication; not yet implemented or accepted):** evolve this into a 3D memory observatory that explains the actual memory model and companion development. First add an interactive local renderer over the current bounded map, then project the missing assertions, episodes, typed associations, persona feedback/decisions, mood triggers and relationship evidence with the same scope and deletion rules. Preserve an accessible 2D/list view. Follow the [projection, visual semantics and browser acceptance requirements](phase-c-design.md#c0-revision-a-3d-memory-observatory); a brain shell and decorative activity alone do not meet this direction. The [storage decision](cognitive-memory-plan.md#storage-decision-for-the-memory-observatory) retains PostgreSQL as the authoritative store. A 3D graph does not require a graph database.
 
 ### C1a. Mood
 
@@ -319,9 +321,9 @@ The design follows ZifaMem (arXiv 2607.17564). There, emotion tags attached to m
 - **Emotional continuity:** scenario endpoints modelled on ALPSBench: persona grounding, preference following, separating fiction from reality, emotional intelligence.
 - Human review of a sample, and a check that follow-ups are welcome rather than intrusive.
 
-### Milestone v0.3
+### Publication milestone
 
-Phase C ships as **v0.3**.
+Phase C was originally assigned to **v0.3**. The owner's later [first-release maturity bar](../docs/releasing.md) requires these layers and C5 before the first publication. The current `0.1.0` development candidate is not a published release; the earlier milestone does not defer these requirements until after it ships.
 
 ## How we differ from claude-mem
 

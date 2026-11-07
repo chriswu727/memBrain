@@ -1,0 +1,32 @@
+[
+  {
+    "profile": "install-final/restored",
+    "api_port": 52388,
+    "database_port": 52389,
+    "closed": true
+  },
+  {
+    "profile": "install-final/home/Library/Application Support/memBrain",
+    "api_port": 8788,
+    "database_port": 55433,
+    "closed": true
+  },
+  {
+    "profile": "install-final/companion/restored",
+    "api_port": 52721,
+    "database_port": 52722,
+    "closed": true
+  },
+  {
+    "profile": "install-final/companion/home/Library/Application Support/memBrain",
+    "api_port": 52459,
+    "database_port": 52460,
+    "closed": true
+  },
+  {
+    "profile": "installed-followup-smoke-v2",
+    "api_port": 8788,
+    "database_port": 55433,
+    "closed": true
+  }
+]

@@ -1,0 +1,35 @@
+{
+  "base_eval_commit": "857f9c54380bc34fde7d90c998ecf635595baadf",
+  "runtime_commit": "5d0475d4e318a224bdfab7921eb75b209e42d80e",
+  "scope": "Public synthetic scenario and real disposable PostgreSQL; all host HTTP responses use MockTransport. No real model call or held-out scenario.",
+  "status": "Proposed patch only; not applied to the integration runtime or Claude branch.",
+  "before": {
+    "failed": 1,
+    "elapsed_seconds": 2.24,
+    "evidence": "One fake paid host request settled but result row missing after Memory.record_turn raised."
+  },
+  "first_fix": {
+    "passed": 337,
+    "failed": 1,
+    "evidence": "Confidentiality guard rejected a new error_type event field; removed the field, unchanged guard."
+  },
+  "after": {
+    "passed": 338,
+    "failed": 0,
+    "skipped": 0,
+    "elapsed_seconds": 37.13
+  },
+  "patch_sha256": "45af316028d4ed0953fc545003a396f4ac0e6c06b034d1f5792ce10c6e7939ed",
+  "fixed_harness_sha256": "efd72a71735b5df1a2437734a700a8b14ce2411cdac308ed5fe4b5f12cc8f19b",
+  "behavior": "Persist billed reply and usage, mark recording unknown, emit content-free bookkeeping_failed event, block ledger, propagate original failure, no retry or next model request.",
+  "apply": "At base 857f9c5: git apply --unidiff-zero evaluations/c5-bookkeeping-followup.patch",
+  "patched_file_sha256": {
+    "evaluations/c5-harness.py": "efd72a71735b5df1a2437734a700a8b14ce2411cdac308ed5fe4b5f12cc8f19b",
+    "tests/test_c5_harness_hardening.py": "1fdc268c0002331321043348506086c0ac5e254697a2c77ec04f4503b896a32c"
+  },
+  "lint": {
+    "initial": "I001/F811 in the separate fixture-import test; moved the regression into its existing fixture module",
+    "final": "Ruff passed without changing or ignoring any existing assertion"
+  },
+  "clean_patch_apply_matches_tested_files": true
+}

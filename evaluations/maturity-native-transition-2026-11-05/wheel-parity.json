@@ -1,0 +1,28 @@
+{
+  "completed": true,
+  "model_calls": 0,
+  "scope": "installed wheel admitted-state replay/readiness and no-rollback guard; default selector/installer handoff not adopted",
+  "build_id": "2be7304cde5b074447e759a0a83618af53f774f71d4d4b2552188a91d7ea8c31",
+  "exact_runtime_files": 178,
+  "native_resource_files": 12,
+  "all_sdist_runtime_inputs_match": true,
+  "native_transition_from_installed_wheel": true,
+  "role_catalog_vector_and_schema_certificate_verified": true,
+  "post_admission_rows_and_nearest_preserved": true,
+  "rollback_forbidden": true,
+  "ports_closed": true,
+  "source_and_checks_unchanged": true,
+  "frozen_files": 442,
+  "distributions": [
+    {
+      "name": "membrain_ai-0.1.0-py3-none-any.whl",
+      "bytes": 12855558,
+      "sha256": "3a3e8e866b54185e87e2b4a922cb530ce0b5a8afbbfa0de2339fc1f9504b2015"
+    },
+    {
+      "name": "membrain_ai-0.1.0.tar.gz",
+      "bytes": 14657194,
+      "sha256": "064c764853a5b587778aebb5eb423aa01a06dfadfd760bb3c25292787d98b601"
+    }
+  ]
+}

@@ -3,11 +3,16 @@ import json
 
 import pytest
 from test_belief_recall import recall, relation, scenario
-from test_cognition import STAMP, event, prepare_payload, request, scope, state, working
+from test_cognition import STAMP, budget, event, prepare_payload, request, scope, state, working
 
 from membrain import cognition
 from membrain.belief_resolution import factor_relations, relation_assessments
-from membrain.context_views import context_view, reasoning_context_view, recall_context_view
+from membrain.context_views import (
+    context_view,
+    reasoning_context_view,
+    recall_context_view,
+    serialized,
+)
 from membrain.contracts import validate
 from membrain.helpers import DomainError
 
@@ -215,3 +220,238 @@ def test_user_authored_evaluation_metadata_is_not_removed_from_working_values():
     value = {"applicability": {"evaluated_at": "A timestamp mentioned by the user"}}
     packet = {"blocks": [{"section": "working_state", "text": json.dumps({"value": value}), "evidence_refs": []}]}
     assert context_view(packet)["blocks"][0]["content"]["value"] == value
+
+
+def test_recall_context_and_its_measured_size_do_not_depend_on_usage():
+    sources, memories, current = scenario()
+    result = recall(sources, memories, current)
+    without = {key: value for key, value in result.items() if key != "usage"}
+    changed = {**result, "usage": {**result["usage"], "context_tokens": 1, "elapsed_ms": 99}}
+    assert cognition.render_recall(without) == cognition.render_recall(changed) == result["model_context"]
+    assert result["usage"]["context_tokens"] == len(result["model_context"].encode())
+
+
+def test_packed_recall_counts_exactly_the_context_it_returns():
+    sources, memories, current = scenario()
+    memories[1]["statement"] *= 1000
+    current["belief_relations"] = [relation(memories[1], memories[:1])]
+    standalone = event("routine independent observation", 3)
+    sources.append(standalone)
+    memories.append(cognition.extract_event(standalone)[0])
+    current.update(durable_sequence=3, indexed_sequence=3)
+    current["working_event_metadata"][standalone["event_id"]] = standalone
+    recalled = recall(sources, memories, current, budget={**request()["budget"], "max_context_tokens": 3000})
+    assert recalled["usage"]["stopped_by"] == "context_limit"
+    assert recalled["usage"]["context_tokens"] == len(recalled["model_context"].encode()) <= 3000
+    assert recalled["model_context"] == cognition.render_recall(recalled)
+
+
+def containers(value, found=None):
+    found = {} if found is None else found
+    if isinstance(value, (dict, list)):
+        found[id(value)] = value
+        for item in value.values() if isinstance(value, dict) else value:
+            containers(item, found)
+    return found
+
+
+@pytest.mark.parametrize("kind", ["exception", None])
+def test_a_kept_recall_view_shares_nothing_and_rendering_changes_nothing(kind):
+    sources, memories, current = scenario(kind=kind) if kind else scenario()
+    result = recall(sources, memories, current)
+    before = copy.deepcopy(result)
+    view = recall_context_view(result)
+    # Only the lists it has always passed through are shared; every memory, source and relation is a copy.
+    passed = containers([result["unknowns"], result["ambiguities"], result["conflicts"],
+                         result["coverage"]["limitations"]])
+    assert containers(view).keys() & containers(result).keys() <= passed.keys()
+    rendered = cognition.render_recall(result)
+    assert result == before
+    assert rendered == serialized(view) == result["model_context"]
+
+
+def test_remembered_handles_are_exactly_the_hashed_ones():
+    from membrain.context_views import Handles, _handle
+
+    handles = Handles()
+    values = [{"memory_id": "m", "revision": 1}, {"memory_id": "m", "revision": True}, {"memory_id": "m", "revision": 1.0},
+              {"revision": 1, "memory_id": "m"}, {"x": 0.0}, {"x": -0.0}, {"x": 1e16}, {"x": 10**16},
+              {"span": {"start": 0, "end": 4}}, {"span": {"end": 4, "start": 0}}, {"x": [1, "1", None, [True]]},
+              {"x": "é"}, {"x": "é"}, {"x": None}, {"x": [{}]}, {1: "integer key"}, {"1": "string key"}]
+    for _ in range(2):  # computed, then remembered
+        for value in values:
+            for kind in ("m", "s", "r"):
+                assert handles(kind, value) == _handle(kind, value), (kind, value)
+    assert handles("s", {"x": (1, 2)}) == _handle("s", {"x": (1, 2)})  # not keyable: hashed every time
+    with pytest.raises(ValueError):
+        handles("s", {"x": float("nan")})
+    value = {"event_id": "e", "span": {"start": 0, "end": 4}}
+    before = handles("s", value)
+    value["span"]["end"] = 5  # a changed value is a new key, never the remembered handle
+    assert handles("s", value) == _handle("s", value) != before
+
+
+@pytest.mark.parametrize("kind", ["exception", "supersedes"])
+def test_a_recall_renders_the_same_context_with_remembered_handles(kind, monkeypatch):
+    from membrain.context_views import Handles
+
+    sources, memories, current = scenario(kind=kind)
+    result = recall(sources, memories, current)
+    shared = Handles()
+    assert cognition.render_recall(result, shared) == cognition.render_recall(result) == result["model_context"]
+    fewer = {**result, "items": result["items"][1:]}
+    assert cognition.render_recall(fewer, shared) == cognition.render_recall(fewer)
+    renders = []
+    original = cognition.render_recall
+    monkeypatch.setattr(cognition, "render_recall", lambda *args: renders.append(len(args)) or original(*args))
+    again = recall(sources, memories, current)
+    assert again["model_context"] == result["model_context"]
+    assert renders and set(renders) == {2}  # every render of the recall used its own handles
+
+
+def fitting_scenarios():
+    sources, memories, current = scenario()  # a connected group with a belief relation, and an oversized member
+    memories[1]["statement"] *= 1000
+    current["belief_relations"] = [relation(memories[1], memories[:1])]
+    standalone = event("routine independent observation", 3)
+    sources.append(standalone)
+    memories.append(cognition.extract_event(standalone)[0])
+    current.update(durable_sequence=3, indexed_sequence=3)
+    current["working_event_metadata"][standalone["event_id"]] = standalone
+    yield "belief_group", sources, memories, current, request("routine", budget=budget(3000))
+    for kind in ("exception", "supersedes", "contradicts"):
+        sources, memories, current = scenario(kind=kind)
+        yield kind, sources, memories, current, request("routine", budget=budget(1500))
+    # Whole source passages that cover their literal captures, more of them than the budget holds.
+    sources = [event(f"Map number {i} has a blue border. " + "x" * 300 + ". This is only a reported scene.", i + 1)
+               for i in range(8)]
+    memories = [memory for source in sources for memory in cognition.extract_event(source)]
+    yield "passages", sources, memories, state(8), request("blue map", budget=budget(4000))
+    sources = [event(f"Note {i}: the green folder holds project {i}.", i + 1) for i in range(30)]
+    memories = [memory for source in sources for memory in cognition.extract_event(source)]
+    yield "many_small", sources, memories, state(30), request("green folder project", budget=budget(2500))
+
+
+@pytest.mark.parametrize("name", [name for name, *_ in fitting_scenarios()])
+def test_fitting_measures_exactly_what_a_whole_render_measures(name, monkeypatch):
+    """Every measurement of a recall's budget fitting equals the length of the whole render it replaces, and the
+    recall comes out exactly as it does when every measurement renders the whole context."""
+    from membrain.context_views import FittingMeasure
+
+    _, sources, memories, current, query = next(value for value in fitting_scenarios() if value[0] == name)
+    measured, projected = [], []
+
+    class Checked(FittingMeasure):
+        def __call__(self, result):
+            value = super().__call__(result)
+            assert value == len(cognition.render_recall(result).encode())
+            measured.append(bool(result.get("source_passages")))
+            return value
+
+        def _record(self, project, assessments):
+            projected.append(project)
+            return super()._record(project, assessments)
+
+    def rendering(handles):
+        return lambda result: len(cognition.render_recall(result, handles).encode())
+
+    def outcome(result):  # all but generated identities and the measured duration
+        result["retrieval_snapshot"].pop("snapshot_id")
+        return ({key: value for key, value in result.items() if key not in {"recall_id", "recall_traces", "usage"}},
+                {key: value for key, value in result["usage"].items() if key != "elapsed_ms"},
+                [trace["memory_id"] for trace in result["recall_traces"]])
+
+    with monkeypatch.context() as patch:
+        patch.setattr(cognition, "FittingMeasure", rendering)
+        expected = outcome(cognition.recall(scope(), copy.deepcopy(query), copy.deepcopy(memories),
+                                            copy.deepcopy(sources), copy.deepcopy(current)))
+    monkeypatch.setattr(cognition, "FittingMeasure", Checked)
+    result = cognition.recall(scope(), query, memories, sources, current)
+    assert len(measured) > 2 and result["usage"]["stopped_by"] == "context_limit"
+    if name == "passages":
+        assert any(measured)
+    if name in {"passages", "many_small"}:  # no belief resolutions: each item and passage is projected once
+        assert len(projected) <= len(memories) + len(sources) < len(measured) * len(result["items"])
+    assert outcome(result) == expected
+    assert result["usage"]["context_tokens"] == len(result["model_context"].encode())
+
+
+def test_fitting_reuses_only_metadata_lengths_and_remeasures_changed_values(monkeypatch):
+    from collections import Counter
+
+    from membrain import context_views
+
+    sources, memories, current = scenario(kind="exception")
+    result = cognition.recall(scope(), request("routine"), memories, sources, current)
+    original, calls = context_views.serialized, Counter()
+    names = {"format", "trust", "memories", "status", "next_step", "unknowns", "ambiguities", "conflicts",
+             "limitations", "historical_evidence_status", "sources", "relations", "memory_versions"}
+
+    def serialized(value):
+        if isinstance(value, str) and value in names:
+            calls[value] += 1
+        return original(value)
+
+    monkeypatch.setattr(context_views, "serialized", serialized)
+    measure = context_views.FittingMeasure(context_views.Handles())
+    first = measure(result)
+    assert first == len(cognition.render_recall(result).encode()) and all(calls[key] == 1 for key in names)
+    result["coverage"]["limitations"].append("A new limitation: 青色文件夹 🧠")
+    second = measure(result)
+    assert second > first and second == len(cognition.render_recall(result).encode())
+    assert all(calls[key] == 1 for key in names)
+    fresh = context_views.FittingMeasure(context_views.Handles())
+    assert fresh(result) == second and all(calls[key] == 2 for key in names)
+
+
+def test_a_fitting_measure_follows_changed_resolutions_items_and_passages():
+    from test_source_context import recall as source_recall
+
+    from membrain.context_views import FittingMeasure, Handles
+
+    def whole(result):
+        return len(cognition.render_recall(result).encode())
+
+    sources, memories, current = scenario(kind="exception")
+    result = cognition.recall(scope(), request("routine"), memories, sources, current)
+    for item in result["items"]:  # resolutions with their relations inline, as the fitting sees them
+        item["belief_resolution"]["relations"] = relation_assessments(item["belief_resolution"],
+                                                                      result["belief_relations"])
+        item["belief_resolution"].pop("relation_refs")
+    result.pop("belief_relations")
+    measure = FittingMeasure(Handles())
+    assert measure(result) == whole(result)
+    first = result["items"][0]
+    first["belief_resolution"] = {**first["belief_resolution"], "state": "uncertain", "complete": False}
+    assert measure(result) == whole(result)
+    first.pop("belief_resolution")
+    assert measure(result) == whole(result)
+    result["items"] = result["items"][1:]
+    assert measure(result) == whole(result)
+    result["items"] = []
+    assert measure(result) == whole(result)
+
+    _, _, passages = source_recall()
+    measure = FittingMeasure(Handles())
+    assert passages["source_passages"] and measure(passages) == whole(passages)
+    kept = passages["source_passages"]
+    passages["source_passages"] = []
+    assert measure(passages) == whole(passages)
+    passages["source_passages"] = kept
+    assert measure(passages) == whole(passages)
+
+
+@pytest.mark.parametrize("colliding", ["m", "s"])
+def test_a_fitting_measure_raises_the_collision_a_whole_render_raises(colliding):
+    from membrain.context_views import FittingMeasure, _handle
+
+    def handles(kind, value):
+        return f"{kind}:collision" if kind == colliding else _handle(kind, value)
+
+    sources, memories, current = scenario(kind="exception")
+    result = cognition.recall(scope(), request("routine"), memories, sources, current)
+    with pytest.raises(DomainError) as rendered:
+        cognition.render_recall(result, handles)
+    with pytest.raises(DomainError) as measured:
+        FittingMeasure(handles)(result)
+    assert (measured.value.code, str(measured.value)) == (rendered.value.code, str(rendered.value))

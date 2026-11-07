@@ -1,0 +1,20 @@
+{
+  "scope": "Direct EXPLAIN ANALYZE on the retained 10k-message PostgreSQL 16.2 fixture with indexing paused; SQL execution time, not HTTP latency.",
+  "rows": {
+    "original": {
+      "count": 500,
+      "digest": "ac13e76d49214dbabc89cdb0490dcee32cc1f3032bee7cc9aa620a3ed880d113",
+      "execution_ms": 1357.966
+    },
+    "loop_off": {
+      "count": 500,
+      "digest": "ac13e76d49214dbabc89cdb0490dcee32cc1f3032bee7cc9aa620a3ed880d113",
+      "execution_ms": 26.547
+    },
+    "materialized": {
+      "count": 500,
+      "digest": "ac13e76d49214dbabc89cdb0490dcee32cc1f3032bee7cc9aa620a3ed880d113",
+      "execution_ms": 1696.26
+    }
+  }
+}

@@ -1,0 +1,176 @@
+{
+  "build_id": "f000dd0c0b0a431d2ca20a7add9304acfd8f6e0da9f46395f6588496ebabb52f",
+  "schema_id": "478061ac77337fd25d87174df1185ab1d40ad4d4216290078fb26fd2f519fe39",
+  "status": "Local source, installed and full Verify checks passed. Not R4/C5 acceptance.",
+  "files": [
+    {
+      "path": "baseline-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "9fbfbb8362a71aa1c9e79d39c08bf2c3a02e3880308831780e197c0583a19fb9",
+      "original_bytes": 70,
+      "original_sha256": "04499e0936f09123686ac45602fb93e20f0dad2f67afab09aadf961adf7d51d5"
+    },
+    {
+      "path": "baseline.log.gz",
+      "bytes": 2250,
+      "sha256": "35c5e1c6c8d1b96dbe53a0781d24ed8914593c1f7ee64f28da02eb30078a110b",
+      "original_bytes": 16461,
+      "original_sha256": "26218bf3a96ad04f8a656127ef3ff2b55d4594cdb4fea6b1fbfa8efecd29b1a2"
+    },
+    {
+      "path": "build.log.gz",
+      "bytes": 135,
+      "sha256": "f502f02f45bb70bff60e0d4fef4b28e18edb78a1aeb1fedcc6016b35b5ebff4f",
+      "original_bytes": 138,
+      "original_sha256": "08b846e7270e67725582a36f7f559e759f7013a775732cc0f42c946a580bbef7"
+    },
+    {
+      "path": "check_installed.py.gz",
+      "bytes": 550,
+      "sha256": "111fe8d8f57b2494118e6a58aac53a687783b087b47ec3df7088fa4088566bdb",
+      "original_bytes": 1037,
+      "original_sha256": "648d4c4844e724270dd4656a75ae36f100fe76088e699912b420c0d2f948fcc2"
+    },
+    {
+      "path": "ci/collect_verify.py.gz",
+      "bytes": 763,
+      "sha256": "2ea9640c924588118bb778353c07209fdfb5dd154ab66f9d1d122d2953c5d92c",
+      "original_bytes": 1629,
+      "original_sha256": "7c546f163f8645d447935d49f40b3f35db8c6566e173a71f1d304681b3c9e96a"
+    },
+    {
+      "path": "ci/verify-complete.log.gz",
+      "bytes": 209110,
+      "sha256": "aca4649f1fa47ad6deee40f643fee44c52010d4572a630aa2b711445ca8cfc3d",
+      "original_bytes": 1649035,
+      "original_sha256": "851bf22cbbcc2aeebba36df0219b4e073365dbc7238458b61bfbe577c9b31944"
+    },
+    {
+      "path": "ci/verify-log-receipt.json.gz",
+      "bytes": 377,
+      "sha256": "afa17e9931f7cf19372c4361ea157c86bcfae4b6e8ce20684b0a0e6fa5199e94",
+      "original_bytes": 644,
+      "original_sha256": "a6c4c263f5c19172c002d3ff8349654b120ce05e6e8c73c5e7f9c5ef7dad8fca"
+    },
+    {
+      "path": "ci/verify-pytest.log.gz",
+      "bytes": 184595,
+      "sha256": "a9f496c8a69b2735bc1982c192122645abb483be7a3b4820affcd2f452ac605b",
+      "original_bytes": 1527121,
+      "original_sha256": "aff35e9a6ef92902b751853af4ed5bf93e35d6da78fb369a9ee35da2b2032c68"
+    },
+    {
+      "path": "ci/verify-status-final.json.gz",
+      "bytes": 863,
+      "sha256": "e2dd701c9cd7c785e138c908153791bfdfec04b878bdac1d60032e59d3f9720e",
+      "original_bytes": 6417,
+      "original_sha256": "019011fa814e60b8a0b96cf1a19f8748a4069c4d9c2e3eca7f79dc4c03b263eb"
+    },
+    {
+      "path": "ci/watch_verify.py.gz",
+      "bytes": 233,
+      "sha256": "451db36e3c271a1bb87fd8a00a040e9bd89265997b4b6a00293a8cd37ea4f588",
+      "original_bytes": 294,
+      "original_sha256": "b11f1bde84d8467a68190817e53d18cc626473679bada9ab8e21362a5bf84fae"
+    },
+    {
+      "path": "fixed-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "9fbfbb8362a71aa1c9e79d39c08bf2c3a02e3880308831780e197c0583a19fb9",
+      "original_bytes": 70,
+      "original_sha256": "04499e0936f09123686ac45602fb93e20f0dad2f67afab09aadf961adf7d51d5"
+    },
+    {
+      "path": "fixed.log.gz",
+      "bytes": 885,
+      "sha256": "963977ce1656258c374cc67af56ea476585a0b9973e8043a6b89ff95000c881e",
+      "original_bytes": 3696,
+      "original_sha256": "e047bf3684d823994f4906dae84a063ccc50d60b649a6ba7d39e1807abb9d939"
+    },
+    {
+      "path": "guards-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "f191f6f3ffcb7319da09a40ced22934faf16923dfeaecfcc42ad3460c0b06bfb",
+      "original_bytes": 70,
+      "original_sha256": "fed07233ea8472fd75f50c09414c439dece7d68be5d13b33604bc1eeeb52f660"
+    },
+    {
+      "path": "guards.log.gz",
+      "bytes": 70,
+      "sha256": "6f58746da1289e7e173553ce11dbdcdcbd08e47c0d4902eb3adc984c10f3d52f",
+      "original_bytes": 261,
+      "original_sha256": "9bb8bbf02813d277099eab6597ce1d59eb29e4f5184d22867db04ce333c65f85"
+    },
+    {
+      "path": "install-wheel.log.gz",
+      "bytes": 208,
+      "sha256": "986aa6ac649981adac1422728fe0f393a30dcf941e5255b93cf7f171fa81674c",
+      "original_bytes": 327,
+      "original_sha256": "c1bebbbd29ee77bdc9ec6aeaede5f8b9821f45ada6dc6be792f67980a64fb53d"
+    },
+    {
+      "path": "installed-cleanup.json.gz",
+      "bytes": 80,
+      "sha256": "f191f6f3ffcb7319da09a40ced22934faf16923dfeaecfcc42ad3460c0b06bfb",
+      "original_bytes": 70,
+      "original_sha256": "fed07233ea8472fd75f50c09414c439dece7d68be5d13b33604bc1eeeb52f660"
+    },
+    {
+      "path": "installed-parity.json.gz",
+      "bytes": 398,
+      "sha256": "b6b308dce4912ef47895e5b2551e6350ce554bc6788c249679b1876b14e4f4be",
+      "original_bytes": 581,
+      "original_sha256": "988d42d931ce936ce90bde518c79172b2e8c9a482995d2fa9831510863f7114a"
+    },
+    {
+      "path": "installed.log.gz",
+      "bytes": 53,
+      "sha256": "f02905eba65830927a0b820e00f2254c033e93c76841272483a81220129a88f9",
+      "original_bytes": 100,
+      "original_sha256": "f75c02f251eaea5f79fa5152c2ba3042aee389f1d5ec0ad200f476574b1d868f"
+    },
+    {
+      "path": "package_evidence.py.gz",
+      "bytes": 946,
+      "sha256": "2ad3780921641075f0fa4408dec4f3446c13449115bb4173108526c31e229d7e",
+      "original_bytes": 2053,
+      "original_sha256": "f1173dc3af2babf04f1ed670233be68cf57f2f0b133493a46e44010ae6b23874"
+    },
+    {
+      "path": "pins.log.gz",
+      "bytes": 190,
+      "sha256": "c26ed64ad56e487c836c4f581a570afc366ce02e20289771b8e43b9ffa712364",
+      "original_bytes": 549,
+      "original_sha256": "b896152f41d235ede77473df20791fb72003a4377a4f0355872beecc1a4b5c55"
+    },
+    {
+      "path": "ruff.log.gz",
+      "bytes": 39,
+      "sha256": "f3af4d142827f5aad2eb0c72d556d325488a57fb6219aac10afeb51085667d53",
+      "original_bytes": 19,
+      "original_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "run_tests.py.gz",
+      "bytes": 690,
+      "sha256": "6df3b31ed1962fcef641fde824e2ac6075413d3d51f2ecc51f9677f1e459fb4d",
+      "original_bytes": 1443,
+      "original_sha256": "0a533fab0ff38540c98c913e3f4a7a28b1e03e154d24fdb7e2911c602799e430"
+    }
+  ],
+  "privacy_scan": {
+    "owned_credential_values": 6,
+    "matches": 0,
+    "private_profiles_dumps_excluded": true
+  },
+  "full_verify": {
+    "run": "42376625930",
+    "head": "4dc274c995d15223f904277389f2b52975964bee",
+    "python_passed": 7834,
+    "python_warnings": 3,
+    "python_skipped": 0,
+    "typescript_passed": 53,
+    "typescript_skipped": 0,
+    "ruff_typecheck_build": "passed"
+  }
+}

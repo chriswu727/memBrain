@@ -1,0 +1,28 @@
+{
+  "completed": true,
+  "model_calls": 0,
+  "old_runtime": "73ee62ee5796902249ddd20b08ed7e4ad6922b3f",
+  "new_runtime": "603e0a2e233f6f35f85f73010e370c1e434b164f",
+  "phases": [
+    "install-fresh-603e0a2",
+    "fresh-write",
+    "fresh-stop",
+    "install-upgrade-73ee62e",
+    "upgrade-write",
+    "install-upgrade-603e0a2",
+    "upgrade-upgrade",
+    "upgrade-stop",
+    "fresh-stop",
+    "upgrade-stop",
+    "terminal"
+  ],
+  "scope": "isolated uv tool dependencies, fresh current profile, then active old tool replacement and automatic host restart; existing macOS native cache may be reused; semantic model download disabled",
+  "fresh_current_installed": true,
+  "active_old_environment_replaced": true,
+  "automatic_restart_after_replacement": true,
+  "recall_preserved": true,
+  "profile_and_journal_unchanged": true,
+  "owned_ports_closed": true,
+  "frozen_inputs_unchanged": true,
+  "frozen_input_count": 544
+}

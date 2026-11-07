@@ -11,12 +11,14 @@ from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, ConfigDict, Field, ValidationError
+from starlette.concurrency import run_in_threadpool
 from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from . import __version__
 from .config import Settings, configured_service
 from .contracts import CONTRACT_VERSION, schema, validate
 from .helpers import DomainError, Principal
+from .service import MemoryService, reading
 
 RuntimeIdentifier = Annotated[str, Field(min_length=1, max_length=256)]
 RuntimeFingerprint = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
@@ -33,6 +35,10 @@ class NoteSource(RuntimeBody):
     producer_ref: RuntimeIdentifier
     source_event_key: RuntimeIdentifier
     source_revision: RuntimeRevision = 1
+
+
+class SourceMessagesRead(RuntimeBody):
+    messages: Annotated[list[NoteSource], Field(min_length=1, max_length=64)]
 
 
 class RecallTrace(RuntimeBody):
@@ -54,6 +60,9 @@ class NoteWrite(RuntimeBody):
     replaces: Annotated[list[RuntimeIdentifier], Field(max_length=100)] = []
     source_event_ids: Annotated[list[RuntimeIdentifier], Field(max_length=64)] = []
     source_messages: Annotated[list[NoteSource], Field(max_length=64)] = []
+    context_source_messages: Annotated[list[NoteSource], Field(max_length=64)] = []
+    require_current_sources: bool = False
+    expected_dependency_generation: RuntimeCounter | None = None
     role: Literal["user", "assistant"] = "assistant"
     producer: Annotated[str, Field(min_length=1, max_length=120)] = "membrain-notes"
     kind: str | None = None
@@ -287,15 +296,34 @@ def capabilities(*, semantic_enabled=False, embedding_enabled=False) -> dict:
     return result
 
 
+def _unmodified_service(service) -> bool:
+    """Whether ``service.handle`` is MemoryService's own, so ``respond`` does exactly what it would. Any override,
+    in a subclass or on the instance, is what the route must call, and its response is validated here."""
+    kind, own = type(service), getattr(service, "__dict__", {})
+    return (isinstance(service, MemoryService) and getattr(kind, "handle", None) is MemoryService.handle
+            and getattr(kind, "respond", None) is MemoryService.respond
+            and getattr(kind, "_respond", None) is MemoryService._respond
+            and not {"handle", "respond", "_respond"}.intersection(own))
+
+
 def create_app(settings: Settings | None = None, service=None, turns=None, jobs=None) -> FastAPI:
     settings = settings or Settings.from_env()
     resources = ExitStack()
+    recall_runner = None
     if service is None:
         service = resources.enter_context(configured_service(settings))
+        if settings.recall_processes:
+            from .recall_service_executor import RecallServiceExecutor
+
+            recall_runner = service.recall_runner = RecallServiceExecutor(settings.recall_processes, settings)
+            service.request_runner = recall_runner.respond
+            resources.callback(recall_runner.close)
 
     @asynccontextmanager
     async def lifespan(app):
         try:
+            if recall_runner is not None:
+                await run_in_threadpool(recall_runner.start)
             yield
         finally:
             resources.close()
@@ -481,6 +509,17 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     def dashboard(brain_id: str, principal: Principal = Depends(authenticate)):
         return service.dashboard(principal, brain_id)
 
+    @app.post("/v1/brains/{brain_id}/recall-windows")
+    async def recall_windows(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
+        body = await read_document(request)
+        if set(body) - {'windows', 'query', 'conversation_id', 'branch_id'}:
+            raise DomainError('validation_failed', 'Unknown recall window fields.')
+        from starlette.concurrency import run_in_threadpool
+
+        return await run_in_threadpool(service.recall_windows, principal, brain_id, body.get('windows'),
+                                      body.get('query'), conversation_id=body.get('conversation_id'),
+                                      branch_id=body.get('branch_id'))
+
     @app.get("/v1/brains/{brain_id}/timeline")
     def timeline(brain_id: str, role: list[str] = Query(default=["user"]), max_characters: int = 8000,
                  max_item_characters: int = 1500, limit: int = 200, exclude_conversation: str | None = None,
@@ -503,13 +542,29 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     @app.get("/v1/brains/{brain_id}/memory-map")
     def memory_map(brain_id: str, max_nodes: int = Query(default=200, ge=1, le=500),
                    max_edges: int = Query(default=400, ge=0, le=1000), include_sensitive: bool = False,
-                   trace: bool = False, principal: Principal = Depends(authenticate)):
+                   trace: bool = False, structure: bool = False, principal: Principal = Depends(authenticate)):
         from .memory_map import memory_map as read_memory_map
+        from .structure_map import structure_map
 
         try:
-            return read_memory_map(service, principal, brain_id, max_nodes=max_nodes, max_edges=max_edges,
-                                   include_sensitive=include_sensitive,
-                                   trace=(traces.last(principal, brain_id) or {}) if trace else None)
+            with reading():
+                return (structure_map if structure else read_memory_map)(service, principal, brain_id, max_nodes=max_nodes, max_edges=max_edges,
+                                       include_sensitive=include_sensitive,
+                                       trace=(traces.last(principal, brain_id) or {}) if trace else None)
+        except (psycopg.errors.LockNotAvailable, psycopg.errors.QueryCanceled):
+            raise DomainError("dependency_unavailable", "Memory is busy updating. Retry the map shortly.",
+                              retryable=True) from None
+
+    @app.get("/v1/brains/{brain_id}/companion-map")
+    def companion_map(brain_id: str, max_nodes: int = Query(default=200, ge=1, le=500),
+                      max_edges: int = Query(default=400, ge=0, le=1000), include_sensitive: bool = False,
+                      principal: Principal = Depends(authenticate)):
+        from .companion_map import companion_map as read_companion_map
+
+        try:
+            with reading():
+                return read_companion_map(service, principal, brain_id, max_nodes=max_nodes,
+                                          max_edges=max_edges, include_sensitive=include_sensitive)
         except (psycopg.errors.LockNotAvailable, psycopg.errors.QueryCanceled):
             raise DomainError("dependency_unavailable", "Memory is busy updating. Retry the map shortly.",
                               retryable=True) from None
@@ -522,6 +577,10 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     def following(brain_id: str, event_id: list[str] = Query(default=[]),
                   principal: Principal = Depends(authenticate)):
         return service.following(principal, brain_id, event_id)
+
+    @app.post("/v1/brains/{brain_id}/source-messages")
+    def source_messages(brain_id: str, body: SourceMessagesRead, principal: Principal = Depends(authenticate)):
+        return service.source_messages(principal, brain_id, [ref.model_dump() for ref in body.messages])
 
     @app.post("/v1/brains/{brain_id}/notes")
     async def write_note(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
@@ -536,7 +595,8 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     def list_affect(brain_id: str, principal: Principal = Depends(authenticate)):
         from .affect import affect_records
 
-        return affect_records(service, principal, brain_id)
+        with reading():
+            return affect_records(service, principal, brain_id)
 
     @app.post("/v1/brains/{brain_id}/affect/reset")
     def reset_affect(brain_id: str, principal: Principal = Depends(authenticate)):
@@ -549,7 +609,8 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     def get_persona(brain_id: str, principal: Principal = Depends(authenticate)):
         from .persona import current_persona
 
-        return current_persona(service, principal, brain_id)
+        with reading():
+            return current_persona(service, principal, brain_id)
 
     @app.put("/v1/brains/{brain_id}/persona")
     async def put_persona(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
@@ -564,7 +625,8 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     def get_persona_versions(brain_id: str, principal: Principal = Depends(authenticate)):
         from .persona import persona_versions
 
-        return persona_versions(service, principal, brain_id)
+        with reading():
+            return persona_versions(service, principal, brain_id)
 
     @app.delete("/v1/brains/{brain_id}/persona/versions")
     def delete_persona_versions(brain_id: str, principal: Principal = Depends(authenticate)):
@@ -590,6 +652,26 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
         body = await persona_body(request, PersonaReset)
         return await run_in_threadpool(reset_persona, service, principal, brain_id, **body)
 
+    # Persona suggestions from the user's feedback (P2). Listing stores any suggestion that has become due; the card
+    # changes only when the user accepts one.
+    @app.get("/v1/brains/{brain_id}/persona/proposals")
+    def get_persona_proposals(brain_id: str, principal: Principal = Depends(authenticate)):
+        from .persona_growth import persona_proposals
+
+        return persona_proposals(service, principal, brain_id)
+
+    @app.post("/v1/brains/{brain_id}/persona/proposals/{proposal_id}/accept")
+    def accept_persona_proposal(brain_id: str, proposal_id: str, principal: Principal = Depends(authenticate)):
+        from .persona_growth import accept_proposal
+
+        return accept_proposal(service, principal, brain_id, proposal_id)
+
+    @app.post("/v1/brains/{brain_id}/persona/proposals/{proposal_id}/reject")
+    def reject_persona_proposal(brain_id: str, proposal_id: str, principal: Principal = Depends(authenticate)):
+        from .persona_growth import reject_proposal
+
+        return reject_proposal(service, principal, brain_id, proposal_id)
+
     async def relationship_body(request: Request, model: type[RuntimeBody]) -> dict:
         document = await read_document(request)
         try:
@@ -603,7 +685,15 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     def get_relationship(brain_id: str, principal: Principal = Depends(authenticate)):
         from .relationship import relationship
 
-        return relationship(service, principal, brain_id)
+        with reading():
+            return relationship(service, principal, brain_id)
+
+    @app.get("/v1/brains/{brain_id}/relationship/boundaries")
+    def get_relationship_boundaries(brain_id: str, principal: Principal = Depends(authenticate)):
+        from .relationship import relationship_boundaries
+
+        with reading():
+            return relationship_boundaries(service, principal, brain_id)
 
     @app.put("/v1/brains/{brain_id}/relationship/support-style")
     async def put_support_style(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
@@ -660,7 +750,8 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     def get_mood(brain_id: str, principal: Principal = Depends(authenticate)):
         from .mood import mood_state
 
-        return mood_state(service, principal, brain_id)
+        with reading():
+            return mood_state(service, principal, brain_id)
 
     @app.post("/v1/brains/{brain_id}/mood/pin")
     async def pin_companion_mood(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
@@ -692,9 +783,18 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
         body = await read_document(request)
         validate("ActionRequest", body)
         from starlette.concurrency import run_in_threadpool
-        result = await run_in_threadpool(service.handle, principal, body)
-        validate("ActionResponse", result)
-        return result
+        if _unmodified_service(service):
+            result, validated = await run_in_threadpool(service.respond, principal, body)
+        else:
+            result, validated = await run_in_threadpool(service.handle, principal, body), False
+        if not validated:  # A completed response was already validated, as this same unchanged object.
+            validate("ActionResponse", result)
+        try:
+            # The bytes the default encoding produces for plain JSON data, without first rebuilding every value
+            # of the response with jsonable_encoder. Anything json cannot encode takes the default path.
+            return JSONResponse(result)
+        except (TypeError, ValueError):
+            return result
 
     @app.get("/v1/brains/{brain_id}/runtime/status")
     def runtime_status(brain_id: str, principal: Principal = Depends(authenticate)):

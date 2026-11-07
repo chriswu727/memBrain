@@ -1,0 +1,62 @@
+{
+  "base_source": "ac645f5ede17882b52e38f188fda5c635f625537",
+  "runtime_pin": "d4d71262ab1c7d76600082b9c53b10144bb08a00",
+  "real_model_evaluation_calls": 0,
+  "local_api_checks": 36,
+  "typescript_tests": 50,
+  "typescript_strict_including_new_test": true,
+  "claude_code_consultation": {
+    "attempts": 1,
+    "completed": false,
+    "reason": "180-second timeout",
+    "subscription_usage": "unknown",
+    "behavioural_evaluation": false
+  },
+  "sources_sha256": {
+    "sdk/typescript/index.ts": "0010035b7955d8aaae17f25608d668b3c5218f779da942f4b3c4eac3496711e5",
+    "sdk/typescript/companion.test.ts": "b14181e9d0953fe83b42e9a5afd35947e2a22e692dac13f4163235885156f07e"
+  },
+  "files_sha256": {
+    "typescript-strict.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "sdk-live-result.json": "bab78d1689392c724a84471d51ac3c8ccf71256ccd5750f447af9c779d1a0bcc",
+    "sdk-live-checks.json": "2bccf203412b253021d36ec8df9dc33d3c7022ea86bce64dc3a5c9ba2826a4ef",
+    "claude-review-metadata.json": "e2a2db37a73dc6acdb92967d4442ffef13eb69f3f4626d80148e18082d5483bf",
+    "run-sdk-live.py": "ff625adb66233860e0234090f7a177c890165fc60c8d30382f13772c249fb4b6",
+    "sdk-live.log": "acd2b3ec4445adcfd5e8142592a90c28760fe06b7043778f496c350889970087",
+    "typescript-tests.log": "4a7a1bda666f6f5803ec1215a7f850a098dcc90cd31017614912601a3f501288",
+    "sdk-live.mjs": "6069e9f373ae7f264979b5d91b9c233f39a6a06821d08c5189f360fbfa4c7e95",
+    "ci-result.json": "45886ddbbb17fe83309b5e33dff8975ea4f727fab0914c5a0658f55d357222e6"
+  },
+  "ci": {
+    "source_commit": "78a225d0b8fc1cc403f17c321e12a031072f9fb1",
+    "run_id": 41906140459,
+    "job_id": 126841187219,
+    "url": "https://github.com/chriswu727/memBrain/actions/runs/41906140459",
+    "conclusion": "success",
+    "python_passed": 7000,
+    "python_skipped": 0,
+    "warnings": 3,
+    "python_seconds": 1336.37,
+    "typescript_passed": 50,
+    "typescript_failed": 0,
+    "typescript_skipped": 0,
+    "strict_types": "passed",
+    "ruff": "passed",
+    "sdist_wheel": "passed",
+    "docker_cases": {
+      "test_desktop_e2e.py": [
+        "tests/test_desktop_e2e.py::test_cold_start_concurrent_connect_restart_and_mcp_preserve_one_brain PASSED [ 41%]"
+      ],
+      "test_desktop_recovery_e2e.py": [
+        "tests/test_desktop_recovery_e2e.py::test_full_streamed_backup_restores_current_deletions_and_requires_explicit_epoch PASSED [ 42%]"
+      ],
+      "test_desktop_upgrade_e2e.py": [
+        "tests/test_desktop_upgrade_e2e.py::test_independent_builds_detect_staleness_upgrade_and_reject_downgrade_without_data_loss PASSED [ 43%]"
+      ],
+      "test_standalone_chat_e2e.py": [
+        "tests/test_standalone_chat_e2e.py::test_chat_processes_recall_restart_deduplicate_and_block_unknown_generation PASSED [ 96%]"
+      ]
+    },
+    "full_log_sha256": "182710802ad9e05fef333a5887e534ca2ff81d9d07e0718afc42e644c2f69610"
+  }
+}

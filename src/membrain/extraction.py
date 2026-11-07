@@ -6,9 +6,9 @@ read once, after the reply has been sent, together with the person's current not
 are saved as typed notes (plans and whether they are done, people and their aliases, constraints, preferences),
 replacing notes they update. Extraction never runs while recording is paused and never delays a reply.
 
-A feeling the person expressed is saved as an affect record on its note, linked to the turn it was read from. Only
-the finished turn is read, never earlier messages, so after "Clear feelings" no feeling is recreated from messages
-before the reset (the service also refuses one whose source is older than the reset marker).
+A feeling the person expressed is saved as an affect record on its note, linked to the current turn. The previous
+exchange supplies context for short replies; both exchanges are reread from their exact live source revisions.
+Feelings must come from the current turn, and the service refuses sources older than the latest reset marker.
 """
 from __future__ import annotations
 
@@ -23,7 +23,15 @@ import time
 
 import httpx
 
+from . import helpers as _helpers
 from .notes import KINDS, STATUSES, check_affect, note_fields
+
+
+def _clock_today() -> _datetime.date:
+    """The evaluation scenario clock's date when one is enabled; otherwise this module's own date, which older
+    evaluation harnesses replace through ``_datetime``."""
+    return _helpers.today() if _helpers._scenario_clock is not None else _datetime.date.today()
+
 
 PRODUCER = "membrain-extract"
 MAX_NOTES = 5
@@ -115,7 +123,7 @@ class Extractor:
 
         ``previous`` is the exchange before it in the same conversation, shown so a short reply can be understood.
         """
-        today = today or _datetime.date.today()
+        today = today or _clock_today()
         earlier = ""
         if previous:
             earlier = ("Previous exchange (context only; its facts were already considered):\n"
@@ -221,7 +229,7 @@ def record_outcome(directory, *, saved: int | None = None, error: Exception | st
                    skipped: bool = False) -> None:
     """Count one turn's extraction outcome in the installation's state, so a failing provider is visible.
 
-    Messages are recorded either way; only the notes drawn from them are missing while extraction fails.
+    Messages are recorded either way; failures mean some note writes could not be confirmed.
     """
     from . import host
 
@@ -236,6 +244,7 @@ def record_outcome(directory, *, saved: int | None = None, error: Exception | st
             state = {}
         for key in ("turns_read", "notes_saved", "turns_failed", "turns_skipped", "failed_since_success"):
             state[key] = int(state.get(key) or 0)
+        state["notes_saved"] += saved or 0
         if skipped:
             state["turns_skipped"] += 1
             state["failed_since_success"] += 1
@@ -246,7 +255,6 @@ def record_outcome(directory, *, saved: int | None = None, error: Exception | st
             state["last_failure_at"], state["last_error"] = now, _error_name(error)
         else:
             state["turns_read"] += 1
-            state["notes_saved"] += saved or 0
             state["failed_since_success"] = 0
             state["last_success_at"] = now
         temporary = path.with_name(f".{STATUS_FILE}.{os.getpid()}.tmp")
@@ -281,30 +289,50 @@ def _clip(text: str, limit: int = 2000) -> str:
     return text if len(text) <= limit else text[:limit] + " …"
 
 
-def extract_turn(directory, extractor: Extractor, user_id: str | None, prompt: str, reply: str, *,
-                 sources=(), previous: tuple[str, str] | None = None) -> list[dict]:
-    """Save the lasting facts of one recorded turn as notes in this person's memory; returns what was saved.
+def _source_key(ref):
+    return ref["producer_ref"], ref["source_event_key"], ref["source_revision"]
 
-    ``sources`` are the turn's message references (``producer_ref``, ``source_event_key``, ``source_revision``);
-    each note is linked to them, so forgetting the messages forgets the notes drawn from them.
-    """
+
+def _exchange(items):
+    return tuple("\n".join(item["text"] for item in items if item["actor_role"] == role)
+                 for role in ("user", "assistant"))
+
+
+def extract_turn(directory, extractor: Extractor, user_id: str | None, *,
+                 sources, previous_sources=()) -> list[dict]:
+    """Read exact live turn revisions and save notes with the sources actually sent to the provider."""
     from . import host
-    from .notes import list_notes, render_notes, save_note
+    from .client import MemoryActionError
+    from .notes import NoteValidationError, list_notes, render_notes, save_note
 
-    if host.paused(directory, user_id) or not worth_reading(prompt):
+    if host.paused(directory, user_id):
         return []
     client = host.ready_client(directory, user_id)
     if client is None:
         record_outcome(directory, error="memory service not ready")
         return []
     with client:
-        current = render_notes(list_notes(client), tool=None) or ""
         saved = []
-        earlier = (host.scrub(previous[0] or ""), host.scrub(previous[1] or "")) if previous else None
         delays = getattr(extractor, "retry_delays", RETRY_DELAYS)
         for attempt in range(len(delays) + 1):
             try:
-                proposed = extractor.propose(host.scrub(prompt), host.scrub(reply or ""), current, previous=earlier)
+                if host.paused(directory, user_id):
+                    return []
+                resolved = client.source_messages([*sources, *previous_sources])
+                available = {_source_key(item["reference"]): item for item in resolved["items"]}
+                if not sources or any(_source_key(ref) not in available for ref in sources):
+                    record_outcome(directory, error="source_unavailable")
+                    return []
+                earlier_refs = previous_sources if all(_source_key(ref) in available for ref in previous_sources) else ()
+                prompt, reply = _exchange([available[_source_key(ref)] for ref in sources])
+                if not worth_reading(prompt):
+                    return []
+                earlier = (_exchange([available[_source_key(ref)] for ref in earlier_refs])
+                           if earlier_refs else None)
+                current = render_notes(list_notes(client), tool=None) or ""
+                generation = resolved["dependency_generation"]
+                proposed = extractor.propose(host.scrub(prompt), host.scrub(reply), current,
+                                             previous=tuple(host.scrub(text) for text in earlier) if earlier else None)
                 break
             except Exception as error:
                 if attempt < len(delays) and _retryable(error):
@@ -312,16 +340,46 @@ def extract_turn(directory, extractor: Extractor, user_id: str | None, prompt: s
                     continue
                 record_outcome(directory, error=error)
                 raise
+        save_error = None
         for note in proposed:
             text, replaces = note.pop("text"), note.pop("replaces")
-            if not sources:
-                note.pop("affect", None)  # A feeling is kept only with the message it was read from.
-            try:
-                result = save_note(client, host.scrub(text), replaces=tuple(replaces), producer=PRODUCER,
-                                   source_messages=list(sources), **note)
-            except Exception as error:  # One bad proposal must not lose the others.
-                _logger.warning("note not saved: %s", type(error).__name__)
-                continue
-            saved.append({"text": text, **note, **result})
-    record_outcome(directory, saved=len(saved))
+            request_id = _helpers.uid()
+            for attempt in range(len(delays) + 1):
+                if host.paused(directory, user_id):
+                    record_outcome(directory, saved=len(saved), error="recording_paused")
+                    return saved
+                try:
+                    result = save_note(client, host.scrub(text), replaces=tuple(replaces), producer=PRODUCER,
+                                       request_id=request_id, source_messages=list(sources),
+                                       context_source_messages=list(earlier_refs), require_current_sources=True,
+                                       expected_dependency_generation=generation, **note)
+                    if (not isinstance(result, dict) or not isinstance(result.get("note_id"), str)
+                            or not result["note_id"] or type(result.get("dependency_generation")) is not int
+                            or not 0 <= result["dependency_generation"] <= 2**63 - 1):
+                        raise ValueError("Invalid note delivery response.")
+                except Exception as error:
+                    code = error.code if isinstance(error, MemoryActionError) else None
+                    status = error.response.status_code if isinstance(error, httpx.HTTPStatusError) else None
+                    if isinstance(error, httpx.HTTPStatusError):
+                        try:
+                            code = error.response.json().get("error", {}).get("code")
+                        except (ValueError, AttributeError):
+                            pass
+                    if code in ("source_unavailable", "version_conflict"):
+                        record_outcome(directory, saved=len(saved), error="source_context_changed")
+                        return saved
+                    if attempt < len(delays) and _retryable(error):
+                        time.sleep(delays[attempt])
+                        continue
+                    save_error = error
+                    _logger.warning("note delivery unconfirmed: %s", type(error).__name__)
+                    if not (isinstance(error, NoteValidationError) or status == 422
+                            or isinstance(error, MemoryActionError) and code == "validation_failed"):
+                        record_outcome(directory, saved=len(saved), error=error)
+                        return saved
+                    break
+                generation = result["dependency_generation"]
+                saved.append({"text": text, **note, **result})
+                break
+    record_outcome(directory, saved=len(saved), error=save_error)
     return saved

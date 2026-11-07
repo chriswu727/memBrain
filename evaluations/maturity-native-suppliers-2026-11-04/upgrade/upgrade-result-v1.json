@@ -1,0 +1,7 @@
+{
+  "purpose": "public supplier 16.15 with resource-only legacy vector upgrade on isolated APFS clone; no default integration or R5 pass",
+  "completed": false,
+  "model_calls": 0,
+  "stages": [],
+  "ports_closed": true
+}

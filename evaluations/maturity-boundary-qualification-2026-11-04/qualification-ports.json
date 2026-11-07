@@ -1,0 +1,104 @@
+{
+  "count": 14,
+  "all_closed": true,
+  "profiles": [
+    {
+      "directory": "cache-check-after-installation",
+      "ports_closed": {
+        "api": true,
+        "database": true
+      }
+    },
+    {
+      "directory": "cache-check-installation",
+      "ports_closed": {
+        "api": true,
+        "database": true
+      }
+    },
+    {
+      "directory": "cache-v2-after-installation",
+      "ports_closed": {
+        "api": true,
+        "database": true
+      }
+    },
+    {
+      "directory": "cache-v2-before-installation",
+      "ports_closed": {
+        "api": true,
+        "database": true
+      }
+    },
+    {
+      "directory": "install-final/companion/home/Library/Application Support/memBrain",
+      "ports_closed": {
+        "api": true,
+        "database": true
+      }
+    },
+    {
+      "directory": "install-final/companion/restored",
+      "ports_closed": {
+        "api": true,
+        "database": true
+      }
+    },
+    {
+      "directory": "install-final/home/Library/Application Support/memBrain",
+      "ports_closed": {
+        "api": true,
+        "database": true
+      }
+    },
+    {
+      "directory": "install-final/restored",
+      "ports_closed": {
+        "api": true,
+        "database": true
+      }
+    },
+    {
+      "directory": "installed-followup-smoke",
+      "ports_closed": {
+        "api": true,
+        "database": true
+      }
+    },
+    {
+      "directory": "public-practice/practice-E/brain-c5-practice-scenario-E",
+      "ports_closed": {
+        "api": true,
+        "database": true
+      }
+    },
+    {
+      "directory": "public-practice/practice-P/brain-c5-practice-scenario-P",
+      "ports_closed": {
+        "api": true,
+        "database": true
+      }
+    },
+    {
+      "directory": "public-practice-v2/practice-E/brain-c5-practice-scenario-E",
+      "ports_closed": {
+        "api": true,
+        "database": true
+      }
+    },
+    {
+      "directory": "public-practice-v2/practice-P/brain-c5-practice-scenario-P",
+      "ports_closed": {
+        "api": true,
+        "database": true
+      }
+    },
+    {
+      "directory": "sdk-live-installation",
+      "ports_closed": {
+        "api": true,
+        "database": true
+      }
+    }
+  ]
+}

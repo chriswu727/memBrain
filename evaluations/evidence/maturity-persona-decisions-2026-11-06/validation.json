@@ -1,0 +1,92 @@
+{
+  "base": "df3ceaee0989ace2db6eed8fb102cd06f8c112fe",
+  "edited_by_agent": [
+    "src/membrain/persona_growth.py",
+    "tests/test_persona_decisions.py"
+  ],
+  "before": {
+    "failed": 3,
+    "passed": 1,
+    "log": "before.log"
+  },
+  "same_kind_before": {
+    "failed": 1,
+    "deselected": 4,
+    "log": "same-kind-before.log"
+  },
+  "regressions_after": {
+    "passed": 6,
+    "failed": 0,
+    "skipped": 0,
+    "log": "after-all.log"
+  },
+  "related": {
+    "passed": 147,
+    "failed": 2,
+    "deselected": 2,
+    "warning": "anyio imported before pytest assertion rewriting",
+    "failures": [
+      "test_persona_growth.py::test_every_suggestion_string_on_the_page_has_chinese",
+      "test_persona.py::test_every_personality_string_on_the_page_has_chinese"
+    ],
+    "cause": "Root-added feedback_used UI message requires existing i18n dictionary entry",
+    "log": "related.log",
+    "fixture_override": "Existing installation fixture replaced in memory with DB-only direct service; two host-session tests reserved for root isolated environment"
+  },
+  "ruff": "passed",
+  "diff_check": "passed",
+  "paid_model_calls": 0,
+  "hidden_data_access": false,
+  "cleanup": {
+    "same-kind-before-cleanup.json": {
+      "database_stopped": true,
+      "profile_removed": true,
+      "pytest_exit": 1
+    },
+    "after-all-cleanup.json": {
+      "database_stopped": true,
+      "profile_removed": true,
+      "pytest_exit": 0
+    },
+    "related-cleanup.json": {
+      "database_stopped": true,
+      "profile_removed": true,
+      "pytest_exit": 1,
+      "fixture_override": "DB-only installation; two host session tests deselected for installed testing"
+    },
+    "before-cleanup.json": {
+      "database_stopped": true,
+      "profile_removed": true,
+      "pytest_exit": 1
+    },
+    "after-cleanup.json": {
+      "database_stopped": true,
+      "profile_removed": true,
+      "pytest_exit": 0
+    }
+  },
+  "sha256": {
+    "src/membrain/persona_growth.py": "b46f9c1bbe86e1fc07306a523958cf367567f3511815c8ef50cf1eb7624da5f1",
+    "tests/test_persona_decisions.py": "070f61f6cad89e3284b62e1424e8f10718a523be9a24cb9620de4e93a104bba6"
+  },
+  "completed_by_root": {
+    "localization_tests": 2,
+    "real_host_tests": 2,
+    "installed_cases": 8,
+    "source_affected_distinct_cases": 157,
+    "launcher_pin_checks": 2,
+    "full_source_ruff": "passed",
+    "javascript_syntax": "passed",
+    "diff_check": "passed",
+    "ci": "pending_candidate_delivery"
+  },
+  "retained_log_sha256": {
+    "related.log": "5d39e9d5ab3e008f1b658f8f794c8b46b6b7a5b14afe0d1ac17c21f42519f214",
+    "after-all.log": "f50ba8b7f6a3d95a43d580422e49c56f7a02f2710de3a321bd99fe4eb177642e",
+    "before.log": "9c6ed6a0302f870d29c88397a3066f44bf07e9f9565f12a6a645e87ea07a5429",
+    "same-kind-before.log": "b1ba2d9e8dd8c35e58274975f7807e6a49c8a9bd3648e17995052ec05686640a",
+    "after.log": "b9cabc541230c872975a35c0e1c86211c1d09a39fd228c0a2df84fc43d1ef4c7",
+    "host-and-localization.log": "6992fd110459b01f798a4f752b1faaf55a1b03b9dec755ff2222c42588b2af74",
+    "installed-tests.log": "893b48f832a69170fec39c1342dff4e7a2244116739b564517cb305264d89fb0"
+  }
+}

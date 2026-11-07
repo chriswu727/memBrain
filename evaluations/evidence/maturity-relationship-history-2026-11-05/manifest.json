@@ -1,0 +1,96 @@
+{
+  "runtime": "c1c2bb2af632079d08ef0f6aaa197ea13298b973",
+  "source": "54ae976548f155f8376d34885ba0ee129d8954d1",
+  "files": [
+    {
+      "path": "after.txt.gz",
+      "bytes": 62,
+      "sha256": "ac8d9f3732fcaa288dd04886a7bdecafb38c26734c881cd600a76147c1515706",
+      "uncompressed_sha256": "abd7ff03ed35847f6e6fe0f5b64c71958ebd04669b4aa89a0496024f64f934ce"
+    },
+    {
+      "path": "before.txt.gz",
+      "bytes": 721,
+      "sha256": "c99cab392e7dc06a7abb61333e1b3a7d5a61dc26073273010c98e9b828de8244",
+      "uncompressed_sha256": "8c3814bb465de8001c6f15872ae256d0e542d054b6f7dfc23781aa91c38b5f7f"
+    },
+    {
+      "path": "final.txt.gz",
+      "bytes": 62,
+      "sha256": "26d6630b0c05e5372b9adfa49447b06ba4ddf510b7b740e66931083ca5a4ea8d",
+      "uncompressed_sha256": "65975c8f2399dba3e074162b93b0da8fe237590f7b6129dca9c7a73e6e712e61"
+    },
+    {
+      "path": "verification.json.gz",
+      "bytes": 341,
+      "sha256": "045713bab5478bfa958ed81790bc08ae99abdb6d8953fc18ad2f63b002b467d9",
+      "uncompressed_sha256": "dc2050008a2415f659a7b01fa3968fe8e1914a21eccb3808a49ac5b06b71b587"
+    },
+    {
+      "path": "visual/command.log.gz",
+      "bytes": 2154,
+      "sha256": "1bdbb33f42c8e05513174746efd99dd1fa47cbcc4fc2e197c0208adf3f27c776",
+      "uncompressed_sha256": "9b80c4558ac6499ec2c64b0fddc03626bd54225775e3e1d532afcc56596fdc92"
+    },
+    {
+      "path": "visual/compare-visual-permissions.py",
+      "bytes": 13476,
+      "sha256": "f9c8e5a1a20e920b93b567cde7f5c419c24ef450fc34bd6e9211d5bbe04c3cfd",
+      "uncompressed_sha256": "f9c8e5a1a20e920b93b567cde7f5c419c24ef450fc34bd6e9211d5bbe04c3cfd"
+    },
+    {
+      "path": "visual/run-visual.py",
+      "bytes": 2952,
+      "sha256": "d5b4d6c5ed762bf521ea093aff15f0fbe1ad128a2412ea742fe6833717bb054a",
+      "uncompressed_sha256": "d5b4d6c5ed762bf521ea093aff15f0fbe1ad128a2412ea742fe6833717bb054a"
+    },
+    {
+      "path": "visual/visual-command.json.gz",
+      "bytes": 27794,
+      "sha256": "1e69998735cabd3522a9f83b4ae78cdf962cdd0f411476b52ddb0762ffd3472b",
+      "uncompressed_sha256": "405935008dcfebb7a3d2ee2874743d3bfd5b78890c2b5d9681469be6c34da696"
+    },
+    {
+      "path": "visual/visual-permissions-0-closed.log.gz",
+      "bytes": 20,
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "visual/visual-permissions-1-open.log.gz",
+      "bytes": 20,
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "visual/visual-permissions-1-open.png",
+      "bytes": 460995,
+      "sha256": "7bbfe5ec8e3d73ee8206fad13fbb7a315163ca3422ddd81be3b448de136eef11",
+      "uncompressed_sha256": "7bbfe5ec8e3d73ee8206fad13fbb7a315163ca3422ddd81be3b448de136eef11"
+    },
+    {
+      "path": "visual/visual-permissions-2-open.log.gz",
+      "bytes": 20,
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "visual/visual-permissions-2-open.png",
+      "bytes": 460739,
+      "sha256": "2d613075f9289d1cdafc91fe07acf5e3e68a09b9184864b923c36ab55e3fd715",
+      "uncompressed_sha256": "2d613075f9289d1cdafc91fe07acf5e3e68a09b9184864b923c36ab55e3fd715"
+    },
+    {
+      "path": "visual/visual-permissions-3-closed.log.gz",
+      "bytes": 20,
+      "sha256": "f1b651238a58fe290baec6c5e32f3bdb1943dd2bd582f02569231f7a757c7837",
+      "uncompressed_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "visual/visual-permissions-abba.json.gz",
+      "bytes": 28627,
+      "sha256": "16d1beff4966c3abe34142c7f94822ce68127fd27f1eedb6fa1d0c9ac778c1cf",
+      "uncompressed_sha256": "c72d30f46a22bd3e23d54cdd3c63504007a412c82856d88857d8df0d5ae5c66d"
+    }
+  ]
+}

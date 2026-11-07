@@ -1,16 +1,16 @@
 """Embedded PostgreSQL for desktop and plugin installations without Docker.
 
-Only the PostgreSQL and pgvector binaries from the optional ``pgserver`` wheel are used. The cluster
+Only verified PostgreSQL and pgvector binaries are used. The cluster
 listens on 127.0.0.1 with password authentication, so connection strings, migrations, roles and
 row-level security match the Docker engine exactly.
 """
 from __future__ import annotations
 
-import hashlib
 import importlib.util
 import os
 import secrets
 import shutil
+import stat
 import subprocess
 import time
 from dataclasses import dataclass
@@ -18,6 +18,8 @@ from pathlib import Path
 
 import psycopg
 from psycopg import sql
+
+from .native_bundle import environment as native_environment
 
 ENGINES = ("docker", "embedded")
 SERVICE_ACCOUNT = "membrain-db"
@@ -34,7 +36,7 @@ class EmbeddedDatabaseError(RuntimeError):
         super().__init__(message)
 
 
-def _installation() -> Path | None:
+def _legacy_installation() -> Path | None:
     try:
         spec = importlib.util.find_spec("pgserver")
     except (ImportError, ValueError):
@@ -48,8 +50,16 @@ def _installation() -> Path | None:
     return root
 
 
+def _installation() -> Path | None:
+    from .native_bundle import prepare
+
+    return prepare()
+
+
 def available() -> bool:
-    return _installation() is not None
+    from .native_bundle import available as supplier_available
+
+    return supplier_available()
 
 
 def default_engine() -> str:
@@ -101,35 +111,12 @@ def _service_account(name: str = SERVICE_ACCOUNT) -> tuple[int, int]:
 
 
 def _shared_binaries(source: Path, shared_root: Path = SHARED_ROOT) -> Path:
-    """Copy binaries where an unprivileged account can execute them; root home directories are private."""
-    marker = str(source.resolve())
-    target = shared_root / ("postgres-" + hashlib.sha256(marker.encode()).hexdigest()[:16])
-    if (target / ".complete").is_file():
-        return target
-    shared_root.mkdir(mode=0o755, parents=True, exist_ok=True)
-    staging = shared_root / (".staging-" + secrets.token_hex(8))
+    from .native_engine_store import NativeEngineStoreError, preserve
+
     try:
-        # Keep the wheel's relative layout: binaries locate vendored libraries through
-        # an RPATH such as $ORIGIN/../../../pgserver.libs.
-        shutil.copytree(source, staging / "pgserver" / "pginstall", symlinks=True)
-        vendored = source.parent.parent / "pgserver.libs"
-        if vendored.is_dir():
-            shutil.copytree(vendored, staging / "pgserver.libs", symlinks=True)
-        for directory, _, names in os.walk(staging):
-            os.chmod(directory, 0o755)
-            for name in names:
-                path = Path(directory) / name
-                if not path.is_symlink():
-                    os.chmod(path, 0o755 if os.access(path, os.X_OK) else 0o644)
-        (staging / ".complete").write_text(marker + "\n", encoding="utf-8")
-        try:
-            os.replace(staging, target)
-        except OSError:
-            if not (target / ".complete").is_file():
-                raise
-    finally:
-        shutil.rmtree(staging, ignore_errors=True)
-    return target
+        return preserve(source, shared_root, shared=True).directory
+    except NativeEngineStoreError as error:
+        raise EmbeddedDatabaseError(error.code, str(error)) from None
 
 
 def _traversable(directory: Path) -> bool:
@@ -142,6 +129,11 @@ def _traversable(directory: Path) -> bool:
 
 
 def _layout(profile) -> _Layout:
+    from .native_adoption import recorded_layout
+
+    recorded = recorded_layout(profile)
+    if recorded is not None:
+        return recorded
     source = _installation()
     if source is None:
         raise EmbeddedDatabaseError(
@@ -149,6 +141,10 @@ def _layout(profile) -> _Layout:
             "The embedded database is not installed for this platform. Install the 'embedded' extra "
             "or choose the Docker database engine.",
         )
+    return _layout_from_source(profile, source)
+
+
+def _layout_from_source(profile, source) -> _Layout:
     if not _running_as_root():
         return _Layout(source / "bin", profile.directory / "postgres", profile.directory / "postgres.log", None)
     legacy = (LEGACY_SHARED_ROOT / "clusters" / profile.installation_id / "data" / "PG_VERSION").is_file()
@@ -174,9 +170,7 @@ def _run(layout: _Layout, program: str, *arguments: str, timeout: float = 120,
     if layout.account is not None:
         options.update(user=layout.account[0], group=layout.account[1], extra_groups=[],
                        cwd=str(layout.data.parent))
-    environment = {key: value for key, value in os.environ.items()
-                   if not key.startswith(("PG", "MEMORY_")) and key not in {"PYTHONPATH", "PYTHONHOME"}}
-    environment["LC_ALL"] = "C"
+    environment = native_environment(layout.binaries.parent, shared=layout.account is not None)
     # pg_ctl leaves the postmaster attached to inherited pipes, so only short-lived tools are captured.
     output = subprocess.PIPE if capture else subprocess.DEVNULL
     return subprocess.run(command, stdin=subprocess.DEVNULL, stdout=output, stderr=subprocess.STDOUT if capture
@@ -199,6 +193,49 @@ def _failure(code: str, summary: str, layout: _Layout) -> EmbeddedDatabaseError:
     return EmbeddedDatabaseError(code, summary + detail)
 
 
+def _configuration(profile, buffers: int = 128) -> str:
+    return ("\n# memBrain embedded engine\n"
+            "listen_addresses = '127.0.0.1'\n"
+            f"port = {profile.database_port}\n"
+            "unix_socket_directories = ''\n"
+            "max_connections = 50\n"
+            f"shared_buffers = {buffers}MB\n")
+
+
+def _update_managed_defaults(profile, layout: _Layout) -> None:
+    path = layout.data / "postgresql.conf"
+    if path.is_symlink():
+        return
+    descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_NOFOLLOW", 0) | getattr(os, "O_NONBLOCK", 0))
+    with os.fdopen(descriptor, "rb") as stream:
+        metadata = os.fstat(stream.fileno())
+        if not stat.S_ISREG(metadata.st_mode) or metadata.st_nlink != 1 or metadata.st_size > 1024 * 1024:
+            return
+        original = stream.read()
+    replacements = []
+    for newline in (b"\n", b"\r\n"):
+        old = _configuration(profile, 32).encode().replace(b"\n", newline)
+        if original.count(old) == 1:
+            replacements.append((old, _configuration(profile).encode().replace(b"\n", newline)))
+    if len(replacements) != 1:
+        return
+    old, new = replacements[0]
+    temporary = path.parent / (".configuration-" + secrets.token_hex(8))
+    try:
+        descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(descriptor, "wb") as stream:
+            stream.write(original.replace(old, new, 1))
+            if os.name != "nt":
+                os.fchmod(stream.fileno(), stat.S_IMODE(metadata.st_mode))
+                if _running_as_root() or os.fstat(stream.fileno()).st_gid != metadata.st_gid:
+                    os.fchown(stream.fileno(), metadata.st_uid if _running_as_root() else -1, metadata.st_gid)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        temporary.unlink(missing_ok=True)
+
+
 def _initialize(profile, layout: _Layout) -> None:
     if (layout.data / "PG_VERSION").is_file():
         return
@@ -219,12 +256,7 @@ def _initialize(profile, layout: _Layout) -> None:
                                         "The embedded database could not be initialized." + (
                                             f" initdb reported:\n{detail}" if detail else ""))
         with open(staging / "postgresql.conf", "a", encoding="utf-8") as stream:
-            stream.write("\n# memBrain embedded engine\n"
-                         "listen_addresses = '127.0.0.1'\n"
-                         f"port = {profile.database_port}\n"
-                         "unix_socket_directories = ''\n"
-                         "max_connections = 50\n"
-                         "shared_buffers = 32MB\n")
+            stream.write(_configuration(profile))
         os.replace(staging, layout.data)
     finally:
         password_file.unlink(missing_ok=True)
@@ -244,9 +276,27 @@ def running(profile) -> bool:
 
 
 def start(profile) -> None:
-    layout = _layout(profile)
-    _initialize(profile, layout)
+    from .native_adoption import start_source
+
+    start_source(profile)
+
+
+def _start_layout(profile, layout, *, initialize=False) -> None:
+    if initialize:
+        if layout.data.exists() or layout.data.is_symlink():
+            raise EmbeddedDatabaseError("database_initialization_conflict", "The database initialization path already exists; existing data was preserved.")
+        _initialize(profile, layout)
+    elif not (layout.data / "PG_VERSION").is_file():
+        raise EmbeddedDatabaseError("database_missing", "The recorded database is missing; restore it before starting. Existing paths were preserved.")
     if _run(layout, "pg_ctl", "status", "-D", str(layout.data), timeout=30).returncode != 0:
+        try:
+            _update_managed_defaults(profile, layout)
+        except OSError:
+            raise EmbeddedDatabaseError(
+                "database_configuration_failed",
+                "The embedded database configuration could not be updated. Existing data was preserved. "
+                "Check file access and available disk space before retrying.",
+            ) from None
         result = _run(layout, "pg_ctl", "start", "-D", str(layout.data), "-l", str(layout.log),
                       "-w", "-t", "90", timeout=120)
         if result.returncode:
@@ -281,7 +331,7 @@ def stop(profile) -> None:
 def client_command(profile, program: str, *arguments: str) -> tuple[list[str], dict[str, str]]:
     """Command and environment for pg_dump or pg_restore against the embedded cluster."""
     layout = _layout(profile)
-    environment = {key: value for key, value in os.environ.items() if not key.startswith(("PG", "MEMORY_"))}
+    environment = native_environment(layout.binaries.parent, shared=layout.account is not None)
     environment.update(PGPASSWORD=profile.admin_password, PGCONNECT_TIMEOUT="5")
     command = [str(layout.binaries / (program + _EXECUTABLE)), "--host=127.0.0.1",
                f"--port={profile.database_port}", *arguments]

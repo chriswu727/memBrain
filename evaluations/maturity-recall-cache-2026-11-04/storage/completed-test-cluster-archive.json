@@ -1,0 +1,12 @@
+{
+  "purpose": "archive and verify only completed owned synthetic native test clusters before removing their data directories to make room for fresh qualification",
+  "profiles": 13,
+  "regular_files_verified": 18638,
+  "archive_bytes": 99980623,
+  "archive_sha256": "28fa5e9f41d1a7fc018654d09d526672959efd39420941e0f526182299f8bc7b",
+  "ports_closed": true,
+  "only_owned_database_directories_removed": true,
+  "profiles_and_registries_preserved": true,
+  "archives_and_inventory_private": true,
+  "never_commit_archive_or_profiles": true
+}

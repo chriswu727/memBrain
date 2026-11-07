@@ -1,0 +1,3971 @@
+{
+  "purpose": "Read-only candidate collection ABBA: exact document/order/signal/budget equivalence; not full HTTP or fullscreen R5.",
+  "completed": true,
+  "source_sha256": {
+    "/Users/yichen/tmp/membrain-review-20261029/src/agent_memory/__init__.py": "f1a69ae91f4fd8caf7a666b0c67e965ff26aec47a5a83a210171259802926305",
+    "/Users/yichen/tmp/membrain-review-20261029/src/agent_memory/cli.py": "3121b2d113d132dcf554132c2307b5b217a930ad155353d75cd26ba88336551d",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/vector_jobs.py": "5d90b2d41bbee32ce082388e39e76c627edef6b4ff85433f24eb77c05fa52adb",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/chat_config.py": "c631379a74b203323d7c7ac6de4c895bd7ed22ce4ff29be71a7a1d83a42c7cd6",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/citation_coverage.py": "2cb7e25ed9950bbf971cdbeb60e460679836e99b5f11ba6b31ca29c5064139dc",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/learning_funding.py": "ebe728cf7c0dd5a9762983d1d2f0bfad5fbc186b1c8a6eecb4cfb1249b152f75",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/desktop_backup.py": "7084daad1f55478d9d9ce0a9a021ec94458560f4fe7ad725a56b016e7e9c43b7",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/recovery_authority.py": "e5bd44a653057d63af848b4bef2d6e54a29e5dd0ca659c1a3bd46a6e520b8177",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/service.py": "8007ca7b190c1482eb06cb6bea11bf069a7ea03eb04a4d8e2039bd4ccdc69a24",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/episode_semantics.py": "e88c5819b3c9e16d53e61f34a1d14ec4c7c5cb9fd8213b16a93eb875728d95f5",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/native_transition.py": "10ea5f5d2459e843e837c12769a97bbf185e27884dab60b446830ff1a2d0d546",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/temporal.py": "791d9f996ad8e61e5135799f8466b44bb3889039885aa473c9dd0cd715f55706",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/native_engine_store.py": "b79abf41a9ea73a1dce5e57af259bace11d45612131eadef1be3a95350f2ab7d",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/consolidation_planning.py": "8069dcd51f05eaf5719c7cb4f20dc6079117893abb1a45fefbe5489218f784d0",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/desktop_restore.py": "95c7bbcbacbd9f1af9c0853e5242bd8a92f99f08e129b49a2619f3ef4e0981bb",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/belief_store.py": "c8bb52c43c05c1cea802e6a45fa1043a9dd602c9bdb1f5258fbbe8cab29bb33d",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/affect.py": "c4e7b10fe9ab265f8e9fb220e5150aad00a8c19fc2ece8b4f9d7fb0dbb843c93",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/desktop_learning.py": "44464ca4fc93b632f15cf75a14c5e12cd4e27c6edb23eab744877d9f5c427afe",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/context_views.py": "e7d49ad37ef2f099eb1bd4a959dea9d5b126dc16d78403b7fba616dc7d687cab",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/agent_session.py": "965852f0576fedc991041e5d9ee503529f57f01563a3d36a08de9ef7b528ad6d",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/semantic.py": "2dc758729c16f9bff516dc33060e4eeecc9bc630765310c63f43532c2acaf197",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/config.py": "ed8b86b41efe6efcab045a9bb2b1e9e17d102597949d18e5ce87cb8c527a6142",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/pattern_store.py": "8c06cfe3db95883495930edf56ac8f9d1b4da85a190034f1c45e61a1ae4cb4e7",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/patterns.py": "f42dbeab61c023afa37e4a9c6bb34fc641751a06b1e908d4cd37a4380b7be5f7",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/native_bundle.py": "a8be162ede0b7dc94380a07ee1971440615268f0da8a219217040b9f23a9e47e",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/recovery.py": "61e037d4a1901dec5ac060411499fe28b96f640a8038b5a51a55819654db016c",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/desktop_cli.py": "a69bb8ea5fb655777eed7f78c8340aecf1ed591065d6ff71c553fc76aa85ac4c",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/recovery_profile.py": "4eb7a7cdade8fac945b49960ed6a124459bdfb787d9b53f6b868dccd24b55159",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/desktop_connection.py": "2d088307e420ddfa108e68697fbb81b6f6eef9455391ba8ca63d07206f827df3",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/structure_map.py": "1a24b8c4aee321766104f6a952ef83b455b75d697714363e4bbe2fd1f1a0a4ba",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/orientation.py": "053b1825e6507756c623a05e9d30093728dd915fd186412271d1f544562b524d",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/source_passages.py": "e043a4f872f2d63ceab72c94a30c655489fa7f048a67c7a1627d632d5b949ff9",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/relationship.py": "8ebf8f09ff05042e2e86b8f2dbc07c246ce87d3d03b73752acf4feaffb52af76",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/deletion_registry.py": "ea51cfc9783579b0d4647a4f509966bf247b1fa79c84c631a424a18eeb36d3ff",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/learning_phase_monitor.py": "5b1ae1407da06e74451d406c82853fac327aef701d32f6e4fefa9dadbea2c172",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/host.py": "f9d0b83977c1b91eaf800e6458cb1fe1b55e69dc97ace7e8d914a0430f6f7911",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/diagnostics.py": "4a7818d973c28a9dfd923a13aefe70ccbdd4fd0bcae12e4499f8194e6f240a25",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/proxy.py": "2d43e90e71c90671453feadc541ffffa4d9e197ac7ab63671d4f5c67c88188a2",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/feedback.py": "da8e073acba839c407dcc1c81b1d47237e09cfcf5cfbfd78762623198cbdbc6f",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/semantic_provider.py": "d9c9fd9b9f898bcb90ca5162a84e4ec274a2d2ecf48a5bdb550719654939484c",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/consolidation.py": "aa3817fbe635f2b815bd3e48b23bd6d6046022fd6cdf5fb5ba1793226abe7900",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/cognitive_usage.py": "955276be8c348cf538f205ee7e060fbf39675254febbdeca94b57b541d5fe149",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/client.py": "ba739d772cdd9fcfb9a43d490b5ca0e66cc14aab96c119de0f6d511d826976e1",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/source_candidates.py": "c068a3cd5295b100f18741977618af44f65c026a8a3394dbce31fc2dc5ffddff",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/desktop_budget.py": "daa981ad16f634c194cb4e6eb982235fc5e05a1d3364c6866b9341e83caf9f3e",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/prepared_selection.py": "ab1c03bf04d64c6413e613274d5eff6c89bd59008d552342032791354ea90f0e",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/backup_transport.py": "73e8f91679c1ec8d5f3af90243035dec87bb54a5895f25259468efda16aa7f95",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/learning_progress.py": "9a15b76d119e7119bc5af53ff65fa33777894b441e8c8b25bb02c5b93b723701",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/verification_sources.py": "796aa1c9a6b8b051b15b72b0bdbdea6b7608de5cb2bb6217fe173b0c185f949c",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/persona_growth.py": "323d05cdb1f5f10d7f25b8a30baeba8ecd348b2f611a0f4b5dd6fff32a9c4c45",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/companion_map.py": "700e11a170a441508982c037fba262df43699913afddc1e52d665231c2f0cf72",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/belief_resolution.py": "b3ee1ab03f74af7f2dc6b4ca9391179ed8bc7014244c622cf5efed21e7a1da45",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/delivery_receipts.py": "b618ea38f191032d3dd45a6c36f9eeb1ddb9aa606ab9c5207760415355e72390",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/__init__.py": "91447944015cec709e8aa7655f7e9d64e1e4508e7023a57fe3746911c0fc6fed",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/runtime_client.py": "b2094dc7bc6f1e8cc267e35f0156ecaba4f1ab6369683e11420ebf7ad512a293",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/mood.py": "db31d06b6fcf2d2c57d1d8a6879d00d2b39cfbd25b0a5bffa2b87486423c32a5",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/native_maintenance.py": "99362b790924c5bbf79fc87a872808b67d6e378b2efb73e758f30ce4962b8e70",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/persona.py": "e6698fe28e136118750b58e4151196734ccc426c3cf287a6c73d413236e0dd67",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/archive_views.py": "3a3ca207093c181098cc1b208f4afeea0322a33270605494619190e36685aacc",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/cognition.py": "7d1c15a7ec14aade6c5fb721e72b11ad3d02fc067302ab4d2aa3936364acdd48",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/local_profile.py": "00ed3a632a8ab404114a74a9bb84284a27cd7abaa80dd0920aa7d3f280984ed1",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/plugin_cli.py": "be8527e57b19d193e67362f428dc82a73cc34fe342fca51bb0e4dacded5727c0",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/runtime.py": "2b04da0bbd1f6d6ca0a0870866f6abb37d6e0ea46a933c9f187d631f901b0414",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/notes.py": "f0f0f67d0ccc308697d99f8865748fb64e2f3a96536b08b4d376e620005e03b4",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/imports.py": "46fed92e7bd4fb61da8840f7dc13d20dfd8ddc519281a44bffe4758996fdd683",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/applicability.py": "766b562abe97991fae17504ead228cb4992872d99ab89253a7efc80af357d441",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/learning_recovery.py": "b0ec923507abf52eb859440391894de642ff0a679d76ca1097a86c8656017b75",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/local_semantics.py": "cfa3ac099f0da1313b1620b0c61fd2046c812535619fab38d2d527403cf22217",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/desktop_chat.py": "b197096901726031fb1519d64d31969306486c26db93db4e4675da11094defa4",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/learning_integration.py": "4a5bae177123741db7f7ab0e423c769f7d0e8eb5265726dbad582366440d0cfa",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/jobs.py": "e4e38b5bfd0a620b1832d57633356f70706b320fe188566d64757387a2c8ba31",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/api.py": "10f970ef4e4906956386a645c5d3baf010d8a94776d395e03010209d31c543d0",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/embedded_database.py": "87bdac77a6f2d231fa78cd335133ff679dedaffa56d49eb89c83a0fa43b764ef",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/neighborhood.py": "4082362c45fa19ea3e0c11a1692574f9fe3b32a06a3df145fd2b87a0ba1e6110",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/local_embeddings.py": "6fbf6e707e5475905f68637f47a70d74b9a009654d9e7d6c6c6a100ab5ee8453",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/outbound.py": "f6e6fe7f27f647281b358fa102a50f79369dfcba340d2910bc5730b8e641849d",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/native_snapshot.py": "79afc546e816afda3a642e23bc9b7d1ab365e766a4db82f93227a08037ae1231",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/host_context.py": "405ba362eb9e815048c31c740cbc86a134cd7614c5cbcc17bfd8db48918bab02",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/embeddings.py": "3efd41797e058170159c18c6b1bc3abdbc0846ec0b9aac3a7b33b2232e51153a",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/cli.py": "9cf9c8c2f7dd5999dcd6ce9d1626e9793cc6c63a4a87847e2608f65bc759a76d",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/source_neighborhood.py": "4f82d35b78a0f80c976a8ac8bcd520bac6f291027fa99c89806c599c4dc2722b",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/extraction.py": "fd19643db9585bc9b0037edd2725acadf7bfa256ac1a11525c1830ecd5e71f0c",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/turns.py": "3750535cf53b6d07a8ffd066ecc47ee7e1b27be8f4d1a52ddf7d121505f2024e",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/storage.py": "4e4fde9e9ff88eeafa0964b4a5b8a3db2c5c9e28ac83d73ae55bd8da9dcdf853",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/ontology.py": "428319561e6fc9da393b599817cc8388d6c318791dd88a4a3b437b57e6fa9661",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/retrieval.py": "d743d7a256718824d4f56d89f282d41f6f75aa9b17164fe93ca20b8bc4bba0e5",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/source_composition.py": "968e686bd465d8e62d2d9ca9227bfd977d0a70287b10e54dd3fc1bcf81b2a65b",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/answer_review_provider.py": "79d96353d4ad33e3614f5d04c315d06b4328c73c7fad391f855289af8051bc9a",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/lexical_candidates.py": "0ddd66b167dfe357274dcf20ef567252065403595489561a04c19528d83ea4d3",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/source_context.py": "a06c83aecfa738c34b260c82f43ea453aabd46fb59e0e0780794c921396b686a",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/contracts.py": "3b70edf83029e70f761c1829d1cfc2e6df449dd108dc18cd418ae1e4bced753b",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/plugin.py": "02b23f17bf186a39a0fbe8beab473e004a5ad3794a7f83800eb74485cd95db07",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/recall_resolution.py": "2b0275158b5dac5d79dab0f74a13ff359a7008b633002f801b951d522b419b4a",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/history_attention.py": "1a1ecc70ff12e66eb620cc2ac56d645510f3f5d0df65753acd7ea56acb7412ca",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/reasoning.py": "c25925078190c97d81f39161409ce5a042026089d4404b8ac2e08d0b2fbcd887",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/memory_map.py": "7504cb0b77badc0ace22cd097d0eb909a3fa80674b26ec3eea51aca8288e6d20",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/desktop_recovery.py": "eefa60f3cd41493e1b51e8cb868e0ba697cbb2be2f5edef608a0cb47cf32893f",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/learning_packages.py": "09148fb373ba781da670a59644a0d848fee73955f65d9ca009e16d9eb15a1c2e",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/belief_capabilities.py": "0f8b5e7b828ead251d151e19b394e8065199ffe0a24b47413a2bab2aa47f5987",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/learning_allocations.py": "31cd8e5f7baf2cfb62d1cb6c6fb3f2c7169275c35438ade857ceec63ee52f9bb",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/learning.py": "8ac753333fe323d9db69e84811d65e729a0ce283553a9a4ac5d28eabfd8d08af",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/recall_control.py": "acfc71dcccdfe55b8aeda13fb200fa565586905e1103ffaa8f1d7d0acd3bafc8",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/learning_windows.py": "6e91d42d1df18fd7ab1b66fbe271252698b253b3a3aa2eaa9ea4152179d93424",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/candidates.py": "c62c3f9a117ee1f30a3ae8dd9e6a2a984bea018a376646c0e3beb74898503aff",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/build_identity.py": "b91edc817dae43eb6ce475798e73ac4719417dde016a2c7f98bc56de325d7f19",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/desktop_cognition.py": "86111eb5987818ffc070167c34568c2faf5d0822457b439de5da9a1621ddf26c",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/cognition_config.py": "e21c0aea31d29b0ac1d5ff72a8cf8291f128a51e34c4de41b908168739c61ac2",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/erasure.py": "8911ca59a1afc917dce3fa8ccc1039e740bca941035af7d092d8a566bfa9b73c",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/native_contracts.py": "6fc406aecfd4214dab559e1b60bb849373cdac9487aac553dd6ea15a157309c6",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/provider_usage.py": "8efcf6a996c1f21bf60907560541cbec8b94cb4122344fd2d06adbf737fe0997",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/desktop_turns.py": "6b3d83d32702b184b2856afe594acfd5d9220b72a337c46bd068a49a800415e6",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/helpers.py": "36c9fab4077e2b54a93b722a77d886c13b9dd90355484016a8bac3fb46249e68",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/turn_scopes.py": "7d8450d689c445235a25a1ea93cfa154b4188a59a2b46b0fb3eedae9a8658134",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/history_semantics.py": "e22cf0bf7c94dfd473cf3c65e1e61a03d1a80b3796fbc068d3e93a7dfc0abcc1",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/note_sources.py": "6380503b04a6356e3c92fa894ccf5a89b1e2d83ba1f1da44ea8bfa4a54f7fe83",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/desktop_chat_monitor.py": "45b1b8c1fbba79bafd54efbcc530554ae2fd26b069c1a40b5dae63e11c53b0ee",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/chat_provider.py": "1faa8ce65ff41e7034aa9ff1eeda3bbff4136594130f7cc6bfdadb791c5742a3",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/evaluation_clock.py": "149115cb20a93a0a0a8e19bf314e3bfb0a708548f7a3dbe8e0897aa7eaac22bc",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/privacy.py": "d7d05265a520435386d8806cbd4881b71e29986d82f20b0b8ec501219f70a6bf",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/answer_review.py": "f8819dd25f2aa427c013f6c328b27566347a290c56ac63b40b15f31086ce95a5",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/mcp_server.py": "fea227b922f851521fa2f734315af1e0631904db8783d2301b6fe93a528bed38",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/dynamics.py": "1302d81589b811ff88259ce066482ae92a8cefc01c4cd65149e53efec434553b",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/native_dependencies.py": "ec76bd858ed9adce8949861ee6a7cdf4a9a4394f9de365329e6478c79b8c069d",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/cognitive_budget.py": "72618334305e0daefd65ef83e2a9da31af7cf410721c3fc238a69d8c67e844b7",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/desktop.py": "aaaf103f33ef0c501f61e4d5e10c70ad3642690a03398ef1a86269ad4c9a0285",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/native_adoption.py": "d2cd2af007d68c7c408ad6e5e4110e6583d1e5d2fb6e2c684bd2e6ee0633e3e3",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/recall_provider.py": "74b6fd1031d48c516bee130339964edbd7b0918ff93d11d3510ed3296d7cbb56",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/web/index.html": "f69f7fec8a579188165db96a9166410d07048312313109fb2cf274848100b187",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/web/memory-map-demo.json": "4be0ac32d49e639d77fb5a9a1302f768579f5d6b1c99c9358127ea465175a140",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/web/styles.css": "6dc57bc0e385a06fd2850b23efbf1242063594d8e3f523a8055fd03dea0f2b53",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/web/memory.js": "43da79881dc598422a82787dc2c85fd8064170d9b3e19793266231ab1709b9d9",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/web/memory.css": "fdc0ebee3487d1dae1e54c5461b559e0e6f034981d6e113d95c4a8fe1eda99c4",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/web/observatory.js": "49b3d418c83c308f07f882b0155c37a28fe2b9ba1347e5941becd546268b779a",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/web/memory.html": "4426c1fab49187abcb57b1bdb09f348a8a692dca5925f9dd9f38ccec2089a692",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/web/showcase.js": "f22e690f6ea7598415a4bff4d107103b0750c26efd9ad3438b868d46d4c31013",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/web/brain.js": "2f5a0b4979a78e0b529352173dd5e22102d15da31982e2348456fd94f2fc4474",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/web/i18n.js": "eaf6764d529ecc664eff550d8a38696a86eeb7071ff491a3496674548b25f6d4",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/web/hologram.js": "e171e85f3870858e4a7c7bd306789bca673bebc35e05022aea6e717236600036",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/web/app.js": "145371a1138b5daba8195f516f16758e987db5b13edd480c86db7fe345ecbd17",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/resources/desktop-compose.yaml": "5610f117db4db1aee72421575ba10cbf060f24efde0a1c2fd9b70ab4125a601c",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/adapters/__init__.py": "6c9b2fcfb9c55b95428e1072deba4523bae2dfdc7d76200d27d6f3bf3c269468",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/adapters/hermes.py": "44ab3649d3f8a0f7a3588dd1d9da714e0d36c2723efbf10d10e67155e3badf99",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/adapters/chatbot.py": "e2f6f24c23284586cefab677cbdfed13978c3633027393a985aa09bbe59fed43",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/web/vendor/VENDOR.md": "e01c2490b7911df9b279dff7b15e1e3d0bbc9f1362cea2fd95f1aead88626df6",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/web/vendor/three/three.module.js": "9052042d676cb0fdc1ddfefe193053f34b7ac0513a616fdac4535d49987812ea",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/web/vendor/three/LICENSE": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/web/vendor/three/three.core.js": "9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/resources/native/macos-x86_64.json.gz": "eb9fa3db01624a8917e8cb0650a05cf06f26a6c79dfeffcec6a47dc77be53f53",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/resources/native/windows-x86_64.json.gz": "49f0e50de8aabe2db95ebf57af93ac50d6d7876ec2cecc65dcb721ed791f1256",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/resources/native/macos-x86_64.tar.gz": "972ceb2a18aa27d21207004ede61ad723b9d3b910c486fec6013dadb19e2bdab",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/resources/native/macos-arm64.tar.gz": "0891606eae5ad54021752307fa56b5a2a046360dcf10a617b24197c7c47fea2a",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/resources/native/linux-x86_64.tar.gz": "846b660427ef62f8b0a361cca4d740b5908ec0fb48897655b4fdc71347e091f2",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/resources/native/macos-arm64.json.gz": "07a6b6b1a87819b37e967e1cce1b973fef8f31b4fd52b96663ea10832f35c2ae",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/resources/native/linux-aarch64.tar.gz": "ae6b80064f3d25b616117535634415b1369333980ef76323a60709f26fbe7d3a",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/resources/native/linux-aarch64.json.gz": "3d1e0eefa739842e6e781c5d08b9279b5085fe6c9806702bae38578c8702c01b",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/resources/native/linux-aarch64-previous.json.gz": "32204ae2d1a815907c26f1f4da3150be98feed34bc71cb74f02dcf6669d1edb2",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/resources/native/linux-x86_64-previous.json.gz": "4d0fbbee4449d3d68f2299ea5651969f5dba0b86eac9cb0a35e331af02eebc8f",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/resources/native/linux-x86_64.json.gz": "dc1d2b61ca167de068c60252a00168612a6951cdc4134799a08a28771ef2b7d9",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/resources/native/windows-x86_64.tar.gz": "486a860d49f9ce745847bf13793afdab4a72e9662026236e3ca32ae04f1aa252",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/resources/native/index.json": "0d74ef01add4ef3773075d18ef38ae8eb8006ff4285663ca52a15f4ba5fc1b89",
+    "/Users/yichen/tmp/membrain-review-20261029/src/membrain/resources/native/NOTICE.md": "0e4b1ccd0c974d7220ae65d322ddb0916a61d55e9c86853ff8ebb54de4d35e89",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_embedded_database.py": "4b3705b970bb1b2a5cffe5307991e199335d9bd5ff8e178459962a4f5acd50b8",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_longitudinal_model_continuity.py": "6ca7a58189a0ede156db601c88772b79056c694a4641a1725723d33c1b7b7e5d",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_build_identity.py": "79eac5c817132d64bd1292fe73f9b44f643f8bb1480fb130b6fae8c1daa0546f",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_recovery_e2e.py": "2b20a74daaa51fdb4a4036d3484f69b03b1e7b1f4a5f2fead960671927a35a7b",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_acceptance_review_hardening.py": "82b358ce605247b19d84e2691d8febc4bdfb6e85ab4fb7ca963ea4ef50acb6de",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_neighborhood.py": "2f04110dacf615fc28c3dbe502595dcaa3280c4938988f856485b2bc4f057a4e",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_runtime_cognition.py": "98445a9b667822d6beb7c1a84a02bcca54b30dafe4c999480a5f7bd35aacb168",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_structure_map.py": "3ca38cd1ed3f2518b87f4715ed3e38387458aa54618fd1be968502ad70ca2f63",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_lifecycle_stopping.py": "59a32e1c1f2468de83f1f96d54d75710e5cb634a94122951843db888743467f1",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_monitoring.py": "9341a8903708f9662d7d4470e7fc21fe6e55d5c055e3ec2f0b700ba78b3b6f41",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_lexical_channel_merge.py": "3cbc37d564469c1d868d031e75970b06a330716807d011986021b945d0b1ca99",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_candidates.py": "4dd17bd62964629b22feec1ba43830eb78e3f12bd18fc71c6bfebb5b99725387",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_segmentation_archives.py": "a9e31ae09e95017a065ed0d50a83ef2ab66640fd63a4728fd047e1a845c40ea1",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_longitudinal_learning.py": "2659fcbf25fc12d5070b2a94a34478834fc0a8247eb72d34d0e184516fddacab",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_recovery.py": "84e7a5ab07f54a631250b9e8edeab1551c6467d81f535035fb754bac50ddca7b",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_diagnostics.py": "9c20c1c4a195f1df3f0d5f8140f09cfc2e9141acaa4eb23d36d3df4d635213bf",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_consolidation_diversity.py": "44b4b3f3626cd15393dcab06c8b72e1ade1900a46194af7adf478d0aa3063331",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_memory_repair_evaluation.py": "65422b120a7a5617d07f20471cc22e15b4e6823c41fca2cf36e10539655996aa",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_native_contracts.py": "d450461d49a05ddd598352d86b2e45e71d5a84bb9145683d2c0d3886d4c49799",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_abstraction_support.py": "8ba90f16b76c1afc88aef5f75aab1dcf6a0842c7a4798592f1b70b0b593544f5",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_belief_semantic.py": "c98d2b3a1dc0a2966865c51279c85c5977d44225b4086ecfac5ec1dc56791b7d",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_runtime_scope_concurrency.py": "23ea61b7366e7174e482e749d51ebcfa603b6024495913f83ecd975ea4e3e692",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_live_evaluation.py": "4569c2108ae70845888912d9c921bcfdddc46601945c265d72a212f7acacbf84",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_acceptance_review_pipeline.py": "efe706e32ffc079e5d4399d40327d728bbf866c5f772eeed281adb7157cf4d6e",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_interaction_repair_evaluation.py": "fc9469bc662060a97a12c526b0530c4890347447425aea9f4015c04978704d1d",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_episode_fidelity.py": "981a4919ccb6e35b23e60ea5e6c6aad68355b5c11e6d5a35408d4fdb101a089f",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_continuous_learning_acceptance.py": "f30fb50106208c5db20a5d11284be6a9415b7f87e14a023a756d4b5ca5e526ff",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_turns.py": "5c78f9ad2086fcfd41c9bd2b49d7ae48e1e89c0628527e7f3dabc83257bd0630",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_context_views.py": "ed850d33ed76395d1eaac31b3a7e758a394470978383fc38b6959fa25a19a7d9",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_agent_session.py": "92ba908c9ad372a0759bd1a50beba398975ec00df6fcc458cb2875f643e772d7",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/conftest.py": "148ac24e37531cb6d6c92897542dda0daf426efcb120528546bf7a3ee5decdf9",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_windows.py": "9589e8e4723a60f921d807795d472837bb5d75d72738c51e580581fa4dfc8420",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_temporal_repair_evaluation.py": "f76298a4aa586bbea3adaf547e06ee4dee144c3a637ae307a2592830078d4bf3",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_agent_session_scope.py": "ed304841a73e7061f8186f465a8a7d2c75b71f982d0db82f69ecffe2a8f4eaea",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_policy.py": "0b6d693b8cd0411f94d8e004fe12969ce31d49034079faf5a43ca1ef944fc3f4",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_model_activation.py": "ebbab18acfa2bc2074a2788071726bda428276ac60db986fef862427df790d20",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_native_bundle.py": "b69bd8ccf6c108700e40073421275cae7615bff9fb81fc97fcebaeab806304f7",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_pattern_store.py": "3815f835fed3c60011333dc2d6d0e96757ba9d6b1143921fc02dcc4ce7607965",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_retrieval.py": "6ea1211e3a1abf6a05f857f3f2437598610feb2f87c53d5c9039d80ee2d3ca40",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_recovery_cli.py": "512260972a5f0b47a31a0a976a28117fb3b1dfc701466a2fb2e921554c3d1e72",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_response_review_store.py": "c3431a7feb84b19e3f09828e5d05e198223edc44ff5633089c0b6586edaf75b8",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_recall_measure_parity.py": "2c9fd89083921684515a1f7059ef1389e8004aadb481693a956c63405adeee01",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_native_resources.py": "9426ed77413a7baeef7b40026c31f067e3511d22fe6d53d338933577efa11444",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_recall_control.py": "2f33f5d98c42f7e8479a1d17e9267e635d202a8af9de2d8c07b9337cdfa31b32",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_evaluation_support.py": "d835598c2921e733919142d6e3fcfab06ecbccba947dd5ee566133e90f29cb3a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_upgrade.py": "508a2c291b7245cb85e1736a2520fa30e3af8cca8d191750b6d7b637af65def1",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_live_semantic_regression.py": "d7d556825586cc01ef704f1d37a6cf6e397c9ed1e34fb10701077fb485f7b65a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_native_bundle_build.py": "f13da6fe60f04c21d9858d1c3132884eb3dbaf8380e1a49a46c69f4760cb1354",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_integration.py": "ca3a60c08324cfaed088c588d8ef66bf5fbc1824c4e2e37efbb8048a4c1ea8e7",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_abstraction_publication.py": "811c0f1a4dd7c02a0e20811f5ac77ec6e729780cd6feaf3a7318dd7365019581",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_new_condition_contract.py": "8c05da984b91160ca15564d73b5905be93f8507cfae1173d8eb4aa68a28d456a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_supervisor.py": "b9ec50f2c1bbe9554a0a6cc6b6b0295e879f49f9273c83a1f52d5ee9547428c6",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_easy_start.py": "038494cd3875d71f456ee07744095095380d926c95eb069c4df483adc4ef6583",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_maturity_matrix.py": "aaef29c5492d19ec1332d875abec32b8043db6663d83409226eb606d6fef4774",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_settlement_recovery.py": "f5216009df9e116a0f3607295f14290761ae428692f415e339ea84903a4588ca",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_history_attention.py": "c738ea8076ee5f7bc609e40d4ea99bee53037eb6ced2a8438b75f8c9ceaf6f6d",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_semantic_shared_reads.py": "f943d2a8532acc936d6504d7dfe4c3910e873b1b00cef6b70b7acba96adb609b",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_native_snapshot.py": "29332c86de129d4a6b821659a3d597105f55cf2d5a0252d165017f79655ed3dd",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_plugin.py": "b56d3c8b149e4b8e36b923b8a6ba6336149ffe2f0ec15bce5091fc209025c5e2",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_cognitive_budget.py": "6fa2b1ef5dcf145f5c933ea43a77ef9fae529b658c11321b66011021f01027d1",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_recall_resolution.py": "cae73f88df2b5ae0fa92c0636e7da2736dee7d5e087436b9228ca057286e8d28",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_c5_harness_hardening.py": "1fdc268c0002331321043348506086c0ac5e254697a2c77ec04f4503b896a32c",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_memory_consumption.py": "db54041207596923929ab635f745fbbcc796b0dad16cf69939c3dae5f1a1c387",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_release_scenario.py": "1d5874848f7e75b0ebb32be6c50fef81c731420a6f09f3b82655d5bda17c951e",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_evaluation_clock.py": "fd4a65e5bf4459431be93759ef46bf490b6c62eac159414898d47474fad6a908",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_roleplay.py": "e7577314f76feeaf2164156b023d43f1f3dffd23916dd448f79a7cb3c7a61637",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_brain_lock_contention.py": "dca06b15d51401123fb8b87a9d041bc6803e499767b374460d43176ee8e17d6a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_configuration.py": "053766ddb5aa020e1dcf01a1508787134d50061781658de2fd4a8e5b347177ad",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_evaluation_recovery.py": "9a7560765c88bb29dbeababb0126e377048cc95c1008617576d7d18cdb8e5dd6",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_runtime_receipt_api.py": "65e13c9a03f6fd4cf0a2d8d2549b8861635c17ec1741cb78b7e5b09dd88af185",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_cognition_transport.py": "a1d972f0947dff5d965991193061f73cd67c0267781eacf59c4f3139f0ab02ce",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_episode_fidelity_evaluation.py": "5b96c1c367419f7242e444c876d8c1e17195c374aa31f9a1df112e831703c481",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_consolidation_objectives.py": "5db6e0aaa8ad71de872c447fac16191ad681fce533b6ad73037771b4d4e946e6",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_pattern_context.py": "52f610149a219f877192f94f2b7f8adc0bf9fb219617063efcf7bf282c914de5",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_chat_config.py": "d8c40c75d07e7bc35a5c6052dff2dd3dffd860cce4e0351dddd84c8906948cca",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_semantic_call_usage.py": "b96cb37b79a0a52f593f21453ba81783be4ff01c4c2ffc3a0c9a3ab0c581faab",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_native_engine_store.py": "2633ebf76171929a5cd0faaf7c9e5d3f8537b6ba8ee109363a049a8b2a72aaea",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_cognition_preset.py": "5c7c454fcd4672237e92e82d95d051ee04b5c68533720816c630b85b85bdab5c",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_vector_jobs.py": "0a2672b755c4519ae0b9e3694ca003d10b65623b8f7350c4b8997a1828996e75",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_lifecycle_learning_integration.py": "285e805a2fe27694b37abe3e49ab82f349c374ab389ee0a3951229db65e95b4a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_extraction.py": "e38919d0e6becede07c19b927b90167063fd337a5a7076fd2cc863ba30d6f8c5",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_typed_notes.py": "1d1cb87c8089054a0af9b593973d7590c14641b82fb1f6fa309c5f2222eef35a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_response_review_api.py": "ceebbc9f502d3d3722581c1a45ca3c2c7bf32c1221d121bbb86c0f68dec3e86a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_local_profile.py": "c34528cea27f3be68f28409cb25f8fd288e624dd87042de091dea9e87b42d1a2",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_semantic_runtime.py": "04fd1bbb29856407263205dd30f4a1bede14ddbcb3d5e8f005b26ee3645bd557",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_chat_monitor.py": "6fff5d2f5ab164fd147b16092780e42c4de892c2fdbb2b9f0da286cccc908a7b",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_episode_source_views.py": "7c6a858e52fb0fd465835c18332d934d78519427d625fb7fb8ff919eff64cff2",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_deep_copy.py": "a9f548a78a064bf5f0489dbfe9585e302cd2f958a48d6d5a5ca4cffa6dc2303b",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_packages.py": "141ab02cc03e95b7f9ee4db0f764f63b2775423a4ce64d20b701e4914fa126a6",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_embeddings.py": "4a7f8b7fd1c7eb63ce645fe90df73a1ba44fbb95085ba330f0ce6332a42382b2",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_recovery_quarantine.py": "472f215b8a428cb56e18af6db38d55b893679ee4ffc4687bd10509ca7fc4903a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_c5_harness.py": "57d1bf5971f19d986ee00077c1ac342c8eb2e2c9f7ec1f04ca21ebd95aa4638a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_shared_communication.py": "73c3d1a4ebeabdfbc28ce52176cb8f8ed3ade371fe6bdcb642c03994a388f555",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_belief_learning_context.py": "8ca3779934d0e23b33bdbfe3658795dcfc03e4e6fa4e2b1f28be7f42c60974d3",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_consumption_repair_evaluation.py": "e3837483bb12aaf218b2c3b05424bad2be56f98a5079ec1ad7c80bc7c14179f3",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_evaluation_host.py": "ca158191d5598eac8a5f07592be7020e3ec2e45e7de2bbc4801c4ccdcb1d95b9",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_lifecycle_acceptance.py": "8bfa5bae6f3ff7130b18ff3582312fd8240a57e97cefdd3fff21f962f1caf1a3",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_preparation.py": "71fc3e8a7d3fb015e667769a87864912d656c7043225d845f4b38ec3e49a789c",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_persona.py": "538b4288e02535e1b4019c2e1510e17791f23266a0ada6a1c6e22e55738018bb",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_cognition_policy.py": "ebe9f6b767d43f5d9a6f123acf7f209af65814698021f827a6dfdcbf0d48f6f9",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_temporal.py": "642d3d745e940bdcc5dc41ec4a1082bd73bf4d45a146a9d3d5261f1602f57ded",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_memory_observatory_browser.py": "23cf86fd663fc65da4b1c16028fb5444db39797f79215f7082ebc56f6cb2590a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_memory_page_browser.py": "053f149871cda8bec8f93ef48716c5cb43a9739a99c0a3738aa71ce3a77abb85",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_schema_compatibility.py": "c6b64513ea594dc4e257143b8bfa27c922dcd8d030851a623ba2fa4d14940d6e",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_longitudinal_journal.py": "9457a7b682254b5653a4abfc930f49edbc433c8efd1b6d4a17a51edc67547c18",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_companion_map.py": "0dd6312266c8890db7a6c0101f837bfd825a3c65fbd6969b70c46feff1b42a0a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_imports.py": "f42de59e37d110577e30b01dbe40327c4ae5a397c624348b0fa98dbd9edd4e97",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_native_adoption.py": "d609a9d3d1ad41b97d5349eb1da897ded62893e9a022d2d1185de263db19cdc2",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_mood.py": "42280791e507516e37345b739b9d885eaff16b28c0221d3558f3e8138398927b",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_local_embeddings.py": "1ad58786149ccc151c9804172aac64143df9341a9b4e932741a00054ca7d6ee7",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_recall_provider.py": "3d5d9a12a197aa171e723915d85f205c39d94680299b58b55bd07ea2c70965e8",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_timeout_fencing.py": "723c98811451c54b9e4f2f37215c14b68e63120879ba23c75b5b2d3702400747",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_runtime.py": "a0556466b4501283c8c8b69efa047e895cb8e06ed05b453f0f4bdddd426f245f",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_chat.py": "53e1aed76ca0f36e41d3ca93d65fc4bd9df855310ad5221e20fd330de7d43a3c",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_acceptance_attempt_driver.py": "9e688c69a28a9ea7f0dccf225785f8e1f95ecb0df84ec26b835c15f68295b532",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_contextual_recall.py": "6ee362691aaf9c13e58f0dab80982804239cef6c33ab11fe91d8f8b5efc3a5e6",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_dashboard_policy.py": "4bb3adbcb9c7db68271262b8d19533137ad4e584fde1757d6c85e040bd7f1cd7",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_history_replanning.py": "3847e6d88b058fdb5cb29d2dabd0f4dce33d674f5ed3506165cb912833268a36",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_memory_lifecycle_evaluation.py": "96f0e932a3580b3c7124055609316502428fd314f8e67c261c2b1341d06480fd",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_phase_windows.py": "08956fa11378891119eabcb182785d3193a36cd20db1ca9c997997715785f79c",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_cross_conversation_funding.py": "4851da0b955d46e17050c8cd4d3a907b6d72ff10db4697b1211e4f2f1e60d72c",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_orient_mode_runtime.py": "1fc7157d987e5fbd0e2395be3f4b9e960cff87610e1f6820b761d0601bf7e15b",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_runtime_api.py": "53b0b539d7999613dcc92a5d069c40ca285ffe08212158e12e72c5c7f4599686",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_consolidation.py": "aa22bc81a65b26091f307ee7da4cf52559bd2fd7d61f70d427f38d1a130d18c5",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_cognitive_configuration.py": "e1c306ee8acec5fc58dfb95b105b0e2839d9707ac92818766193f019ba6a9a74",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_memory_map.py": "4cacbe79531475ea367ba9a7344ecbdfab48fe1dff0916b1c668c0c4e14c1048",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_orientation_generation.py": "d28563254a01c786a0f11668b21125ee0919c847ff4ed372fd996a24048e2e94",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_patterns.py": "d4ca563ce725917323f08707a11d79950f6c430bd8cc44a1abc1738e4f54c0c0",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_semantic.py": "2fac84ccdfb5c156fccd18d9bc422cc56c3267c5ab4c5c48c7a8cc126d277d17",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_longitudinal_scenario.py": "83ed7fa2238b42a108aca453ed89a6703208b9b2f4a5ca005e34204140fd1bcb",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_recall_control_integrity.py": "dbc0b84a4e837debf0707377aa10a9f7a65b8fcebf1cf998179a1a0a6ac2af25",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_companion_acceptance.py": "7e56ddc8f607c81d98c0aa5b43121d9d3203676a993ed9154a6bb48fdcc8d7aa",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_brain_view.py": "19de865a3dee4825c306e5d1430a81ef878e81cd1cbcd2128d8f8e185f68eb4c",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_timeline.py": "e145b84a24bd18a9622bfdf816ff9261e88f150454ae039dfe754a3deb77ff57",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_allocations.py": "3a800d30e869b33dadbcb9a7eae5c9bc63a458ad0e88481b38889940a15d0f3a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_e2e.py": "d591e925dbf3b134a8373bd9f3cfe4381c899cf1642cafad645fb3ba3c77ab11",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_database_isolation.py": "33dea21c69c2492838cc3e7c75f5fc9ec6c4719bb729a6eb6a230552b1709a3a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_host.py": "fccacd8a3a49f0a4e07c5c2206eb6e2b1367cf63fa8f051edfb8e8796984d8ac",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_episode_scope_evaluation.py": "87ee69665edc97089b3ca1a2e82abe8c4200347316ca5292c9708888dcf61e0d",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_concurrent_turns_and_learning.py": "a296d4aea962c94048c9ca013d99d9b96ef24eec1b54962136ddd1d553b4ca99",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_source_composition.py": "0dfc519c4d4d8d09344de6f7f28433a3f8aeb8a21442c0a9300be27f3bc2fb9c",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_feedback_dynamics.py": "6dc42b576d2aff2df7d663d54c140f498efcc56e79ff4c0faa13154547c7fcb2",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_lexical_candidates.py": "8c6f2e719bff6411f7172e0b95c48af1821dc95d0e5798d4049f4582117bcd46",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_contextual_learning.py": "cbcd547ed9ff6d29327f5cb69fa758357086bfc10a950208ed0376bee865be4d",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_lifecycle_learning_phases.py": "a51e8453b2c46269503a7586b2dddc8a85868e688a2552f68de0e38b6c30e95f",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_request_evaluation.py": "d26b0a9a05cec2c8df2792db0610b26368904f2cfbf9aca1e17600a9f37a98ce",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_release_install_check.py": "b732fa369be2e6965768fd14dbab6aa192450725cd7974df1912497145a3ff51",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_recovery_erasure.py": "1f3479326fb58173b16732ba326a1f26778aadfe053a7d99d76f50378d2b0308",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_adversarial.py": "4a9842dab986994e5c77918dc89e6ef9839a72c11439115183693c0d9f874da2",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_episode_proposal_contract.py": "dda64c5327c86315422f03064e46ff297ef5c8ce7a73aa0b6e38f37b622fd831",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_plugin_cli_errors.py": "3b5cbd859a949e66d64175c76b2b327aeada88f7d7624e38e2d35953af97f493",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_cognition_policy_recovery.py": "9e6fbaa641ae93f9fea97e47e4dcd29410c502c116f12aef8fcdaa3f83b07b84",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_source_context.py": "425665528200347f54fc30ea77c2206a4e4b29046aa3811c532fce5450b50a8d",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_speech_event_world.py": "87b667f04546bd74efd905d89ef2953d84a4a27d59b8222a35df6f897e8b58a7",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_source_corrections.py": "efbec226875e486aa4ed1ff4cdb402bf5c328ff7bc7388780fb7fdaf2fb97ed1",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning.py": "30f3bed83fee9ee40a60c69767a3585a3b1b3240bdc97351b61360f5687c571e",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_belief_candidate_ranking.py": "1d3efd62c1310b7925a7d5db59b7cccbcb1bba7dd3f41f225170f281528fbaee",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_prepared_selection.py": "0c9fdfbd8488530367a7ea33844735022922104e63c0d0bc76e1cf50fcf7e299",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_memory_hologram_browser.py": "b10a6225bd83a586d725191b5ade3bf72e061ab520dc8cb21f973ddd81bcd259",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_context_source_closure.py": "42babc60a9307e4dad42b865ab321c0ea5a6f88512d241773535e1b6778d9d35",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_citation_coverage.py": "1a0766defb6ed0866cadbb1ad108075ef43618c4aebec760e79579ec0e5239cd",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_storage.py": "c6290fff8d0ec1c55bc3e359f0d88c8993b7f85220f8770a1b4fe3eb25ba25be",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_autonomous_feedback.py": "e4c4f0886c1991ae512993193e2f9f49d7f98834b11cf95db42780998cdc57f4",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_boundary_read_failures.py": "7ec827eaf583c7dce5f8cfbad5d1c2b19d01d440f7edc3a5d3c76bda62bb2c25",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_phase_monitor.py": "81d42e6602e0f7f5d355c0c1b2857669f8454fcd0a3a30cbb9947b4462a68b90",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_budget.py": "8df1b1a8c630e6171eb15b1016c3079bada35be62d039c7879333aab97ee712a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_lifecycle.py": "a4ce4a2a1e250ad4213200948c1bb1ac87aa866f1df76b3a01ba474b0b762848",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_upgrade_e2e.py": "6cb8dbf54825d39e94d389f3b5fe14bc05da621609e6b0d8db7ae0d7aa23b7fb",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_source_passages.py": "d85c5073cb1e95b68ca8cbd0ab9072cdd2d72c95506797de44a83d5096824da2",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_monitor_debt.py": "25f5e26c596e24f06f69b499045f518752b2eed7571e6db9dadde17fdac32c45",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_episode_operation_scope.py": "3a06348bdea6c0a3d641268837b04938090e3b49090b359905964d6b1d17df71",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_belief_capabilities.py": "c76d60b7e15fe415bf8832faf6e279a1aea9578821a28114b99f7e173f9b3b65",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_backup_transport.py": "969e1ff91df1315b2e67e135d169ddd7965a8c4e48e8771e68bab424a5956550",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_standalone_chat_e2e.py": "3d93b3d137173aeb298d303df88e5f0a10bcd6f1de3eac3b08a23d592ca257e9",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_native_transition.py": "832af6ba05faf65c507e627e59f0d9ce069c355ac9e705c56ccf30672afd6e66",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_current_request_runtime.py": "fdaccb368cf48c0921da4fbabdf6d7e7a47d72ba869515a41dee5c19c50598bd",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_learning_phases.py": "c16eb8e35647aef655bbc8e9d1415c1df4505617ff35fbf114f32acc88afa277",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_current_input_binding.py": "371419ec33c3d207be235a491088ac99c024cd704130df96e96c09ad12f0d000",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_episode_semantics.py": "fd0ed50efa7737e0b5d122e13854d3c3db27d33da447c8e3dba07fb1165bc72e",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_native_dependencies.py": "c6dec9e55e4d95ec7afc36cf083976a8e3c82f8936fb0ca7c5ccf4f4b9483287",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_source_composition_v2.py": "79a92ebfb71bfdcbcf4040bc7e005129ed723124b43e12944673f82d4f39e841",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_affect.py": "f69647873cf008148c618978520a31b5548750fdc3425491ec2a22f7cab38607",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_prefix_recovery.py": "340abef888ab8d1c5c38d7d12eb4e2bef2e22d13f425b13c237155691c7f4bae",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_semantic_slow_provider.py": "1f42272dd0d76794a0a9238c94ce3ce1d5d9ab4f44d7268e5e0e9ea7e9e4669f",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_turn_scopes.py": "a5f885fcbfea773818ef7362bd8a5590a13f079cc20c6107130c51882f8494ef",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_chatbot_adapter.py": "e8ac34ead7484db365cfe50c61beac2b8fe796bdae09221de30af2446214b806",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_longitudinal_cue_diagnostics.py": "21c902a370bfd78c772c0fbea543f264aa2f3cd8c241f70484d9277cbd4d500e",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_structured_provider_boundary.py": "e649e9a90a722f60723e879918dd399384c55927fe0e219b8f5155345e02d111",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_installation_pin.py": "4d00c8e40bec4e909ed065190fbaedf1b8a8b91714919bc75d09547cdfce356e",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_archive_episode_contract.py": "85260804629fb4af745c1660e2055de210760f1069dc46e2fe14a487a04e6f09",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_recall_resolution_storage.py": "6d9cc6d030203fbcb4afaa30d19019fade8cf0b33daeb7dcfa25b80f59ea7fe1",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_semantic_context.py": "ef08e5e6c04bb62f89df3cbb69864311565ade8ed52f0435cf72c29f639f34cf",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_consolidation_planning.py": "2afb11c9271975b9709343b21c66ff10f683f9870bb8ab8fc6c17f5d28648009",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_orientation_routing_runtime.py": "b0e127a210f254a8412e0e9c5fce85f00a04e4ee5cfafd9fc43362c79eae5a5c",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_process_interruption.py": "af9825769ce4c289fa1494458d1cfb4247fc76dc73acd13db71faf40b45f471e",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_persona_growth.py": "864f634f5fed122ff7d96f9260f2717ed4c62eb669743e4905425f6eb6998cc6",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_evaluation_billing_guard.py": "4df7f7b545fb0cc4814be0af302f00c0715a134adf6a14b4edc24b119170718a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_applicability.py": "58dcd2ed2a9bfaabbd96e24bb52f75d94031b19b58b65af07ec9078ae7267c6e",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_evaluation_archive.py": "db55250805bf2ecf2c9901e7c9d92ea9e806739d4ec59a20eb7c743aa6c15b2e",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_deletion_registry.py": "3e63a5f041c4148c2f99e3972b0e75466916625dcaaa711451686fabfeccebab",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_dynamics.py": "d6006af29d816dde5e438ba2c46685b73ae7d850fa0a1010aaec2c5e6c8a5394",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_belief_recall.py": "da383b0747ace1d563a8c59115785db6dea349387c1704a226d216181f7e9a31",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_windows_profile_access.py": "90dfc07b10dbcc8ca91aba3de701f5f79fee18f153837ea11f0fd43e0d4557e2",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_native_maintenance.py": "67590ea877a7707dd06f25ac337701c1502696c9ffeb4729dd96e3d314d8a9d3",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_docker.py": "99e0014d5f6c2be9446542e451067a9142d8ee64915076baf5be488e42e938b8",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_history_attention_integration.py": "53c0703b92db45bd7c27d2be0cc4a9cb134b7341618c800ccaadf22d4f79892f",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_observatory.py": "5786d3381bf0d81a8cd623e4de3cbea2a31386ba944a2427a035bf78d6fc9712",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_longitudinal_evaluation.py": "0a6ccb4b57f40ddfd74d097c0bd85ae726f38fb272b9dc7c8df694ef7c513dfa",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp_http.py": "397e1b4e654245c6a4a5c9fd6d70afe035e8f38c447a6870824997f75b08efed",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_snapshot_batch.py": "00964b5704526cb79711c0440cc7d9f19c7e4711daf42dce6599dbda25629606",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_jobs.py": "9a30554e1418a0e8847199e16e168c07973e3626a8997aaef7171656f5b4c35b",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_chat_recovery.py": "19a3c7c606141fcc3275a86d1cee818cae4f9c718349e52fc330661ff420f03e",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_access_clock.py": "d31bc0f0fa71b045bb1b2a3939e4af1ef123978509ca7ca0bf26b53a84eeda31",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_orient_mode.py": "e554727ef55d9ac319bc0daad7dfdd9eb419d6e32c9c95787403569f586bb820",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_proxy.py": "ec1cd8420d54eef67a2b67fc0725b0d353ac1904cef0a9830d38d54ccab29db0",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_source_neighborhood.py": "27ed88a034b13e8995190d910bea96eaa3f916f59d190e98721807caa163c4cb",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_semantic_provider.py": "2011edb3247d0b580388800d67874f18c1804b40660c2529d61ec0224f400192",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_cognition.py": "ba973680e7517835bac7968f2c04e67457b4a76a04727cc32a23e7facfac6f9b",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_cognitive_archives.py": "a20391d0b9df52ab6fbacb29d691e46ac554fb46b55979f592bd3733304ae687",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_answer_review.py": "67ef2aebdb42c6a155d80df91bcd2ce84feaee8133420f2f105a79a9e8140ed7",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_verification_sources.py": "ab9170a25dd708824d8b5cc9becbeee8510440a496405130c6650c8ac3724a79",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_sentence_segmentation.py": "f55d250b51314f74a06462e142d24e9145c278b86c2f2dea22e4c845f8d8b17a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_semantic_history.py": "34828abca554e4672249356ce41d1c5af502bdc93aa944c3b1a585214cab605a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_api.py": "30c56706c4bedf8c8e194f8e65b784e6888b85007149f2dcafc151b14a49c55d",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_history_link_coverage.py": "b8a9ed477a3d8e5949a49bad199661ff5c9fefa38719cf1d1b2e27ee600ec62d",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_longitudinal_repairs.py": "d9e19050b8f11a970959ed89947e22b2e77b9e33ad0c53d2dd50ea89d40b14ce",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_history_link_coverage_pipeline.py": "8d5a9317802270ed0c1f17a49b1e602359461305d1e5f6818e7c6616131da031",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_client.py": "f308db4e55fd66006db2420d78b5a218892bc40d516968d066e6342cbb7711d1",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_communication_views.py": "49c3428b7b5bc3155df3940b95e8a15ca195f856445887e8a8c99a6b0c782967",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_embedded_environment.py": "6a26d4be062b4a8a4c954e08b6e1d99d2460bea2cf950f9a07613b92bc05db77",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_c5_supervisor.py": "42251f57ef99342140424ef1e8c784d290ec92cf10028beb2657e3a21d287a6d",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_contract_linking.py": "be846aeae93f21e431d90a8b799c86363911820217a3e84d5e9eeb73a25f1109",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_http_workflow.py": "a5f872d02a8feaba8750219a9887b7a28e8bd3fee397cea9c5f5d59d81933a1d",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_backup.py": "190c64bc76a7d352b1eeec2ce0cdbc6f88bd849c3785d7e4c7fe63e2666c93be",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_source_candidates.py": "7b397fbd2c512a7dde3f69d6204417cce0ae2c0309b4845e4e947cc242458336",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_runtime_delivery_recovery.py": "b2a99661b022e73fa522e754dfa13aee02dab9011895f32a912b37a6afebf49d",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_outbound.py": "2b2c267105b7f5821c695c3a3bd700f93d8837a5db9397aca8d372a294f917c6",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_chat_provider.py": "9b3b20acd7698a104960791043598bcdd547163d3ab0b9ed25907250d6a3d2fa",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py": "c882e9a7f489b51d6882a7b17a868e507516dc3762929f920a2e5ab88c1824eb",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_openclaw_plugin.py": "63df89f8de7ea855a13ee9e9835b228bad59f45701cd6a0471c655e7d8d5c6ac",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_conversation_event_index.py": "3e08d927fa6e883524cf98e7001605813246bfe315a61e886559863fd14d9cda",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_ontology.py": "fbe0ed52b14f7683b8b1d946ff20fcbd9760a80a1545ee90af7db6cf238aeb82",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_memory_page_i18n.py": "a4376e07512ea67c6468c659987511dc5805d2edfdb86f8184d5ef5bf1810fef",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_communication_intent.py": "5bd043778425f2f00467ef6fb80a6ec10a41159679ffac342fa53422bd44059d",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_relationship.py": "bd10f8213c955bec6bd5b992368692d986bcd2d7441fe604aba67f55492baca2",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_recovery_http.py": "77ed1024e8f0c9444b4eaf90db984a36907d1ea3e2d0f9202cff7ebbd3c9145e",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_context_completeness.py": "51dfeafc894a55fb90296438f0efd5fa7a890fec703460d75cd77a8b0a870ab2",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_citation_provenance.py": "f7b95d8cf38de2d28e4ef6825ed0731b43915eacb953ed13c9532d55b6e192f0",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_episodes.py": "e6f0b2b3fe4d1b824225d3c7a0809692914fc97fe96f62ee8f2ec5fe1b1ca16e",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_response_validation.py": "3e65f0a9dadaa35e200849399658df6b5d83056e8f40dfea43b3e2f672209f83",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_recovery_api.py": "bfd037e1e3aaf9d0b1decf9a1d6c1d04442e1551d7fbb47f0960aa3d974f03aa",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_conversation_evaluation.py": "d1583f1dafd619acc93fb91fbed8dd5e2bd4a7d371640dfd7bd8810e1e94c2b4",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_delivery_receipts.py": "70f4cb1ec1caf4d5b5a95aa3e3f70b1659fc260060ae1b6f2f201631956dbad4",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_connection.py": "637f25f26046874b238bb92d899c9823c8fbbf5a563b0cae2fd7b06af56526f1",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_turns.py": "b99285f5f4a88df5d0ae99a3be1a8d44e53adaed299f11cdd3e1faec7b273bc3",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_runtime_answer_review.py": "888155f3ac6e151261baee78a8262b38a0db92fd22e896f33a2f16ceb482f663",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_learning_progress.py": "2cbce02d3696bece49f4f78a3a4f58df199e9fb394e4c25bdff547dec0bd3810",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_learning.py": "11402f7b204162a5cb2c802d7d66563a0fcb4da1c6f927cbfcd1ba53785784de",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_evaluation_budget.py": "0de3d4e84eeb2fbd35bd5ce35af8e4155221684309aaa559b9a88580b39b369a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_hermes_adapter.py": "7f9c5e5f53d20e17f1ddcb5e5f124304a4ae68cbf849b8e9adf3702f8c35e9bd",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_orientation_routing.py": "00718beb96862e55845fe983b2ccde22ab0d8e8b517adf505cb2ed72636691d0",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_answer_review_evaluation.py": "d59f09103e1aa97b8600f765f580cafd1999fd7f9ce1d7283c79ef7df3bce1aa",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_notes.py": "55ea489bee49f56e85a8716669a1e170dd538a91f7ef6f9ac444663d82569290",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_source_act_contract.py": "726e2850ab2c6a28cce7cd71e300d7de3d880acf34dfed0f107cd851fc3a6635",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_cognitive_usage.py": "1cb96a291606cd1a786de493a9ada126c2c82649c394cb506cb9026f6477d57c",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_recovery_client.py": "780ac8a79fb1ef0a15afaae981ff5674e7db1af3d84df8b2d80fb57dc3d1e5f0",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_current_request_semantic.py": "f20e10816b6428ccad9fb9c056d10b587c89bab5b024fba94e1937e08b8838a7",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_v1_memory_acceptance.py": "175b55b9e22a19a6b1aa3a84ec86b7e66700b4771179fed60f8360e64ebbbf0b",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_bounded_learning_semantics.py": "a9aff0fed7d53e579d9d6223624b5c66dea165d9f95f009783e730310cb38e9a",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_evidence_boundary.py": "cdf0c4228214caf4936df452e77a1912e09db34af6e26973b5d034111ebd789f",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_desktop_brain.py": "6ebbd950632d308e2fceee230f9a6df3408a39d923d0d067bff1177c61d02a05",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_belief_store.py": "2f9798f754d70d5e9edc4778ed94d87ae0179e86d867db3b5e3acad755a7568e",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/test_note_workflow.py": "bb6ef00b6ee00d3d4ee87c5b57a5888d84f0a97311aecb5d00e459a761e9a333",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/fixtures/recorded_school_learning_failure.json": "d4c5b6d28a70ec36ce22afc910905f2e8e8a6d6cc4ebbf2b88b25b066895fb5e",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/fixtures/recorded_communication_verification_budget.json": "f175c0275bd9029fcefadca2bc51210004d5ec0fde2f6b228997c2d685095a95",
+    "/Users/yichen/tmp/membrain-review-20261029/tests/fixtures/recorded_history_link_incidence_failure.json": "d3ec8a2d9bb94599fc615f57202c727149656adb4bdedd9fe1eaecf7af1101d7",
+    "/Users/yichen/tmp/membrain-recall-scoring-20261105/compare.py": "f8adc324eb7138dc1e945ea5c260177d7f96efc83df3c65763a51018283f2e7f",
+    "/Users/yichen/tmp/membrain-recall-scoring-20261105/baseline_lexical.py": "3f71881b4bf6999dc9927eb981d30558dd9fc90f4e2a9f56bfd1af1ef144f061"
+  },
+  "model_calls": 0,
+  "groups": [
+    {
+      "phase": "before",
+      "kind": "serial",
+      "p95_ms": 28.188542,
+      "cpu_ms": 99.318416,
+      "results": [
+        {
+          "brain": 0,
+          "query": 0,
+          "wall_ms": 20.934292,
+          "cpu_ms": 7.516541,
+          "sha256": "6f144c1cd6a3e9b34b326ea77c5e9d1f7a7102cba5c96b713bf25b7e2c3df987",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 1,
+          "wall_ms": 20.351375,
+          "cpu_ms": 7.126167,
+          "sha256": "1446a96ecf5a4432360d3903158f1854562f61ce5f8e74c842982871e30c4d98",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 2,
+          "wall_ms": 24.110541,
+          "cpu_ms": 7.468209,
+          "sha256": "7ad00c84b9753abb944424654056f0b30b794ac8b5a004cd8517e9c1a59e78fb",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 3,
+          "wall_ms": 22.807167,
+          "cpu_ms": 7.606,
+          "sha256": "620952549c2690310188fdcef755d0922a53525de869f0b0ff93977a030dc954",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 4,
+          "wall_ms": 22.228833,
+          "cpu_ms": 7.394292,
+          "sha256": "b897a39e7ec2ad2f715fbd0e04e74ff90c7bfc6ed90928055c216f6b40cb75e4",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 5,
+          "wall_ms": 25.292458,
+          "cpu_ms": 8.935125,
+          "sha256": "572e2a2e06de1737d449f10395326fc200d7069890077734347f1f1107cc4928",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 6,
+          "wall_ms": 21.5505,
+          "cpu_ms": 7.577875,
+          "sha256": "a6bf70d8586ee8d46bc2619ea94f2bad822a285ae691ceefc89f6ff4c3b28a3f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 7,
+          "wall_ms": 20.394083,
+          "cpu_ms": 7.469291,
+          "sha256": "8834567db894c4935e9d74d2087aff8da1f04fe72cfcb29ca385c3a751ac8c7e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 8,
+          "wall_ms": 21.598709,
+          "cpu_ms": 7.515667,
+          "sha256": "852a9166c16ff5c0beea671185365526d982d228adf914cdc8dc145a5af72bc3",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 9,
+          "wall_ms": 21.367292,
+          "cpu_ms": 8.021083,
+          "sha256": "ee9f42f2b0cb1a5f9640648f70b693c412ff6eb66af07a72cc413fcbf01d5ac8",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 10,
+          "wall_ms": 23.235667,
+          "cpu_ms": 7.503083,
+          "sha256": "63d0c7b703b105d596528862e258c65782358f520c60d01a409ca50727b1e45e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 11,
+          "wall_ms": 28.188542,
+          "cpu_ms": 15.185083,
+          "sha256": "9f69e5276693d5b84f87cf55bc433f5aac1491a2f9d89e50e7fa8c72d7a10378",
+          "candidate_count": 31
+        }
+      ]
+    },
+    {
+      "phase": "before",
+      "kind": "eight_brains",
+      "p95_ms": 139.187708,
+      "cpu_ms": 1106.194915,
+      "results": [
+        {
+          "brain": 0,
+          "query": 0,
+          "wall_ms": 23.362875,
+          "cpu_ms": 8.550208,
+          "sha256": "6f144c1cd6a3e9b34b326ea77c5e9d1f7a7102cba5c96b713bf25b7e2c3df987",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 1,
+          "wall_ms": 38.792125,
+          "cpu_ms": 9.450084,
+          "sha256": "1446a96ecf5a4432360d3903158f1854562f61ce5f8e74c842982871e30c4d98",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 2,
+          "wall_ms": 59.395666,
+          "cpu_ms": 9.192625,
+          "sha256": "7ad00c84b9753abb944424654056f0b30b794ac8b5a004cd8517e9c1a59e78fb",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 3,
+          "wall_ms": 113.582083,
+          "cpu_ms": 10.68875,
+          "sha256": "620952549c2690310188fdcef755d0922a53525de869f0b0ff93977a030dc954",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 4,
+          "wall_ms": 78.083792,
+          "cpu_ms": 10.30525,
+          "sha256": "b897a39e7ec2ad2f715fbd0e04e74ff90c7bfc6ed90928055c216f6b40cb75e4",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 5,
+          "wall_ms": 99.683416,
+          "cpu_ms": 14.0405,
+          "sha256": "572e2a2e06de1737d449f10395326fc200d7069890077734347f1f1107cc4928",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 6,
+          "wall_ms": 109.376084,
+          "cpu_ms": 12.359125,
+          "sha256": "a6bf70d8586ee8d46bc2619ea94f2bad822a285ae691ceefc89f6ff4c3b28a3f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 7,
+          "wall_ms": 89.243292,
+          "cpu_ms": 10.944291,
+          "sha256": "8834567db894c4935e9d74d2087aff8da1f04fe72cfcb29ca385c3a751ac8c7e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 8,
+          "wall_ms": 93.581708,
+          "cpu_ms": 10.708375,
+          "sha256": "852a9166c16ff5c0beea671185365526d982d228adf914cdc8dc145a5af72bc3",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 9,
+          "wall_ms": 101.114667,
+          "cpu_ms": 11.7765,
+          "sha256": "ee9f42f2b0cb1a5f9640648f70b693c412ff6eb66af07a72cc413fcbf01d5ac8",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 10,
+          "wall_ms": 114.890959,
+          "cpu_ms": 11.217917,
+          "sha256": "63d0c7b703b105d596528862e258c65782358f520c60d01a409ca50727b1e45e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 11,
+          "wall_ms": 89.851875,
+          "cpu_ms": 10.605125,
+          "sha256": "9f69e5276693d5b84f87cf55bc433f5aac1491a2f9d89e50e7fa8c72d7a10378",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 0,
+          "wall_ms": 112.438625,
+          "cpu_ms": 9.488333,
+          "sha256": "a420332eb641ec5d0b12c34a2f5b15c690baf0af995291649bb4390c99491fe3",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 1,
+          "wall_ms": 102.260458,
+          "cpu_ms": 11.146917,
+          "sha256": "41d301c75c2efd7a1a6aeede11df59118d17ee1a13ec2be80c00ae450f7736ee",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 2,
+          "wall_ms": 94.342959,
+          "cpu_ms": 13.360125,
+          "sha256": "674b0bc2bf6406fc2e6cd749adb873e212d1534c3af9d84be20afb028d465d3a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 3,
+          "wall_ms": 105.9975,
+          "cpu_ms": 11.124667,
+          "sha256": "defb1eb10c3ecd4ac733adc8217968da240c339c87951b57e914be19537846d1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 4,
+          "wall_ms": 120.128625,
+          "cpu_ms": 11.498375,
+          "sha256": "80241cd86ef39f0655e43ee18577a175cb4c61d80e845cb0421b9189eac46b7a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 5,
+          "wall_ms": 111.068625,
+          "cpu_ms": 12.140417,
+          "sha256": "44679755cfb582c313cdabdb9220035bd79e3a495f5c35f88f14d4dd2d9c22b5",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 6,
+          "wall_ms": 84.617917,
+          "cpu_ms": 11.043917,
+          "sha256": "d9ce47e44b931fc2f654c247fc102c5198c151650f95bdd350e2e955444c207d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 7,
+          "wall_ms": 90.113834,
+          "cpu_ms": 11.226,
+          "sha256": "b0f2237b39fd22db6105620f8d48c68bd3f978bbf448639942f20c2edfeb1713",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 8,
+          "wall_ms": 117.041958,
+          "cpu_ms": 12.108167,
+          "sha256": "6523222dea379626062feeea09117b26a9fad18384cd067b0285de29f1b15894",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 9,
+          "wall_ms": 94.542417,
+          "cpu_ms": 11.060542,
+          "sha256": "6e461c69cc6a02ada9bcfd8ac86a719f3a511db44636586d1e63e110f4770737",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 10,
+          "wall_ms": 89.551625,
+          "cpu_ms": 10.746458,
+          "sha256": "60db31f13c76b69bb50ec8a69d6a1e789f7313aaf2eb9340f0c4d1acef7e96b6",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 11,
+          "wall_ms": 67.083167,
+          "cpu_ms": 9.8005,
+          "sha256": "db1a6925442a5e41e61fe5584f74f58309158f6fc89443acc4596becd1eda95f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 0,
+          "wall_ms": 124.687542,
+          "cpu_ms": 9.668833,
+          "sha256": "fb476a432d441f374257b5542f46907a63a662e3cf942f9c143370f470d6f1aa",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 1,
+          "wall_ms": 111.987416,
+          "cpu_ms": 10.995708,
+          "sha256": "cb7f6b4d9349f56ac954a734ec166145bdbf31809b844bdcbdf1de329518a8e4",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 2,
+          "wall_ms": 123.179542,
+          "cpu_ms": 11.900292,
+          "sha256": "35113098c46702a4ee71fbf779f113e3f3f72d9069fd29df82a2ed9933c22df7",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 3,
+          "wall_ms": 109.958416,
+          "cpu_ms": 10.518375,
+          "sha256": "005a21c1c7ba29eff016e843d2034cb8b03549aa680d4791312b14c53b283216",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 4,
+          "wall_ms": 100.034583,
+          "cpu_ms": 11.300417,
+          "sha256": "dde7f423c31cc43b6a7a0528f8c2f8513ae3d311833b5a6d73174afc03426519",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 5,
+          "wall_ms": 121.3985,
+          "cpu_ms": 12.764125,
+          "sha256": "09ccb88047c8478bf6fca121c328c2139e5fd9659a62a4aa936afa854c66b005",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 6,
+          "wall_ms": 83.739417,
+          "cpu_ms": 10.6385,
+          "sha256": "6e047564d6d1c48c3cc7fa825a261c78d2b3c58abb994463d7407900b450ba74",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 7,
+          "wall_ms": 102.62025,
+          "cpu_ms": 12.01775,
+          "sha256": "8692a3a83c9a338c251ea1cc39b2575152a04ad808d1886865bcdeafef7ad0de",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 8,
+          "wall_ms": 111.576958,
+          "cpu_ms": 11.217708,
+          "sha256": "f6c94adbcebca1c49e744e74c9cb3ee86122a925f3faa90799eeefe579705a13",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 9,
+          "wall_ms": 98.370917,
+          "cpu_ms": 10.996375,
+          "sha256": "8f0a3c0f0b512f84b4bd93b94eef4299c408f2f3ab790bd43d05ce25372c0fca",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 10,
+          "wall_ms": 73.190375,
+          "cpu_ms": 9.686125,
+          "sha256": "26ce3c1f53c322940592e93e9d7b5164670ca1088e20c6d4b5be95856d0200f5",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 11,
+          "wall_ms": 68.706125,
+          "cpu_ms": 9.655875,
+          "sha256": "4ed31f69ca80960f8b8c476bd35cebaea4e354c8413618655bd42850bc3bd876",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 0,
+          "wall_ms": 139.187708,
+          "cpu_ms": 10.574625,
+          "sha256": "9dde2a2c2702efe176fd368dded60399d2f09428ace58c38ab6399f7ab2d6322",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 1,
+          "wall_ms": 107.926166,
+          "cpu_ms": 10.686625,
+          "sha256": "08e7e3a92e5058f61263ab833c89db8355376cb3980f0b0f10948f457182b077",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 2,
+          "wall_ms": 100.0965,
+          "cpu_ms": 12.389542,
+          "sha256": "c4833f5d2a8d3e04c6a727a15a3a14722cbfd691841a5bc9be0491e3c4fdecea",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 3,
+          "wall_ms": 110.969375,
+          "cpu_ms": 11.070916,
+          "sha256": "05f3c35ca5c333fdd0131ccc4b2b0cfecdb2d3f93d8c015d372821b4292b1215",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 4,
+          "wall_ms": 91.5935,
+          "cpu_ms": 10.81175,
+          "sha256": "342de50d0c3164d075de9a3d7212d8bab8110181fa990749254c05c788402d1a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 5,
+          "wall_ms": 119.521833,
+          "cpu_ms": 12.941125,
+          "sha256": "ac05f43995ed24569b5d06c4373a4fd50ae92035cb025a11fe236a03dd5128a8",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 6,
+          "wall_ms": 95.501625,
+          "cpu_ms": 11.699167,
+          "sha256": "0be0052cb216cc0c6b4b4124a60fd57401f0673608aa335311428761981446f6",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 7,
+          "wall_ms": 110.927625,
+          "cpu_ms": 25.308083,
+          "sha256": "55b2b18866798afd96752f03b0d28a627142a7e059b43c7f1ffeffc33b2c5b47",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 8,
+          "wall_ms": 94.670458,
+          "cpu_ms": 11.195209,
+          "sha256": "cc718aae2bf75719b14ea0c444a0b473fd3b2fa8fa6a71ad9ecc851d89d8cf4a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 9,
+          "wall_ms": 100.152625,
+          "cpu_ms": 10.914042,
+          "sha256": "ce910037ba00670bb7b901cbd00cdb500f5b0cfb252f700efcc24080850481be",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 10,
+          "wall_ms": 71.610417,
+          "cpu_ms": 10.155666,
+          "sha256": "9d3d71e3664636d6f93e57e7b1892328d2de8017d36df94eeadeabf79f5ece61",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 11,
+          "wall_ms": 83.147084,
+          "cpu_ms": 10.906084,
+          "sha256": "15994e8e8f62971628e3443d5c161e6317f77ad82499e18e1b9f17967d9a185f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 0,
+          "wall_ms": 142.951209,
+          "cpu_ms": 8.743583,
+          "sha256": "ab03fe22a2a4a1b324be80638f1f032f370776d522e4b36e6a9b69163a563b26",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 1,
+          "wall_ms": 113.60825,
+          "cpu_ms": 10.194209,
+          "sha256": "f33862f581efce4eb0badf747096640f2d484df1ba3442818224780a1728fa8e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 2,
+          "wall_ms": 96.543958,
+          "cpu_ms": 11.247042,
+          "sha256": "3d51290f18bc10aaa753e3fcd6ec0d8cbe865f52f4a9865c16bdfa966e6445a9",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 3,
+          "wall_ms": 106.6355,
+          "cpu_ms": 10.449333,
+          "sha256": "e7069abfbc56a5191937a0f2971ea1b08e266a9f4be34f7a42c38c54f4626634",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 4,
+          "wall_ms": 86.763125,
+          "cpu_ms": 10.538834,
+          "sha256": "44ee5bc8070094bbfad4be44ac480289b3593f31bcc45e2f7dfe459296aba0e1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 5,
+          "wall_ms": 112.552167,
+          "cpu_ms": 12.301917,
+          "sha256": "93666bca25d7c2dfd9ca68668f7095eccbf36163943787b3e2a6a57bdf6fa6bd",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 6,
+          "wall_ms": 88.439541,
+          "cpu_ms": 11.20725,
+          "sha256": "a2ccba8c2fc5bf6198fcfbc66761abc2332f336b0a55c4cc54134938bb3e335e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 7,
+          "wall_ms": 87.021375,
+          "cpu_ms": 11.107917,
+          "sha256": "e26a0905957c5b57a88c5f7e35124460b00315f11ff05c3c712baadf1b31f9be",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 8,
+          "wall_ms": 113.384459,
+          "cpu_ms": 11.42625,
+          "sha256": "ccfed60d1b60afe125771d95357c8951b28bf63b78a26e689dffe482546b4234",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 9,
+          "wall_ms": 97.007833,
+          "cpu_ms": 11.688375,
+          "sha256": "55ff2eb9ff9ecf45b4cf021994355c7f7f5976023e290d9354f534b70cd09b40",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 10,
+          "wall_ms": 85.899375,
+          "cpu_ms": 10.234083,
+          "sha256": "9426f0ec925945099e56ebd3bc22006796d2fb83a036a0964919cc497811033a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 11,
+          "wall_ms": 93.662542,
+          "cpu_ms": 10.446041,
+          "sha256": "e0280b59e5bbf44ae4ddc8ddbcba2d533e08509064e574be37a22c8b452022e4",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 0,
+          "wall_ms": 165.862,
+          "cpu_ms": 9.462458,
+          "sha256": "6b27b6ebdcd6a291efa57ed9c5555f52fce986b8eb9656660d5516295e6e312e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 1,
+          "wall_ms": 116.021333,
+          "cpu_ms": 11.295334,
+          "sha256": "25c6d73733133629d367cb22f2d2fd01440dbe7cf984de8cfccd28e9bfcdff1a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 2,
+          "wall_ms": 104.44225,
+          "cpu_ms": 11.467584,
+          "sha256": "6d907ba705ff42497d7917ec59e9e6a3cf2ce50cf0999b999d5db929b12c9ce0",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 3,
+          "wall_ms": 106.051042,
+          "cpu_ms": 21.252375,
+          "sha256": "7051af943f7082fd9a174951daddfad5b377963a0c8be2d73eafd6e9d45165e3",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 4,
+          "wall_ms": 89.112292,
+          "cpu_ms": 10.573,
+          "sha256": "c6a458549ba865de83c1244d5968c8e742278d43c3f8dc24e8a8f625ce1460b7",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 5,
+          "wall_ms": 127.699417,
+          "cpu_ms": 12.523875,
+          "sha256": "406fe99b68d7d67bca52b3fe1ace5c173e96f192cb751343d482d252bc90621a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 6,
+          "wall_ms": 95.577334,
+          "cpu_ms": 10.844917,
+          "sha256": "07d19c8a3dd9b5d5fc624ebfc67a05757e7888e22e8dfb851e72f5c30068485d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 7,
+          "wall_ms": 108.796291,
+          "cpu_ms": 10.900208,
+          "sha256": "d9815e4f5a8e0be9aff5bf21461ef2b3acf4ac69a46fdc3a8cd18c42614d5a76",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 8,
+          "wall_ms": 94.070625,
+          "cpu_ms": 11.572125,
+          "sha256": "de295fc5bcdb3d41f116c7943b7626f058b91da8767ace6fefe2f0ad9c7bc87b",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 9,
+          "wall_ms": 93.171208,
+          "cpu_ms": 10.007042,
+          "sha256": "0f8808b25a64b14c4ad0c8532987826e51221f4ec160a4427a046fc4168ed06b",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 10,
+          "wall_ms": 70.183833,
+          "cpu_ms": 10.066,
+          "sha256": "6adad83cbc091b4cd4e41c89bc5749b00fc8b5c3c9a48c61dab7cd1418234dc6",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 11,
+          "wall_ms": 64.926333,
+          "cpu_ms": 8.601,
+          "sha256": "d20d1dcc0925bb7ad3d676d9190e1c68ed3073b108397345d4480133b14056c7",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 0,
+          "wall_ms": 157.959375,
+          "cpu_ms": 10.825583,
+          "sha256": "da6c18f625d12917f9291f3e689100c4731c660a39c6cc72c82f7e54320aff9e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 1,
+          "wall_ms": 92.206166,
+          "cpu_ms": 10.923875,
+          "sha256": "ac7ebd193f77042e36242a64f2bf79140935f15d739d5ddd60f9a7687ffc09b1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 2,
+          "wall_ms": 87.762209,
+          "cpu_ms": 11.594166,
+          "sha256": "dc954000ada2c796264b3704b8bce7f11bfd549f56d78b0cacd1f8e4c41946e5",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 3,
+          "wall_ms": 98.824334,
+          "cpu_ms": 11.010291,
+          "sha256": "ddc9eca7b03bb9dc60d2c038045d79921758fdca0313e0f10d5b9e4bc6d575e1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 4,
+          "wall_ms": 76.650084,
+          "cpu_ms": 10.344834,
+          "sha256": "87012bf523f923b127a93f642740281d873862b871e0213447180afe15a95144",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 5,
+          "wall_ms": 70.942125,
+          "cpu_ms": 11.757,
+          "sha256": "2cfce2591bbc0b4978b39e75eb88296e82b03519f7563ca63c4ac8a54d5d2d85",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 6,
+          "wall_ms": 95.961458,
+          "cpu_ms": 22.622916,
+          "sha256": "5549a2db3873d5bc3d903e9710e013418cf0bff2e7fb130685f4bdbdd190635f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 7,
+          "wall_ms": 112.1995,
+          "cpu_ms": 11.313041,
+          "sha256": "3277835a21d9552295c262b77079a4deb91c7b2237823c05871d9d0f5477706b",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 8,
+          "wall_ms": 109.062959,
+          "cpu_ms": 12.746167,
+          "sha256": "b5e9c15bfda7abc15b544e8f2fb158879abf455e8959aea3cd652bd4d09abe80",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 9,
+          "wall_ms": 96.904375,
+          "cpu_ms": 11.085708,
+          "sha256": "0717f29f03e33245fcd1f3422ec995018bcf0f5918985d6a502d7b5529627926",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 10,
+          "wall_ms": 82.37675,
+          "cpu_ms": 21.182208,
+          "sha256": "30550c743f654bc4cd54d95d8e27bf38780d0ebeab7ee8a04222d2aad785e17d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 11,
+          "wall_ms": 88.44575,
+          "cpu_ms": 11.321958,
+          "sha256": "d502a608e97f8dc130fa606a806a7bc8a5c6dfe868c88a9f2e7599cb92bdd22a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 0,
+          "wall_ms": 186.085833,
+          "cpu_ms": 11.55675,
+          "sha256": "501ffa17dfe84c4320d1289016195aa730391f1bdf868749b0095ad178ae22cd",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 1,
+          "wall_ms": 122.378167,
+          "cpu_ms": 14.4865,
+          "sha256": "174337395f6aae50fa999db0dcc43a5778a798f7292701f4c65ec5d0bf0351b8",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 2,
+          "wall_ms": 110.524833,
+          "cpu_ms": 13.399167,
+          "sha256": "492e976c027ec0213ec53a8ab2b893a0e87c63b267cdbe97632489bf058610f1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 3,
+          "wall_ms": 90.878958,
+          "cpu_ms": 12.066458,
+          "sha256": "db2ff9ab822772b00df684ed1ac8b03674cf44151e06b5c30b6dba6803ded6ab",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 4,
+          "wall_ms": 94.248375,
+          "cpu_ms": 11.493333,
+          "sha256": "4bae42f8ec96a0750dc292cccaf70f6e90439094cb57b0dee24832d04f8f8713",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 5,
+          "wall_ms": 123.432042,
+          "cpu_ms": 12.195333,
+          "sha256": "4bb0bb0a9d9a0bc519adf360c3d4b3059578b0b939d712dd77681b02af6ecb52",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 6,
+          "wall_ms": 84.160833,
+          "cpu_ms": 10.856375,
+          "sha256": "ddcd587a68d85b4f1ec74f7e67974f7cd74671b070a555c074bd9e1328f86a8d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 7,
+          "wall_ms": 118.719416,
+          "cpu_ms": 11.621583,
+          "sha256": "867769c7239e011ce3c4371194457a497e3fffbae46dc3d1fcc8507ed89cdaec",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 8,
+          "wall_ms": 90.512,
+          "cpu_ms": 10.539541,
+          "sha256": "b09ea3d66ae2f7058a61f4afbd4ba3e23ca58b6900e243af5667cf2c842a9f0d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 9,
+          "wall_ms": 98.038125,
+          "cpu_ms": 10.163333,
+          "sha256": "b6fefa3d6b1604ab9cdf3ce9b4a25f6bca3f256eb80ccc02ed6e3fadb2aa6902",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 10,
+          "wall_ms": 101.973042,
+          "cpu_ms": 10.624583,
+          "sha256": "c2d1ca8c4950c4bc53eee9132f0529992d66b33c9a38e6c04a9a89c09b0f3e05",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 11,
+          "wall_ms": 33.662833,
+          "cpu_ms": 7.717375,
+          "sha256": "1bbc543b0ffa35982c9feeb69e47e1f9bb4690c2b3938461adf5f2512103d510",
+          "candidate_count": 31
+        }
+      ]
+    },
+    {
+      "phase": "after",
+      "kind": "serial",
+      "p95_ms": 23.696084,
+      "cpu_ms": 99.196375,
+      "results": [
+        {
+          "brain": 0,
+          "query": 0,
+          "wall_ms": 20.869583,
+          "cpu_ms": 7.464583,
+          "sha256": "6f144c1cd6a3e9b34b326ea77c5e9d1f7a7102cba5c96b713bf25b7e2c3df987",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 1,
+          "wall_ms": 21.581916,
+          "cpu_ms": 7.999792,
+          "sha256": "1446a96ecf5a4432360d3903158f1854562f61ce5f8e74c842982871e30c4d98",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 2,
+          "wall_ms": 22.571459,
+          "cpu_ms": 8.579625,
+          "sha256": "7ad00c84b9753abb944424654056f0b30b794ac8b5a004cd8517e9c1a59e78fb",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 3,
+          "wall_ms": 23.696084,
+          "cpu_ms": 8.5115,
+          "sha256": "620952549c2690310188fdcef755d0922a53525de869f0b0ff93977a030dc954",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 4,
+          "wall_ms": 22.175625,
+          "cpu_ms": 8.282541,
+          "sha256": "b897a39e7ec2ad2f715fbd0e04e74ff90c7bfc6ed90928055c216f6b40cb75e4",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 5,
+          "wall_ms": 21.97525,
+          "cpu_ms": 8.297792,
+          "sha256": "572e2a2e06de1737d449f10395326fc200d7069890077734347f1f1107cc4928",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 6,
+          "wall_ms": 21.498333,
+          "cpu_ms": 8.009459,
+          "sha256": "a6bf70d8586ee8d46bc2619ea94f2bad822a285ae691ceefc89f6ff4c3b28a3f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 7,
+          "wall_ms": 22.682459,
+          "cpu_ms": 8.488708,
+          "sha256": "8834567db894c4935e9d74d2087aff8da1f04fe72cfcb29ca385c3a751ac8c7e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 8,
+          "wall_ms": 22.64425,
+          "cpu_ms": 8.554083,
+          "sha256": "852a9166c16ff5c0beea671185365526d982d228adf914cdc8dc145a5af72bc3",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 9,
+          "wall_ms": 22.38075,
+          "cpu_ms": 8.441917,
+          "sha256": "ee9f42f2b0cb1a5f9640648f70b693c412ff6eb66af07a72cc413fcbf01d5ac8",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 10,
+          "wall_ms": 23.218083,
+          "cpu_ms": 8.468667,
+          "sha256": "63d0c7b703b105d596528862e258c65782358f520c60d01a409ca50727b1e45e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 11,
+          "wall_ms": 21.748666,
+          "cpu_ms": 8.097708,
+          "sha256": "9f69e5276693d5b84f87cf55bc433f5aac1491a2f9d89e50e7fa8c72d7a10378",
+          "candidate_count": 31
+        }
+      ]
+    },
+    {
+      "phase": "after",
+      "kind": "eight_brains",
+      "p95_ms": 140.23125,
+      "cpu_ms": 1140.329421,
+      "results": [
+        {
+          "brain": 0,
+          "query": 0,
+          "wall_ms": 116.128334,
+          "cpu_ms": 12.794833,
+          "sha256": "6f144c1cd6a3e9b34b326ea77c5e9d1f7a7102cba5c96b713bf25b7e2c3df987",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 1,
+          "wall_ms": 92.694041,
+          "cpu_ms": 13.782708,
+          "sha256": "1446a96ecf5a4432360d3903158f1854562f61ce5f8e74c842982871e30c4d98",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 2,
+          "wall_ms": 85.164791,
+          "cpu_ms": 13.777417,
+          "sha256": "7ad00c84b9753abb944424654056f0b30b794ac8b5a004cd8517e9c1a59e78fb",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 3,
+          "wall_ms": 104.866208,
+          "cpu_ms": 10.897792,
+          "sha256": "620952549c2690310188fdcef755d0922a53525de869f0b0ff93977a030dc954",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 4,
+          "wall_ms": 125.721334,
+          "cpu_ms": 10.813208,
+          "sha256": "b897a39e7ec2ad2f715fbd0e04e74ff90c7bfc6ed90928055c216f6b40cb75e4",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 5,
+          "wall_ms": 110.695625,
+          "cpu_ms": 12.553625,
+          "sha256": "572e2a2e06de1737d449f10395326fc200d7069890077734347f1f1107cc4928",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 6,
+          "wall_ms": 108.397917,
+          "cpu_ms": 10.980125,
+          "sha256": "a6bf70d8586ee8d46bc2619ea94f2bad822a285ae691ceefc89f6ff4c3b28a3f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 7,
+          "wall_ms": 95.392916,
+          "cpu_ms": 10.737292,
+          "sha256": "8834567db894c4935e9d74d2087aff8da1f04fe72cfcb29ca385c3a751ac8c7e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 8,
+          "wall_ms": 94.506334,
+          "cpu_ms": 10.541459,
+          "sha256": "852a9166c16ff5c0beea671185365526d982d228adf914cdc8dc145a5af72bc3",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 9,
+          "wall_ms": 92.261292,
+          "cpu_ms": 11.119458,
+          "sha256": "ee9f42f2b0cb1a5f9640648f70b693c412ff6eb66af07a72cc413fcbf01d5ac8",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 10,
+          "wall_ms": 101.595834,
+          "cpu_ms": 11.798667,
+          "sha256": "63d0c7b703b105d596528862e258c65782358f520c60d01a409ca50727b1e45e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 11,
+          "wall_ms": 213.121333,
+          "cpu_ms": 23.437917,
+          "sha256": "9f69e5276693d5b84f87cf55bc433f5aac1491a2f9d89e50e7fa8c72d7a10378",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 0,
+          "wall_ms": 94.10725,
+          "cpu_ms": 11.818125,
+          "sha256": "a420332eb641ec5d0b12c34a2f5b15c690baf0af995291649bb4390c99491fe3",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 1,
+          "wall_ms": 94.495041,
+          "cpu_ms": 10.946375,
+          "sha256": "41d301c75c2efd7a1a6aeede11df59118d17ee1a13ec2be80c00ae450f7736ee",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 2,
+          "wall_ms": 102.282709,
+          "cpu_ms": 11.065542,
+          "sha256": "674b0bc2bf6406fc2e6cd749adb873e212d1534c3af9d84be20afb028d465d3a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 3,
+          "wall_ms": 87.046959,
+          "cpu_ms": 10.115667,
+          "sha256": "defb1eb10c3ecd4ac733adc8217968da240c339c87951b57e914be19537846d1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 4,
+          "wall_ms": 105.53175,
+          "cpu_ms": 11.497584,
+          "sha256": "80241cd86ef39f0655e43ee18577a175cb4c61d80e845cb0421b9189eac46b7a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 5,
+          "wall_ms": 104.324833,
+          "cpu_ms": 11.784667,
+          "sha256": "44679755cfb582c313cdabdb9220035bd79e3a495f5c35f88f14d4dd2d9c22b5",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 6,
+          "wall_ms": 106.916416,
+          "cpu_ms": 11.766292,
+          "sha256": "d9ce47e44b931fc2f654c247fc102c5198c151650f95bdd350e2e955444c207d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 7,
+          "wall_ms": 115.482958,
+          "cpu_ms": 11.054833,
+          "sha256": "b0f2237b39fd22db6105620f8d48c68bd3f978bbf448639942f20c2edfeb1713",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 8,
+          "wall_ms": 93.665375,
+          "cpu_ms": 11.125792,
+          "sha256": "6523222dea379626062feeea09117b26a9fad18384cd067b0285de29f1b15894",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 9,
+          "wall_ms": 93.927334,
+          "cpu_ms": 10.739958,
+          "sha256": "6e461c69cc6a02ada9bcfd8ac86a719f3a511db44636586d1e63e110f4770737",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 10,
+          "wall_ms": 91.672042,
+          "cpu_ms": 10.921625,
+          "sha256": "60db31f13c76b69bb50ec8a69d6a1e789f7313aaf2eb9340f0c4d1acef7e96b6",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 11,
+          "wall_ms": 111.4525,
+          "cpu_ms": 11.4035,
+          "sha256": "db1a6925442a5e41e61fe5584f74f58309158f6fc89443acc4596becd1eda95f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 0,
+          "wall_ms": 140.23125,
+          "cpu_ms": 11.974791,
+          "sha256": "fb476a432d441f374257b5542f46907a63a662e3cf942f9c143370f470d6f1aa",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 1,
+          "wall_ms": 86.864916,
+          "cpu_ms": 10.170041,
+          "sha256": "cb7f6b4d9349f56ac954a734ec166145bdbf31809b844bdcbdf1de329518a8e4",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 2,
+          "wall_ms": 110.717792,
+          "cpu_ms": 10.851583,
+          "sha256": "35113098c46702a4ee71fbf779f113e3f3f72d9069fd29df82a2ed9933c22df7",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 3,
+          "wall_ms": 89.61825,
+          "cpu_ms": 10.555,
+          "sha256": "005a21c1c7ba29eff016e843d2034cb8b03549aa680d4791312b14c53b283216",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 4,
+          "wall_ms": 129.100084,
+          "cpu_ms": 12.077667,
+          "sha256": "dde7f423c31cc43b6a7a0528f8c2f8513ae3d311833b5a6d73174afc03426519",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 5,
+          "wall_ms": 119.045083,
+          "cpu_ms": 12.348584,
+          "sha256": "09ccb88047c8478bf6fca121c328c2139e5fd9659a62a4aa936afa854c66b005",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 6,
+          "wall_ms": 90.807333,
+          "cpu_ms": 10.67025,
+          "sha256": "6e047564d6d1c48c3cc7fa825a261c78d2b3c58abb994463d7407900b450ba74",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 7,
+          "wall_ms": 95.072333,
+          "cpu_ms": 10.63525,
+          "sha256": "8692a3a83c9a338c251ea1cc39b2575152a04ad808d1886865bcdeafef7ad0de",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 8,
+          "wall_ms": 97.122125,
+          "cpu_ms": 11.130167,
+          "sha256": "f6c94adbcebca1c49e744e74c9cb3ee86122a925f3faa90799eeefe579705a13",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 9,
+          "wall_ms": 95.527959,
+          "cpu_ms": 11.266542,
+          "sha256": "8f0a3c0f0b512f84b4bd93b94eef4299c408f2f3ab790bd43d05ce25372c0fca",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 10,
+          "wall_ms": 100.4,
+          "cpu_ms": 11.8055,
+          "sha256": "26ce3c1f53c322940592e93e9d7b5164670ca1088e20c6d4b5be95856d0200f5",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 11,
+          "wall_ms": 202.945834,
+          "cpu_ms": 23.257917,
+          "sha256": "4ed31f69ca80960f8b8c476bd35cebaea4e354c8413618655bd42850bc3bd876",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 0,
+          "wall_ms": 109.07625,
+          "cpu_ms": 13.932666,
+          "sha256": "9dde2a2c2702efe176fd368dded60399d2f09428ace58c38ab6399f7ab2d6322",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 1,
+          "wall_ms": 87.423792,
+          "cpu_ms": 10.653833,
+          "sha256": "08e7e3a92e5058f61263ab833c89db8355376cb3980f0b0f10948f457182b077",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 2,
+          "wall_ms": 96.916834,
+          "cpu_ms": 10.382125,
+          "sha256": "c4833f5d2a8d3e04c6a727a15a3a14722cbfd691841a5bc9be0491e3c4fdecea",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 3,
+          "wall_ms": 81.68825,
+          "cpu_ms": 10.620708,
+          "sha256": "05f3c35ca5c333fdd0131ccc4b2b0cfecdb2d3f93d8c015d372821b4292b1215",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 4,
+          "wall_ms": 66.5065,
+          "cpu_ms": 13.535042,
+          "sha256": "342de50d0c3164d075de9a3d7212d8bab8110181fa990749254c05c788402d1a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 5,
+          "wall_ms": 100.935708,
+          "cpu_ms": 11.294958,
+          "sha256": "ac05f43995ed24569b5d06c4373a4fd50ae92035cb025a11fe236a03dd5128a8",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 6,
+          "wall_ms": 119.211917,
+          "cpu_ms": 12.403417,
+          "sha256": "0be0052cb216cc0c6b4b4124a60fd57401f0673608aa335311428761981446f6",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 7,
+          "wall_ms": 93.932459,
+          "cpu_ms": 10.912791,
+          "sha256": "55b2b18866798afd96752f03b0d28a627142a7e059b43c7f1ffeffc33b2c5b47",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 8,
+          "wall_ms": 102.832458,
+          "cpu_ms": 10.715333,
+          "sha256": "cc718aae2bf75719b14ea0c444a0b473fd3b2fa8fa6a71ad9ecc851d89d8cf4a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 9,
+          "wall_ms": 99.811541,
+          "cpu_ms": 11.1085,
+          "sha256": "ce910037ba00670bb7b901cbd00cdb500f5b0cfb252f700efcc24080850481be",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 10,
+          "wall_ms": 105.250416,
+          "cpu_ms": 10.556167,
+          "sha256": "9d3d71e3664636d6f93e57e7b1892328d2de8017d36df94eeadeabf79f5ece61",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 11,
+          "wall_ms": 90.548083,
+          "cpu_ms": 10.50875,
+          "sha256": "15994e8e8f62971628e3443d5c161e6317f77ad82499e18e1b9f17967d9a185f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 0,
+          "wall_ms": 136.458667,
+          "cpu_ms": 13.279417,
+          "sha256": "ab03fe22a2a4a1b324be80638f1f032f370776d522e4b36e6a9b69163a563b26",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 1,
+          "wall_ms": 79.401083,
+          "cpu_ms": 9.842125,
+          "sha256": "f33862f581efce4eb0badf747096640f2d484df1ba3442818224780a1728fa8e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 2,
+          "wall_ms": 106.283291,
+          "cpu_ms": 10.713417,
+          "sha256": "3d51290f18bc10aaa753e3fcd6ec0d8cbe865f52f4a9865c16bdfa966e6445a9",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 3,
+          "wall_ms": 82.964834,
+          "cpu_ms": 9.764583,
+          "sha256": "e7069abfbc56a5191937a0f2971ea1b08e266a9f4be34f7a42c38c54f4626634",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 4,
+          "wall_ms": 105.332917,
+          "cpu_ms": 10.331958,
+          "sha256": "44ee5bc8070094bbfad4be44ac480289b3593f31bcc45e2f7dfe459296aba0e1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 5,
+          "wall_ms": 103.79225,
+          "cpu_ms": 15.22275,
+          "sha256": "93666bca25d7c2dfd9ca68668f7095eccbf36163943787b3e2a6a57bdf6fa6bd",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 6,
+          "wall_ms": 86.465292,
+          "cpu_ms": 10.087208,
+          "sha256": "a2ccba8c2fc5bf6198fcfbc66761abc2332f336b0a55c4cc54134938bb3e335e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 7,
+          "wall_ms": 100.879833,
+          "cpu_ms": 11.161875,
+          "sha256": "e26a0905957c5b57a88c5f7e35124460b00315f11ff05c3c712baadf1b31f9be",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 8,
+          "wall_ms": 90.712792,
+          "cpu_ms": 10.187625,
+          "sha256": "ccfed60d1b60afe125771d95357c8951b28bf63b78a26e689dffe482546b4234",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 9,
+          "wall_ms": 104.00575,
+          "cpu_ms": 10.967166,
+          "sha256": "55ff2eb9ff9ecf45b4cf021994355c7f7f5976023e290d9354f534b70cd09b40",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 10,
+          "wall_ms": 99.571125,
+          "cpu_ms": 11.182792,
+          "sha256": "9426f0ec925945099e56ebd3bc22006796d2fb83a036a0964919cc497811033a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 11,
+          "wall_ms": 104.582791,
+          "cpu_ms": 10.881292,
+          "sha256": "e0280b59e5bbf44ae4ddc8ddbcba2d533e08509064e574be37a22c8b452022e4",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 0,
+          "wall_ms": 142.898625,
+          "cpu_ms": 26.989667,
+          "sha256": "6b27b6ebdcd6a291efa57ed9c5555f52fce986b8eb9656660d5516295e6e312e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 1,
+          "wall_ms": 88.7315,
+          "cpu_ms": 10.352,
+          "sha256": "25c6d73733133629d367cb22f2d2fd01440dbe7cf984de8cfccd28e9bfcdff1a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 2,
+          "wall_ms": 88.43425,
+          "cpu_ms": 10.020584,
+          "sha256": "6d907ba705ff42497d7917ec59e9e6a3cf2ce50cf0999b999d5db929b12c9ce0",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 3,
+          "wall_ms": 100.196709,
+          "cpu_ms": 10.786541,
+          "sha256": "7051af943f7082fd9a174951daddfad5b377963a0c8be2d73eafd6e9d45165e3",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 4,
+          "wall_ms": 110.866875,
+          "cpu_ms": 10.917875,
+          "sha256": "c6a458549ba865de83c1244d5968c8e742278d43c3f8dc24e8a8f625ce1460b7",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 5,
+          "wall_ms": 97.629958,
+          "cpu_ms": 12.164,
+          "sha256": "406fe99b68d7d67bca52b3fe1ace5c173e96f192cb751343d482d252bc90621a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 6,
+          "wall_ms": 99.992625,
+          "cpu_ms": 10.578958,
+          "sha256": "07d19c8a3dd9b5d5fc624ebfc67a05757e7888e22e8dfb851e72f5c30068485d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 7,
+          "wall_ms": 101.752125,
+          "cpu_ms": 10.575709,
+          "sha256": "d9815e4f5a8e0be9aff5bf21461ef2b3acf4ac69a46fdc3a8cd18c42614d5a76",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 8,
+          "wall_ms": 95.164958,
+          "cpu_ms": 10.931167,
+          "sha256": "de295fc5bcdb3d41f116c7943b7626f058b91da8767ace6fefe2f0ad9c7bc87b",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 9,
+          "wall_ms": 112.874875,
+          "cpu_ms": 11.373208,
+          "sha256": "0f8808b25a64b14c4ad0c8532987826e51221f4ec160a4427a046fc4168ed06b",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 10,
+          "wall_ms": 96.213666,
+          "cpu_ms": 11.781708,
+          "sha256": "6adad83cbc091b4cd4e41c89bc5749b00fc8b5c3c9a48c61dab7cd1418234dc6",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 11,
+          "wall_ms": 196.945291,
+          "cpu_ms": 18.295208,
+          "sha256": "d20d1dcc0925bb7ad3d676d9190e1c68ed3073b108397345d4480133b14056c7",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 0,
+          "wall_ms": 120.162375,
+          "cpu_ms": 11.781708,
+          "sha256": "da6c18f625d12917f9291f3e689100c4731c660a39c6cc72c82f7e54320aff9e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 1,
+          "wall_ms": 93.768375,
+          "cpu_ms": 10.697833,
+          "sha256": "ac7ebd193f77042e36242a64f2bf79140935f15d739d5ddd60f9a7687ffc09b1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 2,
+          "wall_ms": 118.813,
+          "cpu_ms": 10.870209,
+          "sha256": "dc954000ada2c796264b3704b8bce7f11bfd549f56d78b0cacd1f8e4c41946e5",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 3,
+          "wall_ms": 81.02425,
+          "cpu_ms": 10.469292,
+          "sha256": "ddc9eca7b03bb9dc60d2c038045d79921758fdca0313e0f10d5b9e4bc6d575e1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 4,
+          "wall_ms": 83.233041,
+          "cpu_ms": 10.297208,
+          "sha256": "87012bf523f923b127a93f642740281d873862b871e0213447180afe15a95144",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 5,
+          "wall_ms": 89.640584,
+          "cpu_ms": 13.361542,
+          "sha256": "2cfce2591bbc0b4978b39e75eb88296e82b03519f7563ca63c4ac8a54d5d2d85",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 6,
+          "wall_ms": 113.355416,
+          "cpu_ms": 10.707291,
+          "sha256": "5549a2db3873d5bc3d903e9710e013418cf0bff2e7fb130685f4bdbdd190635f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 7,
+          "wall_ms": 107.684333,
+          "cpu_ms": 11.246583,
+          "sha256": "3277835a21d9552295c262b77079a4deb91c7b2237823c05871d9d0f5477706b",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 8,
+          "wall_ms": 64.286667,
+          "cpu_ms": 9.919917,
+          "sha256": "b5e9c15bfda7abc15b544e8f2fb158879abf455e8959aea3cd652bd4d09abe80",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 9,
+          "wall_ms": 109.330917,
+          "cpu_ms": 11.242625,
+          "sha256": "0717f29f03e33245fcd1f3422ec995018bcf0f5918985d6a502d7b5529627926",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 10,
+          "wall_ms": 110.509125,
+          "cpu_ms": 10.593875,
+          "sha256": "30550c743f654bc4cd54d95d8e27bf38780d0ebeab7ee8a04222d2aad785e17d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 11,
+          "wall_ms": 96.577542,
+          "cpu_ms": 10.715042,
+          "sha256": "d502a608e97f8dc130fa606a806a7bc8a5c6dfe868c88a9f2e7599cb92bdd22a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 0,
+          "wall_ms": 125.656458,
+          "cpu_ms": 13.341334,
+          "sha256": "501ffa17dfe84c4320d1289016195aa730391f1bdf868749b0095ad178ae22cd",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 1,
+          "wall_ms": 111.447167,
+          "cpu_ms": 10.956542,
+          "sha256": "174337395f6aae50fa999db0dcc43a5778a798f7292701f4c65ec5d0bf0351b8",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 2,
+          "wall_ms": 105.194375,
+          "cpu_ms": 11.165333,
+          "sha256": "492e976c027ec0213ec53a8ab2b893a0e87c63b267cdbe97632489bf058610f1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 3,
+          "wall_ms": 102.780834,
+          "cpu_ms": 10.825334,
+          "sha256": "db2ff9ab822772b00df684ed1ac8b03674cf44151e06b5c30b6dba6803ded6ab",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 4,
+          "wall_ms": 90.556375,
+          "cpu_ms": 10.568667,
+          "sha256": "4bae42f8ec96a0750dc292cccaf70f6e90439094cb57b0dee24832d04f8f8713",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 5,
+          "wall_ms": 118.445459,
+          "cpu_ms": 13.399334,
+          "sha256": "4bb0bb0a9d9a0bc519adf360c3d4b3059578b0b939d712dd77681b02af6ecb52",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 6,
+          "wall_ms": 101.67225,
+          "cpu_ms": 20.596417,
+          "sha256": "ddcd587a68d85b4f1ec74f7e67974f7cd74671b070a555c074bd9e1328f86a8d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 7,
+          "wall_ms": 90.764834,
+          "cpu_ms": 11.137458,
+          "sha256": "867769c7239e011ce3c4371194457a497e3fffbae46dc3d1fcc8507ed89cdaec",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 8,
+          "wall_ms": 91.250125,
+          "cpu_ms": 11.218958,
+          "sha256": "b09ea3d66ae2f7058a61f4afbd4ba3e23ca58b6900e243af5667cf2c842a9f0d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 9,
+          "wall_ms": 94.326417,
+          "cpu_ms": 11.121334,
+          "sha256": "b6fefa3d6b1604ab9cdf3ce9b4a25f6bca3f256eb80ccc02ed6e3fadb2aa6902",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 10,
+          "wall_ms": 83.69475,
+          "cpu_ms": 12.223709,
+          "sha256": "c2d1ca8c4950c4bc53eee9132f0529992d66b33c9a38e6c04a9a89c09b0f3e05",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 11,
+          "wall_ms": 119.661208,
+          "cpu_ms": 12.641,
+          "sha256": "1bbc543b0ffa35982c9feeb69e47e1f9bb4690c2b3938461adf5f2512103d510",
+          "candidate_count": 31
+        }
+      ]
+    },
+    {
+      "phase": "after",
+      "kind": "serial",
+      "p95_ms": 31.411958,
+      "cpu_ms": 111.343125,
+      "results": [
+        {
+          "brain": 0,
+          "query": 0,
+          "wall_ms": 22.604541,
+          "cpu_ms": 8.440834,
+          "sha256": "6f144c1cd6a3e9b34b326ea77c5e9d1f7a7102cba5c96b713bf25b7e2c3df987",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 1,
+          "wall_ms": 22.057458,
+          "cpu_ms": 7.792542,
+          "sha256": "1446a96ecf5a4432360d3903158f1854562f61ce5f8e74c842982871e30c4d98",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 2,
+          "wall_ms": 23.038583,
+          "cpu_ms": 8.982,
+          "sha256": "7ad00c84b9753abb944424654056f0b30b794ac8b5a004cd8517e9c1a59e78fb",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 3,
+          "wall_ms": 25.753416,
+          "cpu_ms": 9.688458,
+          "sha256": "620952549c2690310188fdcef755d0922a53525de869f0b0ff93977a030dc954",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 4,
+          "wall_ms": 21.96925,
+          "cpu_ms": 8.066167,
+          "sha256": "b897a39e7ec2ad2f715fbd0e04e74ff90c7bfc6ed90928055c216f6b40cb75e4",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 5,
+          "wall_ms": 22.353417,
+          "cpu_ms": 8.667625,
+          "sha256": "572e2a2e06de1737d449f10395326fc200d7069890077734347f1f1107cc4928",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 6,
+          "wall_ms": 22.461292,
+          "cpu_ms": 7.913583,
+          "sha256": "a6bf70d8586ee8d46bc2619ea94f2bad822a285ae691ceefc89f6ff4c3b28a3f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 7,
+          "wall_ms": 22.52575,
+          "cpu_ms": 8.662875,
+          "sha256": "8834567db894c4935e9d74d2087aff8da1f04fe72cfcb29ca385c3a751ac8c7e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 8,
+          "wall_ms": 31.411958,
+          "cpu_ms": 17.311667,
+          "sha256": "852a9166c16ff5c0beea671185365526d982d228adf914cdc8dc145a5af72bc3",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 9,
+          "wall_ms": 23.020625,
+          "cpu_ms": 7.935708,
+          "sha256": "ee9f42f2b0cb1a5f9640648f70b693c412ff6eb66af07a72cc413fcbf01d5ac8",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 10,
+          "wall_ms": 22.9655,
+          "cpu_ms": 8.968666,
+          "sha256": "63d0c7b703b105d596528862e258c65782358f520c60d01a409ca50727b1e45e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 11,
+          "wall_ms": 22.982708,
+          "cpu_ms": 8.913,
+          "sha256": "9f69e5276693d5b84f87cf55bc433f5aac1491a2f9d89e50e7fa8c72d7a10378",
+          "candidate_count": 31
+        }
+      ]
+    },
+    {
+      "phase": "after",
+      "kind": "eight_brains",
+      "p95_ms": 124.401458,
+      "cpu_ms": 1088.485372,
+      "results": [
+        {
+          "brain": 0,
+          "query": 0,
+          "wall_ms": 66.952166,
+          "cpu_ms": 10.664667,
+          "sha256": "6f144c1cd6a3e9b34b326ea77c5e9d1f7a7102cba5c96b713bf25b7e2c3df987",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 1,
+          "wall_ms": 131.828167,
+          "cpu_ms": 14.353708,
+          "sha256": "1446a96ecf5a4432360d3903158f1854562f61ce5f8e74c842982871e30c4d98",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 2,
+          "wall_ms": 91.380375,
+          "cpu_ms": 11.274625,
+          "sha256": "7ad00c84b9753abb944424654056f0b30b794ac8b5a004cd8517e9c1a59e78fb",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 3,
+          "wall_ms": 84.476083,
+          "cpu_ms": 10.625625,
+          "sha256": "620952549c2690310188fdcef755d0922a53525de869f0b0ff93977a030dc954",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 4,
+          "wall_ms": 101.5645,
+          "cpu_ms": 11.403458,
+          "sha256": "b897a39e7ec2ad2f715fbd0e04e74ff90c7bfc6ed90928055c216f6b40cb75e4",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 5,
+          "wall_ms": 84.820333,
+          "cpu_ms": 11.293541,
+          "sha256": "572e2a2e06de1737d449f10395326fc200d7069890077734347f1f1107cc4928",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 6,
+          "wall_ms": 72.192208,
+          "cpu_ms": 10.343959,
+          "sha256": "a6bf70d8586ee8d46bc2619ea94f2bad822a285ae691ceefc89f6ff4c3b28a3f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 7,
+          "wall_ms": 94.251291,
+          "cpu_ms": 10.85825,
+          "sha256": "8834567db894c4935e9d74d2087aff8da1f04fe72cfcb29ca385c3a751ac8c7e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 8,
+          "wall_ms": 103.823584,
+          "cpu_ms": 11.590667,
+          "sha256": "852a9166c16ff5c0beea671185365526d982d228adf914cdc8dc145a5af72bc3",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 9,
+          "wall_ms": 79.070333,
+          "cpu_ms": 9.9885,
+          "sha256": "ee9f42f2b0cb1a5f9640648f70b693c412ff6eb66af07a72cc413fcbf01d5ac8",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 10,
+          "wall_ms": 126.831792,
+          "cpu_ms": 11.37225,
+          "sha256": "63d0c7b703b105d596528862e258c65782358f520c60d01a409ca50727b1e45e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 11,
+          "wall_ms": 100.721667,
+          "cpu_ms": 12.363291,
+          "sha256": "9f69e5276693d5b84f87cf55bc433f5aac1491a2f9d89e50e7fa8c72d7a10378",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 0,
+          "wall_ms": 85.732417,
+          "cpu_ms": 11.690375,
+          "sha256": "a420332eb641ec5d0b12c34a2f5b15c690baf0af995291649bb4390c99491fe3",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 1,
+          "wall_ms": 141.628625,
+          "cpu_ms": 23.451584,
+          "sha256": "41d301c75c2efd7a1a6aeede11df59118d17ee1a13ec2be80c00ae450f7736ee",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 2,
+          "wall_ms": 96.888625,
+          "cpu_ms": 10.299667,
+          "sha256": "674b0bc2bf6406fc2e6cd749adb873e212d1534c3af9d84be20afb028d465d3a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 3,
+          "wall_ms": 95.620875,
+          "cpu_ms": 11.147667,
+          "sha256": "defb1eb10c3ecd4ac733adc8217968da240c339c87951b57e914be19537846d1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 4,
+          "wall_ms": 100.789458,
+          "cpu_ms": 11.114833,
+          "sha256": "80241cd86ef39f0655e43ee18577a175cb4c61d80e845cb0421b9189eac46b7a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 5,
+          "wall_ms": 105.289916,
+          "cpu_ms": 10.441041,
+          "sha256": "44679755cfb582c313cdabdb9220035bd79e3a495f5c35f88f14d4dd2d9c22b5",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 6,
+          "wall_ms": 97.046709,
+          "cpu_ms": 10.894667,
+          "sha256": "d9ce47e44b931fc2f654c247fc102c5198c151650f95bdd350e2e955444c207d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 7,
+          "wall_ms": 108.628875,
+          "cpu_ms": 10.998167,
+          "sha256": "b0f2237b39fd22db6105620f8d48c68bd3f978bbf448639942f20c2edfeb1713",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 8,
+          "wall_ms": 95.253125,
+          "cpu_ms": 10.514458,
+          "sha256": "6523222dea379626062feeea09117b26a9fad18384cd067b0285de29f1b15894",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 9,
+          "wall_ms": 100.08425,
+          "cpu_ms": 10.268583,
+          "sha256": "6e461c69cc6a02ada9bcfd8ac86a719f3a511db44636586d1e63e110f4770737",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 10,
+          "wall_ms": 91.916625,
+          "cpu_ms": 11.527791,
+          "sha256": "60db31f13c76b69bb50ec8a69d6a1e789f7313aaf2eb9340f0c4d1acef7e96b6",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 11,
+          "wall_ms": 90.857917,
+          "cpu_ms": 9.299833,
+          "sha256": "db1a6925442a5e41e61fe5584f74f58309158f6fc89443acc4596becd1eda95f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 0,
+          "wall_ms": 69.705625,
+          "cpu_ms": 14.341916,
+          "sha256": "fb476a432d441f374257b5542f46907a63a662e3cf942f9c143370f470d6f1aa",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 1,
+          "wall_ms": 121.6635,
+          "cpu_ms": 13.668542,
+          "sha256": "cb7f6b4d9349f56ac954a734ec166145bdbf31809b844bdcbdf1de329518a8e4",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 2,
+          "wall_ms": 92.460541,
+          "cpu_ms": 10.713792,
+          "sha256": "35113098c46702a4ee71fbf779f113e3f3f72d9069fd29df82a2ed9933c22df7",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 3,
+          "wall_ms": 112.546333,
+          "cpu_ms": 11.37925,
+          "sha256": "005a21c1c7ba29eff016e843d2034cb8b03549aa680d4791312b14c53b283216",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 4,
+          "wall_ms": 85.109542,
+          "cpu_ms": 11.410833,
+          "sha256": "dde7f423c31cc43b6a7a0528f8c2f8513ae3d311833b5a6d73174afc03426519",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 5,
+          "wall_ms": 100.2085,
+          "cpu_ms": 10.5945,
+          "sha256": "09ccb88047c8478bf6fca121c328c2139e5fd9659a62a4aa936afa854c66b005",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 6,
+          "wall_ms": 114.835875,
+          "cpu_ms": 22.6495,
+          "sha256": "6e047564d6d1c48c3cc7fa825a261c78d2b3c58abb994463d7407900b450ba74",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 7,
+          "wall_ms": 121.4015,
+          "cpu_ms": 11.320375,
+          "sha256": "8692a3a83c9a338c251ea1cc39b2575152a04ad808d1886865bcdeafef7ad0de",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 8,
+          "wall_ms": 90.535708,
+          "cpu_ms": 9.948333,
+          "sha256": "f6c94adbcebca1c49e744e74c9cb3ee86122a925f3faa90799eeefe579705a13",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 9,
+          "wall_ms": 103.403917,
+          "cpu_ms": 11.610666,
+          "sha256": "8f0a3c0f0b512f84b4bd93b94eef4299c408f2f3ab790bd43d05ce25372c0fca",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 10,
+          "wall_ms": 87.617375,
+          "cpu_ms": 10.949417,
+          "sha256": "26ce3c1f53c322940592e93e9d7b5164670ca1088e20c6d4b5be95856d0200f5",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 11,
+          "wall_ms": 90.912917,
+          "cpu_ms": 9.905167,
+          "sha256": "4ed31f69ca80960f8b8c476bd35cebaea4e354c8413618655bd42850bc3bd876",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 0,
+          "wall_ms": 111.342958,
+          "cpu_ms": 12.323375,
+          "sha256": "9dde2a2c2702efe176fd368dded60399d2f09428ace58c38ab6399f7ab2d6322",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 1,
+          "wall_ms": 124.401458,
+          "cpu_ms": 11.003875,
+          "sha256": "08e7e3a92e5058f61263ab833c89db8355376cb3980f0b0f10948f457182b077",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 2,
+          "wall_ms": 82.673083,
+          "cpu_ms": 10.724708,
+          "sha256": "c4833f5d2a8d3e04c6a727a15a3a14722cbfd691841a5bc9be0491e3c4fdecea",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 3,
+          "wall_ms": 109.125875,
+          "cpu_ms": 11.004416,
+          "sha256": "05f3c35ca5c333fdd0131ccc4b2b0cfecdb2d3f93d8c015d372821b4292b1215",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 4,
+          "wall_ms": 101.130792,
+          "cpu_ms": 11.361208,
+          "sha256": "342de50d0c3164d075de9a3d7212d8bab8110181fa990749254c05c788402d1a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 5,
+          "wall_ms": 92.778833,
+          "cpu_ms": 10.0535,
+          "sha256": "ac05f43995ed24569b5d06c4373a4fd50ae92035cb025a11fe236a03dd5128a8",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 6,
+          "wall_ms": 101.948208,
+          "cpu_ms": 11.508417,
+          "sha256": "0be0052cb216cc0c6b4b4124a60fd57401f0673608aa335311428761981446f6",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 7,
+          "wall_ms": 81.282333,
+          "cpu_ms": 10.347833,
+          "sha256": "55b2b18866798afd96752f03b0d28a627142a7e059b43c7f1ffeffc33b2c5b47",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 8,
+          "wall_ms": 110.386,
+          "cpu_ms": 11.20375,
+          "sha256": "cc718aae2bf75719b14ea0c444a0b473fd3b2fa8fa6a71ad9ecc851d89d8cf4a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 9,
+          "wall_ms": 82.566083,
+          "cpu_ms": 11.032375,
+          "sha256": "ce910037ba00670bb7b901cbd00cdb500f5b0cfb252f700efcc24080850481be",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 10,
+          "wall_ms": 99.944084,
+          "cpu_ms": 11.499792,
+          "sha256": "9d3d71e3664636d6f93e57e7b1892328d2de8017d36df94eeadeabf79f5ece61",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 11,
+          "wall_ms": 86.452416,
+          "cpu_ms": 10.2055,
+          "sha256": "15994e8e8f62971628e3443d5c161e6317f77ad82499e18e1b9f17967d9a185f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 0,
+          "wall_ms": 121.720416,
+          "cpu_ms": 12.433292,
+          "sha256": "ab03fe22a2a4a1b324be80638f1f032f370776d522e4b36e6a9b69163a563b26",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 1,
+          "wall_ms": 123.314458,
+          "cpu_ms": 11.230875,
+          "sha256": "f33862f581efce4eb0badf747096640f2d484df1ba3442818224780a1728fa8e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 2,
+          "wall_ms": 101.292458,
+          "cpu_ms": 11.275667,
+          "sha256": "3d51290f18bc10aaa753e3fcd6ec0d8cbe865f52f4a9865c16bdfa966e6445a9",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 3,
+          "wall_ms": 112.042209,
+          "cpu_ms": 11.448584,
+          "sha256": "e7069abfbc56a5191937a0f2971ea1b08e266a9f4be34f7a42c38c54f4626634",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 4,
+          "wall_ms": 96.964375,
+          "cpu_ms": 11.912917,
+          "sha256": "44ee5bc8070094bbfad4be44ac480289b3593f31bcc45e2f7dfe459296aba0e1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 5,
+          "wall_ms": 118.987708,
+          "cpu_ms": 10.983625,
+          "sha256": "93666bca25d7c2dfd9ca68668f7095eccbf36163943787b3e2a6a57bdf6fa6bd",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 6,
+          "wall_ms": 103.878,
+          "cpu_ms": 11.818375,
+          "sha256": "a2ccba8c2fc5bf6198fcfbc66761abc2332f336b0a55c4cc54134938bb3e335e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 7,
+          "wall_ms": 103.108333,
+          "cpu_ms": 10.910541,
+          "sha256": "e26a0905957c5b57a88c5f7e35124460b00315f11ff05c3c712baadf1b31f9be",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 8,
+          "wall_ms": 112.338917,
+          "cpu_ms": 10.524125,
+          "sha256": "ccfed60d1b60afe125771d95357c8951b28bf63b78a26e689dffe482546b4234",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 9,
+          "wall_ms": 107.288625,
+          "cpu_ms": 10.926291,
+          "sha256": "55ff2eb9ff9ecf45b4cf021994355c7f7f5976023e290d9354f534b70cd09b40",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 10,
+          "wall_ms": 90.104709,
+          "cpu_ms": 11.412417,
+          "sha256": "9426f0ec925945099e56ebd3bc22006796d2fb83a036a0964919cc497811033a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 11,
+          "wall_ms": 36.94675,
+          "cpu_ms": 7.6385,
+          "sha256": "e0280b59e5bbf44ae4ddc8ddbcba2d533e08509064e574be37a22c8b452022e4",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 0,
+          "wall_ms": 117.683541,
+          "cpu_ms": 11.973375,
+          "sha256": "6b27b6ebdcd6a291efa57ed9c5555f52fce986b8eb9656660d5516295e6e312e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 1,
+          "wall_ms": 104.027083,
+          "cpu_ms": 11.046958,
+          "sha256": "25c6d73733133629d367cb22f2d2fd01440dbe7cf984de8cfccd28e9bfcdff1a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 2,
+          "wall_ms": 90.886542,
+          "cpu_ms": 10.5835,
+          "sha256": "6d907ba705ff42497d7917ec59e9e6a3cf2ce50cf0999b999d5db929b12c9ce0",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 3,
+          "wall_ms": 93.48875,
+          "cpu_ms": 10.695583,
+          "sha256": "7051af943f7082fd9a174951daddfad5b377963a0c8be2d73eafd6e9d45165e3",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 4,
+          "wall_ms": 99.508083,
+          "cpu_ms": 11.876334,
+          "sha256": "c6a458549ba865de83c1244d5968c8e742278d43c3f8dc24e8a8f625ce1460b7",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 5,
+          "wall_ms": 103.152625,
+          "cpu_ms": 10.530875,
+          "sha256": "406fe99b68d7d67bca52b3fe1ace5c173e96f192cb751343d482d252bc90621a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 6,
+          "wall_ms": 96.407209,
+          "cpu_ms": 13.298084,
+          "sha256": "07d19c8a3dd9b5d5fc624ebfc67a05757e7888e22e8dfb851e72f5c30068485d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 7,
+          "wall_ms": 75.405334,
+          "cpu_ms": 9.871541,
+          "sha256": "d9815e4f5a8e0be9aff5bf21461ef2b3acf4ac69a46fdc3a8cd18c42614d5a76",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 8,
+          "wall_ms": 104.754375,
+          "cpu_ms": 10.068709,
+          "sha256": "de295fc5bcdb3d41f116c7943b7626f058b91da8767ace6fefe2f0ad9c7bc87b",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 9,
+          "wall_ms": 90.674333,
+          "cpu_ms": 10.533292,
+          "sha256": "0f8808b25a64b14c4ad0c8532987826e51221f4ec160a4427a046fc4168ed06b",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 10,
+          "wall_ms": 90.148708,
+          "cpu_ms": 10.310125,
+          "sha256": "6adad83cbc091b4cd4e41c89bc5749b00fc8b5c3c9a48c61dab7cd1418234dc6",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 11,
+          "wall_ms": 97.246125,
+          "cpu_ms": 11.392667,
+          "sha256": "d20d1dcc0925bb7ad3d676d9190e1c68ed3073b108397345d4480133b14056c7",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 0,
+          "wall_ms": 99.984083,
+          "cpu_ms": 13.33725,
+          "sha256": "da6c18f625d12917f9291f3e689100c4731c660a39c6cc72c82f7e54320aff9e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 1,
+          "wall_ms": 137.644916,
+          "cpu_ms": 11.210958,
+          "sha256": "ac7ebd193f77042e36242a64f2bf79140935f15d739d5ddd60f9a7687ffc09b1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 2,
+          "wall_ms": 97.108291,
+          "cpu_ms": 10.807916,
+          "sha256": "dc954000ada2c796264b3704b8bce7f11bfd549f56d78b0cacd1f8e4c41946e5",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 3,
+          "wall_ms": 98.10025,
+          "cpu_ms": 10.465875,
+          "sha256": "ddc9eca7b03bb9dc60d2c038045d79921758fdca0313e0f10d5b9e4bc6d575e1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 4,
+          "wall_ms": 79.998125,
+          "cpu_ms": 10.531417,
+          "sha256": "87012bf523f923b127a93f642740281d873862b871e0213447180afe15a95144",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 5,
+          "wall_ms": 106.13625,
+          "cpu_ms": 10.816916,
+          "sha256": "2cfce2591bbc0b4978b39e75eb88296e82b03519f7563ca63c4ac8a54d5d2d85",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 6,
+          "wall_ms": 99.291417,
+          "cpu_ms": 10.10275,
+          "sha256": "5549a2db3873d5bc3d903e9710e013418cf0bff2e7fb130685f4bdbdd190635f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 7,
+          "wall_ms": 109.799167,
+          "cpu_ms": 10.453916,
+          "sha256": "3277835a21d9552295c262b77079a4deb91c7b2237823c05871d9d0f5477706b",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 8,
+          "wall_ms": 95.536125,
+          "cpu_ms": 9.981708,
+          "sha256": "b5e9c15bfda7abc15b544e8f2fb158879abf455e8959aea3cd652bd4d09abe80",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 9,
+          "wall_ms": 108.599667,
+          "cpu_ms": 10.333917,
+          "sha256": "0717f29f03e33245fcd1f3422ec995018bcf0f5918985d6a502d7b5529627926",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 10,
+          "wall_ms": 86.533125,
+          "cpu_ms": 10.748833,
+          "sha256": "30550c743f654bc4cd54d95d8e27bf38780d0ebeab7ee8a04222d2aad785e17d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 11,
+          "wall_ms": 98.897084,
+          "cpu_ms": 9.876334,
+          "sha256": "d502a608e97f8dc130fa606a806a7bc8a5c6dfe868c88a9f2e7599cb92bdd22a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 0,
+          "wall_ms": 88.951584,
+          "cpu_ms": 11.142541,
+          "sha256": "501ffa17dfe84c4320d1289016195aa730391f1bdf868749b0095ad178ae22cd",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 1,
+          "wall_ms": 123.089,
+          "cpu_ms": 14.726458,
+          "sha256": "174337395f6aae50fa999db0dcc43a5778a798f7292701f4c65ec5d0bf0351b8",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 2,
+          "wall_ms": 65.394416,
+          "cpu_ms": 10.155625,
+          "sha256": "492e976c027ec0213ec53a8ab2b893a0e87c63b267cdbe97632489bf058610f1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 3,
+          "wall_ms": 101.259875,
+          "cpu_ms": 10.722958,
+          "sha256": "db2ff9ab822772b00df684ed1ac8b03674cf44151e06b5c30b6dba6803ded6ab",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 4,
+          "wall_ms": 77.690792,
+          "cpu_ms": 11.186,
+          "sha256": "4bae42f8ec96a0750dc292cccaf70f6e90439094cb57b0dee24832d04f8f8713",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 5,
+          "wall_ms": 92.332833,
+          "cpu_ms": 11.243125,
+          "sha256": "4bb0bb0a9d9a0bc519adf360c3d4b3059578b0b939d712dd77681b02af6ecb52",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 6,
+          "wall_ms": 118.3695,
+          "cpu_ms": 11.552792,
+          "sha256": "ddcd587a68d85b4f1ec74f7e67974f7cd74671b070a555c074bd9e1328f86a8d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 7,
+          "wall_ms": 114.404625,
+          "cpu_ms": 13.354,
+          "sha256": "867769c7239e011ce3c4371194457a497e3fffbae46dc3d1fcc8507ed89cdaec",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 8,
+          "wall_ms": 106.372583,
+          "cpu_ms": 10.002667,
+          "sha256": "b09ea3d66ae2f7058a61f4afbd4ba3e23ca58b6900e243af5667cf2c842a9f0d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 9,
+          "wall_ms": 81.003417,
+          "cpu_ms": 10.7855,
+          "sha256": "b6fefa3d6b1604ab9cdf3ce9b4a25f6bca3f256eb80ccc02ed6e3fadb2aa6902",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 10,
+          "wall_ms": 103.658292,
+          "cpu_ms": 10.852167,
+          "sha256": "c2d1ca8c4950c4bc53eee9132f0529992d66b33c9a38e6c04a9a89c09b0f3e05",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 11,
+          "wall_ms": 85.418667,
+          "cpu_ms": 10.85525,
+          "sha256": "1bbc543b0ffa35982c9feeb69e47e1f9bb4690c2b3938461adf5f2512103d510",
+          "candidate_count": 31
+        }
+      ]
+    },
+    {
+      "phase": "before",
+      "kind": "serial",
+      "p95_ms": 23.459583,
+      "cpu_ms": 90.59021,
+      "results": [
+        {
+          "brain": 0,
+          "query": 0,
+          "wall_ms": 20.151333,
+          "cpu_ms": 7.373667,
+          "sha256": "6f144c1cd6a3e9b34b326ea77c5e9d1f7a7102cba5c96b713bf25b7e2c3df987",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 1,
+          "wall_ms": 20.225584,
+          "cpu_ms": 7.561375,
+          "sha256": "1446a96ecf5a4432360d3903158f1854562f61ce5f8e74c842982871e30c4d98",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 2,
+          "wall_ms": 20.071333,
+          "cpu_ms": 7.462917,
+          "sha256": "7ad00c84b9753abb944424654056f0b30b794ac8b5a004cd8517e9c1a59e78fb",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 3,
+          "wall_ms": 20.755333,
+          "cpu_ms": 7.340375,
+          "sha256": "620952549c2690310188fdcef755d0922a53525de869f0b0ff93977a030dc954",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 4,
+          "wall_ms": 20.12425,
+          "cpu_ms": 7.57675,
+          "sha256": "b897a39e7ec2ad2f715fbd0e04e74ff90c7bfc6ed90928055c216f6b40cb75e4",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 5,
+          "wall_ms": 20.388292,
+          "cpu_ms": 7.590084,
+          "sha256": "572e2a2e06de1737d449f10395326fc200d7069890077734347f1f1107cc4928",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 6,
+          "wall_ms": 20.062709,
+          "cpu_ms": 7.46875,
+          "sha256": "a6bf70d8586ee8d46bc2619ea94f2bad822a285ae691ceefc89f6ff4c3b28a3f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 7,
+          "wall_ms": 20.026584,
+          "cpu_ms": 7.339167,
+          "sha256": "8834567db894c4935e9d74d2087aff8da1f04fe72cfcb29ca385c3a751ac8c7e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 8,
+          "wall_ms": 20.048125,
+          "cpu_ms": 7.410042,
+          "sha256": "852a9166c16ff5c0beea671185365526d982d228adf914cdc8dc145a5af72bc3",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 9,
+          "wall_ms": 22.07925,
+          "cpu_ms": 7.385,
+          "sha256": "ee9f42f2b0cb1a5f9640648f70b693c412ff6eb66af07a72cc413fcbf01d5ac8",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 10,
+          "wall_ms": 20.148958,
+          "cpu_ms": 7.5125,
+          "sha256": "63d0c7b703b105d596528862e258c65782358f520c60d01a409ca50727b1e45e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 11,
+          "wall_ms": 23.459583,
+          "cpu_ms": 8.569583,
+          "sha256": "9f69e5276693d5b84f87cf55bc433f5aac1491a2f9d89e50e7fa8c72d7a10378",
+          "candidate_count": 31
+        }
+      ]
+    },
+    {
+      "phase": "before",
+      "kind": "eight_brains",
+      "p95_ms": 117.944791,
+      "cpu_ms": 1095.647626,
+      "results": [
+        {
+          "brain": 0,
+          "query": 0,
+          "wall_ms": 79.905875,
+          "cpu_ms": 9.930292,
+          "sha256": "6f144c1cd6a3e9b34b326ea77c5e9d1f7a7102cba5c96b713bf25b7e2c3df987",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 1,
+          "wall_ms": 82.42575,
+          "cpu_ms": 14.345834,
+          "sha256": "1446a96ecf5a4432360d3903158f1854562f61ce5f8e74c842982871e30c4d98",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 2,
+          "wall_ms": 96.316167,
+          "cpu_ms": 10.791,
+          "sha256": "7ad00c84b9753abb944424654056f0b30b794ac8b5a004cd8517e9c1a59e78fb",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 3,
+          "wall_ms": 118.754708,
+          "cpu_ms": 11.675458,
+          "sha256": "620952549c2690310188fdcef755d0922a53525de869f0b0ff93977a030dc954",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 4,
+          "wall_ms": 89.903416,
+          "cpu_ms": 10.690167,
+          "sha256": "b897a39e7ec2ad2f715fbd0e04e74ff90c7bfc6ed90928055c216f6b40cb75e4",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 5,
+          "wall_ms": 90.156041,
+          "cpu_ms": 10.798417,
+          "sha256": "572e2a2e06de1737d449f10395326fc200d7069890077734347f1f1107cc4928",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 6,
+          "wall_ms": 98.796417,
+          "cpu_ms": 10.473083,
+          "sha256": "a6bf70d8586ee8d46bc2619ea94f2bad822a285ae691ceefc89f6ff4c3b28a3f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 7,
+          "wall_ms": 95.736708,
+          "cpu_ms": 11.262209,
+          "sha256": "8834567db894c4935e9d74d2087aff8da1f04fe72cfcb29ca385c3a751ac8c7e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 8,
+          "wall_ms": 109.329875,
+          "cpu_ms": 10.849125,
+          "sha256": "852a9166c16ff5c0beea671185365526d982d228adf914cdc8dc145a5af72bc3",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 9,
+          "wall_ms": 85.073125,
+          "cpu_ms": 10.373708,
+          "sha256": "ee9f42f2b0cb1a5f9640648f70b693c412ff6eb66af07a72cc413fcbf01d5ac8",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 10,
+          "wall_ms": 110.6035,
+          "cpu_ms": 10.567459,
+          "sha256": "63d0c7b703b105d596528862e258c65782358f520c60d01a409ca50727b1e45e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 0,
+          "query": 11,
+          "wall_ms": 93.200084,
+          "cpu_ms": 10.333,
+          "sha256": "9f69e5276693d5b84f87cf55bc433f5aac1491a2f9d89e50e7fa8c72d7a10378",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 0,
+          "wall_ms": 65.388041,
+          "cpu_ms": 13.225041,
+          "sha256": "a420332eb641ec5d0b12c34a2f5b15c690baf0af995291649bb4390c99491fe3",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 1,
+          "wall_ms": 77.078792,
+          "cpu_ms": 10.916208,
+          "sha256": "41d301c75c2efd7a1a6aeede11df59118d17ee1a13ec2be80c00ae450f7736ee",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 2,
+          "wall_ms": 98.872292,
+          "cpu_ms": 10.604333,
+          "sha256": "674b0bc2bf6406fc2e6cd749adb873e212d1534c3af9d84be20afb028d465d3a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 3,
+          "wall_ms": 98.41675,
+          "cpu_ms": 10.29375,
+          "sha256": "defb1eb10c3ecd4ac733adc8217968da240c339c87951b57e914be19537846d1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 4,
+          "wall_ms": 99.871292,
+          "cpu_ms": 11.502459,
+          "sha256": "80241cd86ef39f0655e43ee18577a175cb4c61d80e845cb0421b9189eac46b7a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 5,
+          "wall_ms": 84.28775,
+          "cpu_ms": 10.688041,
+          "sha256": "44679755cfb582c313cdabdb9220035bd79e3a495f5c35f88f14d4dd2d9c22b5",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 6,
+          "wall_ms": 81.81625,
+          "cpu_ms": 10.894708,
+          "sha256": "d9ce47e44b931fc2f654c247fc102c5198c151650f95bdd350e2e955444c207d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 7,
+          "wall_ms": 86.099541,
+          "cpu_ms": 10.187291,
+          "sha256": "b0f2237b39fd22db6105620f8d48c68bd3f978bbf448639942f20c2edfeb1713",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 8,
+          "wall_ms": 88.46475,
+          "cpu_ms": 13.494167,
+          "sha256": "6523222dea379626062feeea09117b26a9fad18384cd067b0285de29f1b15894",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 9,
+          "wall_ms": 103.362625,
+          "cpu_ms": 10.431,
+          "sha256": "6e461c69cc6a02ada9bcfd8ac86a719f3a511db44636586d1e63e110f4770737",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 10,
+          "wall_ms": 80.223167,
+          "cpu_ms": 10.735417,
+          "sha256": "60db31f13c76b69bb50ec8a69d6a1e789f7313aaf2eb9340f0c4d1acef7e96b6",
+          "candidate_count": 31
+        },
+        {
+          "brain": 1,
+          "query": 11,
+          "wall_ms": 97.151792,
+          "cpu_ms": 10.341125,
+          "sha256": "db1a6925442a5e41e61fe5584f74f58309158f6fc89443acc4596becd1eda95f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 0,
+          "wall_ms": 116.422917,
+          "cpu_ms": 11.096375,
+          "sha256": "fb476a432d441f374257b5542f46907a63a662e3cf942f9c143370f470d6f1aa",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 1,
+          "wall_ms": 89.39,
+          "cpu_ms": 9.866584,
+          "sha256": "cb7f6b4d9349f56ac954a734ec166145bdbf31809b844bdcbdf1de329518a8e4",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 2,
+          "wall_ms": 103.789708,
+          "cpu_ms": 10.622875,
+          "sha256": "35113098c46702a4ee71fbf779f113e3f3f72d9069fd29df82a2ed9933c22df7",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 3,
+          "wall_ms": 82.471208,
+          "cpu_ms": 10.772958,
+          "sha256": "005a21c1c7ba29eff016e843d2034cb8b03549aa680d4791312b14c53b283216",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 4,
+          "wall_ms": 100.561584,
+          "cpu_ms": 20.518875,
+          "sha256": "dde7f423c31cc43b6a7a0528f8c2f8513ae3d311833b5a6d73174afc03426519",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 5,
+          "wall_ms": 90.828667,
+          "cpu_ms": 10.949333,
+          "sha256": "09ccb88047c8478bf6fca121c328c2139e5fd9659a62a4aa936afa854c66b005",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 6,
+          "wall_ms": 107.189042,
+          "cpu_ms": 22.751708,
+          "sha256": "6e047564d6d1c48c3cc7fa825a261c78d2b3c58abb994463d7407900b450ba74",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 7,
+          "wall_ms": 94.14,
+          "cpu_ms": 10.5975,
+          "sha256": "8692a3a83c9a338c251ea1cc39b2575152a04ad808d1886865bcdeafef7ad0de",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 8,
+          "wall_ms": 118.188916,
+          "cpu_ms": 22.88725,
+          "sha256": "f6c94adbcebca1c49e744e74c9cb3ee86122a925f3faa90799eeefe579705a13",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 9,
+          "wall_ms": 103.795459,
+          "cpu_ms": 10.835125,
+          "sha256": "8f0a3c0f0b512f84b4bd93b94eef4299c408f2f3ab790bd43d05ce25372c0fca",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 10,
+          "wall_ms": 102.569375,
+          "cpu_ms": 10.618583,
+          "sha256": "26ce3c1f53c322940592e93e9d7b5164670ca1088e20c6d4b5be95856d0200f5",
+          "candidate_count": 31
+        },
+        {
+          "brain": 2,
+          "query": 11,
+          "wall_ms": 70.758292,
+          "cpu_ms": 8.492042,
+          "sha256": "4ed31f69ca80960f8b8c476bd35cebaea4e354c8413618655bd42850bc3bd876",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 0,
+          "wall_ms": 86.764708,
+          "cpu_ms": 10.113541,
+          "sha256": "9dde2a2c2702efe176fd368dded60399d2f09428ace58c38ab6399f7ab2d6322",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 1,
+          "wall_ms": 84.506375,
+          "cpu_ms": 11.197959,
+          "sha256": "08e7e3a92e5058f61263ab833c89db8355376cb3980f0b0f10948f457182b077",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 2,
+          "wall_ms": 96.224042,
+          "cpu_ms": 10.0385,
+          "sha256": "c4833f5d2a8d3e04c6a727a15a3a14722cbfd691841a5bc9be0491e3c4fdecea",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 3,
+          "wall_ms": 82.103292,
+          "cpu_ms": 10.637208,
+          "sha256": "05f3c35ca5c333fdd0131ccc4b2b0cfecdb2d3f93d8c015d372821b4292b1215",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 4,
+          "wall_ms": 106.758667,
+          "cpu_ms": 10.840625,
+          "sha256": "342de50d0c3164d075de9a3d7212d8bab8110181fa990749254c05c788402d1a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 5,
+          "wall_ms": 92.240292,
+          "cpu_ms": 10.815208,
+          "sha256": "ac05f43995ed24569b5d06c4373a4fd50ae92035cb025a11fe236a03dd5128a8",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 6,
+          "wall_ms": 117.786333,
+          "cpu_ms": 11.086375,
+          "sha256": "0be0052cb216cc0c6b4b4124a60fd57401f0673608aa335311428761981446f6",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 7,
+          "wall_ms": 102.155792,
+          "cpu_ms": 10.74075,
+          "sha256": "55b2b18866798afd96752f03b0d28a627142a7e059b43c7f1ffeffc33b2c5b47",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 8,
+          "wall_ms": 104.05075,
+          "cpu_ms": 10.634416,
+          "sha256": "cc718aae2bf75719b14ea0c444a0b473fd3b2fa8fa6a71ad9ecc851d89d8cf4a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 9,
+          "wall_ms": 103.671334,
+          "cpu_ms": 10.519084,
+          "sha256": "ce910037ba00670bb7b901cbd00cdb500f5b0cfb252f700efcc24080850481be",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 10,
+          "wall_ms": 87.797334,
+          "cpu_ms": 10.374667,
+          "sha256": "9d3d71e3664636d6f93e57e7b1892328d2de8017d36df94eeadeabf79f5ece61",
+          "candidate_count": 31
+        },
+        {
+          "brain": 3,
+          "query": 11,
+          "wall_ms": 83.568583,
+          "cpu_ms": 10.314084,
+          "sha256": "15994e8e8f62971628e3443d5c161e6317f77ad82499e18e1b9f17967d9a185f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 0,
+          "wall_ms": 103.103083,
+          "cpu_ms": 10.465125,
+          "sha256": "ab03fe22a2a4a1b324be80638f1f032f370776d522e4b36e6a9b69163a563b26",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 1,
+          "wall_ms": 87.257917,
+          "cpu_ms": 10.21525,
+          "sha256": "f33862f581efce4eb0badf747096640f2d484df1ba3442818224780a1728fa8e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 2,
+          "wall_ms": 84.963625,
+          "cpu_ms": 10.830709,
+          "sha256": "3d51290f18bc10aaa753e3fcd6ec0d8cbe865f52f4a9865c16bdfa966e6445a9",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 3,
+          "wall_ms": 99.999292,
+          "cpu_ms": 10.720083,
+          "sha256": "e7069abfbc56a5191937a0f2971ea1b08e266a9f4be34f7a42c38c54f4626634",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 4,
+          "wall_ms": 107.405458,
+          "cpu_ms": 10.582583,
+          "sha256": "44ee5bc8070094bbfad4be44ac480289b3593f31bcc45e2f7dfe459296aba0e1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 5,
+          "wall_ms": 101.157625,
+          "cpu_ms": 10.823583,
+          "sha256": "93666bca25d7c2dfd9ca68668f7095eccbf36163943787b3e2a6a57bdf6fa6bd",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 6,
+          "wall_ms": 105.318459,
+          "cpu_ms": 10.72275,
+          "sha256": "a2ccba8c2fc5bf6198fcfbc66761abc2332f336b0a55c4cc54134938bb3e335e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 7,
+          "wall_ms": 94.344334,
+          "cpu_ms": 10.424041,
+          "sha256": "e26a0905957c5b57a88c5f7e35124460b00315f11ff05c3c712baadf1b31f9be",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 8,
+          "wall_ms": 89.801458,
+          "cpu_ms": 10.389875,
+          "sha256": "ccfed60d1b60afe125771d95357c8951b28bf63b78a26e689dffe482546b4234",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 9,
+          "wall_ms": 79.287333,
+          "cpu_ms": 10.190667,
+          "sha256": "55ff2eb9ff9ecf45b4cf021994355c7f7f5976023e290d9354f534b70cd09b40",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 10,
+          "wall_ms": 97.823,
+          "cpu_ms": 10.848917,
+          "sha256": "9426f0ec925945099e56ebd3bc22006796d2fb83a036a0964919cc497811033a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 4,
+          "query": 11,
+          "wall_ms": 82.742209,
+          "cpu_ms": 10.875291,
+          "sha256": "e0280b59e5bbf44ae4ddc8ddbcba2d533e08509064e574be37a22c8b452022e4",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 0,
+          "wall_ms": 112.8355,
+          "cpu_ms": 10.5505,
+          "sha256": "6b27b6ebdcd6a291efa57ed9c5555f52fce986b8eb9656660d5516295e6e312e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 1,
+          "wall_ms": 104.840542,
+          "cpu_ms": 10.391583,
+          "sha256": "25c6d73733133629d367cb22f2d2fd01440dbe7cf984de8cfccd28e9bfcdff1a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 2,
+          "wall_ms": 108.226333,
+          "cpu_ms": 10.907875,
+          "sha256": "6d907ba705ff42497d7917ec59e9e6a3cf2ce50cf0999b999d5db929b12c9ce0",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 3,
+          "wall_ms": 91.32825,
+          "cpu_ms": 11.082083,
+          "sha256": "7051af943f7082fd9a174951daddfad5b377963a0c8be2d73eafd6e9d45165e3",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 4,
+          "wall_ms": 117.944791,
+          "cpu_ms": 11.10925,
+          "sha256": "c6a458549ba865de83c1244d5968c8e742278d43c3f8dc24e8a8f625ce1460b7",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 5,
+          "wall_ms": 97.038667,
+          "cpu_ms": 11.283333,
+          "sha256": "406fe99b68d7d67bca52b3fe1ace5c173e96f192cb751343d482d252bc90621a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 6,
+          "wall_ms": 96.557667,
+          "cpu_ms": 10.875708,
+          "sha256": "07d19c8a3dd9b5d5fc624ebfc67a05757e7888e22e8dfb851e72f5c30068485d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 7,
+          "wall_ms": 93.937542,
+          "cpu_ms": 11.434959,
+          "sha256": "d9815e4f5a8e0be9aff5bf21461ef2b3acf4ac69a46fdc3a8cd18c42614d5a76",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 8,
+          "wall_ms": 99.68075,
+          "cpu_ms": 10.878875,
+          "sha256": "de295fc5bcdb3d41f116c7943b7626f058b91da8767ace6fefe2f0ad9c7bc87b",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 9,
+          "wall_ms": 86.960334,
+          "cpu_ms": 10.521959,
+          "sha256": "0f8808b25a64b14c4ad0c8532987826e51221f4ec160a4427a046fc4168ed06b",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 10,
+          "wall_ms": 92.96875,
+          "cpu_ms": 10.543417,
+          "sha256": "6adad83cbc091b4cd4e41c89bc5749b00fc8b5c3c9a48c61dab7cd1418234dc6",
+          "candidate_count": 31
+        },
+        {
+          "brain": 5,
+          "query": 11,
+          "wall_ms": 77.744958,
+          "cpu_ms": 9.324208,
+          "sha256": "d20d1dcc0925bb7ad3d676d9190e1c68ed3073b108397345d4480133b14056c7",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 0,
+          "wall_ms": 98.778708,
+          "cpu_ms": 19.583458,
+          "sha256": "da6c18f625d12917f9291f3e689100c4731c660a39c6cc72c82f7e54320aff9e",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 1,
+          "wall_ms": 88.063375,
+          "cpu_ms": 10.183333,
+          "sha256": "ac7ebd193f77042e36242a64f2bf79140935f15d739d5ddd60f9a7687ffc09b1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 2,
+          "wall_ms": 103.721416,
+          "cpu_ms": 10.600208,
+          "sha256": "dc954000ada2c796264b3704b8bce7f11bfd549f56d78b0cacd1f8e4c41946e5",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 3,
+          "wall_ms": 93.608208,
+          "cpu_ms": 10.829292,
+          "sha256": "ddc9eca7b03bb9dc60d2c038045d79921758fdca0313e0f10d5b9e4bc6d575e1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 4,
+          "wall_ms": 92.688584,
+          "cpu_ms": 10.787375,
+          "sha256": "87012bf523f923b127a93f642740281d873862b871e0213447180afe15a95144",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 5,
+          "wall_ms": 79.796542,
+          "cpu_ms": 10.530125,
+          "sha256": "2cfce2591bbc0b4978b39e75eb88296e82b03519f7563ca63c4ac8a54d5d2d85",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 6,
+          "wall_ms": 106.830167,
+          "cpu_ms": 10.507917,
+          "sha256": "5549a2db3873d5bc3d903e9710e013418cf0bff2e7fb130685f4bdbdd190635f",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 7,
+          "wall_ms": 98.89275,
+          "cpu_ms": 10.350667,
+          "sha256": "3277835a21d9552295c262b77079a4deb91c7b2237823c05871d9d0f5477706b",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 8,
+          "wall_ms": 118.142875,
+          "cpu_ms": 10.594917,
+          "sha256": "b5e9c15bfda7abc15b544e8f2fb158879abf455e8959aea3cd652bd4d09abe80",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 9,
+          "wall_ms": 86.823041,
+          "cpu_ms": 10.843959,
+          "sha256": "0717f29f03e33245fcd1f3422ec995018bcf0f5918985d6a502d7b5529627926",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 10,
+          "wall_ms": 106.507583,
+          "cpu_ms": 11.71125,
+          "sha256": "30550c743f654bc4cd54d95d8e27bf38780d0ebeab7ee8a04222d2aad785e17d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 6,
+          "query": 11,
+          "wall_ms": 82.741667,
+          "cpu_ms": 9.880291,
+          "sha256": "d502a608e97f8dc130fa606a806a7bc8a5c6dfe868c88a9f2e7599cb92bdd22a",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 0,
+          "wall_ms": 91.812625,
+          "cpu_ms": 10.687375,
+          "sha256": "501ffa17dfe84c4320d1289016195aa730391f1bdf868749b0095ad178ae22cd",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 1,
+          "wall_ms": 105.630334,
+          "cpu_ms": 12.039417,
+          "sha256": "174337395f6aae50fa999db0dcc43a5778a798f7292701f4c65ec5d0bf0351b8",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 2,
+          "wall_ms": 118.436042,
+          "cpu_ms": 21.430542,
+          "sha256": "492e976c027ec0213ec53a8ab2b893a0e87c63b267cdbe97632489bf058610f1",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 3,
+          "wall_ms": 88.966083,
+          "cpu_ms": 11.094875,
+          "sha256": "db2ff9ab822772b00df684ed1ac8b03674cf44151e06b5c30b6dba6803ded6ab",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 4,
+          "wall_ms": 111.338334,
+          "cpu_ms": 11.458209,
+          "sha256": "4bae42f8ec96a0750dc292cccaf70f6e90439094cb57b0dee24832d04f8f8713",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 5,
+          "wall_ms": 86.229834,
+          "cpu_ms": 10.45875,
+          "sha256": "4bb0bb0a9d9a0bc519adf360c3d4b3059578b0b939d712dd77681b02af6ecb52",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 6,
+          "wall_ms": 103.844458,
+          "cpu_ms": 10.516875,
+          "sha256": "ddcd587a68d85b4f1ec74f7e67974f7cd74671b070a555c074bd9e1328f86a8d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 7,
+          "wall_ms": 89.787375,
+          "cpu_ms": 10.380417,
+          "sha256": "867769c7239e011ce3c4371194457a497e3fffbae46dc3d1fcc8507ed89cdaec",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 8,
+          "wall_ms": 104.475208,
+          "cpu_ms": 10.604125,
+          "sha256": "b09ea3d66ae2f7058a61f4afbd4ba3e23ca58b6900e243af5667cf2c842a9f0d",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 9,
+          "wall_ms": 97.639292,
+          "cpu_ms": 11.118583,
+          "sha256": "b6fefa3d6b1604ab9cdf3ce9b4a25f6bca3f256eb80ccc02ed6e3fadb2aa6902",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 10,
+          "wall_ms": 99.622541,
+          "cpu_ms": 21.211167,
+          "sha256": "c2d1ca8c4950c4bc53eee9132f0529992d66b33c9a38e6c04a9a89c09b0f3e05",
+          "candidate_count": 31
+        },
+        {
+          "brain": 7,
+          "query": 11,
+          "wall_ms": 77.74,
+          "cpu_ms": 9.526958,
+          "sha256": "1bbc543b0ffa35982c9feeb69e47e1f9bb4690c2b3938461adf5f2512103d510",
+          "candidate_count": 31
+        }
+      ]
+    }
+  ],
+  "exact_equivalent_queries": 96,
+  "ports_closed": true,
+  "source_and_driver_unchanged": true
+}

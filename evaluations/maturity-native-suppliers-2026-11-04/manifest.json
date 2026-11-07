@@ -1,0 +1,649 @@
+{
+  "scope": "native candidate qualification and Windows profile ACL repair; no default engine adoption or new-runtime R1/R5 pass",
+  "runtime_pin": "9f7536110a95dfd02b382382dc97d0991121632f",
+  "windows_repair_source": "d33a1be88c9dc8d3a2c790d81772637457b854b9",
+  "excluded": [
+    "profiles",
+    "registries",
+    "private database archives",
+    "private payloads",
+    "native binary archives and wheels",
+    "compiler/model/package directories",
+    "verbatim upstream migration sections",
+    "credentials and DSNs"
+  ],
+  "files": [
+    {
+      "path": "inspection/inspect-wheels.py",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/inspect-wheels.py",
+      "bytes": 2497,
+      "sha256": "2322a5983987af921ee6e11567050d8008310e55537d96e1046f72575b4ce2da",
+      "raw_bytes": 2497,
+      "raw_sha256": "2322a5983987af921ee6e11567050d8008310e55537d96e1046f72575b4ce2da"
+    },
+    {
+      "path": "inspection/wheel-inspection-v1.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/wheel-inspection-v1.json",
+      "bytes": 9158,
+      "sha256": "5a475035b25bbb4d6c054ceedd1f5df25f3610de23000850549cba925443a521",
+      "raw_bytes": 9158,
+      "raw_sha256": "5a475035b25bbb4d6c054ceedd1f5df25f3610de23000850549cba925443a521"
+    },
+    {
+      "path": "inspection/wheel-inspection.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/wheel-inspection.json",
+      "bytes": 9417,
+      "sha256": "64c1a546ab8cf268aaf73722c7513b4f405453fe7052882816c6e17824f279d8",
+      "raw_bytes": 9417,
+      "raw_sha256": "64c1a546ab8cf268aaf73722c7513b4f405453fe7052882816c6e17824f279d8"
+    },
+    {
+      "path": "inspection/compose-prefix.py",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/compose-prefix.py",
+      "bytes": 2613,
+      "sha256": "5455f41fe166f54690cf016572e345c6955b96d97d6b593ff29b4da3b589ad30",
+      "raw_bytes": 2613,
+      "raw_sha256": "5455f41fe166f54690cf016572e345c6955b96d97d6b593ff29b4da3b589ad30"
+    },
+    {
+      "path": "inspection/composed-prefix.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/composed-prefix.json",
+      "bytes": 5897,
+      "sha256": "63ac0c8f95d46f596305a5d61f2d045accb3425750fd2a67d941012c12f90b4e",
+      "raw_bytes": 5897,
+      "raw_sha256": "63ac0c8f95d46f596305a5d61f2d045accb3425750fd2a67d941012c12f90b4e"
+    },
+    {
+      "path": "inspection/composition.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/composition.log",
+      "bytes": 560,
+      "sha256": "193c2094a5f1ff6460955ab2935359ea9fd870f385be96ab526e8c93f4ff57cd",
+      "raw_bytes": 1086,
+      "raw_sha256": "ae3a9bfe8ce4672ad19d922f4b4370a83581d1e8a9db0a87592d5647582a72f0"
+    },
+    {
+      "path": "upgrade/check-upgrade-v1.py",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/check-upgrade-v1.py",
+      "bytes": 5256,
+      "sha256": "e1c64d9ce3f89a775d47eb68c07cbad724d39f21d1f7d422b9a79f241d12e2f8",
+      "raw_bytes": 5256,
+      "raw_sha256": "e1c64d9ce3f89a775d47eb68c07cbad724d39f21d1f7d422b9a79f241d12e2f8"
+    },
+    {
+      "path": "upgrade/check-upgrade-v2.py",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/check-upgrade-v2.py",
+      "bytes": 5374,
+      "sha256": "c259f13a2367d3d81c8771dc0034f4f3ae3a0f5927892c1d2bfb81d343d4cc01",
+      "raw_bytes": 5374,
+      "raw_sha256": "c259f13a2367d3d81c8771dc0034f4f3ae3a0f5927892c1d2bfb81d343d4cc01"
+    },
+    {
+      "path": "upgrade/check-upgrade.py",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/check-upgrade.py",
+      "bytes": 5414,
+      "sha256": "4e24fcce14cb91d97b6c2bd40a2f8591838b6d2bf1b5dc97c355de07671bf7f8",
+      "raw_bytes": 5414,
+      "raw_sha256": "4e24fcce14cb91d97b6c2bd40a2f8591838b6d2bf1b5dc97c355de07671bf7f8"
+    },
+    {
+      "path": "upgrade/upgrade-result-v1.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/upgrade-result-v1.json",
+      "bytes": 222,
+      "sha256": "5be45da9d32c55e0744359922133286d1aa5efc1b74bc06f9885808a0265e1d6",
+      "raw_bytes": 222,
+      "raw_sha256": "5be45da9d32c55e0744359922133286d1aa5efc1b74bc06f9885808a0265e1d6"
+    },
+    {
+      "path": "upgrade/upgrade-result-v2.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/upgrade-result-v2.json",
+      "bytes": 335,
+      "sha256": "16b962faff16011466cce919e42bba677dda2fab270cfc2cec446d3001ff68e2",
+      "raw_bytes": 335,
+      "raw_sha256": "16b962faff16011466cce919e42bba677dda2fab270cfc2cec446d3001ff68e2"
+    },
+    {
+      "path": "upgrade/upgrade-result.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/upgrade-result.json",
+      "bytes": 20478,
+      "sha256": "4071822ffa6c9e9b1d40cbb874c9f3978229cb1b4aa567c338ad52ea314d93f8",
+      "raw_bytes": 20478,
+      "raw_sha256": "4071822ffa6c9e9b1d40cbb874c9f3978229cb1b4aa567c338ad52ea314d93f8"
+    },
+    {
+      "path": "upgrade/upgrade-v1.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/upgrade-v1.log",
+      "bytes": 573,
+      "sha256": "03ec4d6ccfd6a7dd0b4396f0e77027e1514385bdc89528722a8679057341fcd8",
+      "raw_bytes": 1609,
+      "raw_sha256": "091aaf440c521e6d41647c5e8809c67e7227d4dc786904ae713c1c4ab29a107d"
+    },
+    {
+      "path": "upgrade/upgrade-v2.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/upgrade-v2.log",
+      "bytes": 274,
+      "sha256": "ae70bf0494c3d859f9edf9890cbffd5a0b8c755d07f7e3c93b69b73a0f308d87",
+      "raw_bytes": 477,
+      "raw_sha256": "30aa76006be2a00df888433ac7951816c5c20b2e3c641616a303c1f4152f74f9"
+    },
+    {
+      "path": "upgrade/upgrade.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/upgrade.log",
+      "bytes": 148,
+      "sha256": "6df1b94292f2e7c1ebcdac781ab9864787f950d22c85ca839c9cc5c341cb67fe",
+      "raw_bytes": 189,
+      "raw_sha256": "aac394dfe38917ed161c1288f78bef31d0d0211cb6d91469a1cd715fdccc4d68"
+    },
+    {
+      "path": "upgrade/check-upgrade-lts-vector.py",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/check-upgrade-lts-vector.py",
+      "bytes": 5935,
+      "sha256": "0dee049d9ad51871d2e4465c6c0fc67df8a4eccbc51aefb52ffa8976774a40dd",
+      "raw_bytes": 5935,
+      "raw_sha256": "0dee049d9ad51871d2e4465c6c0fc67df8a4eccbc51aefb52ffa8976774a40dd"
+    },
+    {
+      "path": "upgrade/upgrade-lts-vector-result.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/upgrade-lts-vector-result.json",
+      "bytes": 20592,
+      "sha256": "d326b88d2d0d0fe21f31b7314397c04e64cfe5d8409c1b7280162a32d7277569",
+      "raw_bytes": 20592,
+      "raw_sha256": "d326b88d2d0d0fe21f31b7314397c04e64cfe5d8409c1b7280162a32d7277569"
+    },
+    {
+      "path": "upgrade/upgrade-lts-vector.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/upgrade-lts-vector.log",
+      "bytes": 148,
+      "sha256": "6df1b94292f2e7c1ebcdac781ab9864787f950d22c85ca839c9cc5c341cb67fe",
+      "raw_bytes": 189,
+      "raw_sha256": "aac394dfe38917ed161c1288f78bef31d0d0211cb6d91469a1cd715fdccc4d68"
+    },
+    {
+      "path": "regression/run-lts-compatibility-tests.py",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/run-lts-compatibility-tests.py",
+      "bytes": 4062,
+      "sha256": "b5d0450f5daadccf9100d6f84eb7be2b52a2c0bd658661e5c49c06ffc152764d",
+      "raw_bytes": 4062,
+      "raw_sha256": "b5d0450f5daadccf9100d6f84eb7be2b52a2c0bd658661e5c49c06ffc152764d"
+    },
+    {
+      "path": "regression/lts-compatibility-pre-run.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/lts-compatibility-pre-run.json",
+      "bytes": 43509,
+      "sha256": "1cab253ce15b5796ada7dd38e7ba431148e4bb63968bd516216bf76e874ff6e2",
+      "raw_bytes": 43509,
+      "raw_sha256": "1cab253ce15b5796ada7dd38e7ba431148e4bb63968bd516216bf76e874ff6e2"
+    },
+    {
+      "path": "regression/lts-compatibility-result.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/lts-compatibility-result.json",
+      "bytes": 90632,
+      "sha256": "c02325c37ef261294a668e0c9811cf95697ca05a93954640305d24b9c7cff54c",
+      "raw_bytes": 90632,
+      "raw_sha256": "c02325c37ef261294a668e0c9811cf95697ca05a93954640305d24b9c7cff54c"
+    },
+    {
+      "path": "regression/lts-compatibility.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/lts-compatibility.log",
+      "bytes": 74,
+      "sha256": "bb406b32a22467a3ee49ef13a4f370cd144a9762be81786823b660daad5e64bc",
+      "raw_bytes": 341,
+      "raw_sha256": "16bbad3e8a07c96eabc7f1ca1b4193299d854de89761638e47e4552c1353afe4"
+    },
+    {
+      "path": "regression/windows-acl-local.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/windows-acl-local.log",
+      "bytes": 61,
+      "sha256": "383c9c4da55cb9d69614dd4cfafb11572a2429a5fb64b2b5f82a5bd93b63328f",
+      "raw_bytes": 179,
+      "raw_sha256": "525c76fa054609af124c9dfe631ab4511f1bac4751ceb35bc156318dd3539ea9"
+    },
+    {
+      "path": "regression/check-migration-applicability.py",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/check-migration-applicability.py",
+      "bytes": 2691,
+      "sha256": "dfb5fe8fd44164e3f53bf555735a0ce5a7c8b0c3bc82863808c969e4101f606a",
+      "raw_bytes": 2691,
+      "raw_sha256": "dfb5fe8fd44164e3f53bf555735a0ce5a7c8b0c3bc82863808c969e4101f606a"
+    },
+    {
+      "path": "regression/migration-applicability.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/migration-applicability.json",
+      "bytes": 1073,
+      "sha256": "bbb165b48b7b0fb56b895ba6fb7e407231591d15b7468230519b1cc9363ca3c2",
+      "raw_bytes": 1073,
+      "raw_sha256": "bbb165b48b7b0fb56b895ba6fb7e407231591d15b7468230519b1cc9363ca3c2"
+    },
+    {
+      "path": "regression/migration-applicability.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/migration-applicability.log",
+      "bytes": 301,
+      "sha256": "ba18a94b8b040cdc3fe62d45b357f82a4148cd95b152360cb51bbe65f706c663",
+      "raw_bytes": 711,
+      "raw_sha256": "b0701294151fea1fd6ee06bdd489657863899b73babbd444593efb49cb0fac89"
+    },
+    {
+      "path": "regression/audit-lockfiles.py",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/audit-lockfiles.py",
+      "bytes": 2943,
+      "sha256": "873bb97ed65dac5d834ecb3cb0ec6c507ee8d01f166457fb0f9ebcd9348e4992",
+      "raw_bytes": 2943,
+      "raw_sha256": "873bb97ed65dac5d834ecb3cb0ec6c507ee8d01f166457fb0f9ebcd9348e4992"
+    },
+    {
+      "path": "regression/lockfile-audit.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/lockfile-audit.json",
+      "bytes": 18321,
+      "sha256": "857a8202aae3368b4acfd3312adc641bbed0298f39c0e5786489668764e12763",
+      "raw_bytes": 18321,
+      "raw_sha256": "857a8202aae3368b4acfd3312adc641bbed0298f39c0e5786489668764e12763"
+    },
+    {
+      "path": "regression/lockfile-audit.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/lockfile-audit.log",
+      "bytes": 82,
+      "sha256": "a297e51feba2b69b01ca28c4ab6d594b66cbadb8237d70cfade65637f11994b8",
+      "raw_bytes": 76,
+      "raw_sha256": "8f22f159f0b166b5886aa5f72141ba8e36ded79d2377b1557813f855326bd057"
+    },
+    {
+      "path": "regression/source-scope.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/source-scope.json",
+      "bytes": 935,
+      "sha256": "ee55fc92512ab9db8623da3523b7b6f330cc561e9b9a4bee6702f4ac2957c3cb",
+      "raw_bytes": 935,
+      "raw_sha256": "ee55fc92512ab9db8623da3523b7b6f330cc561e9b9a4bee6702f4ac2957c3cb"
+    },
+    {
+      "path": "artifacts/inspect-ci-artifacts.py",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/inspect-ci-artifacts.py",
+      "bytes": 4919,
+      "sha256": "74a44b817a3559686c1ad61102ee2f3a501a62e9d1b4e74efbc9ed4079beab62",
+      "raw_bytes": 4919,
+      "raw_sha256": "74a44b817a3559686c1ad61102ee2f3a501a62e9d1b4e74efbc9ed4079beab62"
+    },
+    {
+      "path": "artifacts/inspect-ci-artifacts.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/inspect-ci-artifacts.log",
+      "bytes": 899,
+      "sha256": "43403d2209cfc1eb4d5c8c5d7a84622589809144c85da037db6339fc69be82b2",
+      "raw_bytes": 3047,
+      "raw_sha256": "c5804faf4d43b6afeafd7511bdc748b4fd91d334b2697ceed57d94cd7ea0c9b8"
+    },
+    {
+      "path": "artifacts/candidate-platforms.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/candidate-platforms.json",
+      "bytes": 3633,
+      "sha256": "3df32efa7aa1406cf7718b587b4642e215eeed76c9d00204b9a74f8fc60cd365",
+      "raw_bytes": 3633,
+      "raw_sha256": "3df32efa7aa1406cf7718b587b4642e215eeed76c9d00204b9a74f8fc60cd365"
+    },
+    {
+      "path": "storage/archive-vector-probe-clusters.py",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/archive-vector-probe-clusters.py",
+      "bytes": 1991,
+      "sha256": "ebd6b63c4395f8c9dab4431ab4bafd5b95a75cd1cc357a0a1375a109efd9d1c2",
+      "raw_bytes": 1991,
+      "raw_sha256": "ebd6b63c4395f8c9dab4431ab4bafd5b95a75cd1cc357a0a1375a109efd9d1c2"
+    },
+    {
+      "path": "storage/completed-vector-probe-archive.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/completed-vector-probe-archive.json",
+      "bytes": 378,
+      "sha256": "08a17549f30055f3b73fec29f77f8d8136cff2d7c72ef27bb30a83b42385a6df",
+      "raw_bytes": 378,
+      "raw_sha256": "08a17549f30055f3b73fec29f77f8d8136cff2d7c72ef27bb30a83b42385a6df"
+    },
+    {
+      "path": "storage/archive-lts-regression-clusters.py",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/archive-lts-regression-clusters.py",
+      "bytes": 2288,
+      "sha256": "516851ac02ddfa833fbcf83e553723b698889f1cccb0400f1cea6e0eaa006879",
+      "raw_bytes": 2288,
+      "raw_sha256": "516851ac02ddfa833fbcf83e553723b698889f1cccb0400f1cea6e0eaa006879"
+    },
+    {
+      "path": "storage/completed-lts-regression-archive.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/completed-lts-regression-archive.json",
+      "bytes": 450,
+      "sha256": "fdc6f014e21a56d25c4bb5ed6436e6bde9799a263c39eb84a2110d2182645a3b",
+      "raw_bytes": 450,
+      "raw_sha256": "fdc6f014e21a56d25c4bb5ed6436e6bde9799a263c39eb84a2110d2182645a3b"
+    },
+    {
+      "path": "storage/share-public-native-blocks.py",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/share-public-native-blocks.py",
+      "bytes": 2696,
+      "sha256": "f604cfaf91773b700fcf227b96178fc5c2e3d3a046703f8e52325f8ca4d15fd5",
+      "raw_bytes": 2696,
+      "raw_sha256": "f604cfaf91773b700fcf227b96178fc5c2e3d3a046703f8e52325f8ca4d15fd5"
+    },
+    {
+      "path": "storage/public-native-block-sharing.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/public-native-block-sharing.json",
+      "bytes": 416,
+      "sha256": "8f6c72a30d11190da8e1e400e32c7c9ca0534258a61ff4ba12b95d531d315414",
+      "raw_bytes": 416,
+      "raw_sha256": "8f6c72a30d11190da8e1e400e32c7c9ca0534258a61ff4ba12b95d531d315414"
+    },
+    {
+      "path": "ci/cleanup-missing-runtime.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/ci/cleanup-missing-runtime.log.gz",
+      "bytes": 5957,
+      "sha256": "a49d4de996a31363ed60a2ca80949ffa743eb804acb16be788a204958b29f68e",
+      "raw_bytes": 23618,
+      "raw_sha256": "f18b45cfec474e311d05cd233c18ffe037cbd25f9f9b5904918bc0560debc2f8"
+    },
+    {
+      "path": "ci/full-verify-5c73012.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/ci/full-verify-5c73012.log.gz",
+      "bytes": 196000,
+      "sha256": "759bd4a0e316ae7fa44ae6d7d2fcd1c72a99563fa38542813665e60544b428f0",
+      "raw_bytes": 1528653,
+      "raw_sha256": "07f906e8ea159529def6142d35dbf9eafd0f69d80d6b1c69766ea547828173bd"
+    },
+    {
+      "path": "ci/full-verify-required-cases.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/ci/full-verify-required-cases.json",
+      "bytes": 917,
+      "sha256": "6da74cfef3bd22ff2f8b279b19fd3cabbe3b0f3995262b6c139ab4c288621ed2",
+      "raw_bytes": 917,
+      "raw_sha256": "6da74cfef3bd22ff2f8b279b19fd3cabbe3b0f3995262b6c139ab4c288621ed2"
+    },
+    {
+      "path": "ci/full-verify-result.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/ci/full-verify-result.json",
+      "bytes": 606,
+      "sha256": "caba6a63e1d8fc7d9d799e258a2c36e9b6543fdd77226044b3869fe9a05e2ea6",
+      "raw_bytes": 606,
+      "raw_sha256": "caba6a63e1d8fc7d9d799e258a2c36e9b6543fdd77226044b3869fe9a05e2ea6"
+    },
+    {
+      "path": "ci/job-statuses.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/ci/job-statuses.json",
+      "bytes": 53207,
+      "sha256": "6670a502fda3bbd44796805c0965458b50e15b095bc58cfb092d55c0b611937f",
+      "raw_bytes": 53207,
+      "raw_sha256": "6670a502fda3bbd44796805c0965458b50e15b095bc58cfb092d55c0b611937f"
+    },
+    {
+      "path": "ci/lts-linux-aarch64.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/ci/lts-linux-aarch64.log.gz",
+      "bytes": 10830,
+      "sha256": "b25faee51f8800a3889bd4c9995df7567c514e81e2e13371b17d3b717e87c2d5",
+      "raw_bytes": 57132,
+      "raw_sha256": "236c2a178961e3cd560995a341cfc5ceca6158be93bd0f43dd72ab4702d2207d"
+    },
+    {
+      "path": "ci/lts-linux-x86_64.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/ci/lts-linux-x86_64.log.gz",
+      "bytes": 11320,
+      "sha256": "3208192165a85f1e3d112f0c2dee09978ce2f85408f1c69e6777b6dd6a972417",
+      "raw_bytes": 59742,
+      "raw_sha256": "2811ef659eb4661f6e1512c38d7f5e9b3410a4984320b20835fd7bd64c0f2e5a"
+    },
+    {
+      "path": "ci/lts-macos-arm64.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/ci/lts-macos-arm64.log.gz",
+      "bytes": 89611,
+      "sha256": "8696578f2fdcc9bbb825f1c11b454ee8f7688870a29fa204fdd5a811c361ad50",
+      "raw_bytes": 1946344,
+      "raw_sha256": "36e4ae30cf9178d3e415f2bffccd50022dda5b0743be6e12a365342034d268d5"
+    },
+    {
+      "path": "ci/lts-macos-x86_64.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/ci/lts-macos-x86_64.log.gz",
+      "bytes": 94214,
+      "sha256": "cab3b458ff606dd8f2be96d7f1803d12d4e00900a0326208002ad5ab83e86ab9",
+      "raw_bytes": 2102852,
+      "raw_sha256": "c1806de40981c4a60e20466b51509b6fbefbf50c72b69d9fe3475f3f62d6be82"
+    },
+    {
+      "path": "ci/lts-windows-x86_64.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/ci/lts-windows-x86_64.log.gz",
+      "bytes": 10328,
+      "sha256": "084c5512cbeba74ae2caeb6e10a1e7621632ee6165e1984bdbd29366b43fcc27",
+      "raw_bytes": 43101,
+      "raw_sha256": "b0097eeb63039626dca33a2cc981d44501d8e877307253b526f158a44af00246"
+    },
+    {
+      "path": "ci/windows-initdb-output-discarded.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/ci/windows-initdb-output-discarded.log.gz",
+      "bytes": 180583,
+      "sha256": "e0d99fff90a241550ec9732b69d7b21ed8494c25f31f6a8ad69594ad231c30b4",
+      "raw_bytes": 4615862,
+      "raw_sha256": "da0c3343dcfa26980eeac03d46bbd6b484c54b9b951fa5afa5a6260f858b04d6"
+    },
+    {
+      "path": "ci/windows-license-path.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/ci/windows-license-path.log.gz",
+      "bytes": 12230,
+      "sha256": "6674669593c533d4a1bdda4a8fbbbc6224e17669aeff23486307194bfdad31d6",
+      "raw_bytes": 56932,
+      "raw_sha256": "ad5188f6186ab322bbd04d9edb5a2fe0fcdb19f2032260b98d93ed4fce9e70d2"
+    },
+    {
+      "path": "ci/windows-missing-nasm.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/ci/windows-missing-nasm.log.gz",
+      "bytes": 10010,
+      "sha256": "bd9cb8a7405cee6132e504953525c7f87b0f3cd22d42e4def2e8ad148c174097",
+      "raw_bytes": 41635,
+      "raw_sha256": "37bce6f5a6f32e4fb2277c95e3120a048166cfc5d1835ea14f687b00d00406ae"
+    },
+    {
+      "path": "ci/windows-password-permission-denied.log.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/ci/windows-password-permission-denied.log.gz",
+      "bytes": 10686,
+      "sha256": "06676e3b7798e806007be66b0284176a425a8c15d6e01382836ed1f633b9c402",
+      "raw_bytes": 44245,
+      "raw_sha256": "4471d3b6a162f47eed43aab0b7ca4720629ecefe0bb5690c78e9df79244bf622"
+    },
+    {
+      "path": "platforms/linux-aarch64/PGVECTOR-LICENSE",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/linux-aarch64/PGVECTOR-LICENSE",
+      "bytes": 1104,
+      "sha256": "6bba9ebeb73e27477463b05e5ef1bf303bccbddb3db9bbc95905d351604d6a87",
+      "raw_bytes": 1104,
+      "raw_sha256": "6bba9ebeb73e27477463b05e5ef1bf303bccbddb3db9bbc95905d351604d6a87"
+    },
+    {
+      "path": "platforms/linux-aarch64/POSTGRESQL-COPYRIGHT",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/linux-aarch64/POSTGRESQL-COPYRIGHT",
+      "bytes": 1198,
+      "sha256": "3d6af92ff8a4c2cdf69afb1cf44edea727922f5cd0cf8b5f72b11cdecac8fdfd",
+      "raw_bytes": 1198,
+      "raw_sha256": "3d6af92ff8a4c2cdf69afb1cf44edea727922f5cd0cf8b5f72b11cdecac8fdfd"
+    },
+    {
+      "path": "platforms/linux-aarch64/artifacts.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/linux-aarch64/artifacts.json",
+      "bytes": 658,
+      "sha256": "1139b846e2edf8d43128009eebc86f4571b30d20e9e8706011aac723f58f121f",
+      "raw_bytes": 658,
+      "raw_sha256": "1139b846e2edf8d43128009eebc86f4571b30d20e9e8706011aac723f58f121f"
+    },
+    {
+      "path": "platforms/linux-aarch64/manifest.json.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/linux-aarch64/manifest.json",
+      "bytes": 73276,
+      "sha256": "13ddaf02630789d7150767183e62d2010590bad0ceb90045a216d54e6fd393b1",
+      "raw_bytes": 271713,
+      "raw_sha256": "45cf732d5ad9238b25cd2a99c7d633351b39f81685aec1df6395b1f16ced59df"
+    },
+    {
+      "path": "platforms/linux-aarch64/qualification.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/linux-aarch64/qualification.json",
+      "bytes": 4464,
+      "sha256": "ef13e544b3caad7b26e0331fb76c5ec3e84c15e23138b496c6dc4d73c882b940",
+      "raw_bytes": 4464,
+      "raw_sha256": "ef13e544b3caad7b26e0331fb76c5ec3e84c15e23138b496c6dc4d73c882b940"
+    },
+    {
+      "path": "platforms/linux-x86_64/PGVECTOR-LICENSE",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/linux-x86_64/PGVECTOR-LICENSE",
+      "bytes": 1104,
+      "sha256": "6bba9ebeb73e27477463b05e5ef1bf303bccbddb3db9bbc95905d351604d6a87",
+      "raw_bytes": 1104,
+      "raw_sha256": "6bba9ebeb73e27477463b05e5ef1bf303bccbddb3db9bbc95905d351604d6a87"
+    },
+    {
+      "path": "platforms/linux-x86_64/POSTGRESQL-COPYRIGHT",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/linux-x86_64/POSTGRESQL-COPYRIGHT",
+      "bytes": 1198,
+      "sha256": "3d6af92ff8a4c2cdf69afb1cf44edea727922f5cd0cf8b5f72b11cdecac8fdfd",
+      "raw_bytes": 1198,
+      "raw_sha256": "3d6af92ff8a4c2cdf69afb1cf44edea727922f5cd0cf8b5f72b11cdecac8fdfd"
+    },
+    {
+      "path": "platforms/linux-x86_64/artifacts.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/linux-x86_64/artifacts.json",
+      "bytes": 658,
+      "sha256": "19a531621c5a4808dce4f7eef9ec1f4f374921933f8d5570ecdc02a068d31e14",
+      "raw_bytes": 658,
+      "raw_sha256": "19a531621c5a4808dce4f7eef9ec1f4f374921933f8d5570ecdc02a068d31e14"
+    },
+    {
+      "path": "platforms/linux-x86_64/manifest.json.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/linux-x86_64/manifest.json",
+      "bytes": 73342,
+      "sha256": "a2b5057fa888cae284790a08ec8199ec4c7b274ba70ff6a811251f2211721462",
+      "raw_bytes": 271566,
+      "raw_sha256": "f4c17727ba1cbcbf42879a595766121d88aeced9375b336be27dff006a1fc0d5"
+    },
+    {
+      "path": "platforms/linux-x86_64/qualification.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/linux-x86_64/qualification.json",
+      "bytes": 4463,
+      "sha256": "576c6c07c5ba50a21f7b2c7df9e2b5e1c36ae69947bdbdddf3f8571d14e7d4c3",
+      "raw_bytes": 4463,
+      "raw_sha256": "576c6c07c5ba50a21f7b2c7df9e2b5e1c36ae69947bdbdddf3f8571d14e7d4c3"
+    },
+    {
+      "path": "platforms/macos-arm64/PGVECTOR-LICENSE",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/macos-arm64/PGVECTOR-LICENSE",
+      "bytes": 1104,
+      "sha256": "6bba9ebeb73e27477463b05e5ef1bf303bccbddb3db9bbc95905d351604d6a87",
+      "raw_bytes": 1104,
+      "raw_sha256": "6bba9ebeb73e27477463b05e5ef1bf303bccbddb3db9bbc95905d351604d6a87"
+    },
+    {
+      "path": "platforms/macos-arm64/POSTGRESQL-COPYRIGHT",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/macos-arm64/POSTGRESQL-COPYRIGHT",
+      "bytes": 1198,
+      "sha256": "3d6af92ff8a4c2cdf69afb1cf44edea727922f5cd0cf8b5f72b11cdecac8fdfd",
+      "raw_bytes": 1198,
+      "raw_sha256": "3d6af92ff8a4c2cdf69afb1cf44edea727922f5cd0cf8b5f72b11cdecac8fdfd"
+    },
+    {
+      "path": "platforms/macos-arm64/artifacts.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/macos-arm64/artifacts.json",
+      "bytes": 657,
+      "sha256": "32031750b573236303f17746b851b5b817a421483209bb670ebcd60892b4a5f6",
+      "raw_bytes": 657,
+      "raw_sha256": "32031750b573236303f17746b851b5b817a421483209bb670ebcd60892b4a5f6"
+    },
+    {
+      "path": "platforms/macos-arm64/manifest.json.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/macos-arm64/manifest.json",
+      "bytes": 78674,
+      "sha256": "9b713281c4695c402e06b5e36e4066f737ec1765c6625d6a7209e2c46b7f633b",
+      "raw_bytes": 284576,
+      "raw_sha256": "1101532626abb459f042f4a222d21aff5db5cbbc52bc859a6e3dd8f3cf056330"
+    },
+    {
+      "path": "platforms/macos-arm64/qualification.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/macos-arm64/qualification.json",
+      "bytes": 4463,
+      "sha256": "0f5a2b1e5cc7b2ea90578a5caf274346c1466613452bf8328988044d1ea9722a",
+      "raw_bytes": 4463,
+      "raw_sha256": "0f5a2b1e5cc7b2ea90578a5caf274346c1466613452bf8328988044d1ea9722a"
+    },
+    {
+      "path": "platforms/macos-x86_64/PGVECTOR-LICENSE",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/macos-x86_64/PGVECTOR-LICENSE",
+      "bytes": 1104,
+      "sha256": "6bba9ebeb73e27477463b05e5ef1bf303bccbddb3db9bbc95905d351604d6a87",
+      "raw_bytes": 1104,
+      "raw_sha256": "6bba9ebeb73e27477463b05e5ef1bf303bccbddb3db9bbc95905d351604d6a87"
+    },
+    {
+      "path": "platforms/macos-x86_64/POSTGRESQL-COPYRIGHT",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/macos-x86_64/POSTGRESQL-COPYRIGHT",
+      "bytes": 1198,
+      "sha256": "3d6af92ff8a4c2cdf69afb1cf44edea727922f5cd0cf8b5f72b11cdecac8fdfd",
+      "raw_bytes": 1198,
+      "raw_sha256": "3d6af92ff8a4c2cdf69afb1cf44edea727922f5cd0cf8b5f72b11cdecac8fdfd"
+    },
+    {
+      "path": "platforms/macos-x86_64/artifacts.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/macos-x86_64/artifacts.json",
+      "bytes": 658,
+      "sha256": "4cbaee28ecaa9f16a4f14af442c4c39e090d79d5c27c59e94bab54b52f8c012b",
+      "raw_bytes": 658,
+      "raw_sha256": "4cbaee28ecaa9f16a4f14af442c4c39e090d79d5c27c59e94bab54b52f8c012b"
+    },
+    {
+      "path": "platforms/macos-x86_64/manifest.json.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/macos-x86_64/manifest.json",
+      "bytes": 78597,
+      "sha256": "08711ce582ec90963e086831a6bdfceb72ebb57522967bdf7149149ccccc986b",
+      "raw_bytes": 284025,
+      "raw_sha256": "b664bc1f11f2e0f01a5418be2486dd5c473a6f1642d12c7d4b10969c75894a87"
+    },
+    {
+      "path": "platforms/macos-x86_64/qualification.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/macos-x86_64/qualification.json",
+      "bytes": 4463,
+      "sha256": "0b3cc128e158a293a7bc2ba21698c8523797349e5f7ef76c192557aed675223c",
+      "raw_bytes": 4463,
+      "raw_sha256": "0b3cc128e158a293a7bc2ba21698c8523797349e5f7ef76c192557aed675223c"
+    },
+    {
+      "path": "platforms/windows-x86_64/PGVECTOR-LICENSE.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/windows-x86_64/PGVECTOR-LICENSE",
+      "bytes": 650,
+      "sha256": "f085fb1378b20a6d11b92de9626d05eddfb3e359329b3030467968d9586dc96f",
+      "raw_bytes": 1104,
+      "raw_sha256": "6bba9ebeb73e27477463b05e5ef1bf303bccbddb3db9bbc95905d351604d6a87"
+    },
+    {
+      "path": "platforms/windows-x86_64/POSTGRESQL-COPYRIGHT.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/windows-x86_64/POSTGRESQL-COPYRIGHT",
+      "bytes": 762,
+      "sha256": "db6b6c502c8440915bbd4fda69f3197e6e83b9e7898a81e43f6faa08385d1993",
+      "raw_bytes": 1388,
+      "raw_sha256": "39294f3f5b41533b307e118ee37c356f32cbc7746fc97e8b91f1b49a9068a24e"
+    },
+    {
+      "path": "platforms/windows-x86_64/artifacts.json.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/windows-x86_64/artifacts.json",
+      "bytes": 398,
+      "sha256": "c8dbc6c78e0ade8242abe6a721a6664ef27f063e3b02822fb071f25f86f12e8b",
+      "raw_bytes": 680,
+      "raw_sha256": "0b70021c3b0ce97ca228fb2dec4e070fd10ffd06f75df4121cccbdf8b9de2ad0"
+    },
+    {
+      "path": "platforms/windows-x86_64/manifest.json.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/windows-x86_64/manifest.json",
+      "bytes": 147441,
+      "sha256": "0c48791878f34443e567ac977ff31618f412e92233292ba9eecd2eb3c85e87ca",
+      "raw_bytes": 588183,
+      "raw_sha256": "fa19081f5f2bcb7662a87f51f79dad1bef6840284a4ba0c6eabc64934b38ddb0"
+    },
+    {
+      "path": "platforms/windows-x86_64/qualification.json.gz",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/platform-evidence/windows-x86_64/qualification.json",
+      "bytes": 1096,
+      "sha256": "5a9952b46c0d36dcda29fb1497996dd42db2a86c3947810b749b6e7f06a0b152",
+      "raw_bytes": 4613,
+      "raw_sha256": "33f92c7c2eba845306fe13f408f415600542a214bc6b3ec96e38e650b5f576ec"
+    },
+    {
+      "path": "credential-scan.json",
+      "source": "/Users/yichen/tmp/membrain-engine-suppliers-20261104/supplier-credential-scan.json",
+      "bytes": 221,
+      "sha256": "1f592bc581a89b322beb5cc11240b87828f13037adc7d1eabd4b05c25307418d",
+      "raw_bytes": 221,
+      "raw_sha256": "1f592bc581a89b322beb5cc11240b87828f13037adc7d1eabd4b05c25307418d"
+    }
+  ]
+}

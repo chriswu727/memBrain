@@ -1,0 +1,26 @@
+21:16:52 F c5-practice-scenario start stub proposals
+21:16:52 F c5-practice-scenario s1-arrival 0 294 tools: []
+21:16:52 F c5-practice-scenario s1-arrival 1 338 tools: []
+21:16:52 F c5-practice-scenario s1-arrival 2 392 tools: []
+21:16:52 F c5-practice-scenario s2-review 0 454 tools: []
+21:16:52 F c5-practice-scenario s2-review 1 498 tools: []
+21:16:52 F c5-practice-scenario s2-review 2 555 tools: []
+21:16:52 F c5-practice-scenario s3-morning 0 607 tools: []
+21:16:52 F c5-practice-scenario s3-morning 1 662 tools: []
+21:16:52 F c5-practice-scenario s3-morning 2 709 tools: []
+21:16:52 page action accept_persona_proposal before s4-weekend turn 0 result: {'removed_records': [], 'removed_records_complete': True}
+21:16:52 F c5-practice-scenario s4-weekend 0 768 tools: []
+21:16:52 F c5-practice-scenario s4-weekend 1 821 tools: []
+21:17:04 page action delete_message before s5-busy turn 0 result: {'deleted': 1, 'removed': [['s1-arrival', 2, 'user']], 'removed_records': [{'kind': 'message', 'ref': 'src:7f4c369fb09a6a4bb4bddfe9025df5f546e0464adac5a1af2d6703a74806b208', 'sources': [['s1-arrival', 2, 'user']], 'established': True}], 'removed_records_complete': True}
+21:17:04 F c5-practice-scenario s5-busy 0 861 tools: []
+21:17:04 page action clear_feelings before s5-busy turn 1 result: {'removed_records': [], 'removed_records_complete': True}
+21:17:04 page action reset_mood before s5-busy turn 1 result: {'removed_records': [], 'removed_records_complete': True}
+21:17:04 F c5-practice-scenario s5-busy 1 912 tools: []
+21:17:04 page action remove_boundary before s5-busy turn 2 result: {'removed_records': [], 'removed_records_complete': True}
+21:17:04 F c5-practice-scenario s5-busy 2 960 tools: []
+21:17:04 page action reset_relationship before s6-fresh turn 0 result: {'removed_records': [], 'removed_records_complete': True}
+21:17:04 F c5-practice-scenario s6-fresh 0 1013 tools: []
+21:17:04 F c5-practice-scenario s7-recording 0 1074 tools: []
+21:17:04 F c5-practice-scenario s7-recording 1 1128 tools: []
+21:17:04 F c5-practice-scenario s7-recording 2 1183 tools: []
+21:17:04 F c5-practice-scenario finished

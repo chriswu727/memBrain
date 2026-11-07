@@ -1,0 +1,13 @@
+{
+  "source": "281b06e585b0a9ca6b67e8892f3c6a3d69bc572f",
+  "runtime_pin": "b994ec8080d46ee861f6ed8738a1617929f50d2a",
+  "reason": "retain the stopped failing fixture and its raw data for controlled CPU/SQL attribution",
+  "archive": "/Users/yichen/tmp/membrain-release-qualification-20261104/canonical-profile-b994ec8.tar.gz",
+  "archive_sha256": "18924505bb3ee0851800646740135430c9667d668ecb382c431495c3347b6ddd",
+  "archive_bytes": 303466837,
+  "regular_files_verified": 1486,
+  "ports_closed_before_archive": true,
+  "original_owned_profile_removed": true,
+  "registry_preserved": true,
+  "never_commit_archive_or_profiles": true
+}

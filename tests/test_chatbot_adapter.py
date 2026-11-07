@@ -47,7 +47,17 @@ def test_groups_can_be_left_unrecorded_and_unknown_senders_are_ignored(tmp_path,
     assert calls == []
 
 
-def test_session_block_is_cached_until_notes_or_recording_change(tmp_path, monkeypatch):
+def test_outside_edits_are_reflected_on_the_next_request_in_the_same_session(tmp_path, monkeypatch):
+    text = ["Jordan and the user hiked together."]
+    monkeypatch.setattr(host, "session_context", lambda *args, **kwargs: text[0])
+    monkeypatch.setattr(host, "prompt_context", lambda *args, **kwargs: None)
+    memory, speaker = ChatMemory(tmp_path), Speaker("discord", "mei")
+    assert "Jordan" in memory.context(speaker, "hello", session="same")
+    text[0] = "The earlier memory was removed in the memory page."
+    assert "Jordan" not in memory.context(speaker, "hello again", session="same")
+
+
+def test_session_block_is_refreshed_on_each_turn_including_recording_changes(tmp_path, monkeypatch):
     blocks = []
     monkeypatch.setattr(host, "session_context", lambda directory, session, **kwargs: blocks.append(session) or
                         f"notes v{len(blocks)}")
@@ -56,10 +66,10 @@ def test_session_block_is_cached_until_notes_or_recording_change(tmp_path, monke
     monkeypatch.setattr(host, "start_in_background", lambda directory: None)
     memory, mei = ChatMemory(tmp_path), Speaker("discord", "mei")
     assert memory.context(mei, "hi", session="s") == "notes v1\n\nrelated"
-    assert memory.context(mei, "again", session="s") == "notes v1\n\nrelated"
+    assert memory.context(mei, "again", session="s") == "notes v2\n\nrelated"
     assert memory.note(mei, "Allergic to sesame.") == {"error": "memBrain is starting; try again in a few seconds."}
     memory.pause(mei)
-    assert memory.context(mei, "later", session="s") == "notes v2\n\nrelated"
+    assert memory.context(mei, "later", session="s") == "notes v3\n\nrelated"
     assert host.paused(tmp_path, memory.user_id(mei)) and not host.paused(tmp_path)
 
 
@@ -188,7 +198,6 @@ def test_astrbot_plugin_remembers_each_qq_user_separately_through_a_real_service
             await plugin.membrain_pause(paused)
             await turn(paused, "Understood.")
             await plugin.membrain_resume(paused)
-            plugin.memory._blocks.clear()
             alice = await turn(Event("1001", "What treats can I buy for my cat?", message_id="m2"), "Fish.",
                                conversation="c2")
             bob = await turn(Event("2002", "Any advice for my race?", message_id="m3"), "Taper.", conversation="c3")
@@ -221,7 +230,6 @@ def test_astrbot_plugin_remembers_each_qq_user_separately_through_a_real_service
         # A person erases their own memory with a command they send themselves; others keep theirs.
         assert "confirm" in asyncio.run(command(Event("1001", "/membrain_forget")))[0]
         assert asyncio.run(command(Event("1001", "/membrain_forget confirm"), "confirm"))[0].startswith("Done")
-        plugin.memory._blocks.clear()
         async def both():
             return (await turn(Event("1001", "What treats can I buy for my cat?", message_id="m4"), "Ask me.",
                                conversation="c4"),

@@ -1,0 +1,20 @@
+{
+  "scope": "Direct EXPLAIN ANALYZE on the retained 10k-message fixture with indexing paused; these are SQL execution times, not HTTP timings. PostgreSQL 16.2.",
+  "rows": {
+    "original": {
+      "count": 500,
+      "digest": "ac13e76d49214dbabc89cdb0490dcee32cc1f3032bee7cc9aa620a3ed880d113",
+      "execution_ms": 988.077
+    },
+    "hash": {
+      "count": 500,
+      "digest": "ac13e76d49214dbabc89cdb0490dcee32cc1f3032bee7cc9aa620a3ed880d113",
+      "execution_ms": 24.347
+    },
+    "lateral": {
+      "count": 500,
+      "digest": "ac13e76d49214dbabc89cdb0490dcee32cc1f3032bee7cc9aa620a3ed880d113",
+      "execution_ms": 948.843
+    }
+  }
+}

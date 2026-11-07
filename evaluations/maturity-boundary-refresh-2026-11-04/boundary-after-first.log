@@ -1,0 +1,139 @@
+...................F..FF.                                                [100%]
+=================================== FAILURES ===================================
+____________ test_protocol_initialize_list_call_and_bound_identity _____________
+  + Exception Group Traceback (most recent call last):
+  |   File "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py", line 91, in test_protocol_initialize_list_call_and_bound_identity
+  |     asyncio.run(run())
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 195, in run
+  |     return runner.run(main)
+  |            ^^^^^^^^^^^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+  |     return self._loop.run_until_complete(task)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+  |     return future.result()
+  |            ^^^^^^^^^^^^^^^
+  |   File "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py", line 51, in run
+  |     async with create_connected_server_and_client_session(create_server(client)) as session:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/contextlib.py", line 231, in __aexit__
+  |     await self.gen.athrow(value)
+  |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/memory.py", line 73, in create_connected_server_and_client_session
+  |     async with anyio.create_task_group() as tg:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Exception Group Traceback (most recent call last):
+    |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/memory.py", line 84, in create_connected_server_and_client_session
+    |     async with ClientSession(
+    |                ^^^^^^^^^^^^^^
+    |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/session.py", line 238, in __aexit__
+    |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+    |     raise BaseExceptionGroup(
+    | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+    +-+---------------- 1 ----------------
+      | Traceback (most recent call last):
+      |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/memory.py", line 96, in create_connected_server_and_client_session
+      |     yield client_session
+      |   File "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py", line 59, in run
+      |     assert not result.isError
+      | AssertionError: assert not True
+      |  +  where True = CallToolResult(meta=None, content=[TextContent(type='text', text='Error executing tool memory_recall: Expecting value: line 1 column 1 (char 0)', annotations=None, meta=None)], structuredContent=None, isError=True).isError
+      +------------------------------------
+_____________________ test_protocol_failure_is_tool_error ______________________
+  + Exception Group Traceback (most recent call last):
+  |   File "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py", line 134, in test_protocol_failure_is_tool_error
+  |     asyncio.run(run())
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 195, in run
+  |     return runner.run(main)
+  |            ^^^^^^^^^^^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+  |     return self._loop.run_until_complete(task)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+  |     return future.result()
+  |            ^^^^^^^^^^^^^^^
+  |   File "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py", line 129, in run
+  |     async with create_connected_server_and_client_session(create_server(client)) as session:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/contextlib.py", line 231, in __aexit__
+  |     await self.gen.athrow(value)
+  |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/memory.py", line 73, in create_connected_server_and_client_session
+  |     async with anyio.create_task_group() as tg:
+  |                ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Exception Group Traceback (most recent call last):
+    |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/memory.py", line 84, in create_connected_server_and_client_session
+    |     async with ClientSession(
+    |                ^^^^^^^^^^^^^^
+    |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/session.py", line 238, in __aexit__
+    |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+    |     raise BaseExceptionGroup(
+    | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+    +-+---------------- 1 ----------------
+      | Traceback (most recent call last):
+      |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/memory.py", line 96, in create_connected_server_and_client_session
+      |     yield client_session
+      |   File "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py", line 132, in run
+      |     assert "not_found_or_forbidden" in result.content[0].text
+      | AssertionError: assert 'not_found_or_forbidden' in 'Error executing tool memory_recall: Expecting value: line 1 column 1 (char 0)'
+      |  +  where 'Error executing tool memory_recall: Expecting value: line 1 column 1 (char 0)' = TextContent(type='text', text='Error executing tool memory_recall: Expecting value: line 1 column 1 (char 0)', annotations=None, meta=None).text
+      +------------------------------------
+______________ test_stdio_subprocess_handshake_and_http_roundtrip ______________
+  + Exception Group Traceback (most recent call last):
+  |   File "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py", line 175, in test_stdio_subprocess_handshake_and_http_roundtrip
+  |     asyncio.run(run())
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 195, in run
+  |     return runner.run(main)
+  |            ^^^^^^^^^^^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/runners.py", line 118, in run
+  |     return self._loop.run_until_complete(task)
+  |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/asyncio/base_events.py", line 691, in run_until_complete
+  |     return future.result()
+  |            ^^^^^^^^^^^^^^^
+  |   File "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py", line 165, in run
+  |     async with stdio_client(params) as (read, write):
+  |                ^^^^^^^^^^^^^^^^^^^^
+  |   File "/opt/homebrew/Cellar/python@3.12/3.12.13/Frameworks/Python.framework/Versions/3.12/lib/python3.12/contextlib.py", line 231, in __aexit__
+  |     await self.gen.athrow(value)
+  |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/client/stdio/__init__.py", line 183, in stdio_client
+  |     anyio.create_task_group() as tg,
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+  |     raise BaseExceptionGroup(
+  | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+  +-+---------------- 1 ----------------
+    | Exception Group Traceback (most recent call last):
+    |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/client/stdio/__init__.py", line 189, in stdio_client
+    |     yield read_stream, write_stream
+    |   File "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py", line 166, in run
+    |     async with ClientSession(read, write) as session:
+    |                ^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/mcp/shared/session.py", line 238, in __aexit__
+    |     return await self._task_group.__aexit__(exc_type, exc_val, exc_tb)
+    |            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |   File "/Users/yichen/tmp/membrain-review-20261029/.venv/lib/python3.12/site-packages/anyio/_backends/_asyncio.py", line 847, in __aexit__
+    |     raise BaseExceptionGroup(
+    | ExceptionGroup: unhandled errors in a TaskGroup (1 sub-exception)
+    +-+---------------- 1 ----------------
+      | Traceback (most recent call last):
+      |   File "/Users/yichen/tmp/membrain-review-20261029/tests/test_mcp.py", line 171, in run
+      |     assert not result.isError
+      | AssertionError: assert not True
+      |  +  where True = CallToolResult(meta=None, content=[TextContent(type='text', text="Error executing tool memory_recall: Server error '50...loper.mozilla.org/en-US/docs/Web/HTTP/Status/501", annotations=None, meta=None)], structuredContent=None, isError=True).isError
+      +------------------------------------
+----------------------------- Captured stderr call -----------------------------
+Processing request of type ListToolsRequest
+Processing request of type CallToolRequest
+HTTP Request: GET http://127.0.0.1:59840/v1/brains/stdio-brain/relationship "HTTP/1.0 501 Unsupported method ('GET')"
+3 failed, 22 passed in 1.16s

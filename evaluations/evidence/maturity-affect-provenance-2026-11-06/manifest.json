@@ -1,0 +1,102 @@
+{
+  "runtime": "dd9e52f31049552a576f62021aeba2c430598dc2",
+  "pinned_candidate": "9f19170e26203197693fd50ec1a4ba1c2d4e9058",
+  "model_calls": 0,
+  "validation": {
+    "original_regressions": {
+      "failed": 9,
+      "passed": 1
+    },
+    "final_regressions": {
+      "passed": 15
+    },
+    "affected_suites": {
+      "passed": 195
+    },
+    "installed": {
+      "passed": 17,
+      "runtime_inputs_matched": 187
+    },
+    "launcher_pins": {
+      "passed": 2
+    },
+    "ruff": "passed",
+    "diff_check": "passed",
+    "initial_affected_run": {
+      "passed": 154,
+      "setup_errors": 41,
+      "limitation": "Runtime changed after parent imported build identity; terminal service logs showed startup followed by test timeout. Frozen-runtime rerun passed."
+    },
+    "fixture_errors": [
+      "Legacy low-level record omitted normalized felt_at",
+      "No-conversation request supplied null instead of omitting selector"
+    ],
+    "overlapping_startup": "Native service guard refused startup; not a test assertion result",
+    "ci": "Not yet run for this affect candidate"
+  },
+  "files": {
+    "installed-parity.json": "113d4916655123bccb34c940c7f2ac7bdfcc41daa894a7b7cb214b1447ba7f81",
+    "service-fixture-cleanup.json.gz": "45d14874d332c817a229e896f2ab1bb6933437bfa1890ebb67c14f6d88cac8a2",
+    "after.log.gz": "5d5972be84e295f0f8bd183337b8ec817e136c17b46326004186ddc5c51ecdab",
+    "expanded-fixed.log.gz": "f8bd0e1960c3d0a21ecc8041c26cefc203adfc5f34f70d6cbef8253c6dd73368",
+    "final-regressions.log.gz": "16fcb3898abfb45035e6449aff370bb98aa9078e5a84355c100e02370dfbf96b",
+    "installed.log.gz": "b6a37692a389b74684bd00e15fce8ad74c4dd7df2076fb21f82bc7d584a4cb78",
+    "expanded.log.gz": "2f529209cad03bbdda14963e6dacf5842b5c42c96fe59cea2a193d69981e1d21",
+    "related.log.gz": "c6cf42f08347601f2de002f686e77a51f7824917b99ddedd01643f83db7c4c7c",
+    "related-final.log.gz": "e4bd263ef5c9ab6c632a554e23b12c02fc6af4cc0465896266d56eb8400baf79",
+    "final-regressions-fixed.log.gz": "5a58b37fc849bbc9227aa7c3d7f06972b3aec2d57736c402cd70258e2f803473",
+    "before.log.gz": "70dde46b913170f31d36dcdb3a3a8460060b8a0bc0c80e6d590e588137074518"
+  },
+  "raw_logs": [
+    {
+      "path": "before.log.gz",
+      "raw_sha256": "df77591bad10fd9b24adcf5b514bb844fc036d545153b0f7a58552d93de21175",
+      "raw_bytes": 14238
+    },
+    {
+      "path": "after.log.gz",
+      "raw_sha256": "00e5dfda61c1a8e1210ac6f91b32eb1ed705c77604ef1cd0b9f902619bb885a7",
+      "raw_bytes": 99
+    },
+    {
+      "path": "expanded.log.gz",
+      "raw_sha256": "87c1754b26e93051f7a7b43b858eac43a90c21ae9ebff98e7103f1f267a350f5",
+      "raw_bytes": 2472
+    },
+    {
+      "path": "expanded-fixed.log.gz",
+      "raw_sha256": "28b3d0542738fa61e2109a7b827aec5e9046c088b6a93181bea5c426d827022d",
+      "raw_bytes": 478
+    },
+    {
+      "path": "final-regressions.log.gz",
+      "raw_sha256": "77bd99d12f0927021fb3488a52e4408a3c3506021ef4c1a227aec688e36c6203",
+      "raw_bytes": 5766
+    },
+    {
+      "path": "final-regressions-fixed.log.gz",
+      "raw_sha256": "5b4755bee92aa7f61813937ea08a62aa029ed49d53df7481dd0c1550eba45392",
+      "raw_bytes": 99
+    },
+    {
+      "path": "related.log.gz",
+      "raw_sha256": "dbf3fe08cbe1b87cbe8f13f69d1408c6debe715199d6bbd7ac5ca0a414b5740a",
+      "raw_bytes": 147177
+    },
+    {
+      "path": "related-final.log.gz",
+      "raw_sha256": "2ad879475dd9c16878b78808c5b9c9de9b21335f77cf67691ad5bfc553de0ba3",
+      "raw_bytes": 271
+    },
+    {
+      "path": "installed.log.gz",
+      "raw_sha256": "acc2f9ca1b93c654eba0f48d74a82494106dbebc92254cced76c5a5066ae1fd6",
+      "raw_bytes": 100
+    },
+    {
+      "path": "service-fixture-cleanup.json.gz",
+      "raw_sha256": "f7f3a4b7480f8ba051bc9d22b10a7f8078736eaaf2bd8fc604a4ccdd8f1376e8",
+      "raw_bytes": 2200
+    }
+  ]
+}

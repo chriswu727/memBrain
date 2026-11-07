@@ -1,0 +1,19 @@
+{
+  "completed": true,
+  "model_calls": 0,
+  "phase": "complete",
+  "scope": "candidate cache integration only; default embedded selector is not overridden in the product",
+  "cache_preexisting": true,
+  "timings_ms": {
+    "first_prepare": 435.5967079754919,
+    "warm_prepare": 140.582624822855
+  },
+  "target": "macos-arm64",
+  "verified_files": 1481,
+  "restart_preserves_rows": true,
+  "cached_client_dump_preserves_row": true,
+  "supplier_unchanged": true,
+  "supplier_python_executed": false,
+  "cache_prefix": "/Users/yichen/tmp/membrain-native-cache-20261104/acl-cold-install-check/cache/v1-16.15-macos-arm64-07a6b6b1a87819b37e967e1c/pginstall",
+  "ports_closed": true
+}
