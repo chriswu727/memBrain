@@ -149,6 +149,47 @@ def _publish_embedding(service, principal, brain_id, job, statement, result, vec
                                        fence=job["fence"], publish=publish)
 
 
+def _query_source(conn, service, principal, request):
+    payload = request["payload"]
+    brain_id = request["target"]["brain_ref"]
+    brain = service._brain(conn, principal, brain_id)
+    cached = conn.execute(
+        "SELECT request_hash FROM memory_requests WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND action=%s AND key=%s",
+        (*service._params(principal, brain_id), request["action"], payload.get("idempotency_key", request["request_id"])),
+    ).fetchone()
+    if cached:
+        return None
+    events = []
+    if request["action"] == "prepare":
+        events = service._events(conn, principal, brain, event_ids=payload["latest_input_event_ids"], limit=128)
+        lookup = {e["event_id"]: e for e in events}
+        if any(key not in lookup for key in payload["latest_input_event_ids"]):
+            raise DomainError("source_unavailable", "Query input is unavailable.")
+        text = "\n".join(lookup[key]["observed"]["content"].get("text", "") for key in payload["latest_input_event_ids"])
+    else:
+        text = " ".join([payload["query"], *payload["additional_cues"]])
+    if not text.strip():
+        return None
+    snapshot = {"scope": service._scope(principal, brain, request["target"]), "source_snapshot": [
+        {"event_id": e["event_id"], "revision": e["revision"], "content_sha256": e["content_sha256"]} for e in events]}
+    return brain, text, snapshot
+
+
+def _local_query_embedding(service, principal, request):
+    from .service import reading
+
+    with service.database.transaction(principal) as conn, reading():
+        source = _query_source(conn, service, principal, request)
+    if source is None:
+        return None, None, 0
+    _, text, snapshot = source
+    timeout = min(10, request["payload"]["budget"]["max_wall_time_ms"] / 1000)
+    result = _call(service, principal, request["target"]["brain_ref"], None,
+                   EmbeddingRequest((text,), timeout_seconds=timeout, purpose="query"))
+    # The enclosing action validates this snapshot under its brain lock before using the vector or storing a reply.
+    return result, snapshot, 1
+
+
 def query_embedding(service, principal, request):
     from .learning import validate_snapshot
 
@@ -156,35 +197,21 @@ def query_embedding(service, principal, request):
     if (service.embedding_provider is None or request["action"] not in {"prepare", "recall"}
             or not payload.get("budget", {}).get("max_embedding_calls", 0)):
         return None, None, 0
+    if not getattr(service.embedding_provider, "metered", True):
+        return _local_query_embedding(service, principal, request)
     brain_id = request["target"]["brain_ref"]
     params = service._params(principal, brain_id)
     fingerprint = digest({"action": request["action"], "target": request["target"], "payload": payload})
     job_id = "query:" + digest([payload.get("idempotency_key", request["request_id"]), request["action"]])
     with service.database.transaction(principal) as conn:
-        brain = service._brain(conn, principal, brain_id)
-        cached = conn.execute(
-            "SELECT request_hash FROM memory_requests WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND action=%s AND key=%s",
-            (*params, request["action"], payload.get("idempotency_key", request["request_id"])),
-        ).fetchone()
-        if cached:
+        source = _query_source(conn, service, principal, request)
+        if source is None:
             return None, None, 0
-        events = []
-        if request["action"] == "prepare":
-            events = service._events(conn, principal, brain, event_ids=payload["latest_input_event_ids"], limit=128)
-            lookup = {e["event_id"]: e for e in events}
-            if any(key not in lookup for key in payload["latest_input_event_ids"]):
-                raise DomainError("source_unavailable", "Query input is unavailable.")
-            text = "\n".join(lookup[key]["observed"]["content"].get("text", "") for key in payload["latest_input_event_ids"])
-        else:
-            text = " ".join([payload["query"], *payload["additional_cues"]])
-        if not text.strip():
-            return None, None, 0
-        snapshot = {"scope": service._scope(principal, brain, request["target"]), "source_snapshot": [
-            {"event_id": e["event_id"], "revision": e["revision"], "content_sha256": e["content_sha256"]} for e in events]}
+        brain, text, snapshot = source
         conn.execute(
             "INSERT INTO memory_jobs(tenant_id,owner_id,brain_id,id,kind,payload,state,source_event_ids) "
             "VALUES(%s,%s,%s,%s,'query_embedding',%s,'queued',%s) ON CONFLICT DO NOTHING",
-            (*params, job_id, Jsonb({"request_hash": fingerprint}), [e["event_id"] for e in events]),
+            (*params, job_id, Jsonb({"request_hash": fingerprint}), [e["event_id"] for e in snapshot["source_snapshot"]]),
         )
         existing = conn.execute("SELECT * FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=%s",
                                 (*params, job_id)).fetchone()
