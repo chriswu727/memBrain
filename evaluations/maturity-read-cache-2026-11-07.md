@@ -1,6 +1,6 @@
 # Bounded read-response caching and legacy diagnostic cleanup
 
-Development build `0e0b3dc63848cfa5e14226f4009f683ec1b165f400c3ac73144d5ff449dc6b1c` bounds the complete response bodies retained by repeated read-only requests. The previously delivered long-source runtime remains a separate qualification. This work is not yet delivered or release-qualified.
+Development runtime `493a14ffd98cd9b4a7e3cdc491852ad4898ee3d0`, build `0e0b3dc63848cfa5e14226f4009f683ec1b165f400c3ac73144d5ff449dc6b1c` bounds the complete response bodies retained by repeated read-only requests. The previously delivered long-source runtime remains a separate qualification. This work is not yet delivered or release-qualified.
 
 ## Behavior
 

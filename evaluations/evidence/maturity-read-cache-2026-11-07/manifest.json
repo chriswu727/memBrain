@@ -276,5 +276,6 @@
       "original_bytes": 1443,
       "original_sha256": "0a533fab0ff38540c98c913e3f4a7a28b1e03e154d24fdb7e2911c602799e430"
     }
-  ]
+  ],
+  "runtime_pin": "493a14ffd98cd9b4a7e3cdc491852ad4898ee3d0"
 }
