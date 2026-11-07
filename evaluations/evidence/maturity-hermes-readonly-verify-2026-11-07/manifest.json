@@ -1,0 +1,28 @@
+{
+  "run_id": 42409708214,
+  "job_id": 128514983922,
+  "source_commit": "7902c16ecd9a7ff7b4c38dbd229d441102efc9a8",
+  "qualified_head": "8841c2b308e8e17c988926b3aed7cedf97486203",
+  "python": "7877 passed, 3 fork warnings in 2307.71s; zero skips",
+  "typescript": "53 passed, zero failures",
+  "strict_types": "passed",
+  "ruff": "passed",
+  "builds": [
+    "sdist",
+    "wheel"
+  ],
+  "files": [
+    {
+      "path": "verify-job.log.gz",
+      "sha256": "7d5ab926a89f7372209c00850e85b8c442c07272a0bf5692c89b5b0b271a7e0f",
+      "uncompressed_sha256": "8b5f17ea63735d4369513532044414a3bc31ffec07240a9a431f9b40f54939ac",
+      "bytes": 210334
+    },
+    {
+      "path": "verify-jobs-final.json.gz",
+      "sha256": "211ee3d474b5bcdcecb9231e9b1c4961819d8f78118bc8ef738ae0d402b86ce2",
+      "uncompressed_sha256": "473cd2a830609e4da0548c52df9e76ad9dbaad73db510f9623c8a97d5f9fef76",
+      "bytes": 559
+    }
+  ]
+}
