@@ -1,0 +1,80 @@
+{
+  "build_id": "09051895b947ff192b1c277af3ca5fc2f5ac7f3d3021be66cb751201cf8f57b8",
+  "schema_id": "478061ac77337fd25d87174df1185ab1d40ad4d4216290078fb26fd2f519fe39",
+  "status": "Source and installed sign-in qualification passed; full Verify pending.",
+  "files": [
+    {
+      "path": "baseline.log.gz",
+      "bytes": 1338,
+      "sha256": "cf7b39c3be9e9c3a6224fe3f5ca5d15132eaf586eff2aa4f9365aa8e1d4e17bd",
+      "original_sha256": "438613265641a32bed54f28c74301698d69ef5b7b518ca1948fa81e1893b6354"
+    },
+    {
+      "path": "build.log.gz",
+      "bytes": 130,
+      "sha256": "e5b69ef003660019f0c71f49dd5948926eafcdb8fc0bf4795784be6aef30ef49",
+      "original_sha256": "cec6631b5c9c505073d8f428a890b7858e68e44d7ae124e10e84bdf41e663a19"
+    },
+    {
+      "path": "check_installed.py.gz",
+      "bytes": 551,
+      "sha256": "a8145e6810de71c40b8015bc9cb30dd0f3383d26db3d28492019e06e2de0cde0",
+      "original_sha256": "d0dafbc90488d0b064613e6b16ccf692acc8b230f3a328c20385065061215cf7"
+    },
+    {
+      "path": "ci/collect_verify.py.gz",
+      "bytes": 762,
+      "sha256": "6f71500c01cd8a35e0aad74a09c5346a04666af52b8b3b660b42d97212b95846",
+      "original_sha256": "96398d3ea32597516fb2d540cb18ef412b38fd39014e38d1252ae3c04c7222fe"
+    },
+    {
+      "path": "ci/watch_verify.py.gz",
+      "bytes": 235,
+      "sha256": "75fd3028501ed1db8c09ff7df573634a6683d33e96c171591f8215094d501010",
+      "original_sha256": "db5a1a5e6dbfb1a23a1a6efbf5833d4a8cedcfaef196c0c63c590504dd380b76"
+    },
+    {
+      "path": "first-fixed.log.gz",
+      "bytes": 51,
+      "sha256": "6f3adc78625eebfc6aee9e46e28e0498d4078ea7e5c49bc82440b5057f0c8bad",
+      "original_sha256": "5d188d19df7b8f7b7384ccbb53f818f65528185148cc512cdaf0ec4e8a873355"
+    },
+    {
+      "path": "guards.log.gz",
+      "bytes": 70,
+      "sha256": "1d40e6961c9a1c6a056cf100d9b77e24ff6b2f29a496feafaa4601c16522e5ef",
+      "original_sha256": "792cb416e13d70a969c6bc81c5b659ed277601d317b8384c97a6af09a5ed544d"
+    },
+    {
+      "path": "installed-parity.json.gz",
+      "bytes": 392,
+      "sha256": "57dd8b3f01ee968e47e30f98a2caf456a49119a22f437594fe8133841113b2b7",
+      "original_sha256": "882f29242989019814e0c54aaacfe3af83de78e08eb392c628c5d0419393722e"
+    },
+    {
+      "path": "installed.log.gz",
+      "bytes": 51,
+      "sha256": "683e43133f2b5f7eee0c0731d3442a6633cf99e8caf8b1b7c5d71b6a620876e0",
+      "original_sha256": "0c74f28fc582662c6a47fc90871dfa0817b7ebb4bb73387a692cd3ae1d72115c"
+    },
+    {
+      "path": "package_evidence.py.gz",
+      "bytes": 1058,
+      "sha256": "c4a029a705740535954ebb401d58432010f4cd9e2c1dbb9190c14800dabd65a6",
+      "original_sha256": "5f6e9630c7b6b1232cddf3163d27887012b42f8f6f202b22c4637914edb2785d"
+    },
+    {
+      "path": "pins.log.gz",
+      "bytes": 52,
+      "sha256": "0bcdaf130a128e5df5acc82c3476987050df4befb08744c6121cd13ef0e8a3e8",
+      "original_sha256": "364ee67226095f20328ed9d08b9d81815746d90891434ba3cb3a67fbce00f5c9"
+    },
+    {
+      "path": "runtime-scope.json.gz",
+      "bytes": 196,
+      "sha256": "731cd5fe1e97d4a6b22d83c41219700a364389d10d235442a7a0a8a33775a484",
+      "original_sha256": "1054a240f638d80219be978a026f9f9d9b313e11fafd1ee13b3c444eb65377fb"
+    }
+  ],
+  "scope": "Synthetic test output, packaging checks and scripts only; no profiles or live credentials read."
+}
