@@ -34,7 +34,7 @@ from itertools import islice
 
 from .helpers import DomainError, uid
 from .helpers import today as _clock_today
-from .notes import _MONTHS, NOTES_CONVERSATION, OPEN_STATUSES, parse_note
+from .notes import _MONTHS, NOTES_CONVERSATION, OPEN_STATUSES, _as_date, parse_note
 from .privacy import neutralize, scrub
 
 RELATIONSHIP_CONVERSATION = "membrain-relationship"
@@ -288,7 +288,7 @@ def _commitments(service, conn, principal, brain_id, after, acknowledged, today)
     for note in reversed(_notes(service, conn, principal, brain_id, "agent_commitment", after, 1000)):
         fields = note["fields"]
         status = fields.get("status", "intended")
-        when = _date(fields.get("due") or fields.get("occurs_at"))
+        when = _as_date(fields.get("due") or fields.get("occurs_at"), end=True)
         item = {"note_id": note["id"], "text": note["text"], "status": status, "due": fields.get("due"),
                 "occurs_at": fields.get("occurs_at"), "recorded_at": note["recorded_at"],
                 "sensitive": note["sensitive"]}

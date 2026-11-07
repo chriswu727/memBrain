@@ -7,6 +7,7 @@ attribution, deletion and backup behaviour, and are never presented as the user'
 """
 from __future__ import annotations
 
+import calendar
 import datetime as _datetime
 import re
 
@@ -42,7 +43,8 @@ NOTE_TOOL_DESCRIPTION = (
     "constraints, plans and their changes) so it is shown at the start of every later session. One fact per note, "
     "under 300 characters, with dates when they matter. Set kind when it is clear: person (with about = their name, "
     "aliases, and the relation in the text), constraint, preference, plan (with status intended until the user "
-    "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD), routine, milestone (shared true when it "
+    "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD or YYYY-MM when the day is unknown), "
+    "routine, milestone (shared true when it "
     "is a moment you and the user shared: a first conversation, a goal reached together, a shared joke), relationship, or "
     "agent_commitment for something you promised to do. Status done means everything in the note has happened: a "
     "purchase paid for but not yet delivered, or a booking still ahead, is scheduled, with its date. "
@@ -60,8 +62,10 @@ NOTE_FIELDS = {
     "aliases": {"type": "array", "items": {"type": "string"},
                 "description": "Other names for that person, e.g. 'the sparky' or a nickname."},
     "status": {"type": "string", "enum": list(STATUSES), "description": "For plans and commitments."},
-    "due": {"type": "string", "description": "YYYY-MM-DD by which a plan or commitment should happen."},
-    "occurs_at": {"type": "string", "description": "YYYY-MM-DD on which an event happens."},
+    "due": {"type": "string", "description": "YYYY-MM-DD by which a plan or commitment should happen; "
+                                                "use YYYY-MM when only the month is known."},
+    "occurs_at": {"type": "string", "description": "YYYY-MM-DD on which an event happens; "
+                                                      "use YYYY-MM when only the month is known."},
     "pinned": {"type": "boolean", "description": "Always show this note."},
     "sensitive": {"type": "boolean", "description": "Health, money or other private matters."},
     "shared": {"type": "boolean", "description": "With kind milestone: a moment the user and you shared, such as "
@@ -134,7 +138,7 @@ def _name(value, field: str) -> str:
 def _date(value, field: str) -> str:
     value = str(value).strip()
     if not _DATE.fullmatch(value):
-        raise ValueError(f"{field} must be a date as YYYY-MM-DD.")
+        raise ValueError(f"{field} must be a date as YYYY-MM-DD or YYYY-MM.")
     try:
         _datetime.date.fromisoformat(value if len(value) == 10 else value + "-01")
     except ValueError:
@@ -380,7 +384,7 @@ def _priority(entry) -> int:
 
 
 def _date_passed(fields: dict) -> bool:
-    when = _as_date(fields.get("occurs_at")) or _as_date(fields.get("due"))
+    when = _as_date(fields.get("occurs_at"), end=True) or _as_date(fields.get("due"), end=True)
     return when is not None and when < _clock_today()
 
 
@@ -490,11 +494,12 @@ def render_notes(response: dict, *, tool: str | None = "memory_note", skip_impor
                if tool else "") + more + "\n" + "\n".join(body) + "\n</membrain-notes>")
 
 
-def _as_date(value: str | None) -> _datetime.date | None:
+def _as_date(value: str | None, *, end: bool = False) -> _datetime.date | None:
     if not value:
         return None
     try:
-        return _datetime.date.fromisoformat(value if len(value) == 10 else value + "-01")
+        day = _datetime.date.fromisoformat(value if len(value) == 10 else value + "-01")
+        return day.replace(day=calendar.monthrange(day.year, day.month)[1]) if end and len(value) == 7 else day
     except ValueError:
         return None
 
@@ -512,7 +517,8 @@ def render_coming_up(response: dict, *, today: _datetime.date | None = None, ski
         status = fields.get("status", "intended" if fields.get("kind") != "milestone" else None)
         if status not in OPEN_STATUSES + (None,):
             continue
-        when = _as_date(fields.get("due") or fields.get("occurs_at"))
+        date = fields.get("due") or fields.get("occurs_at")
+        when, end = _as_date(date), _as_date(date, end=True)
         who = f"{fields['about']}: " if fields.get("about") else ""
         label = neutralize(f"{who}{sentence} (id: {item['event_id']})")
         if when is None:
@@ -520,12 +526,13 @@ def render_coming_up(response: dict, *, today: _datetime.date | None = None, ski
                 undated.append(f"- Your open commitment: {label}")
             elif fields.get("kind") == "plan" and status in OPEN_STATUSES:
                 planned.append(f"- Planned, not confirmed done: {label}")
-        elif when < today and status:
-            passed.append(f"- {when.isoformat()} has passed and this is still marked {status}: {label}")
-        elif today <= when <= today + _datetime.timedelta(days=COMING_UP_DAYS):
+        elif end < today and status:
+            passed.append(f"- {date} has passed and this is still marked {status}: {label}")
+        elif today <= end and when <= today + _datetime.timedelta(days=COMING_UP_DAYS):
             days = (when - today).days
-            relative = "today" if days == 0 else "tomorrow" if days == 1 else f"in {days} days"
-            soon.append(f"- {when.isoformat()} ({relative}): {label}")
+            relative = "day unspecified" if len(date) == 7 else (
+                "today" if days == 0 else "tomorrow" if days == 1 else f"in {days} days")
+            soon.append(f"- {date} ({relative}): {label}")
     # Overdue and open items first: they are the ones to follow up on, and must not be crowded out by the week ahead.
     lines = sorted(passed) + undated + sorted(soon) + planned
     if not lines:
