@@ -1,0 +1,175 @@
+{
+  "source_head": "26af9c075405d8c20e5065f263376173f4adae88",
+  "runtime_pin": "816662f6241da587895aa2e1109346ef60eb2050",
+  "build_id": "954cd01a7a8e4cf396035eb4e111888a37485d39973a876aa60f5fa4ee1cebff",
+  "scope": "Public synthetic recording privacy regressions, installation and deterministic rehearsal. No hidden scenarios, paid model calls or private acceptance outputs. Source CI not yet started.",
+  "privacy": {
+    "profiles_checked": 32,
+    "known_credentials_checked": 84,
+    "all_absent": true
+  },
+  "files": [
+    {
+      "path": "before.log.gz",
+      "bytes": 906,
+      "sha256": "0b834016368e2edd7a5fa7b9d1f3f602708e1bd64f318e47b9d4867621b3071f",
+      "original_sha256": "b85a2d4f72a4b11243a0459f3bf9efc64db3edf6885c8c20a5132747ecfe9820"
+    },
+    {
+      "path": "baseline-setup-failure.json.gz",
+      "bytes": 172,
+      "sha256": "498ea74446b73ac74b798c581b095617386709febaa43d792b011188f1b739ef",
+      "original_sha256": "b6a4dc1f0394c28f165985a91f00a11287ca869e97baf783f89b71f5f189a030"
+    },
+    {
+      "path": "baseline-observation.json.gz",
+      "bytes": 179,
+      "sha256": "ecf01d5075f162e647fc3b208551880d3bd0cce1b448db20813eb21fa7f2d940",
+      "original_sha256": "cc33ac388ec0d381e91cf68a5a7aa59fd214bd92bd9182e6d5443685625f33d4"
+    },
+    {
+      "path": "reproduce-before.py.gz",
+      "bytes": 751,
+      "sha256": "8d4c116bb68585aa97a1da56df2c8d88403f46bf6205eeb28e7351ad7e93a1c1",
+      "original_sha256": "10ff75457b54b6bbb4478660e2a346a12e5ad08ebde28edf1f0f156bb632950d"
+    },
+    {
+      "path": "reproduce-before-initial.py.gz",
+      "bytes": 743,
+      "sha256": "10a774fd6b5c0b5ebba512ca4f7704e3d319f7a9ac6ee9c168a6225d46c84e7d",
+      "original_sha256": "0042b5f6e658134d5dfb6f26b89dc008e2dda0202d38e863dde6b546a62f7c93"
+    },
+    {
+      "path": "focused.log.gz",
+      "bytes": 65,
+      "sha256": "8835b62844f88304d9687e9d6d67a828d4c98c7344d5916b7dfe6bfb5e8dbf74",
+      "original_sha256": "088d7350a190c694f6093ae6eee59622ba14a5ed1076dfe1666a587590b6476c"
+    },
+    {
+      "path": "final-focused.log.gz",
+      "bytes": 67,
+      "sha256": "632a44eb6fe37c00d133aa49a03db0f75f453cb63847f1ab89f9d7a3669daf9a",
+      "original_sha256": "1cb4ec98851a91e96d4836ae5e10f76dff929ba5af78827de02d6dc971d24434"
+    },
+    {
+      "path": "related.log.gz",
+      "bytes": 85,
+      "sha256": "f13f36d7210f64f530781fb9f03b17f6373188df4e8bcb004b61fa64b7ced42f",
+      "original_sha256": "5018eec6a8aba589e81eaa340855e9358bccb7e44c29c2f510d7353b5ac48d4c"
+    },
+    {
+      "path": "related-summary.json.gz",
+      "bytes": 267,
+      "sha256": "02b06261e5cefeb4beef55cb0ef890e2eda4fe7d62793099b28c58adf508d85c",
+      "original_sha256": "f77a1c45dd6a0d6476bc9eb70b10779a5af19268d22adae096ec804587b03b80"
+    },
+    {
+      "path": "related-ports.json.gz",
+      "bytes": 753,
+      "sha256": "7e0b80d71f6b19772e3fb2da5cbd7bcc49e783ca764b612da91905d337e8af69",
+      "original_sha256": "6af7fbdb0ea14379b4976fd833da15e1b6b1b874d16679bb42c923e16246d4ce"
+    },
+    {
+      "path": "comment-cleanup.json.gz",
+      "bytes": 246,
+      "sha256": "2f82e293cd298ddc8f2e360583d1d3d5243d75881285557285571df1a0698f01",
+      "original_sha256": "091bd7d66d63c6ead644d64eb04aeebc96a809c42d2b12013b872fe13abd44f0"
+    },
+    {
+      "path": "source-snapshot.json.gz",
+      "bytes": 741,
+      "sha256": "b02f9d785c7a4a62d08200f04ef96a74262c304529b7412005b46c79f2ccadab",
+      "original_sha256": "1b2de2d8d7bfb709aaedf25345ef02bce32e686be4acb2fb54eb7662775c9621"
+    },
+    {
+      "path": "install-run-meta.json.gz",
+      "bytes": 399,
+      "sha256": "7dcc4d5f07b4379ed00121024bb1def939bb2ded65a85200326b8398498a998c",
+      "original_sha256": "5eff2f75e53999cf2bdd78342c4d57018e42822e8f0983edf1dbf5830f083e95"
+    },
+    {
+      "path": "install-final/results.json.gz",
+      "bytes": 4953,
+      "sha256": "544a35f321496497ddec64eb00f84cfa36ec1ae10e01a1163aea69b8e6dbcf23",
+      "original_sha256": "2c79e6e309dda27d56065700ff27814f2726ec0d3df2ca2d28430f445fbc71b3"
+    },
+    {
+      "path": "installed-and-ports.json.gz",
+      "bytes": 500,
+      "sha256": "5cb7b8b3ca24c5360480cd3ca404c354b5da197bfa00bc00b8fdfaef4173edd3",
+      "original_sha256": "7d19ded6f3d4dc3fcaf1d6e3360491cf56a91ef120edd9f73e703dc28dd05bab"
+    },
+    {
+      "path": "installed-tests.log.gz",
+      "bytes": 228,
+      "sha256": "af11995f36a59c2cc1567977f8632d54f924588985c2f4d4f35c638cc40ea06c",
+      "original_sha256": "d58c7dfbbed607ed1aabd2011b2123366d74cb3ea88f4938537c27da48f453c0"
+    },
+    {
+      "path": "installed-tests-summary.json.gz",
+      "bytes": 59,
+      "sha256": "7c398f1dea01001e2143e4963ddd9248662e2dbf6ce163dc6baf775c6c41cdbb",
+      "original_sha256": "b34ce3f1e92edc0d5032740d601e72c7f45262a0f2f38ba36ff4a87e93a63724"
+    },
+    {
+      "path": "public-practice-result.json.gz",
+      "bytes": 13940,
+      "sha256": "f76c2846ff33255c3919c68a379e7f6772ec6d1b108d3d6c6782a6eca013a427",
+      "original_sha256": "680000c378f1e956ab4309ea55c027fea5d090202a6884c7968c4767edce0fbf"
+    },
+    {
+      "path": "public-practice-checks.json.gz",
+      "bytes": 235,
+      "sha256": "439b8438c25532c742e117982e61ce7042898c3e0995d4f49c08673c5a3c305e",
+      "original_sha256": "010f206e79fc09d5a4f457c9a2e48e816e0903bcfcf2cdc5d606b0983bc4cfef"
+    },
+    {
+      "path": "public-practice-validity.json.gz",
+      "bytes": 143,
+      "sha256": "51bad7d9bf9789fa381122118c72bf001cb0275ad396f993cf85540753ab2016",
+      "original_sha256": "6944038cca8acff562db9cd7c2a568a9247b231f148804609380a096bb60c6b4"
+    },
+    {
+      "path": "journal-checks.json.gz",
+      "bytes": 135,
+      "sha256": "c61a322d5a0a3cce00a872d638595f5ac11ddd19fcf1164fc3c9f108df4b6d02",
+      "original_sha256": "c484c7c5d063141ebd4bf3f43992616fa8343d97c2a807d7937c098404428be2"
+    },
+    {
+      "path": "run-related.py.gz",
+      "bytes": 693,
+      "sha256": "a3c7751d2525ce62ed924337e8a9ef6b158caecabca079935fb50653ed7bf352",
+      "original_sha256": "650120541dc13f305beb9bd8c755e022f4f02c0666c3dd8c61108834517e2890"
+    },
+    {
+      "path": "run-install.py.gz",
+      "bytes": 930,
+      "sha256": "411035972d6ad9896a55fc57c8c1a3857de8c18b4e9c64262b00274ab7f724af",
+      "original_sha256": "a091b295d56d275ff5c26c46f9f6a9bec92e3d80619bd6978023845717cf6da9"
+    },
+    {
+      "path": "run-public-practice.py.gz",
+      "bytes": 1675,
+      "sha256": "7bf647f8086f2225b5e0c211a0818f41c2addcd20df9c7e827134fe4a76d29ce",
+      "original_sha256": "b4c225b44cddb0c93f2eab9e3984121bd6f6f6c7d10a5690e6016c30feb1be51"
+    },
+    {
+      "path": "run-installed-tests.py.gz",
+      "bytes": 804,
+      "sha256": "d40a55f318b4830cbfb29f8923effcb4baf26841088d5bf94abdafc529f0a1d1",
+      "original_sha256": "a1bd8ed2b19d8c59e8d8ccbd6b27e018b4829eb925c81590d542b76c7d8a1dac"
+    },
+    {
+      "path": "check-installed-and-ports.py.gz",
+      "bytes": 1023,
+      "sha256": "a0a1f71f23a25bb45ae880f0913b16bacf77b1da7cd14e9deb989c2d2ddd8a1b",
+      "original_sha256": "0067210494806db9b7ade5caacbe31c903ac27bff947854fcef7821c8b3215a8"
+    },
+    {
+      "path": "check-journals.py.gz",
+      "bytes": 418,
+      "sha256": "051a84558dbbd1b4ac97e9931a6225a413e64cb3f9ab0c41c0578f7372fd204e",
+      "original_sha256": "cea24667081e4da1d9423cc596a3ceaccaa673179a0526707898d5addce0453a"
+    }
+  ]
+}
