@@ -16,4 +16,17 @@ A disposable synthetic fixture contained 500 supported feelings, 200 completed p
 
 These timings measure restored correct work, not a speedup against the predecessor's incorrect empty result. They are direct service measurements, not the canonical recall/3D R5 protocol, semantic quality evidence or longitudinal personality evidence. Ordinary graph sampling has a separate preselection path; this repair does not claim to eliminate every graph sampling limit.
 
-[Raw failures, passing tests, package hashes, benchmark scripts and cleanup receipts](evidence/maturity-affect-window-2026-11-06/manifest.json) retain all results. No model calls or held-out scenario access were used. Fresh full-install and R5 qualification are pending for this runtime. R4 remains failed, C5 remains incomplete, and release stays frozen.
+[Raw failures, passing tests, package hashes, benchmark scripts and cleanup receipts](evidence/maturity-affect-window-2026-11-06/manifest.json) retain all results. No model calls or held-out scenario access were used. R4 remains failed, C5 remains incomplete, and release stays frozen.
+
+
+## Exact-runtime installation and fullscreen qualification
+
+The unchanged real-launcher driver passed **49/49 checks** on fresh basic and companion homes. Both installed environments match all 187 runtime inputs. Upgrade, restart, cross-session recall, MCP correction/deletion, stub proxy, backup/restore activation and companion-state persistence passed. All four profiles stopped and their eight ports closed.
+
+The complete closed/open/open/closed R5 comparison passed **36/36 windows**, with **4,080 nonempty recalls**. Worst individual-window p95 was **262.97 ms serial, 407.94 ms for eight workers on one brain and 375.13 ms for eight brains**, against the unchanged 500/1,000/600 ms limits. The retained reference corpus, three cycles per phase, 21-query workers with the first sample discarded, fresh APIs per phase and normal 30-second browser polling were unchanged.
+
+Chromium 153.0.8010.12 used Apple M4 Metal rendering at 1,280 × 900 and device pixel ratio 1. Both open phases displayed **187 stored nodes and 71 edges**, with exact node/edge agreement against the structure API before and after measurement. Animation advanced 1,177 and 1,221 frames. Screenshots were taken after measurement with animation paused. There were no page errors or external HTTP requests; all fixture ports closed.
+
+Runtime and driver inputs remained unchanged. The broader start/end hash set also matched; a transient edit to the architecture prose was reverted during measurement without changing runtime inputs. The [installed/fullscreen evidence](evidence/maturity-affect-window-installed-2026-11-06/manifest.json) retains exact source heads, scripts, all timings, screenshots and cleanup checks. Published payloads contain none of the owned test-profile credential values.
+
+R5 qualifies keyword recall on this reference fixture with semantic processing disabled and zero model calls. It does not establish general memory capacity or semantic/longitudinal quality. Full current-candidate CI remains pending.
