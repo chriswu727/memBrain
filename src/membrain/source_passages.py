@@ -5,7 +5,7 @@ from . import cognition
 SOURCE_PASSAGE_VERSION = "bounded-adjacent-source-passages-v1"
 
 
-def source_passage_candidates(conn, service, principal, brain, target, seeds, *, through_sequence):
+def source_passage_candidates(conn, service, principal, brain, target, seeds, *, through_sequence, include_speech=True):
     from .candidates import _eligible, _scope_clause
 
     scope = service._scope(principal, brain, target)
@@ -61,7 +61,7 @@ def source_passage_candidates(conn, service, principal, brain, target, seeds, *,
     clause, scope_params = _scope_clause("a", target)
     rows = conn.execute(
         "SELECT a.document,a.event_ids,a.is_current FROM memory_assertions a WHERE "
-        + _eligible()
+        + _eligible(include_speech=include_speech)
         + clause
         + "AND a.document #>> '{derivation,method}'='direct_capture' "
         + "AND a.event_ids && %s::text[] AND EXISTS ("

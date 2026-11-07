@@ -37,11 +37,17 @@ def _scope_clause(alias, target):
     )
 
 
-def _eligible(alias="a", *, current=True):
+def _eligible(alias="a", *, current=True, include_speech=True):
+    # Keep the SQL exclusion identical to assistant_speech before bounded candidate selection.
     return (f"{alias}.tenant_id=%s AND {alias}.owner_id=%s AND {alias}.brain_id=%s "
             + (f"AND {alias}.is_current " if current else "")
             + f"AND NOT {alias}.invalidated AND NOT {alias}.deleted AND NOT {alias}.suppressed "
-            f"AND {alias}.document IS NOT NULL ")
+            f"AND {alias}.document IS NOT NULL "
+            + ("" if include_speech else
+               f"AND coalesce({alias}.document->>'claim_kind','') NOT IN "
+               "('agent_said','proposal_offered','commitment_expressed') "
+               f"AND NOT (coalesce({alias}.document #>> '{{derivation,method}}','')='direct_capture' "
+               f"AND left({alias}.document->>'statement',10)='assistant ') "))
 
 
 def _belief_endpoint_scores(signals, relations):
@@ -102,6 +108,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
     scope_sql, scope_params = _scope_clause("a", target)
     candidate_limit = min(128, max(4, query["budget"]["max_context_tokens"] // 512))
     scan_limit = min(512, candidate_limit * 4)
+    include_speech = cognition.speech_requested(query)
     text = " ".join([query["query"], *query.get("additional_cues", [])])
     documents, rankings, versions = {}, {}, {}
     truncated = False
@@ -136,8 +143,8 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
         from .source_candidates import SOURCE_ROUTE_VERSION, source_candidates
         from .source_context import source_unit_candidates
 
-        rows, truncated = lexical_rows(conn, params, target, text, limit=scan_limit)
-        if not cognition.speech_requested(query):
+        rows, truncated = lexical_rows(conn, params, target, text, limit=scan_limit, include_speech=include_speech)
+        if not include_speech:
             rows = [row for row in rows if not assistant_speech(row["document"])]
         score_text = LexicalScorer.from_memories(text, [row["document"] for row in rows])
         lexical = [(score_text(text, row["document"]["statement"]), row)
@@ -149,7 +156,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
             [service._bind_document(row["document"], principal, brain) for _, row in lexical[:candidate_limit]],
             source_limit=min(64, candidate_limit), scan_limit=scan_limit,
             through_sequence=brain["durable_sequence"],
-            score_text=score_text,
+            score_text=score_text, include_speech=include_speech,
         )
         truncated = truncated or source_truncated
         lexical.extend(bridged)
@@ -172,14 +179,13 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
             if service.embedding_provider and service.embedding_provider.space != space:
                 raise DomainError("validation_failed", "Query embedding space differs from the configured space.")
             vector = "[" + ",".join(str(value) for value in query_embedding.vectors[0]) + "]"
-            speech = cognition.speech_requested(query)
 
             def nearest(script_clause, script_params, limit):
                 found = conn.execute(
                     "SELECT a.document,v.content_hash,(v.embedding <=> %s::vector) AS distance "
                     "FROM memory_assertions a JOIN memory_embeddings v ON v.tenant_id=a.tenant_id "
                     "AND v.owner_id=a.owner_id AND v.brain_id=a.brain_id AND v.memory_id=a.id "
-                    "AND v.memory_revision=a.revision WHERE " + _eligible() + scope_sql
+                    "AND v.memory_revision=a.revision WHERE " + _eligible(include_speech=include_speech) + scope_sql
                     + "AND v.model=%s AND v.model_version=%s AND v.dimensions=%s " + script_clause
                     + "ORDER BY distance,a.id LIMIT %s",
                     (vector, *params, *scope_params, space.model, space.model_version, space.dimensions,
@@ -188,7 +194,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
                 usable = [row for row in found[:limit] if row["distance"] is not None
                           and math.isfinite(row["distance"]) and row["distance"] < 1
                           and row["content_hash"] == digest(row["document"]["statement"])
-                          and (speech or not assistant_speech(row["document"]))]
+                          and (include_speech or not assistant_speech(row["document"]))]
                 return usable, len(found) > limit
 
             rows, more = nearest("", (), scan_limit)
@@ -220,7 +226,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
             passages, passage_truncated = source_passage_candidates(
                 conn, service, principal, brain, target,
                 [(item["score"], documents[(item["memory_id"], item["revision"])]) for item in seeds],
-                through_sequence=brain["durable_sequence"],
+                through_sequence=brain["durable_sequence"], include_speech=include_speech,
             )
             truncated = truncated or passage_truncated
             for key, (score, _) in zip(remember([row for _, row in passages]), passages, strict=True):
@@ -233,7 +239,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
                 "JOIN memory_assertions a ON a.tenant_id=e.tenant_id AND a.owner_id=e.owner_id AND a.brain_id=e.brain_id "
                 "AND ((e.source_id=s.id AND e.source_revision=s.revision AND a.id=e.target_id AND a.revision=e.target_revision) "
                 "OR (e.target_id=s.id AND e.target_revision=s.revision AND a.id=e.source_id AND a.revision=e.source_revision)) "
-                "WHERE " + _eligible() + scope_sql + "AND NOT e.invalidated "
+                "WHERE " + _eligible(include_speech=include_speech) + scope_sql + "AND NOT e.invalidated "
                 "AND NOT EXISTS (SELECT 1 FROM seeds own WHERE own.id=a.id AND own.revision=a.revision) "
                 "GROUP BY a.id,a.revision,a.document ORDER BY relevance DESC,a.id,a.revision LIMIT %s",
                 (seed_ids, seed_revisions, seed_scores, *params, *scope_params, candidate_limit + 1),
@@ -253,7 +259,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
                 "AND member.brain_id=%s AND member.episode_id=matched.id AND member.episode_revision=matched.revision "
                 "JOIN memory_assertions a ON a.tenant_id=member.tenant_id AND a.owner_id=member.owner_id "
                 "AND a.brain_id=member.brain_id AND a.id=member.memory_id AND a.revision=member.memory_revision "
-                "WHERE " + _eligible() + scope_sql
+                "WHERE " + _eligible(include_speech=include_speech) + scope_sql
                 + "AND NOT EXISTS (SELECT 1 FROM seeds own WHERE own.id=a.id AND own.revision=a.revision) "
                 "GROUP BY a.id,a.revision,a.document ORDER BY relevance DESC,a.id,a.revision LIMIT %s",
                 (seed_ids, seed_revisions, seed_scores, *params, target.get("conversation_ref"),
@@ -270,7 +276,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
                 adjacent, adjacent_truncated = source_neighborhood_candidates(
                     conn, service, principal, brain, target,
                     [(item["score"], documents[(item["memory_id"], item["revision"])]) for item in seeds],
-                    through_sequence=brain["durable_sequence"],
+                    through_sequence=brain["durable_sequence"], include_speech=include_speech,
                 )
                 truncated = truncated or adjacent_truncated
                 expand([{**row, "relevance": score} for score, row in adjacent], SOURCE_NEIGHBORHOOD_VERSION)
@@ -281,7 +287,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
             item["rank_signals"].append({"method": "association", "score": score,
                                         "meaning": "ranking_only_not_probability", "model_or_index_version": version})
         ranked = list(combined.values())
-        if not cognition.speech_requested(query):
+        if not include_speech:
             ranked = [item for item in ranked if not assistant_speech(documents[(item["memory_id"], item["revision"])])]
         usage_rows = conn.execute(
             "SELECT memory_id,memory_revision,external_uses,successes,failures,last_external_use_at,last_reinforcement_at "

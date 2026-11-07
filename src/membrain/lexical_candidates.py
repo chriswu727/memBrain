@@ -112,12 +112,12 @@ def _merged_rows(conn, where, values, vector, terms, limit):
 
 
 def lexical_rows(conn, params, target, text, *, limit, through_sequence=None, excluded_versions=(),
-                 independent_of_event_ids=()):
+                 independent_of_event_ids=(), include_speech=True):
     from .candidates import _eligible, _scope_clause
     from .service import _vector
 
     clause, scope_params = _scope_clause("a", target)
-    where = _eligible() + clause
+    where = _eligible(include_speech=include_speech) + clause
     where += "AND a.embedding_model='lexical-feature-hash' AND a.embedding_version='v1-d256-blake2s' "
     values = (*params, *scope_params)
     support_clause, support_params = historical_support_filter(independent_of_event_ids)
