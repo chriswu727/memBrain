@@ -1,6 +1,6 @@
 # Bounded read-response caching and legacy diagnostic cleanup
 
-Development runtime `493a14ffd98cd9b4a7e3cdc491852ad4898ee3d0`, build `0e0b3dc63848cfa5e14226f4009f683ec1b165f400c3ac73144d5ff449dc6b1c` bounds the complete response bodies retained by repeated read-only requests. The previously delivered long-source runtime remains a separate qualification. This work is not yet delivered or release-qualified.
+Qualified runtime `493a14ffd98cd9b4a7e3cdc491852ad4898ee3d0`, build `0e0b3dc63848cfa5e14226f4009f683ec1b165f400c3ac73144d5ff449dc6b1c` bounds the complete response bodies retained by repeated read-only requests. The previously delivered long-source runtime remains a separate qualification. The cache changes have completed engineering qualification for integration; the independent release acceptance gates remain open.
 
 ## Behavior
 
@@ -53,4 +53,14 @@ The first actual backup probe backed up 110 cache rows, verified quarantine clea
 
 The corrected independent probe uses the ordinary `open_client` helper. It backs up eight cached responses, erases one source after the checkpoint, restores into quarantine and activates explicitly. Both cache and cleanup-cursor tables are empty before activation; event rows exactly match the post-erasure source state. A client without recovery acknowledgement is explicitly checked and receives `recovery_acknowledgement_required`. The acknowledged client's old read key receives `version_conflict`, while a fresh HTTP recall succeeds without the erased source. The dump and temporary profiles are removed, all owned ports close, and no model calls occur.
 
-Raw logs and scripts are retained in the accompanying evidence manifest. Full CI, exact-package qualification and integration delivery remain open for this development build. The public cross-language misses at cases 6, 12 and 16 remain unresolved. R4 remains failed, C5 incomplete; no fresh behavioral acceptance, main merge, tag or release is implied.
+## Installed and concurrent qualification
+
+The exact pinned runtime passes the frozen **49-check** fresh installation, upgrade, MCP/proxy, restart, companion-state preservation and backup/restore journey. Both installed homes match all **194 runtime inputs**. Another **117 tests pass against the installed package** in 26.57 seconds. All four installation profiles' ports are closed. The preceding completed synthetic installation profiles were removed after checking ownership and closed ports, freeing approximately 1.07 GB; package environments, models, source and evidence remain.
+
+The retained public R5 installation upgrades from schema 026 to 027. Twenty-five core tables are hashed before and after and remain unchanged; request/trace counts are also unchanged by migration. A private corpus dump is preserved separately, excluding operational request and trace payloads. It is not a product recovery bundle.
+
+The exact installed runtime then passes all **36 concurrent/visual windows**, with **4,080 nonempty recalls**. Worst-window P95 is **240.87 ms serial**, **296.02 ms for eight readers of one brain**, and **337.05 ms for eight brains**. Both visible 3D phases show exactly **187 nodes and 71 edges** matching the stored structural API, rendered using Apple M4 Metal. Normal page polling remains active; 917 and 929 animation frames advance. There are no page errors or page external requests. Frozen source/driver hashes match and all ports close. These are fixture-specific observations, not a general speedup or capacity guarantee.
+
+[Native run 42368702659](https://github.com/chriswu727/memBrain/actions/runs/42368702659) passes all five platforms on exact head `7a58d85869df1e34ecbf5d8a2dacedd9a88ba663`. Forty-seven audited journey summaries completed with zero model calls and all recorded ports closed. [Verify 42368700922](https://github.com/chriswu727/memBrain/actions/runs/42368700922) passes on that same head: **7,769 Python tests**, three retained fork deprecation warnings, **53 TypeScript tests**, strict types, Ruff and both package builds. Python completed in 2,571.24 seconds. No duplicate run was started.
+
+Raw logs and scripts are retained in the accompanying evidence manifest. This engineering qualification does not satisfy the separate behavioral release gates. Separate exploratory source-script diagnostics are retained but do not modify this runtime or establish a new host hit rate. Its previous public cross-language misses remain unresolved. R4 remains failed, C5 incomplete; no fresh behavioral acceptance, main merge, tag or release is implied.
