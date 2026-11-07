@@ -37,7 +37,7 @@ def test_repeated_recall_keeps_diagnostics_in_receipts_without_duplicate_trace_r
         assert turns.service.handle(turns.principal, changed)["error"]["code"] == "idempotency_conflict"
     assert len(trace_ids) >= len(requests)
     with turns.database.transaction(turns.principal) as conn:
-        stored = conn.execute("SELECT key,response FROM memory_requests WHERE brain_id=%s AND action='recall'",
+        stored = conn.execute("SELECT key,response FROM memory_read_cache WHERE brain_id=%s AND action='recall'",
                               (turns.brain,)).fetchall()
         assert {row["key"]: row["response"] for row in stored} == {
             request["request_id"]: response for request, response in zip(requests, responses, strict=True)}

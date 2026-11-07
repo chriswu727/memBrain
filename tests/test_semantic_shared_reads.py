@@ -36,11 +36,17 @@ pytestmark = pytest.mark.integration
 WRITE = re.compile(r"^\s*(INSERT|UPDATE|DELETE|MERGE|TRUNCATE|COPY)\b|\bFOR\s+(NO\s+KEY\s+)?UPDATE\b",
                    re.IGNORECASE)
 # Audited writes a shared read may make (see the brain-lock review): rows of other tables, each keyed so that no two
-# concurrent readers can touch the same row (the response under the same-key advisory lock, traces under random
-# identifiers, and the query-embedding cache of this request's own key).
+# concurrent readers can touch the same row without serialization: receipts use the request-key lock, bounded
+# response-cache publication uses a per-brain cache lock, and query results use this request's own key.
 ALLOWED = (
     re.compile(r"^INSERT INTO memory_requests\("),
     re.compile(r"^INSERT INTO memory_traces\("),
+    re.compile(r"^INSERT INTO memory_read_cache\("),
+    re.compile(r"^DELETE FROM memory_read_cache WHERE "),
+    re.compile(r"^INSERT INTO memory_cache_maintenance\("),
+    re.compile(r"^UPDATE memory_cache_maintenance SET request_action=%s,request_key=%s,trace_id=%s,"),
+    re.compile(r"^UPDATE memory_requests SET response=NULL WHERE .* AND response IS NOT NULL AND \(action,key\) IN "),
+    re.compile(r"^DELETE FROM memory_traces WHERE .* AND id=ANY\(%s::text\[\]\) AND document->>'kind'='candidate_hit'$"),
     re.compile(r"^UPDATE memory_jobs SET result=NULL WHERE .* AND id=%s AND kind='query_embedding'$"),
 )
 

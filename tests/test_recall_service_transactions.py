@@ -36,7 +36,8 @@ def prepare(turns):
 
 def receipts(turns, request):
     with turns.database.transaction(turns.principal) as conn:
-        return conn.execute("SELECT request_hash,response FROM memory_requests WHERE brain_id=%s AND key=%s",
+        return conn.execute("SELECT r.request_hash,c.response FROM memory_requests r LEFT JOIN memory_read_cache c "
+                            "USING(tenant_id,brain_id,action,key) WHERE r.brain_id=%s AND r.key=%s",
                             (turns.brain, request["request_id"])).fetchall()
 
 

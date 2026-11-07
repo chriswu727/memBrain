@@ -276,17 +276,24 @@ class MemoryService:
                     conn.execute("SELECT pg_advisory_xact_lock(hashtextextended(%s,0))",
                                  (digest(["request", *params, action, key]),))
                 fingerprint = digest({"action": action, "target": request["target"], "payload": request["payload"]})
+                cached_column = "NULL::jsonb" if action in READ_ACTIONS else "response"
                 existing = conn.execute(
-                    "SELECT request_hash,response FROM memory_requests "
+                    f"SELECT request_hash,{cached_column} AS response FROM memory_requests "
                     "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND action=%s AND key=%s",
                     (*params, action, key),
                 ).fetchone()
                 if existing:
                     if existing["request_hash"] != fingerprint:
                         raise DomainError("idempotency_conflict", "Idempotency key has different content.")
-                    if existing["response"] is None:
-                        raise DomainError("version_conflict", "Cached response was invalidated; use a new request ID.")
-                    response = copy.deepcopy(existing["response"])
+                    if action in READ_ACTIONS:
+                        from .read_cache import load
+
+                        cached = load(conn, params, action, key)
+                    else:
+                        cached = existing["response"]
+                    if cached is None:
+                        raise DomainError("version_conflict", "Cached response expired or was invalidated; use a new request ID.")
+                    response = copy.deepcopy(cached)
                     response["request_id"] = request["request_id"]
                     return response, False
                 if vector_snapshot:
@@ -310,8 +317,12 @@ class MemoryService:
                 conn.execute(
                     "INSERT INTO memory_requests(tenant_id,owner_id,brain_id,action,key,request_hash,response) "
                     "VALUES(%s,%s,%s,%s,%s,%s,%s)",
-                    (*params, action, key, fingerprint, Jsonb(envelope)),
+                    (*params, action, key, fingerprint, None if action in READ_ACTIONS else Jsonb(envelope)),
                 )
+                if action in READ_ACTIONS:
+                    from .read_cache import store
+
+                    store(conn, params, action, key, envelope)
                 if embedding_calls:
                     conn.execute(
                         "UPDATE memory_jobs SET result=NULL WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
@@ -362,6 +373,8 @@ class MemoryService:
             "AND response IS NOT NULL",
             self._params(principal, brain["id"]),
         )
+        conn.execute("DELETE FROM memory_read_cache WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s",
+                     self._params(principal, brain["id"]))
 
     def _job(self, conn, principal, brain, kind, payload, state="queued"):
         _writable()
@@ -1615,7 +1628,16 @@ class MemoryService:
     def work_once(self, principal, brain_id):
         from .learning import LearningEngine
 
-        return LearningEngine(self).work_once(principal, brain_id)
+        result = LearningEngine(self).work_once(principal, brain_id)
+        if not result:
+            from .read_cache import maintain
+
+            with reading(), self.database.transaction(principal) as conn:
+                conn.execute("SET LOCAL statement_timeout='1000'")
+                conn.execute("SET LOCAL lock_timeout='100'")
+                brain = self._brain(conn, principal, brain_id)
+                maintain(conn, self._params(principal, brain["id"]))
+        return result
 
     def source_messages(self, principal, brain_id, references):
         from .note_sources import reference, resolve

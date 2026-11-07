@@ -161,7 +161,7 @@ def test_a_cached_response_is_validated_again_at_the_http_boundary(learning):
     assert harness.service.respond(harness.principal, request)[1] is False  # the replay is not trusted
     with harness.database.transaction(harness.principal) as conn:
         changed = conn.execute(
-            "UPDATE memory_requests SET response=jsonb_set(response,'{result,status}','\"not-a-status\"') "
+            "UPDATE memory_read_cache SET response=jsonb_set(response,'{result,status}','\"not-a-status\"') "
             "WHERE tenant_id=%s AND brain_id=%s AND action='recall' AND key=%s",
             (harness.principal.tenant_id, harness.brain, request["request_id"]),
         ).rowcount
@@ -234,7 +234,7 @@ def test_a_recall_receipt_saves_exactly_the_traces_it_returns(learning):
     assert response["outcome"] == "completed" and returned
     with harness.database.transaction(harness.principal) as conn:
         saved = conn.execute(
-            "SELECT response FROM memory_requests WHERE tenant_id=%s AND brain_id=%s AND action='recall' AND key=%s",
+            "SELECT response FROM memory_read_cache WHERE tenant_id=%s AND brain_id=%s AND action='recall' AND key=%s",
             (harness.principal.tenant_id, harness.brain, request["request_id"])).fetchone()["response"]
     assert saved["result"]["recall_traces"] == returned
 
