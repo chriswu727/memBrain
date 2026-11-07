@@ -137,16 +137,16 @@ def _records(service, conn, principal, brain_id, limit=MAX_RECORDS + 1, *, ids=N
     if marker:  # Erased by the reset; kept out here too, so nothing before the marker can count.
         records = [record for record in records if record["sequence"] > marker["applies_from_sequence"]]
     related_ids = list({value for record in records for value in (record["note_id"], record["id"])})
-    related = {row["id"]: row for row in conn.execute(
-        "SELECT id,conversation_id,document->'observed'->'content'->>'text' AS text,"
-        "ARRAY(SELECT d.input_event_id FROM memory_event_dependencies d JOIN memory_events s "
-        "ON s.tenant_id=d.tenant_id AND s.owner_id=d.owner_id AND s.brain_id=d.brain_id AND s.id=d.input_event_id "
-        "WHERE d.tenant_id=memory_events.tenant_id AND d.owner_id=memory_events.owner_id "
-        "AND d.brain_id=memory_events.brain_id AND d.output_event_id=memory_events.id AND s.is_current "
-        "AND NOT s.deleted AND NOT s.suppressed AND NOT s.retired AND s.document IS NOT NULL "
-        "ORDER BY s.sequence) AS sources "
+    related = {row["id"]: {**row, "sources": []} for row in conn.execute(
+        "SELECT id,conversation_id,document->'observed'->'content'->>'text' AS text "
         f"FROM memory_events WHERE {_VISIBLE} AND conversation_id=ANY(%s::text[]) AND id=ANY(%s::text[])",
         (*params, [NOTES_CONVERSATION, AFFECT_CONVERSATION], related_ids))} if related_ids else {}
+    if related:
+        for edge in conn.execute(
+                "SELECT input_event_id,output_event_id FROM memory_event_dependencies "
+                "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND output_event_id=ANY(%s::text[])",
+                (*params, list(related))):
+            related[edge["output_event_id"]]["sources"].append(edge["input_event_id"])
     read_from = list({value for record in records for value in record["read_from"]}
                      | {value for item in related.values() for value in item["sources"]})
     visible = {row["id"]: row for row in conn.execute(
@@ -155,6 +155,9 @@ def _records(service, conn, principal, brain_id, limit=MAX_RECORDS + 1, *, ids=N
         "AND (conversation_id IS NULL OR NOT (conversation_id=ANY(%s::text[]))) "
         "AND document->'observed'->>'delivery_state' NOT IN ('draft','cancelled')",
         (*params, read_from, [NOTES_CONVERSATION, AFFECT_CONVERSATION]))} if read_from else {}
+    for item in related.values():
+        item["sources"] = sorted((source for source in item["sources"] if source in visible),
+                                 key=lambda source: visible[source]["sequence"])
     result = []
     for record in records:
         imported = record.pop("_from_archive")

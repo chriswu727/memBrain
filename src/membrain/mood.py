@@ -38,6 +38,7 @@ import re
 
 from .helpers import DomainError, uid
 from .helpers import now as _now
+from .memory_map import sensitive_note_ids
 from .privacy import neutralize
 
 MOOD_CONVERSATION = "membrain-mood"
@@ -114,6 +115,10 @@ def _affect_triggers(service, conn, principal, brain_id) -> list[dict]:
     after = marker["applies_from_sequence"] if marker else 0
     records = sorted((record for record in _records(service, conn, principal, brain_id, include_imports=False)
                       if record["sequence"] > after), key=lambda record: record["sequence"])
+    protected = sensitive_note_ids(conn, service._params(principal, brain_id),
+                                   [value for record in records for value in (record["id"], record["note_id"])])
+    for record in records:
+        record["sensitive"] |= record["id"] in protected or record["note_id"] in protected
     triggers = []
     for record, replaced in zip(records, _successors(records), strict=True):
         if record["sensitive"] or record["valence"] == 0:
@@ -181,6 +186,8 @@ def _plan_triggers(service, conn, principal, brain_id) -> list[dict]:
         "AND document IS NOT NULL AND document->'observed'->'content'->>'text' LIKE '[plan%%' "
         "ORDER BY sequence DESC LIMIT %s",
         (*service._params(principal, brain_id), NOTES_CONVERSATION, PLAN_NOTES)).fetchall()
+    protected = sensitive_note_ids(conn, service._params(principal, brain_id),
+                                   [row["document"]["event_id"] for row in rows])
     triggers = []
     for row in rows:
         if row["producer_ref"].startswith(IMPORT_PREFIX) or row["producer_ref"] == "archive-import":
@@ -189,7 +196,8 @@ def _plan_triggers(service, conn, principal, brain_id) -> list[dict]:
         fields, sentence = parse_note(document["observed"]["content"].get("text") or "")
         recorded = document["system_time"]["recorded_at"]
         dates = [fields[name] for name in ("due", "occurs_at") if fields.get(name)]
-        if fields.get("kind") != "plan" or fields.get("status") != "done" or fields.get("sensitive"):
+        if (fields.get("kind") != "plan" or fields.get("status") != "done" or fields.get("sensitive")
+                or document["event_id"] in protected):
             continue
         if any(value > recorded[:len(value)] for value in dates):
             continue
@@ -215,6 +223,8 @@ def relationship_triggers(service, conn, principal, brain_id) -> list[dict]:
         "AND document IS NOT NULL AND sequence>%s "
         "AND document->'observed'->'content'->>'text' LIKE '[milestone%%' ORDER BY sequence DESC LIMIT %s",
         (*service._params(principal, brain_id), NOTES_CONVERSATION, relationship["after"], PLAN_NOTES)).fetchall()
+    protected = sensitive_note_ids(conn, service._params(principal, brain_id),
+                                   [row["document"]["event_id"] for row in rows])
     triggers = []
     for row in rows:
         if row["producer_ref"].startswith(IMPORT_PREFIX) or row["producer_ref"] == "archive-import":
@@ -223,6 +233,7 @@ def relationship_triggers(service, conn, principal, brain_id) -> list[dict]:
         fields, sentence = parse_note(document["observed"]["content"].get("text") or "")
         recorded = document["system_time"]["recorded_at"]
         if (fields.get("kind") != "milestone" or not fields.get("shared") or fields.get("sensitive")
+                or document["event_id"] in protected
                 or touches(sentence, relationship["boundaries"])):
             continue
         if fields.get("occurs_at") and fields["occurs_at"] > recorded[:len(fields["occurs_at"])]:

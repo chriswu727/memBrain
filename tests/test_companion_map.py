@@ -15,6 +15,7 @@ from membrain.companion_map import companion_map
 from membrain.config import configured_service
 from membrain.helpers import DomainError, Principal, uid
 from membrain.local_profile import load_profile
+from membrain.memory_map import memory_map
 from membrain.mood import reset_mood
 from membrain.notes import store_note
 from membrain.persona import delete_persona_history, set_persona
@@ -189,9 +190,11 @@ def test_a_sensitive_original_cannot_leak_through_another_affect_or_trigger(brai
                          "topic": "planetarium", "felt_at": "2026-11-03"})
     graph = companion_map(*brain)
     assert "planetarium" not in json.dumps(graph)
-    assert next(node for node in graph["nodes"] if node["id"] == "affect:" + saved["affect_id"])["sensitive"]
-    assert next(node for node in graph["nodes"] if node["kind"] == "mood_trigger")["details"] == {}
-    assert "planetarium" in json.dumps(companion_map(*brain, include_sensitive=True))
+    assert not any(node["kind"] == "mood_trigger" for node in graph["nodes"])
+    memories = memory_map(*brain)
+    assert "planetarium" not in json.dumps(memories)
+    assert next(node for node in memories["nodes"] if node["id"] == "affect:" + saved["affect_id"])["sensitive"]
+    assert "planetarium" in json.dumps(memory_map(*brain, include_sensitive=True))
 
 
 def test_sensitive_feedback_masks_the_proposal_and_accepted_version(brain):

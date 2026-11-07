@@ -172,7 +172,7 @@ There is no overall score of the user's emotions.
 **Rules.**
 - **No authority.** Affect never moves a note above a correction or a newer fact.
 - **Corrections cascade.** Correcting or deleting the source deletes the record.
-- **Sensitive notes.** Affect on a `sensitive` note is used only when the user raises the topic.
+- **Sensitive notes.** Affect on a `sensitive` note is used only when the user raises the topic. Sharing an original source with a current sensitive note also makes the derived reading private for automatic mood, shared-moment context and commitment reminders. A private later reading can end an earlier public mood without creating a new trigger or exposing its reason. The records and actual shared-moment counts remain available for authorized inspection.
 - **One record per reading.** A later reading never rewrites an earlier record; it is a new record.
 
 **Cross-session example.**

@@ -170,3 +170,22 @@ def test_legacy_reading_keeps_reset_boundary_without_rejecting_explicit_new_evid
             assert affect_records(*candidate)["records"][0]["source_event_ids"] == sources
         else:
             assert_no_feeling(candidate)
+
+
+def test_full_affect_window_keeps_sources_with_bounded_database_reads(brain):
+    from membrain.affect import MAX_RECORDS, _records
+
+    service, principal, ident = brain
+    expected = {}
+    for index in range(MAX_RECORDS + 2):
+        source = say(brain, f"I am nervous about interview {index}.")
+        saved = write(brain, f"Interview {index}.", source_event_ids=[source], affect=INFERRED)
+        expected[saved["affect_id"]] = source
+    with service.database.transaction(principal) as conn:
+        conn.execute("SET LOCAL statement_timeout = '2s'")
+        service._brain(conn, principal, ident)
+        records = _records(service, conn, principal, ident)
+    assert len(records) == MAX_RECORDS + 1
+    assert all(record["source_event_ids"] == [expected[record["id"]]] for record in records)
+    listed = affect_records(*brain)
+    assert len(listed["records"]) == MAX_RECORDS and not listed["complete"]

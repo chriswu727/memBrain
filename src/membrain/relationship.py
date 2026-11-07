@@ -30,6 +30,7 @@ import datetime as _datetime
 import json
 import re
 from collections.abc import Iterator
+from itertools import islice
 
 from .helpers import DomainError, uid
 from .helpers import today as _clock_today
@@ -223,6 +224,8 @@ def latest_marker(service, conn, principal, brain_id) -> dict | None:
 
 
 def _iter_notes(service, conn, principal, brain_id, kind: str, after: int, limit: int | None):
+    from .memory_map import sensitive_note_ids
+
     query = (
         "SELECT id,sequence,document->'observed'->'content'->>'text' AS text,"
         "document->'observed'->>'actor_role' AS actor_role,document->'system_time'->>'recorded_at' AS recorded_at,"
@@ -238,12 +241,15 @@ def _iter_notes(service, conn, principal, brain_id, kind: str, after: int, limit
     with conn.cursor(name="relationship_notes_" + uid()) as cursor:
         cursor.itersize = 256
         cursor.execute(query, params)
-        for row in cursor:
-            fields, sentence = parse_note(row["text"] or "")
-            if fields.get("kind") == kind:
-                yield {"id": row["id"], "sequence": row["sequence"], "text": sentence, "fields": fields,
-                       "actor_role": row["actor_role"], "recorded_at": row["recorded_at"], "stored": row["text"],
-                       "source_event_ids": list(row["source_event_ids"] or [])}
+        while batch := list(islice(cursor, 256)):
+            protected = sensitive_note_ids(conn, service._params(principal, brain_id), [row["id"] for row in batch])
+            for row in batch:
+                fields, sentence = parse_note(row["text"] or "")
+                if fields.get("kind") == kind:
+                    yield {"id": row["id"], "sequence": row["sequence"], "text": sentence, "fields": fields,
+                           "actor_role": row["actor_role"], "recorded_at": row["recorded_at"], "stored": row["text"],
+                           "source_event_ids": list(row["source_event_ids"] or []),
+                           "sensitive": bool(fields.get("sensitive") or row["id"] in protected)}
 
 
 def _notes(service, conn, principal, brain_id, kind: str, after: int, limit: int) -> list[dict]:
@@ -256,11 +262,11 @@ def _moment_state(service, conn, principal, brain_id, after, *, protected=frozen
         if not note["fields"].get("shared"):
             continue
         total += 1
-        sensitive |= bool(note["fields"].get("sensitive") or note["id"] in protected
-                          or protected.intersection(note["source_event_ids"]))
+        private = bool(note["sensitive"] or note["id"] in protected or protected.intersection(note["source_event_ids"]))
+        sensitive |= private
         if len(moments) < MAX_MOMENTS:
             moments.append({"id": note["id"], "text": note["text"], "occurs_at": note["fields"].get("occurs_at"),
-                            "sensitive": bool(note["fields"].get("sensitive")), "recorded_at": note["recorded_at"],
+                            "sensitive": private, "recorded_at": note["recorded_at"],
                             "written_by_user": note["actor_role"] == "user", "source_event_ids": note["source_event_ids"],
                             "sequence": note["sequence"], "note_text": note["stored"]})
     moments.sort(key=lambda moment: ((moment["occurs_at"] or (moment["recorded_at"] or "")[:10]), moment["sequence"]))
@@ -285,7 +291,7 @@ def _commitments(service, conn, principal, brain_id, after, acknowledged, today)
         when = _date(fields.get("due") or fields.get("occurs_at"))
         item = {"note_id": note["id"], "text": note["text"], "status": status, "due": fields.get("due"),
                 "occurs_at": fields.get("occurs_at"), "recorded_at": note["recorded_at"],
-                "sensitive": bool(fields.get("sensitive"))}
+                "sensitive": note["sensitive"]}
         if status == "done":
             record["kept"].append(item)
         elif status == "cancelled":
