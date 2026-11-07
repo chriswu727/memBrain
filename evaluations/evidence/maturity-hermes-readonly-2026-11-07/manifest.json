@@ -1,0 +1,74 @@
+{
+  "source": "7902c16ecd9a7ff7b4c38dbd229d441102efc9a8",
+  "qualification": "local and installed-wheel; full integration CI pending",
+  "known_profile_credentials_absent": 4,
+  "profile_count": 2,
+  "files": [
+    {
+      "path": "before.log.gz",
+      "sha256": "3d273181f3d105f30ff80f3e1635844d651deca2282b3be521c313c8fbc123d4",
+      "uncompressed_sha256": "d4f5f38dc2c4467a18e64ac9357cd38938a31cc51bf0d5f20c332c8fbec2feef",
+      "bytes": 1590
+    },
+    {
+      "path": "focused.log.gz",
+      "sha256": "a955da433ede02700f069339446b96a8fb60a88fd15ad367e96f0b3ef922f84d",
+      "uncompressed_sha256": "f8805b83b428717e82c8d4db9549b12c883851b2193b0df3aa64b294b6c33e47",
+      "bytes": 52
+    },
+    {
+      "path": "related.log.gz",
+      "sha256": "b925ab61701470d60839cbaab4711757cbdad81c4f18f6cc216d984c93625da5",
+      "uncompressed_sha256": "1a2e8a4c4a3326cb29b48a5ea17d74055a96d46ea1a02005197654d7aca5a626",
+      "bytes": 53
+    },
+    {
+      "path": "related-result.json.gz",
+      "sha256": "05698a239369ed59d94e6ebc460ba0a79b0fd2e198d2d11354bd1736d8514889",
+      "uncompressed_sha256": "9a1cf3418d354db64b3a4936ae384dd625b0a3b89dca45f21fa85d1dde5524f6",
+      "bytes": 221
+    },
+    {
+      "path": "build.log.gz",
+      "sha256": "7abe0d869c04ba5eaf664a6132a7e8ef5702907515fc3240aee6a1a293af009d",
+      "uncompressed_sha256": "45abf52a65078bfa789d2ebec595c1708747d1032f248800f4aaf6ab50f2edd6",
+      "bytes": 135
+    },
+    {
+      "path": "run-installed.py.gz",
+      "sha256": "75d52abe7e8def93f635e69013f25c079fc165c666023800c8bc6106fb282e11",
+      "uncompressed_sha256": "11c32553eb5befcc008804ada787e7aeebe1804f7a13096437242c0ad4bc747d",
+      "bytes": 997
+    },
+    {
+      "path": "installed-tests.log.gz",
+      "sha256": "e8ec4f49c4cd429d5f24b0d9ae6506c2ea1d79cb7fb7faee1d17e2d8642dc09b",
+      "uncompressed_sha256": "e911b3596915eacf8bf173c91871838323b9a936ffe6c3daec54b84c80139307",
+      "bytes": 53
+    },
+    {
+      "path": "installed-result.json.gz",
+      "sha256": "d83eb7c09cc2db2762e52e5580341a04d108d473b9334dc8cee729d4e406f985",
+      "uncompressed_sha256": "81868a6e94ffc0178bf833deb1c9013d9fab4ee95ddb876a5e8ec4f1d26376d2",
+      "bytes": 41
+    },
+    {
+      "path": "source-package.json.gz",
+      "sha256": "143d31ff43d97d5ae00b688cb8fba26532486e1050aee5d61b09b26ad72fea7d",
+      "uncompressed_sha256": "0fb643704f8f88ff68f826c5c159b52135109ce47a0489fb0d865cd1a90377ee",
+      "bytes": 9683
+    },
+    {
+      "path": "installed-package.json.gz",
+      "sha256": "37dc7b85dd661c517fca1dc002047992b75395ef4892a2454f6721bac9fd330f",
+      "uncompressed_sha256": "6b046d06a9754ade31c24ecffbc3268ea5a3d3e53827957693f362b611057e14",
+      "bytes": 9775
+    },
+    {
+      "path": "installed-parity-ports.json.gz",
+      "sha256": "3feaabc95c406f817a425ae10bbb00ba237148072f874feb5a59381aa3e1112f",
+      "uncompressed_sha256": "82048a92c33ed755fa45d4ac1bcaf90c58a3695d45c209f06e4ffbaf32acd79c",
+      "bytes": 306
+    }
+  ]
+}

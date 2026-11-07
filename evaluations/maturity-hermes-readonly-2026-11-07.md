@@ -1,0 +1,15 @@
+# Hermes read-only context enforcement
+
+Runtime `7902c16ecd9a7ff7b4c38dbd229d441102efc9a8` closes a tool-level write bypass in Hermes subagent, cron and flush contexts. These contexts already skipped automatic capture, imports and boundary changes, but could still save or replace notes and change the primary user's recording state through direct tool calls. The public regression baseline reports 12 failures and three passes.
+
+Non-primary contexts now expose search only, omit write-tool instructions from their memory block and reject non-search calls at dispatch. This preserves access to eligible memory while preventing background work from replacing user notes or overriding a recording pause. Primary-context behavior is unchanged.
+
+## Verification
+
+- All 15 public regression cases pass. The related group passes 46 tests in 12.76 seconds, including a real embedded-service journey that checks read access, blocked note replacement, unchanged recording controls and retained shared-moment identity. Ruff and whitespace checks pass.
+- All nine launchers pin the repaired runtime; both immutable-pin checks pass. A wheel builds and installs into a separate environment. All 197 installed runtime inputs match source; the installed package passes 26 Hermes tests in 12.55 seconds, including the real-service journey. Both test profiles' API/database ports are closed. This is installed-wheel validation, not a new 49-check launcher run or a live Hermes application/model session.
+- [Raw evidence](evidence/maturity-hermes-readonly-2026-11-07/manifest.json) preserves the failing baseline, passing checks, installed identity and port receipts. No real-model calls were made.
+
+Build identity: `483d6508d9e4b873e88a6aac413b49115ba134588d962b431e9c4b72235ea6a3`; schema identity is unchanged. The repair is on `codex/hermes-readonly-20261107`, awaiting candidate integration after the preceding conversation-bound runtime's CI finishes. No full-suite or native-platform result is claimed for this repair yet.
+
+The fourth behavioral attempt remains stopped, invalid and sealed. These public adapter checks do not establish R4/C5 behavior, authorize another round or permit publication.
