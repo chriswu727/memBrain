@@ -278,10 +278,10 @@
     },
     {
       "path": "qualification/archive_qualification.py.gz",
-      "bytes": 1243,
-      "sha256": "15f0aa4d246c669e8c21f2ab76bb3d67559f6975904deba319eba4a06653860a",
-      "original_bytes": 2840,
-      "original_sha256": "0f0a3c3e8e23f5579c11ee9069b9505d7e3baa7f8a905e24734a1bd597bfe705"
+      "bytes": 1273,
+      "sha256": "f07d681f9a7d01f1c74e09cdee9bd1be286f53de12bfeadbc3fee8fd05ee6548",
+      "original_bytes": 2878,
+      "original_sha256": "4751a580b95fe9d8c047e44f692f873fcf1668b3d412f85eb3b43b13f032e176"
     },
     {
       "path": "qualification/check-installed-and-ports.py.gz",
@@ -1136,6 +1136,34 @@
       "sha256": "432e44e27649dade69719e3834bf9f6a3c4cfaeb50435c357e0adbd2db6862e8",
       "original_bytes": 1123,
       "original_sha256": "714f3879971cf259afae5eddcafcdb819418fe7df8fb15013bb62d2d3374c4ae"
+    },
+    {
+      "path": "qualification/ci/verify-complete.log.gz",
+      "bytes": 207370,
+      "sha256": "293d2cd522179bc5aff091ef4d0be77006af332cc2d90175d4061b02ce30d265",
+      "original_bytes": 1636639,
+      "original_sha256": "44d5163430733348877d1a84d9d43aafe6a94871eeb9725f32189363b79aef7f"
+    },
+    {
+      "path": "qualification/ci/verify-log-receipt.json.gz",
+      "bytes": 378,
+      "sha256": "b122d0521bdf0dbe4be867f5df78c07fd44bed2f06b14e219c8ce0d5bd6fc9d1",
+      "original_bytes": 644,
+      "original_sha256": "db780ff404a3ca4a562eea1868f790bd92e6c1b362a0ccdcc3765746a4358338"
+    },
+    {
+      "path": "qualification/ci/verify-pytest.log.gz",
+      "bytes": 183014,
+      "sha256": "e6a07c54209fc5bd1a6369f187858d47ff953797693f40823acd52faac35c7c7",
+      "original_bytes": 1515221,
+      "original_sha256": "7385d9abb9b82d117e08669bbd999a3ae6af414a782b6eeddf1513a62316dd07"
+    },
+    {
+      "path": "qualification/ci/verify-status-final.json.gz",
+      "bytes": 860,
+      "sha256": "78bf7c731b5a4fe54605fb32a8584df056aa5c890a7523e84ff7ed92a4b5efea",
+      "original_bytes": 6417,
+      "original_sha256": "800ba56411dfe16bdcd43533fc05f6719158685f2ca40c9eaec3cf69efbc853f"
     }
   ],
   "runtime_pin": "493a14ffd98cd9b4a7e3cdc491852ad4898ee3d0",
@@ -1144,5 +1172,5 @@
     "matches": 0,
     "private_profiles_dumps_excluded": true
   },
-  "qualification_scope": "Exact installed runtime493: fresh49check installation,194runtime inputs in2homes,117installed regressions, full currentR5, five native platforms and47audited summaries, fullCI remains pending. Public encoding diagnosis is exploratory and does not alter runtime or establish recall improvements. No paid/subscription evaluation."
+  "qualification_scope": "Exact installed runtime493: fresh49check installation,194runtime inputs in2homes,117installed regressions, full currentR5, five native platforms and47audited summaries, fullCI7769Python/53TypeScript/strict types/Ruff/build passes. Public encoding diagnosis is exploratory and does not alter runtime or establish recall improvements. No paid/subscription evaluation."
 }
