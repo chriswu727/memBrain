@@ -16,14 +16,28 @@ CROSS_SCRIPT_CANDIDATES = 16
 
 def _interleave(primary, other, every=3):
     """Insert one other-script candidate after every ``every`` primary ones, without duplicates."""
-    seen = {(row["document"]["memory_id"], row["document"]["revision"]) for row in primary}
-    extra = [row for row in other if (row["document"]["memory_id"], row["document"]["revision"]) not in seen]
-    merged = []
-    for index, row in enumerate(primary):
+    seen, merged, extra = set(), [], iter(other)
+
+    def append(row):
+        key = row["document"]["memory_id"], row["document"]["revision"]
+        if key in seen:
+            return False
+        seen.add(key)
         merged.append(row)
-        if extra and (index + 1) % every == 0:
-            merged.append(extra.pop(0))
-    return merged + extra
+        return True
+
+    primary_count = 0
+    for row in primary:
+        if not append(row):
+            continue
+        primary_count += 1
+        if primary_count % every == 0:
+            for candidate in extra:
+                if append(candidate):
+                    break
+    for row in extra:
+        append(row)
+    return merged
 
 
 def _scope_clause(alias, target):
@@ -205,7 +219,7 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
                                (_CJK.pattern,), CROSS_SCRIPT_CANDIDATES)
             rows = _interleave(rows, other)
             rankings["vector"] = remember(rows)
-            versions["vector"] = "embedding-space:" + space.fingerprint + ":script-balanced-v1"
+            versions["vector"] = "embedding-space:" + space.fingerprint + ":script-balanced-v2"
         direct_ranked = _direct_candidates(rankings, versions, lexical_scores, limit=512)
         seeds = source_unit_candidates(direct_ranked, documents, limit=candidate_limit)
         seed_ids = [item["memory_id"] for item in seeds]
