@@ -1,0 +1,31 @@
+# Sensitive note assertions in the structural graph
+
+The independent pre-execution source review found that a sensitive note entered through the memory page could be masked as a note but exposed as a literal-indexed assertion in the structural graph. A note with inherited sensitivity from a shared source had the same problem. This affected the authenticated local graph with its default `include_sensitive=false`; it was not an unauthenticated-access finding.
+
+Runtime `86e7f1fed2ba00d08b3cb9509beb50e4cf811f4b` adds direct and inherited sensitive note IDs to the graph's protected source set before projecting assertions, episodes, patterns and working state. Explicit sensitivity opt-in still reveals the content, ownership scopes are preserved, and unrelated public assertions remain visible. `structure_map.py` is the only changed runtime file. There are no schema, recall, UI-renderer, provider, harness or scoring changes. Launcher commit `62e17adc2c45c072001ca0cbb4e6756e585bc3a7` updates all nine pins.
+
+The build is `eb152d9724f67904fb1bafb38896b2ea03c5495f78a7b1470a4e729b5ca399ef`; the unchanged schema is `478061ac77337fd25d87174df1185ab1d40ad4d4216290078fb26fd2f519fe39`, with 197 runtime inputs.
+
+## Verification
+
+- Both new regressions failed on the original candidate, showing the private sentinel in assertion text. The original failures are retained.
+- The repaired source passes all 24 memory-map tests and 68 structural, working, companion and headless hologram browser tests. Pin/matrix checks pass all four tests; Ruff passes for the changed source and tests.
+- The real Mac launchers pass all 49 fresh installation, upgrade, recall, MCP, restart, backup/restore and companion preservation checks. Both installed packages match all 197 runtime inputs; all eight ports belonging to the four installation profiles close after completion.
+- The installed-package test run passes 23 tests, including both new regressions, and fails one demo-data check because the copied test directory lacked its public example file. After copying the unchanged example, that single failed check passes. The initial failure remains recorded; the test criteria and runtime were not changed.
+- The continuing independent source review confirms the reported privacy mechanism is resolved, with no additional concrete finding in the reviewed scope. It did not independently execute tests or measure performance.
+
+Full Verify run [42400657368](https://github.com/chriswu727/memBrain/actions/runs/42400657368) and native qualification run [42400657384](https://github.com/chriswu727/memBrain/actions/runs/42400657384) are pending on launcher commit `62e17ad`. The fresh public rehearsal passes 250 deterministic checks and strict validity: each arm completes 18 turns, all 265 frozen inputs remain unchanged, and all four ports close. Returned-round journals contain 24/18/18 rows without reasoning content. This is a direct harness rehearsal with public keyword-mode stubs, not real-model scoring or a shell-supervisor run. Earlier runtime installation, CI and performance results retain their original scope; they are not results for this successor.
+
+## Graph query cost
+
+A separate synthetic fixture contains 800 events, 800 literal assertions and 400 source dependencies. At each graph bound, the unchanged and repaired projections run in previous/repaired/repaired/previous order on the same stored data, with 20 measured calls after two warmups in each phase. No other local test workload runs during measurement. All 160 measured calls are retained.
+
+At the default 200-node bound, the repaired graph contains 166 nodes/66 edges and has phase p95 values of **59.66/59.38 ms**, against **57.16/58.22 ms** for the original projection. At the 500-node bound, it contains 416 nodes/165 edges and has repaired p95 **140.72/138.43 ms**, against **136.76/136.40 ms**. Every repaired call hides direct/shared private sentinels while retaining masked and public assertions. This is a source-service graph projection comparison, not an HTTP, browser, recall-capacity or full R5 benchmark. Both test ports close afterward.
+
+## Effect on the authorized acceptance
+
+The source finding occurred before any provider request, reservation, balance request or run. The same `maturity-20261107` attempt remains authorized with the original shared 280 CNY ledger and unchanged scoring protocol. The four independently reviewed scenarios remain unused and undisclosed to the developer. Their final hashes and content-free prechecks are retained; none was replaced because of this repair.
+
+The proposal explicitly requires a changed runtime to stop for review before spending. Execution was held accordingly. The continuing independent review finds this narrow repair conditionally eligible within the same unstarted attempt, without a new owner approval. Successor qualification, an explicit [execution-binding addendum](maturity-acceptance-execution-2026-11-07.md), and the final input freeze must complete before the hold is lifted. There is no new behavioral result, and main merge, tag and publication remain prohibited pending R4, C5 and final release judgment.
+
+The [evidence manifest](evidence/maturity-sensitive-structure-2026-11-07/manifest.json) contains 47 exact, compressed payloads at this checkpoint, including the original/follow-up source reviews, failed and passing tests, installation results, rehearsal journals, timing samples and continuity receipt. All payload hashes and decompression round trips were checked. A scan against 36 credential values from 12 owned synthetic profiles found no matches. Full CI evidence will be added after the pending runs finish.

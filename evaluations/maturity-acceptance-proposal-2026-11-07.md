@@ -1,6 +1,6 @@
 # Proposed fourth maturity acceptance attempt
 
-**Subsequently approved:** the owner authorized this one round on November 7, 2026. See the [execution binding](maturity-acceptance-execution-2026-11-07.md). The proposal as submitted is retained below; its pending-approval statements are historical.
+**Subsequently approved:** the owner authorized this one round on November 7, 2026. See the [execution binding](maturity-acceptance-execution-2026-11-07.md). The proposal as submitted is retained below; its pending-approval statements are historical. A pre-execution source-review privacy repair is recorded in the execution binding’s dated successor addendum; it remains on hold until the repaired source is qualified.
 
 **Awaiting explicit execution approval.** This proposal requests one new R4/C5 attempt with new hidden scenarios, a shared **280 CNY DeepSeek ceiling**, and Codex subscription use for isolated authorship, independent scenario review, blind scoring and one final independent release/source review. No scenarios, live ledger or provider calls have been created for this proposal. It does not authorize a repeat, account top-up, main merge, tag or release.
 
