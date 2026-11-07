@@ -105,12 +105,13 @@ def merge_belief_candidates(memories, candidate_state, package, *, selected=Fals
 
 def _direct_candidates(rankings, versions, lexical_scores, *, limit):
     ranked = fuse_rankings(rankings, index_versions=versions, limit=512)
-    maximum = max(lexical_scores.values(), default=0.0)
+    # Weak overlap must stay weak even when it is the strongest lexical candidate.
+    maximum = max(1.0, max(lexical_scores.values(), default=0.0))
     for item in ranked:
         key = (item["memory_id"], item["revision"])
         for signal in item["rank_signals"]:
             if signal["method"] == "keyword":
-                signal["score"] *= lexical_scores.get(key, 0.0) / maximum if maximum else 0.0
+                signal["score"] *= lexical_scores.get(key, 0.0) / maximum
         item["score"] = sum(signal["score"] for signal in item["rank_signals"])
     ranked.sort(key=lambda item: (-item["score"], item["memory_id"], item["revision"]))
     return ranked[:limit]
