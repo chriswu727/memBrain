@@ -1,12 +1,14 @@
 # Installed qualification of the current maturity candidate
 
-Runtime `f5e265c262b66e0c4f3ddb58a079c6fa14e625a4` combines source-diversity recall, local-query contention reduction, decision-bound personality evidence and month-precision plans. The latest local installation and visual/performance qualification passes. Full Verify and five-platform native qualification are still running; this candidate has not been promoted to integration or released.
+Runtime `f5e265c262b66e0c4f3ddb58a079c6fa14e625a4` combines source-diversity recall, local-query contention reduction, decision-bound personality evidence and month-precision plans. The latest local installation and visual/performance qualification passes. Five-platform native qualification also passes. Full Verify is still running; this candidate has not been promoted to integration or released.
 
 ## Installation
 
 The unchanged release-install harness passes **49/49 checks** through actual launcher commands in fresh isolated homes. It upgrades both frozen baselines, preserves earlier memory and cross-session recall, exercises MCP correction/deletion, restart, backup activation and refusal of the retired original, and preserves personality, affect, mood pin, boundaries, shared moments and support style across upgrade and restore. The only wrapper adjustment is reuse of the existing download cache; there are no text-model or subscription calls. Both installed environments match all **197 source runtime inputs**, and all four synthetic profiles have closed service/database ports.
 
 The separate installed regression results remain scoped: 43 date/notes/relationship-privacy checks on this runtime, and 220 personality/graph/migration checks on its immediately preceding personality runtime. Current full CI will verify the combined source. These counts are not added into a claimed new full local suite.
+
+The wheel and a newly built source distribution both match all 197 canonical runtime inputs, including the contract and migrations; the two legacy `agent_memory` alias files also match. Both distributions include the exact MIT license and matching package/dependency metadata. The source archive excludes the evaluations directory and checked credential-file paths. Source archive SHA-256: `0fae7fdaaeb732abec0136e8ebc474620e30918583fbb7f005ab7a862bd3007e` (16,346,001 bytes); wheel SHA-256: `5cb3a4257eb4d0cf3b10c3921431998241864a2e47cbf8b4f64942092e1f2438` (14,468,150 bytes). These are local verification artifacts, not a published release.
 
 ## Actual installed 3D and recall
 
@@ -31,7 +33,7 @@ The earlier local-query full Verify [42374506491](https://github.com/chriswu727/
 ## Remaining gates
 
 - Verify [42376625930](https://github.com/chriswu727/memBrain/actions/runs/42376625930), launcher head `4dc274c995d15223f904277389f2b52975964bee`: running.
-- Five-platform native qualification [42377065217](https://github.com/chriswu727/memBrain/actions/runs/42377065217), source-equivalent documentation head `6b20aca1f1fe7dad4cd16711152d65108569e001`: running. It reuses checksummed binaries from run 42368702659 and checks current packages, including Ubuntu 26; the native binaries are not rebuilt.
+- Five-platform native qualification [42377065217](https://github.com/chriswu727/memBrain/actions/runs/42377065217), source-equivalent documentation head `6b20aca1f1fe7dad4cd16711152d65108569e001`: **all five platforms pass**. It reuses checksummed binaries from run 42368702659 and checks current packages, including Ubuntu 26; the native binaries are not rebuilt. Five artifact archives were collected with hashes; all 47 unique qualification summaries completed with zero model calls and all recorded port closures successful. Their stage-level results and raw logs are retained, including the distinct component versus installed-adoption scopes.
 - R4 remains failed, C5 incomplete and final review open. No new paid/subscription behavioral evaluation ran. Main merge, tag and publication remain frozen.
 
 Build: `f000dd0c0b0a431d2ca20a7add9304acfd8f6e0da9f46395f6588496ebabb52f`. Schema 028 is unchanged. Raw installation results, port/parity checks, corpus hashes, all timing samples, screenshots and wrappers are retained in the [checksummed evidence manifest](evidence/maturity-month-qualification-2026-11-07/manifest.json). Private profiles and corpus dumps are excluded.
