@@ -1,0 +1,229 @@
+{
+  "build_id": "f000dd0c0b0a431d2ca20a7add9304acfd8f6e0da9f46395f6588496ebabb52f",
+  "runtime_pin": "f5e265c262b66e0c4f3ddb58a079c6fa14e625a4",
+  "scope": "Fresh launcher installation and hardware-backed visual/performance qualification. CI conclusions are reported separately; no behavioral acceptance implied.",
+  "files": [
+    {
+      "path": "archive_qualification.py.gz",
+      "bytes": 1068,
+      "sha256": "6f302bcbf00210c09d6ddfc0aeba839e7e5d9440116caec8e336525bd49100b9",
+      "original_bytes": 2087,
+      "original_sha256": "d5fde71ad23b5a3f132d18351832ea2cdcc0a4c71c84b978d7f0700a23cf2f02"
+    },
+    {
+      "path": "audit-corpus.py.gz",
+      "bytes": 966,
+      "sha256": "3d1af8f9b5614e2e351a49852c05760a94fa9fb836cfe08ee938eaa100525ad8",
+      "original_bytes": 1957,
+      "original_sha256": "1498dd12af19a4d3a4ecf459e2ab3663ec4aa13e166f8015ce3b7b400a56c3cf"
+    },
+    {
+      "path": "check-installed-and-ports.py.gz",
+      "bytes": 1025,
+      "sha256": "5b30a976628ade0965c1e6f064798027bb136fa08711a9a5e34ef05092b93884",
+      "original_bytes": 2203,
+      "original_sha256": "e984bbb36c14bf999f16d8ea28a732d5f8d5379d4f58607ffaae742ad91586b7"
+    },
+    {
+      "path": "ci/audit_artifacts.py.gz",
+      "bytes": 885,
+      "sha256": "68980207b9821e33685e2c9324bc70637ff297544774dbd3a25404a104b67b89",
+      "original_bytes": 1884,
+      "original_sha256": "415472e1af8f511ce87df9e5892ad3177a7173cef0c771ab5579003891963c9d"
+    },
+    {
+      "path": "ci/collect_artifacts.py.gz",
+      "bytes": 869,
+      "sha256": "4dad9ed21ff3bf49c432c70928564eb014805b8f66d277b2393a95212ad67024",
+      "original_bytes": 1917,
+      "original_sha256": "691a2b7103c16ae54c74196a5cfff9521524e5e6ea0f3796557d5021fc9e2a96"
+    },
+    {
+      "path": "ci/watch_native.py.gz",
+      "bytes": 412,
+      "sha256": "b45976a3a256956b30b631044c30f5cbe0668d011bd98e668fa06cd64b50d973",
+      "original_bytes": 768,
+      "original_sha256": "20fd8b577e889a29dd440282e7f4e8f8ed1caacd0885c9a20f054063f691d5da"
+    },
+    {
+      "path": "corpus-after.json.gz",
+      "bytes": 491,
+      "sha256": "aa036f49dd0ba91659b42c68c2b4159860fab3103cef8527fde456e1c4168195",
+      "original_bytes": 989,
+      "original_sha256": "b8c406522c05e12180358364b8be076f1e599975375c4c7d089f0cd6ac9de857"
+    },
+    {
+      "path": "corpus-after.log.gz",
+      "bytes": 78,
+      "sha256": "9dd86619ac268871023f2ae28bba6a7b724cb431d5c355f5bdead242d9611c94",
+      "original_bytes": 65,
+      "original_sha256": "83da3be3143e503ef33f9499d4f39e31a0e454aff4b29f3fb54c8e2fae8a4606"
+    },
+    {
+      "path": "corpus-before.json.gz",
+      "bytes": 491,
+      "sha256": "aa036f49dd0ba91659b42c68c2b4159860fab3103cef8527fde456e1c4168195",
+      "original_bytes": 989,
+      "original_sha256": "b8c406522c05e12180358364b8be076f1e599975375c4c7d089f0cd6ac9de857"
+    },
+    {
+      "path": "corpus-before.log.gz",
+      "bytes": 79,
+      "sha256": "fa6ea4c3a08be0da048c938c0b30c7335b2b2190845b50b881010f97bb9e9017",
+      "original_bytes": 66,
+      "original_sha256": "cb88e33ac09ffdb3e97a641e5d2a10a14df285ba545b620415aabdbad710912c"
+    },
+    {
+      "path": "install-final/results.json.gz",
+      "bytes": 4947,
+      "sha256": "79705a8084000a496f3df801bdcb30fc6c9dd9c2f34cea07633a5123d7bc5f08",
+      "original_bytes": 23132,
+      "original_sha256": "9b79eefcb97dbe642c68b57f9a6ea67dca6105a8e21f44db5eaa64bf5fa8057f"
+    },
+    {
+      "path": "install-run-meta.json.gz",
+      "bytes": 398,
+      "sha256": "68c77173b7eceda5e0c08fb63fbfd47480834fee6738dc1d60253edefc02bdb2",
+      "original_bytes": 590,
+      "original_sha256": "48d0d5addd3eb897b07da24ed53e0bfecef225f97c05b47c89a27545f2008a7b"
+    },
+    {
+      "path": "install.log.gz",
+      "bytes": 4676,
+      "sha256": "63b341d978bbcf502720ec0fbf2366ce72f4ae2d4c2a7ffad1d8c43fe681f27f",
+      "original_bytes": 16182,
+      "original_sha256": "da015674bb6e424b7d80c751999282841326f3f5f38544aa553f58f1250d6bee"
+    },
+    {
+      "path": "installed-and-ports.json.gz",
+      "bytes": 504,
+      "sha256": "110a5152d1c7ad6fcd44d8fa456c1f2782d22251711b39c64c76e3aa28788087",
+      "original_bytes": 2491,
+      "original_sha256": "63ba2940f3295e4ce8721650b024113b30d6cdf04b493cf90758b2995976eb99"
+    },
+    {
+      "path": "predecessor-query-ci/verify-log-receipt.json.gz",
+      "bytes": 378,
+      "sha256": "5f3f3d1ab9fd3c75ed6ec92022b29af989ef032bd624c7fea125ffaa3e6bf813",
+      "original_bytes": 644,
+      "original_sha256": "ba37bc205e83681097a4d919bbf51c63063e0e45410a941eacba5919393cabc7"
+    },
+    {
+      "path": "predecessor-query-ci/verify-pytest.log.gz",
+      "bytes": 185323,
+      "sha256": "dd4a9e27e71dce0d201871601d6093a78eee3a2fa8d261a7b13e79746e23d69b",
+      "original_bytes": 1529124,
+      "original_sha256": "f360d32fe8e496c3def6c6ccdfe66ca44998bef357ff32d44b95178a848d1976"
+    },
+    {
+      "path": "predecessor-query-ci/verify-status-final.json.gz",
+      "bytes": 853,
+      "sha256": "f9bba7d3ef0208bcec429ae6b3363f75a7a71c86a11d7b06919a4749746c46c9",
+      "original_bytes": 6417,
+      "original_sha256": "b23ac50e63c742e652d3c33b9e1ba4bdaa47bcfb3bb6a81ec0c0b562b5f86f81"
+    },
+    {
+      "path": "run-install.py.gz",
+      "bytes": 965,
+      "sha256": "4148476e301ed53a490853a7aa44852392218a8682ff8b67723db1d431c86d5a",
+      "original_bytes": 1992,
+      "original_sha256": "9782ba04300bcca7e0e4403a4a1d148c6551c42bd5b3e413188afc809e02124e"
+    },
+    {
+      "path": "summarize-visual.py.gz",
+      "bytes": 571,
+      "sha256": "4bee548217a5ad7e3508391e29a556e0063a5539cc61e0d20800e9545576d3d1",
+      "original_bytes": 1215,
+      "original_sha256": "a9564aeec1a799a4e4de700a08956b6efc346a1635fae7d470dd5cc924b576e2"
+    },
+    {
+      "path": "visual/compare-visual-permissions.py.gz",
+      "bytes": 4419,
+      "sha256": "f9f5b5ec5cbc9153dbbcfdcd0cc979ba5cf7118880390b1274f4456928b280de",
+      "original_bytes": 13480,
+      "original_sha256": "bc0a33c275cfae24b8e46ed65c892048596d94542e0a750cadfe708a47bfa94a"
+    },
+    {
+      "path": "visual/run-visual.py.gz",
+      "bytes": 1353,
+      "sha256": "ed57cab1cf9cda26ba88b6836fe5b9a22ca3a3af1dd2c14b846ec0ba6f48e1c3",
+      "original_bytes": 2961,
+      "original_sha256": "f96b188cb1639e285229f597b8b9c97d1ebd58bad92ba481bdb3ed5d9dc34cf5"
+    },
+    {
+      "path": "visual/run.log.gz",
+      "bytes": 2045,
+      "sha256": "9a5cbf8a3e7d7c72063097130376586b691dcbc69403ebfaba671c487bd0b4c6",
+      "original_bytes": 5932,
+      "original_sha256": "8af13b04c78ed874c91e64d49b30818d9a17c55656c67fb668c613b696e3057a"
+    },
+    {
+      "path": "visual/visual-command.json.gz",
+      "bytes": 30363,
+      "sha256": "fe9be1cb1edacf6cfc95635c09289f3bc8d5af59c95dbb958bc54ad4e190b520",
+      "original_bytes": 97443,
+      "original_sha256": "de89cc4deafdab17dfb84f3c151aab190b064a16d5521a2cf7f55bd56f7b66ba"
+    },
+    {
+      "path": "visual/visual-permissions-0-closed.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "visual/visual-permissions-1-open.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "visual/visual-permissions-1-open.png.gz",
+      "bytes": 459242,
+      "sha256": "fbfe62443bc1ce797f3244b21c96623321b8cf2c8b7a5b5ad82cae5bc89e459b",
+      "original_bytes": 459244,
+      "original_sha256": "55c548a91ce290f1d18c130385c900675abecd08995f89f2fe778a6e3d76091f"
+    },
+    {
+      "path": "visual/visual-permissions-2-open.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "visual/visual-permissions-2-open.png.gz",
+      "bytes": 459819,
+      "sha256": "16dcd3a16f7895173ef9207df5601bc063642fcd2071e13e2747c75f25bd0a39",
+      "original_bytes": 459815,
+      "original_sha256": "a7622f187bdb5e4bd3c861b9ea8412d1f830a84ff35995d89fbe102dc7433477"
+    },
+    {
+      "path": "visual/visual-permissions-3-closed.log.gz",
+      "bytes": 20,
+      "sha256": "9ceffb7310338057cfe71a4ae1e2c98d2c485d81cdef906532a801f457a38d64",
+      "original_bytes": 0,
+      "original_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "visual/visual-permissions-abba.json.gz",
+      "bytes": 29117,
+      "sha256": "5b950cecde96a6e01bc711bf2ec0b38f639f1b10312eae78ce31d23f5695c6f2",
+      "original_bytes": 205091,
+      "original_sha256": "c001f661f87dd722e1c9d6d3c4884e8da86c56415a3768789c44f12a1cee6799"
+    },
+    {
+      "path": "visual-summary.json.gz",
+      "bytes": 453,
+      "sha256": "867c112f393e02dc537c0252501b80ba891b767d9da3e1abe19d317f385fca45",
+      "original_bytes": 1123,
+      "original_sha256": "8bdf6bced2a218a42d0e9c08f164ac290356f26f0975bb263eda5df2996694a8"
+    }
+  ],
+  "privacy_scan": {
+    "owned_credential_values": 15,
+    "matches": 0,
+    "private_profiles_dumps_excluded": true
+  }
+}
