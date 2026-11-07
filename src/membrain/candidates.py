@@ -138,6 +138,40 @@ def _direct_candidates(rankings, versions, lexical_scores, *, limit):
     return ranked[:limit]
 
 
+def _semantic_pools(conn, params, target, text, vector, space, primary_limit, other_limit, *, include_speech):
+    scope_sql, scope_params = _scope_clause("a", target)
+    script_clause, script_params = _other_script_clause(text)
+    rows = conn.execute(
+        "WITH eligible AS MATERIALIZED (SELECT a.id,a.revision,v.content_hash,"
+        "best.distance,best.start_offset,best.end_offset,(true " + script_clause + ") AS other_script "
+        "FROM memory_assertions a JOIN memory_embeddings v ON v.tenant_id=a.tenant_id "
+        "AND v.owner_id=a.owner_id AND v.brain_id=a.brain_id AND v.memory_id=a.id "
+        "AND v.memory_revision=a.revision JOIN LATERAL ("
+        "SELECT * FROM (SELECT (v.embedding <=> %s::vector) AS distance,"
+        "NULL::integer AS start_offset,NULL::integer AS end_offset UNION ALL "
+        "SELECT (p.embedding <=> %s::vector),p.start_offset,p.end_offset "
+        "FROM memory_embedding_passages p WHERE p.tenant_id=v.tenant_id AND p.owner_id=v.owner_id "
+        "AND p.brain_id=v.brain_id AND p.memory_id=v.memory_id AND p.memory_revision=v.memory_revision "
+        "AND p.model=v.model AND p.model_version=v.model_version) matches "
+        "ORDER BY distance,start_offset NULLS LAST LIMIT 1) best ON true WHERE "
+        + _eligible(include_speech=include_speech) + scope_sql
+        + "AND v.model=%s AND v.model_version=%s AND v.dimensions=%s), "
+        "selected AS (SELECT 'primary' AS pool,ranked.* FROM "
+        "(SELECT * FROM eligible ORDER BY distance,id LIMIT %s) ranked UNION ALL "
+        "SELECT 'other' AS pool,ranked.* FROM "
+        "(SELECT * FROM eligible WHERE other_script ORDER BY distance,id LIMIT %s) ranked) "
+        "SELECT s.pool,a.document,s.content_hash,s.distance,s.start_offset,s.end_offset "
+        "FROM selected s JOIN memory_assertions a ON a.tenant_id=%s AND a.owner_id=%s AND a.brain_id=%s "
+        "AND a.id=s.id AND a.revision=s.revision ORDER BY s.pool,s.distance,s.id",
+        (*script_params, vector, vector, *params, *scope_params, space.model, space.model_version,
+         space.dimensions, primary_limit + 1, other_limit + 1, *params),
+    ).fetchall()
+    pools = {"primary": [], "other": []}
+    for row in rows:
+        pools[row.pop("pool")].append(row)
+    return pools
+
+
 def collect_candidates(conn, service, principal, brain, target, query, recall_plan=None,
                        query_embedding=None, *, access_at=None):
     params = service._params(principal, brain["id"])
@@ -217,25 +251,12 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
                 raise DomainError("validation_failed", "Query embedding space differs from the configured space.")
             vector = "[" + ",".join(str(value) for value in query_embedding.vectors[0]) + "]"
 
-            def nearest(script_clause, script_params, limit):
-                found = conn.execute(
-                    "SELECT a.document,v.content_hash,best.distance,best.start_offset,best.end_offset "
-                    "FROM memory_assertions a JOIN memory_embeddings v ON v.tenant_id=a.tenant_id "
-                    "AND v.owner_id=a.owner_id AND v.brain_id=a.brain_id AND v.memory_id=a.id "
-                    "AND v.memory_revision=a.revision JOIN LATERAL ("
-                    "SELECT * FROM (SELECT (v.embedding <=> %s::vector) AS distance,"
-                    "NULL::integer AS start_offset,NULL::integer AS end_offset UNION ALL "
-                    "SELECT (p.embedding <=> %s::vector),p.start_offset,p.end_offset "
-                    "FROM memory_embedding_passages p WHERE p.tenant_id=v.tenant_id AND p.owner_id=v.owner_id "
-                    "AND p.brain_id=v.brain_id AND p.memory_id=v.memory_id AND p.memory_revision=v.memory_revision "
-                    "AND p.model=v.model AND p.model_version=v.model_version) matches "
-                    "ORDER BY distance,start_offset NULLS LAST LIMIT 1) best ON true WHERE "
-                    + _eligible(include_speech=include_speech) + scope_sql
-                    + "AND v.model=%s AND v.model_version=%s AND v.dimensions=%s " + script_clause
-                    + "ORDER BY distance,a.id LIMIT %s",
-                    (vector, vector, *params, *scope_params, space.model, space.model_version, space.dimensions,
-                     *script_params, limit + 1),
-                ).fetchall()
+            diverse = query.get("intent") not in {"exact_quote", "timeline", "episode"}
+            other_limit = scan_limit if diverse else CROSS_SCRIPT_CANDIDATES
+            pools = _semantic_pools(conn, params, target, text, vector, space, scan_limit, other_limit,
+                                    include_speech=include_speech)
+
+            def nearest(found, limit):
                 usable = [row for row in found[:limit] if row["distance"] is not None
                           and math.isfinite(row["distance"]) and row["distance"] < 1
                           and row["content_hash"] == digest(row["document"]["statement"])
@@ -247,13 +268,11 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
                             'start': row['start_offset'], 'end': row['end_offset'], 'unit': 'unicode_code_point'}
                 return usable, len(found) > limit
 
-            rows, more = nearest("", (), scan_limit)
+            rows, more = nearest(pools["primary"], scan_limit)
             truncated = truncated or more
             # Small multilingual models score same-language text higher, so a fact stated in another script can
             # rank below many loosely related sentences. Interleave the closest other-script memories.
-            script_clause, script_params = _other_script_clause(text)
-            diverse = query.get("intent") not in {"exact_quote", "timeline", "episode"}
-            other, other_more = nearest(script_clause, script_params, scan_limit if diverse else CROSS_SCRIPT_CANDIDATES)
+            other, other_more = nearest(pools["other"], other_limit)
             if diverse:
                 other = diversify(other)[:CROSS_SCRIPT_CANDIDATES]
             truncated = truncated or other_more
