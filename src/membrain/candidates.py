@@ -7,6 +7,7 @@ from .context_views import assistant_speech
 from .dynamics import access_state, rank_weight
 from .embeddings import EmbeddingResult
 from .helpers import DomainError, digest, now
+from .recall_diversity import diversify
 from .retrieval import RANK_METHODS, fuse_rankings, resolve_dependency_closure
 from .source_scripts import han_majority as _han_majority
 from .source_scripts import nonletter_pattern as _nonletter_pattern
@@ -251,10 +252,16 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
             # Small multilingual models score same-language text higher, so a fact stated in another script can
             # rank below many loosely related sentences. Interleave the closest other-script memories.
             script_clause, script_params = _other_script_clause(text)
-            other, _ = nearest(script_clause, script_params, CROSS_SCRIPT_CANDIDATES)
+            diverse = query.get("intent") not in {"exact_quote", "timeline", "episode"}
+            other, other_more = nearest(script_clause, script_params, scan_limit if diverse else CROSS_SCRIPT_CANDIDATES)
+            if diverse:
+                other = diversify(other)[:CROSS_SCRIPT_CANDIDATES]
+            truncated = truncated or other_more
             rows = _interleave(rows, other)
+            if diverse:
+                rows = diversify(rows)
             rankings["vector"] = remember(rows)
-            versions["vector"] = "embedding-space:" + space.fingerprint + ":script-balanced-source-passages-v4"
+            versions["vector"] = "embedding-space:" + space.fingerprint + ":source-diverse-passages-v5"
         direct_ranked = _direct_candidates(rankings, versions, lexical_scores, limit=512)
         seeds = source_unit_candidates(direct_ranked, documents, limit=candidate_limit)
         seed_ids = [item["memory_id"] for item in seeds]

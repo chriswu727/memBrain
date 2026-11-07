@@ -1000,6 +1000,8 @@ def render_context(response: dict, *, current_conversation: str | None = None,
     result = response.get("result") or {}
     lines, seen = [], set()
     for item in result.get("items", []):
+        if item.get("display_mode") == "do_not_surface":
+            continue
         memory = item.get("memory") or {}
         if (memory.get("scope") or {}).get("conversation_id") == current_conversation:
             continue  # The host already has the current conversation.
@@ -1055,15 +1057,11 @@ def _sources(response: dict, current_conversation: str | None, *, questions: set
 
     ``questions`` collects the messages whose matching statement was a question, whose answer is the next message.
     """
-    items = (response.get("result") or {}).get("items", [])
-    vector = sorted((signal.get("score") or 0 for item in items for signal in item.get("rank_signals") or []
-                     if signal.get("method") == "vector"), reverse=True)
-    floor = vector[VECTOR_ONLY_STATEMENTS - 1] if len(vector) >= VECTOR_ONLY_STATEMENTS else 0
-    sources, seen = [], set()
-    for item in items:
+    eligible, vector_scores, keyword_sources = [], {}, set()
+    for item in (response.get("result") or {}).get("items", []):
+        if item.get("display_mode") == "do_not_surface":
+            continue
         signals = {signal.get("method"): signal.get("score") or 0 for signal in item.get("rank_signals") or []}
-        if "keyword" not in signals and signals.get("vector", -1) < floor:
-            continue  # Associations and distant meaning-only matches add noise more often than context.
         memory = item.get("memory") or {}
         if (memory.get("scope") or {}).get("conversation_id") == current_conversation:
             continue
@@ -1071,9 +1069,26 @@ def _sources(response: dict, current_conversation: str | None, *, questions: set
         match = _STATEMENT.match(statement) if isinstance(statement, str) else None
         if not match or not _informative(match.group(3)):
             continue
+        eligible.append((item, memory, match, signals))
         for ref in memory.get("evidence_refs") or []:
             event_id = ref.get("event_id")
             if ref.get("relationship") != "supports" or not isinstance(event_id, str):
+                continue
+            if signals.get("keyword", 0) > 0:
+                keyword_sources.add(event_id)
+            if signals.get("vector", 0) > 0:
+                vector_scores[event_id] = max(vector_scores.get(event_id, 0), signals["vector"])
+    vector_sources = set(sorted((event for event in vector_scores if event not in keyword_sources),
+                                key=lambda event: -vector_scores[event])[:VECTOR_ONLY_STATEMENTS])
+    sources, seen = [], set()
+    for item, memory, match, signals in eligible:
+        statement = memory["statement"]
+        for ref in memory.get("evidence_refs") or []:
+            event_id = ref.get("event_id")
+            if ref.get("relationship") != "supports" or not isinstance(event_id, str):
+                continue
+            if signals.get("keyword", 0) <= 0 and (
+                    event_id not in vector_sources or signals.get("vector", 0) != vector_scores[event_id]):
                 continue
             if questions is not None and match.group(2) == "inquiry":
                 questions.add(event_id)

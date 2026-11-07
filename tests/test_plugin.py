@@ -459,6 +459,31 @@ def test_meaning_only_matches_are_capped_and_timeline_failure_falls_back_to_stat
     assert "Vector match number 0 here." in plugin.recall_context(Client(), "q")
 
 
+@pytest.mark.parametrize("crowding", ["same_source", "current_conversation", "keyword"])
+def test_vector_context_slots_count_eligible_independent_sources(crowding):
+    items = [_source("user user (direct_statement): An earlier discussion contains this detail.",
+                     "shared" if crowding == "same_source" else f"source-{index}",
+                     conversation="current" if crowding == "current_conversation" else "earlier",
+                     methods=("keyword", "vector") if crowding == "keyword" else ("vector",),
+                     score=.1 - index * .001) for index in range(host.VECTOR_ONLY_STATEMENTS)]
+    items.append(_source("user user (direct_statement): My umbrella is inside the hallway cabinet.",
+                         "independent", methods=("vector",), score=.01))
+
+    selected = [event for event, _ in host._sources(_response(*items), "current")]
+
+    assert "independent" in selected
+    assert len(selected) == len(set(selected)) <= host.MAX_MESSAGES
+
+
+def test_do_not_surface_items_neither_consume_slots_nor_leak_through_fallback():
+    hidden = _source("user user (direct_statement): A withheld detail must stay withheld.", "hidden",
+                     methods=("keyword", "vector"), score=1)
+    hidden["display_mode"] = "do_not_surface"
+
+    assert host._sources(_response(hidden), None) == []
+    assert host.render_context(_response(hidden)) is None
+
+
 def test_pasted_blocks_are_compacted_but_short_lines_are_kept():
     text = "My app crashes on start, why?\n" + "\n".join(f"web-1 | {i:02d}:00 error=refused id={i}" for i in range(5))
     assert plugin.compact_message(text) == "My app crashes on start, why?\n[5 pasted lines omitted]"

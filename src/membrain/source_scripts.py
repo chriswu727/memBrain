@@ -11,7 +11,7 @@ def han_majority(text):
     return len(_HAN.findall(text)) * 2 > sum(character.isalpha() for character in text)
 
 
-def classify(memory):
+def source_text(memory):
     text = memory["statement"]
     refs = memory.get("evidence_refs", [])
     if memory.get("derivation", {}).get("method") == "direct_capture" and len(refs) == 1:
@@ -19,7 +19,11 @@ def classify(memory):
         if (span.get("unit") == "unicode_code_point" and type(span.get("start")) is int
                 and type(span.get("end")) is int and 0 < span["end"] - span["start"] <= len(text)):
             text = text[-(span["end"] - span["start"]):]
-    return han_majority(text)
+    return text
+
+
+def classify(memory):
+    return han_majority(source_text(memory))
 
 
 @cache
