@@ -208,6 +208,8 @@ def failure_code(result: dict) -> str:
         return "card_differs"
     if "unknown_removed" in result:
         return "unknown_removed"
+    if result.get("ambiguous"):
+        return "ambiguous_proposal"
     return "not_found"
 
 
@@ -694,10 +696,16 @@ def apply_page_action(memory: Memory, action: dict, turns: dict) -> dict:
             done = {"deleted_versions": client.delete_persona_history()["deleted_versions"]}
         elif kind in PROPOSAL_ACTIONS:
             listed = client.persona_proposals().get("proposals", [])
-            open_ = [item for item in listed if item.get("status") == "open"
-                     and action["match"].casefold() in json.dumps(item, ensure_ascii=False).casefold()]
+            match = action["match"].strip().casefold()
+            available = [item for item in listed if item.get("status") == "open"]
+            exact = [item for item in available if match and match in
+                     (item.get("id", "").casefold(), item.get("kind", "").casefold())]
+            open_ = exact or [item for item in available if match and any(
+                match in item.get(field, "").casefold() for field in ("kind", "label"))]
             if not open_:
                 return {"failed": f"no open proposal matching {action['match']!r}", "listed": len(listed)}
+            if len(open_) != 1:
+                return {"failed": "multiple open proposals match", "ambiguous": True, "matched": len(open_)}
             decide = client.accept_persona_proposal if kind == "accept_persona_proposal" else \
                 client.reject_persona_proposal
             result = decide(open_[0]["id"])
