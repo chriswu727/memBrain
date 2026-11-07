@@ -1,5 +1,7 @@
 # First-release closeout
 
+**Current acceptance preparation (2026-11-07):** Runtime `4115e90` now passes [49 fresh Mac installation checks, 197-input parity in both homes and 250 public stub checks](../evaluations/maturity-acceptance-preparation-2026-11-07.md), with strict validity and closed test ports. The initial interrupted installation remains recorded. The [new R4/C5 proposal](../evaluations/maturity-acceptance-proposal-2026-11-07.md) awaits explicit one-round authorization; no new paid or subscription-backed behavioral work has started.
+
 **Status on 2026-11-03: release frozen until the product is mature.** The owner decided to release only when everything below is mature ("我们把这些都做到成熟再发"). Until then:
 - no version tag, GitHub release or PyPI upload is made;
 - changes continue on the integration branch; the current maturity candidate is not merged into the default branch while performance or behavioural acceptance remains open;

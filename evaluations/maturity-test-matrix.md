@@ -1,5 +1,7 @@
 # Maturity test matrix (no paid or subscription-backed model call)
 
+**Current free acceptance preparation (2026-11-07):** Runtime `4115e90` passes its own [49-check fresh Mac installation, two 197-input installed comparisons and 250-check public stub rehearsal](maturity-acceptance-preparation-2026-11-07.md). Strict validity passes; all test ports close. The [next R4/C5 proposal](maturity-acceptance-proposal-2026-11-07.md) awaits explicit authorization. Public checks do not change the failed R4 or incomplete C5 results.
+
 This matrix maps every behaviour that a release or a companion claim depends on to the local tests that check it. No entry makes a paid or subscription model call. A behaviour with no free test is listed as a gap, to be added before the [paid acceptance run](maturity-paid-acceptance-plan-draft.md) is proposed.
 
 **Current candidate runtime `4115e90`:** [Sign-in concurrency qualification](maturity-ui-code-atomicity-2026-11-07.md) passes 155 source tests, seven installed checks and 197-input package parity. Issuing and consuming sign-in codes share a cross-process lock and publish atomically. The current integration head also passes all five native platforms with 47 audited summaries. Full integration Verify passes 7,838 Python/53 TypeScript tests, zero skips, strict types, Ruff and builds. Earlier source CI hit its job limit after 7,838 Python passes and skipped TypeScript/build; the preceding installation/native/performance evidence retains its runtime scope. R4/C5 and final release review remain open.

@@ -22,6 +22,8 @@ memBrain runs as a local service. Connect your agent's conversation lifecycle on
 
 > **Latest behavioral result:** [Attempt `maturity-20261106b`](evaluations/maturity-third-attempt-2026-11-06.md) completed R4 scoring: plugin 17.5 (fail), extraction 20.5 (pass), full-history reference 19. C5 was interrupted and is ineligible. The newer source repairs have not passed fresh behavioral acceptance; release remains blocked.
 
+> **Current acceptance preparation:** Runtime `4115e90` now passes its own [49-check fresh installation and 250-check public rehearsal](evaluations/maturity-acceptance-preparation-2026-11-07.md). These are engineering checks, not real-model acceptance. The [new R4/C5 proposal](evaluations/maturity-acceptance-proposal-2026-11-07.md) awaits separate execution approval.
+
 <a id="claude-code-plugin"></a>
 
 ## Use with Claude Code

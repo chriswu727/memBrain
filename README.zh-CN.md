@@ -22,6 +22,8 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 > **最新行为验收结果：** [第三次验收 `maturity-20261106b`](evaluations/maturity-third-attempt-2026-11-06.md)已完成 R4 评分：插件模式 17.5 分（未通过），提取模式 20.5 分（通过），全历史参照组 19 分。C5 中途中断，未达到可评分条件。之后的源码修复尚未通过新一轮行为验收，发布仍冻结。
 
+> **当前验收准备：** 运行时 `4115e90` 已通过自身的 [49 项全新安装检查和 250 项公开模拟演练](evaluations/maturity-acceptance-preparation-2026-11-07.md)。这些是工程验证，不代表真实模型行为验收通过。[新一轮 R4/C5 方案](evaluations/maturity-acceptance-proposal-2026-11-07.md)仍待单独授权执行。
+
 <a id="claude-code-plugin"></a>
 
 ## 在 Claude Code 中使用
