@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 九个启动器均固定到运行时 `86e7f1f`。[敏感图谱修复](evaluations/maturity-sensitive-structure-2026-11-07.md)防止私密笔记内容通过派生断言节点再次显示。已通过 24 项记忆图测试、68 项相关图谱／浏览器测试、49 项真实 Mac 安装检查、两套安装包的 197 项文件比对，以及 250 项公开模拟演练。完整 Verify 已通过 7,840 项 Python 测试、53 项 TypeScript 测试，零跳过，严格类型检查、Ruff 和构建均通过；五个平台的原生验证也全部通过。此前的[安装及全屏性能结果](evaluations/maturity-month-qualification-2026-11-07.md)保留原运行时范围。[宿主覆盖限制](docs/host-compatibility.md)和[历史失败](docs/releasing.md)均保留；R4、C5 和最终发布审查通过前，发布保持冻结。
+> **预发布阶段。** 九个启动器均固定到运行时 `89d51036`。[记录状态修复](evaluations/maturity-recording-state-2026-11-07.md)让 Agent 在暂停期间每轮都能看到提示，并获知宿主支持的恢复操作。已通过 189 项相关本地测试；当前提交的完整 CI、全新安装和公开演练尚待完成。此前的[敏感图谱修复](evaluations/maturity-sensitive-structure-2026-11-07.md)、[安装及全屏性能结果](evaluations/maturity-month-qualification-2026-11-07.md)保留原运行时范围。[宿主覆盖限制](docs/host-compatibility.md)和[历史失败](docs/releasing.md)均保留；R4、C5 和最终发布审查通过前，发布保持冻结。
 
 > **最近一次验收执行：** [第四次验收](evaluations/maturity-fourth-attempt-2026-11-07.md)在 S1 因记录控制检查失败而停止。S2／C1／C2 未运行，两项行为门槛都不具备评分条件。[此前已评分的 R4 结果](evaluations/maturity-third-attempt-2026-11-06.md)仍是插件模式 17.5 分（未通过）、提取模式 20.5 分（通过）、参照组 19 分，C5 未完成。
 
