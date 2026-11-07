@@ -166,6 +166,18 @@ def test_hermes_sessions_share_memory_through_a_real_service(tmp_path, monkeypat
         shared = json.loads(first.handle_tool_call("membrain_note", {
             "text": "We planned Biscuit's meals together.", "kind": "milestone", "shared": True}))
         assert "note_id" in shared
+        readonly = hermes.MembrainProvider()
+        readonly.initialize("readonly", hermes_home=str(Path(tmp_path) / ".hermes"), platform="telegram",
+                            user_id="42", agent_context="subagent")
+        assert "Cat Biscuit: chicken allergy." in readonly.system_prompt_block()
+        assert "cannot change memory" in readonly.handle_tool_call("membrain_note", {
+            "text": "Unauthorized synthetic replacement.", "replaces": [shared["note_id"]]})
+        assert "cannot change memory" in readonly.handle_tool_call("membrain_pause", {"until_resumed": True})
+        assert not host.paused(directory, first._user)
+        host.pause(directory, user_id=first._user)
+        assert "cannot change memory" in readonly.handle_tool_call("membrain_resume", {})
+        assert host.paused(directory, first._user)
+        host.resume(directory, user_id=first._user)
         boundary = json.loads(first.handle_tool_call("membrain_boundary", {"topic": "my cat", "aliases": ["Biscuit", "小饼干"]}))
         assert boundary["boundaries"][0]["aliases"] == ["Biscuit", "小饼干"]
         with host.ready_client(directory, first._user) as client:

@@ -137,7 +137,7 @@ class MembrainProvider(_Base):
         if self._writes and self._user is None:
             self._import_user_file()  # USER.md describes the owner, so it only goes into the owner's memory.
         # Hermes puts its own USER.md and MEMORY.md in the prompt, so notes copied from them are not repeated.
-        return host.session_context(self._directory, self._session, tools=TOOLS,
+        return host.session_context(self._directory, self._session, tools=TOOLS if self._writes else None,
                                     skip_imports_from=("hermes",), user_id=self._user)
 
     def _import_user_file(self) -> None:
@@ -182,13 +182,13 @@ class MembrainProvider(_Base):
         self._session = new_session_id or self._session
 
     def get_tool_schemas(self) -> list[dict[str, Any]]:
-        return list(_SCHEMAS)
+        return [schema for schema in _SCHEMAS if self._writes or schema["name"] == "membrain_search"]
 
     def handle_tool_call(self, tool_name: str, args: dict[str, Any], **kwargs) -> str:
         from ..notes import note_fields, save_note
 
         try:
-            if tool_name == "membrain_boundary" and not self._writes:
+            if not self._writes and tool_name != "membrain_search":
                 return json.dumps({"error": "This session cannot change memory."})
             if tool_name == "membrain_pause":
                 return json.dumps(host.pause(self._directory, args.get("hours"), user_id=self._user,

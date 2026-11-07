@@ -642,7 +642,7 @@ Verified with Codex CLI 0.165 on Linux against a stub Responses API: after the h
 | `prefetch` | Related earlier messages for the turn (Hermes fences them as memory context); stages the prompt. |
 | `sync_turn` | Stores the user message and the reply together; skipped while recording is paused. |
 | `on_memory_write` | Mirrors writes to built-in `USER.md` as notes imported from Hermes; `replace` and `remove` suppress the matching earlier note. `MEMORY.md` writes stay in Hermes. `USER.md` itself is imported when it changes, and notes from Hermes are left out of Hermes's own system prompt. |
-| Tools | `membrain_note` (including feelings/shared moments), `membrain_search`, `membrain_boundary`, `membrain_pause`, `membrain_resume`. |
+| Tools | Primary contexts expose `membrain_note` (including feelings/shared moments), `membrain_search`, `membrain_boundary`, `membrain_pause`, `membrain_resume`. Subagent, cron and flush contexts expose search only and reject write/control calls even if invoked directly. |
 
 Verified with unit tests, a signature check against Hermes's `agent/memory_provider.py`, and two provider sessions sharing memory through a real embedded service. Not yet run inside a real Hermes installation.
 
