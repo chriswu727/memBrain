@@ -1,6 +1,6 @@
 {
   "source": "7902c16ecd9a7ff7b4c38dbd229d441102efc9a8",
-  "qualification": "local and installed-wheel; full integration CI pending",
+  "qualification": "source, installed wheel, fresh Mac launchers and public rehearsal; integration CI pending",
   "known_profile_credentials_absent": 4,
   "profile_count": 2,
   "files": [
@@ -69,6 +69,76 @@
       "sha256": "3feaabc95c406f817a425ae10bbb00ba237148072f874feb5a59381aa3e1112f",
       "uncompressed_sha256": "82048a92c33ed755fa45d4ac1bcaf90c58a3695d45c209f06e4ffbaf32acd79c",
       "bytes": 306
+    },
+    {
+      "path": "run-install.py.gz",
+      "sha256": "c864ec7d4dfb7c063878e14067ffb5051fea4d66139417a01df8a6e6a1240ade",
+      "uncompressed_sha256": "20c70bcbe2c8edf5333f957caf5a22cc2cba10c6896e98ef02485aae23ec7665",
+      "bytes": 963
+    },
+    {
+      "path": "install-run-meta.json.gz",
+      "sha256": "d583fc6bb4de4e6437b0e21da8ee55158addde431b0b20eccb16f74744b5275b",
+      "uncompressed_sha256": "8e8fbc65bbbded29a43d96fde8f1ba03b2f0d03d788b777faa9c9cf41d54fb68",
+      "bytes": 399
+    },
+    {
+      "path": "install-final/results.json.gz",
+      "sha256": "2df490f5c1a3e199ddf664404bcfecc8eebe1c163adc26e0982c76d2b3a9c43b",
+      "uncompressed_sha256": "7758b34f6919e40b3652d30d18e971926912f1c032aa098052da1eeadb0593fb",
+      "bytes": 4948
+    },
+    {
+      "path": "run-public-practice.py.gz",
+      "sha256": "b327a419265e00bfb9f8a23dae88d1906780717be03272d61e1bac8d1ef79b22",
+      "uncompressed_sha256": "fff57349d37eefb30951391d6027c88b0c1b89020c04c5daf7ae5e91e7f0d702",
+      "bytes": 1709
+    },
+    {
+      "path": "public-practice-result.json.gz",
+      "sha256": "1470691a99c430df099afc1e2060d1642d27ea14affa7e91e221c0a87b2c7b09",
+      "uncompressed_sha256": "4a191cf6223fdb331518d8ea7946ac3ce9eb07009c348203ab104e95b1a412e4",
+      "bytes": 13955
+    },
+    {
+      "path": "public-practice-checks.json.gz",
+      "sha256": "950d035cb6451926c02e332742faff4da150a492522b6c60534a8ac3a54af2d8",
+      "uncompressed_sha256": "010f206e79fc09d5a4f457c9a2e48e816e0903bcfcf2cdc5d606b0983bc4cfef",
+      "bytes": 235
+    },
+    {
+      "path": "public-practice-validity.json.gz",
+      "sha256": "95224533dd74618f79c77633a1a65f3a9201ded0ae83a973ff4d26fa7366b269",
+      "uncompressed_sha256": "6944038cca8acff562db9cd7c2a568a9247b231f148804609380a096bb60c6b4",
+      "bytes": 143
+    },
+    {
+      "path": "journal-checks.json.gz",
+      "sha256": "792b3829148868c96ceb8b92a9a50f4c72330b49307526e7e6458f7560083014",
+      "uncompressed_sha256": "c484c7c5d063141ebd4bf3f43992616fa8343d97c2a807d7937c098404428be2",
+      "bytes": 135
+    },
+    {
+      "path": "check-journals.py.gz",
+      "sha256": "47532f4ccbd13f4574f48be7caeb0021ac778a46e4bd25c6d35ad612ec7cb6de",
+      "uncompressed_sha256": "cea24667081e4da1d9423cc596a3ceaccaa673179a0526707898d5addce0453a",
+      "bytes": 418
+    },
+    {
+      "path": "check-installed-and-ports.py.gz",
+      "sha256": "638940542c669285400f57e840839a87406c9b3810f54169cc494760e92fa601",
+      "uncompressed_sha256": "0067210494806db9b7ade5caacbe31c903ac27bff947854fcef7821c8b3215a8",
+      "bytes": 1023
+    },
+    {
+      "path": "installed-and-ports.json.gz",
+      "sha256": "6238899d6747df42623561cecc52bfccf88e01716bdedb1ae73b31691a1f06ef",
+      "uncompressed_sha256": "d7aa5a17cdce49d665f1b0d35af05793654e38c4577b6c5bb95cfc7a801c56bf",
+      "bytes": 496
     }
-  ]
+  ],
+  "additional_credential_scan": {
+    "profile_count": 6,
+    "known_values_absent_from_all_payloads": 12
+  }
 }
