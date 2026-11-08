@@ -92,6 +92,9 @@ class ChatMemory:
         """The memory this speaker's messages go to: their own, or their role-play with a character."""
         return host.roleplay_user(self.user_id(speaker), roleplay or self.roleplay)
 
+    def bound_session(self, speaker: Speaker, conversation: str, *, roleplay: str | None = None) -> str:
+        return _identity("session-v3", [self.memory_user(speaker, roleplay), speaker.group, conversation])
+
     def _recording(self, speaker: Speaker) -> bool:
         return speaker.usable() and (self.record_groups or not speaker.group)
 

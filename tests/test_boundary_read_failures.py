@@ -53,7 +53,6 @@ def test_host_never_runs_recall_when_its_boundary_read_failed(monkeypatch):
 def test_failed_session_snapshot_never_returns_unfiltered_history(tmp_path, monkeypatch):
     histories = []
     monkeypatch.setattr(host, "flush", lambda *args: None)
-    monkeypatch.setattr(host, "_finish_pending", lambda *args: None)
     monkeypatch.setattr(host, "_finish_abandoned", lambda *args: None)
     monkeypatch.setattr(host, "_history", lambda *args, **kwargs: histories.append(args) or
                         ("Jordan and the user hiked together.", True))

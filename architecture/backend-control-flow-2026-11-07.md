@@ -65,3 +65,7 @@ A zero-provider [overlap probe](../evaluations/evidence/backend-recording-policy
 The new regression suite exercises grammar false positives, source-free staging and spooling, extractor suppression, role-play and user/group separation, restarts, existing timed pauses, same-turn resume, finish-only hosts, rejected receipts, local MCP, and streaming/non-streaming proxy requests through real embedded PostgreSQL. Existing host, plugin, adapter, extraction and MCP tests are also checked. CI and final counts belong to the pull request and verification report, not this design document.
 
 The historical fifth acceptance remains R4 failed and C5 invalid/unscored. Public deterministic regression checks cannot establish held-out model behavior or clear release gates. Main merge, tag and package publication remain blocked by those gates.
+
+## Concurrent-turn follow-up
+
+The [turn-isolation batch](../evaluations/backend-turn-isolation-2026-11-07.md) implements the second follow-up above. It retains the failing overlap probe as baseline evidence and adds reverse-order completion, shared-owner privacy, capacity, migration, erasure and proxy-scoping regressions. Its report records qualification separately; the original review is not retroactively treated as a pass.

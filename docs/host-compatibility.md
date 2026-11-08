@@ -41,3 +41,9 @@ memBrain cannot withdraw text already supplied to a model, or erase a host's ind
 - **TypeScript:** 50 local tests and 36 fresh installed-service API checks cover the client extension; [exact evidence](../evaluations/maturity-typescript-companion-2026-11-04.md). This is not a model-behaviour result.
 
 The [maturity matrix](../evaluations/maturity-test-matrix.md), [release checklist](releasing.md) and dated evidence reports determine release readiness. This inventory does not waive any open gate.
+
+## Concurrent host callbacks
+
+The host ledger now matches user, producer and turn identity, including out-of-order replies. Context refresh leaves active inputs staged. Supplied proxy session headers are bound to the user, group and character. Hosts should supply a stable turn ID and the same user on both callbacks. Missing IDs support only unambiguous pairing; identical overlapping prompts are excluded.
+
+The ledger is bounded to 64 active turns and 256 finished markers per session. It rejects unknown callbacks in staged sessions after compaction. Hermes retains whole-turn reporting without prefetch through an explicit adapter option, but a session that excluded or erased content requires staging for later unknown turns (or a new session). See [the lifecycle contract](reference.md) and the [concurrency report](../evaluations/backend-turn-isolation-2026-11-07.md) for verification and limits. This does not establish server-wide recording policy or atomicity between a pause and an already-running network write.

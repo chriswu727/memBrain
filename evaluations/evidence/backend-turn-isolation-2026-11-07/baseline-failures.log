@@ -1,0 +1,180 @@
+FFFFFFFFFF                                                               [100%]
+=================================== FAILURES ===================================
+___ test_overlapping_turns_keep_their_input_owner_and_parent[owners0-False] ____
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-58/test_overlapping_turns_keep_th0')
+reverse = False, owners = ('alice', 'bob')
+
+    @pytest.mark.parametrize("reverse", [False, True])
+    @pytest.mark.parametrize("owners", [("alice", "bob"), ("alice", "alice")])
+    def test_overlapping_turns_keep_their_input_owner_and_parent(tmp_path, reverse, owners):
+        for i, owner in enumerate(owners):
+            host.prompt_context(tmp_path, "shared", f"Question {i}", turn_id=f"turn:{i}", user_id=owner)
+        for i in ([1, 0] if reverse else [0, 1]):
+            records = host.finish_turn(tmp_path, "shared", f"Answer {i}", turn_id=f"turn:{i}", user_id=owners[i])
+>           assert [r["text"] for r in records] == [f"Question {i}", f"Answer {i}"]
+E           AssertionError: assert ['Question 1', 'Answer 0'] == ['Question 0', 'Answer 0']
+E             
+E             At index 0 diff: 'Question 1' != 'Question 0'
+E             Use -v to get more diff
+
+tests/test_host_turn_isolation.py:21: AssertionError
+____ test_overlapping_turns_keep_their_input_owner_and_parent[owners0-True] ____
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-58/test_overlapping_turns_keep_th1')
+reverse = True, owners = ('alice', 'bob')
+
+    @pytest.mark.parametrize("reverse", [False, True])
+    @pytest.mark.parametrize("owners", [("alice", "bob"), ("alice", "alice")])
+    def test_overlapping_turns_keep_their_input_owner_and_parent(tmp_path, reverse, owners):
+        for i, owner in enumerate(owners):
+            host.prompt_context(tmp_path, "shared", f"Question {i}", turn_id=f"turn:{i}", user_id=owner)
+        for i in ([1, 0] if reverse else [0, 1]):
+            records = host.finish_turn(tmp_path, "shared", f"Answer {i}", turn_id=f"turn:{i}", user_id=owners[i])
+>           assert [r["text"] for r in records] == [f"Question {i}", f"Answer {i}"]
+E           AssertionError: assert [] == ['Question 0', 'Answer 0']
+E             
+E             Right contains 2 more items, first extra item: 'Question 0'
+E             Use -v to get more diff
+
+tests/test_host_turn_isolation.py:21: AssertionError
+___ test_overlapping_turns_keep_their_input_owner_and_parent[owners1-False] ____
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-58/test_overlapping_turns_keep_th2')
+reverse = False, owners = ('alice', 'alice')
+
+    @pytest.mark.parametrize("reverse", [False, True])
+    @pytest.mark.parametrize("owners", [("alice", "bob"), ("alice", "alice")])
+    def test_overlapping_turns_keep_their_input_owner_and_parent(tmp_path, reverse, owners):
+        for i, owner in enumerate(owners):
+            host.prompt_context(tmp_path, "shared", f"Question {i}", turn_id=f"turn:{i}", user_id=owner)
+        for i in ([1, 0] if reverse else [0, 1]):
+            records = host.finish_turn(tmp_path, "shared", f"Answer {i}", turn_id=f"turn:{i}", user_id=owners[i])
+>           assert [r["text"] for r in records] == [f"Question {i}", f"Answer {i}"]
+E           AssertionError: assert ['Question 1', 'Answer 0'] == ['Question 0', 'Answer 0']
+E             
+E             At index 0 diff: 'Question 1' != 'Question 0'
+E             Use -v to get more diff
+
+tests/test_host_turn_isolation.py:21: AssertionError
+____ test_overlapping_turns_keep_their_input_owner_and_parent[owners1-True] ____
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-58/test_overlapping_turns_keep_th3')
+reverse = True, owners = ('alice', 'alice')
+
+    @pytest.mark.parametrize("reverse", [False, True])
+    @pytest.mark.parametrize("owners", [("alice", "bob"), ("alice", "alice")])
+    def test_overlapping_turns_keep_their_input_owner_and_parent(tmp_path, reverse, owners):
+        for i, owner in enumerate(owners):
+            host.prompt_context(tmp_path, "shared", f"Question {i}", turn_id=f"turn:{i}", user_id=owner)
+        for i in ([1, 0] if reverse else [0, 1]):
+            records = host.finish_turn(tmp_path, "shared", f"Answer {i}", turn_id=f"turn:{i}", user_id=owners[i])
+>           assert [r["text"] for r in records] == [f"Question {i}", f"Answer {i}"]
+E           AssertionError: assert [] == ['Question 0', 'Answer 0']
+E             
+E             Right contains 2 more items, first extra item: 'Question 0'
+E             Use -v to get more diff
+
+tests/test_host_turn_isolation.py:21: AssertionError
+________ test_late_excluded_callback_does_not_take_or_revive_a_new_turn ________
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-58/test_late_excluded_callback_do0')
+
+    def test_late_excluded_callback_does_not_take_or_revive_a_new_turn(tmp_path):
+        host.prompt_context(tmp_path, "s", "Private draft", turn_id="private", user_id="alice")
+        host.pause(tmp_path, user_id="alice")
+        host.resume(tmp_path, user_id="alice")
+        host.prompt_context(tmp_path, "s", "Public draft", turn_id="public", user_id="alice")
+        for _ in range(2):
+>           assert host.finish_turn(tmp_path, "s", "Private reply", turn_id="private",
+                                    prompt="Private draft", user_id="alice") == []
+E           AssertionError: assert [{'text': 'Pu...istant', ...}] == []
+E             
+E             Left contains 3 more items, first extra item: {'text': 'Public draft', 'conversation_id': 's', 'branch_id': 'main', 'source_event_key': 's:public:user', ...}
+E             Use -v to get more diff
+
+tests/test_host_turn_isolation.py:32: AssertionError
+__________ test_wrong_owner_producer_or_prompt_cannot_consume_a_turn ___________
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-58/test_wrong_owner_producer_or_p0')
+
+    def test_wrong_owner_producer_or_prompt_cannot_consume_a_turn(tmp_path):
+        host.prompt_context(tmp_path, "s", "Alice question", turn_id="t", user_id="alice", producer="a")
+        for options in ({"user_id": "bob", "producer": "a"}, {"user_id": "alice", "producer": "b"},
+                        {"user_id": "alice", "producer": "a", "prompt": "Different question"}):
+>           assert host.finish_turn(tmp_path, "s", "Wrong reply", turn_id="t", **options) == []
+E           AssertionError: assert [{'text': 'Al...istant', ...}] == []
+E             
+E             Left contains 2 more items, first extra item: {'text': 'Alice question', 'conversation_id': 's', 'branch_id': 'main', 'source_event_key': 's:t:user', ...}
+E             Use -v to get more diff
+
+tests/test_host_turn_isolation.py:43: AssertionError
+____ test_callbacks_without_identity_do_not_guess_between_overlapping_turns ____
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-58/test_callbacks_without_identit0')
+
+    def test_callbacks_without_identity_do_not_guess_between_overlapping_turns(tmp_path):
+        host.prompt_context(tmp_path, "s", "First")
+        host.prompt_context(tmp_path, "s", "Second")
+>       assert host.finish_turn(tmp_path, "s", "Unknown reply") == []
+E       AssertionError: assert [{'text': 'Se...istant', ...}] == []
+E         
+E         Left contains 2 more items, first extra item: {'text': 'Second', 'conversation_id': 's', 'branch_id': 'main', 'source_event_key': 's:cdf8332ef4d0c929ed937a7c25c12605:user', ...}
+E         Use -v to get more diff
+
+tests/test_host_turn_isolation.py:50: AssertionError
+_____________ test_session_refresh_does_not_remove_inflight_turns ______________
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-58/test_session_refresh_does_not_0')
+
+    def test_session_refresh_does_not_remove_inflight_turns(tmp_path):
+        host.prompt_context(tmp_path, "s", "First", turn_id="one")
+        host.session_context(tmp_path, "s")
+        host.prompt_context(tmp_path, "s", "Second", turn_id="two")
+>       assert [r["text"] for r in host.finish_turn(tmp_path, "s", "One", turn_id="one")] == ["First", "One"]
+E       AssertionError: assert ['Second', 'One'] == ['First', 'One']
+E         
+E         At index 0 diff: 'Second' != 'First'
+E         Use -v to get more diff
+
+tests/test_host_turn_isolation.py:59: AssertionError
+_________ test_reply_without_explicit_id_preserves_colons_in_staged_id _________
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-58/test_reply_without_explicit_id0')
+
+    def test_reply_without_explicit_id_preserves_colons_in_staged_id(tmp_path):
+        host.prompt_context(tmp_path, "s", "Question", turn_id="host:turn:1")
+        records = host.finish_turn(tmp_path, "s", "Reply")
+>       assert records[1]["source_event_key"] == "s:host:turn:1:assistant"
+E       AssertionError: assert 's:1:assistant' == 's:host:turn:1:assistant'
+E         
+E         - s:host:turn:1:assistant
+E         + s:1:assistant
+
+tests/test_host_turn_isolation.py:65: AssertionError
+_______________ test_duplicate_completion_has_no_second_receipt ________________
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-58/test_duplicate_completion_has_0')
+
+    def test_duplicate_completion_has_no_second_receipt(tmp_path):
+        host.prompt_context(tmp_path, "s", "Question", turn_id="one")
+        assert len(host.finish_turn(tmp_path, "s", "Reply", turn_id="one", prompt="Question")) == 2
+>       assert host.finish_turn(tmp_path, "s", "Reply", turn_id="one", prompt="Question") == []
+E       AssertionError: assert [{'text': 'Qu...istant', ...}] == []
+E         
+E         Left contains 2 more items, first extra item: {'text': 'Question', 'conversation_id': 's', 'branch_id': 'main', 'source_event_key': 's:one:user', ...}
+E         Use -v to get more diff
+
+tests/test_host_turn_isolation.py:72: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_host_turn_isolation.py::test_overlapping_turns_keep_their_input_owner_and_parent[owners0-False]
+FAILED tests/test_host_turn_isolation.py::test_overlapping_turns_keep_their_input_owner_and_parent[owners0-True]
+FAILED tests/test_host_turn_isolation.py::test_overlapping_turns_keep_their_input_owner_and_parent[owners1-False]
+FAILED tests/test_host_turn_isolation.py::test_overlapping_turns_keep_their_input_owner_and_parent[owners1-True]
+FAILED tests/test_host_turn_isolation.py::test_late_excluded_callback_does_not_take_or_revive_a_new_turn
+FAILED tests/test_host_turn_isolation.py::test_wrong_owner_producer_or_prompt_cannot_consume_a_turn
+FAILED tests/test_host_turn_isolation.py::test_callbacks_without_identity_do_not_guess_between_overlapping_turns
+FAILED tests/test_host_turn_isolation.py::test_session_refresh_does_not_remove_inflight_turns
+FAILED tests/test_host_turn_isolation.py::test_reply_without_explicit_id_preserves_colons_in_staged_id
+FAILED tests/test_host_turn_isolation.py::test_duplicate_completion_has_no_second_receipt
+10 failed in 0.16s

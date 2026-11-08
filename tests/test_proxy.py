@@ -214,7 +214,25 @@ def test_each_bot_token_reaches_only_its_own_people(tmp_path):
     (qq, _, _), (douyin, _, session) = memory.contexts
     # The same user id under two tokens is two different people, even when one claims the other's platform.
     assert memory.user_id(qq) != memory.user_id(douyin)
-    assert qq.platform == "qq/api" and douyin.platform == "douyin/qq" and session == "douyin:s1"
+    assert qq.platform == "qq/api" and douyin.platform == "douyin/qq"
+    assert session == memory.bound_session(douyin, "s1")
+    assert session != memory.bound_session(qq, "s1")
     assert all(request["auth"] == "Bearer sk-upstream" for request in upstream.requests)
     with pytest.raises(ValueError):
         parse_tokens("short:qq")
+
+
+@pytest.mark.parametrize("group_memory", ["separate", "shared"])
+def test_explicit_session_headers_are_bound_to_person_group_and_roleplay(tmp_path, group_memory):
+    memory, upstream = Memory(tmp_path), Upstream()
+    memory.group_memory = group_memory
+    scopes = [{}, {"x-membrain-user": "bob"}, {"x-membrain-group": "one"}, {"x-membrain-group": "two"},
+              {"x-membrain-roleplay": "Ada"}, {"x-membrain-roleplay": "Grace"}, {}]
+    with _client(memory, upstream) as client:
+        for scope in scopes:
+            response = client.post("/v1/chat/completions", headers={"x-membrain-session": "shared-header", **scope},
+                                   json={"model": "m", "user": "alice", "messages": [{"role": "user", "content": "hi"}]})
+            assert response.status_code == 200
+    sessions = [session for _, _, session in memory.contexts]
+    assert len(set(sessions[:-1])) == len(scopes) - 1
+    assert sessions[0] == sessions[-1]

@@ -1,0 +1,33 @@
+........................................................................ [ 23%]
+........................................................................ [ 47%]
+........................................................................ [ 71%]
+................................................................F....... [ 95%]
+..............                                                           [100%]
+=================================== FAILURES ===================================
+______________ test_subagents_and_paused_recording_store_nothing _______________
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-63/test_subagents_and_paused_reco0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x10e283110>
+
+    def test_subagents_and_paused_recording_store_nothing(tmp_path, monkeypatch):
+        client = Client()
+        sub = provider(tmp_path, monkeypatch, client, agent_context="subagent")
+        sub.prefetch("internal task", session_id="h1")
+        sub.sync_turn("internal task", "done", session_id="h1")
+        assert "cannot change memory" in sub.handle_tool_call("membrain_boundary", {"topic": "my ex"})
+        instance = provider(tmp_path, monkeypatch, client)
+        assert json.loads(instance.handle_tool_call("membrain_pause", {}))["recording"] == "paused"
+        instance.sync_turn("Off the record: I'm job hunting.", "Understood.", session_id="h1")
+        assert client.observed == []
+>       assert json.loads(instance.handle_tool_call("membrain_resume", {})) == {"recording": "on"}
+E       AssertionError: assert {'recording':..._paused_turn'} == {'recording': 'on'}
+E         
+E         Omitting 1 identical items, use -vv to show
+E         Left contains 2 more items:
+E         {'current_turn_resumed': False, 'reason': 'no_unique_paused_turn'}
+E         Use -v to get more diff
+
+tests/test_hermes_adapter.py:121: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_hermes_adapter.py::test_subagents_and_paused_recording_store_nothing
+1 failed, 301 passed in 117.31s (0:01:57)

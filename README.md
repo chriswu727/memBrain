@@ -24,6 +24,8 @@ memBrain runs as a local service. Connect your agent's conversation lifecycle on
 
 > **Current release status:** The [host recording-control repair](evaluations/backend-recording-policy-2026-11-07.md) passes 269 related local tests, 77 installed-wheel tests, and full CI with 7,947 Python/53 TypeScript tests, zero skips, strict types, Ruff and builds. It is merged into integration; server-owned recording policy and per-turn concurrency isolation remain open. The authorized behavioral attempt has stopped. Its ledger is blocked, invalid private evidence is preserved and no automatic repeat is authorized. Source improvements do not clear R4/C5 or permit publication.
 
+> **Concurrent callbacks:** The [turn-isolation follow-up](evaluations/backend-turn-isolation-2026-11-07.md) implements per-turn matching, bounded state and identity-bound proxy sessions; qualification is in progress. This does not clear the behavioral release gates.
+
 <a id="claude-code-plugin"></a>
 
 ## Use with Claude Code

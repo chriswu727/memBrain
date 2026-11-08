@@ -1,0 +1,399 @@
+........................................................................ [ 24%]
+...F.....................F............F................................. [ 49%]
+.........................................F.F.F..........F...........
+=================================== FAILURES ===================================
+___ test_real_proxy_storage_and_next_session_exclude_private_exchange[True] ____
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-60/test_real_proxy_storage_and_ne1')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1059e7d10>
+stream = True
+
+    @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
+    @pytest.mark.parametrize("stream", [False, True])
+    def test_real_proxy_storage_and_next_session_exclude_private_exchange(tmp_path, monkeypatch, stream):
+        monkeypatch.setenv("MEMBRAIN_SEMANTIC", "0")
+        directory = tmp_path / "brain"
+        memory = ChatMemory(directory, tools=None)
+        upstream = Upstream("The private rehearsal prop is a cobalt paper kite.")
+        try:
+>           host.start(directory)
+
+tests/test_recording_policy.py:225: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/membrain/host.py:283: in start
+    result = desktop.start(directory)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+directory = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-60/test_real_proxy_storage_and_ne1/brain')
+
+    def start(directory: Path | None = None) -> dict:
+        profile = ensure_profile(directory)
+        with profile_lock(profile.directory / "lifecycle", timeout=360):
+            profile = load_profile(profile.directory)
+            from .recovery_profile import check_start_allowed
+    
+            check_start_allowed(profile, allow_initializing=True, allow_native_upgrade=True)
+            existing = status(profile.directory)
+            if existing["state"] == "restart_required":
+                raise DesktopError("restart_required", "Configuration changed; run desktop restart to apply it.")
+            if existing.get("ready"):
+                return existing
+            if _probe(profile) is not None:
+                raise DesktopError("service_degraded", "The local service is running but not ready. Check desktop status before restarting.")
+            if _supervisor_active(profile):
+                raise DesktopError("service_transitioning", "The service is starting or finishing work. Check desktop status before retrying.")
+            if _port_open(profile.api_port):
+                raise DesktopError("port_conflict", "The saved API port belongs to another service. Free that port and retry; no process was stopped.")
+            print("Starting the local memory database and service…", file=sys.stderr)
+            _prepare_database(profile)
+            profile = load_profile(profile.directory)
+            process = _launch(profile)
+            deadline = time.monotonic() + 35
+            while time.monotonic() < deadline:
+                result = status(profile.directory)
+                if result.get("ready"):
+                    return result
+                if process.poll() is not None:
+                    raise DesktopError("service_start_failed", "The local service exited during startup. Check desktop logs; data was preserved.")
+                time.sleep(0.2)
+>           raise DesktopError("service_start_timeout", "The service has not become ready. Check desktop status and logs before retrying.")
+E           membrain.desktop.DesktopError: The service has not become ready. Check desktop status and logs before retrying.
+
+src/membrain/desktop.py:356: DesktopError
+----------------------------- Captured stderr call -----------------------------
+Starting the local memory database and service…
+_____ test_hooks_carry_memory_across_sessions_on_an_embedded_installation ______
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-60/test_hooks_carry_memory_across0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x106da13d0>
+capsys = <_pytest.capture.CaptureFixture object at 0x106da2660>
+
+    @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
+    def test_hooks_carry_memory_across_sessions_on_an_embedded_installation(tmp_path, monkeypatch, capsys):
+        directory = tmp_path / "brain"
+    
+        def hook(event, payload):
+            assert plugin.run_hook(event, directory, stream=io.BytesIO(json.dumps(payload).encode())) == 0
+            output = capsys.readouterr().out
+            return json.loads(output)["hookSpecificOutput"]["additionalContext"] if output else None
+    
+        try:
+>           plugin.start(directory)
+
+tests/test_plugin.py:135: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/membrain/plugin.py:110: in start
+    result = host.start(directory)
+             ^^^^^^^^^^^^^^^^^^^^^
+src/membrain/host.py:283: in start
+    result = desktop.start(directory)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+directory = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-60/test_hooks_carry_memory_across0/brain')
+
+    def start(directory: Path | None = None) -> dict:
+        profile = ensure_profile(directory)
+        with profile_lock(profile.directory / "lifecycle", timeout=360):
+            profile = load_profile(profile.directory)
+            from .recovery_profile import check_start_allowed
+    
+            check_start_allowed(profile, allow_initializing=True, allow_native_upgrade=True)
+            existing = status(profile.directory)
+            if existing["state"] == "restart_required":
+                raise DesktopError("restart_required", "Configuration changed; run desktop restart to apply it.")
+            if existing.get("ready"):
+                return existing
+            if _probe(profile) is not None:
+                raise DesktopError("service_degraded", "The local service is running but not ready. Check desktop status before restarting.")
+            if _supervisor_active(profile):
+                raise DesktopError("service_transitioning", "The service is starting or finishing work. Check desktop status before retrying.")
+            if _port_open(profile.api_port):
+                raise DesktopError("port_conflict", "The saved API port belongs to another service. Free that port and retry; no process was stopped.")
+            print("Starting the local memory database and service…", file=sys.stderr)
+            _prepare_database(profile)
+            profile = load_profile(profile.directory)
+            process = _launch(profile)
+            deadline = time.monotonic() + 35
+            while time.monotonic() < deadline:
+                result = status(profile.directory)
+                if result.get("ready"):
+                    return result
+                if process.poll() is not None:
+                    raise DesktopError("service_start_failed", "The local service exited during startup. Check desktop logs; data was preserved.")
+                time.sleep(0.2)
+>           raise DesktopError("service_start_timeout", "The service has not become ready. Check desktop status and logs before retrying.")
+E           membrain.desktop.DesktopError: The service has not become ready. Check desktop status and logs before retrying.
+
+src/membrain/desktop.py:356: DesktopError
+----------------------------- Captured stderr call -----------------------------
+Starting the local memory database and service…
+_____ test_new_sessions_receive_the_complete_history_from_the_real_service _____
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-60/test_new_sessions_receive_the_0')
+capsys = <_pytest.capture.CaptureFixture object at 0x106de6090>
+
+    @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
+    def test_new_sessions_receive_the_complete_history_from_the_real_service(tmp_path, capsys):
+        directory = tmp_path / "brain"
+    
+        def hook(event, payload):
+            assert plugin.run_hook(event, directory, stream=io.BytesIO(json.dumps(payload).encode())) == 0
+            output = capsys.readouterr().out
+            return json.loads(output)["hookSpecificOutput"]["additionalContext"] if output else None
+    
+        try:
+>           plugin.start(directory)
+
+tests/test_plugin.py:297: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/membrain/plugin.py:110: in start
+    result = host.start(directory)
+             ^^^^^^^^^^^^^^^^^^^^^
+src/membrain/host.py:283: in start
+    result = desktop.start(directory)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+directory = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-60/test_new_sessions_receive_the_0/brain')
+
+    def start(directory: Path | None = None) -> dict:
+        profile = ensure_profile(directory)
+        with profile_lock(profile.directory / "lifecycle", timeout=360):
+            profile = load_profile(profile.directory)
+            from .recovery_profile import check_start_allowed
+    
+            check_start_allowed(profile, allow_initializing=True, allow_native_upgrade=True)
+            existing = status(profile.directory)
+            if existing["state"] == "restart_required":
+                raise DesktopError("restart_required", "Configuration changed; run desktop restart to apply it.")
+            if existing.get("ready"):
+                return existing
+            if _probe(profile) is not None:
+                raise DesktopError("service_degraded", "The local service is running but not ready. Check desktop status before restarting.")
+            if _supervisor_active(profile):
+                raise DesktopError("service_transitioning", "The service is starting or finishing work. Check desktop status before retrying.")
+            if _port_open(profile.api_port):
+                raise DesktopError("port_conflict", "The saved API port belongs to another service. Free that port and retry; no process was stopped.")
+            print("Starting the local memory database and service…", file=sys.stderr)
+            _prepare_database(profile)
+            profile = load_profile(profile.directory)
+            process = _launch(profile)
+            deadline = time.monotonic() + 35
+            while time.monotonic() < deadline:
+                result = status(profile.directory)
+                if result.get("ready"):
+                    return result
+                if process.poll() is not None:
+                    raise DesktopError("service_start_failed", "The local service exited during startup. Check desktop logs; data was preserved.")
+                time.sleep(0.2)
+>           raise DesktopError("service_start_timeout", "The service has not become ready. Check desktop status and logs before retrying.")
+E           membrain.desktop.DesktopError: The service has not become ready. Check desktop status and logs before retrying.
+
+src/membrain/desktop.py:356: DesktopError
+----------------------------- Captured stderr call -----------------------------
+Starting the local memory database and service…
+_________________ test_private_text_never_reaches_the_database _________________
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-60/test_private_text_never_reache0')
+
+    @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
+    def test_private_text_never_reaches_the_database(tmp_path):
+        directory = tmp_path / "brain"
+        try:
+>           host.start(directory)
+
+tests/test_host.py:155: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/membrain/host.py:283: in start
+    result = desktop.start(directory)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+directory = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-60/test_private_text_never_reache0/brain')
+
+    def start(directory: Path | None = None) -> dict:
+        profile = ensure_profile(directory)
+        with profile_lock(profile.directory / "lifecycle", timeout=360):
+            profile = load_profile(profile.directory)
+            from .recovery_profile import check_start_allowed
+    
+            check_start_allowed(profile, allow_initializing=True, allow_native_upgrade=True)
+            existing = status(profile.directory)
+            if existing["state"] == "restart_required":
+                raise DesktopError("restart_required", "Configuration changed; run desktop restart to apply it.")
+            if existing.get("ready"):
+                return existing
+            if _probe(profile) is not None:
+                raise DesktopError("service_degraded", "The local service is running but not ready. Check desktop status before restarting.")
+            if _supervisor_active(profile):
+                raise DesktopError("service_transitioning", "The service is starting or finishing work. Check desktop status before retrying.")
+            if _port_open(profile.api_port):
+                raise DesktopError("port_conflict", "The saved API port belongs to another service. Free that port and retry; no process was stopped.")
+            print("Starting the local memory database and service…", file=sys.stderr)
+            _prepare_database(profile)
+            profile = load_profile(profile.directory)
+            process = _launch(profile)
+            deadline = time.monotonic() + 35
+            while time.monotonic() < deadline:
+                result = status(profile.directory)
+                if result.get("ready"):
+                    return result
+                if process.poll() is not None:
+                    raise DesktopError("service_start_failed", "The local service exited during startup. Check desktop logs; data was preserved.")
+                time.sleep(0.2)
+>           raise DesktopError("service_start_timeout", "The service has not become ready. Check desktop status and logs before retrying.")
+E           membrain.desktop.DesktopError: The service has not become ready. Check desktop status and logs before retrying.
+
+src/membrain/desktop.py:356: DesktopError
+----------------------------- Captured stderr call -----------------------------
+Starting the local memory database and service…
+____________ test_memory_page_signs_in_once_and_controls_recording _____________
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-60/test_memory_page_signs_in_once0')
+
+    @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
+    def test_memory_page_signs_in_once_and_controls_recording(tmp_path):
+        import httpx
+    
+        from membrain.local_profile import load_profile
+    
+        directory = tmp_path / "brain"
+        try:
+>           host.start(directory)
+
+tests/test_host.py:189: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/membrain/host.py:283: in start
+    result = desktop.start(directory)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+directory = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-60/test_memory_page_signs_in_once0/brain')
+
+    def start(directory: Path | None = None) -> dict:
+        profile = ensure_profile(directory)
+        with profile_lock(profile.directory / "lifecycle", timeout=360):
+            profile = load_profile(profile.directory)
+            from .recovery_profile import check_start_allowed
+    
+            check_start_allowed(profile, allow_initializing=True, allow_native_upgrade=True)
+            existing = status(profile.directory)
+            if existing["state"] == "restart_required":
+                raise DesktopError("restart_required", "Configuration changed; run desktop restart to apply it.")
+            if existing.get("ready"):
+                return existing
+            if _probe(profile) is not None:
+                raise DesktopError("service_degraded", "The local service is running but not ready. Check desktop status before restarting.")
+            if _supervisor_active(profile):
+                raise DesktopError("service_transitioning", "The service is starting or finishing work. Check desktop status before retrying.")
+            if _port_open(profile.api_port):
+                raise DesktopError("port_conflict", "The saved API port belongs to another service. Free that port and retry; no process was stopped.")
+            print("Starting the local memory database and service…", file=sys.stderr)
+            _prepare_database(profile)
+            profile = load_profile(profile.directory)
+            process = _launch(profile)
+            deadline = time.monotonic() + 35
+            while time.monotonic() < deadline:
+                result = status(profile.directory)
+                if result.get("ready"):
+                    return result
+                if process.poll() is not None:
+                    raise DesktopError("service_start_failed", "The local service exited during startup. Check desktop logs; data was preserved.")
+                time.sleep(0.2)
+>           raise DesktopError("service_start_timeout", "The service has not become ready. Check desktop status and logs before retrying.")
+E           membrain.desktop.DesktopError: The service has not become ready. Check desktop status and logs before retrying.
+
+src/membrain/desktop.py:356: DesktopError
+----------------------------- Captured stderr call -----------------------------
+Starting the local memory database and service…
+______________ test_users_of_a_shared_bot_keep_separate_memories _______________
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-60/test_users_of_a_shared_bot_kee0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x113f8cbc0>
+
+    @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
+    def test_users_of_a_shared_bot_keep_separate_memories(tmp_path, monkeypatch):
+        directory = tmp_path / "brain"
+        try:
+>           host.start(directory)
+
+tests/test_host.py:228: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+src/membrain/host.py:283: in start
+    result = desktop.start(directory)
+             ^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+directory = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-60/test_users_of_a_shared_bot_kee0/brain')
+
+    def start(directory: Path | None = None) -> dict:
+        profile = ensure_profile(directory)
+        with profile_lock(profile.directory / "lifecycle", timeout=360):
+            profile = load_profile(profile.directory)
+            from .recovery_profile import check_start_allowed
+    
+            check_start_allowed(profile, allow_initializing=True, allow_native_upgrade=True)
+            existing = status(profile.directory)
+            if existing["state"] == "restart_required":
+                raise DesktopError("restart_required", "Configuration changed; run desktop restart to apply it.")
+            if existing.get("ready"):
+                return existing
+            if _probe(profile) is not None:
+                raise DesktopError("service_degraded", "The local service is running but not ready. Check desktop status before restarting.")
+            if _supervisor_active(profile):
+                raise DesktopError("service_transitioning", "The service is starting or finishing work. Check desktop status before retrying.")
+            if _port_open(profile.api_port):
+                raise DesktopError("port_conflict", "The saved API port belongs to another service. Free that port and retry; no process was stopped.")
+            print("Starting the local memory database and service…", file=sys.stderr)
+            _prepare_database(profile)
+            profile = load_profile(profile.directory)
+            process = _launch(profile)
+            deadline = time.monotonic() + 35
+            while time.monotonic() < deadline:
+                result = status(profile.directory)
+                if result.get("ready"):
+                    return result
+                if process.poll() is not None:
+                    raise DesktopError("service_start_failed", "The local service exited during startup. Check desktop logs; data was preserved.")
+                time.sleep(0.2)
+>           raise DesktopError("service_start_timeout", "The service has not become ready. Check desktop status and logs before retrying.")
+E           membrain.desktop.DesktopError: The service has not become ready. Check desktop status and logs before retrying.
+
+src/membrain/desktop.py:356: DesktopError
+----------------------------- Captured stderr call -----------------------------
+Starting the local memory database and service…
+__________ test_pausing_one_user_preserves_another_users_pending_turn __________
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-60/test_pausing_one_user_preserve0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x106dd5c10>
+
+    def test_pausing_one_user_preserves_another_users_pending_turn(tmp_path, monkeypatch):
+        monkeypatch.setattr(host, "ready_client", lambda *args: None)
+        monkeypatch.setattr(host, "start_in_background", lambda *args: None)
+        host.prompt_context(tmp_path, "alice-session", "alice private", user_id="alice")
+        host.prompt_context(tmp_path, "bob-session", "bob pending", user_id="bob")
+        bob_modified = host._session_marker(tmp_path, "bob-session").stat().st_mtime_ns
+        host.pause(tmp_path, user_id="alice")
+>       assert host._session_marker(tmp_path, "bob-session").stat().st_mtime_ns == bob_modified
+E       AssertionError: assert 1794108105947721484 == 1794108105947280985
+E        +  where 1794108105947721484 = os.stat_result(st_mode=33152, st_ino=70426377, st_dev=16777231, st_nlink=1, st_uid=501, st_gid=20, st_size=677, st_atime=1794108105, st_mtime=1794108105, st_ctime=1794108105).st_mtime_ns
+E        +    where os.stat_result(st_mode=33152, st_ino=70426377, st_dev=16777231, st_nlink=1, st_uid=501, st_gid=20, st_size=677, st_atime=1794108105, st_mtime=1794108105, st_ctime=1794108105) = stat()
+E        +      where stat = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-60/test_pausing_one_user_preserve0/plugin/sessions/8ed4e126f5878c954dca98f75684afc2.json').stat
+E        +        where PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-60/test_pausing_one_user_preserve0/plugin/sessions/8ed4e126f5878c954dca98f75684afc2.json') = <function _session_marker at 0x103244ae0>(PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-60/test_pausing_one_user_preserve0'), 'bob-session')
+E        +          where <function _session_marker at 0x103244ae0> = host._session_marker
+
+tests/test_host.py:358: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_recording_policy.py::test_real_proxy_storage_and_next_session_exclude_private_exchange[True]
+FAILED tests/test_plugin.py::test_hooks_carry_memory_across_sessions_on_an_embedded_installation
+FAILED tests/test_plugin.py::test_new_sessions_receive_the_complete_history_from_the_real_service
+FAILED tests/test_host.py::test_private_text_never_reaches_the_database - mem...
+FAILED tests/test_host.py::test_memory_page_signs_in_once_and_controls_recording
+FAILED tests/test_host.py::test_users_of_a_shared_bot_keep_separate_memories
+FAILED tests/test_host.py::test_pausing_one_user_preserves_another_users_pending_turn
+!!!!!!!!!!!!!!!!!!!!!!!!!!!!!! KeyboardInterrupt !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+/Users/yichen/tmp/membrain-review-20261029/src/membrain/desktop.py:355: KeyboardInterrupt
+(to show a full traceback on KeyboardInterrupt use --full-trace)
+7 failed, 205 passed in 265.58s (0:04:25)

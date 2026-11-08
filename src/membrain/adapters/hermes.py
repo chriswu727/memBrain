@@ -175,6 +175,7 @@ class MembrainProvider(_Base):
         if self._directory is None or not self._writes:
             return
         host.finish_turn(self._directory, session_id or self._session, assistant_content, prompt=user_content,
+                         allow_unstaged=True,
                          producer=PRODUCER, user_id=self._user)
 
     def on_session_switch(self, new_session_id: str, *, parent_session_id: str = "", reset: bool = False,
