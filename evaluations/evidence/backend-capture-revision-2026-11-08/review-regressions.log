@@ -1,0 +1,46 @@
+FF                                                                       [100%]
+=================================== FAILURES ===================================
+_______ test_previous_prompt_from_old_policy_is_not_used_as_a_recall_cue _______
+
+turns = <test_turns.Turns object at 0x10363c9e0>
+connected = <function connected.<locals>.factory at 0x1059ce160>
+tmp_path = PosixPath('/private/tmp/membrain-recording-fence-review-regressions/test_previous_prompt_from_old_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x104e15a60>
+
+    def test_previous_prompt_from_old_policy_is_not_used_as_a_recall_cue(turns, connected, tmp_path, monkeypatch):
+        host.prompt_context(tmp_path, "s", "Old private cue", turn_id="old")
+        policy(turns, True, 0)
+        policy(turns, False, 1)
+        cues = []
+
+        def recall(*args, **kwargs):
+            cues.extend(kwargs["cues"])
+            return None
+
+        monkeypatch.setattr(host, "recall_context", recall)
+        host.prompt_context(tmp_path, "s", "Fresh question", turn_id="new")
+>       assert "Old private cue" not in cues
+E       AssertionError: assert 'Old private cue' not in ['Old private cue']
+
+tests/test_host_recording.py:217: AssertionError
+_______ test_server_exclusion_cannot_be_downgraded_to_local_prompt_pause _______
+
+    def test_server_exclusion_cannot_be_downgraded_to_local_prompt_pause():
+        from membrain import host_turns
+
+        state = {}
+        record = host.message_record("s", "user", "Private draft", turn_id="t")
+        host_turns.stage(state, record, "server", 1)
+        host_turns.stage(state, record, "prompt", 2)
+        entry = state["turns"][host_turns.key(record)]
+        entry["resumed"] = True
+>       assert host_turns.take(state, owner=None, producer=record["producer_ref"],
+                               source=record["source_event_key"], prompt=record)[1]
+E       assert False
+
+tests/test_host_recording.py:229: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_host_recording.py::test_previous_prompt_from_old_policy_is_not_used_as_a_recall_cue
+FAILED tests/test_host_recording.py::test_server_exclusion_cannot_be_downgraded_to_local_prompt_pause
+2 failed in 0.50s
+Migrations applied; application role has no superuser or RLS bypass privileges
