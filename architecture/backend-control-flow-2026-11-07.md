@@ -38,6 +38,7 @@ Framework dependencies stay outside the core. The main architectural issue is th
 3. Finish callbacks returned all planned records even when a later pause caused `deliver` to reject them. They now return only accepted delivery/spool receipts, so downstream extraction cannot treat a rejected user record as evidence.
 4. Local MCP `memory_observe` did not check pause, although `memory_note` did. Both content-writing tools now check local recording state. Remote MCP without a local installation still has caller-managed policy.
 5. Ending a conversation pause read its state before taking the state lock. The read and removal now share the lock, avoiding deletion of a concurrently replaced pause based on an old snapshot.
+6. A finish callback with no staged or explicitly supplied input could store an orphan assistant reply after a failed prompt hook, or revive a private reply after pause/resume and a duplicate finish. Three public tests reproduced this on the first repair. Finish now requires a staged or supplied input before accepting an assistant reply; hooks still let the host answer when memory is unavailable.
 
 The initial regression run exposed a duplicate-processing error in the new finish fallback: it could reinstate a pause after a user had resumed. The repair preserves a staged exclusion without replaying its control. The existing extraction regression remains unchanged and is rerun; a focused test also checks that later public turns can be recorded after resuming.
 
@@ -56,6 +57,8 @@ The initial regression run exposed a duplicate-processing error in the new finis
 3. Specify which writes can already be in flight when a pause is acknowledged. Local file checks and network writes do not form one database transaction; stronger guarantees need service-side policy/version checks, rather than holding a global file lock during all network calls.
 4. Normalize delivery receipts across adapters and the durable journal. Keep recorded, queued, rejected, unknown delivery and model-generated claims distinct. Evaluate cancellation and crash recovery against those states.
 5. Review retrieval/database cost with the existing 10,000-memory baseline, then larger and passage-heavy workloads. Preserve source/candidate parity where required; a structural refactor is not itself a performance improvement.
+
+A zero-provider [overlap probe](../evaluations/evidence/backend-recording-policy-2026-11-07/same-session-overlap.json) confirms the pending-slot issue: two owners reuse a session ID, and the first owner's finish receipt contains the second owner's pending user record. Stored records retain their original owner, so this probe does not demonstrate cross-user database disclosure. It demonstrates incorrect callback receipts and missing user records in a later receipt, which can break source-linked extraction. The probe is retained as an existing defect, not a passing acceptance check.
 
 ## Verification scope
 

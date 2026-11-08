@@ -18,11 +18,11 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 九个启动器均固定到包含[宿主记录控制修复](architecture/backend-control-flow-2026-11-07.md)的运行时 `08bc162a`。以下性能与完整 CI 数字对应此前的 `cebc6d82`，不能直接作为本次修复的验收结果。[共享语义距离计算](evaluations/maturity-shared-semantic-pools-2026-11-07.md)减少重复召回计算，并保持候选结果一致。在同一份一万条公开测试记忆上，单次召回中位耗时从约 389 毫秒降至 318–322 毫秒，八路并发从 1.16–1.19 秒降至 0.88–0.90 秒。120 组完整候选对照全部一致；源码和安装包各通过 118 项相关测试。完整 Verify 通过 7,881 项 Python、53 项 TypeScript 测试，无跳过项，类型检查、Ruff 和构建均通过。此前的[原生引擎及安装验证](evaluations/maturity-hermes-readonly-2026-11-07.md)、[图谱与全屏性能证据](evaluations/maturity-month-qualification-2026-11-07.md)保留各自的运行时范围。[宿主限制](docs/host-compatibility.md)和[发布阻碍](docs/releasing.md)均明确保留；R4、C5 和最终发布审查通过前，发布保持冻结。
+> **预发布阶段。** 九个启动器均固定到包含[宿主记录控制修复](architecture/backend-control-flow-2026-11-07.md)的运行时 `3c33fdd3`。以下性能与完整 CI 数字对应此前的 `cebc6d82`，不能直接作为本次修复的验收结果。[共享语义距离计算](evaluations/maturity-shared-semantic-pools-2026-11-07.md)减少重复召回计算，并保持候选结果一致。在同一份一万条公开测试记忆上，单次召回中位耗时从约 389 毫秒降至 318–322 毫秒，八路并发从 1.16–1.19 秒降至 0.88–0.90 秒。120 组完整候选对照全部一致；源码和安装包各通过 118 项相关测试。完整 Verify 通过 7,881 项 Python、53 项 TypeScript 测试，无跳过项，类型检查、Ruff 和构建均通过。此前的[原生引擎及安装验证](evaluations/maturity-hermes-readonly-2026-11-07.md)、[图谱与全屏性能证据](evaluations/maturity-month-qualification-2026-11-07.md)保留各自的运行时范围。[宿主限制](docs/host-compatibility.md)和[发布阻碍](docs/releasing.md)均明确保留；R4、C5 和最终发布审查通过前，发布保持冻结。
 
 > **最近一次验收执行：** [第五次验收](evaluations/maturity-fifth-attempt-2026-11-07.md)完成了有效的 R4 评分：插件模式 20 分（通过）、提取模式 16 分（未通过：1 个记忆系统导致的隐私错误）、完整历史参照组 15.5 分。C1 因页面操作失败停止，C2 未运行；C5 无效且未评分。账本已封锁，保守结算 39.634310 元，没有未知费用预留，也没有自动重跑授权。
 
-> **当前发布状态：** 宿主记录控制修复已通过 266 项相关本地测试，完整 CI 单独跟踪。本轮获授权的行为验收已停止。账本已封锁，无效运行的私有证据已保留，没有自动重跑授权。源码改进不能替代 R4／C5，也不代表可以发布。
+> **当前发布状态：** 宿主记录控制修复已通过 269 项相关本地测试，完整 CI 单独跟踪。本轮获授权的行为验收已停止。账本已封锁，无效运行的私有证据已保留，没有自动重跑授权。源码改进不能替代 R4／C5，也不代表可以发布。
 
 <a id="claude-code-plugin"></a>
 
