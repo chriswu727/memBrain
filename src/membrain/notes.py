@@ -574,7 +574,7 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
 
     from .helpers import DomainError, digest
     from .privacy import scrub
-    from .recording_control import require_recording
+    from .recording_guard import require_recording
 
     try:
         fields = note_fields(arguments)

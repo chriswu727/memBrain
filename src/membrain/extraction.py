@@ -306,7 +306,7 @@ def extract_turn(directory, extractor: Extractor, user_id: str | None, *,
     from . import host, host_recording
     from .client import MemoryActionError
     from .notes import NoteValidationError, list_notes, render_notes, save_note
-    from .recording_control import require_recording
+    from .recording_guard import require_recording
 
     if host.paused(directory, user_id):
         return []
