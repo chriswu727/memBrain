@@ -1,0 +1,30 @@
+{
+  "verify_run_id": 42464848140,
+  "verify_job_id": 128681859932,
+  "verify_conclusion": "success",
+  "source_commit": "8421b0bfd5cc0a6ac24a93e968ffee072109f6f5",
+  "source_tree": "adc045e9ec61a866065bd88b658c37401c30dd26",
+  "python_passed": 8028,
+  "python_warnings": 3,
+  "python_seconds": 2451.63,
+  "typescript_passed": 56,
+  "native_summary_count": 47,
+  "raw_log_sha256": "964e3761306c70e07277f70eda7e351094acaca10832ca048ee40bccd9c65112",
+  "redacted_log_sha256": "1d3a13adf0d2de73af5e76a6d91155613c9fbdff048361a535fe94785b6b9e2c",
+  "log_redaction": "Test parameter labels and privacy scrub; trailing whitespace normalized. Original and stored hashes retained.",
+  "native_selected_runs": {
+    "42464847388": [
+      "native-linux-aarch64",
+      "native-linux-x86_64",
+      "native-macos-arm64"
+    ],
+    "42465201213": [
+      "native-macos-x86_64"
+    ],
+    "42465082081": [
+      "native-windows-x86_64"
+    ]
+  },
+  "merge_commit": "782a4fb054eb0eff6eacbc60562e2f38afff7fe9",
+  "merge_tree": "adc045e9ec61a866065bd88b658c37401c30dd26"
+}

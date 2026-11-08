@@ -1,0 +1,27 @@
+{
+  "completed": true,
+  "model_calls": 0,
+  "target": "macos-x86_64",
+  "scope": "isolated resumable SQL maintenance qualification; ordinary default API startup is qualified separately",
+  "legacy_upgrade": true,
+  "root_service_account": false,
+  "phase": "complete",
+  "statistics_visible_before": [
+    0,
+    1
+  ],
+  "worker_returncode": 73,
+  "ordinary_connection_error_sqlstate": null,
+  "database_count": 5,
+  "snapshot_receipt_sha256": "c9731f8d9cb006e6b67e3a83e0fc359ab9da652519f5dbced19049850429c4a0",
+  "deliberate_worker_exit": 73,
+  "interrupted_opening_blocks_ordinary_role": true,
+  "flags_restored_before_backup_rejection": true,
+  "closed_flags_limits_and_acls_preserved": true,
+  "resumed_all_database_catalog_repair": true,
+  "public_and_custom_schema_vector_upgraded": true,
+  "complete_vector_rows_and_nearest_results_preserved": true,
+  "nonowner_statistics_hidden_after_repair": true,
+  "repeat_and_restart_verified": true,
+  "ports_closed": true
+}

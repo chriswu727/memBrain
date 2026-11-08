@@ -1,0 +1,86 @@
+{
+  "run_id": 42465201213,
+  "artifact_id": 13611267355,
+  "name": "native-macos-x86_64",
+  "zip_sha256": "080713926e216fdfef9f2e79ba6e191c866f9dcfb97e23348f4f9888d02bb16c",
+  "retained": [
+    {
+      "path": "artifacts/native-macos-x86_64/native-artifacts/artifacts.json",
+      "original_sha256": "595881c999efe0d59f2a85e3ac798d4554316626ef4fe333ac5fbe7abd340239",
+      "stored_sha256": "595881c999efe0d59f2a85e3ac798d4554316626ef4fe333ac5fbe7abd340239",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-artifacts/manifest.json",
+      "original_sha256": "7ca63b6b10a019a6afc7e5493c7d9de6404a53dbca3f3b0d91221f604a4dc5c2",
+      "stored_sha256": "7ca63b6b10a019a6afc7e5493c7d9de6404a53dbca3f3b0d91221f604a4dc5c2",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-artifacts/qualification.json",
+      "original_sha256": "605a641a2b3be7a9ece5681537de6ce963fb816da8d3c728bb50437bcaffc372",
+      "stored_sha256": "605a641a2b3be7a9ece5681537de6ce963fb816da8d3c728bb50437bcaffc372",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-check-42465201213-1/qualification.json",
+      "original_sha256": "605a641a2b3be7a9ece5681537de6ce963fb816da8d3c728bb50437bcaffc372",
+      "stored_sha256": "605a641a2b3be7a9ece5681537de6ce963fb816da8d3c728bb50437bcaffc372",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/packaged-native-42465201213-1/result.json",
+      "original_sha256": "afa89f1ea8b84b02272475c7b8e4fc4ac0ca5d7011b1cb3c9387c7ffe8f7950c",
+      "stored_sha256": "afa89f1ea8b84b02272475c7b8e4fc4ac0ca5d7011b1cb3c9387c7ffe8f7950c",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-snapshot-42465201213-1/result.json",
+      "original_sha256": "cc3329797d764cf74f7529ddc68e7798d55ef29df8ed83e3f2c17b742b076704",
+      "stored_sha256": "cc3329797d764cf74f7529ddc68e7798d55ef29df8ed83e3f2c17b742b076704",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-maintenance-42465201213-1/result.json",
+      "original_sha256": "738b72f880c5484b8ceedaeb95754a5777c15c5bb6310dd2aac7e0eb6fdb62de",
+      "stored_sha256": "738b72f880c5484b8ceedaeb95754a5777c15c5bb6310dd2aac7e0eb6fdb62de",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-maintenance-42465201213-1/worker-result.json",
+      "original_sha256": "206c98c516881b90c47adc25c7cd690e215dd0e73baf3f9f8bc9e304fb8e703e",
+      "stored_sha256": "206c98c516881b90c47adc25c7cd690e215dd0e73baf3f9f8bc9e304fb8e703e",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-adoption-fresh-42465201213-1/result.json",
+      "original_sha256": "8123e48276bbd12f791705df87678689273a96425205dddca13dcfc908da36c6",
+      "stored_sha256": "8123e48276bbd12f791705df87678689273a96425205dddca13dcfc908da36c6",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-adoption-legacy-42465201213-1/result.json",
+      "original_sha256": "b0a0a41f9f8f97a970ef44e45b21a857aa53c63acd164459e8cb7c037ba5a9ca",
+      "stored_sha256": "b0a0a41f9f8f97a970ef44e45b21a857aa53c63acd164459e8cb7c037ba5a9ca",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-transition-42465201213-1/admission-worker-result.json",
+      "original_sha256": "dd6c60b7c767737c415915fbf0395b47c765071d2e2cfbb1900385688b0a07af",
+      "stored_sha256": "dd6c60b7c767737c415915fbf0395b47c765071d2e2cfbb1900385688b0a07af",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-transition-42465201213-1/result.json",
+      "original_sha256": "80c55b776b4d803352be68669fc5ab939c7873c442a4f093771c53e782de5225",
+      "stored_sha256": "80c55b776b4d803352be68669fc5ab939c7873c442a4f093771c53e782de5225",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-transition-42465201213-1/rollback-worker-result.json",
+      "original_sha256": "9515a57f352d578693b973f16ffffeab5fa4b9a492ba094f1a547bb228cd005a",
+      "stored_sha256": "9515a57f352d578693b973f16ffffeab5fa4b9a492ba094f1a547bb228cd005a",
+      "line_endings_normalized": false
+    }
+  ]
+}

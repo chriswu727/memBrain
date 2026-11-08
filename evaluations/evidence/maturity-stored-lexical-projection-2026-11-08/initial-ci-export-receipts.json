@@ -1,0 +1,14 @@
+[
+  {
+    "path": "finalize-ci.log.gz",
+    "original_sha256": "73e4a55d2b3dc5dd5c5f14d2b1d622aee5c69cd54028242bfccfa4c7a7a49f77",
+    "stored_uncompressed_sha256": "73e4a55d2b3dc5dd5c5f14d2b1d622aee5c69cd54028242bfccfa4c7a7a49f77",
+    "notes": "Initial incomplete CLI export or its parser rejection, not a test failure; direct completed-job log supplies final qualification."
+  },
+  {
+    "path": "verify-raw.log.gz",
+    "original_sha256": "7c63d32ba05a373259d96232fb54fa84750808742cfe376b769b96df189332eb",
+    "stored_uncompressed_sha256": "a427c0dc128de5335220ac15767dadbe9715ce42b1cd5c77f5e5abfc7ef09f5a",
+    "notes": "Initial incomplete CLI export or its parser rejection, not a test failure; direct completed-job log supplies final qualification."
+  }
+]

@@ -1,0 +1,86 @@
+{
+  "run_id": 42465082081,
+  "artifact_id": 13611459561,
+  "name": "native-windows-x86_64",
+  "zip_sha256": "a6e4056eea669ae92d380c433e6379a4fa26ced4ec1644dfc60f71e3a35bb5aa",
+  "retained": [
+    {
+      "path": "artifacts/native-windows-x86_64/native-artifacts/manifest.json",
+      "original_sha256": "c2c1a7693c8193ff06b28828b8c4b7df819df94e3f23a112ff52c7cb0af30e1c",
+      "stored_sha256": "5a3055b82fe162df3abda74d6866a1c349fb499b1a1f3da3ad59df95b9f4a7d7",
+      "line_endings_normalized": true
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-artifacts/artifacts.json",
+      "original_sha256": "b3e54787257dd5311f666ffeeb258473a080f0b2b11295568ce8bb3ca06257b8",
+      "stored_sha256": "606af8932cdb7b3d6d850c5c353a13db85efe0f065b2fd018efed8e465e68d79",
+      "line_endings_normalized": true
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-artifacts/qualification.json",
+      "original_sha256": "1dbeca40e9e9a04d3bff93074659408c5ee444ec143d51b04bdda51cbd4a0d75",
+      "stored_sha256": "a6e34e3186bc9bdd4580e2c6162ea2cc511e6aa008305e1cde924c36faac5fde",
+      "line_endings_normalized": true
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-check-42465082081-1/qualification.json",
+      "original_sha256": "1dbeca40e9e9a04d3bff93074659408c5ee444ec143d51b04bdda51cbd4a0d75",
+      "stored_sha256": "a6e34e3186bc9bdd4580e2c6162ea2cc511e6aa008305e1cde924c36faac5fde",
+      "line_endings_normalized": true
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/packaged-native-42465082081-1/result.json",
+      "original_sha256": "53789629a76deab1365b7f6633f1696914d84823f6337db04d39635740f5f5a4",
+      "stored_sha256": "b6d5dc0767b2d99f80d760ee3c29a1850305dac2d9d7b98fe379f82f6b807f32",
+      "line_endings_normalized": true
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-snapshot-42465082081-1/result.json",
+      "original_sha256": "beff38b208a3594622d401c500cae170c91ffde5520e4122544d2d25594e49d4",
+      "stored_sha256": "ca20cd103dc037a98caed26212112980c262e7a793e24cfba19a3da80c4a15f6",
+      "line_endings_normalized": true
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-maintenance-42465082081-1/result.json",
+      "original_sha256": "c61b63352836f0e0dc3017b1ea60a0a3ea71c718a26403238494cc466786d662",
+      "stored_sha256": "1de4fcccb56b2916920e2eee6fce04c8661220ae33a0993a504f4f6cd3eefdc6",
+      "line_endings_normalized": true
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-maintenance-42465082081-1/worker-result.json",
+      "original_sha256": "b9ed968fd1446a2a5e0c91461fc0ccc9e4e0bebbb6ad6c293c5457430de33d87",
+      "stored_sha256": "206c98c516881b90c47adc25c7cd690e215dd0e73baf3f9f8bc9e304fb8e703e",
+      "line_endings_normalized": true
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-adoption-fresh-42465082081-1/result.json",
+      "original_sha256": "90de5a8b57b1c1816e4bee43ca389b1bf92111e6b3b2d45351c6032e49a7027a",
+      "stored_sha256": "8123e48276bbd12f791705df87678689273a96425205dddca13dcfc908da36c6",
+      "line_endings_normalized": true
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-adoption-legacy-42465082081-1/result.json",
+      "original_sha256": "7a4210eeaeb2d92756f6f51669c46d1ad2f8caf3c72eb1ad5800d435c50b721b",
+      "stored_sha256": "b0a0a41f9f8f97a970ef44e45b21a857aa53c63acd164459e8cb7c037ba5a9ca",
+      "line_endings_normalized": true
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-transition-42465082081-1/admission-worker-result.json",
+      "original_sha256": "db774bc223fd1b83f419cfc268614c0afcbd52a82b727583e83d5890d42c5a54",
+      "stored_sha256": "dd6c60b7c767737c415915fbf0395b47c765071d2e2cfbb1900385688b0a07af",
+      "line_endings_normalized": true
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-transition-42465082081-1/rollback-worker-result.json",
+      "original_sha256": "83c46af17e6f311938e0d48fce8db5ca0cb51a58e322fad2e8251a746dd793bc",
+      "stored_sha256": "9515a57f352d578693b973f16ffffeab5fa4b9a492ba094f1a547bb228cd005a",
+      "line_endings_normalized": true
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-transition-42465082081-1/result.json",
+      "original_sha256": "756244de4af6932709ce7652f4ff45bd3e961bd63e2f8ff3af65d0250dd83f2a",
+      "stored_sha256": "2dddb350e719ef8fadecee118a910f67b1ca004b5f0bfaee108f1fa8f2ae1d09",
+      "line_endings_normalized": true
+    }
+  ]
+}

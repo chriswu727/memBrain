@@ -1,0 +1,85 @@
+{
+  "total_count": 4,
+  "artifacts": [
+    {
+      "id": 13611287612,
+      "node_id": "MDg6QXJ0aWZhY3QxMzYxMTI4NzYxMg==",
+      "name": "native-windows-x86_64",
+      "size_in_bytes": 4470882,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13611287612",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13611287612/zip",
+      "expired": false,
+      "digest": "sha256:4e56d83de2927a756d19c4e31ec4c744345afd749fc52218063bb20317283c76",
+      "created_at": "2026-11-08T08:56:19Z",
+      "updated_at": "2026-11-08T08:56:19Z",
+      "expires_at": "2026-12-08T08:56:18Z",
+      "workflow_run": {
+        "id": 42464847388,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "perf/stored-lexical-projection",
+        "head_sha": "8421b0bfd5cc0a6ac24a93e968ffee072109f6f5"
+      }
+    },
+    {
+      "id": 13611273313,
+      "node_id": "MDg6QXJ0aWZhY3QxMzYxMTI3MzMxMw==",
+      "name": "native-linux-x86_64",
+      "size_in_bytes": 11887177,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13611273313",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13611273313/zip",
+      "expired": false,
+      "digest": "sha256:3eb0a8c48e34094005974a1792aecb25e12aac8987da1baf334a91b7b2a91d96",
+      "created_at": "2026-11-08T09:02:21Z",
+      "updated_at": "2026-11-08T09:02:21Z",
+      "expires_at": "2026-12-08T09:02:19Z",
+      "workflow_run": {
+        "id": 42464847388,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "perf/stored-lexical-projection",
+        "head_sha": "8421b0bfd5cc0a6ac24a93e968ffee072109f6f5"
+      }
+    },
+    {
+      "id": 13611023593,
+      "node_id": "MDg6QXJ0aWZhY3QxMzYxMTAyMzU5Mw==",
+      "name": "native-macos-arm64",
+      "size_in_bytes": 13034723,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13611023593",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13611023593/zip",
+      "expired": false,
+      "digest": "sha256:7c844937f90f5675bdbfd0b2e913a6e4c38149af88e6c0a83c49fba7e7d8d2b2",
+      "created_at": "2026-11-08T08:59:16Z",
+      "updated_at": "2026-11-08T08:59:16Z",
+      "expires_at": "2026-12-08T08:59:15Z",
+      "workflow_run": {
+        "id": 42464847388,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "perf/stored-lexical-projection",
+        "head_sha": "8421b0bfd5cc0a6ac24a93e968ffee072109f6f5"
+      }
+    },
+    {
+      "id": 13610854313,
+      "node_id": "MDg6QXJ0aWZhY3QxMzYxMDg1NDMxMw==",
+      "name": "native-linux-aarch64",
+      "size_in_bytes": 11641704,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13610854313",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13610854313/zip",
+      "expired": false,
+      "digest": "sha256:d8d97e483c0a9f3e6a8920ad74c580a78ec7f05938e0eb522e9a18da28c81868",
+      "created_at": "2026-11-08T08:59:04Z",
+      "updated_at": "2026-11-08T08:59:04Z",
+      "expires_at": "2026-12-08T08:59:03Z",
+      "workflow_run": {
+        "id": 42464847388,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "perf/stored-lexical-projection",
+        "head_sha": "8421b0bfd5cc0a6ac24a93e968ffee072109f6f5"
+      }
+    }
+  ]
+}

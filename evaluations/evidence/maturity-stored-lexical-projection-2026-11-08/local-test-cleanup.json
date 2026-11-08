@@ -1,0 +1,7 @@
+{
+  "path": "/private/tmp/membrain-lexical-tests-db",
+  "bytes_removed": 126111702,
+  "ports_closed_before_removal": true,
+  "postmaster_pid_absent": true,
+  "only_owned_synthetic_test_profile": true
+}
