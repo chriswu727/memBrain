@@ -78,11 +78,7 @@ def _eligible(alias="a", *, current=True, include_speech=True):
             + (f"AND {alias}.is_current " if current else "")
             + f"AND NOT {alias}.invalidated AND NOT {alias}.deleted AND NOT {alias}.suppressed "
             f"AND {alias}.document IS NOT NULL "
-            + ("" if include_speech else
-               f"AND coalesce({alias}.document->>'claim_kind','') NOT IN "
-               "('agent_said','proposal_offered','commitment_expressed') "
-               f"AND NOT (coalesce({alias}.document #>> '{{derivation,method}}','')='direct_capture' "
-               f"AND left({alias}.document->>'statement',10)='assistant ') "))
+            + ("" if include_speech else f"AND {alias}.recall_non_speech "))
 
 
 def _belief_endpoint_scores(signals, relations):
