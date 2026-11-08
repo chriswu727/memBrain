@@ -161,13 +161,14 @@ class TurnStore:
             raise DomainError("version_conflict", "Turn revision has changed.", current_revision=row["revision"])
 
     def begin(self, principal, brain_id, *, turn_id, conversation_id, branch_id, input_fingerprint):
+        from .recording_control import require_recording
         from .turn_scopes import require_new_scope
 
         _identifier(turn_id)
         _identifier(conversation_id)
         _identifier(branch_id)
         _hash(input_fingerprint)
-        with self._transaction(principal, brain_id) as (conn, _):
+        with self._transaction(principal, brain_id) as (conn, brain):
             row = conn.execute(
                 "SELECT *,clock_timestamp() AS db_now FROM memory_runtime_turns "
                 "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND turn_id=%s FOR UPDATE",
@@ -175,6 +176,7 @@ class TurnStore:
             ).fetchone()
             inserted = row is None
             if inserted:
+                require_recording(brain)
                 require_new_scope(conn, principal, brain_id, conversation_id, branch_id)
                 row = conn.execute(
                     "INSERT INTO memory_runtime_turns(tenant_id,owner_id,brain_id,turn_id,conversation_id,"

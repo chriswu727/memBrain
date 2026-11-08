@@ -449,7 +449,10 @@ class MemoryService:
 
     def _append_event(self, conn, principal, brain, target, incoming, *, event_id=None, imported=False,
                       segmentation_rule_version=cognition.RULE_VERSION, restored_from_recorded_at=None):
+        from .recording_control import require_recording
+
         _writable()
+        require_recording(brain)
         cognition._range(incoming["occurred_time"])
         params = self._params(principal, brain["id"])
         previous = conn.execute(
@@ -1503,12 +1506,15 @@ class MemoryService:
             raise DomainError("invalid_archive", "Cognitive archive structure or source manifest is invalid.") from None
 
     def upload_archive(self, principal, brain_id, document):
+        from .recording_control import require_recording
+
         document = copy.deepcopy(document)
         if isinstance(document, dict):
             document["archive_origin"] = "untrusted_upload"
         self._validate_archive(document)
         with self.database.transaction(principal) as conn:
             brain = self._brain(conn, principal, brain_id)
+            require_recording(brain)
             self._archive_guard(conn, principal)
             from .recovery_authority import archive_barrier
 
@@ -1523,7 +1529,9 @@ class MemoryService:
 
     def _restore(self, conn, principal, brain, request):
         from .archive_views import restore_memories, restore_views
+        from .recording_control import require_recording
 
+        require_recording(brain)
         payload = request["payload"]
         if brain["scope_generation"] != payload["expected_scope_generation"]:
             raise DomainError("version_conflict", "Scope generation changed.", current_revision=brain["scope_generation"])

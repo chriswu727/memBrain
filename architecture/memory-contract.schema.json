@@ -2706,7 +2706,8 @@
             "validation_failed",
             "context_stale",
             "source_unavailable",
-            "lease_conflict"
+            "lease_conflict",
+            "recording_paused"
           ]
         },
         "message": {

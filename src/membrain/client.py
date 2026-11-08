@@ -208,6 +208,15 @@ class MemoryClient:
     def brains(self) -> JsonObject:
         return self._request("GET", "v1/brains")
 
+    def recording_status(self) -> JsonObject:
+        brain = self._scope()["brain_ref"]
+        return self._request("GET", f"v1/brains/{quote(brain, safe='')}/recording")
+
+    def set_recording(self, *, paused: bool, expected_revision: int) -> JsonObject:
+        brain = self._scope()["brain_ref"]
+        return self._request("PUT", f"v1/brains/{quote(brain, safe='')}/recording",
+                             json={"paused": paused, "expected_revision": expected_revision})
+
     def create_brain(self, name: str) -> JsonObject:
         return self._request("POST", "v1/brains", json={"name": name})
 
