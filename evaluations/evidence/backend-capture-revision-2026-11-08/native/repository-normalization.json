@@ -1,0 +1,21 @@
+{
+  "kind": "CRLF to LF",
+  "json_values_unchanged": true,
+  "original_bytes_retained_in_downloaded_artifact": true,
+  "original_and_repository_hashes": "artifact-receipts.json",
+  "paths": [
+    "artifacts/native-windows-x86_64/native-artifacts/artifacts.json",
+    "artifacts/native-windows-x86_64/native-artifacts/manifest.json",
+    "artifacts/native-windows-x86_64/native-artifacts/qualification.json",
+    "artifacts/native-windows-x86_64/native-check-42459291814-1/qualification.json",
+    "artifacts/native-windows-x86_64/native-snapshot-42459291814-1/result.json",
+    "artifacts/native-windows-x86_64/packaged-native-42459291814-1/result.json",
+    "artifacts/native-windows-x86_64/native-maintenance-42459291814-1/result.json",
+    "artifacts/native-windows-x86_64/native-maintenance-42459291814-1/worker-result.json",
+    "artifacts/native-windows-x86_64/native-adoption-fresh-42459291814-1/result.json",
+    "artifacts/native-windows-x86_64/native-adoption-legacy-42459291814-1/result.json",
+    "artifacts/native-windows-x86_64/native-transition-42459291814-1/admission-worker-result.json",
+    "artifacts/native-windows-x86_64/native-transition-42459291814-1/result.json",
+    "artifacts/native-windows-x86_64/native-transition-42459291814-1/rollback-worker-result.json"
+  ]
+}

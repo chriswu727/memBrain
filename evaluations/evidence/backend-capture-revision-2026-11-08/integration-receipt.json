@@ -1,0 +1,12 @@
+{
+  "pull_request": 49,
+  "base": "integration/maturity-candidate",
+  "qualified_commit": "72d960c3338eecb1a31620b8f212442a4c2ad7d8",
+  "qualified_tree": "4439eec7e8015fd6f45e237baf52028802ad9215",
+  "merge_commit": "3ff0029192b7272faa3c25eb92bf461178e7a930",
+  "merge_tree": "4439eec7e8015fd6f45e237baf52028802ad9215",
+  "tree_equal": true,
+  "runtime_commit": "6a8f6c12fc86b52d10c6292dd8a85b8aaea5c3a0",
+  "main_merged": false,
+  "release_published": false
+}

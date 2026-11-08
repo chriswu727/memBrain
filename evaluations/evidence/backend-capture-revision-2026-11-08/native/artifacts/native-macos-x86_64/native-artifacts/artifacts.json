@@ -1,0 +1,22 @@
+{
+  "PGVECTOR-LICENSE": {
+    "sha256": "6bba9ebeb73e27477463b05e5ef1bf303bccbddb3db9bbc95905d351604d6a87",
+    "bytes": 1104
+  },
+  "POSTGRESQL-COPYRIGHT": {
+    "sha256": "3d6af92ff8a4c2cdf69afb1cf44edea727922f5cd0cf8b5f72b11cdecac8fdfd",
+    "bytes": 1198
+  },
+  "engine.tar.gz": {
+    "sha256": "933fb0c1d5013e552637bf2305f97337906f8cfdaf8975af621f3afc01a1db3f",
+    "bytes": 13379274
+  },
+  "manifest.json": {
+    "sha256": "7ca63b6b10a019a6afc7e5493c7d9de6404a53dbca3f3b0d91221f604a4dc5c2",
+    "bytes": 284044
+  },
+  "vector-resources.zip": {
+    "sha256": "6ecf7fb5a4980b3480a94833f995390fa5b3e547fcbd25f3fd56053d49be946e",
+    "bytes": 104728
+  }
+}

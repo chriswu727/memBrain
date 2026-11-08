@@ -16,7 +16,12 @@ Policy-rejected records are removed without a rejected-content archive; their ma
 - 301 related source tests pass, zero skips, in 115.29 seconds, including real PostgreSQL/API behavior, offline replay, owner/role-play isolation, callback races, host adapters and contracts.
 - 98 extracted-wheel tests pass, zero skips, in 4.66 seconds. All 202 runtime inputs match source byte-for-byte.
 - 56 TypeScript tests pass, zero failures/skips; strict types, Ruff and wheel/sdist builds pass. Both launcher-pin checks pass.
-- Complete GitHub Verify and five-platform native qualification are pending on this candidate. The preceding server-control runtime's results remain historical evidence, not qualification of this change.
+- [Verify 42459291910](https://github.com/chriswu727/memBrain/actions/runs/42459291910) passes on `72d960c3338eecb1a31620b8f212442a4c2ad7d8`: **8,025 Python tests**, zero skips, in **2,698.95 seconds**; **56 TypeScript tests**, zero failures/skips; strict types, Ruff and wheel/sdist builds. Three existing multiprocessing fork warnings remain.
+- [Native 42459291814](https://github.com/chriswu727/memBrain/actions/runs/42459291814) passes Windows x86_64, macOS arm64/x86_64 and Linux aarch64/x86_64. All 47 current-run execution summaries report success, zero model calls and successful recorded port closures. Five duplicate qualification copies were excluded. Optional Linux compatibility jobs were not selected. This does not establish every native host/model journey.
+
+[PR #49](https://github.com/chriswu727/memBrain/pull/49) merged into `integration/maturity-candidate` as `3ff0029192b7272faa3c25eb92bf461178e7a930`. Its complete tree `4439eec7e8015fd6f45e237baf52028802ad9215` equals the qualified source tree. The evidence/status follow-up changes no runtime, schema, launcher, workflow or test inputs. Main and publication remain frozen.
+
+Native JSON evidence retains its original archive/member hashes. Windows CRLF line endings were normalized to LF for repository whitespace checks, with JSON-value equality asserted and both original and stored file hashes recorded in the artifact receipts. No execution result was changed.
 
 ## Local control-path cost
 
