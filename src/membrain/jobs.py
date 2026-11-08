@@ -5,12 +5,14 @@ from contextlib import contextmanager
 from psycopg.types.json import Jsonb
 
 from .helpers import DomainError
+from .recording_guard import require_recording
 from .turns import _hash, _identifier, _integer
 
 NO_UNSETTLED_RETRY_POLICY = "no_unsettled_retry-v1"
 FAILURE_CODES = frozenset({
     "provider_failed", "provider_uncertain", "invalid_proposal", "source_unavailable",
     "context_stale", "superseded", "budget_exceeded", "cancelled", "dependency_unavailable", "internal_error",
+    "recording_paused", "recording_stale",
 })
 PUBLIC_FIELDS = (
     "id", "brain_id", "kind", "state", "attempts", "fence", "lease_expires_at", "available_at",
@@ -193,7 +195,7 @@ def summarize_learning(result):
     })
 
 
-# The jobs a claim may take; parameters: tenant, owner, brain, max_attempts, kinds, kinds, job_id, job_id.
+# The jobs a claim may take; parameters: tenant, owner, brain, max_attempts, kinds, kinds, job_id, job_id, paused.
 _CLAIMABLE = (
     "tenant_id=%s AND owner_id=%s AND brain_id=%s "
     "AND attempts<%s AND available_at<=clock_timestamp() "
@@ -204,7 +206,17 @@ _CLAIMABLE = (
     "AND (state IN ('queued','failed') OR (state='running' AND lease_expires_at<=clock_timestamp())) "
     "AND (%s::text[] IS NULL OR kind=ANY(%s::text[])) "
     "AND (%s::text IS NULL OR id=%s) "
+    "AND (NOT %s OR kind NOT IN ('orient','consolidate')) "
 )
+
+
+def require_learning_recording(brain, job):
+    if job["kind"] not in {"orient", "consolidate"}:
+        return
+    revision = job["recording_revision"] if job["recording_revision"] is not None else 0
+    if type(revision) is not int or not 0 <= revision <= 2**63 - 1:
+        raise DomainError("recording_stale", "The learning task's recording policy is unavailable.")
+    require_recording(brain, revision)
 
 
 class JobStore:
@@ -228,7 +240,7 @@ class JobStore:
             from .recovery_authority import reconcile_brain
 
             reconcile_brain(self.database, conn, principal, brain)
-            yield conn
+            yield conn, brain
 
     def _row(self, conn, principal, brain_id, job_id):
         row = conn.execute(
@@ -287,32 +299,32 @@ class JobStore:
         return result
 
     def get(self, principal, brain_id, job_id):
-        with self._transaction(principal, brain_id) as conn:
+        with self._transaction(principal, brain_id) as (conn, _):
             return self._public(self._row(conn, principal, brain_id, job_id), connection=conn)
 
     def retry_learning(self, principal, brain_id, job_id, *, request_id, expected_fence):
         from .learning_recovery import retry_learning
 
-        with self._transaction(principal, brain_id) as conn:
+        with self._transaction(principal, brain_id) as (conn, _):
             return retry_learning(self, conn, principal, brain_id, job_id,
                                   request_id=request_id, expected_fence=expected_fence)
 
     def cognitive_usage(self, principal, brain_id):
         from .cognitive_usage import cognitive_usage
 
-        with self._transaction(principal, brain_id) as conn:
+        with self._transaction(principal, brain_id) as (conn, _):
             return cognitive_usage(conn, principal, brain_id)
 
     def cognitive_budget(self, principal, brain_id):
         from .cognitive_budget import cognitive_budget
 
-        with self._transaction(principal, brain_id) as conn:
+        with self._transaction(principal, brain_id) as (conn, _):
             return cognitive_budget(conn, principal, brain_id)
 
     def configure_cognitive_budget(self, principal, brain_id, *, request_id, expected_revision, policy):
         from .cognitive_budget import configure_cognitive_budget
 
-        with self._transaction(principal, brain_id) as conn:
+        with self._transaction(principal, brain_id) as (conn, _):
             return configure_cognitive_budget(
                 conn, principal, brain_id, request_id=request_id, expected_revision=expected_revision, policy=policy,
             )
@@ -320,12 +332,12 @@ class JobStore:
     def learning_progress(self, principal, brain_id, *, configured):
         from .learning_progress import learning_progress
 
-        with self._transaction(principal, brain_id) as conn:
+        with self._transaction(principal, brain_id) as (conn, _):
             return learning_progress(conn, principal, brain_id, configured=configured)
 
     def list(self, principal, brain_id, *, limit=100):
         _integer(limit, 1, 200)
-        with self._transaction(principal, brain_id) as conn:
+        with self._transaction(principal, brain_id) as (conn, _):
             rows = conn.execute(
                 "SELECT *,clock_timestamp() AS db_now FROM memory_jobs "
                 "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
@@ -357,7 +369,7 @@ class JobStore:
             if pending_erasure(self.database, conn, principal, brain):
                 return True
             return conn.execute("SELECT EXISTS (SELECT 1 FROM memory_jobs WHERE " + _CLAIMABLE + ") AS found",
-                                (*self._params(principal, brain_id), *claimable)).fetchone()["found"]
+                                (*self._params(principal, brain_id), *claimable, brain["recording_paused"])).fetchone()["found"]
 
     def claim(self, principal, brain_id, *, worker_id, lease_seconds=60, kinds=None, max_attempts=3, job_id=None):
         _identifier(worker_id)
@@ -372,13 +384,13 @@ class JobStore:
         claimable = (max_attempts, kinds, kinds, job_id, job_id)
         if not self._may_claim(principal, brain_id, claimable):
             return None
-        with self._transaction(principal, brain_id) as conn:
+        with self._transaction(principal, brain_id) as (conn, brain):
             params = self._params(principal, brain_id)
             row = conn.execute(
                 "SELECT * FROM memory_jobs WHERE " + _CLAIMABLE
                 + "ORDER BY CASE kind WHEN 'extract' THEN 0 WHEN 'rebuild' THEN 1 ELSE 2 END,created_at,id "
                 "LIMIT 1 FOR UPDATE SKIP LOCKED",
-                (*params, *claimable),
+                (*params, *claimable, brain["recording_paused"]),
             ).fetchone()
             if row is None:
                 return None
@@ -404,20 +416,25 @@ class JobStore:
                 return None
             token = secrets.token_urlsafe(32)
             row = conn.execute(
-                "UPDATE memory_jobs SET state='running',attempts=attempts+1,fence=fence+1,worker_id=%s,"
+                "UPDATE memory_jobs SET recording_revision=CASE WHEN kind IN ('orient','consolidate') "
+                "THEN coalesce(recording_revision,CASE WHEN attempts=0 AND model_calls=0 THEN %s ELSE 0 END) "
+                "ELSE recording_revision END,state='running',attempts=attempts+1,fence=fence+1,worker_id=%s,"
                 "lease_token_digest=%s,lease_expires_at=clock_timestamp()+make_interval(secs=>%s),"
                 "updated_at=clock_timestamp(),completed_at=NULL WHERE tenant_id=%s AND owner_id=%s "
                 "AND brain_id=%s AND id=%s RETURNING *,clock_timestamp() AS db_now",
-                (worker_id, hashlib.sha256(token.encode()).hexdigest(), lease_seconds, *params, row["id"]),
+                (brain["recording_revision"], worker_id, hashlib.sha256(token.encode()).hexdigest(), lease_seconds, *params, row["id"]),
             ).fetchone()
             result = self._public(row)
-            result.update(payload=row["payload"], worker_id=worker_id, lease_token=token)
+            result.update(payload=row["payload"], recording_revision=row["recording_revision"],
+                          worker_id=worker_id, lease_token=token)
             return result
 
     def renew(self, principal, brain_id, job_id, *, lease_token, fence, lease_seconds=60):
         _integer(lease_seconds, 1, 3600)
-        with self._transaction(principal, brain_id) as conn:
-            self._lease(self._row(conn, principal, brain_id, job_id), lease_token, fence)
+        with self._transaction(principal, brain_id) as (conn, brain):
+            current = self._row(conn, principal, brain_id, job_id)
+            self._lease(current, lease_token, fence)
+            require_learning_recording(brain, current)
             row = conn.execute(
                 "UPDATE memory_jobs SET lease_expires_at=clock_timestamp()+make_interval(secs=>%s),"
                 "updated_at=clock_timestamp() WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=%s "
@@ -437,10 +454,11 @@ class JobStore:
         for value in (input_bytes, max_model_calls, max_input_bytes, window_max_model_calls, window_max_input_bytes):
             _integer(value)
         _integer(window_seconds, 1, 2_592_000)
-        with self._transaction(principal, brain_id) as conn:
+        with self._transaction(principal, brain_id) as (conn, brain):
             params = self._params(principal, brain_id)
             row = self._row(conn, principal, brain_id, job_id)
             self._lease(row, lease_token, fence)
+            require_learning_recording(brain, row)
             existing = conn.execute(
                 "SELECT * FROM memory_cognitive_operations "
                 "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND job_id=%s AND operation_id=%s",
@@ -486,7 +504,7 @@ class JobStore:
 
     def get_operation(self, principal, brain_id, job_id, operation_id):
         _identifier(operation_id)
-        with self._transaction(principal, brain_id) as conn:
+        with self._transaction(principal, brain_id) as (conn, _):
             job = self._row(conn, principal, brain_id, job_id)
             operation = conn.execute(
                 "SELECT * FROM memory_cognitive_operations WHERE tenant_id=%s AND owner_id=%s "
@@ -510,7 +528,7 @@ class JobStore:
                     _integer(value)
         if response_fingerprint is not None:
             _hash(response_fingerprint)
-        with self._transaction(principal, brain_id) as conn:
+        with self._transaction(principal, brain_id) as (conn, _):
             job = self._row(conn, principal, brain_id, job_id)
             self._lease(job, lease_token, fence)
             params = (*self._params(principal, brain_id), job_id, operation_id)
@@ -535,9 +553,10 @@ class JobStore:
             return self._operation(operation, job, False)
 
     def complete(self, principal, brain_id, job_id, *, lease_token, fence, publish=None):
-        with self._transaction(principal, brain_id) as conn:
+        with self._transaction(principal, brain_id) as (conn, brain):
             row = self._row(conn, principal, brain_id, job_id)
             self._lease(row, lease_token, fence)
+            require_learning_recording(brain, row)
             result = publish(conn, row) if publish is not None else None
             self._lease(self._row(conn, principal, brain_id, job_id), lease_token, fence)
             conn.execute(
@@ -561,7 +580,7 @@ class JobStore:
         if failure_code not in FAILURE_CODES or type(retry) is not bool:
             raise DomainError("validation_failed", "Job failure must use a redacted failure code.")
         _integer(retry_delay_seconds, 0, 2_592_000)
-        with self._transaction(principal, brain_id) as conn:
+        with self._transaction(principal, brain_id) as (conn, _):
             self._lease(self._row(conn, principal, brain_id, job_id), lease_token, fence)
             params = (*self._params(principal, brain_id), job_id)
             conn.execute(
