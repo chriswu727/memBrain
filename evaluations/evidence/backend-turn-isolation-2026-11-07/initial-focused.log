@@ -1,0 +1,37 @@
+..............................................................F......... [ 42%]
+........................................................................ [ 85%]
+........................F                                                [100%]
+=================================== FAILURES ===================================
+_____ test_explicit_exclusion_cannot_be_revived_but_later_public_turn_can ______
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-59/test_explicit_exclusion_cannot0')
+offline = None
+
+    def test_explicit_exclusion_cannot_be_revived_but_later_public_turn_can(tmp_path, offline):
+        host.prompt_context(tmp_path, "s", "Off the record: confidential detail.", user_id="alice")
+        host.resume(tmp_path, user_id="alice", current_turn=True, session="s")
+        assert not host.turn_resumed(tmp_path, "s")
+        assert host.finish_turn(tmp_path, "s", "Confidential reply.", user_id="alice",
+                                prompt="Off the record: confidential detail.") == []
+>       assert not host.paused(tmp_path, "alice")
+E       AssertionError: assert not True
+E        +  where True = <function paused at 0x104f94ae0>(PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-59/test_explicit_exclusion_cannot0'), 'alice')
+E        +    where <function paused at 0x104f94ae0> = host.paused
+
+tests/test_recording_policy.py:105: AssertionError
+________ test_failed_session_snapshot_never_returns_unfiltered_history _________
+
+tmp_path = PosixPath('/private/var/folders/fy/z7_s5ylx73gclv3qg_m4fhjc0000gn/T/pytest-of-yichen/pytest-59/test_failed_session_snapshot_n0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x109c42de0>
+
+    def test_failed_session_snapshot_never_returns_unfiltered_history(tmp_path, monkeypatch):
+        histories = []
+        monkeypatch.setattr(host, "flush", lambda *args: None)
+>       monkeypatch.setattr(host, "_finish_pending", lambda *args: None)
+E       AttributeError: <module 'membrain.host' from '/Users/yichen/tmp/membrain-review-20261029/src/membrain/host.py'> has no attribute '_finish_pending'
+
+tests/test_boundary_read_failures.py:56: AttributeError
+=========================== short test summary info ============================
+FAILED tests/test_recording_policy.py::test_explicit_exclusion_cannot_be_revived_but_later_public_turn_can
+FAILED tests/test_boundary_read_failures.py::test_failed_session_snapshot_never_returns_unfiltered_history
+2 failed, 167 passed in 40.92s

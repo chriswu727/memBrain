@@ -1,0 +1,15 @@
+{
+  "workflow_run": 42443362361,
+  "job_id": 128617073823,
+  "overall_conclusion": "cancelled",
+  "reason": "45-minute job timeout",
+  "python_passed": 7976,
+  "python_warnings": 3,
+  "typescript_passed": 53,
+  "typescript_failed": 0,
+  "typescript_skipped": 0,
+  "raw_log_sha256": "dee37a6bd3a46bcc94b447a2a5da7370a50200243f4cfa53ac84ce6d095c8b1e",
+  "redacted_log_sha256": "dd74c002dcde9a76aa86c6e6ac26a56cb422868c693c547ada9ba0e3d5ce4537",
+  "redaction": "Parameterized pytest values and credential-shaped strings removed; names and outcomes retained.",
+  "source_commit": "867648f399d531a0a76232e9b2487307bae0e546"
+}

@@ -17,6 +17,7 @@ import sys
 import time
 from pathlib import Path
 
+from . import host_turns
 from .local_profile import profile_lock
 from .privacy import PRIVATE_MARK, SECRET_MARK, neutralize, scrub  # noqa: F401
 from .recording_policy import requests_pause
@@ -425,20 +426,21 @@ def pause(directory: Path, hours: float | None = None, user_id: str | None = Non
                 continue
             if not isinstance(state, dict):
                 continue
-            original = state.copy()
-            pending = state.get("pending")
-            owner = state.get("user_id", pending.get("_user") if isinstance(pending, dict) else None)
+            original = json.dumps(state, sort_keys=True)
+            for entry in host_turns.entries(state).values():
+                owner = entry["owner"]
+                if not entry.get("done") and (user_id is None or owner == user_id or real_life_user(owner) == user_id):
+                    state["turns_require_staging"] = True
+                    entry.pop("record", None)
+                    entry.pop("resumed", None)
+                    entry["paused"] = True
+            owner = state.get("user_id")
             if user_id is None or owner == user_id or real_life_user(owner) == user_id:
-                if isinstance(pending, dict) or state.get("paused_turn"):
-                    state["paused_turn"] = True  # Paused during the turn: resuming cannot bring this turn back.
-                    state["user_id"] = owner
-                state.pop("pending", None)
-                state.pop("resumed_turn", None)
                 state.pop("last_prompt", None)
             elif owner is None:
                 state.pop("last_prompt", None)  # Legacy completed turns have no owner metadata.
-            if state != original:
-                _write_state(marker, state)
+            if json.dumps(state, sort_keys=True) != original:
+                _write_session_marker(marker, state)
     return {"recording": "paused", "until": until,
             **({"scope": "this conversation"} if "conversations" in pause_state else {})}
 
@@ -460,10 +462,12 @@ def _active_sessions(directory: Path, user_id: str | None, window: float = 6 * 3
             continue
         if not isinstance(state, dict):
             continue
-        pending = state.get("pending")
-        owner = state.get("user_id", pending.get("_user") if isinstance(pending, dict) else None)
+        entries = list(host_turns.entries(state).values())
+        owners = {entry["owner"] for entry in entries if not entry.get("done")}
+        if recent:
+            owners.add(state.get("user_id"))
         # A person's pause covers their role-play sessions too, which are owned by the role-play identity.
-        if (owner == user_id or real_life_user(owner) == user_id) and (isinstance(pending, dict) or recent):
+        if user_id is None or any(owner == user_id or real_life_user(owner) == user_id for owner in owners):
             sessions.append(marker.stem)
     return sessions
 
@@ -499,17 +503,27 @@ def resume(directory: Path, user_id: str | None = None, *, current_turn: bool = 
             if session is None:
                 return {"recording": "on", "current_turn_resumed": False, "reason": "session_required"}
             marker, state = _session_marker(directory, session), session_state(directory, session)
-            owner = state.get("user_id")
-            if state.get("paused_turn") == "prompt" and (owner == user_id or real_life_user(owner) == user_id):
-                state["resumed_turn"] = True
-                _write_state(marker, state)
+            candidates = [entry for entry in host_turns.entries(state).values()
+                          if not entry.get("done") and (entry["owner"] == user_id
+                                                         or real_life_user(entry["owner"]) == user_id)]
+            if len(candidates) == 1 and candidates[0].get("paused") == "prompt":
+                candidates[0]["resumed"] = True
+                _write_session_marker(marker, state)
+            elif len(candidates) > 1:
+                return {"recording": "on", "current_turn_resumed": False, "reason": "no_unique_paused_turn"}
     return {"recording": "on"}
 
 
-def turn_resumed(directory: Path, session: str) -> bool:
+def turn_resumed(directory: Path, session: str, *, user_id: str | None = None,
+                 producer: str | None = None, turn_id: str | None = None) -> bool:
     """True when the agent resumed recording during this session's turn at the user's request; the host then
     passes the turn's prompt to ``finish_turn``, since a message sent while paused is not kept."""
-    return bool(session_state(directory, session).get("resumed_turn"))
+    candidates = [entry for entry in host_turns.entries(session_state(directory, session)).values()
+                  if not entry.get("done") and (user_id is None or entry["owner"] == user_id)
+                  and (producer is None or entry.get("producer") in (None, producer))
+                  and (turn_id is None or entry.get("source") in (
+                      None, _source_key(session, turn_id, "user"), f"{session}:{turn_id}:user"))]
+    return len(candidates) == 1 and bool(candidates[0].get("resumed"))
 
 
 def erase_user(directory: Path, user_id: str | None) -> dict:
@@ -549,8 +563,18 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
                     state = json.loads(path.read_text(encoding="utf-8"))
                 except (OSError, ValueError):
                     continue
-                if isinstance(state, dict) and state.get("user_id") == user_id:
-                    path.unlink(missing_ok=True)
+                if not isinstance(state, dict):
+                    continue
+                for entry in host_turns.entries(state).values():
+                    if entry["owner"] == user_id:
+                        host_turns.complete(entry)
+                        state["turns_require_staging"] = True
+                if state.get("user_id") == user_id:
+                    state["turns_require_staging"] = True
+                    state = {key: value for key, value in state.items()
+                             if key in ("turns", "turns_managed", "turns_require_staging")}
+                host_turns.compact(state)
+                _write_session_marker(path, state)
     return {"erased": response.get("outcome"), "queued_records_dropped": dropped}
 
 
@@ -642,6 +666,15 @@ def consume_ui_code(directory: Path, code: str) -> bool:
 
 # Records, spool and session state -----------------------------------------------------------------------------
 
+def _source_key(session: str, turn_id: str, role: str) -> str:
+    from .helpers import digest
+
+    # A single delimiter keeps the encoded namespace disjoint from legacy session:turn:role keys.
+    if ":" in turn_id:
+        return f"turn-v2/{digest([session, turn_id])}:{role}"
+    return f"{session}:{turn_id}:{role}"
+
+
 def message_record(session: str, role: str, text: str, *, turn_id: str | None = None,
                    producer: str = PRODUCER, user_id: str | None = None) -> dict:
     """An observe request for one message; deterministic keys make replays idempotent."""
@@ -652,10 +685,10 @@ def message_record(session: str, role: str, text: str, *, turn_id: str | None = 
     if not isinstance(turn_id, str) or not 1 <= len(turn_id) <= 120:
         turn_id = digest([session, role, text])[:32]
     record = {"text": text, "conversation_id": session, "branch_id": "main",
-              "source_event_key": f"{session}:{turn_id}:{role}", "role": role, "producer_ref": producer,
+              "source_event_key": _source_key(session, turn_id, role), "role": role, "producer_ref": producer,
               "delivery_state": "delivered" if role == "assistant" else "received"}
     if role == "assistant":
-        record["parent_source_event_keys"] = [f"{session}:{turn_id}:user"]
+        record["parent_source_event_keys"] = [_source_key(session, turn_id, "user")]
     if user_id is not None:
         user_brain_id(user_id)  # Validates the identifier before anything is staged or spooled.
         record["_user"] = user_id
@@ -790,7 +823,15 @@ def session_state(directory: Path, session: str) -> dict:
 
 
 def _write_session_state(directory: Path, session: str, state: dict) -> None:
-    _write_state(_session_marker(directory, session), state)
+    _write_session_marker(_session_marker(directory, session), state)
+
+
+def _write_session_marker(path: Path, state: dict) -> None:
+    if "turns" in state:
+        started = [entry["started"] for entry in state["turns"].values() if not entry.get("done")]
+        state = {"turns_due": min(started, default=None), **{key: value for key, value in state.items()
+                                                           if key != "turns_due"}}
+    _write_state(path, state)
 
 
 def _write_state(path: Path, state: dict) -> None:
@@ -805,14 +846,16 @@ def _mark_history(directory: Path, session: str, complete: bool, brain_id: str |
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         state = session_state(directory, session)
         _write_session_state(directory, session, {"complete": complete, "history_brain": brain_id, **{
-            key: state[key] for key in ("pending", "user_id", "paused_turn", "paused_at", "resumed_turn") if key in state}})
-    cutoff = time.time() - SESSION_MARKER_SECONDS
-    for old in _session_marker(directory, session).parent.glob("*.json"):
-        try:
-            if old.stat().st_mtime < cutoff:
-                old.unlink()
-        except OSError:
-            pass
+            key: state[key] for key in ("pending", "user_id", "paused_turn", "paused_at", "resumed_turn",
+                                        "turns", "turns_managed", "turns_require_staging") if key in state}})
+    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        cutoff = time.time() - SESSION_MARKER_SECONDS
+        for old in _session_marker(directory, session).parent.glob("*.json"):
+            try:
+                if old.stat().st_mtime < cutoff:
+                    old.unlink()
+            except OSError:
+                pass
 
 
 def history_complete(directory: Path, session: str, brain_id: str | None = None) -> bool:
@@ -915,53 +958,49 @@ def _acknowledge(client, current: dict | None) -> None:
             pass
 
 
-def _stage(directory: Path, session: str, record: dict, prompt: str) -> dict | None:
-    """Keep this turn's user message until the reply arrives; return an earlier unfinished one."""
+def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: bool = False,
+           legacy_source: str | None = None) -> bool:
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         explicit_pause = requests_pause(prompt)
         if explicit_pause:
             _pause_for_request(directory, session, record.get("_user"))
         state = session_state(directory, session)
-        earlier = state.get("pending")
+        exclusion = True if explicit_pause else "prompt" if paused(directory, record.get("_user")) else False
+        if legacy_source is not None:
+            for entry in host_turns.entries(state).values():
+                if (entry["owner"] == record.get("_user") and entry.get("producer") == record["producer_ref"]
+                        and entry.get("source") == legacy_source):
+                    record["source_event_key"] = legacy_source
+                    break
+        try:
+            host_turns.stage(state, {**record, "text": scrub(record["text"])}, exclusion, time.time(), implicit=implicit)
+        except ValueError:
+            # Remember that this session requires staging even when its first rejected callback arrives later.
+            _write_session_state(directory, session, state)
+            raise
         state["user_id"] = record.get("_user")
-        if explicit_pause or paused(directory, record.get("_user")):
+        accepted = not exclusion and "record" in state["turns"][host_turns.key(record)]
+        if not accepted:
             state.pop("last_prompt", None)
-            state.pop("pending", None)
-            state.pop("resumed_turn", None)
-            # An explicit exclusion cannot be revived by a resume tool in the same turn.
-            state["paused_turn"] = True if explicit_pause else "prompt"
-            state["paused_at"] = time.time()
-            earlier = None
         else:
-            state.pop("paused_turn", None)
-            state.pop("paused_at", None)
-            state.pop("resumed_turn", None)
             state["last_prompt"] = scrub(prompt)[-CUE_CHARACTERS:]
-            state["pending"] = {**record, "text": scrub(record["text"])}
         _write_session_state(directory, session, state)
-        return earlier if isinstance(earlier, dict) else None
+        return accepted
 
 
-def _take_pending(directory: Path, session: str) -> dict | None:
+def _take_turn(directory: Path, session: str, *, user_id: str | None, producer: str,
+               turn_id: str | None, prompt: dict | None, allow_unstaged: bool) -> tuple[dict | None, bool, str | None, bool]:
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         state = session_state(directory, session)
-        pending = state.pop("pending", None)
-        if pending is not None:
-            _write_session_state(directory, session, state)
-        return pending if isinstance(pending, dict) else None
-
-
-def _take_turn(directory: Path, session: str) -> tuple[dict | None, bool, str | None]:
-    """The staged message, whether the turn stays unrecorded, and its user."""
-    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
-        state = session_state(directory, session)
-        pending = state.pop("pending", None)
-        paused_turn = state.pop("paused_turn", False)
-        resumed = state.pop("resumed_turn", False)
-        if pending is not None or paused_turn or resumed:
-            _write_session_state(directory, session, state)
-        skipped = bool(paused_turn) and not (paused_turn == "prompt" and resumed)
-        return (pending if isinstance(pending, dict) else None), skipped, state.get("user_id")
+        valid_id = isinstance(turn_id, str) and 1 <= len(turn_id) <= 120
+        source = _source_key(session, turn_id, "user") if valid_id else None
+        legacy_source = f"{session}:{turn_id}:user" if valid_id else None
+        if paused(directory, user_id) or (prompt is not None and requests_pause(prompt["text"])):
+            state["turns_require_staging"] = True
+        result = host_turns.take(state, owner=user_id, producer=producer, source=source, prompt=prompt,
+                                 allow_unstaged=allow_unstaged, legacy_source=legacy_source)
+        _write_session_state(directory, session, state)
+        return result
 
 
 # Recall -------------------------------------------------------------------------------------------------------
@@ -1350,28 +1389,37 @@ def _history(client, session: str, budget: int, boundaries=()) -> tuple[str | No
 
 # Lifecycle ----------------------------------------------------------------------------------------------------
 
-def _finish_pending(directory: Path, client, session: str) -> None:
-    pending = _take_pending(directory, session)
-    if pending:
-        deliver(directory, client, pending)
-
-
 def _finish_abandoned(directory: Path, client) -> int:
     """Store messages of turns that never finished (a host closed mid-turn), so nothing waits indefinitely."""
     delivered, cutoff = 0, time.time() - ABANDONED_TURN_SECONDS
     for marker in (state_directory(directory) / "sessions").glob("*.json"):
         with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
             try:
-                if marker.stat().st_mtime > cutoff:
-                    continue
-                state = json.loads(marker.read_text(encoding="utf-8"))
+                with marker.open(encoding="utf-8") as stream:
+                    prefix = stream.read(128)
+                    if prefix.startswith('{"turns_due": '):
+                        due, _ = json.JSONDecoder().raw_decode(prefix[len('{"turns_due": '):])
+                        if due is None or isinstance(due, (int, float)) and due > cutoff:
+                            continue
+                    stream.seek(0)
+                    state = json.load(stream)
             except (OSError, ValueError):
                 continue
-            if not isinstance(state, dict) or not isinstance(state.get("pending"), dict):
+            if not isinstance(state, dict):
                 continue
-            pending = state.pop("pending")
-            _write_state(marker, state)
-        delivered += deliver(directory, client, pending)
+            pending = []
+            changed = any(key in state for key in ("pending", "paused_turn", "resumed_turn"))
+            for entry in host_turns.entries(state).values():
+                if not entry.get("done") and entry.get("started", 0) <= cutoff:
+                    if isinstance(entry.get("record"), dict):
+                        pending.append(entry["record"])
+                    host_turns.complete(entry)
+                    changed = True
+            if changed:
+                host_turns.compact(state)
+                _write_session_marker(marker, state)
+        for record in pending:
+            delivered += deliver(directory, client, record)
     return delivered
 
 
@@ -1423,7 +1471,6 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     else:
         with client:
             flush(client, directory)
-            _finish_pending(directory, client, session)
             _finish_abandoned(directory, client)
             try:
                 _, current = _saved_context(client, real_life, roleplay, options)
@@ -1457,15 +1504,15 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
     record = message_record(session, "user", prompt, turn_id=turn_id, producer=producer, user_id=user_id)
     state = session_state(directory, session)
     previous = state.get("last_prompt") if state.get("user_id") == user_id else None
-    earlier = _stage(directory, session, record, prompt)
+    valid_id = isinstance(turn_id, str) and 1 <= len(turn_id) <= 120
+    staged = _stage(directory, session, record, prompt, not valid_id,
+                     f"{session}:{turn_id}:user" if valid_id and ":" in turn_id else None)
     client = ready_client(directory, user_id)
     if client is None:
-        if earlier:
-            deliver(directory, None, earlier)
         start_in_background(directory)
         return _recording_notice(paused(directory, user_id), tools, session=session) or None
     source = ""
-    if include_source and not paused(directory, user_id):
+    if include_source and staged and not paused(directory, user_id):
         source = ("<membrain-source>\nWhen saving a note based on the current user message, pass source_messages="
                   + json.dumps([{"producer_ref": producer, "source_event_key": record["source_event_key"],
                                  "source_revision": 1}], ensure_ascii=False)
@@ -1501,8 +1548,6 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
         prefix = "\n\n".join(part for part in (recording, source, refreshed) if part)
         try:
             flush(client, directory)
-            if earlier:
-                deliver(directory, client, earlier)
             from .cognition import speech_requested
 
             if history_complete(directory, session, client.brain_id) and not speech_requested({"intent": "explore", "query": prompt}):
@@ -1520,10 +1565,11 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
 
 def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: str | None = None,
                 producer: str = PRODUCER, prompt: str | None = None, user_id: str | None = None,
-                roleplay: str | None = None) -> list[dict]:
+                roleplay: str | None = None, allow_unstaged: bool = False) -> list[dict]:
     """Store the staged user message and the reply, unless recording was paused during the turn.
 
-    Hosts that report the whole turn at once pass ``prompt``; it is recorded if no prompt was staged for it. A turn
+    Hosts that report the whole turn at once pass ``prompt``. Hosts mixing staged and whole-turn callbacks must
+    also set ``allow_unstaged`` for the latter; unknown callbacks in staged sessions otherwise fail closed. A turn
     that began while paused is stored only when the agent resumed in it at the user's request (``resume`` with
     ``current_turn``); its message was not kept, so it is stored from ``prompt``.
     Returns the records stored or queued, so a caller can link what it derives from them; empty when the turn
@@ -1531,26 +1577,26 @@ def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: st
     """
     user_id = roleplay_user(user_id, roleplay)
     explicit_pause = isinstance(prompt, str) and requests_pause(prompt)
-    pending, paused_turn, staged_user = _take_turn(directory, session)
+    supplied = (message_record(session, "user", prompt, turn_id=turn_id, producer=producer, user_id=user_id)
+                if isinstance(prompt, str) and prompt.strip() else None)
+    if supplied is not None:
+        supplied["text"] = scrub(prompt)
+    pending, paused_turn, staged_user, exclusion_handled = _take_turn(directory, session, user_id=user_id, producer=producer,
+                                                  turn_id=turn_id, prompt=supplied, allow_unstaged=allow_unstaged)
     if user_id is None:
-        user_id = pending.get("_user") if pending else staged_user
-    if explicit_pause and not paused_turn:
+        user_id = staged_user
+    if explicit_pause and not exclusion_handled:
         _pause_for_request(directory, session, user_id)
     if explicit_pause or paused_turn or paused(directory, user_id):
         return []
-    records = [pending] if pending else []
-    if isinstance(prompt, str) and prompt.strip() and (pending is None or pending["text"] != scrub(prompt)):
-        pending = message_record(session, "user", prompt, turn_id=turn_id, producer=producer, user_id=user_id)
-        records.append(pending)
     if pending is None:
         return []  # A missing/failed prompt callback is not permission to retain an orphan reply.
+    records = [pending]
     if isinstance(reply, str) and reply.strip():
-        if turn_id is None and pending:
-            turn_id = pending["source_event_key"].rsplit(":", 2)[1]
-        records.append(message_record(session, "assistant", reply, turn_id=turn_id, producer=producer,
-                                      user_id=user_id))
-    if not records:
-        return []
+        response = message_record(session, "assistant", reply, turn_id=turn_id, producer=producer, user_id=user_id)
+        response["source_event_key"] = pending["source_event_key"].removesuffix(":user") + ":assistant"
+        response["parent_source_event_keys"] = [pending["source_event_key"]]
+        records.append(response)
     client = ready_client(directory, user_id)
     if client is None:
         delivered = [record for record in records if deliver(directory, None, record)]

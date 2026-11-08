@@ -194,8 +194,8 @@ def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | N
         roleplay = " ".join(request.headers.get("x-membrain-roleplay", "").split())[:80] or None
         share = request.headers.get("x-membrain-share-real-life", "").lower() in ("1", "true", "yes")
         session = request.headers.get("x-membrain-session")
-        session = (f"{namespace}:{session}" if namespace and session else session) or memory.session(
-            person, f"roleplay:{roleplay}" if roleplay else None)
+        session = (memory.bound_session(person, session, roleplay=roleplay) if session else memory.session(
+            person, f"roleplay:{roleplay}" if roleplay else None))
         turn, prompt = uuid.uuid4().hex[:20], _text(messages[index]["content"]) if index is not None else ""
         if prompt.strip():
             try:

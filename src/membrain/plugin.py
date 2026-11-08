@@ -189,7 +189,7 @@ def stop(payload: dict, directory: Path, producer: str = PRODUCER) -> None:
     session = _conversation(payload)
     # A message sent while paused is not kept; when the agent resumed at its request, store it from the transcript.
     prompt = None
-    if host.turn_resumed(directory, session):
+    if host.turn_resumed(directory, session, user_id=_user(payload), producer=producer, turn_id=_turn(payload)):
         prompt = payload.get("prompt") if isinstance(payload.get("prompt"), str) else None
         prompt = prompt or last_user_message(payload.get("transcript_path"))
     host.finish_turn(directory, session, reply, turn_id=_turn(payload), producer=producer,

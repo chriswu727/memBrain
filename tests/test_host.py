@@ -101,20 +101,43 @@ def test_spooled_records_are_scrubbed_when_the_service_is_down(tmp_path, monkeyp
     assert "correcthorse" not in spooled and "Biscuit" in spooled
 
 
-def test_an_unfinished_turn_is_stored_by_the_next_prompt_or_when_abandoned(tmp_path, monkeypatch):
+def test_an_unfinished_turn_is_preserved_until_abandoned(tmp_path, monkeypatch):
     client = Client()
     monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: client)
     host.prompt_context(tmp_path, "s1", "First, never answered.", turn_id="t1")
     host.prompt_context(tmp_path, "s1", "Second.", turn_id="t2")
-    assert [record["text"] for record in client.observed] == ["First, never answered."]
+    assert client.observed == []
     host.prompt_context(tmp_path, "crashed", "Left mid-turn.", turn_id="t9")
     marker = next(path for path in (tmp_path / "plugin" / "sessions").glob("*.json")
                   if "Left mid-turn." in path.read_text())
-    os.utime(marker, (0, 0))
+    state = json.loads(marker.read_text())
+    for entry in state["turns"].values():
+        entry["started"] = 0
+    host._write_session_marker(marker, state)
     monkeypatch.setattr(host, "_history", lambda client, session, budget: (None, False))
     monkeypatch.setattr("membrain.notes.list_notes", lambda client: {"items": []})
     host.session_context(tmp_path, "s3")
     assert [record["text"] for record in client.observed][-1] == "Left mid-turn."
+
+
+@pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
+def test_colon_turn_ids_store_distinct_conversations(tmp_path):
+    directory = tmp_path / "brain"
+    try:
+        host.start(directory)
+        receipts = []
+        for session, turn in (("a", "b:c"), ("a:b", "c")):
+            host.prompt_context(directory, session, f"Question {session}", turn_id=turn)
+            receipts.extend(host.finish_turn(directory, session, f"Reply {session}", turn_id=turn))
+        assert len({r["source_event_key"] for r in receipts}) == 4
+        with host.ready_client(directory) as client:
+            rows = client.timeline(roles=("user", "assistant"), max_characters=20000)["items"]
+        assert {(row["conversation_id"], row["text"]) for row in rows} == {
+            (session, f"{role} {session}") for session in ("a", "a:b") for role in ("Question", "Reply")}
+        spool = directory / "plugin" / "spool.jsonl"
+        assert not spool.exists() or not spool.read_text().strip()
+    finally:
+        desktop.stop(directory)
 
 
 def test_mcp_offers_pause_tools_only_for_a_local_installation(tmp_path):
@@ -231,6 +254,8 @@ def test_users_of_a_shared_bot_keep_separate_memories(tmp_path, monkeypatch):
         with monkeypatch.context() as offline:
             offline.setattr(host, "ready_client", lambda directory, user_id=None: None)
             offline.setattr(host, "start_in_background", lambda directory: None)
+            host.prompt_context(directory, "chat:telegram:alice", "My sister is called Mei.",
+                                turn_id="2", user_id="telegram:alice")
             host.finish_turn(directory, "chat:telegram:alice", "Spooled reply.", turn_id="2",
                              prompt="My sister is called Mei.", user_id="telegram:alice")
         with host.ready_client(directory) as client:
@@ -352,7 +377,8 @@ def test_pausing_one_user_preserves_another_users_pending_turn(tmp_path, monkeyp
     host.pause(tmp_path, user_id="alice")
     assert host._session_marker(tmp_path, "bob-session").stat().st_mtime_ns == bob_modified
     assert "alice private" not in host._session_marker(tmp_path, "alice-session").read_text()
-    assert host.session_state(tmp_path, "bob-session")["pending"]["text"] == "bob pending"
+    assert [entry["record"]["text"] for entry in host.session_state(tmp_path, "bob-session")["turns"].values()
+            if "record" in entry] == ["bob pending"]
 
 
 @pytest.mark.parametrize("fail", [False, True])

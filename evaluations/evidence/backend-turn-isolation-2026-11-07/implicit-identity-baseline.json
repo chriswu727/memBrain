@@ -1,0 +1,13 @@
+{
+  "source_commit": "f207ddf0b893be028e2de4ba5060ec6e3f58270c",
+  "staged_keys": [
+    "s:dd545da590404fd2d978e2cae7cc26b7:user",
+    "s:dd545da590404fd2d978e2cae7cc26b7:assistant"
+  ],
+  "whole_turn_keys": [
+    "s:ee8174213e71b3f2727195bf3fb07dba:user",
+    "s:ee8174213e71b3f2727195bf3fb07dba:assistant"
+  ],
+  "expected_equal": true,
+  "observed_equal": false
+}

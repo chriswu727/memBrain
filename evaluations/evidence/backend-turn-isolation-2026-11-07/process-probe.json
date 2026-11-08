@@ -1,0 +1,11 @@
+{
+  "build_id": "d8c7126e4aff81ecf747063d81fcaa825f1653e1b64bafc599757ebdf7a970ca",
+  "processes": 4,
+  "staged_turns": 384,
+  "finish_callbacks": 768,
+  "accepted_receipts": 384,
+  "spooled_records": 768,
+  "unique_source_keys": 768,
+  "retained_finished_markers": 256,
+  "passed": true
+}
