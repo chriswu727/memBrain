@@ -19,6 +19,7 @@ from pathlib import Path
 
 from .local_profile import profile_lock
 from .privacy import PRIVATE_MARK, SECRET_MARK, neutralize, scrub  # noqa: F401
+from .recording_policy import requests_pause
 
 PRODUCER = "membrain-plugin"
 CONTEXT_CHARACTERS = 9000  # Under Claude Code's 10,000-character limit for hook output.
@@ -397,7 +398,7 @@ PAUSE_TOOL_DESCRIPTION = ('Stop recording only when the user asks you not to rem
 
 
 def pause(directory: Path, hours: float | None = None, user_id: str | None = None, *,
-          conversation: bool = False) -> dict:
+          conversation: bool = False, session: str | None = None) -> dict:
     """Stop recording until resumed, or for ``hours``; for one user of a multi-user host, or for everyone.
 
     With ``conversation`` the pause covers only the conversations in progress: it ends when a new one starts. An
@@ -412,6 +413,10 @@ def pause(directory: Path, hours: float | None = None, user_id: str | None = Non
         pause_state = {"since": time.time(), "until": until}
         if conversation and hours is None:
             pause_state["conversations"] = _active_sessions(directory, user_id)
+            if session is not None:
+                marker = _session_marker(directory, session).stem
+                if marker not in pause_state["conversations"]:
+                    pause_state["conversations"].append(marker)
         _write_state(path, pause_state)
         for marker in (state_directory(directory) / "sessions").glob("*.json"):
             try:
@@ -438,6 +443,12 @@ def pause(directory: Path, hours: float | None = None, user_id: str | None = Non
             **({"scope": "this conversation"} if "conversations" in pause_state else {})}
 
 
+def _pause_for_request(directory: Path, session: str, user_id: str | None) -> None:
+    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        if not paused(directory, user_id):
+            pause(directory, user_id=real_life_user(user_id), conversation=True, session=session)
+
+
 def _active_sessions(directory: Path, user_id: str | None, window: float = 6 * 3600) -> list[str]:
     """Sessions of this user with a turn in progress or recent activity: the conversation a pause is meant for."""
     sessions, now = [], time.time()
@@ -460,14 +471,14 @@ def _active_sessions(directory: Path, user_id: str | None, window: float = 6 * 3
 def end_conversation_pause(directory: Path, session: str, user_id: str | None = None) -> bool:
     """A new conversation ends a pause that covered only earlier conversations; returns whether it ended one."""
     path = _pause_file(directory, user_id)
-    try:
-        state = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
-        return False
-    conversations = state.get("conversations") if isinstance(state, dict) else None
-    if not isinstance(conversations, list) or _session_marker(directory, session).stem in conversations:
-        return False
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        try:
+            state = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            return False
+        conversations = state.get("conversations") if isinstance(state, dict) else None
+        if not isinstance(conversations, list) or _session_marker(directory, session).stem in conversations:
+            return False
         path.unlink(missing_ok=True)
     return True
 
@@ -907,14 +918,18 @@ def _acknowledge(client, current: dict | None) -> None:
 def _stage(directory: Path, session: str, record: dict, prompt: str) -> dict | None:
     """Keep this turn's user message until the reply arrives; return an earlier unfinished one."""
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        explicit_pause = requests_pause(prompt)
+        if explicit_pause:
+            _pause_for_request(directory, session, record.get("_user"))
         state = session_state(directory, session)
         earlier = state.get("pending")
         state["user_id"] = record.get("_user")
-        if paused(directory, record.get("_user")):
+        if explicit_pause or paused(directory, record.get("_user")):
             state.pop("last_prompt", None)
             state.pop("pending", None)
             state.pop("resumed_turn", None)
-            state["paused_turn"] = "prompt"  # Paused when it arrived; the message itself is not kept.
+            # An explicit exclusion cannot be revived by a resume tool in the same turn.
+            state["paused_turn"] = True if explicit_pause else "prompt"
             state["paused_at"] = time.time()
             earlier = None
         else:
@@ -1515,10 +1530,13 @@ def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: st
     was not recorded.
     """
     user_id = roleplay_user(user_id, roleplay)
+    explicit_pause = isinstance(prompt, str) and requests_pause(prompt)
     pending, paused_turn, staged_user = _take_turn(directory, session)
     if user_id is None:
         user_id = pending.get("_user") if pending else staged_user
-    if paused_turn or paused(directory, user_id):
+    if explicit_pause and not paused_turn:
+        _pause_for_request(directory, session, user_id)
+    if explicit_pause or paused_turn or paused(directory, user_id):
         return []
     records = [pending] if pending else []
     if isinstance(prompt, str) and prompt.strip() and (pending is None or pending["text"] != scrub(prompt)):
@@ -1533,11 +1551,8 @@ def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: st
         return []
     client = ready_client(directory, user_id)
     if client is None:
-        for record in records:
-            deliver(directory, None, record)
+        delivered = [record for record in records if deliver(directory, None, record)]
         start_in_background(directory)
-        return records
+        return delivered
     with client:
-        for record in records:
-            deliver(directory, client, record)
-    return records
+        return [record for record in records if deliver(directory, client, record)]

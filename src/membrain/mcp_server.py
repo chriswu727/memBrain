@@ -140,6 +140,11 @@ def create_server(client: MemoryClient, *, directory=None) -> FastMCP:
         """Save an assistant-authored observation. Reuse source_event_key on retries; this does not verify user claims."""
         from membrain.privacy import scrub
 
+        if directory is not None:
+            from membrain import host
+
+            if host.paused(directory):
+                return {"error": "Recording is paused. Resume before saving observations."}
         return await asyncio.to_thread(
             client.observe, scrub(text), conversation_id=conversation_id, branch_id=branch_id,
             source_event_key=source_event_key, source_revision=source_revision,
