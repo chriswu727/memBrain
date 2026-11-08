@@ -173,7 +173,7 @@ def test_a_provider_that_fails_for_now_is_retried_and_one_that_refuses_is_report
         memory.record(person, "Welcome to Wellington!", session="w1", turn_id="t1", prompt="I moved to Wellington in May.")
         extractor.wait()
         assert len(calls) == 3 and extraction_status(directory)["state"] == "ok"
-        assert "Moved to Wellington in May." in memory.context(person, "Where do I live?", session="w2", turn_id="t1")
+        assert "Moved to Wellington in May." in memory.context(person, "Where do I live now, remind me?", session="w2", turn_id="t1")
         memory.record(person, "In Wellington.", session="w2", turn_id="t1", prompt="Where do I live now, remind me?")
         extractor.wait()
         status = host.installation_status(directory)["note_extraction"]

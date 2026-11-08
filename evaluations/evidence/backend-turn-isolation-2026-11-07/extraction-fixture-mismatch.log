@@ -1,0 +1,47 @@
+......F............                                                      [100%]
+=================================== FAILURES ===================================
+_ test_a_provider_that_fails_for_now_is_retried_and_one_that_refuses_is_reported _
+
+tmp_path = PosixPath('/private/tmp/membrain-turns-final-c/test_a_provider_that_fails_for0')
+
+    @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
+    def test_a_provider_that_fails_for_now_is_retried_and_one_that_refuses_is_reported(tmp_path):
+        from membrain.extraction import extraction_status
+    
+        calls = []
+    
+        def flaky(request: httpx.Request) -> httpx.Response:
+            calls.append(request)
+            if len(calls) <= 2:
+                raise httpx.ConnectError("connection reset", request=request)
+            if len(calls) == 3:
+                note = {"text": "Moved to Wellington in May.", "kind": "milestone"}
+                return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps({"notes": [note]})}}]})
+            return httpx.Response(401, json={"error": "invalid key"})
+    
+        extractor = Extractor("https://api.example/v1", "cheap-model", "sk-test", transport=httpx.MockTransport(flaky))
+        extractor.retry_delays = (0, 0)
+        directory = tmp_path / "brain"
+        memory = ChatMemory(directory, producer="membrain-proxy", tools=None, extractor=extractor)
+        person = Speaker("api", "rua")
+        try:
+            host.start(directory)
+            memory.context(person, "I moved to Wellington in May.", session="w1", turn_id="t1")
+            memory.record(person, "Welcome to Wellington!", session="w1", turn_id="t1", prompt="I moved to Wellington in May.")
+            extractor.wait()
+            assert len(calls) == 3 and extraction_status(directory)["state"] == "ok"
+            assert "Moved to Wellington in May." in memory.context(person, "Where do I live?", session="w2", turn_id="t1")
+            memory.record(person, "In Wellington.", session="w2", turn_id="t1", prompt="Where do I live now, remind me?")
+            extractor.wait()
+            status = host.installation_status(directory)["note_extraction"]
+>           assert len(calls) == 4  # Refused for good: not retried.
+            ^^^^^^^^^^^^^^^^^^^^^^
+E           AssertionError: assert 3 == 4
+E            +  where 3 = len([<Request('POST', 'https://api.example/v1/chat/completions')>, <Request('POST', 'https://api.example/v1/chat/completions')>, <Request('POST', 'https://api.example/v1/chat/completions')>])
+
+tests/test_extraction.py:180: AssertionError
+----------------------------- Captured stderr call -----------------------------
+Starting the local memory database and service…
+=========================== short test summary info ============================
+FAILED tests/test_extraction.py::test_a_provider_that_fails_for_now_is_retried_and_one_that_refuses_is_reported
+1 failed, 18 passed in 37.36s
