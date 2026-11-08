@@ -1,4 +1,3 @@
 
 > @membrain/client@0.1.0 typecheck
 > tsc --noEmit --strict --target ES2023 --module NodeNext --lib ES2023,DOM --types node --allowImportingTsExtensions index.ts contract.ts
-
