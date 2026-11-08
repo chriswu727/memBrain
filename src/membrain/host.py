@@ -1577,8 +1577,10 @@ def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: st
     """
     user_id = roleplay_user(user_id, roleplay)
     explicit_pause = isinstance(prompt, str) and requests_pause(prompt)
-    supplied = (message_record(session, "user", scrub(prompt), turn_id=turn_id, producer=producer, user_id=user_id)
+    supplied = (message_record(session, "user", prompt, turn_id=turn_id, producer=producer, user_id=user_id)
                 if isinstance(prompt, str) and prompt.strip() else None)
+    if supplied is not None:
+        supplied["text"] = scrub(prompt)
     pending, paused_turn, staged_user, exclusion_handled = _take_turn(directory, session, user_id=user_id, producer=producer,
                                                   turn_id=turn_id, prompt=supplied, allow_unstaged=allow_unstaged)
     if user_id is None:

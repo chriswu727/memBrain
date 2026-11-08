@@ -297,3 +297,12 @@ def test_encoded_sources_cannot_collide_with_the_legacy_namespace():
     encoded = host.message_record("a", "user", "Question", turn_id="b:c")["source_event_key"]
     legacy = host.message_record(encoded.removesuffix(":user"), "user", "Question", turn_id="x")["source_event_key"]
     assert encoded.count(":") == 1 and legacy.count(":") >= 2 and encoded != legacy
+
+
+def test_implicit_source_identity_is_the_same_for_staged_and_whole_turn_capture(tmp_path):
+    prompt = "My password=hunter2hunter2. Help with my plan."
+    host.prompt_context(tmp_path / "staged", "s", prompt)
+    staged = host.finish_turn(tmp_path / "staged", "s", "Reply")
+    complete = host.finish_turn(tmp_path / "whole", "s", "Reply", prompt=prompt)
+    assert [r["source_event_key"] for r in staged] == [r["source_event_key"] for r in complete]
+    assert "hunter2hunter2" not in json.dumps([staged, complete])
