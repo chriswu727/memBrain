@@ -6,7 +6,7 @@
         "--python",
         "3.12",
         "--from",
-        "${MEMBRAIN_PACKAGE:-membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/3c33fdd3c07a82a08d9f592ec2d505179c47be3f.zip}",
+        "${MEMBRAIN_PACKAGE:-membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/84770c018eed0d154082b4cd0a88ade55db4a61b.zip}",
         "membrain",
         "plugin",
         "mcp"
