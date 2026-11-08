@@ -1,0 +1,142 @@
+{
+  "workflow_run": 42447713756,
+  "job_id": 128630076782,
+  "overall_conclusion": "success",
+  "source_commit": "366ff050b0a5ae7f046af646fec734857af1b71c",
+  "source_tree": "c47a6c1405c87d8404ba12df752dba8d2b0ee813",
+  "runtime_commit": "8208ea7124eb3422b507825ee4a30e87cb2563e5",
+  "runtime_build": "d86a90e5d921a4021fd09b59135b3e6c287cb70cea18b2f17d1cb790848538af",
+  "integration_merge_commit": "99609f93b4b2a5e9d6277b49decc0d40c8a8e1fb",
+  "integration_merge_tree": "c47a6c1405c87d8404ba12df752dba8d2b0ee813",
+  "qualified_tree_equal": true,
+  "python_passed": 7984,
+  "python_warnings": 3,
+  "python_seconds": 2271.17,
+  "python_skipped": 0,
+  "typescript_passed": 53,
+  "typescript_failed": 0,
+  "typescript_skipped": 0,
+  "strict_types": "passed",
+  "ruff": "passed",
+  "wheel_and_sdist": "passed",
+  "raw_log_sha256": "25397a0475ffcd974b535d50470f1f9268178653d1edd014b253419317816793",
+  "redacted_log_sha256": "95f198dbf3d5b04fdab11c52104c22ea23c62c22258dc192c2022a181d343244",
+  "redaction": "Parameterized pytest values and credential-shaped strings removed; test names and outcomes retained.",
+  "steps": [
+    {
+      "name": "Set up job",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Initialize containers",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/checkout@v4",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/setup-python@v5",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/setup-node@v4",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run python -m pip install uv",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run uv sync --frozen",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run actions/cache@v4",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Prepare the pinned local embedding model",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run uv run python -m playwright install --with-deps chromium",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run uv run membrain migrate",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run uv run ruff check src tests examples",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Diagnose zero-model scenario service startup",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Diagnose Linux native loader after startup failure",
+      "status": "completed",
+      "conclusion": "skipped"
+    },
+    {
+      "name": "Run uv run pytest -v --durations=15",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run npm ci && npm test && npm run typecheck",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Run uv build",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/cache@v4",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/setup-node@v4",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/setup-python@v5",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Post Run actions/checkout@v4",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Stop containers",
+      "status": "completed",
+      "conclusion": "success"
+    },
+    {
+      "name": "Complete job",
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ]
+}

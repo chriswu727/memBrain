@@ -10,7 +10,9 @@ Runtime: `8208ea7124eb3422b507825ee4a30e87cb2563e5`, with all nine launchers pin
 - **74 extracted-wheel tests pass**, zero skips, in 2.16 seconds. All **199 runtime inputs** match source byte-for-byte. Launcher equality passes both tests; Ruff, wheel and sdist builds pass.
 - The four-process probe passes on this build: 384 turns, 768 duplicate/reversed finish callbacks, 384 accepted receipts, 768 distinct spooled source keys and 256 retained finished markers.
 - Local ledger measurements: 1,000 prompt/finish pairs have P50 **3.725 ms**, P95 **4.718 ms**; eight-worker finishes have P95 **7.554 ms**. Five paired scans over 500 completed sessions have median **148.441 ms** with full decoding and **41.388 ms** with the due-header path (about **72% less time**). These measure synthetic local bookkeeping, with service lookup and delivery mocked, not end-to-end recall or model response time.
-- Full CI for this final source is pending. Earlier completed/cancelled runs below are scoped to their own source; they do not qualify this final runtime.
+- [Full Verify 42447713756](https://github.com/chriswu727/memBrain/actions/runs/42447713756) succeeds on source `366ff050b0a5ae7f046af646fec734857af1b71c`: **7,984 Python tests**, zero skips, in **2,271.17 seconds**; **53 TypeScript tests**, zero failures/skips; strict types, Ruff and wheel/sdist builds all pass. Three existing multiprocessing fork warnings remain. Earlier cancelled runs below retain their own outcomes.
+
+[PR #47](https://github.com/chriswu727/memBrain/pull/47) merged into `integration/maturity-candidate` as `99609f93b4b2a5e9d6277b49decc0d40c8a8e1fb`. Its complete tree is `c47a6c1405c87d8404ba12df752dba8d2b0ee813`, byte-for-byte identical to the qualified source tree. The evidence/status follow-up changes no runtime, launcher, schema, test or workflow files. No main merge or release is made.
 
 ## Behavior
 
