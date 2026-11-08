@@ -84,7 +84,9 @@ def test_projection_upgrade_preserves_records_and_rebuilds_index(monkeypatch):
         conn.execute(sql.SQL("CREATE SCHEMA {}").format(sql.Identifier(namespace)))
         conn.execute(sql.SQL("CREATE TABLE {}.memory_migrations (name text PRIMARY KEY, applied_at timestamptz NOT NULL DEFAULT now())")
                      .format(sql.Identifier(namespace)))
-    old = tuple(item for item in MIGRATIONS if item[0] < "030_")
+    current = tuple(item for item in MIGRATIONS if item[0] < "031_")
+    old = tuple(item for item in current if item[0] < "030_")
+    monkeypatch.setattr(storage, "MIGRATIONS", current)
     try:
         with monkeypatch.context() as patch:
             patch.setattr(storage, "MIGRATIONS", old)
@@ -98,13 +100,13 @@ def test_projection_upgrade_preserves_records_and_rebuilds_index(monkeypatch):
                          (principal.tenant_id, principal.principal_id, brain))
             before = conn.execute("SELECT to_jsonb(a) AS row FROM memory_assertions a ORDER BY id").fetchall()
         with monkeypatch.context() as patch:
-            patch.setattr(storage, "MIGRATIONS", (*old, (MIGRATIONS[-1][0], MIGRATIONS[-1][1] + b"\nSELECT 1/0;")))
+            patch.setattr(storage, "MIGRATIONS", (*old, (current[-1][0], current[-1][1] + b"\nSELECT 1/0;")))
             with pytest.raises(psycopg.errors.DivisionByZero):
                 database.migrate()
         with database.transaction(principal) as conn:
             assert conn.execute("SELECT to_jsonb(a) AS row FROM memory_assertions a ORDER BY id").fetchall() == before
             assert conn.execute("SELECT count(*) AS n FROM memory_migrations WHERE name=%s",
-                                (MIGRATIONS[-1][0],)).fetchone()["n"] == 0
+                                (current[-1][0],)).fetchone()["n"] == 0
             index = conn.execute("SELECT pg_get_indexdef('memory_assertions_search'::regclass) AS definition").fetchone()["definition"]
             assert "to_tsvector" in index
         database.migrate()
