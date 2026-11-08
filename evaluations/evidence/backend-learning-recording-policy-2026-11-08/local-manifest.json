@@ -1,0 +1,112 @@
+{
+  "identity": {
+    "build_id": "f50cc9cfd01cf9b8a0b060436c265212bd849865f661d53f71de449cf7187988",
+    "schema_id": "c38b40412948ce956724d788db45673aff2e2ab0ef8e4b6e8870e40f528d3da3",
+    "runtime_inputs": 206,
+    "runtime_inputs_equal": true,
+    "runtime_commit": "746c4da370f4bda8a0ed3ec583c870280e344d43",
+    "source_commit": "a56d5852e9a800731773c4e38c2ede37eb774a54",
+    "source_tree": "5c1027f390f9276618d58caa4e25e4b2926ffdc3",
+    "verify_run_id": 42529985829,
+    "native_run_id": 42529987748
+  },
+  "notes": "baseline.log: 14 pre-fix failures on integration 88244ca. focused/core/broad logs are the superseded payload-based implementation; broad retains 12 lifecycle authority failures. repair/source-final/installed qualify the separate-column implementation. build.log retains missing Hatchling in a non-isolated environment; build-final.log records successful uv build. No failures are waived or relabelled. Test parameter labels and privacy scrub applied; hashes preserve original/stored distinctions. No paid model evaluations.",
+  "files": [
+    {
+      "path": "baseline.log.gz",
+      "raw_sha256": "3153f6d8eeedbf9b493975fc424861cd0a8382feebf1f132defc5aa9d64b8b39",
+      "stored_sha256": "937e40d8015604a7f15add2fbcab9fff630dabf15344890dd88ff489e9a04c79",
+      "gzip_sha256": "89604ffc3d7ddf35c687ec318b5376152c8abbce34426b3fc417be652c148a12"
+    },
+    {
+      "path": "focused.log.gz",
+      "raw_sha256": "377199404905256ca023332e24019f1b2654ddf41e21b12c4a48c475f56ce33e",
+      "stored_sha256": "377199404905256ca023332e24019f1b2654ddf41e21b12c4a48c475f56ce33e",
+      "gzip_sha256": "d9b876e8dcbf95349729f129025976d55ff4a6b11f0393119ed650a60d8df050"
+    },
+    {
+      "path": "core.log.gz",
+      "raw_sha256": "ee4869e9d1a9ea43b4ebca2b0e3f9aaeae7ce42d5f0f4fa643b5f1b729cc9015",
+      "stored_sha256": "ee4869e9d1a9ea43b4ebca2b0e3f9aaeae7ce42d5f0f4fa643b5f1b729cc9015",
+      "gzip_sha256": "620e381ea5ca676de7fc2239ca06d4a7fc48281d528bf7a6297ee4c6af46de69"
+    },
+    {
+      "path": "broad.log.gz",
+      "raw_sha256": "6b585d90dd6d002c2c251a1c83b7b5e13ab514c7a259d5275a53b734c7421cb7",
+      "stored_sha256": "7f2947c5c2740af8aa346fe7238e1606c319170a8a89bef890840f9e1e105d57",
+      "gzip_sha256": "3b769a7964d7fbc83be6b8f331a6cb359d88fcd57ab0291e1d861209e16319ee"
+    },
+    {
+      "path": "repair.log.gz",
+      "raw_sha256": "0544a799e08b71f68782761e83141789bbe0458a9a3c5c5295445534e56ad340",
+      "stored_sha256": "0544a799e08b71f68782761e83141789bbe0458a9a3c5c5295445534e56ad340",
+      "gzip_sha256": "b8e7839a62333739e91a8d79f8ef3d4da35455165fbf393cc2dbfdf44e27e180"
+    },
+    {
+      "path": "source-final.log.gz",
+      "raw_sha256": "6455c32bb14932bccb4468cbe5d7fdf43207e828fb2d03fa49a6f101f682f5cd",
+      "stored_sha256": "6455c32bb14932bccb4468cbe5d7fdf43207e828fb2d03fa49a6f101f682f5cd",
+      "gzip_sha256": "551b24a9a6b373118694ade5ab073cc37dfe354e32dc0c935a3a8d4ae85d7662"
+    },
+    {
+      "path": "installed.log.gz",
+      "raw_sha256": "f1153ee286d8f746c98a21cfaaf46297898acd2e0a5c2b3b195740d004df2d31",
+      "stored_sha256": "f1153ee286d8f746c98a21cfaaf46297898acd2e0a5c2b3b195740d004df2d31",
+      "gzip_sha256": "7e0c1932a4a5f6913b2490e25a181e67b5ed3fdaf9b211dafedf87ed27f30d59"
+    },
+    {
+      "path": "build.log.gz",
+      "raw_sha256": "4dadf47ff454904c7175854792f1a23467c5c9df1bfcdb9323d93e7143b8acd9",
+      "stored_sha256": "4dadf47ff454904c7175854792f1a23467c5c9df1bfcdb9323d93e7143b8acd9",
+      "gzip_sha256": "9330f59e1dd50a294f69fda9c6a61b6f2b8c307085773791b6acbbad322e7d79"
+    },
+    {
+      "path": "build-final.log.gz",
+      "raw_sha256": "4bd6eeb857fc7b1cf8f0138ee2ca96675b5d77c0ea8ee0afd11710d1e7e34769",
+      "stored_sha256": "4bd6eeb857fc7b1cf8f0138ee2ca96675b5d77c0ea8ee0afd11710d1e7e34769",
+      "gzip_sha256": "070c16d1c82dd9951732feb05eb530c36da1968dc5a4b01c78a12255d2caa48d"
+    },
+    {
+      "path": "pins.log.gz",
+      "raw_sha256": "cd104933a93ce8b3f80b912e09dc23855988440acbe5564d0b3397f07afab5ad",
+      "stored_sha256": "cd104933a93ce8b3f80b912e09dc23855988440acbe5564d0b3397f07afab5ad",
+      "gzip_sha256": "50bd6c4526743dc56d77b0a168e7449842f84804e132a821cda7f235abf4ab3a"
+    },
+    {
+      "path": "pin-tests.log.gz",
+      "raw_sha256": "f4c61c0ac8f55c6c9a2d6c593731bf5f8c4a6c5bebbe514284fd4f899818f9e0",
+      "stored_sha256": "f4c61c0ac8f55c6c9a2d6c593731bf5f8c4a6c5bebbe514284fd4f899818f9e0",
+      "gzip_sha256": "427ec37c7d20786448fe520d5739a905282fa5f66ed96b7c4994c9dea4b93e11"
+    },
+    {
+      "path": "ruff.log.gz",
+      "raw_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "stored_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "gzip_sha256": "7162964741fdb747d7ab27df2d1a1b64fa0636c4b7fe50ea8493de14cb62cbd4"
+    },
+    {
+      "path": "cleanup.json.gz",
+      "raw_sha256": "fd202ab9251c36b1290f260fcb008c61c6e9b3a7b4696f9c0eb64802b33de547",
+      "stored_sha256": "fd202ab9251c36b1290f260fcb008c61c6e9b3a7b4696f9c0eb64802b33de547",
+      "gzip_sha256": "b3d0915b216d02d1a528a2e1d091fc4e30051393e5fbb608e86a50f93c8ca99a"
+    },
+    {
+      "path": "run-tests.py.gz",
+      "raw_sha256": "fd324795eef182e4beb1e681ef802d595a5ebe612a1757fd8c8c95e0e43d2ba4",
+      "stored_sha256": "fd324795eef182e4beb1e681ef802d595a5ebe612a1757fd8c8c95e0e43d2ba4",
+      "gzip_sha256": "42896f651c408abb720878b429a4c338c2c3d85e0f5de97d19d13effe7d246a9"
+    },
+    {
+      "path": "commands.json.gz",
+      "raw_sha256": "6a8978259327342fc406512ece00e17fac2845faf301f4c66e3447126439a4c6",
+      "stored_sha256": "6a8978259327342fc406512ece00e17fac2845faf301f4c66e3447126439a4c6",
+      "gzip_sha256": "7bbaa8eefdf877b3e60b0640ae68709d033460e0761713f5f39dad424b051843"
+    },
+    {
+      "path": "identity.json.gz",
+      "raw_sha256": "69a7a00ac444fe5eea6bc85e7dd18fc5658733cb33eb328e482408f4fb8c4662",
+      "stored_sha256": "69a7a00ac444fe5eea6bc85e7dd18fc5658733cb33eb328e482408f4fb8c4662",
+      "gzip_sha256": "1ad9c7abdf4f0f3c5ba931db775407497e39defc7f0dd93e4c1131bfc87e2bb3"
+    }
+  ]
+}
