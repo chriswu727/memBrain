@@ -1,0 +1,11 @@
+plugins/membrain/.claude-mcp.json: 1 pinned
+plugins/membrain/.codex-mcp.json: 1 pinned
+plugins/membrain/.codebuddy-mcp.json: 1 pinned
+plugins/membrain/hooks/claude-hooks.json: 1 pinned
+plugins/membrain/hooks/codex-hooks.json: 1 pinned
+plugins/membrain/bin/membrain-hook: 1 pinned
+plugins/membrain/bin/membrain-hook.cmd: 1 pinned
+integrations/openclaw/membrain/index.js: 1 pinned
+integrations/astrbot/astrbot_plugin_membrain/requirements.txt: 1 pinned
+..                                                                       [100%]
+2 passed in 0.09s

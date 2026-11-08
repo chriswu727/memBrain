@@ -1,7 +1,7 @@
 # Host capture revision fence
 
-Runtime commit: `6094a0945076a5cfc4897c72f23cacca0f435abd`.
-Build ID: `cf92060603b904d155372df91088501e1b2321d522820f84897bfebb160d514f`.
+Runtime commit: `6a8f6c12fc86b52d10c6292dd8a85b8aaea5c3a0`.
+Build ID: `228a384ac9e6f6aa713a7ce49a45531c222162ded2e4f6a80c5ef8f67e6082e1`.
 
 ## Result
 
@@ -13,20 +13,22 @@ Policy-rejected records are removed without a rejected-content archive; their ma
 
 ## Verification
 
-- 297 related source tests pass, zero skips, in 113.86 seconds, including real PostgreSQL/API behavior, offline replay, owner/role-play isolation, callback races, host adapters and contracts.
-- 94 extracted-wheel tests pass, zero skips, in 4.97 seconds. All 202 runtime inputs match source byte-for-byte.
+- 301 related source tests pass, zero skips, in 115.29 seconds, including real PostgreSQL/API behavior, offline replay, owner/role-play isolation, callback races, host adapters and contracts.
+- 98 extracted-wheel tests pass, zero skips, in 4.66 seconds. All 202 runtime inputs match source byte-for-byte.
 - 56 TypeScript tests pass, zero failures/skips; strict types, Ruff and wheel/sdist builds pass. Both launcher-pin checks pass.
 - Complete GitHub Verify and five-platform native qualification are pending on this candidate. The preceding server-control runtime's results remain historical evidence, not qualification of this change.
 
 ## Local control-path cost
 
-On the installed wheel, an arm64 loopback HTTP/embedded PostgreSQL probe measured 100 policy reads with cache persistence: median **2.047 ms**, p95 **2.326 ms**. Interleaved observation samples had medians **3.154 ms** without a capture revision and **3.167 ms** with one (100 each); the small difference is not a statistically established speed change. A 500-record stale queue was discarded in **1.938 seconds** with no rejected-content archive and no queued content stored. Both service ports closed after the probe. This is a local ingestion/control-path measurement, not recall latency, production concurrency or memory capacity. No model calls were made.
+On the installed wheel, an arm64 loopback HTTP/embedded PostgreSQL probe measured 100 policy reads with cache persistence: median **2.414 ms**, p95 **3.087 ms**. Interleaved observation samples had medians **4.469 ms** without a capture revision and **4.500 ms** with one (100 each); the small difference is not a statistically established speed change. A 500-record stale queue was discarded in **1.690 seconds** with no rejected-content archive and no queued content stored. Both service ports closed after the probe. This is a local ingestion/control-path measurement, not recall latency, production concurrency or memory capacity. No model calls were made.
 
 ## Retained failures
 
 The first source run had 145 passes and four failures: rejected prompt cues remained locally, one new test counted assistant messages through the user-only timeline default, and an existing assertion expected the earlier conversation-pause wording. Cue cleanup was implemented, the test explicitly requests both roles, and the wording now preserves the tested meaning without claiming server resume. The first TypeScript run had 55 passes and one failure because the new mock omitted response identity; the fixture now echoes request ID and action.
 
-The second source run had 184 passes and two failures: a minimal legacy record without conversation metadata made cleanup raise, and fixed synthetic user IDs collided with another test principal in the reused database. Cleanup now requires locatable session identity, and the multi-user test uses unique fixture identities. A subsequent 295-test run passed. Review then added two regression tests that both failed: an old policy's cue still reached recall, and duplicate staging could downgrade a server exclusion. Both production paths were repaired before the final 297-test run. The failed logs remain in the evidence directory; rejection assertions were not removed.
+The second source run had 184 passes and two failures: a minimal legacy record without conversation metadata made cleanup raise, and fixed synthetic user IDs collided with another test principal in the reused database. Cleanup now requires locatable session identity, and the multi-user test uses unique fixture identities. A subsequent 295-test run passed. Review then added two regression tests that both failed: an old policy's cue still reached recall, and duplicate staging could downgrade a server exclusion. Both production paths were repaired before a 297-test run. The failed logs remain in the evidence directory; rejection assertions were not removed.
+
+Final review also reproduced four malformed-queue failures: non-object JSON could block subsequent valid records. The queue now rejects those shapes before owner lookup; the final source/installed groups pass 301/98 tests. Verify `42458960955` and native run `42458960992` on the superseded `30e7557` source were explicitly cancelled for this repair, not counted as successful qualification. Their receipts and the four failure outputs are retained. The earlier probe remains scoped to its recorded build; the figures above use the final installed build.
 
 ## Limits and release status
 
