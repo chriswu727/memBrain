@@ -1,0 +1,105 @@
+{
+  "total_count": 5,
+  "artifacts": [
+    {
+      "id": 13634155114,
+      "node_id": "MDg6QXJ0aWZhY3QxMzYzNDE1NTExNA==",
+      "name": "native-linux-aarch64",
+      "size_in_bytes": 11641004,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13634155114",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13634155114/zip",
+      "expired": false,
+      "digest": "sha256:43755222663318f0a0afa61faaaa0d5bc2b30bb651934b05e2ee51379ce655ab",
+      "created_at": "2026-11-08T20:44:09Z",
+      "updated_at": "2026-11-08T20:44:09Z",
+      "expires_at": "2026-12-08T20:44:08Z",
+      "workflow_run": {
+        "id": 42521256198,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "fix/extraction-recording-fence",
+        "head_sha": "3b27b63233e2091b3ff2855e4dca5e0b24dddb1a"
+      }
+    },
+    {
+      "id": 13633931557,
+      "node_id": "MDg6QXJ0aWZhY3QxMzYzMzkzMTU1Nw==",
+      "name": "native-windows-x86_64",
+      "size_in_bytes": 47418660,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13633931557",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13633931557/zip",
+      "expired": false,
+      "digest": "sha256:c51d77453f06a4243a02ad60e78d1a3a824c5b5049b1a6d89d6411fc826d5ce7",
+      "created_at": "2026-11-08T20:47:56Z",
+      "updated_at": "2026-11-08T20:47:56Z",
+      "expires_at": "2026-12-08T20:47:53Z",
+      "workflow_run": {
+        "id": 42521256198,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "fix/extraction-recording-fence",
+        "head_sha": "3b27b63233e2091b3ff2855e4dca5e0b24dddb1a"
+      }
+    },
+    {
+      "id": 13633880911,
+      "node_id": "MDg6QXJ0aWZhY3QxMzYzMzg4MDkxMQ==",
+      "name": "native-macos-arm64",
+      "size_in_bytes": 13034503,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13633880911",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13633880911/zip",
+      "expired": false,
+      "digest": "sha256:4d729997ea1a8742141be658c77c4582563f5bccbacf28ffd2c41327aa80c22d",
+      "created_at": "2026-11-08T20:43:10Z",
+      "updated_at": "2026-11-08T20:43:10Z",
+      "expires_at": "2026-12-08T20:43:08Z",
+      "workflow_run": {
+        "id": 42521256198,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "fix/extraction-recording-fence",
+        "head_sha": "3b27b63233e2091b3ff2855e4dca5e0b24dddb1a"
+      }
+    },
+    {
+      "id": 13633428335,
+      "node_id": "MDg6QXJ0aWZhY3QxMzYzMzQyODMzNQ==",
+      "name": "native-macos-x86_64",
+      "size_in_bytes": 13419857,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13633428335",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13633428335/zip",
+      "expired": false,
+      "digest": "sha256:144755d82f2d0e7a921131fbad567442cb5ccad6059d4398b2e7bffe130d7704",
+      "created_at": "2026-11-08T20:47:17Z",
+      "updated_at": "2026-11-08T20:47:17Z",
+      "expires_at": "2026-12-08T20:47:11Z",
+      "workflow_run": {
+        "id": 42521256198,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "fix/extraction-recording-fence",
+        "head_sha": "3b27b63233e2091b3ff2855e4dca5e0b24dddb1a"
+      }
+    },
+    {
+      "id": 13633403365,
+      "node_id": "MDg6QXJ0aWZhY3QxMzYzMzQwMzM2NQ==",
+      "name": "native-linux-x86_64",
+      "size_in_bytes": 11887133,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13633403365",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13633403365/zip",
+      "expired": false,
+      "digest": "sha256:4f01fc821d296a9516a3d5d71c21beb4fcb68c71bb96bb6d117033efd1a7c5b0",
+      "created_at": "2026-11-08T20:45:49Z",
+      "updated_at": "2026-11-08T20:45:49Z",
+      "expires_at": "2026-12-08T20:45:48Z",
+      "workflow_run": {
+        "id": 42521256198,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "fix/extraction-recording-fence",
+        "head_sha": "3b27b63233e2091b3ff2855e4dca5e0b24dddb1a"
+      }
+    }
+  ]
+}

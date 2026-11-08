@@ -1,0 +1,40 @@
+# Recording-fenced background note extraction
+
+Runtime `f9fec2e7af27e1472704954891792159118bf44c`, source `3b27b63233e2091b3ff2855e4dca5e0b24dddb1a`, build `6e08a2e0a8fb8fc02bb8b0f165f5366242ebc296ab11b95539a91620bd92c490`. Schema remains `c48792e8a1d8c4d6cf7c591c92f6529dda10ee1d801d7f332b284cda52b272d8`; no migration is needed. All nine launchers pin the runtime. [PR #52](https://github.com/chriswu727/memBrain/pull/52) merged into integration only as `46fbfa59bc8a7c135bec69c2c3a4605a3b83eed7`. Full qualification passes; the merge tree `d356f9b33745bde0394ba2dc6e7059e1e303ba22` equals the qualified source tree. Documentation/evidence follow-ups change no implementation inputs; main merge and publication remain blocked by failed R4 and invalid/unscored C5.
+
+## Defect and behavior
+
+Automatic ChatMemory/proxy note extraction checked source edits, erasure and dependency generations but did not retain the server recording policy captured with the original turn. A pause/resume cycle could therefore admit an old queued or in-flight proposal. Six synthetic baseline regressions fail: queued tasks, provider-time changes and retry-time changes, each with pause alone or pause followed by resume. Pause-alone writes were already rejected by event ingestion, but queued provider work and diagnostics were not correctly fenced; the resume cases expose stale persistence. The original failures are retained rather than relabelled as passes.
+
+The adapter now retains the original capture target and revision. Invalid or rebound targets are rejected before source reads/provider work. Every extraction attempt compares that frozen revision with the policy included in its exact-source snapshot. Retries never refresh the capture revision. Source reads remain available to authenticated owners while recording is paused; the extraction consumer decides whether it may proceed.
+
+New note writes accept `expected_recording_revision`. Under the existing brain transaction lock, the service rejects paused or stale writes before replacing notes, recording feelings/dependencies or retaining request payloads. Pause and write operations serialize on that same lock: a write committed before the pause is retained; one following the pause is rejected. If a policy change occurs between notes, earlier committed notes remain and later old proposals stop. A new turn captured after resume can save notes normally.
+
+Already committed identical requests still return their original acknowledgement without another write. Rebinding the same request ID to a newer policy revision is an idempotency conflict. Python `save_note` and the HTTP/TypeScript note interface carry the optional revision; legacy clients cannot silently fall back to unguarded observe when the option is supplied. Omitted/null revision defaults preserve existing note request fingerprints.
+
+This adds no provider call, no extra source-read database query and no migration. It is a privacy/control repair, not a new recall-speed or memory-quality measurement.
+
+## Verification
+
+Final source qualification passes all 243 related tests, zero skips, in 340.19 seconds after the dependency isolation repair. Final installed qualification passes all 123 runtime tests, zero skips, in 164.96 seconds. The unchanged import-graph guard also passes independently against all seven companion layers in the extracted wheel; the two repository AST guards are counted in source tests, not added to the installed runtime count. Both previously failing import guards pass unchanged (2 tests, 0.54 seconds). All 205 runtime inputs match the final extracted wheel byte-for-byte. Ruff, wheel/sdist builds and both final launcher-pin checks pass. TypeScript passed all 56 tests and strict types before this Python-only dependency repair; final full Verify also passes those checks.
+
+The initial implementation passed 241 distinct related source tests: 102 service/note/control tests (12.86 seconds), 17 extraction-source tests (127.05 seconds), four additional extraction tests (30.52 seconds), and 118 broader extraction, delivery, chatbot, proxy and local recording tests (175.33 seconds). Its 123 installed tests passed in 164.05 seconds after disk recovery; all 204 initial runtime inputs matched. These results retain source `1f7a5f3` scope and do not qualify the successor by themselves.
+
+Initial full Verify 42517637048 failed with **2 failed, 8,051 passed, 3 existing fork warnings** in 2,321.51 seconds. The existing companion/persona import-graph guards found that `notes` reached the model/network-dependent service through `recording_control`. The policy predicate now resides in pure `recording_guard`; `recording_control` re-exports it for existing callers. The guard logic is unchanged and the two tests were not weakened or modified. This architecture regression is retained, not relabelled as a passing run.
+
+Initial native qualification 42517638938 passed all five platforms with 47 audited summaries on `1f7a5f3`. Final native qualification 42521256198 passes all five platforms on exact successor `3b27b63`, with 47 audited current-source summaries completing with zero model calls and successful recorded port closures. Five duplicate qualification copies are excluded; two optional Linux compatibility jobs were not selected. [Full Verify 42521253806](https://github.com/chriswu727/memBrain/actions/runs/42521253806) passes 8,053 Python tests in 2,465.93 seconds and 56 TypeScript tests with zero skips, plus strict types, Ruff and builds. Three existing multiprocessing fork warnings remain. Both are explicitly dispatched; pin commits suppress duplicate automatic workflows, not qualification. Native supplier build inputs are unchanged from `72d960c`; checks use the checksummed bundles from run 42459291814 and execute current-source installation, upgrade, recovery, rollback and access tests. This does not claim fresh native compilation. Each run retains its own source identity.
+
+## Retained local qualification failures
+
+Expanded host tests and the first installed run encountered `ENOSPC` and pytest capture failures. They are incomplete, not passing qualifications. The subsequent restart of the synthetic test database was refused because it was not cleanly stopped; its failure is also retained. Only this task's synthetic pytest fixtures and stopped test database were removed. Twenty-two fixture profiles were explicitly stopped and their API/database ports checked closed before removing the interrupted fixture directories. The earlier completed fixture directories had no postmaster markers. Free disk recovered to about 4.3 GiB.
+
+Requalification uses a fresh synthetic database, sequential runs and pytest's failed-only temporary-directory retention. The original source failures and interrupted logs remain in the evidence. No private installation, models or user archives were deleted.
+
+## Remaining boundaries
+
+This closes automatic ChatMemory/proxy extraction and enables opt-in guarded note clients. Manual host note tools/custom clients that omit a capture revision, independently scheduled cognitive learning, local conversation/timed control synchronization, ephemeral durable turns and crash-atomic delivery remain separate work. Module 1 is not complete.
+
+A policy may change after a provider-attempt snapshot was checked; an external call already dispatched cannot be recalled. The transactional fence prevents its stale result from becoming a new note, not all external processing. Existing-history inspection is deliberately retained. General multilingual privacy-intent interpretation and natural long-term personality/emotion behavior are not established by these deterministic tests. R4 remains failed, C5 invalid/unscored, and no paid or subscription-backed evaluation, main merge, tag or publication is authorized by this qualification.
+
+
+[Retained evidence](evidence/backend-extraction-recording-fence-2026-11-08) includes the original failures, successful local qualification, runtime identity, native execution summaries and hashes. No private profile, credential, model binary or hidden acceptance scenario is included.

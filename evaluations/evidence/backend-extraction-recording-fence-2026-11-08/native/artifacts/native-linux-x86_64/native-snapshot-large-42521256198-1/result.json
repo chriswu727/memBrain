@@ -1,0 +1,29 @@
+{
+  "completed": true,
+  "model_calls": 0,
+  "target": "linux-x86_64",
+  "scope": "offline snapshot component only; no automatic upgrader or default selector adoption",
+  "legacy_upgrade": true,
+  "root_service_account": false,
+  "timings_ms": {
+    "snapshot_create_verify": 13549.921381999979,
+    "staged_restore_verify": 20188.557054
+  },
+  "phase": "complete",
+  "preserved_original_engine": false,
+  "large_file_bytes": 2147487744,
+  "zip64_large_member_verified": true,
+  "python_peak_rss_mib": 55.30078125,
+  "snapshot_receipt_sha256": "ab1d91b9897ae24d0f249bbac01a8327062f6a5f8c5bca6f5105c4d5fe0792c4",
+  "snapshot_archive_sha256": "8206fc39553ea7b8092a4074d2225993848876a9d36831bd4fe285c6c20a9947",
+  "entries": 1607,
+  "data_bytes": 2202593456,
+  "original_fingerprint": "a6f5b5bd2ee80b5692886d9dcee0f824fdaca1306d2aa27af40bc7a79a8a548c",
+  "original_unchanged_during_snapshot": true,
+  "upgraded_original_preserved_during_restore": true,
+  "restored_complete_bytes_modes_owners_timestamps": true,
+  "roles_second_database_vector_indexes_and_rows_restored": true,
+  "original_engine_and_vector_restored": true,
+  "custom_configuration_preserved": true,
+  "ports_closed": true
+}

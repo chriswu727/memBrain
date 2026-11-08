@@ -1,0 +1,20 @@
+{
+  "completed": true,
+  "model_calls": 0,
+  "phase": "complete",
+  "scope": "isolated native cache and SQL transport qualification; ordinary API startup is qualified separately",
+  "cache_preexisting": false,
+  "timings_ms": {
+    "first_prepare": 929.4720649999988,
+    "warm_prepare": 304.05483399999866
+  },
+  "target": "linux-x86_64",
+  "verified_files": 1368,
+  "restart_preserves_rows": true,
+  "host_native_environment_isolated": true,
+  "cached_client_dump_preserves_row": true,
+  "supplier_unchanged": true,
+  "supplier_python_executed": false,
+  "cache_prefix": "/home/runner/work/_temp/packaged-native-42521256198-1/cache/v1-16.15-linux-x86_64-dc1d2b61ca167de068c60252/pginstall",
+  "ports_closed": true
+}

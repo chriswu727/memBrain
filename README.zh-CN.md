@@ -18,11 +18,11 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 九个启动器均固定到包含[召回筛选预计算](evaluations/maturity-stored-recall-eligibility-2026-11-08.md)的运行时 `10dbeb05`。在同一份一万条公开测试记忆、相同升级后存储布局上，完整宿主召回的单次中位耗时从 283–289 毫秒降至 144–146 毫秒，八路并发从 799–817 毫秒降至 292–301 毫秒。120 组完整候选对照全部一致。本轮在受测数据规模上额外增加约 0.1–1.0% 的断言表及索引占用，插入有少量额外开销。当前 Verify 通过 8,032 项 Python、56 项 TypeScript 测试，无跳过项，类型检查、Ruff 和构建均通过；保留三条已有的 fork 警告。五个平台使用已校验的原生组件包完成当前源码验证，47 份执行摘要已核对。[宿主限制](docs/host-compatibility.md)和[发布阻碍](docs/releasing.md)均明确保留；R4、C5 和最终发布审查通过前，发布保持冻结。
+> **预发布阶段。** 九个启动器均固定到包含[后台提取记录版本校验](evaluations/backend-extraction-recording-fence-2026-11-08.md)的运行时 `f9fec2e7`。ChatMemory/代理自动提取在排队和重试时保留原始采集版本；服务端暂停再恢复后，旧笔记提案会在写入事务中被拒绝。当前 Verify 通过 8,053 项 Python、56 项 TypeScript 测试，无跳过项，类型检查、Ruff 和构建均通过；保留 3 条已有的 fork 警告。五个平台使用已校验的原生组件包完成当前源码验证，47 份执行摘要已核对。[此前召回性能结果](evaluations/maturity-stored-recall-eligibility-2026-11-08.md)保留其受测版本范围。[宿主限制](docs/host-compatibility.md)和[发布阻碍](docs/releasing.md)均明确保留；R4、C5 和最终发布审查通过前，发布保持冻结。
 
 > **最近一次验收执行：** [第五次验收](evaluations/maturity-fifth-attempt-2026-11-07.md)完成了有效的 R4 评分：插件模式 20 分（通过）、提取模式 16 分（未通过：1 个记忆系统导致的隐私错误）、完整历史参照组 15.5 分。C1 因页面操作失败停止，C2 未运行；C5 无效且未评分。账本已封锁，保守结算 39.634310 元，没有未知费用预留，也没有自动重跑授权。
 
-> **当前发布状态：** [召回筛选预计算](evaluations/maturity-stored-recall-eligibility-2026-11-08.md)通过 243 项相关源码测试、243 项安装包测试，204 个运行时文件与源码完全一致。PR #51 已作为 `1750889` 合入集成分支，完整文件树与受测源码 `2c23056` 一致。迁移 031 会在事务中重写断言表；正文修改和归档恢复自动重算原有助手发言过滤条件，保留空值语义及独立的访问控制。已有的[采集版本校验](evaluations/backend-capture-revision-2026-11-08.md)继续保留。反向同步、派生笔记的版本校验、临时且不留记录的持久化聊天模式及写入中断一致性仍待完善。R4 未通过，C5 无效且未评分；没有自动重跑付费验收或发布授权。
+> **当前发布状态：** [后台提取记录版本校验](evaluations/backend-extraction-recording-fence-2026-11-08.md)通过 243 项相关源码测试、123 项安装包测试，205 个运行时文件与源码完全一致。PR #52 已作为 `46fbfa5` 合入集成分支，完整文件树与受测源码 `3b27b63` 一致。已提交笔记的重试只返回原回执，不产生新写入；被拒绝的旧提案不能替换笔记或留下请求正文。本轮完成自动提取链路，整个后端模块尚未完成。不携带采集版本的手动工具、独立认知学习、控制状态反向同步、临时且不留记录的持久化聊天模式及写入中断一致性仍待完善。R4 未通过，C5 无效且未评分；没有自动重跑付费验收或发布授权。
 
 
 <a id="claude-code-plugin"></a>

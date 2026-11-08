@@ -1,0 +1,116 @@
+{
+  "run_id": 42517638938,
+  "artifact_id": 13632068155,
+  "name": "native-linux-aarch64",
+  "zip_sha256": "22b4369bf430ff623dd152c1e35eee1ed2d88f02a1349b9bb44bbde4275483d5",
+  "retained": [
+    {
+      "path": "artifacts/native-linux-aarch64/native-artifacts/artifacts.json",
+      "original_sha256": "e1ee82e53e209210ec135a03c9620bbb8b9367a54c2e1069e27af885fa7ff11f",
+      "stored_sha256": "e1ee82e53e209210ec135a03c9620bbb8b9367a54c2e1069e27af885fa7ff11f",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/native-artifacts/manifest.json",
+      "original_sha256": "29e30c0a335a888d3de5fd79794fb8908394a0d4bc9884d0480788f88de2a947",
+      "stored_sha256": "29e30c0a335a888d3de5fd79794fb8908394a0d4bc9884d0480788f88de2a947",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/native-artifacts/qualification.json",
+      "original_sha256": "ddd06950a2a4b2a96af88004cdf2e4874382e885277d2c4f0b07509b423c1691",
+      "stored_sha256": "ddd06950a2a4b2a96af88004cdf2e4874382e885277d2c4f0b07509b423c1691",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/native-check-42517638938-1/qualification.json",
+      "original_sha256": "ddd06950a2a4b2a96af88004cdf2e4874382e885277d2c4f0b07509b423c1691",
+      "stored_sha256": "ddd06950a2a4b2a96af88004cdf2e4874382e885277d2c4f0b07509b423c1691",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/packaged-native-42517638938-1/result.json",
+      "original_sha256": "d4ef9f045f90e4951dbb5013dbb6358e9221e9ac820589047d7e25708e6a1ee9",
+      "stored_sha256": "d4ef9f045f90e4951dbb5013dbb6358e9221e9ac820589047d7e25708e6a1ee9",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/native-snapshot-42517638938-1/result.json",
+      "original_sha256": "9e2859cb30b697130fa2c30b810a303dcc4ce4f551bd4f965c008033f56ab14e",
+      "stored_sha256": "9e2859cb30b697130fa2c30b810a303dcc4ce4f551bd4f965c008033f56ab14e",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/native-snapshot-root-result-42517638938-1.json",
+      "original_sha256": "e7b3cc175f8f90442fd05effa47e846bf033475aaf5068d31b3fa1cfcafe5531",
+      "stored_sha256": "e7b3cc175f8f90442fd05effa47e846bf033475aaf5068d31b3fa1cfcafe5531",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/native-maintenance-42517638938-1/result.json",
+      "original_sha256": "ed26f8211f9718f13efb90144674db0e281950d8fd64c086a84b2f28ae69d760",
+      "stored_sha256": "ed26f8211f9718f13efb90144674db0e281950d8fd64c086a84b2f28ae69d760",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/native-maintenance-42517638938-1/worker-result.json",
+      "original_sha256": "206c98c516881b90c47adc25c7cd690e215dd0e73baf3f9f8bc9e304fb8e703e",
+      "stored_sha256": "206c98c516881b90c47adc25c7cd690e215dd0e73baf3f9f8bc9e304fb8e703e",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/native-adoption-fresh-42517638938-1/result.json",
+      "original_sha256": "8123e48276bbd12f791705df87678689273a96425205dddca13dcfc908da36c6",
+      "stored_sha256": "8123e48276bbd12f791705df87678689273a96425205dddca13dcfc908da36c6",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/native-adoption-root-result-42517638938-1.json",
+      "original_sha256": "5de61715f8a0f28cad55386d08b52322d6596042f9d832f83805d3dc84d7736b",
+      "stored_sha256": "5de61715f8a0f28cad55386d08b52322d6596042f9d832f83805d3dc84d7736b",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/native-adoption-previous-42517638938-1/result.json",
+      "original_sha256": "f61e10daf466e862581b8f1eccf3317ed20db471b2b81204b7d4b87401a0239d",
+      "stored_sha256": "f61e10daf466e862581b8f1eccf3317ed20db471b2b81204b7d4b87401a0239d",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/native-adoption-previous-root-result-42517638938-1.json",
+      "original_sha256": "5ce3bf3c0e7221ad223e3d1f7529cb74aecc9f011e0e82b00323652ec214c9b8",
+      "stored_sha256": "5ce3bf3c0e7221ad223e3d1f7529cb74aecc9f011e0e82b00323652ec214c9b8",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/native-transition-42517638938-1/admission-worker-result.json",
+      "original_sha256": "dd6c60b7c767737c415915fbf0395b47c765071d2e2cfbb1900385688b0a07af",
+      "stored_sha256": "dd6c60b7c767737c415915fbf0395b47c765071d2e2cfbb1900385688b0a07af",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/native-transition-42517638938-1/result.json",
+      "original_sha256": "d584ddd476e26fc26f76000731ff03225ac0d73509279ec6ad6f8bead12c1b29",
+      "stored_sha256": "d584ddd476e26fc26f76000731ff03225ac0d73509279ec6ad6f8bead12c1b29",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/native-transition-42517638938-1/rollback-worker-result.json",
+      "original_sha256": "9515a57f352d578693b973f16ffffeab5fa4b9a492ba094f1a547bb228cd005a",
+      "stored_sha256": "9515a57f352d578693b973f16ffffeab5fa4b9a492ba094f1a547bb228cd005a",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/native-transition-root-result-42517638938-1.json",
+      "original_sha256": "3b62c10171461f3c07954eebd5a2a4a2e032e8257700888fe0428b5b8a035b22",
+      "stored_sha256": "3b62c10171461f3c07954eebd5a2a4a2e032e8257700888fe0428b5b8a035b22",
+      "line_endings_normalized": false
+    },
+    {
+      "path": "artifacts/native-linux-aarch64/native-maintenance-root-result-42517638938-1.json",
+      "original_sha256": "8efd613fa0722e8517342f7718e987546b7d572092b6c388c8a552a2d99b07d3",
+      "stored_sha256": "8efd613fa0722e8517342f7718e987546b7d572092b6c388c8a552a2d99b07d3",
+      "line_endings_normalized": false
+    }
+  ]
+}

@@ -1,0 +1,450 @@
+{
+  "source_commit": "1f7a5f3016e29bdd67ffa0efc4e01911a724a688",
+  "selected_runs": {
+    "42517638938": [
+      "native-linux-aarch64",
+      "native-linux-x86_64",
+      "native-macos-arm64",
+      "native-macos-x86_64",
+      "native-windows-x86_64"
+    ]
+  },
+  "count": 47,
+  "by_platform": {
+    "native-linux-aarch64": 12,
+    "native-linux-x86_64": 14,
+    "native-macos-arm64": 7,
+    "native-macos-x86_64": 7,
+    "native-windows-x86_64": 7
+  },
+  "duplicate_qualification_copies_excluded": 5,
+  "all_completed": true,
+  "all_model_calls_zero": true,
+  "all_recorded_port_closures_passed": true,
+  "complete_five_platform_qualification": true,
+  "summaries": [
+    {
+      "path": "native-linux-aarch64/native-adoption-fresh-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "owned_ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-aarch64/native-adoption-previous-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "owned_ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-aarch64/native-adoption-previous-root-result-42517638938-1.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "owned_ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-aarch64/native-adoption-root-result-42517638938-1.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "owned_ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-aarch64/native-check-42517638938-1/qualification.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "port_closed": true
+      }
+    },
+    {
+      "path": "native-linux-aarch64/native-maintenance-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-aarch64/native-maintenance-root-result-42517638938-1.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-aarch64/native-snapshot-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-aarch64/native-snapshot-root-result-42517638938-1.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-aarch64/native-transition-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-aarch64/native-transition-root-result-42517638938-1.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-aarch64/packaged-native-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-x86_64/native-adoption-fresh-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "owned_ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-x86_64/native-adoption-legacy-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "owned_ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-x86_64/native-adoption-previous-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "owned_ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-x86_64/native-adoption-previous-root-result-42517638938-1.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "owned_ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-x86_64/native-adoption-root-result-42517638938-1.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "owned_ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-x86_64/native-check-42517638938-1/qualification.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "port_closed": true
+      }
+    },
+    {
+      "path": "native-linux-x86_64/native-maintenance-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-x86_64/native-maintenance-root-result-42517638938-1.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-x86_64/native-snapshot-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-x86_64/native-snapshot-large-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-x86_64/native-snapshot-root-result-42517638938-1.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-x86_64/native-transition-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-x86_64/native-transition-root-result-42517638938-1.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-linux-x86_64/packaged-native-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-macos-arm64/native-adoption-fresh-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "owned_ports_closed": true
+      }
+    },
+    {
+      "path": "native-macos-arm64/native-adoption-legacy-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "owned_ports_closed": true
+      }
+    },
+    {
+      "path": "native-macos-arm64/native-check-42517638938-1/qualification.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "port_closed": true
+      }
+    },
+    {
+      "path": "native-macos-arm64/native-maintenance-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-macos-arm64/native-snapshot-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-macos-arm64/native-transition-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-macos-arm64/packaged-native-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-macos-x86_64/native-adoption-fresh-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "owned_ports_closed": true
+      }
+    },
+    {
+      "path": "native-macos-x86_64/native-adoption-legacy-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "owned_ports_closed": true
+      }
+    },
+    {
+      "path": "native-macos-x86_64/native-check-42517638938-1/qualification.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "port_closed": true
+      }
+    },
+    {
+      "path": "native-macos-x86_64/native-maintenance-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-macos-x86_64/native-snapshot-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-macos-x86_64/native-transition-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-macos-x86_64/packaged-native-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-windows-x86_64/native-adoption-fresh-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "owned_ports_closed": true
+      }
+    },
+    {
+      "path": "native-windows-x86_64/native-adoption-legacy-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "owned_ports_closed": true
+      }
+    },
+    {
+      "path": "native-windows-x86_64/native-check-42517638938-1/qualification.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "port_closed": true
+      }
+    },
+    {
+      "path": "native-windows-x86_64/native-maintenance-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-windows-x86_64/native-snapshot-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-windows-x86_64/native-transition-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    },
+    {
+      "path": "native-windows-x86_64/packaged-native-42517638938-1/result.json",
+      "run_id": 42517638938,
+      "completed": true,
+      "model_calls": 0,
+      "ports": {
+        "ports_closed": true
+      }
+    }
+  ]
+}

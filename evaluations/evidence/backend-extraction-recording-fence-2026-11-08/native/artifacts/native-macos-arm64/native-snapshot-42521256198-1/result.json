@@ -1,0 +1,31 @@
+{
+  "completed": true,
+  "model_calls": 0,
+  "target": "macos-arm64",
+  "scope": "offline snapshot component only; no automatic upgrader or default selector adoption",
+  "legacy_upgrade": true,
+  "root_service_account": false,
+  "timings_ms": {
+    "snapshot_create_verify": 1204.4368329999315,
+    "staged_restore_verify": 1533.3382079999183
+  },
+  "phase": "complete",
+  "preserved_original_engine": true,
+  "original_engine_commitment": "24bd1f4e0f451740df985a664e58d01f13a801624b12ba520e7296c96154d68d",
+  "original_engine_files": 1645,
+  "original_engine_bytes": 29257986,
+  "replaceable_source_unavailable": true,
+  "large_file_bytes": 0,
+  "snapshot_receipt_sha256": "88d19873724ca291fff2396ace071a8e4d57f348c97e5bf5a101f129e5286cfc",
+  "snapshot_archive_sha256": "aa6c5511f06a5c6ebd5b441fca9def51b8d50801a60dd4fd5743a9e3fc7425f1",
+  "entries": 1606,
+  "data_bytes": 55482556,
+  "original_fingerprint": "f10af926e3aed5aedfe43463df07c66465352014c79e62c84a13315f49f426de",
+  "original_unchanged_during_snapshot": true,
+  "upgraded_original_preserved_during_restore": true,
+  "restored_complete_bytes_modes_owners_timestamps": true,
+  "roles_second_database_vector_indexes_and_rows_restored": true,
+  "original_engine_and_vector_restored": true,
+  "custom_configuration_preserved": true,
+  "ports_closed": true
+}

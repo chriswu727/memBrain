@@ -1,0 +1,177 @@
+{
+  "identity": {
+    "runtime_commit": "f9fec2e7af27e1472704954891792159118bf44c",
+    "source_commit": "3b27b63233e2091b3ff2855e4dca5e0b24dddb1a",
+    "source_tree": "d356f9b33745bde0394ba2dc6e7059e1e303ba22",
+    "build_id": "6e08a2e0a8fb8fc02bb8b0f165f5366242ebc296ab11b95539a91620bd92c490",
+    "schema_id": "c48792e8a1d8c4d6cf7c591c92f6529dda10ee1d801d7f332b284cda52b272d8",
+    "runtime_inputs": 205,
+    "wheel": "dist/membrain_ai-0.1.0-py3-none-any.whl",
+    "runtime_inputs_equal": true
+  },
+  "notes": "Failed pre-fix regressions and incomplete ENOSPC qualification are retained. Logs are privacy-scrubbed and parameter labels/trailing whitespace normalized. Initial qualification is scoped separately in initial-manifest.json; final logs have -final names. No private profiles, credentials, model binaries or held-out scenarios.",
+  "files": [
+    {
+      "path": "baseline.log.gz",
+      "raw_sha256": "21d56ca5539e769bd71195ba6178429684fbd4fcc4c02568d1767d607dfff425",
+      "stored_sha256": "fd36cabdd71c61be45a666725fa031df7b44b121f050e8505c9da57a23133cc2",
+      "gzip_sha256": "af4cc87249d22894835ac359d8e5b76c497a6873d5ab68546be3ac2f04c8b5af"
+    },
+    {
+      "path": "core.log.gz",
+      "raw_sha256": "a0679195bdf9a348d4b0f7647316090290a3d43324ef81586ef26951282e93bf",
+      "stored_sha256": "a0679195bdf9a348d4b0f7647316090290a3d43324ef81586ef26951282e93bf",
+      "gzip_sha256": "ab9689b9ec1d4431ca17ece94d08c7672b4d6662860e37b7c69414c9a214c818"
+    },
+    {
+      "path": "source.log.gz",
+      "raw_sha256": "e35e770595a60614af3f345dabbd352c80c14dc1750e6e772bebf3e6ab7f0fb9",
+      "stored_sha256": "e35e770595a60614af3f345dabbd352c80c14dc1750e6e772bebf3e6ab7f0fb9",
+      "gzip_sha256": "6fe79aba890fa8453adf0880bd9c7b5cac71272c16a659862f9969c39c97c7ea"
+    },
+    {
+      "path": "additional.log.gz",
+      "raw_sha256": "102eb3aea8b10f7dde8c2c39b306d1ea91f784951af45401fa548c3a25a292c1",
+      "stored_sha256": "102eb3aea8b10f7dde8c2c39b306d1ea91f784951af45401fa548c3a25a292c1",
+      "gzip_sha256": "5feff8163c53de91ae38c245bc444402191f9849f0e834016c115036961432fb"
+    },
+    {
+      "path": "hosts.log.gz",
+      "raw_sha256": "b07984228f5af2a6909784f3ae179fa16450747da853f826087ccd5a8bd17e6c",
+      "stored_sha256": "b07984228f5af2a6909784f3ae179fa16450747da853f826087ccd5a8bd17e6c",
+      "gzip_sha256": "bcb2dc63bd7feacd5c4492b21bc6caf7bf040783f6e30762ffea160ce7776f27"
+    },
+    {
+      "path": "installed.log.gz",
+      "raw_sha256": "3bcbc6c045d01abf039c0cad8d217f4e8b843c6d0888b8851b4bf3b6ed87119b",
+      "stored_sha256": "3bcbc6c045d01abf039c0cad8d217f4e8b843c6d0888b8851b4bf3b6ed87119b",
+      "gzip_sha256": "07a74218022b7745e5f77d5d8e898a9aa0d13aacccb3ef600eacb195aafa1ee8"
+    },
+    {
+      "path": "installed-rerun.log.gz",
+      "raw_sha256": "4067165ab0f5f912a41ffed55f04321064bb4afe6a0a7255f364b18c12121618",
+      "stored_sha256": "4067165ab0f5f912a41ffed55f04321064bb4afe6a0a7255f364b18c12121618",
+      "gzip_sha256": "1df8ea71cf10272cbdcc826afe85f31963f0413feca27461cb14addd024d6284"
+    },
+    {
+      "path": "installed-fresh.log.gz",
+      "raw_sha256": "a6dcbe75d49044539b55b5f67ad4bbe54e90187c288f2c09308a9ffeedd5d0e5",
+      "stored_sha256": "a6dcbe75d49044539b55b5f67ad4bbe54e90187c288f2c09308a9ffeedd5d0e5",
+      "gzip_sha256": "0824e2ee43b51c3698e091cdd98f2f9a6d796b3a9ed3be95ddd40d4c0a808ad1"
+    },
+    {
+      "path": "hosts-rerun.log.gz",
+      "raw_sha256": "62e2880306be56b0a9639f78c326dfc4fdc0c4eeae8e996670b41bc5493595c8",
+      "stored_sha256": "62e2880306be56b0a9639f78c326dfc4fdc0c4eeae8e996670b41bc5493595c8",
+      "gzip_sha256": "7d6644a1ade465efdf19a08786f6c02b7597fcea9318b281ba419ce3f3832213"
+    },
+    {
+      "path": "ruff.log.gz",
+      "raw_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "stored_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "gzip_sha256": "7162964741fdb747d7ab27df2d1a1b64fa0636c4b7fe50ea8493de14cb62cbd4"
+    },
+    {
+      "path": "build.log.gz",
+      "raw_sha256": "4bd6eeb857fc7b1cf8f0138ee2ca96675b5d77c0ea8ee0afd11710d1e7e34769",
+      "stored_sha256": "4bd6eeb857fc7b1cf8f0138ee2ca96675b5d77c0ea8ee0afd11710d1e7e34769",
+      "gzip_sha256": "070c16d1c82dd9951732feb05eb530c36da1968dc5a4b01c78a12255d2caa48d"
+    },
+    {
+      "path": "pins.log.gz",
+      "raw_sha256": "cd104933a93ce8b3f80b912e09dc23855988440acbe5564d0b3397f07afab5ad",
+      "stored_sha256": "cd104933a93ce8b3f80b912e09dc23855988440acbe5564d0b3397f07afab5ad",
+      "gzip_sha256": "50bd6c4526743dc56d77b0a168e7449842f84804e132a821cda7f235abf4ab3a"
+    },
+    {
+      "path": "pin-tests.log.gz",
+      "raw_sha256": "f4c61c0ac8f55c6c9a2d6c593731bf5f8c4a6c5bebbe514284fd4f899818f9e0",
+      "stored_sha256": "f4c61c0ac8f55c6c9a2d6c593731bf5f8c4a6c5bebbe514284fd4f899818f9e0",
+      "gzip_sha256": "427ec37c7d20786448fe520d5739a905282fa5f66ed96b7c4994c9dea4b93e11"
+    },
+    {
+      "path": "disk-recovery.json.gz",
+      "raw_sha256": "63022ecf8e3ae65baccb0eda771b19f901a8d77cdb494e48a0b84f5d960a225a",
+      "stored_sha256": "63022ecf8e3ae65baccb0eda771b19f901a8d77cdb494e48a0b84f5d960a225a",
+      "gzip_sha256": "1b78fb8849fb67b9c17e8275d8f1479e0e4ed25f48bd64ab4de28764d1c2df77"
+    },
+    {
+      "path": "final-cleanup.json.gz",
+      "raw_sha256": "2890c431ac33e4540e801c321fb6670617f94d22aab15529e775bc76f2e59dd3",
+      "stored_sha256": "2890c431ac33e4540e801c321fb6670617f94d22aab15529e775bc76f2e59dd3",
+      "gzip_sha256": "13a455fe0e8d7d147b3bb4027617f70b0ff134a661d3c100b47a04521a3fc83a"
+    },
+    {
+      "path": "run-tests.py.gz",
+      "raw_sha256": "3b72bac2e9963756647142c0e579808523d44b82c02659aa2a9d91e16b091ed3",
+      "stored_sha256": "3b72bac2e9963756647142c0e579808523d44b82c02659aa2a9d91e16b091ed3",
+      "gzip_sha256": "0ae2c603fedab73b8a2e53ade0daa5efe0d41d2ba182947c243c7c322a62009e"
+    },
+    {
+      "path": "ci-failed.log.gz",
+      "raw_sha256": "cb87e2032ef27a5b6e313dd222138639d8033bc2de7bdf87cab6f28d73c8c6d9",
+      "stored_sha256": "5cc5b5dc8bf65fdc86970e084f774ec0e59fda8db3b1138eee54b78e047952ee",
+      "gzip_sha256": "2aecb1185538ded0ce91a0f21d751844c1e5a80e9182f4ac6adf00255a6cf1e5"
+    },
+    {
+      "path": "import-fix.log.gz",
+      "raw_sha256": "2f86d6e00fe040f161a2957fe1080a435069dbb1158c2975c3b86c577069cdf2",
+      "stored_sha256": "2f86d6e00fe040f161a2957fe1080a435069dbb1158c2975c3b86c577069cdf2",
+      "gzip_sha256": "2194fbeae51543a72c29814e7bdfc712691510c38d7cdbf6fdd7cb25fc70235b"
+    },
+    {
+      "path": "source-final.log.gz",
+      "raw_sha256": "d9528a4d2640c725b1a92d5aa6816dc22c620aef68acaf6586dd6672fa36f6de",
+      "stored_sha256": "d9528a4d2640c725b1a92d5aa6816dc22c620aef68acaf6586dd6672fa36f6de",
+      "gzip_sha256": "823b3685996b37ee985f6e069ce48e2e61c7c77ceb3574564fdc733ef338f4c3"
+    },
+    {
+      "path": "installed-final.log.gz",
+      "raw_sha256": "1f29df5391f4abbb76ae81569ae945bf7c8107e7123564fa9ab5453965b87a65",
+      "stored_sha256": "1f29df5391f4abbb76ae81569ae945bf7c8107e7123564fa9ab5453965b87a65",
+      "gzip_sha256": "08507c33e14983bd93df1cbb01959cdbf1487a212315e54545272b927c0b6714"
+    },
+    {
+      "path": "ruff-final.log.gz",
+      "raw_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "stored_sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18",
+      "gzip_sha256": "7162964741fdb747d7ab27df2d1a1b64fa0636c4b7fe50ea8493de14cb62cbd4"
+    },
+    {
+      "path": "build-final.log.gz",
+      "raw_sha256": "4bd6eeb857fc7b1cf8f0138ee2ca96675b5d77c0ea8ee0afd11710d1e7e34769",
+      "stored_sha256": "4bd6eeb857fc7b1cf8f0138ee2ca96675b5d77c0ea8ee0afd11710d1e7e34769",
+      "gzip_sha256": "070c16d1c82dd9951732feb05eb530c36da1968dc5a4b01c78a12255d2caa48d"
+    },
+    {
+      "path": "pins-final.log.gz",
+      "raw_sha256": "cd104933a93ce8b3f80b912e09dc23855988440acbe5564d0b3397f07afab5ad",
+      "stored_sha256": "cd104933a93ce8b3f80b912e09dc23855988440acbe5564d0b3397f07afab5ad",
+      "gzip_sha256": "50bd6c4526743dc56d77b0a168e7449842f84804e132a821cda7f235abf4ab3a"
+    },
+    {
+      "path": "pin-tests-final.log.gz",
+      "raw_sha256": "f4c61c0ac8f55c6c9a2d6c593731bf5f8c4a6c5bebbe514284fd4f899818f9e0",
+      "stored_sha256": "f4c61c0ac8f55c6c9a2d6c593731bf5f8c4a6c5bebbe514284fd4f899818f9e0",
+      "gzip_sha256": "427ec37c7d20786448fe520d5739a905282fa5f66ed96b7c4994c9dea4b93e11"
+    },
+    {
+      "path": "installed-import-guard.json.gz",
+      "raw_sha256": "9a0f0ad4993b581f1dadec1061969f19af4892f782fce2c8b9f48c01d7788341",
+      "stored_sha256": "9a0f0ad4993b581f1dadec1061969f19af4892f782fce2c8b9f48c01d7788341",
+      "gzip_sha256": "8975fc6d24c2cd277503c92fcf8728c298452097a75043106d2e2879312fbeff"
+    },
+    {
+      "path": "commands.json.gz",
+      "raw_sha256": "fa9c35a4f69736dedc0e3369d42de6e5cb5d67160a3de37bb3c7b1142f2d7ee5",
+      "stored_sha256": "fa9c35a4f69736dedc0e3369d42de6e5cb5d67160a3de37bb3c7b1142f2d7ee5",
+      "gzip_sha256": "8311008a02621e1371b7e0ed7f11da29ba8eab5766603aa455100c84e37f0450"
+    },
+    {
+      "path": "final-cleanup-successor.json.gz",
+      "raw_sha256": "a1f726f2e127bc0a8486459a8e46a1382dc2129d79d8f3a78d9c7c259c5f5fe7",
+      "stored_sha256": "a1f726f2e127bc0a8486459a8e46a1382dc2129d79d8f3a78d9c7c259c5f5fe7",
+      "gzip_sha256": "f4b448c5ccee1a500c9e767e79a4e813a73745472c944264d21bac86eb9ea38c"
+    }
+  ]
+}
