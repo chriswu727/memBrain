@@ -17,7 +17,7 @@ import sys
 import time
 from pathlib import Path
 
-from . import host_turns
+from . import host_recording, host_turns
 from .local_profile import profile_lock
 from .privacy import PRIVATE_MARK, SECRET_MARK, neutralize, scrub  # noqa: F401
 from .recording_policy import requests_pause
@@ -715,7 +715,34 @@ def spool(directory: Path, record: dict) -> None:
 def _recording_rejected(error: Exception) -> bool:
     from .client import MemoryActionError
 
-    return isinstance(error, MemoryActionError) and error.code == "recording_paused"
+    return isinstance(error, MemoryActionError) and error.code in ("recording_paused", "recording_stale")
+
+
+def _discard_recording(directory: Path, record: dict) -> None:
+    session = record.get("conversation_id")
+    if not isinstance(session, str) or not isinstance(record.get("source_event_key"), str):
+        return
+    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        state = session_state(directory, session)
+        identity = host_turns.key({**record, "producer_ref": record.get("producer_ref", "sdk")})
+        changed = False
+        if state.get("last_prompt_key") == identity or (
+            "last_prompt_key" not in state and state.get("user_id") == record.get("_user")
+            and state.get("last_prompt") == scrub(record["text"])[-CUE_CHARACTERS:]
+        ):
+            state.pop("last_prompt", None)
+            state.pop("last_prompt_key", None)
+            state.pop("last_prompt_recording", None)
+            changed = True
+        entry = host_turns.entries(state).get(identity)
+        if entry is not None:
+            entry.pop("record", None)
+            entry.pop("resumed", None)
+            entry["paused"] = "server"
+            state["turns_require_staging"] = True
+            changed = True
+        if changed:
+            _write_session_state(directory, session, state)
 
 
 def _permanent(error: Exception) -> bool:
@@ -764,14 +791,16 @@ def flush(client, directory: Path) -> int:
                         continue
                     try:
                         try:
-                            use_brain(client, record.pop("_user", None))
+                            use_brain(client, record.get("_user"))
                         except ValueError as error:  # An invalid user identifier never becomes valid.
                             raise TypeError(str(error)) from error
-                        client.observe(**record)
+                        host_recording.observe(client, record)
                     except Exception as error:
                         if not _permanent(error):
                             raise  # Offline or busy: keep this and every later record for the next replay.
-                        if not _recording_rejected(error):
+                        if _recording_rejected(error):
+                            _discard_recording(directory, record)
+                        else:
                             _reject(directory, line, error)
                     delivered += 1
             finally:
@@ -797,6 +826,9 @@ def deliver(directory: Path, client, record: dict) -> bool:
     user_id = record.get("_user")
     if paused(directory, user_id):
         return False
+    if host_recording.status(directory, user_id=user_id)["paused"]:
+        _discard_recording(directory, record)
+        return False
     record = {**record, "text": scrub(record["text"])}
     try:
         if client is None:
@@ -804,11 +836,12 @@ def deliver(directory: Path, client, record: dict) -> bool:
         current = client.brain_id
         try:
             use_brain(client, user_id)
-            client.observe(**{key: value for key, value in record.items() if key != "_user"})
+            host_recording.observe(client, record)
         finally:
             client.brain_id = current
     except Exception as error:
         if _recording_rejected(error):
+            _discard_recording(directory, record)
             return False
         spool(directory, record)
         log(directory, f"spooled {record['role']} record: {type(error).__name__}")
@@ -968,13 +1001,14 @@ def _acknowledge(client, current: dict | None) -> None:
 
 
 def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: bool = False,
-           legacy_source: str | None = None) -> bool:
+           legacy_source: str | None = None, server_paused: bool = False) -> bool:
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         explicit_pause = requests_pause(prompt)
         if explicit_pause:
             _pause_for_request(directory, session, record.get("_user"))
         state = session_state(directory, session)
-        exclusion = True if explicit_pause else "prompt" if paused(directory, record.get("_user")) else False
+        exclusion = ("server" if server_paused else True if explicit_pause
+                     else "prompt" if paused(directory, record.get("_user")) else False)
         if legacy_source is not None:
             for entry in host_turns.entries(state).values():
                 if (entry["owner"] == record.get("_user") and entry.get("producer") == record["producer_ref"]
@@ -991,8 +1025,13 @@ def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: b
         accepted = not exclusion and "record" in state["turns"][host_turns.key(record)]
         if not accepted:
             state.pop("last_prompt", None)
+            state.pop("last_prompt_key", None)
+            state.pop("last_prompt_recording", None)
         else:
             state["last_prompt"] = scrub(prompt)[-CUE_CHARACTERS:]
+            state["last_prompt_key"] = host_turns.key(record)
+            if "_recording" in record:
+                state["last_prompt_recording"] = record["_recording"]
         _write_session_state(directory, session, state)
         return accepted
 
@@ -1467,16 +1506,18 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     user_id = roleplay_user(user_id, roleplay)
     options = {"tools": tools, "skip_imports_from": list(skip_imports_from), "share_real_life": share_real_life}
     history, current, complete = None, None, False
-    resumed = ("Recording had been paused for an earlier conversation only; it is on again for this one. "
+    resumed = ("Recording was paused for an earlier conversation only; that local pause has ended. "
                if end_conversation_pause(directory, session, real_life) else "")
     client = ready_client(directory, user_id)
+    policy = host_recording.status(directory, client, user_id)
     if client is None:
         start_in_background(directory)
         _mark_history(directory, session, False)
         return (resumed + "memBrain is starting or unavailable. Earlier memory has not been loaded; do not claim it is "
                 "active or that you remember earlier sessions. Continue helping normally. Memory will be "
                 "retried on the next message. Run membrain plugin setup to check the connection. "
-                + privacy_notice(tools) + " " + _recording_notice(paused(directory, user_id), tools)).strip()
+                + privacy_notice(tools) + " " + (host_recording.notice(policy)
+                    or _recording_notice(paused(directory, user_id), tools))).strip()
     else:
         with client:
             flush(client, directory)
@@ -1499,6 +1540,9 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     if current is not None:
         _remember_context(directory, session, client.brain_id, current, options)
     notice = resumed + _session_notice(complete and bool(history), tools, paused(directory, user_id), roleplay)
+    if policy["paused"]:
+        notice = resumed + _session_notice(complete and bool(history), None, True, roleplay)
+        notice += " " + host_recording.notice(policy)
     return "\n\n".join(part for part in (notice, current["text"] if current else None, history) if part)
 
 
@@ -1514,12 +1558,23 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
     state = session_state(directory, session)
     previous = state.get("last_prompt") if state.get("user_id") == user_id else None
     valid_id = isinstance(turn_id, str) and 1 <= len(turn_id) <= 120
-    staged = _stage(directory, session, record, prompt, not valid_id,
-                     f"{session}:{turn_id}:user" if valid_id and ":" in turn_id else None)
     client = ready_client(directory, user_id)
+    try:
+        policy = host_recording.status(directory, client, user_id)
+        host_recording.stamp(record, policy)
+        if policy["paused"] or state.get("last_prompt_recording") != record["_recording"]:
+            previous = None
+        staged = _stage(directory, session, record, prompt, not valid_id,
+                        f"{session}:{turn_id}:user" if valid_id and ":" in turn_id else None,
+                        server_paused=policy["paused"])
+    except Exception:
+        if client is not None:
+            client.close()
+        raise
     if client is None:
         start_in_background(directory)
-        return _recording_notice(paused(directory, user_id), tools, session=session) or None
+        return (host_recording.notice(policy)
+                or _recording_notice(paused(directory, user_id), tools, session=session) or None)
     source = ""
     if include_source and staged and not paused(directory, user_id):
         source = ("<membrain-source>\nWhen saving a note based on the current user message, pass source_messages="
@@ -1553,7 +1608,7 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
                 _acknowledge(client, current)
         except Exception as error:
             log(directory, f"notes refresh failed: {type(error).__name__}")
-        recording = _recording_notice(paused(directory, user_id), tools, session=session)
+        recording = host_recording.notice(policy) or _recording_notice(paused(directory, user_id), tools, session=session)
         prefix = "\n\n".join(part for part in (recording, source, refreshed) if part)
         try:
             flush(client, directory)
@@ -1590,6 +1645,7 @@ def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: st
                 if isinstance(prompt, str) and prompt.strip() else None)
     if supplied is not None:
         supplied["text"] = scrub(prompt)
+        host_recording.stamp(supplied, host_recording.status(directory, user_id=user_id))
     pending, paused_turn, staged_user, exclusion_handled = _take_turn(directory, session, user_id=user_id, producer=producer,
                                                   turn_id=turn_id, prompt=supplied, allow_unstaged=allow_unstaged)
     if user_id is None:
@@ -1600,13 +1656,22 @@ def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: st
         return []
     if pending is None:
         return []  # A missing/failed prompt callback is not permission to retain an orphan reply.
+    client = ready_client(directory, user_id)
+    if pending is supplied:
+        policy = host_recording.status(directory, client, user_id)
+        if policy["paused"]:
+            if client is not None:
+                client.close()
+            return []
+        host_recording.stamp(pending, policy)
     records = [pending]
     if isinstance(reply, str) and reply.strip():
         response = message_record(session, "assistant", reply, turn_id=turn_id, producer=producer, user_id=user_id)
         response["source_event_key"] = pending["source_event_key"].removesuffix(":user") + ":assistant"
         response["parent_source_event_keys"] = [pending["source_event_key"]]
+        if "_recording" in pending:
+            response["_recording"] = dict(pending["_recording"])
         records.append(response)
-    client = ready_client(directory, user_id)
     if client is None:
         delivered = [record for record in records if deliver(directory, None, record)]
         start_in_background(directory)

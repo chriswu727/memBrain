@@ -55,9 +55,11 @@ def stage(state, record, paused, now, *, implicit=False):
     if existing and not (implicit and existing.get("done")):
         if existing.get("fingerprint") != fingerprint:
             raise ValueError("A turn ID cannot identify different user messages.")
-        if implicit and not existing.get("done"):
+        if (paused or implicit) and not existing.get("done"):
             existing.pop("record", None)
-            existing["paused"] = True
+            existing["paused"] = ("server" if paused == "server" or existing.get("paused") == "server"
+                                  else True if implicit or existing.get("paused") is True else paused or True)
+            existing.pop("resumed", None)
         return
     active = [entry for entry in turns.values() if not entry.get("done")]
     if len(active) >= MAX_ACTIVE:
@@ -69,6 +71,8 @@ def stage(state, record, paused, now, *, implicit=False):
     entry = {"owner": record.get("_user"), "producer": record["producer_ref"],
              "source": record["source_event_key"], "fingerprint": fingerprint, "started": now,
              "paused": paused, "needs_identity": bool(overlapping)}
+    if "_recording" in record:
+        entry["recording"] = record["_recording"]
     if not paused:
         entry["record"] = record
     turns.pop(identity, None)
@@ -112,6 +116,10 @@ def take(state, *, owner, producer, source=None, prompt=None, allow_unstaged=Fal
     record = entry.get("record")
     if record is None and not excluded and prompt is not None:
         record = {**prompt}
+        if "recording" in entry:
+            record["_recording"] = entry["recording"]
+        else:
+            record.pop("_recording", None)
         if entry.get("source"):
             record["source_event_key"] = entry["source"]
         if entry["owner"] is not None:

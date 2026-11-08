@@ -36,3 +36,24 @@ test("a stale resume is surfaced without fetching and replacing its revision", a
     error => error instanceof MemoryHttpError && error.status === 409);
   assert.equal(calls, 1);
 });
+
+test("observation sends the capture revision without reading a replacement", async () => {
+  const requests: { payload: { expected_recording_revision?: number } }[] = [];
+  const client = new MemoryClient({
+    baseUrl: "http://memory.test", apiKey: "test-key", brainId: "brain",
+    fetch: async (_input, init) => {
+      const request = JSON.parse(init!.body as string);
+      requests.push(request);
+      return Response.json({ request_id: request.request_id, action: request.action,
+        outcome: "completed", result: {} });
+    },
+  });
+  const scope = { conversationId: "s", branchId: "main", sourceEventKey: "event" };
+  await client.observe("Captured", { ...scope, expectedRecordingRevision: 0 });
+  await client.observe("Captured", { ...scope, expectedRecordingRevision: 2 });
+  await client.observe("Direct", scope);
+  assert.equal(requests.length, 3);
+  assert.equal(requests[0].payload.expected_recording_revision, 0);
+  assert.equal(requests[1].payload.expected_recording_revision, 2);
+  assert.equal("expected_recording_revision" in requests[2].payload, false);
+});
