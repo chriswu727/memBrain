@@ -21,7 +21,7 @@ def test_overlapping_turns_keep_their_input_owner_and_parent(tmp_path, reverse, 
         records = host.finish_turn(tmp_path, "shared", f"Answer {i}", turn_id=f"turn:{i}", user_id=owners[i])
         assert [r["text"] for r in records] == [f"Question {i}", f"Answer {i}"]
         assert {r.get("_user") for r in records} == {owners[i]}
-        assert records[1]["parent_source_event_keys"] == [f"shared:turn:{i}:user"]
+        assert records[1]["parent_source_event_keys"] == [records[0]["source_event_key"]]
 
 
 def test_late_excluded_callback_does_not_take_or_revive_a_new_turn(tmp_path):
@@ -63,7 +63,7 @@ def test_session_refresh_does_not_remove_inflight_turns(tmp_path):
 def test_reply_without_explicit_id_preserves_colons_in_staged_id(tmp_path):
     host.prompt_context(tmp_path, "s", "Question", turn_id="host:turn:1")
     records = host.finish_turn(tmp_path, "s", "Reply")
-    assert records[1]["source_event_key"] == "s:host:turn:1:assistant"
+    assert records[1]["source_event_key"] == records[0]["source_event_key"].removesuffix(":user") + ":assistant"
     assert records[1]["parent_source_event_keys"] == [records[0]["source_event_key"]]
 
 
@@ -259,3 +259,41 @@ def test_housekeeping_skips_decoding_completed_ledgers(tmp_path, monkeypatch):
     host.finish_turn(tmp_path, "s", "Reply", turn_id="t")
     monkeypatch.setattr(host.json, "load", lambda *args, **kwargs: pytest.fail("A completed ledger need not be decoded"))
     assert host._finish_abandoned(tmp_path, None) == 0
+
+
+def test_colon_containing_identifiers_cannot_share_a_source_key(tmp_path):
+    pairs = [("a", "b:c"), ("a:b", "c")]
+    receipts = []
+    for session, turn in pairs:
+        host.prompt_context(tmp_path, session, f"Question {session}", turn_id=turn)
+        receipts.extend(host.finish_turn(tmp_path, session, f"Reply {session}", turn_id=turn))
+    assert len({r["source_event_key"] for r in receipts}) == 4
+    assert receipts[0]["source_event_key"].startswith("turn-v2/")
+    assert receipts[2]["source_event_key"] == "a:b:c:user"
+    for i in (0, 2):
+        assert receipts[i + 1]["parent_source_event_keys"] == [receipts[i]["source_event_key"]]
+
+
+@pytest.mark.parametrize("ledger", [False, True])
+@pytest.mark.parametrize("restage", [False, True])
+def test_legacy_colon_turns_keep_their_source_links_during_upgrade(tmp_path, ledger, restage):
+    record = host.message_record("s", "user", "Question", turn_id="old")
+    record["source_event_key"] = "s:host:turn:1:user"
+    state = {"pending": record}
+    if ledger:
+        turns.entries(state)
+    host._write_session_state(tmp_path, "s", state)
+    if restage:
+        host.prompt_context(tmp_path, "s", "Question", turn_id="host:turn:1")
+        assert len(host.session_state(tmp_path, "s")["turns"]) == 1
+    records = host.finish_turn(tmp_path, "s", "Reply", turn_id="host:turn:1", prompt="Question")
+    assert records[0]["source_event_key"] == "s:host:turn:1:user"
+    assert records[1]["source_event_key"] == "s:host:turn:1:assistant"
+    assert records[1]["parent_source_event_keys"] == [records[0]["source_event_key"]]
+    assert host.finish_turn(tmp_path, "s", "Reply", turn_id="host:turn:1", prompt="Question") == []
+
+
+def test_encoded_sources_cannot_collide_with_the_legacy_namespace():
+    encoded = host.message_record("a", "user", "Question", turn_id="b:c")["source_event_key"]
+    legacy = host.message_record(encoded.removesuffix(":user"), "user", "Question", turn_id="x")["source_event_key"]
+    assert encoded.count(":") == 1 and legacy.count(":") >= 2 and encoded != legacy

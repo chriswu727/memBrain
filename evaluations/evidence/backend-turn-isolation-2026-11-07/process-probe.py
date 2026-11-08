@@ -20,7 +20,7 @@ def run(job):
                                prompt=f'Question {turn}')
     if records:
         assert [item['text'] for item in records] == [f'Question {turn}', f'Answer {turn}']
-        assert records[1]['parent_source_event_keys'] == [f'shared:{turn}:user']
+        assert records[1]['parent_source_event_keys'] == [records[0]['source_event_key']]
     return len(records)
 
 

@@ -1,0 +1,18 @@
+{
+  "scope": "pre-existing source-key encoding; no service or model calls",
+  "cases": [
+    {
+      "session": "a",
+      "turn_id": "b:c",
+      "source_event_key": "a:b:c:user"
+    },
+    {
+      "session": "a:b",
+      "turn_id": "c",
+      "source_event_key": "a:b:c:user"
+    }
+  ],
+  "distinct_source_keys": 1,
+  "expected_distinct_source_keys": 2,
+  "resolved": false
+}

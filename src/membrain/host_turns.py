@@ -76,14 +76,15 @@ def stage(state, record, paused, now, *, implicit=False):
     compact(state)
 
 
-def take(state, *, owner, producer, source=None, prompt=None, allow_unstaged=False):
+def take(state, *, owner, producer, source=None, prompt=None, allow_unstaged=False, legacy_source=None):
     turns = entries(state)
     candidates = [entry for entry in turns.values()
                   if (owner is None or entry["owner"] == owner)
                   and entry.get("producer") in (None, producer)]
     if source is not None:
         exact = [entry for entry in candidates if entry.get("source") == source]
-        candidates = exact or [entry for entry in candidates if entry.get("source") is None]
+        legacy = [entry for entry in candidates if legacy_source is not None and entry.get("source") == legacy_source]
+        candidates = exact or legacy or [entry for entry in candidates if entry.get("source") is None]
     elif prompt is not None:
         fingerprint = digest([prompt["text"]])
         candidates = [entry for entry in candidates if entry.get("fingerprint") in (None, fingerprint)]

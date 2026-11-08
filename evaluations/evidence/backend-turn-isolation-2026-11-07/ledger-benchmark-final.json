@@ -1,0 +1,31 @@
+{
+  "build_id": "e7330515d242c107eaedb3b4da101d4b769604451d12fb972a6f498a38ec7aa4",
+  "scope": "local ledger only; delivery mocked; no service or model calls",
+  "serial_prompt_and_finish": {
+    "count": 1000,
+    "p50_ms": 3.694,
+    "p95_ms": 4.312,
+    "max_ms": 39.029
+  },
+  "eight_worker_finish": {
+    "count": 64,
+    "p50_ms": 6.591,
+    "p95_ms": 18.698,
+    "max_ms": 27.166
+  },
+  "serial_state_bytes": 83247,
+  "peak_64_active_state_bytes": 32618,
+  "finished_markers": 256,
+  "500_completed_sessions_full_decode": {
+    "count": 5,
+    "p50_ms": 149.583,
+    "p95_ms": 150.957,
+    "max_ms": 151.894
+  },
+  "500_completed_sessions_due_header": {
+    "count": 5,
+    "p50_ms": 40.551,
+    "p95_ms": 41.036,
+    "max_ms": 41.89
+  }
+}

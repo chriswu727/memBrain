@@ -521,7 +521,8 @@ def turn_resumed(directory: Path, session: str, *, user_id: str | None = None,
     candidates = [entry for entry in host_turns.entries(session_state(directory, session)).values()
                   if not entry.get("done") and (user_id is None or entry["owner"] == user_id)
                   and (producer is None or entry.get("producer") in (None, producer))
-                  and (turn_id is None or entry.get("source") in (None, f"{session}:{turn_id}:user"))]
+                  and (turn_id is None or entry.get("source") in (
+                      None, _source_key(session, turn_id, "user"), f"{session}:{turn_id}:user"))]
     return len(candidates) == 1 and bool(candidates[0].get("resumed"))
 
 
@@ -665,6 +666,15 @@ def consume_ui_code(directory: Path, code: str) -> bool:
 
 # Records, spool and session state -----------------------------------------------------------------------------
 
+def _source_key(session: str, turn_id: str, role: str) -> str:
+    from .helpers import digest
+
+    # A single delimiter keeps the encoded namespace disjoint from legacy session:turn:role keys.
+    if ":" in turn_id:
+        return f"turn-v2/{digest([session, turn_id])}:{role}"
+    return f"{session}:{turn_id}:{role}"
+
+
 def message_record(session: str, role: str, text: str, *, turn_id: str | None = None,
                    producer: str = PRODUCER, user_id: str | None = None) -> dict:
     """An observe request for one message; deterministic keys make replays idempotent."""
@@ -675,10 +685,10 @@ def message_record(session: str, role: str, text: str, *, turn_id: str | None = 
     if not isinstance(turn_id, str) or not 1 <= len(turn_id) <= 120:
         turn_id = digest([session, role, text])[:32]
     record = {"text": text, "conversation_id": session, "branch_id": "main",
-              "source_event_key": f"{session}:{turn_id}:{role}", "role": role, "producer_ref": producer,
+              "source_event_key": _source_key(session, turn_id, role), "role": role, "producer_ref": producer,
               "delivery_state": "delivered" if role == "assistant" else "received"}
     if role == "assistant":
-        record["parent_source_event_keys"] = [f"{session}:{turn_id}:user"]
+        record["parent_source_event_keys"] = [_source_key(session, turn_id, "user")]
     if user_id is not None:
         user_brain_id(user_id)  # Validates the identifier before anything is staged or spooled.
         record["_user"] = user_id
@@ -948,13 +958,20 @@ def _acknowledge(client, current: dict | None) -> None:
             pass
 
 
-def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: bool = False) -> bool:
+def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: bool = False,
+           legacy_source: str | None = None) -> bool:
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         explicit_pause = requests_pause(prompt)
         if explicit_pause:
             _pause_for_request(directory, session, record.get("_user"))
         state = session_state(directory, session)
         exclusion = True if explicit_pause else "prompt" if paused(directory, record.get("_user")) else False
+        if legacy_source is not None:
+            for entry in host_turns.entries(state).values():
+                if (entry["owner"] == record.get("_user") and entry.get("producer") == record["producer_ref"]
+                        and entry.get("source") == legacy_source):
+                    record["source_event_key"] = legacy_source
+                    break
         try:
             host_turns.stage(state, {**record, "text": scrub(record["text"])}, exclusion, time.time(), implicit=implicit)
         except ValueError:
@@ -975,11 +992,13 @@ def _take_turn(directory: Path, session: str, *, user_id: str | None, producer: 
                turn_id: str | None, prompt: dict | None, allow_unstaged: bool) -> tuple[dict | None, bool, str | None, bool]:
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         state = session_state(directory, session)
-        source = f"{session}:{turn_id}:user" if isinstance(turn_id, str) and 1 <= len(turn_id) <= 120 else None
+        valid_id = isinstance(turn_id, str) and 1 <= len(turn_id) <= 120
+        source = _source_key(session, turn_id, "user") if valid_id else None
+        legacy_source = f"{session}:{turn_id}:user" if valid_id else None
         if paused(directory, user_id) or (prompt is not None and requests_pause(prompt["text"])):
             state["turns_require_staging"] = True
         result = host_turns.take(state, owner=user_id, producer=producer, source=source, prompt=prompt,
-                                 allow_unstaged=allow_unstaged)
+                                 allow_unstaged=allow_unstaged, legacy_source=legacy_source)
         _write_session_state(directory, session, state)
         return result
 
@@ -1485,7 +1504,9 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
     record = message_record(session, "user", prompt, turn_id=turn_id, producer=producer, user_id=user_id)
     state = session_state(directory, session)
     previous = state.get("last_prompt") if state.get("user_id") == user_id else None
-    staged = _stage(directory, session, record, prompt, not (isinstance(turn_id, str) and 1 <= len(turn_id) <= 120))
+    valid_id = isinstance(turn_id, str) and 1 <= len(turn_id) <= 120
+    staged = _stage(directory, session, record, prompt, not valid_id,
+                     f"{session}:{turn_id}:user" if valid_id and ":" in turn_id else None)
     client = ready_client(directory, user_id)
     if client is None:
         start_in_background(directory)

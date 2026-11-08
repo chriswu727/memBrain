@@ -120,6 +120,26 @@ def test_an_unfinished_turn_is_preserved_until_abandoned(tmp_path, monkeypatch):
     assert [record["text"] for record in client.observed][-1] == "Left mid-turn."
 
 
+@pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
+def test_colon_turn_ids_store_distinct_conversations(tmp_path):
+    directory = tmp_path / "brain"
+    try:
+        host.start(directory)
+        receipts = []
+        for session, turn in (("a", "b:c"), ("a:b", "c")):
+            host.prompt_context(directory, session, f"Question {session}", turn_id=turn)
+            receipts.extend(host.finish_turn(directory, session, f"Reply {session}", turn_id=turn))
+        assert len({r["source_event_key"] for r in receipts}) == 4
+        with host.ready_client(directory) as client:
+            rows = client.timeline(roles=("user", "assistant"), max_characters=20000)["items"]
+        assert {(row["conversation_id"], row["text"]) for row in rows} == {
+            (session, f"{role} {session}") for session in ("a", "a:b") for role in ("Question", "Reply")}
+        spool = directory / "plugin" / "spool.jsonl"
+        assert not spool.exists() or not spool.read_text().strip()
+    finally:
+        desktop.stop(directory)
+
+
 def test_mcp_offers_pause_tools_only_for_a_local_installation(tmp_path):
     import asyncio
 

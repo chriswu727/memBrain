@@ -14,7 +14,13 @@ Hermes can still report a complete turn without prefetch through explicit `allow
 
 Each session file begins with an atomically written earliest-active timestamp (or null for no live turns). Abandonment housekeeping reads this small prefix before decoding a ledger. This avoids decoding all 256 finished markers in every historical session on each context refresh, while still finding an old unanswered input in a session with newer activity. Inputs older than 30 minutes are recorded on their own; late replies are not attached to another turn.
 
-## Verification
+## Source-key encoding follow-up
+
+Review reproduced an existing cross-session encoding collision: `(session="a", turn="b:c")` and `(session="a:b", turn="c")` both became `a:b:c:user`. New colon-containing turn IDs now use a structured digest in a separate one-delimiter namespace; ordinary turn IDs retain their existing source keys. Replies use the matched input key. Existing staged legacy keys retain their links through completion or repeated prompt callbacks, and hooks can recognize a resumed legacy turn. Historical database keys are not rewritten. Completed legacy colon-ID messages must not be replayed as fresh input after their local completion metadata expires; this remains a bounded host ledger, not a historical key migration.
+
+The fixed runtime build is `e7330515d242c107eaedb3b4da101d4b769604451d12fb972a6f498a38ec7aa4`. Its first source group passes **201 tests**, and the focused isolation group passes **33 tests**. Final qualification is in progress. The four-process probe passes again on this build. The previous runtime results below remain historical and are not relabeled as validation of this new source. [Verify 42446652855](https://github.com/chriswu727/memBrain/actions/runs/42446652855) was deliberately cancelled when superseded by this source-key repair; it is not counted as a pass.
+
+## Earlier verification before source-key encoding
 
 Runtime: `84770c0` (all nine launchers pinned). Build identity: `d8c7126e4aff81ecf747063d81fcaa825f1653e1b64bafc599757ebdf7a970ca`. Three sequential fixed-source groups pass **327 tests**, zero skips: 195 in 38.16 seconds, 113 in 79.36 seconds and 19 in 37.52 seconds. They include real embedded PostgreSQL, OpenClaw’s nine JavaScript runtime checks, Hermes, proxy, extraction and MCP. The extracted wheel passes **67 tests**, zero skips, in 2.01 seconds; all **199 runtime inputs** are byte-identical to source. All nine launcher pins match the runtime (**2 tests passed**). Ruff and both wheel/source-distribution builds pass. The first full GitHub run completed all check steps but timed out during job completion; its overall result is cancelled, not passed. A rerun with a 60-minute job limit is pending. The reproducible offline measurement is `scripts/benchmark_host_turns.py`; delivery and service lookup are mocked, so its timings are local ledger overhead rather than model response or database recall latency.
 
