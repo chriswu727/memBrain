@@ -63,6 +63,7 @@ class NoteWrite(RuntimeBody):
     context_source_messages: Annotated[list[NoteSource], Field(max_length=64)] = []
     require_current_sources: bool = False
     expected_dependency_generation: RuntimeCounter | None = None
+    expected_recording_revision: RuntimeCounter | None = None
     role: Literal["user", "assistant"] = "assistant"
     producer: Annotated[str, Field(min_length=1, max_length=120)] = "membrain-notes"
     kind: str | None = None

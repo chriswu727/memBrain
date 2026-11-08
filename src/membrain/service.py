@@ -1657,7 +1657,8 @@ class MemoryService:
         with reading(), self.database.transaction(principal) as conn:
             brain = self._brain(conn, principal, brain_id)
             documents = resolve(self, conn, principal, brain, references)
-            return {"dependency_generation": brain["dependency_generation"], "items": [
+            return {"dependency_generation": brain["dependency_generation"],
+                    "recording_revision": brain["recording_revision"], "recording_paused": brain["recording_paused"], "items": [
                 {"reference": reference(item["observed"]), "event_id": item["event_id"],
                  "actor_role": item["observed"]["actor_role"], "text": item["observed"]["content"].get("text") or ""}
                 for item in documents]}

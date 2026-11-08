@@ -88,10 +88,11 @@ test("exact source reads and guarded writes preserve the dependency generation i
   assert.equal(requests[0].url.pathname, "/v1/brains/brain%20%2F%3F%23/source-messages");
   assert.deepEqual(JSON.parse(String(requests[0].init?.body)), { messages: sources });
   await client.writeNote("The plan changed.", { sourceMessages: sources, contextSourceMessages: sources,
-    requireCurrentSources: true, expectedDependencyGeneration: 0 });
+    requireCurrentSources: true, expectedDependencyGeneration: 0, expectedRecordingRevision: 0 });
   const body = JSON.parse(String(requests[1].init?.body));
   assert.deepEqual(body.source_messages, sources);
   assert.deepEqual(body.context_source_messages, sources);
   assert.equal(body.require_current_sources, true);
   assert.equal(body.expected_dependency_generation, 0);
+  assert.equal(body.expected_recording_revision, 0);
 });

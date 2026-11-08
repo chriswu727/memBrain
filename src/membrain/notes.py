@@ -267,7 +267,8 @@ class NoteValidationError(ValueError):
 
 
 def save_note(client, text: str, *, replaces=(), producer: str = NOTE_PRODUCER, request_id=None, source_event_ids=(), source_messages=(),
-              context_source_messages=(), require_current_sources=False, expected_dependency_generation=None, **fields) -> dict:
+              context_source_messages=(), require_current_sources=False, expected_dependency_generation=None,
+              expected_recording_revision=None, **fields) -> dict:
     """Save one note; ``replaces`` lists IDs of notes it supersedes, which stop being shown.
 
     ``fields`` are the optional typed-note fields (``NOTE_FIELDS``); without them the note is plain text.
@@ -295,12 +296,16 @@ def save_note(client, text: str, *, replaces=(), producer: str = NOTE_PRODUCER, 
             parsed["context_source_messages"] = list(context_source_messages)
         if expected_dependency_generation is not None:
             parsed["expected_dependency_generation"] = expected_dependency_generation
+        if expected_recording_revision is not None:
+            parsed["expected_recording_revision"] = expected_recording_revision
         if request_id is not None:
             parsed["request_id"] = request_id
         return writer(sentence, replaces=list(replaces), producer=producer,
                       source_event_ids=list(source_event_ids), source_messages=list(source_messages), **parsed)
     if request_id is not None:
         raise ValueError("This client does not support idempotent note writes.")
+    if expected_recording_revision is not None:
+        raise ValueError("This client does not support recording-policy checks on notes.")
     if source_event_ids or source_messages or context_source_messages or require_current_sources or expected_dependency_generation is not None:
         raise ValueError("This client does not support source-linked notes.")
     if affect is not None:
@@ -569,6 +574,7 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
 
     from .helpers import DomainError, digest
     from .privacy import scrub
+    from .recording_guard import require_recording
 
     try:
         fields = note_fields(arguments)
@@ -579,6 +585,9 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
                                                        or arguments.get("source_messages")))
         strict_sources = arguments.get("require_current_sources", False)
         generation = arguments.get("expected_dependency_generation")
+        recording_revision = arguments.get("expected_recording_revision")
+        if recording_revision is not None and (type(recording_revision) is not int or not 0 <= recording_revision <= 2**63 - 1):
+            raise ValueError("Recording policy revision must be a nonnegative bounded integer.")
         if type(strict_sources) is not bool or (generation is not None and (
                 type(generation) is not int or not 0 <= generation <= 2**63 - 1)):
             raise ValueError("Source checks require a boolean and a nonnegative dependency generation.")
@@ -595,6 +604,8 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
             arguments.pop(name, None)
     if generation is None:
         arguments.pop("expected_dependency_generation", None)
+    if recording_revision is None:
+        arguments.pop("expected_recording_revision", None)
     params = service._params(principal, brain_id)
     fingerprint = digest(arguments)
     with service.database.transaction(principal) as conn:
@@ -609,6 +620,7 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
             if cached["response"] is None:
                 raise DomainError("version_conflict", "This note request was invalidated; use a new request ID.")
             return cached["response"]
+        require_recording(brain, recording_revision)
         if generation is not None and generation != brain["dependency_generation"]:
             raise DomainError("version_conflict", "Memory changed after the source context was read.")
         strict_events = []

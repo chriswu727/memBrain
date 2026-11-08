@@ -60,16 +60,20 @@ def stamp(record, policy):
     record["_recording"] = {"revision": policy["revision"], "target": policy["target"]}
 
 
-def observe(client, record):
-    values = {key: value for key, value in record.items() if key not in ("_user", "_recording")}
-    token = record.get("_recording", {"revision": 0, "target": None})
+def captured_revision(client, token):
     if (not isinstance(token, dict) or type(token.get("revision")) is not int
             or not 0 <= token["revision"] <= 2**53 - 1
             or token.get("target") not in (None, _target(client))):
         raise MemoryActionError({"error": {"code": "recording_stale", "retryable": False,
                                            "message": "The captured recording policy is unavailable for this target."}})
+    return token["revision"]
+
+
+def observe(client, record):
+    values = {key: value for key, value in record.items() if key not in ("_user", "_recording")}
+    revision = captured_revision(client, record.get("_recording", {"revision": 0, "target": None}))
     if callable(getattr(client, "recording_status", None)):
-        values["expected_recording_revision"] = token["revision"]
+        values["expected_recording_revision"] = revision
     return client.observe(**values)
 
 

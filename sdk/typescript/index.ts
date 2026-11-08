@@ -578,6 +578,7 @@ export class MemoryClient {
   writeNote(text: string, options: { requestId?: string; brainId?: string; replaces?: readonly string[];
     sourceEventIds?: readonly string[]; sourceMessages?: readonly NoteSource[];
     contextSourceMessages?: readonly NoteSource[]; requireCurrentSources?: boolean; expectedDependencyGeneration?: number;
+    expectedRecordingRevision?: number;
     kind?: string; status?: string; about?: string; aliases?: readonly string[]; due?: string; occursAt?: string;
     pinned?: boolean; sensitive?: boolean; shared?: boolean; affect?: NoteAffect;
     role?: "user" | "assistant" } = {}): Promise<JsonObject> {
@@ -590,7 +591,8 @@ export class MemoryClient {
         sensitive: options.sensitive, shared: options.shared, affect: options.affect,
         role: options.role, context_source_messages: options.contextSourceMessages,
         require_current_sources: options.requireCurrentSources,
-        expected_dependency_generation: options.expectedDependencyGeneration }).filter(([, value]) => value !== undefined)),
+        expected_dependency_generation: options.expectedDependencyGeneration,
+        expected_recording_revision: options.expectedRecordingRevision }).filter(([, value]) => value !== undefined)),
     });
   }
   persona(brainId?: string): Promise<JsonObject> {

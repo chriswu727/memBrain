@@ -134,13 +134,15 @@ class ChatMemory:
                     self._previous[(user, session)] = tuple(sources)
                     while len(self._previous) > PREVIOUS_EXCHANGES:
                         self._previous.popitem(last=False)
-                self._extract(user, sources, previous)
+                recording = message.get("_recording", {"revision": 0, "target": None})
+                self._extract(user, sources, previous, recording=dict(recording) if isinstance(recording, dict) else recording)
 
-    def _extract(self, user: str, sources: list[dict], previous_sources: tuple[dict, ...] = ()) -> None:
+    def _extract(self, user: str, sources: list[dict], previous_sources: tuple[dict, ...] = (), *, recording) -> None:
         from ..extraction import extract_turn
 
         def task():
-            extract_turn(self.directory, self.extractor, user, sources=sources, previous_sources=previous_sources)
+            extract_turn(self.directory, self.extractor, user, sources=sources, previous_sources=previous_sources,
+                         recording=recording)
 
         if not self.extractor.submit(task):
             from ..extraction import record_outcome
