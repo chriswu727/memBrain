@@ -790,6 +790,8 @@ def flush(client, directory: Path) -> int:
                         delivered += 1  # A torn line cannot be replayed; it must not block later records.
                         continue
                     try:
+                        if not isinstance(record, dict):
+                            raise TypeError("A queued observation must be an object.")
                         try:
                             use_brain(client, record.get("_user"))
                         except ValueError as error:  # An invalid user identifier never becomes valid.

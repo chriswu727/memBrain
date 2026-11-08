@@ -228,3 +228,15 @@ def test_server_exclusion_cannot_be_downgraded_to_local_prompt_pause():
     entry["resumed"] = True
     assert host_turns.take(state, owner=None, producer=record["producer_ref"],
                            source=record["source_event_key"], prompt=record)[1]
+
+
+@pytest.mark.parametrize("malformed", [[], None, "invalid", 3])
+def test_malformed_queue_entry_does_not_block_later_valid_input(tmp_path, malformed):
+    from test_host import Client
+
+    host.spool(tmp_path, malformed)
+    host.spool(tmp_path, host.message_record("s", "user", "Valid queued input"))
+    client = Client()
+    assert host.flush(client, tmp_path) == 2
+    assert [item["text"] for item in client.observed] == ["Valid queued input"]
+    assert not (tmp_path / "plugin" / "spool.jsonl").read_text()
