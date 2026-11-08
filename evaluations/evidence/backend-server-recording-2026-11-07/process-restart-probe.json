@@ -1,0 +1,15 @@
+{
+  "build_id": "26673a0d5e4c4f3ed3d67dad86c58ff6e70e6ba99fa03a7365cfcecbd6e9b1cb",
+  "fresh_start": true,
+  "full_process_restart": true,
+  "persisted_policy": {
+    "paused": true,
+    "revision": 1
+  },
+  "blocked_write_after_restart": true,
+  "resumed_policy": {
+    "paused": false,
+    "revision": 2
+  },
+  "only_resumed_input_stored": true
+}

@@ -1,0 +1,33 @@
+{
+  "historical_completed_turns": 20000,
+  "active_turns_per_pause": 8,
+  "pause_samples_ms": [
+    10.267875157296658,
+    4.424292128533125,
+    4.114249954000115,
+    3.9334159810096025,
+    4.127125022932887,
+    4.490375053137541,
+    4.104249877855182,
+    4.284834023565054,
+    4.259624984115362,
+    4.031332908198237
+  ],
+  "pause_median_ms": 4.193375003524125,
+  "pause_max_ms": 10.267875157296658,
+  "candidate_scan_plan": [
+    "Result  (cost=0.27..8.29 rows=1 width=37) (actual time=0.007..0.008 rows=8 loops=1)",
+    "  One-Time Filter: ((current_setting('app.tenant_id'::text, true) = 'c39c2a6b-c9d4-483b-9e7d-6f0c90a26730'::text) AND (current_setting('app.principal_id'::text, true) = '7e630104-57e9-41b8-a4d2-ecd2039a2746'::text))",
+    "  Buffers: shared hit=3",
+    "  ->  Index Scan using memory_runtime_turns_pending_scope on memory_runtime_turns  (cost=0.27..8.29 rows=1 width=37) (actual time=0.005..0.006 rows=8 loops=1)",
+    "        Index Cond: ((tenant_id = 'c39c2a6b-c9d4-483b-9e7d-6f0c90a26730'::text) AND (owner_id = '7e630104-57e9-41b8-a4d2-ecd2039a2746'::text) AND (brain_id = '4997bb44-6a7c-4bcb-aef6-bf4d7dee425d'::text))",
+    "        Filter: (stage <> ALL ('{delivered,committed,completed,failed}'::text[]))",
+    "        Buffers: shared hit=3",
+    "Planning:",
+    "  Buffers: shared hit=80 read=10",
+    "Planning Time: 2.702 ms",
+    "Execution Time: 0.016 ms"
+  ],
+  "historical_turns_unchanged": true,
+  "closed_active_turns": 80
+}
