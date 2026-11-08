@@ -1,0 +1,85 @@
+{
+  "report_sha256": "f85e4438fe97d52334411ae4eb126c1adac5280b0bce80960bb93204c30f03b6",
+  "cases": [
+    {
+      "source": "I do not eat meat or fish.",
+      "query": "给我推荐晚餐前，需要记住什么饮食限制？"
+    },
+    {
+      "source": "My sister is getting married in Lisbon in December.",
+      "query": "Where and when is the family wedding taking place?"
+    },
+    {
+      "source": "猫毛会让我打喷嚏，所以家里不能养猫。",
+      "query": "Which pet causes my allergy?"
+    },
+    {
+      "source": "My bicycle was stolen outside the library last Tuesday.",
+      "query": "我的两轮交通工具是在哪里丢的？"
+    },
+    {
+      "source": "我每周四晚上去游泳馆练自由泳。",
+      "query": "When do I practise swimming?"
+    },
+    {
+      "source": "I am learning Portuguese because I plan to move to Porto.",
+      "query": "我为什么在学葡萄牙语？"
+    },
+    {
+      "source": "我的护照放在书桌最下面的抽屉里。",
+      "query": "Where did I put my travel document?"
+    },
+    {
+      "source": "I prefer written instructions because phone calls make me anxious.",
+      "query": "我更希望别人用什么方式给我说明？"
+    },
+    {
+      "source": "我在十月十五日开始新的工作，第一天要早上九点到。",
+      "query": "What is the starting date and arrival time for my new job?"
+    },
+    {
+      "source": "My favourite way to relax is tending the tomatoes on my balcony.",
+      "query": "我通常做什么来放松心情？"
+    },
+    {
+      "source": "我的笔记本电脑一插电，风扇就会很吵。",
+      "query": "¿Por qué hace ruido mi ordenador al cargar?"
+    },
+    {
+      "source": "I promised my grandfather that I would visit him every Sunday.",
+      "query": "我答应过爷爷多久去看他一次？"
+    },
+    {
+      "source": "我不喜欢别人突然来家里，来之前请先发消息。",
+      "query": "What boundary did I set about unexpected visitors?"
+    },
+    {
+      "source": "I am saving money to buy a second-hand piano.",
+      "query": "我存钱是为了买什么乐器？"
+    },
+    {
+      "source": "我们把周六的野餐改到周日，因为天气预报说周六下雨。",
+      "query": "Why did we move the picnic to a different day?"
+    },
+    {
+      "source": "My presentation is next Wednesday and I want to rehearse the night before.",
+      "query": "我打算什么时候练习演讲？"
+    },
+    {
+      "source": "我的钥匙串上挂着一个蓝色的小鲸鱼。",
+      "query": "¿Cómo puedo reconocer mi llavero?"
+    },
+    {
+      "source": "I stopped drinking coffee after lunch because it keeps me awake at night.",
+      "query": "为什么我下午不喝咖啡了？"
+    },
+    {
+      "source": "我更喜欢别人直接指出错误，不要绕着说。",
+      "query": "How would I like people to give me corrective feedback?"
+    },
+    {
+      "source": "The emergency spare glasses are in the red box beside my bed.",
+      "query": "¿Dónde guardo las gafas de repuesto?"
+    }
+  ]
+}

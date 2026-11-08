@@ -1,0 +1,105 @@
+{
+  "total_count": 5,
+  "artifacts": [
+    {
+      "id": 13628961567,
+      "node_id": "MDg6QXJ0aWZhY3QxMzYyODk2MTU2Nw==",
+      "name": "native-linux-aarch64",
+      "size_in_bytes": 11640996,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13628961567",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13628961567/zip",
+      "expired": false,
+      "digest": "sha256:46f0b574e5b49bd28ef33cf3dd9b2f492d8d4dd22d64aa26ab324a4fc13cb035",
+      "created_at": "2026-11-08T18:26:39Z",
+      "updated_at": "2026-11-08T18:26:39Z",
+      "expires_at": "2026-12-08T18:22:45Z",
+      "workflow_run": {
+        "id": 42509325198,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "perf/stored-recall-eligibility",
+        "head_sha": "2c230565aef47452847449aca4667c6f0eb10f38"
+      }
+    },
+    {
+      "id": 13628912647,
+      "node_id": "MDg6QXJ0aWZhY3QxMzYyODkxMjY0Nw==",
+      "name": "native-windows-x86_64",
+      "size_in_bytes": 47418661,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13628912647",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13628912647/zip",
+      "expired": false,
+      "digest": "sha256:50ae5996b554734342965d4d6156a5d52436c55bff54417310c6ca626bd6f64b",
+      "created_at": "2026-11-08T18:24:17Z",
+      "updated_at": "2026-11-08T18:24:17Z",
+      "expires_at": "2026-12-08T18:24:15Z",
+      "workflow_run": {
+        "id": 42509325198,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "perf/stored-recall-eligibility",
+        "head_sha": "2c230565aef47452847449aca4667c6f0eb10f38"
+      }
+    },
+    {
+      "id": 13628663460,
+      "node_id": "MDg6QXJ0aWZhY3QxMzYyODY2MzQ2MA==",
+      "name": "native-macos-arm64",
+      "size_in_bytes": 13034510,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13628663460",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13628663460/zip",
+      "expired": false,
+      "digest": "sha256:b864aca6a2d4518649ef78950d14b8c4f57511adb0f1eaad74bafb2c26b6ebae",
+      "created_at": "2026-11-08T18:20:42Z",
+      "updated_at": "2026-11-08T18:20:42Z",
+      "expires_at": "2026-12-08T18:20:40Z",
+      "workflow_run": {
+        "id": 42509325198,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "perf/stored-recall-eligibility",
+        "head_sha": "2c230565aef47452847449aca4667c6f0eb10f38"
+      }
+    },
+    {
+      "id": 13628544744,
+      "node_id": "MDg6QXJ0aWZhY3QxMzYyODU0NDc0NA==",
+      "name": "native-macos-x86_64",
+      "size_in_bytes": 13419855,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13628544744",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13628544744/zip",
+      "expired": false,
+      "digest": "sha256:089f9657387b2e207fb5a2fe90c35c4276981a6fc737a2c2178ba07b820c6bb3",
+      "created_at": "2026-11-08T18:26:00Z",
+      "updated_at": "2026-11-08T18:26:00Z",
+      "expires_at": "2026-12-08T18:25:57Z",
+      "workflow_run": {
+        "id": 42509325198,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "perf/stored-recall-eligibility",
+        "head_sha": "2c230565aef47452847449aca4667c6f0eb10f38"
+      }
+    },
+    {
+      "id": 13628487939,
+      "node_id": "MDg6QXJ0aWZhY3QxMzYyODQ4NzkzOQ==",
+      "name": "native-linux-x86_64",
+      "size_in_bytes": 11887128,
+      "url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13628487939",
+      "archive_download_url": "https://api.github.com/repos/chriswu727/memBrain/actions/artifacts/13628487939/zip",
+      "expired": false,
+      "digest": "sha256:81f565b34f7264f2e758accda80e3ebc59631ca3889afbd8d678eec7b752038d",
+      "created_at": "2026-11-08T18:25:15Z",
+      "updated_at": "2026-11-08T18:25:15Z",
+      "expires_at": "2026-12-08T18:25:14Z",
+      "workflow_run": {
+        "id": 42509325198,
+        "repository_id": 1430368481,
+        "head_repository_id": 1430368481,
+        "head_branch": "perf/stored-recall-eligibility",
+        "head_sha": "2c230565aef47452847449aca4667c6f0eb10f38"
+      }
+    }
+  ]
+}

@@ -1,0 +1,7 @@
+{
+  "path": "/private/tmp/membrain-eligibility-tests-db",
+  "bytes_removed": 138860670,
+  "ports_closed_before_removal": true,
+  "postmaster_pid_absent": true,
+  "only_owned_synthetic_test_profile": true
+}
