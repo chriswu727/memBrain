@@ -1,0 +1,18 @@
+{
+  "scenario": "two owners reuse a host session id; replies arrive after both inputs",
+  "first_receipt_owners": [
+    "bob",
+    "alice"
+  ],
+  "first_receipt_roles": [
+    "user",
+    "assistant"
+  ],
+  "second_receipt_roles": [
+    "assistant"
+  ],
+  "first_receipt_contains_foreign_pending_record": true,
+  "stored_records_keep_their_original_owner": true,
+  "model_calls": 0,
+  "status": "existing host pending-slot defect reproduced; not repaired in PR 46"
+}
