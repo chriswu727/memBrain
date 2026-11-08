@@ -1,0 +1,91 @@
+.........F.                                                              [100%]
+=================================== FAILURES ===================================
+___ test_http_and_python_client_use_authenticated_strict_revisioned_control ____
+
+turns = <test_turns.Turns object at 0x1072b4620>
+
+    def test_http_and_python_client_use_authenticated_strict_revisioned_control(turns):
+        key = "recording-test-key"
+        settings = Settings(database_url=turns.database.dsn,
+                            api_keys={hashlib.sha256(key.encode()).hexdigest(): turns.principal}, recall_processes=0)
+        with TestClient(create_app(settings, turns.service)) as api:
+            path = f"/v1/brains/{turns.brain}/recording"
+            assert api.get(path).status_code == 401
+            headers = {"Authorization": f"Bearer {key}"}
+            for body in ({"paused": "true", "expected_revision": 0}, {"paused": True, "expected_revision": False},
+                         {"paused": True, "expected_revision": 0, "owner_id": "other"}):
+                assert api.put(path, headers=headers, json=body).status_code == 422
+
+            def transport(request):
+                response = api.request(request.method, request.url.path, headers=request.headers, content=request.content)
+                return httpx.Response(response.status_code, json=response.json())
+
+            with MemoryClient("http://testserver", key, turns.brain, transport=httpx.MockTransport(transport)) as client:
+                assert client.recording_status() == {"paused": False, "revision": 0}
+                assert client.set_recording(paused=True, expected_revision=0) == {"paused": True, "revision": 1}
+                with pytest.raises(httpx.HTTPStatusError) as stale:
+                    client.set_recording(paused=False, expected_revision=0)
+                assert stale.value.response.status_code == 409
+                with pytest.raises(MemoryActionError) as rejected:
+>                   client.observe("No raw write through HTTP.", conversation_id="session", branch_id="main",
+                                   source_event_key="blocked")
+
+tests/test_server_recording.py:203:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/membrain/client.py:454: in observe
+    return self.action("observe", {
+src/membrain/client.py:202: in action
+    return self.send({
+src/membrain/client.py:184: in send
+    response = self._request("POST", "v1/actions", json=dict(request))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/membrain/client.py:158: in _request
+    response.raise_for_status()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Response [422 Unprocessable Entity]>
+
+    def raise_for_status(self) -> Response:
+        """
+        Raise the `HTTPStatusError` if one occurred.
+        """
+        request = self._request
+        if request is None:
+            raise RuntimeError(
+                "Cannot call `raise_for_status` as the request "
+                "instance has not been set on this response."
+            )
+
+        if self.is_success:
+            return self
+
+        if self.has_redirect_location:
+            message = (
+                "{error_type} '{0.status_code} {0.reason_phrase}' for url '{0.url}'\n"
+                "Redirect location: '{0.headers[location]}'\n"
+                "For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/{0.status_code}"
+            )
+        else:
+            message = (
+                "{error_type} '{0.status_code} {0.reason_phrase}' for url '{0.url}'\n"
+                "For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/{0.status_code}"
+            )
+
+        status_class = self.status_code // 100
+        error_types = {
+            1: "Informational response",
+            3: "Redirect response",
+            4: "Client error",
+            5: "Server error",
+        }
+        error_type = error_types.get(status_class, "Invalid status code")
+        message = message.format(self, error_type=error_type)
+>       raise HTTPStatusError(message, request=request, response=self)
+E       httpx.HTTPStatusError: Client error '422 Unprocessable Entity' for url 'http://testserver/v1/actions'
+E       For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/422
+
+.venv/lib/python3.12/site-packages/httpx/_models.py:829: HTTPStatusError
+=========================== short test summary info ============================
+FAILED tests/test_server_recording.py::test_http_and_python_client_use_authenticated_strict_revisioned_control
+1 failed, 10 passed in 1.15s
+Migrations applied; application role has no superuser or RLS bypass privileges

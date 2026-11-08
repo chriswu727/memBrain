@@ -69,3 +69,7 @@ The historical fifth acceptance remains R4 failed and C5 invalid/unscored. Publi
 ## Concurrent-turn follow-up
 
 The [turn-isolation batch](../evaluations/backend-turn-isolation-2026-11-07.md) implements the second follow-up above. It retains the failing overlap probe as baseline evidence and adds reverse-order completion, shared-owner privacy, capacity, migration, erasure and proxy-scoping regressions. Its report records qualification separately; the original review is not retroactively treated as a pass.
+
+## Server ingestion follow-up
+
+The [server recording-control batch](../evaluations/backend-server-recording-2026-11-07.md) adds an authenticated, revisioned per-brain policy and serializes it with source ingestion using the existing database lock. It closes unfinished durable turns without reviving them on resume, and prevents hosts from spooling explicit server rejections. This is the first server-side part of follow-ups 1 and 3. Local conversation/timed policies are not synchronized to this separate whole-brain switch; ephemeral durable turns and crash-atomic host delivery still need their own contracts. The older local-pause findings above retain their original scope.

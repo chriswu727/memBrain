@@ -18,11 +18,11 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **预发布阶段。** 九个启动器均固定到包含[宿主并发修复](evaluations/backend-turn-isolation-2026-11-07.md)的运行时 `8208ea71`。以下召回性能数字对应此前的 `cebc6d82`，不能直接作为本次修复的性能验收结果。[共享语义距离计算](evaluations/maturity-shared-semantic-pools-2026-11-07.md)减少重复召回计算，并保持候选结果一致。在同一份一万条公开测试记忆上，单次召回中位耗时从约 389 毫秒降至 318–322 毫秒，八路并发从 1.16–1.19 秒降至 0.88–0.90 秒。120 组完整候选对照全部一致；源码和安装包各通过 118 项相关测试。当前完整 Verify 通过 7,984 项 Python、53 项 TypeScript 测试，无跳过项，类型检查、Ruff 和构建均通过；保留三条已有的 fork 警告。此前的[原生引擎及安装验证](evaluations/maturity-hermes-readonly-2026-11-07.md)、[图谱与全屏性能证据](evaluations/maturity-month-qualification-2026-11-07.md)保留各自的运行时范围。[宿主限制](docs/host-compatibility.md)和[发布阻碍](docs/releasing.md)均明确保留；R4、C5 和最终发布审查通过前，发布保持冻结。
+> **预发布阶段。** 九个启动器均固定到包含[服务端记录控制](evaluations/backend-server-recording-2026-11-07.md)的运行时 `f9e35a35`。以下召回性能数字对应此前的 `cebc6d82`，不能直接作为本次修复的性能验收结果。[共享语义距离计算](evaluations/maturity-shared-semantic-pools-2026-11-07.md)减少重复召回计算，并保持候选结果一致。在同一份一万条公开测试记忆上，单次召回中位耗时从约 389 毫秒降至 318–322 毫秒，八路并发从 1.16–1.19 秒降至 0.88–0.90 秒。120 组完整候选对照全部一致；源码和安装包各通过 118 项相关测试。此前运行时 `8208ea71` 的完整 Verify 通过 7,984 项 Python、53 项 TypeScript 测试，无跳过项，类型检查、Ruff 和构建均通过；保留三条已有的 fork 警告。新服务端控制版本的验收单独列于下方。此前的[原生引擎及安装验证](evaluations/maturity-hermes-readonly-2026-11-07.md)、[图谱与全屏性能证据](evaluations/maturity-month-qualification-2026-11-07.md)保留各自的运行时范围。[宿主限制](docs/host-compatibility.md)和[发布阻碍](docs/releasing.md)均明确保留；R4、C5 和最终发布审查通过前，发布保持冻结。
 
 > **最近一次验收执行：** [第五次验收](evaluations/maturity-fifth-attempt-2026-11-07.md)完成了有效的 R4 评分：插件模式 20 分（通过）、提取模式 16 分（未通过：1 个记忆系统导致的隐私错误）、完整历史参照组 15.5 分。C1 因页面操作失败停止，C2 未运行；C5 无效且未评分。账本已封锁，保守结算 39.634310 元，没有未知费用预留，也没有自动重跑授权。
 
-> **当前发布状态：** [宿主并发修复](evaluations/backend-turn-isolation-2026-11-07.md)已通过 335 项相关源码测试和 74 项安装包测试，199 个运行时文件与源码完全一致。最终全量 CI 通过 7,984 项 Python、53 项 TypeScript 测试，无跳过项，类型检查、Ruff 和构建均通过。PR #47 已合入集成分支，合并后的完整文件树与受测源码一致。宿主轮次已按用户、来源和身份隔离；服务端统一记录策略与写入中断时的一致性仍待完善。本轮获授权的行为验收已停止。账本已封锁，无效运行的私有证据已保留，没有自动重跑授权。源码改进不能替代 R4／C5，也不代表可以发布。
+> **当前发布状态：** [服务端记录控制候选版本](evaluations/backend-server-recording-2026-11-07.md)已通过 303 项相关源码测试和 73 项安装包测试，201 个运行时文件与源码完全一致；55 项 TypeScript 测试及类型检查通过，全量 CI 待完成。整脑记录策略与来源写入使用同一数据库锁，并关闭未完成的持久化轮次。本地会话／定时暂停仍是独立控制；离线暂存、临时且不留记录的持久化聊天模式及宿主写入中断一致性仍待完善。R4 未通过，C5 无效且未评分；没有自动重跑付费验收或发布授权。
 
 
 <a id="claude-code-plugin"></a>

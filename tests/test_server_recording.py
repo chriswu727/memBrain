@@ -199,7 +199,7 @@ def test_write_queued_behind_pause_checks_policy_after_taking_lock(turns, monkey
         assert write.result(timeout=5)["error"]["code"] == "recording_paused"
 
 
-def test_http_and_python_client_use_authenticated_strict_revisioned_control(turns):
+def test_http_and_python_client_use_authenticated_strict_revisioned_control(turns, tmp_path):
     key = "recording-test-key"
     settings = Settings(database_url=turns.database.dsn,
                         api_keys={hashlib.sha256(key.encode()).hexdigest(): turns.principal}, recall_processes=0)
@@ -225,6 +225,12 @@ def test_http_and_python_client_use_authenticated_strict_revisioned_control(turn
                 client.observe("No raw write through HTTP.", conversation_id="session", branch_id="main",
                                source_event_key="blocked")
             assert rejected.value.code == "recording_paused"
+            record = {"text": "No offline copy of rejected content.", "role": "user",
+                      "conversation_id": "session", "branch_id": "main", "source_event_key": "host-blocked"}
+            assert host.deliver(tmp_path, client, record) is False
+            host.spool(tmp_path, record)
+            assert host.flush(client, tmp_path) == 1
+            assert all(record["text"] not in p.read_text() for p in tmp_path.rglob("*") if p.is_file())
 
 
 def test_host_does_not_spool_or_archive_content_rejected_by_server(tmp_path):

@@ -1,0 +1,67 @@
+
+> @membrain/client@0.1.0 test
+> node --test *.test.ts
+
+✔ cognitive budget reads preserve used limits and encode scope (38.969167ms)
+✔ budget changes preserve immutable policy and explicit retry identity (0.353917ms)
+✔ budget 409 propagates without automatic resubmission (0.320541ms)
+✔ budget 503 propagates without automatic resubmission (0.1115ms)
+✔ budget timeout propagates without automatic resubmission (0.133583ms)
+✔ recall window reads preserve the exact memory spans and conversation scope (34.7865ms)
+✔ bounded Unicode excerpts preserve original source acts and agree with Python (276.403333ms)
+✔ all actions preserve contract envelope, scope, budgets, and lifecycle limitations (4.896ms)
+✔ observation keys survive retries and agree with the Python canonical format (1.604ms)
+✔ preparation preserves evidence selection, generation, and recent-context controls (0.353709ms)
+✔ action rejection and HTTP failure cannot appear successful (0.362875ms)
+✔ timeouts are not retried with fresh identifiers (0.4165ms)
+✔ rendered context matches Python and excludes control-plane metadata (0.116292ms)
+✔ prepare and recall projections agree byte-for-byte with Python Unicode handles and shared certificates (34.647ms)
+✔ inline relation certificates and shared tables produce the same rendered recall (1.464542ms)
+✔ missing or conflicting relation certificates fail closed (0.556042ms)
+✔ context helpers accept action responses and propagate rejected actions (1.894292ms)
+✔ authoritative Python context preserves numeric text and budget across a real protocol round trip (178.427458ms)
+✔ legacy contexts respect declared usage and preserve successful compatible rendering (2.979541ms)
+✔ shortened recall agrees with Python while full source detail stays inspectable (229.403291ms)
+✔ bounded original source contexts agree with Python including pinned and inactive anchors (168.189917ms)
+✔ plain episode report coverage is versioned and agrees with Python (170.81725ms)
+✔ every companion operation retains explicit brain scope, authentication and recovery acknowledgement (38.389542ms)
+✔ persona mutations preserve immutable cards, explicit user decisions and host defaults (0.967709ms)
+✔ relationship and mood controls preserve removal, false and bounded acknowledgements (1.099916ms)
+✔ map windows keep zero edges and require explicit sensitive-content opt-in (7.174458ms)
+✔ unscoped companion requests fail before contacting a service (0.284083ms)
+✔ a denied companion request never falls back to the owner's brain or retries (0.195958ms)
+✔ optional learning summaries preserve legacy absence and disclose only accounting (3.090125ms)
+✔ cognitive usage preserves unknown totals and encodes the brain identity (29.547791ms)
+✔ learning progress uses the runtime endpoint and preserves an incomplete summary (0.317375ms)
+✔ learning endpoints encode identities and allow an explicit brain override (0.454208ms)
+✔ explicit learning retries preserve request identity and return the queued child directly (0.731667ms)
+✔ learning retry HTTP 401 is surfaced without an automatic retry (0.648375ms)
+✔ learning retry HTTP 404 is surfaced without an automatic retry (0.14825ms)
+✔ learning retry HTTP 409 is surfaced without an automatic retry (0.143583ms)
+✔ learning retry HTTP 503 is surfaced without an automatic retry (0.330041ms)
+✔ a lost retry response keeps the caller's stable request ID and is never retried automatically (0.466417ms)
+✔ learning endpoints require a brain and reject non-object success responses (0.497ms)
+✔ recording control scopes the brain and retains the caller's revision (39.395042ms)
+✔ a stale resume is surfaced without fetching and replacing its revision (0.373709ms)
+✔ recovery metadata uses only an explicitly acknowledged epoch: undefined (46.0545ms)
+✔ recovery metadata uses only an explicitly acknowledged epoch: 8d8e9a28-4d16-407d-9cf1-e15ae67cfc80 (0.284ms)
+✔ invalid recovery epoch is rejected before transport: "" (0.195209ms)
+✔ invalid recovery epoch is rejected before transport: "not-an-epoch" (1.972125ms)
+✔ invalid recovery epoch is rejected before transport: "8D8E9A28-4D16-407D-9CF1-E15AE67CFC80" (0.12975ms)
+✔ invalid recovery epoch is rejected before transport: "x\r\nInjected: yes" (0.083791ms)
+✔ scope lookup preserves exact identities and exposes an old reserved turn (30.78275ms)
+✔ an empty scope is returned without starting or claiming a turn (0.335583ms)
+✔ scope lookup errors are surfaced without an automatic retry (0.336875ms)
+✔ timeline sends roles, budgets and the excluded conversation as query parameters (50.743542ms)
+✔ ensureBrain creates or reuses a named brain with PUT (0.818167ms)
+✔ notes preserve shared moments and evidence-backed feelings including neutral values (1.212542ms)
+✔ note writes preserve explicit sources and retry identity while timeline cursors stay encoded (1.537958ms)
+✔ exact source reads and guarded writes preserve the dependency generation including zero (0.616625ms)
+ℹ tests 55
+ℹ suites 0
+ℹ pass 55
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1277.324625
