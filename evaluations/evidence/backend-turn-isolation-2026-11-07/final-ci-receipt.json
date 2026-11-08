@@ -20,8 +20,8 @@
   "ruff": "passed",
   "wheel_and_sdist": "passed",
   "raw_log_sha256": "25397a0475ffcd974b535d50470f1f9268178653d1edd014b253419317816793",
-  "redacted_log_sha256": "95f198dbf3d5b04fdab11c52104c22ea23c62c22258dc192c2022a181d343244",
-  "redaction": "Parameterized pytest values and credential-shaped strings removed; test names and outcomes retained.",
+  "redacted_log_sha256": "81f8cfdf6e614de1fecb5278c63b796b631e163ceb55276c9f51adfa0a894941",
+  "redaction": "Parameterized pytest values and credential-shaped strings removed; test names and outcomes retained. Trailing line whitespace normalized; raw log hash unchanged.",
   "steps": [
     {
       "name": "Set up job",

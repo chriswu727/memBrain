@@ -274,22 +274,22 @@
 2026-11-08T04:40:12.5357860Z ##[group]Checking out the ref
 2026-11-08T04:40:12.5361883Z [command]/usr/bin/git checkout --progress --force refs/remotes/pull/47/merge
 2026-11-08T04:40:13.1024000Z Note: switching to 'refs/remotes/pull/47/merge'.
-2026-11-08T04:40:13.1024231Z 
+2026-11-08T04:40:13.1024231Z
 2026-11-08T04:40:13.1024428Z You are in 'detached HEAD' state. You can look around, make experimental
 2026-11-08T04:40:13.1025065Z changes and commit them, and you can discard any commits you make in this
 2026-11-08T04:40:13.1025639Z state without impacting any branches by switching back to a branch.
-2026-11-08T04:40:13.1025968Z 
+2026-11-08T04:40:13.1025968Z
 2026-11-08T04:40:13.1026269Z If you want to create a new branch to retain commits you create, you may
 2026-11-08T04:40:13.1026645Z do so (now or later) by using -c with the switch command. Example:
-2026-11-08T04:40:13.1027114Z 
+2026-11-08T04:40:13.1027114Z
 2026-11-08T04:40:13.1027325Z   git switch -c <new-branch-name>
-2026-11-08T04:40:13.1027613Z 
+2026-11-08T04:40:13.1027613Z
 2026-11-08T04:40:13.1027908Z Or undo this operation with:
-2026-11-08T04:40:13.1028103Z 
+2026-11-08T04:40:13.1028103Z
 2026-11-08T04:40:13.1028176Z   git switch -
-2026-11-08T04:40:13.1028293Z 
+2026-11-08T04:40:13.1028293Z
 2026-11-08T04:40:13.1028619Z Turn off this advice by setting config variable advice.detachedHead to false
-2026-11-08T04:40:13.1028969Z 
+2026-11-08T04:40:13.1028969Z
 2026-11-08T04:40:13.1029403Z HEAD is now at 51e62b0 Merge 366ff050b0a5ae7f046af646fec734857af1b71c into e18bc34c0ebb379384515b35ffba500a08c1679b
 2026-11-08T04:40:13.1066323Z ##[endgroup]
 2026-11-08T04:40:13.1112941Z [command]/usr/bin/git log -1 --format=%H
@@ -375,7 +375,7 @@
 2026-11-08T04:40:15.2021423Z    ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━ 17.2/17.2 MB 110.9 MB/s  0:00:00
 2026-11-08T04:40:15.2496842Z Installing collected packages: uv
 2026-11-08T04:40:15.3991140Z Successfully installed uv-0.13.7
-2026-11-08T04:40:15.3997575Z 
+2026-11-08T04:40:15.3997575Z
 2026-11-08T04:40:15.3998003Z [notice] A new release of pip is available: 26.2.2 -> 26.3
 2026-11-08T04:40:15.3998702Z [notice] To update, run: pip install --upgrade pip
 2026-11-08T04:40:15.4714432Z ##[group]Run uv sync --frozen
@@ -688,7 +688,7 @@
 2026-11-08T04:40:24.9177541Z Get:10 http://azure.archive.ubuntu.com/ubuntu resolute/universe amd64v3 xfonts-scalable all 1:1.0.3-1.3build1 [304 kB]
 2026-11-08T04:40:25.2642808Z Fetched 21.9 MB in 1s (19.2 MB/s)
 2026-11-08T04:40:25.2859998Z Selecting previously unselected package fonts-ipafont-gothic.
-2026-11-08T04:40:25.3110076Z (Reading database ... 
+2026-11-08T04:40:25.3110076Z (Reading database ...
 2026-11-08T04:40:25.3110536Z (Reading database ... 5%
 2026-11-08T04:40:25.3110957Z (Reading database ... 10%
 2026-11-08T04:40:25.3111282Z (Reading database ... 15%
@@ -749,18 +749,18 @@
 2026-11-08T04:40:27.7946326Z Processing triggers for man-db (2.13.1-1build1) ...
 2026-11-08T04:40:27.7969025Z Not building database; man-db/auto-update is not 'true'.
 2026-11-08T04:40:27.7982697Z Processing triggers for fontconfig (2.17.1-3ubuntu1) ...
-2026-11-08T04:40:28.6224840Z 
+2026-11-08T04:40:28.6224840Z
 2026-11-08T04:40:28.6225560Z Running kernel seems to be up-to-date.
-2026-11-08T04:40:28.6225868Z 
+2026-11-08T04:40:28.6225868Z
 2026-11-08T04:40:28.6226018Z Restarting services...
-2026-11-08T04:40:28.6315797Z 
+2026-11-08T04:40:28.6315797Z
 2026-11-08T04:40:28.6316471Z Service restarts being deferred:
 2026-11-08T04:40:28.6319211Z  systemctl restart hosted-compute-agent.service
-2026-11-08T04:40:28.6319460Z 
+2026-11-08T04:40:28.6319460Z
 2026-11-08T04:40:28.6320396Z No containers need to be restarted.
-2026-11-08T04:40:28.6320547Z 
+2026-11-08T04:40:28.6320547Z
 2026-11-08T04:40:28.6320706Z No user sessions are running outdated binaries.
-2026-11-08T04:40:28.6320884Z 
+2026-11-08T04:40:28.6320884Z
 2026-11-08T04:40:28.6321167Z No VM guests are running outdated hypervisor (qemu) binaries on this host.
 2026-11-08T04:40:29.7859232Z Downloading Chrome for Testing 153.0.8010.12 (playwright chromium v1243) from https://cdn.playwright.dev/builds/cft/153.0.8010.12/linux64/chrome-linux64.zip
 2026-11-08T04:40:30.1433828Z |                                                                                |   0% of 186.8 MiB
@@ -894,7 +894,7 @@
 2026-11-08T04:40:57.2153452Z plugins: platformdirs-4.13.6, anyio-4.15.1, asyncio-1.4.0
 2026-11-08T04:40:57.2154012Z asyncio: mode=Mode.AUTO, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function
 2026-11-08T04:41:10.6471661Z collecting ... collected 7984 items
-2026-11-08T04:41:10.6471905Z 
+2026-11-08T04:41:10.6471905Z
 2026-11-08T04:41:12.0898306Z tests/test_abstraction_publication.py::test_selected_abstraction_survives_publication_and_preserves_retained_context_dependencies PASSED [  0%]
 2026-11-08T04:41:12.1123262Z tests/test_abstraction_support.py::test_common_claim_uses_only_action_sources_while_link_preserves_complete_parent_evidence PASSED [  0%]
 2026-11-08T04:41:12.1320504Z tests/test_abstraction_support.py::test_complete_shared_segments_can_be_narrower_than_exact_parent_source_spans PASSED [  0%]
@@ -8879,14 +8879,14 @@
 2026-11-08T05:18:47.8225462Z tests/test_working_map.py::test_sensitive_note_outside_evidence_fetch_bound_still_masks_parent PASSED [ 99%]
 2026-11-08T05:18:47.9895237Z tests/test_working_map.py::test_current_source_revision_and_cross_brain_scope_are_checked PASSED [ 99%]
 2026-11-08T05:18:49.4145008Z tests/test_working_map.py::test_state_sampling_marks_omitted_branches_without_mutating_them PASSED [100%]
-2026-11-08T05:18:49.4145382Z 
+2026-11-08T05:18:49.4145382Z
 2026-11-08T05:18:49.4145648Z =============================== warnings summary ===============================
 2026-11-08T05:18:49.4146425Z tests/test_evaluation_billing_guard.py::test_separate_arm_processes_share_one_cap
 2026-11-08T05:18:49.4147172Z tests/test_evaluation_billing_guard.py::test_separate_arm_processes_share_one_cap
 2026-11-08T05:18:49.4147710Z tests/test_longitudinal_journal.py::test_forked_process_cannot_use_inherited_locked_context
 2026-11-08T05:18:49.4148596Z   /opt/hostedtoolcache/Python/3.12.16/x64/lib/python3.12/multiprocessing/popen_fork.py:66: DeprecationWarning: This process (pid=3898) is multi-threaded, use of fork() may lead to deadlocks in the child.
 2026-11-08T05:18:49.4149241Z     self.pid = os.fork()
-2026-11-08T05:18:49.4149374Z 
+2026-11-08T05:18:49.4149374Z
 2026-11-08T05:18:49.4149608Z -- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
 2026-11-08T05:18:49.4150028Z ============================= slowest 15 durations =============================
 2026-11-08T05:18:49.4150646Z 177.26s call     tests/test_longitudinal_evaluation.py::test_complete_scenario_through_real_loopback_http_has_no_automatic_semantic_pass
@@ -8925,14 +8925,14 @@
 2026-11-08T05:18:52.2724546Z   Python3_ROOT_DIR: /opt/hostedtoolcache/Python/3.12.16/x64
 2026-11-08T05:18:52.2724860Z   LD_LIBRARY_PATH: /opt/hostedtoolcache/Python/3.12.16/x64/lib
 2026-11-08T05:18:52.2725129Z ##[endgroup]
-2026-11-08T05:18:53.3832807Z 
+2026-11-08T05:18:53.3832807Z
 2026-11-08T05:18:53.3833532Z added 4 packages, and audited 5 packages in 1s
-2026-11-08T05:18:53.3838401Z 
+2026-11-08T05:18:53.3838401Z
 2026-11-08T05:18:53.3838529Z found 0 vulnerabilities
-2026-11-08T05:18:53.5140500Z 
+2026-11-08T05:18:53.5140500Z
 2026-11-08T05:18:53.5141025Z > @membrain/client@0.1.0 test
 2026-11-08T05:18:53.5141329Z > node --test *.test.ts
-2026-11-08T05:18:53.5141456Z 
+2026-11-08T05:18:53.5141456Z
 2026-11-08T05:18:53.5657709Z TAP version 13
 2026-11-08T05:18:53.7504661Z # Subtest: cognitive budget reads preserve used limits and encode scope
 2026-11-08T05:18:53.7509400Z ok 1 - cognitive budget reads preserve used limits and encode scope
@@ -9261,10 +9261,10 @@
 2026-11-08T05:18:55.9157787Z # skipped 0
 2026-11-08T05:18:55.9157997Z # todo 0
 2026-11-08T05:18:55.9158238Z # duration_ms 2357.58213
-2026-11-08T05:18:56.0037770Z 
+2026-11-08T05:18:56.0037770Z
 2026-11-08T05:18:56.0038314Z > @membrain/client@0.1.0 typecheck
 2026-11-08T05:18:56.0038986Z > tsc --noEmit --strict --target ES2023 --module NodeNext --lib ES2023,DOM --types node --allowImportingTsExtensions index.ts contract.ts
-2026-11-08T05:18:56.0039389Z 
+2026-11-08T05:18:56.0039389Z
 2026-11-08T05:18:56.5015554Z ##[group]Run uv build
 2026-11-08T05:18:56.5015784Z [36;1muv build[0m
 2026-11-08T05:18:56.5062171Z shell: /usr/bin/bash -e {0}
@@ -9418,10 +9418,10 @@
 2026-11-08T05:18:59.4363196Z  2026-11-08 05:17:55.295 UTC [49483] ERROR:  query would be affected by row-level security policy for table "memory_runtime_turns"
 2026-11-08T05:18:59.4363785Z  2026-11-08 05:17:55.295 UTC [49483] HINT:  To disable the policy for the table's owner, use ALTER TABLE NO FORCE ROW LEVEL SECURITY.
 2026-11-08T05:18:59.4364249Z  2026-11-08 05:17:55.295 UTC [49483] STATEMENT:  SET LOCAL row_security = off;
-2026-11-08T05:18:59.4364536Z  	
+2026-11-08T05:18:59.4364536Z
 2026-11-08T05:18:59.4364699Z  	ALTER TABLE memory_runtime_turns
 2026-11-08T05:18:59.4364968Z  	    ADD COLUMN scope_reserved boolean NOT NULL DEFAULT false;
-2026-11-08T05:18:59.4365225Z  	
+2026-11-08T05:18:59.4365225Z
 2026-11-08T05:18:59.4365379Z  	WITH pending AS (
 2026-11-08T05:18:59.4365566Z  	    SELECT tenant_id, brain_id, turn_id,
 2026-11-08T05:18:59.4365795Z  	           row_number() OVER (
@@ -9436,23 +9436,23 @@
 2026-11-08T05:18:59.4368011Z  	FROM pending
 2026-11-08T05:18:59.4368252Z  	WHERE pending.position = 1 AND turns.tenant_id = pending.tenant_id
 2026-11-08T05:18:59.4368623Z  	    AND turns.brain_id = pending.brain_id AND turns.turn_id = pending.turn_id;
-2026-11-08T05:18:59.4368921Z  	
+2026-11-08T05:18:59.4368921Z
 2026-11-08T05:18:59.4369135Z  	CREATE UNIQUE INDEX memory_runtime_turns_scope_reservation
 2026-11-08T05:18:59.4369486Z  	    ON memory_runtime_turns (tenant_id, brain_id, conversation_id, branch_id)
 2026-11-08T05:18:59.4369788Z  	    WHERE scope_reserved;
-2026-11-08T05:18:59.4369965Z  	
+2026-11-08T05:18:59.4369965Z
 2026-11-08T05:18:59.4370141Z  	CREATE INDEX memory_runtime_turns_pending_scope
 2026-11-08T05:18:59.4370540Z  	    ON memory_runtime_turns (tenant_id, owner_id, brain_id, conversation_id, branch_id, created_at, turn_id)
 2026-11-08T05:18:59.4370934Z  	    WHERE stage NOT IN ('completed', 'failed');
-2026-11-08T05:18:59.4371148Z  	
+2026-11-08T05:18:59.4371148Z
 2026-11-08T05:18:59.4371319Z  This user must also own the server process.
-2026-11-08T05:18:59.4371533Z  
+2026-11-08T05:18:59.4371533Z
 2026-11-08T05:18:59.4371760Z  The database cluster will be initialized with locale "en_US.utf8".
 2026-11-08T05:18:59.4372104Z  The default database encoding has accordingly been set to "UTF8".
 2026-11-08T05:18:59.4372444Z  The default text search configuration will be set to "english".
-2026-11-08T05:18:59.4372881Z  
+2026-11-08T05:18:59.4372881Z
 2026-11-08T05:18:59.4373045Z  Data page checksums are disabled.
-2026-11-08T05:18:59.4373242Z  
+2026-11-08T05:18:59.4373242Z
 2026-11-08T05:18:59.4373479Z  fixing permissions on existing directory /var/lib/postgresql/data ... ok
 2026-11-08T05:18:59.4373790Z  creating subdirectories ... ok
 2026-11-08T05:18:59.4374046Z  selecting dynamic shared memory implementation ... posix
@@ -9463,12 +9463,12 @@
 2026-11-08T05:18:59.4375242Z  running bootstrap script ... ok
 2026-11-08T05:18:59.4375484Z  performing post-bootstrap initialization ... ok
 2026-11-08T05:18:59.4375727Z  syncing data to disk ... ok
-2026-11-08T05:18:59.4375909Z  
-2026-11-08T05:18:59.4376053Z  
+2026-11-08T05:18:59.4375909Z
+2026-11-08T05:18:59.4376053Z
 2026-11-08T05:18:59.4376240Z  Success. You can now start the database server using:
-2026-11-08T05:18:59.4376475Z  
+2026-11-08T05:18:59.4376475Z
 2026-11-08T05:18:59.4376669Z      pg_ctl -D /var/lib/postgresql/data -l logfile start
-2026-11-08T05:18:59.4376912Z  
+2026-11-08T05:18:59.4376912Z
 2026-11-08T05:18:59.4377423Z  waiting for server to start....2026-11-08 04:40:06.891 UTC [48] LOG:  starting PostgreSQL 17.11 (Debian 17.11-1.pgdg12+2) on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit
 2026-11-08T05:18:59.4378093Z  2026-11-08 04:40:06.892 UTC [48] LOG:  listening on Unix socket "/var/run/postgresql/.s.PGSQL.5432"
 2026-11-08T05:18:59.4378513Z  2026-11-08 04:40:06.894 UTC [51] LOG:  database system was shut down at 2026-11-08 04:40:06 UTC
@@ -9476,10 +9476,10 @@
 2026-11-08T05:18:59.4379185Z   done
 2026-11-08T05:18:59.4379338Z  server started
 2026-11-08T05:18:59.4379506Z  CREATE DATABASE
-2026-11-08T05:18:59.4379670Z  
-2026-11-08T05:18:59.4379808Z  
+2026-11-08T05:18:59.4379670Z
+2026-11-08T05:18:59.4379808Z
 2026-11-08T05:18:59.4380054Z  /usr/local/bin/docker-entrypoint.sh: ignoring /docker-entrypoint-initdb.d/*
-2026-11-08T05:18:59.4380354Z  
+2026-11-08T05:18:59.4380354Z
 2026-11-08T05:18:59.4380638Z  waiting for server to shut down...2026-11-08 04:40:07.067 UTC [48] LOG:  received fast shutdown request
 2026-11-08T05:18:59.4381031Z  .2026-11-08 04:40:07.068 UTC [48] LOG:  aborting any active transactions
 2026-11-08T05:18:59.4381580Z  2026-11-08 04:40:07.069 UTC [48] LOG:  background worker "logical replication launcher" (PID 54) exited with exit code 1
@@ -9489,9 +9489,9 @@
 2026-11-08T05:18:59.4384244Z  2026-11-08 04:40:07.173 UTC [48] LOG:  database system is shut down
 2026-11-08T05:18:59.4384497Z   done
 2026-11-08T05:18:59.4384650Z  server stopped
-2026-11-08T05:18:59.4384816Z  
+2026-11-08T05:18:59.4384816Z
 2026-11-08T05:18:59.4385014Z  PostgreSQL init process complete; ready for start up.
-2026-11-08T05:18:59.4385255Z  
+2026-11-08T05:18:59.4385255Z
 2026-11-08T05:18:59.4391016Z Stop and remove container: 1d463c8e5edc42e3bfaf011e3e2a4abf_pgvectorpgvectorpg17_47f20e
 2026-11-08T05:18:59.4395539Z ##[command]/usr/bin/docker rm --force 30ee74782d8ee5e852c4952df5a88cef991338023236ec9f2f025e558ed9a9ea
 2026-11-08T05:19:00.2153999Z 30ee74782d8ee5e852c4952df5a88cef991338023236ec9f2f025e558ed9a9ea
