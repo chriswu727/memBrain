@@ -22,6 +22,8 @@ Persona proposal decisions and destructive/reset operations belong to the user. 
 
 ## Refresh, failures and host-owned history
 
+The authenticated [server recording control](reference.md#server-recording-control) independently stops source ingestion for one brain and closes unfinished durable-runtime turns. Host delivery drops its explicit rejections without spooling them. Local conversation pause files, offline staging and host transcripts are separate; the server control is not automatically synchronized with them.
+
 The shared host lifecycle recognizes documented direct English/Chinese pause commands before storing raw input, including in the tool-free proxy. This is a bounded command grammar, not general intent classification. The current exchange is excluded from staging, spooling and extraction; ordinary recording resumes through controls or the existing new-conversation rule. Local MCP observations also respect pause. Raw HTTP/SDK writes and the separate durable AgentRuntime do not inherit this local policy. See [recording scope and limits](reference.md#chat-adapter-identity-compatibility) and the [backend review](../architecture/backend-control-flow-2026-11-07.md). The repair does not turn the historical failed R4 result into a pass.
 
 The bot/proxy request adapter and OpenClaw rebuild their memory contribution for each request. Hermes refreshes the provider block whenever its host asks for it. Personal content is not cached for five minutes or for the lifetime of a provider. The Python bot constructor still accepts `block_seconds` for source compatibility, but it no longer enables personal-context caching.

@@ -595,7 +595,7 @@ export type PortableArchive = {
 };
 
 export type RuntimeError = {
-  "code": "unauthorized" | "not_found_or_forbidden" | "invalid_evidence" | "identity_unverified" | "version_conflict" | "idempotency_conflict" | "budget_exceeded" | "dependency_unavailable" | "unsupported_capability" | "invalid_archive" | "deletion_in_progress" | "validation_failed" | "context_stale" | "source_unavailable" | "lease_conflict";
+  "code": "unauthorized" | "not_found_or_forbidden" | "invalid_evidence" | "identity_unverified" | "version_conflict" | "idempotency_conflict" | "budget_exceeded" | "dependency_unavailable" | "unsupported_capability" | "invalid_archive" | "deletion_in_progress" | "validation_failed" | "context_stale" | "source_unavailable" | "lease_conflict" | "recording_paused";
   "message": string;
   "retryable": boolean;
   "retry_after_ms"?: number;

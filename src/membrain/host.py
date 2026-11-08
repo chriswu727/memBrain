@@ -712,6 +712,12 @@ def spool(directory: Path, record: dict) -> None:
             stream.write(json.dumps(record, ensure_ascii=False) + "\n")
 
 
+def _recording_rejected(error: Exception) -> bool:
+    from .client import MemoryActionError
+
+    return isinstance(error, MemoryActionError) and error.code == "recording_paused"
+
+
 def _permanent(error: Exception) -> bool:
     """Whether a replayed record failed for good (rejected or malformed) rather than for now (offline, busy)."""
     import httpx
@@ -765,7 +771,8 @@ def flush(client, directory: Path) -> int:
                     except Exception as error:
                         if not _permanent(error):
                             raise  # Offline or busy: keep this and every later record for the next replay.
-                        _reject(directory, line, error)
+                        if not _recording_rejected(error):
+                            _reject(directory, line, error)
                     delivered += 1
             finally:
                 client.brain_id = current
@@ -801,6 +808,8 @@ def deliver(directory: Path, client, record: dict) -> bool:
         finally:
             client.brain_id = current
     except Exception as error:
+        if _recording_rejected(error):
+            return False
         spool(directory, record)
         log(directory, f"spooled {record['role']} record: {type(error).__name__}")
     return True

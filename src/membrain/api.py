@@ -129,6 +129,11 @@ class RuntimeBegin(RuntimeBody):
     input_fingerprint: RuntimeFingerprint
 
 
+class RecordingControl(RuntimeBody):
+    paused: bool
+    expected_revision: Annotated[int, Field(ge=0, lt=2**63 - 1)]
+
+
 class RuntimeScope(RuntimeBody):
     conversation_id: RuntimeIdentifier
     branch_id: RuntimeIdentifier
@@ -449,7 +454,7 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
             "lease_conflict": 409, "stage_conflict": 409, "turn_terminal": 409,
             "scope_conflict": 409, "provider_uncertain": 409,
             "recovery_acknowledgement_required": 409, "deletion_in_progress": 409,
-            "source_unavailable": 409, "context_stale": 409,
+            "source_unavailable": 409, "context_stale": 409, "recording_paused": 409,
             "response_review_required": 409, "response_review_uncertain": 409, "response_review_blocked": 409,
             "dependency_unavailable": 503, "budget_exceeded": 413,
         }.get(error.code, 422)
@@ -581,6 +586,19 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     @app.post("/v1/brains/{brain_id}/source-messages")
     def source_messages(brain_id: str, body: SourceMessagesRead, principal: Principal = Depends(authenticate)):
         return service.source_messages(principal, brain_id, [ref.model_dump() for ref in body.messages])
+
+    @app.get("/v1/brains/{brain_id}/recording")
+    def get_recording(brain_id: str, principal: Principal = Depends(authenticate)):
+        from .recording_control import recording_status
+
+        return recording_status(service, principal, brain_id)
+
+    @app.put("/v1/brains/{brain_id}/recording")
+    async def change_recording(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
+        from .recording_control import set_recording
+
+        body = await runtime_body(request, RecordingControl)
+        return await run_in_threadpool(set_recording, service, principal, brain_id, **body)
 
     @app.post("/v1/brains/{brain_id}/notes")
     async def write_note(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):

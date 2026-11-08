@@ -522,6 +522,16 @@ export class MemoryClient {
   }
 
   brains(): Promise<JsonObject> { return this.#request("GET", "v1/brains"); }
+
+  recordingStatus(brainId?: string): Promise<JsonObject> {
+    return this.#request("GET", `${this.#brainPath(brainId)}/recording`);
+  }
+
+  setRecording(options: { paused: boolean; expectedRevision: number; brainId?: string }): Promise<JsonObject> {
+    return this.#request("PUT", `${this.#brainPath(options.brainId)}/recording`, {
+      paused: options.paused, expected_revision: options.expectedRevision,
+    });
+  }
   createBrain(name: string): Promise<JsonObject> { return this.#request("POST", "v1/brains", { name }); }
   /** Create the brain with this stable ID unless it already exists. */
   ensureBrain(brainId: string, name: string): Promise<JsonObject> {
