@@ -669,7 +669,7 @@ A recognized control uses the existing conversation pause: the current exchange 
 
 These controls belong to `host.prompt_context` / `finish_turn` and their plugin, bot and proxy adapters. They are not a server-wide recording policy for raw HTTP/SDK `observe` or the separate `AgentRuntime.respond` lifecycle. The chat host and upstream reply provider still receive the message needed to answer; memBrain cannot erase their transcripts. Previously stored content is not retroactively deleted. See the [backend control-flow review](../architecture/backend-control-flow-2026-11-07.md).
 
-`finish_turn` requires a staged user input or an explicit `prompt` before it can store an assistant reply. An orphan reply after a missing/failed prompt hook, or a duplicate callback after a protected turn was discarded, is not recorded. Finish-only adapters must pass the actual user prompt. This rule does not supply general per-turn concurrency isolation; adapters must still avoid overlapping callbacks for the same host session.
+`finish_turn` requires a staged user input or an explicit `prompt` before it can store an assistant reply. Without either, replies are discarded, including the tested missing/failed prompt-hook and duplicate-finish cases. Finish-only adapters must pass the actual user prompt. This rule does not match callbacks by turn identity: a late callback can still consume another pending input. Adapters must avoid overlapping callbacks for the same host session until per-turn isolation is implemented.
 
 ### Role-play and real life
 

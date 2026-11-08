@@ -1,0 +1,101 @@
+{
+  "runtime_commit": "3c33fdd3c07a82a08d9f592ec2d505179c47be3f",
+  "qualified_source": "549a495e1ecd92ef85ab662bd92b3037a51c3681",
+  "files": [
+    {
+      "path": "build-v2.log.gz",
+      "bytes": 146,
+      "sha256": "4eb019d8385cabedc6c24cfd6e49520164b7623148b33c9a81f9d6d7a5e6fce3"
+    },
+    {
+      "path": "build.log.gz",
+      "bytes": 144,
+      "sha256": "848fb0b225fb35691b9e851ac614f297c5134f51d155d4a719852a1582d0d89d"
+    },
+    {
+      "path": "expanded-regression.log.gz",
+      "bytes": 1759,
+      "sha256": "612a9990e82bfb92c13f7bd9b5e3c807d253d62171f98b56e49beca71cc25c5c"
+    },
+    {
+      "path": "focused.log.gz",
+      "bytes": 53,
+      "sha256": "cc7257fb61e621c614474bf2bfd8acf21e969477c79f2ea3a43fa7675d1035fb"
+    },
+    {
+      "path": "initial-regression.log.gz",
+      "bytes": 1972,
+      "sha256": "b4f6fdb44340c501d8cd70e4b7fc969801228af6f2b286c8c4289d8ad24b1d0b"
+    },
+    {
+      "path": "installed-wheel-v2.log.gz",
+      "bytes": 62,
+      "sha256": "b8aed591993a3656152af9df44055c96becaacd3ef4ccb85d03c22a8d6ceaec1"
+    },
+    {
+      "path": "installed-wheel.log.gz",
+      "bytes": 62,
+      "sha256": "78070a73cc66fa33ecfbe745f0f2832e3d95c303f845152864c3cebc77d352df"
+    },
+    {
+      "path": "mcp-recheck.log.gz",
+      "bytes": 76,
+      "sha256": "6e2f0a8eb9cf2acff1d78460310ad196d58caa35c71caf651dbaf72bc7f94fc3"
+    },
+    {
+      "path": "openclaw-isolated.log.gz",
+      "bytes": 50,
+      "sha256": "d9828e30fac82ae7ca6224f7f0a2111783c0745401ad62d5cfee33f339c5da46"
+    },
+    {
+      "path": "openclaw-postgres.log.gz",
+      "bytes": 746,
+      "sha256": "bc7b5a822536ec3b1abb911e3c06a8c9cde17c0562dfacee8ccf8f55e5325bac"
+    },
+    {
+      "path": "openclaw-service.log.gz",
+      "bytes": 179,
+      "sha256": "444959b0678ba2a548304373c07664ed4641faa39b6b04ac939d2afc4c3dfb42"
+    },
+    {
+      "path": "orphan-before.log.gz",
+      "bytes": 1040,
+      "sha256": "e8d0db5a7c44cdc75acfca3d71c802d460e54ba637ad21c363ff455d58efc0c8"
+    },
+    {
+      "path": "qualified-local-v2.log.gz",
+      "bytes": 351,
+      "sha256": "36eaaf85c89e4b5a03a500331d2390b842d6ab5a2651d830624d208bb92f5c5c"
+    },
+    {
+      "path": "qualified-local.log.gz",
+      "bytes": 323,
+      "sha256": "b187f4269eb4d6d1fc52dd28a72c39a6d519ecff5347bd286a3f6b3268664e12"
+    },
+    {
+      "path": "same-session-overlap.json",
+      "bytes": 466,
+      "sha256": "16c9348eeb9570a7b5dde4d1bbf2f3e2559226d69d668ee9476e3d07c75298b5"
+    },
+    {
+      "path": "verify.json",
+      "bytes": 592,
+      "sha256": "89f123652acb6d19123d67ae9d0af66d38f5841a2835f7035e3be12ac6a4d0c5"
+    },
+    {
+      "path": "verify.log.gz",
+      "bytes": 212502,
+      "sha256": "d97c87f43e2cfb3e83414b668c7ef74e10eea757fbd701a109f7eb200743cdfc"
+    },
+    {
+      "path": "wheel-parity-v2.json",
+      "bytes": 180,
+      "sha256": "5f0a8d3c504b5743dc9157be19e1ccace6e90d92aacb12dc94c6147b1563e584"
+    },
+    {
+      "path": "wheel-parity.json",
+      "bytes": 116,
+      "sha256": "3e21f3af95411f6c98c4bb17adfd96faadd756b24eb0f98ae18433e7867f5dec"
+    }
+  ]
+}

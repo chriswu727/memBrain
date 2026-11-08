@@ -1,0 +1,16 @@
+{
+  "source_checkout": "549a495e1ecd92ef85ab662bd92b3037a51c3681",
+  "runtime_commit": "3c33fdd3c07a82a08d9f592ec2d505179c47be3f",
+  "merge_commit": "a241adfcd15d5a09de0056c4576f57e0f4cc546e",
+  "merge_tree_equals_qualified_source": true,
+  "qualified_tree": "f43872794deac0854a62939913bee5bbc243580d",
+  "run_id": 42437622171,
+  "job_id": 128599826942,
+  "conclusion": "success",
+  "python_passed": 7947,
+  "python_skipped": 0,
+  "python_warnings": 3,
+  "typescript_passed": 53,
+  "typescript_skipped": 0,
+  "log_sha256": "a20cec9c6cffa05eb966a5b6ed7c3452734fe5599d741783895866fad45020e8"
+}

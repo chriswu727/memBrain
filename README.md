@@ -22,7 +22,7 @@ memBrain runs as a local service. Connect your agent's conversation lifecycle on
 
 > **Latest acceptance execution:** The [fifth attempt](evaluations/maturity-fifth-attempt-2026-11-07.md) completed valid R4 scoring: plugin 20 (pass), extraction 16 (fail: one memory-caused privacy error), full-history reference 15.5. C1 stopped on a page-action failure and C2 did not run; C5 is invalid and unscored. The ledger is blocked at 39.634310 CNY conservatively settled, with zero unknown reservations. No automatic repeat is authorized.
 
-> **Current release status:** The host recording-control repair passes 269 related local tests; full CI is tracked separately. The authorized behavioral attempt has stopped. Its ledger is blocked, invalid private evidence is preserved and no automatic repeat is authorized. Source improvements do not clear R4/C5 or permit publication.
+> **Current release status:** The [host recording-control repair](evaluations/backend-recording-policy-2026-11-07.md) passes 269 related local tests, 77 installed-wheel tests, and full CI with 7,947 Python/53 TypeScript tests, zero skips, strict types, Ruff and builds. It is merged into integration; server-owned recording policy and per-turn concurrency isolation remain open. The authorized behavioral attempt has stopped. Its ledger is blocked, invalid private evidence is preserved and no automatic repeat is authorized. Source improvements do not clear R4/C5 or permit publication.
 
 <a id="claude-code-plugin"></a>
 
