@@ -8,7 +8,7 @@ from . import cognition
 from .consolidation_planning import plan_consolidation, select_consolidation_candidates
 from .contracts import validate
 from .helpers import DomainError, digest, now, uid
-from .jobs import NO_UNSETTLED_RETRY_POLICY, JobStore
+from .jobs import NO_UNSETTLED_RETRY_POLICY, JobStore, require_learning_recording
 from .learning_allocations import ENCODING_PHASE, HISTORY_PHASE, freeze_input, phase
 from .learning_packages import empty_working, local_neighborhood, snapshot_fingerprint
 from .learning_recovery import POLICY_REFRESH_VERSION
@@ -351,8 +351,10 @@ class LearningEngine:
             params = service._params(principal, brain_id)
             payload = job["payload"]
             learning_phase = phase(payload)
-            prior = conn.execute("SELECT result FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=%s",
-                                 (*params, job["id"])).fetchone()["result"]
+            current = conn.execute("SELECT kind,recording_revision,result FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=%s",
+                                   (*params, job["id"])).fetchone()
+            require_learning_recording(brain, current)
+            prior = current["result"]
             if (learning_phase is not None and any(key in payload for key in (
                     "allocation_input_fingerprint", "recovery_input_fingerprint", "recovery_policy_refresh"))
                     and (not isinstance(prior, dict) or "working_snapshot" not in prior)):
@@ -779,7 +781,8 @@ class LearningEngine:
             try:
                 self.jobs.fail(principal, brain_id, job["id"], lease_token=job["lease_token"], fence=job["fence"],
                                failure_code=error.code if isinstance(error, DomainError) and error.code in {
-                                   "source_unavailable", "context_stale", "budget_exceeded", "provider_uncertain"} else "internal_error",
+                                   "source_unavailable", "context_stale", "budget_exceeded", "provider_uncertain",
+                                   "recording_paused", "recording_stale"} else "internal_error",
                                retry=not isinstance(error, DomainError),
                                retry_delay_seconds=(60 * 2 ** min(job["attempts"] - 1, 5)
                                                     if job["kind"] == "consolidate" else 0))
@@ -792,10 +795,11 @@ class LearningEngine:
         if self.service.semantic_processor:
             with self.service.database.transaction(principal) as conn:
                 brain = self.service._brain(conn, principal, brain_id)
-                recover_windows(conn, self.service, principal, brain)
-                from .learning_integration import reconsider
+                if not brain["recording_paused"]:
+                    recover_windows(conn, self.service, principal, brain)
+                    from .learning_integration import reconsider
 
-                reconsider(conn, self.service, principal, brain)
+                    reconsider(conn, self.service, principal, brain)
             kinds.append("consolidate")
         if self.service.embedding_provider:
             kinds.append("embed")

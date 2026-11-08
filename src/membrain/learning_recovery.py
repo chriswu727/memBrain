@@ -5,6 +5,7 @@ from psycopg.types.json import Jsonb
 from .helpers import DomainError, digest
 from .learning_allocations import ENCODING_PHASE, allocation_metadata, phase
 from .learning_windows import bounds
+from .recording_guard import require_recording
 from .turns import _identifier, _integer
 
 DEFAULT_MODEL_CALLS = 2
@@ -109,9 +110,10 @@ def retry_learning(store, conn, principal, brain_id, job_id, *, request_id, expe
     target, start, end = _phase_window(parent) if selected_phase else _remaining(parent)
     params = store._params(principal, brain_id)
     brain = conn.execute(
-        "SELECT durable_sequence FROM memory_brains WHERE tenant_id=%s AND owner_id=%s AND id=%s",
+        "SELECT durable_sequence,recording_paused,recording_revision FROM memory_brains WHERE tenant_id=%s AND owner_id=%s AND id=%s",
         params,
     ).fetchone()
+    require_recording(brain)
     if end > brain["durable_sequence"]:
         raise DomainError("stage_conflict", "Learning window exceeds recorded input.")
     if exhausted_lease:

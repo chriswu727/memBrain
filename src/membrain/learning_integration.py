@@ -9,7 +9,7 @@ from .cognitive_budget import cognitive_budget
 from .consolidation_planning import plan_consolidation
 from .helpers import DomainError, digest
 from .history_semantics import integration_coverage, validate_manifest
-from .jobs import NO_UNSETTLED_RETRY_POLICY, JobStore
+from .jobs import NO_UNSETTLED_RETRY_POLICY, JobStore, require_learning_recording
 from .learning_allocations import (
     ALLOCATION_POLICY,
     CONTRACT_VERSION,
@@ -385,9 +385,10 @@ def fail_integration(service, principal, brain_id, job, snapshot, result):
     data = {**snapshot, **asdict(result), "publication": {}}
     failure = ("budget_exceeded" if result.status == "budget_exhausted" else "provider_failed"
                if result.status in {"provider_unavailable", "verification_unavailable"} else "invalid_proposal")
-    with store._transaction(principal, brain_id) as conn:
+    with store._transaction(principal, brain_id) as (conn, brain):
         row = store._row(conn, principal, brain_id, job["id"])
         store._lease(row, job["lease_token"], job["fence"])
+        require_learning_recording(brain, row)
         deferred = row["model_calls"] == 0 and result.status == "budget_exhausted"
         if deferred:
             data = {**snapshot, **_skeleton(), "history_integration_reason": DEFERRED_REASON,
