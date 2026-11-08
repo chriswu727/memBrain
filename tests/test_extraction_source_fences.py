@@ -55,6 +55,39 @@ def content(body):
     return body["messages"][1]["content"]
 
 
+@pytest.mark.parametrize("when", ["queued", "provider", "retry"])
+@pytest.mark.parametrize("resume", [False, True])
+def test_server_recording_changes_fence_queued_and_inflight_extraction(chat, when, resume):
+    kept = chat.client.write_note("Keep this existing note.")["note_id"]
+    chat.record("My appointment moved to Friday.", "first")
+
+    def change_policy():
+        chat.client.set_recording(paused=True, expected_revision=0)
+        if resume:
+            chat.client.set_recording(paused=False, expected_revision=1)
+
+    def respond(body):
+        if when != "queued" and len(chat.seen) == 1:
+            change_policy()
+            if when == "retry":
+                raise httpx.ConnectError("retry the synthetic provider")
+        return [{"text": "Stale appointment proposal.", "replaces": [kept]}]
+
+    chat.response = respond
+    if when == "queued":
+        change_policy()
+    chat.run()
+    assert len(chat.seen) == (0 if when == "queued" else 1)
+    assert [note["event_id"] for note in chat.notes()] == [kept]
+    assert extraction_status(chat.directory)["last_error"] == ("recording_stale" if resume else "recording_paused")
+    if resume:
+        chat.response = lambda body: [{"text": "A fresh Saturday appointment."}]
+        chat.record("My new appointment is Saturday.", "fresh")
+        chat.run()
+        assert any("fresh Saturday" in note["text"] for note in chat.notes())
+        assert extraction_status(chat.directory)["state"] == "ok"
+
+
 def test_previous_context_is_live_and_its_deletion_removes_derived_notes(chat):
     previous = chat.record("My visit to the planetarium is on Thursday.", "first")
     chat.run()
@@ -66,6 +99,48 @@ def test_previous_context_is_live_and_its_deletion_removes_derived_notes(chat):
     assert "planetarium" not in repr(chat.memory._previous)
     chat.erase(previous[:1])
     assert chat.notes() == []
+
+
+def test_policy_change_between_notes_preserves_committed_note_and_rejects_the_rest(chat, monkeypatch):
+    from membrain.client import MemoryClient
+
+    chat.record("Remember my Friday appointment and Saturday lesson.", "first")
+    chat.response = lambda body: [{"text": "Friday appointment."}, {"text": "Saturday lesson."}]
+    original = MemoryClient.write_note
+    written = []
+
+    def write(client, *args, **kwargs):
+        result = original(client, *args, **kwargs)
+        written.append(result["note_id"])
+        if len(written) == 1:
+            chat.client.set_recording(paused=True, expected_revision=0)
+            chat.client.set_recording(paused=False, expected_revision=1)
+        return result
+
+    monkeypatch.setattr(MemoryClient, "write_note", write)
+    chat.run()
+    assert len(written) == 1
+    assert [note["event_id"] for note in chat.notes()] == written
+    status = extraction_status(chat.directory)
+    assert status["notes_saved"] == 1 and status["last_error"] == "recording_stale"
+
+
+@pytest.mark.parametrize("token", [None, {"revision": True, "target": None},
+                                  {"revision": 0, "target": "another-installation"}])
+def test_invalid_capture_policy_never_reaches_extraction_provider(chat, monkeypatch, token):
+    original = host.finish_turn
+
+    def finish(*args, **kwargs):
+        records = original(*args, **kwargs)
+        for record in records:
+            record["_recording"] = token
+        return records
+
+    monkeypatch.setattr(host, "finish_turn", finish)
+    chat.record("Please remember my Friday appointment.", "first")
+    chat.run()
+    assert chat.seen == [] and chat.notes() == []
+    assert extraction_status(chat.directory)["last_error"] == "recording_stale"
 
 
 def test_erased_queued_turn_never_reaches_the_provider(chat):

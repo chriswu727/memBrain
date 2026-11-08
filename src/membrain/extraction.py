@@ -4,7 +4,9 @@ Notes are memBrain's durable facts. Agent hosts write them with the note tool; a
 so its people would only ever get raw-message recall. With an extraction model configured, each finished turn is
 read once, after the reply has been sent, together with the person's current notes, and the lasting facts in it
 are saved as typed notes (plans and whether they are done, people and their aliases, constraints, preferences),
-replacing notes they update. Extraction never runs while recording is paused and never delays a reply.
+replacing notes they update. Each attempt checks local pause and the captured server recording policy; note
+writes recheck that policy transactionally. A provider call already in progress cannot be recalled. Extraction
+never delays a reply.
 
 A feeling the person expressed is saved as an affect record on its note, linked to the current turn. The previous
 exchange supplies context for short replies; both exchanges are reread from their exact live source revisions.
@@ -299,11 +301,12 @@ def _exchange(items):
 
 
 def extract_turn(directory, extractor: Extractor, user_id: str | None, *,
-                 sources, previous_sources=()) -> list[dict]:
+                 sources, previous_sources=(), recording) -> list[dict]:
     """Read exact live turn revisions and save notes with the sources actually sent to the provider."""
-    from . import host
+    from . import host, host_recording
     from .client import MemoryActionError
     from .notes import NoteValidationError, list_notes, render_notes, save_note
+    from .recording_control import require_recording
 
     if host.paused(directory, user_id):
         return []
@@ -318,7 +321,9 @@ def extract_turn(directory, extractor: Extractor, user_id: str | None, *,
             try:
                 if host.paused(directory, user_id):
                     return []
+                recording_revision = host_recording.captured_revision(client, recording)
                 resolved = client.source_messages([*sources, *previous_sources])
+                require_recording(resolved, recording_revision)
                 available = {_source_key(item["reference"]): item for item in resolved["items"]}
                 if not sources or any(_source_key(ref) not in available for ref in sources):
                     record_outcome(directory, error="source_unavailable")
@@ -335,6 +340,9 @@ def extract_turn(directory, extractor: Extractor, user_id: str | None, *,
                                              previous=tuple(host.scrub(text) for text in earlier) if earlier else None)
                 break
             except Exception as error:
+                if isinstance(error, (MemoryActionError, _helpers.DomainError)) and error.code in ("recording_paused", "recording_stale"):
+                    record_outcome(directory, error=error.code)
+                    return []
                 if attempt < len(delays) and _retryable(error):
                     time.sleep(delays[attempt])
                     continue
@@ -352,7 +360,8 @@ def extract_turn(directory, extractor: Extractor, user_id: str | None, *,
                     result = save_note(client, host.scrub(text), replaces=tuple(replaces), producer=PRODUCER,
                                        request_id=request_id, source_messages=list(sources),
                                        context_source_messages=list(earlier_refs), require_current_sources=True,
-                                       expected_dependency_generation=generation, **note)
+                                       expected_dependency_generation=generation,
+                                       expected_recording_revision=recording_revision, **note)
                     if (not isinstance(result, dict) or not isinstance(result.get("note_id"), str)
                             or not result["note_id"] or type(result.get("dependency_generation")) is not int
                             or not 0 <= result["dependency_generation"] <= 2**63 - 1):
@@ -365,6 +374,9 @@ def extract_turn(directory, extractor: Extractor, user_id: str | None, *,
                             code = error.response.json().get("error", {}).get("code")
                         except (ValueError, AttributeError):
                             pass
+                    if code in ("recording_paused", "recording_stale"):
+                        record_outcome(directory, saved=len(saved), error=code)
+                        return saved
                     if code in ("source_unavailable", "version_conflict"):
                         record_outcome(directory, saved=len(saved), error="source_context_changed")
                         return saved
