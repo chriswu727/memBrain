@@ -1,4 +1,5 @@
 import asyncio
+import io
 import json
 import threading
 from contextlib import contextmanager
@@ -9,7 +10,7 @@ from psycopg import sql
 from test_host import Client
 from test_proxy import Upstream, _client
 
-from membrain import desktop, embedded_database, host
+from membrain import desktop, embedded_database, host, plugin
 from membrain.adapters.chatbot import TOOLS, ChatMemory, Speaker
 from membrain.local_profile import load_profile
 from membrain.mcp_server import create_server
@@ -191,6 +192,26 @@ def test_local_mcp_cannot_bypass_pause_with_an_observation(tmp_path, offline):
         _, result = asyncio.run(server.call_tool(name, arguments))
         assert "Recording is paused" in result["error"]
     assert client.observed == []
+
+
+@pytest.mark.parametrize("error", [OSError("synthetic disk failure"), TimeoutError("synthetic lock timeout")])
+def test_failed_prompt_hook_cannot_store_an_orphan_reply(tmp_path, offline, monkeypatch, error):
+    def unavailable(*args):
+        raise error
+
+    monkeypatch.setattr(host, "_stage", unavailable)
+    payload = {"session_id": "s", "prompt": "Off the record: confidential rehearsal."}
+    assert plugin.run_hook("user-prompt", tmp_path, stream=io.BytesIO(json.dumps(payload).encode())) == 0
+    plugin.stop({"session_id": "s", "last_assistant_message": "The confidential rehearsal is tomorrow."}, tmp_path)
+    assert not (tmp_path / "plugin" / "spool.jsonl").exists()
+
+
+def test_late_duplicate_reply_does_not_revive_an_excluded_exchange(tmp_path, offline):
+    host.prompt_context(tmp_path, "s", "Off the record: confidential rehearsal.", turn_id="private")
+    assert host.finish_turn(tmp_path, "s", "Confidential reply.", turn_id="private") == []
+    host.resume(tmp_path)
+    assert host.finish_turn(tmp_path, "s", "Confidential reply.", turn_id="private") == []
+    assert not (tmp_path / "plugin" / "spool.jsonl").exists()
 
 
 @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")

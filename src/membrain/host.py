@@ -1542,6 +1542,8 @@ def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: st
     if isinstance(prompt, str) and prompt.strip() and (pending is None or pending["text"] != scrub(prompt)):
         pending = message_record(session, "user", prompt, turn_id=turn_id, producer=producer, user_id=user_id)
         records.append(pending)
+    if pending is None:
+        return []  # A missing/failed prompt callback is not permission to retain an orphan reply.
     if isinstance(reply, str) and reply.strip():
         if turn_id is None and pending:
             turn_id = pending["source_event_key"].rsplit(":", 2)[1]
