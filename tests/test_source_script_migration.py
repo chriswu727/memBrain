@@ -34,8 +34,10 @@ def test_script_projection_upgrade_preserves_source_rows_without_heap_rewrite(mo
                          "SELECT %s,%s,%s,n::text,1,jsonb_build_object('statement','原始记忆 '||n),'原始记忆 '||n "
                          "FROM generate_series(1,300) n", (principal.tenant_id, principal.principal_id, brain))
             before = conn.execute("SELECT id,document,xmin::text,ctid::text FROM memory_assertions ORDER BY id").fetchall()
-        database.migrate()
-        database.migrate()
+        with monkeypatch.context() as patch:
+            patch.setattr(storage, "MIGRATIONS", tuple(item for item in MIGRATIONS if item[0] < "029_"))
+            database.migrate()
+            database.migrate()
         with database.transaction(principal) as conn:
             assert conn.execute("SELECT id,document,xmin::text,ctid::text FROM memory_assertions ORDER BY id").fetchall() == before
             assert conn.execute("SELECT count(*) AS n FROM memory_assertions WHERE source_han_majority IS NULL").fetchone()["n"] == 300

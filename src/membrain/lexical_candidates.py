@@ -90,11 +90,11 @@ def historical_support_filter(input_event_ids):
 
 def _merged_rows(conn, where, values, vector, terms, limit):
     order = "ORDER BY distance NULLS LAST,id,revision LIMIT %s"
-    # Project eligible rows once: per-term scans must not repeat document eligibility and tokenization.
+    # Project eligible rows once: per-term scans must not repeat document eligibility and distance computation.
     # Each channel keeps its own sentinel before deduplication, so overlap cannot hide truncation.
     return conn.execute(
         "WITH eligible AS MATERIALIZED (SELECT a.tenant_id,a.owner_id,a.brain_id,a.id,a.revision,"
-        "a.embedding <=> %s::vector AS distance,to_tsvector('simple',a.search_text) AS lexemes "
+        "a.embedding <=> %s::vector AS distance,a.search_lexemes AS lexemes "
         "FROM memory_assertions a WHERE " + where + "), "
         "hashed AS MATERIALIZED (SELECT * FROM eligible " + order + "), "
         "queries AS MATERIALIZED (SELECT term_id,to_tsquery('simple',query) AS query "
@@ -161,7 +161,7 @@ def lexical_rows(conn, params, target, text, *, limit, through_sequence=None, ex
         rows = hashed[:limit]
         if terms:
             exact = conn.execute(
-                select + "AND to_tsvector('simple',a.search_text) @@ to_tsquery('simple',%s) " + order,
+                select + "AND a.search_lexemes @@ to_tsquery('simple',%s) " + order,
                 (*values, " | ".join(_prefixes(terms)), vector, limit + 1),
             ).fetchall()
             truncated |= len(exact) > limit

@@ -88,6 +88,9 @@ def test_local_cognitive_archive_restores_exact_views_and_remaps_source_revision
     assert len(archive.rows("memory_episode_members")) == len(data["cognitive_views"]["members"])
     assert len(archive.rows("memory_associations")) == len(data["cognitive_views"]["associations"])
     with archive.database.transaction(archive.principal) as conn:
+        projection = conn.execute("SELECT count(*) AS n, bool_and(search_lexemes = to_tsvector('simple',search_text)) AS valid "
+                                  "FROM memory_assertions WHERE brain_id=%s", (archive.brain_id,)).fetchone()
+        assert projection["n"] == len(restored_memories) and projection["valid"]
         for table in ("memory_access_state", "memory_embeddings", "memory_cognitive_operations"):
             assert conn.execute(f"SELECT count(*) AS n FROM {table} WHERE brain_id=%s", (archive.brain_id,)).fetchone()["n"] == 0
 
