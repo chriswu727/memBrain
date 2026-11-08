@@ -717,6 +717,7 @@ export class MemoryClient {
     occurredTime?: ObservedEventInput["occurred_time"];
     speechActHint?: ObservedEventInput["speech_act_hint"];
     parentSourceEventKeys?: string[]; idempotencyKey?: string;
+    expectedRecordingRevision?: number;
   }): Promise<ActionResponse<"observe">> {
     const producer = options.producerRef ?? "sdk";
     const revision = options.sourceRevision ?? 1;
@@ -735,6 +736,9 @@ export class MemoryClient {
         speech_act_hint: options.speechActHint ?? "unknown",
         parent_source_event_keys: options.parentSourceEventKeys ?? [],
       }],
+      ...(options.expectedRecordingRevision === undefined ? {} : {
+        expected_recording_revision: options.expectedRecordingRevision,
+      }),
     }, options);
   }
 

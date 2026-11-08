@@ -1,0 +1,118 @@
+........F.......................F....................................... [ 38%]
+........................................................................ [ 77%]
+..........................................                               [100%]
+=================================== FAILURES ===================================
+________________ test_recording_cache_is_per_owner_and_roleplay ________________
+
+turns = <test_turns.Turns object at 0x1071f0920>
+connected = <function connected.<locals>.factory at 0x107384b80>
+tmp_path = PosixPath('/private/tmp/membrain-recording-fence-source-fixed/test_recording_cache_is_per_ow0')
+
+    def test_recording_cache_is_per_owner_and_roleplay(turns, connected, tmp_path):
+        owners = ["alice", "bob", host.roleplay_user("alice", "Merlin")]
+        for owner in owners:
+>           with connected(tmp_path, owner) as client:
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_host_recording.py:126:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+tests/test_host_recording.py:27: in factory
+    return host.use_brain(MemoryClient("http://testserver", key, turns.brain,
+src/membrain/host.py:183: in use_brain
+    client.ensure_brain(brain, ("user " + user_id)[:120])
+src/membrain/client.py:225: in ensure_brain
+    return self._request("PUT", f"v1/brains/{quote(brain_id, safe='')}", json={"name": name})
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+src/membrain/client.py:158: in _request
+    response.raise_for_status()
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+self = <Response [404 Not Found]>
+
+    def raise_for_status(self) -> Response:
+        """
+        Raise the `HTTPStatusError` if one occurred.
+        """
+        request = self._request
+        if request is None:
+            raise RuntimeError(
+                "Cannot call `raise_for_status` as the request "
+                "instance has not been set on this response."
+            )
+
+        if self.is_success:
+            return self
+
+        if self.has_redirect_location:
+            message = (
+                "{error_type} '{0.status_code} {0.reason_phrase}' for url '{0.url}'\n"
+                "Redirect location: '{0.headers[location]}'\n"
+                "For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/{0.status_code}"
+            )
+        else:
+            message = (
+                "{error_type} '{0.status_code} {0.reason_phrase}' for url '{0.url}'\n"
+                "For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/{0.status_code}"
+            )
+
+        status_class = self.status_code // 100
+        error_types = {
+            1: "Informational response",
+            3: "Redirect response",
+            4: "Client error",
+            5: "Server error",
+        }
+        error_type = error_types.get(status_class, "Invalid status code")
+        message = message.format(self, error_type=error_type)
+>       raise HTTPStatusError(message, request=request, response=self)
+E       httpx.HTTPStatusError: Client error '404 Not Found' for url 'http://testserver/v1/brains/user-d308663a129afab9cf3e819ae18c4d42'
+E       For more information check: https://developer.mozilla.org/en-US/docs/Web/HTTP/Status/404
+
+.venv/lib/python3.12/site-packages/httpx/_models.py:829: HTTPStatusError
+________ test_host_does_not_spool_or_archive_content_rejected_by_server ________
+
+self = <test_server_recording.test_host_does_not_spool_or_archive_content_rejected_by_server.<locals>.Client object at 0x10751cc20>
+kwargs = {'text': 'Rejected synthetic private text.', 'role': 'user', 'source_event_key': 's:t:user'}
+
+    def observe(self, **kwargs):
+>       raise MemoryActionError({"error": {"code": "recording_paused", "retryable": False}})
+E       membrain.client.MemoryActionError: recording_paused: Memory action failed
+
+tests/test_server_recording.py:268: MemoryActionError
+
+During handling of the above exception, another exception occurred:
+
+tmp_path = PosixPath('/private/tmp/membrain-recording-fence-source-fixed/test_host_does_not_spool_or_ar0')
+
+    def test_host_does_not_spool_or_archive_content_rejected_by_server(tmp_path):
+        class Client:
+            brain_id = "brain"
+
+            def observe(self, **kwargs):
+                raise MemoryActionError({"error": {"code": "recording_paused", "retryable": False}})
+
+        record = {"text": "Rejected synthetic private text.", "role": "user", "source_event_key": "s:t:user"}
+>       assert host.deliver(tmp_path, Client(), record) is False
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+tests/test_server_recording.py:271:
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+src/membrain/host.py:837: in deliver
+    _discard_recording(directory, record)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+directory = PosixPath('/private/tmp/membrain-recording-fence-source-fixed/test_host_does_not_spool_or_ar0')
+record = {'text': 'Rejected synthetic private text.', 'role': 'user', 'source_event_key': 's:t:user'}
+
+    def _discard_recording(directory: Path, record: dict) -> None:
+        with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+>           session = record["conversation_id"]
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^
+E           KeyError: 'conversation_id'
+
+src/membrain/host.py:723: KeyError
+=========================== short test summary info ============================
+FAILED tests/test_host_recording.py::test_recording_cache_is_per_owner_and_roleplay
+FAILED tests/test_server_recording.py::test_host_does_not_spool_or_archive_content_rejected_by_server
+2 failed, 184 passed in 52.24s
+Migrations applied; application role has no superuser or RLS bypass privileges

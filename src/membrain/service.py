@@ -545,6 +545,9 @@ class MemoryService:
         return document["event_id"], False, job["job_id"]
 
     def _observe(self, conn, principal, brain, request):
+        from .recording_control import require_recording
+
+        require_recording(brain, request["payload"].get("expected_recording_revision"))
         accepted, duplicates, jobs = [], [], []
         if len(request["payload"]["events"]) > 1000:
             raise DomainError("validation_failed", "An observation batch may contain at most 1000 events.")

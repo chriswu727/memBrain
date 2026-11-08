@@ -1,0 +1,5 @@
+/private/tmp/membrain-recording-fence-installed-v2/membrain/__init__.py
+........................................................................ [ 73%]
+..........................                                               [100%]
+98 passed in 4.66s
+Migrations applied; application role has no superuser or RLS bypass privileges

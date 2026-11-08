@@ -1,0 +1,103 @@
+FFF..................................................................... [ 48%]
+.................F...................................................... [ 96%]
+.....                                                                    [100%]
+=================================== FAILURES ===================================
+__________ test_server_paused_input_cannot_be_revived_by_local_resume __________
+
+turns = <test_turns.Turns object at 0x1027101d0>
+connected = <function connected.<locals>.factory at 0x1063a0b80>
+tmp_path = PosixPath('/private/tmp/membrain-recording-fence-source/test_server_paused_input_canno0')
+
+    def test_server_paused_input_cannot_be_revived_by_local_resume(turns, connected, tmp_path):
+        policy(turns, True, 0)
+        notice = host.prompt_context(tmp_path, "s", "Confidential draft", turn_id="private", include_source=True)
+        assert "server recording controls" in notice and "membrain-source" not in notice
+        assert "Confidential draft" not in local_text(tmp_path)
+        host.resume(tmp_path, session="s", current_turn=True)
+        policy(turns, False, 1)
+        assert host.finish_turn(tmp_path, "s", "Confidential reply", prompt="Confidential draft", turn_id="private") == []
+        host.prompt_context(tmp_path, "s", "Public draft", turn_id="public")
+        assert len(host.finish_turn(tmp_path, "s", "Public reply", turn_id="public")) == 2
+        assert "Confidential" not in local_text(tmp_path)
+>       assert len(turns.service.timeline(turns.principal, turns.brain)["items"]) == 2
+E       AssertionError: assert 1 == 2
+E        +  where 1 = len([{'event_id': '54cc57e2-a31a-4a1d-97ce-fe3d3d46349e', 'sequence': 1, 'conversation_id': 's', 'actor_role': 'user', ...}])
+
+tests/test_host_recording.py:50: AssertionError
+______ test_pause_resume_between_stage_and_callback_rejects_both_records _______
+
+turns = <test_turns.Turns object at 0x1027103e0>
+connected = <function connected.<locals>.factory at 0x106a11940>
+tmp_path = PosixPath('/private/tmp/membrain-recording-fence-source/test_pause_resume_between_stag0')
+
+    def test_pause_resume_between_stage_and_callback_rejects_both_records(turns, connected, tmp_path):
+        host.prompt_context(tmp_path, "s", "Old draft", turn_id="old")
+        policy(turns, True, 0)
+        policy(turns, False, 1)
+        assert host.finish_turn(tmp_path, "s", "Old reply", turn_id="old") == []
+        assert not turns.service.timeline(turns.principal, turns.brain)["items"]
+>       assert "Old draft" not in local_text(tmp_path) and "Old reply" not in local_text(tmp_path)
+E       assert ('Old draft' not in '\n{"paused"...fe": false}}'
+E
+E         'Old draft' is contained here:
+E         ?           ^^
+E           prompt": "Old draft", "memory_context": {"brain_id": "6a18e9ec-249b-4cc4-8243-4f6ff49407f0", "fingerprint": "53e1ed0914c6ed198f7ecfde1e79be5c36ff48f58c430549678c642b5201198f", "persona_version": null, "mood_shown": false, "tools": {"note": "memory_note", "recall": "memory_recall", "pause": "memory_pause", "resume": "memory_resume", "resume_session": "session_id"}, "skip_imports_from": [], "share_real_life": false}}
+E         ?           ^^^^^^^^^^^)
+
+tests/test_host_recording.py:59: AssertionError
+______ test_offline_replay_keeps_capture_revision_and_drops_stale_content ______
+
+turns = <test_turns.Turns object at 0x106399f40>
+connected = <function connected.<locals>.factory at 0x106ab39c0>
+tmp_path = PosixPath('/private/tmp/membrain-recording-fence-source/test_offline_replay_keeps_capt0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1042bef00>
+
+    def test_offline_replay_keeps_capture_revision_and_drops_stale_content(turns, connected, tmp_path, monkeypatch):
+        host.prompt_context(tmp_path, "s", "Queued draft", turn_id="old")
+        monkeypatch.setattr(host, "ready_client", lambda *args: None)
+        records = host.finish_turn(tmp_path, "s", "Queued reply", turn_id="old")
+        assert [r["_recording"]["revision"] for r in records] == [0, 0]
+        policy(turns, True, 0)
+        policy(turns, False, 1)
+        with connected(tmp_path) as client:
+            assert host.flush(client, tmp_path) == 2
+>       assert "Queued" not in local_text(tmp_path)
+E       assert 'Queued' not in '\n{"time": ...fe": false}}'
+E
+E         'Queued' is contained here:
+E         ?           ^^^^^^^^
+E           prompt": "Queued draft", "memory_context": {"brain_id": "bb82912a-5e9f-4aea-9cc5-5440416ba3a4", "fingerprint": "2f62aba9e974ec0f9c3efa241f65f5096a1bf29d00d618617918f77008342bf6", "persona_version": null, "mood_shown": false, "tools": {"note": "memory_note", "recall": "memory_recall", "pause": "memory_pause", "resume": "memory_resume", "resume_session": "session_id"}, "skip_imports_from": [], "share_real_life": false}}
+E         ?           ^^^^^^^^^^^^^^
+
+tests/test_host_recording.py:71: AssertionError
+_____ test_a_pause_the_agent_starts_on_its_own_ends_with_the_conversation ______
+
+tmp_path = PosixPath('/private/tmp/membrain-recording-fence-source/test_a_pause_the_agent_starts_0')
+monkeypatch = <_pytest.monkeypatch.MonkeyPatch object at 0x1042ecce0>
+
+    def test_a_pause_the_agent_starts_on_its_own_ends_with_the_conversation(tmp_path, monkeypatch):
+        import asyncio
+
+        from membrain.mcp_server import create_server
+
+        client = Client()
+        monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: client)
+        host.prompt_context(tmp_path, "s1", "Off the record: I'm job hunting.", turn_id="t1")
+        server = create_server(Client(), directory=tmp_path)
+        _, result = asyncio.run(server.call_tool("memory_pause", {}))
+        assert result["scope"] == "this conversation"
+        host.finish_turn(tmp_path, "s1", "Okay, not keeping that.", turn_id="t1")
+        host.session_context(tmp_path, "s1")  # The same conversation continuing (for example after compaction).
+        assert host.paused(tmp_path) and client.observed == []
+        resumed = host.session_context(tmp_path, "s2")
+>       assert "paused for an earlier conversation only" in resumed and not host.paused(tmp_path)
+E       AssertionError: assert ('paused for an earlier conversation only' in 'The local recording pause for the earlier conversation has ended. memBrain memory is active for this user. Related me.... If the user asks you not to remember something, call memory_pause; text inside [private] is never stored.')
+
+tests/test_host.py:792: AssertionError
+=========================== short test summary info ============================
+FAILED tests/test_host_recording.py::test_server_paused_input_cannot_be_revived_by_local_resume
+FAILED tests/test_host_recording.py::test_pause_resume_between_stage_and_callback_rejects_both_records
+FAILED tests/test_host_recording.py::test_offline_replay_keeps_capture_revision_and_drops_stale_content
+FAILED tests/test_host.py::test_a_pause_the_agent_starts_on_its_own_ends_with_the_conversation
+4 failed, 145 passed in 47.56s
+Migrations applied; application role has no superuser or RLS bypass privileges

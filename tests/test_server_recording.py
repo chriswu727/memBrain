@@ -44,6 +44,33 @@ def observation(turns, text="A new synthetic source."):
     return captured[0]
 
 
+def test_capture_revision_is_checked_after_resume_without_retaining_rejected_payload(turns):
+    request = observation(turns)
+    request["payload"]["expected_recording_revision"] = 0
+    policy(turns, True, 0)
+    policy(turns, False, 1)
+    rejected = turns.service.handle(turns.principal, request)
+    assert rejected["error"]["code"] == "recording_stale"
+    assert rejected["error"]["retryable"] is False
+    with turns.database.transaction(turns.principal) as conn:
+        params = turns.service._params(turns.principal, turns.brain)
+        assert conn.execute("SELECT 1 FROM memory_requests WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND key=%s",
+                            (*params, request["payload"]["idempotency_key"])).fetchone() is None
+    assert not turns.service.timeline(turns.principal, turns.brain)["items"]
+    fresh = observation(turns)
+    fresh["payload"]["expected_recording_revision"] = 2
+    assert turns.service.handle(turns.principal, fresh)["result"]["accepted_event_ids"]
+
+
+@pytest.mark.parametrize("revision", [-1, True, "0", 1.5, 2**53])
+def test_capture_revision_rejects_invalid_contract_values(turns, revision):
+    request = observation(turns)
+    request["payload"]["expected_recording_revision"] = revision
+    result = turns.service.handle(turns.principal, request)
+    assert result["error"]["code"] == "validation_failed"
+    assert not turns.service.timeline(turns.principal, turns.brain)["items"]
+
+
 def test_pause_rejects_raw_events_notes_and_new_turns_without_storing_requests(turns):
     old = turns.observe("Existing memory remains readable.")
     assert policy(turns, True, 0) == {"paused": True, "revision": 1}

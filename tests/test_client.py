@@ -88,6 +88,17 @@ def test_custom_budget_and_read_fence_are_not_replaced(requests_and_client):
     assert requests[-1]["payload"]["read_fence"] == fence
 
 
+def test_observe_preserves_capture_revision_without_fetching_current_policy(requests_and_client):
+    requests, client = requests_and_client
+    for revision in (0, 2, None):
+        client.observe("Captured input", conversation_id="s", branch_id="main", source_event_key="event",
+                       expected_recording_revision=revision)
+    assert len(requests) == 3
+    assert requests[0]["payload"]["expected_recording_revision"] == 0
+    assert requests[1]["payload"]["expected_recording_revision"] == 2
+    assert "expected_recording_revision" not in requests[2]["payload"]
+
+
 def test_low_level_send_retains_full_scope_and_error():
     request = {
         "message_type": "request", "contract_version": "1.0.0-draft", "request_id": "stable",

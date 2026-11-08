@@ -1,0 +1,41 @@
+{
+  "build_id": "228a384ac9e6f6aa713a7ce49a45531c222162ded2e4f6a80c5ef8f67e6082e1",
+  "machine": "arm64",
+  "model_calls": 0,
+  "transport": "real loopback HTTP with embedded PostgreSQL",
+  "policy_read": {
+    "count": 100,
+    "median_ms": 2.133,
+    "p95_ms": 3.648,
+    "max_ms": 10.538
+  },
+  "policy_read_and_cache": {
+    "count": 100,
+    "median_ms": 2.414,
+    "p95_ms": 3.087,
+    "max_ms": 5.633
+  },
+  "observation_unfenced": {
+    "count": 100,
+    "median_ms": 4.469,
+    "p95_ms": 7.34,
+    "max_ms": 54.994
+  },
+  "observation_fenced": {
+    "count": 100,
+    "median_ms": 4.5,
+    "p95_ms": 6.425,
+    "max_ms": 8.346
+  },
+  "stale_queue": {
+    "records": 500,
+    "seconds": 1.69,
+    "records_per_second": 295.9,
+    "queued_content_stored": false,
+    "rejected_archive_created": false
+  },
+  "ports_closed": {
+    "api": true,
+    "database": true
+  }
+}

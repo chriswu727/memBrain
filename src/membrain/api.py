@@ -454,7 +454,7 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
             "lease_conflict": 409, "stage_conflict": 409, "turn_terminal": 409,
             "scope_conflict": 409, "provider_uncertain": 409,
             "recovery_acknowledgement_required": 409, "deletion_in_progress": 409,
-            "source_unavailable": 409, "context_stale": 409, "recording_paused": 409,
+            "source_unavailable": 409, "context_stale": 409, "recording_paused": 409, "recording_stale": 409,
             "response_review_required": 409, "response_review_uncertain": 409, "response_review_blocked": 409,
             "dependency_unavailable": 503, "budget_exceeded": 413,
         }.get(error.code, 422)
