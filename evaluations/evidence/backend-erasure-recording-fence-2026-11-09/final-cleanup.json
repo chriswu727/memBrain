@@ -1,0 +1,352 @@
+{
+  "raw_evidence_verified_before_removal": true,
+  "removed": [
+    {
+      "name": "membrain-erasure-fence-archive-native.py",
+      "bytes": 2134
+    },
+    {
+      "name": "membrain-erasure-fence-audit-helper-correction.json",
+      "bytes": 290
+    },
+    {
+      "name": "membrain-erasure-fence-audit-native.py",
+      "bytes": 4212
+    },
+    {
+      "name": "membrain-erasure-fence-baseline-preparation.json",
+      "bytes": 231
+    },
+    {
+      "name": "membrain-erasure-fence-before.log",
+      "bytes": 18684
+    },
+    {
+      "name": "membrain-erasure-fence-build-cleanup-guard.json",
+      "bytes": 300
+    },
+    {
+      "name": "membrain-erasure-fence-build-cleanup.json",
+      "bytes": 536
+    },
+    {
+      "name": "membrain-erasure-fence-build.log",
+      "bytes": 183
+    },
+    {
+      "name": "membrain-erasure-fence-cleanup-builds.py",
+      "bytes": 1729
+    },
+    {
+      "name": "membrain-erasure-fence-cleanup-replacement-builds.py",
+      "bytes": 1753
+    },
+    {
+      "name": "membrain-erasure-fence-collect.py",
+      "bytes": 2063
+    },
+    {
+      "name": "membrain-erasure-fence-documentation-parity.json",
+      "bytes": 454
+    },
+    {
+      "name": "membrain-erasure-fence-duplicate-native-cancellation.json",
+      "bytes": 319
+    },
+    {
+      "name": "membrain-erasure-fence-expanded.log",
+      "bytes": 430
+    },
+    {
+      "name": "membrain-erasure-fence-extraction-refined.log",
+      "bytes": 1491
+    },
+    {
+      "name": "membrain-erasure-fence-failure-tests_test_erasure_recording_fence.py.json.gz",
+      "bytes": 22
+    },
+    {
+      "name": "membrain-erasure-fence-failure-tests_test_runtime.py.json.gz",
+      "bytes": 22
+    },
+    {
+      "name": "membrain-erasure-fence-failure-tests_test_runtime_delivery_recovery.py.json.gz",
+      "bytes": 22
+    },
+    {
+      "name": "membrain-erasure-fence-failure-tests_test_turns.py.json.gz",
+      "bytes": 22
+    },
+    {
+      "name": "membrain-erasure-fence-final-cleanup.py",
+      "bytes": 3092
+    },
+    {
+      "name": "membrain-erasure-fence-final-core.log",
+      "bytes": 1958
+    },
+    {
+      "name": "membrain-erasure-fence-final-targets.json",
+      "bytes": 1004
+    },
+    {
+      "name": "membrain-erasure-fence-focused.log",
+      "bytes": 939
+    },
+    {
+      "name": "membrain-erasure-fence-http-disconnect-diagnostic.log",
+      "bytes": 593
+    },
+    {
+      "name": "membrain-erasure-fence-initial-identity.json",
+      "bytes": 430
+    },
+    {
+      "name": "membrain-erasure-fence-initial-native-cleanup.json",
+      "bytes": 63
+    },
+    {
+      "name": "membrain-erasure-fence-installed-replacement-final.log",
+      "bytes": 7249
+    },
+    {
+      "name": "membrain-erasure-fence-installed.log",
+      "bytes": 6965
+    },
+    {
+      "name": "membrain-erasure-fence-latency-0.log",
+      "bytes": 672
+    },
+    {
+      "name": "membrain-erasure-fence-latency-1.log",
+      "bytes": 675
+    },
+    {
+      "name": "membrain-erasure-fence-latency-2.log",
+      "bytes": 679
+    },
+    {
+      "name": "membrain-erasure-fence-latency-3.log",
+      "bytes": 673
+    },
+    {
+      "name": "membrain-erasure-fence-latency-first-summary.log",
+      "bytes": 247
+    },
+    {
+      "name": "membrain-erasure-fence-latency-first.log",
+      "bytes": 696
+    },
+    {
+      "name": "membrain-erasure-fence-latency-first.py",
+      "bytes": 1779
+    },
+    {
+      "name": "membrain-erasure-fence-latency-lifecycle.json",
+      "bytes": 777
+    },
+    {
+      "name": "membrain-erasure-fence-latency-summary.log",
+      "bytes": 1158
+    },
+    {
+      "name": "membrain-erasure-fence-latency.json",
+      "bytes": 4006
+    },
+    {
+      "name": "membrain-erasure-fence-latency.py",
+      "bytes": 3043
+    },
+    {
+      "name": "membrain-erasure-fence-live-log-check.json",
+      "bytes": 68
+    },
+    {
+      "name": "membrain-erasure-fence-matrix-reference.log",
+      "bytes": 98
+    },
+    {
+      "name": "membrain-erasure-fence-native-archive-guard.json",
+      "bytes": 257
+    },
+    {
+      "name": "membrain-erasure-fence-native-audit",
+      "bytes": 2013881
+    },
+    {
+      "name": "membrain-erasure-fence-package.log",
+      "bytes": 430
+    },
+    {
+      "name": "membrain-erasure-fence-pin-tests.log",
+      "bytes": 98
+    },
+    {
+      "name": "membrain-erasure-fence-pins.log",
+      "bytes": 451
+    },
+    {
+      "name": "membrain-erasure-fence-qualification",
+      "bytes": 430
+    },
+    {
+      "name": "membrain-erasure-fence-qualify-package.py",
+      "bytes": 1148
+    },
+    {
+      "name": "membrain-erasure-fence-record-blocked.py",
+      "bytes": 2420
+    },
+    {
+      "name": "membrain-erasure-fence-refined-v2.log",
+      "bytes": 2784
+    },
+    {
+      "name": "membrain-erasure-fence-refined.log",
+      "bytes": 5129
+    },
+    {
+      "name": "membrain-erasure-fence-replacement-build-cleanup.json",
+      "bytes": 536
+    },
+    {
+      "name": "membrain-erasure-fence-replacement-build.log",
+      "bytes": 183
+    },
+    {
+      "name": "membrain-erasure-fence-replacement-latency-0.log",
+      "bytes": 677
+    },
+    {
+      "name": "membrain-erasure-fence-replacement-latency-1.log",
+      "bytes": 679
+    },
+    {
+      "name": "membrain-erasure-fence-replacement-latency-2.log",
+      "bytes": 674
+    },
+    {
+      "name": "membrain-erasure-fence-replacement-latency-3.log",
+      "bytes": 669
+    },
+    {
+      "name": "membrain-erasure-fence-replacement-latency-lifecycle.json",
+      "bytes": 773
+    },
+    {
+      "name": "membrain-erasure-fence-replacement-latency-summary.log",
+      "bytes": 1153
+    },
+    {
+      "name": "membrain-erasure-fence-replacement-latency.json",
+      "bytes": 4006
+    },
+    {
+      "name": "membrain-erasure-fence-replacement-latency.py",
+      "bytes": 3067
+    },
+    {
+      "name": "membrain-erasure-fence-replacement-package.log",
+      "bytes": 430
+    },
+    {
+      "name": "membrain-erasure-fence-replacement-pin-tests.log",
+      "bytes": 98
+    },
+    {
+      "name": "membrain-erasure-fence-replacement-pins.log",
+      "bytes": 451
+    },
+    {
+      "name": "membrain-erasure-fence-ruff-final.log",
+      "bytes": 19
+    },
+    {
+      "name": "membrain-erasure-fence-ruff-replacement.log",
+      "bytes": 19
+    },
+    {
+      "name": "membrain-erasure-fence-ruff-v2.log",
+      "bytes": 19
+    },
+    {
+      "name": "membrain-erasure-fence-ruff-v3.log",
+      "bytes": 19
+    },
+    {
+      "name": "membrain-erasure-fence-ruff-v4.log",
+      "bytes": 19
+    },
+    {
+      "name": "membrain-erasure-fence-ruff.log",
+      "bytes": 19
+    },
+    {
+      "name": "membrain-erasure-fence-run-latency.py",
+      "bytes": 1459
+    },
+    {
+      "name": "membrain-erasure-fence-run-replacement-latency.py",
+      "bytes": 1495
+    },
+    {
+      "name": "membrain-erasure-fence-run-tests.py",
+      "bytes": 3247
+    },
+    {
+      "name": "membrain-erasure-fence-runtime.log",
+      "bytes": 4800
+    },
+    {
+      "name": "membrain-erasure-fence-source-final.log",
+      "bytes": 6965
+    },
+    {
+      "name": "membrain-erasure-fence-source-replacement-final.log",
+      "bytes": 5917
+    },
+    {
+      "name": "membrain-erasure-fence-source.log",
+      "bytes": 12085
+    },
+    {
+      "name": "membrain-erasure-fence-verify-failed-full.log",
+      "bytes": 1724512
+    },
+    {
+      "name": "membrain-erasure-fence-verify-failed-status.json",
+      "bytes": 6754
+    },
+    {
+      "name": "membrain-erasure-fence-verify-final-failed-status.json",
+      "bytes": 6754
+    },
+    {
+      "name": "membrain-erasure-fence-verify-final-watch.log",
+      "bytes": 50083
+    },
+    {
+      "name": "membrain-erasure-fence-verify-job-full.log",
+      "bytes": 1713382
+    },
+    {
+      "name": "membrain-erasure-fence-verify-replacement-failed-full.log",
+      "bytes": 1704273
+    },
+    {
+      "name": "membrain-erasure-fence-verify-replacement-failed-status.json",
+      "bytes": 6754
+    },
+    {
+      "name": "membrain-erasure-fence-verify-replacement-watch.log",
+      "bytes": 27831
+    },
+    {
+      "name": "membrain-erasure-fence-verify-watch.log",
+      "bytes": 34129
+    }
+  ],
+  "removed_bytes": 7422739,
+  "free_bytes_after": 18916052992,
+  "retained": "Compressed evidence, real profiles, backups, models, source worktrees and shared development environment."
+}
