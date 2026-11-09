@@ -688,6 +688,7 @@ class LearningEngine:
             turns._lease(row, lease_token, expected_revision)
             if row["stage"] != "captured":
                 raise DomainError("stage_conflict", "Orientation requires a captured turn.")
+            turns._recording(brain, row)
             if service.semantic_processor is None:
                 return turns._public(conn, principal, row)
             job_id = row["orientation_job_id"]
@@ -696,10 +697,15 @@ class LearningEngine:
                            "branch_ref": row["branch_id"]}, "through_sequence": row["durable_sequence"] or brain["durable_sequence"]}
                 job_id = "orient:" + digest([brain_id, turn_id])
                 conn.execute(
-                    "INSERT INTO memory_jobs(tenant_id,owner_id,brain_id,id,kind,payload,state) "
-                    "VALUES(%s,%s,%s,%s,'orient',%s,'queued') ON CONFLICT DO NOTHING",
-                    (*service._params(principal, brain_id), job_id, Jsonb(payload)),
+                    "INSERT INTO memory_jobs(tenant_id,owner_id,brain_id,id,kind,payload,state,recording_revision) "
+                    "VALUES(%s,%s,%s,%s,'orient',%s,'queued',%s) ON CONFLICT DO NOTHING",
+                    (*service._params(principal, brain_id), job_id, Jsonb(payload), row["recording_revision"]),
                 )
+            conn.execute(
+                "UPDATE memory_jobs SET recording_revision=%s WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+                "AND id=%s AND recording_revision IS NULL",
+                (row["recording_revision"], *service._params(principal, brain_id), job_id),
+            )
         row = turns.bind_orientation(principal, brain_id, turn_id, lease_token=lease_token,
                                      expected_revision=expected_revision, job_id=job_id)
         job = self.jobs.claim(principal, brain_id, worker_id=uid(), job_id=job_id, kinds=["orient"], lease_seconds=120)

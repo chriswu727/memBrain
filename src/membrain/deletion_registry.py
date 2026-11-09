@@ -164,8 +164,11 @@ class DeletionRegistry:
             return self._document(connection, row)
 
     def append(self, *, key_digest, fingerprint, principal, brain_id, mode, cutoff, event_ids, memory_ids,
-               expected_installation_id=None):
+               expected_installation_id=None, recording_revision_floor=None):
         if mode not in ('suppress_recall', 'erase_content') or type(cutoff) is not int or cutoff < 0:
+            raise RegistryError()
+        if recording_revision_floor is not None and (type(recording_revision_floor) is not int
+                                                    or not 0 < recording_revision_floor < 2**63):
             raise RegistryError()
         events, memories = sorted(set(event_ids)), sorted(set(memory_ids))
         if len(events) + len(memories) > _MAX_TARGETS:
@@ -182,6 +185,8 @@ class DeletionRegistry:
             document = {'sequence': head['sequence'] + 1, 'deletion_id': uid(), 'tenant_id': principal.tenant_id,
                         'owner_id': principal.principal_id, 'brain_id': brain_id, 'mode': mode,
                         'cutoff': cutoff, 'created_at': now(), 'event_ids': events, 'memory_ids': memories}
+            if recording_revision_floor is not None:
+                document['recording_revision_floor'] = recording_revision_floor
             fingerprint_hash = digest([head['head_hash'], key_digest, fingerprint, document])
             stored = {key: value for key, value in document.items() if key not in ('event_ids', 'memory_ids')}
             connection.execute('INSERT INTO intents VALUES(?,?,?,?,?,?)', (

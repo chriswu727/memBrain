@@ -19,7 +19,7 @@ FAILURE_CODES = frozenset({
 })
 PUBLIC_FIELDS = (
     "turn_id", "brain_id", "conversation_id", "branch_id", "input_fingerprint", "stage",
-    "scope_reserved", "delivery_receipt",
+    "scope_reserved", "delivery_receipt", "recording_revision",
     "revision", "fence", "claim_count", "generation_count", "worker_id", "lease_expires_at",
     "recovery_required", "input_event_refs", "context_event_refs", "output_event_refs", "context_fingerprint",
     "context_generation", "working_revision", "durable_sequence", "context_tokens",
@@ -160,6 +160,10 @@ class TurnStore:
         if expected_revision is not None and _integer(expected_revision, 1) != row["revision"]:
             raise DomainError("version_conflict", "Turn revision has changed.", current_revision=row["revision"])
 
+    def _recording(self, brain, row):
+        if brain["recording_paused"] or row["recording_revision"] != brain["recording_revision"]:
+            raise DomainError("context_stale", "Recording permission changed after this turn began.")
+
     def begin(self, principal, brain_id, *, turn_id, conversation_id, branch_id, input_fingerprint):
         from .recording_control import require_recording
         from .turn_scopes import require_new_scope
@@ -180,9 +184,10 @@ class TurnStore:
                 require_new_scope(conn, principal, brain_id, conversation_id, branch_id)
                 row = conn.execute(
                     "INSERT INTO memory_runtime_turns(tenant_id,owner_id,brain_id,turn_id,conversation_id,"
-                    "branch_id,input_fingerprint,scope_reserved) VALUES(%s,%s,%s,%s,%s,%s,%s,true) "
+                    "branch_id,input_fingerprint,scope_reserved,recording_revision) VALUES(%s,%s,%s,%s,%s,%s,%s,true,%s) "
                     "RETURNING *,clock_timestamp() AS db_now",
-                    (*self._params(principal, brain_id, turn_id), conversation_id, branch_id, input_fingerprint),
+                    (*self._params(principal, brain_id, turn_id), conversation_id, branch_id, input_fingerprint,
+                     brain["recording_revision"]),
                 ).fetchone()
             if (row["conversation_id"], row["branch_id"], row["input_fingerprint"]) != (
                     conversation_id, branch_id, input_fingerprint):
@@ -311,9 +316,14 @@ class TurnStore:
 
     def renew(self, principal, brain_id, turn_id, *, lease_token, lease_seconds=30, expected_revision=None):
         _integer(lease_seconds, 1, 300)
-        with self._transaction(principal, brain_id) as (conn, _):
+        with self._transaction(principal, brain_id) as (conn, brain):
             row = self._row(conn, principal, brain_id, turn_id)
             self._lease(row, lease_token, expected_revision)
+            if row["stage"] not in ("delivering", "delivered", "committed"):
+                if (brain["recording_paused"] or row["recording_revision"] != brain["recording_revision"]) and self._unavailable(
+                        conn, principal, row):
+                    return self._public(conn, principal, row)
+                self._recording(brain, row)
             row = conn.execute(
                 "UPDATE memory_runtime_turns SET lease_expires_at=clock_timestamp()+(%s*interval '1 second') "
                 "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND turn_id=%s "
@@ -350,6 +360,7 @@ class TurnStore:
             candidate = {**row, "context_event_refs": _refs(combined)}
             if self._unavailable(conn, principal, candidate):
                 raise DomainError("source_unavailable", "A recall source is no longer available.")
+            self._recording(brain, row)
             if row["revision"] == expected_revision + 1 and row["last_transition_hash"] == fingerprint:
                 return self._public(conn, principal, row)
             self._lease(row, lease_token, expected_revision)
@@ -373,6 +384,7 @@ class TurnStore:
             raise DomainError("source_unavailable", "A response review source is unavailable.")
         if row["context_generation"] != brain["dependency_generation"]:
             raise DomainError("context_stale", "Memory changed since response generation.")
+        self._recording(brain, row)
         self._working_revision(conn, principal, row)
         refs = row["output_event_refs"]
         if len(refs) != 1:
@@ -481,7 +493,7 @@ class TurnStore:
         _integer(expected_revision, 1)
         _identifier(job_id)
         fingerprint = digest({"operation": "bind_orientation", "revision": expected_revision, "job_id": job_id})
-        with self._transaction(principal, brain_id) as (conn, _):
+        with self._transaction(principal, brain_id) as (conn, brain):
             row = self._row(conn, principal, brain_id, turn_id)
             self._lease(row, lease_token)
             if row["stage"] != "captured":
@@ -496,6 +508,7 @@ class TurnStore:
                 raise DomainError("idempotency_conflict", "Turn already binds a different orientation job.")
             if self._unavailable(conn, principal, row):
                 raise DomainError("source_unavailable", "A turn source changed before orientation.")
+            self._recording(brain, row)
             if row["revision"] == expected_revision + 1 and row["last_transition_hash"] == fingerprint:
                 return self._public(conn, principal, row)
             self._lease(row, lease_token, expected_revision)
@@ -535,6 +548,7 @@ class TurnStore:
             combined = _refs(row["context_event_refs"] + [ref for ref in references if ref not in row["context_event_refs"]])
             if self._unavailable(conn, principal, {**row, "context_event_refs": combined}):
                 raise DomainError("source_unavailable", "An orientation source is no longer available.")
+            self._recording(brain, row)
             if row["revision"] == expected_revision + 1 and row["last_transition_hash"] == fingerprint:
                 return self._public(conn, principal, row)
             self._lease(row, lease_token, expected_revision)
@@ -714,6 +728,8 @@ class TurnStore:
                     changes["prepared_memory_selection"] = bind_prepared_selection(
                         conn, service, principal, brain, candidate, prepared_packet_id, memory_context_sha256,
                     )
+            if stage not in ("delivered", "committed"):
+                self._recording(brain, row)
             assignments, values = [], []
             for key, value in changes.items():
                 assignments.append(f"{key}=%s")
@@ -790,6 +806,7 @@ class TurnStore:
                 raise DomainError("source_unavailable", "A turn source changed before output capture.")
             if row["context_generation"] != brain["dependency_generation"]:
                 raise DomainError("context_stale", "Memory changed before output capture.")
+            self._recording(brain, row)
             self._working_revision(conn, principal, row)
             service = self.service if self.service is not None else MemoryService(self.database)
             target = {"brain_ref": brain_id, "conversation_ref": row["conversation_id"], "branch_ref": row["branch_id"]}
@@ -821,6 +838,9 @@ class TurnStore:
         reasons = []
         if self._unavailable(conn, principal, row):
             reasons.append("source_unavailable")
+        if row["stage"] == "delivering" and (brain["recording_paused"]
+                                            or row["recording_revision"] != brain["recording_revision"]):
+            reasons.append("recording_changed")
         # Recording this turn's own delivery does not advance the generation (see MemoryService._append_event).
         if row["context_generation"] != brain["dependency_generation"]:
             reasons.append("context_generation_changed")
@@ -852,7 +872,7 @@ class TurnStore:
                 orientation = orientation_result(conn, service, principal, brain, row)
             except DomainError:
                 reasons.append("orientation_changed")
-        available = "source_unavailable" not in reasons
+        available = not {"source_unavailable", "recording_changed"}.intersection(reasons)
         output_refs = row["output_event_refs"]
         if available:
             target = {"brain_ref": brain["id"], "conversation_ref": row["conversation_id"], "branch_ref": row["branch_id"]}

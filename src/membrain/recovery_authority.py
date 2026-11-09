@@ -66,6 +66,7 @@ class RecoveryAuthority:
                         event_ids=[row['object_id'] for row in rows if row['object_kind'] == 'event'],
                         memory_ids=[row['object_id'] for row in rows if row['object_kind'] == 'memory'],
                         expected_installation_id=self.installation_id,
+                        recording_revision_floor=brain['recording_revision'] + 1,
                     )
                     self.apply(service, conn, principal, brain, intent)
         with database.transaction(principal) as conn:
@@ -91,6 +92,7 @@ class RecoveryAuthority:
         result = apply_erasure(
             service, conn, principal, brain, event_ids=intent['event_ids'], memory_ids=intent['memory_ids'],
             mode=intent['mode'], deletion_id=intent['deletion_id'],
+            recording_revision_floor=intent.get('recording_revision_floor', 0),
         )
         conn.execute(
             'INSERT INTO memory_erasure_receipts(tenant_id,owner_id,brain_id,registry_id,sequence,intent_hash,result) '
@@ -213,6 +215,7 @@ class RecoveryAuthority:
                 key_digest=key, fingerprint=fingerprint, principal=principal, brain_id=brain['id'],
                 mode=payload['mode'], cutoff=brain['durable_sequence'], event_ids=events, memory_ids=memories,
                 expected_installation_id=self.installation_id,
+                recording_revision_floor=brain['recording_revision'] + 1,
             )
         return self.apply(service, conn, principal, brain, intent)
 

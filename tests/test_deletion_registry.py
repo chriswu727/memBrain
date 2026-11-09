@@ -19,6 +19,29 @@ def acknowledgement(head):
             'expected_head_hash': head['head_hash']}
 
 
+@pytest.mark.parametrize('floor', [0, -1, True, '2', 1.5, 2**63])
+def test_invalid_recording_floor_cannot_become_a_durable_intent(tmp_path, floor):
+    registry = DeletionRegistry.create(tmp_path / 'authority', uid())
+    with pytest.raises(RegistryError):
+        append(registry, Principal(uid(), uid()), recording_revision_floor=floor)
+    assert registry.head()['sequence'] == 0
+
+
+def test_recording_floor_survives_reopen_and_is_covered_by_integrity_hash(tmp_path):
+    registry = DeletionRegistry.create(tmp_path / 'authority', uid())
+    principal = Principal(uid(), uid())
+    legacy = append(registry, principal)
+    assert 'recording_revision_floor' not in legacy
+    current = append(registry, principal, key_digest=digest('current'), recording_revision_floor=9)
+    reopened = DeletionRegistry(registry.directory, registry.registry_id)
+    assert reopened.intent(1) == legacy and reopened.intent(2) == current
+    assert append(reopened, principal, key_digest=digest('current'), recording_revision_floor=20) == current
+    with sqlite3.connect(registry.path) as connection:
+        connection.execute("UPDATE intents SET document=json_set(document,'$.recording_revision_floor',1) WHERE sequence=2")
+    with pytest.raises(RegistryError):
+        reopened.verify()
+
+
 def test_registry_reopens_with_exact_durable_intents_and_stable_replay(tmp_path):
     registry = DeletionRegistry.create(tmp_path / 'authority', uid())
     principal = Principal(uid(), uid())
