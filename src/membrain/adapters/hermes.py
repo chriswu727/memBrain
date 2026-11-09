@@ -20,6 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from .. import host
+from ..host_recording import CAPTURE_FIELD
 from ..notes import NOTE_FIELDS, NOTE_TOOL_DESCRIPTION, SOURCE_FIELD
 from ..relationship import BOUNDARY_TOOL_DESCRIPTION
 
@@ -35,7 +36,7 @@ TOOLS = {"note": "membrain_note", "recall": "membrain_search", "pause": "membrai
 _SCHEMAS = [
     {"name": "membrain_note", "description": NOTE_TOOL_DESCRIPTION,
      "parameters": {"type": "object", "properties": {
-         "text": {"type": "string"}, "replaces": {"type": "array", "items": {"type": "string"}}, **NOTE_FIELDS, **SOURCE_FIELD},
+         "text": {"type": "string"}, "replaces": {"type": "array", "items": {"type": "string"}}, **NOTE_FIELDS, **SOURCE_FIELD, **CAPTURE_FIELD},
          "required": ["text"]}},
     {"name": "membrain_search", "description": (
         "Search the user's earlier conversations and notes by a few concrete keywords (names, places, activities, "
@@ -186,7 +187,8 @@ class MembrainProvider(_Base):
         return [schema for schema in _SCHEMAS if self._writes or schema["name"] == "membrain_search"]
 
     def handle_tool_call(self, tool_name: str, args: dict[str, Any], **kwargs) -> str:
-        from ..notes import note_fields, save_note
+        from ..host_recording import save_note
+        from ..notes import note_fields
 
         try:
             if not self._writes and tool_name != "membrain_search":
@@ -205,7 +207,8 @@ class MembrainProvider(_Base):
                 return json.dumps({"error": "memBrain is starting; try again in a few seconds."})
             with client:
                 if tool_name == "membrain_note":
-                    return json.dumps(save_note(client, args.get("text", ""), replaces=args.get("replaces") or (),
+                    return json.dumps(save_note(self._directory, client, args.get("text", ""), replaces=args.get("replaces") or (),
+                                                recording_capture=args.get("recording_capture"), user_id=self._user,
                                                 source_event_ids=args.get("source_event_ids") or (),
                                                 source_messages=args.get("source_messages") or (), **note_fields(args)))
                 if tool_name == "membrain_search":

@@ -49,7 +49,7 @@ def _outside_boundaries(response: dict[str, Any], boundaries, query: str) -> dic
     return {**response, "result": result}
 
 
-def create_server(client: MemoryClient, *, directory=None) -> FastMCP:
+def create_server(client: MemoryClient, *, directory=None, require_turn_capture: bool = True) -> FastMCP:
     if not client.brain_id:
         raise ValueError("MCP requires a configured brain_id")
     server = FastMCP(
@@ -68,7 +68,8 @@ def create_server(client: MemoryClient, *, directory=None) -> FastMCP:
         """Inspect this adapter's actual limitations and the authenticated service capabilities."""
         capabilities = integration_capabilities("mcp_stdio")
         capabilities["supported_actions"] = ["observe", "prepare", "recall", "inspect", "checkpoint", "forget"]
-        return {"adapter": capabilities, "service": await asyncio.to_thread(client.capabilities)}
+        return {"adapter": capabilities, "service": await asyncio.to_thread(client.capabilities),
+                "recording_capture_required": directory is not None and require_turn_capture}
 
     if directory is not None:
         @server.tool(annotations=READ_ONLY)
@@ -135,22 +136,39 @@ def create_server(client: MemoryClient, *, directory=None) -> FastMCP:
     @server.tool(annotations=WRITE)
     async def memory_observe(
         text: str, conversation_id: str, branch_id: str, source_event_key: str,
-        source_revision: int = 1,
+        source_revision: int = 1, recording_capture: str | None = None,
     ) -> dict[str, Any]:
-        """Save an assistant-authored observation. Reuse source_event_key on retries; this does not verify user claims."""
+        """Save an assistant-authored observation. Reuse source_event_key on retries; this does not verify user claims.
+
+        Plugin connections require recording_capture from the original turn's membrain-source block.
+        """
         from membrain.privacy import scrub
 
+        if directory is None and recording_capture is not None:
+            return {"error": "This MCP connection cannot validate host recording captures."}
+        recording = {}
         if directory is not None:
-            from membrain import host
+            from membrain import host, host_recording
 
             if host.paused(directory):
                 return {"error": "Recording is paused. Resume before saving observations."}
-        return await asyncio.to_thread(
-            client.observe, scrub(text), conversation_id=conversation_id, branch_id=branch_id,
-            source_event_key=source_event_key, source_revision=source_revision,
-            role="assistant", actor_ref="assistant", producer_ref="mcp",
-            delivery_state="unknown", interpretation_hint="unknown",
-        )
+            if require_turn_capture or recording_capture is not None:
+                try:
+                    recording["expected_recording_revision"] = await asyncio.to_thread(
+                        host_recording.note_revision, directory, client, recording_capture)
+                except (ValueError, MemoryActionError) as error:
+                    return {"error": str(error)}
+        try:
+            return await asyncio.to_thread(
+                client.observe, scrub(text), conversation_id=conversation_id, branch_id=branch_id,
+                source_event_key=source_event_key, source_revision=source_revision,
+                role="assistant", actor_ref="assistant", producer_ref="mcp",
+                delivery_state="unknown", interpretation_hint="unknown", **recording,
+            )
+        except MemoryActionError as error:
+            if error.code not in ("recording_paused", "recording_stale"):
+                raise
+            return {"error": str(error), "code": error.code}
 
     from membrain.notes import NOTE_TOOL_DESCRIPTION
 
@@ -163,18 +181,24 @@ def create_server(client: MemoryClient, *, directory=None) -> FastMCP:
         about: str | None = None, aliases: list[str] | None = None,
         status: Literal["intended", "scheduled", "done", "cancelled", "superseded"] | None = None,
         due: str | None = None, occurs_at: str | None = None, pinned: bool = False, sensitive: bool = False,
-        affect: dict[str, Any] | None = None, shared: bool = False,
+        affect: dict[str, Any] | None = None, shared: bool = False, recording_capture: str | None = None,
     ) -> dict[str, Any]:
         from membrain.notes import note_fields, save_note
 
-        if directory is not None:
-            from membrain import host
-
-            if host.paused(directory):
-                return {"error": "Recording is paused. Resume before saving agent notes."}
+        if directory is None and recording_capture is not None:
+            return {"error": "This MCP connection cannot validate host recording captures."}
         fields = note_fields({"kind": kind, "about": about, "aliases": aliases, "status": status, "due": due,
                               "occurs_at": occurs_at, "pinned": pinned, "sensitive": sensitive, "affect": affect,
                               "shared": shared})
+        if directory is not None:
+            from membrain import host, host_recording
+
+            if host.paused(directory):
+                return {"error": "Recording is paused. Resume before saving agent notes."}
+            if require_turn_capture or recording_capture is not None:
+                return await asyncio.to_thread(host_recording.save_note, directory, client, text,
+                                               recording_capture=recording_capture, replaces=replaces or (),
+                                               source_event_ids=source_event_ids or (), source_messages=source_messages or (), **fields)
         return await asyncio.to_thread(save_note, client, text, replaces=replaces or (),
                                        source_event_ids=source_event_ids or (), source_messages=source_messages or (), **fields)
 

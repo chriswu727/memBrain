@@ -49,6 +49,14 @@ class Client:
     def forget(self, ids, **options):
         self.forgotten.extend(ids)
 
+    def write_note(self, text, *, replaces=(), producer, expected_recording_revision=None, **fields):
+        from membrain.notes import format_note, note_fields
+
+        assert expected_recording_revision in (None, 0)
+        result = self.observe(format_note(text, **note_fields(fields)), conversation_id="membrain-notes", producer_ref=producer)
+        self.forget(replaces)
+        return {"note_id": result["result"]["accepted_event_ids"][0], "replaced": list(replaces)}
+
 
 def provider(tmp_path, monkeypatch, client, **kwargs):
     monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: client)
@@ -124,9 +132,11 @@ def test_subagents_and_paused_recording_store_nothing(tmp_path, monkeypatch):
 def test_tools_save_and_replace_notes_and_search(tmp_path, monkeypatch):
     client = Client()
     instance = provider(tmp_path, monkeypatch, client)
-    first = json.loads(instance.handle_tool_call("membrain_note", {"text": "Dinner on Sat May 9."}))
+    context = instance.prefetch("Dinner on Sat May 9.")
+    capture, _ = json.JSONDecoder().raw_decode(context.split("recording_capture=", 1)[1])
+    first = json.loads(instance.handle_tool_call("membrain_note", {"text": "Dinner on Sat May 9.", "recording_capture": capture}))
     second = json.loads(instance.handle_tool_call("membrain_note", {"text": "Dinner moved to Sun May 17.",
-                                                                    "replaces": [first["note_id"]]}))
+                                                                    "replaces": [first["note_id"]], "recording_capture": capture}))
     assert second["replaced"] == [first["note_id"]] and client.forgotten == [first["note_id"]]
     assert "error" in json.loads(instance.handle_tool_call("membrain_note", {"text": "x" * 400}))
     assert json.loads(instance.handle_tool_call("membrain_search", {"query": "dinner"})) == {
@@ -156,15 +166,16 @@ def test_hermes_sessions_share_memory_through_a_real_service(tmp_path, monkeypat
         first = hermes.MembrainProvider()
         first.initialize("session-1", hermes_home=str(Path(tmp_path) / ".hermes"), platform="telegram", user_id="42")
         first.system_prompt_block()
-        first.prefetch("My cat Biscuit is allergic to chicken.", session_id="session-1")
+        context = first.prefetch("My cat Biscuit is allergic to chicken.", session_id="session-1")
+        capture, _ = json.JSONDecoder().raw_decode(context.split("recording_capture=", 1)[1])
         first.sync_turn("My cat Biscuit is allergic to chicken.", "Noted, no chicken treats.", session_id="session-1")
-        assert "note_id" in json.loads(first.handle_tool_call("membrain_note", {"text": "Cat Biscuit: chicken allergy."}))
+        assert "note_id" in json.loads(first.handle_tool_call("membrain_note", {"text": "Cat Biscuit: chicken allergy.", "recording_capture": capture}))
         second = hermes.MembrainProvider()
         second.initialize("session-2", hermes_home=str(Path(tmp_path) / ".hermes"), platform="telegram", user_id="42")
         block = second.system_prompt_block()
         assert "Cat Biscuit: chicken allergy." in block and "allergic to chicken" in block
         shared = json.loads(first.handle_tool_call("membrain_note", {
-            "text": "We planned Biscuit's meals together.", "kind": "milestone", "shared": True}))
+            "text": "We planned Biscuit's meals together.", "kind": "milestone", "shared": True, "recording_capture": capture}))
         assert "note_id" in shared
         readonly = hermes.MembrainProvider()
         readonly.initialize("readonly", hermes_home=str(Path(tmp_path) / ".hermes"), platform="telegram",

@@ -59,11 +59,14 @@ const TOOLS = [
       "agent_commitment for something you promised to do. Status done means everything in the note has happened: a " +
       "purchase paid for but not yet delivered, or a booking still ahead, is scheduled, with its date. " +
       "When a fact changes, save the updated note and pass the " +
-      "old note's id in replaces. When the user expresses a feeling about it, add affect: basis reported only if " +
+      "old note's id in replaces. For every write, copy recording_capture from this turn's membrain-source block; " +
+      "never substitute another turn's capture. When the user expresses a feeling about it, add affect: basis reported only if " +
       "they said it, inferred (with the message it was read from as a source) if clearly evident but unsaid; never " +
       "invent one. Do not save routine requests or anything the user asked you not to keep.",
     parameters: { type: "object", properties: {
       text: { type: "string" },
+      recording_capture: { type: "string", maxLength: 130,
+        description: "Copy recording_capture from this turn's membrain-source block. Never reuse another turn's value." },
       replaces: { type: "array", items: { type: "string" } },
       source_event_ids: { type: "array", items: { type: "string" }, maxItems: 64 },
       source_messages: { type: "array", maxItems: 64, items: { type: "object", properties: {

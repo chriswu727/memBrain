@@ -1,6 +1,7 @@
 """Bounded turn state; callers hold the host's session-state lock while reading and writing it."""
 
 import time
+from secrets import token_hex
 
 from .helpers import digest
 
@@ -75,6 +76,7 @@ def stage(state, record, paused, now, *, implicit=False):
         entry["recording"] = record["_recording"]
     if not paused:
         entry["record"] = record
+        entry["note_capture"] = token_hex(16)
     turns.pop(identity, None)
     turns[identity] = entry
     compact(state)

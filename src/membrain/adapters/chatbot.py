@@ -149,9 +149,13 @@ class ChatMemory:
 
             record_outcome(self.directory, skipped=True)
 
-    def note(self, speaker: Speaker, text: str, replaces=(), *, roleplay: str | None = None, source_event_ids=(), source_messages=(), **fields) -> dict:
-        from ..notes import note_fields, save_note
+    def note(self, speaker: Speaker, text: str, replaces=(), *, roleplay: str | None = None, source_event_ids=(), source_messages=(),
+             recording_capture: str | None = None, **fields) -> dict:
+        from ..host_recording import save_note
+        from ..notes import note_fields
 
+        if not self._recording(speaker):
+            return {"error": "Memory tools are not available in this conversation."}
         user = self.memory_user(speaker, roleplay)
         if host.paused(self.directory, user):
             return {"error": "Recording is paused. Resume before saving agent notes."}
@@ -159,7 +163,8 @@ class ChatMemory:
         if client is None:
             return {"error": "memBrain is starting; try again in a few seconds."}
         with client:
-            result = save_note(client, host.scrub(str(text or "")), replaces=tuple(replaces or ()), source_event_ids=source_event_ids, source_messages=source_messages,
+            result = save_note(self.directory, client, host.scrub(str(text or "")), replaces=tuple(replaces or ()), source_event_ids=source_event_ids, source_messages=source_messages,
+                               recording_capture=recording_capture, user_id=user,
                                **note_fields(fields))
         return result
 

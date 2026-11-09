@@ -115,7 +115,8 @@ test("memory carries across OpenClaw sessions through the real runtime",
     assert.match(first.appendSystemContext, /membrain_note/);
     await memory.agentEnd({ success: true, messages: [{ role: "assistant", content: [{ type: "text",
       text: "Congratulations to Tomas! Want help planning?" }] }] }, { sessionId: "oc-1" });
-    const note = JSON.parse(await memory.tool("membrain_note", { text: "Flying to Lisbon 3 Dec for brother Tomas's wedding." }));
+    const note = JSON.parse(await memory.tool("membrain_note", { text: "Flying to Lisbon 3 Dec for brother Tomas's wedding.",
+      recording_capture: JSON.parse(first.prependContext.match(/recording_capture=("[^"]+")/)[1]) }));
     assert.ok(note.note_id);
     const second = await memory.beforePromptBuild(
       { prompt: "What do I still need to pack for the wedding trip?", currentUserMessageId: "u2", messages: [] },
@@ -135,6 +136,7 @@ test("memory carries across OpenClaw sessions through the real runtime",
     assert.doesNotMatch(third.appendSystemContext, /groom's speech/);
     const shared = JSON.parse(await memory.tool("membrain_note", {
       text: "We planned the Lisbon trip together.", kind: "milestone", shared: true,
+      recording_capture: JSON.parse(third.prependContext.match(/recording_capture=("[^"]+")/)[1]),
     }));
     assert.ok(shared.note_id);
     const boundary = JSON.parse(await memory.tool("membrain_boundary", { topic: "Lisbon trip", aliases: ["Tomas", "里斯本"] }));
@@ -151,9 +153,10 @@ test("someone else on a channel never sees or writes the owner's memory",
   { skip: !process.env.MEMBRAIN_PYTHON }, async () => {
     const memory = createMembrain({ exec });
     const owner = { sessionId: "own-1", memoryAudience: { kind: "owner-private", agentId: "main" } };
-    await memory.beforePromptBuild({ prompt: "My PIN hint is the Fernhill garden.", messages: [] }, owner);
+    const context = await memory.beforePromptBuild({ prompt: "My PIN hint is the Fernhill garden.", messages: [] }, owner);
     await memory.agentEnd({ success: true, messages: [{ role: "assistant", content: "Noted." }] }, owner);
-    assert.ok(JSON.parse(await memory.tool("membrain_note", { text: "PIN hint: the Fernhill garden." },
+    assert.ok(JSON.parse(await memory.tool("membrain_note", { text: "PIN hint: the Fernhill garden.",
+      recording_capture: JSON.parse(context.prependContext.match(/recording_capture=("[^"]+")/)[1]) },
       memory.toolUser(owner))).note_id);
     const stranger = { sessionId: "grp-1", sessionKey: "agent:main:telegram:group:-100", channel: "telegram",
       chatId: "-100", senderId: "999" };

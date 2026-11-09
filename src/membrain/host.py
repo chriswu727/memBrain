@@ -429,6 +429,8 @@ def pause(directory: Path, hours: float | None = None, user_id: str | None = Non
             original = json.dumps(state, sort_keys=True)
             for entry in host_turns.entries(state).values():
                 owner = entry["owner"]
+                if user_id is None or owner == user_id or real_life_user(owner) == user_id:
+                    entry.pop("note_capture", None)
                 if not entry.get("done") and (user_id is None or owner == user_id or real_life_user(owner) == user_id):
                     state["turns_require_staging"] = True
                     entry.pop("record", None)
@@ -1578,11 +1580,13 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
         return (host_recording.notice(policy)
                 or _recording_notice(paused(directory, user_id), tools, session=session) or None)
     source = ""
-    if include_source and staged and not paused(directory, user_id):
+    capture = host_recording.note_capture(directory, session, record) if include_source and staged else None
+    if capture and not paused(directory, user_id):
         source = ("<membrain-source>\nWhen saving a note based on the current user message, pass source_messages="
                   + json.dumps([{"producer_ref": producer, "source_event_key": record["source_event_key"],
                                  "source_revision": 1}], ensure_ascii=False)
-                  + ". This reference links after the turn is recorded.\n</membrain-source>")
+                  + ". This reference links after the turn is recorded.\nFor every memory write from this turn, pass recording_capture="
+                  + json.dumps(capture) + ". Never substitute a later turn's capture.\n</membrain-source>")
     with client:
         from .host_context import update
         from .notes import alias_cues

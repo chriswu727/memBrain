@@ -231,7 +231,8 @@ def run_hook(event: str, directory: Path | None = None, stream=None, *, host_nam
 
 def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
     """Run one memory tool for hosts without MCP: JSON arguments on stdin, a JSON result on stdout."""
-    from .notes import note_fields, save_note
+    from .host_recording import save_note
+    from .notes import note_fields
 
     directory = profile_directory(directory)
     try:
@@ -256,10 +257,11 @@ def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
             else:
                 with client:
                     if name == "note":
-                        result = save_note(client, host.scrub(str(arguments.get("text") or "")),
+                        result = save_note(directory, client, host.scrub(str(arguments.get("text") or "")),
                                            replaces=tuple(arguments.get("replaces") or ()),
                                            source_event_ids=arguments.get("source_event_ids") or (),
                                            source_messages=arguments.get("source_messages") or (),
+                                           recording_capture=arguments.get("recording_capture"), user_id=user,
                                            **note_fields(arguments))
                     elif name == "boundary":
                         saved = client.add_boundary(arguments.get("topic", ""), arguments.get("aliases") or ())
