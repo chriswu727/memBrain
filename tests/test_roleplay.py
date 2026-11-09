@@ -46,15 +46,20 @@ def test_roleplay_and_real_life_never_mix_on_a_real_service(tmp_path):
         bot = ChatMemory(directory, producer="membrain-test")
         hao = Speaker("discord", "hao")
         real = bot.session(hao)
-        bot.context(hao, "My real sister Mei is allergic to sesame.", session=real, turn_id="1")
+        context = bot.context(hao, "My real sister Mei is allergic to sesame.", session=real, turn_id="1")
+        real_capture = json.JSONDecoder().raw_decode(context.split("recording_capture=", 1)[1])[0]
         bot.record(hao, "Noted.", session=real, turn_id="1")
-        bot.note(hao, "Hao's sister Mei is allergic to sesame.", kind="person", about="Mei")
-        bot.note(hao, "Hao takes insulin.", kind="constraint", sensitive=True)
+        assert "note_id" in bot.note(hao, "Hao's sister Mei is allergic to sesame.", kind="person", about="Mei",
+                                     recording_capture=real_capture)
+        assert "note_id" in bot.note(hao, "Hao takes insulin.", kind="constraint", sensitive=True,
+                                     recording_capture=real_capture)
         story = bot.session(hao, "roleplay:Captain Vale")
-        bot.context(hao, "In the story, I am a smuggler hiding gold in the lighthouse.", session=story,
-                    turn_id="2", roleplay="Captain Vale")
+        context = bot.context(hao, "In the story, I am a smuggler hiding gold in the lighthouse.", session=story,
+                              turn_id="2", roleplay="Captain Vale")
+        story_capture = json.JSONDecoder().raw_decode(context.split("recording_capture=", 1)[1])[0]
         bot.record(hao, "Captain Vale narrows her eyes.", session=story, turn_id="2", roleplay="Captain Vale")
-        bot.note(hao, "Hao's character hid gold in the lighthouse.", roleplay="Captain Vale")
+        assert "note_id" in bot.note(hao, "Hao's character hid gold in the lighthouse.", roleplay="Captain Vale",
+                                     recording_capture=story_capture)
 
         real_life = bot.context(hao, "What do you know about me?", session="real-2", turn_id="3")
         assert "Mei is allergic to sesame" in real_life
