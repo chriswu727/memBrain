@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **发布前版本。** 全部九个启动器固定到运行时 `ae05c366`，为接入对话生命周期的手动记忆工具增加原始回合的记录权限绑定。最终验证正在进行；此前的[学习控制验证](evaluations/backend-learning-recording-policy-2026-11-08.md)和[召回性能结果](evaluations/maturity-stored-recall-eligibility-2026-11-08.md)保留各自的受测版本范围。独立 MCP 仍明确属于仅工具模式。[宿主限制](docs/host-compatibility.md)和[发布阻碍](docs/releasing.md)继续保留；R4、C5 和最终审查通过前，发布保持冻结。
+> **发布前版本。** 全部九个启动器固定到运行时 `8715fc0c`，为接入对话生命周期的手动记忆工具增加原始回合的记录权限绑定。最终验证正在进行；此前的[学习控制验证](evaluations/backend-learning-recording-policy-2026-11-08.md)和[召回性能结果](evaluations/maturity-stored-recall-eligibility-2026-11-08.md)保留各自的受测版本范围。独立 MCP 仍明确属于仅工具模式。[宿主限制](docs/host-compatibility.md)和[发布阻碍](docs/releasing.md)继续保留；R4、C5 和最终审查通过前，发布保持冻结。
 
 > **最近一次验收执行：** [第五次验收](evaluations/maturity-fifth-attempt-2026-11-07.md)完成了有效的 R4 评分：插件模式 20 分（通过）、提取模式 16 分（未通过：1 个记忆系统导致的隐私错误）、完整历史参照组 15.5 分。C1 因页面操作失败停止，C2 未运行；C5 无效且未评分。账本已封锁，保守结算 39.634310 元，没有未知费用预留，也没有自动重跑授权。
 
