@@ -111,6 +111,33 @@ def test_existing_history_is_read_with_exact_branch_isolation(system):
     assert 'hidden-other-branch' not in json.dumps(prompts[0].messages)
 
 
+def test_switching_brains_on_the_same_client_keeps_temporary_history_separate(system):
+    pause(system)
+    original_brain = system.memory.brain_id
+    prompts = []
+    runtime = BrainRuntime(system.memory, lambda r: prompts.append(r) or 'temporary reply')
+    runtime.respond('private-brain-a-context', message_id='one', conversation_id='chat')
+    system.memory.brain_id = system.memory.create_brain('Another temporary brain')['id']
+    pause(system)
+    runtime.respond('private-brain-b-context', message_id='two', conversation_id='chat')
+    assert 'private-brain-a-context' not in json.dumps(prompts[-1].messages)
+    system.memory.brain_id = original_brain
+    runtime.respond('back in the original brain', message_id='three', conversation_id='chat')
+    assert 'private-brain-a-context' in json.dumps(prompts[-1].messages)
+    assert 'private-brain-b-context' not in json.dumps(prompts[-1].messages)
+
+
+def test_reduced_runtime_context_budget_applies_before_the_next_generation(system):
+    pause(system)
+    prompts = []
+    runtime = BrainRuntime(system.memory, lambda r: prompts.append(r) or 'temporary reply')
+    runtime.respond('previous-temporary-input', message_id='one', conversation_id='chat')
+    runtime.policy = replace(runtime.policy, recent_context_events=0)
+    runtime.respond('current input', message_id='two', conversation_id='chat')
+    assert 'previous-temporary-input' not in json.dumps(prompts[-1].messages)
+    assert not any(items for _, items in runtime.temporary.history.values())
+
+
 def test_replay_restart_and_resume_never_backfill_or_regenerate(system):
     pause(system)
     calls = []
@@ -227,7 +254,7 @@ def test_bounds_and_same_scope_exclusion_remain_enforced(system):
                            policy=RuntimePolicy(memory_context_tokens=40, recent_context_events=2))
     for i in range(4):
         runtime.respond('message-' + str(i), message_id=str(i), conversation_id='chat')
-    history = runtime.temporary.history[('chat', 'main')][1]
+    history = runtime.temporary.history[(system.memory.brain_id, 'chat', 'main')][1]
     assert len(history) <= 2 and sum(len(x['content'].encode()) for x in history) <= 40
     other = BrainRuntime(system.memory, lambda _: 'unused')
     runtime.generate = lambda _: other.respond('overlap', message_id='second', conversation_id='chat')

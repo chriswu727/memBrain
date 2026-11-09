@@ -32,9 +32,15 @@ class TemporaryConversation:
     def clear(self):
         self.history.clear()
 
+    def _bound(self, history):
+        policy = self.runtime.policy
+        while history and (len(history) > policy.recent_context_events
+                           or sum(len(item['content'].encode()) for item in history) > policy.memory_context_tokens):
+            history.pop(0)
+
     def respond(self, text, *, turn_id, conversation_id, branch_id, revision):
         runtime, journal = self.runtime, self.runtime.journal
-        key = (conversation_id, branch_id)
+        key = (runtime.memory.brain_id, conversation_id, branch_id)
         reviewer = runtime.answer_reviewer
         review_policy = reviewer.fingerprint if reviewer is not None else None
         try:
@@ -59,6 +65,7 @@ class TemporaryConversation:
                 previous_stamp, history = self.history.pop(key, (None, []))
                 if previous_stamp != stamp:
                     history = []
+                self._bound(history)
                 historical = json.dumps(context['messages'], ensure_ascii=False)
                 messages = runtime._messages(text, historical)
                 messages.insert(-1, {'role': 'system', 'content': TEMPORARY_INSTRUCTIONS})
@@ -131,9 +138,7 @@ class TemporaryConversation:
                 else:
                     advance('completed', 'returned')
                 history += [{'role': 'user', 'content': text}, {'role': 'assistant', 'content': output}]
-                while history and (len(history) > runtime.policy.recent_context_events
-                                   or sum(len(item['content'].encode()) for item in history) > runtime.policy.memory_context_tokens):
-                    history.pop(0)
+                self._bound(history)
                 self.history[key] = (stamp, history)
                 while len(self.history) > 32:
                     self.history.popitem(last=False)
