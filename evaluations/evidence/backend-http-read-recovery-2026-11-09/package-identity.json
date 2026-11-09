@@ -1,0 +1,10 @@
+{
+  "runtime_commit": "b4d39b4c6ca6ce0ab1816fe620702b637e2bb6ec",
+  "source_commit": "8fa22d81b73e8e0108a9edafff335b22f6af3f1a",
+  "build_id": "b616c53c7f270ce7a679b54322d5ebea97fd4b9a218a82bbcec4d524ab4cecc8",
+  "schema_id": "4e3d5a4a8bc5c1bdacdb13b4a3b6b10fb7347ba3ba9e03d7ab6e288a5b1687b5",
+  "runtime_inputs": 209,
+  "wheel_parity": true,
+  "wheel_sha256": "6b8742b5c9cded189ce0c5d64a14d302baefe423c4e60500b38eacc673c8b235",
+  "sdist_sha256": "b02f3c4de98d97e35c4cf53bd600fe97c250b4edc7e706580defe946f4e5d8cb"
+}

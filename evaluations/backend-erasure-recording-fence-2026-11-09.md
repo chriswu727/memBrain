@@ -1,5 +1,7 @@
 # Erasure fences for delayed captures and durable turns
 
+> **Historical qualification record.** The unmerged/failed status below describes the earlier candidate. [The HTTP recovery follow-up](backend-http-read-recovery-2026-11-09.md) qualifies runtime `b4d39b4` and merges PR #58 into integration as `f0b9b30`; its current Verify and five-platform checks pass. The failed runs and their original conclusions below remain unchanged.
+
 **Implemented on PR #58; not merged. Final CI remains failed.** Runtime `154ec713e85a3bb90a00997fb6be2248ad0d0fc8`; installed/native source `10b0b5b6a21a15a574a325e511f73675058a9b2b`; final CI source `a78bd088d57651093860a27505b79bf75bc409c1`. The latter changes only a test-matrix reference. Build `1e1b664014ab943a8755ed80c01d016bd39177fd32af014423868745a79deb2c`; schema `4e3d5a4a8bc5c1bdacdb13b4a3b6b10fb7347ba3ba9e03d7ab6e288a5b1687b5`; all 209 runtime inputs are unchanged between these qualification sources. Documentation/evidence follow-ups change no runtime bytes. [PR #58](https://github.com/chriswu727/memBrain/pull/58) targets integration only. Main merge and publication remain blocked.
 
 ## Implemented behavior and limits

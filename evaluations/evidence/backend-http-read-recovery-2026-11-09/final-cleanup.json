@@ -1,0 +1,163 @@
+{
+  "removed": [
+    {
+      "path": "/private/tmp/membrain-http-recovery-after.json",
+      "bytes": 181
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-archive-native.py",
+      "bytes": 2129
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-audit-native.py",
+      "bytes": 4212
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-before-fixed-fixture.log",
+      "bytes": 15402
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-before-tests.log",
+      "bytes": 8253
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-before.json",
+      "bytes": 229
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-build.log",
+      "bytes": 183
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-cancelled-native.json",
+      "bytes": 198
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-clean-final.py",
+      "bytes": 2184
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-clean-package.py",
+      "bytes": 2197
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-cleanup-guard.json",
+      "bytes": 288
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-client-tests.log",
+      "bytes": 99
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-collect.py",
+      "bytes": 1711
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-documentation-parity.json",
+      "bytes": 132
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-fast-tests.log",
+      "bytes": 99
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-finalize-ci.py",
+      "bytes": 1042
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-helper-guard.json",
+      "bytes": 252
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-installed.log",
+      "bytes": 2259
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-merge.json",
+      "bytes": 357
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-native-audit",
+      "bytes": 2013881
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-package",
+      "bytes": 516
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-package-cleanup.json",
+      "bytes": 536
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-pin-tests.log",
+      "bytes": 98
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-pins.log",
+      "bytes": 451
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-pr-bodies.py",
+      "bytes": 6290
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-pr43-final.json",
+      "bytes": 5415
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-pr43.json",
+      "bytes": 6879
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-pr58-final.json",
+      "bytes": 2668
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-pr58.json",
+      "bytes": 2909
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-qualification.json",
+      "bytes": 750
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-reproduce.py",
+      "bytes": 2004
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-ruff.log",
+      "bytes": 19
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-run-tests.py",
+      "bytes": 3247
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-service-tests.log",
+      "bytes": 1508
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-targets.json",
+      "bytes": 287
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-verify-job.log",
+      "bytes": 1730122
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-verify-status.json",
+      "bytes": 6783
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-verify-summary.json",
+      "bytes": 785
+    },
+    {
+      "path": "/private/tmp/membrain-http-recovery-verify.log",
+      "bytes": 450645
+    }
+  ],
+  "bytes_removed": 4277200,
+  "raw_prefix_absent": true,
+  "free_bytes": 17960669184
+}
