@@ -1,0 +1,249 @@
+{
+  "owned_prefix": "membrain-controls-surface-",
+  "verified_before_removal": true,
+  "records": [
+    {
+      "name": "membrain-controls-surface-erasure-gap.log",
+      "bytes": 512
+    },
+    {
+      "name": "membrain-controls-surface-erasure-gap-first.log",
+      "bytes": 277
+    },
+    {
+      "name": "membrain-controls-surface-finalize-docs.py",
+      "bytes": 5535
+    },
+    {
+      "name": "membrain-controls-surface-stale-read.log",
+      "bytes": 98
+    },
+    {
+      "name": "membrain-controls-surface-pr-bodies.json",
+      "bytes": 8651
+    },
+    {
+      "name": "membrain-controls-surface-focused.log",
+      "bytes": 3156
+    },
+    {
+      "name": "membrain-controls-surface-erasure-gap.json",
+      "bytes": 512
+    },
+    {
+      "name": "membrain-controls-surface-visual-v1.log",
+      "bytes": 322
+    },
+    {
+      "name": "membrain-controls-surface-actionlint.log",
+      "bytes": 0
+    },
+    {
+      "name": "membrain-controls-surface-native-audit",
+      "bytes": 2013896
+    },
+    {
+      "name": "membrain-controls-surface-cleanup-guard.json",
+      "bytes": 816
+    },
+    {
+      "name": "membrain-controls-surface-cost.json",
+      "bytes": 1593
+    },
+    {
+      "name": "membrain-controls-surface-ci-first-failure.json",
+      "bytes": 3643
+    },
+    {
+      "name": "membrain-controls-surface-native-first-cancelled.json",
+      "bytes": 101
+    },
+    {
+      "name": "membrain-controls-surface-pr57-before.json",
+      "bytes": 2714
+    },
+    {
+      "name": "membrain-controls-surface-failure-tests_test_recording_controls.py.json.gz",
+      "bytes": 969
+    },
+    {
+      "name": "membrain-controls-surface-cost-v1.json",
+      "bytes": 1581
+    },
+    {
+      "name": "membrain-controls-surface-first.log",
+      "bytes": 100
+    },
+    {
+      "name": "membrain-controls-surface-cleanup.json",
+      "bytes": 622
+    },
+    {
+      "name": "membrain-controls-surface-adapters.log",
+      "bytes": 2145
+    },
+    {
+      "name": "membrain-controls-surface-ruff.log",
+      "bytes": 19
+    },
+    {
+      "name": "membrain-controls-surface-ruff-final.log",
+      "bytes": 19
+    },
+    {
+      "name": "membrain-controls-surface-audit-native.py",
+      "bytes": 4215
+    },
+    {
+      "name": "membrain-controls-surface-run-tests.py",
+      "bytes": 3256
+    },
+    {
+      "name": "membrain-controls-surface-installed.log",
+      "bytes": 2767
+    },
+    {
+      "name": "membrain-controls-surface-corrupt-before.log",
+      "bytes": 6889
+    },
+    {
+      "name": "membrain-controls-surface-visual-v1",
+      "bytes": 279517
+    },
+    {
+      "name": "membrain-controls-surface-erasure-gap.py",
+      "bytes": 2367
+    },
+    {
+      "name": "membrain-controls-surface-visual",
+      "bytes": 277645
+    },
+    {
+      "name": "membrain-controls-surface-pin-tests-final.log",
+      "bytes": 98
+    },
+    {
+      "name": "membrain-controls-surface-pr43-before.json",
+      "bytes": 5769
+    },
+    {
+      "name": "membrain-controls-surface-ci-first-failure.log",
+      "bytes": 10290
+    },
+    {
+      "name": "membrain-controls-surface-cleanup.py",
+      "bytes": 2003
+    },
+    {
+      "name": "membrain-controls-surface-pin-tests.log",
+      "bytes": 98
+    },
+    {
+      "name": "membrain-controls-surface-build.log",
+      "bytes": 183
+    },
+    {
+      "name": "membrain-controls-surface-qualification",
+      "bytes": 911
+    },
+    {
+      "name": "membrain-controls-surface-finalize-ci.py",
+      "bytes": 2246
+    },
+    {
+      "name": "membrain-controls-surface-final-source.log",
+      "bytes": 2766
+    },
+    {
+      "name": "membrain-controls-surface-actionlint-before.log",
+      "bytes": 287
+    },
+    {
+      "name": "membrain-controls-surface-final-source-v2.log",
+      "bytes": 2767
+    },
+    {
+      "name": "membrain-controls-surface-build-final.log",
+      "bytes": 183
+    },
+    {
+      "name": "membrain-controls-surface-pins.log",
+      "bytes": 451
+    },
+    {
+      "name": "membrain-controls-surface-pr-bodies.py",
+      "bytes": 5845
+    },
+    {
+      "name": "membrain-controls-surface-fixture-lifecycle.json.gz",
+      "bytes": 1718
+    },
+    {
+      "name": "membrain-controls-surface-qualify-package.py",
+      "bytes": 1385
+    },
+    {
+      "name": "membrain-controls-surface-visual.log",
+      "bytes": 322
+    },
+    {
+      "name": "membrain-controls-surface-cost-v1.log",
+      "bytes": 1581
+    },
+    {
+      "name": "membrain-controls-surface-native-superseded.json",
+      "bytes": 101
+    },
+    {
+      "name": "membrain-controls-surface-visual.py",
+      "bytes": 2658
+    },
+    {
+      "name": "membrain-controls-surface-ci-superseded.json",
+      "bytes": 101
+    },
+    {
+      "name": "membrain-controls-surface-erasure-gap-first.json",
+      "bytes": 412
+    },
+    {
+      "name": "membrain-controls-surface-final-cleanup.py",
+      "bytes": 3445
+    },
+    {
+      "name": "membrain-controls-surface-pins-final.log",
+      "bytes": 451
+    },
+    {
+      "name": "membrain-controls-surface-archive-native.py",
+      "bytes": 1935
+    },
+    {
+      "name": "membrain-controls-surface-installed-final.log",
+      "bytes": 2766
+    },
+    {
+      "name": "membrain-controls-surface-verify-job-full.log",
+      "bytes": 1721079
+    },
+    {
+      "name": "membrain-controls-surface-cost.log",
+      "bytes": 1593
+    },
+    {
+      "name": "membrain-controls-surface-collect.py",
+      "bytes": 2520
+    },
+    {
+      "name": "membrain-controls-surface-erasure-gap-first.py",
+      "bytes": 2161
+    },
+    {
+      "name": "membrain-controls-surface-cost.py",
+      "bytes": 2012
+    }
+  ],
+  "bytes_removed": 4404074,
+  "free_bytes_after": 20006359040,
+  "remaining_owned_paths": []
+}

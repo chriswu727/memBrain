@@ -1,0 +1,18 @@
+{
+  "build_id": "ae0c1662a3663bc52d7300dedc407b08fecdaaf05419ffc3b07a5264244920d8",
+  "headless": true,
+  "model_calls": 0,
+  "views": [
+    {
+      "name": "desktop-en",
+      "width": 1280,
+      "scroll": 1280
+    },
+    {
+      "name": "mobile-zh",
+      "width": 390,
+      "scroll": 390
+    }
+  ],
+  "temporary_bytes_removed": 99595198
+}

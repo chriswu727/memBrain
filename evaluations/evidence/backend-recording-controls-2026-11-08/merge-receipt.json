@@ -1,0 +1,13 @@
+{
+  "pr": 57,
+  "base_branch": "integration/maturity-candidate",
+  "source_commit": "27a61078039606563e1effeaca0e2cd1a63038ac",
+  "previous_integration": "c34ba4c8bd3fcb3eae0d82456342e298b11f1f09",
+  "merge_commit": "8791b7fbc5885197b198db50669a5c771112b2f5",
+  "parents": [
+    "c34ba4c8bd3fcb3eae0d82456342e298b11f1f09",
+    "27a61078039606563e1effeaca0e2cd1a63038ac"
+  ],
+  "complete_tree_equal": true,
+  "tree": "011864d62eddee771f95f0b7108f3242ca20903b"
+}
