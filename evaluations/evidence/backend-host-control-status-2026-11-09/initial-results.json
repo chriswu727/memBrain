@@ -1,0 +1,32 @@
+{
+  "logs": [
+    {
+      "file": "control-regression.log.gz",
+      "sha256": "1feaf4b252dc89317fbfe9413a83f1bee67cc63a5cbdb8759b5a14eece353e9d"
+    },
+    {
+      "file": "typescript-encoding-failure.log.gz",
+      "sha256": "a0f19817c557f4ec0cd5b1c6f2334fb98166c6fbadc58ae64a520c16b2d8f245"
+    },
+    {
+      "file": "typescript-final.log.gz",
+      "sha256": "ec103c7a3ed27fbda81140ccd17099728c2324f84a211840b44f1cb321049f74"
+    },
+    {
+      "file": "typescript-newline-failure.log.gz",
+      "sha256": "efe2bb09ad179db8e7cc1c4f30c7106cbd7f48688670bcc1080092a3fdf7fc5d"
+    }
+  ],
+  "typescript_initial_missing_interpreter": {
+    "passed": 50,
+    "failed": 6
+  },
+  "smoke": {
+    "passed": 3,
+    "database": "PostgreSQL 16.15",
+    "vector": "0.8.6",
+    "owned_database_stopped": true
+  },
+  "wsl": "Administrator launch cancelled before execution",
+  "paid_model_calls": 0
+}

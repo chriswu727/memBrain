@@ -292,7 +292,7 @@ def start(directory: Path) -> dict:
         _fetch_in_background(directory)
         state = semantic_state(directory)
     result["semantic_recall"] = state
-    result["recording"] = "paused" if paused(directory) else "on"
+    result.update(host_recording.control_status(directory))
     return result
 
 
@@ -305,7 +305,7 @@ def installation_status(directory: Path) -> dict:
     path = directory / "plugin" / "spool.jsonl"
     result["pending_records"] = host_queue.pending(path)
     result["semantic_recall"] = semantic_state(directory)
-    result["recording"] = "paused" if _paused_file(directory / "plugin" / "paused.json", cleanup=False) else "on"
+    result.update(host_recording.control_status(directory))
     from .extraction import extraction_status
 
     extraction = extraction_status(directory)
@@ -387,11 +387,13 @@ def fetch_model(directory: Path) -> dict:
 # Privacy ------------------------------------------------------------------------------------------------------
 
 
-def _pause_file(directory: Path, user_id: str | None = None) -> Path:
+def _pause_file(directory: Path, user_id: str | None = None, *, create: bool = True) -> Path:
+    root = state_directory(directory) if create else Path(directory) / "plugin"
     if user_id is None:
-        return state_directory(directory) / "paused.json"
-    folder = state_directory(directory) / "paused-users"
-    folder.mkdir(mode=0o700, exist_ok=True)
+        return root / "paused.json"
+    folder = root / "paused-users"
+    if create:
+        folder.mkdir(mode=0o700, exist_ok=True)
     return folder / (user_brain_id(user_id) + ".json")
 
 
@@ -1619,8 +1621,8 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
         return (resumed + "memBrain is starting or unavailable. Earlier memory has not been loaded; do not claim it is "
                 "active or that you remember earlier sessions. Continue helping normally. Memory will be "
                 "retried on the next message. Run membrain plugin setup to check the connection. "
-                + privacy_notice(tools) + " " + (host_recording.notice(policy)
-                    or _recording_notice(paused(directory, user_id), tools))).strip()
+                + privacy_notice(tools) + " " + (" ".join(filter(None, (host_recording.notice(policy),
+                    _recording_notice(paused(directory, user_id), tools)))))).strip()
     else:
         with client:
             flush(client, directory)
@@ -1643,9 +1645,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     if current is not None:
         _remember_context(directory, session, client.brain_id, current, options)
     notice = resumed + _session_notice(complete and bool(history), tools, paused(directory, user_id), roleplay)
-    if policy["paused"]:
-        notice = resumed + _session_notice(complete and bool(history), None, True, roleplay)
-        notice += " " + host_recording.notice(policy)
+    notice += " " + host_recording.notice(policy)
     return "\n\n".join(part for part in (notice, current["text"] if current else None, history) if part)
 
 
@@ -1676,8 +1676,8 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
         raise
     if client is None:
         start_in_background(directory)
-        return (host_recording.notice(policy)
-                or _recording_notice(paused(directory, user_id), tools, session=session) or None)
+        return " ".join(filter(None, (host_recording.notice(policy),
+                _recording_notice(paused(directory, user_id), tools, session=session)))) or None
     source = ""
     if include_source and capture and not paused(directory, user_id):
         source = ("<membrain-source>\nWhen saving a note based on the current user message, pass source_messages="
@@ -1712,7 +1712,8 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
                 _acknowledge(client, current)
         except Exception as error:
             log(directory, f"notes refresh failed: {type(error).__name__}")
-        recording = host_recording.notice(policy) or _recording_notice(paused(directory, user_id), tools, session=session)
+        recording = " ".join(filter(None, (host_recording.notice(policy),
+                    _recording_notice(paused(directory, user_id), tools, session=session))))
         prefix = "\n\n".join(part for part in (recording, source, refreshed) if part)
         try:
             flush(client, directory)

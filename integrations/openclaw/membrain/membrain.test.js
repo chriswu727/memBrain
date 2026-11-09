@@ -130,8 +130,12 @@ test("memory carries across OpenClaw sessions through the real runtime",
       { sessionId: "oc-2" });
     await memory.agentEnd({ success: true, messages: [{ role: "assistant", content: "Understood." }] },
       { sessionId: "oc-2" });
-    assert.deepEqual(JSON.parse(await memory.tool("membrain_resume", {})),
-      { recording: "on", current_turn_resumed: false, reason: "session_required" });
+    const resumed = JSON.parse(await memory.tool("membrain_resume", {}));
+    assert.equal(resumed.recording, "on");
+    assert.equal(resumed.local_recording, "on");
+    assert.equal(resumed.controls.server.state, "on");
+    assert.equal(resumed.current_turn_resumed, false);
+    assert.equal(resumed.reason, "session_required");
     const third = await memory.beforePromptBuild({ prompt: "Hello again", messages: [] }, { sessionId: "oc-3" });
     assert.doesNotMatch(third.appendSystemContext, /groom's speech/);
     const shared = JSON.parse(await memory.tool("membrain_note", {

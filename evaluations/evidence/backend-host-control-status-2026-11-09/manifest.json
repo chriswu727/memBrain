@@ -1,0 +1,69 @@
+{
+  "runtime_commit": "cb8b2b3d7eecc1239b4165afdb7b6e333ffdac5c",
+  "platform": "Windows x86_64",
+  "logs": [
+    {
+      "file": "compatibility.log.gz",
+      "sha256": "9bd0434b8d9fadb205bdbe906547f5d6afb6e6793e606f10c3c56509793f7a8d"
+    },
+    {
+      "file": "control-final.log.gz",
+      "sha256": "2587a9dd420cea50fe8d8dbf13500dc05d28836a187af312dfabcf52371f66a8"
+    },
+    {
+      "file": "control-regression.log.gz",
+      "sha256": "1feaf4b252dc89317fbfe9413a83f1bee67cc63a5cbdb8759b5a14eece353e9d"
+    },
+    {
+      "file": "encoding-red.log.gz",
+      "sha256": "d115c18c350a481ce3bdd53e673e591fb21bfcef4bc489796bc10711c1b14b5f"
+    },
+    {
+      "file": "final-native.log.gz",
+      "sha256": "d6ec1263dda0770aaa54b66581b34e417e600a626ac4761ff9969df8a3826589"
+    },
+    {
+      "file": "host-followup.log.gz",
+      "sha256": "caa129e148eea073df3244a7465f5232018df6f08c5e0ddcee1d4feea85701e9"
+    },
+    {
+      "file": "ruff-final.log.gz",
+      "sha256": "84931ab9ec9e1526cb7bec3ccb46f05bfc2bdd164d156ef72c5d02f319baf464"
+    },
+    {
+      "file": "typescript-encoding-failure.log.gz",
+      "sha256": "a0f19817c557f4ec0cd5b1c6f2334fb98166c6fbadc58ae64a520c16b2d8f245"
+    },
+    {
+      "file": "typescript-final.log.gz",
+      "sha256": "ec103c7a3ed27fbda81140ccd17099728c2324f84a211840b44f1cb321049f74"
+    },
+    {
+      "file": "typescript-newline-failure.log.gz",
+      "sha256": "efe2bb09ad179db8e7cc1c4f30c7106cbd7f48688670bcc1080092a3fdf7fc5d"
+    }
+  ],
+  "final_native": {
+    "passed": 32,
+    "failed": 0,
+    "skipped": 0
+  },
+  "compatibility_followup": {
+    "passed": 7,
+    "note": "Six checks passed in compatibility.log; corrected POSIX-only export assertion passed separately."
+  },
+  "pin_checks": 2,
+  "typescript": {
+    "passed": 56,
+    "strict_types": "passed"
+  },
+  "wheel_checks": 21,
+  "package": {
+    "runtime_inputs": 212,
+    "wheel_sha256": "0c8792c911f63ba840225b884f157b0762979877eb89616d26f0bc34fe234784"
+  },
+  "task_owned_processes_after_tests": 0,
+  "cleanup": "Tool approval review rejected recursive synthetic smoke directory removal; task artifacts retained under D:/memBrain-setup. No cleanup bypass used.",
+  "paid_calls": 0,
+  "wsl": "Administrator launch cancelled before script execution; not installed."
+}

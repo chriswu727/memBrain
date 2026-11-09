@@ -210,7 +210,7 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
         return {"boundaries": result.get("boundaries", [])}
 
     if directory is not None:
-        from membrain import host
+        from membrain import host, host_recording
 
         installation = host.profile_directory(directory)
 
@@ -221,14 +221,15 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
             sensitive note instead). Without arguments it lasts for the rest of this conversation; pass hours when
             they name a duration, or until_resumed only when they ask you to stop remembering until they say so.
             The current turn is not stored either. Recall still works."""
-            return host.pause(installation, hours, conversation=not until_resumed)
+            return await asyncio.to_thread(host_recording.pause, installation, hours, conversation=not until_resumed)
 
         @server.tool(annotations=WRITE)
         async def memory_resume(session_id: str | None = None) -> dict[str, Any]:
             """Resume recording after memory_pause, when the user asks for it. Pass the session_id from the
             current recording notice to include this message and reply. Without it, recording resumes only for
-            future messages; every turn already in progress stays unrecorded."""
-            return host.resume(installation, current_turn=True, session=session_id)
+            future messages; every turn already in progress stays unrecorded. Check the returned recording state and
+            scopes: other controls may still block capture. This does not confirm message storage."""
+            return await asyncio.to_thread(host_recording.resume, installation, current_turn=True, session=session_id)
 
     @server.tool(annotations=READ_ONLY)
     async def memory_prepare(

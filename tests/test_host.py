@@ -735,7 +735,9 @@ def test_an_export_replaces_an_existing_readable_file_with_an_owner_only_one(tmp
     args = types.SimpleNamespace(plugin_command="export-user", platform=None, user=None, group=None,
                                  user_id="qq:1", yes=True, out=target)
     assert plugin_cli._person(args, tmp_path) == 0
-    assert "private words" in target.read_text() and oct(target.stat().st_mode & 0o777) == "0o600"
+    assert "private words" in target.read_text(encoding="utf-8")
+    if os.name != "nt":  # The native export integration test checks the protected Windows ACL.
+        assert oct(target.stat().st_mode & 0o777) == "0o600"
 
 
 @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")

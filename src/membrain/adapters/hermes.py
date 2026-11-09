@@ -19,7 +19,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from .. import host
+from .. import host, host_recording
 from ..host_recording import CAPTURE_FIELD
 from ..notes import NOTE_FIELDS, NOTE_TOOL_DESCRIPTION, SOURCE_FIELD
 from ..relationship import BOUNDARY_TOOL_DESCRIPTION
@@ -48,7 +48,7 @@ _SCHEMAS = [
     {"name": "membrain_pause", "description": host.PAUSE_TOOL_DESCRIPTION,
      "parameters": {"type": "object", "properties": {"hours": {"type": "number"},
                                                     "until_resumed": {"type": "boolean"}}}},
-    {"name": "membrain_resume", "description": "Resume recording after membrain_pause, when the user asks; their current message is then stored.",
+    {"name": "membrain_resume", "description": "Resume this local capture control when the user asks. Check the returned recording state and scopes; other controls may still block capture. This does not confirm message storage.",
      "parameters": {"type": "object", "properties": {}}},
 ]
 
@@ -194,10 +194,10 @@ class MembrainProvider(_Base):
             if not self._writes and tool_name != "membrain_search":
                 return json.dumps({"error": "This session cannot change memory."})
             if tool_name == "membrain_pause":
-                return json.dumps(host.pause(self._directory, args.get("hours"), user_id=self._user,
+                return json.dumps(host_recording.pause(self._directory, args.get("hours"), user_id=self._user,
                                              conversation=not args.get("until_resumed")))
             if tool_name == "membrain_resume":
-                return json.dumps(host.resume(self._directory, user_id=self._user, current_turn=True,
+                return json.dumps(host_recording.resume(self._directory, user_id=self._user, current_turn=True,
                                               session=self._session or None))
             if tool_name == "membrain_note" and host.paused(self._directory, self._user):
                 return json.dumps({"error": "Recording is paused. Resume before saving agent notes."})

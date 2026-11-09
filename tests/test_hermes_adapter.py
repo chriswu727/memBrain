@@ -126,7 +126,9 @@ def test_subagents_and_paused_recording_store_nothing(tmp_path, monkeypatch):
     assert json.loads(instance.handle_tool_call("membrain_pause", {}))["recording"] == "paused"
     instance.sync_turn("Off the record: I'm job hunting.", "Understood.", session_id="h1")
     assert client.observed == []
-    assert json.loads(instance.handle_tool_call("membrain_resume", {})) == {"recording": "on"}
+    result = json.loads(instance.handle_tool_call("membrain_resume", {}))
+    assert result["local_recording"] == "on"
+    assert result["recording"] == "unknown"  # This legacy client has no server policy reader.
 
 
 def test_tools_save_and_replace_notes_and_search(tmp_path, monkeypatch):
@@ -157,8 +159,12 @@ def test_builtin_memory_writes_are_mirrored_as_notes(tmp_path, monkeypatch):
 
 
 @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
-def test_hermes_sessions_share_memory_through_a_real_service(tmp_path, monkeypatch):
+def test_hermes_sessions_share_memory_through_a_real_service(tmp_path, monkeypatch, unused_tcp_port_factory):
+    from membrain.local_profile import ensure_profile
+
     directory = tmp_path / "brain"
+    ensure_profile(directory, database_engine="embedded", api_port=unused_tcp_port_factory(),
+                   database_port=unused_tcp_port_factory())
     monkeypatch.setenv("MEMBRAIN_DIRECTORY", str(directory))
     monkeypatch.setenv("HOME", str(tmp_path))
     try:

@@ -80,7 +80,8 @@ def test_messages_are_spooled_when_the_service_is_not_ready(tmp_path, monkeypatc
     started = []
     monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: None)
     monkeypatch.setattr(host, "start_in_background", started.append)
-    assert plugin.user_prompt({"session_id": "s1", "prompt_id": "p1", "prompt": "Remember Biscuit"}, tmp_path) is None
+    notice = plugin.user_prompt({"session_id": "s1", "prompt_id": "p1", "prompt": "Remember Biscuit"}, tmp_path)
+    assert "recording state is unknown" in notice and "server persistence is not confirmed" in notice
     plugin.stop({"session_id": "s1", "prompt_id": "p1", "last_assistant_message": "Noted."}, tmp_path)
     records = [json.loads(line) for line in (tmp_path / "plugin" / "spool.jsonl").read_text().splitlines()]
     assert [record["role"] for record in records] == ["user", "assistant"]
@@ -233,6 +234,9 @@ def test_history_is_rendered_oldest_first_and_states_completeness():
 
 class _ReadyClient:
     brain_id = "brain"
+
+    def recording_status(self):
+        return {"paused": False, "revision": 0}
 
     def __init__(self, timeline, recalled=None, notes=None, messages=()):
         self.timeline_response, self.recalled, self.observed, self.recalls = timeline, recalled, [], 0
@@ -546,7 +550,9 @@ def test_codex_hooks_use_turn_ids_and_their_own_producer(tmp_path, monkeypatch, 
         raw = json.dumps({"session_id": "019a-codex", "turn_id": "turn-7", "hook_event_name": "x", "model": "m",
                           **payload}).encode()
         assert plugin.run_hook(event, tmp_path, stream=io.BytesIO(raw), host_name="codex") == 0
-    assert capsys.readouterr().out == ""
+    output = json.loads(capsys.readouterr().out)["hookSpecificOutput"]
+    assert output["hookEventName"] == "UserPromptSubmit"
+    assert "recording state is unknown" in output["additionalContext"]
     records = [json.loads(line) for line in (tmp_path / "plugin" / "spool.jsonl").read_text().splitlines()]
     assert [(record["source_event_key"], record["producer_ref"]) for record in records] == [
         ("019a-codex:turn-7:user", "membrain-codex"), ("019a-codex:turn-7:assistant", "membrain-codex")]

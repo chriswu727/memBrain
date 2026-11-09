@@ -41,8 +41,9 @@ test("recall window reads preserve the exact memory spans and conversation scope
 });
 
 test("bounded Unicode excerpts preserve original source acts and agree with Python", () => {
-  const python = fileURLToPath(new URL("../../.venv/bin/python", import.meta.url));
-  const raw = execFileSync(python, ["-c", [
+  const python = fileURLToPath(new URL(
+    process.platform === "win32" ? "../../.venv/Scripts/python.exe" : "../../.venv/bin/python", import.meta.url));
+  const raw = execFileSync(python, ["-X", "utf8", "-c", [
     "import json,sys",
     "sys.path.insert(0,'tests')",
     "from test_cognition import event,request,scope,state",
@@ -243,14 +244,15 @@ function projectionFixture() {
 test("prepare and recall projections agree byte-for-byte with Python Unicode handles and shared certificates", () => {
   const fixture = projectionFixture();
   const before = structuredClone(fixture);
-  const python = fileURLToPath(new URL("../../.venv/bin/python", import.meta.url));
-  const actual = execFileSync(python, ["-c", [
+  const python = fileURLToPath(new URL(
+    process.platform === "win32" ? "../../.venv/Scripts/python.exe" : "../../.venv/bin/python", import.meta.url));
+  const actual = execFileSync(python, ["-X", "utf8", "-c", [
     "import json, sys",
     "from agent_memory.context_views import context_view, serialized, render_recall",
     "value = json.load(sys.stdin)",
     "print(serialized(context_view(value['packet'])))",
     "print(render_recall(value['recall']))",
-  ].join("\n")], { input: JSON.stringify(fixture), encoding: "utf8" }).trimEnd().split("\n");
+  ].join("\n")], { input: JSON.stringify(fixture), encoding: "utf8" }).trimEnd().split(/\r?\n/);
   assert.equal(preparedContext(fixture.packet), actual[0]);
   assert.equal(recalledContext(fixture.recall), actual[1]);
   assert.deepEqual(fixture, before);
@@ -299,8 +301,9 @@ test("context helpers accept action responses and propagate rejected actions", (
 });
 
 test("authoritative Python context preserves numeric text and budget across a real protocol round trip", () => {
-  const python = fileURLToPath(new URL("../../.venv/bin/python", import.meta.url));
-  const raw = execFileSync(python, ["-c", [
+  const python = fileURLToPath(new URL(
+    process.platform === "win32" ? "../../.venv/Scripts/python.exe" : "../../.venv/bin/python", import.meta.url));
+  const raw = execFileSync(python, ["-X", "utf8", "-c", [
     "import json, sys",
     "from unittest.mock import patch",
     "sys.path.insert(0, 'tests')",
@@ -354,8 +357,9 @@ test("legacy contexts respect declared usage and preserve successful compatible 
 });
 
 test("shortened recall agrees with Python while full source detail stays inspectable", () => {
-  const python = fileURLToPath(new URL("../../.venv/bin/python", import.meta.url));
-  const raw = execFileSync(python, ["-c", [
+  const python = fileURLToPath(new URL(
+    process.platform === "win32" ? "../../.venv/Scripts/python.exe" : "../../.venv/bin/python", import.meta.url));
+  const raw = execFileSync(python, ["-X", "utf8", "-c", [
     "import json,sys",
     "sys.path.insert(0,'tests')",
     "from test_recall_resolution import memory_case,read",
@@ -371,8 +375,9 @@ test("shortened recall agrees with Python while full source detail stays inspect
 });
 
 test("bounded original source contexts agree with Python including pinned and inactive anchors", () => {
-  const python = fileURLToPath(new URL("../../.venv/bin/python", import.meta.url));
-  const raw = execFileSync(python, ["-c", [
+  const python = fileURLToPath(new URL(
+    process.platform === "win32" ? "../../.venv/Scripts/python.exe" : "../../.venv/bin/python", import.meta.url));
+  const raw = execFileSync(python, ["-X", "utf8", "-c", [
     "import copy,json,sys",
     "sys.path.insert(0,'tests')",
     "from test_source_context import recall",
@@ -400,8 +405,9 @@ test("bounded original source contexts agree with Python including pinned and in
 });
 
 test("plain episode report coverage is versioned and agrees with Python", () => {
-  const python = fileURLToPath(new URL("../../.venv/bin/python", import.meta.url));
-  const raw = execFileSync(python, ["-c", [
+  const python = fileURLToPath(new URL(
+    process.platform === "win32" ? "../../.venv/Scripts/python.exe" : "../../.venv/bin/python", import.meta.url));
+  const raw = execFileSync(python, ["-X", "utf8", "-c", [
     "import copy,json,sys",
     "sys.path.insert(0,'tests')",
     "from test_source_context import report_recall",

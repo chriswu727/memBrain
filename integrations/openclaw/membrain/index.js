@@ -3,7 +3,7 @@
 import { spawn } from "node:child_process";
 
 const PACKAGE = process.env.MEMBRAIN_PACKAGE ||
-  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/978312c3140bc7745f619014b9c3ead12fece0ed.zip";
+  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/fcae1678262682c867aa196b55b165891e4a3ac5.zip";
 
 function run(command, args, { input, timeoutMs = 12_000, env } = {}) {
   return new Promise((resolve) => {
@@ -114,7 +114,7 @@ const TOOLS = [
   },
   {
     name: "membrain_resume",
-    description: "Resume recording after membrain_pause, when the user asks; their current message is then stored.",
+    description: "Resume this local capture control when the user asks. Check the returned recording state and scopes; other controls may still block capture. This does not confirm message storage.",
     parameters: { type: "object", properties: {} },
   },
 ];
