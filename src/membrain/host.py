@@ -15,9 +15,11 @@ import shutil
 import subprocess
 import sys
 import time
+from contextlib import nullcontext
 from pathlib import Path
 
 from . import host_recording, host_turns
+from .helpers import digest
 from .local_profile import profile_lock
 from .privacy import PRIVATE_MARK, SECRET_MARK, neutralize, scrub  # noqa: F401
 from .recording_policy import requests_pause
@@ -545,7 +547,8 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
             response = client.forget([], kind="all_authorized_scope", mode="erase_content",
                                      expected_scope_generation=generation)
         dropped = 0
-        with profile_lock(state_directory(directory) / "spool-write-lock", timeout=5):
+        with (profile_lock(state_directory(directory) / "session-state-lock", timeout=5),
+              profile_lock(state_directory(directory) / "spool-write-lock", timeout=5)):
             spool_path = state_directory(directory) / "spool.jsonl"
             if spool_path.exists():
                 kept = []
@@ -559,7 +562,6 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
                     else:
                         kept.append(line)
                 _write_text(spool_path, "".join(line + "\n" for line in kept))
-        with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
             for path in (state_directory(directory) / "sessions").glob("*.json"):
                 try:
                     state = json.loads(path.read_text(encoding="utf-8"))
@@ -570,6 +572,7 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
                 for entry in host_turns.entries(state).values():
                     if entry["owner"] == user_id:
                         host_turns.complete(entry)
+                        entry.pop("note_capture", None)
                         state["turns_require_staging"] = True
                 if state.get("user_id") == user_id:
                     state["turns_require_staging"] = True
@@ -703,15 +706,48 @@ SPOOL_BYTES = 64 * 1024 * 1024  # Weeks of messages; beyond this the service has
 REJECTED_BYTES = 4 * 1024 * 1024
 
 
-def spool(directory: Path, record: dict) -> None:
+def spool(directory: Path, record: dict) -> bool:
+    return _spool_records(directory, [record])
+
+
+def _sync_spool_directory(path: Path) -> None:
+    if os.name != "nt":
+        descriptor = os.open(path, os.O_RDONLY | getattr(os, "O_DIRECTORY", 0))
+        try:
+            os.fsync(descriptor)
+        finally:
+            os.close(descriptor)
+
+
+def _spool_records(directory: Path, records: list[dict]) -> bool:
+    payload = "".join(json.dumps(record, ensure_ascii=False) + "\n" for record in records).encode("utf-8")
     path = state_directory(directory) / "spool.jsonl"
     with profile_lock(state_directory(directory) / "spool-write-lock", timeout=5):
-        if path.exists() and path.stat().st_size > SPOOL_BYTES:
-            log(directory, "spool full; message not queued")  # Never fill the disk while memory is unavailable.
-            return
-        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_APPEND, 0o600)
-        with os.fdopen(descriptor, "a", encoding="utf-8") as stream:
-            stream.write(json.dumps(record, ensure_ascii=False) + "\n")
+        descriptor = os.open(path, os.O_RDWR | os.O_CREAT | os.O_APPEND, 0o600)
+        with os.fdopen(descriptor, "a+b", buffering=0) as stream:
+            size = stream.seek(0, os.SEEK_END)
+            if size:
+                stream.seek(-1, os.SEEK_END)
+                if stream.read(1) != b"\n":
+                    payload = b"\n" + payload  # Isolate an interrupted append from the next record.
+            if size + len(payload) > SPOOL_BYTES:
+                log(directory, "spool full; message not queued")
+                return False
+            try:
+                if stream.write(payload) != len(payload):
+                    raise OSError("Incomplete queue write.")
+                stream.flush()
+                os.fsync(stream.fileno())
+                _sync_spool_directory(path.parent)
+            except OSError:
+                try:
+                    stream.truncate(size)
+                    stream.flush()
+                    os.fsync(stream.fileno())
+                except OSError:
+                    pass
+                raise
+    return True
 
 
 def _recording_rejected(error: Exception) -> bool:
@@ -741,7 +777,8 @@ def _discard_recording(directory: Path, record: dict) -> None:
             entry.pop("record", None)
             entry.pop("resumed", None)
             entry["paused"] = "server"
-            state["turns_require_staging"] = True
+            if state.get("turns_managed"):
+                state["turns_require_staging"] = True
             changed = True
         if changed:
             _write_session_state(directory, session, state)
@@ -771,7 +808,7 @@ def _reject(directory: Path, line: str, error: Exception) -> None:
         stream.write(line.rstrip("\n") + "\n")
 
 
-def flush(client, directory: Path) -> int:
+def flush(client, directory: Path, *, rejected: set[str] | None = None) -> int:
     from .local_profile import LocalProfileBusy, profile_lock
 
     path = state_directory(directory) / "spool.jsonl"
@@ -781,12 +818,13 @@ def flush(client, directory: Path) -> int:
         with profile_lock(state_directory(directory) / "spool-lock", timeout=0):
             with profile_lock(state_directory(directory) / "spool-write-lock", timeout=5):
                 snapshot = path.read_bytes()
-            lines = [line for line in snapshot.decode("utf-8").splitlines() if line.strip()]
+            lines = [line for line in snapshot.splitlines() if line.strip()]
             delivered = 0
             current = client.brain_id
             try:
-                for line in lines:
+                for encoded in lines:
                     try:
+                        line = encoded.decode("utf-8")
                         record = json.loads(line)
                     except ValueError:
                         delivered += 1  # A torn line cannot be replayed; it must not block later records.
@@ -802,6 +840,11 @@ def flush(client, directory: Path) -> int:
                     except Exception as error:
                         if not _permanent(error):
                             raise  # Offline or busy: keep this and every later record for the next replay.
+                        if rejected is not None:
+                            try:
+                                rejected.add(digest([record]))
+                            except ValueError:
+                                pass  # Malformed disk metadata cannot match a freshly queued valid receipt.
                         if _recording_rejected(error):
                             _discard_recording(directory, record)
                         else:
@@ -815,14 +858,17 @@ def flush(client, directory: Path) -> int:
                 descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
                 with os.fdopen(descriptor, "wb") as stream:
                     stream.write(remaining)
+                    stream.flush()
+                    os.fsync(stream.fileno())
                 os.replace(temporary, path)
+                _sync_spool_directory(path.parent)
             return delivered
     except LocalProfileBusy:
         return 0
 
 
 def deliver(directory: Path, client, record: dict) -> bool:
-    """Store one record now, or spool it; returns False when recording is paused and nothing was kept.
+    """Store one record now, or spool it; returns False when recording is refused or the queue is full.
 
     A record may carry ``_user`` (its user in a multi-user host); it is stored in that user's brain and the
     client is returned to the brain it was on.
@@ -847,7 +893,8 @@ def deliver(directory: Path, client, record: dict) -> bool:
         if _recording_rejected(error):
             _discard_recording(directory, record)
             return False
-        spool(directory, record)
+        if not spool(directory, record):
+            return False
         log(directory, f"spooled {record['role']} record: {type(error).__name__}")
     return True
 
@@ -1043,7 +1090,8 @@ def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: b
 
 
 def _take_turn(directory: Path, session: str, *, user_id: str | None, producer: str,
-               turn_id: str | None, prompt: dict | None, allow_unstaged: bool) -> tuple[dict | None, bool, str | None, bool]:
+               turn_id: str | None, prompt: dict | None, reply: str | None,
+               allow_unstaged: bool) -> tuple[list[dict], str | None, bool]:
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         state = session_state(directory, session)
         valid_id = isinstance(turn_id, str) and 1 <= len(turn_id) <= 120
@@ -1051,10 +1099,39 @@ def _take_turn(directory: Path, session: str, *, user_id: str | None, producer: 
         legacy_source = f"{session}:{turn_id}:user" if valid_id else None
         if paused(directory, user_id) or (prompt is not None and requests_pause(prompt["text"])):
             state["turns_require_staging"] = True
-        result = host_turns.take(state, owner=user_id, producer=producer, source=source, prompt=prompt,
-                                 allow_unstaged=allow_unstaged, legacy_source=legacy_source)
+        pending, excluded, owner, handled = host_turns.take(
+            state, owner=user_id, producer=producer, source=source, prompt=prompt,
+            allow_unstaged=allow_unstaged, legacy_source=legacy_source)
+        records = []
+        server_paused = pending is not None and host_recording.status(directory, user_id=owner)["paused"]
+        if (pending is not None and not excluded and not paused(directory, owner) and not server_paused
+                and not (prompt is not None and requests_pause(prompt["text"]))):
+            records = [{**pending, "text": scrub(pending["text"])}]
+            if isinstance(reply, str) and reply.strip():
+                response = message_record(session, "assistant", scrub(reply), turn_id=turn_id,
+                                          producer=producer, user_id=owner)
+                response["source_event_key"] = pending["source_event_key"].removesuffix(":user") + ":assistant"
+                response["parent_source_event_keys"] = [pending["source_event_key"]]
+                if "_recording" in pending:
+                    response["_recording"] = dict(pending["_recording"])
+                records.append(response)
+            # Persist the payload before the completion marker can remove its only staged copy.
+            if not _spool_records(directory, records):
+                return [], owner, handled
         _write_session_state(directory, session, state)
-        return result
+        if server_paused:
+            _discard_recording(directory, pending)
+        return records, owner, handled
+
+
+def _replay_queued(directory: Path, client, records: list[dict]) -> list[dict]:
+    rejected = set()
+    if client is not None and records:
+        try:
+            flush(client, directory, rejected=rejected)
+        except Exception as error:
+            log(directory, f"queued records await replay: {type(error).__name__}")
+    return [record for record in records if digest([record]) not in rejected]
 
 
 # Recall -------------------------------------------------------------------------------------------------------
@@ -1462,18 +1539,26 @@ def _finish_abandoned(directory: Path, client) -> int:
             if not isinstance(state, dict):
                 continue
             pending = []
+            discarded = []
             changed = any(key in state for key in ("pending", "paused_turn", "resumed_turn"))
             for entry in host_turns.entries(state).values():
                 if not entry.get("done") and entry.get("started", 0) <= cutoff:
                     if isinstance(entry.get("record"), dict):
-                        pending.append(entry["record"])
+                        record = {**entry["record"], "text": scrub(entry["record"]["text"])}
+                        if paused(directory, entry["owner"]) or host_recording.status(directory, user_id=entry["owner"])["paused"]:
+                            discarded.append(record)
+                        elif _spool_records(directory, [record]):
+                            pending.append(record)
+                        else:
+                            continue
                     host_turns.complete(entry)
                     changed = True
             if changed:
                 host_turns.compact(state)
                 _write_session_marker(marker, state)
-        for record in pending:
-            delivered += deliver(directory, client, record)
+            for record in discarded:
+                _discard_recording(directory, record)
+        delivered += len(_replay_queued(directory, client, pending))
     return delivered
 
 
@@ -1650,38 +1735,19 @@ def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: st
     explicit_pause = isinstance(prompt, str) and requests_pause(prompt)
     supplied = (message_record(session, "user", prompt, turn_id=turn_id, producer=producer, user_id=user_id)
                 if isinstance(prompt, str) and prompt.strip() else None)
-    if supplied is not None:
-        supplied["text"] = scrub(prompt)
-        host_recording.stamp(supplied, host_recording.status(directory, user_id=user_id))
-    pending, paused_turn, staged_user, exclusion_handled = _take_turn(directory, session, user_id=user_id, producer=producer,
-                                                  turn_id=turn_id, prompt=supplied, allow_unstaged=allow_unstaged)
-    if user_id is None:
-        user_id = staged_user
-    if explicit_pause and not exclusion_handled:
-        _pause_for_request(directory, session, user_id)
-    if explicit_pause or paused_turn or paused(directory, user_id):
-        return []
-    if pending is None:
-        return []  # A missing/failed prompt callback is not permission to retain an orphan reply.
     client = ready_client(directory, user_id)
-    if pending is supplied:
-        policy = host_recording.status(directory, client, user_id)
-        if policy["paused"]:
-            if client is not None:
-                client.close()
-            return []
-        host_recording.stamp(pending, policy)
-    records = [pending]
-    if isinstance(reply, str) and reply.strip():
-        response = message_record(session, "assistant", reply, turn_id=turn_id, producer=producer, user_id=user_id)
-        response["source_event_key"] = pending["source_event_key"].removesuffix(":user") + ":assistant"
-        response["parent_source_event_keys"] = [pending["source_event_key"]]
-        if "_recording" in pending:
-            response["_recording"] = dict(pending["_recording"])
-        records.append(response)
-    if client is None:
-        delivered = [record for record in records if deliver(directory, None, record)]
-        start_in_background(directory)
+    with client if client is not None else nullcontext():
+        if supplied is not None:
+            supplied["text"] = scrub(prompt)
+            host_recording.stamp(supplied, host_recording.status(directory, client, user_id))
+        records, staged_user, exclusion_handled = _take_turn(
+            directory, session, user_id=user_id, producer=producer, turn_id=turn_id,
+            prompt=supplied, reply=reply, allow_unstaged=allow_unstaged)
+        if user_id is None:
+            user_id = staged_user
+        if explicit_pause and not exclusion_handled:
+            _pause_for_request(directory, session, user_id)
+        delivered = _replay_queued(directory, client, records)
+        if client is None and records:
+            start_in_background(directory)
         return delivered
-    with client:
-        return [record for record in records if deliver(directory, client, record)]

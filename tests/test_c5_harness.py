@@ -279,6 +279,9 @@ def memory(tmp_path, monkeypatch):
     try:
         yield harness.Memory(tmp_path / "brain", None, None, start)
     finally:
+        service_log = tmp_path / "brain" / "service.log"
+        if service_log.exists():
+            print("Scenario service lifecycle:\n" + service_log.read_text(encoding="utf-8"))
         harness.stop_started()
 
 

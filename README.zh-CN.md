@@ -18,11 +18,11 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **发布前版本。** 全部九个启动器固定到运行时 `8715fc0c`，包含[手动记忆工具的原始回合权限绑定](evaluations/backend-manual-recording-capture-2026-11-08.md)。Verify 通过 8,107 项 Python、56 项 TypeScript 测试，无跳过项，类型检查、Ruff 和构建通过；保留 3 条已有的 fork 警告。此前的原生平台验证和[召回性能结果](evaluations/maturity-stored-recall-eligibility-2026-11-08.md)保留各自的受测版本范围。独立 MCP 仍明确属于仅工具模式。[宿主限制](docs/host-compatibility.md)和[发布阻碍](docs/releasing.md)继续保留；R4、C5 和最终审查通过前，发布保持冻结。
+> **发布前版本。** 全部九个启动器固定到运行时 `4ca0e03e`：宿主回合先可靠入队，再移除暂存副本；队列满时明确拒绝。最终 CI 和安装包验证正在进行。此前的[手动工具验证](evaluations/backend-manual-recording-capture-2026-11-08.md)、原生平台结果和[召回性能结果](evaluations/maturity-stored-recall-eligibility-2026-11-08.md)保留各自的受测版本范围。[宿主限制](docs/host-compatibility.md)和[发布阻碍](docs/releasing.md)继续保留；R4、C5 和最终审查通过前，发布保持冻结。
 
 > **最近一次验收执行：** [第五次验收](evaluations/maturity-fifth-attempt-2026-11-07.md)完成了有效的 R4 评分：插件模式 20 分（通过）、提取模式 16 分（未通过：1 个记忆系统导致的隐私错误）、完整历史参照组 15.5 分。C1 因页面操作失败停止，C2 未运行；C5 无效且未评分。账本已封锁，保守结算 39.634310 元，没有未知费用预留，也没有自动重跑授权。
 
-> **当前发布状态：** [手动工具验证](evaluations/backend-manual-recording-capture-2026-11-08.md)通过 266 项相关本地测试、44 项安装包产品测试，206 个运行时文件与源码完全一致。PR #54 已作为 `078610c` 合入集成分支，完整文件树与受测源码 `36a4d03` 一致。延迟工具保留原始回合的记录权限；本地暂停撤销已完成回合的凭据，同一锁内签发凭据避免隐式回合复用时借用新权限。首次全量 CI 的角色扮演测试准备失败、安装验证脚本的清理错误均单独保留，不混同为产品测试通过。第 1 项后端统一控制尚未完成：仅工具模式／自定义客户端的操作生命周期、本地／服务端同步、临时且不留记录的持久化聊天模式及写入中断一致性仍待完善。R4 未通过，C5 无效且未评分；没有自动重跑付费验收或发布授权。
+> **当前发布状态：** 宿主回合先进入有容量上限的本地队列，再标记完成，并通过幂等请求向服务端重放。队列满时保留未完成的暂存记录，超时未回复输入也采用相同顺序。这不等于本地文件与远端数据库形成一个事务，也不能重建从未成功入队的回复。第 1 项后端统一控制仍需完善本地／服务端同步、临时且不留记录的持久化聊天模式，以及与独立 AgentRuntime 的回执统一。本批最终验证尚未完成。R4 未通过，C5 无效且未评分；没有自动重跑付费验收或发布授权。
 
 
 <a id="claude-code-plugin"></a>
