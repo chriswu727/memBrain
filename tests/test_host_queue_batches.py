@@ -184,11 +184,14 @@ def test_unrelated_replacement_queue_never_inherits_a_checkpoint(tmp_path):
     fill(tmp_path)
     assert host.flush(Client(), tmp_path) == 16
     queue = tmp_path / "plugin/spool.jsonl"
-    replacement = host.message_record("new", "user", "New content", turn_id="new")
-    queue.write_text(json.dumps(replacement) + "\n")
+    original = queue.read_bytes()
+    replacement = original.replace(b"queue", b"other").replace(b"message", b"changed")
+    assert len(replacement) == len(original)
+    queue.write_bytes(replacement)
     client = Client()
-    assert host.flush(client, tmp_path) == 1
-    assert client.observed[0]["text"] == "New content"
+    assert host.flush(client, tmp_path) == 16
+    assert client.observed[0]["text"] == "changed 0"
+    assert client.observed[-1]["text"] == "changed 15"
 
 
 def test_background_replay_drains_without_another_host_callback(tmp_path):
