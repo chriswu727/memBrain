@@ -1,6 +1,6 @@
 # Host control reporting on Windows
 
-Runtime commit: `cb8b2b3d7eecc1239b4165afdb7b6e333ffdac5c`. All nine host launchers pin this runtime. This is a module-1 delivery; it does not close the remaining backend receipt work or release gates.
+Runtime commit: `fcae1678262682c867aa196b55b165891e4a3ac5`. All nine host launchers pin this runtime. Initial qualification below used `cb8b2b3d7eecc1239b4165afdb7b6e333ffdac5c`; the CI follow-up records the correction and its separate evidence. This is a module-1 delivery; it does not close the remaining backend receipt work or release gates.
 
 ## Handoff and selected delivery
 
@@ -35,6 +35,14 @@ Four subprocess regressions reproduce plugin hook/tool failures under ASCII and 
 The final frozen Windows native batch passes **32 tests, zero failures/skips**, including all nine Node checks inside the OpenClaw integration, AstrBot's real-service journey and native export ACL, combined start/status output, recording enforcement and the new status/encoding regressions. Seven additional compatibility/export checks and two launcher-pin checks pass; the export unit's POSIX mode assertion is platform-scoped because the real Windows journey verifies its protected ACL. Ruff passes. These are scoped checks, not a full Windows suite or five-platform qualification. The PR's Verify check records the complete Linux suite separately; no full CI result is claimed here in advance.
 
 Checksummed, path-sanitized logs and package identity are under [evidence](evidence/backend-host-control-status-2026-11-09/manifest.json). All task-owned service/database processes are stopped. Tool approval review rejected recursive removal of the stopped synthetic smoke directory with only `blocked by policy`; no alternate deletion mechanism was used. Task artifacts remain under `D:/memBrain-setup` for explicit cleanup. Real profiles, models, backups and other projects are untouched.
+
+## CI follow-up
+
+The first complete [Verify run](https://github.com/chriswu727/memBrain/actions/runs/42711334362), on source `19a9a364dd8404a49fd78125bce4de92483e01b2`, failed with **8,274 passed, 5 failed and 3 warnings**. Diagnostics exposed an actual regression: a control read created an empty installation. Cache reads and local control inspection now avoid creating absent directories, and reporting leaves expired control files untouched. The other four failures were two ready-client fixtures missing the recording-policy reader and two offline hooks still expecting silence instead of the new unknown-state notice. Their memory and queue assertions remain intact. This failed run is not relabelled as successful.
+
+On the corrected runtime, 24 focused checks pass. A frozen Windows PostgreSQL batch passes **186 tests with 9 skipped**, and its owned database stops successfully. The skips are Bash-only launcher checks because Bash is absent from the native test PATH; they do not qualify WSL or those launcher paths. Checking the remaining shared-fixture consumer exposed one obsolete unknown-state assertion (10 passed/1 failed); after it checks the now-current policy, all 11 context checks pass. No service was running when runtime edits were made.
+
+The corrected wheel/sdist build passes, all 212 runtime inputs match, and 22 checks pass with imports verified against the extracted wheel. Both launcher-pin checks and Ruff pass. Corrected-runtime results, original CI failure excerpt and package identity are in [follow-up evidence](evidence/backend-host-control-status-2026-11-09/ci-correction.json). Initial Windows/TypeScript/package evidence retains its original runtime identity. The PR requires a new complete Verify result before merge; no rerun of an unchanged failing candidate was requested.
 
 ## Cost and boundaries
 

@@ -1,0 +1,56 @@
+{
+  "runtime_commit": "fcae1678262682c867aa196b55b165891e4a3ac5",
+  "logs": [
+    {
+      "file": "ci-first-failure.log.gz",
+      "sha256": "d08373ec8b5260ff0689391dcbe61042d4840d1bc13daf3e7ac1cf3d1a326999"
+    },
+    {
+      "file": "ci-correction-native.log.gz",
+      "sha256": "cf7687fc0a13da53a8a530e96139adf2394a4dd087852983746497e2a3f57bb0"
+    },
+    {
+      "file": "ci-correction-unit.log.gz",
+      "sha256": "e4e4f775539ed060b6390f86d9e3433933440426de8611c3955aa5a241bdbbac"
+    },
+    {
+      "file": "correction-wheel.log.gz",
+      "sha256": "2b7f1b58f590e390be1ae0e4d92137db93faf2751b5e0ed0feed42c7fd5d7ec7"
+    },
+    {
+      "file": "ci-correction-context.log.gz",
+      "sha256": "bcd3485a05c61c4cddbade914b2a5cc9b8aa9a94e7d2088019c3f9a6e2bf142e"
+    },
+    {
+      "file": "ci-correction-context-final.log.gz",
+      "sha256": "31e0c0424c4bbc03cff0c6447e40cccb79a5955468495a1c85b15d13afe4c169"
+    }
+  ],
+  "initial_ci": {
+    "run": 42711334362,
+    "source": "19a9a364dd8404a49fd78125bce4de92483e01b2",
+    "passed": 8274,
+    "failed": 5,
+    "warnings": 3
+  },
+  "native_followup": {
+    "passed": 186,
+    "failed": 0,
+    "skipped": 9,
+    "skip_reason": "Bash is absent from the native Windows test PATH; WSL is not installed."
+  },
+  "focused_followup": {
+    "passed": 24
+  },
+  "context_followup": {
+    "initial_passed": 10,
+    "initial_failed": 1,
+    "final_passed": 11
+  },
+  "wheel_checks": 22,
+  "package": {
+    "runtime_inputs": 212,
+    "wheel_sha256": "cd2ac544aadcd5f73397b28f8fcca71dc799f13bc70e461e30138918c61658f0"
+  },
+  "paid_calls": 0
+}
