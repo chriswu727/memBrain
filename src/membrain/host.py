@@ -18,7 +18,7 @@ import time
 from contextlib import nullcontext
 from pathlib import Path
 
-from . import host_recording, host_turns
+from . import host_queue, host_recording, host_turns
 from .helpers import digest
 from .local_profile import profile_lock
 from .privacy import PRIVATE_MARK, SECRET_MARK, neutralize, scrub  # noqa: F401
@@ -301,11 +301,7 @@ def installation_status(directory: Path) -> dict:
     result = desktop.status(directory) if (directory / "profile.json").exists() else {
         "profile": str(directory), "state": "not_installed", "ready": False}
     path = directory / "plugin" / "spool.jsonl"
-    try:
-        with path.open(encoding="utf-8") as stream:
-            result["pending_records"] = sum(bool(line.strip()) for line in stream)
-    except FileNotFoundError:
-        result["pending_records"] = 0
+    result["pending_records"] = host_queue.pending(path)
     result["semantic_recall"] = semantic_state(directory)
     result["recording"] = "paused" if _paused_file(directory / "plugin" / "paused.json", cleanup=False) else "on"
     from .extraction import extraction_status
@@ -552,7 +548,7 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
             spool_path = state_directory(directory) / "spool.jsonl"
             if spool_path.exists():
                 kept = []
-                for line in spool_path.read_text(encoding="utf-8").splitlines():
+                for line in host_queue.unacknowledged(spool_path):
                     try:
                         owner = json.loads(line).get("_user")
                     except (ValueError, AttributeError):
@@ -561,7 +557,7 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
                         dropped += 1
                     else:
                         kept.append(line)
-                _write_text(spool_path, "".join(line + "\n" for line in kept))
+                host_queue.replace_queue(spool_path, b"".join(kept))
             for path in (state_directory(directory) / "sessions").glob("*.json"):
                 try:
                     state = json.loads(path.read_text(encoding="utf-8"))
@@ -808,60 +804,63 @@ def _reject(directory: Path, line: str, error: Exception) -> None:
         stream.write(line.rstrip("\n") + "\n")
 
 
-def flush(client, directory: Path, *, rejected: set[str] | None = None) -> int:
+def flush(client, directory: Path, *, rejected: set[str] | None = None,
+          max_records: int = 16, max_seconds: float = 1.0) -> int:
     from .local_profile import LocalProfileBusy, profile_lock
 
+    if type(max_records) is not int or not 1 <= max_records <= 256 or not 0 < max_seconds <= 30:
+        raise ValueError("Replay requires 1 to 256 records and a positive budget of at most 30 seconds.")
     path = state_directory(directory) / "spool.jsonl"
     if not path.exists():
         return 0
     try:
         with profile_lock(state_directory(directory) / "spool-lock", timeout=0):
+            deadline = time.monotonic() + max_seconds
             with profile_lock(state_directory(directory) / "spool-write-lock", timeout=5):
-                snapshot = path.read_bytes()
-            lines = [line for line in snapshot.splitlines() if line.strip()]
-            delivered = 0
-            current = client.brain_id
+                offset, checksum, lines = host_queue.batch(path, max_records)
+            initial, delivered, current = offset, 0, client.brain_id
+            remove_private = False
             try:
                 for encoded in lines:
-                    try:
-                        line = encoded.decode("utf-8")
-                        record = json.loads(line)
-                    except ValueError:
-                        delivered += 1  # A torn line cannot be replayed; it must not block later records.
-                        continue
-                    try:
-                        if not isinstance(record, dict):
-                            raise TypeError("A queued observation must be an object.")
+                    if offset > initial and time.monotonic() >= deadline:
+                        break
+                    if encoded.strip():
                         try:
-                            use_brain(client, record.get("_user"))
-                        except ValueError as error:  # An invalid user identifier never becomes valid.
-                            raise TypeError(str(error)) from error
-                        host_recording.observe(client, record)
-                    except Exception as error:
-                        if not _permanent(error):
-                            raise  # Offline or busy: keep this and every later record for the next replay.
-                        if rejected is not None:
-                            try:
-                                rejected.add(digest([record]))
-                            except ValueError:
-                                pass  # Malformed disk metadata cannot match a freshly queued valid receipt.
-                        if _recording_rejected(error):
-                            _discard_recording(directory, record)
+                            line = encoded.decode("utf-8")
+                            record = json.loads(line)
+                        except ValueError:
+                            pass  # A torn line cannot be replayed; it must not block later records.
                         else:
-                            _reject(directory, line, error)
-                    delivered += 1
+                            try:
+                                if not isinstance(record, dict):
+                                    raise TypeError("A queued observation must be an object.")
+                                try:
+                                    use_brain(client, record.get("_user"))
+                                except ValueError as error:
+                                    raise TypeError(str(error)) from error
+                                host_recording.observe(client, record)
+                            except Exception as error:
+                                if not _permanent(error):
+                                    raise
+                                if rejected is not None:
+                                    try:
+                                        rejected.add(digest([record]))
+                                    except ValueError:
+                                        pass
+                                if _recording_rejected(error):
+                                    _discard_recording(directory, record)
+                                    remove_private = True
+                                else:
+                                    _reject(directory, line, error)
+                        delivered += 1
+                    checksum.update(encoded)
+                    offset += len(encoded)
             finally:
                 client.brain_id = current
-            with profile_lock(state_directory(directory) / "spool-write-lock", timeout=5):
-                remaining = path.read_bytes()[len(snapshot):]
-                temporary = path.with_suffix(".tmp")
-                descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
-                with os.fdopen(descriptor, "wb") as stream:
-                    stream.write(remaining)
-                    stream.flush()
-                    os.fsync(stream.fileno())
-                os.replace(temporary, path)
-                _sync_spool_directory(path.parent)
+                with profile_lock(state_directory(directory) / "spool-write-lock", timeout=5):
+                    if offset != initial:
+                        host_queue.acknowledge(path, offset, checksum)
+                    host_queue.compact(path, offset, force=remove_private)
             return delivered
     except LocalProfileBusy:
         return 0

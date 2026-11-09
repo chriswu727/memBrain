@@ -10,7 +10,7 @@ from test_host_recording import connected as connected
 from test_server_recording import policy
 from test_server_recording import turns as turns
 
-from membrain import host, host_recording
+from membrain import host, host_queue, host_recording
 
 
 @pytest.fixture
@@ -21,7 +21,7 @@ def offline(monkeypatch):
 
 def queued(directory):
     path = directory / "plugin" / "spool.jsonl"
-    return [json.loads(line) for line in path.read_text().splitlines() if line] if path.exists() else []
+    return [json.loads(line) for line in host_queue.unacknowledged(path) if line.strip()] if path.exists() else []
 
 
 def test_full_queue_does_not_report_delivery(tmp_path, monkeypatch):
@@ -199,7 +199,7 @@ def test_recovery_after_each_commit_boundary_does_not_duplicate_real_records(tur
         with pytest.raises(SystemExit):
             host.finish_turn(tmp_path, "s", "Answer", turn_id="t")
     with connected(tmp_path) as client:
-        assert host.flush(client, tmp_path) == 2
+        assert host.flush(client, tmp_path) == (1 if boundary == "second_observation" else 2)
     before = {r["event_id"] for r in turns.service.timeline(turns.principal, turns.brain, roles=("user", "assistant"))["items"]}
     host.finish_turn(tmp_path, "s", "Answer", turn_id="t")
     rows = turns.service.timeline(turns.principal, turns.brain, roles=("user", "assistant"))["items"]

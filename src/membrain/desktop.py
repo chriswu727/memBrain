@@ -472,6 +472,26 @@ class LocalSupervisor:
             if self.stopped.is_set():
                 self.worker_state = "stopped"
 
+    def replay(self):
+        from . import host
+        from .desktop_connection import open_client
+
+        path = self.profile.directory / "plugin" / "spool.jsonl"
+        failures = 0
+        while not self.stopped.is_set():
+            delay = 1
+            try:
+                if self.server is not None and self.server.started and path.exists() and path.stat().st_size:
+                    with open_client(self.profile.directory, start_service=False, timeout=2) as client:
+                        if host.flush(client, self.profile.directory, max_records=64):
+                            delay = 0.05
+                failures = 0
+            except Exception as error:
+                failures += 1
+                delay = min(30, 2 ** min(failures, 5))
+                self.log("host_replay_failed", error)
+            self.stopped.wait(delay)
+
     def snapshot(self):
         from psycopg.conninfo import make_conninfo
 
@@ -569,11 +589,7 @@ class LocalSupervisor:
 
             authenticate(authorization)
             path = self.profile.directory / "plugin" / "spool.jsonl"
-            try:
-                with path.open(encoding="utf-8") as stream:
-                    pending = sum(bool(line.strip()) for line in stream)
-            except FileNotFoundError:
-                pending = 0
+            pending = host.host_queue.pending(path)
             semantic = host.semantic_state(self.profile.directory)
             if semantic == "ready" and self.settings.embedding_base_url is None and getattr(
                     app.state.service, "embedding_provider", None) is None:
@@ -649,6 +665,7 @@ def run(directory: Path | None = None) -> None:
         logger, handler = _logger(profile)
         supervisor = LocalSupervisor(profile, logger)
         supervisor.worker = threading.Thread(target=supervisor.work, name="memory-worker", daemon=True)
+        replay = threading.Thread(target=supervisor.replay, name="host-replay", daemon=True)
         try:
             supervisor.server = uvicorn.Server(uvicorn.Config(
                 supervisor.app(), host="127.0.0.1", port=profile.api_port,
@@ -656,6 +673,7 @@ def run(directory: Path | None = None) -> None:
                 timeout_graceful_shutdown=10,
             ))
             supervisor.worker.start()
+            replay.start()
             if clock is not None:
                 supervisor.log("evaluation_clock_enabled_time_is_simulated")
             supervisor.log("service_started")
@@ -674,6 +692,8 @@ def run(directory: Path | None = None) -> None:
             supervisor.stopped.set()
             if supervisor.worker.is_alive():
                 supervisor.worker.join()
+            if replay.is_alive():
+                replay.join()
             supervisor.log("service_stopped")
             logger.removeHandler(handler)
             handler.close()
