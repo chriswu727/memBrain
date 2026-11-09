@@ -34,6 +34,19 @@ class RuntimeClient:
             "branch_id": branch_id, "input_fingerprint": input_fingerprint,
         })
 
+    def begin_ephemeral(self, *, turn_id, conversation_id, branch_id, expected_recording_revision, review_policy=None):
+        return self.memory._request("POST", self._path().removesuffix("turns") + "ephemeral-turns", json={
+            "turn_id": turn_id, "conversation_id": conversation_id, "branch_id": branch_id,
+            "expected_recording_revision": expected_recording_revision, "review_policy": review_policy,
+        })
+
+    def advance_ephemeral(self, turn_id, *, lease_token, expected_revision, stage, delivery_state=None):
+        return self._post(turn_id, "ephemeral-advance", lease_token=lease_token,
+                          expected_revision=expected_revision, stage=stage, delivery_state=delivery_state)
+
+    def ephemeral_context(self, turn_id, *, lease_token, limit, max_bytes):
+        return self._post(turn_id, "ephemeral-context", lease_token=lease_token, limit=limit, max_bytes=max_bytes)
+
     def get(self, turn_id: str) -> JsonObject:
         return self.memory._request("GET", self._path(turn_id))
 

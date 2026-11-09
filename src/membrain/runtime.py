@@ -166,6 +166,7 @@ class TurnResult:
     stage: str
     text: str | None
     replayed: bool = False
+    ephemeral: bool = False
 
 
 def _transient(error):
@@ -211,6 +212,12 @@ class _Lease:
                     self.row["turn_id"], lease_token=self.token, lease_seconds=self.seconds,
                 )
             except httpx.HTTPStatusError as error:
+                if _conflict(error, "lease_conflict") or _scope_conflict(error):
+                    current = self.journal.get(self.row["turn_id"])
+                    if current["stage"] == "failed":
+                        self.row = current
+                        self.stopped.set()
+                        raise RuntimeBlocked(current["failure_code"] or "failed", current["turn_id"]) from error
                 if not _context_stale(error):
                     raise
                 self.invalidate_capture()
@@ -308,7 +315,27 @@ class _Lease:
     def __exit__(self, *exc):
         self.stopped.set()
         self.thread.join(timeout=5)
+        if self.row.get("ephemeral") and exc[0] is not None:
+            try:
+                current = self.journal.get(self.row["turn_id"])
+                if current["stage"] not in ("completed", "failed"):
+                    failure = {"generating": "generation_uncertain", "delivering": "delivery_uncertain"}.get(
+                        current["stage"], "cancelled",
+                    )
+                    if current["stage"] == "generated" and current["response_review_calls"]:
+                        failure = "generation_uncertain"
+                    if getattr(exc[1], "code", None) == "context_stale":
+                        failure = "context_stale"
+                    if getattr(exc[1], "code", None) in {
+                        "invalid_model_output", "output_budget_exceeded", "invalid_review_response", "answer_review_rejected",
+                    }:
+                        failure = "generation_failed"
+                    self.row = self.journal.fail(self.row["turn_id"], lease_token=self.token,
+                                                 expected_revision=current["revision"], failure_code=failure)
+            except Exception:
+                logger.warning("Temporary turn termination unconfirmed")
         if self.row["stage"] not in ("completed", "failed"):
+
             try:
                 fresh = self.journal.get(self.row["turn_id"])
                 if fresh["stage"] not in ("completed", "failed"):
@@ -340,6 +367,9 @@ class BrainRuntime:
         self.answer_reviewer = answer_reviewer
         self.journal = RuntimeClient(memory)
         self.worker_id = str(uuid4())
+        from .ephemeral_runtime import TemporaryConversation
+
+        self.temporary = TemporaryConversation(self)
 
     def capabilities(self):
         result = integration_capabilities("sdk")
@@ -361,16 +391,37 @@ class BrainRuntime:
              if self.answer_reviewer else "Answer review is disabled; memory-use instructions are not enforced by a reviewer."),
             ("On-demand orientation may skip immediate situation and goal inference; raw input is still captured."
              if self.policy.orientation_policy == "on_demand" else "Orientation is requested before every new turn."),
+            "While server recording is paused, temporary turns retain content only in this process and read bounded same-branch history.",
+            "Temporary turns do not run orientation, semantic recall planning or learning, and cannot resume after process exit.",
             "External callbacks require idempotency or reconciliation after uncertain outcomes.",
         ]
         return result
 
-    def respond(self, text: str, *, message_id: str, conversation_id: str, branch_id: str = "main"):
+    def recording_status(self):
+        return self.memory.recording_status()
+
+    def respond_temporary(self, text, *, message_id, conversation_id, branch_id="main", revision):
         if not isinstance(text, str) or not text.strip():
             raise ValueError("A nonempty input message is required")
         if not isinstance(message_id, str) or not 1 <= len(message_id) <= 256:
             raise ValueError("A stable message_id is required")
         turn_id = "turn-" + digest([self.memory.brain_id, conversation_id, branch_id, message_id])[:40]
+        return self.temporary.respond(text, turn_id=turn_id, conversation_id=conversation_id,
+                                      branch_id=branch_id, revision=revision)
+
+    def respond(self, text: str, *, message_id: str, conversation_id: str, branch_id: str = "main",
+                allow_temporary: bool = True):
+        if not isinstance(text, str) or not text.strip():
+            raise ValueError("A nonempty input message is required")
+        if not isinstance(message_id, str) or not 1 <= len(message_id) <= 256:
+            raise ValueError("A stable message_id is required")
+        turn_id = "turn-" + digest([self.memory.brain_id, conversation_id, branch_id, message_id])[:40]
+        if allow_temporary:
+            status = self.recording_status()
+            if status["paused"]:
+                return self.respond_temporary(text, message_id=message_id, conversation_id=conversation_id,
+                                              branch_id=branch_id, revision=status["revision"])
+        self.temporary.clear()
         try:
             row = self.journal.begin(
                 turn_id=turn_id, conversation_id=conversation_id, branch_id=branch_id,
@@ -379,11 +430,15 @@ class BrainRuntime:
         except httpx.HTTPStatusError as error:
             if _scope_conflict(error):
                 raise RuntimeBlocked("scope_conflict", turn_id) from None
+            if _conflict(error, "recording_paused"):
+                raise RuntimeBlocked("recording_paused", turn_id) from None
             raise
         return self._run(row, text)
 
     def resume(self, turn_id: str):
         row = self.journal.get(turn_id)
+        if row.get("ephemeral"):
+            raise RuntimeBlocked("temporary_recovery_unavailable", turn_id)
         if confirmed_delivery_receipt(row):
             raise RuntimeBlocked(row["failure_code"], turn_id)
         if row["stage"] == "delivered":
@@ -398,6 +453,8 @@ class BrainRuntime:
 
     def _run(self, row, text):
         turn_id = row["turn_id"]
+        if row.get("ephemeral"):
+            raise RuntimeBlocked("temporary_recovery_unavailable", turn_id)
         if confirmed_delivery_receipt(row):
             raise RuntimeBlocked(row["failure_code"], turn_id)
         if not row["sources_available"] and row["stage"] != "delivered":

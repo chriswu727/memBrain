@@ -223,6 +223,9 @@ class AgentSession:
         return row
 
     def _clear(self, pending):
+        if pending.get("ephemeral"):
+            self._runtime.temporary.clear()
+            return
         try:
             self._path.unlink()
             _sync_directory(self._path.parent)
@@ -266,6 +269,14 @@ class AgentSession:
                 # message may start instead of every later message failing on the closed turn.
                 self._clear(pending)
                 pending = None
+            if pending is None:
+                status = self._runtime.recording_status()
+                if status["paused"]:
+                    return self._runtime.respond_temporary(
+                        text, message_id=message_id, conversation_id=self._identity["conversation_id"],
+                        branch_id=self._identity["branch_id"], revision=status["revision"],
+                    )
+                self._runtime.temporary.clear()
             new_pending = pending is None
             if pending:
                 self._recovery_configuration(pending, self._existing_turn(pending, allow_missing=True))
@@ -281,10 +292,10 @@ class AgentSession:
             try:
                 result = self._runtime.respond(
                     text, message_id=message_id, conversation_id=self._identity["conversation_id"],
-                    branch_id=self._identity["branch_id"],
+                    branch_id=self._identity["branch_id"], allow_temporary=False,
                 )
             except RuntimeBlocked as error:
-                if (new_pending and error.code == "scope_conflict" and error.turn_id == pending["turn_id"]
+                if (new_pending and error.code in ("scope_conflict", "recording_paused") and error.turn_id == pending["turn_id"]
                         and self._existing_turn(pending, allow_missing=True) is None):
                     self._clear(pending)
                 elif error.code != "scope_conflict":
@@ -320,7 +331,17 @@ class AgentSession:
         with self._operation():
             pending = _read_pending(self._path, self._identity)
             if pending is None:
-                raise SessionError("no_pending_turn")
+                try:
+                    row = self._runtime.journal.get(turn_id)
+                except httpx.HTTPStatusError as error:
+                    if error.response.status_code == 404:
+                        raise SessionError("no_pending_turn") from None
+                    raise
+                if not row.get("ephemeral") or any(row.get(key) != self._identity[key] for key in (
+                        "brain_id", "conversation_id", "branch_id")):
+                    raise SessionError("no_pending_turn")
+                pending = {"identity": self._identity, "turn_id": turn_id,
+                           "input_fingerprint": "0" * 64, "ephemeral": True}
             if pending["turn_id"] != turn_id:
                 raise SessionError("pending_turn", pending["turn_id"])
             row = self._existing_turn(pending, allow_missing=True)
@@ -344,6 +365,8 @@ class AgentSession:
                 failure_code = {"generating": "generation_uncertain", "delivering": "delivery_uncertain"}.get(
                     row["stage"], "cancelled",
                 )
+                if row.get("ephemeral") and row["stage"] == "generated" and row.get("response_review_calls"):
+                    failure_code = "generation_uncertain"
                 if failure_code != "cancelled" and not acknowledge_uncertain:
                     raise SessionError("acknowledgement_required", turn_id)
                 row = self._runtime.journal.claim(
@@ -444,6 +467,7 @@ def open_agent(
             finally:
                 with session._operation_lock:
                     session._closed = True
+                    session._runtime.temporary.clear()
     finally:
         with _ACTIVE_GUARD:
             _ACTIVE_SCOPES.discard(key)

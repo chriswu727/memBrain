@@ -34,6 +34,8 @@ def test_upgrade_defaults_existing_brains_to_recording_without_rewriting_turns(m
         database.migrate()
         with database.transaction(principal) as conn:
             after = conn.execute("SELECT * FROM memory_runtime_turns").fetchall()
+            assert all(row.pop("ephemeral_delivery_state") is None for row in after)
+            assert all(row.pop("ephemeral") is False for row in after)
             assert all(row.pop("recording_revision") == 0 for row in after)
             assert after == before
             assert conn.execute("SELECT recording_paused,recording_revision FROM memory_brains").fetchone() == {

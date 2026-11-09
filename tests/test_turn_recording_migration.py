@@ -37,6 +37,8 @@ def test_upgrade_preserves_turns_without_refreshing_legacy_capture_authority(mon
         database.migrate()
         with database.transaction(principal) as conn:
             after = conn.execute("SELECT * FROM memory_runtime_turns WHERE brain_id=%s", (brain,)).fetchone()
+            assert after.pop("ephemeral_delivery_state") is None
+            assert after.pop("ephemeral") is False
             assert after.pop("recording_revision") == 0 and after == before
             assert conn.execute("SELECT relrowsecurity,relforcerowsecurity FROM pg_class "
                                 "WHERE oid='memory_runtime_turns'::regclass").fetchone() == {

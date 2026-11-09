@@ -19,7 +19,7 @@ FAILURE_CODES = frozenset({
 })
 PUBLIC_FIELDS = (
     "turn_id", "brain_id", "conversation_id", "branch_id", "input_fingerprint", "stage",
-    "scope_reserved", "delivery_receipt", "recording_revision",
+    "scope_reserved", "delivery_receipt", "recording_revision", "ephemeral", "ephemeral_delivery_state",
     "revision", "fence", "claim_count", "generation_count", "worker_id", "lease_expires_at",
     "recovery_required", "input_event_refs", "context_event_refs", "output_event_refs", "context_fingerprint",
     "context_generation", "working_revision", "durable_sequence", "context_tokens",
@@ -135,6 +135,8 @@ class TurnStore:
             result["recovery_required"] = {
                 "generating": "generation_uncertain", "delivering": "delivery_uncertain",
             }[row["stage"]]
+        if row["ephemeral"] and not result["lease_active"] and row["stage"] == "generated" and row["response_review_calls"]:
+            result["recovery_required"] = "generation_uncertain"
         for field in ("lease_expires_at", "created_at", "updated_at"):
             if result[field] is not None:
                 result[field] = result[field].isoformat()
@@ -160,7 +162,12 @@ class TurnStore:
         if expected_revision is not None and _integer(expected_revision, 1) != row["revision"]:
             raise DomainError("version_conflict", "Turn revision has changed.", current_revision=row["revision"])
 
+    def _durable(self, row):
+        if row["ephemeral"]:
+            raise DomainError("stage_conflict", "Temporary turns cannot publish durable content.")
+
     def _recording(self, brain, row):
+        self._durable(row)
         if brain["recording_paused"] or row["recording_revision"] != brain["recording_revision"]:
             raise DomainError("context_stale", "Recording permission changed after this turn began.")
 
@@ -189,6 +196,7 @@ class TurnStore:
                     (*self._params(principal, brain_id, turn_id), conversation_id, branch_id, input_fingerprint,
                      brain["recording_revision"]),
                 ).fetchone()
+            self._durable(row)
             if (row["conversation_id"], row["branch_id"], row["input_fingerprint"]) != (
                     conversation_id, branch_id, input_fingerprint):
                 raise DomainError("idempotency_conflict", "Turn identifier already binds different input or scope.")
@@ -301,6 +309,8 @@ class TurnStore:
             if row["lease_expires_at"] and row["lease_expires_at"] > row["db_now"]:
                 raise DomainError("lease_conflict", "Another worker holds the turn lease.", retryable=True)
             recovery = {"generating": "generation_uncertain", "delivering": "delivery_uncertain"}.get(row["stage"])
+            if row["ephemeral"] and row["stage"] == "generated" and row["response_review_calls"]:
+                recovery = "generation_uncertain"
             token = secrets.token_urlsafe(32)
             row = conn.execute(
                 "UPDATE memory_runtime_turns SET revision=revision+1,fence=fence+1,claim_count=claim_count+1,"
@@ -319,7 +329,12 @@ class TurnStore:
         with self._transaction(principal, brain_id) as (conn, brain):
             row = self._row(conn, principal, brain_id, turn_id)
             self._lease(row, lease_token, expected_revision)
-            if row["stage"] not in ("delivering", "delivered", "committed"):
+            if row["ephemeral"]:
+                from .ephemeral_turns import require_current
+
+                if row["stage"] != "delivering":
+                    require_current(brain, row)
+            elif row["stage"] not in ("delivering", "delivered", "committed"):
                 if (brain["recording_paused"] or row["recording_revision"] != brain["recording_revision"]) and self._unavailable(
                         conn, principal, row):
                     return self._public(conn, principal, row)
@@ -640,6 +655,7 @@ class TurnStore:
         fingerprint = digest(transition)
         with self._transaction(principal, brain_id) as (conn, brain):
             row = self._row(conn, principal, brain_id, turn_id)
+            self._durable(row)
             self._lease(row, lease_token)
             if row["revision"] == expected_revision + 1 and row["last_transition_hash"] == fingerprint:
                 if stage in ("prepared", "generating"):
@@ -774,6 +790,7 @@ class TurnStore:
         }
         with self._transaction(principal, brain_id) as (conn, brain):
             row = self._row(conn, principal, brain_id, turn_id)
+            self._durable(row)
             if delivery_state != "draft" and row.get("delivery_receipt") is not None:
                 if not recorded_delivery_receipt(row) or not receipt_matches(row["delivery_receipt"], text, delivery_state):
                     raise DomainError("idempotency_conflict", "Output capture has different text or delivery state.")
@@ -971,6 +988,7 @@ class TurnStore:
         _integer(expected_revision, 1)
         with self._transaction(principal, brain_id) as (conn, brain):
             row = self._row(conn, principal, brain_id, turn_id)
+            self._durable(row)
             if row["stage"] == "completed" or confirmed_delivery_receipt(row):
                 return self._public(conn, principal, row)
             self._lease(row, lease_token, expected_revision)

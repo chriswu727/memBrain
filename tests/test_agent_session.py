@@ -65,6 +65,7 @@ def mocked(tmp_path, monkeypatch):
         resume=Mock(side_effect=lambda identifier: TurnResult(identifier, state.stage, "private-response")),
         journal=SimpleNamespace(get=Mock(side_effect=get), begin=Mock(side_effect=begin), claim=Mock(), fail=Mock()),
         worker_id="test-worker", policy=RuntimePolicy(),
+        recording_status=Mock(return_value={"paused": False, "revision": 0}), temporary=SimpleNamespace(clear=Mock()),
     )
     state.factory = Mock(return_value=state.runtime)
     monkeypatch.setattr(agent_session.desktop_connection, "open_client", state.connect)
@@ -275,7 +276,7 @@ profile = load_profile(Path(sys.argv[1]))
 def connect(*args, **kwargs):
     yield SimpleNamespace(brain_id=profile.brain_id)
 agent_session.desktop_connection.open_client = connect
-agent_session.BrainRuntime = lambda *args, **kwargs: object()
+agent_session.BrainRuntime = lambda *args, **kwargs: SimpleNamespace(temporary=SimpleNamespace(clear=lambda: None))
 try:
     with open_agent(profile.directory, conversation_id=sys.argv[2], start_service=False,
                     generate=lambda _: 'unused', generator_fingerprint='model-v1'):

@@ -23,6 +23,27 @@ from membrain.desktop_connection import open_client
 from membrain.desktop_restore import activate, restore
 from membrain.local_profile import _private, ensure_profile, load_profile
 from membrain.recovery_profile import authority_for, check_start_allowed, read_document
+from membrain.runtime import BrainRuntime
+
+
+def check_temporary_chat(profile, *, replay=False):
+    calls = []
+    with open_client(profile.directory, start_service=False) as client:
+        policy = client.recording_status()
+        client.set_recording(paused=True, expected_revision=policy['revision'])
+        runtime = BrainRuntime(client, lambda request: calls.append(request) or 'Synthetic temporary native reply')
+        result = runtime.respond('Synthetic temporary native input', message_id='native-temporary',
+                                 conversation_id='native-temporary')
+        assert result.ephemeral and result.replayed == replay
+        assert len(calls) == (0 if replay else 1)
+        assert (result.text is None) == replay
+        row = runtime.journal.get(result.turn_id)
+        assert row['input_fingerprint'] == '0' * 64 and row['ephemeral_delivery_state'] == 'returned'
+        assert row['input_event_refs'] == row['output_event_refs'] == []
+        assert not row['scope_reserved'] and not row['lease_active']
+        assert client.timeline(roles=('user', 'assistant'), conversation_id='native-temporary')['items'] == []
+        policy = client.recording_status()
+        client.set_recording(paused=False, expected_revision=policy['revision'])
 
 
 def worker(directory, cache, previous_prefix=None):
@@ -185,7 +206,11 @@ def check(directory, cache, *, legacy=False, restore_backup=False, require_root=
             recalled = client.recall("what is my cat called")
             assert "Biscuit" in json.dumps(recalled)
         checkpoint("restart_preflight_preserves_live_service")
+        check_temporary_chat(profile)
+        report['temporary_chat_no_capture'] = True
         report.update(check_restart(profile))
+        check_temporary_chat(profile, replay=True)
+        report['temporary_chat_replay_after_restart'] = True
         report.update(default_native_selector=True, handoff_interruption_exit=87, credentials_preserved=True,
                       original_cluster_preserved=True, admission_before_api=True, http_memory_after_cold_restart=True,
                       legacy_vector_rows_preserved=legacy)
@@ -215,6 +240,8 @@ def check(directory, cache, *, legacy=False, restore_backup=False, require_root=
                 assert "Biscuit" in json.dumps(client.recall("what is my cat called"))
             if legacy:
                 assert fingerprint(restored) == original_rows
+            check_temporary_chat(restored, replay=True)
+            report['temporary_chat_replay_after_restore'] = True
             report.update(private_backup_restore=True, quarantine_blocks_api=True, restored_memory_recalled=True,
                           restored_credentials_rotated=restored.api_key != profile.api_key and restored.app_password != profile.app_password)
         report["completed"] = True
