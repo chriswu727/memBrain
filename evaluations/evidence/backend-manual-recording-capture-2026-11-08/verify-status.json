@@ -1,0 +1,206 @@
+{
+  "conclusion": "success",
+  "createdAt": "2026-11-09T01:57:43Z",
+  "databaseId": 42548278005,
+  "headSha": "36a4d032151ca6dba128c110a207a9f724661350",
+  "jobs": [
+    {
+      "completedAt": "2026-11-09T02:46:20Z",
+      "conclusion": "success",
+      "databaseId": 128937936623,
+      "name": "runtime",
+      "startedAt": "2026-11-09T01:57:46Z",
+      "status": "completed",
+      "steps": [
+        {
+          "completedAt": "2026-11-09T01:57:48Z",
+          "conclusion": "success",
+          "name": "Set up job",
+          "number": 1,
+          "startedAt": "2026-11-09T01:57:47Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T01:57:58Z",
+          "conclusion": "success",
+          "name": "Initialize containers",
+          "number": 2,
+          "startedAt": "2026-11-09T01:57:48Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T01:58:04Z",
+          "conclusion": "success",
+          "name": "Run actions/checkout@v4",
+          "number": 3,
+          "startedAt": "2026-11-09T01:57:58Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T01:58:04Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-python@v5",
+          "number": 4,
+          "startedAt": "2026-11-09T01:58:04Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T01:58:07Z",
+          "conclusion": "success",
+          "name": "Run actions/setup-node@v4",
+          "number": 5,
+          "startedAt": "2026-11-09T01:58:04Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T01:58:11Z",
+          "conclusion": "success",
+          "name": "Run python -m pip install uv",
+          "number": 6,
+          "startedAt": "2026-11-09T01:58:07Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T01:58:12Z",
+          "conclusion": "success",
+          "name": "Run uv sync --frozen",
+          "number": 7,
+          "startedAt": "2026-11-09T01:58:11Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T01:58:12Z",
+          "conclusion": "success",
+          "name": "Run actions/cache@v4",
+          "number": 8,
+          "startedAt": "2026-11-09T01:58:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T01:58:15Z",
+          "conclusion": "success",
+          "name": "Prepare the pinned local embedding model",
+          "number": 9,
+          "startedAt": "2026-11-09T01:58:12Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T01:58:37Z",
+          "conclusion": "success",
+          "name": "Run uv run python -m playwright install --with-deps chromium",
+          "number": 10,
+          "startedAt": "2026-11-09T01:58:15Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T01:58:39Z",
+          "conclusion": "success",
+          "name": "Run uv run membrain migrate",
+          "number": 11,
+          "startedAt": "2026-11-09T01:58:37Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T01:58:39Z",
+          "conclusion": "success",
+          "name": "Run uv run ruff check src tests examples",
+          "number": 12,
+          "startedAt": "2026-11-09T01:58:39Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T01:58:59Z",
+          "conclusion": "success",
+          "name": "Diagnose zero-model scenario service startup",
+          "number": 13,
+          "startedAt": "2026-11-09T01:58:39Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T01:58:59Z",
+          "conclusion": "skipped",
+          "name": "Diagnose Linux native loader after startup failure",
+          "number": 14,
+          "startedAt": "2026-11-09T01:58:59Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T02:46:07Z",
+          "conclusion": "success",
+          "name": "Run uv run pytest -v --durations=15",
+          "number": 15,
+          "startedAt": "2026-11-09T01:58:59Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T02:46:14Z",
+          "conclusion": "success",
+          "name": "Run npm ci && npm test && npm run typecheck",
+          "number": 16,
+          "startedAt": "2026-11-09T02:46:07Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T02:46:17Z",
+          "conclusion": "success",
+          "name": "Run uv build",
+          "number": 17,
+          "startedAt": "2026-11-09T02:46:14Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T02:46:17Z",
+          "conclusion": "success",
+          "name": "Post Run actions/cache@v4",
+          "number": 30,
+          "startedAt": "2026-11-09T02:46:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T02:46:17Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-node@v4",
+          "number": 31,
+          "startedAt": "2026-11-09T02:46:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T02:46:17Z",
+          "conclusion": "success",
+          "name": "Post Run actions/setup-python@v5",
+          "number": 32,
+          "startedAt": "2026-11-09T02:46:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T02:46:18Z",
+          "conclusion": "success",
+          "name": "Post Run actions/checkout@v4",
+          "number": 33,
+          "startedAt": "2026-11-09T02:46:17Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T02:46:18Z",
+          "conclusion": "success",
+          "name": "Stop containers",
+          "number": 34,
+          "startedAt": "2026-11-09T02:46:18Z",
+          "status": "completed"
+        },
+        {
+          "completedAt": "2026-11-09T02:46:18Z",
+          "conclusion": "success",
+          "name": "Complete job",
+          "number": 35,
+          "startedAt": "2026-11-09T02:46:18Z",
+          "status": "completed"
+        }
+      ],
+      "url": "https://github.com/chriswu727/memBrain/actions/runs/42548278005/job/128937936623"
+    }
+  ],
+  "status": "completed",
+  "updatedAt": "2026-11-09T02:46:20Z",
+  "url": "https://github.com/chriswu727/memBrain/actions/runs/42548278005"
+}

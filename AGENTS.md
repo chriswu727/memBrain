@@ -17,3 +17,5 @@ The memory runtime is independent of third-party chat frameworks. Optional host 
 Keep planned capabilities separate from implemented and verified behavior. Preserve failed results and limitations when editing documentation or translating reports.
 
 Run local checks appropriate to the change. Do not add or trigger routine CI workflows for documentation updates. Paid model evaluations and subscription-backed tests must follow the user's authorization; documentation edits do not require them.
+
+Use task-owned temporary roots for local verification. Where fixture teardown permits, use `tmp_path_retention_policy=failed` so successful tests do not accumulate database copies. Keep at least 2 GiB free before a large local batch. Preserve failure logs, qualification results and package identities, then remove stopped synthetic databases and rebuildable test installations/caches after use. Verify process ownership before cleanup; never remove real profiles, models, backups or source worktrees as test debris. Freeze runtime files while service or installed-package tests run so source changes cannot invalidate the running build.
