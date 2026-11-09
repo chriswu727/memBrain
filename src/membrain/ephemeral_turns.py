@@ -87,7 +87,8 @@ def context(store, principal, brain_id, turn_id, *, lease_token, limit=6, max_by
         require_current(brain, row)
         records = conn.execute(
             "SELECT document FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
-            "AND conversation_id=%s AND branch_id=%s AND is_current AND NOT deleted AND NOT suppressed "
+            "AND conversation_id=%s AND COALESCE('value:' || branch_id,'null')=COALESCE('value:' || %s,'null') "
+            "AND is_current AND NOT deleted AND NOT suppressed "
             "AND NOT retired AND document IS NOT NULL AND document->'observed'->>'event_kind'='message' "
             "AND document->'observed'->>'actor_role' IN ('user','assistant') ORDER BY sequence DESC LIMIT %s",
             (principal.tenant_id, principal.principal_id, brain_id, row['conversation_id'], row['branch_id'], limit),
