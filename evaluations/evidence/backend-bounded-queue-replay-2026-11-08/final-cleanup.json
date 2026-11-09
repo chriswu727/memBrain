@@ -1,0 +1,257 @@
+{
+  "scope": "Redundant task-owned raw scripts/logs/identity copies only, after validating archived hashes. Earlier stopped databases/installations and native ZIPs were removed separately. Real profiles, models, backups, source worktrees and development environment retained.",
+  "files": [
+    {
+      "path": "/private/tmp/membrain-queue-batches-archive-finalize.py",
+      "bytes": 2902,
+      "sha256": "0ea187e052c351582a680888cd77475dc8a6f1015d2ba4b127a133212fdbff47"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-audit-native.py",
+      "bytes": 4212,
+      "sha256": "45a4dfdf5c793346ab2e93e6ad9696e0e115c35aac49f7c14d7f7d1c2d38aa8f"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-baseline.log",
+      "bytes": 4212,
+      "sha256": "ae0c59ffe93d9b9e4aa1c255fbaae5093a92c440f7ada1a8bb80139f7447f19a"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-build.log",
+      "bytes": 183,
+      "sha256": "4bd6eeb857fc7b1cf8f0138ee2ca96675b5d77c0ea8ee0afd11710d1e7e34769"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-ci-cancelled.json",
+      "bytes": 4349,
+      "sha256": "5d4100f2f1c07b8fe7a36437a4f6917c247f20b3c6569213a80a126615ecbfdf"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-ci-cancelled.log",
+      "bytes": 793857,
+      "sha256": "3bb65e6aec6d959520fc2ded26b6035039add087f140fdae7fbda05e8b995761"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-ci-watch.log",
+      "bytes": 9681,
+      "sha256": "c793c5c79b7b87c8f022d1c394aaa0b18642272a05cafa3651ec26ea5c8ad74d"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-cleanup-guard-observation.json",
+      "bytes": 602,
+      "sha256": "849381bd453738e2c731265e5713ed0d6f62045ddb70366d66112eb228443d64"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-cleanup.json",
+      "bytes": 1678,
+      "sha256": "45ccee3b1e6d72d85b9716c484d5b0cb5cbfde39b6d54b6a834c2cfdf3fcee2b"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-cleanup.py",
+      "bytes": 1571,
+      "sha256": "72141566f4895b4f0ad443150076df3acf8cd575fc63f2e7004577d0a8696b9e"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-collect-evidence.py",
+      "bytes": 2624,
+      "sha256": "6496bc2400874376e890bcf3e5c273513f8349dd5cf5be4db69b3edbece7437d"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-control-gap-setup-failure.json",
+      "bytes": 737,
+      "sha256": "61a790795ac283f8045c73a73b82e83efcc3164a23e299861b338079e5858331"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-control-gap-setup-failure.log",
+      "bytes": 364,
+      "sha256": "e3cab5e0383cef3c40c1091cd927791044592fd65903b2d7462d0dcc797b10ad"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-control-gap.json",
+      "bytes": 783,
+      "sha256": "10c3e45aedf380baf52f53dbd617ab8ef1a174dea45b3d5111fc042c1fde0983"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-control-gap.log",
+      "bytes": 833,
+      "sha256": "3d9f84891704af0b420d4c9ec74ae2c468f3adbf73ebe2da7415a037e72438e0"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-control-gap.py",
+      "bytes": 2812,
+      "sha256": "ac4ae4e644cff3e8f4db3c7e72f94d0fc2fa5be1e5e3867fb243bc2c47e4292d"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-cost-script-failure.log",
+      "bytes": 1004,
+      "sha256": "be78b94d48c14b9f45c309b51f0f7360e41a72068134b6dbfc3295f5a407ff27"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-cost-setup-failure.log",
+      "bytes": 2156,
+      "sha256": "d07bdab8daf43b5efea0ac6c9b2d82e69bd55c19494d9fc59041c8c75ac21ea0"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-cost-summary.log",
+      "bytes": 502,
+      "sha256": "90bf32a5aa0591413b759a5646b2b543d383cf4ecd10378287c247cc373786ca"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-cost.json",
+      "bytes": 3397,
+      "sha256": "9a7aceb189c16725421a947379df33d822ac48b4f8623c58b30094d6409fa5ef"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-cost.py",
+      "bytes": 3403,
+      "sha256": "e5db3747ce84ba686f66abb47f19ef8697583a5f9aeec2dc4a7c49f361879ef8"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-failure-tests_test_host_delivery_journal.py.json.gz",
+      "bytes": 22,
+      "sha256": "b53800c5ba981e8cafda4dcf4bde1481a4c97947bbfcc21c840724ffe40ec0d9"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-final-cleanup.py",
+      "bytes": 3356,
+      "sha256": "ed4a8d4918071481ba3140a8ad207738a0ea2f40b744904e241443ff55b2980b"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-final-focused.log",
+      "bytes": 1224,
+      "sha256": "eb9179bb0ff7958d08a2efd158ce6249ed78dc814d9de359ef9dd9440149108c"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-final-source.log",
+      "bytes": 1732,
+      "sha256": "c424c2a1b926584baaea78a5ec881e078361561c476cf1a01320123c4aaf7311"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-finalize-ci.py",
+      "bytes": 2245,
+      "sha256": "9cd4ff2ceb26798cba115c3482c5e533916a44116593a9437d66e0a681d715c1"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-focused.log",
+      "bytes": 112,
+      "sha256": "9e773edec347819737de68d5ded47c8f19217d9b8481e4b58aa5f1b175b2fb59"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-initial-cost-summary.log",
+      "bytes": 502,
+      "sha256": "2ec57ec08cb7c2ca9d47039409dce27cf107a9a971bea4e1d68a5e909d59c642"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-initial-cost.json",
+      "bytes": 3343,
+      "sha256": "df1762dbec4d16b0c8760a52d0cc5305e26b1db96d55b374bc862a4719c895d0"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-installed.log",
+      "bytes": 1732,
+      "sha256": "a854bbc1c25d9a4a63b936f2b1f0bbb90a3b47684db247cc8ad8f3e73b27626c"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-native-cancelled.json",
+      "bytes": 40190,
+      "sha256": "31f091387cf33f164d7baf95fe8c337187df5d4e062352d378299fedc2c39d90"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-native-status.json",
+      "bytes": 40254,
+      "sha256": "28a5a1cd5484b13f784d0aec5bd54f56dd50209bb1d775b2396e4f88fbbb5f03"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-pin-tests.log",
+      "bytes": 98,
+      "sha256": "19e95f03931508bcb63d5f1f276741db94fd3f8f0399d2690ed306a73c3ba6c7"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-pins.log",
+      "bytes": 451,
+      "sha256": "cd104933a93ce8b3f80b912e09dc23855988440acbe5564d0b3397f07afab5ad"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-plugin-before.log",
+      "bytes": 1894,
+      "sha256": "3abee5ca5e842835e97298e94afc7f4aefcf6ace4ecd3bb180facaf6ecca4664"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-plugin-final.log",
+      "bytes": 652,
+      "sha256": "6f077b1d4f276123d81acdcbce7886e59f7cbe00c45a0788f89c9e583fd28a31"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-pr43-before.json",
+      "bytes": 5863,
+      "sha256": "dc898d2bfd2e828b90dd5af1a9572b6f4c28c7faa48e0ef6287d437b0e052452"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-pr43-final.txt",
+      "bytes": 5742,
+      "sha256": "45b13ae77a7f46e3d2c0c22095d223c5601346f414619e52a6e14833e8d6286b"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-pr56-final.txt",
+      "bytes": 2312,
+      "sha256": "143843308590180133efed042a65f2fea39fd0722831e62aba18712fcdb0a895"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-publish-docs.py",
+      "bytes": 9272,
+      "sha256": "cd8013c4c9c98547cb9f4bbc23a0ad3699af580a2213a922255507b4ab8a3d48"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-qualification/identity.json",
+      "bytes": 515,
+      "sha256": "aa84f50a20133597b94032dfc72f92df4645243a159d929289f7573b79f1e1a1"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-real-backlog.json",
+      "bytes": 961,
+      "sha256": "5359945e5263860843a6a7c1d7f796f73447445401df3988903c55705e98e539"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-real-backlog.log",
+      "bytes": 624,
+      "sha256": "da8acfc4ddaee5f401835fc37893aa74331db8cd5d9a8851258fd62387268e66"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-real-backlog.py",
+      "bytes": 2492,
+      "sha256": "9f9988b652c87a7b6f1c2c57f6c4e075cdbe2776c083c8829855ea18468742d6"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-replacement.log",
+      "bytes": 98,
+      "sha256": "f6b6e232e0345fa742cf57cbc60c8884709a6f029bd43161ca6e812c9175f2a8"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-ruff.log",
+      "bytes": 19,
+      "sha256": "82b3e6a6c090a57601d22943bd23fca9218d1031dbe5a7b754092f9a156b4f18"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-run-tests.py",
+      "bytes": 3202,
+      "sha256": "649fd61bdbb9a4bc53fa105e8ef4e7dbb177868a4220bebb2f89e1c53093b817"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-service.log",
+      "bytes": 6244,
+      "sha256": "55d83665799b227fc9074657aeccfe7f7dcdb9942bcbe0a4854eaeb65ad0e24d"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-unit.log",
+      "bytes": 113,
+      "sha256": "23ddfa7d6180aa469ff064569e26a3001dc5acc971d1cfbfa19c16de2f73ee5e"
+    },
+    {
+      "path": "/private/tmp/membrain-queue-batches-verify-job-full.log",
+      "bytes": 1716223,
+      "sha256": "6c96429df91a2e8ef0430af9ab237d81a9911e7bc6529a65543195cf7d5db572"
+    }
+  ],
+  "logical_bytes_removed": 2693349,
+  "free_bytes_after": 20664340480
+}

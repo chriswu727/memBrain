@@ -1,0 +1,17 @@
+{
+  "verify_run_id": 42565012926,
+  "verify_job_id": 128989532775,
+  "verify_conclusion": "success",
+  "source_commit": "c2d1743fe97eb585f566af9d030419b9c1000fd5",
+  "source_tree": "07acaf8290e24b8c0210d3498fd3396adbb4cd47",
+  "python_passed": 8149,
+  "python_warnings": 3,
+  "python_seconds": 1936.57,
+  "typescript_passed": 56,
+  "native_qualification_run_id": 42565013017,
+  "raw_log_sha256": "6c96429df91a2e8ef0430af9ab237d81a9911e7bc6529a65543195cf7d5db572",
+  "redacted_log_sha256": "caf66ca7f3a0d372446e5bb4ac2814d2b4d1b7a2092cac78b34fbba6ea7c8b00",
+  "native_qualification_conclusion": "success",
+  "native_logical_summaries": 47,
+  "native_fresh_builds": true
+}
