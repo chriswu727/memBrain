@@ -234,6 +234,24 @@ def test_recovered_queue_cannot_revive_revoked_or_erased_records(turns, connecte
     assert host.finish_turn(tmp_path, "s", "Old answer", turn_id="t") == []
 
 
+@pytest.mark.parametrize("completed", [False, True])
+def test_erasure_revokes_manual_capture_without_blocking_new_turns(turns, connected, tmp_path, completed):
+    from test_manual_recording_capture import capture
+
+    token = capture(host.prompt_context(tmp_path, "s", "Old detail", turn_id="old", include_source=True))
+    if completed:
+        host.finish_turn(tmp_path, "s", "Understood", turn_id="old")
+    host.erase_user(tmp_path, None)
+    with connected(tmp_path) as client:
+        result = host_recording.save_note(tmp_path, client, "Old detail", recording_capture=token)
+    assert "error" in result
+    assert turns.service.timeline(turns.principal, turns.brain, roles=("user", "assistant"))["items"] == []
+    new_token = capture(host.prompt_context(tmp_path, "s", "New detail", turn_id="new", include_source=True))
+    with connected(tmp_path) as client:
+        result = host_recording.save_note(tmp_path, client, "New detail", recording_capture=new_token)
+    assert result["note_id"]
+
+
 def test_abrupt_process_exit_preserves_both_messages_for_a_fresh_process(tmp_path):
     script = '''
 import os, sys

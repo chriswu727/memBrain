@@ -572,6 +572,7 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
                 for entry in host_turns.entries(state).values():
                     if entry["owner"] == user_id:
                         host_turns.complete(entry)
+                        entry.pop("note_capture", None)
                         state["turns_require_staging"] = True
                 if state.get("user_id") == user_id:
                     state["turns_require_staging"] = True
