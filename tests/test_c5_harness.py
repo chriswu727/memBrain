@@ -168,7 +168,7 @@ def test_arm_p_offers_the_boundary_tool_and_the_note_tools_companion_fields(tmp_
     assert offered == list(harness.TOOLS)
     assert "memory_boundary" in offered
     note = listed["memory_note"].inputSchema["properties"]
-    assert {"affect", "shared"} <= set(note)
+    assert {"affect", "shared", "recording_capture"} <= set(note)
     assert listed["memory_boundary"].inputSchema["required"] == ["topic"]
 
 
@@ -240,12 +240,13 @@ def test_the_stub_host_calls_scripted_tools_with_the_current_source_then_replies
                                          {"tool": "memory_pause", "arguments": {}}]})
     stub.key = ("s1", 0)
     host_model = harness.Host(cap=5, transport=httpx.MockTransport(stub))
-    source = '<membrain-source>\nWhen saving a note ..., pass source_messages=[{"source_event_key": "k"}]. This'
+    source = '<membrain-source>\nWhen saving a note ..., pass source_messages=[{"source_event_key": "k"}]. This recording_capture="abc.def".'
     tools = [{"type": "function", "function": {"name": "memory_note"}}]
     message, _ = host_model.call([{"role": "system", "content": "<membrain-persona version=\"1\">"},
                                   {"role": "user", "content": source}], tools)
     (call,) = message["tool_calls"]  # memory_pause was not offered, so it is not called.
-    assert json.loads(call["function"]["arguments"]) == {"text": "x", "source_messages": [{"source_event_key": "k"}]}
+    assert json.loads(call["function"]["arguments"]) == {
+        "text": "x", "source_messages": [{"source_event_key": "k"}], "recording_capture": "abc.def"}
     reply, usage = host_model.call([{"role": "system", "content": "<membrain-persona version=\"1\">"},
                                     {"role": "user", "content": "hi"}, message,
                                     {"role": "tool", "tool_call_id": "call-0", "content": "{}"}])

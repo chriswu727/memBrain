@@ -45,12 +45,12 @@ def open_client(directory: Path | None = None, *, start_service: bool = True,
     return MemoryClient(profile.base_url, profile.api_key, profile.brain_id, timeout=timeout, trust_env=False, **kwargs)
 
 
-def run_mcp(directory: Path | None = None) -> None:
+def run_mcp(directory: Path | None = None, *, require_turn_capture: bool = False) -> None:
     from .mcp_server import create_server
 
     with redirect_stdout(sys.stderr):
         client = open_client(directory)
     with client:
         with redirect_stdout(sys.stderr):
-            server = create_server(client, directory=directory)
+            server = create_server(client, directory=directory, require_turn_capture=require_turn_capture)
         server.run(transport="stdio")

@@ -51,6 +51,8 @@ NOTE_TOOL_DESCRIPTION = (
     "When a fact changes (a plan is done, moved or cancelled), "
     "save the updated note and pass the old note's id in replaces. Use source_messages from the current "
     "membrain-source block or source_event_ids from recorded history when available; never invent sources. "
+    "Lifecycle-integrated host tools also require recording_capture from this turn's membrain-source block for every write, "
+    "including unsourced notes and replacements. Never substitute another turn's capture. "
     "When the user expresses a feeling about what the note covers, add affect {label in their own words, valence "
     "-2..2, intensity 0..3, basis, topic, felt_at}: basis reported only if they said it, or inferred, with the "
     "message it was read from as a source, if it is clearly evident but unsaid. Never invent a feeling. "

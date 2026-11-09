@@ -290,6 +290,10 @@ class StubHost:
             if step["tool"] not in offered:
                 continue
             arguments = dict(step.get("arguments") or {})
+            if step["tool"] in ("memory_note", "memory_observe") and "recording_capture" not in arguments:
+                captured = re.search(r'recording_capture=("[a-f0-9.]+")', messages[-1]["content"])
+                if captured:
+                    arguments["recording_capture"] = json.loads(captured[1])
             if step.get("source") == "current":
                 found = re.search(r"source_messages=(\[.*?\])\. ", messages[-1]["content"])
                 if found:

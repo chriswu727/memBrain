@@ -123,7 +123,7 @@ def dispatch(args) -> None:
                                               "--directory", str(directory)]))
 
         plugin.ensure_installation(directory)
-        run_mcp(directory)
+        run_mcp(directory, require_turn_capture=True)
         return
     from .desktop import DesktopError
 

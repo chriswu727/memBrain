@@ -10,7 +10,7 @@ import pytest
 from mcp.server.fastmcp import FastMCP
 from mcp.shared.memory import create_connected_server_and_client_session
 
-from membrain import desktop_connection, recovery_profile
+from membrain import desktop_connection, local_profile, recovery_profile
 from membrain.client import MemoryClient
 
 
@@ -21,11 +21,10 @@ def local_connection(monkeypatch, tmp_path):
         api_key="private-profile-access-token", brain_id="persistent-brain",
     )
     profile.directory.mkdir()
-    profiles = ModuleType("membrain.local_profile")
-    profiles.load_profile = Mock(return_value=profile)
+    profiles = local_profile
+    monkeypatch.setattr(profiles, "load_profile", Mock(return_value=profile))
     desktop = ModuleType("membrain.desktop")
     desktop.start = Mock(return_value={"ready": True})
-    monkeypatch.setitem(sys.modules, "membrain.local_profile", profiles)
     monkeypatch.setitem(sys.modules, "membrain.desktop", desktop)
     monkeypatch.setattr("membrain.desktop", desktop, raising=False)
     monkeypatch.setattr(recovery_profile, "check_start_allowed", lambda _: None)
@@ -187,12 +186,22 @@ def test_desktop_mcp_reports_tool_only_capabilities(local_connection, monkeypatc
                 assert adapter["automatic_capture"] is False
                 assert adapter["automatic_recall"] is False
                 assert not any(adapter["hooks"].values())
+                assert result.structuredContent["recording_capture_required"] is False
 
         asyncio.run(inspect())
 
     monkeypatch.setattr(desktop_connection, "MemoryClient", connect)
     monkeypatch.setattr(FastMCP, "run", run)
     desktop_connection.run_mcp()
+
+
+def test_plugin_connection_requires_capture(local_connection, monkeypatch):
+    from membrain import mcp_server
+
+    create = Mock(return_value=Mock())
+    monkeypatch.setattr(mcp_server, "create_server", create)
+    desktop_connection.run_mcp(local_connection.profile.directory, require_turn_capture=True)
+    assert create.call_args.kwargs["require_turn_capture"] is True
 
 
 @pytest.mark.parametrize("trust_env", [True, False])

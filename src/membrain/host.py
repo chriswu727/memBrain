@@ -429,6 +429,8 @@ def pause(directory: Path, hours: float | None = None, user_id: str | None = Non
             original = json.dumps(state, sort_keys=True)
             for entry in host_turns.entries(state).values():
                 owner = entry["owner"]
+                if user_id is None or owner == user_id or real_life_user(owner) == user_id:
+                    entry.pop("note_capture", None)
                 if not entry.get("done") and (user_id is None or owner == user_id or real_life_user(owner) == user_id):
                     state["turns_require_staging"] = True
                     entry.pop("record", None)
@@ -1003,7 +1005,7 @@ def _acknowledge(client, current: dict | None) -> None:
 
 
 def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: bool = False,
-           legacy_source: str | None = None, server_paused: bool = False) -> bool:
+           legacy_source: str | None = None, server_paused: bool = False) -> str | None:
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         explicit_pause = requests_pause(prompt)
         if explicit_pause:
@@ -1024,7 +1026,8 @@ def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: b
             _write_session_state(directory, session, state)
             raise
         state["user_id"] = record.get("_user")
-        accepted = not exclusion and "record" in state["turns"][host_turns.key(record)]
+        entry = state["turns"][host_turns.key(record)]
+        accepted = not exclusion and "record" in entry
         if not accepted:
             state.pop("last_prompt", None)
             state.pop("last_prompt_key", None)
@@ -1035,7 +1038,8 @@ def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: b
             if "_recording" in record:
                 state["last_prompt_recording"] = record["_recording"]
         _write_session_state(directory, session, state)
-        return accepted
+        # A later lookup could borrow another nonce when an implicit turn reuses the same source key.
+        return host_recording.note_capture(session, record, entry.get("note_capture")) if accepted else None
 
 
 def _take_turn(directory: Path, session: str, *, user_id: str | None, producer: str,
@@ -1566,7 +1570,7 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
         host_recording.stamp(record, policy)
         if policy["paused"] or state.get("last_prompt_recording") != record["_recording"]:
             previous = None
-        staged = _stage(directory, session, record, prompt, not valid_id,
+        capture = _stage(directory, session, record, prompt, not valid_id,
                         f"{session}:{turn_id}:user" if valid_id and ":" in turn_id else None,
                         server_paused=policy["paused"])
     except Exception:
@@ -1578,11 +1582,12 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
         return (host_recording.notice(policy)
                 or _recording_notice(paused(directory, user_id), tools, session=session) or None)
     source = ""
-    if include_source and staged and not paused(directory, user_id):
+    if include_source and capture and not paused(directory, user_id):
         source = ("<membrain-source>\nWhen saving a note based on the current user message, pass source_messages="
                   + json.dumps([{"producer_ref": producer, "source_event_key": record["source_event_key"],
                                  "source_revision": 1}], ensure_ascii=False)
-                  + ". This reference links after the turn is recorded.\n</membrain-source>")
+                  + ". This reference links after the turn is recorded.\nFor every memory write from this turn, pass recording_capture="
+                  + json.dumps(capture) + ". Never substitute a later turn's capture.\n</membrain-source>")
     with client:
         from .host_context import update
         from .notes import alias_cues

@@ -211,9 +211,10 @@ def test_astrbot_plugin_remembers_each_qq_user_separately_through_a_real_service
             return request.system_prompt
 
         async def scenario():
-            await turn(Event("1001", "My cat Biscuit is allergic to chicken."), "Got it, no chicken.")
+            first_context = await turn(Event("1001", "My cat Biscuit is allergic to chicken."), "Got it, no chicken.")
+            capture, _ = json.JSONDecoder().raw_decode(first_context.split("recording_capture=", 1)[1])
             await turn(Event("2002", "I'm training for the Shanghai marathon."), "Good luck!")
-            note = json.loads(await plugin.membrain_note(Event("1001", ""), "Cat Biscuit: chicken allergy."))
+            note = json.loads(await plugin.membrain_note(Event("1001", ""), "Cat Biscuit: chicken allergy.", recording_capture=capture))
             assert "note_id" in note
             group = await turn(Event("1001", "Hi everyone", group="777"), "Hello!", conversation="g1")
             assert "Biscuit" not in group  # A group never sees a private conversation by default.
@@ -230,8 +231,9 @@ def test_astrbot_plugin_remembers_each_qq_user_separately_through_a_real_service
         assert alice.startswith("You are a friendly bot.")
         assert "Cat Biscuit: chicken allergy." in alice and "marathon" not in alice
         assert "marathon" in bob and "Biscuit" not in bob
+        capture, _ = json.JSONDecoder().raw_decode(alice.split("recording_capture=", 1)[1])
         shared = json.loads(asyncio.run(plugin.membrain_note(Event("1001", ""),
-            "We planned Biscuit's meals together.", kind="milestone", shared=True)))
+            "We planned Biscuit's meals together.", kind="milestone", shared=True, recording_capture=capture)))
         assert "note_id" in shared
         boundary = json.loads(asyncio.run(plugin.membrain_boundary(Event("1001", ""), "my cat", ["Biscuit", "小饼干"])))
         assert boundary["boundaries"][0]["aliases"] == ["Biscuit", "小饼干"]
@@ -330,7 +332,9 @@ def test_colliding_legacy_speakers_cannot_read_each_others_notes(tmp_path):
     private, group = Speaker("api", "group:123:alice"), Speaker("api", "alice", "123")
     try:
         host.start(tmp_path)
-        assert "error" not in memory.note(private, "Private appointment with Dr Juniper.")
+        context = memory.context(private, "Private appointment with Dr Juniper.", session=memory.session(private), turn_id="one")
+        capture, _ = json.JSONDecoder().raw_decode(context.split("recording_capture=", 1)[1])
+        assert "error" not in memory.note(private, "Private appointment with Dr Juniper.", recording_capture=capture)
         own = memory.context(private, "hello", session=memory.session(private))
         other = memory.context(group, "hello", session=memory.session(group))
         assert "Dr Juniper" in own and "Dr Juniper" not in other

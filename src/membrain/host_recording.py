@@ -1,10 +1,71 @@
 """Capture-time recording policy; replay never refreshes a record's revision."""
 
 import json
+import re
+from secrets import compare_digest
 
 from .client import MemoryActionError
 from .helpers import digest
 from .local_profile import profile_lock
+
+CAPTURE_FIELD = {"recording_capture": {
+    "type": "string", "maxLength": 130,
+    "description": "Copy recording_capture from this turn's membrain-source block. Never reuse another turn's value."}}
+
+
+def save_note(directory, client, text, *, recording_capture=None, user_id=None, **fields):
+    import httpx
+
+    from .notes import save_note as write
+
+    try:
+        revision = note_revision(directory, client, recording_capture, user_id)
+        return write(client, text, expected_recording_revision=revision, **fields)
+    except ValueError as error:
+        return {"error": str(error)}
+    except MemoryActionError as error:
+        if error.code not in ("recording_paused", "recording_stale"):
+            raise
+        return {"error": str(error), "code": error.code}
+    except httpx.HTTPStatusError as error:
+        try:
+            rejected = error.response.json()["error"]
+        except (ValueError, KeyError, TypeError):
+            raise error
+        if not isinstance(rejected, dict) or rejected.get("code") not in ("recording_paused", "recording_stale"):
+            raise
+        return {"error": rejected["message"], "code": rejected["code"]}
+
+
+def note_capture(session, record, nonce):
+    from .host_turns import key
+
+    if not nonce:
+        return None
+    return ".".join((digest(["session", session])[:32], key(record), nonce))
+
+
+def note_revision(directory, client, capture, user_id=None):
+    from .host import paused, state_directory
+
+    if not isinstance(capture, str) or not re.fullmatch(r"[a-f0-9]{32}\.[a-f0-9]{64}\.[a-f0-9]{32}", capture):
+        raise ValueError("Saving memory requires recording_capture from the original turn's membrain-source block.")
+    marker, identity, nonce = capture.split(".")
+    root = state_directory(directory)
+    with profile_lock(root / "session-state-lock", timeout=5):
+        if paused(directory, user_id):
+            raise ValueError("Recording is paused. Resume before saving agent notes.")
+        try:
+            state = json.loads((root / "sessions" / (marker + ".json")).read_text(encoding="utf-8"))
+            entry = state["turns"][identity]
+            valid = (entry["owner"] == user_id and not entry.get("paused")
+                     and compare_digest(entry.get("note_capture", ""), nonce))
+            recording = entry.get("recording")
+        except (OSError, ValueError, TypeError, KeyError, AttributeError):
+            valid, recording = False, None
+        if not valid:
+            raise ValueError("The original turn's recording permission is unavailable or revoked. Do not retry with another turn's capture.")
+        return captured_revision(client, recording)
 
 
 def _target(client):

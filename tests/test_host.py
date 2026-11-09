@@ -674,7 +674,7 @@ def test_mcp_observations_are_scrubbed_before_they_are_stored(tmp_path):
             return {"outcome": "accepted"}
 
     client = Observing()
-    server = create_server(client, directory=tmp_path)
+    server = create_server(client, directory=tmp_path, require_turn_capture=False)
     asyncio.run(server.call_tool("memory_observe", {
         "text": "Deploy key sk-proj-" + "z" * 30 + " and card 4111 1111 1111 1111.", "conversation_id": "c",
         "branch_id": "main", "source_event_key": "k1"}))
@@ -751,10 +751,12 @@ def test_a_plugin_host_can_forget_a_message_and_its_note_by_following_the_skill(
                                       include_source=True)
         references, _ = json.JSONDecoder().raw_decode(context.split("source_messages=", 1)[1])
         host.finish_turn(directory, "first", "Noted.", turn_id="1")
+        capture, _ = json.JSONDecoder().raw_decode(context.split("recording_capture=", 1)[1])
         with host.ready_client(directory) as client:
             server = create_server(client, directory=directory)
-            asyncio.run(server.call_tool("memory_note", {"text": "Dentist: Dr. Alvarez, Thursday 3 pm.", "kind": "plan",
-                                                         "source_messages": references}))
+            _, saved = asyncio.run(server.call_tool("memory_note", {"text": "Dentist: Dr. Alvarez, Thursday 3 pm.", "kind": "plan",
+                                                         "source_messages": references, "recording_capture": capture}))
+            assert saved["note_id"]
             _, found = asyncio.run(server.call_tool("memory_recall", {"query": "dentist Alvarez", "with_ids": True}))
             assert isinstance(found["scope_generation"], int)
             original = [record for record in found["records"] if record["text"] == "My dentist is Dr. Alvarez, "
