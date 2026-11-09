@@ -1,0 +1,199 @@
+{
+  "source_commit": "422fac168babd21581889ccedb192f3e652b48b0",
+  "fully_qualified": false,
+  "workflow_runs": {
+    "42673189368": "macos-x86_64",
+    "42673909552": "macos-arm64",
+    "42673913787": "linux-x86_64",
+    "42673918492": "linux-aarch64",
+    "42673923840": "windows-x86_64"
+  },
+  "workflow_states": [
+    {
+      "databaseId": 42673189368,
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "databaseId": 42673909552,
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "databaseId": 42673913787,
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "databaseId": 42673918492,
+      "status": "completed",
+      "conclusion": "failure"
+    },
+    {
+      "databaseId": 42673923840,
+      "status": "completed",
+      "conclusion": "success"
+    }
+  ],
+  "reused_native_run": 42574397718,
+  "unchanged_supplier_inputs": [
+    "scripts/build_native_bundle.py",
+    "src/membrain/resources/native",
+    "pyproject.toml",
+    "uv.lock",
+    ".github/workflows/native-engine.yml"
+  ],
+  "available_logical_summaries": 14,
+  "available_platforms": {
+    "native-macos-x86_64": 7,
+    "native-windows-x86_64": 7
+  },
+  "duplicate_qualification_copies_excluded": 2,
+  "files": [
+    {
+      "path": "artifact-metadata-42673189368.json.gz",
+      "sha256": "7b04c1987baec9d85a9280314c642b3bf0d2abcb00c02e9616575007b3575053"
+    },
+    {
+      "path": "artifact-metadata-42673909552.json.gz",
+      "sha256": "f7417e1fb877d3f5934f143cc38ad9e2905476e8f5ac6776507d09441efcd6f6"
+    },
+    {
+      "path": "artifact-metadata-42673913787.json.gz",
+      "sha256": "f7417e1fb877d3f5934f143cc38ad9e2905476e8f5ac6776507d09441efcd6f6"
+    },
+    {
+      "path": "artifact-metadata-42673918492.json.gz",
+      "sha256": "f7417e1fb877d3f5934f143cc38ad9e2905476e8f5ac6776507d09441efcd6f6"
+    },
+    {
+      "path": "artifact-metadata-42673923840.json.gz",
+      "sha256": "e06b17e0389f518ca49bdc460791cb4c55adcb504f9bfc669947e10b231f9298"
+    },
+    {
+      "path": "artifact-receipts.json.gz",
+      "sha256": "e1371d7de60520c56ffc65117c6a485135ba8eedac4c73c0cf21c233aaa88ad7"
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-adoption-fresh-42673189368-1/result.json.gz",
+      "sha256": "34dacca742be321c0be9be37c94248f8932836a80aabbeaf70af3cefbc09e9f3"
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-adoption-legacy-42673189368-1/result.json.gz",
+      "sha256": "ff2ddd683ea77c4286a1f2b9711df68faf9a25470ee64433dfcdbef01b4ba88d"
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-artifacts/artifacts.json.gz",
+      "sha256": "71338667da1f2deb11681c3428be7490e2573afce24670030d21c43cd906aec6"
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-artifacts/manifest.json.gz",
+      "sha256": "7efda850c18918450a8daa2427f3fcbefdf1266e5b3f81119d6ca619abea6840"
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-artifacts/qualification.json.gz",
+      "sha256": "21415b4d8d8bc1061b48cb279488710971f3d8b015bebef9c3ddfda642948966"
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-check-42673189368-1/qualification.json.gz",
+      "sha256": "21415b4d8d8bc1061b48cb279488710971f3d8b015bebef9c3ddfda642948966"
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-maintenance-42673189368-1/result.json.gz",
+      "sha256": "fc1be0d32b947929f6a802e33cbad24c755bdbbb39813953cd31ed8291165dae"
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-maintenance-42673189368-1/worker-result.json.gz",
+      "sha256": "206c98c516881b90c47adc25c7cd690e215dd0e73baf3f9f8bc9e304fb8e703e"
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-snapshot-42673189368-1/result.json.gz",
+      "sha256": "cc76c03e20280d6418ccfa276c972226a61ad4d7f6b18fd02cf26f3c2e3195db"
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-transition-42673189368-1/admission-worker-result.json.gz",
+      "sha256": "dd6c60b7c767737c415915fbf0395b47c765071d2e2cfbb1900385688b0a07af"
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-transition-42673189368-1/result.json.gz",
+      "sha256": "80c55b776b4d803352be68669fc5ab939c7873c442a4f093771c53e782de5225"
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/native-transition-42673189368-1/rollback-worker-result.json.gz",
+      "sha256": "9515a57f352d578693b973f16ffffeab5fa4b9a492ba094f1a547bb228cd005a"
+    },
+    {
+      "path": "artifacts/native-macos-x86_64/packaged-native-42673189368-1/result.json.gz",
+      "sha256": "1f6c740907d667ce979478bc8fe0320dd462f0f3c956bf004391dcc6796f16c3"
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-adoption-fresh-42673923840-1/result.json.gz",
+      "sha256": "34dacca742be321c0be9be37c94248f8932836a80aabbeaf70af3cefbc09e9f3"
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-adoption-legacy-42673923840-1/result.json.gz",
+      "sha256": "ff2ddd683ea77c4286a1f2b9711df68faf9a25470ee64433dfcdbef01b4ba88d"
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-artifacts/artifacts.json.gz",
+      "sha256": "65ca84295bf3725f3fbf9ad46dfcbd283a7cacdefc652b968db43b18466006da"
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-artifacts/manifest.json.gz",
+      "sha256": "67a0675bec8cd767a6bfc319c35c7ab9cafb4fe056d32df2348dd273e487a548"
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-artifacts/qualification.json.gz",
+      "sha256": "6154e44f428f15b65ec133ae43a7faff44413793e7a110b20ad3cedc4b1620cf"
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-check-42673923840-1/qualification.json.gz",
+      "sha256": "6154e44f428f15b65ec133ae43a7faff44413793e7a110b20ad3cedc4b1620cf"
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-maintenance-42673923840-1/result.json.gz",
+      "sha256": "2915da9182b9a3605ef6c94f2f65c32da35ec100342839279936c849a457f009"
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-maintenance-42673923840-1/worker-result.json.gz",
+      "sha256": "206c98c516881b90c47adc25c7cd690e215dd0e73baf3f9f8bc9e304fb8e703e"
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-snapshot-42673923840-1/result.json.gz",
+      "sha256": "2ce95553d3b16190d83aedb44a51fc8f52a077b5c3cf77f84886d478ff82b3d6"
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-transition-42673923840-1/admission-worker-result.json.gz",
+      "sha256": "dd6c60b7c767737c415915fbf0395b47c765071d2e2cfbb1900385688b0a07af"
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-transition-42673923840-1/result.json.gz",
+      "sha256": "2dddb350e719ef8fadecee118a910f67b1ca004b5f0bfaee108f1fa8f2ae1d09"
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/native-transition-42673923840-1/rollback-worker-result.json.gz",
+      "sha256": "9515a57f352d578693b973f16ffffeab5fa4b9a492ba094f1a547bb228cd005a"
+    },
+    {
+      "path": "artifacts/native-windows-x86_64/packaged-native-42673923840-1/result.json.gz",
+      "sha256": "b44744fa1304bbdf45586b430e126b48394cb2b768f2749133bcdc95ac9c9fc1"
+    },
+    {
+      "path": "native-summary-audit.json.gz",
+      "sha256": "f97821492b6861ddcd70646ed1f70067b21a23ca5d24bb64d0de49c8b5046849"
+    },
+    {
+      "path": "receipt-13699058376.json.gz",
+      "sha256": "d959986f44d3f9ef0b0abb029d0ffac474892c7cc273b8f8e16e18a6b5c49458"
+    },
+    {
+      "path": "receipt-13699667597.json.gz",
+      "sha256": "ecbca0a0ee32f5b4c5bf8f161dbfcddd537d3933e170dd994581311bf5cede32"
+    },
+    {
+      "path": "workflow-status.json.gz",
+      "sha256": "471f549052824fa6fb074a8a86d0b83a421ea86d44bf48473d615ada16263447"
+    }
+  ],
+  "limitation": "GitHub Actions internal errors prevented complete five-platform qualification. Successful selected jobs do not relabel failed workflows as passing."
+}

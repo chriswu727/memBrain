@@ -1,0 +1,343 @@
+{
+  "removed": [
+    {
+      "path": "/private/tmp/membrain-ephemeral-archive-native-partial.py",
+      "bytes": 2636
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-archive-native.py",
+      "bytes": 2588
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-audit-native.py",
+      "bytes": 4961
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-baseline.log",
+      "bytes": 7771
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-build-before-index.log",
+      "bytes": 183
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-build-before-scope.log",
+      "bytes": 183
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-build.log",
+      "bytes": 183
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-cancelled-runs.json",
+      "bytes": 1858
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-clean-final.py",
+      "bytes": 2253
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-clean-package.py",
+      "bytes": 2113
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-collect.py",
+      "bytes": 2008
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-context-index-after.log",
+      "bytes": 679
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-context-index-before.log",
+      "bytes": 4522
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-delivery-regressions.log",
+      "bytes": 1489
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-documentation-helper-error.json",
+      "bytes": 164
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-expanded.log",
+      "bytes": 11481
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-explicit-native-dispatch.json",
+      "bytes": 653
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-failure-tests_test_agent_session.py.json.gz",
+      "bytes": 22
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-failure-tests_test_ephemeral_chat.py.json.gz",
+      "bytes": 22
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-failure-tests_test_ephemeral_chat.py__test_reduced_runtime_context_budget_applies_before_the_next_generation.json.gz",
+      "bytes": 22
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-failure-tests_test_ephemeral_chat.py__test_switching_brains_on_the_same_client_keeps_temporary_history_separate.json.gz",
+      "bytes": 22
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-failure-tests_test_ephemeral_context_index.py.json.gz",
+      "bytes": 22
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-failure-tests_test_recording_control_migration.py.json.gz",
+      "bytes": 22
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-failure-tests_test_runtime_delivery_recovery.py.json.gz",
+      "bytes": 22
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-final-regressions.log",
+      "bytes": 1014
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-final-targeted.log",
+      "bytes": 6285
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-finalize-ci.py",
+      "bytes": 1574
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-focused.log",
+      "bytes": 3569
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-github-internal-errors.json",
+      "bytes": 1137
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-github-status-final.json",
+      "bytes": 8615
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-github-status.json",
+      "bytes": 7570
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-installed-before-index.log",
+      "bytes": 7099
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-installed-before-scope.log",
+      "bytes": 7368
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-installed.log",
+      "bytes": 7368
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-monitor-platforms.py",
+      "bytes": 1192
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-monitor-stop.json",
+      "bytes": 170
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-monitor.py",
+      "bytes": 1168
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-native-archive-before-scope.log",
+      "bytes": 387
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-native-audit",
+      "bytes": 935654
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-native-audit-before-scope.log",
+      "bytes": 3090
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-native-audit-current-partial-final.log",
+      "bytes": 118
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-native-audit-current-partial.log",
+      "bytes": 89
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-native-audit-progress-2.log",
+      "bytes": 172
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-native-audit-progress.log",
+      "bytes": 88
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-native-before-scope-cleanup.json",
+      "bytes": 125
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-native-matrix-anomaly.json",
+      "bytes": 11852
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-native-partial-archive.log",
+      "bytes": 1195
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-package",
+      "bytes": 516
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-package-before-index-cleanup-progress.json",
+      "bytes": 189
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-package-before-index-cleanup.json",
+      "bytes": 396
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-package-before-index-identity.json",
+      "bytes": 516
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-package-before-scope-cleanup-progress.json",
+      "bytes": 189
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-package-before-scope-cleanup.json",
+      "bytes": 396
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-package-before-scope-identity.json",
+      "bytes": 516
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-package-cleanup-progress.json",
+      "bytes": 189
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-package-cleanup.json",
+      "bytes": 396
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-pin-before-index.log",
+      "bytes": 98
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-pin-before-scope.log",
+      "bytes": 98
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-pin.log",
+      "bytes": 98
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-pr43-before.json",
+      "bytes": 5575
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-related.log",
+      "bytes": 14020
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-review.log",
+      "bytes": 8861
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-ruff-final.log",
+      "bytes": 19
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-ruff.log",
+      "bytes": 19
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-run-42669597520.json",
+      "bytes": 56965
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-run-42669609486.json",
+      "bytes": 6789
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-run-42673189368.json",
+      "bytes": 11443
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-run-42673909552.json",
+      "bytes": 231
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-run-42673913787.json",
+      "bytes": 231
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-run-42673918492.json",
+      "bytes": 231
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-run-42673923840.json",
+      "bytes": 11445
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-run-tests.py",
+      "bytes": 3235
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-scope-after.log",
+      "bytes": 679
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-scope-before.log",
+      "bytes": 4179
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-source-before-delivery.log",
+      "bytes": 7005
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-source-before-index.log",
+      "bytes": 7006
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-source-before-scope.log",
+      "bytes": 7275
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-source-final.log",
+      "bytes": 7275
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-storage-probe-before-scope.json",
+      "bytes": 3729
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-storage-probe-before-scope.log",
+      "bytes": 2155
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-storage-probe.json",
+      "bytes": 3728
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-storage-probe.log",
+      "bytes": 2154
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-storage-probe.py",
+      "bytes": 4949
+    },
+    {
+      "path": "/private/tmp/membrain-ephemeral-verify-status.json",
+      "bytes": 6463
+    }
+  ],
+  "bytes_removed": 1232036,
+  "raw_prefix_absent": true,
+  "free_bytes": 17007403008
+}

@@ -41,7 +41,7 @@ def receipt_row(*, stage="failed", failure="source_unavailable", recorded=False)
 
 
 def test_scope_conflict_is_recognized_only_at_begin_before_any_runtime_effects():
-    runtime = BrainRuntime(SimpleNamespace(brain_id="brain"), Mock(), deliver=Mock())
+    runtime = BrainRuntime(SimpleNamespace(brain_id="brain", recording_status=lambda: {"paused": False, "revision": 0}), Mock(), deliver=Mock())
     runtime.journal = Mock()
     runtime.journal.begin.side_effect = response_error()
     runtime._run = Mock()
@@ -58,7 +58,7 @@ def test_scope_conflict_is_recognized_only_at_begin_before_any_runtime_effects()
     (409, {"error": []}), (409, []), (409, {"error": {"code": ["scope_conflict"]}}),
 ])
 def test_other_begin_failures_remain_ambiguous(status, body):
-    runtime = BrainRuntime(SimpleNamespace(brain_id="brain"), Mock())
+    runtime = BrainRuntime(SimpleNamespace(brain_id="brain", recording_status=lambda: {"paused": False, "revision": 0}), Mock())
     runtime.journal = Mock()
     failure = response_error(status=status, body=body)
     runtime.journal.begin.side_effect = failure
@@ -115,7 +115,7 @@ def test_sticky_error_still_blocks_new_draft_storage():
 
 
 def test_confirmed_failed_receipt_resumes_without_reading_erased_sources_or_callbacks():
-    runtime = BrainRuntime(SimpleNamespace(brain_id="brain"), Mock(), deliver=Mock())
+    runtime = BrainRuntime(SimpleNamespace(brain_id="brain", recording_status=lambda: {"paused": False, "revision": 0}), Mock(), deliver=Mock())
     runtime.journal = Mock()
     row = receipt_row()
     runtime.journal.get.return_value = row
@@ -129,7 +129,7 @@ def test_confirmed_failed_receipt_resumes_without_reading_erased_sources_or_call
 
 @pytest.mark.parametrize("legacy", [False, True])
 def test_persisted_delivery_can_reconcile_erased_sources_through_authoritative_finish(legacy):
-    runtime = BrainRuntime(SimpleNamespace(brain_id="brain"), Mock(), deliver=Mock())
+    runtime = BrainRuntime(SimpleNamespace(brain_id="brain", recording_status=lambda: {"paused": False, "revision": 0}), Mock(), deliver=Mock())
     runtime.journal = Mock()
     row = receipt_row(stage="delivered", failure=None, recorded=True) | {"sources_available": False}
     if legacy:

@@ -130,6 +130,14 @@ class RuntimeBegin(RuntimeBody):
     input_fingerprint: RuntimeFingerprint
 
 
+class EphemeralBegin(RuntimeBody):
+    turn_id: RuntimeIdentifier
+    conversation_id: RuntimeIdentifier
+    branch_id: RuntimeIdentifier
+    expected_recording_revision: Annotated[int, Field(ge=0, lt=2**63)]
+    review_policy: RuntimeFingerprint | None = None
+
+
 class RecordingControl(RuntimeBody):
     paused: bool
     expected_revision: Annotated[int, Field(ge=0, lt=2**63 - 1)]
@@ -172,6 +180,17 @@ class RuntimeRenew(RuntimeBody):
 class RuntimeLeaseMutation(RuntimeBody):
     lease_token: RuntimeIdentifier
     expected_revision: RuntimeRevision
+
+
+class EphemeralAdvance(RuntimeLeaseMutation):
+    stage: Literal["generating", "generated", "delivering", "completed"]
+    delivery_state: Literal["delivered", "partially_delivered", "cancelled", "unknown", "returned"] | None = None
+
+
+class EphemeralContext(RuntimeBody):
+    lease_token: RuntimeIdentifier
+    limit: Annotated[int, Field(ge=0, le=8)] = 6
+    max_bytes: Annotated[int, Field(ge=1, le=32000)] = 4000
 
 
 class RuntimeEventRef(RuntimeBody):
@@ -898,6 +917,37 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
 
         result = await run_in_threadpool(turn_store().begin, principal, brain_id, **body)
         return runtime_metadata(result)
+
+    @app.post("/v1/brains/{brain_id}/runtime/ephemeral-turns", status_code=201)
+    async def begin_ephemeral(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
+        from starlette.concurrency import run_in_threadpool
+
+        from .ephemeral_turns import begin
+
+        body = await runtime_body(request, EphemeralBegin)
+        result = await run_in_threadpool(begin, turn_store(), principal, brain_id, **body)
+        return runtime_metadata(result)
+
+    @app.post("/v1/brains/{brain_id}/runtime/turns/{turn_id}/ephemeral-advance")
+    async def advance_ephemeral(brain_id: str, turn_id: str, request: Request,
+                                principal: Principal = Depends(authenticate)):
+        from starlette.concurrency import run_in_threadpool
+
+        from .ephemeral_turns import advance
+
+        body = await runtime_body(request, EphemeralAdvance)
+        result = await run_in_threadpool(advance, turn_store(), principal, brain_id, turn_id, **body)
+        return runtime_metadata(result)
+
+    @app.post("/v1/brains/{brain_id}/runtime/turns/{turn_id}/ephemeral-context")
+    async def ephemeral_context(brain_id: str, turn_id: str, request: Request,
+                                principal: Principal = Depends(authenticate)):
+        from starlette.concurrency import run_in_threadpool
+
+        from .ephemeral_turns import context
+
+        body = await runtime_body(request, EphemeralContext)
+        return await run_in_threadpool(context, turn_store(), principal, brain_id, turn_id, **body)
 
     @app.get("/v1/brains/{brain_id}/runtime/turns")
     def list_turns(

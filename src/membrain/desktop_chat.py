@@ -167,7 +167,9 @@ def _perform(operation, monitor=None, recovery=None):
         print(f"Turn {result.turn_id} was already completed; its answer was not sent again.", file=sys.stderr)
     elif result.stage != "completed":
         print(f"Turn {result.turn_id} remains at {result.stage}.", file=sys.stderr)
-    if result.stage == "completed" and monitor is not None:
+    if result.ephemeral:
+        _notice("Temporary conversation: memBrain recording is paused. This turn was not saved or queued for learning.")
+    if result.stage == "completed" and monitor is not None and not result.ephemeral:
         monitor.completed(result.turn_id)
     return result.stage == "completed"
 

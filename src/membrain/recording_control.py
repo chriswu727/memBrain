@@ -39,7 +39,8 @@ def set_recording(service, principal, brain_id, *, paused, expected_revision):
                 "revision=revision+1,fence=fence+1,worker_id=NULL,lease_token_digest=NULL,"
                 "lease_expires_at=NULL,scope_reserved=false,last_transition_hash=NULL,"
                 "updated_at=clock_timestamp() WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
-                "AND stage NOT IN ('delivered','committed','completed','failed') RETURNING *) "
+                "AND stage NOT IN ('delivered','committed','completed','failed') "
+                "AND NOT (ephemeral AND stage='delivering') RETURNING *) "
                 "INSERT INTO memory_runtime_turn_transitions(tenant_id,owner_id,brain_id,turn_id,"
                 "revision,stage,operation,fence,failure_code) SELECT tenant_id,owner_id,brain_id,turn_id,"
                 "revision,stage,'fail',fence,failure_code FROM stopped", params,
