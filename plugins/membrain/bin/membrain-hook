@@ -1,7 +1,7 @@
 #!/bin/sh
 # WorkBuddy / CodeBuddy hook launcher: membrain-hook <event>. Hook JSON arrives on stdin; never fails the host.
 # `start` installs or updates the runtime and starts the service in the background (these hosts have no async hooks).
-package=${MEMBRAIN_PACKAGE:-"membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/18609696341685484f9a8f409a410a5acd0ff914.zip"}
+package=${MEMBRAIN_PACKAGE:-"membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/a19e94381ad7ef33b8a2f3e65fe40ea04678a8ed.zip"}
 if [ "$1" = start ]; then
   command -v uv >/dev/null 2>&1 || exit 0
   ( uv tool install --quiet --python 3.12 "$package"; uvx --offline --python 3.12 --from membrain-ai membrain plugin start ) </dev/null >/dev/null 2>&1 &
