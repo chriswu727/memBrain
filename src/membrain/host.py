@@ -17,6 +17,7 @@ import sys
 import time
 from contextlib import nullcontext
 from pathlib import Path
+from uuid import uuid4
 
 from . import host_queue, host_recording, host_turns
 from .helpers import digest
@@ -409,7 +410,7 @@ def pause(directory: Path, hours: float | None = None, user_id: str | None = Non
     until = None if hours is None else time.time() + float(hours) * 3600
     path = _pause_file(directory, user_id)
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
-        pause_state = {"since": time.time(), "until": until}
+        pause_state = {"since": time.time(), "until": until, "revision": uuid4().hex}
         if conversation and hours is None:
             pause_state["conversations"] = _active_sessions(directory, user_id)
             if session is not None:
@@ -614,11 +615,12 @@ def _paused_file(path: Path, *, cleanup: bool = True) -> bool:
 
 def paused(directory: Path, user_id: str | None = None) -> bool:
     """True when recording is paused for everyone, or for this user."""
-    if _paused_file(_pause_file(directory)):
-        return True
-    if is_roleplay(user_id) and paused(directory, real_life_user(user_id)):
-        return True  # A person's pause also covers their role-play.
-    return user_id is not None and _paused_file(_pause_file(directory, user_id))
+    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        if _paused_file(_pause_file(directory)):
+            return True
+        if is_roleplay(user_id) and paused(directory, real_life_user(user_id)):
+            return True  # A person's pause also covers their role-play.
+        return user_id is not None and _paused_file(_pause_file(directory, user_id))
 
 
 # Memory page sign-in -----------------------------------------------------------------------------------------
