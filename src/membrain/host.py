@@ -387,11 +387,13 @@ def fetch_model(directory: Path) -> dict:
 # Privacy ------------------------------------------------------------------------------------------------------
 
 
-def _pause_file(directory: Path, user_id: str | None = None) -> Path:
+def _pause_file(directory: Path, user_id: str | None = None, *, create: bool = True) -> Path:
+    root = state_directory(directory) if create else Path(directory) / "plugin"
     if user_id is None:
-        return state_directory(directory) / "paused.json"
-    folder = state_directory(directory) / "paused-users"
-    folder.mkdir(mode=0o700, exist_ok=True)
+        return root / "paused.json"
+    folder = root / "paused-users"
+    if create:
+        folder.mkdir(mode=0o700, exist_ok=True)
     return folder / (user_brain_id(user_id) + ".json")
 
 

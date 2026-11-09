@@ -94,6 +94,15 @@ def test_expired_local_pause_no_longer_blocks_capture(tmp_path, client):
     host._pause_file(tmp_path).write_text(json.dumps({"until": time.time() - 10}), encoding="utf-8")
     result = host_recording.control_status(tmp_path)
     assert result["recording"] == "on" and not result["capture_blocked"]
+    assert host._pause_file(tmp_path).exists()  # Reporting does not clean up control files.
+
+
+def test_offline_control_read_does_not_create_an_installation(tmp_path, monkeypatch):
+    directory = tmp_path / "not-installed"
+    monkeypatch.setattr(host, "ready_client", lambda *args: None)
+    result = host_recording.control_status(directory, "alice")
+    assert result["recording"] == "unknown" and not result["capture_blocked"]
+    assert not directory.exists()
 
 
 def test_roleplay_reports_inherited_real_person_pause(tmp_path, client):

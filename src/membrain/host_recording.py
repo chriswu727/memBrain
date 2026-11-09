@@ -3,6 +3,8 @@
 import json
 import math
 import re
+from contextlib import nullcontext
+from pathlib import Path
 from secrets import compare_digest
 
 from .client import MemoryActionError
@@ -84,7 +86,7 @@ def _valid(policy):
 def status(directory, client=None, user_id=None):
     from .host import _write_state, log, state_directory
 
-    root = state_directory(directory)
+    root = Path(directory) / "plugin"
     path = root / "recording-policies" / (digest([user_id]) + ".json")
 
     def cached():
@@ -106,7 +108,7 @@ def status(directory, client=None, user_id=None):
         if not _valid(policy):
             raise ValueError("Invalid recording policy response.")
         policy = {"paused": policy["paused"], "revision": policy["revision"], "target": _target(client)}
-        with profile_lock(root / "recording-policy-lock", timeout=5):
+        with profile_lock(state_directory(directory) / "recording-policy-lock", timeout=5):
             previous = cached()
             if previous["target"] == policy["target"] and previous["revision"] > policy["revision"]:
                 return previous
@@ -180,11 +182,13 @@ def control_status(directory, user_id=None):
         owners.append(user_id)
     blocked = policy["paused"]
     try:
-        with profile_lock(host.state_directory(directory) / "session-state-lock", timeout=5):
+        root = Path(directory) / "plugin"
+        lock = profile_lock(root / "session-state-lock", timeout=5) if root.exists() else nullcontext()
+        with lock:
             for owner in dict.fromkeys(owners):
-                path = host._pause_file(directory, owner)
+                path = host._pause_file(directory, owner, create=False)
                 scope = "installation" if owner is None else "user"
-                if not host._paused_file(path):
+                if not host._paused_file(path, cleanup=False):
                     controls.append({"scope": scope, "state": "on"})
                     continue
                 blocked = True

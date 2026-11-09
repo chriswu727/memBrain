@@ -81,7 +81,8 @@ def test_mcp_resume_records_only_the_requested_turn_and_clears_the_notice(tmp_pa
     server = create_server(client, directory=tmp_path)
     _, result = asyncio.run(server.call_tool("memory_resume", {"session_id": "s"}))
     assert result["local_recording"] == "on"
-    assert result["recording"] == "unknown"  # The legacy fixture cannot read server policy.
+    assert result["recording"] == "on"
+    assert result["controls"]["server"]["availability"] == "current"
     records = host.finish_turn(tmp_path, "s", "Recording resumed", prompt=prompt, turn_id="resume")
     assert [record["text"] for record in records] == [prompt, "Recording resumed"]
     assert "Recording is currently paused" not in (host.prompt_context(tmp_path, "s", "Next public turn") or "")
