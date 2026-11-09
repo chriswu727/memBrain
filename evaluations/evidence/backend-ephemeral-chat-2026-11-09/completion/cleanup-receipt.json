@@ -1,0 +1,11 @@
+{
+  "owned_root": "/private/tmp/membrain-ephemeral-closeout",
+  "process_check": "No remaining task process; monitor and audit sessions completed.",
+  "archive_files_verified": 113,
+  "compressed_bytes": 770538,
+  "removed_files": 115,
+  "removed_bytes": 3934076,
+  "raw_root_absent": true,
+  "real_profiles_models_backups_and_shared_environment_untouched": true,
+  "free_bytes_after": 16518332416
+}

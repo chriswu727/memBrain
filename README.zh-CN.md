@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **发布前版本；临时对话验收受阻。** 暂停服务端记录后，直接 Python 聊天仍可使用，不保存消息正文，也不排队补记或学习。运行时 `978312c` 已通过源码和安装包各 570 项检查，包含不同大脑之间的隔离与临时上下文容量控制。当前完整 CI 仍在运行，GitHub Actions 内部错误阻断了当前版本的完整五平台验证。详见[实现、性能与保留的失败记录](evaluations/backend-ephemeral-chat-2026-11-09.md)。此前完整验证仍属于运行时 `b4d39b4`。R4 仍失败，C5 无效且未评分，尚不能发布。
+> **发布前版本；临时对话已合入集成分支。** 暂停服务端记录后，直接 Python 聊天仍可使用有容量限制的内存对话，不保存消息正文，也不排队补记或学习。运行时 `978312c` 已通过源码和安装包各 570 项检查；完整 CI 通过 8,256 项 Python、56 项 TypeScript 测试。五个平台的实际验证均通过，共核对 47 份结果；GitHub 故障期间的失败记录仍保留。详见[实现、实测成本与验收证据](evaluations/backend-ephemeral-chat-2026-11-09.md)。宿主本机控制仍有独立作用范围。R4 仍失败，C5 无效且未评分，尚不能发布。
 
 > **最近一次验收执行：** [第五次验收](evaluations/maturity-fifth-attempt-2026-11-07.md)完成了有效的 R4 评分：插件模式 20 分（通过）、提取模式 16 分（未通过：1 个记忆系统导致的隐私错误）、完整历史参照组 15.5 分。C1 因页面操作失败停止，C2 未运行；C5 无效且未评分。账本已封锁，保守结算 39.634310 元，没有未知费用预留，也没有自动重跑授权。
 
