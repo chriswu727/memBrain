@@ -93,6 +93,7 @@ class RecoveryAuthority:
             service, conn, principal, brain, event_ids=intent['event_ids'], memory_ids=intent['memory_ids'],
             mode=intent['mode'], deletion_id=intent['deletion_id'],
             recording_revision_floor=intent.get('recording_revision_floor', 0),
+            revoke_recording=intent.get('revoke_recording', True),
         )
         conn.execute(
             'INSERT INTO memory_erasure_receipts(tenant_id,owner_id,brain_id,registry_id,sequence,intent_hash,result) '
@@ -199,12 +200,15 @@ class RecoveryAuthority:
                 return
             after = through
 
-    def forget(self, service, conn, principal, brain, request):
+    def forget(self, service, conn, principal, brain, request, *, revoke_recording=True):
         self.check(conn, principal)
         payload = request['payload']
         key = digest([principal.tenant_id, principal.principal_id, brain['id'],
                       payload.get('idempotency_key', request['request_id'])])
-        fingerprint = digest({'action': 'forget', 'target': request['target'], 'payload': payload})
+        identity = {'action': 'forget', 'target': request['target'], 'payload': payload}
+        if not revoke_recording:
+            identity['revoke_recording'] = False
+        fingerprint = digest(identity)
         intent = self.registry.find(key, fingerprint)
         if intent is None:
             if brain['scope_generation'] != payload['expected_scope_generation']:
@@ -215,7 +219,8 @@ class RecoveryAuthority:
                 key_digest=key, fingerprint=fingerprint, principal=principal, brain_id=brain['id'],
                 mode=payload['mode'], cutoff=brain['durable_sequence'], event_ids=events, memory_ids=memories,
                 expected_installation_id=self.installation_id,
-                recording_revision_floor=brain['recording_revision'] + 1,
+                recording_revision_floor=brain['recording_revision'] + 1 if revoke_recording else None,
+                revoke_recording=revoke_recording,
             )
         return self.apply(service, conn, principal, brain, intent)
 

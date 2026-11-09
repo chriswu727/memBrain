@@ -364,3 +364,36 @@ def test_real_backup_restore_rejects_pre_erasure_revision_above_checkpoint(tmp_p
         for profile in (restored, source):
             if profile is not None:
                 desktop.stop(profile.directory)
+
+
+def test_note_replacement_preserves_capture_but_explicit_suppression_revokes_it(turns):
+    first = store_note(turns.service, turns.principal, turns.brain,
+                       {"request_id": uid(), "text": "Public old note.", "expected_recording_revision": 0})
+    second = store_note(turns.service, turns.principal, turns.brain,
+                        {"request_id": uid(), "text": "Public replacement note.", "replaces": [first["note_id"]],
+                         "expected_recording_revision": 0})
+    assert recording_status(turns.service, turns.principal, turns.brain)["revision"] == 0
+    assert turns.service.handle(turns.principal, captured(turns))["outcome"] == "completed"
+    erase(turns, mode="suppress_recall", kind="events", ids=[second["note_id"]])
+    assert turns.service.handle(turns.principal, captured(turns))["error"]["code"] == "recording_stale"
+
+
+def test_replacement_intent_replays_without_revoking_recording(recovery):
+    harness, authority = recovery
+    original = harness.memory.write_note("Public old replacement note.")["note_id"]
+    harness.memory.write_note("Public updated replacement note.", replaces=[original], expected_recording_revision=0)
+    intent = authority.registry.intent(1)
+    assert intent["revoke_recording"] is False and "recording_revision_floor" not in intent
+    assert harness.memory.recording_status()["revision"] == 0
+    with harness.database.transaction(harness.principal) as conn:
+        conn.execute("DELETE FROM memory_erasure_receipts WHERE brain_id=%s", (harness.brain,))
+        conn.execute("UPDATE memory_events SET suppressed=false WHERE id=%s", (original,))
+    authority.reconcile(harness.database, harness.principal)
+    authority.reconcile(harness.database, harness.principal)
+    assert harness.memory.recording_status()["revision"] == 0
+    with harness.database.transaction(harness.principal) as conn:
+        assert conn.execute("SELECT suppressed FROM memory_events WHERE id=%s", (original,)).fetchone()["suppressed"]
+    generation = harness.memory.dashboard()["brain"]["scope_generation"]
+    harness.memory.forget([original], kind="events", mode="suppress_recall", expected_scope_generation=generation)
+    assert harness.memory.recording_status()["revision"] == 1
+    assert authority.registry.intent(2)["recording_revision_floor"] == 1

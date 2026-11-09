@@ -166,7 +166,7 @@ def test_recording_pause_during_provider_call_prevents_note_save(chat):
 
 
 @pytest.mark.parametrize("erase_current", [True, False])
-def test_retry_rereads_message_and_note_context_after_erasure(chat, erase_current):
+def test_retry_stops_after_erasure_and_fresh_turn_rereads_context(chat, erase_current):
     previous = chat.record("private-previous-source-472 is my allergy.", "first")
     chat.run()
     current = chat.record("Please remember the updated plan.", "second")
@@ -183,12 +183,16 @@ def test_retry_rereads_message_and_note_context_after_erasure(chat, erase_curren
 
     chat.response = respond
     chat.run()
-    assert len(chat.seen) == (1 if erase_current else 2)
-    if not erase_current:
-        assert "Previous exchange" not in content(chat.seen[-1])
-        assert "private-previous-source-472" not in content(chat.seen[-1])
-        assert "private-note-context-473" not in content(chat.seen[-1])
+    assert len(chat.seen) == 1
+    assert extraction_status(chat.directory)["last_error"] == (
+        "source_unavailable" if erase_current else "recording_stale")
     assert chat.notes() == []
+    chat.record("Please remember my fresh Saturday plan.", "fresh")
+    chat.run()
+    assert len(chat.seen) == 2
+    assert "private-previous-source-472" not in content(chat.seen[-1])
+    assert "private-note-context-473" not in content(chat.seen[-1])
+    assert extraction_status(chat.directory)["state"] == "ok"
 
 
 @pytest.mark.parametrize("change", ["erase_current", "erase_previous", "correct_current", "erase_other_note"])
@@ -228,6 +232,7 @@ def test_one_extraction_can_replace_multiple_notes_without_invalidating_its_own_
     assert len(notes) == 2
     assert {first, second}.isdisjoint(note["event_id"] for note in notes)
     assert extraction_status(chat.directory)["state"] == "ok"
+    assert chat.client.recording_status()["revision"] == 0
 
 
 def test_previous_context_does_not_make_a_new_feeling_precede_the_clear_marker(chat):

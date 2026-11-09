@@ -25,17 +25,21 @@ def resolve_targets(service, conn, principal, brain, selector):
     return service._dependent_events(conn, principal, brain, event_ids), memory_ids
 
 
-def apply_erasure(service, conn, principal, brain, *, event_ids, memory_ids, mode, deletion_id=None, recording_revision_floor=0):
+def apply_erasure(service, conn, principal, brain, *, event_ids, memory_ids, mode, deletion_id=None,
+                  recording_revision_floor=0, revoke_recording=True):
+    if type(revoke_recording) is not bool or (not revoke_recording and mode != "suppress_recall"):
+        raise ValueError("Only internal replacement suppression may preserve recording permission.")
     params = service._params(principal, brain['id'])
     event_ids = service._dependent_events(conn, principal, brain, event_ids)
     memory_ids = set(memory_ids)
     memory_ids.update(service._invalidate(conn, principal, brain, event_ids, memory_ids))
     service._advance(conn, principal, brain, scope=True)
-    brain['recording_revision'] = conn.execute(
-        'UPDATE memory_brains SET recording_revision=GREATEST(recording_revision+1,%s) '
-        'WHERE tenant_id=%s AND owner_id=%s AND id=%s RETURNING recording_revision',
-        (recording_revision_floor, *params),
-    ).fetchone()['recording_revision']
+    if revoke_recording:
+        brain['recording_revision'] = conn.execute(
+            'UPDATE memory_brains SET recording_revision=GREATEST(recording_revision+1,%s) '
+            'WHERE tenant_id=%s AND owner_id=%s AND id=%s RETURNING recording_revision',
+            (recording_revision_floor, *params),
+        ).fetchone()['recording_revision']
     for object_kind, object_ids in (('event', event_ids), ('memory', memory_ids)):
         for object_id in sorted(object_ids):
             conn.execute(

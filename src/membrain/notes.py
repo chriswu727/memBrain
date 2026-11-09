@@ -622,9 +622,9 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
             if cached["response"] is None:
                 raise DomainError("version_conflict", "This note request was invalidated; use a new request ID.")
             return cached["response"]
-        require_recording(brain, recording_revision)
         if generation is not None and generation != brain["dependency_generation"]:
             raise DomainError("version_conflict", "Memory changed after the source context was read.")
+        require_recording(brain, recording_revision)
         strict_events = []
         if strict_sources:
             from .note_sources import resolve
@@ -690,7 +690,8 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
             service._forget(conn, principal, brain, {
                 "request_id": "replace-" + request_id, "target": target,
                 "payload": {"idempotency_key": "replace-" + request_id, "selector": {"kind": "events", "ids": stale},
-                            "mode": "suppress_recall", "expected_scope_generation": brain["scope_generation"]}})
+                            "mode": "suppress_recall", "expected_scope_generation": brain["scope_generation"]}},
+                revoke_recording=False)
         for source_id in sorted(sources):
             conn.execute(
                 "INSERT INTO memory_event_dependencies(tenant_id,owner_id,brain_id,input_event_id,output_event_id) "

@@ -182,3 +182,25 @@ def test_retired_installation_cannot_append_after_its_earlier_authority_check(tm
     with pytest.raises(RegistryError):
         append(registry, Principal(uid(), uid()), expected_installation_id=old)
     assert registry.head()['sequence'] == 0
+
+
+@pytest.mark.parametrize('options', [
+    {'revoke_recording': 0}, {'revoke_recording': None},
+    {'revoke_recording': False, 'mode': 'erase_content'},
+    {'revoke_recording': False, 'mode': 'suppress_recall', 'recording_revision_floor': 1},
+])
+def test_registry_rejects_invalid_recording_preservation(tmp_path, options):
+    registry = DeletionRegistry.create(tmp_path / 'authority', uid())
+    with pytest.raises(RegistryError):
+        append(registry, Principal(uid(), uid()), **options)
+    assert registry.head()['sequence'] == 0
+
+
+def test_registry_protects_internal_replacement_permission_semantics(tmp_path):
+    registry = DeletionRegistry.create(tmp_path / 'authority', uid())
+    intent = append(registry, Principal(uid(), uid()), mode='suppress_recall', revoke_recording=False)
+    assert registry.intent(1) == intent and intent['revoke_recording'] is False
+    with sqlite3.connect(registry.path) as conn:
+        conn.execute("UPDATE intents SET document=json_remove(document,'$.revoke_recording')")
+    with pytest.raises(RegistryError):
+        registry.intent(1)

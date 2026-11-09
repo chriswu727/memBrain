@@ -164,11 +164,14 @@ class DeletionRegistry:
             return self._document(connection, row)
 
     def append(self, *, key_digest, fingerprint, principal, brain_id, mode, cutoff, event_ids, memory_ids,
-               expected_installation_id=None, recording_revision_floor=None):
+               expected_installation_id=None, recording_revision_floor=None, revoke_recording=True):
         if mode not in ('suppress_recall', 'erase_content') or type(cutoff) is not int or cutoff < 0:
             raise RegistryError()
         if recording_revision_floor is not None and (type(recording_revision_floor) is not int
                                                     or not 0 < recording_revision_floor < 2**63):
+            raise RegistryError()
+        if type(revoke_recording) is not bool or (not revoke_recording and (
+                mode != 'suppress_recall' or recording_revision_floor is not None)):
             raise RegistryError()
         events, memories = sorted(set(event_ids)), sorted(set(memory_ids))
         if len(events) + len(memories) > _MAX_TARGETS:
@@ -187,6 +190,8 @@ class DeletionRegistry:
                         'cutoff': cutoff, 'created_at': now(), 'event_ids': events, 'memory_ids': memories}
             if recording_revision_floor is not None:
                 document['recording_revision_floor'] = recording_revision_floor
+            if not revoke_recording:
+                document['revoke_recording'] = False
             fingerprint_hash = digest([head['head_hash'], key_digest, fingerprint, document])
             stored = {key: value for key, value in document.items() if key not in ('event_ids', 'memory_ids')}
             connection.execute('INSERT INTO intents VALUES(?,?,?,?,?,?)', (

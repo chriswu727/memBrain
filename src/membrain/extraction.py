@@ -323,11 +323,11 @@ def extract_turn(directory, extractor: Extractor, user_id: str | None, *,
                     return []
                 recording_revision = host_recording.captured_revision(client, recording)
                 resolved = client.source_messages([*sources, *previous_sources])
-                require_recording(resolved, recording_revision)
                 available = {_source_key(item["reference"]): item for item in resolved["items"]}
                 if not sources or any(_source_key(ref) not in available for ref in sources):
                     record_outcome(directory, error="source_unavailable")
                     return []
+                require_recording(resolved, recording_revision)
                 earlier_refs = previous_sources if all(_source_key(ref) in available for ref in previous_sources) else ()
                 prompt, reply = _exchange([available[_source_key(ref)] for ref in sources])
                 if not worth_reading(prompt):
