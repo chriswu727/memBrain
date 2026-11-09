@@ -1,0 +1,14 @@
+{
+  "verify_run_id": 42556921318,
+  "verify_job_id": 128964615903,
+  "verify_conclusion": "success",
+  "source_commit": "5f8fcca2ace8019466d4015a4550359564ede445",
+  "source_tree": "8e84c500fc176a3e61e86724564f1ff0d5292dbe",
+  "python_passed": 8130,
+  "python_warnings": 3,
+  "python_seconds": 2545.72,
+  "typescript_passed": 56,
+  "native_qualification_repeated": false,
+  "raw_log_sha256": "2d34fbc308a74522377ddab20b92a0487eb6528c1eba05e3dee0322bfbecf501",
+  "redacted_log_sha256": "3b81c7bfad9a12adefa4b636dd5ade6be84111aaf5055142090aeb07960c0968"
+}
