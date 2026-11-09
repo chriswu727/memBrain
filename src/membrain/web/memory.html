@@ -445,15 +445,28 @@
       <h2>Recording</h2>
       <p id="recording-text" class="muted"></p>
       <div class="row">
+        <div id="recording-actions" class="row" hidden>
+          <button id="pause">Pause memory recording</button>
+          <button id="resume" class="secondary">Resume memory recording</button>
+        </div>
+        <button id="refresh-recording" class="secondary">Refresh recording status</button>
+      </div>
+      <p class="hint">Memory recording controls all connected agents using this memory. Pausing does not cancel data already sent to your agent or model provider.</p>
+      <div id="local-recording" hidden>
+        <h3>Chat capture on this device</h3>
+        <p id="local-recording-text" class="muted"></p>
+        <p class="hint">This device control covers locally connected chats. Other connected agents may still write to this memory. Resuming either control leaves the other unchanged.</p>
+        <div class="row">
         <select id="pause-hours" aria-label="Pause duration">
           <option value="1">for 1 hour</option>
           <option value="24">for 24 hours</option>
           <option value="">until I resume</option>
         </select>
-        <button id="pause">Pause recording</button>
-        <button id="resume" class="secondary">Resume recording</button>
+        <button id="pause-local">Pause device capture</button>
+        <button id="resume-local" class="secondary">Resume device capture</button>
+        </div>
       </div>
-      <p class="hint">While paused nothing new is stored; recall of earlier memory keeps working. Text inside
+      <p class="hint">Earlier memory remains available while recording is paused. Text inside
         <code>&lt;private&gt;…&lt;/private&gt;</code> and values that look like passwords or keys are never stored.</p>
     </div>
     <div class="card">

@@ -217,8 +217,9 @@ def test_memory_page_signs_in_once_and_controls_recording(tmp_path):
         assert httpx.get(base + "/v1/local/recording").status_code == 401
         assert httpx.post(base + "/v1/local/recording", json={"paused": True, "hours": 2}, headers=headers).json()[
             "recording"] == "paused" and host.paused(directory)
-        assert httpx.post(base + "/v1/local/recording", json={"paused": False}, headers=headers).json() == {
-            "recording": "on"}
+        resumed = httpx.post(base + "/v1/local/recording", json={"paused": False}, headers=headers).json()
+        assert resumed["recording"] == "on"
+        assert not resumed["local"]["paused"] and not resumed["server"]["paused"]
     finally:
         try:
             desktop.stop(directory)

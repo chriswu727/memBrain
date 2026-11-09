@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **发布前版本。** 全部九个启动器固定到运行时 `72f1ae7b`，包含有上限的前台队列重放、可靠进度检查点，以及本地服务的独立后台重放。[本轮验证](evaluations/backend-bounded-queue-replay-2026-11-08.md)通过 228 项相关源码测试、148 项解包安装测试及 207 项运行时输入一致性检查。完整 Verify 通过 8,149 项 Python／56 项 TypeScript 测试；五平台原生验证全部通过。此前召回性能结果保留各自受测版本范围。R4、C5 和最终审查仍阻止正式发布。
+> **发布前版本。** 全部九个启动器固定到运行时 `a19e943`，页面可直接控制记忆库记录，单独管理本机捕获，显示组合状态，并拒绝过期的修改。本轮已通过 286 项相关源码测试；安装包、完整 CI 和平台验证尚待完成。此前的[分批补交验证](evaluations/backend-bounded-queue-replay-2026-11-08.md)及召回性能结果保留原受测版本范围。R4、C5 和最终审查仍阻止正式发布。
 
 > **最近一次验收执行：** [第五次验收](evaluations/maturity-fifth-attempt-2026-11-07.md)完成了有效的 R4 评分：插件模式 20 分（通过）、提取模式 16 分（未通过：1 个记忆系统导致的隐私错误）、完整历史参照组 15.5 分。C1 因页面操作失败停止，C2 未运行；C5 无效且未评分。账本已封锁，保守结算 39.634310 元，没有未知费用预留，也没有自动重跑授权。
 

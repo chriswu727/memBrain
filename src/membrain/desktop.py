@@ -562,26 +562,23 @@ class LocalSupervisor:
             return {"api_key": self.profile.api_key, "brain_id": self.profile.brain_id}
 
         @app.get("/v1/local/recording")
-        def recording_state(authorization: str | None = Header(default=None)):
-            from . import host
+        def recording_state(brain_id: str | None = None, authorization: str | None = Header(default=None)):
+            from .local_recording import status
 
             authenticate(authorization)
-            return {"recording": "paused" if host.paused(self.profile.directory) else "on"}
+            return status(self.profile.directory, app.state.service,
+                          Principal(self.profile.tenant_id, self.profile.principal_id), brain_id or self.profile.brain_id)
 
         @app.post("/v1/local/recording")
         def change_recording(body: dict = Body(...), authorization: str | None = Header(default=None)):
-            from . import host
+            from .local_recording import change
 
             authenticate(authorization)
-            if body.get("paused") is True:
-                hours = body.get("hours")
-                try:
-                    return host.pause(self.profile.directory, hours if hours is None else float(hours))
-                except (TypeError, ValueError) as error:
-                    raise HTTPException(422, str(error)) from None
-            if body.get("paused") is False:
-                return host.resume(self.profile.directory)
-            raise HTTPException(422, "Set paused to true or false")
+            if set(body) - {"paused", "hours", "expected_revision"}:
+                raise HTTPException(422, "Unknown device capture fields")
+            change(self.profile.directory, paused=body.get("paused"), hours=body.get("hours"),
+                   expected_revision=body.get("expected_revision"))
+            return recording_state(authorization=authorization)
 
         @app.get("/v1/local/memory-status")
         def memory_status(authorization: str | None = Header(default=None)):

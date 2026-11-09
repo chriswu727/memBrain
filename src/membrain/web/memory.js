@@ -33,7 +33,8 @@ async function api(path, body, method) {
   });
   const data = await response.json().catch(() => ({}));
   if (!response.ok || ["rejected", "conflict", "failed"].includes(data.outcome)) {
-    throw new Error(data.error?.message || data.detail || `Request failed (${response.status})`);
+    throw Object.assign(new Error(data.error?.message || data.detail || `Request failed (${response.status})`),
+      { status: response.status });
   }
   return data;
 }
@@ -918,35 +919,74 @@ guard($("mood-reset"), async () => {
 
 // Privacy ----------------------------------------------------------------------------------------------------
 
+let recordingState = null;
+let recordingRead = 0;
+
 async function loadRecording() {
-  let paused = false;
+  const request = ++recordingRead;
+  const brain = state.brain;
   try {
-    paused = (await api("/v1/local/recording")).recording === "paused";
+    let result;
+    try {
+      result = await api(`/v1/local/recording?brain_id=${encodeURIComponent(brain)}`);
+    } catch (error) {
+      if (error.status !== 404) throw error;
+      result = { server: await api(`/v1/brains/${encodeURIComponent(brain)}/recording`), local: null };
+    }
+    if (request !== recordingRead || brain !== state.brain) return;
+    recordingState = { ...result, brain };
+    const serverPaused = result.server.paused;
+    const localPaused = result.local?.paused;
+    $("recording").hidden = false;
+    $("recording").textContent = serverPaused ? "Recording paused" : localPaused ? "Device capture paused" : "Recording on";
+    $("recording").classList.toggle("paused", serverPaused || localPaused);
+    $("recording-text").textContent = serverPaused
+      ? "New messages, notes and background learning are paused for this memory. Earlier memory stays available."
+      : localPaused ? "Memory accepts writes, but chat capture is paused on this device."
+        : "Memory accepts new messages and notes. Conversation-specific pauses still apply.";
+    $("recording-actions").hidden = false;
+    $("pause").hidden = serverPaused;
+    $("resume").hidden = !serverPaused;
+    $("local-recording").hidden = !result.local;
+    $("local-recording-text").textContent = localPaused ? "Chat capture is paused on this device." : "Chat capture is enabled on this device.";
+    $("pause-local").hidden = localPaused;
+    $("pause-hours").hidden = localPaused;
+    $("resume-local").hidden = !localPaused;
   } catch {
-    $("recording").hidden = true;
-    $("recording-text").textContent = "Recording controls are available when this page is opened from the local service.";
-    return;
+    if (request !== recordingRead || brain !== state.brain) return;
+    recordingState = null;
+    $("recording").hidden = false;
+    $("recording").textContent = "Recording status unavailable";
+    $("recording").classList.add("paused");
+    $("recording-text").textContent = "Recording status could not be checked. Refresh before changing it.";
+    $("recording-actions").hidden = true;
+    $("local-recording").hidden = true;
   }
-  $("recording").hidden = false;
-  $("recording").textContent = paused ? "Recording paused" : "Recording on";
-  $("recording").classList.toggle("paused", paused);
-  $("recording-text").textContent = paused
-    ? "Recording is paused. New messages are not stored."
-    : "New messages and replies are being stored.";
-  $("pause").hidden = paused;
-  $("pause-hours").hidden = paused;
-  $("resume").hidden = !paused;
 }
 
-guard($("pause"), async () => {
-  const hours = $("pause-hours").value;
-  await api("/v1/local/recording", { paused: true, hours: hours ? Number(hours) : null });
-  await loadRecording();
-});
-guard($("resume"), async () => {
-  await api("/v1/local/recording", { paused: false });
-  await loadRecording();
-});
+async function changeRecording(paused, local = false) {
+  const current = recordingState;
+  if (!current || current.brain !== state.brain || (local && !current.local)) {
+    throw new Error("Recording status could not be checked. Refresh before changing it.");
+  }
+  try {
+    if (local) {
+      const hours = $("pause-hours").value;
+      await api("/v1/local/recording", { paused, expected_revision: current.local.revision,
+        ...(paused && hours ? { hours: Number(hours) } : {}) });
+    } else {
+      await api(`/v1/brains/${encodeURIComponent(current.brain)}/recording`,
+        { paused, expected_revision: current.server.revision }, "PUT");
+    }
+  } finally {
+    await loadRecording();
+  }
+}
+guard($("pause"), () => changeRecording(true));
+guard($("resume"), () => changeRecording(false));
+guard($("pause-local"), () => changeRecording(true, true));
+guard($("resume-local"), () => changeRecording(false, true));
+guard($("refresh-recording"), loadRecording);
 guard($("export"), async () => {
   const { result } = await action("export", { include_events: true, include_working_states: true,
     include_assertions: true, include_provenance: true, include_tombstones: true, budget: {
