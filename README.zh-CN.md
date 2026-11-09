@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **发布前版本；临时对话已合入集成分支。** 暂停服务端记录后，直接 Python 聊天仍可使用有容量限制的内存对话，不保存消息正文，也不排队补记或学习。运行时 `978312c` 已通过源码和安装包各 570 项检查；完整 CI 通过 8,256 项 Python、56 项 TypeScript 测试。五个平台的实际验证均通过，共核对 47 份结果；GitHub 故障期间的失败记录仍保留。详见[实现、实测成本与验收证据](evaluations/backend-ephemeral-chat-2026-11-09.md)。宿主本机控制仍有独立作用范围。R4 仍失败，C5 无效且未评分，尚不能发布。
+> **发布前版本；宿主控制状态统一报告已合入。** 宿主结果区分整个大脑的记录开关、本机控制及离线或未知的服务端状态。运行时 `fcae167` 已通过完整 Verify（8,280 项 Python、56 项 TypeScript 测试，零测试跳过）及针对性的 Windows 和安装包检查。详见[实现与验证](evaluations/backend-host-control-status-2026-11-09.md)。WSL 安装仍待管理员操作。此前五平台和临时聊天验证仍仅对应运行时 `978312c`。R4 仍失败，C5 无效且未评分，尚不能发布。
 
 > **最近一次验收执行：** [第五次验收](evaluations/maturity-fifth-attempt-2026-11-07.md)完成了有效的 R4 评分：插件模式 20 分（通过）、提取模式 16 分（未通过：1 个记忆系统导致的隐私错误）、完整历史参照组 15.5 分。C1 因页面操作失败停止，C2 未运行；C5 无效且未评分。账本已封锁，保守结算 39.634310 元，没有未知费用预留，也没有自动重跑授权。
 
