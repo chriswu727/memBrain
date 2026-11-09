@@ -547,7 +547,8 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
             response = client.forget([], kind="all_authorized_scope", mode="erase_content",
                                      expected_scope_generation=generation)
         dropped = 0
-        with profile_lock(state_directory(directory) / "spool-write-lock", timeout=5):
+        with (profile_lock(state_directory(directory) / "session-state-lock", timeout=5),
+              profile_lock(state_directory(directory) / "spool-write-lock", timeout=5)):
             spool_path = state_directory(directory) / "spool.jsonl"
             if spool_path.exists():
                 kept = []
@@ -561,7 +562,6 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
                     else:
                         kept.append(line)
                 _write_text(spool_path, "".join(line + "\n" for line in kept))
-        with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
             for path in (state_directory(directory) / "sessions").glob("*.json"):
                 try:
                     state = json.loads(path.read_text(encoding="utf-8"))
@@ -1523,8 +1523,7 @@ def _finish_abandoned(directory: Path, client) -> int:
     """Store messages of turns that never finished (a host closed mid-turn), so nothing waits indefinitely."""
     delivered, cutoff = 0, time.time() - ABANDONED_TURN_SECONDS
     for marker in (state_directory(directory) / "sessions").glob("*.json"):
-        with (profile_lock(state_directory(directory) / "spool-lock", timeout=5),
-              profile_lock(state_directory(directory) / "session-state-lock", timeout=5)):
+        with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
             try:
                 with marker.open(encoding="utf-8") as stream:
                     prefix = stream.read(128)
@@ -1740,10 +1739,9 @@ def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: st
         if supplied is not None:
             supplied["text"] = scrub(prompt)
             host_recording.stamp(supplied, host_recording.status(directory, client, user_id))
-        with profile_lock(state_directory(directory) / "spool-lock", timeout=5):
-            records, staged_user, exclusion_handled = _take_turn(
-                directory, session, user_id=user_id, producer=producer, turn_id=turn_id,
-                prompt=supplied, reply=reply, allow_unstaged=allow_unstaged)
+        records, staged_user, exclusion_handled = _take_turn(
+            directory, session, user_id=user_id, producer=producer, turn_id=turn_id,
+            prompt=supplied, reply=reply, allow_unstaged=allow_unstaged)
         if user_id is None:
             user_id = staged_user
         if explicit_pause and not exclusion_handled:

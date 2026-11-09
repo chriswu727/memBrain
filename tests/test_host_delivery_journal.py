@@ -257,6 +257,29 @@ host.finish_turn(root, "s", "Answer", turn_id="t")
     assert [r["text"] for r in client.observed] == ["Question", "Answer"]
 
 
+def test_a_slow_replay_does_not_block_admission_of_a_new_turn(tmp_path, monkeypatch, offline):
+    host.prompt_context(tmp_path, "s", "Question", turn_id="t")
+    host.spool(tmp_path, host.message_record("old", "user", "Older queued input"))
+    entered, release = threading.Event(), threading.Event()
+
+    class Slow(Client):
+        def observe(self, **record):
+            super().observe(**record)
+            entered.set()
+            assert release.wait(10)
+
+    with ThreadPoolExecutor(max_workers=2) as workers:
+        replay = workers.submit(host.flush, Slow(), tmp_path)
+        try:
+            assert entered.wait(5)
+            finish = workers.submit(host.finish_turn, tmp_path, "s", "Answer", turn_id="t")
+            assert len(finish.result(timeout=1)) == 2
+        finally:
+            release.set()
+        assert replay.result(timeout=5) == 1
+    assert [r["text"] for r in queued(tmp_path)] == ["Question", "Answer"]
+
+
 def test_erase_serializes_with_turn_journaling_and_cannot_leave_a_revival_queue(turns, connected, tmp_path, monkeypatch):
     host.prompt_context(tmp_path, "s", "Question", turn_id="t")
     written, release, erasing = threading.Event(), threading.Event(), threading.Event()
