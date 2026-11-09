@@ -108,11 +108,14 @@ def test_spool_replay_keeps_undelivered_records(tmp_path):
                 raise ConnectionError("down")
             self.seen.append(record["text"])
 
+    first = Client(fail_after=1)
     with pytest.raises(ConnectionError):
-        host.flush(Client(fail_after=1), tmp_path)
+        host.flush(first, tmp_path)
+    assert first.seen == ["m0"]
     client = Client(fail_after=99)
-    assert host.flush(client, tmp_path) == 4
-    assert client.seen == ["m0", "m1", "m2"]
+    assert host.flush(client, tmp_path) == 3
+    assert client.seen == ["m1", "m2"]
+    assert first.seen + client.seen == ["m0", "m1", "m2"]
     assert (tmp_path / "plugin" / "spool.jsonl").read_text() == ""
 
 
