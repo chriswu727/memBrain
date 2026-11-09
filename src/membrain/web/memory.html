@@ -444,11 +444,13 @@
     <div class="card">
       <h2>Recording</h2>
       <p id="recording-text" class="muted"></p>
-      <div id="recording-actions" class="row" hidden>
-        <button id="pause">Pause memory recording</button>
-        <button id="resume" class="secondary">Resume memory recording</button>
+      <div class="row">
+        <div id="recording-actions" class="row" hidden>
+          <button id="pause">Pause memory recording</button>
+          <button id="resume" class="secondary">Resume memory recording</button>
+        </div>
+        <button id="refresh-recording" class="secondary">Refresh recording status</button>
       </div>
-      <button id="refresh-recording" class="secondary">Refresh recording status</button>
       <p class="hint">Memory recording controls all connected agents using this memory. Pausing does not cancel data already sent to your agent or model provider.</p>
       <div id="local-recording" hidden>
         <h3>Chat capture on this device</h3>

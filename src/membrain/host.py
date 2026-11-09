@@ -9,6 +9,7 @@ spooled locally and replayed later. Privacy filtering runs before anything is wr
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import shutil
@@ -603,10 +604,20 @@ def _write_text(path: Path, text: str) -> None:
 def _paused_file(path: Path, *, cleanup: bool = True) -> bool:
     try:
         state = json.loads(path.read_text(encoding="utf-8"))
-    except (OSError, ValueError):
+    except FileNotFoundError:
         return False
-    until = state.get("until") if isinstance(state, dict) else None
-    if isinstance(until, (int, float)) and until <= time.time():
+    except (OSError, ValueError):
+        return True
+    if not isinstance(state, dict):
+        return True
+    until = state.get("until")
+    if until is not None:
+        try:
+            if type(until) not in (int, float) or not math.isfinite(until):
+                return True
+        except OverflowError:
+            return True
+    if until is not None and until <= time.time():
         if cleanup:
             path.unlink(missing_ok=True)
         return False

@@ -140,6 +140,22 @@ def test_each_pause_has_a_new_revision_even_with_a_frozen_clock(tmp_path, monkey
     assert conflict.value.code == "version_conflict" and host.paused(tmp_path)
 
 
+@pytest.mark.parametrize("owner", [None, "alice"])
+def test_unreadable_pause_does_not_enable_host_capture(tmp_path, monkeypatch, owner):
+    from pathlib import Path
+
+    path = host._pause_file(tmp_path, owner)
+    original = Path.read_text
+
+    def unreadable(target, *args, **kwargs):
+        if target == path:
+            raise PermissionError("Synthetic read failure")
+        return original(target, *args, **kwargs)
+
+    monkeypatch.setattr(Path, "read_text", unreadable)
+    assert host.paused(tmp_path, owner)
+
+
 def test_expiry_cannot_delete_a_concurrently_replaced_pause(tmp_path, monkeypatch):
     from concurrent.futures import ThreadPoolExecutor, TimeoutError
     from pathlib import Path
@@ -177,10 +193,11 @@ def test_damaged_local_state_is_unknown_instead_of_recording_on(connected, insta
     path = host._pause_file(installation.directory)
     path.write_text(content)
     try:
+        assert host.paused(installation.directory)
         response = connected._http.get("/v1/local/recording")
         assert response.status_code == 503 and response.json()["error"]["code"] == "dependency_unavailable"
     finally:
-        path.unlink()
+        path.unlink(missing_ok=True)
 
 
 def test_page_changes_real_server_policy_and_preserves_device_pause(connected, installation, page):
@@ -283,10 +300,11 @@ def test_late_status_response_cannot_replace_a_newer_pause(connected, installati
 
     page.route("**/v1/local/recording?*", delay_first)
     with page.expect_request("**/v1/local/recording?*"):
-        page.evaluate("void loadRecording()")
+        page.evaluate("window.pendingRecordingRead = loadRecording(); void 0")
     connected.set_recording(paused=True, expected_revision=old["server"]["revision"])
     page.evaluate("void loadRecording()")
     expect(page.locator("#recording")).to_have_text("Recording paused")
     with page.expect_response("**/v1/local/recording?*"):
         held[0].fulfill(json=old)
+    page.evaluate("window.pendingRecordingRead")
     expect(page.locator("#recording")).to_have_text("Recording paused")
