@@ -15,7 +15,7 @@ import time
 import traceback
 from pathlib import Path
 
-from . import host
+from . import host, host_recording
 from .host import (  # noqa: F401  (re-exported for callers of the previous plugin API)
     CONTEXT_CHARACTERS,
     HISTORY_CHARACTERS,
@@ -203,6 +203,18 @@ HANDLERS = {
 }
 
 
+def _write_json(value) -> None:
+    """Host protocols use UTF-8 pipes even when the Windows console uses another encoding."""
+    text = json.dumps(value, ensure_ascii=False)
+    binary = getattr(sys.stdout, "buffer", None)
+    if binary is not None:
+        binary.write(text.encode("utf-8"))
+        binary.flush()
+    else:
+        sys.stdout.write(text)
+        sys.stdout.flush()
+
+
 def run_hook(event: str, directory: Path | None = None, stream=None, *, host_name: str = "claude-code") -> int:
     """Run one hook. Always returns 0 so a memory failure never blocks the host."""
     directory = profile_directory(directory)
@@ -224,8 +236,7 @@ def run_hook(event: str, directory: Path | None = None, stream=None, *, host_nam
         # Tells the host plugin this runtime kept the turn in that person's memory; older runtimes say nothing.
         output["membrainUser"] = _user(payload)
     if output:
-        sys.stdout.write(json.dumps(output, ensure_ascii=False))
-        sys.stdout.flush()
+        _write_json(output)
     return 0
 
 
@@ -242,10 +253,10 @@ def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
             raise ValueError("Tool arguments must be a JSON object.")
         user = _user(arguments)
         if name == "pause":
-            result = host.pause(directory, arguments.get("hours"), user_id=user,
+            result = host_recording.pause(directory, arguments.get("hours"), user_id=user,
                                 conversation=not arguments.get("until_resumed"))
         elif name == "resume":
-            result = host.resume(directory, user_id=user, current_turn=True,
+            result = host_recording.resume(directory, user_id=user, current_turn=True,
                                  session=_conversation(arguments) if "session_id" in arguments else None)
         elif name == "note" and host.paused(directory, user):
             result = {"error": "Recording is paused. Resume before saving agent notes."}
@@ -272,6 +283,5 @@ def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
                         result = {"context": found or "No matching records."}
     except Exception as error:  # A tool reports failure to the model instead of crashing the host.
         result = {"error": str(error) if isinstance(error, ValueError) else type(error).__name__}
-    sys.stdout.write(json.dumps(result, ensure_ascii=False))
-    sys.stdout.flush()
+    _write_json(result)
     return 0

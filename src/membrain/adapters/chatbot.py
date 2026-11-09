@@ -19,7 +19,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 
-from .. import host
+from .. import host, host_recording
 
 TOOLS = {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause", "resume": "membrain_resume"}
 GROUP_MEMORY = ("separate", "shared")
@@ -191,7 +191,8 @@ class ChatMemory:
         """Pause recording for this speaker: for the rest of the conversation unless ``hours`` or
         ``until_resumed`` (the person asked to stop being remembered until they say so)."""
         user = self.user_id(speaker)
-        result = host.pause(self.directory, hours, user_id=user, conversation=not until_resumed)
+        result = host_recording.pause(self.directory, hours, user_id=user, conversation=not until_resumed,
+                                      roleplay=self.roleplay)
         return result
 
     def forget(self, speaker: Speaker) -> dict:
@@ -214,7 +215,8 @@ class ChatMemory:
         """Resume recording for this speaker. Pass the conversation's ``session`` to include its current message
         when it asked to resume; without a session only future messages are recorded."""
         user = self.user_id(speaker)
-        result = host.resume(self.directory, user_id=user, current_turn=current_turn, session=session)
+        result = host_recording.resume(self.directory, user_id=user, current_turn=current_turn, session=session,
+                                       roleplay=self.roleplay)
         return result
 
     def _client(self, user: str):

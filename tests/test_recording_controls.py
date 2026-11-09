@@ -60,6 +60,15 @@ def observe(client):
                           branch_id="main", source_event_key=str(uuid4()))
 
 
+def test_plugin_start_and_status_report_server_pause(connected, installation):
+    current = connected.recording_status()
+    connected.set_recording(paused=True, expected_revision=current["revision"])
+    for result in (host.start(installation.directory), host.installation_status(installation.directory)):
+        assert result["recording"] == "paused"
+        assert result["controls"]["server"]["state"] == "paused"
+        assert result["controls"]["local"] == [{"scope": "installation", "state": "on"}]
+
+
 def test_remote_pause_is_visible_and_local_resume_cannot_clear_it(connected):
     current = connected.recording_status()
     server = connected.set_recording(paused=True, expected_revision=current["revision"])

@@ -114,7 +114,7 @@ const TOOLS = [
   },
   {
     name: "membrain_resume",
-    description: "Resume recording after membrain_pause, when the user asks; their current message is then stored.",
+    description: "Resume this local capture control when the user asks. Check the returned recording state and scopes; other controls may still block capture. This does not confirm message storage.",
     parameters: { type: "object", properties: {} },
   },
 ];

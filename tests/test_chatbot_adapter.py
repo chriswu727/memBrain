@@ -3,6 +3,7 @@ import datetime
 import hashlib
 import importlib.util
 import json
+import os
 import sys
 import types
 from pathlib import Path
@@ -269,7 +270,24 @@ def test_astrbot_plugin_remembers_each_qq_user_separately_through_a_real_service
         args = types.SimpleNamespace(plugin_command="export-user", platform="aiocqhttp", user="2002", group=None,
                                      user_id=None, yes=True, out=exported)
         assert plugin_cli._person(args, directory) == 0
-        assert "marathon" in exported.read_text() and oct(exported.stat().st_mode & 0o777) == "0o600"
+        assert "marathon" in exported.read_text(encoding="utf-8")
+        if os.name == "nt":
+            import win32api
+            import win32security
+
+            security = win32security.GetFileSecurity(str(exported), win32security.DACL_SECURITY_INFORMATION)
+            assert security.GetSecurityDescriptorControl()[0] & win32security.SE_DACL_PROTECTED
+            acl = security.GetSecurityDescriptorDacl()
+            assert acl.GetAceCount() == 1
+            (kind, flags), _, sid = acl.GetAce(0)
+            token = win32security.OpenProcessToken(win32api.GetCurrentProcess(), win32security.TOKEN_QUERY)
+            try:
+                assert sid == win32security.GetTokenInformation(token, win32security.TokenUser)[0]
+            finally:
+                token.Close()
+            assert kind == win32security.ACCESS_ALLOWED_ACE_TYPE and not flags & win32security.INHERITED_ACE
+        else:
+            assert oct(exported.stat().st_mode & 0o777) == "0o600"
         args.plugin_command = "forget-user"
         assert plugin_cli._person(args, directory) == 0
         with host.ready_client(directory, plugin.memory.user_id(module.Speaker("aiocqhttp", "2002"))) as client:

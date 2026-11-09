@@ -65,9 +65,11 @@ def _person(args, directory: Path) -> int:
         if args.plugin_command == "export-user":
             document = json.dumps(host.export_user(directory, user), ensure_ascii=False, indent=2)
             if args.out:
+                from .local_profile import _open_private
+
                 # A new owner-only file replaces the target, so an existing readable file never gets the export.
                 temporary = args.out.with_name(f".{args.out.name}.{os.getpid()}.tmp")
-                descriptor = os.open(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+                descriptor = _open_private(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
                 with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
                     stream.write(document)
                 os.replace(temporary, args.out)
@@ -149,9 +151,9 @@ def dispatch(args) -> None:
             print(f"Memory page (single-use link, valid for {host.UI_CODE_SECONDS // 60} minutes):\n{url}")
             return
         elif args.plugin_command in ("pause", "resume"):
-            from . import host
+            from . import host_recording
 
-            result = host.pause(directory, args.hours) if args.plugin_command == "pause" else host.resume(directory)
+            result = host_recording.pause(directory, args.hours) if args.plugin_command == "pause" else host_recording.resume(directory)
         else:
             from . import host
 

@@ -88,6 +88,23 @@ def test_known_server_pause_applies_offline_and_survives_local_resume(turns, con
     assert [r["_recording"]["revision"] for r in records] == [2, 2]
 
 
+def test_host_control_result_matches_actual_capture_and_server_scope(turns, connected, tmp_path):
+    policy(turns, True, 0)
+    host_recording.pause(tmp_path, 1)
+    result = host_recording.resume(tmp_path)
+    assert result["recording"] == "paused" and result["local_recording"] == "on"
+    assert result["controls"]["server"]["revision"] == 1
+    host.prompt_context(tmp_path, "s", "Excluded synthetic input", turn_id="excluded")
+    assert host.finish_turn(tmp_path, "s", "Excluded synthetic reply", turn_id="excluded") == []
+    assert not turns.service.timeline(turns.principal, turns.brain)["items"]
+    assert "Excluded synthetic" not in local_text(tmp_path)
+    policy(turns, False, 1)
+    assert host_recording.control_status(tmp_path)["recording"] == "on"
+    host.prompt_context(tmp_path, "s", "Public synthetic input", turn_id="public")
+    host.finish_turn(tmp_path, "s", "Public synthetic reply", turn_id="public")
+    assert len(turns.service.timeline(turns.principal, turns.brain, roles=("user", "assistant"))["items"]) == 2
+
+
 @pytest.mark.parametrize("revision", [0, 2])
 def test_legacy_queue_is_only_accepted_before_policy_changes(turns, connected, tmp_path, revision):
     if revision:

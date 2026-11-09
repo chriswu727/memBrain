@@ -1,6 +1,7 @@
 """Capture-time recording policy; replay never refreshes a record's revision."""
 
 import json
+import math
 import re
 from secrets import compare_digest
 
@@ -90,12 +91,12 @@ def status(directory, client=None, user_id=None):
         try:
             policy = json.loads(path.read_text(encoding="utf-8"))
             if _valid(policy) and isinstance(policy.get("target"), str):
-                return policy
+                return {**policy, "availability": "cached"}
         except FileNotFoundError:
-            return {"paused": False, "revision": 0, "target": None}
+            return {"paused": False, "revision": 0, "target": None, "availability": "unknown"}
         except (OSError, ValueError):
             pass
-        return {"paused": True, "revision": 0, "target": None}
+        return {"paused": True, "revision": 0, "target": None, "availability": "unknown"}
 
     reader = getattr(client, "recording_status", None)
     if not callable(reader):
@@ -111,7 +112,7 @@ def status(directory, client=None, user_id=None):
                 return previous
             path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
             _write_state(path, policy)
-        return policy
+        return {**policy, "availability": "current"}
     except Exception as error:
         log(directory, f"recording policy unavailable: {type(error).__name__}")
         return cached()
@@ -139,8 +140,86 @@ def observe(client, record):
 
 
 def notice(policy):
+    if policy.get("availability", "current") != "current":
+        protection = (" Local capture remains blocked by the last known policy or unreadable policy metadata."
+                      if policy["paused"] else " Messages may be queued locally; server persistence is not confirmed.")
+        return ("Current server recording state is unknown." + protection
+                + " Reconnect to confirm it; local resume does not change server recording controls.")
     if policy["paused"]:
-        return ("Recording is paused by the memory service or its last known policy. New messages are not being "
+        return ("Recording is paused by the memory service for this brain. New messages are not being "
                 "remembered. Local resume cannot change this policy; reconnect and use the server recording "
                 "controls to resume it explicitly.")
     return ""
+
+
+def control_status(directory, user_id=None):
+    """Report separate control snapshots; cached protection is not current server authority."""
+    from . import host
+
+    client = None
+    try:
+        client = host.ready_client(directory, user_id)
+        policy = status(directory, client, user_id)
+    except Exception as error:
+        host.log(directory, f"recording control unavailable: {type(error).__name__}")
+        policy = status(directory, user_id=user_id)
+    finally:
+        if callable(getattr(client, "close", None)):
+            client.close()
+
+    server = {"scope": "brain", "state": "unknown", "availability": policy["availability"],
+              "last_known_paused": policy["paused"] if policy["availability"] != "unknown" else None,
+              "revision": policy["revision"] if policy["availability"] != "unknown" else None}
+    if policy["availability"] == "current":
+        server["state"] = "paused" if policy["paused"] else "on"
+    controls = []
+    owners = [None]
+    if host.is_roleplay(user_id):
+        owners.append(host.real_life_user(user_id))
+    if user_id is not None:
+        owners.append(user_id)
+    blocked = policy["paused"]
+    try:
+        with profile_lock(host.state_directory(directory) / "session-state-lock", timeout=5):
+            for owner in dict.fromkeys(owners):
+                path = host._pause_file(directory, owner)
+                scope = "installation" if owner is None else "user"
+                if not host._paused_file(path):
+                    controls.append({"scope": scope, "state": "on"})
+                    continue
+                blocked = True
+                try:
+                    value = json.loads(path.read_text(encoding="utf-8"))
+                    until = value.get("until")
+                    if until is not None and (type(until) not in (int, float) or not math.isfinite(until)):
+                        raise ValueError("Invalid expiry")
+                    controls.append({"scope": "conversations" if "conversations" in value else scope,
+                                     "applies_to": scope, "state": "paused", "until": until})
+                except (OSError, ValueError, AttributeError, OverflowError):
+                    controls.append({"scope": scope, "state": "unknown", "reason": "local_state_unreadable"})
+    except Exception as error:
+        host.log(directory, f"local recording control unavailable: {type(error).__name__}")
+        blocked = True
+        controls = [{"scope": "local", "state": "unknown", "reason": "local_state_unavailable"}]
+    states = [server["state"], *(control["state"] for control in controls)]
+    effective = "paused" if "paused" in states else "unknown" if "unknown" in states else "on"
+    return {"recording": effective, "capture_blocked": blocked,
+            "controls": {"server": server, "local": controls}}
+
+
+def _control_result(directory, result, user_id):
+    return {**result, "local_recording": result["recording"], **control_status(directory, user_id)}
+
+
+def pause(directory, hours=None, user_id=None, *, conversation=False, session=None, roleplay=None):
+    from . import host
+
+    result = host.pause(directory, hours, user_id, conversation=conversation, session=session)
+    return _control_result(directory, result, host.roleplay_user(user_id, roleplay))
+
+
+def resume(directory, user_id=None, *, current_turn=False, session=None, roleplay=None):
+    from . import host
+
+    result = host.resume(directory, user_id, current_turn=current_turn, session=session)
+    return _control_result(directory, result, host.roleplay_user(user_id, roleplay))
