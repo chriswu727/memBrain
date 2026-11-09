@@ -37,16 +37,12 @@ def save_note(directory, client, text, *, recording_capture=None, user_id=None, 
         return {"error": rejected["message"], "code": rejected["code"]}
 
 
-def note_capture(directory, session, record):
-    from .host import session_state, state_directory
+def note_capture(session, record, nonce):
     from .host_turns import key
 
-    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
-        entry = session_state(directory, session).get("turns", {}).get(key(record), {})
-        nonce = entry.get("note_capture")
-        if not nonce or entry.get("paused"):
-            return None
-        return ".".join((digest(["session", session])[:32], key(record), nonce))
+    if not nonce:
+        return None
+    return ".".join((digest(["session", session])[:32], key(record), nonce))
 
 
 def note_revision(directory, client, capture, user_id=None):

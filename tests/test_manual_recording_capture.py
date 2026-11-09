@@ -196,3 +196,36 @@ def test_remote_mcp_cannot_silently_drop_a_host_capture(turns, connected, tmp_pa
             result = asyncio.run(server.call_tool(name, {**args, "recording_capture": "unavailable"}))[1]
             assert "cannot validate" in result["error"]
     assert turns.service.timeline(turns.principal, turns.brain, roles=("assistant",))["items"] == []
+
+
+def test_capture_issuance_cannot_borrow_a_reused_implicit_turn(tmp_path, monkeypatch):
+    class Client:
+        brain_id = "synthetic-capture-race"
+
+        def recording_status(self):
+            return {"paused": False, "revision": 0}
+
+        def __enter__(self):
+            return self
+
+        def __exit__(self, *args):
+            pass
+
+    client = Client()
+    monkeypatch.setattr(host, "ready_client", lambda *args: client)
+    stage = host._stage
+
+    def interrupted(directory, session, record, prompt, *args, **kwargs):
+        result = stage(directory, session, record, prompt, *args, **kwargs)
+        state = host.session_state(directory, session)
+        host_turns.complete(state["turns"][host_turns.key(record)])
+        host._write_session_state(directory, session, state)
+        host.pause(directory)
+        host.resume(directory)
+        stage(directory, session, record, prompt, *args, **kwargs)
+        return result
+
+    monkeypatch.setattr(host, "_stage", interrupted)
+    token = capture(host.prompt_context(tmp_path, "s", "Repeated public detail.", include_source=True))
+    with pytest.raises(ValueError, match="revoked"):
+        host_recording.note_revision(tmp_path, client, token)
