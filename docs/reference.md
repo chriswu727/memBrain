@@ -71,6 +71,8 @@ Add this configuration to a host that supports stdio MCP to connect the memory t
 
 ### Direct chat and Python sessions
 
+The Python `MemoryClient` retries a bodyless GET once if the connection resets or closes with a protocol/read error. It preserves the same destination, authentication, recovery acknowledgement and request options, and emits a warning without request content. A second failure propagates. Each attempt retains the configured HTTP timeout; this is not a total wall-clock deadline. Writes, GET requests with bodies, timeouts, HTTP error responses and invalid JSON are not automatically retried. This does not authorize repeating a model call or an uncertain delivery.
+
 After setup, explicitly reuse the configured memory learning provider for replies, or run `configure-chat` without flags to enter a separate provider:
 
 ```sh
