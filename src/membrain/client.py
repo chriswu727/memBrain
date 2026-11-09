@@ -2,12 +2,15 @@ from __future__ import annotations
 
 import hashlib
 import json
+import logging
 from collections.abc import Mapping, Sequence
 from typing import Any, Literal
 from urllib.parse import quote
 from uuid import UUID, uuid4
 
 import httpx
+
+logger = logging.getLogger(__name__)
 
 CONTRACT_VERSION = "1.0.0-draft"
 ACTIONS = (
@@ -154,7 +157,13 @@ class MemoryClient:
         self.close()
 
     def _request(self, method: str, path: str, **kwargs: Any) -> JsonObject:
-        response = self._http.request(method, path, **kwargs)
+        try:
+            response = self._http.request(method, path, **kwargs)
+        except (httpx.RemoteProtocolError, httpx.ReadError) as error:
+            if method.upper() != "GET" or any(key in kwargs for key in ("content", "data", "files", "json")):
+                raise
+            logger.warning("Memory API read connection closed (%s); retrying once.", type(error).__name__)
+            response = self._http.request(method, path, **kwargs)
         response.raise_for_status()
         value = response.json()
         if not isinstance(value, dict):

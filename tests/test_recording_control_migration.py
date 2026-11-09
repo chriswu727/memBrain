@@ -33,7 +33,9 @@ def test_upgrade_defaults_existing_brains_to_recording_without_rewriting_turns(m
         database.migrate()
         database.migrate()
         with database.transaction(principal) as conn:
-            assert conn.execute("SELECT * FROM memory_runtime_turns").fetchall() == before
+            after = conn.execute("SELECT * FROM memory_runtime_turns").fetchall()
+            assert all(row.pop("recording_revision") == 0 for row in after)
+            assert after == before
             assert conn.execute("SELECT recording_paused,recording_revision FROM memory_brains").fetchone() == {
                 "recording_paused": False, "recording_revision": 0}
             assert conn.execute("SELECT relrowsecurity,relforcerowsecurity FROM pg_class WHERE oid='memory_brains'::regclass").fetchone() == {

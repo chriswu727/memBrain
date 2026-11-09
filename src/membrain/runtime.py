@@ -18,6 +18,7 @@ from .answer_review import (
     AnswerReviewError,
 )
 from .client import (
+    MemoryActionError,
     MemoryClient,
     default_budget,
     default_read_fence,
@@ -97,7 +98,15 @@ class RuntimeBlocked(RuntimeError):
         super().__init__(f"{code}: turn {turn_id}")
 
 
+def _context_stale(error):
+    return _conflict(error, "context_stale")
+
+
 def _scope_conflict(error):
+    return _conflict(error, "scope_conflict")
+
+
+def _conflict(error, code):
     if not isinstance(error, httpx.HTTPStatusError) or error.response.status_code != 409:
         return False
     try:
@@ -105,7 +114,7 @@ def _scope_conflict(error):
     except (ValueError, UnicodeError):
         return False
     return (isinstance(body, dict) and isinstance(body.get("error"), dict)
-            and body["error"].get("code") == "scope_conflict")
+            and body["error"].get("code") == code)
 
 
 @dataclass(frozen=True)
@@ -197,13 +206,28 @@ class _Lease:
             if self.error is not None:
                 raise RuntimeBlocked("lease_lost", self.row["turn_id"]) from self.error
             started = time.monotonic()
-            fresh = self.journal.renew(
-                self.row["turn_id"], lease_token=self.token, lease_seconds=self.seconds,
-            )
+            try:
+                fresh = self.journal.renew(
+                    self.row["turn_id"], lease_token=self.token, lease_seconds=self.seconds,
+                )
+            except httpx.HTTPStatusError as error:
+                if not _context_stale(error):
+                    raise
+                self.invalidate_capture()
+                raise RuntimeBlocked("context_stale", self.row["turn_id"]) from error
             self.renewed = started
             if not fresh["sources_available"]:
                 raise RuntimeBlocked("source_unavailable", self.row["turn_id"])
             return fresh
+
+    def invalidate_capture(self):
+        with self.lock:
+            current = self.journal.get(self.row["turn_id"])
+            self.row = current if current["stage"] in ("completed", "failed") else self.journal.fail(
+                self.row["turn_id"], lease_token=self.token, expected_revision=current["revision"],
+                failure_code="context_stale",
+            )
+            self.stopped.set()
 
     def advance(self, stage, **fields):
         with self.lock:
@@ -391,11 +415,18 @@ class BrainRuntime:
             stage = lease.row["stage"]
             if stage == "started":
                 lease.check()
-                captured = self.memory.observe(
-                    text, source_event_key=f"{turn_id}:input", producer_ref="brain-runtime",
-                    idempotency_key="capture-" + str(uuid4()),
-                    role="user", delivery_state="received", **scope,
-                )["result"]
+                try:
+                    captured = self.memory.observe(
+                        text, source_event_key=f"{turn_id}:input", producer_ref="brain-runtime",
+                        idempotency_key="capture-" + str(uuid4()),
+                        expected_recording_revision=lease.row["recording_revision"],
+                        role="user", delivery_state="received", **scope,
+                    )["result"]
+                except MemoryActionError as error:
+                    if error.code not in ("recording_paused", "recording_stale"):
+                        raise
+                    lease.invalidate_capture()
+                    raise RuntimeBlocked("context_stale", turn_id) from error
                 event_ids = captured["accepted_event_ids"] + captured["duplicate_event_ids"]
                 lease.advance("captured", input_event_refs=[{"event_id": i, "revision": 1} for i in event_ids],
                               durable_sequence=captured["durable_through_sequence"])

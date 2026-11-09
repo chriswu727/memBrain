@@ -1308,19 +1308,19 @@ class MemoryService:
                                 "durable_through_sequence": brain["durable_sequence"], "previous_dependency_generation": old_generation,
                                 "dependency_generation": brain["dependency_generation"], "stale_projection_reads_blocked": True}}
 
-    def _forget(self, conn, principal, brain, request):
+    def _forget(self, conn, principal, brain, request, *, revoke_recording=True):
         from .erasure import apply_erasure, resolve_targets
 
         self._archive_guard(conn, principal)
         authority = getattr(self.database, "recovery_authority", None)
         if authority is not None:
-            return authority.forget(self, conn, principal, brain, request)
+            return authority.forget(self, conn, principal, brain, request, revoke_recording=revoke_recording)
         payload = request["payload"]
         if brain["scope_generation"] != payload["expected_scope_generation"]:
             raise DomainError("version_conflict", "Scope generation changed.", current_revision=brain["scope_generation"])
         event_ids, memory_ids = resolve_targets(self, conn, principal, brain, payload["selector"])
         return apply_erasure(self, conn, principal, brain, event_ids=event_ids,
-                             memory_ids=memory_ids, mode=payload["mode"])
+                             memory_ids=memory_ids, mode=payload["mode"], revoke_recording=revoke_recording)
 
     def _archive_guard(self, conn, principal):
         key = digest([principal.tenant_id, principal.principal_id, "archive-erasure"])

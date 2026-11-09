@@ -8,6 +8,7 @@ VERSION = "runtime-delivery-receipt-v1"
 STATES = frozenset({"delivered", "partially_delivered", "cancelled"})
 REASONS = frozenset({
     "source_unavailable", "context_generation_changed", "working_revision_changed", "orientation_changed",
+    "recording_changed",
 })
 FAILURES = frozenset({"source_unavailable", "context_stale", "commit_failed", "cancelled"})
 
@@ -30,7 +31,7 @@ def sanitize_delivery_receipt(value):
                 or any(not isinstance(reason, str) or reason not in REASONS for reason in reasons)
                 or len(set(reasons)) != len(reasons)):
             return None
-        if ((disposition == "content_withheld" and "source_unavailable" not in reasons)
+        if ((disposition == "content_withheld" and not {"source_unavailable", "recording_changed"}.intersection(reasons))
                 or failure != failure_code(reasons, state)):
             return None
         binding = value["authorization"]
