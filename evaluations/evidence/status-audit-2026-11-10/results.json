@@ -1,0 +1,53 @@
+{
+  "audit": "status-audit-2026-11-10",
+  "source_head": "c15ee26057f98bd5fcaee0aafc69aba987220c47",
+  "runtime_commit": "d6aa3d58dd098ed6fc4beeacc788f32806f5b253",
+  "scope": "local WSL2 x86_64 checks for a status audit; not platform qualification, no model call",
+  "full_python_suite": {
+    "command": "pytest tests -q -rs --durations=20 -o tmp_path_retention_policy=failed -p no:cacheprovider",
+    "environment": {
+      "PYTHON_DOTENV_DISABLED": "1",
+      "MEMBRAIN_SEMANTIC": "0",
+      "MEMBRAIN_REQUIRE_BROWSER": "1",
+      "MEMORY_DESKTOP_E2E": "unset",
+      "MEMBRAIN_TEST_EMBEDDING_MODEL": "unset"
+    },
+    "python": "3.12.16",
+    "database": "task-owned embedded PostgreSQL 16.15, pgvector 0.8.6, stopped afterwards",
+    "passed": 8457,
+    "failed": 1,
+    "skipped": 15,
+    "warnings": 3,
+    "seconds": 2436.61,
+    "runtime_and_migration_files_unchanged_during_run": true,
+    "failure": {
+      "test": "tests/test_longitudinal_learning.py::test_history_failure_stops_even_when_the_current_exchange_was_encoded[unknown]",
+      "assertion": "stop_reason was 'current_encoding_not_ready', expected None",
+      "rerun_alone": "5 of 5 passes (both parameters each time)",
+      "rerun_whole_file": "19 passed",
+      "classification": "intermittent; the machine was also running the audit's read-only reviewers. Root cause not established."
+    },
+    "skips": {
+      "MEMORY_DESKTOP_E2E not set (Docker journeys)": 4,
+      "pinned local embedding model not present": 11
+    },
+    "retained_outside_repository": {
+      "junit.xml_sha256": "37ec82b069cefdbd97f141e75710d4a618dbc19bf7c6a5de208c6b45b8272a4d",
+      "log_sha256": "8fe227c7d591bb3864840333488b5393033714c52b7659354d306902b607f960"
+    }
+  },
+  "typescript": {"tests_passed": 56, "tests_failed": 0, "tests_skipped": 0, "strict_typecheck": "passed"},
+  "ruff": {"src tests examples": "passed", "whole repository": "995 findings, all under evaluations/ (outside CI scope)"},
+  "reproductions": {
+    "file": "reproductions.py",
+    "test_second_window_ends_first_windows_pause": "fails as described: paused=False after a second session starts; both later messages of the first session are recorded",
+    "test_rejected_spool_survives_erasure": "fails as described: erase_user has no reference to spool-rejected.jsonl"
+  },
+  "not_run": [
+    "Docker desktop journeys and local-embedding-model tests (skipped above)",
+    "native Windows, macOS, five-platform qualification",
+    "the 36-window R5 overhead protocol",
+    "any paid or subscription-backed model evaluation",
+    "exploitation of the security findings"
+  ]
+}
