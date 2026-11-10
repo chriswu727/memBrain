@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **发布前版本；宿主控制状态统一报告已合入。** 宿主结果区分整个大脑的记录开关、本机控制及离线或未知的服务端状态。运行时 `fcae167` 已通过完整 Verify（8,280 项 Python、56 项 TypeScript 测试，零测试跳过）及针对性的 Windows 和安装包检查。详见[实现与验证](evaluations/backend-host-control-status-2026-11-09.md)。WSL 安装仍待管理员操作。此前五平台和临时聊天验证仍仅对应运行时 `978312c`。R4 仍失败，C5 无效且未评分，尚不能发布。
+> **发布前版本；逐条消息的宿主记录回执已合入。** `host.finish_turn` 和 `ChatMemory.record` 可将每条消息报告为已记录、已排队、已排除、失败或未知。插件钩子、Hermes、代理及 AgentRuntime 投递回执仍沿用各自的约定。运行时 `294db3d` 已通过完整 Verify（8,340 项 Python、56 项 TypeScript 测试，零测试跳过）及针对性的 Windows 和安装包检查。部分 Windows 原生运行失败或中途停止，相关记录均予保留。WSL 环境冒烟测试已通过，但不构成 WSL 或平台验证。详见[实现与验证](evaluations/backend-host-recording-receipts-2026-11-09.md)。本批次未运行性能基准。此前五平台和临时聊天验证仍仅对应运行时 `978312c`。R4 仍失败，C5 无效且未评分，尚不能发布。
 
 > **最近一次验收执行：** [第五次验收](evaluations/maturity-fifth-attempt-2026-11-07.md)完成了有效的 R4 评分：插件模式 20 分（通过）、提取模式 16 分（未通过：1 个记忆系统导致的隐私错误）、完整历史参照组 15.5 分。C1 因页面操作失败停止，C2 未运行；C5 无效且未评分。账本已封锁，保守结算 39.634310 元，没有未知费用预留，也没有自动重跑授权。
 

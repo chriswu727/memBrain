@@ -79,6 +79,51 @@
     {"finding": "completed 200 observe answer with result {} reported recorded", "status": "fixed; confirmed by source-stable recheck"},
     {"finding": "queued and failed wording overstated what the call knows; architecture open items", "status": "documentation corrected"}
   ],
-  "full_ci": "pending: complete Linux Verify on the pull request head has not run yet",
-  "not_run": ["paid or subscription evaluations", "five-platform native qualification", "WSL", "complete native Windows suite"]
+  "full_ci_at_source_commit": "pending: complete Linux Verify on the pull request head had not run when 423ea9d4 was committed",
+  "full_ci": {
+    "verify_url": "https://github.com/chriswu727/memBrain/actions/runs/42739484002",
+    "job_id": 129576734810,
+    "head": "423ea9d4319dff43d1be7bcd45ea6517995af5c7",
+    "head_changes_after_pin": "evaluation report and evidence only",
+    "conclusion": "success",
+    "python": {"passed": 8340, "failed": 0, "skipped": 0, "fork_deprecation_warnings": 3, "duration_seconds": 2033.83},
+    "typescript": {"passed": 56, "failed": 0, "skipped": 0, "strict_typecheck": "passed"},
+    "ruff": "passed",
+    "wheel_sdist_builds": "passed",
+    "skipped_steps": ["Diagnose Linux native loader after startup failure (conditional; startup did not fail; not a test)"]
+  },
+  "integration": {
+    "pull_request": "https://github.com/chriswu727/memBrain/pull/62",
+    "base_branch": "integration/maturity-candidate",
+    "base_before_merge": "4036c59afbb3953bc57c52cb7b982de739cfd139",
+    "merge_commit": "035b96cec6125af73edb7f4f15b7c75d82be93c9",
+    "merge_method": "merge commit with exact head SHA guard",
+    "merge_tree_equals_verified_head": true
+  },
+  "wsl_handoff": {
+    "scope": "environment smoke, not complete WSL or platform behavioral qualification; does not replace native Windows or macOS evidence",
+    "distribution": "Ubuntu 24.04.5 LTS",
+    "wsl_version": "3.0.5",
+    "distribution_disk": "D:/memBrain-dev/wsl/Ubuntu/ext4.vhdx",
+    "repository": "/home/yichen/src/memBrain (Linux filesystem)",
+    "python": "3.12.16",
+    "uv": "0.13.6",
+    "node": "22.23.4",
+    "dependencies": "fresh uv sync --frozen and npm ci; no Mac or Windows virtual environment or database copied",
+    "limits_after_vm_restart": {"logical_processors": 4, "memory_ceiling_gib": 8, "swap_gib": 2, "swap_location": "D:"},
+    "interface": "command line only; no desktop control",
+    "claude_code": "2.1.311, authenticated through the owner's subscription; no subscription-backed test ran",
+    "smoke": {
+      "runner": "Codex",
+      "source": "423ea9d4319dff43d1be7bcd45ea6517995af5c7",
+      "python": {"passed": 62, "skipped": 0,
+                 "scope": "tests/test_host_recording_receipts.py (60) and both parameter cases of tests/test_memory_page_browser.py::test_showcase_shows_fictional_data_and_makes_no_api_request"},
+      "database": "task-owned embedded PostgreSQL 16.15 / pgvector 0.8.6, stopped afterwards",
+      "real_components": ["loopback service", "headless Chromium"],
+      "python_runtime_hashes_unchanged": true,
+      "typescript": {"node": "22.23.4", "npm_ci": "passed", "passed": 56, "skipped": 0, "strict_typecheck": "passed"}
+    }
+  },
+  "performance": "no benchmark ran for this batch; no speed change is claimed; the 1,000-turn latency probe belongs only to runtime 978312c and its synthetic-reply scenario",
+  "not_run": ["paid or subscription evaluations", "five-platform native qualification", "complete WSL behavioral qualification (only an environment smoke ran)", "complete native Windows suite", "performance benchmark"]
 }
