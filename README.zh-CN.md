@@ -18,7 +18,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **发布前版本；逐条消息的宿主记录回执已合入。** `host.finish_turn` 和 `ChatMemory.record` 可将每条消息报告为已记录、已排队、已排除、失败或未知。插件钩子、Hermes、代理及 AgentRuntime 投递回执仍沿用各自的约定。运行时 `294db3d` 已通过完整 Verify（8,340 项 Python、56 项 TypeScript 测试，零测试跳过）及针对性的 Windows 和安装包检查。部分 Windows 原生运行失败或中途停止，相关记录均予保留。WSL 环境冒烟测试已通过，但不构成 WSL 或平台验证。详见[实现与验证](evaluations/backend-host-recording-receipts-2026-11-09.md)。本批次未运行性能基准。此前五平台和临时聊天验证仍仅对应运行时 `978312c`。R4 仍失败，C5 无效且未评分，尚不能发布。
+> **发布前版本；直接聊天现已遵循本机记录控制（运行时 `2ef05f3`）。** 暂停本机聊天采集，或用 `/off-record` 让单个会话分支不留记录时，`open_agent` 和 `desktop chat` 会像服务端暂停一样进入临时对话：不保存任何内容，也不会暂停整个大脑。三项控制相互独立，无法读取的控制会报告为未知。此运行时已通过针对性的 WSL2 Linux 检查：基于解包 wheel 的 244 项回归（213 项运行时输入全部一致）和 30 项真实 CLI 检查。此前的真实失败与运行脚本错误均予保留。此运行时尚未声称通过完整 Verify，也未声称通过 Windows 原生、macOS 或五平台验证；Verify 在拉取请求上运行。详见[实现与针对性验证](evaluations/backend-direct-chat-local-privacy-2026-11-10.md)。本批次未运行性能基准。上一运行时 `294db3d`（逐条消息的宿主记录回执）保留其自身的[验证记录](evaluations/backend-host-recording-receipts-2026-11-09.md)；此前五平台和临时聊天验证仍仅对应运行时 `978312c`。R4 仍失败，C5 无效且未评分，尚不能发布。
 
 > **最近一次验收执行：** [第五次验收](evaluations/maturity-fifth-attempt-2026-11-07.md)完成了有效的 R4 评分：插件模式 20 分（通过）、提取模式 16 分（未通过：1 个记忆系统导致的隐私错误）、完整历史参照组 15.5 分。C1 因页面操作失败停止，C2 未运行；C5 无效且未评分。账本已封锁，保守结算 39.634310 元，没有未知费用预留，也没有自动重跑授权。
 

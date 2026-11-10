@@ -1,0 +1,26 @@
+{
+  "runtime_commit": "2ef05f3367f8cf9ef80654c520273500072eb60c",
+  "pin_commit": "c78a4c9b620acb0666aba614669f4e09858b0954",
+  "build_id": "a4767c661011638f1a7dfff323242e2cb150cb85e8e69f388ca8762389d33533",
+  "checkout_build_id": "a4767c661011638f1a7dfff323242e2cb150cb85e8e69f388ca8762389d33533",
+  "schema_id": "65f39c3540715ba2fd40d3e0bad24c36143af1cceb27e2e560a813736fb28092",
+  "runtime_inputs": 213,
+  "runtime_inputs_matching_checkout": 213,
+  "wheel_parity": true,
+  "tested_build": {
+    "source": "pin commit c78a4c9b; the build the extracted-wheel regression ran against",
+    "wheel": "membrain_ai-0.1.0-py3-none-any.whl",
+    "wheel_sha256": "98e36f07e8a69a34f57ad32d8f30d7cab1b6fee22180b16e33d596d750e17daf",
+    "sdist_sha256": "3e4020e53935d61b1692294f0a737fe9970a4769d4a7375f66c87aa1e615277e"
+  },
+  "head_build": {
+    "source": "pin commit plus the README, releasing note and evaluation report of the evidence commit",
+    "wheel": "membrain_ai-0.1.0-py3-none-any.whl",
+    "wheel_sha256": "28bd697f0f49e1e5df8674560589633cd70e1092e1b6d1834b3d0853b55f6d52",
+    "sdist": "membrain_ai-0.1.0.tar.gz",
+    "sdist_sha256": "69fd6bd29e6a1b4627586c30046faa0b756afd6c4e9094780f22059083c1b743",
+    "package_files_identical_to_tested_build": true,
+    "package_files_compared": 218,
+    "difference_from_tested_build": "wheel metadata only (README long description)"
+  }
+}
