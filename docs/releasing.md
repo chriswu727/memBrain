@@ -58,7 +58,8 @@
 
 **Status on 2026-11-03: release frozen until the product is mature.** The owner decided to release only when everything below is mature ("我们把这些都做到成熟再发"). Until then:
 - no version tag, GitHub release or PyPI upload is made;
-- changes continue on the integration branch; the current maturity candidate is not merged into the default branch while performance or behavioural acceptance remains open;
+- changes continue on the integration branch; until 2026-11-10 the maturity candidate was not merged into the default branch while performance or behavioural acceptance remained open;
+- **from 2026-11-10 the default branch follows the integration branch at locally verified milestones.** The owner delegated that decision on that date. `main` had stayed at a 2026-11-03 runtime, 600 commits behind, so the documented install commands delivered a runtime with defects that were fixed long since, including the privacy defects of the [status audit](../evaluations/status-audit-2026-11-10.md). A merge to `main` is not a release and clears no gate: statements in the dated entries above that a main merge is blocked describe the rule at their time;
 - development continues: the earlier "new features stopped until the gates pass" rule is replaced by this maturity bar.
 
 The [revised acceptance contract](../architecture/v1-acceptance.md) still defines the core gates, and it matches what ships: host plugins, the MCP server, the proxy, bot adapters and the memory page. The bar below adds to it.

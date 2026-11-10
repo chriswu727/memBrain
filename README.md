@@ -23,7 +23,7 @@ memBrain runs as a local service. Connect your agent's conversation lifecycle on
 > - **Memory quality.** On a model-free LoCoMo measurement, the context recalled for a question holds all of its evidence for 60.6% of 1,535 questions (59.9% on held-out conversations), up from 52.7%. Plain retrieval over the same messages reaches 73.6% at the same size, so recall ranking is the current work. See the [baseline](evaluations/locomo-evidence-recall-2026-11-10.md) and the [latest change](evaluations/memory-path-recall-budget-2026-11-10.md).
 > - **Behavioural acceptance.** R4 has not passed: in the [latest attempt](evaluations/maturity-fifth-attempt-2026-11-07.md) the plugin path scored 20 (pass), note extraction 16 (fail, one memory-caused privacy error) and the full-history reference 15.5. The companion evaluation C5 is invalid and unscored.
 > - **Verification of this runtime.** The full source suite passes locally on Linux (8,486 tests, 15 skipped for Docker and the local model). GitHub Verify, native Windows and macOS, five-platform qualification, the R5 overhead protocol and an independent review were not run for it.
-> - **Open defects and limits.** The [2026-11-10 status audit](evaluations/status-audit-2026-11-10.md) lists them, with what has since been fixed. Earlier runtimes and their evidence are in the [release checklist](docs/releasing.md).
+> - **Open defects and limits.** The [2026-11-10 status audit](evaluations/status-audit-2026-11-10.md) lists them, with what has since been fixed. Earlier runtimes and their evidence are in the [release checklist](docs/releasing.md). The default branch carries this runtime; that is not a release.
 
 <a id="claude-code-plugin"></a>
 
