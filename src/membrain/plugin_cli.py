@@ -7,6 +7,10 @@ from pathlib import Path
 
 HOOK_EVENTS = ("session-start", "user-prompt", "stop")
 HOOK_HOSTS = ("claude-code", "codex", "openclaw", "workbuddy")
+# The producer each host records under: an exchange is identified by its owner, producer and turn.
+OUTCOME_HOSTS = {"claude-code": "membrain-plugin", "codex": "membrain-codex", "openclaw": "membrain-openclaw",
+                 "workbuddy": "membrain-workbuddy", "hermes": "membrain-hermes", "proxy": "membrain-proxy",
+                 "astrbot": "membrain-astrbot", "chatbot": "membrain-chatbot"}
 
 
 def add_commands(commands):
@@ -43,6 +47,21 @@ def add_commands(commands):
         person.add_argument("--user-id", help="A memBrain user id exactly as stored, instead of the three above")
         person.add_argument("--yes", action="store_true", help="Do not ask for confirmation (forget-user)")
         person.add_argument("--out", type=Path, help="Write the export here instead of standard output (export-user)")
+    outcome = actions.add_parser("outcome", help="Show whether host exchanges reached memory: the retained recording "
+                                                 "outcome of one exchange, or the most recent ones. Reads local "
+                                                 "receipts only; nothing is stored, replayed or sent")
+    outcome.add_argument("--exchange", help="An exchange handle (from a listing or the proxy's X-Membrain-Exchange)")
+    outcome.add_argument("--session", help="The host's session or conversation id; alone, lists that session")
+    outcome.add_argument("--turn", help="The host's turn id (Claude Code prompt_id, Codex turn_id), with --session")
+    outcome.add_argument("--host", choices=tuple(OUTCOME_HOSTS), help="Host that reported the exchange (default "
+                                                                      "claude-code for --turn; any host in a listing)")
+    outcome.add_argument("--producer", help="A producer name exactly as stored, instead of --host")
+    outcome.add_argument("--platform", help="A bot user's platform, with --user (and --group)")
+    outcome.add_argument("--user", help="The person's id on that platform")
+    outcome.add_argument("--group", help="The group, for exchanges kept from a group chat")
+    outcome.add_argument("--user-id", help="A memBrain user id exactly as stored, instead of the three above")
+    outcome.add_argument("--roleplay", help="The role-play character whose separate memory the exchange used")
+    outcome.add_argument("--limit", type=int, default=10, help="Exchanges in a listing (1 to 50)")
     ui = actions.add_parser("ui", help="Open the memory page in a browser (starts the service if needed)")
     ui.add_argument("--no-browser", action="store_true", help="Only print the single-use link")
     for parser in actions.choices.values():
@@ -90,12 +109,42 @@ def _person(args, directory: Path) -> int:
         return 1
 
 
+def _outcome(args, directory: Path) -> int:
+    """Print one exchange's retained recording outcome, or a listing; returns the exit status."""
+    from . import host_outcomes
+
+    user = args.user_id
+    if user is None and (args.platform or args.user or args.group):
+        if not (args.platform and args.user):
+            print("Give --platform and --user (and --group for a group chat), or --user-id.", file=sys.stderr)
+            return 2
+        from .adapters.chatbot import Speaker, speaker_user_id
+
+        user = speaker_user_id(Speaker(args.platform, args.user, args.group))  # A lookup creates nothing.
+    producer = args.producer or OUTCOME_HOSTS.get(args.host)
+    try:
+        if args.exchange or args.turn:
+            result = host_outcomes.lookup(directory, exchange=args.exchange, session=args.session, turn_id=args.turn,
+                                          producer=producer, user_id=user, roleplay=args.roleplay)
+        else:
+            result = host_outcomes.recent(directory, session=args.session, producer=producer, user_id=user,
+                                          roleplay=args.roleplay, limit=args.limit)
+    except ValueError as error:
+        print(str(error), file=sys.stderr)
+        return 2
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    # A listing succeeds even when empty; a single lookup that found nothing readable exits 1 for scripts.
+    return 1 if result.get("status") in ("not_found", "unavailable") else 0
+
+
 def dispatch(args) -> None:
     from . import plugin
 
     directory = plugin.profile_directory(args.directory)
     if args.plugin_command == "hook":
         raise SystemExit(plugin.run_hook(args.event, directory, host_name=args.host))
+    if args.plugin_command == "outcome":
+        raise SystemExit(_outcome(args, directory))
     if args.plugin_command in ("forget-user", "export-user"):
         raise SystemExit(_person(args, directory))
     if args.plugin_command == "import":

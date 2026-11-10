@@ -66,6 +66,17 @@ export MEMBRAIN_PROXY_TOKENS="$(python3 -c 'import secrets; print(secrets.token_
 
 Each entry is `token:namespace`. The people a bot names are kept inside its namespace, even if it sends another platform in `X-Membrain-Platform`, and a request that names nobody is refused instead of falling into a shared memory.
 
+## Checking whether an exchange was recorded
+
+Every chat completion answer carries an `X-Membrain-Exchange` response header; the body is unchanged. Ask the proxy about it with the same token and person:
+
+```bash
+curl -H "X-Membrain-User: 12345" http://127.0.0.1:8790/v1/membrain/recording-outcomes/<exchange>
+curl -H "X-Membrain-User: 12345" http://127.0.0.1:8790/v1/membrain/recording-outcomes   # recent, current session
+```
+
+Send the same `X-Membrain-Platform`, `X-Membrain-Group`, `X-Membrain-Roleplay` and `X-Membrain-Session` headers as the chat request (the person can also be `?user=`). Each message is reported as `recorded` (the memory service confirmed it), `queued` (kept locally, server storage not yet confirmed), `excluded` (a pause or policy, with its scope), `failed` or `unknown`, with when that was observed; a streamed reply is `awaiting_completion` until the stream ends. This is the last observation, not a live check, and says nothing about whether your bot delivered the reply. Another person's or another token's exchange is a 404, the same as one that never existed. The lookup reads local records only: nothing is stored, retried or sent to the provider. The header is absent when nothing is recorded for that speaker (for example group recording turned off). The operator can run `membrain plugin outcome --platform <platform> --user <id>` instead. Details and retention: [reference](../../docs/reference.md#looking-up-a-recording-outcome).
+
 ## Erasing or exporting one person
 
 `membrain plugin export-user` and `membrain plugin forget-user` take the person as the proxy sees them: `--platform` is the `X-Membrain-Platform` value (default `api`, or `namespace/platform` with `MEMBRAIN_PROXY_TOKENS`) and `--user` the request's `user`. Add `--group` for a group's memory.

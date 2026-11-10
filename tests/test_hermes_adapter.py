@@ -86,7 +86,8 @@ def test_register_hands_hermes_a_new_provider_each_time():
     assert all(isinstance(value, hermes.MembrainProvider) for value in registered)
     assert registered[0] is not registered[1] and registered[0].name == "membrain" and registered[0].is_available()
     assert [tool["name"] for tool in registered[0].get_tool_schemas()] == [
-        "membrain_note", "membrain_search", "membrain_boundary", "membrain_pause", "membrain_resume"]
+        "membrain_note", "membrain_search", "membrain_boundary", "membrain_pause", "membrain_resume",
+        "membrain_recording_status"]
 
 
 def test_profiles_get_their_own_installation_unless_configured(tmp_path, monkeypatch):

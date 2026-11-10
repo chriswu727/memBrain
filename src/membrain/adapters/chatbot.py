@@ -19,7 +19,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 
-from .. import host, host_receipts, host_recording
+from .. import host, host_outcomes, host_receipts, host_recording
 
 TOOLS = {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause", "resume": "membrain_resume"}
 GROUP_MEMORY = ("separate", "shared")
@@ -40,6 +40,18 @@ class Speaker:
 
 def _identity(kind: str, parts: list) -> str:
     return f"%{kind}:" + hashlib.sha256(json.dumps(parts, ensure_ascii=False).encode()).hexdigest()
+
+
+def speaker_user_id(speaker: Speaker, group_memory: str = "separate") -> str:
+    """The memBrain user a speaker's memory is kept under (``ChatMemory.user_id``), without opening an installation."""
+    platform, user = str(speaker.platform), str(speaker.user)
+    group = str(speaker.group) if speaker.group and group_memory == "separate" else None
+    parts = [(platform, 40), (user, 80)]
+    if group is not None:
+        parts.append((group, 60))
+    if any(len(value) > limit or any(char in value for char in ":%|") for value, limit in parts):
+        return _identity("chat-v2", [platform, user, group])
+    return f"{platform}:group:{group}:{user}" if group is not None else f"{platform}:{user}"
 
 
 class ChatMemory:
@@ -74,14 +86,7 @@ class ChatMemory:
             client.close()
 
     def user_id(self, speaker: Speaker) -> str:
-        platform, user = str(speaker.platform), str(speaker.user)
-        group = str(speaker.group) if speaker.group and self.group_memory == "separate" else None
-        parts = [(platform, 40), (user, 80)]
-        if group is not None:
-            parts.append((group, 60))
-        if any(len(value) > limit or any(char in value for char in ":%|") for value, limit in parts):
-            return _identity("chat-v2", [platform, user, group])
-        return f"{platform}:group:{group}:{user}" if group is not None else f"{platform}:{user}"
+        return speaker_user_id(speaker, self.group_memory)
 
     def session(self, speaker: Speaker, conversation: str | None = None, *, today: _datetime.date | None = None) -> str:
         """The memBrain session for this speaker today in this chat (or framework conversation)."""
@@ -148,6 +153,30 @@ class ChatMemory:
             recording = message.get("_recording", {"revision": 0, "target": None})
             self._extract(user, sources, previous, recording=dict(recording) if isinstance(recording, dict) else recording)
         return receipt or None
+
+    def exchange(self, speaker: Speaker, *, session: str, turn_id: str, roleplay: str | None = None) -> str | None:
+        """The stable handle of one exchange, for ``outcome``; ``None`` when this speaker is not recorded. It can
+        be computed before the exchange is recorded and addresses only this speaker's own turn."""
+        if not self._recording(speaker) or not isinstance(turn_id, str) or not 1 <= len(turn_id) <= 120:
+            return None
+        return host_outcomes.exchange_id(session, turn_id, producer=self.producer, user_id=self.user_id(speaker),
+                                         roleplay=roleplay or self.roleplay)
+
+    def outcome(self, speaker: Speaker, *, exchange: str | None = None, session: str | None = None,
+                turn_id: str | None = None, roleplay: str | None = None) -> dict:
+        """The retained recording outcome of one of this speaker's exchanges (``membrain.host_outcomes``): the last
+        observation of each message with its age, or an explicit ``awaiting_completion``, ``erased``, ``not_found``
+        or ``unavailable``. Another person's exchange is ``not_found``. A local read: it never stores, replays or
+        sends anything, and does not report whether the platform delivered the reply."""
+        return host_outcomes.lookup(self.directory, exchange=exchange, session=session, turn_id=turn_id,
+                                    producer=self.producer, user_id=self.user_id(speaker),
+                                    roleplay=roleplay or self.roleplay)
+
+    def recent_outcomes(self, speaker: Speaker, *, session: str, roleplay: str | None = None,
+                        limit: int = 10) -> dict:
+        """This speaker's most recently observed exchanges in one session, newest first."""
+        return host_outcomes.recent(self.directory, session=session, producer=self.producer,
+                                    user_id=self.user_id(speaker), roleplay=roleplay or self.roleplay, limit=limit)
 
     def _extract(self, user: str, sources: list[dict], previous_sources: tuple[dict, ...] = (), *, recording) -> None:
         from ..extraction import extract_turn

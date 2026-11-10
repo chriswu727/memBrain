@@ -2,7 +2,8 @@
 
 Hooks never own the host's turn and always exit 0. ``SessionStart`` adds saved notes and recent history,
 ``UserPromptSubmit`` adds related earlier messages and stages the prompt, and ``Stop`` stores the prompt
-and the reply together. Before the runtime is installed, hooks skip recording. Legacy bootstrap queues
+and the reply together and keeps the exchange's recording outcome for ``membrain plugin outcome`` (hook output is
+unchanged). Before the runtime is installed, hooks skip recording. Legacy bootstrap queues
 are imported with privacy filtering on the next start. Codex runs the same hooks with the
 same input fields, except that it identifies a turn by ``turn_id`` instead of ``prompt_id``.
 """
@@ -15,7 +16,7 @@ import time
 import traceback
 from pathlib import Path
 
-from . import host, host_recording
+from . import host, host_receipts, host_recording
 from .host import (  # noqa: F401  (re-exported for callers of the previous plugin API)
     CONTEXT_CHARACTERS,
     HISTORY_CHARACTERS,
@@ -192,8 +193,12 @@ def stop(payload: dict, directory: Path, producer: str = PRODUCER) -> None:
     if host.turn_resumed(directory, session, user_id=_user(payload), producer=producer, turn_id=_turn(payload)):
         prompt = payload.get("prompt") if isinstance(payload.get("prompt"), str) else None
         prompt = prompt or last_user_message(payload.get("transcript_path"))
+    receipt = {}
     host.finish_turn(directory, session, reply, turn_id=_turn(payload), producer=producer,
-                     user_id=_user(payload), prompt=prompt)
+                     user_id=_user(payload), prompt=prompt, receipt=receipt)
+    if host_receipts.needs_attention(receipt):
+        # States and reasons only. The outcome itself stays queryable: membrain plugin outcome.
+        host.log(directory, "recording outcome needs attention: " + host_receipts.summary(receipt))
 
 
 HANDLERS = {

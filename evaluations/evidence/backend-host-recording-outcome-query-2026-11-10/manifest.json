@@ -1,0 +1,421 @@
+{
+ "batch": "host-recording-outcome-query",
+ "date": "2026-11-10",
+ "base": "74d9425309b152c650016854ace44a869dc19dd5",
+ "branch": "feat/host-recording-outcome-query",
+ "runtime_commit": "d6aa3d58dd098ed6fc4beeacc788f32806f5b253",
+ "pin_commit": "9a546fa8272b78046d4da8caa5cb96f5a6d9a6fe",
+ "environment": {
+  "os": "Ubuntu 24.04 on WSL2 (Linux filesystem); not native Windows or macOS",
+  "python": "3.12.16",
+  "postgresql": "16.15",
+  "pgvector": "0.8.6",
+  "database": "task-owned embedded PostgreSQL per run under <task-root>, stopped afterwards",
+  "models": "none; test doubles, a fixture service and a loopback stand-in provider with a fixed reply",
+  "paths": "<task-root> is the task-owned directory host-outcome-query-20261110 under the local membrain-setup state directory. Raw logs stay there."
+ },
+ "counts_are_not_additive": "Runs overlap in the tests they contain and ran on different sources. No total is derived from them.",
+ "package": "package-identity.json",
+ "independent_review": "independent-review.json",
+ "runs_on_frozen_runtime": [
+  {
+   "name": "wheel-targeted-1",
+   "source": "frozen runtime commit d6aa3d58 at pin commit 9a546fa8 (empty working-tree diff); extracted wheel on the import path",
+   "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "source_head": "9a546fa8272b78046d4da8caa5cb96f5a6d9a6fe",
+   "scope": "tests/test_host_recording_outcomes.py, test_host_recording_receipts.py, test_host_delivery_journal.py, test_host_turn_isolation.py, test_host_queue_batches.py, test_host_recording.py, test_host_control_status.py, test_hermes_adapter.py, test_hermes_readonly.py, test_proxy.py, test_plugin.py, test_plugin_cli_errors.py, test_chatbot_adapter.py, test_erasure_recording_fence.py",
+   "result": {
+    "passed": 378,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+   },
+   "status": "passed",
+   "database_stopped": true,
+   "source_unchanged_during_run": true,
+   "log": "<task-root>/wheel-targeted-1.log",
+   "log_sha256": "3ff8835b6d039d51ea6a1ed382b304ce510051a6567daecf99d0853c08e4c610",
+   "import_origin": "<task-root>/package-1/wheel/membrain",
+   "build_id": "2f324016ad29a03fe11015b557e6915c4f337f3e21eee5ed902754699092afa7",
+   "membrain_modules_loaded": 133,
+   "membrain_modules_outside_wheel": []
+  },
+  {
+   "name": "frozen-live-1",
+   "source": "frozen runtime commit d6aa3d58 at pin commit 9a546fa8 (empty working-tree diff); extracted wheel on the import path",
+   "source_head": "9a546fa8272b78046d4da8caa5cb96f5a6d9a6fe",
+   "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+   "scope": "real processes: installed service on an embedded database, hook commands, the proxy as a server process, the Hermes provider in its own interpreter, the outcome CLI; service stop and restart; loopback stand-in provider",
+   "result": {
+    "checks_passed": 39,
+    "checks_failed": 0
+   },
+   "status": "passed",
+   "build_id": "2f324016ad29a03fe11015b557e6915c4f337f3e21eee5ed902754699092afa7",
+   "service_build_id": "2f324016ad29a03fe11015b557e6915c4f337f3e21eee5ed902754699092afa7",
+   "import_origin": "<task-root>/package-1/wheel/membrain",
+   "subprocess_import_origin": "<task-root>/package-1/wheel/membrain",
+   "database_stopped": true,
+   "source_unchanged_during_run": true,
+   "checks": [
+    "service starts through the plugin CLI",
+    "every process imports the same runtime as this script",
+    "hook exchange is server-confirmed and the Stop hook prints nothing",
+    "confirmed event ids are the events the service stores",
+    "a Codex exchange for one person is found under its host and person",
+    "the same ids under another owner or host are not found",
+    "a repeated Stop does not replace the confirmed outcome and is listed as unsettled",
+    "an unmatched Stop is an unknown outcome, not a success",
+    "a local pause is an exclusion at installation scope, not the brain",
+    "a server pause is an exclusion at brain scope with current-policy evidence",
+    "recording resumes after both controls are lifted",
+    "proxy process listens",
+    "proxy answer body is the provider body and names the exchange",
+    "proxy exchange is server-confirmed for its person",
+    "another person asking for that handle gets the same 404 as a missing one",
+    "a streamed exchange is named in the response headers and confirmed after the stream",
+    "proxy process listens again after a restart",
+    "the outcome survives a proxy process restart",
+    "the proxy lists the person's exchanges of the current session",
+    "lookups were answered locally: the provider saw only chat completions",
+    "the operator CLI finds the proxy exchange for that person",
+    "the Hermes process imports the same runtime",
+    "a Hermes turn is server-confirmed and the tool returns the same record",
+    "a new Hermes process reads the same outcome",
+    "with the service stopped all three paths report queued, not saved",
+    "the proxy still answered the chat while memory was down",
+    "earlier confirmed outcomes are unchanged while offline",
+    "lookups changed neither the journal, its cursor nor any session ledger",
+    "no message text is in outcomes, lookups or the hook log",
+    "the hook log names the unmatched callback by state and reason only",
+    "after an account-key switch every earlier exchange is not_found and nothing is listed",
+    "restoring the profile restores the same outcomes",
+    "service restarts",
+    "after the restart the service's replay turned all three queued exchanges into recorded",
+    "replayed event ids are stored events",
+    "forget-user succeeds for one proxy person",
+    "the erased person's exchanges report erased, without their earlier results",
+    "the other person's outcome is untouched by that erasure",
+    "the erased person has nothing listed"
+   ],
+   "log": "<task-root>/frozen-live-1.log",
+   "log_sha256": "05649aa3a11109ce5a43f91d24f3bf5ff3b500347c13e04f99e2978f5f263861"
+  },
+  {
+   "name": "pin-1",
+   "source": "frozen runtime commit d6aa3d58 at pin commit 9a546fa8 (empty working-tree diff)",
+   "scope": "tests/test_installation_pin.py",
+   "result": {
+    "passed": 2,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+   },
+   "status": "passed"
+  }
+ ],
+ "runs_on_candidate_sources": [
+  {
+   "name": "candidate-1",
+   "source": "final candidate working tree on base 74d94253, committed unchanged as d6aa3d58 (tracked diff and new runtime file hashes equal the commit)",
+   "tracked_diff_sha256": "a82644e9f4cf9a52f3dd226973d6729c653d4a5fc39e09af3ca3d57a918ca2f6",
+   "source_head": "74d9425309b152c650016854ace44a869dc19dd5",
+   "scope": "every test file that imports the host layer, an adapter, the plugin or the proxy (51 files), plus build identity, three longitudinal suites and the reviewer's four independent probes",
+   "result": {
+    "passed": 1405,
+    "failed": 1,
+    "errors": 0,
+    "skipped": 1
+   },
+   "status": "one failure in tests/test_passage_index.py::test_invalid_batch_shapes_do_not_publish_a_partial_index[dimension] (embedding index job; exercises no changed code); not reproduced in passage-alone-1..3. One skip needs a local embedding model directory",
+   "database_stopped": true,
+   "source_unchanged_during_run": true,
+   "log": "<task-root>/candidate-1.log",
+   "log_sha256": "70bd270ee9fed9514cca7c145cd7219a9ce06664c40f05a9433059471dc460ac"
+  },
+  {
+   "name": "passage-alone-1",
+   "source": "final candidate working tree on base 74d94253, committed unchanged as d6aa3d58 (tracked diff and new runtime file hashes equal the commit)",
+   "tracked_diff_sha256": "a82644e9f4cf9a52f3dd226973d6729c653d4a5fc39e09af3ca3d57a918ca2f6",
+   "source_head": "74d9425309b152c650016854ace44a869dc19dd5",
+   "scope": "tests/test_passage_index.py alone",
+   "result": {
+    "passed": 17,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+   },
+   "status": "passed",
+   "database_stopped": true,
+   "source_unchanged_during_run": true
+  },
+  {
+   "name": "passage-alone-2",
+   "source": "final candidate working tree on base 74d94253, committed unchanged as d6aa3d58 (tracked diff and new runtime file hashes equal the commit)",
+   "tracked_diff_sha256": "a82644e9f4cf9a52f3dd226973d6729c653d4a5fc39e09af3ca3d57a918ca2f6",
+   "source_head": "74d9425309b152c650016854ace44a869dc19dd5",
+   "scope": "tests/test_passage_index.py with test_openclaw_plugin.py, test_model_activation.py, test_mood.py",
+   "result": {
+    "passed": 61,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 1
+   },
+   "status": "passed; same model-directory skip",
+   "database_stopped": true,
+   "source_unchanged_during_run": true
+  },
+  {
+   "name": "passage-alone-3",
+   "source": "final candidate working tree on base 74d94253, committed unchanged as d6aa3d58 (tracked diff and new runtime file hashes equal the commit)",
+   "tracked_diff_sha256": "a82644e9f4cf9a52f3dd226973d6729c653d4a5fc39e09af3ca3d57a918ca2f6",
+   "source_head": "74d9425309b152c650016854ace44a869dc19dd5",
+   "scope": "same as passage-alone-2",
+   "result": {
+    "passed": 61,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 1
+   },
+   "status": "passed; same model-directory skip",
+   "database_stopped": true,
+   "source_unchanged_during_run": true
+  },
+  {
+   "name": "mutations-1",
+   "source": "final candidate working tree on base 74d94253, committed unchanged as d6aa3d58 (tracked diff and new runtime file hashes equal the commit)",
+   "scope": "fifteen single removals of outcome invariants, each run against tests/test_host_recording_outcomes.py without a database or service",
+   "result": {
+    "detected": 15,
+    "mutations": 15
+   },
+   "baseline": "55 passed, 3 skipped, 1 deselected in 7.63s",
+   "status": "all detected; source restored byte-for-byte",
+   "mutations": [
+    {
+     "mutation": "a later attempt may replace a server confirmation",
+     "file": "src/membrain/host_outcomes.py",
+     "detected": true,
+     "first_failing_test": [
+      "test_a_confirmed_message_is_never_downgraded_by_a_later_attempt"
+     ]
+    },
+    {
+     "mutation": "an unmatched or repeated callback settles the exchange it named",
+     "file": "src/membrain/host_outcomes.py",
+     "detected": true,
+     "first_failing_test": [
+      "test_a_repeated_callback_never_replaces_or_upgrades_the_first_outcome"
+     ]
+    },
+    {
+     "mutation": "a lookup ignores the recording target",
+     "file": "src/membrain/host_outcomes.py",
+     "detected": true,
+     "first_failing_test": [
+      "test_an_account_or_brain_switch_does_not_expose_or_rewrite_earlier_outcomes[<lambda>0]"
+     ]
+    },
+    {
+     "mutation": "a lookup ignores the owner",
+     "file": "src/membrain/host_outcomes.py",
+     "detected": true,
+     "first_failing_test": [
+      "test_another_owner_or_producer_cannot_find_an_exchange"
+     ]
+    },
+    {
+     "mutation": "erasure keeps the erased owner's outcomes",
+     "file": "src/membrain/host.py",
+     "detected": true,
+     "first_failing_test": [
+      "test_erasing_a_person_removes_their_outcomes_and_replay_cannot_bring_them_back"
+     ]
+    },
+    {
+     "mutation": "a replay under another target rewrites an earlier outcome",
+     "file": "src/membrain/host_outcomes.py",
+     "detected": true,
+     "first_failing_test": [
+      "test_an_account_or_brain_switch_does_not_expose_or_rewrite_earlier_outcomes[<lambda>0]"
+     ]
+    },
+    {
+     "mutation": "replay observations are not kept",
+     "file": "src/membrain/host.py",
+     "detected": true,
+     "first_failing_test": [
+      "test_an_offline_exchange_stays_queued_until_a_later_replay_confirms_it"
+     ]
+    },
+    {
+     "mutation": "an append that could not be rolled back is called a definite failure",
+     "file": "src/membrain/host.py",
+     "detected": true,
+     "first_failing_test": [
+      "test_a_journal_write_that_cannot_be_rolled_back_is_unknown_until_a_replay_observes_it"
+     ]
+    },
+    {
+     "mutation": "erasing one owner drops the other owners' unsettled callbacks",
+     "file": "src/membrain/host.py",
+     "detected": true,
+     "first_failing_test": [
+      "test_erasing_one_person_keeps_another_persons_unsettled_callbacks_in_a_shared_session"
+     ]
+    },
+    {
+     "mutation": "replay refines any outcome of an unfinished turn",
+     "file": "src/membrain/host_outcomes.py",
+     "detected": true,
+     "first_failing_test": [
+      "test_a_definite_refusal_is_not_refined_by_an_unrelated_replay_of_the_same_identity"
+     ]
+    },
+    {
+     "mutation": "a failed outcome write fails the turn",
+     "file": "src/membrain/host.py",
+     "detected": true,
+     "first_failing_test": [
+      "test_a_failed_outcome_write_neither_breaks_the_turn_nor_claims_a_result"
+     ]
+    },
+    {
+     "mutation": "a failed outcome update stops the journal checkpoint",
+     "file": "src/membrain/host.py",
+     "detected": true,
+     "first_failing_test": [
+      "test_a_failed_outcome_update_keeps_replay_acknowledged_and_the_last_observation"
+     ]
+    },
+    {
+     "mutation": "the proxy looks outcomes up outside the token's namespace",
+     "file": "src/membrain/proxy.py",
+     "detected": true,
+     "first_failing_test": [
+      "test_proxy_tokens_keep_outcomes_inside_their_namespace"
+     ]
+    },
+    {
+     "mutation": "a retried callback discards what a replay confirmed",
+     "file": "src/membrain/host_outcomes.py",
+     "detected": true,
+     "first_failing_test": [
+      "test_a_journal_write_that_cannot_be_rolled_back_is_unknown_until_a_replay_observes_it"
+     ]
+    },
+    {
+     "mutation": "an unreadable ledger is reported as not found",
+     "file": "src/membrain/host_outcomes.py",
+     "detected": true,
+     "first_failing_test": [
+      "test_an_unreadable_store_is_reported_as_unavailable_not_missing"
+     ]
+    }
+   ],
+   "log": "<task-root>/mutations-1.log",
+   "log_sha256": "bfcf7cb4095293111a2135d3d6124e1aa6758c63c518e8e28e0beb36ae9e1e86"
+  },
+  {
+   "name": "focused-2",
+   "source": "candidate after the first two review fixes, before the third (other owners' callbacks during erasure) and the locked read",
+   "tracked_diff_sha256": "eac64981365eea5d7de8320af251aa8fd24a0b8095ea1dd50a498823728be9c8",
+   "source_head": "74d9425309b152c650016854ace44a869dc19dd5",
+   "scope": "21 suites: outcomes, receipts, delivery journal, host recording, turn isolation, queue batches, control status, host, Hermes (2), proxy, plugin (3), chat adapter, recording context, manual capture, server recording, OpenClaw, two longitudinal suites",
+   "result": {
+    "passed": 560,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+   },
+   "status": "passed",
+   "database_stopped": true,
+   "source_unchanged_during_run": true,
+   "log": "<task-root>/focused-2.log",
+   "log_sha256": "a81d15889a9987f116ed6f9b7d764e822c97df4acd0e858f86fe13a5cba59674"
+  },
+  {
+   "name": "focused-1",
+   "source": "first candidate working tree on base 74d94253, before any review finding",
+   "tracked_diff_sha256": "3078dc9bc294ec01146c93d8877cbf071f21f25c1e4476858bd6242236b43abd",
+   "source_head": "74d9425309b152c650016854ace44a869dc19dd5",
+   "scope": "outcomes, receipts, delivery journal, host recording, Hermes (2)",
+   "result": {
+    "passed": 182,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+   },
+   "status": "passed",
+   "database_stopped": true,
+   "source_unchanged_during_run": true,
+   "log": "<task-root>/focused-1.log",
+   "log_sha256": "6ecf61224f2476cb24e08ee095e7a5015d2039b50477e66ced1ff959a1150047"
+  }
+ ],
+ "failures_and_corrections_before_the_runtime_commit": [
+  {
+   "run": "nodb-1",
+   "result": "1 failed, 78 passed, 3 skipped",
+   "what": "tests/test_host.py::test_users_of_a_shared_bot_keep_separate_memories expected its own flush to replay two records",
+   "kind": "existing test race: it simulates an outage while its real service keeps running, and that service's background replay can drain the journal first. Passed 3 of 3 alone (nodb-2-1..3) and in focused-2 and candidate-1. Not changed"
+  },
+  {
+   "run": "nodb-3",
+   "result": "1 failed",
+   "what": "a new test asserted that the session ledger holds no message text",
+   "kind": "test mistake: the ledger has always kept a short cue of the last prompt; the assertion now covers only what the outcome bookkeeping stores"
+  },
+  {
+   "run": "nodb-4",
+   "result": "1 failed, 45 passed, 3 skipped",
+   "what": "a whole-turn Hermes callback whose message asks not to be kept was unknown/turn_not_staged",
+   "kind": "product mislabel inherited from the receipt batch; now excluded/pause_requested"
+  },
+  {
+   "run": "nodb-5",
+   "result": "2 failed, 370 passed, 31 skipped",
+   "what": "the Hermes tool-list assertion, and an abandoned-turn test whose injected crash stayed installed for the later replay",
+   "kind": "two existing tests updated: the new tool is listed, and the crash injection is scoped to the interrupted process because replay now writes the ledger"
+  },
+  {
+   "run": "nodb-6",
+   "result": "1 failed, 142 passed, 16 skipped",
+   "what": "a new test compared two lookups including their age",
+   "kind": "test mistake"
+  },
+  {
+   "run": "reviewer probes on snapshot-1",
+   "result": "2 reproduced defects",
+   "what": "every journal write exception stored as a definite failure even when the append survived its failed rollback; an erased exchange's tombstone returned before the recording-target check",
+   "kind": "product defects found by independent review before any commit; fixed with regressions"
+  },
+  {
+   "run": "nodb-7",
+   "result": "3 failed, 123 passed, 16 skipped",
+   "what": "after those fixes: tests/test_host_delivery_journal.py::test_sync_failure_does_not_complete_the_turn matched the original error text, and two new tests mixed a test double's target with a real profile",
+   "kind": "the uncertain-admission error now keeps the original arguments; staged turns without a captured target are bound to the profile; test double corrected"
+  },
+  {
+   "run": "reviewer probe on snapshot-2",
+   "result": "1 reproduced defect",
+   "what": "erasing one owner dropped other owners' unsettled callbacks of a shared session",
+   "kind": "product defect found by independent review before any commit; fixed with a regression"
+  }
+ ],
+ "local_overhead_observation": {
+  "not_a_benchmark": true,
+  "what": "offline finish_turn in one session with a full 256-exchange ledger on this machine, 300 timed calls after 300 warm-up calls, two repetitions",
+  "median_ms_without_outcome_bookkeeping": [
+   4.913,
+   4.942
+  ],
+  "median_ms_with_outcome_bookkeeping": [
+   7.421,
+   7.36
+  ],
+  "ledger_bytes_without": 104633,
+  "ledger_bytes_with": 191020,
+  "note": "Measured on the first candidate before the review fixes; a capture-stamped target later replaced the truncated digest, so the ledger is somewhat larger. Not repeated."
+ }
+}

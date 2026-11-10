@@ -78,6 +78,35 @@ def _target(client):
                    http.headers.get("X-Memory-Recovery-Epoch") if http else None])
 
 
+def local_target(directory, user_id=None):
+    """The recording target (``_target``) the local profile resolves to for one owner, computed from local files
+    without contacting the service. None when no profile resolves (not installed yet, or unreadable)."""
+    import httpx
+
+    from .host import user_brain_id
+    from .local_profile import load_profile
+    from .recovery_profile import load_binding
+
+    try:
+        if not (Path(directory) / "profile.json").exists():
+            return None
+        profile = load_profile(directory)
+        binding = load_binding(profile)
+        # The same values a client opened on this profile sends (``MemoryClient`` and ``open_client``).
+        return digest([user_brain_id(user_id) if user_id is not None else profile.brain_id,
+                       str(httpx.URL(profile.base_url.rstrip("/") + "/")), f"Bearer {profile.api_key}",
+                       (binding["recovery_epoch"] or None) if binding else None])
+    except Exception:
+        return None
+
+
+def outcome_target(directory, user_id=None, recording=None):
+    """The target a recording outcome is bound to: the one the turn's capture was stamped with, else the one the
+    local profile resolves to now. Outcomes seen before any installation exists carry none."""
+    captured = recording.get("target") if isinstance(recording, dict) else None
+    return captured if isinstance(captured, str) else local_target(directory, user_id)
+
+
 def _valid(policy):
     return (isinstance(policy, dict) and type(policy.get("paused")) is bool
             and type(policy.get("revision")) is int and 0 <= policy["revision"] <= 2**53 - 1)

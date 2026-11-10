@@ -1,0 +1,31 @@
+{
+  "runtime_commit": "d6aa3d58dd098ed6fc4beeacc788f32806f5b253",
+  "pin_commit": "9a546fa8272b78046d4da8caa5cb96f5a6d9a6fe",
+  "build_id": "2f324016ad29a03fe11015b557e6915c4f337f3e21eee5ed902754699092afa7",
+  "checkout_build_id": "2f324016ad29a03fe11015b557e6915c4f337f3e21eee5ed902754699092afa7",
+  "schema_id": "65f39c3540715ba2fd40d3e0bad24c36143af1cceb27e2e560a813736fb28092",
+  "runtime_inputs": 214,
+  "runtime_inputs_matching_checkout": 214,
+  "wheel_parity": true,
+  "tested_build": {
+    "source": "pin commit 9a546fa8 with an empty working-tree diff; the build the extracted-wheel regression and the live run used",
+    "wheel": "membrain_ai-0.1.0-py3-none-any.whl",
+    "wheel_sha256": "8937b9a98685b7d99cb4e4a3949c02abca6f563cf746ab59e56cdc1bb2be0aad",
+    "sdist": "membrain_ai-0.1.0.tar.gz",
+    "sdist_sha256": "d8de1e0773ec0fadc22af1ea15201dc975f012dcdfd6f95cce864049b285f85e"
+  },
+  "head_build": {
+    "source": "evidence commit 31f6d359 (pin commit plus README status notes, release checklist entry, evaluation report and evidence)",
+    "wheel": "membrain_ai-0.1.0-py3-none-any.whl",
+    "wheel_sha256": "f76b70e70d5184f4327dc7258446e0c0828533a0fceef188b8c172222fcf9e64",
+    "sdist": "membrain_ai-0.1.0.tar.gz",
+    "sdist_sha256": "1339d0786d1cf68ce61d275e01ee06a82910f4a16f26fff23c8c8c333a257ca4",
+    "package_files_compared": 224,
+    "package_files_differing_from_tested_build": [
+      "membrain_ai-0.1.0.dist-info/METADATA",
+      "membrain_ai-0.1.0.dist-info/RECORD"
+    ],
+    "difference_from_tested_build": "wheel metadata only (README long description); every runtime file is byte-identical"
+  },
+  "later_heads": "A commit after 31f6d359 that changes only files under evaluations/ is outside the wheel, so the wheel content and build identity are unchanged; it is inside the sdist, so a later sdist differs. Nothing was rebuilt for such commits."
+}

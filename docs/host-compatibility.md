@@ -46,6 +46,19 @@ memBrain cannot withdraw text already supplied to a model, or erase a host's ind
 
 The [maturity matrix](../evaluations/maturity-test-matrix.md), [release checklist](releasing.md) and dated evidence reports determine release readiness. This inventory does not waive any open gate.
 
+## Recording outcomes
+
+Whether an exchange reached memory can be [looked up afterwards](reference.md#looking-up-a-recording-outcome) on every host that records through the shared host layer. The result is the last observation with its age: server-confirmed, locally queued (not yet confirmed), excluded with the policy's reason and scope, failed, or unknown. It is not a statement about chat delivery or about current controls, and a lookup never stores, retries or sends anything.
+
+| Integration | Surfaced as |
+| --- | --- |
+| Claude Code / Codex / WorkBuddy / CodeBuddy / OpenClaw hooks | `membrain plugin outcome` by session and turn ID, or a listing of recent exchanges; hook output is unchanged |
+| OpenAI-compatible proxy | `X-Membrain-Exchange` response header; `GET /v1/membrain/recording-outcomes[/{exchange}]` for the same token and person |
+| Hermes | `membrain_recording_status` tool and `MembrainProvider.recording_outcomes()` |
+| AstrBot / `ChatMemory` | `ChatMemory.outcome()` and `recent_outcomes()`; the returned receipt and the AstrBot warning are unchanged |
+
+Outcomes are kept in the local session ledger for the last 256 exchanges of a session and 14 days, scoped to their owner and recording target, and removed by host-level erasure. Standalone MCP, raw HTTP/SDK writes and the direct `BrainRuntime`/`open_agent` path do not use this ledger; the runtime's own turn and delivery receipts remain separate. This was exercised with interface stubs, a real local service and real hook and CLI processes on WSL2 Linux, not inside native host applications; see the [validation report](../evaluations/backend-host-recording-outcome-query-2026-11-10.md).
+
 ## Concurrent host callbacks
 
 The host ledger now matches user, producer and turn identity, including out-of-order replies. Context refresh leaves active inputs staged. Supplied proxy session headers are bound to the user, group and character. Hosts should supply a stable turn ID and the same user on both callbacks. Missing IDs support only unambiguous pairing; identical overlapping prompts are excluded.
