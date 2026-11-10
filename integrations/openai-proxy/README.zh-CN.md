@@ -66,6 +66,17 @@ export MEMBRAIN_PROXY_TOKENS="$(python3 -c 'import secrets; print(secrets.token_
 
 每一项是 `令牌:命名空间`。机器人指明的用户都限定在它自己的命名空间里，即使它在 `X-Membrain-Platform` 里填了别的平台也一样；没有指明用户的请求会被拒绝，而不是落进一份共享的记忆。
 
+## 查询一轮对话是否已记录
+
+每个聊天补全的响应都带有 `X-Membrain-Exchange` 响应头，响应正文不变。用同样的令牌和用户身份向代理查询：
+
+```bash
+curl -H "X-Membrain-User: 12345" http://127.0.0.1:8790/v1/membrain/recording-outcomes/<exchange>
+curl -H "X-Membrain-User: 12345" http://127.0.0.1:8790/v1/membrain/recording-outcomes   # 当前会话最近的几轮
+```
+
+请带上与聊天请求相同的 `X-Membrain-Platform`、`X-Membrain-Group`、`X-Membrain-Roleplay` 和 `X-Membrain-Session` 请求头（用户也可以用 `?user=` 指定）。每条消息的结果是 `recorded`（记忆服务已确认保存）、`queued`（已保存在本机，服务端是否保存尚未确认）、`excluded`（因暂停或策略未记录，并给出范围）、`failed` 或 `unknown`，同时给出观察到该结果的时间；流式回复在流结束前为 `awaiting_completion`。这是最后一次观察到的结果，不是实时检查，也不说明你的机器人是否把回复发了出去。查询别人的或另一个令牌的对话会得到 404，与从未存在的对话没有区别。查询只读取本机记录：不会保存、重试任何内容，也不会请求模型服务。如果某个说话人的内容本来就不记录（例如关闭了群聊记录），响应里不会有这个响应头。运营者也可以运行 `membrain plugin outcome --platform <平台> --user <用户>`。细节与保留期限见[参考文档](../../docs/reference.md#looking-up-a-recording-outcome)。
+
 ## 删除或导出某一个人的记忆
 
 `membrain plugin export-user` 和 `membrain plugin forget-user` 按代理看到的身份指定这个人：`--platform` 是 `X-Membrain-Platform` 的值（默认 `api`；使用 `MEMBRAIN_PROXY_TOKENS` 时是 `命名空间/平台`），`--user` 是请求里的 `user`。群的记忆再加上 `--group`。

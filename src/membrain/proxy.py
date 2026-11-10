@@ -5,6 +5,12 @@ chat completion the proxy adds the person's memory, fenced as historical data, t
 (not as a system message, so remembered text never gets the authority of the bot's own instructions), forwards
 the request upstream (streaming or not), and stores the message and the reply. Everything else is passed through.
 
+Each chat completion answer carries an ``X-Membrain-Exchange`` header naming the exchange; the body is unchanged.
+``GET /membrain/recording-outcomes/{exchange}`` (same token and person headers) returns its retained recording
+outcome, and ``GET /membrain/recording-outcomes`` lists the person's recent exchanges in the current session. These
+read local receipts only (``membrain.host_outcomes``): they never store, replay or call the provider, and they say
+nothing about whether the bot delivered the reply.
+
 People are told apart by the request's ``user`` field or the ``X-Membrain-User`` header (with optional
 ``X-Membrain-Platform`` and ``X-Membrain-Group``); requests without either share one memory.
 ``X-Membrain-Roleplay: <character>`` keeps a role-play's memory apart from real life; ``X-Membrain-Share-Real-Life: 1``
@@ -31,6 +37,7 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse, Response, StreamingResponse
 
+from . import host_outcomes
 from .adapters.chatbot import ChatMemory, Speaker
 
 PRODUCER = "membrain-proxy"
@@ -39,6 +46,8 @@ MAX_BODY_BYTES = 32 * 1024 * 1024  # Generous for pasted documents and inline im
 LOOPBACK_HOSTS = frozenset({"localhost", "127.0.0.1", "::1"})
 _LOOPBACK_ORIGIN = r"https?://(localhost|127\.0\.0\.1|\[::1\])(:\d+)?"
 _FORWARDED = ("content-type", "accept", "openai-organization", "openai-project", "anthropic-version")
+EXCHANGE_HEADER = "X-Membrain-Exchange"
+OUTCOMES_PATH = ("membrain", "recording-outcomes")  # Answered by the proxy itself, never forwarded upstream.
 _logger = logging.getLogger("membrain.proxy")
 
 
@@ -123,7 +132,8 @@ def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | N
     # Browser front ends that call the proxy directly need CORS answers; the guard below runs first and refuses
     # every origin that is neither this computer nor listed.
     app.add_middleware(CORSMiddleware, allow_origins=sorted(origins), allow_origin_regex=_LOOPBACK_ORIGIN,
-                       allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["*"], max_age=600)
+                       allow_methods=["GET", "POST", "OPTIONS"], allow_headers=["*"], max_age=600,
+                       expose_headers=[EXCHANGE_HEADER])
 
     @app.middleware("http")
     async def guard(request: Request, call_next):
@@ -197,7 +207,14 @@ def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | N
         session = (memory.bound_session(person, session, roleplay=roleplay) if session else memory.session(
             person, f"roleplay:{roleplay}" if roleplay else None))
         turn, prompt = uuid.uuid4().hex[:20], _text(messages[index]["content"]) if index is not None else ""
+        named = {}
         if prompt.strip():
+            try:
+                # The handle of this exchange's recording outcome; absent when the adapter records nothing for it.
+                exchange = memory.exchange(person, session=session, turn_id=turn, roleplay=roleplay)
+                named = {EXCHANGE_HEADER: exchange} if exchange else {}
+            except Exception as error:
+                _logger.warning("exchange handle unavailable: %s", type(error).__name__)
             try:
                 block = await asyncio.to_thread(memory.context, person, prompt, session=session, turn_id=turn,
                                                 roleplay=roleplay, share_real_life=share)
@@ -228,7 +245,7 @@ def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | N
                 except (ValueError, KeyError, IndexError, TypeError, AttributeError):
                     pass
             return Response(response.content, response.status_code,
-                            media_type=response.headers.get("content-type"))
+                            media_type=response.headers.get("content-type"), headers=named)
         response = await client.send(outgoing, stream=True)
 
         async def relay():
@@ -247,8 +264,38 @@ def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | N
                 await response.aclose()
             await store("".join(parts))
 
-        return StreamingResponse(relay(), response.status_code,
+        return StreamingResponse(relay(), response.status_code, headers=named,
                                  media_type=response.headers.get("content-type", "text/event-stream"))
+
+    async def outcomes(request: Request, exchange: str | None) -> Response:
+        """One exchange's retained recording outcome, or the person's recent ones in the current session."""
+        auth = authorize(request)
+        if auth is None:
+            return _error(401, "Invalid proxy token.")
+        person = speaker(request, {"user": request.query_params.get("user")}, auth[1])
+        if person is None:
+            return _error(400, "Name the person with the user query parameter or the X-Membrain-User header.")
+        roleplay = " ".join(request.headers.get("x-membrain-roleplay", "").split())[:80] or None
+        try:
+            if exchange is not None:
+                result = await asyncio.to_thread(memory.outcome, person, exchange=exchange, roleplay=roleplay)
+            else:
+                try:
+                    limit = int(request.query_params.get("limit", "10"))
+                except ValueError:
+                    return _error(400, "limit must be an integer.")
+                session = request.headers.get("x-membrain-session")
+                session = (memory.bound_session(person, session, roleplay=roleplay) if session else memory.session(
+                    person, f"roleplay:{roleplay}" if roleplay else None))
+                result = await asyncio.to_thread(memory.recent_outcomes, person, session=session, roleplay=roleplay,
+                                                 limit=limit)
+        except ValueError as error:
+            return _error(400, str(error))
+        except Exception as error:  # A failed read is reported as such, never as a missing or successful outcome.
+            _logger.warning("recording outcome lookup failed: %s", type(error).__name__)
+            result = {"version": host_outcomes.VERSION, "status": "unavailable", "reason": "lookup_failed"}
+        status = {"not_found": 404, "unavailable": 503}.get(result.get("status"), 200)
+        return JSONResponse(result, status, headers={"Cache-Control": "no-store"})
 
     async def passthrough(request: Request, path: str, raw: bytes | None = None, forwarded: dict | None = None):
         if forwarded is None:
@@ -265,6 +312,9 @@ def create_proxy_app(memory: ChatMemory, upstream: str, *, upstream_key: str | N
     async def route(path: str, request: Request):
         if request.method == "POST" and path.strip("/").removeprefix("v1/") == "chat/completions":
             return await chat(request, path)
+        segments = tuple(path.strip("/").removeprefix("v1/").split("/"))
+        if request.method == "GET" and segments[:2] == OUTCOMES_PATH and len(segments) <= 3:
+            return await outcomes(request, segments[2] if len(segments) == 3 else None)
         return await passthrough(request, path)
 
     return app

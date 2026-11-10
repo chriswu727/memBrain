@@ -20,7 +20,7 @@ from contextlib import nullcontext
 from pathlib import Path
 from uuid import uuid4
 
-from . import host_queue, host_receipts, host_recording, host_turns
+from . import host_outcomes, host_queue, host_receipts, host_recording, host_turns
 from .helpers import digest
 from .local_profile import profile_lock
 from .privacy import PRIVATE_MARK, SECRET_MARK, neutralize, scrub  # noqa: F401
@@ -579,10 +579,11 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
                         entry.pop("note_capture", None)
                         entry["exclusion"] = host_receipts.exclusion("erased", "brain")
                         state["turns_require_staging"] = True
+                host_outcomes.forget(state, user_id)
                 if state.get("user_id") == user_id:
                     state["turns_require_staging"] = True
                     state = {key: value for key, value in state.items()
-                             if key in ("turns", "turns_managed", "turns_require_staging")}
+                             if key in ("turns", "turns_managed", "turns_require_staging", "callbacks")}
                 host_turns.compact(state)
                 _write_session_marker(path, state)
     return {"erased": response.get("outcome"), "queued_records_dropped": dropped}
@@ -780,6 +781,10 @@ SPOOL_BYTES = 64 * 1024 * 1024  # Weeks of messages; beyond this the service has
 REJECTED_BYTES = 4 * 1024 * 1024
 
 
+class JournalAdmissionUncertain(OSError):
+    """A journal append failed and could not be rolled back: its records may still be replayed."""
+
+
 def spool(directory: Path, record: dict) -> bool:
     return _spool_records(directory, [record])
 
@@ -813,13 +818,14 @@ def _spool_records(directory: Path, records: list[dict]) -> bool:
                 stream.flush()
                 os.fsync(stream.fileno())
                 _sync_spool_directory(path.parent)
-            except OSError:
+            except OSError as error:
                 try:
                     stream.truncate(size)
                     stream.flush()
                     os.fsync(stream.fileno())
                 except OSError:
-                    pass
+                    # The same error for callers; the outcome kept for this turn must not claim nothing was queued.
+                    raise JournalAdmissionUncertain(*error.args) from error
                 raise
     return True
 
@@ -938,6 +944,14 @@ def flush(client, directory: Path, *, rejected: set[str] | None = None,
                 offset, checksum, lines = host_queue.batch(path, max_records)
             initial, delivered, current = offset, 0, client.brain_id
             remove_private = False
+            observed = []
+
+            def note(identity, where, value):
+                if identity is not None:
+                    outcomes.setdefault(identity, value)
+                if where is not None:
+                    observed.append((where, value))
+
             try:
                 for encoded in lines:
                     if offset > initial and time.monotonic() >= deadline:
@@ -955,6 +969,7 @@ def flush(client, directory: Path, *, rejected: set[str] | None = None,
                                     identity = digest([record])
                                 except (ValueError, TypeError):
                                     pass
+                            where = host_outcomes.reference(record)
                             try:
                                 if not isinstance(record, dict):
                                     raise TypeError("A queued observation must be an object.")
@@ -965,9 +980,8 @@ def flush(client, directory: Path, *, rejected: set[str] | None = None,
                                 response = host_recording.observe(client, record)
                             except Exception as error:
                                 if not _permanent(error):
-                                    if identity is not None:
-                                        # The request may have committed before its answer was lost.
-                                        outcomes.setdefault(identity, {"state": "transient"})
+                                    # The request may have committed before its answer was lost.
+                                    note(identity, where, {"state": "transient"})
                                     raise
                                 if rejected is not None:
                                     try:
@@ -975,34 +989,53 @@ def flush(client, directory: Path, *, rejected: set[str] | None = None,
                                     except ValueError:
                                         pass
                                 if _recording_rejected(error):
-                                    if identity is not None:
-                                        outcomes.setdefault(identity, {"state": "policy",
-                                                                       "exclusion": _rejected_exclusion(error)})
+                                    note(identity, where, {"state": "policy", "exclusion": _rejected_exclusion(error)})
                                     _discard_recording(directory, record, _rejected_exclusion(error))
                                     remove_private = True
                                 else:
-                                    if identity is not None:
-                                        outcomes.setdefault(identity, {"state": "rejected", "code": _error_code(error)})
+                                    note(identity, where, {"state": "rejected", "code": _error_code(error)})
                                     _reject(directory, line, error)
                             else:
-                                if identity is not None:
-                                    # Replay still treats any successful answer as delivered (legacy clients and
-                                    # doubles return none), but only a confirming receipt counts as recorded.
-                                    confirmed = _confirmed(response)
-                                    outcomes.setdefault(identity, {"state": "recorded", **confirmed}
-                                                        if confirmed else {"state": "unconfirmed"})
+                                # Replay still treats any successful answer as delivered (legacy clients and
+                                # doubles return none), but only a confirming receipt counts as recorded.
+                                confirmed = _confirmed(response)
+                                note(identity, where, {"state": "recorded", **confirmed}
+                                     if confirmed else {"state": "unconfirmed"})
                         delivered += 1
                     checksum.update(encoded)
                     offset += len(encoded)
             finally:
                 client.brain_id = current
-                with profile_lock(state_directory(directory) / "spool-write-lock", timeout=5):
-                    if offset != initial:
-                        host_queue.acknowledge(path, offset, checksum)
-                    host_queue.compact(path, offset, force=remove_private)
+                try:
+                    # Before the checkpoint, so an interruption replays the record instead of losing what was seen.
+                    _keep_observations(directory, observed)
+                finally:
+                    with profile_lock(state_directory(directory) / "spool-write-lock", timeout=5):
+                        if offset != initial:
+                            host_queue.acknowledge(path, offset, checksum)
+                        host_queue.compact(path, offset, force=remove_private)
             return delivered
     except LocalProfileBusy:
         return 0
+
+
+def _keep_observations(directory: Path, observed: list) -> None:
+    """Add what a replay saw to the queryable outcomes of the exchanges it reached. Bookkeeping only: a failure
+    leaves the earlier observation in place and never stops the journal from acknowledging the service's answer."""
+    if not observed:
+        return
+    try:
+        targets = {}
+
+        def target_of(owner):
+            if owner not in targets:
+                targets[owner] = host_recording.local_target(directory, owner)
+            return targets[owner]
+
+        messages = [(where, _observed_message(where["role"], None, value)) for where, value in observed]
+        host_outcomes.observe(directory, [item for item in messages if item[1] is not None], target_of)
+    except Exception as error:
+        log(directory, f"recording outcome not updated: {type(error).__name__}")
 
 
 def deliver(directory: Path, client, record: dict) -> bool:
@@ -1079,7 +1112,8 @@ def _mark_history(directory: Path, session: str, complete: bool, brain_id: str |
         state = session_state(directory, session)
         _write_session_state(directory, session, {"complete": complete, "history_brain": brain_id, **{
             key: state[key] for key in ("pending", "user_id", "paused_turn", "paused_at", "resumed_turn",
-                                        "turns", "turns_managed", "turns_require_staging") if key in state}})
+                                        "turns", "turns_managed", "turns_require_staging", "callbacks")
+            if key in state}})
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         cutoff = time.time() - SESSION_MARKER_SECONDS
         for old in _session_marker(directory, session).parent.glob("*.json"):
@@ -1217,6 +1251,11 @@ def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: b
             raise
         state["user_id"] = record.get("_user")
         entry = state["turns"][host_turns.key(record)]
+        if not entry.get("done") and host_outcomes.bound(entry) is None:
+            # A capture stamped without a policy target is still this profile's turn: its lookup is bound to it.
+            target = host_recording.local_target(directory, record.get("_user"))
+            if target is not None:
+                entry["bound"] = target
         if not entry.get("done") and entry.get("paused"):
             # The cause that excluded the turn, for its completion receipt; the strongest exclusion wins.
             if cause is not None and entry["paused"] == exclusion:
@@ -1241,10 +1280,27 @@ def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: b
 
 def _take_turn(directory: Path, session: str, *, user_id: str | None, producer: str,
                turn_id: str | None, prompt: dict | None, reply: str | None,
-               allow_unstaged: bool, outcome: dict | None = None) -> tuple[list[dict], str | None, bool]:
+               allow_unstaged: bool, outcome: dict | None = None,
+               client=None) -> tuple[list[dict], str | None, bool]:
     report = outcome if outcome is not None else {}
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         state = session_state(directory, session)
+
+        def keep(ledger, records, reason=None):
+            # What this callback observed before any replay, kept with the turn for later lookup.
+            _keep_outcome(directory, session, ledger, owner=owner, producer=producer, turn_id=turn_id,
+                          supplied=prompt, reply=reply, records=records, client=client,
+                          report={**report, "reason": reason} if reason else report)
+
+        def refused(reason):
+            # The staged turn stays as stored for a retry, so only the refusal is added to the ledger on disk.
+            try:
+                ledger = host_outcomes.stored_ledger(_session_marker(directory, session))
+                keep(ledger, [], reason)
+                _write_session_state(directory, session, ledger)
+            except Exception as error:
+                log(directory, f"recording outcome not kept: {type(error).__name__}")
+
         valid_id = isinstance(turn_id, str) and 1 <= len(turn_id) <= 120
         source = _source_key(session, turn_id, "user") if valid_id else None
         legacy_source = f"{session}:{turn_id}:user" if valid_id else None
@@ -1257,6 +1313,11 @@ def _take_turn(directory: Path, session: str, *, user_id: str | None, producer: 
             report["exclusion"] = _stored_exclusion({"exclusion": report.get("exclusion"),
                                                      "paused": report.pop("paused", None)})
         report["source"] = host_receipts.source(pending if pending is not None else report.get("source"))
+        if (pending is None and report.get("reason") == "turn_not_staged" and prompt is not None
+                and requests_pause(prompt["text"])):
+            # A whole-turn callback whose own message asks not to be kept: a requested exclusion, not an unknown turn.
+            del report["reason"]
+            report["exclusion"] = _requested_pause(owner)
         records = []
         policy = host_recording.status(directory, user_id=owner) if pending is not None else None
         server_paused = pending is not None and policy["paused"]
@@ -1278,9 +1339,19 @@ def _take_turn(directory: Path, session: str, *, user_id: str | None, producer: 
                     response["_recording"] = dict(pending["_recording"])
                 records.append(response)
             # Persist the payload before the completion marker can remove its only staged copy.
-            if not _spool_records(directory, records):
+            try:
+                admitted = _spool_records(directory, records)
+            except JournalAdmissionUncertain:
+                refused("admission_unconfirmed")  # The records may be in the journal; a replay may still store them.
+                raise
+            except Exception:
+                refused("queue_write_failed")
+                raise
+            if not admitted:
                 report["reason"] = "queue_full"
+                refused("queue_full")
                 return [], owner, handled
+        keep(state, records)
         _write_session_state(directory, session, state)
         if server_paused:
             _discard_recording(directory, pending, _server_exclusion(policy))
@@ -1297,6 +1368,26 @@ def _replay_queued(directory: Path, client, records: list[dict], outcomes: dict 
     return [record for record in records if digest([record]) not in rejected]
 
 
+def _observed_message(role: str, reference: dict | None, outcome: dict) -> dict | None:
+    """The receipt entry for what a replay saw of one journal record; None when it did not reach the record."""
+    state = outcome.get("state")
+    if state == "recorded":
+        return host_receipts.message(role, reference, "recorded", event_id=outcome["event_id"],
+                                     duplicate=outcome["duplicate"])
+    if state == "unconfirmed":
+        # Answered without an observation receipt; replay has already released its queued copy.
+        return host_receipts.message(role, reference, "unknown", "confirmation_missing")
+    if state == "policy":
+        cause = outcome["exclusion"]
+        return host_receipts.message(role, reference, "excluded", cause["reason"], scope=cause["scope"],
+                                     **{key: cause.get(key) for key in host_receipts.STORED})
+    if state == "rejected":
+        return host_receipts.message(role, reference, "failed", "rejected", code=outcome["code"], retryable=False)
+    if state == "transient":  # Interrupted mid-request: the server may already hold it.
+        return host_receipts.message(role, reference, "queued", "server_outcome_unknown")
+    return None
+
+
 def _message_receipt(record: dict, client, outcomes: dict) -> dict:
     reference = host_receipts.source(record)
     if client is None:
@@ -1305,24 +1396,25 @@ def _message_receipt(record: dict, client, outcomes: dict) -> dict:
         outcome = outcomes.get(digest([record]), {})
     except (ValueError, TypeError):
         outcome = {}
-    state = outcome.get("state")
-    if state == "recorded":
-        return host_receipts.message(record["role"], reference, "recorded", event_id=outcome["event_id"],
-                                     duplicate=outcome["duplicate"])
-    if state == "unconfirmed":
-        # Answered without an observation receipt; replay has already released its queued copy.
-        return host_receipts.message(record["role"], reference, "unknown", "confirmation_missing")
-    if state == "policy":
-        cause = outcome["exclusion"]
-        return host_receipts.message(record["role"], reference, "excluded", cause["reason"], scope=cause["scope"],
-                                     **{key: cause.get(key) for key in host_receipts.STORED})
-    if state == "rejected":
-        return host_receipts.message(record["role"], reference, "failed", "rejected", code=outcome["code"],
-                                     retryable=False)
-    # Admitted to the journal, server storage unconfirmed: interrupted mid-request (the server may already hold it),
-    # or not observed by this call's bounded replay (another replay worker may already have drained it).
-    return host_receipts.message(record["role"], reference, "queued",
-                                 "server_outcome_unknown" if state == "transient" else "replay_not_observed")
+    # Admitted to the journal, server storage unconfirmed, when this call's bounded replay did not observe it
+    # (another replay worker may already have drained it).
+    return (_observed_message(record["role"], reference, outcome)
+            or host_receipts.message(record["role"], reference, "queued", "replay_not_observed"))
+
+
+def _keep_outcome(directory: Path, session: str, ledger: dict, *, owner: str | None, producer: str,
+                  turn_id: str | None, supplied: dict | None, reply: str | None, records: list[dict],
+                  report: dict, client, by: str = "callback") -> None:
+    """Add one callback's own observation to the session ledger the caller writes. Bookkeeping only: it never
+    fails the turn, and a turn without it is reported as having no retained outcome."""
+    try:
+        receipt = _turn_receipt(session, turn_id=turn_id, producer=producer, supplied=supplied, reply=reply,
+                                records=records, report=report, client=client, outcomes={})
+        host_outcomes.settle(
+            ledger, owner=owner, producer=producer, receipt=receipt, reason=report.get("reason"), now=time.time(),
+            by=by, target_of=lambda recording: host_recording.outcome_target(directory, owner, recording))
+    except Exception as error:
+        log(directory, f"recording outcome not kept: {type(error).__name__}")
 
 
 def _turn_receipt(session: str, *, turn_id: str | None, producer: str, supplied: dict | None, reply: str | None,
@@ -1342,8 +1434,8 @@ def _turn_receipt(session: str, *, turn_id: str | None, producer: str, supplied:
         cause = report["exclusion"]
         state, reason = "excluded", cause["reason"]
         details = {"scope": cause["scope"], **{key: cause.get(key) for key in host_receipts.STORED}}
-    elif report.get("reason") == "queue_full":
-        state, reason, details = "failed", "queue_full", {"retryable": True}  # The stage is kept for a retry.
+    elif report.get("reason") in ("queue_full", "queue_write_failed"):
+        state, reason, details = "failed", report["reason"], {"retryable": True}  # The stage is kept for a retry.
     elif report.get("reason") == "message_unavailable":
         state, reason, details = "failed", "message_unavailable", {"retryable": False}
     else:
@@ -1764,12 +1856,24 @@ def _finish_abandoned(directory: Path, client) -> int:
                 if not entry.get("done") and entry.get("started", 0) <= cutoff:
                     if isinstance(entry.get("record"), dict):
                         record = {**entry["record"], "text": scrub(entry["record"]["text"])}
-                        if paused(directory, entry["owner"]) or host_recording.status(directory, user_id=entry["owner"])["paused"]:
+                        report = {"source": host_receipts.source(record)}
+                        if paused(directory, entry["owner"]):
+                            report["exclusion"] = _local_pause_cause(directory, entry["owner"])
+                        else:
+                            policy = host_recording.status(directory, user_id=entry["owner"])
+                            if policy["paused"]:
+                                report["exclusion"] = _server_exclusion(policy)
+                        if "exclusion" in report:
                             discarded.append(record)
                         elif _spool_records(directory, [record]):
                             pending.append(record)
                         else:
                             continue
+                        # The reply never arrived: only the user's message has an outcome.
+                        _keep_outcome(directory, record["conversation_id"], state, owner=entry["owner"],
+                                      producer=record["producer_ref"], turn_id=None, supplied=None, reply=None,
+                                      records=[] if "exclusion" in report else [record], report=report,
+                                      client=client, by="recovery")
                     host_turns.complete(entry)
                     changed = True
             if changed:
@@ -1963,7 +2067,7 @@ def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: st
         report, outcomes = {}, ({} if receipt is not None else None)
         records, staged_user, exclusion_handled = _take_turn(
             directory, session, user_id=user_id, producer=producer, turn_id=turn_id,
-            prompt=supplied, reply=reply, allow_unstaged=allow_unstaged, outcome=report)
+            prompt=supplied, reply=reply, allow_unstaged=allow_unstaged, outcome=report, client=client)
         if user_id is None:
             user_id = staged_user
         if explicit_pause and not exclusion_handled:

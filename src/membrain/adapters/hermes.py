@@ -3,7 +3,8 @@
 Enable it with ``memory.provider: membrain`` in Hermes's ``config.yaml`` (or ``hermes memory setup``). The provider
 maps Hermes's lifecycle onto ``membrain.host``: the static system-prompt block carries the session notice, saved notes
 and recent history; ``prefetch`` returns related earlier messages for the turn (Hermes fences it as memory context);
-``sync_turn`` stores the user message and reply together; and ``on_memory_write`` mirrors writes to Hermes's built-in
+``sync_turn`` stores the user message and reply together and keeps the exchange's recording outcome, which the
+``membrain_recording_status`` tool and ``recording_outcomes`` read back; and ``on_memory_write`` mirrors writes to Hermes's built-in
 ``MEMORY.md`` / ``USER.md`` into memBrain notes. Memory is shared with other hosts using the same installation, so
 the same person is remembered in Claude Code and Hermes alike.
 
@@ -19,7 +20,7 @@ import os
 from pathlib import Path
 from typing import Any
 
-from .. import host, host_recording
+from .. import host, host_outcomes, host_receipts, host_recording
 from ..host_recording import CAPTURE_FIELD
 from ..notes import NOTE_FIELDS, NOTE_TOOL_DESCRIPTION, SOURCE_FIELD
 from ..relationship import BOUNDARY_TOOL_DESCRIPTION
@@ -50,7 +51,15 @@ _SCHEMAS = [
                                                     "until_resumed": {"type": "boolean"}}}},
     {"name": "membrain_resume", "description": "Resume this local capture control when the user asks. Check the returned recording state and scopes; other controls may still block capture. This does not confirm message storage.",
      "parameters": {"type": "object", "properties": {}}},
+    {"name": "membrain_recording_status", "description": (
+        "When the user asks whether recent messages of this conversation were kept in memory, report their recording "
+        "outcomes: recorded (the memory service confirmed storage), queued (saved locally, server storage not yet "
+        "confirmed), excluded (a pause or policy, with its scope), failed or unknown. Each result is the last "
+        "observation with its age, not a live check. It reads local receipts only and never stores, retries or "
+        "sends anything."),
+     "parameters": {"type": "object", "properties": {"limit": {"type": "integer", "minimum": 1, "maximum": 20}}}},
 ]
+_READ_ONLY_TOOLS = ("membrain_search",)
 
 
 def _settings(hermes_home: str | None) -> dict:
@@ -175,16 +184,28 @@ class MembrainProvider(_Base):
                   messages: list[dict[str, Any]] | None = None, **kwargs) -> None:
         if self._directory is None or not self._writes:
             return
+        receipt = {}
         host.finish_turn(self._directory, session_id or self._session, assistant_content, prompt=user_content,
                          allow_unstaged=True,
-                         producer=PRODUCER, user_id=self._user)
+                         producer=PRODUCER, user_id=self._user, receipt=receipt)
+        if host_receipts.needs_attention(receipt):
+            # States and reasons only; the outcome itself stays queryable through recording_outcomes.
+            host.log(self._directory, "recording outcome needs attention: " + host_receipts.summary(receipt))
+
+    def recording_outcomes(self, *, session_id: str = "", limit: int = 5) -> dict:
+        """The most recent exchanges of a session with their retained recording outcomes (``host_outcomes``), for
+        this session's person only. A local read: nothing is stored, replayed or sent."""
+        if self._directory is None:
+            return {"version": host_outcomes.VERSION, "exchanges": []}
+        return host_outcomes.recent(self._directory, session=session_id or self._session, producer=PRODUCER,
+                                    user_id=self._user, limit=limit)
 
     def on_session_switch(self, new_session_id: str, *, parent_session_id: str = "", reset: bool = False,
                           rewound: bool = False, **kwargs) -> None:
         self._session = new_session_id or self._session
 
     def get_tool_schemas(self) -> list[dict[str, Any]]:
-        return [schema for schema in _SCHEMAS if self._writes or schema["name"] == "membrain_search"]
+        return [schema for schema in _SCHEMAS if self._writes or schema["name"] in _READ_ONLY_TOOLS]
 
     def handle_tool_call(self, tool_name: str, args: dict[str, Any], **kwargs) -> str:
         from ..host_recording import save_note
@@ -199,6 +220,9 @@ class MembrainProvider(_Base):
             if tool_name == "membrain_resume":
                 return json.dumps(host_recording.resume(self._directory, user_id=self._user, current_turn=True,
                                               session=self._session or None))
+            if tool_name == "membrain_recording_status":
+                limit = args.get("limit")
+                return json.dumps(self.recording_outcomes(limit=limit if type(limit) is int else 5))
             if tool_name == "membrain_note" and host.paused(self._directory, self._user):
                 return json.dumps({"error": "Recording is paused. Resume before saving agent notes."})
             client = host.ready_client(self._directory, self._user)

@@ -5,9 +5,12 @@ A receipt says what this call observed, when it returns, about keeping each mess
 journal was confirmed but server storage is unconfirmed: a request whose answer was lost may already be committed,
 and another replay worker may drain the journal before the callback returns. It is not a live queue-membership
 query. ``excluded`` names the policy that kept it out and that policy's scope. ``failed`` is a definite recording or
-admission failure with its reason: ``queue_full`` (journal admission refused), ``rejected`` (admitted, then
-permanently refused and set aside; a failed checkpoint write can leave the journal copy) or ``message_unavailable``.
-``unknown`` means this call cannot tell. A receipt never says whether a chat platform delivered the reply: that is a
+admission failure with its reason: ``queue_full`` (journal admission refused), ``queue_write_failed`` (the journal
+write failed and was rolled back), ``rejected`` (admitted, then permanently refused and set aside; a failed
+checkpoint write can leave the journal copy) or ``message_unavailable``. ``unknown`` means this call cannot tell;
+``admission_unconfirmed`` is a journal write that failed and could not be rolled back, so its records may still be
+replayed. A callback whose journal write fails raises, so those two reasons appear only in the retained outcome
+(``host_outcomes``). A receipt never says whether a chat platform delivered the reply: that is a
 separate fact (``DeliveryReceipt`` in the runtime). Receipts carry source references, never text.
 """
 
@@ -19,9 +22,9 @@ REASONS = {
     "queued": frozenset({"service_unavailable", "replay_not_observed", "server_outcome_unknown"}),
     "excluded": frozenset({"server_paused", "capture_stale", "local_pause", "pause_requested",
                            "turn_identity_conflict", "erased", "group_recording_disabled", "speaker_unidentified"}),
-    "failed": frozenset({"queue_full", "rejected", "message_unavailable"}),
+    "failed": frozenset({"queue_full", "queue_write_failed", "rejected", "message_unavailable"}),
     "unknown": frozenset({"turn_not_staged", "turn_ambiguous", "turn_already_finished", "turn_mismatch",
-                          "confirmation_missing"}),
+                          "confirmation_missing", "admission_unconfirmed"}),
 }
 STATES = tuple(REASONS)
 SCOPES = frozenset({"brain", "installation", "user", "conversation", "local", "turn", "adapter"})

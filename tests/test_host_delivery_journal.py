@@ -158,9 +158,10 @@ def test_abandoned_turn_is_queued_before_its_staging_copy_is_removed(tmp_path, m
             write(path, state)
             raise SystemExit("after abandoned turn completion")
 
-        monkeypatch.setattr(host, "_write_session_marker", crash)
-        with pytest.raises(SystemExit):
-            host._finish_abandoned(tmp_path, Client())
+        with monkeypatch.context() as crashing:  # Only the interrupted process crashes; replay is a later one.
+            crashing.setattr(host, "_write_session_marker", crash)
+            with pytest.raises(SystemExit):
+                host._finish_abandoned(tmp_path, Client())
         client = Client()
         assert host.flush(client, tmp_path) == 1
         assert [r["text"] for r in client.observed] == ["Unanswered"]
