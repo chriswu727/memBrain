@@ -409,7 +409,8 @@ class SessionRunner:
                                              conversation_id=session["conversation_id"])
                     row = runtime.journal.get(result.turn_id)
                     sources = runtime.journal.sources(result.turn_id)
-                    self.journal.append("runtime_completed", {"result": asdict(result), "runtime": row,
+                    # The journal accepts JSON data only; a result carries its temporary causes as a tuple.
+                    self.journal.append("runtime_completed", {"result": json_data(asdict(result)), "runtime": row,
                                                                "sources": sources,
                                                                "elapsed_seconds": time.monotonic() - foreground_started})
                     if result.stage != "completed":

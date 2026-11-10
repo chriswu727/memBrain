@@ -136,6 +136,8 @@ class EphemeralBegin(RuntimeBody):
     branch_id: RuntimeIdentifier
     expected_recording_revision: Annotated[int, Field(ge=0, lt=2**63)]
     review_policy: RuntimeFingerprint | None = None
+    # An explicit request for one unrecorded turn while the brain's recording stays enabled.
+    off_record: bool | None = None
 
 
 class RecordingControl(RuntimeBody):

@@ -1,0 +1,57 @@
+Database: ('PostgreSQL 16.15 on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit', '0.8.6')
+F                                                                        [100%]
+=================================== FAILURES ===================================
+______ test_device_pause_resume_pause_ends_the_previous_temporary_context ______
+
+system = namespace(memory=<membrain.client.MemoryClient object at 0x739cb8f53680>, profile=DesktopProfile(directory=PosixPath('...36269cf1-747a-4cd8-9817-5fac1d21dc35/recording', b'')], transport=<function system.<locals>.forward at 0x739cb8f36ac0>)
+
+    def test_device_pause_resume_pause_ends_the_previous_temporary_context(system):
+        prompts = []
+        with session(system, generate=lambda request: prompts.append(request) or "synthetic-reply") as agent:
+            host.pause(system.profile.directory, hours=1)
+            first = agent.respond("private-before-device-policy-cycle", message_id="before-cycle")
+            assert first.ephemeral
+            server_before = system.memory.recording_status()
+            host.resume(system.profile.directory)
+            host.pause(system.profile.directory, hours=1)
+            second = agent.respond("fresh-temporary-segment", message_id="after-cycle")
+            assert second.ephemeral
+            assert system.memory.recording_status() == server_before
+>           assert "private-before-device-policy-cycle" not in json.dumps(prompts[-1].messages)
+E           assert 'private-bef...policy-cycle' not in '[{"role": "...y-segment"}]'
+E             
+E             'private-before-device-policy-cycle' is contained here:
+E               ontent": "private-before-device-policy-cycle"}, {"role": "assistant", "content": "synthetic-reply"}, {"role": "user", "content": "fresh-temporary-segment"}]
+E             ?           ++++++++++++++++++++++++++++++++++
+
+../../.local/state/membrain-setup/direct-privacy-review-20261110/test_policy_cycle.py:22: AssertionError
+=============================== warnings summary ===============================
+tests/test_ephemeral_chat.py:27
+  <repo>/tests/test_ephemeral_chat.py:27: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytestmark = pytest.mark.integration
+
+tests/test_direct_chat_privacy.py:28
+  <repo>/tests/test_direct_chat_privacy.py:28: PytestUnknownMarkWarning: Unknown pytest.mark.integration - is this a typo?  You can register custom marks to avoid this warning - for details, see https://docs.pytest.org/en/stable/how-to/mark.html
+    pytestmark = pytest.mark.integration
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ============================
+FAILED ../../.local/state/membrain-setup/direct-privacy-review-20261110/test_policy_cycle.py::test_device_pause_resume_pause_ends_the_previous_temporary_context
+1 failed, 2 warnings in 0.69s
+{
+  "scope": "WSL2 Linux focused checks; not Windows or macOS qualification",
+  "run": "codex-policy-cycle-1",
+  "arguments": [
+    "<review-root>/test_policy_cycle.py",
+    "-q"
+  ],
+  "source_head": "788da00fe4758935a5d7a49f401a4ba462139b27",
+  "source_diff_sha256": "9d9402032849261bdc8f548c13c1895ba82f820ef566d2336709f316ebc40626",
+  "database": [
+    "PostgreSQL 16.15 on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit",
+    "0.8.6"
+  ],
+  "pytest_exit": 1,
+  "database_stopped": true,
+  "source_unchanged_during_run": true
+}

@@ -34,11 +34,17 @@ class RuntimeClient:
             "branch_id": branch_id, "input_fingerprint": input_fingerprint,
         })
 
-    def begin_ephemeral(self, *, turn_id, conversation_id, branch_id, expected_recording_revision, review_policy=None):
-        return self.memory._request("POST", self._path().removesuffix("turns") + "ephemeral-turns", json={
+    def begin_ephemeral(self, *, turn_id, conversation_id, branch_id, expected_recording_revision, review_policy=None,
+                        off_record=False):
+        body = {
             "turn_id": turn_id, "conversation_id": conversation_id, "branch_id": branch_id,
             "expected_recording_revision": expected_recording_revision, "review_policy": review_policy,
-        })
+        }
+        if off_record:
+            # Sent only when needed: a service without explicit off-record support rejects the unknown field, so
+            # the request fails before any model call instead of being recorded.
+            body["off_record"] = True
+        return self.memory._request("POST", self._path().removesuffix("turns") + "ephemeral-turns", json=body)
 
     def advance_ephemeral(self, turn_id, *, lease_token, expected_revision, stage, delivery_state=None):
         return self._post(turn_id, "ephemeral-advance", lease_token=lease_token,

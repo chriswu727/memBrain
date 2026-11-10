@@ -12,7 +12,7 @@ from test_learning import learning as learning
 from test_semantic import encoded, proposals, verifier
 from test_semantic_call_usage import Provider
 
-from membrain.runtime import ModelRequest
+from membrain.runtime import ModelRequest, TemporaryCause
 from membrain.semantic import SemanticProcessor
 
 
@@ -278,6 +278,9 @@ def test_actual_http_sessions_preserve_context_and_resume_without_repeating_paid
                                          meter, host, actor).run(sessions=1)
         assert first["state"] == "paused" and first["turns_completed"] == 2
         rows = [event["payload"]["runtime"] for event in journal.events if event["kind"] == "runtime_completed"]
+        results = [event["payload"]["result"] for event in journal.events if event["kind"] == "runtime_completed"]
+        assert [result["temporary_causes"] for result in results] == [[], []]
+        assert not any(result["ephemeral"] for result in results)
         assert len({row["conversation_id"] for row in rows}) == 1
         assert rows[1]["context_event_refs"]
         assert planned["scenario"]["sessions"][0]["turns"][0]["choices"][0]["text"] in json.dumps(requests[1].messages)
@@ -291,6 +294,47 @@ def test_actual_http_sessions_preserve_context_and_resume_without_repeating_paid
         assert any(event["kind"] == "checkpoint_verified" for event in journal.events)
         assert second["last_event"]["payload"]["usage"] == paid_before
         assert evaluation.RuntimeClient(learning.memory).cognitive_usage()["reservation_count"] > operations
+
+
+@pytest.mark.integration
+def test_runtime_result_with_temporary_causes_is_journaled_as_json_lists_and_survives_reopening(
+        evaluation, learning, tmp_path):
+    """Serialization at the session journal boundary only: the real turns run recorded, and the returned result
+    carries causes with reason, scope and expiry as the runtime's immutable tuple."""
+    from dataclasses import replace
+
+    configure_no_change(learning)
+    planned, path = evaluation.plan(), tmp_path / "run"
+    causes = (TemporaryCause("server_paused", "brain"), TemporaryCause("local_pause", "installation", 1893456000.5))
+    expected = [{"reason": "server_paused", "scope": "brain", "until": None},
+                {"reason": "local_pause", "scope": "installation", "until": 1893456000.5}]
+
+    def actor(request):
+        return json.dumps({"choice_id": json.loads(request.messages[-1]["content"])["choices"][0]["id"]})
+
+    with evaluation.CampaignJournal(path, planned) as journal:
+        runner = evaluation.SessionRunner(journal, learning.memory, learning.service, learning.principal,
+                                          Meter(), lambda _: "A synthetic reply.", actor)
+        build = runner.runtime
+
+        def runtime(**options):
+            actual = build(**options)
+            respond = actual.respond
+            actual.respond = lambda *args, **fields: replace(respond(*args, **fields), temporary_causes=causes)
+            return actual
+
+        runner.runtime = runtime
+        summary = runner.run(sessions=1)
+        assert summary["state"] == "paused" and summary["turns_completed"] == 2
+        results = [event["payload"]["result"] for event in journal.events if event["kind"] == "runtime_completed"]
+        assert [result["temporary_causes"] for result in results] == [expected, expected]
+        assert all(type(result["temporary_causes"]) is list for result in results)
+        hashes = [event["sha256"] for event in journal.events]
+    with evaluation.CampaignJournal(path, planned) as reopened:
+        assert [event["sha256"] for event in reopened.events] == hashes
+        assert [event["payload"]["result"]["temporary_causes"] for event in reopened.events
+                if event["kind"] == "runtime_completed"] == [expected, expected]
+        reopened.assert_resumable()
 
 
 @pytest.mark.integration

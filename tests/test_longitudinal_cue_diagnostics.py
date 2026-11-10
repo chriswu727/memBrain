@@ -15,7 +15,7 @@ from test_learning import learning as learning
 
 from membrain.belief_store import assertion_fingerprint
 from membrain.helpers import digest
-from membrain.runtime import ModelRequest, TurnResult
+from membrain.runtime import ModelRequest, TemporaryCause, TurnResult
 
 
 @pytest.fixture
@@ -326,6 +326,46 @@ def test_run_probe_passes_only_case_and_normal_instructions_in_a_fresh_conversat
         for options in requests[::2]:
             assert options["instructions"] == journal.plan["host_instructions"]
             assert asdict(options["policy"]) == journal.plan["runtime_policy"]
+        results = [event["payload"]["result"] for event in journal.events if event["kind"] == "probe_completed"]
+        assert len(results) == 5
+        assert all(result["temporary_causes"] == [] and result["ephemeral"] is False for result in results)
+
+
+def test_probe_result_with_temporary_causes_is_journaled_as_json_lists_and_survives_reopening(
+        diagnostic, tmp_path, monkeypatch):
+    """A result's causes are an immutable tuple; the journal accepts JSON data only and is not loosened for it."""
+    causes = (TemporaryCause("server_paused", "brain"), TemporaryCause("local_pause", "installation", 1893456000.5),
+              TemporaryCause("off_record", "conversation_branch"))
+    result = TurnResult("turn", "completed", "Answer", ephemeral=True, temporary_causes=causes)
+
+    class Runtime:
+        def __init__(self, memory, generate, **kwargs):
+            self.journal = SimpleNamespace(get=lambda _: {}, sources=lambda _: {})
+
+        def respond(self, text, **kwargs):
+            return result
+
+    monkeypatch.setattr(diagnostic, "BrainRuntime", Runtime)
+    monkeypatch.setattr(diagnostic, "RuntimeClient", lambda _: SimpleNamespace(configure_cognitive_budget=lambda **_: {}))
+    expected = [{"reason": "server_paused", "scope": "brain", "until": None},
+                {"reason": "local_pause", "scope": "installation", "until": 1893456000.5},
+                {"reason": "off_record", "scope": "conversation_branch", "until": None}]
+    path, planned = tmp_path / "diagnostic", diagnostic_plan(diagnostic)
+    with diagnostic.CampaignJournal(path, planned) as journal:
+        with pytest.raises(ValueError, match="Journal values must be JSON data"):
+            journal.append("probe_completed", {"result": asdict(result)})
+        before = len(journal.events)
+        diagnostic.run_probe(SimpleNamespace(brain_id="copy"), journal, EmptyMeter(), diagnostic.CASES[0], forbidden)
+        written = journal.events[-1]
+        assert written["kind"] == "probe_completed" and len(journal.events) > before
+        assert written["payload"]["result"]["temporary_causes"] == expected
+        assert type(written["payload"]["result"]["temporary_causes"]) is list and written["payload"]["result"]["ephemeral"]
+        head = written["sha256"]
+    assert result.temporary_causes == causes and type(result.temporary_causes) is tuple
+    with diagnostic.CampaignJournal(path, planned) as reopened:
+        completed = [event for event in reopened.events if event["kind"] == "probe_completed"]
+        assert len(completed) == 1 and completed[0]["sha256"] == head
+        assert completed[0]["payload"]["result"]["temporary_causes"] == expected
 
 
 @pytest.mark.parametrize("status,restricted", [("provider_unavailable", False), ("completed", True)])

@@ -23,11 +23,13 @@ from .local_profile import (
     load_profile,
     profile_lock,
 )
+from .recording_policy import requests_pause
 from .runtime import (
     MEMORY_CONSUMPTION_VERSION,
     BrainRuntime,
     RuntimeBlocked,
     RuntimePolicy,
+    TemporaryCause,
     TurnResult,
     _scope_conflict,
 )
@@ -41,7 +43,8 @@ _ERROR_CODES = {
     "acknowledgement_required", "delivery_already_recorded", "invalid_turn_id", "message_identity_conflict",
     "commit_recovery_required",
     "configuration_changed", "invalid_configuration", "invalid_message", "invalid_runtime_result",
-    "invalid_scope", "no_pending_turn", "pending_turn", "profile_identity_changed",
+    "invalid_scope", "no_pending_turn", "pending_turn", "pending_turn_recording_excluded",
+    "profile_identity_changed",
     "profile_unavailable", "session_busy", "session_closed", "session_state_invalid",
     "session_state_unavailable",
 }
@@ -157,14 +160,42 @@ def _save_pending(path, document):
             pass
 
 
+def _read_choice(path, identity):
+    """This conversation branch's stored recording choice: ``on`` only when no file exists, ``paused`` for a valid
+    off-record choice bound to this exact identity, and ``unknown`` for anything else."""
+    try:
+        descriptor = _open_private(path, os.O_RDONLY | getattr(os, "O_NONBLOCK", 0))
+        with os.fdopen(descriptor, "rb") as stream:
+            raw = stream.read(_MAX_PENDING_BYTES + 1)
+        value = json.loads(raw.decode("utf-8"), object_pairs_hook=_unique_pairs)
+    except FileNotFoundError:
+        return "on"
+    except (ValueError, UnicodeError, RecursionError, OSError, LocalProfileError):
+        return "unknown"
+    return "paused" if value == {"version": 1, "identity": identity, "recording": "off"} else "unknown"
+
+
 class AgentSession:
-    """A locked synchronous conversation created by ``open_agent``."""
+    """A locked synchronous conversation created by ``open_agent``.
+
+    The session binds this machine's recording controls to its turns: installation-scoped device capture and this
+    conversation branch's own off-record choice. Either one, or a server pause, makes a new message temporary. The
+    three controls stay independent; changing one never changes another.
+
+    Local controls are read when a new message starts and when a pending turn is explicitly recovered. They are
+    not a fence around a recorded turn already running: a device pause set while its model or delivery callback is
+    executing does not cancel that call or remove what the turn captures. Only the server switch fences that.
+    """
 
     def __init__(self, *, profile, identity, runtime, path, generator_fingerprint,
                  runtime_fingerprint, _token=None):
         if _token is not _SESSION_TOKEN:
             raise SessionError("invalid_configuration")
         self._profile, self._identity, self._runtime, self._path = profile, identity, runtime, path
+        # Bodyless, and keyed like the pending sidecar: installation, brain, user, conversation and branch.
+        self._recording_path = path.with_name("recording.json")
+        # The local policy the temporary context was built under; a different one starts an empty context.
+        self._local_stamp = None
         self._generator_fingerprint = generator_fingerprint
         self._runtime_fingerprint = runtime_fingerprint
         self._closed = False
@@ -251,6 +282,104 @@ class AgentSession:
             self._clear(pending)
         return result
 
+    def _local_controls(self):
+        from .local_recording import device_capture
+
+        try:
+            device = device_capture(self._profile.directory)
+        except Exception:
+            device = {"scope": "installation", "state": "unknown", "reason": "local_state_unreadable"}
+        conversation = {"scope": "conversation_branch", "state": _read_choice(self._recording_path, self._identity)}
+        if conversation["state"] == "unknown":
+            conversation["reason"] = "local_state_unreadable"
+        return device, conversation
+
+    def _local_policy(self):
+        """Every local control that keeps a new message out of memory, and the identity of that local policy.
+
+        A control that cannot be read counts as a cause, as a precaution, under its own reason: its state is
+        unknown, not confirmed off. The identity changes whenever an applicable control does, including a device
+        pause that was lifted and set again between two messages.
+        """
+        device, conversation = self._local_controls()
+        causes = []
+        if device["state"] == "paused":
+            causes.append(TemporaryCause("local_pause", "installation", device.get("until")))
+        elif device["state"] != "on":
+            causes.append(TemporaryCause("local_state_unreadable", "installation"))
+        if conversation["state"] == "paused":
+            causes.append(TemporaryCause("off_record", "conversation_branch"))
+        elif conversation["state"] != "on":
+            causes.append(TemporaryCause("local_state_unreadable", "conversation_branch"))
+        return tuple(causes), (device["state"], device.get("revision"), conversation["state"])
+
+    def _recording_state(self):
+        device, conversation = self._local_controls()
+        server = {"scope": "brain", "state": "unknown", "revision": None}
+        try:
+            status = self._runtime.recording_status()
+            if type(status["paused"]) is bool and type(status["revision"]) is int:
+                server = {"scope": "brain", "state": "paused" if status["paused"] else "on",
+                          "revision": status["revision"]}
+        except (httpx.HTTPError, ValueError, KeyError, TypeError):
+            pass  # Unreachable or invalid: the server state stays unknown instead of a guessed on or off.
+        states = [server["state"], device["state"], conversation["state"]]
+        effective = "paused" if "paused" in states else "unknown" if "unknown" in states else "on"
+        # A turn of either kind starts with the service: without its answer nothing can be reserved or generated.
+        handling = "unavailable" if server["state"] == "unknown" else "record" if effective == "on" else "temporary"
+        return {"recording": effective, "new_message": handling,
+                "controls": {"server": server, "device": device, "conversation": conversation}}
+
+    def recording_state(self) -> dict:
+        """The three controls that decide whether a new message here is recorded, each read separately.
+
+        ``recording`` is ``paused`` when a control is known to exclude new messages, ``unknown`` when none is but
+        one could not be confirmed, and otherwise ``on``. ``new_message`` says what sending one would do now:
+        ``record`` it; handle it as ``temporary``, which always needs the service to confirm a temporary
+        reservation and otherwise stops before generation; or ``unavailable`` when the service did not answer, so
+        that no turn, recorded or temporary, can start. An unreadable local control leads to ``temporary`` as a
+        precaution; it is not confirmation that recording is off. These are snapshots, not a transaction across
+        stores, and say nothing about an earlier message, a turn already in progress or its delivery.
+        """
+        with self._operation():
+            return self._recording_state()
+
+    def _store_choice(self, off_record):
+        if _read_choice(self._recording_path, self._identity) == ("paused" if off_record else "on"):
+            return
+        if off_record:
+            _save_pending(self._recording_path, {"version": 1, "identity": self._identity, "recording": "off"})
+        else:
+            try:
+                self._recording_path.unlink(missing_ok=True)
+                _sync_directory(self._recording_path.parent)
+            except OSError:
+                raise SessionError("session_state_unavailable") from None
+        # Temporary context ends with the choice that created it; it is never carried into a later one.
+        self._runtime.temporary.clear()
+
+    def set_off_record(self, off_record: bool) -> dict:
+        """Keep new messages of this conversation branch off the record, or record them again.
+
+        Only a bodyless choice is stored, for this installation, brain, user, conversation and branch. It changes
+        no other control: not the brain's server recording switch, device capture or another conversation. It
+        decides how the next new message is handled. A recorded turn that is still pending is neither converted
+        nor resumed by it, and nothing already sent to a model or a recipient is recalled. Returns
+        ``recording_state()``.
+        """
+        if type(off_record) is not bool:
+            raise SessionError("invalid_configuration")
+        with self._operation():
+            self._store_choice(off_record)
+            return self._recording_state()
+
+    def _require_recording(self, pending, row, causes):
+        """A recorded turn in progress never becomes temporary, and is not continued while a local control
+        excludes recording or cannot be read. Bookkeeping for a reply already delivered captures nothing new."""
+        if causes and (row is None or (row.get("stage") not in ("delivered", "committed", "completed")
+                                       and not confirmed_delivery_receipt(row))):
+            raise SessionError("pending_turn_recording_excluded", pending["turn_id"])
+
     def respond(self, text: str, *, message_id: str) -> TurnResult:
         if not isinstance(text, str) or not text.strip() or not _identifier(message_id):
             raise SessionError("invalid_message")
@@ -269,17 +398,31 @@ class AgentSession:
                 # message may start instead of every later message failing on the closed turn.
                 self._clear(pending)
                 pending = None
+            if requests_pause(text):
+                # A direct opening control ("Off the record: ...") takes effect before anything can be captured,
+                # and stays in effect for this conversation branch until it is explicitly recorded again.
+                self._store_choice(True)
+            local, stamp = self._local_policy()
+            if stamp != self._local_stamp:
+                # Temporary context ends with the local policy it was built under. A timed pause that expired is
+                # such a change by this machine's own clock. An unreachable service is not: it stops the turn
+                # below without touching the context, and its own revision decides once it answers.
+                self._runtime.temporary.clear()
+                self._local_stamp = stamp
             if pending is None:
                 status = self._runtime.recording_status()
-                if status["paused"]:
+                causes = ((TemporaryCause("server_paused", "brain"),) if status["paused"] else ()) + local
+                if causes:
                     return self._runtime.respond_temporary(
                         text, message_id=message_id, conversation_id=self._identity["conversation_id"],
-                        branch_id=self._identity["branch_id"], revision=status["revision"],
+                        branch_id=self._identity["branch_id"], revision=status["revision"], causes=causes,
                     )
                 self._runtime.temporary.clear()
             new_pending = pending is None
             if pending:
-                self._recovery_configuration(pending, self._existing_turn(pending, allow_missing=True))
+                row = self._existing_turn(pending, allow_missing=True)
+                self._require_recording(pending, row, local)
+                self._recovery_configuration(pending, row)
             else:
                 pending = {
                     "version": 1, "identity": self._identity, "message_id": message_id,
@@ -314,6 +457,7 @@ class AgentSession:
                 if error.response.status_code == 404:
                     self._configuration(pending)
                 raise
+            self._require_recording(pending, row, self._local_policy()[0])
             self._recovery_configuration(pending, row)
             try:
                 result = self._runtime.resume(pending["turn_id"])

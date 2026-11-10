@@ -608,27 +608,34 @@ def _write_text(path: Path, text: str) -> None:
     os.replace(temporary, path)
 
 
-def _paused_file(path: Path, *, cleanup: bool = True) -> bool:
+def _pause_state(path: Path) -> tuple[str, dict | None]:
+    """One read of a pause file: ``on`` (no file), ``expired``, ``paused`` with its content, or ``unreadable``.
+    Unreadable or malformed metadata still blocks capture; only a missing or expired file does not."""
     try:
         state = json.loads(path.read_text(encoding="utf-8"))
     except FileNotFoundError:
-        return False
+        return "on", None
     except (OSError, ValueError):
-        return True
+        return "unreadable", None
     if not isinstance(state, dict):
-        return True
+        return "unreadable", None
     until = state.get("until")
     if until is not None:
         try:
             if type(until) not in (int, float) or not math.isfinite(until):
-                return True
+                return "unreadable", None
         except OverflowError:
-            return True
-    if until is not None and until <= time.time():
-        if cleanup:
-            path.unlink(missing_ok=True)
-        return False
-    return True
+            return "unreadable", None
+        if until <= time.time():
+            return "expired", None
+    return "paused", state
+
+
+def _paused_file(path: Path, *, cleanup: bool = True) -> bool:
+    state, _ = _pause_state(path)
+    if state == "expired" and cleanup:
+        path.unlink(missing_ok=True)
+    return state in ("paused", "unreadable")
 
 
 def paused(directory: Path, user_id: str | None = None) -> bool:
