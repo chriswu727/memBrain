@@ -764,8 +764,12 @@ def test_each_control_resumes_independently_of_the_others(system):
         assert agent.recording_state()['controls']['conversation']['state'] == 'paused'
         assert reasons('four') == ['off_record']
         assert system.memory.recording_status() == resumed
-        assert_nothing_captured(system, before, 'independent-sentinel', changed={'memory_brains'})
+    # Inspect every file and table only after the session has closed: while it is open it holds its lock file
+    # exclusively, which Windows does not let another handle read.
+    assert_nothing_captured(system, before, 'independent-sentinel', changed={'memory_brains'})
 
+    with session(system) as agent:
+        assert agent.recording_state()['controls']['conversation']['state'] == 'paused'
         assert agent.set_off_record(False)['recording'] == 'on'
         assert not agent.respond('recorded-at-last', message_id='five').ephemeral
         pause(system)

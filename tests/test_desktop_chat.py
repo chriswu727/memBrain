@@ -200,7 +200,9 @@ def test_cancellation_is_explicit_and_does_not_generate_or_deliver(fake_session,
     assert ("remains unknown" in output.err) is acknowledged
 
 
-@pytest.mark.parametrize("contents", [b"x" * 64001, b"\xff"])
+# Explicit IDs: pytest would otherwise put the 64,001-byte payload into PYTEST_CURRENT_TEST, which exceeds the
+# 32,767-character limit of a Windows environment variable.
+@pytest.mark.parametrize("contents", [b"x" * 64001, b"\xff"], ids=["over-64000-bytes", "invalid-utf8"])
 def test_invalid_instruction_file_fails_before_opening_session(fake_session, tmp_path, contents):
     path = tmp_path / "instructions.txt"
     path.write_bytes(contents)

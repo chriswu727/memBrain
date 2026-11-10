@@ -84,12 +84,25 @@ None of these is relabelled as a pass.
 | `codex-case-after-fix-1` | Collection error | The out-of-repository probe ran without the tests directory on the import path |
 | Pin check before pinning | 1 failed, 1 passed | Expected until the runtime commit existed and the launchers were pinned |
 
+### Scoped native Windows review run
+
+After the pull request opened, Codex ran three suites natively on Windows against head `ef3d4626dab9f4685443b4d070e38ca30953432c`: direct-chat privacy, desktop chat and recording controls. pytest reported **121 passed, 1 failed and 2 errors** over 123 logical tests; both errors are the setup and teardown of one test. Runtime hashes were unchanged during the run and its task database was stopped. This run stays a failed run. It is a scoped review check, not native Windows qualification.
+
+Neither problem is a runtime defect; both are test-portability defects.
+
+| Test | Native result | Cause | Correction |
+| --- | --- | --- | --- |
+| `test_direct_chat_privacy.py::test_each_control_resumes_independently_of_the_others` | 1 failed: `PermissionError` | The test scanned every installation file while its session was open. Windows does not let another handle read the session's exclusively locked lock file | The same file and table scan now runs after the session closes, and a second session continues the test. No assertion or scan was dropped; runtime locking is unchanged and lock files are still scanned |
+| `test_desktop_chat.py::test_invalid_instruction_file_fails_before_opening_session` (64,001-byte case) | 2 errors: `ValueError: the environment variable is longer than 32767 characters` | pytest used the payload as the parameter ID, so `PYTEST_CURRENT_TEST` exceeded the Windows limit. The test predates this batch | Compact explicit IDs; payloads and assertions unchanged |
+
+`portability-affected-1` ran the affected cases on WSL2 Linux after the correction: 3 passed. That confirms the corrected tests still pass on Linux only. The native rerun of the affected cases belongs to the reviewer and is recorded in the pull request. The native log is not copied here because it contains the oversized parameter IDs; its hash is in the manifest. The corrections change tests only, so the runtime commit, launcher pins and package identity above remain valid.
+
 Run identities, counts, package hashes and the sanitized review log are in the [evidence manifest](evidence/backend-direct-chat-local-privacy-2026-11-10/manifest.json). Raw logs remain in the task root named there.
 
 ## Not run
 
 - Complete Verify for this head. It starts with the pull request.
-- Native Windows, macOS and five-platform qualification. WSL is neither Windows nor macOS.
+- A complete native Windows suite, macOS and five-platform qualification. WSL is neither Windows nor macOS, and the scoped native review run above is not qualification.
 - The TypeScript suite locally: the SDK is unchanged.
 - Paid or subscription-backed evaluations.
 - Any performance benchmark. No speed change is claimed. A new direct turn adds two small local file reads; this was not measured.

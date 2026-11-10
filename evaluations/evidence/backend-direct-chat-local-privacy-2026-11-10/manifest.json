@@ -482,12 +482,78 @@
  "full_ci": "not run before the pull request; complete Verify starts with it and is recorded there",
  "not_run": [
   "complete Verify before the pull request",
-  "native Windows, macOS and five-platform qualification",
+  "complete native Windows suite, macOS and five-platform qualification",
   "TypeScript suite locally (SDK unchanged)",
   "paid or subscription evaluations",
   "performance benchmark"
  ],
  "performance": "no benchmark ran for this batch; no speed change is claimed",
  "cleanup": "all task-owned databases, services and test installations stopped and removed; results kept. The stopped database of the reviewer's run directory inside <task-root> was also removed; its result and the reviewer's own log are retained.",
- "gates": "R4 remains failed, C5 invalid/unscored, final release review incomplete"
+ "gates": "R4 remains failed, C5 invalid/unscored, final release review incomplete",
+ "native_windows_review_run": {
+  "name": "windows-1",
+  "run_by": "Codex, independently",
+  "source_head": "ef3d4626dab9f4685443b4d070e38ca30953432c",
+  "environment": "native Windows; scoped review regression, not platform qualification",
+  "scope": "tests/test_direct_chat_privacy.py, tests/test_desktop_chat.py, tests/test_recording_controls.py",
+  "result": {
+   "pytest_summary": {
+    "passed": 121,
+    "failed": 1,
+    "errors": 2
+   },
+   "logical_tests": 123,
+   "junit_attributes": {
+    "tests": 123,
+    "failures": 1,
+    "errors": 2,
+    "skipped": 0
+   }
+  },
+  "status": "failed run; kept as failed. No runtime defect: two test-portability defects",
+  "runtime_hashes_unchanged": true,
+  "database_stopped": true,
+  "failures": [
+   {
+    "test": "tests/test_direct_chat_privacy.py::test_each_control_resumes_independently_of_the_others",
+    "kind": "failed",
+    "error": "PermissionError: [Errno 13] Permission denied",
+    "cause": "the test scanned installation files while its session held its lock file exclusively"
+   },
+   {
+    "test": "tests/test_desktop_chat.py::test_invalid_instruction_file_fails_before_opening_session (64,001-byte parameter)",
+    "kind": "2 errors: setup and teardown of one test",
+    "error": "ValueError: the environment variable is longer than 32767 characters",
+    "cause": "the payload was the automatic parameter ID, so PYTEST_CURRENT_TEST exceeded the Windows limit; the test predates this batch"
+   }
+  ],
+  "original_evidence": {
+   "location": "the reviewer's Windows review directory direct-privacy-review-20261110 (windows-1.log, windows-1/junit.xml, windows-1/result.json)",
+   "log_sha256": "5c9f4f263db336dfd280d680a4ec13673324a929cc21b4731021963c1af9c3aa",
+   "junit_sha256": "65f4765a0750365a63ad7287f1ed8fa768c425f2aba568d8b2e6249f7f0fd31b",
+   "result_sha256": "129704229966d08f2f010698c62e4eb808eb4e4dd113a932732e0a15a66b3c10",
+   "not_copied": "the log and junit file contain the oversized parameter IDs"
+  }
+ },
+ "portability_correction": {
+  "change": "tests only: the full file and table scan runs after the session closes; compact explicit parameter IDs",
+  "runtime_commit_and_pins": "unchanged and still valid; no repin or rebuild",
+  "run": {
+   "name": "portability-affected-1",
+   "environment": "WSL2 Linux",
+   "source_head": "ef3d4626dab9f4685443b4d070e38ca30953432c",
+   "tracked_diff_sha256": "985b4709d0020989af233cd2a8941087a821eab5357955bceb5edb9851890fc7",
+   "scope": "the two affected tests (three cases)",
+   "result": {
+    "passed": 3,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+   },
+   "status": "passed on Linux; the native rerun is the reviewer's and is recorded in the pull request",
+   "log": "<task-root>/portability-affected-1.log",
+   "log_sha256": "b494308731318b93c29d791ddde1bd1ab67a176fdf14f8e064118269c5cf35b8"
+  },
+  "ruff": "ruff check src tests examples passed"
+ }
 }
