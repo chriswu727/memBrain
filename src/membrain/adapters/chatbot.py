@@ -19,7 +19,7 @@ from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
 
-from .. import host, host_recording
+from .. import host, host_receipts, host_recording
 
 TOOLS = {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause", "resume": "membrain_resume"}
 GROUP_MEMORY = ("separate", "shared")
@@ -117,25 +117,37 @@ class ChatMemory:
         return "\n\n".join(part for part in (block, recalled) if part) or None
 
     def record(self, speaker: Speaker, reply: str | None, *, session: str, turn_id: str | None = None,
-               prompt: str | None = None, roleplay: str | None = None) -> None:
-        """Store the staged message (or ``prompt``) and the reply, unless this user paused recording."""
-        if self._recording(speaker):
-            records = host.finish_turn(self.directory, session, reply, turn_id=turn_id, producer=self.producer,
-                                       prompt=prompt, user_id=self.user_id(speaker), roleplay=roleplay or self.roleplay)
-            # Only a turn that was actually recorded is read, and its notes are linked to its messages, so
-            # forgetting those messages forgets the notes too.
-            message = next((record for record in records if record["role"] == "user"), None)
-            if self.extractor is not None and message is not None:
-                sources = [{"producer_ref": record["producer_ref"], "source_event_key": record["source_event_key"],
-                            "source_revision": 1} for record in records]
-                user = self.memory_user(speaker, roleplay)
-                with self._lock:
-                    previous = self._previous.pop((user, session), ())
-                    self._previous[(user, session)] = tuple(sources)
-                    while len(self._previous) > PREVIOUS_EXCHANGES:
-                        self._previous.popitem(last=False)
-                recording = message.get("_recording", {"revision": 0, "target": None})
-                self._extract(user, sources, previous, recording=dict(recording) if isinstance(recording, dict) else recording)
+               prompt: str | None = None, roleplay: str | None = None) -> dict | None:
+        """Store the staged message (or ``prompt``) and the reply, unless this user paused recording.
+
+        Returns the exchange's recording receipt (``membrain.host_receipts``): per message, server-confirmed,
+        locally queued, excluded with the policy's reason and scope, failed, or unknown. It does not report
+        whether the platform delivered the reply. ``None`` means no receipt was available.
+        """
+        if not self._recording(speaker):
+            reason = "speaker_unidentified" if not speaker.usable() else "group_recording_disabled"
+            roles = ["user"] + (["assistant"] if isinstance(reply, str) and reply.strip() else [])
+            return host_receipts.turn([host_receipts.message(role, None, "excluded", reason, scope="adapter")
+                                       for role in roles])
+        receipt = {}
+        records = host.finish_turn(self.directory, session, reply, turn_id=turn_id, producer=self.producer,
+                                   prompt=prompt, user_id=self.user_id(speaker), roleplay=roleplay or self.roleplay,
+                                   receipt=receipt)
+        # Only a turn that was actually recorded or queued is read, and its notes are linked to its messages, so
+        # forgetting those messages forgets the notes too.
+        message = next((record for record in records if record["role"] == "user"), None)
+        if self.extractor is not None and message is not None:
+            sources = [{"producer_ref": record["producer_ref"], "source_event_key": record["source_event_key"],
+                        "source_revision": 1} for record in records]
+            user = self.memory_user(speaker, roleplay)
+            with self._lock:
+                previous = self._previous.pop((user, session), ())
+                self._previous[(user, session)] = tuple(sources)
+                while len(self._previous) > PREVIOUS_EXCHANGES:
+                    self._previous.popitem(last=False)
+            recording = message.get("_recording", {"revision": 0, "target": None})
+            self._extract(user, sources, previous, recording=dict(recording) if isinstance(recording, dict) else recording)
+        return receipt or None
 
     def _extract(self, user: str, sources: list[dict], previous_sources: tuple[dict, ...] = (), *, recording) -> None:
         from ..extraction import extract_turn

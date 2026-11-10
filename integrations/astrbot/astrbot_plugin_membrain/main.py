@@ -18,6 +18,17 @@ def _speaker(event: AstrMessageEvent) -> Speaker:
                    str(event.get_group_id() or "") or None)
 
 
+def _report_recording(logger, receipt) -> None:
+    """Warn when memory could neither confirm, queue nor deliberately exclude a message. Queued messages are
+    normal while the service starts; this says nothing about whether the platform delivered the reply."""
+    try:
+        from membrain.host_receipts import needs_attention, summary
+    except ImportError:  # An older pinned runtime returns no receipt.
+        return
+    if receipt is not None and needs_attention(receipt):
+        logger.warning(f"memBrain recording incomplete: {summary(receipt)}")
+
+
 class MembrainPlugin(star.Star):
     """Long-term memory for each user: notes and earlier conversations before replies, tools to note, search and pause."""
 
@@ -59,10 +70,12 @@ class MembrainPlugin(star.Star):
         if not state or getattr(response, "role", "assistant") != "assistant":
             return
         try:
-            await asyncio.to_thread(self.memory.record, _speaker(event), response.completion_text,
-                                    session=state["session"], turn_id=state["turn"], prompt=state["prompt"])
+            receipt = await asyncio.to_thread(self.memory.record, _speaker(event), response.completion_text,
+                                              session=state["session"], turn_id=state["turn"], prompt=state["prompt"])
         except Exception as error:
             self.logger.warning(f"memBrain recording failed: {type(error).__name__}: {error}")
+            return
+        _report_recording(self.logger, receipt)
 
     @filter.llm_tool(name="membrain_note")
     async def membrain_note(self, event: AstrMessageEvent, text: str, replaces: list | None = None,
