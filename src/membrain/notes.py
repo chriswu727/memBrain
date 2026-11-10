@@ -25,6 +25,7 @@ def _clock_today() -> _datetime.date:
 NOTES_CONVERSATION = "membrain-notes"
 NOTE_CHARACTERS = 300  # The sentence; a typed note's header comes on top.
 STORED_CHARACTERS = 480
+NOTE_PAGES = 10  # Reads of 200 current notes each when listing them: 2,000 notes, far beyond what a person keeps.
 NOTES_CHARACTERS = 4000
 KINDS = ("person", "constraint", "preference", "plan", "routine", "milestone", "relationship", "agent_commitment",
          "other")
@@ -115,11 +116,30 @@ def imported_from(item: dict) -> str | None:
 def list_notes(client, *, max_characters: int = 200_000) -> dict:
     """Current notes, newest first. Session start chooses among them within its own budget (``select_notes``).
 
+    Every current note is read, in pages of 200 (``max_characters`` bounds one page), up to ``NOTE_PAGES`` pages.
+
     ``affect`` holds the affect records (feelings) that belong to the notes, newest first, when the client can read
     them. They are stored apart from the notes and only shown on their notes' lines.
     """
     response = client.timeline(roles=("assistant", "user"), conversation_id=NOTES_CONVERSATION,
                                max_characters=max_characters, max_item_characters=STORED_CHARACTERS, limit=200)
+    # Older pages too: a pinned note or a constraint must stay a candidate however many notes came after it, and
+    # an old note must stay replaceable. Bounded, so a very large store costs a fixed number of reads.
+    items, used = list(response.get("items") or []), response.get("characters") or 0
+    for _ in range(NOTE_PAGES - 1):
+        cursor = response.get("next_before_sequence")
+        if response.get("complete", True) or type(cursor) is not int:
+            break
+        try:
+            response = client.timeline(roles=("assistant", "user"), conversation_id=NOTES_CONVERSATION,
+                                       max_characters=max_characters, max_item_characters=STORED_CHARACTERS,
+                                       limit=200, before_sequence=cursor)
+        except Exception:  # The newest notes still show; ``complete`` stays false, so the reader is told.
+            response = {"items": [], "complete": False}
+            break
+        items += response.get("items") or []
+        used += response.get("characters") or 0
+    response = {**response, "items": items, "characters": used}
     if callable(getattr(type(client), "affect_records", None)):
         try:
             records = client.affect_records().get("records")

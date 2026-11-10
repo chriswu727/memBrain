@@ -144,7 +144,8 @@ class Extractor:
         try:
             proposed = json.loads(content).get("notes") or []
         except (ValueError, AttributeError):
-            return []
+            # Cut-off or malformed output is a failed read, not an exchange with nothing worth keeping.
+            raise UnreadableOutput("The extraction model's output was not a JSON object.") from None
         notes_out = []
         for item in proposed[:MAX_NOTES] if isinstance(proposed, list) else []:
             if not isinstance(item, dict) or not str(item.get("text") or "").strip():
@@ -207,6 +208,10 @@ class Extractor:
                 deadline.wait(0.05)
         finally:
             timer.cancel()
+
+
+class UnreadableOutput(ValueError):
+    """The extraction model answered, but not with the JSON object it was asked for."""
 
 
 def _retryable(error: Exception) -> bool:
@@ -344,6 +349,9 @@ def extract_turn(directory, extractor: Extractor, user_id: str | None, *,
             except Exception as error:
                 if isinstance(error, (MemoryActionError, _helpers.DomainError)) and error.code in ("recording_paused", "recording_stale"):
                     record_outcome(directory, error=error.code)
+                    return []
+                if isinstance(error, UnreadableOutput):
+                    record_outcome(directory, error="unreadable_model_output")
                     return []
                 if attempt < len(delays) and _retryable(error):
                     time.sleep(delays[attempt])

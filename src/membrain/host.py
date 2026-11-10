@@ -30,7 +30,10 @@ PRODUCER = "membrain-plugin"
 CONTEXT_CHARACTERS = 9000  # Under Claude Code's 10,000-character limit for hook output.
 LINE_CHARACTERS = 500
 RECALL_TOKENS = 32000  # Memory documents are large; this leaves room for about fifty ranked statements.
-MAX_MESSAGES = 12
+# Recalled source messages offered to the context, in rank order; ``CONTEXT_CHARACTERS`` decides how many fit. A
+# lower cap left about half the block unused when messages were short and cost nine points of evidence recall on
+# the LoCoMo development conversations (evaluations/locomo-evidence-recall-2026-11-10.md).
+MAX_MESSAGES = 40
 VECTOR_ONLY_STATEMENTS = 10  # Meaning-only matches have no relevance floor; keep only the closest ones.
 MAX_REPLIES = 8  # Recalled messages whose next message (the answer or reaction) is shown too, questions first.
 CUE_CHARACTERS = 500
@@ -1197,8 +1200,11 @@ def _mark_history(directory: Path, session: str, complete: bool, brain_id: str |
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         state = session_state(directory, session)
         _write_session_state(directory, session, {"complete": complete, "history_brain": brain_id, **{
+            # The previous prompt stays as the next recall's cue: hosts that call this before every message
+            # (chat bots, the proxy) would otherwise never have one.
             key: state[key] for key in ("pending", "user_id", "paused_turn", "paused_at", "resumed_turn",
-                                        "turns", "turns_managed", "turns_require_staging", "callbacks")
+                                        "turns", "turns_managed", "turns_require_staging", "callbacks",
+                                        "last_prompt", "last_prompt_key", "last_prompt_recording")
             if key in state}})
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         cutoff = time.time() - SESSION_MARKER_SECONDS
