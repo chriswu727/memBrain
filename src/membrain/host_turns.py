@@ -82,7 +82,11 @@ def stage(state, record, paused, now, *, implicit=False):
     compact(state)
 
 
-def take(state, *, owner, producer, source=None, prompt=None, allow_unstaged=False, legacy_source=None):
+def take(state, *, owner, producer, source=None, prompt=None, allow_unstaged=False, legacy_source=None,
+         outcome=None):
+    """The staged turn to complete. ``outcome``, when given, receives why nothing is returned: a ``reason`` for an
+    unmatched turn, or the stored ``exclusion`` of a paused one, plus the matched ``source``."""
+    report = outcome if outcome is not None else {}
     turns = entries(state)
     candidates = [entry for entry in turns.values()
                   if (owner is None or entry["owner"] == owner)
@@ -101,6 +105,7 @@ def take(state, *, owner, producer, source=None, prompt=None, allow_unstaged=Fal
                      and entry.get("producer") in (None, producer) for entry in turns.values())
         if (prompt is None or active or state.get("turns_require_staging")
                 or (state.get("turns_managed") and not allow_unstaged)):
+            report["reason"] = "turn_not_staged"
             return None, True, owner, False
         entry = {"owner": owner, "producer": producer, "source": prompt["source_event_key"],
                  "fingerprint": digest([prompt["text"]]), "done": True}
@@ -108,13 +113,27 @@ def take(state, *, owner, producer, source=None, prompt=None, allow_unstaged=Fal
         compact(state)
         return prompt, False, owner, False
     if len(candidates) != 1:
+        report["reason"] = "turn_ambiguous"
         return None, True, owner, False
     entry = candidates[0]
-    if entry.get("done") or (source is None and prompt is None and entry.get("needs_identity")):
+    unidentified = not entry.get("done") and source is None and prompt is None and entry.get("needs_identity")
+    if entry.get("source") and not unidentified:  # An unidentified callback must not borrow this turn's key.
+        report["source"] = {"producer_ref": entry.get("producer") or producer, "source_event_key": entry["source"]}
+    if entry.get("done") or unidentified:
+        report["reason"] = "turn_already_finished" if entry.get("done") else "turn_ambiguous"
+        stored = entry.get("exclusion")
+        if entry.get("done") and isinstance(stored, dict) and stored.get("reason") == "erased":
+            report["exclusion"] = dict(stored)
         return None, True, entry["owner"], bool(entry.get("paused"))
     if prompt is not None and entry.get("fingerprint") not in (None, digest([prompt["text"]])):
+        report["reason"] = "turn_mismatch"
         return None, True, owner, False
     excluded = bool(entry.get("paused")) and not (entry["paused"] == "prompt" and entry.get("resumed"))
+    if excluded:
+        report["exclusion"] = dict(entry["exclusion"]) if isinstance(entry.get("exclusion"), dict) else None
+        report["paused"] = entry["paused"]
+    else:
+        entry.pop("exclusion", None)  # A resumed turn is recorded; its earlier exclusion no longer describes it.
     record = entry.get("record")
     if record is None and not excluded and prompt is not None:
         record = {**prompt}
@@ -126,6 +145,8 @@ def take(state, *, owner, producer, source=None, prompt=None, allow_unstaged=Fal
             record["source_event_key"] = entry["source"]
         if entry["owner"] is not None:
             record["_user"] = entry["owner"]
+    if record is None and not excluded:
+        report["reason"] = "message_unavailable"  # Sent while paused, resumed, but not supplied again.
     complete(entry)
     compact(state)
     return record, excluded, entry["owner"], bool(entry.get("paused"))

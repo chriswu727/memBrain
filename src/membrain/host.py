@@ -20,7 +20,7 @@ from contextlib import nullcontext
 from pathlib import Path
 from uuid import uuid4
 
-from . import host_queue, host_recording, host_turns
+from . import host_queue, host_receipts, host_recording, host_turns
 from .helpers import digest
 from .local_profile import profile_lock
 from .privacy import PRIVATE_MARK, SECRET_MARK, neutralize, scrub  # noqa: F401
@@ -421,6 +421,9 @@ def pause(directory: Path, hours: float | None = None, user_id: str | None = Non
                 if marker not in pause_state["conversations"]:
                     pause_state["conversations"].append(marker)
         _write_state(path, pause_state)
+        owner_scope = "installation" if user_id is None else "user"
+        cause = host_receipts.exclusion("local_pause", "conversation" if "conversations" in pause_state
+                                        else owner_scope, applies_to=owner_scope)
         for marker in (state_directory(directory) / "sessions").glob("*.json"):
             try:
                 state = json.loads(marker.read_text(encoding="utf-8"))
@@ -438,6 +441,7 @@ def pause(directory: Path, hours: float | None = None, user_id: str | None = Non
                     entry.pop("record", None)
                     entry.pop("resumed", None)
                     entry["paused"] = True
+                    entry["exclusion"] = dict(cause)
             owner = state.get("user_id")
             if user_id is None or owner == user_id or real_life_user(owner) == user_id:
                 state.pop("last_prompt", None)
@@ -573,6 +577,7 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
                     if entry["owner"] == user_id:
                         host_turns.complete(entry)
                         entry.pop("note_capture", None)
+                        entry["exclusion"] = host_receipts.exclusion("erased", "brain")
                         state["turns_require_staging"] = True
                 if state.get("user_id") == user_id:
                     state["turns_require_staging"] = True
@@ -634,6 +639,57 @@ def paused(directory: Path, user_id: str | None = None) -> bool:
         if is_roleplay(user_id) and paused(directory, real_life_user(user_id)):
             return True  # A person's pause also covers their role-play.
         return user_id is not None and _paused_file(_pause_file(directory, user_id))
+
+
+def _local_pause_cause(directory: Path, user_id: str | None, reason: str = "local_pause") -> dict:
+    """Which local pause applies to this user now: its scope (a conversation pause, or the whole installation or
+    user) and whose control it is. Unreadable metadata, which still blocks capture, is reported as ``local``."""
+    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        owners = [None] + [owner for owner in (user_id, real_life_user(user_id) if is_roleplay(user_id) else None)
+                           if owner is not None]
+        for owner in owners:
+            path = _pause_file(directory, owner)
+            if not _paused_file(path):
+                continue
+            applies_to = "installation" if owner is None else "user"
+            try:
+                value = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                value = None
+            if not isinstance(value, dict):
+                return host_receipts.exclusion(reason, "local", applies_to=applies_to)
+            return host_receipts.exclusion(reason, "conversation" if "conversations" in value else applies_to,
+                                           applies_to=applies_to)
+        return host_receipts.exclusion(reason, "local")
+
+
+def _requested_pause(user_id: str | None) -> dict:
+    """A pause the current message asked for: always the conversation pause of the person's own control."""
+    return host_receipts.exclusion("pause_requested", "conversation",
+                                   applies_to="installation" if real_life_user(user_id) is None else "user")
+
+
+def _server_exclusion(policy: dict) -> dict:
+    return host_receipts.exclusion("server_paused", "brain", evidence=host_receipts.server_evidence(policy))
+
+
+def _rejected_exclusion(error: Exception) -> dict:
+    return host_receipts.exclusion("server_paused" if getattr(error, "code", None) == "recording_paused"
+                                   else "capture_stale", "brain", evidence="write_rejected")
+
+
+def _stored_exclusion(entry: dict) -> dict:
+    """A paused turn's stored cause, validated; state written before causes were stored gets the closest one."""
+    stored = entry.get("exclusion")
+    if isinstance(stored, dict) and isinstance(stored.get("reason"), str) and isinstance(stored.get("scope"), str):
+        try:
+            details = {key: value for key, value in stored.items() if key in host_receipts.STORED}
+            return host_receipts.exclusion(stored["reason"], stored["scope"], **details)
+        except ValueError:
+            pass
+    if entry.get("paused") == "server":
+        return host_receipts.exclusion("server_paused", "brain", evidence="unspecified")
+    return host_receipts.exclusion("local_pause", "local")
 
 
 # Memory page sign-in -----------------------------------------------------------------------------------------
@@ -767,7 +823,7 @@ def _recording_rejected(error: Exception) -> bool:
     return isinstance(error, MemoryActionError) and error.code in ("recording_paused", "recording_stale")
 
 
-def _discard_recording(directory: Path, record: dict) -> None:
+def _discard_recording(directory: Path, record: dict, exclusion: dict | None = None) -> None:
     session = record.get("conversation_id")
     if not isinstance(session, str) or not isinstance(record.get("source_event_key"), str):
         return
@@ -788,6 +844,10 @@ def _discard_recording(directory: Path, record: dict) -> None:
             entry.pop("record", None)
             entry.pop("resumed", None)
             entry["paused"] = "server"
+            if exclusion is not None:
+                entry["exclusion"] = dict(exclusion)
+            else:
+                entry.pop("exclusion", None)  # An earlier local cause no longer describes a server exclusion.
             if state.get("turns_managed"):
                 state["turns_require_staging"] = True
             changed = True
@@ -819,8 +879,44 @@ def _reject(directory: Path, line: str, error: Exception) -> None:
         stream.write(line.rstrip("\n") + "\n")
 
 
+def _error_code(error: Exception) -> str:
+    import httpx
+
+    from .client import MemoryActionError
+
+    if isinstance(error, MemoryActionError) and isinstance(error.code, str):
+        return error.code[:80]
+    if isinstance(error, httpx.HTTPStatusError):
+        return f"http_{error.response.status_code}"
+    return "invalid_record"
+
+
+def _confirmed(response) -> dict | None:
+    """The stored event a completed observation of one message names, or None when the answer does not confirm it.
+
+    The service's observation receipt lists the new event as accepted, or an earlier copy as a duplicate (a replay
+    after a lost answer). Anything else, including a completed answer without that receipt, is not confirmation.
+    """
+    if not isinstance(response, dict) or response.get("outcome") != "completed":
+        return None
+    result = response.get("result")
+    if not isinstance(result, dict):
+        return None
+    accepted, duplicates = result.get("accepted_event_ids"), result.get("duplicate_event_ids")
+    if not isinstance(accepted, list) or not isinstance(duplicates, list) or len(accepted) + len(duplicates) != 1:
+        return None
+    (identifier,) = [*accepted, *duplicates]
+    if not isinstance(identifier, str) or not 1 <= len(identifier) <= 256:
+        return None
+    return {"event_id": identifier, "duplicate": bool(duplicates)}
+
+
 def flush(client, directory: Path, *, rejected: set[str] | None = None,
-          max_records: int = 16, max_seconds: float = 1.0) -> int:
+          max_records: int = 16, max_seconds: float = 1.0, outcomes: dict | None = None) -> int:
+    """Replay queued records in order. ``outcomes``, when given, receives what happened to each record this call
+    reached, keyed by ``digest([record])``: ``recorded`` (the service's receipt names its event), ``unconfirmed``
+    (answered without that receipt), policy-excluded, rejected, or ``transient`` (interrupted: the server outcome is
+    unknown and the queued copy remains). Records not reached are absent."""
     from .local_profile import LocalProfileBusy, profile_lock
 
     if type(max_records) is not int or not 1 <= max_records <= 256 or not 0 < max_seconds <= 30:
@@ -846,6 +942,12 @@ def flush(client, directory: Path, *, rejected: set[str] | None = None,
                         except ValueError:
                             pass  # A torn line cannot be replayed; it must not block later records.
                         else:
+                            identity = None
+                            if outcomes is not None:
+                                try:
+                                    identity = digest([record])
+                                except (ValueError, TypeError):
+                                    pass
                             try:
                                 if not isinstance(record, dict):
                                     raise TypeError("A queued observation must be an object.")
@@ -853,9 +955,12 @@ def flush(client, directory: Path, *, rejected: set[str] | None = None,
                                     use_brain(client, record.get("_user"))
                                 except ValueError as error:
                                     raise TypeError(str(error)) from error
-                                host_recording.observe(client, record)
+                                response = host_recording.observe(client, record)
                             except Exception as error:
                                 if not _permanent(error):
+                                    if identity is not None:
+                                        # The request may have committed before its answer was lost.
+                                        outcomes.setdefault(identity, {"state": "transient"})
                                     raise
                                 if rejected is not None:
                                     try:
@@ -863,10 +968,22 @@ def flush(client, directory: Path, *, rejected: set[str] | None = None,
                                     except ValueError:
                                         pass
                                 if _recording_rejected(error):
-                                    _discard_recording(directory, record)
+                                    if identity is not None:
+                                        outcomes.setdefault(identity, {"state": "policy",
+                                                                       "exclusion": _rejected_exclusion(error)})
+                                    _discard_recording(directory, record, _rejected_exclusion(error))
                                     remove_private = True
                                 else:
+                                    if identity is not None:
+                                        outcomes.setdefault(identity, {"state": "rejected", "code": _error_code(error)})
                                     _reject(directory, line, error)
+                            else:
+                                if identity is not None:
+                                    # Replay still treats any successful answer as delivered (legacy clients and
+                                    # doubles return none), but only a confirming receipt counts as recorded.
+                                    confirmed = _confirmed(response)
+                                    outcomes.setdefault(identity, {"state": "recorded", **confirmed}
+                                                        if confirmed else {"state": "unconfirmed"})
                         delivered += 1
                     checksum.update(encoded)
                     offset += len(encoded)
@@ -890,8 +1007,9 @@ def deliver(directory: Path, client, record: dict) -> bool:
     user_id = record.get("_user")
     if paused(directory, user_id):
         return False
-    if host_recording.status(directory, user_id=user_id)["paused"]:
-        _discard_recording(directory, record)
+    policy = host_recording.status(directory, user_id=user_id)
+    if policy["paused"]:
+        _discard_recording(directory, record, _server_exclusion(policy))
         return False
     record = {**record, "text": scrub(record["text"])}
     try:
@@ -905,7 +1023,7 @@ def deliver(directory: Path, client, record: dict) -> bool:
             client.brain_id = current
     except Exception as error:
         if _recording_rejected(error):
-            _discard_recording(directory, record)
+            _discard_recording(directory, record, _rejected_exclusion(error))
             return False
         if not spool(directory, record):
             return False
@@ -1066,7 +1184,8 @@ def _acknowledge(client, current: dict | None) -> None:
 
 
 def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: bool = False,
-           legacy_source: str | None = None, server_paused: bool = False) -> str | None:
+           legacy_source: str | None = None, server_paused: bool = False,
+           server_policy: dict | None = None) -> str | None:
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         explicit_pause = requests_pause(prompt)
         if explicit_pause:
@@ -1074,6 +1193,9 @@ def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: b
         state = session_state(directory, session)
         exclusion = ("server" if server_paused else True if explicit_pause
                      else "prompt" if paused(directory, record.get("_user")) else False)
+        cause = (_server_exclusion(server_policy or {}) if exclusion == "server"
+                 else _requested_pause(record.get("_user")) if exclusion is True
+                 else _local_pause_cause(directory, record.get("_user")) if exclusion else None)
         if legacy_source is not None:
             for entry in host_turns.entries(state).values():
                 if (entry["owner"] == record.get("_user") and entry.get("producer") == record["producer_ref"]
@@ -1088,6 +1210,13 @@ def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: b
             raise
         state["user_id"] = record.get("_user")
         entry = state["turns"][host_turns.key(record)]
+        if not entry.get("done") and entry.get("paused"):
+            # The cause that excluded the turn, for its completion receipt; the strongest exclusion wins.
+            if cause is not None and entry["paused"] == exclusion:
+                entry["exclusion"] = cause
+            elif "exclusion" not in entry:
+                entry["exclusion"] = (host_receipts.exclusion("turn_identity_conflict", "turn")
+                                      if implicit and not exclusion else _stored_exclusion(entry))
         accepted = not exclusion and "record" in entry
         if not accepted:
             state.pop("last_prompt", None)
@@ -1105,7 +1234,8 @@ def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: b
 
 def _take_turn(directory: Path, session: str, *, user_id: str | None, producer: str,
                turn_id: str | None, prompt: dict | None, reply: str | None,
-               allow_unstaged: bool) -> tuple[list[dict], str | None, bool]:
+               allow_unstaged: bool, outcome: dict | None = None) -> tuple[list[dict], str | None, bool]:
+    report = outcome if outcome is not None else {}
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         state = session_state(directory, session)
         valid_id = isinstance(turn_id, str) and 1 <= len(turn_id) <= 120
@@ -1115,11 +1245,22 @@ def _take_turn(directory: Path, session: str, *, user_id: str | None, producer: 
             state["turns_require_staging"] = True
         pending, excluded, owner, handled = host_turns.take(
             state, owner=user_id, producer=producer, source=source, prompt=prompt,
-            allow_unstaged=allow_unstaged, legacy_source=legacy_source)
+            allow_unstaged=allow_unstaged, legacy_source=legacy_source, outcome=report)
+        if "paused" in report or report.get("exclusion") is not None:
+            report["exclusion"] = _stored_exclusion({"exclusion": report.get("exclusion"),
+                                                     "paused": report.pop("paused", None)})
+        report["source"] = host_receipts.source(pending if pending is not None else report.get("source"))
         records = []
-        server_paused = pending is not None and host_recording.status(directory, user_id=owner)["paused"]
-        if (pending is not None and not excluded and not paused(directory, owner) and not server_paused
-                and not (prompt is not None and requests_pause(prompt["text"]))):
+        policy = host_recording.status(directory, user_id=owner) if pending is not None else None
+        server_paused = pending is not None and policy["paused"]
+        if pending is not None and not excluded:
+            if paused(directory, owner):
+                report["exclusion"] = _local_pause_cause(directory, owner)
+            elif server_paused:
+                report["exclusion"] = _server_exclusion(policy)
+            elif prompt is not None and requests_pause(prompt["text"]):
+                report["exclusion"] = _requested_pause(owner)
+        if pending is not None and not excluded and "exclusion" not in report:
             records = [{**pending, "text": scrub(pending["text"])}]
             if isinstance(reply, str) and reply.strip():
                 response = message_record(session, "assistant", scrub(reply), turn_id=turn_id,
@@ -1131,21 +1272,78 @@ def _take_turn(directory: Path, session: str, *, user_id: str | None, producer: 
                 records.append(response)
             # Persist the payload before the completion marker can remove its only staged copy.
             if not _spool_records(directory, records):
+                report["reason"] = "queue_full"
                 return [], owner, handled
         _write_session_state(directory, session, state)
         if server_paused:
-            _discard_recording(directory, pending)
+            _discard_recording(directory, pending, _server_exclusion(policy))
         return records, owner, handled
 
 
-def _replay_queued(directory: Path, client, records: list[dict]) -> list[dict]:
+def _replay_queued(directory: Path, client, records: list[dict], outcomes: dict | None = None) -> list[dict]:
     rejected = set()
     if client is not None and records:
         try:
-            flush(client, directory, rejected=rejected)
+            flush(client, directory, rejected=rejected, outcomes=outcomes)
         except Exception as error:
             log(directory, f"queued records await replay: {type(error).__name__}")
     return [record for record in records if digest([record]) not in rejected]
+
+
+def _message_receipt(record: dict, client, outcomes: dict) -> dict:
+    reference = host_receipts.source(record)
+    if client is None:
+        return host_receipts.message(record["role"], reference, "queued", "service_unavailable")
+    try:
+        outcome = outcomes.get(digest([record]), {})
+    except (ValueError, TypeError):
+        outcome = {}
+    state = outcome.get("state")
+    if state == "recorded":
+        return host_receipts.message(record["role"], reference, "recorded", event_id=outcome["event_id"],
+                                     duplicate=outcome["duplicate"])
+    if state == "unconfirmed":
+        # Answered without an observation receipt; replay has already released its queued copy.
+        return host_receipts.message(record["role"], reference, "unknown", "confirmation_missing")
+    if state == "policy":
+        cause = outcome["exclusion"]
+        return host_receipts.message(record["role"], reference, "excluded", cause["reason"], scope=cause["scope"],
+                                     **{key: cause.get(key) for key in host_receipts.STORED})
+    if state == "rejected":
+        return host_receipts.message(record["role"], reference, "failed", "rejected", code=outcome["code"],
+                                     retryable=False)
+    # Admitted to the journal, server storage unconfirmed: interrupted mid-request (the server may already hold it),
+    # or not observed by this call's bounded replay (another replay worker may already have drained it).
+    return host_receipts.message(record["role"], reference, "queued",
+                                 "server_outcome_unknown" if state == "transient" else "replay_not_observed")
+
+
+def _turn_receipt(session: str, *, turn_id: str | None, producer: str, supplied: dict | None, reply: str | None,
+                  records: list[dict], report: dict, client, outcomes: dict) -> dict:
+    """One receipt per message of the exchange this callback completed; never contains message text."""
+    if records:
+        return host_receipts.turn([_message_receipt(record, client, outcomes) for record in records])
+    user = report.get("source") or host_receipts.source(supplied)
+    if user is None and isinstance(turn_id, str) and 1 <= len(turn_id) <= 120:
+        user = host_receipts.source({"producer_ref": producer, "source_event_key": _source_key(session, turn_id, "user")})
+    references = [("user", user)]
+    if isinstance(reply, str) and reply.strip():
+        key = user["source_event_key"] if user else None
+        references.append(("assistant", {**user, "source_event_key": key.removesuffix(":user") + ":assistant"}
+                           if key and key.endswith(":user") else None))
+    if isinstance(report.get("exclusion"), dict):
+        cause = report["exclusion"]
+        state, reason = "excluded", cause["reason"]
+        details = {"scope": cause["scope"], **{key: cause.get(key) for key in host_receipts.STORED}}
+    elif report.get("reason") == "queue_full":
+        state, reason, details = "failed", "queue_full", {"retryable": True}  # The stage is kept for a retry.
+    elif report.get("reason") == "message_unavailable":
+        state, reason, details = "failed", "message_unavailable", {"retryable": False}
+    else:
+        state, details = "unknown", {}
+        reason = report.get("reason") if report.get("reason") in host_receipts.REASONS["unknown"] else "turn_not_staged"
+    return host_receipts.turn([host_receipts.message(role, reference, state, reason, **details)
+                               for role, reference in references])
 
 
 # Recall -------------------------------------------------------------------------------------------------------
@@ -1669,7 +1867,7 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
             previous = None
         capture = _stage(directory, session, record, prompt, not valid_id,
                         f"{session}:{turn_id}:user" if valid_id and ":" in turn_id else None,
-                        server_paused=policy["paused"])
+                        server_paused=policy["paused"], server_policy=policy)
     except Exception:
         if client is not None:
             client.close()
@@ -1734,7 +1932,8 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
 
 def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: str | None = None,
                 producer: str = PRODUCER, prompt: str | None = None, user_id: str | None = None,
-                roleplay: str | None = None, allow_unstaged: bool = False) -> list[dict]:
+                roleplay: str | None = None, allow_unstaged: bool = False,
+                receipt: dict | None = None) -> list[dict]:
     """Store the staged user message and the reply, unless recording was paused during the turn.
 
     Hosts that report the whole turn at once pass ``prompt``. Hosts mixing staged and whole-turn callbacks must
@@ -1742,7 +1941,8 @@ def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: st
     that began while paused is stored only when the agent resumed in it at the user's request (``resume`` with
     ``current_turn``); its message was not kept, so it is stored from ``prompt``.
     Returns the records stored or queued, so a caller can link what it derives from them; empty when the turn
-    was not recorded.
+    was not recorded. That list does not say which were server-saved: pass a dict as ``receipt`` to have it
+    replaced by one ``host_receipts`` entry per message (recorded, queued, excluded, failed or unknown).
     """
     user_id = roleplay_user(user_id, roleplay)
     explicit_pause = isinstance(prompt, str) and requests_pause(prompt)
@@ -1753,14 +1953,23 @@ def finish_turn(directory: Path, session: str, reply: str | None, *, turn_id: st
         if supplied is not None:
             supplied["text"] = scrub(prompt)
             host_recording.stamp(supplied, host_recording.status(directory, client, user_id))
+        report, outcomes = {}, ({} if receipt is not None else None)
         records, staged_user, exclusion_handled = _take_turn(
             directory, session, user_id=user_id, producer=producer, turn_id=turn_id,
-            prompt=supplied, reply=reply, allow_unstaged=allow_unstaged)
+            prompt=supplied, reply=reply, allow_unstaged=allow_unstaged, outcome=report)
         if user_id is None:
             user_id = staged_user
         if explicit_pause and not exclusion_handled:
             _pause_for_request(directory, session, user_id)
-        delivered = _replay_queued(directory, client, records)
+        delivered = _replay_queued(directory, client, records, outcomes)
         if client is None and records:
             start_in_background(directory)
+        if receipt is not None:
+            receipt.clear()
+            try:
+                receipt.update(_turn_receipt(session, turn_id=turn_id, producer=producer, supplied=supplied,
+                                             reply=reply, records=records, report=report, client=client,
+                                             outcomes=outcomes))
+            except Exception as error:  # The turn is already settled; an empty receipt means "not known".
+                log(directory, f"recording receipt unavailable: {type(error).__name__}")
         return delivered
