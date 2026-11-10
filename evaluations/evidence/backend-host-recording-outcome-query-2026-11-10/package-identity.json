@@ -1,0 +1,17 @@
+{
+  "runtime_commit": "d6aa3d58dd098ed6fc4beeacc788f32806f5b253",
+  "pin_commit": "9a546fa8272b78046d4da8caa5cb96f5a6d9a6fe",
+  "built_from": "9a546fa8272b78046d4da8caa5cb96f5a6d9a6fe",
+  "built_from_tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "build_id": "2f324016ad29a03fe11015b557e6915c4f337f3e21eee5ed902754699092afa7",
+  "checkout_build_id": "2f324016ad29a03fe11015b557e6915c4f337f3e21eee5ed902754699092afa7",
+  "schema_id": "65f39c3540715ba2fd40d3e0bad24c36143af1cceb27e2e560a813736fb28092",
+  "runtime_inputs": 214,
+  "checkout_runtime_inputs": 214,
+  "runtime_inputs_matching_checkout": 214,
+  "wheel_parity": true,
+  "wheel": "membrain_ai-0.1.0-py3-none-any.whl",
+  "wheel_sha256": "8937b9a98685b7d99cb4e4a3949c02abca6f563cf746ab59e56cdc1bb2be0aad",
+  "sdist": "membrain_ai-0.1.0.tar.gz",
+  "sdist_sha256": "d8de1e0773ec0fadc22af1ea15201dc975f012dcdfd6f95cce864049b285f85e"
+}

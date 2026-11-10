@@ -1,0 +1,39 @@
+{
+  "scope": "Independent engineering review of queryable host recording outcomes; no behavioral or paid model evaluation",
+  "reviewer": "Codex",
+  "runtime": {
+    "base_commit": "74d9425309b152c650016854ace44a869dc19dd5",
+    "build_id": "2f324016ad29a03fe11015b557e6915c4f337f3e21eee5ed902754699092afa7",
+    "input_count": 214,
+    "windows_linux_inputs_identical": true,
+    "candidate_was_uncommitted": true,
+    "final_runtime_commit": "d6aa3d58dd098ed6fc4beeacc788f32806f5b253",
+    "final_runtime_matches_reviewed_inputs": true
+  },
+  "native_windows": {
+    "python": "3.12.16",
+    "passed": 58,
+    "deselected": 5,
+    "skipped": 0,
+    "pytest_seconds": 10.95,
+    "runtime_unchanged": true,
+    "scope": "Host-outcome unit and adapter checks plus three independent proxy/erasure cases. Four database/service cases and the Linux-specific fd fault injection were deliberately not selected."
+  },
+  "wsl_independent": {
+    "passed": 4,
+    "skipped": 0,
+    "pytest_seconds": 0.37,
+    "scope": "Immutable runtime snapshot; failed rollback and later confirmation, erased-target isolation, read-only proxy queries across restart and identities, and another owner callback preserved during erase."
+  },
+  "resolved_findings": [
+    "Ambiguous queue admission was reported as definite failure and could not be refined by replay.",
+    "Erased exchange metadata bypassed recording-target isolation.",
+    "Erasing one owner removed another owner unmatched callbacks from the same session."
+  ],
+  "prior_results": [
+    "Snapshot-1 proxy probe failed because that early snapshot predated proxy integration; retained as an early-candidate result, not a finished-candidate defect.",
+    "An initial same-profile probe lacked contract/migration assets in its review snapshot. The harness was completed with unchanged baseline assets and the profile identity check passed."
+  ],
+  "open_functional_findings": [],
+  "integration_condition": "Match the final runtime build ID and complete package, live-host and required CI checks before merging."
+}
