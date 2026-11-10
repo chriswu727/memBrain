@@ -50,6 +50,14 @@ On this error, desktop chat performs the same bounded read-only scope lookup and
 
 Resolve an existing turn through its owning host. A draft created by a different adapter is not automatically adopted or cancelled by the desktop session. External hosts can use `RuntimeClient(memory).active_scope(conversation_id, branch_id)` to inspect the same state and reconcile their own durable message and delivery records.
 
+## Recording is off or unconfirmed for a direct chat
+
+`desktop chat --recording-status` (or `/recording`) reads the three controls that decide whether a new message is recorded: the brain's server switch, device capture for this installation, and this conversation branch's own choice. See [local recording controls for direct chat](../docs/reference.md#local-recording-controls-for-direct-chat). `unknown` means a control could not be read or the service did not answer; it is not shown as off. With an unreadable local control and a reachable service, a message is handled as temporary only after the service confirms a temporary reservation. When the service itself does not answer, no message can be answered at all, and temporary handling is unconfirmed even if a local control is known to exclude recording. The two local controls apply to new messages and do not cancel a turn that is already running; pausing the server switch also stops recorded turns in progress.
+
+`off_record_reservation_rejected` means the service did not accept an explicit off-record reservation, as a service older than the client does. Nothing was generated, sent or saved, and the message was not recorded instead. Upgrade and restart the service.
+
+`pending_turn_recording_excluded` means a recorded turn is still pending while device capture is paused, the conversation branch is off the record, or one of them cannot be read. The turn was neither converted to a temporary turn nor resumed. Cancel it with its exact turn ID, or turn recording back on (`/on-record`, or resume device capture) and then resume it. `/resume` itself never changes a recording control.
+
 ## Learning is separate from delivery
 
 Use `desktop learning-status` for background learning and `desktop learning-status --job JOB_ID` for an exact cognitive job. A completed answer, a ready service, and a queued recovery job are different from successful learning. See [cognitive policy and recovery](cognition-policy.md) for explicit reasoning limits and bounded recovery of a blocked learning interval.

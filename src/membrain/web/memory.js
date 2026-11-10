@@ -937,18 +937,25 @@ async function loadRecording() {
     recordingState = { ...result, brain };
     const serverPaused = result.server.paused;
     const localPaused = result.local?.paused;
+    // A pause a host conversation asked for lists the host conversations active when it was set; it is not a
+    // pause of the device and says nothing about whether a direct chat is recorded.
+    const hostConversation = localPaused && result.local.scope === "conversations";
     $("recording").hidden = false;
-    $("recording").textContent = serverPaused ? "Recording paused" : localPaused ? "Device capture paused" : "Recording on";
+    $("recording").textContent = serverPaused ? "Recording paused" : hostConversation ? "Host conversation paused"
+      : localPaused ? "Device capture paused" : "Recording on";
     $("recording").classList.toggle("paused", serverPaused || localPaused);
     $("recording-text").textContent = serverPaused
       ? "New messages, notes and background learning are paused for this memory. Earlier memory stays available."
+      : hostConversation ? "Memory accepts writes. A local pause covers existing host conversations on this device; it is not a pause of device capture."
       : localPaused ? "Memory accepts writes, but chat capture is paused on this device."
         : "Memory accepts new messages and notes. Conversation-specific pauses still apply.";
     $("recording-actions").hidden = false;
     $("pause").hidden = serverPaused;
     $("resume").hidden = !serverPaused;
     $("local-recording").hidden = !result.local;
-    $("local-recording-text").textContent = localPaused ? "Chat capture is paused on this device." : "Chat capture is enabled on this device.";
+    $("local-recording-text").textContent = hostConversation
+      ? "A host conversation asked not to be recorded. This pause covers the host conversations that were active when it was set. It does not apply to direct chat; direct chat still follows its server, device and conversation controls."
+      : localPaused ? "Chat capture is paused on this device." : "Chat capture is enabled on this device.";
     $("pause-local").hidden = localPaused;
     $("pause-hours").hidden = localPaused;
     $("resume-local").hidden = !localPaused;

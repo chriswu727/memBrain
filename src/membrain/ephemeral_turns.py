@@ -8,9 +8,18 @@ def require_current(brain, row):
         raise DomainError("context_stale", "Temporary conversation context changed.")
 
 
-def begin(store, principal, brain_id, *, turn_id, conversation_id, branch_id, expected_recording_revision, review_policy=None):
+def begin(store, principal, brain_id, *, turn_id, conversation_id, branch_id, expected_recording_revision,
+          review_policy=None, off_record=False):
+    """Reserve a content-free temporary turn at the caller's recording revision.
+
+    A temporary turn needs a reason: the brain's recording is paused, or the caller explicitly asks for one turn to
+    stay off the record (``off_record``) while recording remains enabled. The explicit form never changes the
+    brain's recording controls and binds the same revision, deletion and scope dependencies as a paused one.
+    """
     from .turn_scopes import require_new_scope
 
+    if type(off_record) is not bool:
+        raise DomainError('validation_failed', 'off_record must be a boolean.')
     for value in (turn_id, conversation_id, branch_id):
         _identifier(value)
     _integer(expected_recording_revision, 0)
@@ -26,7 +35,8 @@ def begin(store, principal, brain_id, *, turn_id, conversation_id, branch_id, ex
             if not row['ephemeral'] or (row['conversation_id'], row['branch_id']) != (conversation_id, branch_id):
                 raise DomainError('idempotency_conflict', 'Turn identity belongs to another operation.')
             return store._public(conn, principal, row)
-        if not brain['recording_paused'] or brain['recording_revision'] != expected_recording_revision:
+        if (brain['recording_revision'] != expected_recording_revision
+                or not (brain['recording_paused'] or off_record)):
             raise DomainError('context_stale', 'Recording policy changed before the temporary turn began.')
         require_new_scope(conn, principal, brain_id, conversation_id, branch_id)
         row = conn.execute(

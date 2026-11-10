@@ -160,6 +160,35 @@ class DeliveryReceipt:
     delivered_text: str | None = None
 
 
+# Each reason a turn can be temporary, with the scopes of the control or request behind it.
+TEMPORARY_REASONS = {
+    "server_paused": ("brain",),
+    "local_pause": ("installation",),
+    "off_record": ("conversation_branch",),
+    "caller_opt_out": ("turn",),
+    # A local control could not be read. The turn is temporary as a precaution; that control's state is unknown,
+    # not confirmed off.
+    "local_state_unreadable": ("installation", "conversation_branch"),
+}
+
+
+@dataclass(frozen=True)
+class TemporaryCause:
+    """One control or request that kept a temporary turn out of memory, and the scope it covers.
+
+    This is a recording outcome. It says nothing about external delivery, which ``DeliveryReceipt`` reports.
+    """
+    reason: str
+    scope: str
+    until: float | None = None
+
+    def __post_init__(self):
+        if self.scope not in TEMPORARY_REASONS.get(self.reason, ()):
+            raise ValueError("Unknown temporary cause or scope")
+        if self.until is not None and (self.reason != "local_pause" or type(self.until) not in (int, float)):
+            raise ValueError("Only a timed local pause has an expiry")
+
+
 @dataclass(frozen=True)
 class TurnResult:
     turn_id: str
@@ -167,6 +196,9 @@ class TurnResult:
     text: str | None
     replayed: bool = False
     ephemeral: bool = False
+    # Why a temporary turn was not recorded. Empty for durable turns, and for a replayed temporary completion
+    # marker: the service does not store the cause.
+    temporary_causes: tuple[TemporaryCause, ...] = ()
 
 
 def _transient(error):
@@ -391,7 +423,8 @@ class BrainRuntime:
              if self.answer_reviewer else "Answer review is disabled; memory-use instructions are not enforced by a reviewer."),
             ("On-demand orientation may skip immediate situation and goal inference; raw input is still captured."
              if self.policy.orientation_policy == "on_demand" else "Orientation is requested before every new turn."),
-            "While server recording is paused, temporary turns retain content only in this process and read bounded same-branch history.",
+            "While server recording is paused, or for a turn sent with record=False, temporary turns retain content only in this process and read bounded same-branch history.",
+            "This runtime reads no device-local recording controls; open_agent and desktop chat apply those before calling it.",
             "Temporary turns do not run orientation, semantic recall planning or learning, and cannot resume after process exit.",
             "External callbacks require idempotency or reconciliation after uncertain outcomes.",
         ]
@@ -400,27 +433,43 @@ class BrainRuntime:
     def recording_status(self):
         return self.memory.recording_status()
 
-    def respond_temporary(self, text, *, message_id, conversation_id, branch_id="main", revision):
+    def respond_temporary(self, text, *, message_id, conversation_id, branch_id="main", revision, causes=None):
+        """Answer one turn without recording it. ``causes`` names every control or request that excludes it; when
+        none is the server pause, the service is asked for an explicit off-record reservation instead."""
         if not isinstance(text, str) or not text.strip():
             raise ValueError("A nonempty input message is required")
         if not isinstance(message_id, str) or not 1 <= len(message_id) <= 256:
             raise ValueError("A stable message_id is required")
+        if causes is None:
+            causes = (TemporaryCause("server_paused", "brain"),)
+        if (not isinstance(causes, tuple) or not causes
+                or any(not isinstance(cause, TemporaryCause) for cause in causes)):
+            raise ValueError("A temporary turn needs at least one cause")
         turn_id = "turn-" + digest([self.memory.brain_id, conversation_id, branch_id, message_id])[:40]
         return self.temporary.respond(text, turn_id=turn_id, conversation_id=conversation_id,
-                                      branch_id=branch_id, revision=revision)
+                                      branch_id=branch_id, revision=revision, causes=causes)
 
     def respond(self, text: str, *, message_id: str, conversation_id: str, branch_id: str = "main",
-                allow_temporary: bool = True):
+                allow_temporary: bool = True, record: bool = True):
+        """Run one turn. ``record=False`` keeps this turn out of memory even while recording is enabled; it is
+        never downgraded to a recorded turn, so it cannot be combined with ``allow_temporary=False``."""
         if not isinstance(text, str) or not text.strip():
             raise ValueError("A nonempty input message is required")
         if not isinstance(message_id, str) or not 1 <= len(message_id) <= 256:
             raise ValueError("A stable message_id is required")
+        if type(record) is not bool:
+            raise ValueError("record must be a boolean")
+        if not record and not allow_temporary:
+            raise ValueError("record=False needs temporary mode; it cannot be combined with allow_temporary=False")
         turn_id = "turn-" + digest([self.memory.brain_id, conversation_id, branch_id, message_id])[:40]
         if allow_temporary:
             status = self.recording_status()
-            if status["paused"]:
+            causes = (TemporaryCause("server_paused", "brain"),) if status["paused"] else ()
+            if not record:
+                causes += (TemporaryCause("caller_opt_out", "turn"),)
+            if causes:
                 return self.respond_temporary(text, message_id=message_id, conversation_id=conversation_id,
-                                              branch_id=branch_id, revision=status["revision"])
+                                              branch_id=branch_id, revision=status["revision"], causes=causes)
         self.temporary.clear()
         try:
             row = self.journal.begin(

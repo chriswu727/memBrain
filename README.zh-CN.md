@@ -84,7 +84,7 @@ hermes config set memory.provider membrain   # 或：hermes memory setup
 - **本地、私有。** 一条命令即可在本机安装嵌入式数据库；无需 Docker、云账号或额外的模型 key，由你正在使用的宿主模型负责理解。
 - **不打扰宿主。** 钩子出错时直接放行：记忆不可用时，Agent 照常回复。运行时安装完成后，记录会先经过隐私过滤再排队，服务恢复后写入。
 - **可审计的遗忘。** 删除会被登记，从旧备份恢复后也不会“复活”。
-- **明确的记录控制。** 插件和聊天代理会在保存对话前识别 `Off the record: ...`、`请不要记录这一段：...` 等直接开头的指令，不依赖模型调用工具。识别范围有限，其他说法请使用暂停控件。这项本地宿主策略不覆盖直接 SDK 写入或 AgentRuntime，也不会删除聊天宿主的历史。[适用范围与限制](docs/reference.md#chat-adapter-identity-compatibility)。
+- **明确的记录控制。** 插件和聊天代理会在保存对话前识别 `Off the record: ...`、`请不要记录这一段：...` 等直接开头的指令，不依赖模型调用工具。识别范围有限，其他说法请使用暂停控件。`desktop chat` 和 `open_agent` 会话对单个会话分支应用同样的指令，并提供明确的 `/off-record` 和 `/on-record`。这项本地策略不覆盖直接 SDK 写入或直接构造的 `BrainRuntime`，也不会删除聊天宿主的历史。[适用范围与限制](docs/reference.md#chat-adapter-identity-compatibility)。
 - **公开评测。** 评测结果（包括失败的）连同方法和成本一并公开。下面的伙伴相关功能已通过本地测试和浏览器检查，尚未进行付费行为评测。
 - **始终是它自己、而且说得清原因的伙伴。** 带版本的个性设定，可在用户接受根据反复明确反馈提出的建议后成长，也可以回滚；用户表达过的感受作为证据保存，标明是用户说的还是推断的，从不打分；有记录触发原因、会回到基础心情、并标明是“模拟”的短时心情；以及关系记忆：共同时刻、推算出的熟悉程度、边界、做到和错过的承诺。每一层在上下文里各占一段，在记忆页上连同证据展示，可以单独调整或重置；重置后不会从旧对话里重新推算出来。记忆页还有大脑视图和全屏展示模式。详见 [Phase C 设计](architecture/phase-c-design.md)。
 
@@ -167,7 +167,7 @@ with open_agent(conversation_id="writing", deliver=deliver) as agent:
 
 请在 Python 3.12+ 环境中运行。在实际宿主中，将 `deliver` 替换为真实的发送操作，并只在确认发送成功后返回成功回执。此示例确认的是终端写入，不代表有人已经阅读回答。每条新输入都需要一个稳定且唯一的消息 ID；只有在处理同一条消息的恢复或核对时，才复用该 ID。重放已完成的消息不会再次生成或交付回复。
 
-暂停所选大脑的服务端记录开关后，Python 会话和 `desktop chat` 可以继续[临时对话](docs/reference.md#temporary-chat-while-server-recording-is-paused)。消息和回复只保存在有容量限制的进程内缓冲区，仍可读取同一会话分支已有的近期记录；恢复记录不会补写临时消息。服务端只保留不含正文的控制标记以防重复执行，进程退出后不能恢复临时回复。本机和会话级采集开关仍是独立控制。
+暂停所选大脑的服务端记录开关后，Python 会话和 `desktop chat` 可以继续[临时对话](docs/reference.md#temporary-chat-while-server-recording-is-paused)。消息和回复只保存在有容量限制的进程内缓冲区，仍可读取同一会话分支已有的近期记录；恢复记录不会补写临时消息。服务端只保留不含正文的控制标记以防重复执行，进程退出后不能恢复临时回复。暂停本机聊天采集，或用 `/off-record` 让单个会话分支不留记录，也会进入同一模式，且不会暂停整个大脑；三项控制[相互独立](docs/reference.md#local-recording-controls-for-direct-chat)，无法读取的控制会报告为未知。
 
 如需自己的模型回调、交付渠道、恢复处理或可选的回答核验器，请参阅[自动接入参考](docs/reference.md#automatic-integration)。HTTP 和 TypeScript 客户端提供底层操作；目前开箱即用的自动文本运行时是 Python 版本。TypeScript 客户端还提供[人格、感受、模拟心情、关系控制和真实记忆图接口](docs/reference.md#typescript-companion-controls-and-maps)，人格建议须由用户明确接受或拒绝。各接入方式提供的控制和仍未验证的原生宿主流程，见[宿主功能与验证范围](docs/host-compatibility.md)。
 
