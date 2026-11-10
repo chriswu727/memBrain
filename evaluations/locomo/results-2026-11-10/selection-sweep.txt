@@ -1,0 +1,9 @@
+Starting the local memory database and service…
+config                                            n     all   share  multi all   chars  p50 ms  p95 ms
+baseline 12 msgs / 10 vec / 8 replies / 32k     383   54.3%   60.2%       9.8%    4803     129     145
+24 msgs                                         383   60.8%   66.7%      14.1%    7333     130     144
+40 msgs                                         383   63.2%   69.1%      17.4%    8413     129     145
+40 msgs / 30 vec                                383   62.9%   69.0%      16.3%    8671     131     147
+40 msgs / 30 vec / 0 replies                    383   57.4%   63.5%      16.3%    8178     122     138
+40 msgs / 30 vec / 64k                          383   65.5%   71.8%      17.4%    8934     193     213
+60 msgs / 50 vec / 96k                          383   65.8%   71.8%      19.6%    8956     194     215
