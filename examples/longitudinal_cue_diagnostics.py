@@ -242,7 +242,8 @@ def run_probe(memory, journal, meter, case, host):
     if result.stage != "completed":
         raise longitudinal.CampaignStopped("probe_runtime_incomplete")
     journal.append("probe_completed", {"case_id": case["id"], "brain_id": memory.brain_id,
-                                        "result": asdict(result), "runtime": runtime.journal.get(result.turn_id),
+                                        "result": longitudinal.json_data(asdict(result)),
+                                        "runtime": runtime.journal.get(result.turn_id),
                                         "sources": runtime.journal.sources(result.turn_id),
                                         "usage": meter.summary(), "review": "pending_independent_review"})
 

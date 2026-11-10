@@ -479,7 +479,62 @@
    "status": "wording corrected in page, translation, terminal and documentation; combined server-pause case tested"
   }
  ],
- "full_ci": "not run before the pull request; complete Verify starts with it and is recorded there",
+ "full_ci": {
+  "first_complete_verify": {
+   "run": 42768431440,
+   "job": 129670411021,
+   "head": "a567e3023b0032c1ab852c7467b542768489f157",
+   "conclusion": "failure",
+   "python": {
+    "failed": 9,
+    "passed": 8403,
+    "warnings": 3,
+    "skipped": 0,
+    "seconds": 2839.7
+   },
+   "not_reached": [
+    "TypeScript tests and typecheck",
+    "package build"
+   ],
+   "failed_tests": {
+    "tests/test_longitudinal_evaluation.py": 7,
+    "tests/test_longitudinal_cue_diagnostics.py": 2
+   },
+   "error": "ValueError: Journal values must be JSON data",
+   "status": "failed run; kept as failed"
+  },
+  "native_engine_workflow": {
+   "run": 42768431465,
+   "head": "a567e3023b0032c1ab852c7467b542768489f157",
+   "conclusion": "success",
+   "jobs": {
+    "native (windows-x86_64)": "success",
+    "native (linux-x86_64)": "success",
+    "native (linux-aarch64)": "success",
+    "native (macos-x86_64)": "success",
+    "native (macos-arm64)": "success",
+    "linux-current": "skipped",
+    "linux-build": "skipped"
+   },
+   "scope": "the repository's native engine workflow for that head; not five-platform qualification of the direct-chat feature"
+  },
+  "cancelled_runs": [
+   {
+    "run": 42766355771,
+    "workflow": "Verify",
+    "head": "ef3d4626dab9f4685443b4d070e38ca30953432c",
+    "conclusion": "cancelled"
+   },
+   {
+    "run": 42766355638,
+    "workflow": "Native engine qualification",
+    "head": "ef3d4626dab9f4685443b4d070e38ca30953432c",
+    "conclusion": "cancelled"
+   }
+  ],
+  "cancelled_runs_note": "superseded automatically when the head changed; cancellations are not passes",
+  "corrected_head": "Verify for the head carrying the journal correction is recorded in the pull request"
+ },
  "not_run": [
   "complete Verify before the pull request",
   "complete native Windows suite, macOS and five-platform qualification",
@@ -533,6 +588,25 @@
    "junit_sha256": "65f4765a0750365a63ad7287f1ed8fa768c425f2aba568d8b2e6249f7f0fd31b",
    "result_sha256": "129704229966d08f2f010698c62e4eb808eb4e4dd113a932732e0a15a66b3c10",
    "not_copied": "the log and junit file contain the oversized parameter IDs"
+  },
+  "corrected_rerun": {
+   "name": "windows-2",
+   "run_by": "Codex, independently",
+   "source_head": "a567e3023b0032c1ab852c7467b542768489f157",
+   "scope": "only the two affected tests (three cases)",
+   "result": {
+    "passed": 3,
+    "failed": 0,
+    "errors": 0,
+    "skipped": 0
+   },
+   "seconds": 4.561,
+   "runtime_hashes_unchanged": true,
+   "database_stopped": true,
+   "not_additive": "the 121 passes of windows-1 on ef3d4626 remain applicable to their source; one of these three cases is among them, so the runs are never summed into unique tests",
+   "log_sha256": "a9debdde471c8b38f0fd1b3605410652b0d5779f0f6cdb1aea28c2b25c34cf20",
+   "junit_sha256": "6513a7c5a3296f900c830841811d0011e143558f95c8744b2f1e7cbfd03d64f2",
+   "result_sha256": "e0af7e61244acb09842a77c9597febd93def1804ba8d2438fdbc593e546ae350"
   }
  },
  "portability_correction": {
@@ -550,10 +624,61 @@
     "errors": 0,
     "skipped": 0
    },
-   "status": "passed on Linux; the native rerun is the reviewer's and is recorded in the pull request",
+   "status": "passed on Linux; the reviewer's native rerun (windows-2) passed afterwards",
    "log": "<task-root>/portability-affected-1.log",
    "log_sha256": "b494308731318b93c29d791ddde1bd1ab67a176fdf14f8e064118269c5cf35b8"
   },
   "ruff": "ruff check src tests examples passed"
+ },
+ "independent_review_record": {
+  "location": "the reviewer's Windows review directory direct-privacy-review-20261110 (independent-review.json)",
+  "sha256": "58d33335ce4ab2ea4949e291cf0d009fa7dea37cacc63f992aa3ea0f6aeaf829",
+  "reviewed_head": "a567e3023b0032c1ab852c7467b542768489f157",
+  "policy_cycle_probe": "passed on ef3d4626, whose runtime equals the reviewed head's"
+ },
+ "journal_serialization_correction": {
+  "defect": "regression of this batch in evaluation example code: asdict(TurnResult) keeps the temporary_causes tuple, which the strict campaign journal refuses; two boundaries (runtime_completed, probe_completed) passed it unnormalized",
+  "why_missed": "the focused local set did not include the longitudinal suites, and a consumer search was truncated",
+  "change": "examples and tests only: both boundaries use the existing json_data helper; journal validator and the public tuple unchanged",
+  "other_consumers_inspected": "evaluate_conversation.py and evaluate_memory_lifecycle.py write through json.dumps, which accepts tuples; unchanged",
+  "runtime_inputs_changed_since_runtime_commit": false,
+  "repinned_or_rebuilt": false,
+  "runs": [
+   {
+    "name": "journal-red-1",
+    "environment": "WSL2 Linux",
+    "source_head": "a567e3023b0032c1ab852c7467b542768489f157",
+    "tracked_diff_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "scope": "one affected test from each longitudinal suite",
+    "result": {
+     "passed": 0,
+     "failed": 2,
+     "errors": 0,
+     "skipped": 0
+    },
+    "status": "reproduces the CI failure before the correction",
+    "log": "<task-root>/journal-red-1.log",
+    "log_sha256": "a58491a08a414642c6584d73c2d5f1e694e54816bb109217a7c4a69023d61574"
+   },
+   {
+    "name": "journal-green-1",
+    "environment": "WSL2 Linux",
+    "source_head": "a567e3023b0032c1ab852c7467b542768489f157",
+    "tracked_diff_sha256": "421ab8680a7b06c6d3f6a7a8b9b03fea3e4f88a2db14279cf265007339e5012c",
+    "scope": "tests/test_longitudinal_cue_diagnostics.py, tests/test_longitudinal_evaluation.py, tests/test_longitudinal_journal.py",
+    "result": {
+     "passed": 96,
+     "failed": 0,
+     "errors": 0,
+     "skipped": 0,
+     "warnings": 1
+    },
+    "status": "passed on the corrected working tree; includes the nine tests that failed in CI",
+    "log": "<task-root>/journal-green-1.log",
+    "log_sha256": "340fe3f436fdf6b8693436c72f055dc0f9f8f94f5dedc40fae5a71b444e2214f"
+   }
+  ],
+  "ruff": "ruff check src tests examples passed",
+  "evaluations_run": "none: deterministic mocked or loopback tests only; no behavioral campaign, no paid or subscription call"
  }
 }

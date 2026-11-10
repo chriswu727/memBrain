@@ -2,7 +2,7 @@
 
 Base: integration `788da00fe4758935a5d7a49f401a4ba462139b27`. Branch `feat/direct-chat-local-privacy`. Runtime commit `2ef05f3367f8cf9ef80654c520273500072eb60c`; pin commit `c78a4c9b620acb0666aba614669f4e09858b0954` points all nine launchers at it. Build `a4767c661011638f1a7dfff323242e2cb150cb85e8e69f388ca8762389d33533`; schema `65f39c3540715ba2fd40d3e0bad24c36143af1cceb27e2e560a813736fb28092`, unchanged because no migration is added. This is a module-1 backend batch. It does not close other modules or any release gate.
 
-This report covers focused checks on WSL2 Linux only. Complete Verify starts with the pull request and is recorded there, as are the independent reviewer's final probe and scoped native Windows checks. Nothing here is native Windows, macOS or five-platform qualification.
+This report covers focused checks on WSL2 Linux, plus the reviewer's scoped native Windows runs and the first CI results on the pull request, each with its own source and scope. The first complete Verify **failed** and is described below; Verify for the corrected head is recorded in the pull request. Nothing here is native Windows, macOS or five-platform qualification of this feature.
 
 ## Problem and result
 
@@ -95,13 +95,44 @@ Neither problem is a runtime defect; both are test-portability defects.
 | `test_direct_chat_privacy.py::test_each_control_resumes_independently_of_the_others` | 1 failed: `PermissionError` | The test scanned every installation file while its session was open. Windows does not let another handle read the session's exclusively locked lock file | The same file and table scan now runs after the session closes, and a second session continues the test. No assertion or scan was dropped; runtime locking is unchanged and lock files are still scanned |
 | `test_desktop_chat.py::test_invalid_instruction_file_fails_before_opening_session` (64,001-byte case) | 2 errors: `ValueError: the environment variable is longer than 32767 characters` | pytest used the payload as the parameter ID, so `PYTEST_CURRENT_TEST` exceeded the Windows limit. The test predates this batch | Compact explicit IDs; payloads and assertions unchanged |
 
-`portability-affected-1` ran the affected cases on WSL2 Linux after the correction: 3 passed. That confirms the corrected tests still pass on Linux only. The native rerun of the affected cases belongs to the reviewer and is recorded in the pull request. The native log is not copied here because it contains the oversized parameter IDs; its hash is in the manifest. The corrections change tests only, so the runtime commit, launcher pins and package identity above remain valid.
+`portability-affected-1` ran the affected cases on WSL2 Linux after the correction: 3 passed. Codex then reran only those cases natively on Windows against head `a567e3023b0032c1ab852c7467b542768489f157` (`windows-2`): 3 passed, 0 skipped. The 121 native passes of the first run on `ef3d4626` remain applicable to their source. One of the three rerun cases is among those 121, so the two runs are never added into a count of unique tests. The native log is not copied here because it contains the oversized parameter IDs; its hash is in the manifest. The corrections change tests only, so the runtime commit, launcher pins and package identity above remain valid.
+
+### Complete Verify on `a567e302`: failed
+
+[Verify 42768431440](https://github.com/chriswu727/memBrain/actions/runs/42768431440) (job 129670411021) on head `a567e3023b0032c1ab852c7467b542768489f157` **failed: 9 failed, 8,403 passed, 3 warnings, zero test skips**, in 2,839.70 s for the Python suite. The TypeScript and package steps did not run after the Python failure. This run stays failed.
+
+All nine failures are one regression introduced by this batch, in evaluation example code rather than the runtime. `TurnResult` gained `temporary_causes`, an immutable tuple. `dataclasses.asdict` keeps the tuple, even when empty, and the longitudinal campaign journal accepts JSON data only. Two places passed `asdict(result)` straight to the journal: `runtime_completed` in `examples/evaluate_longitudinal.py` and `probe_completed` in `examples/longitudinal_cue_diagnostics.py`. Seven tests in `test_longitudinal_evaluation.py` and two in `test_longitudinal_cue_diagnostics.py` failed with `ValueError: Journal values must be JSON data`. They are deterministic mocked or loopback engineering tests; no behavioral campaign and no paid or subscription-backed evaluation ran.
+
+The focused local set had not included the longitudinal suites, and the implementer's search for consumers of a serialized result was truncated and missed both places.
+
+Correction, in examples and tests only:
+
+- Both boundaries normalize the result through the existing `json_data` helper before the journal sees it. The journal's strict validator is unchanged, and `temporary_causes` stays an immutable tuple in the public API.
+- The other consumers of a serialized `TurnResult`, in `evaluate_conversation.py` and `evaluate_memory_lifecycle.py`, write reports through `json.dumps`, which accepts tuples. They are unchanged.
+- New coverage drives both real journal-writing boundaries with default empty causes and with causes carrying reason, scope and expiry, checks that they are stored as JSON lists, that the raw tuple is still refused, and that the journal reopens with the same event hashes and remains resumable.
+
+| Run | Source | Scope | Result |
+| --- | --- | --- | --- |
+| `journal-red-1` | Head `a567e302`, before the correction | One affected test from each suite | 2 failed, reproducing the CI error |
+| `journal-green-1` | Corrected working tree on `a567e302` | `test_longitudinal_cue_diagnostics.py`, `test_longitudinal_evaluation.py`, `test_longitudinal_journal.py` | 96 passed, 0 skipped, 1 fork warning; includes the nine tests that failed in CI |
+
+The build-identity input set (`src/membrain`, the contract schema and the migrations) is unchanged since runtime commit `2ef05f33`, so the launcher pins and the wheel's runtime content remain valid and nothing was repinned or rebuilt. The recorded package hashes belong to the build at commit `ef3d4626`. Later commits change only tests, examples and evaluation files, which are outside the wheel but inside the sdist, so a later sdist differs.
+
+### Other CI results on the pull request
+
+| Run | Head | Result | Scope |
+| --- | --- | --- | --- |
+| [Native engine qualification 42768431465](https://github.com/chriswu727/memBrain/actions/runs/42768431465) | `a567e302` | Succeeded: all five native jobs (Windows x86_64, Linux x86_64, Linux aarch64, macOS x86_64, macOS arm64); two Linux helper jobs skipped by configuration | The repository's native engine workflow for that head. It is not five-platform qualification of the direct-chat feature |
+| Verify 42766355771 | `ef3d4626` | Cancelled automatically when the head changed | Not a pass |
+| Native engine qualification 42766355638 | `ef3d4626` | Cancelled automatically when the head changed | Not a pass |
+
+Codex's independent policy-cycle probe also passed on `ef3d4626`, whose runtime equals the reviewed head's.
 
 Run identities, counts, package hashes and the sanitized review log are in the [evidence manifest](evidence/backend-direct-chat-local-privacy-2026-11-10/manifest.json). Raw logs remain in the task root named there.
 
 ## Not run
 
-- Complete Verify for this head. It starts with the pull request.
+- A passing complete Verify. The first one failed as described above; the run for the corrected head is recorded in the pull request.
 - A complete native Windows suite, macOS and five-platform qualification. WSL is neither Windows nor macOS, and the scoped native review run above is not qualification.
 - The TypeScript suite locally: the SDK is unchanged.
 - Paid or subscription-backed evaluations.
