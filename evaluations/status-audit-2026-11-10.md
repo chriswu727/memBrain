@@ -112,3 +112,7 @@ Two further findings concern how local credentials are presented and need anothe
 3. **Work on memory quality.** Fix H3, M1 and M2; measure multi-hop recall and the extraction path on held-out material against the raw-record and full-history references at equal budgets; then the correction and deletion chain (M3, M4, surviving independent evidence). Only then propose a new paid R4 attempt, which needs the owner's separate approval.
 
 The security findings belong to module 6 and must be fixed before any publication; the two withheld ones before the default branch receives this runtime.
+
+## Follow-up
+
+H1, H2, H4 and H7 are fixed in runtime `ede5769`: see [conversation-scoped pause and module-1 closing fixes](backend-conversation-pause-scope-2026-11-10.md). That batch's reruns also show that four background-learning test files fail intermittently on both runtimes, so the single failure in this audit's full run was not an isolated case. The other findings are unchanged.

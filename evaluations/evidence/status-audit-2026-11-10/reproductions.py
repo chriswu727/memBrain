@@ -1,4 +1,5 @@
-"""Reproductions for two findings of the 2026-11-10 status audit. Both tests FAIL on runtime d6aa3d5 by design.
+"""Reproductions for two findings of the 2026-11-10 status audit. Both tests FAIL on runtime d6aa3d5 by design
+and pass from runtime ede5769 (see ../../backend-conversation-pause-scope-2026-11-10.md).
 
 Run from the repository root; no database or model is needed:
 
@@ -8,7 +9,6 @@ The assertions state the expected behaviour, so a later fix turns them green. Th
 test suite, and are not collected by the default ``testpaths``.
 """
 import asyncio
-import inspect
 import sys
 from pathlib import Path
 
@@ -37,11 +37,20 @@ def test_second_window_ends_first_windows_pause(tmp_path, monkeypatch):
     assert client.observed == []
 
 
-def test_rejected_spool_survives_erasure(tmp_path):
+def test_rejected_spool_survives_erasure(tmp_path, monkeypatch):
+    class Erasing(Client):
+        def dashboard(self):
+            return {"brain": {"scope_generation": 1}}
+
+        def forget(self, ids, **options):
+            return {"outcome": "applied"}
+
+    monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: Erasing())
     line = '{"_user": "alice", "text": "synthetic text of a refused record", "role": "user"}'
     host._reject(tmp_path, line, TypeError("refused"))
     path = host.state_directory(tmp_path) / "spool-rejected.jsonl"
     assert "synthetic text of a refused record" in path.read_text(encoding="utf-8")
-    source = inspect.getsource(host.erase_user)
-    print("erase_user mentions spool-rejected:", "spool-rejected" in source)
-    assert "spool-rejected" in source, "erase_user never touches spool-rejected.jsonl"
+    host.erase_user(tmp_path, "alice")
+    remaining = path.read_text(encoding="utf-8") if path.exists() else ""
+    print("refused text still on disk after erasure:", "synthetic text" in remaining)
+    assert "synthetic text of a refused record" not in remaining, "erase_user left the refused record on disk"

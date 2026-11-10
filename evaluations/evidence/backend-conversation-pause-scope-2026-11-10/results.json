@@ -1,0 +1,47 @@
+{
+  "batch": "backend-conversation-pause-scope-2026-11-10",
+  "base": "9dd835d26949f0e2ad168b39a15ff74275300c09",
+  "runtime_commit": "ede5769548fed910473aa86e8251390b5650ac01",
+  "pin_commit": "77adbe69f416b9bfdd9b8c2d2d724b23294fb36c",
+  "scope": "local WSL2 x86_64 checks; not platform qualification; no model call; no independent review",
+  "database": "task-owned embedded PostgreSQL 16.15, pgvector 0.8.6, stopped afterwards",
+  "new_regressions": {"file": "tests/test_conversation_pause_scope.py", "passed": 15, "against_previous_runtime": "15 failed"},
+  "audit_reproductions": {"previous_runtime": "2 failed", "this_runtime": "2 passed"},
+  "affected_files_without_database": {"files": 23, "passed": 560, "failed": 3, "skipped": 64,
+    "failed_tests": {
+      "tests/test_host.py::test_a_pause_the_agent_starts_on_its_own_ends_with_the_conversation": "pinned the previous ending rule; rewritten",
+      "tests/test_recording_policy.py::test_private_turn_survives_new_conversation_resume_without_revival": "pinned the previous ending rule; rewritten and renamed",
+      "tests/test_host_recording_outcomes.py::test_a_hermes_turn_that_cannot_be_matched_is_logged_and_listed_as_unknown": "listing order reversed once; 12 of 12 passes alone (6 per runtime) and passed in the full run; not reproduced"
+    }},
+  "full_python_suite": {
+    "source": "77adbe69f416b9bfdd9b8c2d2d724b23294fb36c",
+    "passed": 8469, "failed": 4, "skipped": 15, "warnings": 3, "seconds": 2736.67,
+    "runtime_and_migration_files_unchanged_during_run": true,
+    "failed_tests": [
+      "tests/test_continuous_learning_acceptance.py::test_later_conversation_capacity_never_retries_paid_failed_or_unknown_comparisons[unknown-uncertain]",
+      "tests/test_cross_conversation_funding.py::test_foreign_grant_recovery_keeps_exact_unpaid_identity_and_never_resurrects_sources[explicit_recovery]",
+      "tests/test_learning_windows.py::test_new_arrival_extends_unclaimed_continuation_without_losing_its_start",
+      "tests/test_longitudinal_learning.py::test_history_failure_stops_even_when_the_current_exchange_was_encoded[unknown]"
+    ],
+    "skips": {"MEMORY_DESKTOP_E2E not set (Docker journeys)": 4, "pinned local embedding model not present": 11},
+    "retained_outside_repository": {
+      "junit.xml_sha256": "8ce713da5c6297d47556f707c8cb91fd6198f390ea97001e22071b0822489505",
+      "log_sha256": "3e7bb7b55cec6b94fbc62e14d137bb000c8fee81b2f18327321f8b4f2986c768"
+    }
+  },
+  "learning_test_reruns": {
+    "files": ["tests/test_continuous_learning_acceptance.py", "tests/test_cross_conversation_funding.py",
+              "tests/test_learning_windows.py", "tests/test_longitudinal_learning.py"],
+    "tests_per_run": 88,
+    "previous_runtime_9dd835d2": {"runs": 4, "runs_with_failures": 3, "failures_per_run": [1, 1, 0, 2]},
+    "this_runtime": {"runs": 6, "runs_with_failures": 4, "failures_per_run": [0, 2, 1, 2, 1, 0]},
+    "the_four_failed_tests_alone_on_this_runtime": {"runs": 3, "runs_with_failures": 2, "failures_per_run": [1, 0, 1]},
+    "most_frequent": "tests/test_cross_conversation_funding.py::test_foreign_grant_recovery_keeps_exact_unpaid_identity_and_never_resurrects_sources",
+    "conclusion": "intermittent on both runtimes with a different failing test each time; cause not established; not caused by this change"
+  },
+  "aborted_run": "first full run stopped after 95 s and not counted: an older src tree was briefly checked out while it ran",
+  "launcher_pins_and_build_identity": {"passed": 12},
+  "ruff": "passed (src tests examples)",
+  "not_run": ["Verify on GitHub", "native Windows and macOS", "five-platform qualification", "extracted-wheel regression",
+              "real host processes", "R5 overhead protocol", "model evaluation", "independent review"]
+}
