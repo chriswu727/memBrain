@@ -48,15 +48,23 @@ def note_capture(session, record, nonce):
     return ".".join((digest(["session", session])[:32], key(record), nonce))
 
 
+def capture_marker(capture):
+    """The session ledger a well-formed recording capture belongs to, or ``None``. It only names the conversation
+    for a pause check; ``note_revision`` still decides whether the capture is valid."""
+    if isinstance(capture, str) and re.fullmatch(r"[a-f0-9]{32}\.[a-f0-9]{64}\.[a-f0-9]{32}", capture):
+        return capture.split(".")[0]
+    return None
+
+
 def note_revision(directory, client, capture, user_id=None):
     from .host import paused, state_directory
 
-    if not isinstance(capture, str) or not re.fullmatch(r"[a-f0-9]{32}\.[a-f0-9]{64}\.[a-f0-9]{32}", capture):
+    if capture_marker(capture) is None:
         raise ValueError("Saving memory requires recording_capture from the original turn's membrain-source block.")
     marker, identity, nonce = capture.split(".")
     root = state_directory(directory)
     with profile_lock(root / "session-state-lock", timeout=5):
-        if paused(directory, user_id):
+        if paused(directory, user_id, marker=marker):
             raise ValueError("Recording is paused. Resume before saving agent notes.")
         try:
             state = json.loads((root / "sessions" / (marker + ".json")).read_text(encoding="utf-8"))

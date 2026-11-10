@@ -8,9 +8,9 @@ from .local_profile import profile_lock
 
 def _pause_scope(value):
     """Whose capture a readable pause covers. A pause a host conversation asked for lists the host conversations
-    that were active on this installation when it was set, whichever adapter they belong to, and ends when a host
-    conversation outside that list starts; it is not a pause of the whole device. Any other pause, timed or until
-    resumed, covers the installation."""
+    that were active on this installation when it was set, whichever adapter they belong to. It does not cover a
+    host conversation outside that list and ends once the listed ones are over (``host.end_conversation_pause``);
+    it is not a pause of the whole device. Any other pause, timed or until resumed, covers the installation."""
     return "conversations" if isinstance(value.get("conversations"), list) else "installation"
 
 

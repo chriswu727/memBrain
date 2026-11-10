@@ -109,13 +109,17 @@ def test_explicit_exclusion_cannot_be_revived_but_later_public_turn_can(tmp_path
     assert "Confidential" not in (tmp_path / "plugin" / "spool.jsonl").read_text()
 
 
-def test_private_turn_survives_new_conversation_resume_without_revival(tmp_path, offline):
+def test_private_turn_and_its_conversation_stay_paused_when_another_conversation_starts(tmp_path, offline):
     host.prompt_context(tmp_path, "private", "Off the record: private detail.", user_id="alice")
     host.session_context(tmp_path, "private", user_id="alice")
     assert host.paused(tmp_path, "alice")
     host.session_context(tmp_path, "public", user_id="alice")
-    assert not host.paused(tmp_path, "alice")
+    assert host.paused(tmp_path, "alice", "private") and not host.paused(tmp_path, "alice", "public")
     assert host.finish_turn(tmp_path, "private", "Private reply.", user_id="alice") == []
+    host.prompt_context(tmp_path, "private", "A later private detail.", turn_id="later", user_id="alice")
+    assert host.finish_turn(tmp_path, "private", "Private reply.", turn_id="later", user_id="alice") == []
+    assert "private detail" not in "".join(
+        path.read_text(encoding="utf-8") for path in (tmp_path / "plugin").rglob("*") if path.is_file())
 
 
 @pytest.mark.parametrize("hours", [None, 2])

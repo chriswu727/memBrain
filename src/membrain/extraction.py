@@ -301,14 +301,16 @@ def _exchange(items):
 
 
 def extract_turn(directory, extractor: Extractor, user_id: str | None, *,
-                 sources, previous_sources=(), recording) -> list[dict]:
-    """Read exact live turn revisions and save notes with the sources actually sent to the provider."""
+                 sources, previous_sources=(), recording, session: str | None = None) -> list[dict]:
+    """Read exact live turn revisions and save notes with the sources actually sent to the provider.
+
+    ``session`` names the turn's host conversation, so a pause of other conversations only does not stop it."""
     from . import host, host_recording
     from .client import MemoryActionError
     from .notes import NoteValidationError, list_notes, render_notes, save_note
     from .recording_guard import require_recording
 
-    if host.paused(directory, user_id):
+    if host.paused(directory, user_id, session):
         return []
     client = host.ready_client(directory, user_id)
     if client is None:
@@ -319,7 +321,7 @@ def extract_turn(directory, extractor: Extractor, user_id: str | None, *,
         delays = getattr(extractor, "retry_delays", RETRY_DELAYS)
         for attempt in range(len(delays) + 1):
             try:
-                if host.paused(directory, user_id):
+                if host.paused(directory, user_id, session):
                     return []
                 recording_revision = host_recording.captured_revision(client, recording)
                 resolved = client.source_messages([*sources, *previous_sources])
@@ -353,7 +355,7 @@ def extract_turn(directory, extractor: Extractor, user_id: str | None, *,
             text, replaces = note.pop("text"), note.pop("replaces")
             request_id = _helpers.uid()
             for attempt in range(len(delays) + 1):
-                if host.paused(directory, user_id):
+                if host.paused(directory, user_id, session):
                     record_outcome(directory, saved=len(saved), error="recording_paused")
                     return saved
                 try:

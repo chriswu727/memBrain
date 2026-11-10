@@ -263,7 +263,8 @@ def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
         elif name == "resume":
             result = host_recording.resume(directory, user_id=user, current_turn=True,
                                  session=_conversation(arguments) if "session_id" in arguments else None)
-        elif name == "note" and host.paused(directory, user):
+        elif name == "note" and host.paused(
+                directory, user, marker=host_recording.capture_marker(arguments.get("recording_capture"))):
             result = {"error": "Recording is paused. Resume before saving agent notes."}
         else:
             client = host.ready_client(directory, user)

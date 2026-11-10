@@ -151,7 +151,8 @@ class ChatMemory:
                 while len(self._previous) > PREVIOUS_EXCHANGES:
                     self._previous.popitem(last=False)
             recording = message.get("_recording", {"revision": 0, "target": None})
-            self._extract(user, sources, previous, recording=dict(recording) if isinstance(recording, dict) else recording)
+            self._extract(user, sources, previous, session=session,
+                          recording=dict(recording) if isinstance(recording, dict) else recording)
         return receipt or None
 
     def exchange(self, speaker: Speaker, *, session: str, turn_id: str, roleplay: str | None = None) -> str | None:
@@ -178,12 +179,13 @@ class ChatMemory:
         return host_outcomes.recent(self.directory, session=session, producer=self.producer,
                                     user_id=self.user_id(speaker), roleplay=roleplay or self.roleplay, limit=limit)
 
-    def _extract(self, user: str, sources: list[dict], previous_sources: tuple[dict, ...] = (), *, recording) -> None:
+    def _extract(self, user: str, sources: list[dict], previous_sources: tuple[dict, ...] = (), *, recording,
+                 session: str | None = None) -> None:
         from ..extraction import extract_turn
 
         def task():
             extract_turn(self.directory, self.extractor, user, sources=sources, previous_sources=previous_sources,
-                         recording=recording)
+                         recording=recording, session=session)
 
         if not self.extractor.submit(task):
             from ..extraction import record_outcome
@@ -198,7 +200,9 @@ class ChatMemory:
         if not self._recording(speaker):
             return {"error": "Memory tools are not available in this conversation."}
         user = self.memory_user(speaker, roleplay)
-        if host.paused(self.directory, user):
+        from ..host_recording import capture_marker
+
+        if host.paused(self.directory, user, marker=capture_marker(recording_capture)):
             return {"error": "Recording is paused. Resume before saving agent notes."}
         client = self._client(user)
         if client is None:

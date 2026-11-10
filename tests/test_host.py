@@ -793,11 +793,19 @@ def test_a_pause_the_agent_starts_on_its_own_ends_with_the_conversation(tmp_path
     host.finish_turn(tmp_path, "s1", "Okay, not keeping that.", turn_id="t1")
     host.session_context(tmp_path, "s1")  # The same conversation continuing (for example after compaction).
     assert host.paused(tmp_path) and client.observed == []
-    resumed = host.session_context(tmp_path, "s2")
-    assert "paused for an earlier conversation only" in resumed and not host.paused(tmp_path)
+    # A new conversation is recorded from its first message. It does not end the pause of the one that asked,
+    # which may still be open in another window (tests/test_conversation_pause_scope.py).
+    opening = host.session_context(tmp_path, "s2")
+    assert "paused for another conversation only" in opening and not host.paused(tmp_path, session="s2")
+    assert host.paused(tmp_path, session="s1")
     host.prompt_context(tmp_path, "s2", "My sister moved to Leeds.", turn_id="t1")
     host.finish_turn(tmp_path, "s2", "Noted.", turn_id="t1")
     assert [record["text"] for record in client.observed] == ["My sister moved to Leeds.", "Noted."]
+    # Once the conversation that asked is over, the next one to start ends the pause.
+    marker = host._session_marker(tmp_path, "s1")
+    os.utime(marker, (time.time() - 7 * 3600,) * 2)
+    resumed = host.session_context(tmp_path, "s3")
+    assert "paused for an earlier conversation only" in resumed and not host.paused(tmp_path)
 
     asyncio.run(server.call_tool("memory_pause", {"until_resumed": True}))
     assert "Recording is currently paused" in host.session_context(tmp_path, "s3") and host.paused(tmp_path)

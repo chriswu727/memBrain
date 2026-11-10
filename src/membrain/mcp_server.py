@@ -150,7 +150,7 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
         if directory is not None:
             from membrain import host, host_recording
 
-            if host.paused(directory):
+            if host.paused(directory, marker=host_recording.capture_marker(recording_capture)):
                 return {"error": "Recording is paused. Resume before saving observations."}
             if require_turn_capture or recording_capture is not None:
                 try:
@@ -193,7 +193,7 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
         if directory is not None:
             from membrain import host, host_recording
 
-            if host.paused(directory):
+            if host.paused(directory, marker=host_recording.capture_marker(recording_capture)):
                 return {"error": "Recording is paused. Resume before saving agent notes."}
             if require_turn_capture or recording_capture is not None:
                 return await asyncio.to_thread(host_recording.save_note, directory, client, text,

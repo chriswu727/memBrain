@@ -154,8 +154,8 @@ class MembrainProvider(_Base):
         """Copy entries of Hermes's USER.md that memBrain does not have yet, once per change of the file."""
         from ..imports import Source, import_notes
 
-        if self._hermes_home is None:
-            return
+        if self._hermes_home is None or host.paused(self._directory, session=self._session or None):
+            return  # Nothing is written to memory while recording is paused; the file is read again afterwards.
         path = self._hermes_home / "memories" / "USER.md"
         marker = host.state_directory(self._directory) / "hermes-user-import.json"
         try:
@@ -223,7 +223,7 @@ class MembrainProvider(_Base):
             if tool_name == "membrain_recording_status":
                 limit = args.get("limit")
                 return json.dumps(self.recording_outcomes(limit=limit if type(limit) is int else 5))
-            if tool_name == "membrain_note" and host.paused(self._directory, self._user):
+            if tool_name == "membrain_note" and host.paused(self._directory, self._user, self._session or None):
                 return json.dumps({"error": "Recording is paused. Resume before saving agent notes."})
             client = host.ready_client(self._directory, self._user)
             if client is None:
@@ -252,7 +252,7 @@ class MembrainProvider(_Base):
         Writes to MEMORY.md describe Hermes's environment and stay in Hermes.
         """
         if (self._directory is None or not self._writes or target != "user" or self._user is not None
-                or host.paused(self._directory)):
+                or host.paused(self._directory, session=self._session or None)):
             return  # Hermes's USER.md is about the owner; a gateway sender's session never writes it into memory.
         from ..notes import list_notes, save_note
 

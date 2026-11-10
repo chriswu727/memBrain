@@ -404,7 +404,8 @@ def pause(directory: Path, hours: float | None = None, user_id: str | None = Non
           conversation: bool = False, session: str | None = None) -> dict:
     """Stop recording until resumed, or for ``hours``; for one user of a multi-user host, or for everyone.
 
-    With ``conversation`` the pause covers only the conversations in progress: it ends when a new one starts. An
+    With ``conversation`` the pause covers only the conversations in progress. A conversation that starts later
+    is not covered and does not end it; it ends once every conversation it covers is over, or with a resume. An
     agent that pauses on its own judgement uses this, so a misread request cannot silence memory for months.
     Recall keeps working; nothing new is stored.
     """
@@ -455,7 +456,7 @@ def pause(directory: Path, hours: float | None = None, user_id: str | None = Non
 
 def _pause_for_request(directory: Path, session: str, user_id: str | None) -> None:
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
-        if not paused(directory, user_id):
+        if not paused(directory, user_id, session):
             pause(directory, user_id=real_life_user(user_id), conversation=True, session=session)
 
 
@@ -481,7 +482,12 @@ def _active_sessions(directory: Path, user_id: str | None, window: float = 6 * 3
 
 
 def end_conversation_pause(directory: Path, session: str, user_id: str | None = None) -> bool:
-    """A new conversation ends a pause that covered only earlier conversations; returns whether it ended one."""
+    """A new conversation ends a pause whose own conversations are all over; returns whether it ended one.
+
+    While a conversation the pause covers is still in progress the pause stays: it does not cover the new
+    conversation (see ``paused``), and the new conversation must not turn recording back on for the one that
+    asked not to be recorded. A pause that could not identify any conversation ends when the next one starts.
+    """
     path = _pause_file(directory, user_id)
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         try:
@@ -491,8 +497,38 @@ def end_conversation_pause(directory: Path, session: str, user_id: str | None = 
         conversations = state.get("conversations") if isinstance(state, dict) else None
         if not isinstance(conversations, list) or _session_marker(directory, session).stem in conversations:
             return False
+        if any(_conversation_in_progress(directory, marker) for marker in conversations):
+            return False
         path.unlink(missing_ok=True)
     return True
+
+
+def _paused_elsewhere(directory: Path, session: str, user_id: str | None = None) -> bool:
+    """Whether this person's own conversation pause is in effect for other conversations and not for this one.
+    Another person's pause is never reported here: it is neither this conversation's state nor theirs to learn."""
+    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        state, value = _pause_state(_pause_file(directory, user_id))
+    conversations = value.get("conversations") if state == "paused" else None
+    return (isinstance(conversations, list) and bool(conversations)
+            and _session_marker(directory, session).stem not in conversations)
+
+
+def _conversation_in_progress(directory: Path, marker: object, window: float = 6 * 3600) -> bool:
+    """Whether a conversation a pause covers may still continue: a turn of it is unfinished, or it was active
+    within ``window``. A ledger that cannot be read counts as in progress, so a doubt keeps the pause."""
+    if not isinstance(marker, str) or not re.fullmatch(r"[a-f0-9]{32}", marker):
+        return False
+    path = state_directory(directory) / "sessions" / (marker + ".json")
+    try:
+        recent = time.time() - path.stat().st_mtime < window
+        state = json.loads(path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        return False
+    except (OSError, ValueError):
+        return True
+    if not isinstance(state, dict):
+        return True
+    return recent or any(not entry.get("done") for entry in host_turns.entries(state).values())
 
 
 def resume(directory: Path, user_id: str | None = None, *, current_turn: bool = False,
@@ -566,6 +602,7 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
                     else:
                         kept.append(line)
                 host_queue.replace_queue(spool_path, b"".join(kept))
+            _erase_rejected(directory, user_id)
             for path in (state_directory(directory) / "sessions").glob("*.json"):
                 try:
                     state = json.loads(path.read_text(encoding="utf-8"))
@@ -632,32 +669,51 @@ def _pause_state(path: Path) -> tuple[str, dict | None]:
     return "paused", state
 
 
-def _paused_file(path: Path, *, cleanup: bool = True) -> bool:
-    state, _ = _pause_state(path)
+def _paused_file(path: Path, *, cleanup: bool = True, marker: str | None = None) -> bool:
+    """Whether this pause file blocks capture, for the conversation with session ``marker`` when one is given.
+
+    A pause of listed conversations does not cover a known conversation outside its list. A caller that cannot
+    name its conversation is covered by every pause, and so is everyone when the metadata is unreadable or the
+    pause could not identify any conversation when it was set (an empty list): that one covers every conversation
+    until the next one starts."""
+    state, value = _pause_state(path)
     if state == "expired" and cleanup:
         path.unlink(missing_ok=True)
+    if state == "paused" and marker is not None:
+        conversations = value.get("conversations")
+        if isinstance(conversations, list) and conversations:
+            return marker in conversations
     return state in ("paused", "unreadable")
 
 
-def paused(directory: Path, user_id: str | None = None) -> bool:
-    """True when recording is paused for everyone, or for this user."""
+def paused(directory: Path, user_id: str | None = None, session: str | None = None, *,
+           marker: str | None = None) -> bool:
+    """True when recording is paused for everyone, for this user, or for this conversation.
+
+    ``session`` (or its ledger ``marker``) names the host conversation that asks. A pause that covers only listed
+    conversations then applies only when this conversation is one of them; without either, any pause applies."""
+    if session is not None:
+        marker = _session_marker(directory, session).stem
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
-        if _paused_file(_pause_file(directory)):
+        if _paused_file(_pause_file(directory), marker=marker):
             return True
-        if is_roleplay(user_id) and paused(directory, real_life_user(user_id)):
+        if is_roleplay(user_id) and paused(directory, real_life_user(user_id), marker=marker):
             return True  # A person's pause also covers their role-play.
-        return user_id is not None and _paused_file(_pause_file(directory, user_id))
+        return user_id is not None and _paused_file(_pause_file(directory, user_id), marker=marker)
 
 
-def _local_pause_cause(directory: Path, user_id: str | None, reason: str = "local_pause") -> dict:
+def _local_pause_cause(directory: Path, user_id: str | None, reason: str = "local_pause",
+                       session: str | None = None, *, marker: str | None = None) -> dict:
     """Which local pause applies to this user now: its scope (a conversation pause, or the whole installation or
     user) and whose control it is. Unreadable metadata, which still blocks capture, is reported as ``local``."""
+    if session is not None:
+        marker = _session_marker(directory, session).stem
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         owners = [None] + [owner for owner in (user_id, real_life_user(user_id) if is_roleplay(user_id) else None)
                            if owner is not None]
         for owner in owners:
             path = _pause_file(directory, owner)
-            if not _paused_file(path):
+            if not _paused_file(path, marker=marker):
                 continue
             applies_to = "installation" if owner is None else "user"
             try:
@@ -881,6 +937,36 @@ def _permanent(error: Exception) -> bool:
     return isinstance(error, TypeError)  # A record whose fields the client does not accept.
 
 
+def _erase_rejected(directory: Path, user_id: str | None) -> int:
+    """Remove one person's refused records, which hold their message text, from the file kept beside the queue.
+
+    A line that cannot be read has no owner to check and no further use, so it is removed as well. The caller holds
+    the replay lock, which is also held whenever a record is added here."""
+    path = state_directory(directory) / "spool-rejected.jsonl"
+    try:
+        lines = path.read_text(encoding="utf-8", errors="replace").splitlines()
+    except FileNotFoundError:
+        return 0
+    kept, removed = [], 0
+    for line in lines:
+        try:
+            record = json.loads(line)
+            owner = record.get("_user")
+        except (ValueError, AttributeError):
+            removed += 1
+            continue
+        if owner == user_id:
+            removed += 1
+        else:
+            kept.append(line)
+    if removed:
+        if kept:
+            _write_text(path, "\n".join(kept) + "\n")
+        else:
+            path.unlink(missing_ok=True)
+    return removed
+
+
 def _reject(directory: Path, line: str, error: Exception) -> None:
     """Keep a record the service refused aside, so it cannot hold up every later record."""
     path = state_directory(directory) / "spool-rejected.jsonl"
@@ -1045,7 +1131,7 @@ def deliver(directory: Path, client, record: dict) -> bool:
     client is returned to the brain it was on.
     """
     user_id = record.get("_user")
-    if paused(directory, user_id):
+    if paused(directory, user_id, record.get("conversation_id")):
         return False
     policy = host_recording.status(directory, user_id=user_id)
     if policy["paused"]:
@@ -1233,10 +1319,10 @@ def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: b
             _pause_for_request(directory, session, record.get("_user"))
         state = session_state(directory, session)
         exclusion = ("server" if server_paused else True if explicit_pause
-                     else "prompt" if paused(directory, record.get("_user")) else False)
+                     else "prompt" if paused(directory, record.get("_user"), session) else False)
         cause = (_server_exclusion(server_policy or {}) if exclusion == "server"
                  else _requested_pause(record.get("_user")) if exclusion is True
-                 else _local_pause_cause(directory, record.get("_user")) if exclusion else None)
+                 else _local_pause_cause(directory, record.get("_user"), session=session) if exclusion else None)
         if legacy_source is not None:
             for entry in host_turns.entries(state).values():
                 if (entry["owner"] == record.get("_user") and entry.get("producer") == record["producer_ref"]
@@ -1304,7 +1390,7 @@ def _take_turn(directory: Path, session: str, *, user_id: str | None, producer: 
         valid_id = isinstance(turn_id, str) and 1 <= len(turn_id) <= 120
         source = _source_key(session, turn_id, "user") if valid_id else None
         legacy_source = f"{session}:{turn_id}:user" if valid_id else None
-        if paused(directory, user_id) or (prompt is not None and requests_pause(prompt["text"])):
+        if paused(directory, user_id, session) or (prompt is not None and requests_pause(prompt["text"])):
             state["turns_require_staging"] = True
         pending, excluded, owner, handled = host_turns.take(
             state, owner=user_id, producer=producer, source=source, prompt=prompt,
@@ -1322,8 +1408,8 @@ def _take_turn(directory: Path, session: str, *, user_id: str | None, producer: 
         policy = host_recording.status(directory, user_id=owner) if pending is not None else None
         server_paused = pending is not None and policy["paused"]
         if pending is not None and not excluded:
-            if paused(directory, owner):
-                report["exclusion"] = _local_pause_cause(directory, owner)
+            if paused(directory, owner, session):
+                report["exclusion"] = _local_pause_cause(directory, owner, session=session)
             elif server_paused:
                 report["exclusion"] = _server_exclusion(policy)
             elif prompt is not None and requests_pause(prompt["text"]):
@@ -1857,8 +1943,8 @@ def _finish_abandoned(directory: Path, client) -> int:
                     if isinstance(entry.get("record"), dict):
                         record = {**entry["record"], "text": scrub(entry["record"]["text"])}
                         report = {"source": host_receipts.source(record)}
-                        if paused(directory, entry["owner"]):
-                            report["exclusion"] = _local_pause_cause(directory, entry["owner"])
+                        if paused(directory, entry["owner"], marker=marker.stem):
+                            report["exclusion"] = _local_pause_cause(directory, entry["owner"], marker=marker.stem)
                         else:
                             policy = host_recording.status(directory, user_id=entry["owner"])
                             if policy["paused"]:
@@ -1922,6 +2008,9 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     history, current, complete = None, None, False
     resumed = ("Recording was paused for an earlier conversation only; that local pause has ended. "
                if end_conversation_pause(directory, session, real_life) else "")
+    if not resumed and _paused_elsewhere(directory, session, real_life):
+        resumed = ("Recording is paused for another conversation only, which is still off the record; this "
+                   "conversation is recorded as usual. ")
     client = ready_client(directory, user_id)
     policy = host_recording.status(directory, client, user_id)
     if client is None:
@@ -1931,11 +2020,16 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
                 "active or that you remember earlier sessions. Continue helping normally. Memory will be "
                 "retried on the next message. Run membrain plugin setup to check the connection. "
                 + privacy_notice(tools) + " " + (" ".join(filter(None, (host_recording.notice(policy),
-                    _recording_notice(paused(directory, user_id), tools)))))).strip()
+                    _recording_notice(paused(directory, user_id, session), tools)))))).strip()
     else:
         with client:
-            flush(client, directory)
-            _finish_abandoned(directory, client)
+            # A replay that cannot finish now keeps its records queued; it must not cost this session its context
+            # or, for hosts that call this before every message, the exchange that follows.
+            try:
+                flush(client, directory)
+                _finish_abandoned(directory, client)
+            except Exception as error:
+                log(directory, f"replay failed at session start: {type(error).__name__}")
             try:
                 _, current = _saved_context(client, real_life, roleplay, options)
                 _acknowledge(client, current)  # This block is returned below, so its one-time lines are shown.
@@ -1953,7 +2047,8 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     _mark_history(directory, session, complete and history is not None, client.brain_id)
     if current is not None:
         _remember_context(directory, session, client.brain_id, current, options)
-    notice = resumed + _session_notice(complete and bool(history), tools, paused(directory, user_id), roleplay)
+    notice = resumed + _session_notice(complete and bool(history), tools, paused(directory, user_id, session),
+                                       roleplay)
     notice += " " + host_recording.notice(policy)
     return "\n\n".join(part for part in (notice, current["text"] if current else None, history) if part)
 
@@ -1986,9 +2081,9 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
     if client is None:
         start_in_background(directory)
         return " ".join(filter(None, (host_recording.notice(policy),
-                _recording_notice(paused(directory, user_id), tools, session=session)))) or None
+                _recording_notice(paused(directory, user_id, session), tools, session=session)))) or None
     source = ""
-    if include_source and capture and not paused(directory, user_id):
+    if include_source and capture and not paused(directory, user_id, session):
         source = ("<membrain-source>\nWhen saving a note based on the current user message, pass source_messages="
                   + json.dumps([{"producer_ref": producer, "source_event_key": record["source_event_key"],
                                  "source_revision": 1}], ensure_ascii=False)
@@ -2022,7 +2117,7 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
         except Exception as error:
             log(directory, f"notes refresh failed: {type(error).__name__}")
         recording = " ".join(filter(None, (host_recording.notice(policy),
-                    _recording_notice(paused(directory, user_id), tools, session=session))))
+                    _recording_notice(paused(directory, user_id, session), tools, session=session))))
         prefix = "\n\n".join(part for part in (recording, source, refreshed) if part)
         try:
             flush(client, directory)
