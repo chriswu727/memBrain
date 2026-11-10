@@ -1,0 +1,81 @@
+{
+  "batch": "memory-path-recall-budget-2026-11-10",
+  "base": "77adbe69f416b9bfdd9b8c2d2d724b23294fb36c",
+  "runtime_parent": "cf51d4f08a856a22a1d8d65e23acfb8043c42611",
+  "runtime_commit": "1f5d26887783ac3a3f5e6d474bc3c88e4fc5ffcf",
+  "pin_commit": "8223c2b640d7ba668f6b3117bbbc0ce2eb22cbea",
+  "runtime_files_changed": ["src/membrain/extraction.py", "src/membrain/host.py", "src/membrain/notes.py", "tests/test_recall_budget_and_notes.py"],
+  "scope": "local WSL2 x86_64 checks; not platform qualification; no model call; no independent review",
+  "database": "task-owned embedded PostgreSQL 16.15, pgvector 0.8.6, stopped afterwards",
+  "full_python_suite": {
+    "source": "8223c2b640d7ba668f6b3117bbbc0ce2eb22cbea",
+    "passed": 8486, "failed": 0, "errors": 0, "skipped": 15, "warnings": 3, "seconds": 2922.79,
+    "pytest_exit": 0,
+    "database_stopped": true,
+    "runtime_and_migration_files_unchanged_during_run": true,
+    "failed_tests": [],
+    "new_test_file": {"file": "tests/test_recall_budget_and_notes.py", "tests": 13, "passed": 13},
+    "known_intermittent_learning_files_this_run": "no failures in tests/test_continuous_learning_acceptance.py, tests/test_cross_conversation_funding.py, tests/test_learning_windows.py or tests/test_longitudinal_learning.py in this one run; earlier runs on this and previous runtimes showed intermittent failures there, so one clean run does not establish that they are fixed",
+    "warnings_detail": "3 DeprecationWarning (multi-threaded fork) in tests/test_evaluation_billing_guard.py (2) and tests/test_longitudinal_journal.py (1)",
+    "skips": {
+      "MEMORY_DESKTOP_E2E not set (Docker journeys)": 4,
+      "pinned local embedding model not present (Pinned local embedding model required)": 9,
+      "MEMBRAIN_TEST_EMBEDDING_MODEL not set": 2
+    },
+    "retained_outside_repository": {
+      "junit.xml_sha256": "6efaa82110d4372a907c2bbb8dd317948df9099f66038477d6025914cf403ae6",
+      "log_sha256": "e96779d7254da384a3ddc3916ff813d3dc3f49ed8053e7d0a251c5b43195f6e3"
+    }
+  },
+  "reruns": "none; no test failed or errored",
+  "locomo_evidence_recall": {
+    "harness": "evaluations/locomo/retrieval_recall.py, model-free, reusing the installations ingested for the ede5769 baseline (host-side change only)",
+    "baseline_label": "ede5769",
+    "new_label": "1f5d268",
+    "questions": 1540, "with_evidence": 1535, "identical_ids": true, "evidence_lists_identical": true,
+    "split": {"development": ["conv-26", "conv-30", "conv-41"], "held_out": "other seven conversations", "development_questions_with_evidence": 383, "held_out_questions_with_evidence": 1152},
+    "files": {
+      "rows": "evaluations/locomo/results-2026-11-10/recall-1f5d268.jsonl.gz",
+      "rows_uncompressed_sha256": "10df3953501248fc3e75c91a271691199a852d044ae04af230e7b1eb3da6d4ea",
+      "summary": "evaluations/locomo/results-2026-11-10/summary-1f5d268.json",
+      "analysis": "evaluations/locomo/results-2026-11-10/compare_labels.py",
+      "analysis_output": "evaluations/locomo/results-2026-11-10/compare-ede5769-1f5d268.txt"
+    },
+    "all_evidence_rate": {
+      "M_recall_only": {
+        "ede5769": {"overall": 0.527, "development": 0.543, "held_out": 0.522,
+          "held_out_by_category": {"multi-hop": 0.101, "temporal": 0.557, "open-domain": 0.260, "single-hop": 0.676},
+          "held_out_one_evidence_turn": 0.670, "held_out_several_evidence_turns": 0.137},
+        "1f5d268": {"overall": 0.606, "development": 0.627, "held_out": 0.599,
+          "held_out_by_category": {"multi-hop": 0.149, "temporal": 0.639, "open-domain": 0.315, "single-hop": 0.763},
+          "held_out_one_evidence_turn": 0.758, "held_out_several_evidence_turns": 0.187}
+      },
+      "M": {
+        "ede5769": {"overall": 0.551, "development": 0.569, "held_out": 0.545,
+          "held_out_by_category": {"multi-hop": 0.111, "temporal": 0.578, "open-domain": 0.315, "single-hop": 0.700},
+          "held_out_one_evidence_turn": 0.698, "held_out_several_evidence_turns": 0.150},
+        "1f5d268": {"overall": 0.627, "development": 0.650, "held_out": 0.620,
+          "held_out_by_category": {"multi-hop": 0.168, "temporal": 0.665, "open-domain": 0.342, "single-hop": 0.782},
+          "held_out_one_evidence_turn": 0.780, "held_out_several_evidence_turns": 0.206}
+      },
+      "R_at_label_context_size": {
+        "ede5769": {"overall": 0.774, "held_out": 0.766},
+        "1f5d268": {"overall": 0.799, "held_out": 0.791}
+      }
+    },
+    "held_out_category_counts": {"multi-hop": 208, "temporal": 230, "open-domain": 73, "single-hop": 641, "one_evidence_turn": 831, "several_evidence_turns": 321},
+    "mean_characters_all_rows": {
+      "ede5769": {"overall": {"recall_characters": 4839, "characters": 14124}, "held_out": {"recall_characters": 4776, "characters": 14050}},
+      "1f5d268": {"overall": {"recall_characters": 8523, "characters": 17808}, "held_out": {"recall_characters": 8533, "characters": 17807}}
+    },
+    "latency_ms_overall": {
+      "ede5769": {"prompt_p50": 324.4, "prompt_p95": 350.2, "session_p50": 238.7},
+      "1f5d268": {"prompt_p50": 322.2, "prompt_p95": 349.7, "session_p50": 243.6}
+    },
+    "paired_held_out_M_recall_only": {"questions": 1152, "gained": 93, "lost": 4, "both": 597, "neither": 458, "exact_two_sided_mcnemar_p": 4.57e-23},
+    "run_seconds_approx": 960
+  },
+  "not_run": ["Verify on GitHub", "native Windows and macOS", "five-platform qualification", "extracted-wheel regression",
+              "real host processes", "R5 overhead protocol", "model evaluation", "independent review",
+              "baseline rerun of the learning test files", "ruff"]
+}

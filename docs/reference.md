@@ -947,7 +947,7 @@ uv build
 
 See `sdk/typescript/package.json` for TypeScript tests and type-check commands. Database-dependent tests are skipped when no database is configured; a skip is not a pass. Tests use newly created random tenants and brains, do not depend on private conversations, and do not call paid models or Codex/Claude subscriptions.
 
-GitHub Actions is manual-only, with no automatic execution on push or pull requests. Day-to-day development prioritizes relevant local checks. Before publishing, validate according to the change's impact and avoid redundant cloud CI runs.
+The Verify workflow runs on GitHub for pull requests and pushes to `main` (changes to Markdown and `evaluations/` alone do not start it) and can be started by hand; the native-engine workflow runs for pull requests that touch its inputs. Day-to-day development is verified locally, on the integration branch, without opening a pull request. Before publishing, validate according to the change's impact and avoid redundant cloud CI runs.
 
 The [standalone chat acceptance report](../evaluations/standalone-chat-2026-10-24.md) records the installed-wheel, real-database, local-provider checks for direct chat, restart recovery, deduplication, and explicit cancellation. Its deterministic provider does not measure semantic learning quality.
 
