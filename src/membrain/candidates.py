@@ -120,15 +120,27 @@ def merge_belief_candidates(memories, candidate_state, package, *, selected=Fals
     return list(known.values())
 
 
+# How the keyword and meaning routes are combined. Keyword matches count in proportion to the best lexical match
+# of the query, so a full match stays well ahead of a partial one; when even the best match covers less than
+# ``KEYWORD_FLOOR`` of the query's weighted terms, all of them are scaled down with the square of that shortfall,
+# so weak overlap stays weak even when it is the strongest lexical candidate. Statement-level meaning matches rank
+# the evidence lower than keyword matches do, so they count half. Before, a keyword rank was multiplied by its raw
+# score while meaning counted in full, and the fused order ranked evidence below the keyword route alone
+# (evaluations/recall-fusion-2026-11-10.md).
+KEYWORD_FLOOR = 0.3
+VECTOR_WEIGHT = 0.5
+
+
 def _direct_candidates(rankings, versions, lexical_scores, *, limit):
-    ranked = fuse_rankings(rankings, index_versions=versions, limit=512)
-    # Weak overlap must stay weak even when it is the strongest lexical candidate.
-    maximum = max(1.0, max(lexical_scores.values(), default=0.0))
+    weights = {"vector": VECTOR_WEIGHT} if "vector" in rankings else None
+    ranked = fuse_rankings(rankings, weights=weights, index_versions=versions, limit=512)
+    best = max(lexical_scores.values(), default=0.0)
+    strength = min(1.0, best / KEYWORD_FLOOR) ** 2 / best if best > 0 else 0.0
     for item in ranked:
         key = (item["memory_id"], item["revision"])
         for signal in item["rank_signals"]:
             if signal["method"] == "keyword":
-                signal["score"] *= lexical_scores.get(key, 0.0) / maximum
+                signal["score"] *= lexical_scores.get(key, 0.0) * strength
         item["score"] = sum(signal["score"] for signal in item["rank_signals"])
     ranked.sort(key=lambda item: (-item["score"], item["memory_id"], item["revision"]))
     return ranked[:limit]
