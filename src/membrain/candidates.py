@@ -146,6 +146,32 @@ def _direct_candidates(rankings, versions, lexical_scores, *, limit):
     return ranked[:limit]
 
 
+def _one_per_message(rows, lexical_scores):
+    """Keep one statement for each message whose statements share one vector.
+
+    Statements captured from the same message are embedded as that message (``vector_jobs``), so they arrive at the
+    same distance. Listing each of them would spend the route's ranks on one message; the one that also matched by
+    keyword is kept, so both routes credit the same candidate, otherwise the first.
+    """
+    chosen, order = {}, []
+    for row in rows:
+        memory = row["document"]
+        refs = [ref for ref in memory["evidence_refs"] if ref["relationship"] == "supports"]
+        if memory["derivation"]["method"] != "direct_capture" or len(refs) != 1 or row.get("start_offset") is not None:
+            order.append(row)
+            continue
+        group = (refs[0]["event_id"], refs[0]["event_revision"], row["distance"])
+        if group not in chosen:
+            chosen[group] = len(order)
+            order.append(row)
+            continue
+        kept = order[chosen[group]]["document"]
+        if (lexical_scores.get((memory["memory_id"], memory["revision"]), 0.0)
+                > lexical_scores.get((kept["memory_id"], kept["revision"]), 0.0)):
+            order[chosen[group]] = row
+    return order
+
+
 def _semantic_pools(conn, params, target, text, vector, space, primary_limit, other_limit, *, include_speech):
     scope_sql, scope_params = _scope_clause("a", target)
     script_clause, script_params = _other_script_clause(text)
@@ -277,10 +303,12 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
                 return usable, len(found) > limit
 
             rows, more = nearest(pools["primary"], scan_limit)
+            rows = _one_per_message(rows, lexical_scores)
             truncated = truncated or more
             # Small multilingual models score same-language text higher, so a fact stated in another script can
             # rank below many loosely related sentences. Interleave the closest other-script memories.
             other, other_more = nearest(pools["other"], other_limit)
+            other = _one_per_message(other, lexical_scores)
             if diverse:
                 other = diversify(other)[:CROSS_SCRIPT_CANDIDATES]
             truncated = truncated or other_more

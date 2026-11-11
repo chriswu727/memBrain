@@ -8,9 +8,74 @@ from .embeddings import EmbeddingPassage, EmbeddingRequest, EmbeddingResult, Emb
 from .helpers import DomainError, digest, uid
 from .jobs import JobStore
 
+# A statement captured from a message is embedded as that whole message, not as the single sentence: on its own a
+# sentence has lost the speaker, the date and what the neighbouring sentences were about, and ranked the evidence
+# far lower (evaluations/recall-fusion-2026-11-10.md). The stored index version carries this rule, so vectors made
+# under the earlier one are replaced by the backfill.
+MESSAGE_CONTEXT_VERSION = "message-context-v1"
+MESSAGE_CONTEXT_CHARACTERS = 1500  # A longer message keeps the statement's own vector and passages.
+
+
+def provider_index_version(provider):
+    return getattr(provider, "document_index_version", "single-vector-v1")
+
 
 def document_index_version(provider):
-    return getattr(provider, "document_index_version", "single-vector-v1")
+    """The index version stored with a vector: the provider's own document index and how its input was chosen."""
+    return provider_index_version(provider) + "+" + MESSAGE_CONTEXT_VERSION
+
+
+def _message_contexts(conn, service, principal, brain_id, documents):
+    """The whole source message of each directly captured statement, by ``(memory_id, revision)``.
+
+    Only a statement that cites one current message as its support gets one; anything derived from several sources,
+    or whose message is long, unavailable or empty, is embedded as its statement, as before."""
+    wanted = {}
+    for document in documents:
+        refs = [ref for ref in document.get("evidence_refs") or [] if ref.get("relationship") == "supports"]
+        if (document.get("derivation") or {}).get("method") == "direct_capture" and len(refs) == 1:
+            wanted[(document["memory_id"], document["revision"])] = (refs[0]["event_id"], refs[0]["event_revision"])
+    if not wanted:
+        return {}
+    rows = conn.execute(
+        "SELECT id,revision,document #>> '{observed,content,text}' AS text FROM memory_events "
+        "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=ANY(%s::text[]) "
+        "AND NOT deleted AND NOT suppressed AND NOT retired AND document IS NOT NULL",
+        (*service._params(principal, brain_id), sorted({event for event, _ in wanted.values()}))).fetchall()
+    texts = {(row["id"], row["revision"]): row["text"] for row in rows}
+    contexts = {}
+    for key, source in wanted.items():
+        text = texts.get(source)
+        if isinstance(text, str) and text.strip() and len(text) <= MESSAGE_CONTEXT_CHARACTERS:
+            contexts[key] = text
+    return contexts
+
+
+def _embed_documents(service, principal, brain_id, job, statements, contexts):
+    """Vectors and passages for ``statements``, each embedded as its message context when it has one.
+
+    Identical inputs are sent once. A context that the provider had to split into passages does not describe the
+    statement's own text, so that statement is embedded again as itself; only an unmetered provider is asked twice.
+    """
+    provider = service.embedding_provider
+    if getattr(provider, "metered", True) and provider_index_version(provider) != "single-vector-v1":
+        contexts = [None] * len(statements)  # A paid provider that splits its input is asked once, as before.
+    inputs = [contexts[index] if contexts[index] is not None else statement
+              for index, statement in enumerate(statements)]
+    unique = list(dict.fromkeys(inputs))
+    result = _call(service, principal, brain_id, job, EmbeddingRequest(tuple(unique)))
+    position = {text: index for index, text in enumerate(unique)}
+    vectors = [result.vectors[position[text]] for text in inputs]
+    passages = [(result.passages[position[text]] if result.passages is not None else ()) for text in inputs]
+    split = [index for index, parts in enumerate(passages) if parts and contexts[index] is not None]
+    if split:
+        again = list(dict.fromkeys(statements[index] for index in split))
+        own = _call(service, principal, brain_id, job, EmbeddingRequest(tuple(again)))
+        place = {text: index for index, text in enumerate(again)}
+        for index in split:
+            vectors[index] = own.vectors[place[statements[index]]]
+            passages[index] = own.passages[place[statements[index]]] if own.passages is not None else ()
+    return result, vectors, passages
 
 
 def embedding_job_id(memory_id, revision, provider):
@@ -33,7 +98,7 @@ def _validate_result(provider, request, result):
         if result.passages is not None:
             raise DomainError("invalid_evidence", "Query embedding cannot publish document passages.")
         return
-    if result.document_index_version != document_index_version(provider):
+    if result.document_index_version != provider_index_version(provider):
         raise DomainError("invalid_evidence", "Embedding document index version does not match its provider.")
     if result.passages is None:
         if result.document_index_version != 'single-vector-v1':
@@ -93,14 +158,15 @@ def embed_memory(service, principal, brain_id, job):
         if row is None or row["document"] is None:
             raise DomainError("source_unavailable", "Embedding source is unavailable.")
         statement = row["document"]["statement"]
-    result = _call(service, principal, brain_id, job, EmbeddingRequest((statement,)))
+        context = _message_contexts(conn, service, principal, brain_id, [row["document"]]).get(
+            (version["memory_id"], version["revision"]))
+    result, vectors, passages = _embed_documents(service, principal, brain_id, job, [statement], [context])
 
-    _publish_embedding(service, principal, brain_id, job, statement, result, result.vectors[0],
-                       passages=result.passages[0] if result.passages is not None else ())
+    _publish_embedding(service, principal, brain_id, job, statement, result, vectors[0], passages=passages[0])
 
 
 def _publish_embedding(service, principal, brain_id, job, statement, result, vector, *, passages=()):
-    if result.document_index_version != document_index_version(service.embedding_provider):
+    if result.document_index_version != provider_index_version(service.embedding_provider):
         raise DomainError("invalid_evidence", "Embedding document index version does not match its provider.")
     previous_end = 0
     for index, passage in enumerate(passages):
@@ -131,7 +197,8 @@ def _publish_embedding(service, principal, brain_id, job, statement, result, vec
             "content_hash=EXCLUDED.content_hash,embedding=EXCLUDED.embedding,dimensions=EXCLUDED.dimensions,"
             "document_index_version=EXCLUDED.document_index_version",
             (*params, version["memory_id"], version["revision"], result.space.model, result.space.model_version,
-             result.space.dimensions, digest(statement), json.dumps(vector), result.document_index_version),
+             result.space.dimensions, digest(statement), json.dumps(vector),
+             document_index_version(service.embedding_provider)),
         )
         identity = (*params, version["memory_id"], version["revision"], result.space.model, result.space.model_version)
         conn.execute("DELETE FROM memory_embedding_passages WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
@@ -316,17 +383,20 @@ def embed_local_batch(service, principal, brain_id, first, *, limit=32):
                 "SELECT id,revision,document FROM memory_assertions WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
                 "AND id=ANY(%s::text[]) AND is_current AND NOT invalidated AND NOT suppressed AND NOT deleted "
                 "AND document IS NOT NULL", (*params, [job["payload"]["memory_id"] for job in claimed])).fetchall()
-        lookup = {(row["id"], row["revision"]): row["document"]["statement"] for row in rows}
+            lookup = {(row["id"], row["revision"]): row["document"]["statement"] for row in rows}
+            contexts = _message_contexts(conn, service, principal, brain_id, [row["document"] for row in rows])
         valid = [job for job in claimed if (job["payload"]["memory_id"], job["payload"]["revision"]) in lookup]
         if not valid:
             raise DomainError("source_unavailable", "Embedding sources are unavailable.")
-        texts = tuple(lookup[(job["payload"]["memory_id"], job["payload"]["revision"])] for job in valid)
-        result = _call(service, principal, brain_id, valid[0], EmbeddingRequest(texts))
+        keys = [(job["payload"]["memory_id"], job["payload"]["revision"]) for job in valid]
+        texts = tuple(lookup[key] for key in keys)
+        result, vectors, passages = _embed_documents(service, principal, brain_id, valid[0], texts,
+                                                     [contexts.get(key) for key in keys])
         failure = None
-        for index, (job, statement, vector) in enumerate(zip(valid, texts, result.vectors, strict=True)):
+        for index, (job, statement, vector) in enumerate(zip(valid, texts, vectors, strict=True)):
             try:
                 _publish_embedding(service, principal, brain_id, job, statement, result, vector,
-                                   passages=result.passages[index] if result.passages is not None else ())
+                                   passages=passages[index])
             except DomainError as error:
                 failure = error
                 try:
