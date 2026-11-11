@@ -1,6 +1,6 @@
 # Plan: two controls for the 88.1% on messages alone, and a cue-enrichment simulation (paid, approved 2026-11-11)
 
-Status: **plan, written before any call.** Follows the [consolidation result](locomo-consolidation-2026-11-11.md). The owner approved these runs on 2026-11-11 with DeepSeek. It closes no release gate: **R4 remains failed and C5 invalid/unscored.**
+Status: **run on 2026-11-11; [result](locomo-controls-and-cues-2026-11-11.md).** The cue simulation was also run on the held-out conversations, which this plan did not list, because its instructions had been written from the development conversations. The text below is the plan as written before any call. Follows the [consolidation result](locomo-consolidation-2026-11-11.md). The owner approved these runs on 2026-11-11 with DeepSeek. It closes no release gate: **R4 remains failed and C5 invalid/unscored.**
 
 ## Why
 

@@ -15,6 +15,7 @@ As of 2026-11-11. Each row names the runtime its evidence covers; a row whose ru
 | R4 behavioural acceptance | **Failed** ([fifth attempt](../evaluations/maturity-fifth-attempt-2026-11-07.md): plugin passed, extraction failed) | `7902c16e` |
 | C5 companion evaluation | **Invalid, unscored** | `7902c16e` |
 | Memory quality, model-free | Recalled context holds all the evidence for 74.1% of LoCoMo questions (72.2% held out), level with plain retrieval ([report](../evaluations/message-context-embeddings-2026-11-10.md)) | `02a1aec` |
+| LoCoMo answers, paid run | 82.5% of 1,540 questions (80.7% held out), level with full context; notes after every turn or session did not help; cues attached to messages look promising in simulation ([report](../evaluations/locomo-controls-and-cues-2026-11-11.md)) | `933f4d8` |
 | Known open defects | Listed in the [status audit](../evaluations/status-audit-2026-11-10.md) with what has since been fixed | — |
 
 No version tag, release or package upload exists, and none is made until the product is mature.

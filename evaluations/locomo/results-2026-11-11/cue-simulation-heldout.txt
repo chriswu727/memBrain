@@ -1,0 +1,9 @@
+variant (first 40 messages)                     one: all  several: all  several: share
+0 first pass                                       85.9%         29.9%           54.5%
+1 cues in the indexed text, both routes            91.6%         43.0%           69.5%
+2 cues in the keyword route only                   89.2%         34.9%           61.3%
+3 cues in the meaning route only                   90.1%         39.9%           65.3%
+4 cues as two extra routes, weight 0.5             91.7%         50.2%           75.6%
+4 cues as two extra routes, weight 1.0             91.1%         54.5%           78.6%
+5 cues as an extra meaning route, weight 1.0       91.8%         53.9%           77.8%
+questions: one 831, several 321
