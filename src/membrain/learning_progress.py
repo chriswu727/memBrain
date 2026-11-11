@@ -526,7 +526,8 @@ def _summary(rows, *, configured):
             category, reason = "blocked_count", "provider_uncertain"
         elif row["attempts"] >= _MAX_ATTEMPTS:
             category, reason = "blocked_count", "attempts_exhausted"
-        elif row["available_at"] > row["observed_at"]:
+        elif row["available_at"] > row["observed_at"] and row["available_at"] > row["created_at"]:
+            # A job that was never delayed is due even when the clock reads earlier than its creation time.
             category = "waiting_retry_count"
             retry = row["available_at"].isoformat()
             result["next_retry_at"] = min(result["next_retry_at"] or retry, retry)

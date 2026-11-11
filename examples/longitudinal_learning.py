@@ -26,7 +26,8 @@ def _rows(service, principal, brain_id, clause, arguments=()):
         service._brain(conn, principal, brain_id)
         rows = conn.execute(
             "SELECT j.id,j.kind,j.state,j.payload,j.result,j.last_error,j.attempts,j.fence,j.model_calls,j.input_bytes,"
-            "j.available_at<=clock_timestamp() AS available,EXISTS (SELECT 1 FROM memory_cognitive_operations o "
+            "(j.available_at<=j.created_at OR j.available_at<=clock_timestamp()) AS available,"
+            "EXISTS (SELECT 1 FROM memory_cognitive_operations o "
             "WHERE o.tenant_id=j.tenant_id AND o.owner_id=j.owner_id AND o.brain_id=j.brain_id "
             "AND o.job_id=j.id) AS has_operations FROM memory_jobs j "
             "WHERE j.tenant_id=%s AND j.owner_id=%s AND j.brain_id=%s " + clause

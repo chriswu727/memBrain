@@ -196,9 +196,13 @@ def summarize_learning(result):
 
 
 # The jobs a claim may take; parameters: tenant, owner, brain, max_attempts, kinds, kinds, job_id, job_id, paused.
+# A job is due when its time has come, or when it was never delayed: ``available_at`` and ``created_at`` default to
+# the same transaction time, and only a retry moves ``available_at`` later. Comparing a never-delayed job with the
+# clock made it wait whenever the wall clock had stepped back since it was created (NTP, a resumed virtual machine,
+# WSL), by as long as the step.
 _CLAIMABLE = (
     "tenant_id=%s AND owner_id=%s AND brain_id=%s "
-    "AND attempts<%s AND available_at<=clock_timestamp() "
+    "AND attempts<%s AND (available_at<=created_at OR available_at<=clock_timestamp()) "
     "AND NOT payload ? 'recovery_job_id' "
     "AND NOT EXISTS (SELECT 1 FROM memory_recovery_quarantine q WHERE q.tenant_id=memory_jobs.tenant_id "
     "AND q.owner_id=memory_jobs.owner_id AND q.brain_id=memory_jobs.brain_id "

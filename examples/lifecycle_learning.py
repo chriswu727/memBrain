@@ -98,7 +98,7 @@ def _rows(service, principal, brain_id, clause, arguments, *, limit=None):
         service._brain(conn, principal, brain_id)
         return [dict(row) for row in conn.execute(
             "SELECT j.id,j.kind,j.state,j.payload,j.attempts,j.model_calls,j.input_bytes,"
-            "j.available_at<=clock_timestamp() AS available,EXISTS ("
+            "(j.available_at<=j.created_at OR j.available_at<=clock_timestamp()) AS available,EXISTS ("
             "SELECT 1 FROM memory_cognitive_operations o WHERE o.tenant_id=j.tenant_id "
             "AND o.owner_id=j.owner_id AND o.brain_id=j.brain_id AND o.job_id=j.id) AS has_operations "
             "FROM memory_jobs j WHERE j.tenant_id=%s AND j.owner_id=%s AND j.brain_id=%s "
@@ -135,7 +135,8 @@ def literal_jobs(service, principal, brain_id, stage, limit):
 def ready_history(service, principal, brain_id, roots, limit):
     rows = _rows(service, principal, brain_id,
                  "AND j.kind='consolidate' AND j.state='queued' AND j.attempts=0 "
-                 "AND j.model_calls=0 AND j.input_bytes=0 AND j.available_at<=clock_timestamp() "
+                 "AND j.model_calls=0 AND j.input_bytes=0 "
+                 "AND (j.available_at<=j.created_at OR j.available_at<=clock_timestamp()) "
                  "AND j.payload->>'learning_contract_version'=%s AND j.payload->>'learning_phase'=%s "
                  "AND j.payload->>'authorization_root_job_id'=ANY(%s::text[])",
                  (CONTRACT_VERSION, HISTORY_PHASE, list(roots)), limit=limit)
