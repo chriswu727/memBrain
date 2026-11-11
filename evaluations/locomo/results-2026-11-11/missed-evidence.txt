@@ -1,0 +1,3 @@
+ranks of evidence turns for several-evidence questions: {'<40': 132, '320+': 24, '80-159': 26, '160-319': 27, '40-79': 19}
+worst rank < 40 by category: {'open-domain': '2/12', 'multi-hop': '26/71', 'single-hop': '3/6', 'temporal': '2/3'}
+distinct sessions holding the evidence (4 = four or more): {1: 15, 2: 55, 3: 13, 4: 9}
