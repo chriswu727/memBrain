@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import math
 
-from . import cognition
+from . import cognition, message_cues
 from .context_views import assistant_speech
 from .dynamics import access_state, rank_weight
 from .embeddings import EmbeddingResult
@@ -129,9 +129,11 @@ def merge_belief_candidates(memories, candidate_state, package, *, selected=Fals
 # (evaluations/recall-fusion-2026-11-10.md).
 KEYWORD_FLOOR = 0.3
 VECTOR_WEIGHT = 0.5
+# Messages reached through their cues (``message_cues``) enter as the ``entity`` route: one statement stands for each
+# message, with the score ``message_cues.ranked_events`` gave it.
 
 
-def _direct_candidates(rankings, versions, lexical_scores, *, limit):
+def _direct_candidates(rankings, versions, lexical_scores, cue_scores=None, *, limit):
     weights = {"vector": VECTOR_WEIGHT} if "vector" in rankings else None
     ranked = fuse_rankings(rankings, weights=weights, index_versions=versions, limit=512)
     best = max(lexical_scores.values(), default=0.0)
@@ -141,9 +143,53 @@ def _direct_candidates(rankings, versions, lexical_scores, *, limit):
         for signal in item["rank_signals"]:
             if signal["method"] == "keyword":
                 signal["score"] *= lexical_scores.get(key, 0.0) * strength
+            elif signal["method"] == "entity":
+                signal["score"] = (cue_scores or {}).get(key, 0.0)  # Scored by ``message_cues``, not by its rank here.
         item["score"] = sum(signal["score"] for signal in item["rank_signals"])
     ranked.sort(key=lambda item: (-item["score"], item["memory_id"], item["revision"]))
     return ranked[:limit]
+
+
+def _cued_statements(conn, params, target, text, query_embedding, lexical_scores, vector_keys, known, *, limit,
+                     include_speech):
+    """One statement for each message whose cues match the query, in cue order, each with its cue score.
+
+    Returns the statements as ``(key, score)`` and the rows of those not in ``known``, to be remembered. A cue
+    belongs to one revision of a message; a statement stands for the message only if it was captured from that
+    revision and may be recalled here. Of a message's statements, the one the keyword route ranked best is used,
+    then one the meaning route found, then the first of the message, so the routes credit the same candidate.
+    Statements are chosen from their evidence references alone, and only the chosen ones not yet read are fetched.
+    """
+    events = message_cues.ranked_events(conn, params, text, query_embedding, limit=limit)
+    if not events:
+        return [], []
+    scope_sql, scope_params = _scope_clause("a", target)
+    where = _eligible(include_speech=include_speech) + scope_sql
+    rows = conn.execute(
+        "SELECT a.id,a.revision,a.document->'evidence_refs' AS refs FROM memory_assertions a WHERE " + where
+        + "AND a.event_ids && %s::text[] AND a.document->'derivation'->>'method'='direct_capture' "
+        "ORDER BY a.id,a.revision",
+        (*params, *scope_params, [event for event, _, _ in events]),
+    ).fetchall()
+    best = {}
+    for row in rows:
+        refs = [ref for ref in row["refs"] if ref["relationship"] == "supports"]
+        if len(refs) != 1:
+            continue
+        key = (row["id"], row["revision"])
+        start = (refs[0].get("span") or {}).get("start")
+        order = (-lexical_scores.get(key, 0.0), key not in vector_keys, start if type(start) is int else 0, key)
+        source = (refs[0]["event_id"], refs[0]["event_revision"])
+        if source not in best or order < best[source]:
+            best[source] = order
+    chosen = [(best[(event, revision)][3], score) for event, revision, score in events if (event, revision) in best]
+    missing = [key for key, _ in chosen if key not in known]
+    fetched = conn.execute(
+        "SELECT a.document FROM memory_assertions a WHERE " + where
+        + "AND (a.id,a.revision) IN (SELECT * FROM unnest(%s::text[],%s::bigint[]))",
+        (*params, *scope_params, [key[0] for key in missing], [key[1] for key in missing]),
+    ).fetchall() if missing else []
+    return chosen, fetched
 
 
 def _one_per_message(rows, lexical_scores):
@@ -317,7 +363,15 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
                 rows = diversify(rows)
             rankings["vector"] = remember(rows)
             versions["vector"] = "embedding-space:" + space.fingerprint + ":source-diverse-passages-v5"
-        direct_ranked = _direct_candidates(rankings, versions, lexical_scores, limit=512)
+        cued, unread = _cued_statements(conn, params, target, text, query_embedding, lexical_scores,
+                                        set(rankings.get("vector", ())), documents, limit=candidate_limit,
+                                        include_speech=include_speech)
+        remember(unread)
+        cue_scores = {key: score for key, score in cued if key in documents}
+        if cue_scores:
+            rankings["entity"] = [key for key, _ in cued if key in documents]
+            versions["entity"] = message_cues.RULE_VERSION
+        direct_ranked = _direct_candidates(rankings, versions, lexical_scores, cue_scores, limit=512)
         seeds = source_unit_candidates(direct_ranked, documents, limit=candidate_limit)
         seed_ids = [item["memory_id"] for item in seeds]
         seed_revisions = [item["revision"] for item in seeds]

@@ -305,6 +305,16 @@ class MemoryClient:
         return self._request("POST", f"v1/brains/{quote(brain, safe='')}/source-messages",
                              json={"messages": [dict(ref) for ref in references]})
 
+    def write_message_cues(self, items: Sequence[Mapping[str, Any]], *, model_version: str | None = None) -> JsonObject:
+        """Attach retrieval cues to stored messages: short phrases naming whom a message is about and what kind of
+        fact it holds. Each item names a message by ``event_id``, or by ``producer_ref`` and ``source_event_key``,
+        and gives its ``cues``. Recall can then reach the message through them; the cues themselves are never shown."""
+        brain = self._scope()["brain_ref"]
+        body: dict[str, Any] = {"items": [dict(item) for item in items]}
+        if model_version is not None:
+            body["model_version"] = model_version
+        return self._request("POST", f"v1/brains/{quote(brain, safe='')}/message-cues", json=body)
+
     def write_note(self, text: str, *, request_id: str | None = None, **fields) -> JsonObject:
         brain = self._scope()["brain_ref"]
         return self._request("POST", f"v1/brains/{quote(brain, safe='')}/notes",

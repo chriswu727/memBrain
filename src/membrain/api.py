@@ -41,6 +41,18 @@ class SourceMessagesRead(RuntimeBody):
     messages: Annotated[list[NoteSource], Field(min_length=1, max_length=64)]
 
 
+class MessageCueItem(RuntimeBody):
+    event_id: RuntimeIdentifier | None = None
+    producer_ref: RuntimeIdentifier | None = None
+    source_event_key: RuntimeIdentifier | None = None
+    cues: Annotated[list[Annotated[str, Field(min_length=1, max_length=200)]], Field(max_length=6)]
+
+
+class MessageCuesWrite(RuntimeBody):
+    items: Annotated[list[MessageCueItem], Field(min_length=1, max_length=200)]
+    model_version: Annotated[str, Field(min_length=1, max_length=200)] | None = None
+
+
 class RecallTrace(RuntimeBody):
     event_ids: Annotated[list[RuntimeIdentifier], Field(max_length=50)]
 
@@ -608,6 +620,14 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     @app.post("/v1/brains/{brain_id}/source-messages")
     def source_messages(brain_id: str, body: SourceMessagesRead, principal: Principal = Depends(authenticate)):
         return service.source_messages(principal, brain_id, [ref.model_dump() for ref in body.messages])
+
+    @app.post("/v1/brains/{brain_id}/message-cues")
+    async def write_message_cues(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
+        from . import message_cues
+
+        body = await runtime_body(request, MessageCuesWrite)
+        return await run_in_threadpool(message_cues.write, service, principal, brain_id, body["items"],
+                                       model_version=body.get("model_version"))
 
     @app.get("/v1/brains/{brain_id}/recording")
     def get_recording(brain_id: str, principal: Principal = Depends(authenticate)):

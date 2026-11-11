@@ -567,6 +567,13 @@ export class MemoryClient {
   sourceMessages(messages: readonly NoteSource[], brainId?: string): Promise<JsonObject> {
     return this.#request("POST", `${this.#brainPath(brainId)}/source-messages`, { messages });
   }
+  /** Attach retrieval cues to stored messages; recall can then reach a message through them. Cues are never shown. */
+  writeMessageCues(items: readonly ({ event_id: string; cues: readonly string[] }
+    | { producer_ref: string; source_event_key: string; cues: readonly string[] })[],
+    options: { modelVersion?: string; brainId?: string } = {}): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(options.brainId)}/message-cues`,
+      options.modelVersion === undefined ? { items } : { items, model_version: options.modelVersion });
+  }
   recallWindows(windows: readonly { memory_id: string; revision: number;
     span: { start: number; end: number; unit: "unicode_code_point" } }[], query: string,
     options: ScopeOptions = {}): Promise<JsonObject> {

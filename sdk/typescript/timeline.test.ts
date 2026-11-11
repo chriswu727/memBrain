@@ -96,3 +96,16 @@ test("exact source reads and guarded writes preserve the dependency generation i
   assert.equal(body.expected_dependency_generation, 0);
   assert.equal(body.expected_recording_revision, 0);
 });
+
+test("message cues are sent with the message they belong to", async () => {
+  const requests: { url: URL; init?: RequestInit }[] = [];
+  const client = new MemoryClient({ baseUrl: "http://memory.test", apiKey: "test-key", brainId: "home",
+    fetch: async (input, init) => { requests.push({ url: new URL(String(input)), init }); return Response.json({}); } });
+  const items = [{ event_id: "event one", cues: ["Melanie hobbies and activities"] },
+    { producer_ref: "host", source_event_key: "turn:user", cues: ["Caroline country of origin"] }];
+  await client.writeMessageCues(items, { brainId: "brain /?#" });
+  await client.writeMessageCues(items, { modelVersion: "cue-model-1" });
+  assert.equal(requests[0].url.pathname, "/v1/brains/brain%20%2F%3F%23/message-cues");
+  assert.deepEqual(JSON.parse(String(requests[0].init?.body)), { items });
+  assert.deepEqual(JSON.parse(String(requests[1].init?.body)), { items, model_version: "cue-model-1" });
+});

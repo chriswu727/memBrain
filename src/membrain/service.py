@@ -424,8 +424,10 @@ class MemoryService:
         )
         conn.execute("DELETE FROM memory_embeddings WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND memory_id=ANY(%s::text[])",
                      (*params, affected))
+        from . import message_cues
         from .feedback import invalidate_contributions
 
+        message_cues.erase(conn, params, event_ids)
         invalidate_contributions(conn, params, event_ids=event_ids, memory_ids=set(affected) | set(memory_ids))
         return affected
 

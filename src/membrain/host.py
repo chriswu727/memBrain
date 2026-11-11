@@ -1668,7 +1668,7 @@ def _sources(response: dict, current_conversation: str | None, *, questions: set
             event_id = ref.get("event_id")
             if ref.get("relationship") != "supports" or not isinstance(event_id, str):
                 continue
-            if signals.get("keyword", 0) > 0:
+            if signals.get("keyword", 0) > 0 or signals.get("entity", 0) > 0:
                 keyword_sources.add(event_id)
             if signals.get("vector", 0) > 0:
                 vector_scores[event_id] = max(vector_scores.get(event_id, 0), signals["vector"])
@@ -1681,7 +1681,7 @@ def _sources(response: dict, current_conversation: str | None, *, questions: set
             event_id = ref.get("event_id")
             if ref.get("relationship") != "supports" or not isinstance(event_id, str):
                 continue
-            if signals.get("keyword", 0) <= 0 and (
+            if signals.get("keyword", 0) <= 0 and signals.get("entity", 0) <= 0 and (
                     event_id not in vector_sources or signals.get("vector", 0) != vector_scores[event_id]):
                 continue
             if questions is not None and match.group(2) == "inquiry":
