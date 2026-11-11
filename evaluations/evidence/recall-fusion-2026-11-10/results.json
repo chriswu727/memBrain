@@ -1,0 +1,275 @@
+{
+  "batch": "recall-fusion-2026-11-10",
+  "base_pin": "8223c2b640d7ba668f6b3117bbbc0ce2eb22cbea",
+  "runtime_commit": "b301c5563a0d56e54453837f2fe47ae6847bcaad",
+  "pin_commit": "6c0f8d129123dba2daa3c942d41bb7fffb56cda8",
+  "runtime_files_changed": [
+    "src/membrain/candidates.py"
+  ],
+  "runtime_change": "_direct_candidates: keyword signal scaled by lexical_score * min(1, best / 0.3) ** 2 / best (best = strongest lexical score of the query) instead of lexical_score / max(1, best); vector route weighted 0.5 in fuse_rankings",
+  "scope": "local WSL2 x86_64 checks; not platform qualification; no model or API call; no independent review",
+  "environment": {
+    "os": "WSL2 Linux (kernel 6.18.58.1-microsoft-standard-WSL2), x86_64, 4 cores",
+    "python": "3.12.16",
+    "database": "task-owned embedded PostgreSQL 16.15, pgvector 0.8.6, stopped afterwards",
+    "runner": "same runner as the rejected variant's run: copy of evaluations/evidence/status-audit-2026-11-10/full_suite_runner.py with one added environment variable",
+    "environment_variables": {
+      "PYTHON_DOTENV_DISABLED": "1",
+      "MEMBRAIN_SEMANTIC": "0",
+      "MEMBRAIN_REQUIRE_BROWSER": "1",
+      "MEMBRAIN_TEST_EMBEDDING_MODEL": "local cache directory holding the pinned multilingual-e5-small model under models/"
+    },
+    "started_utc": "2026-11-11T00:44:00Z"
+  },
+  "full_python_suite": {
+    "source": "6c0f8d129123dba2daa3c942d41bb7fffb56cda8",
+    "tests": 8501,
+    "passed": 8495,
+    "failed": 2,
+    "errors": 0,
+    "skipped": 4,
+    "warnings": 3,
+    "seconds": 2863.28,
+    "runner_seconds": 2861,
+    "pytest_exit": 1,
+    "database_stopped": true,
+    "runtime_and_migration_files_unchanged_during_run": true,
+    "rejected_variant_failures_now": {
+      "tests/test_candidates.py::test_episode_seeds_neither_boost_themselves_nor_exhaust_neighbor_slots": "passed",
+      "tests/test_source_candidates.py::test_broad_citation_does_not_inflate_concentration_of_disconnected_query_cues": "passed",
+      "tests/test_candidates.py": {
+        "passed": 24,
+        "failed": 0
+      },
+      "tests/test_source_candidates.py": {
+        "passed": 25,
+        "failed": 0
+      }
+    },
+    "failed_tests": [
+      {
+        "id": "tests/test_longitudinal_evaluation.py::test_complete_scenario_through_real_loopback_http_has_no_automatic_semantic_pass",
+        "classification": "outside the known intermittent files, so treated as potentially caused by the change; did not reproduce in 3 reruns alone",
+        "assertion": "SessionRunner(...).run(sessions=16) raised before the result assertions",
+        "observed": "examples.evaluate_longitudinal.CampaignStopped: literal_work_previously_attempted (raised at examples/evaluate_longitudinal.py:432 when process_learning in examples/longitudinal_learning.py returned that stop reason because a literal consolidation job had already been touched)",
+        "behaviour_pinned": "The frozen 16-session longitudinal scenario must run end to end through a real loopback HTTP service (33 turns delivered, all sessions completed) while semantic acceptance stays pending independent review rather than passing automatically.",
+        "reruns_alone": {
+          "attempts": 3,
+          "passed": 3,
+          "failed": 0,
+          "outcome": "did not reproduce",
+          "seconds_each": [
+            127.16,
+            125.99,
+            128.77
+          ]
+        },
+        "earlier_runs_on_this_machine": "passed in the audit-full, memory-path-1, module1-closure-b and rejected-variant (fusion-20261110) runs"
+      },
+      {
+        "id": "tests/test_longitudinal_learning.py::test_job_bound_stops_before_further_claims_and_keeps_pending_debt",
+        "classification": "known intermittent (still a failure)",
+        "assertion": "result[\"dispatch_limit_reached\"] and result[\"stop_reason\"] == \"learning_dispatch_limit\"",
+        "observed": "assert (False)",
+        "reruns_alone": "not rerun (known intermittent file)"
+      }
+    ],
+    "known_intermittent_learning_files_this_run": {
+      "tests/test_continuous_learning_acceptance.py": {
+        "passed": 4,
+        "failed": 0
+      },
+      "tests/test_cross_conversation_funding.py": {
+        "passed": 32,
+        "failed": 0
+      },
+      "tests/test_learning_windows.py": {
+        "passed": 33,
+        "failed": 0
+      },
+      "tests/test_longitudinal_learning.py": {
+        "passed": 18,
+        "failed": 1
+      }
+    },
+    "embedding_model_tests": {
+      "tests/test_embedding_passages.py": {
+        "passed": 9,
+        "failed": 0,
+        "skipped": 0
+      },
+      "tests/test_local_embeddings.py": {
+        "passed": 8,
+        "failed": 0,
+        "skipped": 0
+      },
+      "tests/test_model_activation.py": {
+        "passed": 4,
+        "failed": 0,
+        "skipped": 0
+      }
+    },
+    "installation_pin_tests": {
+      "tests/test_installation_pin.py": {
+        "passed": 2,
+        "failed": 0
+      }
+    },
+    "warnings_detail": "3 DeprecationWarning (multi-threaded fork) in tests/test_evaluation_billing_guard.py (2) and tests/test_longitudinal_journal.py (1)",
+    "skips": {
+      "MEMORY_DESKTOP_E2E not set (Docker journeys)": 4
+    },
+    "retained_outside_repository": {
+      "junit.xml_sha256": "cf09f01d19bcf425d67265a52a4e97deafb665526cf1d05b2a1c94f34fead4d8",
+      "log_sha256": "7b8de24a0c66cf8927ded4061006d5c649bdeea9fccd95789684a2feca839bcc",
+      "rerun_log_sha256": "b3b0cfba7c1716825986bafec980e92ad5d65c74eaed7f2f364d7e535157c4de"
+    }
+  },
+  "reruns": "the one failure outside the known intermittent files was rerun alone 3 times against the run's own database with the same environment except MEMBRAIN_REQUIRE_BROWSER (not set by the rerun script, as in the rejected variant's reruns): 3 of 3 passed; its database stopped afterwards",
+  "verdict": "both tests broken by the rejected variant pass; 2 failures remain: one in a known intermittent learning file and one longitudinal-scenario failure that did not reproduce in 3 reruns alone; no failure was shown to be caused by the change, and the suite is not a clean pass",
+  "not_run": [
+    "Verify on GitHub",
+    "native Windows and macOS",
+    "five-platform qualification",
+    "R5 overhead protocol",
+    "model evaluation",
+    "independent review",
+    "baseline rerun of the learning test files on 8223c2b6",
+    "rerun of the known intermittent failure"
+  ],
+  "rejected_first_variant": {
+    "note": "first variant of the change; never pushed and discarded after this run",
+    "runtime_commit": "53edb4a6f7b247d4d4542df0f975a63c966b8140",
+    "pin_commit": "0c582b273584d1ec31b4132063fed77b425fc325",
+    "runtime_change": "_direct_candidates: keyword signal scaled by min(1, (lexical_score / 0.2) ** 2) instead of lexical_score / max(1, strongest lexical score); vector route weighted 0.5 in fuse_rankings",
+    "totals": {
+      "tests": 8501,
+      "passed": 8495,
+      "failed": 2,
+      "errors": 0,
+      "skipped": 4,
+      "warnings": 3,
+      "seconds": 2961.68
+    },
+    "failing_tests": [
+      {
+        "id": "tests/test_candidates.py::test_episode_seeds_neither_boost_themselves_nor_exhaust_neighbor_slots",
+        "behaviour_pinned": "For the query 'pottery workshop timetable', the episode neighbour 'Twenty minutes is manageable' must rank second, right after the full keyword match, ahead of three partial keyword matches ('pottery equipment') from the same episode; under the new rule a partial match reaches the saturation threshold and outranks the neighbour."
+      },
+      {
+        "id": "tests/test_source_candidates.py::test_broad_citation_does_not_inflate_concentration_of_disconnected_query_cues",
+        "behaviour_pinned": "A derived memory whose cited source span concentrates the query cues ('The kiln workshop starts on Tuesday.') must score more than twice a derived memory citing a broad text in which the same cues are scattered across unrelated lines; under the new rule both keyword signals saturate and score almost equally."
+      }
+    ],
+    "verdict": "the change breaks two candidate-ranking tests deterministically; not verified",
+    "original_record": {
+      "base_pin": "8223c2b640d7ba668f6b3117bbbc0ce2eb22cbea",
+      "runtime_commit": "53edb4a6f7b247d4d4542df0f975a63c966b8140",
+      "pin_commit": "0c582b273584d1ec31b4132063fed77b425fc325",
+      "runtime_files_changed": [
+        "src/membrain/candidates.py"
+      ],
+      "runtime_change": "_direct_candidates: keyword signal scaled by min(1, (lexical_score / 0.2) ** 2) instead of lexical_score / max(1, strongest lexical score); vector route weighted 0.5 in fuse_rankings",
+      "scope": "local WSL2 x86_64 checks; not platform qualification; no model or API call; no independent review",
+      "environment": {
+        "os": "WSL2 Linux (kernel 6.18.58.1-microsoft-standard-WSL2), x86_64, 4 cores",
+        "python": "3.12.16",
+        "database": "task-owned embedded PostgreSQL 16.15, pgvector 0.8.6, stopped afterwards",
+        "runner": "copy of evaluations/evidence/status-audit-2026-11-10/full_suite_runner.py with one added environment variable",
+        "environment_variables": {
+          "PYTHON_DOTENV_DISABLED": "1",
+          "MEMBRAIN_SEMANTIC": "0",
+          "MEMBRAIN_REQUIRE_BROWSER": "1",
+          "MEMBRAIN_TEST_EMBEDDING_MODEL": "local cache directory holding the pinned multilingual-e5-small model under models/ (added for this run)"
+        }
+      },
+      "full_python_suite": {
+        "source": "0c582b273584d1ec31b4132063fed77b425fc325",
+        "tests": 8501,
+        "passed": 8495,
+        "failed": 2,
+        "errors": 0,
+        "skipped": 4,
+        "warnings": 3,
+        "seconds": 2961.68,
+        "runner_seconds": 2981,
+        "pytest_exit": 1,
+        "database_stopped": true,
+        "runtime_and_migration_files_unchanged_during_run": true,
+        "failed_tests": [
+          {
+            "id": "tests/test_candidates.py::test_episode_seeds_neither_boost_themselves_nor_exhaust_neighbor_slots",
+            "classification": "caused by the change (consistent)",
+            "assertion": "state[\"candidate_versions\"][:2] == [key(anchor), key(detail)]",
+            "observed": "At index 1 diff: ('b-seed-0', 1) != ('z-detail', 1)",
+            "behaviour_pinned": "For the query 'pottery workshop timetable', the episode neighbour 'Twenty minutes is manageable' must rank second, right after the full keyword match, ahead of three partial keyword matches ('pottery equipment') from the same episode; under the new rule a partial match reaches the saturation threshold and outranks the neighbour.",
+            "reruns_alone": {
+              "attempts": 3,
+              "failed": 3,
+              "outcome": "consistent"
+            },
+            "earlier_runs_on_this_machine": "passed in the audit-full, memory-path-1 and module1-closure-b runs on earlier runtimes",
+            "in_memory_control": "passed when only _direct_candidates was replaced in the test process by its 8223c2b6 body (no file changed)"
+          },
+          {
+            "id": "tests/test_source_candidates.py::test_broad_citation_does_not_inflate_concentration_of_disconnected_query_cues",
+            "classification": "caused by the change (consistent)",
+            "assertion": "signals[key(wanted)][0][\"score\"] > 2 * signals[key(distractor)][0][\"score\"]",
+            "observed": "0.007560483770047373 > (2 * 0.007440476138380097) is false; reruns gave the same values to 8 significant digits",
+            "behaviour_pinned": "A derived memory whose cited source span concentrates the query cues ('The kiln workshop starts on Tuesday.') must score more than twice a derived memory citing a broad text in which the same cues are scattered across unrelated lines; under the new rule both keyword signals saturate and score almost equally.",
+            "reruns_alone": {
+              "attempts": 3,
+              "failed": 3,
+              "outcome": "consistent"
+            },
+            "earlier_runs_on_this_machine": "passed in the audit-full, memory-path-1 and module1-closure-b runs on earlier runtimes",
+            "in_memory_control": "passed when only _direct_candidates was replaced in the test process by its 8223c2b6 body (no file changed)"
+          }
+        ],
+        "known_intermittent_learning_files_this_run": "no failures in tests/test_continuous_learning_acceptance.py (4 passed), tests/test_cross_conversation_funding.py (32 passed), tests/test_learning_windows.py (33 passed) or tests/test_longitudinal_learning.py (19 passed) in this one run; earlier runs showed intermittent failures there, so one clean run does not establish that they are fixed",
+        "embedding_model_tests": {
+          "note": "ran on this machine for the first time; the 11 tests skipped in earlier runs all passed",
+          "tests/test_embedding_passages.py": {
+            "passed": 9,
+            "failed": 0,
+            "skipped": 0
+          },
+          "tests/test_local_embeddings.py": {
+            "passed": 8,
+            "failed": 0,
+            "skipped": 0
+          },
+          "tests/test_model_activation.py": {
+            "passed": 4,
+            "failed": 0,
+            "skipped": 0
+          }
+        },
+        "warnings_detail": "3 DeprecationWarning (multi-threaded fork) in tests/test_evaluation_billing_guard.py (2) and tests/test_longitudinal_journal.py (1)",
+        "skips": {
+          "MEMORY_DESKTOP_E2E not set (Docker journeys)": 4
+        },
+        "retained_outside_repository": {
+          "junit.xml_sha256": "f35a6da3e7855c573c3a0513e714d5d7688bc8c2e2dbcc2af2434c54bfbefe7b",
+          "log_sha256": "fd4f5421df40d63760a1b2ae376c2233520c7870958f084849a6a6d557a464f7",
+          "rerun_log_sha256": "19901695e1d764f4fc69eb2590e626f597667298d11a3cd3c90d1033d095c69e",
+          "in_memory_control_log_sha256": "55ca361c3d8cd6adbff4ee3dc99219a9f30508f844ac579636b65fe217383b2e"
+        }
+      },
+      "reruns": "the two failed tests rerun together 3 times against the run's own database with the same environment: 3 of 3 attempts failed both, with the same assertions; one further attempt with the 8223c2b6 _direct_candidates body patched in memory passed both",
+      "verdict": "the change breaks two candidate-ranking tests deterministically; not verified",
+      "not_run": [
+        "Verify on GitHub",
+        "native Windows and macOS",
+        "five-platform qualification",
+        "R5 overhead protocol",
+        "model evaluation",
+        "independent review",
+        "extracted-wheel regression",
+        "real host processes",
+        "baseline rerun of the learning test files",
+        "ruff"
+      ]
+    }
+  }
+}

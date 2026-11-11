@@ -1,0 +1,85 @@
+Runtime 1f5d268 (before the fusion change), development conversations.
+evidence turns: 519
+  direct any        96.7%
+  direct<10         43.7%
+  direct<248        90.0%
+  direct<62         66.1%
+  keyword any       88.2%
+  keyword<10        53.9%
+  keyword<248       88.2%
+  keyword<62        73.6%
+  response          60.5%
+  roots any         64.9%
+  roots<62          64.9%
+  selected          57.8%
+  vector any        86.7%
+  vector<10         31.8%
+  vector<248        86.7%
+  vector<62         54.7%
+simulated fusion of the captured channel lists (evidence turns ranked within N statements):
+  A current (keyword x score/max(1,best))       <10:  43.7%  <25:  51.8%  <62:  66.1%
+  B equal weights                               <10:  41.0%  <25:  54.1%  <62:  71.7%
+  C keyword x score/best                        <10:  52.0%  <25:  61.1%  <62:  71.7%
+  D keyword only                                <10:  53.9%  <25:  65.3%  <62:  73.8%
+  E keyword 1, vector 0.5                       <10:  51.4%  <25:  64.5%  <62:  73.4%
+  F keyword x sqrt(score/best)                  <10:  52.2%  <25:  62.4%  <62:  73.4%
+  G vector only                                 <10:  31.8%  <25:  40.7%  <62:  54.7%
+  H keyword x sqrt(score/max(1,best))           <10:  44.1%  <25:  54.5%  <62:  69.9%
+  I keyword x min(1, score/0.3)                 <10:  51.3%  <25:  61.1%  <62:  71.7%
+  J keyword x min(1, 2*score)                   <10:  48.9%  <25:  58.2%  <62:  70.1%
+  K current keyword, vector 0.35                <10:  52.6%  <25:  61.3%  <62:  71.5%
+  L current keyword, vector 0.5                 <10:  50.5%  <25:  58.4%  <62:  70.3%
+  M keyword x min(1, score/0.3), vector 0.5     <10:  56.3%  <25:  64.0%  <62:  74.8%
+  N keyword x min(1, score/0.5)                 <10:  48.9%  <25:  58.2%  <62:  70.1%
+where the unselected ones were lost:
+   159 (30.6%)  fused rank beyond 62
+    23 ( 4.4%)  root but cut by the token budget
+    17 ( 3.3%)  in neither channel's list
+    14 ( 2.7%)  in response but dropped by the host
+     6 ( 1.2%)  fused within 62 but not kept as a root (source-unit / neighbours / weighting)
+lexical score of the gold statement: mean 0.343, zero for 11.8%; best lexical score in the list: mean 0.592
+
+Second set of simulated weightings, same captured lists:
+simulated fusion of the captured channel lists (evidence turns ranked within N statements):
+  A current                                     <10:  43.7%  <25:  51.8%  <62:  66.1%
+  M linear 0.3, vector 0.5                      <10:  56.3%  <25:  64.0%  <62:  74.8%
+  P quadratic 0.3, vector 0.5                   <10:  54.1%  <25:  61.7%  <62:  72.1%
+  Q quadratic 0.4, vector 0.5                   <10:  52.8%  <25:  60.5%  <62:  70.5%
+  R quadratic 0.25, vector 0.5                  <10:  55.1%  <25:  63.4%  <62:  73.0%
+  S quadratic 0.2, vector 0.5                   <10:  56.1%  <25:  64.4%  <62:  73.6%
+  T quadratic 0.3, vector 0.35                  <10:  55.3%  <25:  63.4%  <62:  72.8%
+  U quadratic 0.3, vector 0.7                   <10:  53.4%  <25:  61.1%  <62:  71.3%
+  V quadratic 0.3, vector 1.0                   <10:  51.4%  <25:  59.5%  <62:  70.1%
+  W power 1.5 at 0.3, vector 0.5                <10:  54.9%  <25:  62.8%  <62:  73.0%
+where the unselected ones were lost:
+
+Proportional weightings and evidence reachable by meaning only, same captured lists:
+simulated fusion of the captured channel lists (evidence turns ranked within N statements):
+  A before (score/max(1,best), vector 1)        <10:  43.7%  <25:  51.8%  <62:  66.1%
+  S saturating 0.2 squared, vector 0.5          <10:  56.1%  <25:  64.4%  <62:  73.6%
+  Y1 proportional floor 0.3, vector 0.5         <10:  53.0%  <25:  60.7%  <62:  72.3%
+  Y3 proportional floor 0.3, vector 0.35        <10:  54.5%  <25:  63.2%  <62:  73.4%
+  Y4 proportional floor 0.3, vector 0.25        <10:  55.3%  <25:  64.5%  <62:  73.6%
+  Y8 proportional floor 0.3, vector 0.15        <10:  55.7%  <25:  66.3%  <62:  75.1%
+evidence turns with no keyword match (reachable by meaning only), ranked within N statements:
+  A before (score/max(1,best), vector 1)       n=61  <10:  13.1%  <25:  21.3%  <62:  36.1%
+  S saturating 0.2 squared, vector 0.5         n=61  <10:   8.2%  <25:  16.4%  <62:  32.8%
+  Y1 proportional floor 0.3, vector 0.5        n=61  <10:   8.2%  <25:  19.7%  <62:  36.1%
+  Y3 proportional floor 0.3, vector 0.35       n=61  <10:   6.6%  <25:  16.4%  <62:  34.4%
+  Y4 proportional floor 0.3, vector 0.25       n=61  <10:   4.9%  <25:  14.8%  <62:  32.8%
+  Y8 proportional floor 0.3, vector 0.15       n=61  <10:   3.3%  <25:  14.8%  <62:  29.5%
+where the unselected ones were lost:
+
+Further proportional weightings:
+simulated fusion of the captured channel lists (evidence turns ranked within N statements):
+  A before (score/max(1,best), vector 1)        <10:  43.7%  <25:  51.8%  <62:  66.1%
+  S saturating 0.2 squared, vector 0.5          <10:  56.1%  <25:  64.4%  <62:  73.6%
+  Y1 proportional floor 0.3, vector 0.5         <10:  53.0%  <25:  60.7%  <62:  72.3%
+  Y2 proportional floor 0.2, vector 0.5         <10:  55.1%  <25:  62.4%  <62:  72.6%
+  Y3 proportional floor 0.3, vector 0.35        <10:  54.5%  <25:  63.2%  <62:  73.4%
+  Y4 proportional floor 0.3, vector 0.25        <10:  55.3%  <25:  64.5%  <62:  73.6%
+  Y5 proportional floor 0.3, vector 0.7         <10:  52.8%  <25:  59.7%  <62:  70.9%
+  Y6 proportional floor 0.5, vector 0.35        <10:  53.0%  <25:  61.3%  <62:  71.5%
+  Y7 proportional^0.75 floor 0.3, vector 0.35   <10:  54.7%  <25:  64.2%  <62:  74.2%
+  Y8 proportional floor 0.3, vector 0.15        <10:  55.7%  <25:  66.3%  <62:  75.1%
+where the unselected ones were lost:

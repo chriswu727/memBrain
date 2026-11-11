@@ -18,11 +18,11 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **发布前版本，尚未发布。** 当前运行时 `1f5d268`（2026-11-10）。
+> **发布前版本，尚未发布。** 当前运行时 `b301c55`（2026-11-10）。
 >
-> - **记忆质量。** 在不调用模型的 LoCoMo 测量中，为问题召回的上下文包含全部证据的比例为 60.6%（1,535 题；留出对话上为 59.9%），此前为 52.7%。对同样的消息做普通检索，在相同大小下可达 73.6%，因此召回排序是当前的工作重点。见[基线](evaluations/locomo-evidence-recall-2026-11-10.md)和[最新改动](evaluations/memory-path-recall-budget-2026-11-10.md)。
+> - **记忆质量。** 在不调用模型的 LoCoMo 测量中，为问题召回的上下文包含全部证据的比例为 68.0%（1,535 题；留出对话上为 66.8%），此前为 52.7%。对同样的消息做普通检索，在相同大小下可达 73.6%，而且需要多条记忆才能回答的问题仍明显落后，因此召回仍是当前的工作重点。见[基线](evaluations/locomo-evidence-recall-2026-11-10.md)以及此后的两次改动（[召回块大小](evaluations/memory-path-recall-budget-2026-11-10.md)、[排序](evaluations/recall-fusion-2026-11-10.md)）。
 > - **行为验收。** R4 尚未通过：在[最近一次验收](evaluations/maturity-fifth-attempt-2026-11-07.md)中，插件路径 20 分（通过），笔记抽取 16 分（未通过，有一次由记忆导致的隐私错误），完整历史参照 15.5 分。陪伴层评测 C5 无效且未评分。
-> - **此运行时的验证。** 完整源码测试套件在本地 Linux 上通过（8,486 项，另有 15 项因需要 Docker 或本地模型而跳过）。未对它运行 GitHub Verify、Windows 原生、macOS、五平台验证、R5 开销协议，也未经独立审查。
+> - **此运行时的验证。** 完整源码测试套件已在本地 Linux 上运行：8,495 项通过，4 项跳过（Docker 流程），2 项失败，均为后台学习测试，其中一项所在文件在更早的运行时上同样间歇性失败，另一项重跑时未能复现。未对它运行 GitHub Verify、Windows 原生、macOS、五平台验证、R5 开销协议，也未经独立审查。
 > - **未解决的缺陷与限制。** 见 [2026-11-10 现状审核](evaluations/status-audit-2026-11-10.md)，其中也标明了此后已修复的部分。更早的运行时及其证据见[发布清单](docs/releasing.md)。默认分支已包含此运行时，但这不代表已发布。
 
 <a id="claude-code-plugin"></a>
