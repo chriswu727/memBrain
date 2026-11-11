@@ -1,0 +1,12 @@
+Runtime b301c55, development conversations (conv-26, conv-30, conv-41).
+evidence turns: 519 (share whose source message ranks within N messages)
+  1 service fused order (this runtime)            <10:  53.2%  <25:  60.9%  <40:  66.5%
+  2 keyword route, messages                       <10:  54.9%  <25:  65.7%  <40:  70.5%
+  3 statement meaning route, messages             <10:  31.8%  <25:  40.7%  <40:  47.2%
+  4 message meaning route (whole messages)        <10:  53.4%  <25:  64.4%  <40:  71.7%
+  5 keyword + statement meaning x0.5              <10:  55.5%  <25:  64.2%  <40:  68.2%
+  6 keyword + message meaning x0.5                <10:  62.2%  <25:  73.0%  <40:  76.9%
+  7 keyword + message meaning x1.0                <10:  61.8%  <25:  71.5%  <40:  76.5%
+  8 keyword + message x1.0 + statement x0.5       <10:  60.3%  <25:  70.9%  <40:  75.7%
+  9 raw BM25 + message meaning (baseline)         <10:  54.1%  <25:  69.0%  <40:  74.2%
+  10 raw BM25, messages                           <10:  47.2%  <25:  56.6%  <40:  61.3%
