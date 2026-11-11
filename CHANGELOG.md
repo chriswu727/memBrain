@@ -6,6 +6,8 @@ memBrain is a human-inspired memory engine for AI agents. It keeps persistent me
 
 ### Included
 
+- Erasing or hiding a message through a plugin, proxy or chat-bot host now also erases or hides the assistant's reply to it, which usually restates it. Replies stored by earlier versions are not reached retroactively. [Details](evaluations/reply-erasure-database-auth-2026-11-11.md).
+- Database connections to a local address require SCRAM-SHA-256 authentication, so the password is never sent to a process that merely holds the port. A local PostgreSQL of your own that uses `trust` or `md5` needs `require_auth` set in its URL. A client library older than libpq 16 is refused with an explanation.
 - Semantic recall compares a question with whole messages: a statement captured from a message is embedded as that message (up to 1,500 characters) instead of as a single sentence, and a message is listed once among the meaning matches. Vectors from earlier versions are replaced in the background after an upgrade. [Measurement and limits](evaluations/message-context-embeddings-2026-11-10.md).
 - Background jobs that were never delayed stay due when the computer's clock steps backwards (time synchronisation, a resumed virtual machine, WSL). Before, such a step made new learning and note-extraction jobs wait for as long as the step.
 - Recall ranks candidates with the keyword and meaning routes rebalanced: keyword matches count in proportion to the best lexical match, weak overlap stays weak, and statement-level meaning matches count half. Before, the combined order ranked the evidence lower than keyword matching alone. [Diagnostic, measurement and limits](evaluations/recall-fusion-2026-11-10.md).

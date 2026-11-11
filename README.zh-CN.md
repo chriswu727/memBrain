@@ -18,11 +18,12 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **发布前版本，尚未发布。** 当前运行时 `02a1aec`（2026-11-10）。
+> **发布前版本，尚未发布。** 当前运行时 `933f4d8`（2026-11-11）。
 >
 > - **记忆质量。** 在不调用模型的 LoCoMo 测量中，为问题召回的上下文包含全部证据的比例为 74.1%（1,535 题；留出对话上为 72.2%），此前为 52.7%，现已与对同样的消息做普通检索在相同大小下的结果（73.6%）持平。对于需要多条记忆才能回答的问题，两者都只有约三分之一能取全证据，因此联想式召回是当前的工作重点。这是在单一基准上对检索的测量，不代表回答质量。见[基线](evaluations/locomo-evidence-recall-2026-11-10.md)以及此后的三次改动（[召回块大小](evaluations/memory-path-recall-budget-2026-11-10.md)、[排序](evaluations/recall-fusion-2026-11-10.md)、[按整条消息做嵌入](evaluations/message-context-embeddings-2026-11-10.md)）。
 > - **行为验收。** R4 尚未通过：在[最近一次验收](evaluations/maturity-fifth-attempt-2026-11-07.md)中，插件路径 20 分（通过），笔记抽取 16 分（未通过，有一次由记忆导致的隐私错误），完整历史参照 15.5 分。陪伴层评测 C5 无效且未评分。
-> - **此运行时的验证。** 完整源码测试套件已在本地 Linux 上运行：8,502 项通过，4 项跳过（Docker 流程），2 项失败，原因是测试自身对时序的假设；这两项测试随后已修正并单独重复运行，此后未重跑完整套件。未对它运行 GitHub Verify、Windows 原生、macOS、五平台验证、R5 开销协议，也未经独立审查。
+> - **此运行时的验证。** 完整源码测试套件已在本地 Linux 上运行：8,518 项通过，4 项跳过（Docker 流程），1 项失败，原因是该测试列出的“删除所移除的记录”不含现在也会被移除的回复；其期望值已修正并重跑了所在文件，此后未重跑完整套件。未对它运行 GitHub Verify、Windows 原生、macOS、五平台验证、R5 开销协议，也未经独立审查。
+> - **删除与凭据。** 擦除一条消息时，现在会同时擦除回答它的那条回复；一个[端到端场景](evaluations/reply-erasure-database-auth-2026-11-11.md)验证了一条记忆被保存、更正、删除，且不会被旧存档带回。本机数据库连接要求使用 SCRAM-SHA-256。
 > - **未解决的缺陷与限制。** 见 [2026-11-10 现状审核](evaluations/status-audit-2026-11-10.md)，其中也标明了此后已修复的部分。更早的运行时及其证据见[发布清单](docs/releasing.md)。默认分支已包含此运行时，但这不代表已发布。
 
 <a id="claude-code-plugin"></a>

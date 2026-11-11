@@ -1,0 +1,142 @@
+{
+  "batch": "reply-erasure-database-auth-2026-11-11",
+  "base_pin": "b04af871124ca7b21675bc1d48ec865611db34c8",
+  "runtime_commits": [
+    {
+      "commit": "24d509543f0a14948fd8d1d5e2e64d43103cf5bd",
+      "subject": "Erase a host-recorded reply with the message it answers",
+      "runtime_files_changed": ["src/membrain/service.py"],
+      "other_files_changed": ["tests/test_memory_lifecycle_scenario.py"]
+    },
+    {
+      "commit": "933f4d8a041f6d8bd3b83205670b81373ca41d75",
+      "subject": "Require SCRAM-SHA-256 for loopback database connections",
+      "runtime_files_changed": [
+        "src/membrain/storage.py",
+        "src/membrain/local_profile.py",
+        "src/membrain/embedded_database.py",
+        "src/membrain/cli.py",
+        "src/membrain/desktop_backup.py",
+        "src/membrain/desktop_restore.py"
+      ],
+      "other_files_changed": ["SECURITY.md", "docs/reference.md", "tests/test_database_auth.py", "tests/test_local_profile.py"]
+    }
+  ],
+  "test_only_commits_since_base_pin": [
+    {
+      "commit": "1c0edeca271986ffd9783db1a036089d7ff39d4c",
+      "subject": "Remove two timing assumptions from tests",
+      "files_changed": ["tests/test_host.py", "tests/test_jobs.py"]
+    }
+  ],
+  "pin_commit": "4af71af6ae2cb54b4d7a9828eba8372b8c8f9310",
+  "scope": "local WSL2 x86_64 checks; not platform qualification; no model or API call; no independent review",
+  "environment": {
+    "os": "WSL2 Linux (kernel 6.18.58.1-microsoft-standard-WSL2), x86_64, 4 cores",
+    "python": "3.12.16",
+    "pytest": "9.1.1",
+    "database": "task-owned embedded PostgreSQL 16.15, pgvector 0.8.6, stopped afterwards",
+    "runner": "same runner as the message-context-embeddings run: copy of evaluations/evidence/status-audit-2026-11-10/full_suite_runner.py with one added environment variable",
+    "environment_variables": {
+      "PYTHON_DOTENV_DISABLED": "1",
+      "MEMBRAIN_SEMANTIC": "0",
+      "MEMBRAIN_REQUIRE_BROWSER": "1",
+      "MEMBRAIN_TEST_EMBEDDING_MODEL": "local cache directory holding the pinned multilingual-e5-small model under models/"
+    },
+    "started_utc": "2026-11-11T06:56:50Z"
+  },
+  "full_python_suite": {
+    "source": "4af71af6ae2cb54b4d7a9828eba8372b8c8f9310",
+    "tests": 8523,
+    "passed": 8518,
+    "failed": 1,
+    "errors": 0,
+    "skipped": 4,
+    "warnings": 3,
+    "seconds": 2999.29,
+    "runner_seconds": 3018,
+    "pytest_exit": 1,
+    "database_stopped": true,
+    "runtime_and_migration_files_unchanged_during_run": true,
+    "tests_compared_with_previous_run": "8,523 tests against 8,508 in the message-context-embeddings run on b04af871",
+    "files_asked_about": {
+      "tests/test_memory_lifecycle_scenario.py": {"passed": 1, "failed": 0, "note": "passed in full; new in 24d50954"},
+      "tests/test_database_auth.py": {"passed": 14, "failed": 0, "note": "passed in full; new in 933f4d8a"},
+      "tests/test_jobs.py": {"passed": 15, "failed": 0, "note": "passed in full; changed by 1c0edeca"},
+      "tests/test_host.py": {"passed": 298, "failed": 0, "note": "passed in full; changed by 1c0edeca"},
+      "tests/test_message_context_embeddings.py": {"passed": 5, "failed": 0, "note": "passed in full"},
+      "tests/test_local_profile.py": {"passed": 70, "failed": 0, "note": "passed in full; changed by 933f4d8a"},
+      "tests/test_embedded_database.py": {"passed": 19, "failed": 0, "note": "passed in full"}
+    },
+    "failed_tests": [
+      {
+        "id": "tests/test_c5_harness_hardening.py::test_removed_records_name_exactly_the_removed_one_of_two_alike_records",
+        "classification": "potentially caused by the change (24d50954): erasure test outside the known clock-ordering files and not an engine-verification startup error; consistent, failed in the suite and in 3 of 3 reruns alone",
+        "assertion": "sorted(entry[\"kind\"] for entry in removed) == [\"feeling\", \"message\", \"note\"] (tests/test_c5_harness_hardening.py:579)",
+        "observed": "removed_records had four entries, kinds [\"feeling\", \"message\", \"message\", \"note\"]; the extra message entry has sources [[\"s1\", 1, \"assistant\"]]; the page action delete_message on s1 turn 1 role user returned deleted 1 and removed [[\"s1\", 1, \"assistant\"], [\"s1\", 1, \"user\"]]; removed_records_complete true and every entry established",
+        "behaviour_pinned": "Deleting the user message of the second of two alike turns through a harness page action must report exactly that message, its note and its feeling as removed (each sourced only from s1 turn 1 user, refs by the shared formula), and never the first turn's records.",
+        "relation_to_change": "24d50954 records a host-recorded assistant reply as depending on the message it answers, so erasing the message also erases the reply. The observed extra removed record is the assistant reply of the same turn, which matches that described behaviour; the test expectation of one message entry predates the commit. Whether the test or the runtime should change was not assessed.",
+        "reruns_alone": {
+          "attempts": 3,
+          "passed": 0,
+          "failed": 3,
+          "outcome": "consistent; same assertion and same removed positions in every attempt",
+          "seconds_each": [14.33, 14.21, 21.33]
+        },
+        "earlier_runs_on_this_machine": "passed in the audit-full, memory-path-1, module1-closure-b, fusion-20261110, fusion-v2-20261110 and context-20261110 (b04af871) runs on earlier runtimes"
+      }
+    ],
+    "known_clock_ordering_files_this_run": {
+      "tests/test_continuous_learning_acceptance.py": {"passed": 4, "failed": 0},
+      "tests/test_cross_conversation_funding.py": {"passed": 32, "failed": 0},
+      "tests/test_learning_windows.py": {"passed": 33, "failed": 0},
+      "tests/test_longitudinal_learning.py": {"passed": 19, "failed": 0},
+      "tests/test_longitudinal_evaluation.py": {"passed": 31, "failed": 0}
+    },
+    "embedding_model_tests": {
+      "tests/test_embedding_passages.py": {"passed": 9, "failed": 0, "skipped": 0},
+      "tests/test_local_embeddings.py": {"passed": 8, "failed": 0, "skipped": 0},
+      "tests/test_model_activation.py": {"passed": 4, "failed": 0, "skipped": 0}
+    },
+    "related_erasure_tests": {
+      "tests/test_c5_harness_hardening.py": {"passed": 52, "failed": 1},
+      "tests/test_erasure_recording_fence.py": {"passed": 27, "failed": 0}
+    },
+    "installation_pin_tests": {
+      "tests/test_installation_pin.py": {"passed": 2, "failed": 0}
+    },
+    "engine_verification_startup_errors": 0,
+    "warnings_detail": "3 DeprecationWarning (multi-threaded fork) in tests/test_evaluation_billing_guard.py (2) and tests/test_longitudinal_journal.py (1)",
+    "skips": {
+      "MEMORY_DESKTOP_E2E not set (Docker journeys)": 4
+    },
+    "skip_reasons_verbatim": {
+      "Set MEMORY_DESKTOP_E2E=1 to create an isolated Docker database for desktop verification": 1,
+      "Set MEMORY_DESKTOP_E2E=1 to verify private streamed backup and fresh Docker recovery": 1,
+      "Set MEMORY_DESKTOP_E2E=1 to verify independent package upgrades with isolated Docker": 1,
+      "Set MEMORY_DESKTOP_E2E=1 to verify standalone chat against an isolated Docker database": 1
+    },
+    "retained_outside_repository": {
+      "junit.xml_sha256": "9343748ad70302662fc65bde5a87040cb6fda3e9f656e846d2b9fa7fc98cb1ad",
+      "log_sha256": "e4071cfa6976d5decbfe099caffb7ab9140d74b22b6abcc2f5cc9ab75518b805",
+      "rerun_log_sha256": "8afd07f4e11675a92c5cc5ef169aec29d5ca4d38e921d1cf51aee07d6818fc1d",
+      "clock_monitor_log_sha256": "5fde29fbe22650217e5d31ac6c62b40f9de7d8839290602530a4ac3389d8b3f7"
+    }
+  },
+  "wall_clock_steps_during_run": {
+    "observed": false,
+    "how_known": "a monitor sampling wall-minus-monotonic offset every 20 ms (logging any change above 1 ms) ran from 2026-11-11T06:56:50Z, as the suite started, until about 2026-11-11T07:48Z, after the suite and before the reruns; it was stopped by signal, so it wrote no end line. It logged one pair: an offset change of -4.031 ms at 07:45:25.130Z and +4.031 ms 20 ms later, returning to the earlier offset; this matches a 4 ms delay between the monitor's two clock reads in one sample and is not a sustained backward step, but the monitor cannot distinguish the two. The systemd journal count of 'Time jumped backwards' entries for this boot was 3 before and 3 after (latest at 16:14 local time on 2026-11-10, before the run). The reruns were not monitored. The only failure is outside the clock-ordering files, so its classification does not depend on this."
+  },
+  "reruns": "the one failure was rerun alone 3 times against the run's own database with the same environment except MEMBRAIN_REQUIRE_BROWSER (not set by the rerun script, as in earlier reruns): it failed in 3 of 3 attempts with the same assertion; the database stopped afterwards",
+  "cleanup": "the run's database, pytest, .agent-memory-recovery and rerun-0..2 directories were removed after the database was confirmed stopped; junit.xml, result.json, logs and the rerun script are kept in the run directory",
+  "verdict": "not a clean pass: one consistent failure in tests/test_c5_harness_hardening.py whose extra removed record is the assistant reply that 24d50954 now erases with its message; every test in the files asked about passed, including the new tests/test_memory_lifecycle_scenario.py and tests/test_database_auth.py; no sustained wall-clock step was observed during the suite",
+  "not_run": [
+    "Verify on GitHub",
+    "native Windows and macOS",
+    "Docker database path (MEMORY_DESKTOP_E2E journeys)",
+    "five-platform qualification",
+    "R5 overhead protocol",
+    "model evaluation",
+    "independent review"
+  ]
+}
