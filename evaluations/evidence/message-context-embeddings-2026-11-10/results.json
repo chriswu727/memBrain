@@ -1,0 +1,125 @@
+{
+  "batch": "message-context-embeddings-2026-11-10",
+  "base_pin": "6c0f8d129123dba2daa3c942d41bb7fffb56cda8",
+  "runtime_commits": [
+    {
+      "commit": "5b944211545580907fe14b7c1a289e16f45175a3",
+      "subject": "Keep never-delayed background jobs due when the wall clock steps back",
+      "runtime_files_changed": ["src/membrain/jobs.py", "src/membrain/learning_progress.py"],
+      "other_files_changed": ["examples/lifecycle_learning.py", "examples/longitudinal_learning.py", "tests/test_jobs.py"]
+    },
+    {
+      "commit": "02a1aecf2376572b80754c6876932eec7c70fc69",
+      "subject": "Embed a captured statement as its whole message",
+      "runtime_files_changed": ["src/membrain/vector_jobs.py", "src/membrain/candidates.py"],
+      "other_files_changed": ["tests/test_message_context_embeddings.py"]
+    }
+  ],
+  "pin_commit": "b04af871124ca7b21675bc1d48ec865611db34c8",
+  "scope": "local WSL2 x86_64 checks; not platform qualification; no model or API call; no independent review",
+  "environment": {
+    "os": "WSL2 Linux (kernel 6.18.58.1-microsoft-standard-WSL2), x86_64, 4 cores",
+    "python": "3.12.16",
+    "database": "task-owned embedded PostgreSQL 16.15, pgvector 0.8.6, stopped afterwards",
+    "runner": "same runner as the recall-fusion run: copy of evaluations/evidence/status-audit-2026-11-10/full_suite_runner.py with one added environment variable",
+    "environment_variables": {
+      "PYTHON_DOTENV_DISABLED": "1",
+      "MEMBRAIN_SEMANTIC": "0",
+      "MEMBRAIN_REQUIRE_BROWSER": "1",
+      "MEMBRAIN_TEST_EMBEDDING_MODEL": "local cache directory holding the pinned multilingual-e5-small model under models/"
+    },
+    "started_utc": "2026-11-11T02:55:07Z"
+  },
+  "full_python_suite": {
+    "source": "b04af871124ca7b21675bc1d48ec865611db34c8",
+    "tests": 8508,
+    "passed": 8502,
+    "failed": 2,
+    "errors": 0,
+    "skipped": 4,
+    "warnings": 3,
+    "seconds": 2983.36,
+    "runner_seconds": 3001,
+    "pytest_exit": 1,
+    "database_stopped": true,
+    "runtime_and_migration_files_unchanged_during_run": true,
+    "tests_compared_with_previous_run": "8,508 tests against 8,501 in the recall-fusion run on 6c0f8d12",
+    "changed_test_files": {
+      "tests/test_jobs.py": {"passed": 14, "failed": 1, "note": "the failure is one of the tests added by 5b944211"},
+      "tests/test_message_context_embeddings.py": {"passed": 5, "failed": 0, "note": "passed in full"}
+    },
+    "failed_tests": [
+      {
+        "id": "tests/test_jobs.py::test_a_job_created_before_the_clock_stepped_back_is_still_due",
+        "classification": "new test added by 5b944211; outside the known clock-ordering files, so treated as potentially caused by the change; intermittent (failed in the suite and in 2 of 3 reruns alone)",
+        "assertion": "jobs.claim()[\"id\"] == jobs.job_id (tests/test_jobs.py:94)",
+        "observed": "TypeError: 'NoneType' object is not subscriptable (the claim returned no job)",
+        "behaviour_pinned": "A job whose created_at and available_at both lie 40 seconds in the future (as after a backward wall-clock step) was never delayed and must still be claimable under the new due condition available_at<=created_at OR available_at<=clock_timestamp().",
+        "observed_mechanism": "The test sets both columns with two separate clock_timestamp() calls in one UPDATE. A probe against the run's database (temporary table, same UPDATE shape, 500 statements per order) gave available_at later than created_at by a sub-millisecond amount in 56 of 500 and 47 of 500 statements, equal otherwise, whichever column is named first in SET. When available_at is later than created_at, neither branch of the due condition holds, so the claim returns nothing. This was observed for the test's setup only; the job defaults in migrations use now(), which is constant within a transaction. Not established that this is the cause of every observed failure.",
+        "reruns_alone": {
+          "attempts": 3,
+          "passed": 1,
+          "failed": 2,
+          "outcome": "intermittent; reproduced in attempts 1 and 2",
+          "seconds_each_for_both_targets": [20.12, 21.91, 20.43]
+        },
+        "earlier_runs_on_this_machine": "test did not exist before 5b944211"
+      },
+      {
+        "id": "tests/test_host.py::test_users_of_a_shared_bot_keep_separate_memories",
+        "classification": "outside the known clock-ordering files, so treated as potentially caused by the change; intermittent (failed in the suite and in 1 of 3 reruns alone); cause not established",
+        "assertion": "host.flush(client, directory) == 2 (tests/test_host.py:263)",
+        "observed": "assert 0 == 2; in the retained directory of the failed rerun the spool file plugin/spool.jsonl was empty (0 bytes) after the test",
+        "behaviour_pinned": "Two users of one shared bot keep separate memories: a turn spooled while the service is unreachable is replayed as exactly two records by the next flush, each user's timeline holds only their own turns, the shared brain stays empty, and recall for one user does not surface the other user's memory.",
+        "notes": "flush returns 0 when the spool is missing or empty, or when another holder has the spool lock (LocalProfileBusy); which applied was not determined",
+        "reruns_alone": {
+          "attempts": 3,
+          "passed": 2,
+          "failed": 1,
+          "outcome": "intermittent; reproduced in attempt 2 with the same assertion and values"
+        },
+        "earlier_runs_on_this_machine": "passed in the audit-full, memory-path-1, module1-closure-b, fusion-20261110 and fusion-v2-20261110 runs on earlier runtimes"
+      }
+    ],
+    "known_clock_ordering_files_this_run": {
+      "tests/test_continuous_learning_acceptance.py": {"passed": 4, "failed": 0},
+      "tests/test_cross_conversation_funding.py": {"passed": 32, "failed": 0},
+      "tests/test_learning_windows.py": {"passed": 33, "failed": 0},
+      "tests/test_longitudinal_learning.py": {"passed": 19, "failed": 0},
+      "tests/test_longitudinal_evaluation.py": {"passed": 31, "failed": 0}
+    },
+    "embedding_model_tests": {
+      "tests/test_embedding_passages.py": {"passed": 9, "failed": 0, "skipped": 0},
+      "tests/test_local_embeddings.py": {"passed": 8, "failed": 0, "skipped": 0},
+      "tests/test_model_activation.py": {"passed": 4, "failed": 0, "skipped": 0}
+    },
+    "installation_pin_tests": {
+      "tests/test_installation_pin.py": {"passed": 2, "failed": 0}
+    },
+    "warnings_detail": "3 DeprecationWarning (multi-threaded fork) in tests/test_evaluation_billing_guard.py (2) and tests/test_longitudinal_journal.py (1)",
+    "skips": {
+      "MEMORY_DESKTOP_E2E not set (Docker journeys)": 4
+    },
+    "retained_outside_repository": {
+      "junit.xml_sha256": "fb925ae46eb7e9a6abc93f9e12b8cfe9d6797e15d5ed914a6e851f301ab76499",
+      "log_sha256": "83f6c738a4650510e594c2b08bc2a4e236ce19d0832f30d094fde4f580151f6e",
+      "rerun_log_sha256": "02a236666d769a6d8c94b8fe4bc616989096fbb9a5cedfd6d41483e378b28a96",
+      "clock_timestamp_probe_log_sha256": "9e5dd52c88db28efce4044ab8147f53fc3752f3cb64b31f1eddc7227548c87fb"
+    }
+  },
+  "wall_clock_steps_during_run": {
+    "observed": false,
+    "how_known": "a monitor sampling wall-minus-monotonic offset every 20 ms (logging any change above 1 ms) ran from 2026-11-11T02:55:11Z, before the suite started, until 2026-11-11T03:48:27Z, after the reruns and the probe, and logged no step; the offset at the end differed from the start by under 0.001 ms; the systemd journal count of 'Time jumped backwards' entries for this boot was 3 before and 3 after (latest at 16:14 local time, before the run)"
+  },
+  "reruns": "the two failures were rerun together 3 times against the run's own database with the same environment except MEMBRAIN_REQUIRE_BROWSER (not set by the rerun script, as in earlier reruns): the jobs test failed in 2 of 3 attempts and the host test in 1 of 3; the database stopped afterwards",
+  "verdict": "not a clean pass: both failures are outside the known clock-ordering files and reproduced intermittently in reruns alone; one is a new test of 5b944211 whose setup can produce different created_at and available_at values; the other's cause was not established; no wall-clock step was observed during the run; tests/test_message_context_embeddings.py passed in full",
+  "not_run": [
+    "Verify on GitHub",
+    "native Windows and macOS",
+    "five-platform qualification",
+    "R5 overhead protocol",
+    "model evaluation",
+    "independent review",
+    "baseline rerun of tests/test_host.py::test_users_of_a_shared_bot_keep_separate_memories on 6c0f8d12"
+  ]
+}

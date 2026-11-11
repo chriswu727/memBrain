@@ -1,0 +1,68 @@
+ids: baseline 1540, new 1540, identical sets: True
+questions whose evidence list differs between files: 0
+
+== recall-b301c55 (1540 rows, 1535 with evidence)
+a) all-evidence rate
+  M_recall_only
+    overall       68.0% (1044/1535)
+    development   71.5% (274/383)
+    held-out      66.8% (770/1152)
+    held-out multi-hop     21.2% (44/208)
+    held-out temporal      68.7% (158/230)
+    held-out open-domain   35.6% (26/73)
+    held-out single-hop    84.6% (542/641)
+    held-out one evidence turn   82.9% (689/831)
+    held-out several turns       25.2% (81/321)
+  M
+    overall       69.7% (1070/1535)
+    development   73.6% (282/383)
+    held-out      68.4% (788/1152)
+    held-out multi-hop     22.6% (47/208)
+    held-out temporal      71.3% (164/230)
+    held-out open-domain   37.0% (27/73)
+    held-out single-hop    85.8% (550/641)
+    held-out one evidence turn   84.6% (703/831)
+    held-out several turns       26.5% (85/321)
+b) mean characters (all rows)
+  overall   recall_characters     8660   characters    17945
+  held-out  recall_characters     8679   characters    17954
+c) latency, overall (ms)
+  prompt_ms p50 321.9  p95 348.4   session_ms p50 243.6
+e) R (raw retrieval at this label's whole-context size) all-evidence rate
+  overall   79.9% (1226/1535)
+  held-out  79.1% (911/1152)
+
+== recall-02a1aec (1540 rows, 1535 with evidence)
+a) all-evidence rate
+  M_recall_only
+    overall       74.1% (1138/1535)
+    development   79.9% (306/383)
+    held-out      72.2% (832/1152)
+    held-out multi-hop     30.3% (63/208)
+    held-out temporal      74.3% (171/230)
+    held-out open-domain   41.1% (30/73)
+    held-out single-hop    88.6% (568/641)
+    held-out one evidence turn   86.6% (720/831)
+    held-out several turns       34.9% (112/321)
+  M
+    overall       75.5% (1159/1535)
+    development   80.9% (310/383)
+    held-out      73.7% (849/1152)
+    held-out multi-hop     31.2% (65/208)
+    held-out temporal      77.0% (177/230)
+    held-out open-domain   42.5% (31/73)
+    held-out single-hop    89.9% (576/641)
+    held-out one evidence turn   88.3% (734/831)
+    held-out several turns       35.8% (115/321)
+b) mean characters (all rows)
+  overall   recall_characters     8601   characters    17886
+  held-out  recall_characters     8605   characters    17879
+c) latency, overall (ms)
+  prompt_ms p50 328.8  p95 358.0   session_ms p50 242.2
+e) R (raw retrieval at this label's whole-context size) all-evidence rate
+  overall   80.0% (1228/1535)
+  held-out  79.2% (912/1152)
+
+d) paired, held-out, M_recall_only all-evidence (baseline -> new)
+  questions 1152: gained 101, lost 39, both 731, neither 281
+  exact two-sided McNemar (binomial) p = 1.61e-07
