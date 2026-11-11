@@ -355,11 +355,17 @@ def run(args) -> None:
 def report(args) -> None:
     out = Path(args.out)
     rows = {}
-    for arm in ARMS:
+    for arm in (*ARMS, "full"):  # ``full`` is written by full_context_control.py.
         path = out / f"answers-{arm}.jsonl"
         if path.exists():
             rows[arm] = {row["id"]: row for row in map(json.loads, path.read_text(encoding="utf-8").splitlines())}
     shared = set.intersection(*(set(values) for values in rows.values())) if rows else set()
+    if args.only:
+        rows = {arm: values for arm, values in rows.items() if arm in args.only.split(",")}
+        shared = set.intersection(*(set(values) for values in rows.values())) if rows else set()
+    if args.conversations_filter:
+        wanted = tuple(args.conversations_filter.split(","))
+        shared = {item for item in shared if item.rsplit("-q", 1)[0] in wanted}
 
     def rate(items):
         return f"{sum(row['correct'] for row in items) / len(items):6.1%} ({len(items)})" if items else "   n/a"
@@ -378,7 +384,7 @@ def report(args) -> None:
         for values in rows.values()))
     print(f"{'questions with a search':26}" + "".join(
         f"{sum(bool(values[i]['searches']) for i in shared):>16}" for values in rows.values()))
-    for first, second in (("plain", "session"), ("plain", "turn"), ("turn", "session")):
+    for first, second in (("plain", "session"), ("plain", "turn"), ("turn", "session"), ("full", "plain")):
         if first in rows and second in rows:
             gained = sum(rows[second][i]["correct"] and not rows[first][i]["correct"] for i in shared)
             lost = sum(rows[first][i]["correct"] and not rows[second][i]["correct"] for i in shared)
@@ -409,6 +415,8 @@ def main() -> None:
     parser.add_argument("--ceiling", type=float, default=0.0, help="Spending ceiling in CNY for this run directory")
     parser.add_argument("--ports", default="", help="API and database ports for new installations, e.g. 8891,55601")
     parser.add_argument("--report", action="store_true", help="Only summarize existing results")
+    parser.add_argument("--only", default="", help="Report: compare only these arms, e.g. plain,full")
+    parser.add_argument("--conversations-filter", default="", help="Report: only these sample ids, e.g. conv-26,conv-30")
     args = parser.parse_args()
     if not args.report:
         if not args.data or not args.model_cache or args.ceiling <= 0:
