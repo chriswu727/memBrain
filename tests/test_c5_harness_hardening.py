@@ -572,20 +572,22 @@ def test_removed_records_name_exactly_the_removed_one_of_two_alike_records(stub_
     assert len(rows) == 3 and events == []
     deletion, removal = [json.loads(line) for line in (tmp_path / "run-P" / "page-actions.jsonl").read_text()
                          .splitlines()]
-    turn = [["s1", 1, "user"]]
+    turn, reply = [["s1", 1, "user"]], [["s1", 1, "assistant"]]
     removed = deletion["result"]["removed_records"]
     assert all(entry["established"] for entry in removed) and deletion["result"]["removed_records_complete"] is True
     assert removal["result"]["removed_records_complete"] is True
-    assert sorted(entry["kind"] for entry in removed) == ["feeling", "message", "note"]
-    for entry in removed:  # Only the second turn's message, its note and its feeling; never the first turn's.
-        assert entry["sources"] == turn
-        assert entry["ref"] == harness.record_ref(entry["kind"], [tuple(source) for source in turn], {})
+    # The second turn's message, the reply that answered it, its note and its feeling; never the first turn's.
+    assert sorted(entry["kind"] for entry in removed) == ["feeling", "message", "message", "note"]
+    for entry in removed:
+        assert entry["sources"] == (reply if entry["kind"] == "message" and entry["sources"] == reply else turn)
+        assert entry["ref"] == harness.record_ref(entry["kind"], [tuple(source) for source in entry["sources"]], {})
+    assert sorted(entry["sources"] for entry in removed if entry["kind"] == "message") == [reply, turn]
     assert deletion["before"]["feelings"] == 2 and deletion["after"]["feelings"] == 1
     other = harness.record_ref("feeling", [("s1", 0, "user")], {})
     assert other not in {entry["ref"] for entry in removed}
     # F names the deleted message with the same ref, from P's removed positions.
-    message = next(entry for entry in removed if entry["kind"] == "message")
-    assert harness.message_records(deletion["result"]["removed"]) == [message]
+    messages = sorted((entry for entry in removed if entry["kind"] == "message"), key=lambda entry: entry["sources"])
+    assert sorted(harness.message_records(deletion["result"]["removed"]), key=lambda entry: entry["sources"]) == messages
     (boundary,) = removal["result"]["removed_records"]
     assert boundary == {"kind": "boundary", "established": True, "sources": [],
                         "ref": harness.record_ref("boundary", [], {"topic": "Tom", "aliases": []})}
