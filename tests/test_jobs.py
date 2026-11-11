@@ -88,8 +88,9 @@ def test_a_job_created_before_the_clock_stepped_back_is_still_due(jobs):
     """After a backward step of the wall clock a new job's default times lie in the future; it was never delayed."""
     with jobs.database.transaction(jobs.principal) as conn:
         conn.execute(
-            "UPDATE memory_jobs SET created_at=clock_timestamp()+interval '40 seconds',"
-            "available_at=clock_timestamp()+interval '40 seconds' WHERE tenant_id=%s AND brain_id=%s AND id=%s",
+            # One value for both columns, as their shared default gives; two clock readings would differ.
+            "UPDATE memory_jobs SET created_at=now()+interval '40 seconds',"
+            "available_at=now()+interval '40 seconds' WHERE tenant_id=%s AND brain_id=%s AND id=%s",
             (jobs.principal.tenant_id, jobs.brain, jobs.job_id))
     assert jobs.claim()["id"] == jobs.job_id
 

@@ -4,7 +4,7 @@ import time
 
 import pytest
 
-from membrain import desktop, embedded_database, host
+from membrain import desktop, embedded_database, host, host_queue
 
 
 @pytest.fixture(autouse=True)
@@ -260,7 +260,12 @@ def test_users_of_a_shared_bot_keep_separate_memories(tmp_path, monkeypatch):
             host.finish_turn(directory, "chat:telegram:alice", "Spooled reply.", turn_id="2",
                              prompt="My sister is called Mei.", user_id="telegram:alice")
         with host.ready_client(directory) as client:
-            assert host.flush(client, directory) == 2
+            # The service's own replay thread may store the two queued records before this call reaches them.
+            assert host.flush(client, directory) in (0, 2)
+        deadline = time.monotonic() + 10
+        while list(host_queue.unacknowledged(directory / "plugin" / "spool.jsonl")) and time.monotonic() < deadline:
+            time.sleep(0.05)
+        assert list(host_queue.unacknowledged(directory / "plugin" / "spool.jsonl")) == []
         for user, own in turns.items():
             with host.ready_client(directory, user) as client:
                 stored = json.dumps(client.timeline(roles=("user", "assistant"), max_characters=200_000))
