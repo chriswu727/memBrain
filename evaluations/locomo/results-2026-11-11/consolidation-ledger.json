@@ -1,0 +1,49 @@
+{
+  "ceiling_cny": 60.0,
+  "spent_cny": 38.066805,
+  "stopped": null,
+  "models": {
+    "deepseek-flash": {
+      "calls": 3983,
+      "prompt_tokens": 12425226,
+      "completion_tokens": 58818,
+      "cny": 25.320996,
+      "unknown": 0,
+      "errors": 0
+    },
+    "deepseek-v4-pro": {
+      "calls": 71,
+      "prompt_tokens": 199647,
+      "completion_tokens": 405518,
+      "cny": 12.745809,
+      "unknown": 0,
+      "errors": 0
+    }
+  },
+  "phases": {
+    "preflight": {
+      "calls": 2,
+      "cny": 0.001407
+    },
+    "answer:plain": {
+      "calls": 846,
+      "cny": 6.098728
+    },
+    "consolidate:turn": {
+      "calls": 1451,
+      "cny": 7.185006
+    },
+    "answer:turn": {
+      "calls": 842,
+      "cny": 6.012218
+    },
+    "consolidate:session": {
+      "calls": 70,
+      "cny": 12.744432
+    },
+    "answer:session": {
+      "calls": 843,
+      "cny": 6.025014
+    }
+  }
+}

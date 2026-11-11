@@ -1,6 +1,6 @@
 # Plan: does consolidation into notes close the multi-evidence gap? (paid, approved 2026-11-11)
 
-Status: **plan, not yet run.** The owner approved a bounded DeepSeek run on 2026-11-11, including the Pro model where it does the work better. This file is written before any call and is not edited afterwards except to add a pointer to the result. It closes no release gate: **R4 remains failed and C5 invalid/unscored.**
+Status: **run on 2026-11-11; [result](locomo-consolidation-2026-11-11.md).** The text below is the plan as written before any call. The owner approved a bounded DeepSeek run on 2026-11-11, including the Pro model where it does the work better. This file is written before any call and is not edited afterwards except to add a pointer to the result. It closes no release gate: **R4 remains failed and C5 invalid/unscored.**
 
 ## Question
 

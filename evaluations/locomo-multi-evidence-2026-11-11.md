@@ -40,3 +40,7 @@ Measuring them needs paid model calls and therefore the owner's approval. The ev
 ## Limits
 
 Three conversations, message-level simulation with a plain index, one small embedding model. A stronger embedding model might move some of the 40-to-159 turns into the block; that was not tried.
+
+## Follow-up
+
+The paid comparison was run the same day: [notes after every turn or every session did not help, and did worse on these questions](locomo-consolidation-2026-11-11.md). The expectation in "What follows" above was wrong for consolidation in that form.

@@ -1,0 +1,32 @@
+questions answered by every arm: 385
+                                     plain            turn         session
+all                            88.1% (385)     84.7% (385)     86.0% (385)
+multi-hop                       75.7% (74)      73.0% (74)      71.6% (74)
+temporal                        88.9% (90)      88.9% (90)      94.4% (90)
+open-domain                     85.7% (21)      61.9% (21)      52.4% (21)
+single-hop                     92.5% (200)     89.5% (200)     91.0% (200)
+one evidence turn              91.8% (291)     89.7% (291)     92.4% (291)
+several evidence turns          76.1% (92)      68.5% (92)      65.2% (92)
+mean context characters              17904           17886           17890
+questions with a search                 76              71              72
+plain -> session: gained 12, lost 20
+plain -> turn: gained 10, lost 23
+turn -> session: gained 21, lost 16
+spent CNY: 38.066805 of 60.0 | stopped: None
+  preflight              calls      2  CNY 0.001
+  answer:plain           calls    846  CNY 6.099
+  consolidate:turn       calls   1451  CNY 7.185
+  answer:turn            calls    842  CNY 6.012
+  consolidate:session    calls     70  CNY 12.744
+  answer:session         calls    843  CNY 6.025
+  deepseek-flash         calls   3983  in   12425226  out     58818  unknown 0  errors 0
+  deepseek-v4-pro        calls     71  in     199647  out    405518  unknown 0  errors 0
+  plain-conv-26: 0 notes, 0 characters
+  plain-conv-30: 0 notes, 0 characters
+  plain-conv-41: 0 notes, 0 characters
+  turn-conv-26: 48 notes, 6875 characters
+  turn-conv-30: 39 notes, 4846 characters
+  turn-conv-41: 83 notes, 11604 characters
+  session-conv-26: 30 notes, 5607 characters
+  session-conv-30: 27 notes, 4164 characters
+  session-conv-41: 45 notes, 8621 characters
