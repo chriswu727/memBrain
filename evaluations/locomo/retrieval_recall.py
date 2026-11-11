@@ -10,6 +10,8 @@ answers, and says nothing about what a host model does with the context.
 Arms:
 
 - ``M``: memBrain through the plugin path, with the local embedding model (``--no-semantic`` for keywords only).
+  With ``--cues`` the cues a model generated earlier are attached to the stored turns first, so recall can reach
+  a turn through them; generating them is the only paid step and is not done here.
 - ``R``: raw-record retrieval at the same size. The stored turns are ranked by reciprocal-rank fusion of BM25 and
   cosine similarity under the same embedding model, and taken in rank order until the character count of the
   ``M`` context for that question is reached. It has no notes, history, cue or adjacency logic: it is the plain
@@ -133,6 +135,30 @@ class RawIndex:
         return "\n".join(lines)
 
 
+# Cues ----------------------------------------------------------------------------------------------------------
+
+def write_cues(sample: dict, directory: Path, cues: dict[str, list[str]]) -> dict:
+    """Attach already generated cues (``cue_enrichment_simulation.py``) to the stored turns. Idempotent."""
+    from membrain import host
+
+    items = []
+    for number, date, turns in sessions(sample):
+        session = f"locomo-{sample['sample_id']}-s{number}"
+        for turn in turns:
+            if turn["dia_id"] in cues:
+                record = host.message_record(session, "user", turn_text(date, turn), turn_id=turn["dia_id"],
+                                             producer="locomo-ingest")
+                items.append({"producer_ref": record["producer_ref"], "source_event_key": record["source_event_key"],
+                              "cues": cues[turn["dia_id"]][:6]})
+    total = {"written": 0, "skipped": 0, "embedded": 0}
+    with host.ready_client(directory) as client:
+        for start in range(0, len(items), 200):
+            result = client.write_message_cues(items[start:start + 200], model_version="deepseek-flash")
+            for key in total:
+                total[key] += result[key]
+    return total
+
+
 # Runner ---------------------------------------------------------------------------------------------------------
 
 def run(args) -> None:
@@ -165,6 +191,9 @@ def run(args) -> None:
         started = time.monotonic()
         stored = ingest(sample, directory, cache, None, own)
         log("ingest", sample["sample_id"], stored, "messages", round(time.monotonic() - started, 1), "s")
+        if args.cues:
+            cues = json.loads((Path(args.cues) / f"cues-{sample['sample_id']}.json").read_text(encoding="utf-8"))["cues"]
+            log("cues", sample["sample_id"], write_cues(sample, directory, cues))
         turns, identify = stored_turns(sample), needles(sample)
         raw = RawIndex(turns, provider)
         try:
@@ -251,6 +280,8 @@ def main() -> None:
     parser.add_argument("--max-questions", type=int, default=0, help="Per conversation; 0 means all")
     parser.add_argument("--label", default="current", help="Names the result file, e.g. the runtime commit")
     parser.add_argument("--ports", default="", help="API and database ports for new installations, e.g. 8891,55601")
+    parser.add_argument("--cues", default="", help="Directory of cues-<conversation>.json files to attach to the "
+                        "stored turns before measuring (written by cue_enrichment_simulation.py)")
     parser.add_argument("--report", action="store_true", help="Only summarize existing results")
     args = parser.parse_args()
     if not args.report:
