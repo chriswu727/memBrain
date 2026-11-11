@@ -45,10 +45,9 @@ def initialize(directory: Path) -> None:
 
 
 def bootstrap(settings: Settings, *, app_password: str | None = None) -> None:
-    import psycopg
     from psycopg import sql
 
-    from .storage import Database
+    from .storage import Database, connect
 
     if not settings.migration_database_url:
         raise SystemExit("MEMORY_MIGRATION_DATABASE_URL is required for migration")
@@ -57,14 +56,14 @@ def bootstrap(settings: Settings, *, app_password: str | None = None) -> None:
         raise SystemExit("MEMORY_DATABASE_APP_PASSWORD is required for local role provisioning")
     database = Database(settings.database_url, settings.migration_database_url)
     database.check_compatibility()
-    with psycopg.connect(settings.migration_database_url) as connection:
+    with connect(settings.migration_database_url) as connection:
         exists = connection.execute("SELECT 1 FROM pg_roles WHERE rolname = 'memory_app'").fetchone()
         if not exists:
             connection.execute(sql.SQL(
                 "CREATE ROLE memory_app LOGIN NOSUPERUSER NOBYPASSRLS PASSWORD {}"
             ).format(sql.Literal(app_password)))
     database.migrate()
-    with psycopg.connect(settings.migration_database_url) as connection:
+    with connect(settings.migration_database_url) as connection:
         connection.execute("GRANT USAGE ON SCHEMA public TO memory_app")
         connection.execute("GRANT SELECT, INSERT, UPDATE, DELETE ON ALL TABLES IN SCHEMA public TO memory_app")
         connection.execute("GRANT USAGE, SELECT ON ALL SEQUENCES IN SCHEMA public TO memory_app")

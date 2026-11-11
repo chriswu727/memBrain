@@ -6,7 +6,6 @@ import os
 import re
 from pathlib import Path
 
-import psycopg
 from psycopg.rows import dict_row
 
 from . import desktop
@@ -23,7 +22,7 @@ from .recovery_profile import (
     sync_directory,
     write_document,
 )
-from .storage import Database
+from .storage import Database, connect
 
 _MEMBERS = {'database.dump', 'configuration.json', 'sessions.jsonl'}
 _MAX_SESSIONS = 4096
@@ -224,7 +223,7 @@ def backup(directory: Path | None, *, output: Path, request_id: str | None = Non
         remaining = max_bytes - sum(item['size'] for item in members.values())
         if remaining < 1:
             raise BackupError('backup_limit_exceeded')
-        with psycopg.connect(profile.migration_database_url, row_factory=dict_row) as connection:
+        with connect(profile.migration_database_url, row_factory=dict_row) as connection:
             snapshot, checkpoint = _checkpoint(connection, profile)
             members['database.dump'] = database_stream(profile, staging / 'database.dump', snapshot=snapshot,
                                                        max_bytes=remaining, timeout_seconds=timeout_seconds)

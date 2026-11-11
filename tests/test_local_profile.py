@@ -126,7 +126,7 @@ def test_secrets_are_absent_from_repr_and_environment_is_ignored(tmp_path, monke
         assert secret not in repr(profile)
         assert secret not in repr(settings)
     for dsn in (profile.database_url, profile.migration_database_url):
-        assert parse_qs(urlsplit(dsn).query) == {"connect_timeout": ["5"]}
+        assert parse_qs(urlsplit(dsn).query) == {"connect_timeout": ["5"], "require_auth": ["scram-sha-256"]}
 
 
 @pytest.mark.parametrize("platform,variable,suffix", [

@@ -6,7 +6,6 @@ from contextlib import redirect_stdout
 from io import StringIO
 from pathlib import Path
 
-import psycopg
 from psycopg.rows import dict_row
 
 from . import desktop
@@ -34,7 +33,7 @@ from .recovery_profile import (
     sync_directory,
     write_document,
 )
-from .storage import Database
+from .storage import Database, connect
 
 JOURNAL_FILE = 'restore.json'
 
@@ -75,7 +74,7 @@ def _restore_configuration(profile, configuration):
 
 
 def _database_source(profile, manifest):
-    with psycopg.connect(profile.migration_database_url, row_factory=dict_row) as conn:
+    with connect(profile.migration_database_url, row_factory=dict_row) as conn:
         conn.execute('SET TRANSACTION READ ONLY')
         exists = conn.execute("SELECT to_regclass('memory_recovery_installations') AS relation").fetchone()['relation']
         if not exists:

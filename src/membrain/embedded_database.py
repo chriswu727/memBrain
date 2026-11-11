@@ -264,9 +264,11 @@ def _initialize(profile, layout: _Layout) -> None:
 
 
 def _admin_connection(profile, database: str):
-    return psycopg.connect(host="127.0.0.1", port=profile.database_port, user="postgres",
-                           password=profile.admin_password, dbname=database, connect_timeout=5,
-                           autocommit=True)
+    from .storage import SCRAM_ONLY, connect
+
+    return connect(host="127.0.0.1", port=profile.database_port, user="postgres",
+                   password=profile.admin_password, dbname=database, connect_timeout=5,
+                   require_auth=SCRAM_ONLY, autocommit=True)
 
 
 def running(profile) -> bool:
@@ -332,7 +334,8 @@ def client_command(profile, program: str, *arguments: str) -> tuple[list[str], d
     """Command and environment for pg_dump or pg_restore against the embedded cluster."""
     layout = _layout(profile)
     environment = native_environment(layout.binaries.parent, shared=layout.account is not None)
-    environment.update(PGPASSWORD=profile.admin_password, PGCONNECT_TIMEOUT="5")
+    # The bundled client tools are PostgreSQL 16, which honours PGREQUIREAUTH; see storage.connection_info.
+    environment.update(PGPASSWORD=profile.admin_password, PGCONNECT_TIMEOUT="5", PGREQUIREAUTH="scram-sha-256")
     command = [str(layout.binaries / (program + _EXECUTABLE)), "--host=127.0.0.1",
                f"--port={profile.database_port}", *arguments]
     return command, environment

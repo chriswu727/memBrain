@@ -251,11 +251,11 @@ class DesktopProfile:
 
     @property
     def database_url(self) -> str:
-        return f"postgresql://memory_app:{quote(self.app_password, safe='')}@127.0.0.1:{self.database_port}/agent_memory?connect_timeout=5"
+        return f"postgresql://memory_app:{quote(self.app_password, safe='')}@127.0.0.1:{self.database_port}/agent_memory?connect_timeout=5&require_auth=scram-sha-256"
 
     @property
     def migration_database_url(self) -> str:
-        return f"postgresql://postgres:{quote(self.admin_password, safe='')}@127.0.0.1:{self.database_port}/agent_memory?connect_timeout=5"
+        return f"postgresql://postgres:{quote(self.admin_password, safe='')}@127.0.0.1:{self.database_port}/agent_memory?connect_timeout=5&require_auth=scram-sha-256"
 
     def settings(self) -> Settings:
         from .cognition_config import load_cognition_policy
