@@ -73,11 +73,13 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
 
     if directory is not None:
         @server.tool(annotations=READ_ONLY)
-        async def memory_recall(query: str, with_ids: bool = False) -> dict[str, Any]:
+        async def memory_recall(query: str, with_ids: bool = False, my_replies: bool = False) -> dict[str, Any]:
             """Search this user's memory from earlier sessions with a few concrete keywords (names, places, dates,
             topics). Returns the matching messages with their dates, and the reply that followed the closest ones.
-            Set with_ids only to forget records: it returns each record's event_id and the scope_generation that
-            memory_forget needs."""
+            Set my_replies when the user asks about something you said, suggested, recommended or explained in an
+            earlier conversation: your own earlier replies are then searched too and come back marked "assistant
+            said". They are what you said then, not facts about the user. Set with_ids only to forget records: it
+            returns each record's event_id and the scope_generation that memory_forget needs."""
             from membrain import host
 
             if with_ids:
@@ -85,7 +87,7 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
                 records = await asyncio.to_thread(host.recall_records, client, response)
                 return {"action": "recall", "outcome": response["outcome"], **records}
             # The same compact recall the hooks inject, so tool results read like the rest of the memory context.
-            found = await asyncio.to_thread(host.recall_context, client, host.scrub(query))
+            found = await asyncio.to_thread(host.recall_context, client, host.scrub(query), replies=bool(my_replies))
             return {"context": found or "No matching records."}
     else:
         @server.tool(annotations=READ_ONLY)

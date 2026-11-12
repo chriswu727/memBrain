@@ -61,7 +61,7 @@ ASSISTANT_LINES = ('Lines marked "assistant said" are your own earlier replies: 
                    'not the user\'s decision or a fact about the user unless a "user said" line confirms it.')
 
 TOOL_NAMES = {"note": "memory_note", "recall": "memory_recall", "pause": "memory_pause", "resume": "memory_resume",
-              "resume_session": "session_id", "consolidate": "memory_consolidate"}
+              "resume_session": "session_id", "consolidate": "memory_consolidate", "replies": "my_replies"}
 CONSOLIDATION_MESSAGES = 40  # At most this many earlier messages go to the host AI in one consolidation call;
 # the batch ends where a conversation ends when it can (``message_cues.pending``).
 # The host AI is asked only once this many messages await indexing: a session that follows a short one would
@@ -1579,14 +1579,20 @@ def recall_budget(tokens: int = RECALL_TOKENS, *, embeddings: int = 1) -> dict:
     return {**default_budget(tokens), "max_embedding_calls": embeddings}
 
 
-def recall(client, query: str, cues: tuple[str, ...] = ()) -> dict:
-    """Recall earlier records; if the query embedding fails, fall back to keyword recall instead of nothing."""
+def recall(client, query: str, cues: tuple[str, ...] = (), *, replies: bool = False) -> dict:
+    """Recall earlier records; if the query embedding fails, fall back to keyword recall instead of nothing.
+
+    With ``replies`` the assistant's own earlier words are candidates too: the request is made as the recall of an
+    earlier episode, which the memory service answers with speech included.
+    """
     from .client import MemoryActionError
 
     # The current message is recorded after recall, so everything stored is prior evidence. An explicit cutoff
     # lets "do you remember ..." questions use it; the server clamps it to its durable sequence.
     cutoff = {"mode": "through_sequence", "through_sequence": 2**53}
     options = {"evidence_cutoff": cutoff, "additional_cues": [cue for cue in cues if cue.strip()]}
+    if replies:
+        options["intent"] = "episode"
     try:
         return client.recall(query, budget=recall_budget(), **options)
     except MemoryActionError:
@@ -1777,8 +1783,13 @@ def _window(text: str, start: int | None, size: int = MESSAGE_CHARACTERS) -> str
 
 
 def recall_context(client, query: str, *, current_conversation: str | None = None, cues: tuple[str, ...] = (),
-                   limit: int = CONTEXT_CHARACTERS, boundaries: list[dict] | None = None) -> str | None:
+                   limit: int = CONTEXT_CHARACTERS, boundaries: list[dict] | None = None,
+                   replies: bool = False) -> str | None:
     """Earlier messages related to the query, as complete dated messages rather than isolated sentences.
+
+    The assistant's own earlier replies are left out unless the query is recognised as asking about them, or
+    ``replies`` says so: the host AI sets it through the recall tool when the user refers to something it said.
+    Shown unasked, its suggestions have been restated as facts about the user.
 
     Statements are ranked by the memory service (keywords and, when available, meaning); the messages they came
     from are shown oldest first so that later changes read as later. Falls back to statements if messages
@@ -1790,8 +1801,8 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
 
     if boundaries is None:
         boundaries = _boundaries(client)
-    response = recall(client, query, cues)
-    include_speech = bool(ASKS_ABOUT_ASSISTANT.search(query or ""))
+    include_speech = replies or bool(ASKS_ABOUT_ASSISTANT.search(query or ""))
+    response = recall(client, query, cues, replies=replies)
     if not include_speech:
         result = response.get("result") or {}
         response = {**response, "result": {**result, "items": [item for item in result.get("items", [])
@@ -2019,6 +2030,9 @@ def _session_notice(complete: bool, tools: dict | None, is_paused: bool, rolepla
                   "added automatically before replies. " + (
                       "When a request depends on the user's personal context and nothing relevant is shown, search "
                       f"with the {tools['recall']} tool using a few concrete keywords before answering. "
+                      + (f"Your own earlier replies are not shown unasked: when the user asks about something you "
+                         f"said, recommended or explained in an earlier conversation, search with {tools['replies']} "
+                         "set. " if tools.get("replies") else "")
                       if tools else "") + notes_notice(tools))
     notice = " ".join(part for part in (notice.strip(), privacy_notice(tools),
                                        _recording_notice(is_paused, tools)) if part)

@@ -13,6 +13,8 @@ only a host AI writes them and none runs here.
 Arms, as in ``evaluations/locomo/retrieval_recall.py``:
 
 - ``M``: memBrain through the plugin path, with the local embedding model.
+- ``T``: what the recall tool returns for the question when the host AI asks for its own earlier replies too
+  (``my_replies``); present from the runtime that has that option. A host decides whether to make that call.
 - ``R``: plain retrieval over the same stored turns: reciprocal-rank fusion of BM25 and cosine similarity under the
   same embedding model, each turn cut to ``RAW_TURN_CHARACTERS``, taken in rank order while they fit the size of
   the ``M`` context for that question.
@@ -167,15 +169,20 @@ def run(args) -> None:
             second = time.perf_counter()
             recalled = host.prompt_context(directory, session, item["question"]) or ""
             third = time.perf_counter()
+            # What the recall tool returns when the host AI asks for its own earlier replies as well.
+            with host.ready_client(directory) as client:
+                tool = host.recall_context(client, item["question"], current_conversation=session, replies=True) or ""
         finally:
             try:
                 desktop.stop(directory)
             except desktop.DesktopError:
                 pass
         context = opening + "\n\n" + recalled
-        index = RawIndex({turn["key"]: turn["text"][:RAW_EMBED_CHARACTERS] for turn in turns}, provider)
-        baseline = "\n".join(raw_context(index, turns, item["question"], len(context)))
-        block = "\n".join(raw_context(index, turns, item["question"], len(recalled)))
+        baseline = block = ""
+        if not args.no_raw:
+            index = RawIndex({turn["key"]: turn["text"][:RAW_EMBED_CHARACTERS] for turn in turns}, provider)
+            baseline = "\n".join(raw_context(index, turns, item["question"], len(context)))
+            block = "\n".join(raw_context(index, turns, item["question"], len(recalled)))
         evidence = [turn for turn in turns if turn["evidence"]]
         row = {"id": item["question_id"], "type": item["question_type"], "turns": len(turns),
                "evidence": [turn["key"] for turn in evidence],
@@ -184,6 +191,9 @@ def run(args) -> None:
                "M_recall_only": [turn["key"] for turn in evidence if shown(recalled, turn)],
                "R": [turn["key"] for turn in evidence if shown(baseline, turn)],
                "R_block": [turn["key"] for turn in evidence if shown(block, turn)],
+               "T": [turn["key"] for turn in evidence if shown(tool, turn)],
+               "M_or_T": [turn["key"] for turn in evidence if shown(recalled, turn) or shown(tool, turn)],
+               "tool_characters": len(tool),
                "characters": len(context), "recall_characters": len(recalled), "raw_characters": len(baseline),
                "session_ms": round((second - first) * 1000, 1), "prompt_ms": round((third - second) * 1000, 1),
                **summary}
@@ -201,6 +211,16 @@ def report(args) -> None:
     for path in sorted(Path(args.out).glob(f"recall-{args.label}-*.jsonl")):
         rows.extend(json.loads(line) for line in path.read_text(encoding="utf-8").splitlines())
     arms = ("M_recall_only", "R_block", "M", "R")
+    if rows and "T" in rows[0]:
+        tool = ("T", "M_or_T")
+        print(f"{'':28}{'n':>5}{'block':>9}{'tool':>9}{'either':>9}   (tool: the recall tool asked for the "
+              "assistant's replies too)")
+        for name, keep in [("all", lambda row: True)] + [(kind, lambda row, kind=kind: row["type"] == kind)
+                                                         for kind in sorted({row["type"] for row in rows})]:
+            items = [row for row in rows if keep(row)]
+            print(f"{name:28}{len(items):>5}" + "".join(
+                f"{sum(len(row[arm]) == len(row['evidence']) for row in items) / len(items):>9.1%}"
+                for arm in ("M_recall_only", *tool)))
 
     def block(items):
         return [f"{sum(len(row[arm]) == len(row['evidence']) for row in items) / len(items):8.1%}" for arm in arms] + [
@@ -237,6 +257,8 @@ def main() -> None:
     parser.add_argument("--shard", default="0/1", help="This worker's part of the sample, as part/parts")
     parser.add_argument("--label", default="current")
     parser.add_argument("--keep", action="store_true", help="Keep each stored history's database after measuring")
+    parser.add_argument("--no-raw", action="store_true", help="Skip plain retrieval, which a change to recall "
+                        "does not alter; its columns are then empty")
     parser.add_argument("--report", action="store_true")
     args = parser.parse_args()
     if not args.report:
