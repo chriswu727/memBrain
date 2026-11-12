@@ -49,8 +49,9 @@ class MessageCueItem(RuntimeBody):
 
 
 class MessageCuesWrite(RuntimeBody):
-    items: Annotated[list[MessageCueItem], Field(min_length=1, max_length=200)]
+    items: Annotated[list[MessageCueItem], Field(max_length=200)]
     model_version: Annotated[str, Field(min_length=1, max_length=200)] | None = None
+    reviewed_through_sequence: RuntimeCounter | None = None
 
 
 class RecallTrace(RuntimeBody):
@@ -627,7 +628,16 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
 
         body = await runtime_body(request, MessageCuesWrite)
         return await run_in_threadpool(message_cues.write, service, principal, brain_id, body["items"],
-                                       model_version=body.get("model_version"))
+                                       model_version=body.get("model_version"),
+                                       reviewed_through_sequence=body.get("reviewed_through_sequence"))
+
+    @app.get("/v1/brains/{brain_id}/message-cues/pending")
+    def pending_message_cues(brain_id: str, limit: int = Query(20, ge=1, le=100),
+                             max_characters: int = Query(6000, ge=200, le=50_000),
+                             principal: Principal = Depends(authenticate)):
+        from . import message_cues
+
+        return message_cues.pending(service, principal, brain_id, limit=limit, max_characters=max_characters)
 
     @app.get("/v1/brains/{brain_id}/recording")
     def get_recording(brain_id: str, principal: Principal = Depends(authenticate)):

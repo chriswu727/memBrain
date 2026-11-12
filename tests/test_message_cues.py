@@ -180,3 +180,72 @@ def test_the_cue_table_is_isolated_by_owner(turns):
         {"event_id": pottery["event_id"], "cues": ["Melanie hobbies and activities"]}])
     with turns.database.transaction(Principal(turns.principal.tenant_id, uid())) as conn:
         assert conn.execute("SELECT count(*) AS n FROM memory_message_cues").fetchone()["n"] == 0
+
+
+def _pending(turns, **options):
+    return message_cues.pending(turns.service, turns.principal, turns.brain, **options)
+
+
+def test_unreviewed_user_messages_are_offered_oldest_first_until_reviewed(turns):
+    first = turns.observe(POTTERY, conversation="earlier")
+    turns.observe("Sounds lovely, enjoy the class.", role="assistant", delivery="delivered", conversation="earlier")
+    second = turns.observe("Thanks!", conversation="earlier")
+    third = turns.observe(OTHER, conversation="earlier")
+    offered = _pending(turns)
+    assert [item["event_id"] for item in offered["items"]] == [first["event_id"], second["event_id"], third["event_id"]]
+    assert offered["items"][0]["text"] == POTTERY and offered["remaining"] == 3 and not offered["recording_paused"]
+    assert offered["through_sequence"] == offered["items"][-1]["sequence"]
+    part = _pending(turns, limit=2)
+    assert [item["event_id"] for item in part["items"]] == [first["event_id"], second["event_id"]]
+    assert part["remaining"] == 3
+
+    # The first two are read: one gets cues, the greeting gets none, and neither is offered again.
+    result = message_cues.write(turns.service, turns.principal, turns.brain, [
+        {"event_id": first["event_id"], "cues": ["Melanie hobbies and activities"]}],
+        reviewed_through_sequence=part["through_sequence"])
+    assert result["written"] == 1 and result["reviewed_through_sequence"] == part["through_sequence"]
+    left = _pending(turns)
+    assert [item["event_id"] for item in left["items"]] == [third["event_id"]] and left["remaining"] == 1
+
+    # A batch in which nothing deserved a cue still moves on; progress never moves back.
+    message_cues.write(turns.service, turns.principal, turns.brain, [], reviewed_through_sequence=left["through_sequence"])
+    message_cues.write(turns.service, turns.principal, turns.brain, [], reviewed_through_sequence=1)
+    assert _pending(turns) == {"items": [], "through_sequence": None, "remaining": 0, "recording_paused": False}
+    later = turns.observe("My sister Ana moved to Porto.", conversation="later")
+    assert [item["event_id"] for item in _pending(turns)["items"]] == [later["event_id"]]
+
+
+def test_pending_messages_are_bounded_and_leave_out_what_cannot_be_cued(turns):
+    from membrain.recording_control import recording_status, set_recording
+
+    kept = turns.observe("A long story. " + "It went on and on. " * 80, conversation="earlier")
+    gone = turns.observe(OTHER, conversation="earlier")
+    cued = turns.observe(POTTERY, conversation="earlier")
+    turns.action("forget", {"idempotency_key": uid(), "selector": {"kind": "events", "ids": [gone["event_id"]]},
+                            "mode": "erase_content", "expected_scope_generation": _generation(turns)})
+    message_cues.write(turns.service, turns.principal, turns.brain, [
+        {"event_id": cued["event_id"], "cues": ["Melanie hobbies and activities"]}])
+    offered = _pending(turns, item_characters=100)
+    assert [item["event_id"] for item in offered["items"]] == [kept["event_id"]]
+    assert len(offered["items"][0]["text"]) == 100 and offered["items"][0]["text"].endswith("…")
+    for bad in ({"limit": 0}, {"limit": 101}, {"max_characters": 10}, {"item_characters": 10}):
+        with pytest.raises(DomainError):
+            _pending(turns, **bad)
+    with pytest.raises(DomainError):  # Beyond anything recorded.
+        message_cues.write(turns.service, turns.principal, turns.brain, [], reviewed_through_sequence=10_000)
+    with pytest.raises(DomainError):
+        message_cues.write(turns.service, turns.principal, turns.brain, [])
+    revision = recording_status(turns.service, turns.principal, turns.brain)["revision"]
+    set_recording(turns.service, turns.principal, turns.brain, paused=True, expected_revision=revision)
+    assert _pending(turns) == {"items": [], "through_sequence": None, "remaining": 0, "recording_paused": True}
+
+
+def test_review_progress_is_isolated_by_owner(turns):
+    with turns.database.transaction(turns.principal) as conn:
+        row = conn.execute("SELECT relrowsecurity,relforcerowsecurity FROM pg_class "
+                           "WHERE oid='memory_cue_progress'::regclass").fetchone()
+    assert row == {"relrowsecurity": True, "relforcerowsecurity": True}
+    turns.observe(POTTERY, conversation="earlier")
+    message_cues.write(turns.service, turns.principal, turns.brain, [], reviewed_through_sequence=1)
+    with turns.database.transaction(Principal(turns.principal.tenant_id, uid())) as conn:
+        assert conn.execute("SELECT count(*) AS n FROM memory_cue_progress").fetchone()["n"] == 0

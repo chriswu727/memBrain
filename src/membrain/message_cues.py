@@ -65,18 +65,22 @@ def _vectors(service, texts):
     return provider.space, [vectors[text] for text in texts]
 
 
-def write(service, principal, brain_id, items, *, model_version=None) -> dict:
+def write(service, principal, brain_id, items, *, model_version=None, reviewed_through_sequence=None) -> dict:
     """Attach cues to current messages, replacing any cues a message already has.
 
     ``items`` name a message by ``event_id``, or by ``producer_ref`` and ``source_event_key`` as a host knows it. A
     message that is unknown, superseded, hidden or erased is skipped and counted, not an error: the caller indexed
-    what it had been shown.
+    what it had been shown. ``reviewed_through_sequence`` records how far the caller read the messages ``pending``
+    offered, whether or not they got cues, so they are not offered again; with it ``items`` may be empty.
     """
     from .recording_control import require_recording
     from .service import _writable
 
     _writable()
-    if not isinstance(items, list) or not 1 <= len(items) <= MAX_ITEMS:
+    reviewed = reviewed_through_sequence
+    if reviewed is not None and (type(reviewed) is not int or not 0 <= reviewed < 2**63):
+        raise DomainError("validation_failed", "The reviewed sequence must be a non-negative integer.")
+    if not isinstance(items, list) or not (0 if reviewed is not None else 1) <= len(items) <= MAX_ITEMS:
         raise DomainError("validation_failed", f"Send 1 to {MAX_ITEMS} messages with cues.")
     if model_version is not None and (not isinstance(model_version, str) or not 1 <= len(model_version) <= 200):
         raise DomainError("validation_failed", "A model version must contain 1 to 200 characters.")
@@ -113,7 +117,16 @@ def write(service, principal, brain_id, items, *, model_version=None) -> dict:
     embedded = _vectors(service, [text for _, text in keep.values()]) if keep else None
     written = 0
     with service.database.transaction(principal) as conn:
-        require_recording(service._brain(conn, principal, brain_id))
+        brain = service._brain(conn, principal, brain_id)
+        require_recording(brain)
+        if reviewed is not None:
+            if reviewed > brain["durable_sequence"]:
+                raise DomainError("validation_failed", "The reviewed sequence is beyond the recorded messages.")
+            conn.execute(
+                "INSERT INTO memory_cue_progress(tenant_id,owner_id,brain_id,reviewed_through_sequence) "
+                "VALUES(%s,%s,%s,%s) ON CONFLICT (tenant_id,brain_id) DO UPDATE SET reviewed_through_sequence="
+                "GREATEST(memory_cue_progress.reviewed_through_sequence,EXCLUDED.reviewed_through_sequence),"
+                "updated_at=clock_timestamp()", (*params, reviewed))
         if found:  # A message whose cues came back empty loses the ones it had.
             conn.execute("DELETE FROM memory_message_cues WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
                          "AND event_id=ANY(%s::text[])", (*params, [event for event in found if event not in keep]))
@@ -135,7 +148,53 @@ def write(service, principal, brain_id, items, *, model_version=None) -> dict:
                  *params, event, revision),
             ).rowcount
     return {"written": written, "skipped": len(by_event) + len(by_source) - written,
-            "embedded": written if embedded else 0}
+            "embedded": written if embedded else 0, **({} if reviewed is None else {"reviewed_through_sequence": reviewed})}
+
+
+_UNREVIEWED = (
+    "FROM memory_events e WHERE e.tenant_id=%s AND e.owner_id=%s AND e.brain_id=%s AND e.is_current AND NOT e.deleted "
+    "AND NOT e.suppressed AND NOT e.retired AND e.document IS NOT NULL "
+    "AND e.document->'observed'->>'event_kind'='message' AND e.document->'observed'->>'actor_role'='user' "
+    "AND e.sequence>COALESCE((SELECT p.reviewed_through_sequence FROM memory_cue_progress p "
+    "WHERE p.tenant_id=e.tenant_id AND p.brain_id=e.brain_id),0) "
+    "AND NOT EXISTS (SELECT 1 FROM memory_message_cues c WHERE c.tenant_id=e.tenant_id AND c.brain_id=e.brain_id "
+    "AND c.event_id=e.id) ")
+
+
+def pending(service, principal, brain_id, *, limit=20, max_characters=6000, item_characters=600) -> dict:
+    """The user's messages not yet reviewed for cues, oldest first, for whoever writes cues to read.
+
+    ``through_sequence`` is what to pass back to ``write`` as ``reviewed_through_sequence`` once these have been
+    read. ``remaining`` counts every unreviewed message, the returned ones included. While recording is paused
+    nothing is offered, because cues could not be saved.
+    """
+    from .service import reading
+
+    for value, low, high in ((limit, 1, 100), (max_characters, 200, 50_000), (item_characters, 50, 5_000)):
+        if type(value) is not int or not low <= value <= high:
+            raise DomainError("validation_failed", "Pending-cue limits are outside the supported range.")
+    params = service._params(principal, brain_id)
+    with reading(), service.database.transaction(principal) as conn:
+        brain = service._brain(conn, principal, brain_id)
+        if brain["recording_paused"]:
+            return {"items": [], "through_sequence": None, "remaining": 0, "recording_paused": True}
+        remaining = conn.execute("SELECT count(*) AS n " + _UNREVIEWED, params).fetchone()["n"]
+        rows = conn.execute(
+            "SELECT e.id,e.sequence,e.conversation_id,e.document #>> '{observed,content,text}' AS text,"
+            "e.document #>> '{system_time,recorded_at}' AS recorded_at " + _UNREVIEWED + "ORDER BY e.sequence LIMIT %s",
+            (*params, limit)).fetchall()
+    items, used = [], 0
+    for row in rows:
+        text = " ".join((row["text"] or "").split())
+        if len(text) > item_characters:
+            text = text[:item_characters - 1] + "…"
+        if items and used + len(text) > max_characters:
+            break
+        used += len(text)
+        items.append({"event_id": row["id"], "sequence": row["sequence"], "conversation_id": row["conversation_id"],
+                      "recorded_at": row["recorded_at"], "text": text})
+    return {"items": items, "through_sequence": items[-1]["sequence"] if items else None, "remaining": remaining,
+            "recording_paused": False}
 
 
 def ranked_events(conn, params, text, query_embedding, *, limit) -> list[tuple[str, int, float]]:
@@ -199,4 +258,4 @@ def erase(conn, params, event_ids) -> None:
                  "AND event_id=ANY(%s::text[])", (*params, sorted(event_ids)))
 
 
-__all__ = ["RULE_VERSION", "cue_text", "erase", "ranked_events", "write"]
+__all__ = ["RULE_VERSION", "cue_text", "erase", "pending", "ranked_events", "write"]

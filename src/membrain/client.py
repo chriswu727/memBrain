@@ -305,7 +305,15 @@ class MemoryClient:
         return self._request("POST", f"v1/brains/{quote(brain, safe='')}/source-messages",
                              json={"messages": [dict(ref) for ref in references]})
 
-    def write_message_cues(self, items: Sequence[Mapping[str, Any]], *, model_version: str | None = None) -> JsonObject:
+    def pending_message_cues(self, *, limit: int = 20, max_characters: int = 6000) -> JsonObject:
+        """The user's messages not yet reviewed for cues, oldest first, with the ``through_sequence`` to pass back to
+        ``write_message_cues`` once they have been read."""
+        brain = self._scope()["brain_ref"]
+        return self._request("GET", f"v1/brains/{quote(brain, safe='')}/message-cues/pending",
+                             params={"limit": limit, "max_characters": max_characters})
+
+    def write_message_cues(self, items: Sequence[Mapping[str, Any]], *, model_version: str | None = None,
+                           reviewed_through_sequence: int | None = None) -> JsonObject:
         """Attach retrieval cues to stored messages: short phrases naming whom a message is about and what kind of
         fact it holds. Each item names a message by ``event_id``, or by ``producer_ref`` and ``source_event_key``,
         and gives its ``cues``. Recall can then reach the message through them; the cues themselves are never shown."""
@@ -313,6 +321,8 @@ class MemoryClient:
         body: dict[str, Any] = {"items": [dict(item) for item in items]}
         if model_version is not None:
             body["model_version"] = model_version
+        if reviewed_through_sequence is not None:
+            body["reviewed_through_sequence"] = reviewed_through_sequence
         return self._request("POST", f"v1/brains/{quote(brain, safe='')}/message-cues", json=body)
 
     def write_note(self, text: str, *, request_id: str | None = None, **fields) -> JsonObject:
