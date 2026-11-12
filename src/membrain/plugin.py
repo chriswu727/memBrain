@@ -47,7 +47,7 @@ TRANSCRIPT_TAIL_BYTES = 2 * 1024 * 1024
 HOST_TOOLS = {"openclaw": {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause",
                            "resume": "membrain_resume", "consolidate": "membrain_consolidate",
                            "replies": "my_replies"}}
-TOOLS = ("note", "search", "pause", "resume", "boundary", "consolidate")
+TOOLS = ("note", "search", "pause", "resume", "boundary", "consolidate", "companion")
 # Hosts that put their own memory files in the prompt; notes imported from them are not shown to them again.
 HOST_SKIPS = {"codex": ("codex",), "openclaw": ("openclaw",)}
 
@@ -258,7 +258,13 @@ def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
         if not isinstance(arguments, dict) or name not in TOOLS:
             raise ValueError("Tool arguments must be a JSON object.")
         user = _user(arguments)
-        if name == "pause":
+        if name == "companion":
+            from . import companion_switch
+
+            value = arguments.get("enabled")
+            result = (companion_switch.status(directory, user) if value is None
+                      else companion_switch.set_enabled(directory, value, user))
+        elif name == "pause":
             result = host_recording.pause(directory, arguments.get("hours"), user_id=user,
                                 conversation=not arguments.get("until_resumed"))
         elif name == "resume":

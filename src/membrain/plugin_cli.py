@@ -20,7 +20,8 @@ def add_commands(commands):
     hook.add_argument("event", choices=HOOK_EVENTS)
     hook.add_argument("--host", choices=HOOK_HOSTS, default="claude-code", help="Host whose hook format is read")
     tool = actions.add_parser("tool", help="Run one memory tool with JSON arguments on stdin (for hosts without MCP)")
-    tool.add_argument("name", choices=("note", "search", "pause", "resume", "boundary", "consolidate"))  # plugin.TOOLS
+    tool.add_argument("name", choices=("note", "search", "pause", "resume", "boundary", "consolidate",
+                                       "companion"))  # plugin.TOOLS
     imports = actions.add_parser("import", help="Import the memory files hosts keep (Claude Code, Hermes, OpenClaw, "
                                                 "Codex) as notes; safe to repeat")
     imports.add_argument("--from", dest="hosts", action="append", choices=("claude-code", "hermes", "openclaw", "codex"),
@@ -37,6 +38,13 @@ def add_commands(commands):
     pause = actions.add_parser("pause", help="Stop recording messages (recall keeps working) until resumed")
     pause.add_argument("--hours", type=float, default=None, help="Resume automatically after this many hours")
     actions.add_parser("resume", help="Resume recording messages")
+    companion = actions.add_parser("companion", help="Turn the companion layer (persona, simulated mood, familiarity) "
+                                                     "off or on for every host, or show it; deletes nothing")
+    companion.add_argument("state", nargs="?", choices=("on", "off", "status"), default="status")
+    companion.add_argument("--platform", help="A bot user's platform, with --user (and --group)")
+    companion.add_argument("--user", help="The person's id on that platform")
+    companion.add_argument("--group", help="The group, for memory kept from a group chat")
+    companion.add_argument("--user-id", help="A memBrain user id exactly as stored, instead of the three above")
     for name, text in (("forget-user", "Erase everything one person's memory holds (for bot operators); cannot be undone"),
                        ("export-user", "Export one person's memory as an archive document (for bot operators)")):
         person = actions.add_parser(name, help=text)
@@ -137,10 +145,30 @@ def _outcome(args, directory: Path) -> int:
     return 1 if result.get("status") in ("not_found", "unavailable") else 0
 
 
+def _companion(args, directory: Path) -> int:
+    """Show or change the companion switch for the owner or one bot user; returns the exit status."""
+    from . import companion_switch
+
+    user = args.user_id
+    if user is None and (args.platform or args.user or args.group):
+        if not (args.platform and args.user):
+            print("Give --platform and --user (and --group for a group chat), or --user-id.", file=sys.stderr)
+            return 2
+        from .adapters.chatbot import Speaker, speaker_user_id
+
+        user = speaker_user_id(Speaker(args.platform, args.user, args.group))
+    result = (companion_switch.status(directory, user) if args.state == "status"
+              else companion_switch.set_enabled(directory, args.state == "on", user))
+    print(json.dumps(result, ensure_ascii=False, indent=2))
+    return 0
+
+
 def dispatch(args) -> None:
     from . import plugin
 
     directory = plugin.profile_directory(args.directory)
+    if args.plugin_command == "companion":
+        raise SystemExit(_companion(args, directory))
     if args.plugin_command == "hook":
         raise SystemExit(plugin.run_hook(args.event, directory, host_name=args.host))
     if args.plugin_command == "outcome":

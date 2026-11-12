@@ -16,5 +16,6 @@
   ],
   "icon": "assets/icon.png",
   "hooks": "./hooks/claude-hooks.json",
+  "commands": ["./commands/"],
   "mcpServers": "./.claude-mcp.json"
 }

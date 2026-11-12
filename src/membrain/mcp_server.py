@@ -250,6 +250,16 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
             scopes: other controls may still block capture. This does not confirm message storage."""
             return await asyncio.to_thread(host_recording.resume, installation, current_turn=True, session=session_id)
 
+        from membrain.companion_switch import TOOL_DESCRIPTION as COMPANION_TOOL_DESCRIPTION
+
+        @server.tool(annotations=WRITE, description=COMPANION_TOOL_DESCRIPTION)
+        async def memory_companion(enabled: bool | None = None) -> dict[str, Any]:
+            from membrain import companion_switch
+
+            if enabled is None:
+                return await asyncio.to_thread(companion_switch.status, installation)
+            return await asyncio.to_thread(companion_switch.set_enabled, installation, enabled)
+
     @server.tool(annotations=READ_ONLY)
     async def memory_prepare(
         turn_id: str, conversation_id: str, branch_id: str,

@@ -256,6 +256,8 @@ const ZH = {
   "Personality": "个性",
   "How your companion presents itself: its name, character, voice, values and boundaries. Your agent receives it in its own block, apart from what it remembers about you. Every save keeps the earlier versions. How you like replies, as your agent learns it, stays in your preference notes.":
     "你的伙伴如何展现自己：名字、性格、说话方式、价值观和边界。agent 会在单独的区块里收到它，和它记得的关于你的内容分开。每次保存都会保留之前的版本。agent 学到的你喜欢的回复方式，仍然放在你的偏好笔记里。",
+  "The companion layer is off: your agent does not receive the personality, the simulated mood or the familiarity. Nothing here was deleted. Boundaries, feelings on notes and promises still work. Turn it back on with /membrain:companion on or membrain plugin companion on.":
+    "伙伴功能已关闭：agent 不会收到个性、模拟心情和熟悉程度。这里的内容都没有删除。边界、笔记上的情感和承诺仍然有效。可用 /membrain:companion on 或 membrain plugin companion on 重新开启。",
   "Current card": "当前设定", "Edit personality": "编辑个性", "Reset personality": "重置个性",
   "Name": "名字", "Traits, one per line (up to 8)": "性格特点，每行一个（最多 8 个）", "Voice": "说话方式",
   "Register": "语体", "casual, formal…": "随意、正式……", "Typical length": "通常长度", "short, a few sentences…": "简短、几句话……",

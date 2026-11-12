@@ -580,6 +580,17 @@ class LocalSupervisor:
                    expected_revision=body.get("expected_revision"))
             return recording_state(authorization=authorization)
 
+        @app.get("/v1/local/companion")
+        def companion_state(brain_id: str | None = None, authorization: str | None = Header(default=None)):
+            from . import companion_switch
+
+            authenticate(authorization)
+            # The switch belongs to a person, and only the owner's memory can be mapped back to one here; for any
+            # other memory the page shows nothing rather than a guess.
+            if brain_id not in (None, self.profile.brain_id):
+                return {"enabled": None}
+            return companion_switch.status(self.profile.directory)
+
         @app.get("/v1/local/memory-status")
         def memory_status(authorization: str | None = Header(default=None)):
             from . import host

@@ -1106,8 +1106,20 @@ async function loadServiceStatus() {
 }
 guard($("refresh-status"), loadServiceStatus);
 
+// Whether the companion layer reaches the agent; only a local installation knows, and only for its owner's memory.
+async function loadCompanionSwitch() {
+  const brain = state.brain;
+  let enabled = null;
+  try {
+    enabled = (await api(`/v1/local/companion?brain_id=${encodeURIComponent(brain)}`)).enabled;
+  } catch (error) {
+    if (error.status !== 404) throw error;
+  }
+  if (brain === state.brain) $("companion-off").hidden = enabled !== false;
+}
+
 // The Companion tab holds the personality and the relationship.
-const loadCompanion = () => Promise.all([loadPersona(), loadRelationship()]);
+const loadCompanion = () => Promise.all([loadCompanionSwitch(), loadPersona(), loadRelationship()]);
 const loaders = { notes: () => loadNotes(), brain: () => window.loadBrain(), persona: loadCompanion, people: () => loadNotes("people"),
   plans: () => loadNotes("plans"), feelings: loadFeelings,
   conversations: loadConversations, search: async () => {}, privacy: loadRecording };
