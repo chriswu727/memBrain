@@ -1119,7 +1119,11 @@ async function loadCompanionSwitch() {
 }
 
 // The Companion tab holds the personality and the relationship.
-const loadCompanion = () => Promise.all([loadCompanionSwitch(), loadPersona(), loadRelationship()]);
+// The switch notice is read alongside and never fails the tab.
+const loadCompanion = () => {
+  loadCompanionSwitch();
+  return Promise.all([loadPersona(), loadRelationship()]);
+};
 const loaders = { notes: () => loadNotes(), brain: () => window.loadBrain(), persona: loadCompanion, people: () => loadNotes("people"),
   plans: () => loadNotes("plans"), feelings: loadFeelings,
   conversations: loadConversations, search: async () => {}, privacy: loadRecording };
