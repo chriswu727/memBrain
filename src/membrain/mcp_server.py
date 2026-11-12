@@ -202,6 +202,52 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
         return await asyncio.to_thread(save_note, client, text, replaces=replaces or (),
                                        source_event_ids=source_event_ids or (), source_messages=source_messages or (), **fields)
 
+    @server.tool(annotations=WRITE, description=(
+        "Index earlier messages so memory can find them later. Call it without arguments to receive a batch of the "
+        "user's earlier messages and what to do with them; then call it once more with cues and reviewed_through "
+        "as that result says. Do this when the session notice asks for it, at most a few times in a conversation."))
+    async def memory_consolidate(cues: list[dict[str, Any]] | None = None,
+                                 reviewed_through: int | None = None) -> dict[str, Any]:
+        import httpx
+
+        from membrain import host
+
+        if directory is not None and host.paused(directory):
+            return {"error": "Recording is paused. Resume before consolidating memory."}
+        try:
+            if cues is None and reviewed_through is None:
+                offered = await asyncio.to_thread(client.pending_message_cues, limit=host.CONSOLIDATION_MESSAGES,
+                                                  max_characters=host.CONSOLIDATION_CHARACTERS)
+                if offered.get("recording_paused"):
+                    return {"error": "Recording is paused. Resume before consolidating memory."}
+                if not offered["items"]:
+                    return {"messages": [], "remaining": 0, "note": "Nothing to consolidate right now."}
+                return {"instructions": host.CONSOLIDATION_INSTRUCTIONS,
+                        "messages": [{"id": item["sequence"], "date": (item.get("recorded_at") or "")[:10],
+                                      "text": item["text"]} for item in offered["items"]],
+                        "reviewed_through": offered["through_sequence"], "remaining": offered["remaining"]}
+            if type(reviewed_through) is not int:
+                return {"error": "Pass reviewed_through exactly as the batch gave it."}
+            items = []
+            for entry in cues or []:
+                if (not isinstance(entry, dict) or type(entry.get("id")) is not int
+                        or not isinstance(entry.get("cues"), list)):
+                    return {"error": "Each entry needs the message id from the batch and a list of cue phrases."}
+                if entry["id"] > reviewed_through:
+                    return {"error": "A message id is beyond reviewed_through; use the ids of the batch you received."}
+                items.append({"sequence": entry["id"], "cues": [cue for cue in entry["cues"] if isinstance(cue, str)]})
+            result = await asyncio.to_thread(client.write_message_cues, items, model_version="host-agent",
+                                             reviewed_through_sequence=reviewed_through)
+            left = await asyncio.to_thread(client.pending_message_cues, limit=1)
+            return {"indexed": result["written"], "skipped": result["skipped"], "remaining": left["remaining"]}
+        except httpx.HTTPStatusError as error:
+            try:
+                detail = error.response.json().get("error", {})
+            except ValueError:
+                detail = {}
+            return {"error": detail.get("message") or "Memory could not consolidate right now.",
+                    "code": detail.get("code") or f"http_{error.response.status_code}"}
+
     from membrain.relationship import BOUNDARY_TOOL_DESCRIPTION
 
     @server.tool(annotations=WRITE, description=BOUNDARY_TOOL_DESCRIPTION)

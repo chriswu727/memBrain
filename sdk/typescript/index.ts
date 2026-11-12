@@ -569,10 +569,19 @@ export class MemoryClient {
   }
   /** Attach retrieval cues to stored messages; recall can then reach a message through them. Cues are never shown. */
   writeMessageCues(items: readonly ({ event_id: string; cues: readonly string[] }
+    | { sequence: number; cues: readonly string[] }
     | { producer_ref: string; source_event_key: string; cues: readonly string[] })[],
-    options: { modelVersion?: string; brainId?: string } = {}): Promise<JsonObject> {
-    return this.#request("POST", `${this.#brainPath(options.brainId)}/message-cues`,
-      options.modelVersion === undefined ? { items } : { items, model_version: options.modelVersion });
+    options: { modelVersion?: string; reviewedThroughSequence?: number; brainId?: string } = {}): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(options.brainId)}/message-cues`, { items,
+      ...(options.modelVersion === undefined ? {} : { model_version: options.modelVersion }),
+      ...(options.reviewedThroughSequence === undefined ? {}
+        : { reviewed_through_sequence: options.reviewedThroughSequence }) });
+  }
+  /** The user's messages not yet reviewed for cues, oldest first, with the sequence to pass back once read. */
+  pendingMessageCues(options: { limit?: number; maxCharacters?: number; brainId?: string } = {}): Promise<JsonObject> {
+    const query = new URLSearchParams({ limit: String(options.limit ?? 20),
+      max_characters: String(options.maxCharacters ?? 6000) });
+    return this.#request("GET", `${this.#brainPath(options.brainId)}/message-cues/pending?${query}`);
   }
   recallWindows(windows: readonly { memory_id: string; revision: number;
     span: { start: number; end: number; unit: "unicode_code_point" } }[], query: string,

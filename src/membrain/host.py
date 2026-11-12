@@ -61,7 +61,35 @@ ASSISTANT_LINES = ('Lines marked "assistant said" are your own earlier replies: 
                    'not the user\'s decision or a fact about the user unless a "user said" line confirms it.')
 
 TOOL_NAMES = {"note": "memory_note", "recall": "memory_recall", "pause": "memory_pause", "resume": "memory_resume",
-              "resume_session": "session_id"}
+              "resume_session": "session_id", "consolidate": "memory_consolidate"}
+CONSOLIDATION_MESSAGES = 20  # Earlier messages handed to the host AI in one consolidation call.
+CONSOLIDATION_CHARACTERS = 6000
+CONSOLIDATION_INSTRUCTIONS = (
+    "These are earlier messages from this user that memory has not indexed yet. For each message that states a "
+    "lasting fact about a person (the user or someone in their life), give one to four short cue phrases that name "
+    "WHOM the fact is about and WHAT KIND of fact it is, in the words someone would use to ask about it later: "
+    "\"Sam hobbies and activities\", \"Sam relationship status\", \"Sam's sister's job\", \"Sam places visited\", "
+    "\"Sam reasons for changing jobs\". Name the category, do not restate the detail: for \"I signed up for a "
+    "pottery class\" write \"Sam hobbies and activities\", not \"Sam pottery class\". Use the person's name when "
+    "you know it, otherwise \"user\"; never \"I\" or \"she\". Skip greetings, requests, reactions and anything "
+    "with no lasting fact. Then call this tool again once, with cues = [{\"id\": <message id>, \"cues\": [...]}] "
+    "for the messages that got cues and reviewed_through set to the number given here, even if no message got a "
+    "cue. The cues only help memory find these messages later; they are never shown to the user.")
+
+
+def consolidation_notice(client, tools: dict | None = TOOL_NAMES) -> str:
+    """One sentence asking the host AI to index earlier messages, when there are any and it has the tool."""
+    if not tools or not tools.get("consolidate") or not hasattr(client, "pending_message_cues"):
+        return ""
+    try:
+        remaining = client.pending_message_cues(limit=1).get("remaining") or 0
+    except Exception:
+        return ""  # An older service, or one that is busy: indexing can wait for another session.
+    if not remaining:
+        return ""
+    return (f"{remaining} earlier message{'s have' if remaining != 1 else ' has'} not been indexed by memory yet. Once "
+            f"in this conversation, after you have answered the user's first message, call the {tools['consolidate']} "
+            "tool without arguments and do what it returns.")
 
 
 def notes_notice(tools: dict | None = TOOL_NAMES) -> str:
@@ -2011,7 +2039,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     real_life = user_id
     user_id = roleplay_user(user_id, roleplay)
     options = {"tools": tools, "skip_imports_from": list(skip_imports_from), "share_real_life": share_real_life}
-    history, current, complete = None, None, False
+    history, current, complete, consolidation = None, None, False, ""
     resumed = ("Recording was paused for an earlier conversation only; that local pause has ended. "
                if end_conversation_pause(directory, session, real_life) else "")
     if not resumed and _paused_elsewhere(directory, session, real_life):
@@ -2041,6 +2069,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
                 _acknowledge(client, current)  # This block is returned below, so its one-time lines are shown.
             except Exception as error:
                 log(directory, f"notes failed: {type(error).__name__}")
+            consolidation = consolidation_notice(client, tools)
             if current is not None:
                 try:
                     # Notice and history header take about 1,000 characters of the host's limit.
@@ -2056,6 +2085,8 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     notice = resumed + _session_notice(complete and bool(history), tools, paused(directory, user_id, session),
                                        roleplay)
     notice += " " + host_recording.notice(policy)
+    if consolidation and not paused(directory, user_id, session):
+        notice = notice.strip() + " " + consolidation
     return "\n\n".join(part for part in (notice, current["text"] if current else None, history) if part)
 
 

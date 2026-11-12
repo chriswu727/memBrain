@@ -43,6 +43,7 @@ class SourceMessagesRead(RuntimeBody):
 
 class MessageCueItem(RuntimeBody):
     event_id: RuntimeIdentifier | None = None
+    sequence: RuntimeRevision | None = None
     producer_ref: RuntimeIdentifier | None = None
     source_event_key: RuntimeIdentifier | None = None
     cues: Annotated[list[Annotated[str, Field(min_length=1, max_length=200)]], Field(max_length=6)]

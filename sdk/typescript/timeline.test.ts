@@ -108,4 +108,11 @@ test("message cues are sent with the message they belong to", async () => {
   assert.equal(requests[0].url.pathname, "/v1/brains/brain%20%2F%3F%23/message-cues");
   assert.deepEqual(JSON.parse(String(requests[0].init?.body)), { items });
   assert.deepEqual(JSON.parse(String(requests[1].init?.body)), { items, model_version: "cue-model-1" });
+  await client.pendingMessageCues({ limit: 5 });
+  assert.equal(requests[2].url.pathname, "/v1/brains/home/message-cues/pending");
+  assert.equal(requests[2].url.searchParams.get("limit"), "5");
+  assert.equal(requests[2].url.searchParams.get("max_characters"), "6000");
+  await client.writeMessageCues([{ sequence: 7, cues: ["Sam hobbies and activities"] }], { reviewedThroughSequence: 9 });
+  assert.deepEqual(JSON.parse(String(requests[3].init?.body)),
+    { items: [{ sequence: 7, cues: ["Sam hobbies and activities"] }], reviewed_through_sequence: 9 });
 });

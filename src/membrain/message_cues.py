@@ -68,7 +68,8 @@ def _vectors(service, texts):
 def write(service, principal, brain_id, items, *, model_version=None, reviewed_through_sequence=None) -> dict:
     """Attach cues to current messages, replacing any cues a message already has.
 
-    ``items`` name a message by ``event_id``, or by ``producer_ref`` and ``source_event_key`` as a host knows it. A
+    ``items`` name a message by ``event_id``, by its ``sequence`` as ``pending`` gave it, or by ``producer_ref`` and
+    ``source_event_key`` as a host knows it. A
     message that is unknown, superseded, hidden or erased is skipped and counted, not an error: the caller indexed
     what it had been shown. ``reviewed_through_sequence`` records how far the caller read the messages ``pending``
     offered, whether or not they got cues, so they are not offered again; with it ``items`` may be empty.
@@ -84,7 +85,7 @@ def write(service, principal, brain_id, items, *, model_version=None, reviewed_t
         raise DomainError("validation_failed", f"Send 1 to {MAX_ITEMS} messages with cues.")
     if model_version is not None and (not isinstance(model_version, str) or not 1 <= len(model_version) <= 200):
         raise DomainError("validation_failed", "A model version must contain 1 to 200 characters.")
-    by_event, by_source = {}, {}
+    by_event, by_source, by_sequence = {}, {}, {}
     for item in items:
         if not isinstance(item, dict):
             raise DomainError("validation_failed", "Each item names one message and its cues.")
@@ -92,10 +93,13 @@ def write(service, principal, brain_id, items, *, model_version=None, reviewed_t
         event_id, producer, key = item.get("event_id"), item.get("producer_ref"), item.get("source_event_key")
         if isinstance(event_id, str) and event_id:
             by_event[event_id] = text
+        elif type(item.get("sequence")) is int and 0 < item["sequence"] < 2**63:
+            by_sequence[item["sequence"]] = text
         elif isinstance(producer, str) and producer and isinstance(key, str) and key:
             by_source[(producer, key)] = text
         else:
-            raise DomainError("validation_failed", "Name a message by event_id, or by producer_ref and source_event_key.")
+            raise DomainError("validation_failed",
+                              "Name a message by event_id, by sequence, or by producer_ref and source_event_key.")
     params = service._params(principal, brain_id)
     current = ("AND is_current AND NOT deleted AND NOT suppressed AND NOT retired AND document IS NOT NULL "
                "AND document->'observed'->>'event_kind'='message' ")
@@ -107,6 +111,11 @@ def write(service, principal, brain_id, items, *, model_version=None, reviewed_t
                     "SELECT id,revision FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
                     "AND id=ANY(%s::text[]) " + current, (*params, sorted(by_event))):
                 found[row["id"]] = (row["revision"], by_event[row["id"]])
+        if by_sequence:
+            for row in conn.execute(
+                    "SELECT id,revision,sequence FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+                    "AND sequence=ANY(%s::bigint[]) " + current, (*params, sorted(by_sequence))):
+                found[row["id"]] = (row["revision"], by_sequence[row["sequence"]])
         if by_source:
             for row in conn.execute(
                     "SELECT id,revision,producer_ref,source_key FROM memory_events WHERE tenant_id=%s AND owner_id=%s "
@@ -147,7 +156,7 @@ def write(service, principal, brain_id, items, *, model_version=None, reviewed_t
                  space.model if space else None, space.model_version if space else None,
                  *params, event, revision),
             ).rowcount
-    return {"written": written, "skipped": len(by_event) + len(by_source) - written,
+    return {"written": written, "skipped": len(by_event) + len(by_source) + len(by_sequence) - written,
             "embedded": written if embedded else 0, **({} if reviewed is None else {"reviewed_through_sequence": reviewed})}
 
 
