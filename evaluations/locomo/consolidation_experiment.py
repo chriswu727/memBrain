@@ -7,6 +7,9 @@ Three arms on the same conversations, each in its own installations, answered an
 - ``session``: one consolidation call with ``deepseek-v4-pro`` after each finished session: it reads the notes kept
                so far and the session, and adds or replaces notes, each bound to the turns it rests on. This arm
                exists only in this harness; it is the experiment.
+- ``cues``:    messages only, with the cues a model wrote earlier (``--cues``, a directory of
+               ``cues-<conversation>.json`` from ``cue_enrichment_simulation.py``) attached to the stored turns, so
+               recall can reach a turn through them. Attaching them makes no model call.
 
 Every request goes through one ledger with a ceiling in CNY, priced at the provider's peak rates without cache
 discount. A request that could exceed the ceiling is refused before it is sent, a response without usable usage
@@ -29,7 +32,7 @@ from pathlib import Path
 import httpx
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from retrieval_recall import evidence_ids, stored_turns  # noqa: E402
+from retrieval_recall import evidence_ids, stored_turns, write_cues  # noqa: E402
 from run_locomo import (  # noqa: E402
     CATEGORIES,
     Model,
@@ -50,7 +53,7 @@ TURN_MODEL = "deepseek-flash"
 SESSION_MODEL = "deepseek-v4-pro"
 # CNY per million tokens at peak hours, cache miss (api-docs.deepseek.com pricing page, read 2026-11-11).
 RATES = {"deepseek-flash": (2.0, 8.0), "deepseek-v4-pro": (9.0, 27.0)}
-ARMS = ("plain", "turn", "session")
+ARMS = ("plain", "turn", "session", "cues")
 PRODUCER = "locomo-ingest"
 SESSION_OUTPUT_TOKENS = 8000
 MAX_SESSION_NOTES = 14
@@ -246,7 +249,8 @@ def consolidate(client, model: Model, sample: dict, number: int, date: str, turn
     return outcome
 
 
-def prepare(sample: dict, directory: Path, arm: str, cache: Path, ledger: Ledger, transport, ports) -> dict:
+def prepare(sample: dict, directory: Path, arm: str, cache: Path, ledger: Ledger, transport, ports,
+            cues: Path | None = None) -> dict:
     """Store one conversation for one arm, with that arm's consolidation; resumable per session."""
     from membrain import host
     from membrain.extraction import Extractor, extract_turn
@@ -300,6 +304,11 @@ def prepare(sample: dict, directory: Path, arm: str, cache: Path, ledger: Ledger
     wait_for_embeddings(directory)
     summary = {"arm": arm, "sessions": progress, "notes": len(notes),
                "note_characters": sum(len(item["text"]) for item in notes)}
+    if arm == "cues":
+        written = json.loads((cues / f"cues-{sample['sample_id']}.json").read_text(encoding="utf-8"))["cues"]
+        summary["cues"] = write_cues(sample, directory, written)
+        if summary["cues"]["embedded"] != summary["cues"]["written"] or not summary["cues"]["written"]:
+            raise SystemExit(f"Cues were not all written and embedded: {summary['cues']}")
     marker.write_text(json.dumps(summary, indent=1), encoding="utf-8")
     return summary
 
@@ -320,6 +329,8 @@ def run(args) -> None:
     for arm_index, arm in enumerate(args.arms.split(",")):
         if arm not in ARMS:
             raise SystemExit(f"Unknown arm {arm}.")
+        if arm == "cues" and not args.cues:
+            raise SystemExit("The cues arm needs --cues.")
         path = out / f"answers-{arm}.jsonl"
         done = {json.loads(line)["id"] for line in path.read_text(encoding="utf-8").splitlines()} if path.exists() else set()
         for position, sample in enumerate(selected):
@@ -331,7 +342,8 @@ def run(args) -> None:
             directory = out / f"{arm}-{sample['sample_id']}"
             own = (ports[0] + 10 * (arm_index * 10 + position), ports[1] + 10 * (arm_index * 10 + position)) if ports else None
             try:
-                summary = prepare(sample, directory, arm, Path(args.model_cache), ledger, transport, own)
+                summary = prepare(sample, directory, arm, Path(args.model_cache), ledger, transport, own,
+                                  Path(args.cues) if args.cues else None)
                 log("prepared", arm, sample["sample_id"], "notes", summary["notes"], "chars", summary["note_characters"])
                 turns = stored_turns(sample)
                 ledger.phase = f"answer:{arm}"
@@ -384,11 +396,16 @@ def report(args) -> None:
         for values in rows.values()))
     print(f"{'questions with a search':26}" + "".join(
         f"{sum(bool(values[i]['searches']) for i in shared):>16}" for values in rows.values()))
-    for first, second in (("plain", "session"), ("plain", "turn"), ("turn", "session"), ("full", "plain")):
+    for first, second in (("plain", "session"), ("plain", "turn"), ("turn", "session"), ("full", "plain"),
+                          ("plain", "cues")):
         if first in rows and second in rows:
             gained = sum(rows[second][i]["correct"] and not rows[first][i]["correct"] for i in shared)
             lost = sum(rows[first][i]["correct"] and not rows[second][i]["correct"] for i in shared)
             print(f"{first} -> {second}: gained {gained}, lost {lost}")
+            several = [i for i in shared if rows[first][i]["evidence"] > 1]
+            print(f"  several evidence turns: gained "
+                  f"{sum(rows[second][i]['correct'] and not rows[first][i]['correct'] for i in several)}, lost "
+                  f"{sum(rows[first][i]['correct'] and not rows[second][i]['correct'] for i in several)}")
     ledger = out / "ledger.json"
     if ledger.exists():
         state = json.loads(ledger.read_text(encoding="utf-8"))
@@ -414,6 +431,7 @@ def main() -> None:
     parser.add_argument("--max-questions", type=int, default=0, help="Per conversation and arm; 0 means all")
     parser.add_argument("--ceiling", type=float, default=0.0, help="Spending ceiling in CNY for this run directory")
     parser.add_argument("--ports", default="", help="API and database ports for new installations, e.g. 8891,55601")
+    parser.add_argument("--cues", default="", help="Directory of cues-<conversation>.json files for the cues arm")
     parser.add_argument("--report", action="store_true", help="Only summarize existing results")
     parser.add_argument("--only", default="", help="Report: compare only these arms, e.g. plain,full")
     parser.add_argument("--conversations-filter", default="", help="Report: only these sample ids, e.g. conv-26,conv-30")
