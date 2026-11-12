@@ -1112,8 +1112,8 @@ async function loadCompanionSwitch() {
   let enabled = null;
   try {
     enabled = (await api(`/v1/local/companion?brain_id=${encodeURIComponent(brain)}`)).enabled;
-  } catch (error) {
-    if (error.status !== 404) throw error;
+  } catch {
+    enabled = null; // A service without the route, or one that cannot say: the notice stays hidden.
   }
   if (brain === state.brain) $("companion-off").hidden = enabled !== false;
 }
