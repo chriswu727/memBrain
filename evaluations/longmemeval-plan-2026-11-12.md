@@ -4,6 +4,8 @@ Written on 2026-11-12, before any result on this benchmark exists. Runtime `75f5
 
 ## Why
 
+*Added the same day: the claim below that the system had never seen this benchmark is wrong. A 30-question answer sample was run on 2026-10-29 ([report](longmemeval-2026-10-29.md)); nothing was tuned on it. See the correction in the [result](longmemeval-evidence-recall-2026-11-12.md).*
+
 Every ranking weight, the recall block, and the cue rules were chosen on LoCoMo, and the held-out LoCoMo conversations have by now been looked at many times. LoCoMo is also far from use: two invented people chatting, a history short enough to paste whole, no assistant replies, everything stored on one day. The owner asked whether the measured gains are real or a false positive. A benchmark the system has never seen is the first honest answer.
 
 [LongMemEval](https://huggingface.co/datasets/xiaowu0162/longmemeval-cleaned) (cleaned version, MIT licence): 500 questions, each with its own history of about 48 user-assistant sessions and 490,000 characters, about five times a LoCoMo conversation, with the turns that hold the answer marked.
