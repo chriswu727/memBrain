@@ -6,8 +6,8 @@ As of 2026-11-11. Each row names the runtime its evidence covers; a row whose ru
 
 | Item | State | Runtime covered |
 | --- | --- | --- |
-| Pinned runtime | `6a136d6` (pin `7f27eb6d`); the default branch follows the integration branch at verified milestones and was last moved at `396391cc` (runtime `933f4d8`) | — |
-| Full source suite, local Linux | 8,528 passed, 4 skipped (Docker journeys), none failed ([report](../evaluations/message-cues-2026-11-11.md)) | `6a136d6` |
+| Pinned runtime | `139c15f` (pin `7ba42aed`); the default branch follows the integration branch at verified milestones and was last moved at `396391cc` (runtime `933f4d8`) | — |
+| Full source suite, local Linux | 8,532 passed, 4 skipped (Docker journeys), none failed ([report](../evaluations/host-consolidation-2026-11-11.md)) | `139c15f` |
 | GitHub Verify | Last result recorded in this repository: passed | `2ef05f3` |
 | Five-platform native qualification | Passed | `978312c` |
 | Real Mac installation, 49 checks | Passed | `7902c16e` |
@@ -15,13 +15,15 @@ As of 2026-11-11. Each row names the runtime its evidence covers; a row whose ru
 | R4 behavioural acceptance | **Failed** ([fifth attempt](../evaluations/maturity-fifth-attempt-2026-11-07.md): plugin passed, extraction failed) | `7902c16e` |
 | C5 companion evaluation | **Invalid, unscored** | `7902c16e` |
 | Memory quality, model-free | Recall block holds all the evidence for 74.1% of LoCoMo questions (72.2% held out) without cues ([report](../evaluations/message-context-embeddings-2026-11-10.md), `02a1aec`); 79.5% (78.5% held out) with cues a model wrote beforehand ([report](../evaluations/message-cues-2026-11-11.md)) | `6a136d6` |
-| Cue generation | **Not built.** Storage, recall and the write path exist; the host's own AI is to write cues through memBrain's tools, with no extra model to configure | — |
+| Cue generation | By the host's own AI through `memory_consolidate`; memBrain calls no model. Built and tested end to end; **not tried on a real host**, and the quality of cues written that way is unmeasured ([report](../evaluations/host-consolidation-2026-11-11.md)) | `139c15f` |
 | LoCoMo answers, paid run | 82.5% of 1,540 questions (80.7% held out), level with full context; notes after every turn or session did not help ([report](../evaluations/locomo-controls-and-cues-2026-11-11.md), `933f4d8`). With cues a model wrote beforehand, held-out answers rise from 80.7% to 83.2% ([report](../evaluations/locomo-cue-answers-2026-11-11.md)) | `6a136d6` |
 | Known open defects | Listed in the [status audit](../evaluations/status-audit-2026-11-10.md) with what has since been fixed | — |
 
 No version tag, release or package upload exists, and none is made until the product is mature.
 
 ## History
+
+**Host-consolidation runtime `139c15f` (2026-11-11):** [The host's own AI writes the cues](../evaluations/host-consolidation-2026-11-11.md). Pin `7ba42aed` points all nine launchers at it; migration `036_cue_progress.sql`. By the owner's decision memBrain ships no second AI and asks the user to configure none, so cue writing is handed to the host's AI: the service queues the user's unreviewed messages, a new session says in one sentence that messages await indexing, and the `memory_consolidate` tool hands the AI a batch of at most 20 with instructions and saves the cues it returns, recording how far it read. An end-to-end test on a real local service covers the path. No host AI has been run against it; whether real hosts follow the sentence, the quality of the cues they write and the token cost are unmeasured. OpenClaw, AstrBot and the proxy path have no such tool. The full local source suite on the pin commit passes 8,532 tests with 4 skips and no failure. Verify, native Windows, macOS, five-platform qualification, the R5 overhead protocol and an independent review were not run. R4 remains failed and C5 invalid/unscored.
 
 **Message-cue runtime `6a136d6` (2026-11-11):** [Cues attached to messages](../evaluations/message-cues-2026-11-11.md). Pin `7f27eb6d` points all nine launchers at it; migration `035_message_cues.sql`. A message can carry cues, short phrases naming whom it is about and what kind of fact it holds; recall reaches the message through them as the `entity` route and still returns the original message; cues are deleted with their message. With cues a model wrote beforehand for the simulation, LoCoMo questions with all their evidence in the recall block rise from 74.1% to 79.5% (72.2% to 78.5% on held-out conversations; several-evidence questions 34.9% to 45.5%), at about 9 ms more per recall measured paired in one process. A first variant that fused cue matches by rank alone lowered recall on the development conversations and is recorded. Nothing generates cues yet; by the owner's decision of the same day the host's own AI is to write them, and memBrain ships and requires no model of its own. The full local source suite on the pin commit passes 8,528 tests with 4 skips and no failure. A [paid answer check](../evaluations/locomo-cue-answers-2026-11-11.md) the same day (18.24 CNY) found held-out answers rising from 80.7% to 83.2% with those cues (69 questions gained, 40 lost), and from 67.6% to 72.9% on questions with several evidence turns. Verify, native Windows, macOS, five-platform qualification, the R5 overhead protocol and an independent review were not run. R4 remains failed and C5 invalid/unscored.
 
