@@ -18,6 +18,7 @@ MAX_ITEMS = 200
 MAX_CUES = 6
 CUE_CHARACTERS = 80
 EMBEDDING_BATCH = 32
+BOUNDARY_MINIMUM = 10  # A batch is cut at a conversation's end only if at least this many messages remain in it.
 TERM_ROWS = 1024  # Cue rows read for one query term; a commoner term tells the routes little.
 # How much a cue match counts beside the keyword and meaning routes over the messages themselves (``candidates``).
 # A cue matched by its words counts like a keyword match of the message, scaled by the square of the share of the
@@ -170,12 +171,17 @@ _UNREVIEWED = (
     "AND c.event_id=e.id) ")
 
 
-def pending(service, principal, brain_id, *, limit=20, max_characters=6000, item_characters=600) -> dict:
+def pending(service, principal, brain_id, *, limit=20, max_characters=6000, item_characters=600,
+            whole_conversations=False) -> dict:
     """The user's messages not yet reviewed for cues, oldest first, for whoever writes cues to read.
 
     ``through_sequence`` is what to pass back to ``write`` as ``reviewed_through_sequence`` once these have been
     read. ``remaining`` counts every unreviewed message, the returned ones included. While recording is paused
     nothing is offered, because cues could not be saved.
+
+    With ``whole_conversations`` the batch ends where a conversation ends, when that leaves it at least
+    ``BOUNDARY_MINIMUM`` messages: a reader names what a message is about better with the rest of its
+    conversation in front of it than with a conversation cut in two.
     """
     from .service import reading
 
@@ -202,6 +208,12 @@ def pending(service, principal, brain_id, *, limit=20, max_characters=6000, item
         used += len(text)
         items.append({"event_id": row["id"], "sequence": row["sequence"], "conversation_id": row["conversation_id"],
                       "recorded_at": row["recorded_at"], "text": text})
+    if whole_conversations and items and (len(items) < len(rows) or remaining > len(items)):
+        # More follows this batch: end it at the last change of conversation, if enough is left before it.
+        ends = [index for index in range(1, len(items))
+                if items[index]["conversation_id"] != items[index - 1]["conversation_id"]]
+        if ends and ends[-1] >= BOUNDARY_MINIMUM:
+            items = items[:ends[-1]]
     return {"items": items, "through_sequence": items[-1]["sequence"] if items else None, "remaining": remaining,
             "recording_paused": False}
 

@@ -305,12 +305,14 @@ class MemoryClient:
         return self._request("POST", f"v1/brains/{quote(brain, safe='')}/source-messages",
                              json={"messages": [dict(ref) for ref in references]})
 
-    def pending_message_cues(self, *, limit: int = 20, max_characters: int = 6000) -> JsonObject:
+    def pending_message_cues(self, *, limit: int = 20, max_characters: int = 6000,
+                             whole_conversations: bool = False) -> JsonObject:
         """The user's messages not yet reviewed for cues, oldest first, with the ``through_sequence`` to pass back to
         ``write_message_cues`` once they have been read."""
         brain = self._scope()["brain_ref"]
         return self._request("GET", f"v1/brains/{quote(brain, safe='')}/message-cues/pending",
-                             params={"limit": limit, "max_characters": max_characters})
+                             params={"limit": limit, "max_characters": max_characters,
+                                     "whole_conversations": "true" if whole_conversations else "false"})
 
     def write_message_cues(self, items: Sequence[Mapping[str, Any]], *, model_version: str | None = None,
                            reviewed_through_sequence: int | None = None) -> JsonObject:

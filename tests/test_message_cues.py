@@ -249,3 +249,23 @@ def test_review_progress_is_isolated_by_owner(turns):
     message_cues.write(turns.service, turns.principal, turns.brain, [], reviewed_through_sequence=1)
     with turns.database.transaction(Principal(turns.principal.tenant_id, uid())) as conn:
         assert conn.execute("SELECT count(*) AS n FROM memory_cue_progress").fetchone()["n"] == 0
+
+
+def test_a_batch_ends_where_a_conversation_ends_when_enough_remains(turns):
+    for number in range(12):
+        turns.observe(f"First talk, message {number}.", conversation="first")
+    for number in range(5):
+        turns.observe(f"Second talk, message {number}.", conversation="second")
+    plain = _pending(turns, limit=15)
+    assert len(plain["items"]) == 15  # Without the option a batch is simply the oldest messages.
+    whole = _pending(turns, limit=15, whole_conversations=True)
+    assert len(whole["items"]) == 12 and {item["conversation_id"] for item in whole["items"]} == {"first"}
+    assert whole["through_sequence"] == whole["items"][-1]["sequence"] and whole["remaining"] == 17
+    # Too little before the boundary: the batch is not cut down to a few messages.
+    assert len(_pending(turns, limit=15, whole_conversations=True)["items"]) == 12
+    message_cues.write(turns.service, turns.principal, turns.brain, [],
+                       reviewed_through_sequence=whole["items"][5]["sequence"])
+    short = _pending(turns, limit=8, whole_conversations=True)
+    assert len(short["items"]) == 8  # Six of the first talk are left: fewer than the minimum, so no cut.
+    # Everything that is left fits: nothing follows, so nothing is cut.
+    assert len(_pending(turns, limit=40, whole_conversations=True)["items"]) == 11

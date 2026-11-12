@@ -635,10 +635,12 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     @app.get("/v1/brains/{brain_id}/message-cues/pending")
     def pending_message_cues(brain_id: str, limit: int = Query(20, ge=1, le=100),
                              max_characters: int = Query(6000, ge=200, le=50_000),
+                             whole_conversations: bool = False,
                              principal: Principal = Depends(authenticate)):
         from . import message_cues
 
-        return message_cues.pending(service, principal, brain_id, limit=limit, max_characters=max_characters)
+        return message_cues.pending(service, principal, brain_id, limit=limit, max_characters=max_characters,
+                                    whole_conversations=whole_conversations)
 
     @app.get("/v1/brains/{brain_id}/recording")
     def get_recording(brain_id: str, principal: Principal = Depends(authenticate)):

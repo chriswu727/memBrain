@@ -222,7 +222,8 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
         try:
             if cues is None and reviewed_through is None:
                 offered = await asyncio.to_thread(client.pending_message_cues, limit=host.CONSOLIDATION_MESSAGES,
-                                                  max_characters=host.CONSOLIDATION_CHARACTERS)
+                                                  max_characters=host.CONSOLIDATION_CHARACTERS,
+                                                  whole_conversations=True)
                 if offered.get("recording_paused"):
                     return {"error": "Recording is paused. Resume before consolidating memory."}
                 if not offered["items"]:

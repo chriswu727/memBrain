@@ -62,11 +62,12 @@ ASSISTANT_LINES = ('Lines marked "assistant said" are your own earlier replies: 
 
 TOOL_NAMES = {"note": "memory_note", "recall": "memory_recall", "pause": "memory_pause", "resume": "memory_resume",
               "resume_session": "session_id", "consolidate": "memory_consolidate"}
-CONSOLIDATION_MESSAGES = 20  # Earlier messages handed to the host AI in one consolidation call.
+CONSOLIDATION_MESSAGES = 40  # At most this many earlier messages go to the host AI in one consolidation call;
+# the batch ends where a conversation ends when it can (``message_cues.pending``).
 # The host AI is asked only once this many messages await indexing: a session that follows a short one would
 # otherwise spend three model calls on a couple of messages, usually questions with nothing to index.
 CONSOLIDATION_MINIMUM = 5
-CONSOLIDATION_CHARACTERS = 6000
+CONSOLIDATION_CHARACTERS = 8000
 CONSOLIDATION_INSTRUCTIONS = (
     "These are earlier messages from this user that memory has not indexed yet. For each message that states a "
     "lasting fact about a person (the user or someone in their life), give one to four short cue phrases that name "
