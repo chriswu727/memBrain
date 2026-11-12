@@ -2,9 +2,11 @@ import itertools
 import json
 from contextlib import contextmanager
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 import httpx
 import pytest
+from test_desktop_chat import arguments
 
 from membrain import desktop, desktop_cli
 from membrain.local_profile import (
@@ -436,3 +438,26 @@ def test_setup_applies_changed_provider_with_automatic_restart_unless_disabled(p
     assert result["ready"] is not no_start
     assert "new-private-key" not in json.dumps(result)
     assert load_profile(profile.directory).brain_id == profile.brain_id
+
+
+@pytest.mark.parametrize("configured", [False, True])
+def test_interactive_setup_never_asks_for_a_model(profile, monkeypatch, capsys, configured):
+    from membrain import desktop_connection
+
+    if configured:
+        profile = configure_cognition(profile, "https://existing-provider.example/v1", "existing-model",
+                                      "existing-private-key")
+    monkeypatch.setattr(desktop_cli.sys, "stdin", Mock(isatty=lambda: True))
+    monkeypatch.setattr("builtins.input", forbid)
+    monkeypatch.setattr("getpass.getpass", forbid)
+    monkeypatch.setattr(desktop_connection, "mcp_config", lambda directory: {"mcpServers": {"memory": {}}})
+    monkeypatch.setattr(desktop, "status", lambda directory: desktop._base_status(load_profile(directory)))
+    monkeypatch.setattr(desktop, "start", forbid)
+    monkeypatch.setattr(desktop, "restart", forbid)
+    desktop_cli.dispatch(arguments("setup", "--directory", str(profile.directory), "--no-start"))
+    output = capsys.readouterr()
+    result = json.loads(output.out)
+    assert result["cognition"] == ("configured" if configured else "not_configured")
+    assert output.err == ""
+    assert "existing-private-key" not in output.out
+    assert load_profile(profile.directory).cognition == profile.cognition

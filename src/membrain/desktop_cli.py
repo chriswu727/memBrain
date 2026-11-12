@@ -1,4 +1,3 @@
-import getpass
 import json
 import os
 import sys
@@ -16,14 +15,18 @@ def add_commands(commands):
             parser.add_argument("--database-port", type=int)
             parser.add_argument("--database", choices=("auto", "docker", "embedded"), default="auto",
                                 help="Database engine for a new installation; auto uses the embedded engine when installed")
-            parser.add_argument("--base-url", help="OpenAI-compatible cognition provider URL")
-            parser.add_argument("--model", help="Cognition model name")
-            parser.add_argument("--api-key-env", help="Name of the environment variable containing the provider key")
-            parser.add_argument("--thinking", choices=("enabled", "disabled"))
+            # The cognition options are frozen: memBrain needs no model of its own, and setup never
+            # asks for one. They remain only for installations that already configured a provider.
+            parser.add_argument("--base-url", help="Frozen: OpenAI-compatible cognition provider URL")
+            parser.add_argument("--model", help="Frozen: cognition model name")
+            parser.add_argument("--api-key-env",
+                                help="Frozen: name of the environment variable containing the cognition provider key")
+            parser.add_argument("--thinking", choices=("enabled", "disabled"), help="Frozen: cognition thinking mode")
             parser.add_argument("--cognition-preset", choices=("reasoning",),
-                                help="Explicitly allow 240s per cognitive batch and 16384 output tokens per request")
+                                help="Frozen: allow 240s per cognitive batch and 16384 output tokens per request")
             parser.add_argument("--no-start", action="store_true", help="Save configuration without starting services")
-            parser.add_argument("--non-interactive", action="store_true")
+            parser.add_argument("--non-interactive", action="store_true",
+                                help="Accepted for compatibility; setup never prompts")
         elif name == "logs":
             parser.add_argument("--lines", type=int, default=30)
     from .desktop_budget import add_commands as add_budget_commands
@@ -62,15 +65,8 @@ def _setup(args):
             raise ValueError("The selected provider key environment variable is empty.")
         profile = configure_cognition(profile, base_url=args.base_url, model=args.model,
                                       api_key=api_key, thinking=args.thinking)
-    elif profile.cognition is None and sys.stdin.isatty() and not args.non_interactive:
-        print("Configure the model used for memory learning once. Press Enter to skip for now.", file=sys.stderr)
-        print("Provider base URL: ", end="", file=sys.stderr, flush=True)
-        base_url = input().strip()
-        if base_url:
-            print("Model name: ", end="", file=sys.stderr, flush=True)
-            model = input().strip()
-            api_key = getpass.getpass("Provider API key (hidden): ")
-            profile = configure_cognition(profile, base_url=base_url, model=model, api_key=api_key)
+    # memBrain asks for no model of its own: the host's AI does every model task. The explicit
+    # cognition options above are frozen and kept only for installations that already use them.
     preset = getattr(args, "cognition_preset", None)
     if preset is not None:
         from dataclasses import replace
@@ -186,8 +182,6 @@ def dispatch(args):
         else:
             result = getattr(desktop, action)(args.directory)
         print(json.dumps(result, ensure_ascii=False, indent=2))
-        if action in {"setup", "start", "restart"} and result.get("cognition") == "not_configured":
-            print("Model-driven learning is not configured. MCP provides tools only; automatic conversation memory needs a host lifecycle adapter.", file=sys.stderr)
     except (desktop.DesktopError, SessionError, ChatConfigurationError, BackupError, RegistryError,
             SchemaCompatibilityError, ValueError) as error:
         print(f"{getattr(error, 'code', 'configuration_error')}: {error}", file=sys.stderr)
