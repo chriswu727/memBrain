@@ -6,8 +6,8 @@ As of 2026-11-12. Each row names the runtime its evidence covers; a row whose ru
 
 | Item | State | Runtime covered |
 | --- | --- | --- |
-| Pinned runtime | `d9c1a70` (pin `837b4bb2`); the default branch follows the integration branch at verified milestones and was last moved at `396391cc` (runtime `933f4d8`) | — |
-| Full source suite, local Linux | 8,532 passed, 4 skipped (Docker journeys), none failed ([report](../evaluations/host-consolidation-trial-2026-11-11.md)) | `d9c1a70` |
+| Pinned runtime | `75f50fd` (pin `59c6bc63`); the default branch follows the integration branch at verified milestones and was last moved at `b06a98b9` (runtime `d9c1a70`) | — |
+| Full source suite, local Linux | 8,533 passed, 4 skipped (Docker journeys), none failed ([report](../evaluations/host-consolidation-trial-2026-11-11.md)) | `75f50fd` |
 | GitHub Verify | Last result recorded in this repository: passed | `2ef05f3` |
 | Five-platform native qualification | Passed | `978312c` |
 | Real Mac installation, 49 checks | Passed | `7902c16e` |
@@ -15,13 +15,15 @@ As of 2026-11-12. Each row names the runtime its evidence covers; a row whose ru
 | R4 behavioural acceptance | **Failed** ([fifth attempt](../evaluations/maturity-fifth-attempt-2026-11-07.md): plugin passed, extraction failed) | `7902c16e` |
 | C5 companion evaluation | **Invalid, unscored** | `7902c16e` |
 | Memory quality, model-free | Recall block holds all the evidence for 74.1% of LoCoMo questions (72.2% held out) without cues ([report](../evaluations/message-context-embeddings-2026-11-10.md), `02a1aec`); 79.5% (78.5% held out) with cues a model wrote beforehand ([report](../evaluations/message-cues-2026-11-11.md)) | `6a136d6` |
-| Cue generation | By the host's own AI through `memory_consolidate`; memBrain calls no model. Claude Code on Sonnet followed it in a 13-turn trial; cues written batch by batch by a stand-in model keep about three quarters of the evidence gain (72.2% to 76.9% held out). Other hosts, smaller models and answers are untried ([report](../evaluations/host-consolidation-trial-2026-11-11.md)) | `d9c1a70` |
+| Cue generation | By the host's own AI through `memory_consolidate`; memBrain calls no model. Claude Code on Sonnet followed it in a 13-turn trial; cues written batch by batch by a stand-in model keep about four fifths of the evidence gain (72.2% to about 77% held out). Other hosts, smaller models and answers are untried ([report](../evaluations/host-consolidation-trial-2026-11-11.md)) | `75f50fd` |
 | LoCoMo answers, paid run | 82.5% of 1,540 questions (80.7% held out), level with full context; notes after every turn or session did not help ([report](../evaluations/locomo-controls-and-cues-2026-11-11.md), `933f4d8`). With cues a model wrote beforehand, held-out answers rise from 80.7% to 83.2% ([report](../evaluations/locomo-cue-answers-2026-11-11.md)) | `6a136d6` |
 | Known open defects | Listed in the [status audit](../evaluations/status-audit-2026-11-10.md) with what has since been fixed | — |
 
 No version tag, release or package upload exists, and none is made until the product is mature.
 
 ## History
+
+**Conversation-batch runtime `75f50fd` (2026-11-12):** [Batches that end where a conversation ends](../evaluations/host-consolidation-trial-2026-11-11.md). Pin `59c6bc63` points all nine launchers at it. A consolidation batch now ends with a conversation when at least ten messages remain in it and may hold 40 messages. Two paid replays on the held-out conversations (2.14 CNY) give 77.6% and 77.3% against 76.9% for batches of 20 and 78.5% for cues from whole sessions; the two runs differ from each other as much as the batching variants do, so the change is kept for giving the host fewer, more coherent batches and not for a measured gain. The full local source suite on the pin commit passes 8,533 tests with 4 skips and no failure. Verify, native Windows, macOS, five-platform qualification, the R5 overhead protocol and an independent review were not run. R4 remains failed and C5 invalid/unscored.
 
 **Quieter-consolidation runtime `d9c1a70` (2026-11-12):** [Host consolidation tried](../evaluations/host-consolidation-trial-2026-11-11.md). Pin `837b4bb2` points all nine launchers at it. A 13-turn trial on Claude Code with Sonnet, in an isolated memory, found the host AI consolidating each time it was asked and writing category cues, but reporting on it at length and consolidating two questions after a short session; the host is now asked only once five messages wait and told to keep it to a few words, and the tool remembers the batch it handed out, because a stand-in model returned the wrong batch number for 11% of batches in a paid replay (1.44 CNY). In that replay, cues written through the product's batches raise held-out evidence recall from 72.2% to 76.9%, against 78.5% for cues written from whole sessions. The full local source suite on the pin commit passes 8,532 tests with 4 skips and no failure. Verify, native Windows, macOS, five-platform qualification, the R5 overhead protocol and an independent review were not run. R4 remains failed and C5 invalid/unscored.
 

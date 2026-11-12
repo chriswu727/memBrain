@@ -1,6 +1,6 @@
-# Host consolidation tried: a real host follows it, and cues written batch by batch keep three quarters of the gain
+# Host consolidation tried: a real host follows it, and cues written batch by batch keep about four fifths of the gain
 
-Two checks of [host consolidation](host-consolidation-2026-11-11.md), both approved by the owner on 2026-11-11: a trial on a real host with its subscription, on a model other than the largest, and the paid replay [planned beforehand](host-consolidation-replay-plan-2026-11-11.md) with a 3 CNY ceiling. Runtime `139c15f` for both; the changes they led to are runtime `d9c1a70` (pin `837b4bb2`). It closes no release gate: **R4 remains failed and C5 invalid/unscored.**
+Two checks of [host consolidation](host-consolidation-2026-11-11.md), both approved by the owner on 2026-11-11: a trial on a real host with its subscription, on a model other than the largest, and the paid replay [planned beforehand](host-consolidation-replay-plan-2026-11-11.md) with a 3 CNY ceiling. Runtime `139c15f` for both; the changes they led to are runtimes `d9c1a70` (pin `837b4bb2`) and `75f50fd` (pin `59c6bc63`). It closes no release gate: **R4 remains failed and C5 invalid/unscored.**
 
 ## Trial on Claude Code
 
@@ -43,27 +43,28 @@ Claude Code 2.1.322, headless, model `claude-sonnet-5-5`, on WSL2. A copy of the
 
 The answer check (80.7% to 83.2%) used the cues from whole sessions and was not repeated with these.
 
-### Batches that end where a conversation ends (2026-11-12, runtime `58d046b`)
+### Batches that end where a conversation ends (2026-11-12, runtime `75f50fd`)
 
-To test whether cutting sessions into pieces caused the difference, a batch now ends at the end of a conversation when at least ten messages remain in it, and may hold up to 40 messages (8,000 characters). Replayed on the held-out conversations only: 150 batches, 4,431 messages offered, 1,488 given cues.
+To test whether cutting sessions into pieces caused the difference, a batch now ends at the end of a conversation when at least ten messages remain in it, and may hold up to 40 messages (8,000 characters). Replayed twice on the held-out conversations only, 150 batches and 4,431 messages each time.
 
-| Held out, recall block | Questions | No cues | Batches of 20 | Batches ending with a conversation | Whole sessions |
-| --- | --- | --- | --- | --- | --- |
-| All | 1,152 | 72.2% | 76.9% | **77.6%** | 78.5% |
-| One evidence turn | 831 | 86.6% | 90.7% | 91.1% | 91.2% |
-| Several evidence turns | 321 | 34.9% | 41.1% | 42.7% | 45.5% |
+| Held out, recall block | Questions | No cues | Batches of 20 | Batches ending with a conversation, first run | Second run | Whole sessions |
+| --- | --- | --- | --- | --- | --- | --- |
+| All | 1,152 | 72.2% | 76.9% | 77.6% | **77.3%** | 78.5% |
+| One evidence turn | 831 | 86.6% | 90.7% | 91.1% | 90.6% | 91.2% |
+| Several evidence turns | 321 | 34.9% | 41.1% | 42.7% | 43.0% | 45.5% |
 
-- Against batches of 20: 29 questions gained, 21 lost (p = 0.32). Against whole sessions: 23 gained, 33 lost (p = 0.23). Neither difference is significant; the order is the expected one.
-- **This run understates the new batches.** Eleven of the 150 replies (7%) were cut off at the replay's own limit of 1,500 output tokens, which larger batches now exceed, and those batches got no cues. A host AI has no such limit. The limit is raised in the script; the replay was not repeated, because that would pass the approved ceiling.
-- The change is kept: it is not worse with a handicap, and it hands the host AI fewer, more coherent batches.
-- An error of mine on the way: the first attempt of this replay removed the earlier cues from the held-out brains and then offered nothing, because review progress only moves forward and the harness had no way to restart it. It cost nothing; the harness now restarts the review of its own synthetic brains.
+- **The two runs of the same setup differ by 0.3 points** (20 questions gained, 23 lost between them). That is the size of the stand-in model's run-to-run variation, and the differences between ways of batching are not larger than it.
+- Second run against batches of 20: 28 gained, 23 lost (p = 0.58). Against whole sessions: 20 gained, 33 lost (p = 0.10). Against no cues: 82 gained, 23 lost (p < 10⁻⁸).
+- **So: cues written through the product's batches keep about four fifths of the gain, and how the batches are cut makes no measurable difference here.** The change is kept because it hands the host AI fewer and more coherent batches (150 against 222 on these conversations), not because it scored higher.
+- The first run was thought to be held back by the replay's own limit of 1,500 output tokens, since 11 of 150 replies were unusable. The owner approved a second run with the limit at 4,000: 6 of 150 were still unusable and the score did not rise. Truncation was not the cause; what makes those replies unusable was not examined. A real host answers through a typed tool call and not through free-form JSON, so this may not carry over.
+- An error of mine on the way: the first attempt removed the earlier cues from the held-out brains and then offered nothing, because review progress only moves forward and the harness had no way to restart it. It cost nothing; the harness now restarts the review of its own synthetic brains.
 
 ## Verification of the changes
 
-The full local source suite on the pin commit `837b4bb2`, with the local embedding model: 8,532 passed, 4 skipped (the Docker journeys), none failed, in 58 minutes; source and migrations unchanged during the run. The [end-to-end test](../tests/test_memory_consolidation.py) now covers the threshold, the second call without a batch number and a call before any batch was handed out. GitHub Verify, native Windows and macOS, five-platform qualification, the R5 overhead protocol and an independent review were not run.
+The full local source suite on the pin commit `837b4bb2`, with the local embedding model: 8,532 passed, 4 skipped (the Docker journeys), none failed, in 58 minutes; source and migrations unchanged during the run. After the batching change, on pin commit `59c6bc63` (runtime `75f50fd`): 8,533 passed, 4 skipped, none failed, in 56 minutes. The [end-to-end test](../tests/test_memory_consolidation.py) now covers the threshold, the second call without a batch number and a call before any batch was handed out. GitHub Verify, native Windows and macOS, five-platform qualification, the R5 overhead protocol and an independent review were not run.
 
 ## Cost
 
-Replays: **2.53 CNY** of the 3 CNY ceiling at ledger prices: 1.44 CNY for the first (299 `deepseek-flash` calls, 0.51 million input tokens) and 1.09 CNY for the second on the held-out conversations (151 calls, one of them in an aborted attempt). The trial used the owner's Claude subscription: thirteen headless turns on Sonnet, about 0.47 USD at list prices by the host's own accounting, reading its cost figure as cumulative within a conversation, which is how it behaves.
+Replays: **3.58 CNY** at ledger prices, of 4.5 CNY approved (3 CNY, then 1.5 CNY more for the second run on the held-out conversations): 1.44 CNY for the first replay (299 `deepseek-flash` calls), 1.09 CNY and 1.05 CNY for the two runs with the new batches (151 and 150 calls). The trial used the owner's Claude subscription: thirteen headless turns on Sonnet, about 0.47 USD at list prices by the host's own accounting, reading its cost figure as cumulative within a conversation, which is how it behaves.
 
-Files: [results-2026-11-11](locomo/results-2026-11-11/) holds `recall-cues-host-replay-139c15f.jsonl.gz` and its summary, `host-replay-batches.json` and `host-replay-ledger.json`. The second replay's files are `recall-cues-host-replay-conversations-58d046b.jsonl.gz`, `host-replay-conversations-batches.json` and `host-replay-conversations-ledger.json`.
+Files: [results-2026-11-11](locomo/results-2026-11-11/) holds `recall-cues-host-replay-139c15f.jsonl.gz` and its summary, `host-replay-batches.json` and `host-replay-ledger.json`. The runs with the new batches are `recall-cues-host-replay-conversations-58d046b.jsonl.gz` and `-75f50fd.jsonl.gz`, with `host-replay-conversations-batches.json`, `-rerun-batches.json` and the two ledgers.

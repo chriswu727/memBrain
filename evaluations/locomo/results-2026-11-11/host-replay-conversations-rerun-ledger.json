@@ -1,0 +1,21 @@
+{
+  "ceiling_cny": 1.5,
+  "spent_cny": 1.054194,
+  "stopped": null,
+  "models": {
+    "deepseek-flash": {
+      "calls": 150,
+      "prompt_tokens": 355713,
+      "completion_tokens": 42846,
+      "cny": 1.054194,
+      "unknown": 0,
+      "errors": 0
+    }
+  },
+  "phases": {
+    "stand-in for the host AI": {
+      "calls": 150,
+      "cny": 1.054194
+    }
+  }
+}
