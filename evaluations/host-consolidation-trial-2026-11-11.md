@@ -43,12 +43,27 @@ Claude Code 2.1.322, headless, model `claude-sonnet-5-5`, on WSL2. A copy of the
 
 The answer check (80.7% to 83.2%) used the cues from whole sessions and was not repeated with these.
 
+### Batches that end where a conversation ends (2026-11-12, runtime `58d046b`)
+
+To test whether cutting sessions into pieces caused the difference, a batch now ends at the end of a conversation when at least ten messages remain in it, and may hold up to 40 messages (8,000 characters). Replayed on the held-out conversations only: 150 batches, 4,431 messages offered, 1,488 given cues.
+
+| Held out, recall block | Questions | No cues | Batches of 20 | Batches ending with a conversation | Whole sessions |
+| --- | --- | --- | --- | --- | --- |
+| All | 1,152 | 72.2% | 76.9% | **77.6%** | 78.5% |
+| One evidence turn | 831 | 86.6% | 90.7% | 91.1% | 91.2% |
+| Several evidence turns | 321 | 34.9% | 41.1% | 42.7% | 45.5% |
+
+- Against batches of 20: 29 questions gained, 21 lost (p = 0.32). Against whole sessions: 23 gained, 33 lost (p = 0.23). Neither difference is significant; the order is the expected one.
+- **This run understates the new batches.** Eleven of the 150 replies (7%) were cut off at the replay's own limit of 1,500 output tokens, which larger batches now exceed, and those batches got no cues. A host AI has no such limit. The limit is raised in the script; the replay was not repeated, because that would pass the approved ceiling.
+- The change is kept: it is not worse with a handicap, and it hands the host AI fewer, more coherent batches.
+- An error of mine on the way: the first attempt of this replay removed the earlier cues from the held-out brains and then offered nothing, because review progress only moves forward and the harness had no way to restart it. It cost nothing; the harness now restarts the review of its own synthetic brains.
+
 ## Verification of the changes
 
 The full local source suite on the pin commit `837b4bb2`, with the local embedding model: 8,532 passed, 4 skipped (the Docker journeys), none failed, in 58 minutes; source and migrations unchanged during the run. The [end-to-end test](../tests/test_memory_consolidation.py) now covers the threshold, the second call without a batch number and a call before any batch was handed out. GitHub Verify, native Windows and macOS, five-platform qualification, the R5 overhead protocol and an independent review were not run.
 
 ## Cost
 
-Replay: **1.44 CNY** of the 3 CNY ceiling at ledger prices (299 `deepseek-flash` calls, 0.51 million input tokens). The trial used the owner's Claude subscription: thirteen headless turns on Sonnet, about 0.47 USD at list prices by the host's own accounting, reading its cost figure as cumulative within a conversation, which is how it behaves.
+Replays: **2.53 CNY** of the 3 CNY ceiling at ledger prices: 1.44 CNY for the first (299 `deepseek-flash` calls, 0.51 million input tokens) and 1.09 CNY for the second on the held-out conversations (151 calls, one of them in an aborted attempt). The trial used the owner's Claude subscription: thirteen headless turns on Sonnet, about 0.47 USD at list prices by the host's own accounting, reading its cost figure as cumulative within a conversation, which is how it behaves.
 
-Files: [results-2026-11-11](locomo/results-2026-11-11/) holds `recall-cues-host-replay-139c15f.jsonl.gz` and its summary, `host-replay-batches.json` and `host-replay-ledger.json`.
+Files: [results-2026-11-11](locomo/results-2026-11-11/) holds `recall-cues-host-replay-139c15f.jsonl.gz` and its summary, `host-replay-batches.json` and `host-replay-ledger.json`. The second replay's files are `recall-cues-host-replay-conversations-58d046b.jsonl.gz`, `host-replay-conversations-batches.json` and `host-replay-conversations-ledger.json`.

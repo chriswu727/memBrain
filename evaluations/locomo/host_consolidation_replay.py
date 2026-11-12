@@ -80,7 +80,7 @@ def replay(sample: dict, directory: Path, model: Model, out: Path, reset: bool) 
                     break
                 reply = model.chat([{"role": "system", "content": ROLE},
                                     {"role": "user", "content": json.dumps(batch, ensure_ascii=False)}],
-                                   json_mode=True, max_tokens=1500)
+                                   json_mode=True, max_tokens=4000)
                 try:
                     arguments = json.loads(reply.get("content") or "")
                     cues = arguments.get("cues") if isinstance(arguments, dict) else None

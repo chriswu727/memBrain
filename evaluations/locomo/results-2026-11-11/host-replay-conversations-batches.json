@@ -1,0 +1,65 @@
+{
+ "conv-42": {
+  "batches": 22,
+  "offered": 629,
+  "cued": 229,
+  "phrases": 321,
+  "refused": 0,
+  "unreadable": 1,
+  "done": true
+ },
+ "conv-43": {
+  "batches": 22,
+  "offered": 680,
+  "cued": 256,
+  "phrases": 348,
+  "refused": 0,
+  "unreadable": 1,
+  "done": true
+ },
+ "conv-44": {
+  "batches": 23,
+  "offered": 675,
+  "cued": 190,
+  "phrases": 267,
+  "refused": 0,
+  "unreadable": 5,
+  "done": true
+ },
+ "conv-47": {
+  "batches": 23,
+  "offered": 689,
+  "cued": 252,
+  "phrases": 368,
+  "refused": 0,
+  "unreadable": 1,
+  "done": true
+ },
+ "conv-48": {
+  "batches": 24,
+  "offered": 681,
+  "cued": 236,
+  "phrases": 382,
+  "refused": 0,
+  "unreadable": 1,
+  "done": true
+ },
+ "conv-49": {
+  "batches": 17,
+  "offered": 509,
+  "cued": 149,
+  "phrases": 240,
+  "refused": 0,
+  "unreadable": 1,
+  "done": true
+ },
+ "conv-50": {
+  "batches": 19,
+  "offered": 568,
+  "cued": 176,
+  "phrases": 276,
+  "refused": 0,
+  "unreadable": 1,
+  "done": true
+ }
+}
