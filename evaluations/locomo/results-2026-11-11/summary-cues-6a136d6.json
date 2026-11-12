@@ -1,0 +1,205 @@
+{
+  "all": {
+    "questions": 1540,
+    "with_evidence": 1535,
+    "M": {
+      "all_evidence": 0.8046,
+      "any_evidence": 0.9309,
+      "evidence_share": 0.8728
+    },
+    "M_recall_only": {
+      "all_evidence": 0.7948,
+      "any_evidence": 0.9238,
+      "evidence_share": 0.864
+    },
+    "R": {
+      "all_evidence": 0.8007,
+      "any_evidence": 0.9218,
+      "evidence_share": 0.8644
+    },
+    "mean_characters": 18211,
+    "mean_raw_characters": 18101,
+    "session_ms": {
+      "p50": 331.6,
+      "p95": 379.5
+    },
+    "prompt_ms": {
+      "p50": 433.9,
+      "p95": 488.0
+    }
+  },
+  "multi-hop": {
+    "questions": 282,
+    "with_evidence": 282,
+    "M": {
+      "all_evidence": 0.4539,
+      "any_evidence": 0.9433,
+      "evidence_share": 0.7235
+    },
+    "M_recall_only": {
+      "all_evidence": 0.4433,
+      "any_evidence": 0.9433,
+      "evidence_share": 0.7166
+    },
+    "R": {
+      "all_evidence": 0.4468,
+      "any_evidence": 0.9468,
+      "evidence_share": 0.7157
+    },
+    "mean_characters": 18222,
+    "mean_raw_characters": 18117,
+    "session_ms": {
+      "p50": 332.9,
+      "p95": 373.8
+    },
+    "prompt_ms": {
+      "p50": 433.9,
+      "p95": 665.1
+    }
+  },
+  "temporal": {
+    "questions": 321,
+    "with_evidence": 320,
+    "M": {
+      "all_evidence": 0.8875,
+      "any_evidence": 0.9344,
+      "evidence_share": 0.9143
+    },
+    "M_recall_only": {
+      "all_evidence": 0.8719,
+      "any_evidence": 0.9219,
+      "evidence_share": 0.9008
+    },
+    "R": {
+      "all_evidence": 0.8844,
+      "any_evidence": 0.925,
+      "evidence_share": 0.9052
+    },
+    "mean_characters": 18198,
+    "mean_raw_characters": 18090,
+    "session_ms": {
+      "p50": 327.3,
+      "p95": 380.6
+    },
+    "prompt_ms": {
+      "p50": 435.5,
+      "p95": 537.2
+    }
+  },
+  "open-domain": {
+    "questions": 96,
+    "with_evidence": 92,
+    "M": {
+      "all_evidence": 0.4891,
+      "any_evidence": 0.7935,
+      "evidence_share": 0.6283
+    },
+    "M_recall_only": {
+      "all_evidence": 0.4783,
+      "any_evidence": 0.7826,
+      "evidence_share": 0.6147
+    },
+    "R": {
+      "all_evidence": 0.5,
+      "any_evidence": 0.75,
+      "evidence_share": 0.6135
+    },
+    "mean_characters": 18220,
+    "mean_raw_characters": 18126,
+    "session_ms": {
+      "p50": 331.4,
+      "p95": 389.5
+    },
+    "prompt_ms": {
+      "p50": 438.9,
+      "p95": 508.0
+    }
+  },
+  "single-hop": {
+    "questions": 841,
+    "with_evidence": 841,
+    "M": {
+      "all_evidence": 0.9251,
+      "any_evidence": 0.9405,
+      "evidence_share": 0.9338
+    },
+    "M_recall_only": {
+      "all_evidence": 0.918,
+      "any_evidence": 0.9334,
+      "evidence_share": 0.9267
+    },
+    "R": {
+      "all_evidence": 0.9203,
+      "any_evidence": 0.931,
+      "evidence_share": 0.9261
+    },
+    "mean_characters": 18211,
+    "mean_raw_characters": 18098,
+    "session_ms": {
+      "p50": 333.1,
+      "p95": 379.4
+    },
+    "prompt_ms": {
+      "p50": 433.4,
+      "p95": 480.6
+    }
+  },
+  "one evidence turn": {
+    "questions": 1122,
+    "with_evidence": 1122,
+    "M": {
+      "all_evidence": 0.926,
+      "any_evidence": 0.926,
+      "evidence_share": 0.926
+    },
+    "M_recall_only": {
+      "all_evidence": 0.9171,
+      "any_evidence": 0.9171,
+      "evidence_share": 0.9171
+    },
+    "R": {
+      "all_evidence": 0.9189,
+      "any_evidence": 0.9189,
+      "evidence_share": 0.9189
+    },
+    "mean_characters": 18210,
+    "mean_raw_characters": 18099,
+    "session_ms": {
+      "p50": 331.3,
+      "p95": 380.9
+    },
+    "prompt_ms": {
+      "p50": 433.8,
+      "p95": 483.9
+    }
+  },
+  "several evidence turns": {
+    "questions": 413,
+    "with_evidence": 413,
+    "M": {
+      "all_evidence": 0.4746,
+      "any_evidence": 0.9443,
+      "evidence_share": 0.7282
+    },
+    "M_recall_only": {
+      "all_evidence": 0.4625,
+      "any_evidence": 0.9419,
+      "evidence_share": 0.7197
+    },
+    "R": {
+      "all_evidence": 0.4794,
+      "any_evidence": 0.9298,
+      "evidence_share": 0.7162
+    },
+    "mean_characters": 18215,
+    "mean_raw_characters": 18109,
+    "session_ms": {
+      "p50": 332.9,
+      "p95": 374.8
+    },
+    "prompt_ms": {
+      "p50": 434.3,
+      "p95": 582.3
+    }
+  }
+}

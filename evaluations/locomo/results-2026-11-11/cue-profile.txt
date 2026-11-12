@@ -1,0 +1,14 @@
+cue_profile.py, conv-26, first 80 questions, 2026-11-11, cue events read = twice the candidate slots.
+Median milliseconds; "off" has both cue weights at zero.
+
+Before choosing statements from their evidence references alone:
+off recall_context p50 128.4 {'ranked_events': 0.0, '_cued_statements': 0.0, 'collect_candidates': 55.4}
+on recall_context p50 151.2 {'ranked_events': 1.5, '_cued_statements': 20.1, 'collect_candidates': 78.4}
+off recall_context p50 132.2 {'ranked_events': 0.0, '_cued_statements': 0.0, 'collect_candidates': 58.0}
+on recall_context p50 155.9 {'ranked_events': 1.6, '_cued_statements': 20.6, 'collect_candidates': 80.0}
+
+After:
+off recall_context p50 129.4 {'ranked_events': 0.0, '_cued_statements': 0.0, 'collect_candidates': 55.9}
+on recall_context p50 141.8 {'ranked_events': 1.6, '_cued_statements': 9.7, 'collect_candidates': 67.9}
+off recall_context p50 128.2 {'ranked_events': 0.0, '_cued_statements': 0.0, 'collect_candidates': 56.5}
+on recall_context p50 140.7 {'ranked_events': 1.6, '_cued_statements': 9.7, 'collect_candidates': 67.4}

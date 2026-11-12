@@ -1,0 +1,11 @@
+config                                 all     one  several  sev share   chars  p50 ms
+0 no cues                            79.9%   92.1%    41.3%      63.2%    8517     136
+1 words p1                           80.7%   93.1%    41.3%      64.6%    8640     159
+2 words p2                           80.4%   92.8%    41.3%      65.0%    8592     160
+3 meaning 1.0                        80.7%   90.0%    51.1%      75.1%    8876     164
+4 meaning 0.5                        82.8%   93.8%    47.8%      72.8%    8857     164
+5 words p2 + meaning 1.0             80.9%   90.4%    51.1%      75.2%    8876     166
+6 words p2 + meaning 0.5             83.0%   93.5%    50.0%      74.1%    8858     165
+7 words p2 0.5 + meaning 0.5         83.0%   93.5%    50.0%      74.1%    8857     165
+8 words p1 + meaning 1.0             80.4%   90.4%    48.9%      74.4%    8871     167
+questions 383 one 291 several 92

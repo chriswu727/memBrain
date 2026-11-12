@@ -6,21 +6,24 @@ As of 2026-11-11. Each row names the runtime its evidence covers; a row whose ru
 
 | Item | State | Runtime covered |
 | --- | --- | --- |
-| Pinned runtime | `933f4d8` (pin `4af71af6`); the default branch follows the integration branch at verified milestones and carried it at `396391cc` | — |
-| Full source suite, local Linux | 8,518 of 8,523 passed, 4 skipped (Docker journeys); the 1 failure was a stale expectation, corrected without a further full run ([report](../evaluations/reply-erasure-database-auth-2026-11-11.md)) | `933f4d8` |
+| Pinned runtime | `6a136d6` (pin `7f27eb6d`); the default branch follows the integration branch at verified milestones and was last moved at `396391cc` (runtime `933f4d8`) | — |
+| Full source suite, local Linux | 8,528 passed, 4 skipped (Docker journeys), none failed ([report](../evaluations/message-cues-2026-11-11.md)) | `6a136d6` |
 | GitHub Verify | Last result recorded in this repository: passed | `2ef05f3` |
 | Five-platform native qualification | Passed | `978312c` |
 | Real Mac installation, 49 checks | Passed | `7902c16e` |
 | R5 overhead on the reference fixture | Passed 36 of 36 windows; **must be repeated**, the recall path has changed since | `f5e265c` |
 | R4 behavioural acceptance | **Failed** ([fifth attempt](../evaluations/maturity-fifth-attempt-2026-11-07.md): plugin passed, extraction failed) | `7902c16e` |
 | C5 companion evaluation | **Invalid, unscored** | `7902c16e` |
-| Memory quality, model-free | Recalled context holds all the evidence for 74.1% of LoCoMo questions (72.2% held out), level with plain retrieval ([report](../evaluations/message-context-embeddings-2026-11-10.md)) | `02a1aec` |
-| LoCoMo answers, paid run | 82.5% of 1,540 questions (80.7% held out), level with full context; notes after every turn or session did not help; cues attached to messages look promising in simulation ([report](../evaluations/locomo-controls-and-cues-2026-11-11.md)) | `933f4d8` |
+| Memory quality, model-free | Recall block holds all the evidence for 74.1% of LoCoMo questions (72.2% held out) without cues ([report](../evaluations/message-context-embeddings-2026-11-10.md), `02a1aec`); 79.5% (78.5% held out) with cues a model wrote beforehand ([report](../evaluations/message-cues-2026-11-11.md)) | `6a136d6` |
+| Cue generation | **Not built.** Storage, recall and the write path exist; the host's own AI is to write cues through memBrain's tools, with no extra model to configure | — |
+| LoCoMo answers, paid run | 82.5% of 1,540 questions (80.7% held out), level with full context; notes after every turn or session did not help; not repeated with cues ([report](../evaluations/locomo-controls-and-cues-2026-11-11.md)) | `933f4d8` |
 | Known open defects | Listed in the [status audit](../evaluations/status-audit-2026-11-10.md) with what has since been fixed | — |
 
 No version tag, release or package upload exists, and none is made until the product is mature.
 
 ## History
+
+**Message-cue runtime `6a136d6` (2026-11-11):** [Cues attached to messages](../evaluations/message-cues-2026-11-11.md). Pin `7f27eb6d` points all nine launchers at it; migration `035_message_cues.sql`. A message can carry cues, short phrases naming whom it is about and what kind of fact it holds; recall reaches the message through them as the `entity` route and still returns the original message; cues are deleted with their message. With cues a model wrote beforehand for the simulation, LoCoMo questions with all their evidence in the recall block rise from 74.1% to 79.5% (72.2% to 78.5% on held-out conversations; several-evidence questions 34.9% to 45.5%), at about 9 ms more per recall measured paired in one process. A first variant that fused cue matches by rank alone lowered recall on the development conversations and is recorded. Nothing generates cues yet; by the owner's decision of the same day the host's own AI is to write them, and memBrain ships and requires no model of its own. The full local source suite on the pin commit passes 8,528 tests with 4 skips and no failure. Answers were not measured with cues. Verify, native Windows, macOS, five-platform qualification, the R5 overhead protocol and an independent review were not run. R4 remains failed and C5 invalid/unscored.
 
 **Reply-erasure and database-authentication runtime `933f4d8` (2026-11-11):** [Deletion that reaches the reply, a lifecycle scenario, and SCRAM-only database connections](../evaluations/reply-erasure-database-auth-2026-11-11.md). Pin `4af71af6` points all nine launchers at it. A new end-to-end scenario on a real service (a memory kept, recalled, corrected, deleted, and not brought back by an older archive) found that erasing a user message in the plugin path left the reply that restated it; runtime `24d50954` records the reply as depending on its message, so it is erased with it. Runtime `933f4d8a` makes every database connection the product opens on loopback require SCRAM-SHA-256, closing one of the two credential findings withheld from the status audit; the other remains open. The full local source suite on the pin commit passes 8,518 of 8,523 tests with 4 skips; the 1 failure listed what a deletion removes without the reply and was corrected in `e4727375`, without a further full run. Verify, native Windows, macOS, the Docker database path, five-platform qualification, the R5 overhead protocol and an independent review were not run. R4 remains failed and C5 invalid/unscored.
 

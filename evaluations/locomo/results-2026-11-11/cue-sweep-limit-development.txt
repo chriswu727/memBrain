@@ -1,0 +1,6 @@
+config                                 all     one  several  sev share   chars  p50 ms
+0 no cues                            79.9%   92.1%    41.3%      63.2%    8517     133
+1 chosen, 2x events                  83.0%   93.5%    50.0%      74.1%    8858     147
+2 chosen, 1x events                  83.3%   93.5%    51.1%      74.7%    8858     142
+3 chosen, 0.5x events                83.3%   94.2%    48.9%      72.9%    8843     140
+questions 383 one 291 several 92
