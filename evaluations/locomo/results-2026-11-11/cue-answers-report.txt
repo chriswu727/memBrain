@@ -1,0 +1,23 @@
+questions answered by every arm: 1155
+                                     plain            cues
+all                           80.7% (1155)    83.2% (1155)
+multi-hop                      67.3% (208)     75.0% (208)
+temporal                       79.7% (231)     84.0% (231)
+open-domain                     58.7% (75)      57.3% (75)
+single-hop                     88.0% (641)     88.6% (641)
+one evidence turn              85.7% (831)     87.1% (831)
+several evidence turns         67.6% (321)     72.9% (321)
+mean context characters              17873           18211
+questions with a search                220             202
+plain -> cues: gained 69, lost 40
+  several evidence turns: gained 30, lost 13
+spent CNY: 18.243544 of 25.0 | stopped: None
+  answer:cues            calls   2513  CNY 18.244
+  deepseek-flash         calls   2513  in    8989012  out     33190  unknown 0  errors 0
+  cues-conv-42: 0 notes, 0 characters
+  cues-conv-43: 0 notes, 0 characters
+  cues-conv-44: 0 notes, 0 characters
+  cues-conv-47: 0 notes, 0 characters
+  cues-conv-48: 0 notes, 0 characters
+  cues-conv-49: 0 notes, 0 characters
+  cues-conv-50: 0 notes, 0 characters
