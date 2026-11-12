@@ -25,7 +25,12 @@ Claude Code 2.1.322, headless, model `claude-sonnet-5-5`, on WSL2. A copy of the
 
 **Haiku, seven turns in two conversations (2026-11-12, runtime `75f50fd`, `claude-haiku-5-5`):** in a new session with five messages waiting, it answered the user, found the tool, took the batch and returned cues for four of the five messages, passing over a unit conversion, and did not report on it. Two of its seven cues restated a detail ("user pottery class schedule", "Miso dog age").
 
-**What the trial does not show:** other hosts (Codex, WorkBuddy, CodeBuddy), long conversations where the session opening is far back in the context, an interactive session in which the user watches the tool calls, or anything about answers. Twenty turns on two models show that the path works, not how often it does.
+**Codex, six single-message sessions (2026-11-12, runtime `75f50fd`, Codex CLI 0.167 on Windows, its default model, which the run's output does not name):** in the sixth session, with five messages waiting, Codex took the batch and returned cues for four of the five ("user hobbies and activities"; "Ana residence", "Ana job", "user sister"; "user dietary preferences"; "Miso age", "user pets"), passed over the unit conversion, did not report on it, and then answered with a vegetarian suggestion. It consolidated before answering, not after. Two limits specific to this run:
+
+- **Codex's own hooks were not exercised.** Codex runs plugin hooks only after they are trusted in its interactive review, which a headless run cannot do, and the switch that skips that review was not used. The [driver](evidence/host-consolidation-trial-2026-11-11/codex_turn.py) called what the three hooks call and put their output at the top of the prompt; Codex answered and used the plugin's memory tools itself. The hook wiring was verified with Codex 0.165 earlier ([reference](../docs/reference.md)), not here.
+- The plugin was installed into a separate Codex configuration folder with a copy of the owner's login, deleted afterwards; memBrain ran in WSL in a memory of its own.
+
+**What the trial does not show:** WorkBuddy and CodeBuddy, Codex with its hooks running, long conversations where the session opening is far back in the context, an interactive session in which the user watches the tool calls, or anything about answers. Twenty-six turns on three models show that the path works, not how often it does.
 
 ## Replay: cues written through the product's batch format
 
