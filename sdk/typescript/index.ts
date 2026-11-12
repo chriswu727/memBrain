@@ -578,9 +578,11 @@ export class MemoryClient {
         : { reviewed_through_sequence: options.reviewedThroughSequence }) });
   }
   /** The user's messages not yet reviewed for cues, oldest first, with the sequence to pass back once read. */
-  pendingMessageCues(options: { limit?: number; maxCharacters?: number; brainId?: string } = {}): Promise<JsonObject> {
+  pendingMessageCues(options: { limit?: number; maxCharacters?: number; wholeConversations?: boolean;
+    brainId?: string } = {}): Promise<JsonObject> {
     const query = new URLSearchParams({ limit: String(options.limit ?? 20),
-      max_characters: String(options.maxCharacters ?? 6000) });
+      max_characters: String(options.maxCharacters ?? 6000),
+      whole_conversations: options.wholeConversations ? "true" : "false" });
     return this.#request("GET", `${this.#brainPath(options.brainId)}/message-cues/pending?${query}`);
   }
   recallWindows(windows: readonly { memory_id: string; revision: number;
