@@ -1,0 +1,80 @@
+== a1.jsonl
+hook hook_started SessionStart:startup 265 
+hook hook_started SessionStart:startup 265 
+hook hook_response SessionStart:startup 1668 
+model claude-sonnet-5-5 | membrain tools 0 [] | mcp [('plugin:membrain:membrain', 'pending')]
+hook hook_response SessionStart:startup 346 
+SAYS Center your clay firmly on the wheel before anything else. Brace your elbows against your body or thighs, and keep steady, even pressure with wet hands. Most beginner wobbles come from off-center clay, not from your shaping. Keep it wet, move slowly, and expect your first few pieces to collapse. Tha
+result turns 1 cost_usd 0.06704370000000001 in 2 cache_read 11217 cache_write 16102 out 151 ms 11104
+== a2.jsonl
+hook hook_started SessionStart:resume 264 
+hook hook_started SessionStart:resume 264 
+hook hook_response SessionStart:resume 2637 | indexed-notice
+hook hook_response SessionStart:resume 345 
+model claude-sonnet-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+TOOL ToolSearch {"query": "select:mcp__plugin_membrain_membrain__memory_note,mcp__plugin_membrain_membrain__memory_consolidate", "max_results": 5}
+RESULT [{"type": "tool_reference", "tool_name": "mcp__plugin_membrain_membrain__memory_note"}, {"type": "tool_reference", "tool_name": "mcp__plugin_membrain_membrain__memory_consolidate"}]
+TOOL memory_note {"text": "User's sister Ana just moved to Porto, Portugal for a job at a design studio (as of 2026-11-11).", "kind": "person", "about": "Ana (sister)", "source_messages": [{"producer_ref": "membrain-plugin", "source_event_key": "(id):(id):user", "source_revision": 1}], "recording_capture": "(removed)"}
+RESULT "{\"note_id\":\"(id)\",\"replaced\":[],\"unknown\":[],\"source_event_ids\":[],\"pending_source_count\":1}"
+TOOL memory_consolidate {}
+RESULT "{\"instructions\":\"These are earlier messages from this user that memory has not indexed yet. For each message that states a lasting fact about a person (the user or someone in their life), give one to four short cue phrases that name WHOM the fact is about and WHAT KIND of fact it is, in the words someone would use to ask about it later: \\\"Sam hobbies and activities\\\", \\\"Sam relationship status\\\", \\\"Sam's sister's job\\\", \\\"Sam places visited\\\", \\\"Sam reasons for changing job
+TOOL memory_consolidate {"cues": [{"id": 1, "cues": ["user hobbies and activities", "user pottery class schedule"]}], "reviewed_through": 1}
+RESULT "{\"indexed\":1,\"skipped\":0,\"remaining\":0}"
+SAYS Porto's winters are mild but wet, with daytime highs around 14–15°C (high 50s°F), lows around 6–8°C, and frequent Atlantic rain, so Ana will want a good waterproof jacket.
+result turns 5 cost_usd 0.1058744 in 10 cache_read 118187 cache_write 4478 out 908 ms 16469
+== a3.jsonl
+hook hook_started SessionStart:resume 264 
+hook hook_started SessionStart:resume 264 
+hook hook_response SessionStart:resume 4445 | indexed-notice
+hook hook_response SessionStart:resume 345 
+model claude-sonnet-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+SAYS 3 US cups is about 710 mL (1 cup ≈ 236.6 mL). If your recipe uses metric cups, it's 750 mL (1 cup = 250 mL).
+result turns 1 cost_usd 0.1140041 in 2 cache_read 31797 cache_write 989 out 99 ms 4714
+== a4.jsonl
+hook hook_started SessionStart:resume 264 
+hook hook_started SessionStart:resume 264 
+hook hook_response SessionStart:resume 4449 | indexed-notice
+hook hook_response SessionStart:resume 345 
+model claude-sonnet-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+TOOL memory_note {"text": "User is vegetarian; keep this in mind whenever food comes up.", "kind": "constraint", "source_messages": [{"producer_ref": "membrain-plugin", "source_event_key": "(id):(id):user", "source_revision": 1}], "recording_capture": "(removed)"}
+RESULT "{\"note_id\":\"(id)\",\"replaced\":[],\"unknown\":[],\"source_event_ids\":[],\"pending_source_count\":1}"
+SAYS Got it, I'll keep food suggestions vegetarian.
+result turns 2 cost_usd 0.1299822 in 4 cache_read 66601 cache_write 1435 out 357 ms 7204
+== b1.jsonl
+hook hook_started SessionStart:startup 265 
+hook hook_started SessionStart:startup 265 
+hook hook_response SessionStart:startup 5852 | indexed-notice
+hook hook_response SessionStart:startup 346 
+model claude-sonnet-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+SAYS Here are two ideas: 1. **Cook Portuguese and call Ana.** Make a vegetarian caldo verde (skip the chorizo) or pastéis de nata, then video-call her to see how Porto life is going. 2. **Do a hands-on day.** Visit a local ceramics studio or open-studio day to get ideas before your Thursday pottery class
+TOOL ToolSearch {"query": "select:mcp__plugin_membrain_membrain__memory_consolidate", "max_results": 1}
+RESULT [{"type": "tool_reference", "tool_name": "mcp__plugin_membrain_membrain__memory_consolidate"}]
+TOOL memory_consolidate {}
+RESULT "{\"instructions\":\"These are earlier messages from this user that memory has not indexed yet. For each message that states a lasting fact about a person (the user or someone in their life), give one to four short cue phrases that name WHOM the fact is about and WHAT KIND of fact it is, in the words someone would use to ask about it later: \\\"Sam hobbies and activities\\\", \\\"Sam relationship status\\\", \\\"Sam's sister's job\\\", \\\"Sam places visited\\\", \\\"Sam reasons for changing job
+TOOL memory_consolidate {"cues": [{"id": 5, "cues": ["user's sister Ana relocation", "Ana's job and workplace", "user family members"]}, {"id": 10, "cues": ["user dietary restrictions", "user food preferences"]}], "reviewed_through": 10}
+RESULT "{\"indexed\":2,\"skipped\":0,\"remaining\":0}"
+SAYS I've finished indexing your earlier messages in memory, so the two ideas above are all you need for the weekend.
+result turns 4 cost_usd 0.08715989999999998 in 10 cache_read 100999 cache_write 17120 out 856 ms 12601
+== b2.jsonl
+hook hook_started SessionStart:resume 264 
+hook hook_started SessionStart:resume 264 
+hook hook_response SessionStart:resume 5847 | indexed-notice
+hook hook_response SessionStart:resume 345 
+model claude-sonnet-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+SAYS From what I have saved, you have a sister named Ana. She just moved to Porto, Portugal for a job at a design studio, which you told me on 2026-11-11. That's the only family information I have. I don't know about parents, other siblings, or anyone else.
+result turns 1 cost_usd 0.09789479999999998 in 2 cache_read 30209 cache_write 1230 out 279 ms 5900
+== c1.jsonl
+hook hook_started SessionStart:startup 265 
+hook hook_started SessionStart:startup 265 
+hook hook_response SessionStart:startup 6156 | indexed-notice
+hook hook_response SessionStart:startup 346 
+model claude-sonnet-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+SAYS From what you've told me, the only hobby I know of is pottery. You signed up for a Thursday class and are just starting out at the wheel. I don't have anything else on record, so if you have other hobbies, tell me and I'll remember them.
+TOOL ToolSearch {"query": "select:mcp__plugin_membrain_membrain__memory_consolidate", "max_results": 1}
+RESULT [{"type": "tool_reference", "tool_name": "mcp__plugin_membrain_membrain__memory_consolidate"}]
+TOOL memory_consolidate {}
+RESULT "{\"instructions\":\"These are earlier messages from this user that memory has not indexed yet. For each message that states a lasting fact about a person (the user or someone in their life), give one to four short cue phrases that name WHOM the fact is about and WHAT KIND of fact it is, in the words someone would use to ask about it later: \\\"Sam hobbies and activities\\\", \\\"Sam relationship status\\\", \\\"Sam's sister's job\\\", \\\"Sam places visited\\\", \\\"Sam reasons for changing job
+TOOL memory_consolidate {"cues": [], "reviewed_through": 14}
+RESULT "{\"indexed\":0,\"skipped\":0,\"remaining\":0}"
+SAYS I finished the memory indexing in the background. The two earlier messages it covered were a request for weekend ideas and a question about your family. Neither stated a new lasting fact, so nothing new was saved.
+result turns 4 cost_usd 0.08406949999999999 in 10 cache_read 100675 cache_write 16853 out 657 ms 10524

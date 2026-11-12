@@ -1,0 +1,64 @@
+== d1.jsonl
+hook hook_started SessionStart:startup 265 
+hook hook_started SessionStart:startup 265 
+hook hook_response SessionStart:startup 1668 
+model claude-sonnet-5-5 | membrain tools 0 [] | mcp [('plugin:membrain:membrain', 'pending')]
+hook hook_response SessionStart:startup 346 
+SAYS Wear clothes you don't mind getting muddy, and keep your fingernails short. Clay gets everywhere, and short nails make it easier to handle. Have fun on Thursday!
+result turns 1 cost_usd 0.0593609 in 2 cache_read 13089 cache_write 14217 out 118 ms 19028
+== d2.jsonl
+hook hook_started SessionStart:resume 264 
+hook hook_started SessionStart:resume 264 
+hook hook_response SessionStart:resume 2227 
+hook hook_response SessionStart:resume 345 
+model claude-sonnet-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+TOOL ToolSearch {"query": "select:mcp__plugin_membrain_membrain__memory_note", "max_results": 1}
+RESULT [{"type": "tool_reference", "tool_name": "mcp__plugin_membrain_membrain__memory_note"}]
+TOOL memory_note {"text": "User's sister Ana just moved to Porto (Nov 2026) for a job at a design studio.", "kind": "person", "about": "Ana (user's sister)", "aliases": ["Ana"], "source_messages": [{"producer_ref": "membrain-plugin", "source_event_key": "(id):(id):user", "source_revision": 1}], "recording_capture": "(removed)"}
+RESULT "{\"note_id\":\"(id)\",\"replaced\":[],\"unknown\":[],\"source_event_ids\":[],\"pending_source_count\":1}"
+SAYS Porto winters are mild but wet: daytime highs are around 13–15°C (mid-50s°F), nights are cool, and rain is frequent, so Ana will want a good raincoat more than a heavy coat. I also saved a note that Ana moved to Porto for the design studio job.
+result turns 3 cost_usd 0.08886480000000001 in 8 cache_read 85999 cache_write 3347 out 750 ms 12928
+== d3.jsonl
+hook hook_started SessionStart:resume 264 
+hook hook_started SessionStart:resume 264 
+hook hook_response SessionStart:resume 4033 
+hook hook_response SessionStart:resume 345 
+model claude-sonnet-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+SAYS 3 US cups is about 710 mL (1 cup ≈ 236.6 mL). If you mean metric cups, which are 250 mL each, it's 750 mL.
+result turns 1 cost_usd 0.0962641 in 2 cache_read 30653 cache_write 940 out 57 ms 4901
+== d4.jsonl
+hook hook_started SessionStart:resume 264 
+hook hook_started SessionStart:resume 264 
+hook hook_response SessionStart:resume 4033 
+hook hook_response SessionStart:resume 345 
+model claude-sonnet-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+TOOL memory_note {"text": "User is vegetarian.", "kind": "constraint", "source_messages": [{"producer_ref": "membrain-plugin", "source_event_key": "(id):(id):user", "source_revision": 1}], "recording_capture": "(removed)"}
+RESULT "{\"note_id\":\"(id)\",\"replaced\":[],\"unknown\":[],\"source_event_ids\":[],\"pending_source_count\":1}"
+SAYS Noted, vegetarian.
+result turns 2 cost_usd 0.10908150000000001 in 4 cache_read 63554 cache_write 766 out 339 ms 8086
+== d5.jsonl
+hook hook_started SessionStart:resume 264 
+hook hook_started SessionStart:resume 264 
+hook hook_response SessionStart:resume 4245 
+hook hook_response SessionStart:resume 345 
+model claude-sonnet-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+TOOL memory_note {"text": "User's dog Miso turned three in early Nov 2026 (about the week before 2026-11-11).", "kind": "person", "about": "Miso (user's dog)", "aliases": ["Miso"], "source_messages": [{"producer_ref": "membrain-plugin", "source_event_key": "(id):(id):user", "source_revision": 1}], "recording_capture": "(removed)"}
+RESULT "{\"note_id\":\"(id)\",\"replaced\":[],\"unknown\":[],\"source_event_ids\":[],\"pending_source_count\":1}"
+SAYS Happy belated birthday to Miso! I've saved a note about it.
+result turns 2 cost_usd 0.1254612 in 4 cache_read 65637 cache_write 1392 out 424 ms 8064
+== d6.jsonl
+hook hook_started SessionStart:resume 264 
+hook hook_started SessionStart:resume 264 
+hook hook_response SessionStart:resume 5107 | indexed-notice
+hook hook_response SessionStart:resume 345 
+model claude-sonnet-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+TOOL memory_note {"text": "User works as a nurse on night shifts and sleeps in the mornings.", "kind": "routine", "source_messages": [{"producer_ref": "membrain-plugin", "source_event_key": "(id):(id):user", "source_revision": 1}], "recording_capture": "(removed)"}
+RESULT "{\"note_id\":\"(id)\",\"replaced\":[],\"unknown\":[],\"source_event_ids\":[],\"pending_source_count\":1}"
+TOOL ToolSearch {"query": "select:mcp__plugin_membrain_membrain__memory_consolidate", "max_results": 1}
+RESULT [{"type": "tool_reference", "tool_name": "mcp__plugin_membrain_membrain__memory_consolidate"}]
+TOOL memory_consolidate {}
+RESULT "{\"instructions\":\"These are earlier messages from this user that memory has not indexed yet. For each message that states a lasting fact about a person (the user or someone in their life), give one to four short cue phrases that name WHOM the fact is about and WHAT KIND of fact it is, in the words someone would use to ask about it later: \\\"Sam hobbies and activities\\\", \\\"Sam relationship status\\\", \\\"Sam's sister's job\\\", \\\"Sam places visited\\\", \\\"Sam reasons for changing job
+TOOL memory_consolidate {"cues": [{"id": 1, "cues": ["user hobbies and activities", "user weekly schedule"]}, {"id": 4, "cues": ["user's sister family", "user's sister's job", "user's sister's location"]}, {"id": 9, "cues": ["user diet and food preferences"]}, {"id": 12, "cues": ["user's pets", "user's dog"]}]}
+RESULT "{\"indexed\":4,\"skipped\":0,\"remaining\":0,\"note\":\"Done. Carry on with the user's request; do not describe this beyond a few words.\"}"
+SAYS Night shifts noted, so mornings are your sleep time.
+result turns 5 cost_usd 0.16057539999999998 in 10 cache_read 141142 cache_write 3100 out 858 ms 11728

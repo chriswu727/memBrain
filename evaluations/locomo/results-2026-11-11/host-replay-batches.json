@@ -1,0 +1,102 @@
+{
+ "conv-26": {
+  "batches": 21,
+  "offered": 419,
+  "cued": 188,
+  "phrases": 325,
+  "wrong_number": 3,
+  "refused": 0,
+  "unreadable": 0,
+  "done": true
+ },
+ "conv-30": {
+  "batches": 19,
+  "offered": 369,
+  "cued": 128,
+  "phrases": 212,
+  "wrong_number": 1,
+  "refused": 0,
+  "unreadable": 0,
+  "done": true
+ },
+ "conv-41": {
+  "batches": 34,
+  "offered": 663,
+  "cued": 231,
+  "phrases": 360,
+  "wrong_number": 2,
+  "refused": 0,
+  "unreadable": 0,
+  "done": true
+ },
+ "conv-42": {
+  "batches": 32,
+  "offered": 629,
+  "cued": 247,
+  "phrases": 362,
+  "wrong_number": 4,
+  "refused": 0,
+  "unreadable": 0,
+  "done": true
+ },
+ "conv-43": {
+  "batches": 34,
+  "offered": 680,
+  "cued": 278,
+  "phrases": 414,
+  "wrong_number": 4,
+  "refused": 0,
+  "unreadable": 1,
+  "done": true
+ },
+ "conv-44": {
+  "batches": 34,
+  "offered": 675,
+  "cued": 258,
+  "phrases": 396,
+  "wrong_number": 0,
+  "refused": 0,
+  "unreadable": 0,
+  "done": true
+ },
+ "conv-47": {
+  "batches": 35,
+  "offered": 689,
+  "cued": 277,
+  "phrases": 408,
+  "wrong_number": 3,
+  "refused": 0,
+  "unreadable": 0,
+  "done": true
+ },
+ "conv-48": {
+  "batches": 35,
+  "offered": 681,
+  "cued": 257,
+  "phrases": 445,
+  "wrong_number": 3,
+  "refused": 0,
+  "unreadable": 0,
+  "done": true
+ },
+ "conv-49": {
+  "batches": 26,
+  "offered": 509,
+  "cued": 189,
+  "phrases": 305,
+  "wrong_number": 6,
+  "refused": 0,
+  "unreadable": 0,
+  "done": true
+ },
+ "conv-50": {
+  "batches": 29,
+  "offered": 568,
+  "cued": 211,
+  "phrases": 362,
+  "wrong_number": 7,
+  "refused": 0,
+  "unreadable": 0,
+  "done": true
+ }
+}
