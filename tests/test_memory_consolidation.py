@@ -1,8 +1,8 @@
 """The host's own AI indexes earlier messages: memBrain hands it a batch and saves the cues it returns.
 
-memBrain calls no model for this. A new session is told, in one sentence, that earlier messages await indexing;
-the consolidation tool hands the AI a batch with instructions; its second call saves cues and records how far it
-read. Afterwards recall reaches a message through its cue and the sentence is gone.
+memBrain calls no model for this. Once a handful of messages await indexing, a new session is told so in one
+sentence; the consolidation tool hands the AI a batch with instructions; its second call saves the cues, and the
+batch counts as read. Afterwards recall reaches a message through its cue and the sentence is gone.
 """
 import asyncio
 
@@ -40,29 +40,37 @@ def test_the_host_ai_is_asked_once_to_index_earlier_messages_and_recall_then_fin
         with host.ready_client(directory) as client:
             server = create_server(client, directory=directory)
             assert "not been indexed" not in host.session_context(directory, "first")  # Nothing stored yet.
+            assert "error" in _call(server, "memory_consolidate", {"cues": []})  # No batch was handed out.
             _turn(directory, "monday", POTTERY, "That sounds fun.", "1")
             _turn(directory, "monday", THANKS, "Any time.", "2")
+            # Two messages are not worth the host's model calls: it is asked once a handful have gathered.
+            assert "not been indexed" not in host.session_context(directory, "monday-evening")
+            for number, text in enumerate(("My sister Ana moved to Porto.", "What is 3 cups in millilitres?",
+                                           "I am vegetarian."), start=3):
+                _turn(directory, "monday", text, "Noted.", str(number))
 
             opening = host.session_context(directory, "tuesday")
-            assert "2 earlier messages have not been indexed by memory yet." in opening
-            assert "memory_consolidate" in opening
+            assert "5 earlier messages have not been indexed by memory yet." in opening
+            assert "memory_consolidate" in opening and "beyond a few words" in opening
             assert "not been indexed" not in host.session_context(directory, "tuesday", tools=None)
 
             batch = _call(server, "memory_consolidate", {})
-            assert [message["text"] for message in batch["messages"]] == [POTTERY, THANKS]
+            assert [message["text"] for message in batch["messages"]][:2] == [POTTERY, THANKS]
+            assert len(batch["messages"]) == 5 and batch["remaining"] == 5
             assert all(type(message["id"]) is int and len(message["date"]) == 10 for message in batch["messages"])
-            assert batch["remaining"] == 2 and batch["reviewed_through"] == batch["messages"][-1]["id"]
-            assert "WHAT KIND of fact" in batch["instructions"]
+            assert "WHAT KIND of fact" in batch["instructions"] and "reviewed_through" not in batch
 
-            # What a host AI sends back: a cue for the fact, none for the thanks.
-            for wrong in ({"cues": [{"id": batch["messages"][0]["id"], "cues": ["x"]}]},
-                          {"cues": [{"id": "one", "cues": ["x"]}], "reviewed_through": batch["reviewed_through"]},
-                          {"cues": [{"id": 10_000, "cues": ["x"]}], "reviewed_through": batch["reviewed_through"]}):
+            # What a host AI sends back: cues for the facts, none for the thanks and the question. It does not
+            # have to repeat which batch it is answering.
+            first, sister = batch["messages"][0]["id"], batch["messages"][2]["id"]
+            for wrong in ({"cues": [{"id": "one", "cues": ["x"]}]}, {"cues": [{"id": 10_000, "cues": ["x"]}]},
+                          {"cues": [{"id": first}]}):
                 assert "error" in _call(server, "memory_consolidate", wrong)
-            saved = _call(server, "memory_consolidate", {
-                "cues": [{"id": batch["messages"][0]["id"], "cues": ["user hobbies and activities"]}],
-                "reviewed_through": batch["reviewed_through"]})
-            assert saved == {"indexed": 1, "skipped": 0, "remaining": 0}
+            saved = _call(server, "memory_consolidate", {"cues": [
+                {"id": first, "cues": ["user hobbies and activities"]},
+                {"id": sister, "cues": ["user's sister where she lives", "user family members"]}]})
+            assert (saved["indexed"], saved["skipped"], saved["remaining"]) == (2, 0, 0)
+            assert "few words" in saved["note"]
             assert _call(server, "memory_consolidate", {})["messages"] == []
             assert "not been indexed" not in host.session_context(directory, "wednesday")
 
@@ -72,7 +80,6 @@ def test_the_host_ai_is_asked_once_to_index_earlier_messages_and_recall_then_fin
 
             host.pause(directory)
             assert "paused" in _call(server, "memory_consolidate", {})["error"]
-            assert "not been indexed" not in host.session_context(directory, "thursday")
     finally:
         try:
             desktop.stop(directory)

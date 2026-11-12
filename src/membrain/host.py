@@ -63,6 +63,9 @@ ASSISTANT_LINES = ('Lines marked "assistant said" are your own earlier replies: 
 TOOL_NAMES = {"note": "memory_note", "recall": "memory_recall", "pause": "memory_pause", "resume": "memory_resume",
               "resume_session": "session_id", "consolidate": "memory_consolidate"}
 CONSOLIDATION_MESSAGES = 20  # Earlier messages handed to the host AI in one consolidation call.
+# The host AI is asked only once this many messages await indexing: a session that follows a short one would
+# otherwise spend three model calls on a couple of messages, usually questions with nothing to index.
+CONSOLIDATION_MINIMUM = 5
 CONSOLIDATION_CHARACTERS = 6000
 CONSOLIDATION_INSTRUCTIONS = (
     "These are earlier messages from this user that memory has not indexed yet. For each message that states a "
@@ -73,8 +76,9 @@ CONSOLIDATION_INSTRUCTIONS = (
     "pottery class\" write \"Sam hobbies and activities\", not \"Sam pottery class\". Use the person's name when "
     "you know it, otherwise \"user\"; never \"I\" or \"she\". Skip greetings, requests, reactions and anything "
     "with no lasting fact. Then call this tool again once, with cues = [{\"id\": <message id>, \"cues\": [...]}] "
-    "for the messages that got cues and reviewed_through set to the number given here, even if no message got a "
-    "cue. The cues only help memory find these messages later; they are never shown to the user.")
+    "for the messages that got cues, or cues = [] if none did. The cues only help memory find these messages "
+    "later; they are never shown to the user. Afterwards do not report on this to the user: no list of what was "
+    "indexed, at most a few words.")
 
 
 def consolidation_notice(client, tools: dict | None = TOOL_NAMES) -> str:
@@ -85,11 +89,11 @@ def consolidation_notice(client, tools: dict | None = TOOL_NAMES) -> str:
         remaining = client.pending_message_cues(limit=1).get("remaining") or 0
     except Exception:
         return ""  # An older service, or one that is busy: indexing can wait for another session.
-    if not remaining:
+    if remaining < CONSOLIDATION_MINIMUM:
         return ""
-    return (f"{remaining} earlier message{'s have' if remaining != 1 else ' has'} not been indexed by memory yet. Once "
-            f"in this conversation, after you have answered the user's first message, call the {tools['consolidate']} "
-            "tool without arguments and do what it returns.")
+    return (f"{remaining} earlier messages have not been indexed by memory yet. Once in this conversation, after you "
+            f"have answered the user's first message, call the {tools['consolidate']} tool without arguments and do "
+            "what it returns; do not describe it to the user beyond a few words.")
 
 
 def notes_notice(tools: dict | None = TOOL_NAMES) -> str:
