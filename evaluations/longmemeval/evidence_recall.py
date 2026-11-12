@@ -24,6 +24,10 @@ does not mark the span.
     python evaluations/longmemeval/evidence_recall.py --data longmemeval_s_cleaned.json --out RUN_DIR \
         --model-cache MODEL_DIR --per-type 10 --shard 0/2
     python evaluations/longmemeval/evidence_recall.py --data longmemeval_s_cleaned.json --out RUN_DIR --report
+
+Sets drawn so far, all with the seed in this file: ``--per-type 10`` is the first test sample (2026-11-12);
+``--skip 10 --per-type 5 --keep`` is a development set whose stored histories are kept, so that a change to recall
+can be checked in minutes by asking again under a new ``--label``. Questions from position 15 on are untouched.
 """
 from __future__ import annotations
 
@@ -48,14 +52,15 @@ RAW_EMBED_CHARACTERS = 1500
 PRODUCER = "longmemeval-ingest"
 
 
-def sample(data: list[dict], per_type: int) -> list[dict]:
-    """``per_type`` questions of each type, chosen with a fixed seed; abstention questions have no evidence."""
+def sample(data: list[dict], per_type: int, skip: int = 0) -> list[dict]:
+    """``per_type`` questions of each type, chosen with a fixed seed, after the first ``skip`` of each type in that
+    order (so later sets never overlap earlier ones); abstention questions have no evidence."""
     chosen, generator = [], random.Random(SEED)
     for kind in sorted({item["question_type"] for item in data}):
         items = [item for item in data if item["question_type"] == kind and not item["question_id"].endswith("_abs")
                  and any(turn.get("has_answer") for session in item["haystack_sessions"] for turn in session)]
         generator.shuffle(items)
-        chosen.extend(items[:per_type])
+        chosen.extend(items[skip:skip + per_type])
     return chosen
 
 
@@ -139,7 +144,7 @@ def run(args) -> None:
     from membrain.local_embeddings import LocalEmbeddingProvider, installed
 
     data = json.loads(Path(args.data).read_text(encoding="utf-8"))
-    chosen = sample(data, args.per_type)
+    chosen = sample(data, args.per_type, args.skip)
     if args.extra:
         known = {item["question_id"] for item in chosen}
         chosen = [item for item in data if item["question_id"] in args.extra.split(",") and item["question_id"] not in known]
@@ -227,6 +232,7 @@ def main() -> None:
     parser.add_argument("--out", required=True)
     parser.add_argument("--model-cache", default="", help="Directory holding the pinned embedding model")
     parser.add_argument("--per-type", type=int, default=10, help="Questions of each of the six types")
+    parser.add_argument("--skip", type=int, default=0, help="Leave out the first N of each type in the seeded order")
     parser.add_argument("--extra", default="", help="Run only these question ids, outside the sample (a pilot)")
     parser.add_argument("--shard", default="0/1", help="This worker's part of the sample, as part/parts")
     parser.add_argument("--label", default="current")
