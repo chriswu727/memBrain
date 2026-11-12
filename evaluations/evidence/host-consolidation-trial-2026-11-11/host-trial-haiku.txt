@@ -1,0 +1,71 @@
+== h1.jsonl
+hook hook_started SessionStart:startup 265 
+hook hook_started SessionStart:startup 265 
+hook hook_response SessionStart:startup 1668 
+model claude-haiku-5-5 | membrain tools 0 [] | mcp [('plugin:membrain:membrain', 'pending')]
+hook hook_response SessionStart:startup 346 
+SAYS Spend extra time centering the clay before you do anything else. Most first-timer frustration comes from an off-center lump, and a well-centered start makes everything after it easier. Keep your hands wet and your elbows braced on your thighs or the wheel for control.
+result turns 1 cost_usd 0.00359177 in 2 cache_read 11217 cache_write 16912 out 194 ms 9851
+== h2.jsonl
+hook hook_started SessionStart:resume 264 
+hook hook_started SessionStart:resume 264 
+hook hook_response SessionStart:resume 2227 
+hook hook_response SessionStart:resume 345 
+model claude-haiku-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+TOOL ToolSearch {"query": "select:mcp__plugin_membrain_membrain__memory_note", "max_results": 1}
+RESULT [{"type": "tool_reference", "tool_name": "mcp__plugin_membrain_membrain__memory_note"}]
+TOOL memory_note {"text": "Sister Ana moved to Porto, Portugal in November 2026 for a job at a design studio.", "kind": "person", "about": "Ana", "source_messages": [{"producer_ref": "membrain-plugin", "source_event_key": "(id):(id):user", "source_revision": 1}], "recording_capture": "(removed)"}
+RESULT "{\"note_id\":\"(id)\",\"replaced\":[],\"unknown\":[],\"source_event_ids\":[],\"pending_source_count\":1}"
+SAYS Winter in Porto is mild but grey and wet: daytime highs usually sit around 13–15°C (55–59°F), it rarely freezes, and rain is frequent, so a warm waterproof jacket and an umbrella will serve Ana better than heavy winter gear. I also saved a note that Ana moved to Porto for a design studio job.
+result turns 3 cost_usd 0.00576387 in 6 cache_read 88770 cache_write 3774 out 1058 ms 10230
+== h3.jsonl
+hook hook_started SessionStart:resume 264 
+hook hook_started SessionStart:resume 264 
+hook hook_response SessionStart:resume 3989 
+hook hook_response SessionStart:resume 345 
+model claude-haiku-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+SAYS 3 US cups is about 709 mL (one US cup is 236.6 mL). If your recipe uses the metric cup (250 mL), 3 cups is 750 mL.
+result turns 1 cost_usd 0.0063424 in 2 cache_read 31903 cache_write 969 out 131 ms 3777
+== h4.jsonl
+hook hook_started SessionStart:resume 264 
+hook hook_started SessionStart:resume 264 
+hook hook_response SessionStart:resume 3989 
+hook hook_response SessionStart:resume 345 
+model claude-haiku-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+TOOL memory_note {"text": "User is vegetarian.", "kind": "constraint", "source_messages": [{"producer_ref": "membrain-plugin", "source_event_key": "(id):(id):user", "source_revision": 1}], "recording_capture": "(removed)"}
+RESULT "{\"note_id\":\"(id)\",\"replaced\":[],\"unknown\":[],\"source_event_ids\":[],\"pending_source_count\":1}"
+SAYS Noted, vegetarian.
+result turns 2 cost_usd 0.00740141 in 4 cache_read 66201 cache_write 953 out 412 ms 5113
+== h5.jsonl
+hook hook_started SessionStart:resume 264 
+hook hook_started SessionStart:resume 264 
+hook hook_response SessionStart:resume 4201 
+hook hook_response SessionStart:resume 345 
+model claude-haiku-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+TOOL memory_note {"text": "User's dog Miso turned three in early November 2026.", "kind": "other", "about": "Miso", "source_messages": [{"producer_ref": "membrain-plugin", "source_event_key": "(id):(id):user", "source_revision": 1}], "recording_capture": "(removed)"}
+RESULT "{\"note_id\":\"(id)\",\"replaced\":[],\"unknown\":[],\"source_event_ids\":[],\"pending_source_count\":1}"
+SAYS Happy birthday to Miso!
+result turns 2 cost_usd 0.00864269 in 4 cache_read 68588 cache_write 1520 out 502 ms 6188
+== i1.jsonl
+hook hook_started SessionStart:startup 265 
+hook hook_started SessionStart:startup 265 
+hook hook_response SessionStart:startup 6054 | indexed-notice
+hook hook_response SessionStart:startup 346 
+model claude-haiku-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+SAYS Try a vegetarian shakshuka: eggs poached in spiced tomato and pepper sauce, finished with feta and served with crusty bread.
+TOOL ToolSearch {"query": "select:mcp__plugin_membrain_membrain__memory_consolidate", "max_results": 1}
+RESULT [{"type": "tool_reference", "tool_name": "mcp__plugin_membrain_membrain__memory_consolidate"}]
+TOOL memory_consolidate {}
+RESULT "{\"instructions\":\"These are earlier messages from this user that memory has not indexed yet. For each message that states a lasting fact about a person (the user or someone in their life), give one to four short cue phrases that name WHOM the fact is about and WHAT KIND of fact it is, in the words someone would use to ask about it later: \\\"Sam hobbies and activities\\\", \\\"Sam relationship status\\\", \\\"Sam's sister's job\\\", \\\"Sam places visited\\\", \\\"Sam reasons for changing job
+TOOL memory_consolidate {"cues": [{"id": 1, "cues": ["user hobbies and activities", "user pottery class schedule"]}, {"id": 4, "cues": ["Ana sister's job", "Ana places lived"]}, {"id": 9, "cues": ["user diet and food restrictions"]}, {"id": 12, "cues": ["Miso dog age", "user pets"]}]}
+RESULT "{\"indexed\":4,\"skipped\":0,\"remaining\":0,\"note\":\"Done. Carry on with the user's request; do not describe this beyond a few words.\"}"
+SAYS Shakshuka is the pick: it's one pan, and it's easy to make vegetarian.
+result turns 4 cost_usd 0.00511113 in 8 cache_read 104743 cache_write 17597 out 1087 ms 9323
+== i2.jsonl
+hook hook_started SessionStart:resume 264 
+hook hook_started SessionStart:resume 264 
+hook hook_response SessionStart:resume 5537 
+hook hook_response SessionStart:resume 345 
+model claude-haiku-5-5 | membrain tools 12 ['mcp__plugin_membrain_membrain__memory_boundary', 'mcp__plugin_membrain_membrain__memory_capabilities', 'mcp__plugin_membrain_membrain__memory_checkpoint'] | mcp [('plugin:membrain:membrain', 'connected')]
+SAYS You've mentioned two family members so far: - **Ana**, your sister, moved to Porto, Portugal in November 2026 for a job at a design studio. - **Miso**, your dog, turned three in early November 2026. That's all I have on family and pets. If you tell me more, I can remember it for future sessions.
+result turns 1 cost_usd 0.00580492 in 2 cache_read 31489 cache_write 1226 out 267 ms 4529

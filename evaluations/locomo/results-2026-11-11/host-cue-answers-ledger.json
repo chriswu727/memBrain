@@ -1,0 +1,21 @@
+{
+  "ceiling_cny": 20.0,
+  "spent_cny": 18.331128,
+  "stopped": null,
+  "models": {
+    "deepseek-flash": {
+      "calls": 2518,
+      "prompt_tokens": 9031408,
+      "completion_tokens": 33539,
+      "cny": 18.331128,
+      "unknown": 0,
+      "errors": 0
+    }
+  },
+  "phases": {
+    "answer:cues": {
+      "calls": 2518,
+      "cny": 18.331128
+    }
+  }
+}

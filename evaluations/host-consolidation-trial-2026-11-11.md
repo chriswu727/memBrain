@@ -23,7 +23,9 @@ Claude Code 2.1.322, headless, model `claude-sonnet-5-5`, on WSL2. A copy of the
 
 **Revised version, six turns in one conversation:** no sentence until five messages had gathered; then one consolidation of five messages, cues for four and none for the unit conversion, no batch number passed, and the reply to the user was only the answer to their message ("Night shifts noted, so mornings are your sleep time.").
 
-**What the trial does not show:** other hosts (Codex, WorkBuddy, CodeBuddy), smaller models, long conversations where the session opening is far back in the context, an interactive session in which the user watches the tool calls, or anything about answers. Thirteen turns on one model show that the path works, not how often it does.
+**Haiku, seven turns in two conversations (2026-11-12, runtime `75f50fd`, `claude-haiku-5-5`):** in a new session with five messages waiting, it answered the user, found the tool, took the batch and returned cues for four of the five messages, passing over a unit conversion, and did not report on it. Two of its seven cues restated a detail ("user pottery class schedule", "Miso dog age").
+
+**What the trial does not show:** other hosts (Codex, WorkBuddy, CodeBuddy), long conversations where the session opening is far back in the context, an interactive session in which the user watches the tool calls, or anything about answers. Twenty turns on two models show that the path works, not how often it does.
 
 ## Replay: cues written through the product's batch format
 
@@ -41,7 +43,7 @@ Claude Code 2.1.322, headless, model `claude-sonnet-5-5`, on WSL2. A copy of the
 - **Against cues written from whole sessions, held out: 14 gained and 32 lost** (p = 0.011). The batch format keeps about three quarters of the gain (4.7 of 6.3 points) and loses most on questions that need several memories.
 - Not isolated: whether the difference comes from batches that cut a session into pieces, from the changed instructions and examples, or from run-to-run variation of the model.
 
-The answer check (80.7% to 83.2%) used the cues from whole sessions and was not repeated with these.
+The answer check (80.7% to 83.2%) used the cues from whole sessions; it was repeated with batch-written cues on 2026-11-12 and gave [82.7%](locomo-host-cue-answers-2026-11-12.md).
 
 ### Batches that end where a conversation ends (2026-11-12, runtime `75f50fd`)
 
