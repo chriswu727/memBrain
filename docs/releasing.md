@@ -6,8 +6,9 @@ As of 2026-11-12. Each row names the runtime its evidence covers; a row whose ru
 
 | Item | State | Runtime covered |
 | --- | --- | --- |
-| Pinned runtime | `75f50fd` (pin `59c6bc63`); the default branch follows the integration branch at verified milestones and was last moved at `b06a98b9` (runtime `d9c1a70`) | — |
-| Full source suite, local Linux | 8,533 passed, 4 skipped (Docker journeys), none failed ([report](../evaluations/host-consolidation-trial-2026-11-11.md)) | `75f50fd` |
+| Pinned runtime | `fa88a4b` (pin `5b7ec232`); the default branch follows the integration branch at verified milestones and was last moved at `b06a98b9` (runtime `d9c1a70`) | — |
+| Full source suite, local Linux | 8,535 passed, 4 skipped (Docker journeys), 2 failed: a stale expectation, corrected, and a port taken by another test session; both files passed alone afterwards ([report](../evaluations/assistant-replies-and-warm-up-2026-11-12.md)) | `fa88a4b` |
+| Second benchmark, model-free | LongMemEval, 60 questions, nothing tuned: evidence in the user's words 90.2% against 84.3% for plain retrieval; in the assistant's words 11% against 100% ([report](../evaluations/longmemeval-evidence-recall-2026-11-12.md)) | `75f50fd` |
 | GitHub Verify | Last result recorded in this repository: passed | `2ef05f3` |
 | Five-platform native qualification | Passed | `978312c` |
 | Real Mac installation, 49 checks | Passed | `7902c16e` |
@@ -22,6 +23,8 @@ As of 2026-11-12. Each row names the runtime its evidence covers; a row whose ru
 No version tag, release or package upload exists, and none is made until the product is mature.
 
 ## History
+
+**Reply-recall and warm-up runtime `fa88a4b` (2026-11-12):** [The host AI can ask for its own earlier replies, and the embedding model loads when the service starts](../evaluations/assistant-replies-and-warm-up-2026-11-12.md). Pin `5b7ec232` points all nine launchers at it. A 60-question LongMemEval evidence run on the unchanged system ([report](../evaluations/longmemeval-evidence-recall-2026-11-12.md)) found recall level with plain retrieval for what the user said and at 11% against 100% for what the assistant said, a weakness first recorded on 2026-10-29 and caused by a rule added after an acceptance error. By the owner's choice automatic recall stays as it is and the recall tool gains an option the host AI sets when the user asks about something it said; on 30 further questions the tool then returns the evidence of all five such questions. Whether hosts make that call is unmeasured. The first recall after a service start took about two seconds for loading the embedding model, first misreported as slow recall on large histories; the model now loads at start. The full local source suite on the pin commit passes 8,535 tests with 4 skips and 2 failures, a stale expectation corrected in `2847822f` and a port collision with another test session; both files passed alone afterwards. Verify, native Windows, macOS, five-platform qualification, the R5 overhead protocol and an independent review were not run. R4 remains failed and C5 invalid/unscored.
 
 **Conversation-batch runtime `75f50fd` (2026-11-12):** [Batches that end where a conversation ends](../evaluations/host-consolidation-trial-2026-11-11.md). Pin `59c6bc63` points all nine launchers at it. A consolidation batch now ends with a conversation when at least ten messages remain in it and may hold 40 messages. Two paid replays on the held-out conversations (2.14 CNY) give 77.6% and 77.3% against 76.9% for batches of 20 and 78.5% for cues from whole sessions; the two runs differ from each other as much as the batching variants do, so the change is kept for giving the host fewer, more coherent batches and not for a measured gain. The full local source suite on the pin commit passes 8,533 tests with 4 skips and no failure. Verify, native Windows, macOS, five-platform qualification, the R5 overhead protocol and an independent review were not run. R4 remains failed and C5 invalid/unscored.
 
