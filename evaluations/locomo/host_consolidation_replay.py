@@ -32,6 +32,24 @@ ROLE = ("You are an AI assistant with a memory plugin. You called its tool memor
         "received the JSON result below. Reply with only the JSON arguments of your second call to that tool.")
 
 
+def forget_progress(directory: Path) -> int:
+    """Start the review of a stored brain's messages again. The product has no such operation: review progress
+    only moves forward. This harness owns these synthetic brains and removes the row in their database."""
+    from membrain.helpers import Principal
+    from membrain.local_profile import load_profile
+    from membrain.storage import Database
+
+    profile = load_profile(directory)
+    database = Database(profile.database_url)
+    try:
+        with database.transaction(Principal(profile.tenant_id, profile.principal_id)) as conn:
+            return conn.execute("DELETE FROM memory_cue_progress").rowcount
+    finally:
+        close = getattr(database, "close", None)
+        if close:
+            close()
+
+
 def replay(sample: dict, directory: Path, model: Model, out: Path, reset: bool) -> dict:
     from membrain import desktop, host
     from membrain.mcp_server import create_server
@@ -45,7 +63,8 @@ def replay(sample: dict, directory: Path, model: Model, out: Path, reset: bool) 
     try:
         if reset and not state["batches"]:
             every = {turn["dia_id"]: [] for _, _, turns in sessions(sample) for turn in turns}
-            log("reset", sample["sample_id"], write_cues(sample, directory, every))
+            log("reset", sample["sample_id"], write_cues(sample, directory, every), "progress rows removed:",
+                forget_progress(directory))
         with host.ready_client(directory) as client:
             # The stored brains are paused for the host so that questions are never recorded; the service is not.
             server = create_server(client, directory=None)
