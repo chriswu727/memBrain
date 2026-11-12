@@ -56,7 +56,7 @@ def replay(sample: dict, directory: Path, model: Model, out: Path, reset: bool) 
 
     path = out / f"replay-{sample['sample_id']}.json"
     state = json.loads(path.read_text(encoding="utf-8")) if path.exists() else {
-        "batches": 0, "offered": 0, "cued": 0, "phrases": 0, "wrong_number": 0, "refused": 0, "unreadable": 0}
+        "batches": 0, "offered": 0, "cued": 0, "phrases": 0, "refused": 0, "unreadable": 0}
     if state.get("done"):
         return state
     start(directory)
@@ -89,12 +89,12 @@ def replay(sample: dict, directory: Path, model: Model, out: Path, reset: bool) 
                 if not isinstance(cues, list):
                     state["unreadable"] += 1
                     cues = []
-                if arguments.get("reviewed_through") != batch["reviewed_through"]:
-                    state["wrong_number"] += 1  # A host would be refused and have to call again.
-                result = call({"cues": cues, "reviewed_through": batch["reviewed_through"]})
+                # Until runtime d9c1a70 the batch carried a number the second call had to repeat, and the stand-in
+                # repeated a different one for 33 of 299 batches (``wrong_number`` in the first replay's counts).
+                result = call({"cues": cues})
                 if "error" in result:  # Malformed entries: the batch is passed over, as a host giving up would.
                     state["refused"] += 1
-                    result = call({"cues": [], "reviewed_through": batch["reviewed_through"]})
+                    result = call({"cues": []})
                     if "error" in result:
                         raise SystemExit(f"The tool refused an empty review: {result}")
                 state["batches"] += 1
