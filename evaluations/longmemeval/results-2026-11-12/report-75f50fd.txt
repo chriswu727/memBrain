@@ -1,0 +1,12 @@
+                                n  M block  R block    M all    R all  M share  R share
+all                            60    78.3%    86.7%    78.3%    96.7%    79.2%    91.0%
+knowledge-update               10    90.0%   100.0%    90.0%   100.0%    95.0%   100.0%
+multi-session                  10   100.0%    70.0%   100.0%   100.0%   100.0%    89.2%
+single-session-assistant       10    20.0%   100.0%    20.0%   100.0%    20.0%   100.0%
+single-session-preference      10    70.0%    60.0%    70.0%    80.0%    70.0%    60.0%
+single-session-user            10    90.0%   100.0%    90.0%   100.0%    90.0%   100.0%
+temporal-reasoning             10   100.0%    90.0%   100.0%   100.0%   100.0%    96.7%
+evidence in user turns only    51    90.2%    84.3%    90.2%    96.1%    91.2%    89.4%
+some evidence by assistant      9    11.1%   100.0%    11.1%   100.0%    11.1%   100.0%
+block, M against R: M complete where R is not 5, R complete where M is not 10
+mean characters: context 16702 recall block 7448 | median ms: session 251.05 prompt 2069.65 | median seconds to store and embed one history: 249.15
