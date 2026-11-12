@@ -30,6 +30,16 @@ Raw messages pile up and only part of them fits in a session, so durable facts m
 - When the user asks you not to bring up a topic ("please don't bring up my ex again"), save it with `memory_boundary`: the topic in a few words and `aliases` for other words they use for it, in any language. It is not a pause and not a request to forget.
 - Do not save routine requests, one-off tasks, things already in a note, or anything the user asked you not to keep. Saving a note does not need to be mentioned to the user.
 
+## Indexing earlier messages
+
+memBrain has no model of its own: you do the part of remembering that needs understanding. When the session notice says earlier messages have not been indexed, then once in the conversation, after you have answered the user's first message:
+
+1. Call `memory_consolidate` without arguments. It returns a batch of the user's earlier messages, each with an `id`, and instructions.
+2. For each message that states a lasting fact about a person, think of one to four short cue phrases naming whom the fact is about and what kind of fact it is ("Sam hobbies and activities", "Sam's sister's job"), in the words someone would use to ask about it later. Name the category; do not restate the detail. Skip greetings, requests and reactions.
+3. Call `memory_consolidate` once more with `cues` (a list of `{"id", "cues"}` for the messages that got cues) and `reviewed_through` exactly as the batch gave it, even when no message got a cue.
+
+The cues are an index: they help later recall find those messages and are never shown to the user. Do not interrupt the user's task for this, do not ask their permission each time, and mention it only briefly if at all ("I've filed away our earlier conversations"). If the result says more remain, leave them for a later session unless the user is not waiting on you.
+
 ## Reading memory
 
 `<membrain-coming-up>` lists plans and promises that are due soon, overdue or still open, with today's date: follow up naturally when it fits ("Did the passport arrive?") and never assume a planned action happened. Something only planned (a purchase, booking or task) may not exist yet: do not tell the user to use, extend or rely on it; say it is not confirmed, or make the suggestion conditional ("if the walker has arrived"). `<membrain-notes>` holds your earlier notes, grouped by kind; `<membrain-history>` holds the user's recent messages from other sessions; `<membrain-memory>` holds older messages related to the current one. Each line is dated and says who said it.
