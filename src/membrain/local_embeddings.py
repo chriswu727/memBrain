@@ -179,6 +179,17 @@ class LocalEmbeddingProvider:
                 self._document_tokenizer = document_tokenizer
         return self._session, self._tokenizer
 
+    def warm_up(self) -> bool:
+        """Load the model and run it once, so the first recall after a start does not wait for that (about two
+        seconds). Returns False, without raising, when the model is not installed yet or cannot be loaded."""
+        if not self.ready:
+            return False
+        try:
+            self(EmbeddingRequest(texts=("warm up",), purpose="query"))
+        except Exception:
+            return False
+        return True
+
     def _validated(self, request):
         if not isinstance(request, EmbeddingRequest):
             raise ValueError("request must be an EmbeddingRequest")

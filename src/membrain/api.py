@@ -1,6 +1,7 @@
 import hashlib
 import json
 import re
+import threading
 from contextlib import ExitStack, asynccontextmanager
 from importlib.resources import files
 from typing import Annotated, Literal
@@ -365,6 +366,11 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
         try:
             if recall_runner is not None:
                 await run_in_threadpool(recall_runner.start)
+            warm_up = getattr(getattr(service, "_embedding_provider", None), "warm_up", None)
+            if warm_up is not None:
+                # Not awaited: the service answers while the local model loads, and a recall that arrives first
+                # loads it itself.
+                threading.Thread(target=warm_up, name="embedding-warm-up", daemon=True).start()
             yield
         finally:
             resources.close()
