@@ -39,6 +39,8 @@ mv memBrain-main/integrations/astrbot/astrbot_plugin_membrain . && rm -rf memBra
 
 ## 机器人的模型不支持工具调用时
 
+**已冻结：** 用单独模型提取笔记（由 memBrain 自己调用该模型）的功能已冻结，不属于产品主线；已有设置在移除之前仍可继续使用。
+
 插件会给 AstrBot 的模型提供 `membrain_note` 工具。如果你用的模型不会调用工具，请填写三个提取设置（一个 OpenAI 兼容模型的名称、地址和 key，例如 `deepseek-chat`）：每次回复后，这个模型会把这轮对话读一遍，把长期有用的事实保存为笔记。每条值得读的消息多一次模型调用。
 
 ## 删除或导出某一个人的记忆

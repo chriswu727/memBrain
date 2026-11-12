@@ -39,6 +39,8 @@ Wrap text in `<private>…</private>` to keep it out of memory; values that look
 
 ## When the bot's model cannot call tools
 
+**Frozen:** note extraction with a separate model, in which memBrain calls that model itself, is frozen and outside the product's main line; existing settings keep working until it is removed.
+
 The plugin gives AstrBot's model a `membrain_note` tool. If the model you use does not call tools, fill in the three extraction settings (model, base URL and key of an OpenAI-compatible model such as `deepseek-chat`): after each reply, that model reads the exchange once and saves the lasting facts as notes. Each message worth reading costs one extra call.
 
 ## Erasing or exporting one person
