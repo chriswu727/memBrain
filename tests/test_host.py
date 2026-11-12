@@ -161,7 +161,7 @@ def test_mcp_recall_for_a_local_installation_is_the_compact_hook_recall(tmp_path
     monkeypatch.setattr(host, "recall_context", lambda client, query, **options: seen.append(query) or "<recalled>")
     server = create_server(Client(), directory=tmp_path)
     tool = {tool.name: tool for tool in asyncio.run(server.list_tools())}["memory_recall"]
-    assert set(tool.inputSchema["properties"]) == {"query", "with_ids"}
+    assert set(tool.inputSchema["properties"]) == {"query", "with_ids", "my_replies"}
     _, result = asyncio.run(server.call_tool("memory_recall", {"query": "Mei's allergy"}))
     assert result == {"context": "<recalled>"} and seen == ["Mei's allergy"]
     generic = {tool.name: tool for tool in asyncio.run(create_server(Client()).list_tools())}["memory_recall"]
