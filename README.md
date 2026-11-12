@@ -48,7 +48,7 @@ From the next session on, the plugin:
 
 Packaged host installers download a source archive pinned to a verified full Git revision; the Git command is not required. For a custom build, set `MEMBRAIN_PACKAGE` in shell launchers or change the MCP configuration’s `--from` argument.
 
-The first session installs the runtime and an embedded PostgreSQL database in the background; recording starts once the runtime can run. Messages sent before then are skipped, so unfiltered input is never queued by the shell. Once the runtime is installed, messages are privacy-filtered and queued if the database service is unavailable. Automatic recall matches the current message by keywords and, once a local multilingual model (about 135 MB, no API key) has downloaded in the background, by meaning across languages. Claude is also instructed to search memory deliberately when personal context matters. Set `HF_ENDPOINT` to download the model from a Hugging Face mirror. Run `membrain plugin import` once to copy what Claude Code, Hermes or OpenClaw already remember about you into memBrain (`--dry-run` to preview; Codex's memories describe projects rather than you and are imported only with `--all`). Run `membrain plugin ui` to open a local memory page, in English or Chinese, where you can review, correct and delete what is remembered, pause recording, or download a portable memory archive. Portable archives have [size limits](docs/reference.md); larger installations can use [installation backup and recovery](architecture/desktop-recovery.md). The page has separate People and Plans views, labelled source messages, a structured note editor, and service, indexing and recall readiness. Run `membrain doctor` to diagnose startup, model, queue and disk problems with concrete recovery commands. Model-driven background learning stays off unless you configure a provider. Memory lives in your user data directory (for example `~/.local/share/membrain` on Linux) and is shared by your sessions. See [plugin mode](architecture/plugin-mode.md) for the design, verification and limits.
+The first session installs the runtime and an embedded PostgreSQL database in the background; recording starts once the runtime can run. Messages sent before then are skipped, so unfiltered input is never queued by the shell. Once the runtime is installed, messages are privacy-filtered and queued if the database service is unavailable. Automatic recall matches the current message by keywords and, once a local multilingual model (about 135 MB, no API key) has downloaded in the background, by meaning across languages. Claude is also instructed to search memory deliberately when personal context matters. Set `HF_ENDPOINT` to download the model from a Hugging Face mirror. Run `membrain plugin import` once to copy what Claude Code, Hermes or OpenClaw already remember about you into memBrain (`--dry-run` to preview; Codex's memories describe projects rather than you and are imported only with `--all`). Run `membrain plugin ui` to open a local memory page, in English or Chinese, where you can review, correct and delete what is remembered, pause recording, or download a portable memory archive. Portable archives have [size limits](docs/reference.md); larger installations can use [installation backup and recovery](architecture/desktop-recovery.md). The page has separate People and Plans views, labelled source messages, a structured note editor, and service, indexing and recall readiness. Run `membrain doctor` to diagnose startup, model, queue and disk problems with concrete recovery commands. memBrain needs no model service or API key of its own; Claude does the interpretation. Memory lives in your user data directory (for example `~/.local/share/membrain` on Linux) and is shared by your sessions. See [plugin mode](architecture/plugin-mode.md) for the design, verification and limits.
 
 Other MCP hosts can add a stdio server that runs `uvx --python 3.12 --from "membrain-ai[embedded,semantic] @ git+https://github.com/chriswu727/membrain" membrain plugin mcp`. That provides the memory tools without automatic recording.
 
@@ -104,43 +104,28 @@ membrain plugin setup
 
 This starts local memory and opens a guided page. It distinguishes a running service from actual incoming agent messages, offers a retry if the local semantic model download fails, and explains how to check recall in a new session. Messages sent before the first runtime installation are skipped; check the page before relying on capture. You can also add a preference there. Corrections and removals refresh saved-note context before the next reply in an ongoing session; unchanged notes are not injected again. This updates the agent's context, but cannot remove text already seen by the host model.
 
-**For standalone chat:** install [uv](https://docs.astral.sh/uv/) and follow the commands below. This optional mode needs a Chat Completions-compatible model endpoint, model name, and API key; memory learning also requires JSON mode.
+**For another MCP host, without a plugin:** install [uv](https://docs.astral.sh/uv/) and set up the local service, then [connect it through MCP](#mcp):
 
 ```sh
 uv tool install --python 3.12 'membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/refs/heads/main.zip'
 membrain desktop setup
-membrain desktop configure-chat --use-cognition
-membrain desktop chat
 ```
 
-During `setup`, enter the provider details for memory learning. `configure-chat --use-cognition` explicitly reuses that configuration for replies. To use a different reply model, run `membrain desktop configure-chat` without the flag.
-
-Setup creates a persistent brain and starts its database, API, and background worker. With the `embedded` extra on macOS ARM64/x86_64, Windows x86_64 or Linux ARM64/x86_64 and Python 3.12, the database runs as embedded PostgreSQL 16.15 with pgvector 0.8.6 without Docker; elsewhere setup uses Docker Desktop (`--database docker|embedded` overrides the choice). You do not need to clone the repository or start these services separately. If the installed command is missing from your shell, run `uv tool update-shell` and reopen the terminal.
+Setup asks for no model and no API key. It creates a persistent brain and starts its database, API, and background worker. With the `embedded` extra on macOS ARM64/x86_64, Windows x86_64 or Linux ARM64/x86_64 and Python 3.12, the database runs as embedded PostgreSQL 16.15 with pgvector 0.8.6 without Docker; elsewhere setup uses Docker Desktop (`--database docker|embedded` overrides the choice). You do not need to clone the repository or start these services separately. If the installed command is missing from your shell, run `uv tool update-shell` and reopen the terminal.
 
 The first upgrade of an older embedded database preserves its original engine and a cold backup before changing catalogs. This needs extra free disk space. The API starts only after database maintenance, application initialization and recovery checks succeed. After adoption, older runtimes refuse the profile; keep the installed tool and MCP configuration on the same package source. A failed upgrade blocks readiness and preserves existing data and recovery files.
 
-**Storage is local; model processing follows your provider configuration.** Chat and semantic learning can incur API charges and send relevant content to that provider. Skipping cognition setup leaves storage and lexical recall available, but disables model-driven learning. Slow reasoning models may need the explicit [reasoning preset and provider controls](docs/reference.md#desktop-setup).
+**Storage is local, and memBrain needs no model service of its own.** Recall uses keywords and, once the local model is installed, meaning; the host's AI does any interpretation. An installation that configured a cognition model in an earlier version keeps it, but that model-driven learning is frozen and outside the product's main line ([reference](docs/reference.md#desktop-setup)).
 
-### Try continuity across conversations
+### Frozen: standalone chat
 
-Start with an ordinary task, such as:
-
-> I'm drafting a short story. Half-hour writing sessions work best for me.
-
-Continue the conversation, then enter `/quit`. Check background learning and open another conversation in the same installation:
-
-```sh
-membrain desktop learning-status
-membrain desktop chat --conversation writing-followup
-```
-
-Ask for help planning the next writing session. This lets you explore whether earlier feedback helps with a new request, without manually calling a save or search tool. A new conversation reuses the same brain; it is not a separate user's privacy boundary. If learning is pending or blocked, inspect its status before interpreting the result.
-
-This is a suggested hands-on exercise, not a prerecorded result or a guarantee of recall. A [bounded real-model diagnostic](evaluations/v1-2026-10-25-preference-use.md) records a related successful use of a half-hour preference alongside remaining answer-quality defects.
+The bundled chat mode (`membrain desktop configure-chat`, `membrain desktop chat`), in which memBrain calls a reply model itself, is frozen and outside the product's main line; it will be removed later. Existing chat configurations keep working. `configure-chat` asks for a Chat Completions-compatible endpoint, model name and API key for replies, which can incur API charges and send relevant content to that provider. See [direct chat](docs/reference.md#direct-chat-and-python-sessions).
 
 <a id="automatic-integration"></a>
 
 ## Python integration
+
+The Python session runtime below (`open_agent`, `BrainRuntime`) belongs to the frozen chat mode: memBrain calls the reply model itself, which is outside the product's main line. It keeps working for existing hosts and will be removed later.
 
 After desktop setup and chat configuration, install the package in your application's Python 3.12+ environment too. Run this from a project with an active virtual environment or a `.venv` directory. The CLI's isolated environment does not make the SDK importable in your application.
 

@@ -1,5 +1,7 @@
 # Text-agent integration and recovery
 
+**Frozen:** the desktop chat and Python runtime described here, in which memBrain calls the reply model itself, are frozen and outside the product's main line; host plugins and adapters are the supported integration.
+
 The desktop chat and Python runtime support synchronous text generation with a host-confirmed delivery receipt. Streaming, tool loops, automatic message edits, and generic client interception remain outside this adapter's supported mode. MCP alone does not supply missing lifecycle hooks.
 
 ## Inspect the unfinished turn

@@ -1,5 +1,7 @@
 # Cognitive policy configuration
 
+**Frozen:** the cognition model these limits govern is frozen and outside the product's main line, in which memBrain asks for no model of its own; this page is kept as reference for installations that already configured one.
+
 Situation understanding and background learning use a bounded proposal followed, when needed, by independent verification. The wall-time limit covers the whole batch; the output-token limit applies to each request. These limits are separate from the model that writes replies, the runtime context budget, and the brain's cumulative cognitive budget.
 
 ## Explicit reasoning preset

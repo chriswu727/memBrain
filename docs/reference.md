@@ -53,7 +53,9 @@ uv tool install --python 3.12 'membrain @ https://github.com/chriswu727/membrain
 membrain desktop setup
 ```
 
-This installation does not require Git or a repository clone, or separate startup commands for the database, API, and worker. If installation reports that the command directory is not in `PATH`, run `uv tool update-shell` and reopen your terminal. First-time setup asks for the service URL, model name, and API key used for memory learning; key input is hidden. Chat Completions-compatible providers are currently supported. The user supplies the model name and endpoint. Setup does not select a subscription or make model calls to probe the configuration. You can skip model configuration and still use persistent storage and lexical recall, but model-driven semantic learning remains disabled and status reports `cognition: not_configured`.
+This installation does not require Git or a repository clone, or separate startup commands for the database, API, and worker. If installation reports that the command directory is not in `PATH`, run `uv tool update-shell` and reopen your terminal. Setup asks for no model and no API key, and makes no model calls; status reports `cognition: not_configured` unless an earlier installation configured one.
+
+**Frozen:** the cognition model (model-driven background learning, configured with `desktop setup --base-url --model --api-key-env [--thinking]` or the `MEMORY_COGNITION_*` variables) is frozen and outside the product's main line, in which the host's own AI does every model task; existing configurations keep working, and the reference material below is kept until the code is removed.
 
 Setup creates a stable brain identity and local credentials, prepares a dedicated database, applies migrations, and starts the memory service and worker in the background. Repeating setup does not recreate the brain or clear its memories. The default API address is `127.0.0.1:8788`, and the database defaults to `127.0.0.1:55433`. On first setup, occupied ports are replaced with available ports and saved. An existing installation reports a port conflict rather than stopping another process or silently switching to a different brain.
 
@@ -67,9 +69,11 @@ membrain desktop mcp-config
 
 Add this configuration to a host that supports stdio MCP to connect the memory tools. Configuration locations vary by host; setup does not currently modify external client configuration automatically. Starting this MCP connection automatically starts or connects to the local service. Closing the MCP connection leaves the service processing background tasks. After a computer restart, the next MCP connection or SDK `open_client()` call starts the service again with the same brain; no new setup is required.
 
-**The MCP connection is still `tools_only`.** It does not automatically read all host conversations, take over compaction, or confirm message delivery. Agents that need automatic memory should use the Python runtime below and supply the host message lifecycle. Successful installation, a configured cognition model, and automatic host integration are three distinct states.
+**The MCP connection is still `tools_only`.** It does not automatically read all host conversations, take over compaction, or confirm message delivery. Agents that need automatic memory should use a host plugin or adapter that supplies the host message lifecycle ([plugin mode](#plugin-mode)); the Python runtime below is frozen. Successful installation, a configured cognition model, and automatic host integration are three distinct states.
 
 ### Direct chat and Python sessions
+
+**Frozen:** the bundled chat mode (`desktop configure-chat`, `desktop chat`, `open_agent()` and the `BrainRuntime` turns behind them), in which memBrain calls a reply model itself, is frozen and outside the product's main line; it keeps working for existing users and will be removed later.
 
 The Python `MemoryClient` retries a bodyless GET once if the connection resets or closes with a protocol/read error. It preserves the same destination, authentication, recovery acknowledgement and request options, and emits a warning without request content. A second failure propagates. Each attempt retains the configured HTTP timeout; this is not a total wall-clock deadline. Writes, GET requests with bodies, timeouts, HTTP error responses and invalid JSON are not automatically retried. This does not authorize repeating a model call or an uncertain delivery.
 
@@ -235,7 +239,7 @@ membrain desktop setup --non-interactive --no-start
 membrain desktop start
 ```
 
-To configure cognition non-interactively, use `--base-url`, `--model`, and `--api-key-env` to specify the service URL, model, and **name of an already-set environment variable containing the key**. Do not put the key value in command arguments. The optional `--thinking enabled|disabled` flag is only for providers that support it. The desktop service uses its own configuration; it does not automatically read the repository's `.env` or migrate brains from the development database into the new installation.
+The cognition options are frozen (see [desktop setup](#desktop-setup)) and remain only for installations that already use them. To configure cognition non-interactively, use `--base-url`, `--model`, and `--api-key-env` to specify the service URL, model, and **name of an already-set environment variable containing the key**. Do not put the key value in command arguments. The optional `--thinking enabled|disabled` flag is only for providers that support it. The desktop service uses its own configuration; it does not automatically read the repository's `.env` or migrate brains from the development database into the new installation.
 
 The current delivery provides local command-line installation and service management and still requires uv and Docker Desktop. There is no native one-click installer or complete lifecycle adapter for a specific host yet. The implementation includes Windows and Linux path and process handling, but desktop end-to-end acceptance currently covers macOS; the other operating systems have not been tested on actual machines. See [desktop installation and recovery acceptance](../evaluations/desktop-2026-10-24.md) for coverage and limitations.
 
@@ -275,6 +279,8 @@ The database binds to `127.0.0.1:55432` by default, and HTTP binds to `127.0.0.1
 `MEMORY_DATABASE_URL` and `MEMORY_MIGRATION_DATABASE_URL` are libpq connection strings. Every connection the runtime opens to a loopback address (`localhost`, `127.0.0.0/8` or `::1`) requires SCRAM-SHA-256 authentication (`require_auth=scram-sha-256`), so the client does not answer a cleartext or MD5 password request and a process holding the port cannot obtain the password. The embedded database and the Docker databases from `compose.yaml` and desktop setup authenticate with SCRAM, so their connections, including the URLs written by `membrain init`, already meet this requirement. A URL that sets `require_auth` itself is used as written, for example for a local server that offers only another method; remote hosts and Unix-socket paths are not changed. This needs libpq 16 or later, which the psycopg binary package bundles; with an older libpq the runtime refuses to connect instead of dropping the requirement. The embedded database's backup tools receive the same requirement through `PGREQUIREAUTH`.
 
 ## Automatic integration
+
+**Frozen:** `BrainRuntime`, with its orientation, answer review and recall controller, belongs to the frozen chat mode, in which memBrain calls models itself; the product's main line integrates through host plugins and adapters, where the host's AI replies.
 
 Python's `BrainRuntime` manages synchronous text turns. The host initializes it once with a model generation function and an actual delivery function. Application code submits received messages without calling memory tools or orchestrating reads and writes on each turn. The following example is for host developers. Install `membrain` in the host's Python environment as well, using the same source URL if needed; the CLI installed by `uv tool install` has an isolated environment and does not change the host's Python dependencies. Integration code can read the local configuration and connect to the stable brain directly:
 
@@ -429,6 +435,8 @@ Passive `candidate_hit` diagnostics are returned with the response, without dupl
 Schema 027 adds empty private cache and maintenance tables without rewriting old history at startup. An idle background-worker pass clears at most 256 legacy read-response bodies and 256 historical candidate diagnostics, using durable cursors and short transactions. It preserves request fingerprints, source memories and actual selection/feedback traces. Restoring a backup clears response caches and cleanup cursors while quarantined, before activation. The default desktop worker runs this maintenance automatically; self-managed services must run their worker. These limits bound live cached response content, not total PostgreSQL files: fingerprints, real history and indexes still grow, and PostgreSQL vacuuming reuses or releases dead-row space asynchronously. Maintenance does not run `VACUUM FULL` or promise immediate filesystem reclamation.
 
 The worker queue is bounded to four admitted requests per worker, including running requests. Queue, database and computation time share the dispatched transaction's wall-time budget. An expired transaction rolls back its trace and receipt writes; a timed-out task keeps its admission slot until it ends. Overload and worker failure return retryable errors without automatically replaying a request. Workers become ready during API startup and consume additional memory. Set `MEMBRAIN_RECALL_PROCESSES` to `0` for inline execution or `1`–`4` for a worker count, then restart the service. Desktop startup also reads this environment variable. Embedded `MemoryService` instances stay inline unless explicitly given a runner.
+
+**Frozen:** the server-side cognition model configured in the rest of this section is frozen and outside the product's main line; the recall worker settings above are not affected.
 
 All additional model providers are disabled by default. To enable server-side cognition in a development deployment, set the complete configuration below in `.env`, then restart the service and worker:
 
@@ -861,6 +869,8 @@ A resume tool cannot choose between multiple active turns for the same user. It 
 ### OpenAI-compatible proxy
 
 `membrain proxy --upstream URL [--host 127.0.0.1] [--port 8790] [--directory DIR] [--group-memory separate|shared]` (`membrain.proxy`) serves `ChatMemory` without tools. `POST /v1/chat/completions` (also without the `/v1` prefix) gets one system message with the person's memory inserted just before the latest user message; the reply, streamed or not, is stored with the message; other paths and malformed bodies are forwarded unchanged. The person is `X-Membrain-User` or the body's `user`, with optional `X-Membrain-Platform` (default `api`), `X-Membrain-Group` and `X-Membrain-Session`; anonymous requests share the user `default`. Without `MEMBRAIN_PROXY_TOKEN` the client's `Authorization` header is forwarded and only loopback addresses are allowed; with it, clients must present the token and `MEMBRAIN_UPSTREAM_KEY` is sent upstream instead. With no tools, the memory notice tells the model only that memory is active and that `<private>` text is not stored.
+
+**Frozen:** the proxy's optional note extraction with a separate model (`MEMBRAIN_EXTRACT_MODEL`, `MEMBRAIN_EXTRACT_KEY`, `MEMBRAIN_EXTRACT_BASE_URL`), in which memBrain calls a model itself, is frozen and outside the product's main line; it stays off unless already configured, and the background-extraction notes below describe it until it is removed.
 
 ### MCP
 

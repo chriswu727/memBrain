@@ -30,6 +30,8 @@ The proxy does not add tools, so the model cannot write notes or pause recording
 
 ## Notes from a model of your choice (optional)
 
+**Frozen:** note extraction with a separate model, in which memBrain calls that model itself, is frozen and outside the product's main line; it stays off unless you set `MEMBRAIN_EXTRACT_MODEL`, and existing setups keep working until it is removed.
+
 The proxy adds no tools, so the bot's own model cannot save notes. To give people notes, plans and people anyway, name a cheap model for note extraction:
 
 ```sh

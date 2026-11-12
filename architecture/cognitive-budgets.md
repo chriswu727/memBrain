@@ -1,5 +1,7 @@
 # Configuring cognitive budgets
 
+**Frozen:** cognitive budgets meter model calls that memBrain makes itself, chiefly for the cognition model, which is frozen and outside the product's main line; this page is kept as reference for installations that already configured one.
+
 The durable per-brain budget covers semantic orientation, background learning, and embedding jobs. By default it permits 100 reserved external calls and 2,000,000 input bytes in the previous 3,600 seconds. It does not cover the host's answer generation, response review, independent recall-controller calls, or an entire provider account. These are resource allowances, not currency limits.
 
 `GET /v1/brains/{brain_id}/runtime/cognitive-budget` returns the effective `policy`, its `revision`, whether it was explicitly configured, and `used` and `remaining` reservation counters. The usual authenticated owner scope applies. Reading does not create a policy row, start a worker, or make a model request. A new brain starts at revision zero.

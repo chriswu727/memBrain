@@ -48,7 +48,7 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 随插件提供的宿主安装入口会下载固定到已验证完整 Git 提交的源码压缩包，不需要 Git 命令。需要自定义版本时，可在 shell 启动入口设置 `MEMBRAIN_PACKAGE`，或修改 MCP 配置中的 `--from` 参数。
 
-第一个会话会在后台安装运行时和嵌入式 PostgreSQL 数据库；运行时能够运行后才开始记录。在此之前发送的消息会跳过，避免 shell 将未经隐私过滤的原文写入队列。运行时安装完成后，如果数据库服务不可用，消息会先经过隐私过滤再排队。自动召回按关键词匹配当前消息；本地多语言模型（约 135 MB，无需 API key）在后台下载完成后，还会按语义跨语言匹配。当问题涉及个人背景时，Claude 也会被引导主动检索记忆。可通过设置 `HF_ENDPOINT` 从 Hugging Face 镜像下载该模型。运行一次 `membrain plugin import`，可以把 Claude Code、Hermes 或 OpenClaw 已经记住的关于你的内容导入 memBrain（加 `--dry-run` 先预览；Codex 的记忆描述的是项目而不是你本人，只有加 `--all` 才会导入）。运行 `membrain plugin ui` 可打开本地记忆页面（支持中文和英文），查看、更正和删除已记住的内容，暂停记录，或下载便于迁移的记忆归档。归档有[容量限制](docs/reference.md)；较大的记忆库可以使用[安装备份与恢复](architecture/desktop-recovery.md)。页面提供独立的人物和计划视图、原始消息来源、结构化笔记编辑，以及服务、索引和召回就绪状态。运行 `membrain doctor` 可诊断启动、模型、队列和磁盘问题，并获得具体恢复命令。除非你配置了模型服务，否则不会启用由模型驱动的后台学习。记忆保存在你的用户数据目录（例如 Linux 上的 `~/.local/share/membrain`），由你的各个会话共享。设计、验证和限制详见[插件模式](architecture/plugin-mode.md)。
+第一个会话会在后台安装运行时和嵌入式 PostgreSQL 数据库；运行时能够运行后才开始记录。在此之前发送的消息会跳过，避免 shell 将未经隐私过滤的原文写入队列。运行时安装完成后，如果数据库服务不可用，消息会先经过隐私过滤再排队。自动召回按关键词匹配当前消息；本地多语言模型（约 135 MB，无需 API key）在后台下载完成后，还会按语义跨语言匹配。当问题涉及个人背景时，Claude 也会被引导主动检索记忆。可通过设置 `HF_ENDPOINT` 从 Hugging Face 镜像下载该模型。运行一次 `membrain plugin import`，可以把 Claude Code、Hermes 或 OpenClaw 已经记住的关于你的内容导入 memBrain（加 `--dry-run` 先预览；Codex 的记忆描述的是项目而不是你本人，只有加 `--all` 才会导入）。运行 `membrain plugin ui` 可打开本地记忆页面（支持中文和英文），查看、更正和删除已记住的内容，暂停记录，或下载便于迁移的记忆归档。归档有[容量限制](docs/reference.md)；较大的记忆库可以使用[安装备份与恢复](architecture/desktop-recovery.md)。页面提供独立的人物和计划视图、原始消息来源、结构化笔记编辑，以及服务、索引和召回就绪状态。运行 `membrain doctor` 可诊断启动、模型、队列和磁盘问题，并获得具体恢复命令。memBrain 不需要自己的模型服务或 API key，由 Claude 完成理解和解释。记忆保存在你的用户数据目录（例如 Linux 上的 `~/.local/share/membrain`），由你的各个会话共享。设计、验证和限制详见[插件模式](architecture/plugin-mode.md)。
 
 其他 MCP 宿主可以添加一个 stdio 服务器，运行 `uvx --python 3.12 --from "membrain-ai[embedded,semantic] @ git+https://github.com/chriswu727/membrain" membrain plugin mcp`。这样可以使用记忆工具，但不会自动记录。
 
@@ -105,44 +105,29 @@ membrain plugin setup
 
 命令会启动本地记忆并打开引导页面。页面区分“服务运行中”和“确实收到 Agent 消息”，本地语义模型下载失败时可重试，并说明如何在新会话中检查回忆。在首次运行时安装完成前发送的消息会跳过；依赖自动记录前，请先检查页面。你也可以直接在页面添加偏好。在进行中的会话里，笔记更正和移除会在下一次回复前刷新已保存笔记的上下文；未变化的笔记不会重复注入。这会更新 Agent 的上下文，但无法撤回宿主模型已经看到的文本。
 
-**使用独立聊天模式：** 安装 [uv](https://docs.astral.sh/uv/)，再执行下面的命令。这是可选模式，需要兼容 Chat Completions 的模型服务地址、模型名称和 API key；记忆学习还要求模型支持 JSON 模式。
+**为没有插件的其他 MCP 宿主使用：** 安装 [uv](https://docs.astral.sh/uv/)，设置本地服务，然后[通过 MCP 连接](#mcp)：
 
 ```sh
 uv tool install --python 3.12 'membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/refs/heads/main.zip'
 membrain desktop setup
-membrain desktop configure-chat --use-cognition
-membrain desktop chat
 ```
 
-在 `setup` 中填写用于记忆学习的模型配置。`configure-chat --use-cognition` 明确选择复用这份配置来生成回复。如需使用不同的回复模型，请运行不带该参数的 `membrain desktop configure-chat`。
-
-设置会创建一个持久大脑，并启动数据库、API 和后台任务处理器。在 macOS ARM64／x86_64、Windows x86_64 或 Linux ARM64／x86_64 上使用 Python 3.12 并安装 `embedded` 附加组件时，数据库使用嵌入式 PostgreSQL 16.15 和 pgvector 0.8.6，无需 Docker；其他环境下设置会使用 Docker Desktop（可用 `--database docker|embedded` 指定）。无需克隆仓库，也无需分别启动这些服务。如果终端找不到安装后的命令，请运行 `uv tool update-shell`，然后重新打开终端。
+设置不会询问任何模型或 API key。设置会创建一个持久大脑，并启动数据库、API 和后台任务处理器。在 macOS ARM64／x86_64、Windows x86_64 或 Linux ARM64／x86_64 上使用 Python 3.12 并安装 `embedded` 附加组件时，数据库使用嵌入式 PostgreSQL 16.15 和 pgvector 0.8.6，无需 Docker；其他环境下设置会使用 Docker Desktop（可用 `--database docker|embedded` 指定）。无需克隆仓库，也无需分别启动这些服务。如果终端找不到安装后的命令，请运行 `uv tool update-shell`，然后重新打开终端。
 
 旧版内置数据库首次升级时，会先保存原引擎和冷备份，再修改数据库目录，因此需要额外的可用磁盘空间。数据库维护、应用初始化和恢复检查全部成功后，API 才会启动。采用新引擎后，旧版程序会拒绝该配置；请让已安装的工具和 MCP 配置使用相同的软件包来源。升级失败会阻止就绪，并保留现有数据和恢复文件。
 
-**数据存储在本地；模型处理取决于你配置的提供方。** 聊天和语义学习可能产生 API 费用，并将相关内容发送给该提供方。跳过认知模型配置后，仍可使用存储和词面回忆，但模型驱动的学习会被禁用。较慢的推理模型可能需要显式启用[推理预设并调整提供方配置](docs/reference.md#desktop-setup)。
+**数据存储在本地，memBrain 不需要自己的模型服务。** 回忆按关键词匹配，本地模型安装后还会按语义匹配；需要理解和解释的工作由宿主的 AI 完成。在早期版本中配置过认知模型的安装会保留该配置，但这种由模型驱动的学习已冻结，不属于产品主线（见[参考文档](docs/reference.md#desktop-setup)）。
 
-### 体验跨会话的连续性
+### 已冻结：独立聊天模式
 
-先聊一个普通任务，例如：
-
-> 我正在写一篇短篇小说。每次写半小时最适合我。
-
-继续交流，然后输入 `/quit`。查看后台学习状态，再在同一安装中打开另一段对话：
-
-```sh
-membrain desktop learning-status
-membrain desktop chat --conversation writing-followup
-```
-
-请 Agent 帮你安排下一次写作。这个练习可以让你观察早先的反馈是否帮助了新的请求，无需手动调用保存或搜索工具。新会话沿用同一个大脑，不是不同用户之间的隐私边界。如果学习仍在等待或已被阻塞，请先检查状态，再解读结果。
-
-这是一个建议亲自尝试的练习，不是预先录制的结果，也不保证一定能回忆成功。[有界真实模型诊断](evaluations/v1-2026-10-25-preference-use.md)记录了一个相关案例：模型成功使用了半小时偏好，但整段回答仍存在质量问题。
+内置聊天模式（`membrain desktop configure-chat`、`membrain desktop chat`）由 memBrain 自己调用回复模型，现已冻结，不属于产品主线，之后会移除。已有的聊天配置仍可继续使用。`configure-chat` 会询问兼容 Chat Completions 的模型服务地址、模型名称和用于回复的 API key；回复可能产生 API 费用，并将相关内容发送给该提供方。详见[直接聊天](docs/reference.md#direct-chat-and-python-sessions)。
 
 <a id="automatic-integration"></a>
 <a id="python-integration"></a>
 
 ## Python 接入
+
+下面的 Python 会话运行时（`open_agent`、`BrainRuntime`）属于已冻结的聊天模式：由 memBrain 自己调用回复模型，不属于产品主线。现有宿主仍可继续使用，之后会移除。
 
 完成桌面设置和聊天配置后，还需在应用自己的 Python 3.12+ 环境中安装此包。请在已激活虚拟环境或包含 `.venv` 目录的项目中运行以下命令。CLI 使用的隔离环境不会让应用自动获得可导入的 SDK。
 
