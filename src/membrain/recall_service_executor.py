@@ -57,8 +57,7 @@ class RecallServiceExecutor(RecallExecutor):
             settings, recall_processes=0, api_keys={}, api_keys_file=None, migration_database_url=None,
             cognition_base_url=None, cognition_api_key=None, cognition_model=None,
             cognition_thinking=None, cognition_reasoning_effort=None,
-            embedding_base_url=None, embedding_api_key=None, embedding_model=None,
-            embedding_model_version=None, embedding_dimensions=None, embedding_local_directory=None,
+            embedding_local_directory=None,
         )
 
     def _initialization(self, context):

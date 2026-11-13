@@ -114,9 +114,9 @@ def test_model_is_called_once_in_parent_and_worker_preserves_vector_space(turns,
         assert turns.service.handle(turns.principal, request) == response
         assert len(calls) == 2
         with turns.database.transaction(turns.principal) as conn:
-            row = conn.execute("SELECT result FROM memory_jobs WHERE brain_id=%s AND kind='query_embedding'",
-                               (turns.brain,)).fetchone()
-            assert row["result"] is None
+            # The query vector is computed in the parent and kept nowhere: no query job is written for it.
+            assert conn.execute("SELECT 1 FROM memory_jobs WHERE brain_id=%s AND kind='query_embedding'",
+                                (turns.brain,)).fetchone() is None
 
 
 def test_crashed_transaction_worker_is_not_replayed_and_next_request_recovers(turns, executor):

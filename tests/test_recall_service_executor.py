@@ -25,7 +25,7 @@ def test_workers_receive_no_models_or_provider_credentials():
         assert child.migration_database_url is None
         assert not child.api_keys and child.api_keys_file is None
         assert child.cognition_base_url is child.cognition_api_key is child.cognition_model is None
-        assert child.embedding_base_url is child.embedding_api_key is child.embedding_local_directory is None
+        assert child.embedding_local_directory is None
         assert child.recall_processes == 0
         assert settings.cognition_api_key == "private-text-key"
         assert settings.embedding_local_directory == "/private/model"

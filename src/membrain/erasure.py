@@ -54,10 +54,9 @@ def apply_erasure(service, conn, principal, brain, *, event_ids, memory_ids, mod
 
         invalidate_pattern_views(conn, params, event_ids=event_ids, memory_ids=memory_ids, deleted=True)
         invalidate_belief_relations(conn, params, event_ids=event_ids, memory_ids=memory_ids, deleted=True)
-    conn.execute(
-        "UPDATE memory_jobs SET result=NULL WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND kind='query_embedding'",
-        params,
-    )
+    from .legacy_erasure import clear_query_embeddings
+
+    clear_query_embeddings(conn, params)
     conn.execute(
         'UPDATE memory_events SET suppressed=true,deleted=deleted OR %s,document=CASE WHEN %s THEN NULL ELSE document END '
         'WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=ANY(%s::text[])',

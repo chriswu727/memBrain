@@ -12,9 +12,8 @@ MESSAGE = "We moved the reunion to Lisbon. Tomas will bring the photo albums. It
 
 
 class Local:
-    """An unmetered provider that records its inputs; ``split`` names inputs it reports as several passages."""
+    """An in-process provider that records its inputs; ``split`` names inputs it reports as several passages."""
 
-    metered = False
     space = EmbeddingSpace("context-test", "v1", 3)
     document_index_version = "local-test-passages-v1"
 

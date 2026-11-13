@@ -588,8 +588,7 @@ class LocalSupervisor:
             path = self.profile.directory / "plugin" / "spool.jsonl"
             pending = host.host_queue.pending(path)
             semantic = host.semantic_state(self.profile.directory)
-            if semantic == "ready" and self.settings.embedding_base_url is None and getattr(
-                    app.state.service, "embedding_provider", None) is None:
+            if semantic == "ready" and getattr(app.state.service, "embedding_provider", None) is None:
                 # Installed but not yet picked up by this service's provider; it activates in place.
                 semantic = "activating"
             return {**self.snapshot(), "semantic_recall": semantic, "pending_records": pending}

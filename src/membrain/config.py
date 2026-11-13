@@ -1,4 +1,5 @@
 import json
+import logging
 import os
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field
@@ -29,11 +30,6 @@ class Settings:
     cognition_max_output_tokens: int = 8192
     cognition_max_response_bytes: int = 32768
     cognition_max_envelope_bytes: int = 65536
-    embedding_base_url: str | None = None
-    embedding_api_key: str | None = field(default=None, repr=False)
-    embedding_model: str | None = None
-    embedding_model_version: str | None = None
-    embedding_dimensions: int | None = None
     embedding_local_directory: str | None = None
     recovery_registry_path: Path | None = None
     recovery_registry_id: str | None = None
@@ -48,29 +44,16 @@ class Settings:
         recovery = (self.recovery_registry_path, self.recovery_registry_id, self.recovery_installation_id)
         if any(value is not None for value in recovery) and any(value is None for value in recovery):
             raise ValueError("Recovery authority requires its path, registry identity and installation identity.")
-        for prefix, names in (
-            ("MEMORY_COGNITION", ("base_url", "api_key", "model")),
-            ("MEMORY_EMBEDDING", ("base_url", "api_key", "model", "model_version", "dimensions")),
-        ):
-            values = [getattr(self, prefix.removeprefix("MEMORY_").lower() + "_" + name) for name in names]
-            configured = any(value is not None for value in values) or (
-                prefix == "MEMORY_COGNITION" and self.cognition_thinking is not None
-            )
-            if configured and any(
-                value is None or (isinstance(value, str) and not value.strip()) for value in values
-            ):
-                raise ValueError(f"{prefix} requires all of: {', '.join(name.upper() for name in names)}")
+        names = ("base_url", "api_key", "model")
+        values = [getattr(self, "cognition_" + name) for name in names]
+        configured = any(value is not None for value in values) or self.cognition_thinking is not None
+        if configured and any(value is None or (isinstance(value, str) and not value.strip()) for value in values):
+            raise ValueError(f"MEMORY_COGNITION requires all of: {', '.join(name.upper() for name in names)}")
         if self.cognition_thinking is not None and (
             not isinstance(self.cognition_thinking, str)
             or self.cognition_thinking not in ("enabled", "disabled")
         ):
             raise ValueError("MEMORY_COGNITION_THINKING must be 'enabled' or 'disabled' when set")
-        if self.embedding_dimensions is not None and (
-            type(self.embedding_dimensions) is not int or not 1 <= self.embedding_dimensions <= 8192
-        ):
-            raise ValueError("MEMORY_EMBEDDING_DIMENSIONS must be an integer from 1 to 8192")
-        if self.embedding_local_directory is not None and self.embedding_base_url is not None:
-            raise ValueError("Configure either a local embedding model or an embedding provider URL, not both")
 
     def semantic_policy(self):
         from .cognition_policy import SemanticPolicy
@@ -86,9 +69,13 @@ class Settings:
         if not database_url:
             raise ValueError("MEMORY_DATABASE_URL is required; run membrain init")
         key_file = os.environ.get("MEMORY_API_KEYS_FILE")
-        dimensions = os.environ.get("MEMORY_EMBEDDING_DIMENSIONS")
-        if dimensions is not None and (not dimensions.isascii() or not dimensions.isdecimal()):
-            raise ValueError("MEMORY_EMBEDDING_DIMENSIONS must be an integer from 1 to 8192")
+        removed = [name for name in REMOVED_EMBEDDING_SETTINGS if os.environ.get(name) is not None]
+        if removed:
+            # The metered remote embedding provider was removed. Its settings are ignored rather than refused, so a
+            # deployment that still sets them starts; only the names are logged, never their values.
+            logging.getLogger("membrain.config").warning(
+                "Ignoring %s: the remote embedding provider was removed. Set MEMORY_EMBEDDING_LOCAL_DIRECTORY to "
+                "use the local embedding model.", ", ".join(removed))
         return cls(
             database_url=database_url,
             migration_database_url=os.environ.get("MEMORY_MIGRATION_DATABASE_URL"),
@@ -105,11 +92,6 @@ class Settings:
             cognition_max_output_tokens=_environment_integer("MEMORY_COGNITION_MAX_OUTPUT_TOKENS", 8192),
             cognition_max_response_bytes=_environment_integer("MEMORY_COGNITION_MAX_RESPONSE_BYTES", 32768),
             cognition_max_envelope_bytes=_environment_integer("MEMORY_COGNITION_MAX_ENVELOPE_BYTES", 65536),
-            embedding_base_url=os.environ.get("MEMORY_EMBEDDING_BASE_URL"),
-            embedding_api_key=os.environ.get("MEMORY_EMBEDDING_API_KEY"),
-            embedding_model=os.environ.get("MEMORY_EMBEDDING_MODEL"),
-            embedding_model_version=os.environ.get("MEMORY_EMBEDDING_MODEL_VERSION"),
-            embedding_dimensions=int(dimensions) if dimensions is not None else None,
             embedding_local_directory=os.environ.get("MEMORY_EMBEDDING_LOCAL_DIRECTORY"),
         )
 
@@ -118,6 +100,11 @@ class Settings:
             document = json.loads(self.api_keys_file.read_text(encoding="utf-8"))
             return {key: Principal(**value) for key, value in document.items()}
         return self.api_keys
+
+
+# Settings of the metered remote embedding provider, which was removed; still set, they are ignored with a warning.
+REMOVED_EMBEDDING_SETTINGS = ("MEMORY_EMBEDDING_BASE_URL", "MEMORY_EMBEDDING_API_KEY", "MEMORY_EMBEDDING_MODEL",
+                              "MEMORY_EMBEDDING_MODEL_VERSION", "MEMORY_EMBEDDING_DIMENSIONS")
 
 
 def validate_cognition_transport(reasoning_effort, thinking, max_envelope_bytes):
@@ -141,7 +128,6 @@ def _environment_integer(name, default):
 
 @contextmanager
 def configured_service(settings: Settings, *, principals=None):
-    from .embeddings import ChatCompletionsEmbeddingProvider
     from .service import MemoryService
     from .storage import Database
 
@@ -175,11 +161,6 @@ def configured_service(settings: Settings, *, principals=None):
             from .local_embeddings import LocalEmbeddingProvider
 
             embedding = resources.enter_context(LocalEmbeddingProvider(Path(settings.embedding_local_directory)))
-        elif settings.embedding_base_url is not None:
-            embedding = resources.enter_context(ChatCompletionsEmbeddingProvider(
-                settings.embedding_base_url, settings.embedding_api_key, settings.embedding_model,
-                model_version=settings.embedding_model_version, dimensions=settings.embedding_dimensions,
-            ))
         yield MemoryService(
             database,
             semantic_processor=processor, embedding_provider=embedding,

@@ -15,7 +15,6 @@ pytestmark = pytest.mark.integration
 
 
 class Local:
-    metered = False
     space = EmbeddingSpace('local-query-test', 'v1', 3)
 
     def __init__(self, callback=None):

@@ -118,8 +118,6 @@ class LocalEmbeddingProvider:
     model loads on the first request, under a lock.
     """
 
-    metered = False  # No cost or network call: exempt from model-call budgets and the operation ledger.
-
     def __init__(self, directory: Path, *, threads: int = 2, max_batch_size: int = 64):
         self._directory = Path(directory)
         self._threads = threads

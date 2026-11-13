@@ -74,3 +74,12 @@ def invalidate_contributions(conn, params, *, event_ids=(), memory_ids=()):
         (*params, list(event_ids), list(memory_ids)),
     ).fetchall()
     recompute_access(conn, params, [(row["memory_id"], row["memory_revision"]) for row in rows])
+
+
+def clear_query_embeddings(conn, params):
+    """Clear the query vectors and source snapshots that ``query_embedding`` jobs of a metered provider kept in their
+    result. Older runtimes wrote those rows; the local model writes none."""
+    conn.execute(
+        "UPDATE memory_jobs SET result=NULL WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND kind='query_embedding'",
+        params,
+    )

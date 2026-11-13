@@ -323,12 +323,6 @@ class MemoryService:
                     from .read_cache import store
 
                     store(conn, params, action, key, envelope)
-                if embedding_calls:
-                    conn.execute(
-                        "UPDATE memory_jobs SET result=NULL WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
-                        "AND id=%s AND kind='query_embedding'",
-                        (*params, "query:" + digest([key, action])),
-                    )
                 recall_deadline.remaining(deadline)
             return envelope, True
         except DomainError as error:

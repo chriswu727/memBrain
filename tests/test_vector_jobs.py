@@ -1,31 +1,39 @@
 import copy
 import json
 
-import httpx
 import pytest
 from test_turns import turns as turns
 
 from membrain.client import default_budget, default_read_fence
-from membrain.embeddings import ChatCompletionsEmbeddingProvider
-from membrain.helpers import DomainError, uid
+from membrain.embeddings import EmbeddingResult, EmbeddingSpace
+from membrain.helpers import DomainError, digest, uid
 
 pytestmark = pytest.mark.integration
 
 
-def provider(turns, calls, mutate=None):
-    def respond(request):
-        body = json.loads(request.content)
-        calls.append(body)
-        with turns.database.transaction(turns.principal) as conn:
+class provider:  # noqa: N801 - used like the provider factory it replaces
+    """An in-process stand-in for the local model. Each call proves the brain row is not locked while it embeds."""
+
+    space = EmbeddingSpace("fake-vector", "unit-v1", 3)
+
+    def __init__(self, turns, calls, mutate=None):
+        self.turns, self.calls, self.mutate = turns, calls, mutate
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        pass
+
+    def __call__(self, request):
+        self.calls.append(list(request.texts))
+        with self.turns.database.transaction(self.turns.principal) as conn:
             conn.execute("SET LOCAL lock_timeout='200ms'")
-            conn.execute("SELECT id FROM memory_brains WHERE id=%s FOR UPDATE", (turns.brain,)).fetchone()
-        if mutate:
-            mutate()
-        return httpx.Response(200, json={"model": "fake-vector", "data": [
-            {"index": index, "embedding": [1, 0, 0]} for index, _ in enumerate(body["input"])
-        ]})
-    return ChatCompletionsEmbeddingProvider("http://fake.test/v1", "fake-key", "fake-vector",
-                                           model_version="unit-v1", dimensions=3, transport=httpx.MockTransport(respond))
+            conn.execute("SELECT id FROM memory_brains WHERE id=%s FOR UPDATE", (self.turns.brain,)).fetchone()
+        if self.mutate:
+            self.mutate()
+        return EmbeddingResult(self.space, tuple((1.0, 0.0, 0.0) for _ in request.texts), None,
+                               digest(list(request.texts)), 0)
 
 
 def recall_request(turns, text="meeting spot", embedding_calls=1):
@@ -59,7 +67,8 @@ def test_embedding_jobs_and_paraphrase_recall_execute_outside_database_lock(turn
         assert len(calls) == 2
     with turns.database.transaction(turns.principal) as conn:
         assert conn.execute("SELECT count(*) AS n FROM memory_embeddings WHERE brain_id=%s", (turns.brain,)).fetchone()["n"] == 1
-        assert conn.execute("SELECT result FROM memory_jobs WHERE brain_id=%s AND kind='query_embedding'", (turns.brain,)).fetchone()["result"] is None
+        # The query vector is computed in process and kept nowhere: no query job is written for it.
+        assert conn.execute("SELECT 1 FROM memory_jobs WHERE brain_id=%s AND kind='query_embedding'", (turns.brain,)).fetchone() is None
 
 
 def test_query_idempotency_and_zero_embedding_budget(turns):
@@ -101,23 +110,26 @@ def test_embedding_response_cannot_republish_a_deleted_source(turns):
         assert source["deleted"] and source["document"] is None
 
 
-def test_failed_embedding_reservation_is_charged_and_retry_does_not_call_again(turns):
-    calls = []
-    def failure(request):
-        calls.append(request)
-        raise httpx.ReadTimeout("private provider message")
-    with ChatCompletionsEmbeddingProvider("http://fake.test/v1", "fake-key", "fake-vector", model_version="v1",
-                                          dimensions=3, transport=httpx.MockTransport(failure)) as vectors:
-        turns.service.embedding_provider = vectors
-        request = recall_request(turns)
-        first = turns.service.handle(turns.principal, request)
-        repeated = turns.service.handle(turns.principal, request)
-        assert first["outcome"] in {"failed", "rejected"} and repeated["outcome"] in {"failed", "rejected"}
-        assert "private provider" not in str(first) + str(repeated)
-        assert len(calls) == 1
+def test_a_failing_local_model_is_reported_without_its_error_and_nothing_is_charged(turns):
+    class Failing:
+        space = EmbeddingSpace("fake-vector", "v1", 3)
+        calls = 0
+
+        def __call__(self, request):
+            Failing.calls += 1
+            raise RuntimeError("private model message")
+
+    turns.service.embedding_provider = Failing()
+    request = recall_request(turns)
+    first = turns.service.handle(turns.principal, request)
+    repeated = turns.service.handle(turns.principal, request)
+    assert first["outcome"] in {"failed", "rejected"} and repeated["outcome"] in {"failed", "rejected"}
+    assert first["error"]["code"] == "dependency_unavailable" and first["error"]["retryable"] is True
+    assert "private model" not in str(first) + str(repeated)
+    assert Failing.calls == 2  # Nothing was reserved, so a retry asks the model again.
     with turns.database.transaction(turns.principal) as conn:
-        job = conn.execute("SELECT model_calls FROM memory_jobs WHERE brain_id=%s AND kind='query_embedding'", (turns.brain,)).fetchone()
-        assert job["model_calls"] == 1
+        assert conn.execute("SELECT 1 FROM memory_jobs WHERE brain_id=%s AND kind='query_embedding'",
+                            (turns.brain,)).fetchone() is None
 
 
 def test_memories_written_before_a_provider_are_backfilled_once(turns):
@@ -147,18 +159,17 @@ def test_memories_written_before_a_provider_are_backfilled_once(turns):
         assert any("flowerpot" in item["memory"]["statement"] for item in result["result"]["items"])
 
 
-def test_unmetered_local_models_do_not_consume_the_background_budget(turns):
+def test_local_models_do_not_consume_the_background_budget(turns):
     from membrain.embeddings import EmbeddingResult, EmbeddingSpace
 
     class Local:
-        metered = False
         space = EmbeddingSpace("local-test", "v1", 3)
 
         def __init__(self):
             self.calls = 0
 
         def request_metadata(self, request):
-            raise AssertionError("unmetered models are not reserved")
+            raise AssertionError("local models are not reserved")
 
         def __call__(self, request):
             self.calls += 1
@@ -193,7 +204,6 @@ def test_local_indexing_batches_inference_without_consuming_paid_budgets(turns):
     from membrain.helpers import digest
 
     class Local:
-        metered = False
         space = EmbeddingSpace("local-batch-test", "v1", 3)
 
         def __init__(self):
@@ -227,7 +237,6 @@ def test_erasure_during_a_local_batch_does_not_publish_erased_content_or_cancel_
     drain(turns)
 
     class Local:
-        metered = False
         space = EmbeddingSpace("local-erasure-batch", "v1", 3)
 
         def __call__(self, request):
@@ -244,3 +253,65 @@ def test_erasure_during_a_local_batch_does_not_publish_erased_content_or_cancel_
                             "AND a.id=v.memory_id AND a.revision=v.memory_revision WHERE v.brain_id=%s",
                             (turns.brain,)).fetchall()
         assert rows and all("private appointment" not in row["document"]["statement"] for row in rows)
+
+
+def test_vectors_an_older_runtime_stored_from_a_metered_provider_leave_no_brain_without_local_vectors(turns):
+    """Vectors a metered provider stored (another model, version and size) are never compared with the local model's:
+    recall reads only the configured space, the backfill embeds every current memory with the local model, and the
+    old vectors and passages stay until their memory is edited or forgotten, which deletes them with the new ones."""
+    from membrain import vector_jobs
+
+    turns.observe("The spare key is under the blue flowerpot.")
+    forgotten = turns.observe("My dentist appointment moved to Thursday.")
+    drain(turns)  # Captured with no model, as before a provider was configured.
+    params = turns.service._params(turns.principal, turns.brain)
+    with turns.database.transaction(turns.principal) as conn:
+        rows = conn.execute("SELECT id,revision,document FROM memory_assertions WHERE brain_id=%s AND is_current "
+                            "AND NOT deleted AND NOT suppressed AND NOT invalidated AND document IS NOT NULL",
+                            (turns.brain,)).fetchall()
+        for row in rows:  # Written as an older runtime with a metered provider wrote them.
+            conn.execute(
+                "INSERT INTO memory_embeddings(tenant_id,owner_id,brain_id,memory_id,memory_revision,model,"
+                "model_version,dimensions,content_hash,embedding) VALUES(%s,%s,%s,%s,%s,'old-remote-model',"
+                "'release-1',4,%s,%s::vector)",
+                (*params, row["id"], row["revision"], digest(row["document"]["statement"]), json.dumps([0, 0, 0, 1])))
+            conn.execute(
+                "INSERT INTO memory_embedding_passages(tenant_id,owner_id,brain_id,memory_id,memory_revision,model,"
+                "model_version,passage_index,start_offset,end_offset,embedding) VALUES(%s,%s,%s,%s,%s,"
+                "'old-remote-model','release-1',0,0,%s,%s::vector)",
+                (*params, row["id"], row["revision"], len(row["document"]["statement"]), json.dumps([0, 0, 0, 1])))
+        conn.execute(
+            "INSERT INTO memory_jobs(tenant_id,owner_id,brain_id,id,kind,payload,state,source_event_ids) "
+            "VALUES(%s,%s,%s,'query:legacy','query_embedding','{}'::jsonb,'queued',%s)",
+            (*params, [forgotten["event_id"]]))
+        conn.execute("UPDATE memory_jobs SET result=%s::jsonb WHERE brain_id=%s AND id='query:legacy'",
+                     (json.dumps({"vector": [0, 0, 0, 1], "snapshot": {"source_snapshot": []}}), turns.brain))
+
+    def count(conn, model):
+        return conn.execute("SELECT count(*) AS n FROM memory_embeddings WHERE brain_id=%s AND model=%s",
+                            (turns.brain, model)).fetchone()["n"]
+
+    calls = []
+    with provider(turns, calls) as vectors:
+        turns.service.embedding_provider = vectors
+        assert vector_jobs.backfill_embeddings(turns.service, turns.principal, turns.brain) == len(rows) >= 2
+        drain(turns)
+        with turns.database.transaction(turns.principal) as conn:
+            assert count(conn, "fake-vector") == count(conn, "old-remote-model") == len(rows)
+        result = turns.service.handle(turns.principal, recall_request(turns, "where is the house key hidden"))
+        assert result["outcome"] == "completed", result
+        assert any(signal["method"] == "vector" for item in result["result"]["items"] for signal in item["rank_signals"])
+        assert any("flowerpot" in item["memory"]["statement"] for item in result["result"]["items"])
+    turns.action("forget", {"idempotency_key": uid(), "selector": {"kind": "events", "ids": [forgotten["event_id"]]},
+                            "mode": "erase_content", "expected_scope_generation": 1})
+    with turns.database.transaction(turns.principal) as conn:
+        left = conn.execute(
+            "SELECT v.model,a.document FROM memory_embeddings v JOIN memory_assertions a ON a.tenant_id=v.tenant_id "
+            "AND a.brain_id=v.brain_id AND a.id=v.memory_id AND a.revision=v.memory_revision WHERE v.brain_id=%s",
+            (turns.brain,)).fetchall()
+        assert left and all("dentist" not in (row["document"] or {}).get("statement", "") for row in left)
+        assert {row["model"] for row in left} == {"fake-vector", "old-remote-model"}
+        assert conn.execute("SELECT count(*) AS n FROM memory_embedding_passages WHERE brain_id=%s",
+                            (turns.brain,)).fetchone()["n"] == len(left) // 2
+        assert conn.execute("SELECT result FROM memory_jobs WHERE brain_id=%s AND id='query:legacy'",
+                            (turns.brain,)).fetchone()["result"] is None

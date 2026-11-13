@@ -6,7 +6,6 @@ import httpx
 import pytest
 
 from membrain import local_embeddings
-from membrain.config import Settings
 from membrain.embeddings import EmbeddingRequest
 
 MODEL = os.environ.get("MEMBRAIN_TEST_EMBEDDING_MODEL")
@@ -62,13 +61,6 @@ def test_requests_are_validated_before_the_model_loads(tmp_path):
     query = provider.request_metadata(EmbeddingRequest(("same",), purpose="query"))
     assert document["request_fingerprint"] != query["request_fingerprint"]
     assert provider.space.dimensions == 384 and provider._session is None
-
-
-def test_local_model_and_remote_provider_are_exclusive():
-    with pytest.raises(ValueError):
-        Settings(database_url="postgresql://x/y", embedding_local_directory="/models",
-                 embedding_base_url="https://api.example/v1", embedding_api_key="k", embedding_model="m",
-                 embedding_model_version="1", embedding_dimensions=3)
 
 
 @pytest.mark.skipif(not MODEL or not local_embeddings.runtime_available(),

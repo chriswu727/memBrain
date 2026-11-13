@@ -143,9 +143,8 @@ def test_cues_cannot_be_written_while_recording_is_paused_or_into_another_owner_
 
 
 class Meaning:
-    """An unmetered model: texts about hobbies or pastimes point one way, everything else another."""
+    """An in-process model: texts about hobbies or pastimes point one way, everything else another."""
 
-    metered = False
     space = EmbeddingSpace("cue-test", "v1", 3)
     document_index_version = "single-vector-v1"
 

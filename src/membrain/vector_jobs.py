@@ -4,7 +4,7 @@ import time
 
 from psycopg.types.json import Jsonb
 
-from .embeddings import EmbeddingPassage, EmbeddingRequest, EmbeddingResult, EmbeddingSpace
+from .embeddings import EmbeddingPassage, EmbeddingRequest, EmbeddingResult
 from .helpers import DomainError, digest, uid
 from .jobs import JobStore
 
@@ -55,11 +55,8 @@ def _embed_documents(service, principal, brain_id, job, statements, contexts):
     """Vectors and passages for ``statements``, each embedded as its message context when it has one.
 
     Identical inputs are sent once. A context that the provider had to split into passages does not describe the
-    statement's own text, so that statement is embedded again as itself; only an unmetered provider is asked twice.
+    statement's own text, so that statement is embedded again as itself.
     """
-    provider = service.embedding_provider
-    if getattr(provider, "metered", True) and provider_index_version(provider) != "single-vector-v1":
-        contexts = [None] * len(statements)  # A paid provider that splits its input is asked once, as before.
     inputs = [contexts[index] if contexts[index] is not None else statement
               for index, statement in enumerate(statements)]
     unique = list(dict.fromkeys(inputs))
@@ -109,60 +106,14 @@ def _validate_result(provider, request, result):
 
 
 def _call(service, principal, brain_id, job, request):
-    jobs = JobStore(service.database)
+    """One call to the in-process model. It has no cost or external call, so nothing is reserved or charged."""
     provider = service.embedding_provider
-    if not getattr(provider, "metered", True):
-        # An in-process model has no cost or external call to account for; it must not consume the brain's
-        # background budget, which limits paid provider calls.
-        try:
-            result = provider(request)
-        except Exception:
-            raise DomainError("dependency_unavailable", "Embedding model is unavailable.", True) from None
-        _validate_result(provider, request, result)
-        return result
-    lease = {"lease_token": job["lease_token"], "fence": job["fence"]}
-    try:
-        metadata = provider.request_metadata(request)
-    except ValueError:
-        raise DomainError("budget_exceeded", "Embedding input exceeds the provider request limits.") from None
-    operation_id = f"embedding:{job['fence']}"
-    reserved = jobs.reserve_operation(
-        principal, brain_id, job["id"], **lease, operation_id=operation_id,
-        **metadata, max_model_calls=1, max_input_bytes=262144,
-    )
-    if not reserved["newly_reserved"]:
-        raise DomainError("budget_exceeded", "Embedding was already reserved.")
     try:
         result = provider(request)
-        _validate_result(provider, request, result)
-        if result.request_fingerprint != metadata["request_fingerprint"]:
-            raise DomainError("invalid_evidence", "Embedding response does not match its request.")
     except Exception:
-        jobs.settle_operation(principal, brain_id, job["id"], **lease, operation_id=operation_id, outcome="uncertain")
-        raise DomainError("dependency_unavailable", "Embedding provider is unavailable.", True) from None
-    jobs.settle_operation(principal, brain_id, job["id"], **lease, operation_id=operation_id,
-                          outcome="completed", usage=result.usage, response_fingerprint=digest(result.vectors))
+        raise DomainError("dependency_unavailable", "Embedding model is unavailable.", True) from None
+    _validate_result(provider, request, result)
     return result
-
-
-def embed_memory(service, principal, brain_id, job):
-    params = service._params(principal, brain_id)
-    version = job["payload"]
-    with service.database.transaction(principal) as conn:
-        service._brain(conn, principal, brain_id)
-        row = conn.execute(
-            "SELECT document FROM memory_assertions WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
-            "AND id=%s AND revision=%s AND is_current AND NOT invalidated AND NOT suppressed AND NOT deleted",
-            (*params, version["memory_id"], version["revision"]),
-        ).fetchone()
-        if row is None or row["document"] is None:
-            raise DomainError("source_unavailable", "Embedding source is unavailable.")
-        statement = row["document"]["statement"]
-        context = _message_contexts(conn, service, principal, brain_id, [row["document"]]).get(
-            (version["memory_id"], version["revision"]))
-    result, vectors, passages = _embed_documents(service, principal, brain_id, job, [statement], [context])
-
-    _publish_embedding(service, principal, brain_id, job, statement, result, vectors[0], passages=passages[0])
 
 
 def _publish_embedding(service, principal, brain_id, job, statement, result, vector, *, passages=()):
@@ -242,8 +193,17 @@ def _query_source(conn, service, principal, request):
     return brain, text, snapshot
 
 
-def _local_query_embedding(service, principal, request):
+def query_embedding(service, principal, request):
+    """The query vector for ``prepare`` and ``recall``, computed outside the database transaction.
+
+    Older runtimes also wrote ``query_embedding`` job rows for a metered provider; none are written now, and
+    erasure still clears the vectors those rows hold (``legacy_erasure.clear_query_embeddings``)."""
     from .service import reading
+
+    payload = request["payload"]
+    if (service.embedding_provider is None or request["action"] not in {"prepare", "recall"}
+            or not payload.get("budget", {}).get("max_embedding_calls", 0)):
+        return None, None, 0
 
     with service.database.transaction(principal) as conn, reading():
         source = _query_source(conn, service, principal, request)
@@ -256,64 +216,6 @@ def _local_query_embedding(service, principal, request):
     # The enclosing action validates this snapshot under its brain lock before using the vector or storing a reply.
     return result, snapshot, 1
 
-
-def query_embedding(service, principal, request):
-    from .snapshots import validate_source_snapshot
-
-    payload = request["payload"]
-    if (service.embedding_provider is None or request["action"] not in {"prepare", "recall"}
-            or not payload.get("budget", {}).get("max_embedding_calls", 0)):
-        return None, None, 0
-    if not getattr(service.embedding_provider, "metered", True):
-        return _local_query_embedding(service, principal, request)
-    brain_id = request["target"]["brain_ref"]
-    params = service._params(principal, brain_id)
-    fingerprint = digest({"action": request["action"], "target": request["target"], "payload": payload})
-    job_id = "query:" + digest([payload.get("idempotency_key", request["request_id"]), request["action"]])
-    with service.database.transaction(principal) as conn:
-        source = _query_source(conn, service, principal, request)
-        if source is None:
-            return None, None, 0
-        brain, text, snapshot = source
-        conn.execute(
-            "INSERT INTO memory_jobs(tenant_id,owner_id,brain_id,id,kind,payload,state,source_event_ids) "
-            "VALUES(%s,%s,%s,%s,'query_embedding',%s,'queued',%s) ON CONFLICT DO NOTHING",
-            (*params, job_id, Jsonb({"request_hash": fingerprint}), [e["event_id"] for e in snapshot["source_snapshot"]]),
-        )
-        existing = conn.execute("SELECT * FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=%s",
-                                (*params, job_id)).fetchone()
-        if existing["payload"].get("request_hash") != fingerprint:
-            raise DomainError("idempotency_conflict", "Query job already binds another request.")
-        if existing["state"] == "completed" and existing["result"]:
-            data = existing["result"]
-            validate_source_snapshot(conn, service, principal, brain, data["snapshot"])
-            return EmbeddingResult(EmbeddingSpace(**data["space"]), (tuple(data["vector"]),), data["usage"],
-                                   data["fingerprint"], data["input_bytes"]), data["snapshot"], 1
-    jobs = JobStore(service.database)
-    job = jobs.claim(principal, brain_id, worker_id=uid(), job_id=job_id, kinds=["query_embedding"], lease_seconds=30)
-    if job is None:
-        raise DomainError("dependency_unavailable", "Query embedding is unavailable or already running.", True)
-    try:
-        timeout = min(10, payload["budget"]["max_wall_time_ms"] / 1000)
-        result = _call(service, principal, brain_id, job, EmbeddingRequest((text,), timeout_seconds=timeout, purpose="query"))
-
-        def publish(conn, _):
-            brain = service._brain(conn, principal, brain_id)
-            validate_source_snapshot(conn, service, principal, brain, snapshot)
-            data = {"snapshot": snapshot, "space": result.space.descriptor(), "vector": result.vectors[0],
-                    "usage": result.usage, "fingerprint": result.request_fingerprint, "input_bytes": result.input_bytes}
-            conn.execute("UPDATE memory_jobs SET result=%s WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=%s",
-                         (Jsonb(data), *params, job_id))
-
-        jobs.complete(principal, brain_id, job_id, lease_token=job["lease_token"], fence=job["fence"], publish=publish)
-        return result, snapshot, 1
-    except Exception:
-        try:
-            jobs.fail(principal, brain_id, job_id, lease_token=job["lease_token"], fence=job["fence"],
-                      failure_code="provider_uncertain", retry=False)
-        except DomainError:
-            pass
-        raise
 
 
 BACKFILL_RESCAN_SECONDS = 600

@@ -15,7 +15,6 @@ pytestmark = pytest.mark.integration
 
 
 class PassageProvider:
-    metered = False
     space = EmbeddingSpace('passage-test', 'v1', 3)
     document_index_version = 'test-passages-v1'
 

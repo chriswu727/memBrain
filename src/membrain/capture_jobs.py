@@ -67,10 +67,6 @@ def execute(service, jobs, principal, brain_id, job, *, semantic=None):
             capture(service, jobs, principal, brain_id, job)
         elif job["kind"] in ("orient", "consolidate") and semantic is not None:
             semantic(principal, brain_id, job)
-        elif job["kind"] == "embed":
-            from .vector_jobs import embed_memory
-
-            embed_memory(service, principal, brain_id, job)
     except Exception as error:
         try:
             jobs.fail(principal, brain_id, job["id"], lease_token=job["lease_token"], fence=job["fence"],
@@ -97,7 +93,7 @@ def run_next(service, jobs, principal, brain_id, kinds, run):
             job = jobs.claim(principal, brain_id, worker_id=uid(), kinds=kinds, lease_seconds=120)
     if job is None:
         return 0
-    if job["kind"] == "embed" and not getattr(service.embedding_provider, "metered", True):
+    if job["kind"] == "embed":
         from .vector_jobs import embed_local_batch
 
         return embed_local_batch(service, principal, brain_id, job)

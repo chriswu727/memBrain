@@ -7,11 +7,9 @@ embedding provider, record each statement executed while a read is in progress, 
 as safe beside other readers.
 """
 import hashlib
-import json
 import re
 import uuid
 
-import httpx
 import psycopg
 import pytest
 from test_learning import delivered
@@ -24,7 +22,7 @@ from membrain import cognition
 from membrain.affect import affect_records
 from membrain.client import default_budget, default_read_fence
 from membrain.contracts import CONTRACT_VERSION
-from membrain.embeddings import ChatCompletionsEmbeddingProvider
+from membrain.embeddings import EmbeddingResult, EmbeddingSpace
 from membrain.mood import mood_state
 from membrain.persona import current_persona, persona_versions
 from membrain.relationship import relationship
@@ -48,7 +46,6 @@ ALLOWED = (
     re.compile(r"^UPDATE memory_requests SET response=NULL WHERE .* AND response IS NOT NULL AND \(action,key\) IN "),
     re.compile(r"^DELETE FROM memory_traces WHERE .* AND id=ANY\(%s::text\[\]\) AND document->>'kind'='candidate_hit'$"),
     re.compile(r"^UPDATE memory_assertions a SET source_han_majority=projection.majority FROM unnest\("),
-    re.compile(r"^UPDATE memory_jobs SET result=NULL WHERE .* AND id=%s AND kind='query_embedding'$"),
 )
 
 
@@ -57,15 +54,23 @@ def vector(text):
     return [1.0] + [byte / 255 for byte in digest[:7]]
 
 
-def fake_embeddings(calls):
-    def respond(request):
-        body = json.loads(request.content)
-        calls.append(body["input"])
-        return httpx.Response(200, json={"model": "fake-vector", "data": [
-            {"index": index, "embedding": vector(text)} for index, text in enumerate(body["input"])]})
+class fake_embeddings:  # noqa: N801 - used like the provider factory it replaces
+    """An in-process stand-in for the local embedding model that records each batch it embeds."""
 
-    return ChatCompletionsEmbeddingProvider("http://fake.test/v1", "fake-key", "fake-vector", model_version="unit-v1",
-                                            dimensions=8, transport=httpx.MockTransport(respond))
+    space = EmbeddingSpace("fake-vector", "unit-v1", 8)
+
+    def __init__(self, calls):
+        self.calls = calls
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        pass
+
+    def __call__(self, request):
+        self.calls.append(list(request.texts))
+        return EmbeddingResult(self.space, tuple(tuple(vector(text)) for text in request.texts), None, "fake", 0)
 
 
 class Statements:
@@ -187,7 +192,7 @@ def test_semantic_recall_inspect_and_views_only_make_audited_writes(semantic, mo
     assert statements.unexpected() == []
     writes = statements.writes()
     assert any(text.startswith("INSERT INTO memory_requests(") for text in writes)
-    assert any("kind='query_embedding'" in text for text in writes)
+    assert not any("kind='query_embedding'" in text for text in writes)  # The local model writes no query job.
 
 
 def test_a_semantic_recall_applies_a_pending_erasure_before_reading(semantic, monkeypatch):

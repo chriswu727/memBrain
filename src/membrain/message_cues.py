@@ -47,9 +47,9 @@ def cue_text(cues) -> str | None:
 
 
 def _vectors(service, texts):
-    """Cue vectors from an in-process model, or ``None``: a paid provider is not called for an index entry."""
+    """Cue vectors from the in-process model, or ``None`` without one."""
     provider = service.embedding_provider
-    if provider is None or getattr(provider, "metered", True):
+    if provider is None:
         return None
     from .vector_jobs import _validate_result
 
