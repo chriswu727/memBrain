@@ -74,6 +74,8 @@ class ChatMemory:
         self.extractor = extractor
         # Exact references let short follow-ups use their context without caching erased message text.
         self._previous: OrderedDict[tuple[str, str], tuple[dict, ...]] = OrderedDict()
+        # The consolidation batch handed out last to each memory user in each session (``consolidate``).
+        self._batches: OrderedDict[tuple[str, str | None], dict] = OrderedDict()
         self._lock = threading.Lock()
         host.state_directory(self.directory)
 
@@ -224,13 +226,38 @@ class ChatMemory:
             result = client.add_boundary(topic, aliases)
         return {"boundaries": result.get("boundaries", [])}
 
-    def search(self, speaker: Speaker, query: str, *, session: str | None = None, roleplay: str | None = None) -> dict:
+    def search(self, speaker: Speaker, query: str, *, session: str | None = None, roleplay: str | None = None,
+               replies: bool = False) -> dict:
+        """Recall for the search tool. ``replies`` adds the bot's own earlier replies, which automatic recall leaves
+        out: the bot's AI sets it when the user asks about something it said."""
         client = self._client(self.memory_user(speaker, roleplay))
         if client is None:
             return {"error": "memBrain is starting; try again in a few seconds."}
         with client:
-            found = host.recall_context(client, host.scrub(str(query or "")), current_conversation=session)
+            found = host.recall_context(client, host.scrub(str(query or "")), current_conversation=session,
+                                        replies=bool(replies))
         return {"context": found or "No matching records."}
+
+    def consolidate(self, speaker: Speaker, cues=None, reviewed_through=None, *, session: str | None = None,
+                    roleplay: str | None = None) -> dict:
+        """The consolidation tool (``host.consolidate``): without arguments, a batch of this speaker's earlier
+        messages to write retrieval cues for; then the cues. The batch handed out last in this ``session`` is
+        remembered, so the second call need not repeat its number, unless the bot restarted in between."""
+        if not self._recording(speaker):
+            return {"error": "Memory tools are not available in this conversation."}
+        user = self.memory_user(speaker, roleplay)
+        if host.paused(self.directory, user):
+            return {"error": host.CONSOLIDATION_PAUSED}
+        client = self._client(user)
+        if client is None:
+            return {"error": "memBrain is starting; try again in a few seconds."}
+        with self._lock:
+            handed_out = self._batches.pop((user, session), {})
+            self._batches[(user, session)] = handed_out
+            while len(self._batches) > PREVIOUS_EXCHANGES:
+                self._batches.popitem(last=False)
+        with client:
+            return host.consolidate(client, cues, reviewed_through, handed_out=handed_out)
 
     def pause(self, speaker: Speaker, hours: float | None = None, until_resumed: bool = False) -> dict:
         """Pause recording for this speaker: for the rest of the conversation unless ``hours`` or
@@ -249,6 +276,8 @@ class ChatMemory:
         with self._lock:
             for key in [key for key in self._previous if key[0] in users or host.real_life_user(key[0]) in users]:
                 del self._previous[key]
+            for key in [key for key in self._batches if key[0] in users or host.real_life_user(key[0]) in users]:
+                del self._batches[key]
         return {"erased": all(result["erased"] in ("accepted", "completed") for result in results),
                 "queued_records_dropped": sum(result["queued_records_dropped"] for result in results)}
 

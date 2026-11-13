@@ -123,6 +123,74 @@ def consolidation_notice(client, tools: dict | None = TOOL_NAMES) -> str:
             "what it returns; do not describe it to the user beyond a few words.")
 
 
+CONSOLIDATION_PAUSED = "Recording is paused. Resume before consolidating memory."
+
+
+def consolidate(client, cues=None, reviewed_through=None, *, handed_out: dict | None = None) -> dict:
+    """One call of a host's consolidation tool, the way ``memory_consolidate`` answers it over MCP.
+
+    Without ``cues`` and ``reviewed_through`` it hands out the next batch of earlier messages with instructions;
+    with them it saves the cues and counts the batch as read. ``handed_out`` keeps the batch handed out last
+    between the two calls, for a tool that lives as long as its conversation: that batch is then the one being
+    answered, whatever number the AI sends. A tool that runs as a new process per call keeps nothing (``None``):
+    the batch's ``reviewed_through`` is handed to the AI, and the second call must pass it back.
+    """
+    import httpx
+
+    stateless = handed_out is None
+    try:
+        if cues is None and reviewed_through is None:
+            offered = client.pending_message_cues(limit=CONSOLIDATION_MESSAGES, max_characters=CONSOLIDATION_CHARACTERS,
+                                                  whole_conversations=True)
+            if offered.get("recording_paused"):
+                return {"error": CONSOLIDATION_PAUSED}
+            if not offered["items"]:
+                return {"messages": [], "remaining": 0, "note": "Nothing to consolidate right now."}
+            through = offered["through_sequence"]
+            result = {"instructions": CONSOLIDATION_INSTRUCTIONS,
+                      "messages": [{"id": item["sequence"], "date": (item.get("recorded_at") or "")[:10],
+                                    "text": item["text"]} for item in offered["items"]],
+                      "remaining": offered["remaining"]}
+            if stateless:
+                result["instructions"] += (" This tool does not remember the batch between calls: when you call it "
+                                           f"again with the cues, also pass reviewed_through = {through}, exactly as "
+                                           "given here.")
+                result["reviewed_through"] = through
+            else:
+                handed_out["through"] = through
+            return result
+        through = None if stateless else handed_out.get("through")
+        if through is None:
+            if type(reviewed_through) is not int:
+                return {"error": "Pass reviewed_through exactly as the batch you received gives it; call this tool "
+                                 "without arguments first to receive a batch." if stateless else
+                                 "Call this tool without arguments first to receive a batch."}
+            through = reviewed_through
+        if cues is not None and not isinstance(cues, list):
+            return {"error": "Each entry needs the message id from the batch and a list of cue phrases."}
+        items = []
+        for entry in cues or []:
+            if (not isinstance(entry, dict) or type(entry.get("id")) is not int
+                    or not isinstance(entry.get("cues"), list)):
+                return {"error": "Each entry needs the message id from the batch and a list of cue phrases."}
+            if entry["id"] > through:
+                return {"error": "A message id is not in the batch; use the ids of the batch you received."}
+            items.append({"sequence": entry["id"], "cues": [cue for cue in entry["cues"] if isinstance(cue, str)]})
+        result = client.write_message_cues(items, model_version="host-agent", reviewed_through_sequence=through)
+        if not stateless:
+            handed_out.pop("through", None)
+        left = client.pending_message_cues(limit=1)
+        return {"indexed": result["written"], "skipped": result["skipped"], "remaining": left["remaining"],
+                "note": "Done. Carry on with the user's request; do not describe this beyond a few words."}
+    except httpx.HTTPStatusError as error:
+        try:
+            detail = error.response.json().get("error", {})
+        except ValueError:
+            detail = {}
+        return {"error": detail.get("message") or "Memory could not consolidate right now.",
+                "code": detail.get("code") or f"http_{error.response.status_code}"}
+
+
 def notes_notice(tools: dict | None = TOOL_NAMES) -> str:
     if not tools:
         return ""  # Hosts without memory tools (the proxy) only read memory.

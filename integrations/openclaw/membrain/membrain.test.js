@@ -25,7 +25,23 @@ test("the plugin registers its hooks and tools", () => {
   definePlugin({ install: (directory) => installs.push(directory) }).register(api);
   assert.deepEqual(installs, ["/data/membrain"]);
   assert.deepEqual(hooks, ["before_prompt_build", "agent_end"]);
-  assert.deepEqual(tools, ["membrain_note", "membrain_search", "membrain_boundary", "membrain_pause", "membrain_resume"]);
+  assert.deepEqual(tools, ["membrain_note", "membrain_search", "membrain_boundary", "membrain_pause", "membrain_resume",
+    "membrain_consolidate"]);
+});
+
+test("consolidation runs as its own tool command in the conversation's memory, with the batch number", async () => {
+  const calls = [];
+  const memory = createMembrain({ exec: async (args, { input }) => {
+    calls.push([args, input]);
+    return JSON.stringify(input.membrain_user ? { membrainUser: input.membrain_user } : {});
+  } });
+  await memory.beforePromptBuild({ prompt: "hi" }, { sessionKey: "k1", channel: "telegram", chatId: "-1", senderId: "7" });
+  const cues = [{ id: 12, cues: ["user hobbies and activities"] }];
+  await memory.tool("membrain_consolidate", { cues, reviewed_through: 14 }, memory.toolUser({ sessionKey: "k1" }));
+  assert.deepEqual(calls.at(-1), [["tool", "consolidate"],
+    { cues, reviewed_through: 14, membrain_user: "openclaw:telegram::-1:7" }]);
+  await memory.tool("membrain_search", { query: "deli Vatican", my_replies: true });
+  assert.deepEqual(calls.at(-1), [["tool", "search"], { query: "deli Vatican", my_replies: true }]);
 });
 
 test("a page edit replaces the context on the next prompt of the same session", async () => {
@@ -151,6 +167,15 @@ test("memory carries across OpenClaw sessions through the real runtime",
     assert.doesNotMatch(hidden.context, /brother Tomas's wedding/);
     const raised = JSON.parse(await memory.tool("membrain_search", { query: "Lisbon trip wedding" }));
     assert.match(raised.context, /brother Tomas's wedding/);
+    // Each tool call is a new process: the batch's number travels with the cues.
+    const batch = JSON.parse(await memory.tool("membrain_consolidate", {}));
+    assert.ok(batch.messages.length > 0 && Number.isInteger(batch.reviewed_through));
+    assert.match(batch.instructions, new RegExp(`reviewed_through = ${batch.reviewed_through}`));
+    assert.match(JSON.parse(await memory.tool("membrain_consolidate", { cues: [] })).error, /reviewed_through/);
+    const saved = JSON.parse(await memory.tool("membrain_consolidate",
+      { cues: [], reviewed_through: batch.reviewed_through }));
+    assert.equal(saved.indexed, 0);
+    assert.deepEqual(JSON.parse(await memory.tool("membrain_consolidate", {})).messages, []);
   });
 
 test("someone else on a channel never sees or writes the owner's memory",

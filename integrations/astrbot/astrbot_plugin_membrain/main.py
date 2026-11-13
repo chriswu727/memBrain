@@ -8,9 +8,11 @@ from astrbot.api.event import AstrMessageEvent, filter
 from astrbot.api.provider import LLMResponse, ProviderRequest
 from astrbot.core.utils.astrbot_path import get_astrbot_plugin_data_path
 
-from membrain.adapters.chatbot import ChatMemory, Speaker
+from membrain.adapters.chatbot import TOOLS, ChatMemory, Speaker
 
 _STATE = "membrain"
+# The tools below as memory's notices name them; consolidation is asked for only on hosts that have its tool.
+_TOOLS = {**TOOLS, "consolidate": "membrain_consolidate", "replies": "my_replies"}
 
 
 def _speaker(event: AstrMessageEvent) -> Speaker:
@@ -30,7 +32,7 @@ def _report_recording(logger, receipt) -> None:
 
 
 class MembrainPlugin(star.Star):
-    """Long-term memory for each user: notes and earlier conversations before replies, tools to note, search and pause."""
+    """Long-term memory for each user: notes and earlier conversations before replies, tools to note, search, index and pause."""
 
     def __init__(self, context: star.Context, config: dict | None = None):
         super().__init__(context, config)
@@ -43,6 +45,7 @@ class MembrainPlugin(star.Star):
             extractor = Extractor(config["extract_base_url"], config["extract_model"], config.get("extract_key") or None)
         self.memory = ChatMemory(Path(directory), group_memory=config.get("group_memory") or "separate",
                                  record_groups=config.get("record_groups", True), producer="membrain-astrbot",
+                                 tools=_TOOLS,
                                  roleplay=config.get("roleplay_character") or None,
                                  share_real_life=bool(config.get("share_real_life")), extractor=extractor)
         self.memory.start()
@@ -114,14 +117,27 @@ class MembrainPlugin(star.Star):
         return json.dumps(result, ensure_ascii=False)
 
     @filter.llm_tool(name="membrain_search")
-    async def membrain_search(self, event: AstrMessageEvent, query: str):
-        """Search this user's earlier conversations and notes when a request depends on personal context that is not already shown.
+    async def membrain_search(self, event: AstrMessageEvent, query: str, my_replies: bool = False):
+        """Search this user's earlier conversations and notes when a request depends on personal context that is not already shown. Set my_replies when the user asks about something you said, suggested, recommended or explained in an earlier conversation: your own earlier replies are then searched too and come back marked "assistant said". They are what you said then, not facts about the user.
 
         Args:
             query(string): A few concrete keywords: names, places, activities, dates.
+            my_replies(boolean): Also search your own earlier replies.
         """
         state = event.get_extra(_STATE) or {}
-        result = await asyncio.to_thread(self.memory.search, _speaker(event), query, session=state.get("session"))
+        result = await asyncio.to_thread(self.memory.search, _speaker(event), query, session=state.get("session"),
+                                         replies=my_replies is True)
+        return json.dumps(result, ensure_ascii=False)
+
+    @filter.llm_tool(name="membrain_consolidate")
+    async def membrain_consolidate(self, event: AstrMessageEvent, cues: list | None = None):
+        """Index earlier messages so memory can find them later. Call it without arguments to receive a batch of this user's earlier messages and what to do with them; then call it once more with cues as that result says. Do this when the memory notice asks for it, at most a few times in a conversation.
+
+        Args:
+            cues(array[object]): Only in the second call: {"id": <message id from the batch>, "cues": [cue phrases]} for each message that got cues, or an empty list if none did.
+        """
+        state = event.get_extra(_STATE) or {}
+        result = await asyncio.to_thread(self.memory.consolidate, _speaker(event), cues, session=state.get("session"))
         return json.dumps(result, ensure_ascii=False)
 
     @filter.llm_tool(name="membrain_boundary")

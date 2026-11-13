@@ -45,8 +45,9 @@ PRODUCERS = {"claude-code": PRODUCER, "codex": "membrain-codex", "openclaw": "me
 TRANSCRIPT_TAIL_BYTES = 2 * 1024 * 1024
 # Hosts that run the MCP bridge use its tool names; others call ``membrain plugin tool`` under these names.
 HOST_TOOLS = {"openclaw": {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause",
-                           "resume": "membrain_resume"}}
-TOOLS = ("note", "search", "pause", "resume", "boundary")
+                           "resume": "membrain_resume", "consolidate": "membrain_consolidate",
+                           "replies": "my_replies"}}
+TOOLS = ("note", "search", "pause", "resume", "boundary", "consolidate")
 # Hosts that put their own memory files in the prompt; notes imported from them are not shown to them again.
 HOST_SKIPS = {"codex": ("codex",), "openclaw": ("openclaw",)}
 
@@ -266,6 +267,8 @@ def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
         elif name == "note" and host.paused(
                 directory, user, marker=host_recording.capture_marker(arguments.get("recording_capture"))):
             result = {"error": "Recording is paused. Resume before saving agent notes."}
+        elif name == "consolidate" and host.paused(directory, user):
+            result = {"error": host.CONSOLIDATION_PAUSED}
         else:
             client = host.ready_client(directory, user)
             if client is None:
@@ -283,9 +286,13 @@ def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
                     elif name == "boundary":
                         saved = client.add_boundary(arguments.get("topic", ""), arguments.get("aliases") or ())
                         result = {"boundaries": saved.get("boundaries", [])}
+                    elif name == "consolidate":
+                        # A new process per call remembers no batch: the AI passes back the batch's number.
+                        result = host.consolidate(client, arguments.get("cues"), arguments.get("reviewed_through"))
                     else:
                         found = host.recall_context(client, host.scrub(str(arguments.get("query") or "")),
-                                                    current_conversation=arguments.get("session_id"))
+                                                    current_conversation=arguments.get("session_id"),
+                                                    replies=arguments.get("my_replies") is True)
                         result = {"context": found or "No matching records."}
     except Exception as error:  # A tool reports failure to the model instead of crashing the host.
         result = {"error": str(error) if isinstance(error, ValueError) else type(error).__name__}

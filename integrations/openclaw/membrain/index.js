@@ -96,8 +96,12 @@ const TOOLS = [
   {
     name: "membrain_search",
     description: "Search the user's earlier conversations and notes by a few concrete keywords (names, places, " +
-      "activities, dates) when a request depends on personal context that is not already shown.",
-    parameters: { type: "object", properties: { query: { type: "string" } }, required: ["query"] },
+      "activities, dates) when a request depends on personal context that is not already shown. Set my_replies " +
+      "when the user asks about something you said, suggested, recommended or explained in an earlier " +
+      'conversation: your own earlier replies are then searched too and come back marked "assistant said". They ' +
+      "are what you said then, not facts about the user.",
+    parameters: { type: "object", properties: { query: { type: "string" },
+      my_replies: { type: "boolean", description: "Also search your own earlier replies." } }, required: ["query"] },
   },
   {
     name: "membrain_boundary",
@@ -116,6 +120,21 @@ const TOOLS = [
     name: "membrain_resume",
     description: "Resume this local capture control when the user asks. Check the returned recording state and scopes; other controls may still block capture. This does not confirm message storage.",
     parameters: { type: "object", properties: {} },
+  },
+  {
+    name: "membrain_consolidate",
+    description: "Index earlier messages so memory can find them later. Call it without arguments to receive a batch " +
+      "of the user's earlier messages and what to do with them; then call it once more with cues and the batch's " +
+      "reviewed_through number, as that result says. Do this when the session notice asks for it, at most a few " +
+      "times in a conversation.",
+    parameters: { type: "object", properties: {
+      cues: { type: "array", items: { type: "object", properties: {
+        id: { type: "integer", description: "A message id from the batch." },
+        cues: { type: "array", items: { type: "string" } },
+      }, required: ["id", "cues"] } },
+      reviewed_through: { type: "integer",
+        description: "The batch's reviewed_through number, exactly as the first call returned it." },
+    } },
   },
 ];
 
