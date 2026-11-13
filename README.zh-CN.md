@@ -18,14 +18,15 @@ memBrain 以本地服务运行。将 Agent 的对话生命周期接入一次后�
 
 [Claude Code 插件](#claude-code-plugin) · [为什么选择 memBrain](#why-membrain) · [快速开始](#quickstart) · [Python 接入](#python-integration) · [记忆如何工作](#how-memory-works) · [状态与验证](#status-and-verification) · [完整参考](docs/reference.md)
 
-> **发布前版本，尚未发布。** 当前运行时 `fa88a4b`（2026-11-12）。
+> **发布前版本，尚未发布。** 当前运行时 `75f3f49`（2026-11-12）。
 >
 > - **公开基准上的回答。** 在 LoCoMo 上，插件路径（运行时 `933f4d8`，尚无线索）答对了 1,540 题中的 82.5%（在未用于调参的对话上为 80.7%），与把整段对话放进提示词的做法持平（此前运行为 81.4%），而上下文只有后者的约五分之一。这只是一个基准、一个答题模型，不等同于行为验收。[报告](evaluations/locomo-controls-and-cues-2026-11-11.md)。
 > - **记忆质量。** 在不调用模型的 LoCoMo 测量中，为问题召回的上下文包含全部证据的比例为 74.1%（1,535 题；留出对话上为 72.2%），此前为 52.7%，现已与对同样的消息做普通检索在相同大小下的结果（73.6%）持平。这是在单一基准上对检索的测量，不代表回答质量。见[基线](evaluations/locomo-evidence-recall-2026-11-10.md)以及此后的三次改动（[召回块大小](evaluations/memory-path-recall-budget-2026-11-10.md)、[排序](evaluations/recall-fusion-2026-11-10.md)、[按整条消息做嵌入](evaluations/message-context-embeddings-2026-11-10.md)）。
 > - **线索：按“这条记忆是关于什么的”来找到它。** 一条消息现在可以带有线索，即说明它关于谁、属于哪一类事实的短语；召回可以通过线索找到这条消息，返回的仍是原始消息。使用模型事先写好的线索时，同一测量升至 79.5%（留出对话上为 78.5%）；对需要多条记忆的问题，留出对话上从 34.9% 升至 45.5%；这些对话上的答题正确率从 80.7% 升至 83.2%（[付费确认](evaluations/locomo-cue-answers-2026-11-11.md)）。以上数字使用的是模型事先写好的线索。在实际安装中，**线索由主机自己的 AI 来写**：新会话会告诉它有较早的消息等待索引，`memory_consolidate` 工具交给它一批消息并保存它交回的线索。memBrain 不调用任何模型，也不需要配置模型。在[试用](evaluations/host-consolidation-trial-2026-11-11.md)中，使用 Sonnet 和 Haiku 的 Claude Code 以及 Codex 在被提示时都照做了（Codex 的钩子工作由驱动脚本代为执行）；由替身模型按产品的批次格式写出的线索，使留出对话上的测量从 72.2% 升至约 77%，约为上述提升的五分之四。使用这些按批次写出的线索时，留出对话上的答题正确率为 82.7%，无线索时为 80.7%（[付费确认](evaluations/locomo-host-cue-answers-2026-11-12.md)）。WorkBuddy、CodeBuddy 以及没有该工具的主机尚未试用，真实主机在长历史上写出的线索也尚未评分。报告：[线索](evaluations/message-cues-2026-11-11.md)、[由主机 AI 整理](evaluations/host-consolidation-2026-11-11.md)。
 > - **行为验收。** R4 尚未通过：在[最近一次验收](evaluations/maturity-fifth-attempt-2026-11-07.md)中，插件路径 20 分（通过），笔记抽取 16 分（未通过，有一次由记忆导致的隐私错误），完整历史参照 15.5 分。陪伴层评测 C5 无效且未评分。
 > - **第二个基准及其发现。** 在 60 道 LongMemEval 题上（未针对它调过任何参数），对用户说过的话，召回与普通检索持平（证据齐全的题目占 90.2%，普通检索为 84.3%）；对助手说过的话则远远落后（11% 对 100%），因为助手以前的回复默认不显示，除非被问到。现在主机 AI 可以通过召回工具主动请求这些回复；主机是否真的会这样做尚未测量。[结果](evaluations/longmemeval-evidence-recall-2026-11-12.md)、[改动](evaluations/assistant-replies-and-warm-up-2026-11-12.md)。
-> - **此运行时的验证。** 完整源码测试套件已在本地 Linux 上运行：8,535 项通过，4 项跳过（Docker 流程），2 项失败：一项是过时的预期，已修正；一项是端口被另一个测试会话占用；这两个文件随后单独运行均通过。未对它运行 GitHub Verify、Windows 原生、macOS、五平台验证、R5 开销协议，也未经独立审查。
+> - **装配给各种 agent 的大脑，而不是独立的产品。** memBrain 在任何地方都不再要求配置自己的模型：安装时不再提示，自带的聊天模式和由模型驱动的学习已冻结，之后会移除。陪伴层（人格、模拟心情、亲近度）默认开启，用户可以关闭，在 Claude Code 中使用 `/membrain:companion off`。OpenClaw 和 AstrBot 现在可以像 MCP 主机一样整理记忆并搜索助手自己的回复。以上内容尚未在真实主机上运行过。[记录](evaluations/parallel-work-2026-11-12.md)、[调研](evaluations/audits-2026-11-12/)。
+> - **此运行时的验证。** 完整源码测试套件已在本地 Linux 上运行：8,558 项通过，4 项跳过（Docker 流程），无失败。未对它运行 GitHub Verify、Windows 原生、macOS、五平台验证、R5 开销协议，也未经独立审查。
 > - **删除与凭据。** 擦除一条消息时，现在会同时擦除回答它的那条回复；一个[端到端场景](evaluations/reply-erasure-database-auth-2026-11-11.md)验证了一条记忆被保存、更正、删除，且不会被旧存档带回。本机数据库连接要求使用 SCRAM-SHA-256。
 > - **未解决的缺陷与限制。** 见 [2026-11-10 现状审核](evaluations/status-audit-2026-11-10.md)，其中也标明了此后已修复的部分。更早的运行时及其证据见[发布清单](docs/releasing.md)。默认分支在经过验证的节点跟进集成分支，可能落后一个运行时；两者都不代表已发布。
 
