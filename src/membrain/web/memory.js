@@ -1106,24 +1106,8 @@ async function loadServiceStatus() {
 }
 guard($("refresh-status"), loadServiceStatus);
 
-// Whether the companion layer reaches the agent; only a local installation knows, and only for its owner's memory.
-async function loadCompanionSwitch() {
-  const brain = state.brain;
-  let enabled = null;
-  try {
-    enabled = (await api(`/v1/local/companion?brain_id=${encodeURIComponent(brain)}`)).enabled;
-  } catch {
-    enabled = null; // A service without the route, or one that cannot say: the notice stays hidden.
-  }
-  if (brain === state.brain) $("companion-off").hidden = enabled !== false;
-}
-
 // The Companion tab holds the personality and the relationship.
-// The switch notice is read alongside and never fails the tab.
-const loadCompanion = () => {
-  loadCompanionSwitch();
-  return Promise.all([loadPersona(), loadRelationship()]);
-};
+const loadCompanion = () => Promise.all([loadPersona(), loadRelationship()]);
 const loaders = { notes: () => loadNotes(), brain: () => window.loadBrain(), persona: loadCompanion, people: () => loadNotes("people"),
   plans: () => loadNotes("plans"), feelings: loadFeelings,
   conversations: loadConversations, search: async () => {}, privacy: loadRecording };

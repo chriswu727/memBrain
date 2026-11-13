@@ -734,10 +734,6 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
                         kept.append(line)
                 host_queue.replace_queue(spool_path, b"".join(kept))
             _erase_rejected(directory, user_id)
-            if real_life_user(user_id) == user_id:  # A role-play erase leaves the person's own setting alone.
-                from . import companion_switch
-
-                companion_switch.forget(directory, user_id)
             for path in (state_directory(directory) / "sessions").glob("*.json"):
                 try:
                     state = json.loads(path.read_text(encoding="utf-8"))
@@ -1358,14 +1354,11 @@ def _remember_context(directory, session, brain_id, current, options):
         state = session_state(directory, session)
         state["memory_context"] = {"brain_id": brain_id, "fingerprint": current["fingerprint"],
                                    "persona_version": current.get("persona_version"),
-                                   "mood_shown": bool(current.get("mood_shown")),
-                                   "companion": current.get("companion", True) is not False, **options}
+                                   "mood_shown": bool(current.get("mood_shown")), **options}
         _write_session_state(directory, session, state)
 
 
-def _saved_context(client, real_life, roleplay, options, *, companion=True):
-    """Notes and the snapshot built from them. With the companion layer off (``companion_switch``) the persona and
-    mood are not even read; the relationship still is, for its boundaries and missed promises."""
+def _saved_context(client, real_life, roleplay, options):
     from .host_context import snapshot
     from .notes import list_notes
 
@@ -1378,11 +1371,9 @@ def _saved_context(client, real_life, roleplay, options, *, companion=True):
             shared = list_notes(client)
         finally:
             client.brain_id = current
-    return saved, snapshot(saved, brain_id=client.brain_id, shared=shared,
-                           persona=_persona(client) if companion else None,
-                           relationship=_relationship(client), mood=_persona(client, "mood") if companion else None,
-                           tools=options["tools"], skip_imports_from=options.get("skip_imports_from", ()),
-                           companion=companion)
+    return saved, snapshot(saved, brain_id=client.brain_id, shared=shared, persona=_persona(client),
+                           relationship=_relationship(client), mood=_persona(client, "mood"),
+                           tools=options["tools"], skip_imports_from=options.get("skip_imports_from", ()))
 
 
 def _persona(client, route: str = "persona") -> dict | None:
@@ -2159,13 +2150,9 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     are not repeated. ``roleplay`` names a role-play character whose separate memory is used; with
     ``share_real_life`` the person's non-sensitive real-life notes are shown too, marked as such.
     """
-    from . import companion_switch
-    from .host_context import COMPANION_OFF
-
     real_life = user_id
     user_id = roleplay_user(user_id, roleplay)
     options = {"tools": tools, "skip_imports_from": list(skip_imports_from), "share_real_life": share_real_life}
-    companion = companion_switch.enabled(directory, real_life)
     history, current, complete, consolidation = None, None, False, ""
     resumed = ("Recording was paused for an earlier conversation only; that local pause has ended. "
                if end_conversation_pause(directory, session, real_life) else "")
@@ -2192,7 +2179,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
             except Exception as error:
                 log(directory, f"replay failed at session start: {type(error).__name__}")
             try:
-                _, current = _saved_context(client, real_life, roleplay, options, companion=companion)
+                _, current = _saved_context(client, real_life, roleplay, options)
                 _acknowledge(client, current)  # This block is returned below, so its one-time lines are shown.
             except Exception as error:
                 log(directory, f"notes failed: {type(error).__name__}")
@@ -2201,8 +2188,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
                 try:
                     # Notice and history header take about 1,000 characters of the host's limit.
                     # Room for the longest notice, the history block's header and the separators between blocks.
-                    reserved = (max(len(_session_notice(value, tools, True, roleplay)) for value in (True, False))
-                                + 400 + (0 if companion else len(COMPANION_OFF) + 1))
+                    reserved = max(len(_session_notice(value, tools, True, roleplay)) for value in (True, False)) + 400
                     budget = min(HISTORY_CHARACTERS, SESSION_CONTEXT_CHARACTERS - reserved) - len(current["text"])
                     history, complete = _history(client, session, budget, boundaries=current["boundaries"])
                 except Exception as error:
@@ -2215,8 +2201,6 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     notice += " " + host_recording.notice(policy)
     if consolidation and not paused(directory, user_id, session):
         notice = notice.strip() + " " + consolidation
-    if not companion:
-        notice = notice.strip() + " " + COMPANION_OFF
     return "\n\n".join(part for part in (notice, current["text"] if current else None, history) if part)
 
 
@@ -2266,14 +2250,10 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
         options = ({name: context[name] for name in ("tools", "skip_imports_from", "share_real_life")}
                    if same_brain else {"tools": tools, "skip_imports_from": [], "share_real_life": False})
         try:
-            from . import companion_switch
-
-            saved, current = _saved_context(client, real_life, roleplay, options,
-                                            companion=companion_switch.enabled(directory, real_life))
+            saved, current = _saved_context(client, real_life, roleplay, options)
             refreshed = update(current, context.get("fingerprint") if same_brain else None,
                                context.get("persona_version") if same_brain else None,
-                               bool(context.get("mood_shown")) if same_brain else False,
-                               context.get("companion", True) is not False if same_brain else True)
+                               bool(context.get("mood_shown")) if same_brain else False)
             if not same_brain:
                 notice = "memBrain memory is active for this user. "
                 if roleplay:

@@ -43,25 +43,21 @@ def _without_reset_commitments(saved, relationship):
 
 
 def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, persona=None, mood=None,
-             relationship=None, companion=True):
+             relationship=None):
     """Saved memory for the host's context. The persona block comes first, apart from the user's memory, with its
     own size limit: it never takes room from the notes. The companion's simulated mood follows it in its own block
     (none at the baseline); its text changes only when the label, the easing or the trigger does, so the
     fingerprint refreshes it only then, and a mood back at its baseline disappears. The relationship block
     follows, also on its own; notes about a boundary topic are left out, and shared moments are shown in the
-    relationship block only.
-
-    With ``companion`` off the persona and mood blocks are left out and the relationship block keeps only the
-    boundaries and missed promises (``relationship_context``); shared moments then stay among the notes. Everything
-    else is the same."""
+    relationship block only."""
     from .relationship import relationship_context
 
-    persona_block = render_persona(persona) if companion else None
-    mood_block = render_mood(mood) if companion else None
-    bond = relationship_context(relationship, companion=companion)
+    persona_block = render_persona(persona)
+    mood_block = render_mood(mood)
+    bond = relationship_context(relationship)
     boundaries = (relationship or {}).get("boundaries") or []
     saved = _without_reset_commitments(saved, relationship)
-    saved = _outside_boundaries(saved, boundaries, drop_shared=companion and bond["block"] is not None)
+    saved = _outside_boundaries(saved, boundaries, drop_shared=bond["block"] is not None)
     shared = _outside_boundaries(shared, boundaries)
     blocks = [persona_block, mood_block, bond["block"],
               render_coming_up(saved, skip_imports_from=skip_imports_from, budget=1000),
@@ -74,38 +70,24 @@ def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, perso
     # not by its day count or one-time line, so a new day or an acknowledgement alone does not refresh everything.
     others = "\n\n".join(block for block in blocks if block and block is not bond["block"])
     basis = [brain_id, text] if bond["stable"] is None else [brain_id, others, bond["stable"]]
-    if not companion:
-        basis.append("companion off")  # Turning the layer off always refreshes, so the agent is told at once.
     return {"fingerprint": digest(basis), "text": text,
             "persona_version": persona["version"] if persona_block else None, "mood_shown": bool(mood_block),
-            "boundaries": boundaries, "acknowledge": bond["once"], "companion": companion}
+            "boundaries": boundaries, "acknowledge": bond["once"]}
 
 
-COMPANION_OFF = ("The user turned the companion layer off: no persona, simulated mood or familiarity is given, so "
-                 "do not claim a mood or a relationship level of your own.")
-
-
-def update(current, previous, previous_persona=None, previous_mood=False, previous_companion=True):
+def update(current, previous, previous_persona=None, previous_mood=False):
     """The refreshed snapshot when it changed since ``previous``; ``previous_persona`` is the persona version the
     session was last given, so a removed or reset card is announced instead of silently lingering. Likewise
-    ``previous_mood`` says the session was given a simulated mood, so its return to the baseline is announced, and
-    ``previous_companion`` says whether the companion layer was on, so turning it off or on is announced."""
+    ``previous_mood`` says the session was given a simulated mood, so its return to the baseline is announced."""
     if current["fingerprint"] == previous:
         return None
-    companion = current.get("companion", True)
-    if not companion:
-        removed = (" The companion layer was turned off: earlier membrain-persona, membrain-companion-mood and "
-                   "membrain-relationship blocks in this session no longer apply. " + COMPANION_OFF
-                   if previous_companion else "")
-    else:
-        removed = " The companion layer is on again." if not previous_companion else ""
-        removed += ("" if not previous_persona or current.get("persona_version") else
-                    f" The companion persona (v{int(previous_persona)}) was reset or removed: earlier membrain-persona "
-                    "blocks in this session no longer apply.")
-        # Companion mood (M1).
-        removed += ("" if not previous_mood or current.get("mood_shown") else
-                    " The companion's simulated mood is back at its baseline: earlier membrain-companion-mood blocks "
-                    "in this session no longer apply.")
+    removed = ("" if not previous_persona or current.get("persona_version") else
+               f" The companion persona (v{int(previous_persona)}) was reset or removed: earlier membrain-persona "
+               "blocks in this session no longer apply.")
+    # Companion mood (M1).
+    removed += ("" if not previous_mood or current.get("mood_shown") else
+                " The companion's simulated mood is back at its baseline: earlier membrain-companion-mood blocks "
+                "in this session no longer apply.")
     return ("<membrain-updates>\nSaved memory has been refreshed. This snapshot replaces earlier persona, relationship, saved-note "
             "and coming-up blocks in this session. Do not use earlier versions as current notes; an omitted "
             "note may have been removed or may not fit. Omission does not prove a fact false. Search when "

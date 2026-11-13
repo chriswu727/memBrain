@@ -424,11 +424,6 @@ HEADER = ("How the user and you, the companion, relate, as memBrain recorded it.
           "lightly, as the persona card says if it does. Never use it, absence or time apart to pressure the user.")
 
 
-# With the companion layer off, only the topics the user asked you to avoid and overdue promises are shown.
-BOUNDARIES_HEADER = ("Topics the user asked you not to raise and promises of yours that are overdue, as memBrain "
-                     "recorded them.")
-
-
 def _boundary_text(boundary: dict) -> str:
     aliases = boundary.get("aliases") or []
     return boundary["topic"] + (f" (also: {', '.join(aliases)})" if aliases else "")
@@ -441,25 +436,20 @@ def boundaries_line(boundaries) -> str | None:
             "them, unless the user does: " + "; ".join(_boundary_text(item) for item in boundaries) + ".")
 
 
-def relationship_context(result: dict | None, *, companion: bool = True) -> dict:
+def relationship_context(result: dict | None) -> dict:
     """``block``: the ``<membrain-relationship>`` block. ``stable``: what decides whether it changed, without the day
     count (which grows every day) and without the one-time line, so neither causes a refresh on its own; every
     missed commitment's id is in it instead, so a newly missed one does. ``once``: missed commitments shown in this
-    block for the first and only time, to be acknowledged once the block is delivered.
-
-    With ``companion`` off (``membrain.companion_switch``) the familiarity, support style and shared moments are
-    left out and the block is ``<membrain-boundaries>``: only the boundaries and the one-time missed-promise lines,
-    which protect the user and remind of a promise rather than shape companionship, are kept."""
+    block for the first and only time, to be acknowledged once the block is delivered."""
     if not result or "familiarity" not in result:
         return {"block": None, "stable": None, "once": []}
     today = _date(result.get("today")) or _clock_today()
     known = result["familiarity"]
-    lines = [f"Familiarity: {known['reason']}."] if companion else []
+    lines = [f"Familiarity: {known['reason']}."]
     # The default level is left out, so a block that only carried a one-time line and then goes away does not
     # count as a change.
-    stable = ([f"Familiarity: {known['level']}."] if companion and (known["level"] != "new" or known.get("cap"))
-              else [])
-    if companion and result.get("support_style"):
+    stable = [f"Familiarity: {known['level']}."] if known["level"] != "new" or known.get("cap") else []
+    if result.get("support_style"):
         line = f"How they like to be supported: {result['support_style']['text']}"
         lines.append(line)
         stable.append(line)
@@ -473,10 +463,9 @@ def relationship_context(result: dict | None, *, companion: bool = True) -> dict
     once_lines = [f"A promise you made is past its date and not done (shown once): {item['text']} (due "
                   f"{item.get('due') or item.get('occurs_at')}, id: {item['note_id']}). Acknowledge it briefly if it "
                   "fits, and update its note when it is done or dropped." for item in once]
-    moments = [moment for moment in result.get("shared_moments") or () if companion and shown(moment, boundaries)]
-    tag = "membrain-relationship" if companion else "membrain-boundaries"
-    header = f"<{tag}>\n{HEADER if companion else BOUNDARIES_HEADER}\n"
-    footer = f"\n</{tag}>"
+    moments = [moment for moment in result.get("shared_moments") or () if shown(moment, boundaries)]
+    header = f"<membrain-relationship>\n{HEADER}\n"
+    footer = "\n</membrain-relationship>"
     body = "\n".join(lines + once_lines)
     chosen = []
     for moment in reversed(moments[-MOMENTS_IN_CONTEXT:]):  # The most recent first, until the block is full.
