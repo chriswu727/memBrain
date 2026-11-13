@@ -400,10 +400,9 @@ class MemoryService:
         affected = sorted({row["id"] for row in rows})
         params = self._params(principal, brain["id"])
         from .belief_store import invalidate_beliefs
-        from .pattern_store import invalidate_patterns
+        from .legacy_erasure import invalidate_pattern_views
 
-        invalidate_patterns(conn, self, principal, brain, event_ids=event_ids,
-                            memory_ids=set(affected) | set(memory_ids))
+        invalidate_pattern_views(conn, params, event_ids=event_ids, memory_ids=set(affected) | set(memory_ids))
         invalidate_beliefs(conn, self, principal, brain, event_ids=event_ids,
                           memory_ids=set(affected) | set(memory_ids))
         conn.execute(
@@ -829,23 +828,6 @@ class MemoryService:
         timed_query = {**query, "budget": {**query["budget"], "max_wall_time_ms": recall_deadline.remaining(query["budget"]["max_wall_time_ms"])}}
         result = runner(self._scope(principal, brain, target), timed_query, memories, events, state,
                         access_at=access_at, validate_result=False)
-        if recall_plan is None and result["items"]:
-            from .pattern_store import load_patterns
-
-            state["pattern_views"] = load_patterns(
-                conn, self, principal, brain, scope=self._scope(principal, brain, target),
-                memory_versions=[(item["memory"]["memory_id"], item["memory"]["revision"])
-                                 for item in result["items"] if item["display_mode"] != "do_not_surface"],
-            )
-            missing = sorted({identifier for view in state["pattern_views"] for identifier in view["root_event_ids"]}
-                             - state["working_event_metadata"].keys())
-            capacity = max(0, 1024 - len(state["working_event_metadata"]))
-            if missing and capacity:
-                extra = self._events(conn, principal, brain, event_ids=missing[:capacity], limit=capacity)
-                state["working_event_metadata"].update({
-                    event["event_id"]: event for event in extra
-                    if cognition._scope_allows(event["scope"], self._scope(principal, brain, target))
-                })
         if recall_plan is not None:
             frozen = sorted(recall_plan.get("belief_relation_refs", []),
                             key=lambda value: (value["relation_id"], value["revision"]))
@@ -1622,10 +1604,6 @@ class MemoryService:
         )
         quarantined += rejected_memories
         restored_views = restore_views(conn, self, principal, brain, data, restored_versions, event_mapping, blocked_events)
-        from .pattern_store import rebuild_restored_patterns
-
-        pattern_ids = rebuild_restored_patterns(conn, self, principal, brain, data, restored_versions)
-        restored_views["patterns_rebuilt"] = len(pattern_ids)
         for working in data["working_states"] if data.get("archive_origin") == "local_export" else []:
             updated = self._rebind(working, principal, brain)
             for field in ("items", "open_loops"):

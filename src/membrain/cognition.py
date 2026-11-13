@@ -1035,102 +1035,6 @@ def _memory_applicability(memory, state, scope, events, timestamp):
     return {**result, "evaluated_at": at}
 
 
-def _pattern_context_units(rows, views, scope, events, snapshot, excluded, superseded):
-    from .patterns import validate_pattern
-
-    def key(version):
-        return version["memory_id"], version["revision"]
-
-    def ordinary(row, *, episodes=None, roots=()):
-        content = copy.deepcopy(row["content"])
-        refs = copy.deepcopy(row["references"])
-        if episodes:
-            content["episode_refs"] = copy.deepcopy(episodes)
-            content["coverage"] = "selected_assertions_only"
-            content["memory_version"] = {"memory_id": row["memory"]["memory_id"],
-                                         "revision": row["memory"]["revision"]}
-        for ref in roots:
-            if ref not in refs:
-                refs.append(ref)
-        return (row["section"], _serialized(content), refs), [(row["memory"], row["references"])]
-
-    def size(unit):
-        return estimate_tokens(render_context({"blocks": [
-            {"section": block[0], "text": block[1], "evidence_refs": block[2]}
-            for block, _ in unit
-        ]}))
-
-    memories = [row["memory"] for row in rows]
-    lookup = {key(row["memory"]): row for row in rows}
-    groups, used = {}, set()
-    for view in views[:16]:
-        if not validate_pattern(view, memories) or not _scope_allows(view["scope"], scope):
-            continue
-        keys = {key(version) for version in view["source_memory_versions"]}
-        if keys & used:
-            continue
-        roots = []
-        for identifier in view["root_event_ids"]:
-            event = events.get(identifier)
-            if event is None:
-                break
-            ref = {"event_id": identifier, "event_revision": event["revision"],
-                   "source_content_sha256": event["content_sha256"], "relationship": "context_only"}
-            if (not _valid_ref(ref, events, scope)
-                    or any(old["event_id"] == identifier for old in superseded)
-                    or snapshot["historical_evidence_status"] != "not_requested" and (
-                        snapshot["resolved_evidence_through_sequence"] is None
-                        or event["sequence"] > snapshot["resolved_evidence_through_sequence"]
-                        or identifier in excluded)):
-                break
-            roots.append(ref)
-        else:
-            instances, memberships = [], {}
-            meanings = {slot["slot_id"]: slot["meaning"] for slot in view["definition"]["shared_claims"]}
-            for instance in view["instances"]:
-                bindings, residuals = [], []
-                for version in instance["observed_memory_versions"]:
-                    memberships.setdefault(key(version), []).append(instance["episode_ref"])
-                for binding in instance["shared_bindings"]:
-                    row = lookup[key(binding["memory_version"])]
-                    attributes = {name: value for name, value in row["content"].items()
-                                  if name not in meanings[binding["slot_id"]]
-                                  or value != meanings[binding["slot_id"]][name]}
-                    bindings.append({**copy.deepcopy(binding), "attributes": copy.deepcopy(attributes),
-                                     "evidence_refs": copy.deepcopy(row["references"])})
-                for version in instance["residual_memory_versions"]:
-                    row = lookup[key(version)]
-                    residuals.append({"memory_version": copy.deepcopy(version),
-                                      "fact": copy.deepcopy(row["content"]),
-                                      "evidence_refs": copy.deepcopy(row["references"])})
-                instances.append({"episode_ref": copy.deepcopy(instance["episode_ref"]),
-                                  "observed_memory_versions": copy.deepcopy(instance["observed_memory_versions"]),
-                                  "shared_bindings": bindings, "residuals": residuals})
-            selected = [row for row in rows if key(row["memory"]) in keys]
-            references = {digest(ref): ref for row in selected for ref in row["references"]}
-            cited = {ref["event_id"] for ref in references.values()}
-            extra_roots = [ref for ref in roots if ref["event_id"] not in cited]
-            references.update({digest(ref): ref for ref in extra_roots})
-            section = ("conditional_memory" if any(row["section"] == "conditional_memory" for row in selected)
-                       else "relevant_memory")
-            content = {
-                "format": view["format_version"], "coverage": view["coverage"],
-                "use": "apply_each_instance_with_its_own_evidence_and_applicability; "
-                       "shared_meaning_does_not_fill_unobserved_details",
-                "definition": copy.deepcopy(view["definition"]), "instances": instances,
-            }
-            compressed = [((section, _serialized(content), list(references.values())),
-                           [(row["memory"], row["references"]) for row in selected])]
-            expanded = [ordinary(row, episodes=memberships[key(row["memory"])], roots=extra_roots)
-                        for row in selected]
-            unit = compressed if size(compressed) < size([ordinary(row) for row in selected]) else expanded
-            first = key(selected[0]["memory"])
-            groups[first] = unit
-            used.update(keys)
-    return [groups[key(row["memory"])] if key(row["memory"]) in groups else [ordinary(row)]
-            for row in rows if key(row["memory"]) in groups or key(row["memory"]) not in used]
-
-
 def prepare(scope: dict, payload: dict, working: dict, recall_result: dict, state: dict) -> dict:
     validate("BoundScope", scope)
     validate("PreparePayload", payload)
@@ -1354,10 +1258,11 @@ def prepare(scope: dict, payload: dict, working: dict, recall_result: dict, stat
                             if (ref["memory_id"], ref["revision"]) in row_order), default=len(row_order)) + 0.5
             source_units.append((position, [(("verbatim_evidence", _serialized(passage_content(passage)),
                                               [copy.deepcopy(passage["evidence_ref"])]), [])]))
-    regular_units = atomic_units(_pattern_context_units(
-        retained_rows, [] if "recall_plan" in payload else state.get("pattern_views", []),
-        scope, historical_events, snapshot, excluded, state.get("superseded_evidence_refs", []),
-    ), belief_membership)
+    regular_units = atomic_units([
+        [((row["section"], _serialized(row["content"]), copy.deepcopy(row["references"])),
+          [(row["memory"], row["references"])])]
+        for row in retained_rows
+    ], belief_membership)
     ranked_units = [(min((row_order.get((memory["memory_id"], memory["revision"]), len(row_order))
                           for _, provenance in unit for memory, _ in provenance), default=len(row_order)), unit)
                     for unit in regular_units]

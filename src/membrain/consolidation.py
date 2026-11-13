@@ -433,9 +433,9 @@ def _save_episode(conn, service, principal, brain, batch, document, memories, ro
         if old["invalidated"] or old["deleted"] or old["document"] != document:
             raise DomainError("idempotency_conflict", "Episode version changed within one job")
         return
-    from .pattern_store import invalidate_patterns
+    from .legacy_erasure import invalidate_pattern_views
 
-    invalidate_patterns(conn, service, principal, brain, episode_ids=[document["episode_id"]])
+    invalidate_pattern_views(conn, params, episode_ids=[document["episode_id"]])
     conn.execute(
         "UPDATE memory_episodes SET is_current=false WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
         "AND id=%s AND is_current", (*params, document["episode_id"]),
@@ -558,14 +558,12 @@ def publish_semantic(conn, service, principal, brain, batch: CognitiveBatch,
                                             parent["memory_id"], parent["revision"], relation,
                                             snapshot["root_event_ids"]),
             )
-    from .pattern_store import refresh_patterns
-
-    pattern_ids = refresh_patterns(conn, service, principal, brain, batch, memories, episodes)
     from .belief_store import publish_links
 
     links = publish_links(conn, service, principal, brain, batch, result,
                           published_memories=memories, snapshot=snapshot)
-    return {"status": result.status, "published_count": len(memories), "pattern_view_ids": pattern_ids,
+    # Pattern views are no longer built. The empty list keeps the publication shape that learning summaries count.
+    return {"status": result.status, "published_count": len(memories), "pattern_view_ids": [],
             "belief_relation_versions": [{"relation_id": link["relation_id"], "revision": link["revision"]} for link in links],
             "memory_versions": [{"memory_id": memory["memory_id"], "revision": memory["revision"]} for memory in memories],
             "episode_versions": episodes, "source_event_ids": snapshot["root_event_ids"],

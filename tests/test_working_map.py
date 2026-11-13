@@ -3,7 +3,7 @@ import json
 
 import pytest
 from test_consolidation import memory as memory
-from test_pattern_store import store as store
+from test_legacy_erasure import store as store
 from test_semantic import reference
 
 from membrain.contracts import validate

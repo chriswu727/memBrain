@@ -5,11 +5,11 @@ import pytest
 from fastapi.testclient import TestClient
 from test_belief_store import linked
 from test_consolidation import memory as _memory
+from test_legacy_erasure import populated
+from test_legacy_erasure import store as _store
 from test_memory_hologram_browser import preview as _preview
 from test_memory_observatory_browser import _tab
 from test_memory_observatory_browser import browser as _browser
-from test_pattern_store import populated
-from test_pattern_store import store as _store
 from test_working_map import saved_state
 
 from membrain.api import create_app
