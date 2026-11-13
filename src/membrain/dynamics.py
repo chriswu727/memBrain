@@ -53,8 +53,14 @@ class AccessPolicy:
     external_gain: float = 0.45
     external_half_life_days: float = 30.0
     external_use_scale: float = 4.0
-    rank_floor: float = 0.15
-    distinctive_rank_floor: float = 0.25
+    # How far age can lower a memory's rank in automatic recall: the weight runs from about 0.47 for a new memory
+    # down to this floor, so at 0.30 a new memory outranks a six-month-old one of equal relevance by about 1.8 to
+    # 1. At 0.15 (3 to 1) old evidence was buried: on LoCoMo conversations not used for tuning, with messages
+    # stored at their dates and asked a day after the last session, all the evidence of 72.2% of 1,152 questions
+    # was shown, against 76.2% at 0.30 and 77.9% with no weight; questions about the last 30 days lost 2 of 232 at
+    # 0.30 and 9 with no weight. Recent memories still come first; a search made on purpose ignores the weight.
+    rank_floor: float = 0.30
+    distinctive_rank_floor: float = 0.40
 
     def __post_init__(self):
         if not isinstance(self.version, str) or not self.version or len(self.version) > 128:

@@ -207,3 +207,14 @@ def test_usage_counters_require_consistent_external_observations(usage):
 def test_invalid_policy_cannot_create_permanent_or_nonfinite_ranking(changes):
     with pytest.raises(ValueError):
         AccessPolicy(**changes)
+
+
+def test_a_new_memory_outranks_a_six_month_old_one_by_less_than_two_to_one():
+    # Recent first, but not so far that old evidence is buried (measured: see ``AccessPolicy.rank_floor``).
+    memory = {"dynamics": {"activation": 0.5, "retention_priority": 0.5}, "memory_kind": "episodic",
+              "system_time": {"recorded_at": "2027-01-01T00:00:00Z"}}
+    new = rank_weight(access_state(memory, None, at="2027-01-02T00:00:00Z"))
+    old = rank_weight(access_state(memory, None, at="2027-06-30T00:00:00Z"))
+    ancient = rank_weight(access_state(memory, None, at="2030-01-01T00:00:00Z"))
+    assert 1.6 < new / old < 2.0 and old > ancient == pytest.approx(AccessPolicy().rank_floor, abs=1e-6)
+    assert AccessPolicy().rank_floor == 0.30 < AccessPolicy().distinctive_rank_floor
