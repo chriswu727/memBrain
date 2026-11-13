@@ -289,16 +289,6 @@ def publish_links(conn, service, principal, brain, batch, result, *, published_m
     return [service._rebind(document, principal, brain) for document in saved.values()]
 
 
-def invalidate_beliefs(conn, service, principal, brain, *, event_ids=(), memory_ids=(), deleted=False):
-    if event_ids or memory_ids:
-        conn.execute(
-            "UPDATE memory_belief_relations SET document=NULL,invalidated=true,deleted=deleted OR %s "
-            "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
-            "AND (event_ids && %s::text[] OR memory_ids && %s::text[])",
-            (deleted, *service._params(principal, brain["id"]), sorted(set(event_ids)), sorted(set(memory_ids))),
-        )
-
-
 def load_belief_relations(conn, service, principal, brain, scope, memory_versions, max_relations=32):
     if type(max_relations) is not int or not 1 <= max_relations <= MAX_RELATIONS:
         raise ValueError("Belief read limit must be between 1 and 32")

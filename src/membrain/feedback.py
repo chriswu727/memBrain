@@ -6,11 +6,11 @@ from psycopg.types.json import Jsonb
 from . import cognition
 from .delivery_receipts import recorded_delivery_receipt
 from .helpers import digest, now, uid
+from .legacy_erasure import recompute_access
 from .prepared_selection import selection_for_turn, text_hash
 from .retrieval import resolve_dependency_closure
 
 ATTRIBUTION_VERSION = "sole-exact-statement-v1"
-ACCESS_VERSION = "contextual-access-v2"
 CONFIRMATION = re.compile(r"\s*(yes|correct|confirmed|对|是的|没错|确认)[。.!！\s]*", re.I)
 CORRECTION = re.compile(r"\s*(不是|不对|错了|incorrect|wrong)[。.!！\s]*", re.I)
 
@@ -281,38 +281,6 @@ def _delivered_use(conn, service, principal, brain, target, memory, proposal, ev
     return {"selection": used, "output": output, **sources} if sources else None
 
 
-def recompute_access(conn, params, versions):
-    versions = sorted(set(versions))
-    if not versions:
-        return
-    ids, revisions = [key[0] for key in versions], [key[1] for key in versions]
-    conn.execute(
-        "INSERT INTO memory_access_state(tenant_id,owner_id,brain_id,memory_id,memory_revision,external_uses,"
-        "successes,failures,last_external_use_at,last_reinforcement_at,last_feedback_event_id,policy_version) "
-        "SELECT tenant_id,owner_id,brain_id,memory_id,memory_revision,count(*),"
-        "count(*) FILTER (WHERE kind='user_confirmed'),count(*) FILTER (WHERE kind='user_corrected'),"
-        "max(observed_at),max(observed_at) FILTER (WHERE kind<>'user_corrected'),"
-        "(array_agg(feedback_event_id ORDER BY observed_at DESC,feedback_event_id,feedback_event_revision DESC))[1],%s "
-        "FROM memory_feedback_contributions WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
-        "AND (memory_id,memory_revision) IN (SELECT * FROM unnest(%s::text[],%s::bigint[])) "
-        "AND invalidated_at IS NULL GROUP BY tenant_id,owner_id,brain_id,memory_id,memory_revision "
-        "ON CONFLICT(tenant_id,brain_id,memory_id,memory_revision) DO UPDATE SET "
-        "revision=memory_access_state.revision+1,external_uses=EXCLUDED.external_uses,successes=EXCLUDED.successes,"
-        "failures=EXCLUDED.failures,last_external_use_at=EXCLUDED.last_external_use_at,"
-        "last_reinforcement_at=EXCLUDED.last_reinforcement_at,last_feedback_event_id=EXCLUDED.last_feedback_event_id,"
-        "policy_version=EXCLUDED.policy_version",
-        (ACCESS_VERSION, *params, ids, revisions),
-    )
-    conn.execute(
-        "DELETE FROM memory_access_state a WHERE a.tenant_id=%s AND a.owner_id=%s AND a.brain_id=%s "
-        "AND (a.memory_id,a.memory_revision) IN (SELECT * FROM unnest(%s::text[],%s::bigint[])) "
-        "AND NOT EXISTS (SELECT 1 FROM memory_feedback_contributions c WHERE c.tenant_id=a.tenant_id "
-        "AND c.owner_id=a.owner_id AND c.brain_id=a.brain_id AND c.memory_id=a.memory_id "
-        "AND c.memory_revision=a.memory_revision AND c.invalidated_at IS NULL)",
-        (*params, ids, revisions),
-    )
-
-
 def record_feedback(conn, service, principal, brain, target, memory, proposal, event):
     proof = _delivered_use(conn, service, principal, brain, target, memory, proposal, event)
     if proof is None:
@@ -336,16 +304,6 @@ def record_feedback(conn, service, principal, brain, target, memory, proposal, e
     if result.rowcount:
         recompute_access(conn, params, [(memory["memory_id"], memory["revision"])])
     return bool(result.rowcount)
-
-
-def invalidate_contributions(conn, params, *, event_ids=(), memory_ids=()):
-    rows = conn.execute(
-        "UPDATE memory_feedback_contributions SET invalidated_at=clock_timestamp() "
-        "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND invalidated_at IS NULL "
-        "AND (source_event_ids && %s::text[] OR source_memory_ids && %s::text[]) RETURNING memory_id,memory_revision",
-        (*params, list(event_ids), list(memory_ids)),
-    ).fetchall()
-    recompute_access(conn, params, [(row["memory_id"], row["memory_revision"]) for row in rows])
 
 
 def observe_feedback(conn, service, principal, brain, target, event_id):

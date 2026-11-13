@@ -50,11 +50,10 @@ def apply_erasure(service, conn, principal, brain, *, event_ids, memory_ids, mod
             )
     erase = mode == 'erase_content'
     if erase:
-        from .belief_store import invalidate_beliefs
-        from .legacy_erasure import invalidate_pattern_views
+        from .legacy_erasure import invalidate_belief_relations, invalidate_pattern_views
 
         invalidate_pattern_views(conn, params, event_ids=event_ids, memory_ids=memory_ids, deleted=True)
-        invalidate_beliefs(conn, service, principal, brain, event_ids=event_ids, memory_ids=memory_ids, deleted=True)
+        invalidate_belief_relations(conn, params, event_ids=event_ids, memory_ids=memory_ids, deleted=True)
     conn.execute(
         "UPDATE memory_jobs SET result=NULL WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND kind='query_embedding'",
         params,

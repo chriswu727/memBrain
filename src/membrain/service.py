@@ -399,12 +399,14 @@ class MemoryService:
         ).fetchall()
         affected = sorted({row["id"] for row in rows})
         params = self._params(principal, brain["id"])
-        from .belief_store import invalidate_beliefs
-        from .legacy_erasure import invalidate_pattern_views
+        from .legacy_erasure import (
+            invalidate_belief_relations,
+            invalidate_contributions,
+            invalidate_pattern_views,
+        )
 
         invalidate_pattern_views(conn, params, event_ids=event_ids, memory_ids=set(affected) | set(memory_ids))
-        invalidate_beliefs(conn, self, principal, brain, event_ids=event_ids,
-                          memory_ids=set(affected) | set(memory_ids))
+        invalidate_belief_relations(conn, params, event_ids=event_ids, memory_ids=set(affected) | set(memory_ids))
         conn.execute(
             "UPDATE memory_jobs SET result=NULL,state='superseded',lease_token_digest=NULL,lease_expires_at=NULL "
             "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND "
@@ -424,7 +426,6 @@ class MemoryService:
         conn.execute("DELETE FROM memory_embeddings WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND memory_id=ANY(%s::text[])",
                      (*params, affected))
         from . import message_cues
-        from .feedback import invalidate_contributions
 
         message_cues.erase(conn, params, event_ids)
         invalidate_contributions(conn, params, event_ids=event_ids, memory_ids=set(affected) | set(memory_ids))
@@ -1277,10 +1278,9 @@ class MemoryService:
             "AND source_event_ids && %s::text[]",
             (*params, sorted({reference["event_id"] for reference in old_evidence})),
         )
-        from .belief_store import invalidate_beliefs
+        from .legacy_erasure import invalidate_belief_relations
 
-        invalidate_beliefs(conn, self, principal, brain,
-                          event_ids={reference["event_id"] for reference in old_evidence})
+        invalidate_belief_relations(conn, params, event_ids={reference["event_id"] for reference in old_evidence})
         conn.execute(
             "UPDATE memory_assertions SET is_current=false WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=%s",
             (*params, row["id"]),

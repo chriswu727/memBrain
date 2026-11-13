@@ -931,7 +931,7 @@ Compatibility: archives from runtimes without this field restore as before. An a
 - `src/membrain/semantic.py`, `learning.py`, `consolidation.py`: semantic proposals and checks, current situation, and background cognitive publication.
 - `src/membrain/belief_store.py`, `belief_resolution.py`: belief relations, complete evidence closure, and current applicability.
 - `src/membrain/learning_windows.py`, `neighborhood.py`: persistent processing windows and selection of complete material within count and byte budgets.
-- `src/membrain/legacy_erasure.py`: erasure of derived rows that the runtime no longer writes but older data can hold.
+- `src/membrain/legacy_erasure.py`: plain-SQL erasure of derived rows (pattern views, belief relations, feedback contributions and access state) that older data can hold although the default path no longer writes them.
 - `src/membrain/candidates.py`, `retrieval.py`, `dynamics.py`: candidate fusion, version dependencies, access tiers, and external feedback.
 - `src/membrain/jobs.py`, `embeddings.py`, `vector_jobs.py`: persistent jobs, call budgets, and optional vector processing.
 - `src/membrain/capture_jobs.py`, `snapshots.py`: the statement-capture and embedding jobs every brain runs, and source-snapshot checks for query embeddings.
