@@ -149,7 +149,8 @@ def test_cross_session_job_news_is_glad_then_easing_then_exactly_the_baseline(br
     assert third["block"] is None and third["reason"] is None and third["back_at_baseline_at"] is None
     assert [(t["status"], t["ended_at"]) for t in third["triggers"]] == [("ended", "2027-03-16T09:00:00Z")]
 
-    # The host's context follows: a block, then a refresh only when the line changes, then it goes with a notice.
+    # The host's context follows: a block, then a refresh only when the label or trigger changes, then it goes with a
+    # notice. Easing alone is shown whenever the block is sent, but does not re-send the snapshot by itself.
     def context(state):
         return snapshot({"items": []}, brain_id="b", tools=None, mood=state)
 
@@ -158,7 +159,9 @@ def test_cross_session_job_news_is_glad_then_easing_then_exactly_the_baseline(br
     host_when = f"{local.day} Mar {local:%H:%M}"
     assert one["mood_shown"] and first["block"].replace("14 Mar 21:00", host_when) in one["text"]
     assert update(context(mood(brain, "2027-03-14T22:00:00Z")), one["fingerprint"], None, True) is None
-    assert second["block"].replace("14 Mar 21:00", host_when) in update(two, one["fingerprint"], None, True)
+    assert update(two, one["fingerprint"], None, True) is None and two["fingerprint"] == one["fingerprint"]
+    assert second["block"].replace("14 Mar 21:00", host_when) in two["text"]
+    assert second["block"].replace("14 Mar 21:00", host_when) in update(two, "an older snapshot", None, True)
     gone = update(three, two["fingerprint"], None, True)
     assert "simulated mood is back at its baseline" in gone and "<membrain-companion-mood>" not in gone
 

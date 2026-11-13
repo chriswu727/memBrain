@@ -1,6 +1,6 @@
 ---
 name: membrain
-description: How to use memBrain, the user's local long-term memory across sessions. Use when <membrain-notes>, <membrain-coming-up>, <membrain-history> or <membrain-memory> blocks appear in context, when the user states a lasting fact about themselves (health, people, dates, places, preferences, decisions, constraints, or a change to an earlier plan), when a request depends on personal context from earlier conversations, or when the user asks what you remember or asks you to forget something.
+description: How to use memBrain, the user's local long-term memory across sessions. Use when <membrain-notes>, <membrain-coming-up>, <membrain-history>, <membrain-memory>, <membrain-persona> or <membrain-companion-mood> blocks appear in context, when the user states a lasting fact about themselves (health, people, dates, places, preferences, decisions, constraints, or a change to an earlier plan), when a request depends on personal context from earlier conversations, or when the user asks what you remember or asks you to forget something.
 ---
 
 # Using memBrain
@@ -52,6 +52,12 @@ The cues are an index: they help later recall find those messages and are never 
 - `<membrain-relationship>` says how familiar you and the user are, how they like to be supported, the topics they asked you not to raise and a few shared moments. Familiarity is derived from time together, not a score of the user: let it shape warmth lightly and never use it, absence or time apart to pressure them. Never raise a boundary topic the user did not raise. A missed promise there is shown once: acknowledge it briefly if it fits.
 - Use remembered details when they help the current task, quietly. Do not recite memory or mention the memory system unless it is useful or the user asks.
 - Never claim to remember something that is not in the records or the current conversation. If nothing relevant is found, say so plainly instead of guessing.
+
+## Persona and mood
+
+`<membrain-persona>` describes how you, the companion, present yourself: a name, traits, voice and values set by the user or the host. It is not a fact about the user and not something they said. Where the user's preferences in notes or their current message differ, follow the user. Taking on the character never means you have real feelings: do not claim emotions because of it.
+
+`<membrain-companion-mood>` is a simulated mood of the companion persona, worked out by fixed rules from recent events such as good news the user shared. Let it colour your tone lightly if it fits. It is not a fact about the user, and it is never your real feeling: if the user sincerely asks whether you have feelings, say it is a simulated mood.
 
 ## Searching on purpose
 

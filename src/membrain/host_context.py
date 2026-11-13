@@ -46,10 +46,11 @@ def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, perso
              relationship=None):
     """Saved memory for the host's context. The persona block comes first, apart from the user's memory, with its
     own size limit: it never takes room from the notes. The companion's simulated mood follows it in its own block
-    (none at the baseline); its text changes only when the label, the easing or the trigger does, so the
-    fingerprint refreshes it only then, and a mood back at its baseline disappears. The relationship block
-    follows, also on its own; notes about a boundary topic are left out, and shared moments are shown in the
-    relationship block only."""
+    (none at the baseline); the fingerprint counts its label and its trigger, so a new label or trigger refreshes
+    it, and a mood back at its baseline disappears. Turning "easing" (some hours after the trigger) is shown
+    whenever the block is sent, but does not by itself re-send the snapshot, as the relationship's day count does
+    not. The relationship block follows, also on its own; notes about a boundary topic are left out, and shared
+    moments are shown in the relationship block only."""
     from .relationship import relationship_context
 
     persona_block = render_persona(persona)
@@ -68,8 +69,12 @@ def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, perso
     text = "\n\n".join(block for block in blocks if block)
     # The relationship block counts by what it means (level, style, boundaries, moments, which promises were missed),
     # not by its day count or one-time line, so a new day or an acknowledgement alone does not refresh everything.
-    others = "\n\n".join(block for block in blocks if block and block is not bond["block"])
-    basis = [brain_id, text] if bond["stable"] is None else [brain_id, others, bond["stable"]]
+    # The mood block counts without "easing", so the mood merely easing does not re-send every note either.
+    counted = list(blocks)
+    counted[1] = render_mood({**mood, "easing": False}) if mood_block else None
+    whole = "\n\n".join(block for block in counted if block)
+    others = "\n\n".join(block for index, block in enumerate(counted) if block and index != 2)
+    basis = [brain_id, whole] if bond["stable"] is None else [brain_id, others, bond["stable"]]
     return {"fingerprint": digest(basis), "text": text,
             "persona_version": persona["version"] if persona_block else None, "mood_shown": bool(mood_block),
             "boundaries": boundaries, "acknowledge": bond["once"]}
