@@ -1,0 +1,86 @@
+{
+  "A": {
+    "n_questions": 385,
+    "n_with_evidence": 383,
+    "M": {
+      "all_evidence": 0.8407310704960835,
+      "evidence_share": 0.8953872932985205
+    },
+    "session_only": {
+      "all_evidence": 0.07049608355091384,
+      "evidence_share": 0.07637075718015666
+    },
+    "M_recall_only": {
+      "all_evidence": 0.8328981723237598,
+      "evidence_share": 0.890165361183638
+    },
+    "history_only": {
+      "all_evidence": 0.07049608355091384,
+      "evidence_share": 0.07637075718015666
+    },
+    "mean_characters": 18180.18181818182,
+    "mean_session_characters": 9280.657142857142,
+    "mean_recall_characters": 8897.524675324676,
+    "mean_history_characters": 7897.657142857143,
+    "mean_history_messages": 40.84155844155844,
+    "mean_persona_characters": 0.0,
+    "mean_mood_characters": 0.0,
+    "mean_relationship_characters": 0.0
+  },
+  "B": {
+    "n_questions": 385,
+    "n_with_evidence": 383,
+    "M": {
+      "all_evidence": 0.8381201044386423,
+      "evidence_share": 0.8940818102697998
+    },
+    "session_only": {
+      "all_evidence": 0.05483028720626632,
+      "evidence_share": 0.060704960835509136
+    },
+    "M_recall_only": {
+      "all_evidence": 0.8328981723237598,
+      "evidence_share": 0.890165361183638
+    },
+    "history_only": {
+      "all_evidence": 0.05483028720626632,
+      "evidence_share": 0.060704960835509136
+    },
+    "mean_characters": 18261.376623376622,
+    "mean_session_characters": 9361.851948051948,
+    "mean_recall_characters": 8897.524675324676,
+    "mean_history_characters": 7260.851948051948,
+    "mean_history_messages": 38.02597402597402,
+    "mean_persona_characters": 716.0,
+    "mean_mood_characters": 0.0,
+    "mean_relationship_characters": 0.0
+  },
+  "C": {
+    "n_questions": 385,
+    "n_with_evidence": 383,
+    "M": {
+      "all_evidence": 0.835509138381201,
+      "evidence_share": 0.8927763272410792
+    },
+    "session_only": {
+      "all_evidence": 0.0391644908616188,
+      "evidence_share": 0.041122715404699736
+    },
+    "M_recall_only": {
+      "all_evidence": 0.8328981723237598,
+      "evidence_share": 0.890165361183638
+    },
+    "history_only": {
+      "all_evidence": 0.0391644908616188,
+      "evidence_share": 0.041122715404699736
+    },
+    "mean_characters": 18194.955844155844,
+    "mean_session_characters": 9295.431168831168,
+    "mean_recall_characters": 8897.524675324676,
+    "mean_history_characters": 6115.431168831169,
+    "mean_history_messages": 31.815584415584414,
+    "mean_persona_characters": 716.0,
+    "mean_mood_characters": 401.0,
+    "mean_relationship_characters": 674.0
+  }
+}

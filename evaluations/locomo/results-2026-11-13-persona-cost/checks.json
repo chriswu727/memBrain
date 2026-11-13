@@ -1,0 +1,140 @@
+{
+  "conv-26": {
+    "initial_persona_version": 0,
+    "initial_persona_markers": 1,
+    "initial_relationship": {
+      "support_style": null,
+      "shared_moments": 0,
+      "familiarity": "new: 1 day of conversation since 11 Nov, 0 shared moments"
+    },
+    "tags_A": {
+      "persona": false,
+      "mood": false,
+      "relationship": false,
+      "history": true
+    },
+    "tags_B": {
+      "persona": true,
+      "mood": false,
+      "relationship": false,
+      "history": true
+    },
+    "tags_C": {
+      "persona": true,
+      "mood": true,
+      "relationship": true,
+      "history": true
+    },
+    "restored": {
+      "persona_version": 0,
+      "persona_block": false,
+      "support_style": null,
+      "shared_moments": 0,
+      "mood_at_baseline": true,
+      "mood_label": "calm"
+    },
+    "final_tags": {
+      "persona": false,
+      "mood": false,
+      "relationship": false,
+      "history": true
+    },
+    "final_equals_A": true,
+    "session_markers_removed": 457,
+    "leftover_new_markers": [],
+    "stopped": true,
+    "status_after_stop": false
+  },
+  "conv-30": {
+    "initial_persona_version": 0,
+    "initial_persona_markers": 1,
+    "initial_relationship": {
+      "support_style": null,
+      "shared_moments": 0,
+      "familiarity": "new: 1 day of conversation since 11 Nov, 0 shared moments"
+    },
+    "tags_A": {
+      "persona": false,
+      "mood": false,
+      "relationship": false,
+      "history": true
+    },
+    "tags_B": {
+      "persona": true,
+      "mood": false,
+      "relationship": false,
+      "history": true
+    },
+    "tags_C": {
+      "persona": true,
+      "mood": true,
+      "relationship": true,
+      "history": true
+    },
+    "restored": {
+      "persona_version": 0,
+      "persona_block": false,
+      "support_style": null,
+      "shared_moments": 0,
+      "mood_at_baseline": true,
+      "mood_label": "calm"
+    },
+    "final_tags": {
+      "persona": false,
+      "mood": false,
+      "relationship": false,
+      "history": true
+    },
+    "final_equals_A": true,
+    "session_markers_removed": 244,
+    "leftover_new_markers": [],
+    "stopped": true,
+    "status_after_stop": false
+  },
+  "conv-41": {
+    "initial_persona_version": 0,
+    "initial_persona_markers": 1,
+    "initial_relationship": {
+      "support_style": null,
+      "shared_moments": 0,
+      "familiarity": "new: 1 day of conversation since 11 Nov, 0 shared moments"
+    },
+    "tags_A": {
+      "persona": false,
+      "mood": false,
+      "relationship": false,
+      "history": true
+    },
+    "tags_B": {
+      "persona": true,
+      "mood": false,
+      "relationship": false,
+      "history": true
+    },
+    "tags_C": {
+      "persona": true,
+      "mood": true,
+      "relationship": true,
+      "history": true
+    },
+    "restored": {
+      "persona_version": 0,
+      "persona_block": false,
+      "support_style": null,
+      "shared_moments": 0,
+      "mood_at_baseline": true,
+      "mood_label": "calm"
+    },
+    "final_tags": {
+      "persona": false,
+      "mood": false,
+      "relationship": false,
+      "history": true
+    },
+    "final_equals_A": true,
+    "session_markers_removed": 457,
+    "leftover_new_markers": [],
+    "stopped": true,
+    "status_after_stop": false
+  }
+}
