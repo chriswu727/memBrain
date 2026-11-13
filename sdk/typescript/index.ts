@@ -80,6 +80,15 @@ export type PersonaChangeOptions = {
   madeBy?: "host" | "user" | "feedback";
   reason?: string;
 };
+// The user's message a persona change came from: an id, or the current message's exact reference.
+export type PersonaSourceOptions = {
+  brainId?: string;
+  sourceEventIds?: readonly string[];
+  sourceMessages?: readonly { producer_ref: string; source_event_key: string; source_revision: number }[];
+};
+function personaSources(options: PersonaSourceOptions) {
+  return { source_event_ids: [...(options.sourceEventIds ?? [])], source_messages: [...(options.sourceMessages ?? [])] };
+}
 export type MapOptions = {
   brainId?: string;
   maxNodes?: number;
@@ -645,6 +654,32 @@ export class MemoryClient {
   }
   rejectPersonaProposal(proposalId: string, brainId?: string): Promise<JsonObject> {
     return this.#request("POST", `${this.#brainPath(brainId)}/persona/proposals/${encodeURIComponent(proposalId)}/reject`);
+  }
+  // Preset personas: the list and the current one, the random first persona of a new memory, and switching.
+  personaPresets(brainId?: string): Promise<JsonObject> {
+    return this.#request("GET", `${this.#brainPath(brainId)}/persona/presets`);
+  }
+  assignFirstPersona(brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/persona/first`);
+  }
+  switchPersonaPreset(preset: string, options: PersonaSourceOptions & { madeBy?: "host" | "user" } = {}): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(options.brainId)}/persona/preset`, {
+      preset, made_by: options.madeBy ?? "user", ...personaSources(options),
+    });
+  }
+  // A change the host AI proposes; it is applied only by confirmPersonaChange citing the user's later yes.
+  proposePersonaChange(changes: PersonaCard, reason: string, options: PersonaSourceOptions = {}): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(options.brainId)}/persona/proposals`, {
+      changes, reason, ...personaSources(options),
+    });
+  }
+  confirmPersonaChange(proposalId: string, options: PersonaSourceOptions = {}): Promise<JsonObject> {
+    return this.#request("POST",
+      `${this.#brainPath(options.brainId)}/persona/proposals/${encodeURIComponent(proposalId)}/confirm`,
+      personaSources(options));
+  }
+  declinePersonaChange(proposalId: string, brainId?: string): Promise<JsonObject> {
+    return this.#request("POST", `${this.#brainPath(brainId)}/persona/proposals/${encodeURIComponent(proposalId)}/decline`);
   }
   affectRecords(brainId?: string): Promise<JsonObject> {
     return this.#request("GET", `${this.#brainPath(brainId)}/affect`);

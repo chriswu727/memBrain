@@ -21,7 +21,9 @@ PERSONA_CONVERSATION = "membrain-persona"
 PERSONA_PRODUCER = "membrain-persona"
 PERSONA_CHARACTERS = 1200  # The rendered card; the block's fixed header comes on top.
 REASON_CHARACTERS = 200
-MADE_BY = ("host", "user", "feedback")  # "feedback": saved by accepting a suggestion (persona_growth, P2).
+# "feedback": saved by accepting a suggestion (persona_growth, P2). A preset (persona_presets) is saved by the host
+# when it is the first persona and by the user when they switch; a change the host AI proposed is saved by the user.
+MADE_BY = ("host", "user", "feedback")
 VOICE_FIELDS = (("register", "register"), ("length", "length"), ("emoji", "emoji"), ("language", "language"))
 MAX_VERSIONS = 200
 EMPTY_CARD = {"name": "", "traits": [], "voice": {name: "" for name, _ in VOICE_FIELDS}, "values": [],
@@ -162,14 +164,66 @@ def _entry(row) -> dict | None:
         feedback = _feedback(stored.get("feedback"))
         if feedback is not None and made_by != "feedback":
             return None
+        origin = {name: _preset_id(stored.get(name)) for name in ("preset", "based_on")}
+        proposal = _host_proposal(stored.get("host_proposal"))
+        source = _source(stored.get("source"))
     except (ValueError, KeyError, TypeError, AttributeError, DomainError):
         return None
     return {"version": version, "card": {**EMPTY_CARD, **card}, "made_by": made_by,
             "reason": stored.get("reason"), "action": stored.get("action", "edit"),
-            "feedback": feedback,
+            "feedback": feedback, **origin, "host_proposal": proposal, "source": source,
             "restored_from": stored.get("restored_from"), "host_default": bool(stored.get("host_default")),
             "recorded_at": document["system_time"]["recorded_at"], "event_id": document["event_id"],
             "empty": not render_card(card)}
+
+
+def _preset_id(value) -> str | None:
+    """A preset id (``persona_presets``): the preset a version was saved from (``preset``) or edited from
+    (``based_on``). Any short id is read back, so a preset later removed from the table still reads as custom."""
+    if value is None:
+        return None
+    if not isinstance(value, str) or not 0 < len(value) <= 40 or not value.replace("_", "").isalnum():
+        raise ValueError("preset")
+    return value
+
+
+def _host_proposal(value) -> dict | None:
+    """The host AI's proposal a version came from: its id, and the user message that confirmed it (None when the
+    user accepted it on the memory page)."""
+    if value is None:
+        return None
+    if (not isinstance(value, dict) or set(value) != {"proposal_id", "confirmed_by"}
+            or not isinstance(value["proposal_id"], str) or not 0 < len(value["proposal_id"]) <= 200
+            or not (value["confirmed_by"] is None or isinstance(value["confirmed_by"], str)
+                    and 0 < len(value["confirmed_by"]) <= 200)):
+        raise ValueError("host_proposal")
+    return dict(value)
+
+
+def _source(value) -> dict | None:
+    """The user message a preset switch was asked for in: a recorded id, or the exact reference of the current
+    message (``persona_growth._reference``)."""
+    if value is None:
+        return None
+    if isinstance(value, dict) and set(value) == {"event_id"} and isinstance(value["event_id"], str) and (
+            0 < len(value["event_id"]) <= 200):
+        return dict(value)
+    if isinstance(value, dict) and set(value) == {"message"}:
+        from .persona_growth import _reference
+
+        return {"message": _reference(value["message"])}
+    raise ValueError("source")
+
+
+def _origin(entry: dict | None, *, edited: bool) -> dict:
+    """What a new version says about the preset it comes from: the same ``preset`` when it keeps a preset's content
+    (restore, reset), or ``based_on`` when it is an edit of one."""
+    if entry is None:
+        return {}
+    if not edited and entry.get("preset"):
+        return {"preset": entry["preset"]}
+    origin = entry.get("preset") or entry.get("based_on")
+    return {"based_on": origin} if origin else {}
 
 
 def _feedback(value) -> dict | None:
@@ -219,8 +273,8 @@ def _find(service, conn, principal, brain_id, wanted):
 
 def _none() -> dict:
     return {"version": 0, "card": dict(EMPTY_CARD), "made_by": None, "reason": None, "action": None,
-            "feedback": None, "restored_from": None, "host_default": False, "recorded_at": None,
-            "event_id": None, "empty": True}
+            "feedback": None, "preset": None, "based_on": None, "host_proposal": None, "source": None,
+            "restored_from": None, "host_default": False, "recorded_at": None, "event_id": None, "empty": True}
 
 
 def _public(version: dict, **extra) -> dict:
@@ -330,8 +384,14 @@ def set_persona(service, principal, brain_id: str, card, *, made_by: str, reason
     if host_default and made_by != "host":
         raise DomainError("validation_failed", "Only the host sets the default persona card.")
     normalized = normalize_card(card)
-    return _save(service, principal, brain_id, lambda find: (normalized, {"host_default": host_default}),
-                 made_by=made_by, reason=reason, action="edit")
+
+    def choose(find):
+        # An edit of a preset is no longer that preset, but says which one it started from. A card the host sets
+        # is its own.
+        origin = {} if made_by == "host" else _origin(find(lambda entry: True), edited=True)
+        return normalized, {"host_default": host_default, **origin}
+
+    return _save(service, principal, brain_id, choose, made_by=made_by, reason=reason, action="edit")
 
 
 def restore_persona(service, principal, brain_id: str, version: int, *, made_by: str,
@@ -344,7 +404,7 @@ def restore_persona(service, principal, brain_id: str, version: int, *, made_by:
         kept = find(lambda entry: entry["version"] == version)
         if kept is None:
             raise DomainError("not_found_or_forbidden", f"Persona version {version} is not available.")
-        return normalize_card(kept["card"]), {"restored_from": version}
+        return normalize_card(kept["card"]), {"restored_from": version, **_origin(kept, edited=False)}
 
     return _save(service, principal, brain_id, choose, made_by=made_by,
                  reason=reason, action="restore")
@@ -356,7 +416,7 @@ def reset_persona(service, principal, brain_id: str, *, made_by: str, reason: st
         default = find(lambda entry: entry["host_default"])
         if default is None:
             return dict(EMPTY_CARD), {}
-        return normalize_card(default["card"]), {"restored_from": default["version"]}
+        return normalize_card(default["card"]), {"restored_from": default["version"], **_origin(default, edited=False)}
 
     return _save(service, principal, brain_id, choose, made_by=made_by,
                  reason=reason, action="reset")

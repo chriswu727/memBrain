@@ -10,7 +10,8 @@ PACKAGE = ROOT / "src" / "membrain"
 REFERENCE = re.compile(r"`tests/(test_\w+\.py)::(test_\w+)`")
 
 # The companion layers (Phase C). Add P2's module here when it is merged.
-LAYERS = ("affect", "mood", "persona", "persona_growth", "relationship", "memory_map", "companion_map")
+LAYERS = ("affect", "mood", "persona", "persona_growth", "persona_presets", "relationship", "memory_map",
+          "companion_map")
 # Anything that can reach a model or the network, outside or inside the package.
 NETWORK = {"httpx", "requests", "aiohttp", "urllib", "http", "socket", "openai", "anthropic"}
 MODEL_MODULES = {"extraction", "semantic", "semantic_provider", "chat_provider", "recall_provider",

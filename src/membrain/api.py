@@ -125,6 +125,26 @@ class MannerFeedback(RuntimeBody):
     source_messages: Annotated[list[NoteSource], Field(max_length=10)] = []
 
 
+# Preset personas and changes the host AI proposes; persona_presets and persona_growth check the values.
+class PersonaPresetSwitch(RuntimeBody):
+    preset: Annotated[str, Field(min_length=1, max_length=40)]
+    made_by: Literal["host", "user"] = "user"
+    source_event_ids: Annotated[list[RuntimeIdentifier], Field(max_length=1)] = []
+    source_messages: Annotated[list[NoteSource], Field(max_length=1)] = []
+
+
+class PersonaProposal(RuntimeBody):
+    changes: dict
+    reason: PersonaReason
+    source_event_ids: Annotated[list[RuntimeIdentifier], Field(max_length=10)] = []
+    source_messages: Annotated[list[NoteSource], Field(max_length=10)] = []
+
+
+class PersonaConfirmation(RuntimeBody):
+    source_event_ids: Annotated[list[RuntimeIdentifier], Field(max_length=1)] = []
+    source_messages: Annotated[list[NoteSource], Field(max_length=1)] = []
+
+
 # Relationship (R1). The texts are checked by relationship.py, whose messages say what is wrong.
 class SupportStyleWrite(RuntimeBody):
     text: Annotated[str, Field(max_length=2000)]
@@ -759,6 +779,51 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
         from .persona_growth import reject_proposal
 
         return reject_proposal(service, principal, brain_id, proposal_id)
+
+    @app.get("/v1/brains/{brain_id}/persona/presets")
+    def get_persona_presets(brain_id: str, principal: Principal = Depends(authenticate)):
+        from .persona_presets import listing
+
+        with reading():
+            return listing(service, principal, brain_id)
+
+    @app.post("/v1/brains/{brain_id}/persona/first")
+    def post_first_persona(brain_id: str, principal: Principal = Depends(authenticate)):
+        # A preset picked at random, only for a brain with no persona record of any kind (persona_presets).
+        from .persona_presets import assign_first_persona, has_any_record
+
+        with reading():  # Every session start asks; only a brain without any persona record takes the lock.
+            if has_any_record(service, principal, brain_id):
+                return {"assigned": False, "preset": None}
+        return assign_first_persona(service, principal, brain_id)
+
+    @app.post("/v1/brains/{brain_id}/persona/preset")
+    async def post_persona_preset(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
+        from .persona_presets import switch_preset
+
+        body = await persona_body(request, PersonaPresetSwitch)
+        return await run_in_threadpool(switch_preset, service, principal, brain_id, body.pop("preset"), **body)
+
+    @app.post("/v1/brains/{brain_id}/persona/proposals")
+    async def post_persona_proposal(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
+        from .persona_growth import propose_change
+
+        body = await persona_body(request, PersonaProposal)
+        return await run_in_threadpool(propose_change, service, principal, brain_id, body.pop("changes"), **body)
+
+    @app.post("/v1/brains/{brain_id}/persona/proposals/{proposal_id}/confirm")
+    async def confirm_persona_proposal(brain_id: str, proposal_id: str, request: Request,
+                                       principal: Principal = Depends(authenticate)):
+        from .persona_growth import confirm_change
+
+        body = await persona_body(request, PersonaConfirmation)
+        return await run_in_threadpool(confirm_change, service, principal, brain_id, proposal_id, **body)
+
+    @app.post("/v1/brains/{brain_id}/persona/proposals/{proposal_id}/decline")
+    def decline_persona_proposal(brain_id: str, proposal_id: str, principal: Principal = Depends(authenticate)):
+        from .persona_growth import decline_change
+
+        return decline_change(service, principal, brain_id, proposal_id)
 
     @app.post("/v1/brains/{brain_id}/persona/feedback")
     async def post_manner_feedback(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):

@@ -31,6 +31,12 @@ test("every companion operation retains explicit brain scope, authentication and
     ["GET", "persona/proposals", () => client.personaProposals(brain)],
     ["POST", `persona/proposals/${record}/accept`, () => client.acceptPersonaProposal(id, brain)],
     ["POST", `persona/proposals/${record}/reject`, () => client.rejectPersonaProposal(id, brain)],
+    ["GET", "persona/presets", () => client.personaPresets(brain)],
+    ["POST", "persona/first", () => client.assignFirstPersona(brain)],
+    ["POST", "persona/preset", () => client.switchPersonaPreset("wry", options)],
+    ["POST", "persona/proposals", () => client.proposePersonaChange({ traits: ["patient"] }, "Asked twice.", options)],
+    ["POST", `persona/proposals/${record}/confirm`, () => client.confirmPersonaChange(id, options)],
+    ["POST", `persona/proposals/${record}/decline`, () => client.declinePersonaChange(id, brain)],
     ["GET", "affect", () => client.affectRecords(brain)],
     ["POST", "affect/reset", () => client.clearAffect(brain)],
     ["GET", "mood", () => client.mood(brain)],
@@ -76,6 +82,21 @@ test("persona mutations preserve immutable cards, explicit user decisions and ho
   ]);
   assert.equal(card.name, "星 🧠");
   assert.deepEqual(card.traits, ["patient"]);
+});
+
+test("preset switches and proposed persona changes pass the user's message they came from", async () => {
+  const { client, requests } = recorded();
+  const reference = Object.freeze({ producer_ref: "membrain-claude-code", source_event_key: "turn", source_revision: 1 });
+  await client.switchPersonaPreset("random", { sourceMessages: [reference] });
+  await client.proposePersonaChange({ voice: { length: "short" } }, "Asked for short replies from now on.",
+    { sourceEventIds: ["evt-1"] });
+  await client.confirmPersonaChange("p1", { sourceMessages: [reference] });
+  assert.deepEqual(requests.map(r => JSON.parse(String(r.init.body))), [
+    { preset: "random", made_by: "user", source_event_ids: [], source_messages: [reference] },
+    { changes: { voice: { length: "short" } }, reason: "Asked for short replies from now on.",
+      source_event_ids: ["evt-1"], source_messages: [] },
+    { source_event_ids: [], source_messages: [reference] },
+  ]);
 });
 
 test("relationship and mood controls preserve removal, false and bounded acknowledgements", async () => {

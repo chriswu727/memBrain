@@ -46,6 +46,14 @@ every turn for something only the user can act on; the user finds suggestions on
 
 Clock: listing and deciding take ``now`` (the current time by default), so the 30-day pause can be tested on a fixed
 clock. A new message is checked at its own recorded time.
+
+Changes the host AI proposes (kind ``host``) use the same records and decisions. The host AI proposes an edit of the
+card with a reason (``propose_change``); nothing changes until the user says yes in the conversation
+(``confirm_change``) or accepts it on the memory page, where it is listed with the others. At most one is open: a new
+one withdraws the previous one ("replaced"), and a proposal made on an older version of the card is withdrawn once the
+card changes ("persona_changed"). A declined one is rejected without a pause; the tool tells the AI not to propose the
+same change again in that conversation. The rule that keeps the AI from confirming its own proposal is stated at
+``confirm_change``.
 """
 from __future__ import annotations
 
@@ -68,10 +76,20 @@ SEEN_PREFIX = '{"' + SEEN + '"'
 # "message" (producer_ref, source_event_key, source_revision) for a message not recorded yet. Ids only, never words.
 REPORTED = "persona_feedback_reported"
 REPORTED_PREFIX = '{"' + REPORTED + '"'
+# A change the host AI proposed (``propose_change``), and a confirmation waiting for the user's message to be recorded:
+# {"persona_confirmation": {"proposal_id": ..., "message": <exact reference>}}.
+HOST = "host"
+HOST_LABEL = ("suggested by the agent", "由 agent 提出")
+HOST_PROPOSAL_KEYS = {"persona_proposal", "changes", "proposed_card", "base_version", "reason", "source_event_ids",
+                      "source_messages", "proposed_at"}
+CHANGE_FIELDS = ("name", "traits", "voice", "values", "boundaries", "baseline_mood")
+CONFIRMATION = "persona_confirmation"
+CONFIRMATION_PREFIX = '{"' + CONFIRMATION + '"'
 THRESHOLD = 3
 PAUSE = _datetime.timedelta(days=30)
 MAX_SOURCES = 10  # The most recent matching messages a suggestion quotes.
 QUOTE_CHARACTERS = 300
+REASON_CHARACTERS = 200  # The reason of a host proposal; it becomes the version's reason (persona.REASON_CHARACTERS).
 SCAN_CHARACTERS = 2000  # Longer messages are not read for feedback.
 SCAN_ROWS = 5000
 LISTED = 50
@@ -343,6 +361,26 @@ def _entry(row) -> dict | None:
         stored = json.loads(observed["content"].get("text") or "")
         if not isinstance(stored, dict):
             return None
+        if set(stored) == HOST_PROPOSAL_KEYS and stored["persona_proposal"] == HOST:
+            if (not isinstance(stored["changes"], dict) or not stored["changes"]
+                    or not set(stored["changes"]) <= set(CHANGE_FIELDS)
+                    or type(stored["base_version"]) is not int or stored["base_version"] < 0
+                    or not isinstance(stored["source_messages"], list) or len(stored["source_messages"]) > MAX_SOURCES):
+                return None
+            return {**base, "type": "proposal", "kind": HOST, "language": None, "changes": stored["changes"],
+                    "proposed_card": normalize_card(stored["proposed_card"]), "base_version": stored["base_version"],
+                    "reason": _short(stored["reason"]),
+                    "source_event_ids": _ids(stored["source_event_ids"], 0, MAX_SOURCES),
+                    "source_messages": [_reference(item) for item in stored["source_messages"]],
+                    "proposed_at": _iso(_time(stored["proposed_at"]))}
+        if set(stored) == {CONFIRMATION}:
+            confirmation = stored[CONFIRMATION]
+            if (not isinstance(confirmation, dict) or set(confirmation) != {"proposal_id", "message"}
+                    or not isinstance(confirmation["proposal_id"], str)
+                    or not 0 < len(confirmation["proposal_id"]) <= 200):
+                return None
+            return {**base, "type": "confirmation", "proposal_id": confirmation["proposal_id"],
+                    "message": _reference(confirmation["message"])}
         if set(stored) == {"persona_proposal", "source_event_ids", "language", "proposed_at"}:
             if stored["persona_proposal"] not in KINDS or stored["language"] not in ("en", "zh"):
                 return None
@@ -365,7 +403,7 @@ def _entry(row) -> dict | None:
             return None
         if set(stored) == {"persona_proposal_decision", "proposal_id", "kind", "decided_at", "version"}:
             decision, version = stored["persona_proposal_decision"], stored["version"]
-            if decision not in ("accepted", "rejected") or stored["kind"] not in KINDS:
+            if decision not in ("accepted", "rejected") or (stored["kind"] not in KINDS and stored["kind"] != HOST):
                 return None
             if not isinstance(stored["proposal_id"], str) or not 0 < len(stored["proposal_id"]) <= 200:
                 return None
@@ -377,9 +415,15 @@ def _entry(row) -> dict | None:
                 _iso(decided_at + PAUSE)
             return {**base, "type": "decision", "decision": decision, "proposal_id": stored["proposal_id"],
                     "kind": stored["kind"], "decided_at": _iso(decided_at), "version": version}
-    except (ValueError, KeyError, TypeError, AttributeError, OverflowError):
+    except (ValueError, KeyError, TypeError, AttributeError, OverflowError, DomainError):
         return None
     return None
+
+
+def _short(value) -> str:
+    if not isinstance(value, str) or not 0 < len(value) <= REASON_CHARACTERS:
+        raise ValueError("reason")
+    return value
 
 
 _VISIBLE = ("tenant_id=%s AND owner_id=%s AND brain_id=%s AND is_current AND NOT deleted AND NOT suppressed "
@@ -600,7 +644,12 @@ class _State:
             if decision["decision"] == "accepted":
                 self.accepted_sequences[kind] = max(self.accepted_sequences.get(kind, 0), decision["sequence"])
         proposals = [entry for entry in self.records if entry["type"] == "proposal"]
-        undecided = sorted({source for entry in proposals for source in entry["source_event_ids"]})
+        self.confirmations = [entry for entry in self.records if entry["type"] == "confirmation"]
+        hosts = [entry for entry in proposals if entry["kind"] == HOST]
+        self._newest_host = max((entry["sequence"] for entry in hosts), default=0)
+        self._quotes = _host_quotes(service, conn, principal, brain_id, hosts)
+        undecided = sorted({source for entry in proposals if entry["kind"] != HOST
+                            for source in entry["source_event_ids"]})
         valid = {item["event_id"]: item for item in _feedback(
             service, conn, principal, brain_id, after=self.after, ids=undecided,
             reported=self.reported)} if undecided else {}
@@ -615,8 +664,34 @@ class _State:
             self._seen_cache = _seen(service, conn, principal, brain_id)
         return self._seen_cache
 
+    def _host_status(self, entry) -> dict:
+        """A change the host AI proposed: open until it is decided, replaced by a newer one, or the card it was made
+        on changes."""
+        sources = self._quotes.get(entry["id"], [])
+        result = {"id": entry["id"], "kind": HOST, "label": HOST_LABEL[0], "language": None,
+                  "proposed_at": entry["proposed_at"], "sequence": entry["sequence"], "status": "open",
+                  "withdrawn_because": None, "decided_at": None, "version": None, "paused_until": None,
+                  "sources": sources, "source_count": len(sources), "change": None, "changes": None,
+                  "proposed_card": None, "current_version": self.version, "reason": entry["reason"],
+                  "base_version": entry["base_version"],
+                  "waiting_for_confirmation": any(item["proposal_id"] == entry["id"] for item in self.confirmations)}
+        decision = self.decisions.get(entry["id"])
+        if decision is not None:
+            result.update(status=decision["decision"], decided_at=decision["decided_at"], version=decision["version"],
+                          decision_sequence=decision["sequence"], waiting_for_confirmation=False)
+            return result
+        if entry["sequence"] < self._newest_host:
+            return {**result, "status": "withdrawn", "withdrawn_because": "replaced", "waiting_for_confirmation": False}
+        if entry["base_version"] != self.version:
+            return {**result, "status": "withdrawn", "withdrawn_because": "persona_changed",
+                    "waiting_for_confirmation": False}
+        return {**result, "changes": _changes(self.card, entry["proposed_card"]),
+                "proposed_card": entry["proposed_card"]}
+
     def _status(self, entry, valid) -> dict:
         kind = entry["kind"]
+        if kind == HOST:
+            return self._host_status(entry)
         sources = [valid[ident] for ident in entry["source_event_ids"]
                    if ident in valid and kind in valid[ident]["kinds"]]
         decision = self.decisions.get(entry["id"])
@@ -713,7 +788,7 @@ def _public(state: _State, now: _datetime.datetime) -> dict:
     listed = sorted(state.proposals, key=lambda item: (item["status"] != "open", -item["sequence"]))[:LISTED]
     pauses = {}
     for item in state.proposals:
-        if item["status"] == "rejected" and now < _time(item["paused_until"]):
+        if item["status"] == "rejected" and item["paused_until"] and now < _time(item["paused_until"]):
             pauses[item["kind"]] = max(pauses.get(item["kind"], ""), item["paused_until"])
     return {"proposals": [{key: value for key, value in item.items() if key not in ("sequence", "decision_sequence")}
                           for item in listed],
@@ -738,7 +813,7 @@ def persona_proposals(service, principal, brain_id: str, *, now=None) -> dict:
     return _public(state, when)
 
 
-def _decide(service, principal, brain_id, proposal_id, decision, now):
+def _decide(service, principal, brain_id, proposal_id, decision, now, *, only_host=False):
     if not isinstance(proposal_id, str) or not 0 < len(proposal_id) <= 200:
         raise DomainError("validation_failed", "A suggestion id is required.")
     when = _clock(now)
@@ -751,14 +826,15 @@ def _decide(service, principal, brain_id, proposal_id, decision, now):
             raise DomainError("not_found_or_forbidden", "That suggestion is not available.")
         if proposal["status"] != "open":
             raise DomainError("version_conflict", "That suggestion is no longer open.")
-        saved = None
-        if decision == "accepted":
-            saved = _accept(service, conn, principal, brain, proposal)
-        _write(service, conn, principal, brain, {
-            "persona_proposal_decision": decision, "proposal_id": proposal_id, "kind": proposal["kind"],
-            "decided_at": _iso(when), "version": saved["version"] if saved else None})
+        if only_host and proposal["kind"] != HOST:
+            raise DomainError("validation_failed", NOT_HOST)
+        saved = _settle(service, conn, principal, brain, proposal, decision, when, confirmed_by=None)
         after = _State(service, conn, principal, brain_id)
-    result = _public(after, when)
+    return _decided(after, when, proposal_id, saved)
+
+
+def _decided(state, when, proposal_id, saved) -> dict:
+    result = _public(state, when)
     result["proposal"] = next((item for item in result["proposals"] if item["id"] == proposal_id), None)
     if saved is not None:
         from .persona import _public as persona_public
@@ -766,6 +842,18 @@ def _decide(service, principal, brain_id, proposal_id, decision, now):
         result["persona"] = persona_public({key: value for key, value in saved.items() if key != "unchanged"},
                                            unchanged=False)
     return result
+
+
+def _settle(service, conn, principal, brain, proposal, decision, when, *, confirmed_by) -> dict | None:
+    """Record a decision on an open suggestion, saving the new persona version first when it is accepted."""
+    saved = None
+    if decision == "accepted":
+        saved = (_accept_host(service, conn, principal, brain, proposal, confirmed_by) if proposal["kind"] == HOST
+                 else _accept(service, conn, principal, brain, proposal))
+    _write(service, conn, principal, brain, {
+        "persona_proposal_decision": decision, "proposal_id": proposal["id"], "kind": proposal["kind"],
+        "decided_at": _iso(when), "version": saved["version"] if saved else None})
+    return saved
 
 
 def _short_day(value: str, language: str) -> str:
@@ -796,7 +884,11 @@ def _accept(service, conn, principal, brain, proposal) -> dict:
 
     feedback = {"proposal_id": proposal["id"], "kind": proposal["kind"],
                 "source_event_ids": [source["event_id"] for source in proposal["sources"]]}
-    saved = _save_in(service, conn, principal, brain, lambda find: (proposal["proposed_card"], {"feedback": feedback}),
+    from .persona import _origin
+
+    saved = _save_in(service, conn, principal, brain,
+                     lambda find: (proposal["proposed_card"], {"feedback": feedback,
+                                                               **_origin(find(lambda entry: True), edited=True)}),
                      made_by="feedback", reason=reason_for(proposal), action="feedback")
     if saved.get("unchanged"):
         raise DomainError("version_conflict", "The card already has this change.")
@@ -810,7 +902,7 @@ def accept_proposal(service, principal, brain_id: str, proposal_id: str, *, now=
 
 def reject_proposal(service, principal, brain_id: str, proposal_id: str, *, now=None) -> dict:
     """Record the rejection: no suggestion of the same kind for ``PAUSE``, and the feedback it used never counts
-    again."""
+    again. A change the host AI proposed is rejected without a pause."""
     return _decide(service, principal, brain_id, proposal_id, "rejected", now)
 
 
@@ -818,9 +910,12 @@ def reject_proposal(service, principal, brain_id: str, proposal_id: str, *, now=
 
 UNUSABLE_SOURCE = ("Manner feedback must cite the user's own messages in an ordinary conversation of this memory, "
                    "recorded after the latest personality reset and not deleted. Nothing was recorded.")
+UNUSABLE_PERSONA_SOURCE = ("A persona change must cite the user's own messages in an ordinary conversation of this "
+                           "memory, recorded after the latest personality reset and not deleted. Nothing was saved.")
 
 
-def _sources(source_event_ids, source_messages) -> tuple[list[str], list[dict]]:
+def _sources(source_event_ids, source_messages, low=1, high=MAX_SOURCES,
+             count=f"Cite 1 to {MAX_SOURCES} user messages the feedback came from.") -> tuple[list[str], list[dict]]:
     try:
         if not all(isinstance(value or [], (list, tuple)) for value in (source_event_ids, source_messages)):
             raise ValueError("sources")
@@ -830,9 +925,26 @@ def _sources(source_event_ids, source_messages) -> tuple[list[str], list[dict]]:
     except (ValueError, TypeError):
         raise DomainError("validation_failed", "Cite the messages as source_event_ids (message ids) or "
                                                "source_messages (exact producer, key and revision).") from None
-    if not 1 <= len(ids) + len(messages) <= MAX_SOURCES:
-        raise DomainError("validation_failed", f"Cite 1 to {MAX_SOURCES} user messages the feedback came from.")
+    if not low <= len(ids) + len(messages) <= high:
+        raise DomainError("validation_failed", count)
     return ids, messages
+
+
+def _usable(service, conn, principal, brain_id, ids, messages, *, seen, refusal) -> tuple[list[str], list[dict]]:
+    """(the cited messages already recorded, by id; the references not recorded yet). Every recorded one must be the
+    user's own message in an ordinary conversation, after the latest persona reset marker and not deleted, or the
+    whole call is refused (``source_unavailable``) with ``refusal``."""
+    marker = latest_marker(service, conn, principal, brain_id)
+    found = _recorded(service, conn, principal, brain_id, [_key(reference) for reference in messages])
+    recorded = list(dict.fromkeys(ids + [found[_key(reference)] for reference in messages if _key(reference) in found]))
+    waiting = [reference for reference in messages if _key(reference) not in found]
+    if recorded:
+        usable = {row["id"] for row in _candidates(
+            service, conn, principal, brain_id, after=marker["applies_from_sequence"] if marker else 0,
+            ids=recorded, seen=seen, reported=recorded)}
+        if any(ident not in usable for ident in recorded):
+            raise DomainError("source_unavailable", refusal)
+    return recorded, waiting
 
 
 def report_feedback(service, principal, brain_id: str, kind: str, *, source_event_ids=(), source_messages=(),
@@ -855,18 +967,9 @@ def report_feedback(service, principal, brain_id: str, kind: str, *, source_even
     with service.database.transaction(principal) as conn:
         conn.execute("SET LOCAL lock_timeout = '5s'")
         brain = service._brain(conn, principal, brain_id)
-        marker = latest_marker(service, conn, principal, brain_id)
-        found = _recorded(service, conn, principal, brain_id, [_key(reference) for reference in messages])
-        recorded = list(dict.fromkeys(ids + [found[_key(reference)] for reference in messages
-                                             if _key(reference) in found]))
-        waiting = [reference for reference in messages if _key(reference) not in found]
         seen = _seen(service, conn, principal, brain_id)
-        if recorded:
-            usable = {row["id"] for row in _candidates(
-                service, conn, principal, brain_id, after=marker["applies_from_sequence"] if marker else 0,
-                ids=recorded, seen=seen, reported=recorded)}
-            if any(ident not in usable for ident in recorded):
-                raise DomainError("source_unavailable", UNUSABLE_SOURCE)
+        recorded, waiting = _usable(service, conn, principal, brain_id, ids, messages, seen=seen,
+                                    refusal=UNUSABLE_SOURCE)
         reported = _reported(service, conn, principal, brain_id)
         known = {_key(entry["message"]) for entry in _reports(service, conn, principal, brain_id)
                  if "message" in entry and entry["kind"] == kind}
@@ -889,6 +992,233 @@ def report_feedback(service, principal, brain_id: str, kind: str, *, source_even
             "unchanged": len(recorded) + len(waiting) - added, "waiting_for_message": len(waiting)}
 
 
+def check_sources(service, principal, brain_id: str, source_event_ids=(), source_messages=(), *, low=1,
+                  high=MAX_SOURCES) -> tuple[list[str], list[dict]]:
+    """The cited user messages, checked as ``report_feedback`` checks them: (recorded ids, references not recorded
+    yet). Used by persona changes the user asks for in conversation."""
+    ids, messages = _sources(source_event_ids, source_messages, low, high,
+                             count=f"Cite {low} to {high} user messages." if low != high else
+                             f"Cite exactly {low} user message.")
+    with service.database.transaction(principal) as conn:
+        service._brain(conn, principal, brain_id)
+        return _usable(service, conn, principal, brain_id, ids, messages, seen=_seen(service, conn, principal, brain_id),
+                       refusal=UNUSABLE_PERSONA_SOURCE)
+
+
+# Changes the host AI proposes, confirmed by the user in conversation -------------------------------------------
+
+NOT_HOST = ("Only a change the agent proposed is decided in conversation. Suggestions from feedback are the user's "
+            "to accept or reject on the memory page.")
+
+
+def _changes(before: dict, after: dict) -> list[dict]:
+    """Each card field the proposal changes, with its value before and after (voice fields one by one)."""
+    before, after = {**EMPTY_CARD, **before}, {**EMPTY_CARD, **after}
+    result = []
+    for field in CHANGE_FIELDS:
+        if field == "voice":
+            result += [{"field": f"voice.{name}", "before": before["voice"].get(name) or "",
+                        "after": after["voice"].get(name) or ""}
+                       for name in after["voice"] if (before["voice"].get(name) or "") != (after["voice"].get(name) or "")]
+        elif before[field] != after[field]:
+            result.append({"field": field, "before": before[field], "after": after[field]})
+    return result
+
+
+def _host_quotes(service, conn, principal, brain_id, proposals) -> dict[str, list[dict]]:
+    """The cited user messages each host proposal quotes, read from the messages themselves (so a deleted message
+    is never quoted); references to messages recorded after the proposal resolve to them."""
+    keys = [_key(reference) for entry in proposals for reference in entry["source_messages"]]
+    found = _recorded(service, conn, principal, brain_id, keys)
+    wanted = {entry["id"]: list(dict.fromkeys(entry["source_event_ids"] + [
+        found[_key(reference)] for reference in entry["source_messages"] if _key(reference) in found]))
+        for entry in proposals}
+    ids = sorted({ident for values in wanted.values() for ident in values})
+    rows = conn.execute(
+        "SELECT id,conversation_id,document->'observed'->'content'->>'text' AS text,"
+        "document->'system_time'->>'recorded_at' AS recorded_at FROM memory_events "
+        f"WHERE {_VISIBLE} AND id = ANY(%s::text[]) AND document->'observed'->>'actor_role'='user'",
+        (*service._params(principal, brain_id), ids)).fetchall() if ids else []
+    quoted = {row["id"]: {"event_id": row["id"], "text": _quote(row["text"]), "recorded_at": row["recorded_at"],
+                          "conversation_id": row["conversation_id"]} for row in rows}
+    return {proposal: [quoted[ident] for ident in values if ident in quoted] for proposal, values in wanted.items()}
+
+
+def _merged(card: dict, changes) -> dict:
+    """The current card with the proposed fields replaced; ``voice`` is changed field by field."""
+    if not isinstance(changes, dict) or not changes or not set(changes) <= set(CHANGE_FIELDS):
+        raise DomainError("validation_failed", f"changes must name one or more of {', '.join(CHANGE_FIELDS)}.")
+    merged = json.loads(json.dumps({**EMPTY_CARD, **card}))
+    for field, value in changes.items():
+        if field == "voice":
+            if not isinstance(value, dict):
+                raise DomainError("validation_failed", "changes.voice must be an object of voice fields.")
+            merged["voice"] = {**merged["voice"], **value}
+        else:
+            merged[field] = value
+    return normalize_card(merged)
+
+
+def _accept_host(service, conn, principal, brain, proposal, confirmed_by) -> dict:
+    """Save a host proposal's card as a new version. ``made_by`` is "user": the user decided; ``host_proposal`` says
+    the host AI proposed it and names the message that confirmed it (None when accepted on the memory page)."""
+    from .persona import _origin, _save_in
+
+    host_proposal = {"proposal_id": proposal["id"], "confirmed_by": confirmed_by}
+    saved = _save_in(service, conn, principal, brain,
+                     lambda find: (proposal["proposed_card"], {"host_proposal": host_proposal,
+                                                               **_origin(find(lambda entry: True), edited=True)}),
+                     made_by="user", reason=proposal["reason"], action="proposal")
+    if saved.get("unchanged"):
+        raise DomainError("version_conflict", "The card already has this change.")
+    return saved
+
+
+def propose_change(service, principal, brain_id: str, changes, *, reason, source_event_ids=(), source_messages=(),
+                   now=None) -> dict:
+    """The host AI proposes a change to the persona card: ``changes`` is a partial card (any of ``CHANGE_FIELDS``;
+    lists are replaced whole, ``voice`` field by field) and ``reason`` says why in a sentence. Nothing changes: an
+    open proposal of kind ``host`` is stored, and any earlier open one is withdrawn ("replaced"). The resulting card
+    must pass ``persona.normalize_card`` now. Cited messages (optional, up to ``MAX_SOURCES``) are checked like manner
+    feedback: recorded ones must be the user's own messages; a reference to the current message may wait."""
+    if not isinstance(reason, str) or not reason.strip() or len(reason) > REASON_CHARACTERS:
+        raise DomainError("validation_failed", f"Give a reason of at most {REASON_CHARACTERS} characters.")
+    from .persona import _reason
+
+    reason = _reason(reason)
+    ids, messages = _sources(source_event_ids, source_messages, 0, MAX_SOURCES,
+                             count=f"Cite at most {MAX_SOURCES} user messages.")
+    when = _clock(now)
+    with service.database.transaction(principal) as conn:
+        conn.execute("SET LOCAL lock_timeout = '5s'")
+        brain = service._brain(conn, principal, brain_id)
+        _usable(service, conn, principal, brain_id, ids, messages, seen=_seen(service, conn, principal, brain_id),
+                refusal=UNUSABLE_PERSONA_SOURCE)
+        card, version = _current_card(service, conn, principal, brain_id)
+        proposed = _merged(card, changes)
+        if proposed == normalize_card(card):
+            raise DomainError("validation_failed", "The persona already is like that: nothing to propose.")
+        proposal_id = _write(service, conn, principal, brain, {
+            "persona_proposal": HOST, "changes": changes, "proposed_card": proposed, "base_version": version,
+            "reason": reason, "source_event_ids": ids, "source_messages": messages, "proposed_at": _iso(when)})
+        state = _State(service, conn, principal, brain_id)
+    return _decided(state, when, proposal_id, None)
+
+
+def _answered(service, conn, principal, brain_id, message_id: str, after: int) -> bool:
+    """Whether ``message_id`` is a user message that answers something said after ``after``: an assistant message of
+    the same conversation was recorded after ``after`` and before it."""
+    return conn.execute(
+        "SELECT EXISTS(SELECT 1 FROM memory_events m JOIN memory_events a ON a.tenant_id=m.tenant_id "
+        "AND a.owner_id=m.owner_id AND a.brain_id=m.brain_id AND a.conversation_id=m.conversation_id "
+        "WHERE m.tenant_id=%s AND m.owner_id=%s AND m.brain_id=%s AND m.id=%s "
+        "AND m.document->'observed'->>'actor_role'='user' "
+        "AND a.is_current AND NOT a.deleted AND NOT a.suppressed AND NOT a.retired AND a.document IS NOT NULL "
+        "AND a.document->'observed'->>'actor_role'='assistant' AND a.sequence>%s AND a.sequence<m.sequence) AS found",
+        (*service._params(principal, brain_id), message_id, after)).fetchone()["found"]
+
+
+def _replied_since(service, conn, principal, brain_id, after: int) -> bool:
+    """Whether any assistant message of an ordinary conversation was recorded after ``after``."""
+    return conn.execute(
+        f"SELECT EXISTS(SELECT 1 FROM memory_events WHERE {_VISIBLE} AND sequence>%s "
+        "AND document->'observed'->>'actor_role'='assistant' AND NOT (conversation_id = ANY(%s::text[]))) AS found",
+        (*service._params(principal, brain_id), after, _reserved())).fetchone()["found"]
+
+
+TOO_EARLY = ("The user has not answered this proposal yet: describe the change to them, ask, and confirm only in a "
+             "later turn, citing the message in which they said yes. Nothing was saved.")
+NOT_AN_ANSWER = ("That message is not the user's answer to this proposal: cite the user's message that came after "
+                 "you described the change (in this conversation's current turn). Nothing was saved.")
+
+
+def confirm_change(service, principal, brain_id: str, proposal_id: str, *, source_event_ids=(), source_messages=(),
+                   now=None) -> dict:
+    """Apply an open host proposal as a new persona version, because the user said yes in the conversation.
+
+    The rule that keeps the host AI from confirming its own proposal: the confirmation cites exactly one message,
+    and that message must be the user's own message in an ordinary conversation, recorded after an assistant message
+    of the same conversation that was itself recorded after the proposal. Hosts record a turn's user message and reply
+    together when the turn ends, so the reply that described the proposal is recorded after the proposal and before
+    the user's next message; a message from the turn the proposal was made in, an older message or an assistant
+    message cannot pass.
+
+    - A cited message already recorded is checked now: refused (``source_unavailable``) unless it passes.
+    - A reference to the current message, not recorded yet, is refused now when no assistant message has been
+      recorded since the proposal (the proposal was made in this turn). Otherwise it is kept as a confirmation
+      waiting for the message: the version is saved when the message is recorded (``observe_feedback``), and only if
+      it passes the rule then and the proposal is still open.
+
+    The saved version has ``made_by`` "user", ``action`` "proposal" and ``host_proposal`` with the proposal id and
+    the confirming message's id.
+    """
+    ids, messages = _sources(source_event_ids, source_messages, 1, 1,
+                             count="Cite exactly one message: the user's message that says yes.")
+    when = _clock(now)
+    with service.database.transaction(principal) as conn:
+        conn.execute("SET LOCAL lock_timeout = '5s'")
+        brain = service._brain(conn, principal, brain_id)
+        state = _State(service, conn, principal, brain_id)
+        proposal = _open_host(state, proposal_id)
+        recorded, waiting = _usable(service, conn, principal, brain_id, ids, messages,
+                                    seen=_seen(service, conn, principal, brain_id), refusal=NOT_AN_ANSWER)
+        if recorded:
+            if not _answered(service, conn, principal, brain_id, recorded[0], proposal["sequence"]):
+                raise DomainError("source_unavailable", NOT_AN_ANSWER)
+            saved = _settle(service, conn, principal, brain, proposal, "accepted", when, confirmed_by=recorded[0])
+            result = _decided(_State(service, conn, principal, brain_id), when, proposal_id, saved)
+            return {**result, "status": "confirmed"}
+        if not _replied_since(service, conn, principal, brain_id, proposal["sequence"]):
+            raise DomainError("source_unavailable", TOO_EARLY)
+        reference = waiting[0]
+        if not any(item["proposal_id"] == proposal_id and _key(item["message"]) == _key(reference)
+                   for item in state.confirmations):
+            _write(service, conn, principal, brain, {CONFIRMATION: {"proposal_id": proposal_id, "message": reference}})
+        result = _decided(_State(service, conn, principal, brain_id), when, proposal_id, None)
+    return {**result, "status": "waiting_for_message"}
+
+
+def _open_host(state: _State, proposal_id) -> dict:
+    if not isinstance(proposal_id, str) or not 0 < len(proposal_id) <= 200:
+        raise DomainError("validation_failed", "A proposal id is required.")
+    proposal = next((item for item in state.proposals if item["id"] == proposal_id), None)
+    if proposal is None:
+        raise DomainError("not_found_or_forbidden", "That suggestion is not available.")
+    if proposal["kind"] != HOST:
+        raise DomainError("validation_failed", NOT_HOST)
+    if proposal["status"] != "open":
+        raise DomainError("version_conflict", "That suggestion is no longer open.")
+    return proposal
+
+
+def decline_change(service, principal, brain_id: str, proposal_id: str, *, now=None) -> dict:
+    """The user said no to an open host proposal: it is rejected. There is no pause; the tool tells the host AI not
+    to propose the same change again in the conversation."""
+    return _decide(service, principal, brain_id, proposal_id, "rejected", now, only_host=True)
+
+
+def _confirm_waiting(service, conn, principal, brain, event, event_id) -> None:
+    """A user message has arrived: apply each open host proposal a confirmation was waiting for on this message's
+    exact reference, if the message passes ``confirm_change``'s rule."""
+    key = (event.get("producer_ref"), event.get("source_event_key"), event.get("source_revision"))
+    rows = conn.execute(
+        f"SELECT producer_ref,document FROM memory_events WHERE {_VISIBLE} AND conversation_id=%s "
+        "AND document->'observed'->'content'->>'text' LIKE %s ORDER BY sequence",
+        (*service._params(principal, brain["id"]), PROPOSALS_CONVERSATION, CONFIRMATION_PREFIX + "%")).fetchall()
+    wanted = [entry["proposal_id"] for entry in map(_entry, rows)
+              if entry is not None and entry["type"] == "confirmation" and _key(entry["message"]) == key]
+    for proposal_id in dict.fromkeys(wanted):
+        state = _State(service, conn, principal, brain["id"])
+        proposal = next((item for item in state.proposals if item["id"] == proposal_id and item["kind"] == HOST
+                         and item["status"] == "open"), None)
+        if proposal is not None and _answered(service, conn, principal, brain["id"], event_id, proposal["sequence"]):
+            row = conn.execute("SELECT document->'system_time'->>'recorded_at' AS recorded_at FROM memory_events "
+                               f"WHERE {_VISIBLE} AND id=%s",
+                               (*service._params(principal, brain["id"]), event_id)).fetchone()
+            _settle(service, conn, principal, brain, proposal, "accepted", _time(row["recorded_at"]),
+                    confirmed_by=event_id)
+
+
 def _waiting(service, conn, principal, brain_id, event) -> list[str]:
     """The kinds the host AI reported for this message before it was recorded (by its exact reference)."""
     key = (event.get("producer_ref"), event.get("source_event_key"), event.get("source_revision"))
@@ -900,7 +1230,8 @@ def _waiting(service, conn, principal, brain_id, event) -> list[str]:
 def observe_feedback(service, conn, principal, brain, target, event, event_id) -> None:
     """Called for each new user message: when it is feedback (the table matches it, or the host AI reported it
     before it was recorded), store a suggestion if it brought its kind to the threshold. A report on the message's
-    reference is stored again by the message's id, so it stays tied to the message through an archive restore.
+    reference is stored again by the message's id, so it stays tied to the message through an archive restore. A
+    confirmation of a host proposal that waited for this message is applied (``confirm_change``).
     Never fails the observation: any error is rolled back to a savepoint and logged."""
     if (target.get("conversation_ref") in _reserved() or event.get("producer_ref") == "membrain-memory-page"
             or str(event.get("producer_ref", "")).startswith("membrain-import:")
@@ -911,6 +1242,7 @@ def observe_feedback(service, conn, principal, brain, target, event, event_id) -
     sequence = brain["durable_sequence"]
     try:
         with conn.transaction():
+            _confirm_waiting(service, conn, principal, brain, event, event_id)
             waiting = _waiting(service, conn, principal, brain["id"], event)
             if not kinds and not waiting:
                 return

@@ -405,6 +405,45 @@ class MemoryClient:
                              json={"kind": kind, "source_event_ids": list(source_event_ids),
                                    "source_messages": [dict(reference) for reference in source_messages]})
 
+    def persona_presets(self, *, brain_id: str | None = None) -> JsonObject:
+        """The preset personas (id, label, summary) and which one the current persona is (or ``custom``)."""
+        return self._request("GET", self._persona_path(brain_id, "/presets"))
+
+    def assign_first_persona(self, *, brain_id: str | None = None) -> JsonObject:
+        """Give the brain a preset picked at random as its first persona, only if it has no persona record of any
+        kind; ``assigned`` is true only for the call that saved it."""
+        return self._request("POST", self._persona_path(brain_id, "/first"))
+
+    def switch_persona_preset(self, preset: str, *, made_by: Literal["host", "user"] = "user",
+                              source_event_ids: Sequence[str] = (), source_messages: Sequence[Mapping[str, Any]] = (),
+                              brain_id: str | None = None) -> JsonObject:
+        """Save a preset (or ``random``: one other than the current) as the new persona version, citing at most one
+        user message that asked for it. Mood and familiarity are not touched."""
+        return self._request("POST", self._persona_path(brain_id, "/preset"),
+                             json={"preset": preset, "made_by": made_by, "source_event_ids": list(source_event_ids),
+                                   "source_messages": [dict(reference) for reference in source_messages]})
+
+    def propose_persona_change(self, changes: Mapping[str, Any], *, reason: str, source_event_ids: Sequence[str] = (),
+                               source_messages: Sequence[Mapping[str, Any]] = (),
+                               brain_id: str | None = None) -> JsonObject:
+        """The host AI proposes a change to the card (a partial card); nothing changes until the user confirms."""
+        return self._request("POST", self._persona_path(brain_id, "/proposals"),
+                             json={"changes": dict(changes) if isinstance(changes, Mapping) else changes,
+                                   "reason": reason, "source_event_ids": list(source_event_ids),
+                                   "source_messages": [dict(reference) for reference in source_messages]})
+
+    def confirm_persona_change(self, proposal_id: str, *, source_event_ids: Sequence[str] = (),
+                               source_messages: Sequence[Mapping[str, Any]] = (),
+                               brain_id: str | None = None) -> JsonObject:
+        """Apply the host AI's open proposal because the user said yes, citing that message (one)."""
+        return self._request("POST", self._persona_path(brain_id, f"/proposals/{quote(proposal_id, safe='')}/confirm"),
+                             json={"source_event_ids": list(source_event_ids),
+                                   "source_messages": [dict(reference) for reference in source_messages]})
+
+    def decline_persona_change(self, proposal_id: str, *, brain_id: str | None = None) -> JsonObject:
+        """The user said no to the host AI's open proposal."""
+        return self._request("POST", self._persona_path(brain_id, f"/proposals/{quote(proposal_id, safe='')}/decline"))
+
     def _relationship_path(self, brain_id: str | None, suffix: str = "") -> str:
         return f"v1/brains/{quote(self._scope(brain_id=brain_id)['brain_ref'], safe='')}/relationship{suffix}"
 
