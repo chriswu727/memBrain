@@ -94,6 +94,18 @@ def test_proposals_are_validated_and_at_most_one_is_open(brain):
     assert [item["withdrawn_because"] for item in listing(brain)["proposals"]] == ["persona_changed", "replaced"]
 
 
+def test_a_proposal_stores_its_fields_scrubbed_like_the_card(brain):
+    service, principal, ident = brain
+    secret = "sk-proj-" + "A1b2C3d4E5f6G7h8I9j0K1l2M3n4"
+    proposal = propose(brain, {"traits": ["warm", f"key {secret}"]})
+    assert secret not in str(proposal["proposed_card"]) and secret not in str(proposal["changes"])
+    with service.database.transaction(principal) as conn:
+        texts = [row["text"] for row in conn.execute(
+            "SELECT document->'observed'->'content'->>'text' AS text FROM memory_events WHERE brain_id=%s "
+            "AND conversation_id='membrain-persona-proposals'", (ident,))]
+    assert texts and not any(secret in text for text in texts)
+
+
 def test_proposing_and_confirming_in_one_turn_is_refused_and_the_next_message_confirms(brain):
     service, principal, ident = brain
     set_persona(service, principal, ident, CARD, made_by="host")
