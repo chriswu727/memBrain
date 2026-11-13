@@ -462,7 +462,8 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
         ).fetchall()
         usage = {(row["memory_id"], row["memory_revision"]): row for row in usage_rows}
         timestamp = now() if access_at is None else access_at
-        direct = query.get("intent") in {"exact_quote", "episode", "timeline", "cue_recovery"}
+        direct = (query.get("intent") in {"exact_quote", "episode", "timeline", "cue_recovery"}
+                  or query.get("ranking") == "relevance")
         for item in ranked:
             key = (item["memory_id"], item["revision"])
             weight = rank_weight(access_state(documents[key], usage.get(key), at=timestamp), direct=direct)

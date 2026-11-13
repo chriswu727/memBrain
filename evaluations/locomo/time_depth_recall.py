@@ -294,6 +294,7 @@ def ask(sample: dict, directory: Path, events: dict, out: Path, searches: dict) 
                     weights.flat = False
                     measure("tool", host.scrub(qa["question"]), replies=False)
                     measure("tool_replies", host.scrub(qa["question"]), replies=True)
+                    measure("tool_deliberate", host.scrub(qa["question"]), deliberate=True)
                     if qid in searches:
                         for name, flat in (("searches", False), ("searches_flat", True)):
                             weights.flat, found = flat, set()

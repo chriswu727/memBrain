@@ -1411,6 +1411,14 @@
             "full"
           ]
         },
+        "ranking": {
+          "type": "string",
+          "enum": [
+            "recency",
+            "relevance"
+          ],
+          "description": "Optional. Omitted or recency: of two equally relevant memories the more recently recorded or used ranks higher, as a conversation usually needs. relevance: a search made on purpose; age does not lower a memory's rank, so an old memory is reached as easily as a recent one. It changes ranking only, not what is eligible."
+        },
         "query": {
           "type": "string",
           "minLength": 1

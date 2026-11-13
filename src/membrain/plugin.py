@@ -300,7 +300,7 @@ def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
                     else:
                         found = host.recall_context(client, host.scrub(str(arguments.get("query") or "")),
                                                     current_conversation=arguments.get("session_id"),
-                                                    replies=arguments.get("my_replies") is True)
+                                                    replies=arguments.get("my_replies") is True, deliberate=True)
                         result = {"context": found or "No matching records."}
     except Exception as error:  # A tool reports failure to the model instead of crashing the host.
         result = {"error": str(error) if isinstance(error, ValueError) else type(error).__name__}

@@ -1680,11 +1680,19 @@ def recall_budget(tokens: int = RECALL_TOKENS, *, embeddings: int = 1) -> dict:
     return {**default_budget(tokens), "max_embedding_calls": embeddings}
 
 
-def recall(client, query: str, cues: tuple[str, ...] = (), *, replies: bool = False) -> dict:
+def recall(client, query: str, cues: tuple[str, ...] = (), *, replies: bool = False,
+           deliberate: bool = False) -> dict:
     """Recall earlier records; if the query embedding fails, fall back to keyword recall instead of nothing.
 
     With ``replies`` the assistant's own earlier words are candidates too: the request is made as the recall of an
     earlier episode, which the memory service answers with speech included.
+
+    ``deliberate`` is a search the host AI chose to make, through a tool. Automatic recall ranks recent memories
+    above older ones of equal relevance (``dynamics.rank_weight``): what was said lately is what a conversation
+    most often needs. Nothing is forgotten, though, and a search made on purpose must reach an old memory as easily
+    as a new one, so it asks the service to rank by relevance alone. Measured on LoCoMo with messages stored at
+    their session dates, a day after the last session: all the evidence of 77.5% of questions with the weight,
+    80.4% without; the difference is evidence older than 90 days.
     """
     from .client import MemoryActionError
 
@@ -1694,6 +1702,8 @@ def recall(client, query: str, cues: tuple[str, ...] = (), *, replies: bool = Fa
     options = {"evidence_cutoff": cutoff, "additional_cues": [cue for cue in cues if cue.strip()]}
     if replies:
         options["intent"] = "episode"
+    if deliberate:
+        options["ranking"] = "relevance"
     try:
         return client.recall(query, budget=recall_budget(), **options)
     except MemoryActionError:
@@ -1885,7 +1895,7 @@ def _window(text: str, start: int | None, size: int = MESSAGE_CHARACTERS) -> str
 
 def recall_context(client, query: str, *, current_conversation: str | None = None, cues: tuple[str, ...] = (),
                    limit: int = CONTEXT_CHARACTERS, boundaries: list[dict] | None = None,
-                   replies: bool = False) -> str | None:
+                   replies: bool = False, deliberate: bool = False) -> str | None:
     """Earlier messages related to the query, as complete dated messages rather than isolated sentences.
 
     The assistant's own earlier replies are left out unless the query is recognised as asking about them, or
@@ -1895,7 +1905,8 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
     Statements are ranked by the memory service (keywords and, when available, meaning); the messages they came
     from are shown oldest first so that later changes read as later. Falls back to statements if messages
     cannot be read. Messages about a boundary topic the user set are left out unless ``query`` (the current
-    message) raises it; ``boundaries`` are read from the service when not given.
+    message) raises it; ``boundaries`` are read from the service when not given. ``deliberate`` marks a search the
+    host AI made through a tool, which reaches old memories as easily as recent ones (``recall``).
     """
     from .context_views import assistant_speech
     from .relationship import kept_out
@@ -1904,7 +1915,7 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
         boundaries = _boundaries(client)
     include_speech = replies or bool(ASKS_ABOUT_ASSISTANT.search(query or ""))
     asked_for_replies = replies
-    response = recall(client, query, cues, replies=replies)
+    response = recall(client, query, cues, replies=replies, deliberate=deliberate)
     if not include_speech:
         result = response.get("result") or {}
         response = {**response, "result": {**result, "items": [item for item in result.get("items", [])

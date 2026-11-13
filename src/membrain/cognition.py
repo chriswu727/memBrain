@@ -802,7 +802,8 @@ def recall(scope: dict, request: dict, memories: list[dict], events: list[dict],
         if candidate_versions is not None and key in tail_versions and not signals and not selecting:
             from .dynamics import access_state, rank_weight
 
-            direct = request["intent"] in {"exact_quote", "episode", "timeline", "cue_recovery"}
+            direct = (request["intent"] in {"exact_quote", "episode", "timeline", "cue_recovery"}
+                      or request.get("ranking") == "relevance")
             score = min(1.0, score) / 61 * rank_weight(
                 access_state(memory, None, at=access_reference_time), direct=direct)
             activation = 0.0

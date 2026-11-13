@@ -83,11 +83,12 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
             from membrain import host
 
             if with_ids:
-                response = await asyncio.to_thread(host.recall, client, host.scrub(query))
+                response = await asyncio.to_thread(host.recall, client, host.scrub(query), deliberate=True)
                 records = await asyncio.to_thread(host.recall_records, client, response)
                 return {"action": "recall", "outcome": response["outcome"], **records}
             # The same compact recall the hooks inject, so tool results read like the rest of the memory context.
-            found = await asyncio.to_thread(host.recall_context, client, host.scrub(query), replies=bool(my_replies))
+            found = await asyncio.to_thread(host.recall_context, client, host.scrub(query), replies=bool(my_replies),
+                                            deliberate=True)
             return {"context": found or "No matching records."}
     else:
         @server.tool(annotations=READ_ONLY)

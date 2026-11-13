@@ -344,3 +344,22 @@ def test_episode_seeds_neither_boost_themselves_nor_exhaust_neighbor_slots(candi
     assert state["candidate_versions"][:2] == [key(anchor), key(detail)]
     assert len(state["candidate_versions"]) == 4
     assert [signal["method"] for signal in state["rank_signals"][key(anchor)]] == ["keyword"]
+
+
+def test_a_search_ranked_by_relevance_gives_an_old_detail_its_full_score_and_changes_nothing_else(candidates):
+    old = candidates.add("quartz keynote", system_time={"recorded_at": datetime(1990, 1, 1, tzinfo=UTC).isoformat(), "superseded_at": None})
+    query = {"query": "quartz", "intent": "explore", "budget": default_budget(64000),
+             "read_fence": default_read_fence(), "cue_event_ids": [], "additional_cues": []}
+
+    def collect(**extra):
+        with candidates.database.transaction(candidates.principal) as conn:
+            brain = candidates.service._brain(conn, candidates.principal, candidates.brain_id)
+            return collect_candidates(conn, candidates.service, candidates.principal, brain, candidates.target,
+                                      {**query, **extra})[1]
+
+    weighted, recency, relevance = collect(), collect(ranking="recency"), collect(ranking="relevance")
+    assert weighted["candidate_versions"] == recency["candidate_versions"] == relevance["candidate_versions"] == [key(old)]
+    score = lambda state: sum(signal["score"] for signal in state["rank_signals"][key(old)])  # noqa: E731
+    assert 0 < score(weighted) == score(recency) < score(relevance)
+    # The same score the recovery of a memory from a cue gives it, without that intent's check of earlier records.
+    assert score(relevance) == score(candidates.query("quartz", intent="cue_recovery")[1])

@@ -235,7 +235,7 @@ class ChatMemory:
             return {"error": "memBrain is starting; try again in a few seconds."}
         with client:
             found = host.recall_context(client, host.scrub(str(query or "")), current_conversation=session,
-                                        replies=bool(replies))
+                                        replies=bool(replies), deliberate=True)
         return {"context": found or "No matching records."}
 
     def consolidate(self, speaker: Speaker, cues=None, reviewed_through=None, *, session: str | None = None,

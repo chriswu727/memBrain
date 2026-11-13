@@ -237,7 +237,7 @@ class MembrainProvider(_Base):
                                                 source_messages=args.get("source_messages") or (), **note_fields(args)))
                 if tool_name == "membrain_search":
                     found = host.recall_context(client, host.scrub(str(args.get("query", ""))),
-                                                current_conversation=self._session)
+                                                current_conversation=self._session, deliberate=True)
                     return json.dumps({"context": found or "No matching records."}, ensure_ascii=False)
                 if tool_name == "membrain_boundary":
                     result = client.add_boundary(args.get("topic", ""), args.get("aliases") or ())

@@ -375,6 +375,7 @@ export type Coverage = {
 
 export type RecallRequest = {
   "detail_level"?: "auto" | "summary" | "full";
+  "ranking"?: "recency" | "relevance";
   "query": string;
   "intent": "continue_conversation" | "exact_quote" | "current_fact" | "episode" | "timeline" | "open_commitment" | "procedure" | "cue_recovery" | "explore";
   "cue_event_ids": (Identifier)[];
