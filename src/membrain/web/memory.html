@@ -238,10 +238,18 @@
     <div class="card persona-current">
       <div class="persona-title"><h2>Current card</h2><span id="persona-version" class="tag"></span></div>
       <div id="persona-view"></div>
+      <p id="persona-preset" class="persona-preset"></p>
       <div class="row persona-actions">
         <button id="persona-edit">Edit personality</button>
         <button id="persona-reset" class="secondary">Reset personality</button>
       </div>
+      <div class="row persona-actions persona-presets">
+        <label for="persona-preset-choice">Switch to a preset</label>
+        <select id="persona-preset-choice"></select>
+        <button id="persona-preset-switch" class="secondary">Switch</button>
+      </div>
+      <p class="hint">A new memory starts with one preset picked at random. Switching changes only how your companion
+        presents itself: its mood and how familiar you are carry over. You can also ask your agent to switch.</p>
     </div>
     <!-- Persona suggestions from feedback (P2) -->
     <div class="card persona-proposals" id="persona-proposals-card">

@@ -288,6 +288,21 @@ const ZH = {
     "把个性重置为宿主的默认设定，或者清空设定？之前的版本会保留，可以恢复。笔记和消息不受影响。",
   "Delete every personality version, including the current card? This cannot be undone.": "删除所有个性版本，包括当前设定？此操作无法撤销。",
   "Personality history deleted.": "个性历史已删除。",
+  // Preset personas
+  "Switch to a preset": "切换到预设个性", "Switch": "切换",
+  "A new memory starts with one preset picked at random. Switching changes only how your companion presents itself: its mood and how familiar you are carry over. You can also ask your agent to switch.":
+    "新的记忆会随机选用一个预设个性。切换只改变伙伴的表现方式：它的心情和你们的熟悉程度都会保留。你也可以直接让 agent 帮你切换。",
+  "Preset:": "预设：", "Your own card": "你自己的设定", "No preset": "没有使用预设", "based on": "基于",
+  "first preset, picked at random": "随机选用的第一个预设", "switched preset": "切换了预设",
+  "your agent's suggestion, confirmed in conversation": "agent 提出的建议，你在对话中确认",
+  "your agent's suggestion, accepted here": "agent 提出的建议，你在这里接受",
+  "Switch to this preset? It is saved as a new version, and earlier versions can be restored. The mood and familiarity carry over.":
+    "切换到这个预设？它会保存为一个新版本，之前的版本可以恢复。心情和熟悉程度都会保留。",
+  "Steady": "沉稳", "Calm, plain-spoken and patient; explains things in order.": "冷静、说话直白、有耐心；讲事情有条有理。",
+  "Bright": "明快", "Upbeat and encouraging; notices progress and says so.": "积极、爱鼓励人；看到你的进步会说出来。",
+  "Wry": "冷幽默", "Dry humour and a light tease now and then; sharp but kind.": "冷幽默，偶尔轻轻打趣；犀利但友善。",
+  "Gentle": "温柔", "Warm and soft-spoken; listens first and asks before advising.": "温暖、轻声细语；先倾听，给建议前先问你。",
+  "Blunt": "直率", "Direct with no padding; says what it thinks and why.": "直截了当、不绕弯子；直说想法和理由。",
   // Relationship (R1) and the Companion tab that holds it with the personality
   "Companion": "伙伴", "Relationship": "关系",
   "What you and your companion share: moments you had together, how familiar you are, how you like to be supported and the topics it should not bring up. Your agent receives it in its own block.":
@@ -382,6 +397,10 @@ const ZH = {
   "Withdrawn: you later asked for the opposite.": "已撤回：你之后提出了相反的要求。",
   "Withdrawn: you already decided on this feedback. A new suggestion needs new feedback.": "已撤回：你已就这组反馈作出决定。新的建议需要新的反馈。",
   "Withdrawn: the card has no room for it.": "已撤回：设定里放不下这一项。", "Withdrawn.": "已撤回。",
+  "Suggested by your agent": "由 agent 提出的建议", "Why, in your agent's words:": "agent 给出的理由：",
+  "Withdrawn: your agent made a newer suggestion.": "已撤回：agent 之后提出了新的建议。",
+  "Withdrawn: the card changed after it was suggested.": "已撤回：提出建议之后，设定已经改变。",
+  "Reject this suggestion?": "拒绝这条建议？", "Suggestion rejected.": "已拒绝这条建议。",
   "(empty)": "（空）", "What you said:": "你说过的话：", "Change to the card (everything else stays):": "对设定的修改（其他内容不变）：",
   "Accept": "接受", "Reject": "拒绝", "accepted suggestion": "接受的建议", "The messages behind this change were deleted.": "这次修改所依据的消息已被删除。",
   "Accept this suggestion? The card is saved as a new version; you can restore the earlier one at any time.":
@@ -522,6 +541,7 @@ const ZH_PATTERNS = [
   [/^Accepted on (.+) as version (\d+)\.$/, (m, date, n) => `已于 ${translate(date)} 接受，保存为版本 ${n}。`],
   [/^Rejected on (.+)\. None of this kind until (.+)\.$/, (m, date, until) =>
     `已于 ${translate(date)} 拒绝。${translate(until)} 之前不会再提出同类建议。`],
+  [/^Rejected on ([^.]+)\.$/, (m, date) => `已于 ${translate(date)} 拒绝。`],
   [/^(\d+) waiting$/, (m, n) => `${n} 条待处理`],
   [/^(.+): paused until (.+) after you rejected it\.$/, (m, kind, until) => `${ZH[kind] || kind}：你拒绝过，${translate(until)} 之前暂停提出。`],
   // End of persona suggestions

@@ -590,6 +590,8 @@ guard($("relationship-reset"), async () => {
 const personaPath = (suffix = "") => `/v1/brains/${encodeURIComponent(state.brain)}/persona${suffix}`;
 const VOICE = [["register", "register"], ["length", "length"], ["emoji", "emoji"], ["language", "language"]];
 const MADE_BY = { user: "set by you", host: "set by the host", feedback: "from accepted feedback" };
+// Preset personas: which one is current, and switching to another. The labels and summaries are the service's own.
+const PRESET_KIND = { preset: "Preset:", custom: "Your own card", none: "No preset" };
 const lines = (text) => text.split("\n").map((value) => value.trim()).filter(Boolean);
 // By name, not as properties: a control named "length" would otherwise read as the collection's length.
 const personaControl = (name) => $("persona-form").elements.namedItem(name);
@@ -637,15 +639,35 @@ function personaForm(card) {
 }
 
 function personaHistory(version) {
+  if (version.action === "preset") return version.host_default ? "first preset, picked at random" : "switched preset";
+  if (version.action === "proposal") {
+    return version.host_proposal?.confirmed_by ? "your agent's suggestion, confirmed in conversation" : "your agent's suggestion, accepted here";
+  }
   if (version.action === "restore" && version.restored_from) return `restored from version ${version.restored_from}`;
   if (version.action === "reset") return version.empty ? "reset to no card" : "reset to the host's default";
   if (version.action === "feedback") return "accepted suggestion"; // P2: the reason quotes the feedback.
   return version.host_default ? "host default" : "edited";
 }
 
+function personaPresets(listing) {
+  const current = listing.current, line = $("persona-preset");
+  line.replaceChildren(element("span", PRESET_KIND[current.kind], "hint"));
+  if (current.kind === "preset") line.append(" ", element("strong", current.preset.label), " ", element("span", current.preset.summary, "hint"));
+  if (current.kind === "custom" && current.based_on) line.append(" ", element("span", "based on", "hint"), " ", element("strong", current.based_on.label));
+  const choice = $("persona-preset-choice");
+  choice.replaceChildren(...listing.presets.map((item) => {
+    const option = element("option", item.label);
+    option.value = item.id;
+    return option;
+  }));
+  if (current.kind === "preset") choice.value = current.preset.id;
+}
+
 async function loadPersona() {
-  const [current, history] = await Promise.all([api(personaPath()), api(personaPath("/versions"))]);
+  const [current, history, presets] = await Promise.all([api(personaPath()), api(personaPath("/versions")),
+    api(personaPath("/presets"))]);
   state.persona = current;
+  personaPresets(presets);
   $("persona-version").textContent = current.version ? `Version ${current.version}` : "No versions yet";
   const view = $("persona-view");
   view.replaceChildren(current.empty
@@ -729,6 +751,12 @@ guard($("persona-reset"), async () => {
   notify(saved.unchanged ? "No change: that is already the current card." : `Personality reset as version ${saved.version}.`);
   await loadPersona();
 });
+guard($("persona-preset-switch"), async () => {
+  if (!confirm("Switch to this preset? It is saved as a new version, and earlier versions can be restored. The mood and familiarity carry over.")) return;
+  const saved = await api(personaPath("/preset"), { preset: $("persona-preset-choice").value, made_by: "user" });
+  notify(saved.unchanged ? "No change: that is already the current card." : `Saved as version ${saved.version}.`);
+  await loadPersona();
+});
 guard($("persona-delete-history"), async () => {
   if (!confirm("Delete every personality version, including the current card? This cannot be undone.")) return;
   await api(personaPath("/versions"), undefined, "DELETE");
@@ -740,14 +768,20 @@ guard($("persona-delete-history"), async () => {
 // The service makes a suggestion when the user gives the same kind of feedback three times. The page lists it with
 // the quoted messages and the change to the card; only Accept changes the card, as a new version.
 const PROPOSAL_KINDS = { less_formal: "More casual", more_formal: "More formal", more_playful: "More playful",
-  shorter: "Shorter replies", longer: "Longer, more detailed replies", less_emoji: "Fewer emoji", more_emoji: "More emoji" };
+  shorter: "Shorter replies", longer: "Longer, more detailed replies", less_emoji: "Fewer emoji", more_emoji: "More emoji",
+  host: "Suggested by your agent" };
 const PROPOSAL_FIELDS = { traits: "Traits", "voice.register": "Register", "voice.length": "Typical length",
-  "voice.emoji": "Emoji use" };
+  "voice.emoji": "Emoji use", "voice.language": "Language", name: "Name", values: "Values", boundaries: "Boundaries",
+  baseline_mood: "Baseline mood" };
 const PROPOSAL_STATUS = { open: "waiting for you", accepted: "accepted", rejected: "rejected", withdrawn: "withdrawn" };
 const PROPOSAL_WITHDRAWN = { sources_removed: "Withdrawn: fewer than three of its messages are still in memory.",
   already_in_card: "Withdrawn: the card already has this.", does_not_fit: "Withdrawn: the card has no room for it.",
   feedback_used: "Withdrawn: you already decided on this feedback. A new suggestion needs new feedback.",
-  contradicted: "Withdrawn: you later asked for the opposite." };
+  contradicted: "Withdrawn: you later asked for the opposite.",
+  replaced: "Withdrawn: your agent made a newer suggestion.", persona_changed: "Withdrawn: the card changed after it was suggested." };
+// A baseline mood is shown as one value, as the card shows it.
+const proposalText = (value) => (value && typeof value === "object" && !Array.isArray(value)
+  ? `${value.label} (${value.valence > 0 ? "+" : ""}${value.valence}, ${value.energy})` : value);
 
 function proposalValue(values, other, mark) {
   // One side of the change: list entries the other side lacks are marked; an empty value reads "(empty)".
@@ -763,6 +797,7 @@ function proposalValue(values, other, mark) {
 }
 
 function proposalChange(change) {
+  change = { ...change, before: proposalText(change.before), after: proposalText(change.after) };
   const list = element("dl", undefined, "persona-card proposal-diff");
   const detail = element("dd");
   const before = Array.isArray(change.before) ? change.before : [change.before].filter(Boolean);
@@ -789,15 +824,21 @@ function proposalSources(proposal) {
 function proposalItem(proposal) {
   const item = element("article", undefined, `item persona-proposal proposal-${proposal.status}`);
   const meta = element("div", undefined, "meta");
-  meta.append(element("strong", `${PROPOSAL_KINDS[proposal.kind] || proposal.kind}: from ${proposal.source_count} messages`),
+  const host = proposal.kind === "host";  // Proposed by the host AI; the user may also confirm it in conversation.
+  meta.append(element("strong", host ? PROPOSAL_KINDS.host : `${PROPOSAL_KINDS[proposal.kind] || proposal.kind}: from ${proposal.source_count} messages`),
     element("span", shortDate(proposal.proposed_at)), element("span", PROPOSAL_STATUS[proposal.status] || proposal.status, "tag"));
   item.append(meta);
+  if (host && proposal.reason) item.append(element("p", "Why, in your agent's words:", "hint"), element("p", proposal.reason, "user-text"));
   if (proposal.status === "open" && proposal.change) {
     item.append(element("p", "Change to the card (everything else stays):", "hint"), proposalChange(proposal.change));
   }
+  if (proposal.status === "open" && proposal.changes?.length) {
+    item.append(element("p", "Change to the card (everything else stays):", "hint"), ...proposal.changes.map(proposalChange));
+  }
   if (proposal.status === "accepted") item.append(element("p", `Accepted on ${shortDate(proposal.decided_at)} as version ${proposal.version}.`, "hint"));
   if (proposal.status === "rejected") {
-    item.append(element("p", `Rejected on ${shortDate(proposal.decided_at)}. None of this kind until ${shortDate(proposal.paused_until)}.`, "hint"));
+    item.append(element("p", proposal.paused_until ? `Rejected on ${shortDate(proposal.decided_at)}. None of this kind until ${shortDate(proposal.paused_until)}.`
+      : `Rejected on ${shortDate(proposal.decided_at)}.`, "hint"));
   }
   if (proposal.status === "withdrawn") item.append(element("p", PROPOSAL_WITHDRAWN[proposal.withdrawn_because] || "Withdrawn.", "hint"));
   if (proposal.sources.length) item.append(proposalSources(proposal));
@@ -811,9 +852,9 @@ function proposalItem(proposal) {
       await loadPersona();
     });
     guard(reject, async () => {
-      if (!confirm("Reject this suggestion? None of the same kind is offered again for 30 days.")) return;
+      if (!confirm(host ? "Reject this suggestion?" : "Reject this suggestion? None of the same kind is offered again for 30 days.")) return;
       await api(personaPath(`/proposals/${encodeURIComponent(proposal.id)}/reject`), {});
-      notify("Suggestion rejected. None of this kind for 30 days.");
+      notify(host ? "Suggestion rejected." : "Suggestion rejected. None of this kind for 30 days.");
       await loadProposals();
     });
     actions.append(accept, reject);
