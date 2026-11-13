@@ -140,16 +140,15 @@ def consolidate(client, cues=None, reviewed_through=None, *, handed_out: dict | 
     stateless = handed_out is None
     try:
         if cues is None and reviewed_through is None:
-            offered = client.pending_message_cues(limit=CONSOLIDATION_MESSAGES, max_characters=CONSOLIDATION_CHARACTERS,
-                                                  whole_conversations=True)
+            offered = consolidation_batch(client)
             if offered.get("recording_paused"):
                 return {"error": CONSOLIDATION_PAUSED}
-            if not offered["items"]:
+            if not offered["messages"]:
                 return {"messages": [], "remaining": 0, "note": "Nothing to consolidate right now."}
             through = offered["through_sequence"]
             result = {"instructions": CONSOLIDATION_INSTRUCTIONS,
                       "messages": [{"id": item["sequence"], "date": (item.get("recorded_at") or "")[:10],
-                                    "text": item["text"]} for item in offered["items"]],
+                                    "text": item["text"]} for item in offered["messages"]],
                       "remaining": offered["remaining"]}
             if stateless:
                 result["instructions"] += (" This tool does not remember the batch between calls: when you call it "
@@ -158,6 +157,7 @@ def consolidate(client, cues=None, reviewed_through=None, *, handed_out: dict | 
                 result["reviewed_through"] = through
             else:
                 handed_out["through"] = through
+                handed_out["ids"] = {item["sequence"] for item in offered["messages"]}
             return result
         through = None if stateless else handed_out.get("through")
         if through is None:
@@ -173,12 +173,13 @@ def consolidate(client, cues=None, reviewed_through=None, *, handed_out: dict | 
             if (not isinstance(entry, dict) or type(entry.get("id")) is not int
                     or not isinstance(entry.get("cues"), list)):
                 return {"error": "Each entry needs the message id from the batch and a list of cue phrases."}
-            if entry["id"] > through:
+            if entry["id"] > through or (not stateless and entry["id"] not in handed_out.get("ids", {entry["id"]})):
+                # Also refuses a message the batch left out because it is about a boundary topic.
                 return {"error": "A message id is not in the batch; use the ids of the batch you received."}
             items.append({"sequence": entry["id"], "cues": [cue for cue in entry["cues"] if isinstance(cue, str)]})
         result = client.write_message_cues(items, model_version="host-agent", reviewed_through_sequence=through)
         if not stateless:
-            handed_out.pop("through", None)
+            handed_out.clear()
         left = client.pending_message_cues(limit=1)
         return {"indexed": result["written"], "skipped": result["skipped"], "remaining": left["remaining"],
                 "note": "Done. Carry on with the user's request; do not describe this beyond a few words."}

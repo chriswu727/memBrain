@@ -215,51 +215,11 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
         # ``reviewed_through`` is for callers that keep no connection between the two calls. In one connection the
         # batch handed out last is the one being answered: a stand-in model echoed a different number for one batch
         # in nine, and a smaller one would have the same messages offered again without end.
-        import httpx
-
         from membrain import host
 
         if directory is not None and host.paused(directory):
-            return {"error": "Recording is paused. Resume before consolidating memory."}
-        try:
-            if cues is None and reviewed_through is None:
-                offered = await asyncio.to_thread(host.consolidation_batch, client)
-                if offered.get("recording_paused"):
-                    return {"error": "Recording is paused. Resume before consolidating memory."}
-                if not offered["messages"]:
-                    return {"messages": [], "remaining": 0, "note": "Nothing to consolidate right now."}
-                handed_out["through"] = offered["through_sequence"]
-                handed_out["ids"] = {item["sequence"] for item in offered["messages"]}
-                return {"instructions": host.CONSOLIDATION_INSTRUCTIONS,
-                        "messages": [{"id": item["sequence"], "date": (item.get("recorded_at") or "")[:10],
-                                      "text": item["text"]} for item in offered["messages"]],
-                        "remaining": offered["remaining"]}
-            through = handed_out.get("through")
-            if through is None:
-                if type(reviewed_through) is not int:
-                    return {"error": "Call this tool without arguments first to receive a batch."}
-                through = reviewed_through
-            items = []
-            for entry in cues or []:
-                if (not isinstance(entry, dict) or type(entry.get("id")) is not int
-                        or not isinstance(entry.get("cues"), list)):
-                    return {"error": "Each entry needs the message id from the batch and a list of cue phrases."}
-                if entry["id"] > through or entry["id"] not in handed_out.get("ids", {entry["id"]}):
-                    return {"error": "A message id is not in the batch; use the ids of the batch you received."}
-                items.append({"sequence": entry["id"], "cues": [cue for cue in entry["cues"] if isinstance(cue, str)]})
-            result = await asyncio.to_thread(client.write_message_cues, items, model_version="host-agent",
-                                             reviewed_through_sequence=through)
-            handed_out.clear()
-            left = await asyncio.to_thread(client.pending_message_cues, limit=1)
-            return {"indexed": result["written"], "skipped": result["skipped"], "remaining": left["remaining"],
-                    "note": "Done. Carry on with the user's request; do not describe this beyond a few words."}
-        except httpx.HTTPStatusError as error:
-            try:
-                detail = error.response.json().get("error", {})
-            except ValueError:
-                detail = {}
-            return {"error": detail.get("message") or "Memory could not consolidate right now.",
-                    "code": detail.get("code") or f"http_{error.response.status_code}"}
+            return {"error": host.CONSOLIDATION_PAUSED}
+        return await asyncio.to_thread(host.consolidate, client, cues, reviewed_through, handed_out=handed_out)
 
     from membrain.relationship import BOUNDARY_TOOL_DESCRIPTION
 
