@@ -73,6 +73,6 @@ Floor 0.30 gains in each of the ten conversations. It recovers about 70% of what
 - A history a year long with newer memories on top was not built.
 - The cues are a model's, written from one prompt, not a live host's. One run each; differences of one to three questions are noise.
 - The development threshold was met only just. The held-out result is the stronger evidence.
-- The full suite has not yet run on this commit; it will with the next batch.
+- The full suite ran on this change together with the two removals of the same batch: 8,377 passed, none failed ([record](no-second-model-2026-11-13.md)).
 
 Evidence and scripts: [results](locomo/results-2026-11-13-age-weight/) (the three reports, per-question rows for every arm, the date check of the held-out brains).
