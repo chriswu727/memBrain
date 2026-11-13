@@ -29,7 +29,23 @@ Base: pin `59c6bc63` (runtime `75f50fd`). Runtime commits `bbeb3ab3` and `fa88a4
 - The automatic block is unchanged from before the change (73.3% on the same questions).
 - With the option, the evidence of all five questions about the assistant's words is returned. On other kinds of question the assistant's replies take room from the user's messages, which is why the option is for the host to set and not on by default.
 
-**Not measured: whether a host makes the call.** The table shows what the tool returns if it is asked. Whether Claude Code or Codex, reading "remind me of that deli you mentioned", searches with the option set, and whether the folding-stool error stays away, needs an answer run with a host model and a judge. That is a paid step for the owner to approve.
+**Whether a host makes the call** is a separate question from what the tool returns; the first answer run on it follows.
+
+### Answer check on the same 30 questions (paid, 0.76 CNY of a 10 CNY approval)
+
+[answer_with_tools.py](longmemeval/answer_with_tools.py): `deepseek-flash` answers each question from what the hooks add, may call the recall tool twice, and is judged with LongMemEval's own judge prompts. "Before" has the tool and the session notice without the option; "after" has them as they are now.
+
+| | Questions | Before | After | Searched at all (after) | Set `my_replies` (after) |
+| --- | --- | --- | --- | --- | --- |
+| All | 30 | 80.0% | 80.0% | 2 | 2 |
+| Assistant's words | 5 | 4 of 5 | 3 of 5 | 2 | 2 |
+| Other five types | 25 | 20 of 25 | 21 of 25 | 0 | 0 |
+
+- **No gain in answers on this set.** Two questions gained and two lost, none of them through the option: the one question about the assistant's words that changed was answered right before and wrong after from the same context, without a search in either arm.
+- **The option was used correctly when the model searched**: on both questions where it searched, both about the assistant's words, it set the option, and it never set it on the 25 other questions.
+- **The model seldom searches.** It searched on 2 of 30 questions, and on the one assistant question it got wrong in both arms it did not search. An option on a tool the model does not call cannot help.
+- Four of the five assistant questions were already answered correctly before the change, although the automatic block showed the marked evidence for only two of them: the user's own turns in those sessions often carry enough.
+- Five questions of the relevant kind are too few to say whether the option helps answers. What this run does say is that the limit is the host deciding to search, not what the search returns. A larger set of such questions, and a real host in place of this answer model, are the next checks.
 
 ## Warm-up
 

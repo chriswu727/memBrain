@@ -1,0 +1,33 @@
+{
+  "ceiling_cny": 5.0,
+  "spent_cny": 0.76474,
+  "stopped": null,
+  "models": {
+    "deepseek-flash": {
+      "calls": 124,
+      "prompt_tokens": 346426,
+      "completion_tokens": 8986,
+      "cny": 0.76474,
+      "unknown": 0,
+      "errors": 0
+    }
+  },
+  "phases": {
+    "answer:before": {
+      "calls": 32,
+      "cny": 0.368734
+    },
+    "judge:before": {
+      "calls": 30,
+      "cny": 0.018384
+    },
+    "answer:after": {
+      "calls": 32,
+      "cny": 0.360776
+    },
+    "judge:after": {
+      "calls": 30,
+      "cny": 0.016846
+    }
+  }
+}
