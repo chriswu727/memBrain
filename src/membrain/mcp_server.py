@@ -76,7 +76,8 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
         async def memory_recall(query: str, with_ids: bool = False, my_replies: bool = False) -> dict[str, Any]:
             """Search this user's memory from earlier sessions with a few concrete keywords (names, places, dates,
             topics). Returns the matching messages with their dates, and the reply that followed the closest ones.
-            Set my_replies when the user asks about something you said, suggested, recommended or explained in an
+            A search reaches old conversations as easily as recent ones; what is added automatically favours recent
+            ones. Set my_replies when the user asks about something you said, suggested, recommended or explained in an
             earlier conversation: your own earlier replies are then searched too and come back marked "assistant
             said". They are what you said then, not facts about the user. Set with_ids only to forget records: it
             returns each record's event_id and the scope_generation that memory_forget needs."""

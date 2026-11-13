@@ -2145,7 +2145,9 @@ def _session_notice(complete: bool, tools: dict | None, is_paused: bool, rolepla
         notice = ("memBrain memory is active for this user. Related messages from earlier conversations are "
                   "added automatically before replies. " + (
                       "When a request depends on the user's personal context and nothing relevant is shown, search "
-                      f"with the {tools['recall']} tool using a few concrete keywords before answering. "
+                      f"with the {tools['recall']} tool using a few concrete keywords before answering. What is "
+                      "added automatically favours recent conversations; a search reaches older ones just as "
+                      "easily. "
                       + (f"Your own earlier replies are not shown unasked: when the user asks about something you "
                          f"said, recommended or explained in an earlier conversation, search with {tools['replies']} "
                          "set. " if tools.get("replies") else "")
