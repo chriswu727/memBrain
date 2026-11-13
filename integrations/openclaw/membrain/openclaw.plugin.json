@@ -5,7 +5,7 @@
   "categories": ["memory"],
   "activation": { "onStartup": true },
   "contracts": {
-    "tools": ["membrain_note", "membrain_search", "membrain_pause", "membrain_resume", "membrain_consolidate"]
+    "tools": ["membrain_note", "membrain_search", "membrain_boundary", "membrain_pause", "membrain_resume", "membrain_consolidate"]
   },
   "toolMetadata": {
     "membrain_note": { "sideEffecting": true },
