@@ -204,7 +204,7 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
         return await asyncio.to_thread(save_note, client, text, replaces=replaces or (),
                                        source_event_ids=source_event_ids or (), source_messages=source_messages or (), **fields)
 
-    handed_out: dict[str, int] = {}  # The batch this connection handed out last.
+    handed_out: dict[str, Any] = {}  # The batch this connection handed out last: how far it reaches and its ids.
 
     @server.tool(annotations=WRITE, description=(
         "Index earlier messages so memory can find them later. Call it without arguments to receive a batch of the "
@@ -223,17 +223,16 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
             return {"error": "Recording is paused. Resume before consolidating memory."}
         try:
             if cues is None and reviewed_through is None:
-                offered = await asyncio.to_thread(client.pending_message_cues, limit=host.CONSOLIDATION_MESSAGES,
-                                                  max_characters=host.CONSOLIDATION_CHARACTERS,
-                                                  whole_conversations=True)
+                offered = await asyncio.to_thread(host.consolidation_batch, client)
                 if offered.get("recording_paused"):
                     return {"error": "Recording is paused. Resume before consolidating memory."}
-                if not offered["items"]:
+                if not offered["messages"]:
                     return {"messages": [], "remaining": 0, "note": "Nothing to consolidate right now."}
                 handed_out["through"] = offered["through_sequence"]
+                handed_out["ids"] = {item["sequence"] for item in offered["messages"]}
                 return {"instructions": host.CONSOLIDATION_INSTRUCTIONS,
                         "messages": [{"id": item["sequence"], "date": (item.get("recorded_at") or "")[:10],
-                                      "text": item["text"]} for item in offered["items"]],
+                                      "text": item["text"]} for item in offered["messages"]],
                         "remaining": offered["remaining"]}
             through = handed_out.get("through")
             if through is None:
@@ -245,12 +244,12 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
                 if (not isinstance(entry, dict) or type(entry.get("id")) is not int
                         or not isinstance(entry.get("cues"), list)):
                     return {"error": "Each entry needs the message id from the batch and a list of cue phrases."}
-                if entry["id"] > through:
+                if entry["id"] > through or entry["id"] not in handed_out.get("ids", {entry["id"]}):
                     return {"error": "A message id is not in the batch; use the ids of the batch you received."}
                 items.append({"sequence": entry["id"], "cues": [cue for cue in entry["cues"] if isinstance(cue, str)]})
             result = await asyncio.to_thread(client.write_message_cues, items, model_version="host-agent",
                                              reviewed_through_sequence=through)
-            handed_out.pop("through", None)
+            handed_out.clear()
             left = await asyncio.to_thread(client.pending_message_cues, limit=1)
             return {"indexed": result["written"], "skipped": result["skipped"], "remaining": left["remaining"],
                     "note": "Done. Carry on with the user's request; do not describe this beyond a few words."}

@@ -564,6 +564,11 @@ class MemoryService:
             raise DomainError("invalid_evidence", "Relationship records are written through the relationship API.")
         if request["target"].get("conversation_ref") == MOOD_CONVERSATION:
             raise DomainError("invalid_evidence", "The companion's mood is set through the mood API.")
+        from .affect import AFFECT_CONVERSATION
+
+        if request["target"].get("conversation_ref") == AFFECT_CONVERSATION:
+            # Otherwise any client could store "the user said they felt ..." with no note and no source behind it.
+            raise DomainError("invalid_evidence", "Feelings are recorded with the note they belong to.")
         from .persona_growth import PROPOSALS_CONVERSATION
         from .persona_growth import observe_feedback as observe_persona_feedback
 

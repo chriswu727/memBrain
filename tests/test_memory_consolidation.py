@@ -85,3 +85,42 @@ def test_the_host_ai_is_asked_once_to_index_earlier_messages_and_recall_then_fin
             desktop.stop(directory)
         except desktop.DesktopError:
             pass
+
+
+def test_messages_about_a_topic_the_user_asked_not_to_have_raised_are_never_handed_out(tmp_path):
+    directory = tmp_path / "brain"
+    try:
+        host.start(directory)
+        with host.ready_client(directory) as client:
+            server = create_server(client, directory=directory)
+            _turn(directory, "monday", "My ex Jordan called again last night and it rattled me.", "I'm sorry.", "1")
+            _turn(directory, "monday", POTTERY, "That sounds fun.", "2")
+            _turn(directory, "monday", "Jordan still has my bike, by the way.", "Noted.", "3")
+            for number, text in enumerate(("My sister Ana moved to Porto.", "I am vegetarian.", THANKS), start=4):
+                _turn(directory, "monday", text, "Noted.", str(number))
+            _call(server, "memory_boundary", {"topic": "my ex", "aliases": ["Jordan"]})
+
+            batch = _call(server, "memory_consolidate", {})
+            shown = [message["text"] for message in batch["messages"]]
+            assert shown == [POTTERY, "My sister Ana moved to Porto.", "I am vegetarian.", THANKS]
+            assert "Jordan" not in str(batch) and "My ex" not in str(batch)
+
+            # An id the batch did not hand out is refused, even though it lies before the batch's end.
+            hidden = client.pending_message_cues(limit=1)["items"][0]["sequence"]
+            assert "error" in _call(server, "memory_consolidate", {"cues": [{"id": hidden, "cues": ["user's ex"]}]})
+            saved = _call(server, "memory_consolidate", {"cues": [
+                {"id": batch["messages"][0]["id"], "cues": ["user hobbies and activities"]}]})
+            # The two messages about the boundary topic count as read with the batch and carry no cue.
+            assert (saved["indexed"], saved["remaining"]) == (1, 0)
+            assert _call(server, "memory_consolidate", {})["messages"] == []
+
+            # A batch that is wholly about the boundary topic is passed over, not shown.
+            for number in range(7, 13):
+                _turn(directory, "tuesday", f"Jordan texted me {number} times today.", "Noted.", str(number))
+            assert _call(server, "memory_consolidate", {})["messages"] == []
+            assert client.pending_message_cues(limit=1)["remaining"] == 0
+    finally:
+        try:
+            desktop.stop(directory)
+        except desktop.DesktopError:
+            pass

@@ -68,6 +68,7 @@ CONSOLIDATION_MESSAGES = 40  # At most this many earlier messages go to the host
 # otherwise spend three model calls on a couple of messages, usually questions with nothing to index.
 CONSOLIDATION_MINIMUM = 5
 CONSOLIDATION_CHARACTERS = 8000
+CONSOLIDATION_SKIPPED_BATCHES = 5  # Batches wholly about boundary topics passed over in one call.
 CONSOLIDATION_INSTRUCTIONS = (
     "These are earlier messages from this user that memory has not indexed yet. For each message that states a "
     "lasting fact about a person (the user or someone in their life), give one to four short cue phrases that name "
@@ -80,6 +81,31 @@ CONSOLIDATION_INSTRUCTIONS = (
     "for the messages that got cues, or cues = [] if none did. The cues only help memory find these messages "
     "later; they are never shown to the user. Afterwards do not report on this to the user: no list of what was "
     "indexed, at most a few words.")
+
+
+def consolidation_batch(client) -> dict:
+    """The next batch of earlier messages for the host AI to index: ``messages`` to show it, the
+    ``through_sequence`` the batch reaches, and how many messages ``remaining`` are unreviewed.
+
+    A message about a topic the user asked not to have raised is never handed out: the host AI would be shown,
+    unasked, exactly what recall keeps back. It counts as read with the rest of its batch and gets no cue. A batch
+    that holds nothing else is counted as read here and the next one is looked at. Boundaries that cannot be read
+    stop the batch, as they stop recall.
+    """
+    from .relationship import kept_out
+
+    boundaries = _boundaries(client)
+    offered = {"items": [], "through_sequence": None, "remaining": 0, "recording_paused": False}
+    for _ in range(CONSOLIDATION_SKIPPED_BATCHES):
+        offered = client.pending_message_cues(limit=CONSOLIDATION_MESSAGES, max_characters=CONSOLIDATION_CHARACTERS,
+                                              whole_conversations=True)
+        if offered.get("recording_paused") or not offered["items"]:
+            return {**offered, "messages": []}
+        messages = [item for item in offered["items"] if not kept_out(item["text"], boundaries)]
+        if messages:
+            return {**offered, "messages": messages}
+        client.write_message_cues([], reviewed_through_sequence=offered["through_sequence"])
+    return {**offered, "items": [], "messages": [], "through_sequence": None}
 
 
 def consolidation_notice(client, tools: dict | None = TOOL_NAMES) -> str:

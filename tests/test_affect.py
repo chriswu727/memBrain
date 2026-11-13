@@ -518,3 +518,21 @@ def test_api_routes_list_and_clear_feelings_with_strict_bodies(installation, bra
         assert listed["records"] == [] and listed["markers"][0]["id"] == cleared["marker"]["id"]
         assert client.get(f"/v1/brains/{ident}/affect").status_code == 401
         assert client.get("/v1/brains/someone-else/affect", headers=headers).status_code in (403, 404)
+
+
+def test_a_feeling_cannot_be_planted_by_writing_to_the_feelings_conversation(brain):
+    service, principal, ident = brain
+    text = json.dumps({"affect": {"label": "furious", "valence": -2, "intensity": 3, "basis": "reported"},
+                       "note_id": None, "written_by": "someone", "source_event_ids": []})
+    planted = service.handle(principal, {
+        "message_type": "request", "contract_version": "1.0.0-draft", "request_id": uid(), "action": "observe",
+        "target": {"brain_ref": ident, "conversation_ref": AFFECT_CONVERSATION, "branch_ref": "main"},
+        "payload": {"idempotency_key": uid(), "events": [{
+            "source_event_key": uid(), "source_revision": 1, "producer_ref": "membrain-affect", "actor_ref": "x",
+            "actor_role": "system", "event_kind": "message", "content": {"media_type": "text/plain", "text": text},
+            "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
+            "interpretation_hint": "unknown", "delivery_state": "received", "parent_source_event_keys": [],
+        }]},
+    })
+    assert planted["outcome"] == "rejected" and planted["error"]["code"] == "invalid_evidence"
+    assert affect_records(service, principal, ident)["records"] == []
