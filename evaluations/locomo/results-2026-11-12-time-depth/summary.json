@@ -1,0 +1,496 @@
+{
+  "+1d: questions (all evidence shown / mean share shown)": {
+    "all": {
+      "auto": {
+        "n": 383,
+        "all": 0.7755,
+        "share": 0.8355
+      },
+      "auto_flat": {
+        "n": 383,
+        "all": 0.8042,
+        "share": 0.8567
+      },
+      "tool": {
+        "n": 383,
+        "all": 0.7755,
+        "share": 0.8355
+      },
+      "tool_replies": {
+        "n": 383,
+        "all": 0.8068,
+        "share": 0.8581
+      }
+    },
+    "one evidence turn": {
+      "auto": {
+        "n": 291,
+        "all": 0.9175,
+        "share": 0.9175
+      },
+      "auto_flat": {
+        "n": 291,
+        "all": 0.9278,
+        "share": 0.9278
+      },
+      "tool": {
+        "n": 291,
+        "all": 0.9175,
+        "share": 0.9175
+      },
+      "tool_replies": {
+        "n": 291,
+        "all": 0.9278,
+        "share": 0.9278
+      }
+    },
+    "several": {
+      "auto": {
+        "n": 92,
+        "all": 0.3261,
+        "share": 0.5759
+      },
+      "auto_flat": {
+        "n": 92,
+        "all": 0.413,
+        "share": 0.6319
+      },
+      "tool": {
+        "n": 92,
+        "all": 0.3261,
+        "share": 0.5759
+      },
+      "tool_replies": {
+        "n": 92,
+        "all": 0.4239,
+        "share": 0.6373
+      }
+    },
+    "oldest ev under 30 d": {
+      "auto": {
+        "n": 73,
+        "all": 0.9041,
+        "share": 0.9247
+      },
+      "auto_flat": {
+        "n": 73,
+        "all": 0.8904,
+        "share": 0.911
+      },
+      "tool": {
+        "n": 73,
+        "all": 0.9041,
+        "share": 0.9247
+      },
+      "tool_replies": {
+        "n": 73,
+        "all": 0.8904,
+        "share": 0.911
+      }
+    },
+    "oldest ev 30-90 d": {
+      "auto": {
+        "n": 98,
+        "all": 0.8571,
+        "share": 0.8925
+      },
+      "auto_flat": {
+        "n": 98,
+        "all": 0.8469,
+        "share": 0.8741
+      },
+      "tool": {
+        "n": 98,
+        "all": 0.8571,
+        "share": 0.8925
+      },
+      "tool_replies": {
+        "n": 98,
+        "all": 0.8469,
+        "share": 0.8741
+      }
+    },
+    "oldest ev 90-180 d": {
+      "auto": {
+        "n": 164,
+        "all": 0.7561,
+        "share": 0.8186
+      },
+      "auto_flat": {
+        "n": 164,
+        "all": 0.8049,
+        "share": 0.8623
+      },
+      "tool": {
+        "n": 164,
+        "all": 0.7561,
+        "share": 0.8186
+      },
+      "tool_replies": {
+        "n": 164,
+        "all": 0.811,
+        "share": 0.8653
+      }
+    },
+    "oldest ev over 180 d": {
+      "auto": {
+        "n": 48,
+        "all": 0.4792,
+        "share": 0.641
+      },
+      "auto_flat": {
+        "n": 48,
+        "all": 0.5833,
+        "share": 0.7198
+      },
+      "tool": {
+        "n": 48,
+        "all": 0.4792,
+        "share": 0.641
+      },
+      "tool_replies": {
+        "n": 48,
+        "all": 0.5833,
+        "share": 0.7198
+      }
+    }
+  },
+  "+1d: turns by age": {
+    "under 30 d": {
+      "turns": 97,
+      "auto": 0.8763,
+      "auto_flat": 0.8557,
+      "tool": 0.8763,
+      "tool_replies": 0.8557
+    },
+    "30-90 d": {
+      "turns": 138,
+      "auto": 0.8261,
+      "auto_flat": 0.8116,
+      "tool": 0.8261,
+      "tool_replies": 0.8116
+    },
+    "90-180 d": {
+      "turns": 222,
+      "auto": 0.7117,
+      "auto_flat": 0.7793,
+      "tool": 0.7117,
+      "tool_replies": 0.7838
+    },
+    "over 180 d": {
+      "turns": 62,
+      "auto": 0.5645,
+      "auto_flat": 0.6452,
+      "tool": 0.5645,
+      "tool_replies": 0.6452
+    }
+  },
+  "+1d: paired": {
+    "auto only": 4,
+    "flat only": 15,
+    "auto != tool": 0
+  },
+  "+1d: questions where the host searched in the recorded run": {
+    "searched": {
+      "auto": {
+        "n": 75,
+        "all": 0.7067,
+        "share": 0.7689
+      },
+      "auto_flat": {
+        "n": 75,
+        "all": 0.7333,
+        "share": 0.7889
+      },
+      "searches": {
+        "n": 75,
+        "all": 0.8133,
+        "share": 0.8589
+      },
+      "searches_flat": {
+        "n": 75,
+        "all": 0.8267,
+        "share": 0.8722
+      },
+      "auto+searches": {
+        "n": 75,
+        "all": 0.8133,
+        "share": 0.8589
+      },
+      "flat+searches_flat": {
+        "n": 75,
+        "all": 0.84,
+        "share": 0.8789
+      }
+    }
+  },
+  "+1d: weights": {
+    "candidates per question": 278.0,
+    "evidence statements among candidates": 1104,
+    "questions with evidence among candidates": 371,
+    "mean weight, evidence statements": 0.2354,
+    "mean weight, other candidates (per-question means)": 0.2357,
+    "per-question ratio evidence/other, mean": 0.9991,
+    "per-question ratio, median": 0.8232,
+    "evidence tiers": {
+      "deep": 594,
+      "cue": 293,
+      "everyday": 217
+    },
+    "other tiers": {
+      "everyday": 19907,
+      "cue": 32516,
+      "deep": 52945
+    },
+    "weight range, all evidence": [
+      0.150778,
+      0.460954
+    ]
+  },
+  "+365d: questions (all evidence shown / mean share shown)": {
+    "all": {
+      "auto": {
+        "n": 383,
+        "all": 0.8042,
+        "share": 0.8567
+      },
+      "auto_flat": {
+        "n": 383,
+        "all": 0.8042,
+        "share": 0.8567
+      },
+      "tool": {
+        "n": 383,
+        "all": 0.8042,
+        "share": 0.8567
+      },
+      "tool_replies": {
+        "n": 383,
+        "all": 0.8068,
+        "share": 0.8581
+      }
+    },
+    "one evidence turn": {
+      "auto": {
+        "n": 291,
+        "all": 0.9278,
+        "share": 0.9278
+      },
+      "auto_flat": {
+        "n": 291,
+        "all": 0.9278,
+        "share": 0.9278
+      },
+      "tool": {
+        "n": 291,
+        "all": 0.9278,
+        "share": 0.9278
+      },
+      "tool_replies": {
+        "n": 291,
+        "all": 0.9278,
+        "share": 0.9278
+      }
+    },
+    "several": {
+      "auto": {
+        "n": 92,
+        "all": 0.413,
+        "share": 0.6319
+      },
+      "auto_flat": {
+        "n": 92,
+        "all": 0.413,
+        "share": 0.6319
+      },
+      "tool": {
+        "n": 92,
+        "all": 0.413,
+        "share": 0.6319
+      },
+      "tool_replies": {
+        "n": 92,
+        "all": 0.4239,
+        "share": 0.6373
+      }
+    },
+    "oldest ev 365-395 d": {
+      "auto": {
+        "n": 78,
+        "all": 0.8718,
+        "share": 0.8996
+      },
+      "auto_flat": {
+        "n": 78,
+        "all": 0.8718,
+        "share": 0.8996
+      },
+      "tool": {
+        "n": 78,
+        "all": 0.8718,
+        "share": 0.8996
+      },
+      "tool_replies": {
+        "n": 78,
+        "all": 0.8718,
+        "share": 0.8996
+      }
+    },
+    "oldest ev 395-455 d": {
+      "auto": {
+        "n": 95,
+        "all": 0.8632,
+        "share": 0.8842
+      },
+      "auto_flat": {
+        "n": 95,
+        "all": 0.8632,
+        "share": 0.8842
+      },
+      "tool": {
+        "n": 95,
+        "all": 0.8632,
+        "share": 0.8842
+      },
+      "tool_replies": {
+        "n": 95,
+        "all": 0.8632,
+        "share": 0.8842
+      }
+    },
+    "oldest ev 455-545 d": {
+      "auto": {
+        "n": 162,
+        "all": 0.8025,
+        "share": 0.8606
+      },
+      "auto_flat": {
+        "n": 162,
+        "all": 0.8025,
+        "share": 0.8606
+      },
+      "tool": {
+        "n": 162,
+        "all": 0.8025,
+        "share": 0.8606
+      },
+      "tool_replies": {
+        "n": 162,
+        "all": 0.8086,
+        "share": 0.8637
+      }
+    },
+    "oldest ev over 545 d": {
+      "auto": {
+        "n": 48,
+        "all": 0.5833,
+        "share": 0.7198
+      },
+      "auto_flat": {
+        "n": 48,
+        "all": 0.5833,
+        "share": 0.7198
+      },
+      "tool": {
+        "n": 48,
+        "all": 0.5833,
+        "share": 0.7198
+      },
+      "tool_replies": {
+        "n": 48,
+        "all": 0.5833,
+        "share": 0.7198
+      }
+    }
+  },
+  "+365d: turns by age": {
+    "365-395 d": {
+      "turns": 104,
+      "auto": 0.8462,
+      "auto_flat": 0.8462,
+      "tool": 0.8462,
+      "tool_replies": 0.8462
+    },
+    "395-455 d": {
+      "turns": 134,
+      "auto": 0.8134,
+      "auto_flat": 0.8134,
+      "tool": 0.8134,
+      "tool_replies": 0.8134
+    },
+    "455-545 d": {
+      "turns": 219,
+      "auto": 0.7808,
+      "auto_flat": 0.7808,
+      "tool": 0.7808,
+      "tool_replies": 0.7854
+    },
+    "over 545 d": {
+      "turns": 62,
+      "auto": 0.6452,
+      "auto_flat": 0.6452,
+      "tool": 0.6452,
+      "tool_replies": 0.6452
+    }
+  },
+  "+365d: paired": {
+    "auto only": 0,
+    "flat only": 0,
+    "auto != tool": 0
+  },
+  "+365d: questions where the host searched in the recorded run": {
+    "searched": {
+      "auto": {
+        "n": 75,
+        "all": 0.7333,
+        "share": 0.7889
+      },
+      "auto_flat": {
+        "n": 75,
+        "all": 0.7333,
+        "share": 0.7889
+      },
+      "searches": {
+        "n": 75,
+        "all": 0.8267,
+        "share": 0.8722
+      },
+      "searches_flat": {
+        "n": 75,
+        "all": 0.8267,
+        "share": 0.8722
+      },
+      "auto+searches": {
+        "n": 75,
+        "all": 0.84,
+        "share": 0.8789
+      },
+      "flat+searches_flat": {
+        "n": 75,
+        "all": 0.84,
+        "share": 0.8789
+      }
+    }
+  },
+  "+365d: weights": {
+    "candidates per question": 278.0,
+    "evidence statements among candidates": 1104,
+    "questions with evidence among candidates": 371,
+    "mean weight, evidence statements": 0.15,
+    "mean weight, other candidates (per-question means)": 0.15,
+    "per-question ratio evidence/other, mean": 1.0,
+    "per-question ratio, median": 1.0,
+    "evidence tiers": {
+      "deep": 1104
+    },
+    "other tiers": {
+      "everyday": 0,
+      "cue": 0,
+      "deep": 105368
+    },
+    "weight range, all evidence": [
+      0.15,
+      0.150038
+    ]
+  }
+}

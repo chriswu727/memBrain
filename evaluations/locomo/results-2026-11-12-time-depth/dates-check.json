@@ -1,0 +1,80 @@
+{
+  "conv-26": {
+    "turns": 419,
+    "events_matched": 419,
+    "seconds_after_session_date": {
+      "min": 0.0,
+      "max": 27.5,
+      "median": 0.2
+    },
+    "examples": [
+      {
+        "dia_id": "D1:1",
+        "session_date": "2023-05-08T13:56:00+00:00",
+        "recorded_at": "2023-05-08T13:56:27.352152Z"
+      },
+      {
+        "dia_id": "D10:19",
+        "session_date": "2023-07-20T20:56:00+00:00",
+        "recorded_at": "2023-07-20T20:56:00.201929Z"
+      },
+      {
+        "dia_id": "D19:15",
+        "session_date": "2023-10-22T09:55:00+00:00",
+        "recorded_at": "2023-10-22T09:55:00.235878Z"
+      }
+    ]
+  },
+  "conv-30": {
+    "turns": 369,
+    "events_matched": 368,
+    "seconds_after_session_date": {
+      "min": 0.0,
+      "max": 19.1,
+      "median": 0.2
+    },
+    "examples": [
+      {
+        "dia_id": "D1:1",
+        "session_date": "2023-01-20T16:04:00+00:00",
+        "recorded_at": "2023-01-20T16:04:18.827174Z"
+      },
+      {
+        "dia_id": "D10:9",
+        "session_date": "2023-04-25T11:24:00+00:00",
+        "recorded_at": "2023-04-25T11:24:00.092419Z"
+      },
+      {
+        "dia_id": "D19:14",
+        "session_date": "2023-07-23T18:46:00+00:00",
+        "recorded_at": "2023-07-23T18:46:00.191518Z"
+      }
+    ]
+  },
+  "conv-41": {
+    "turns": 663,
+    "events_matched": 663,
+    "seconds_after_session_date": {
+      "min": 0.0,
+      "max": 18.3,
+      "median": 0.1
+    },
+    "examples": [
+      {
+        "dia_id": "D1:1",
+        "session_date": "2022-12-17T11:01:00+00:00",
+        "recorded_at": "2022-12-17T11:01:18.181865Z"
+      },
+      {
+        "dia_id": "D16:5",
+        "session_date": "2023-05-25T13:24:00+00:00",
+        "recorded_at": "2023-05-25T13:24:00.088537Z"
+      },
+      {
+        "dia_id": "D32:17",
+        "session_date": "2023-08-16T11:08:00+00:00",
+        "recorded_at": "2023-08-16T11:08:00.197196Z"
+      }
+    ]
+  }
+}

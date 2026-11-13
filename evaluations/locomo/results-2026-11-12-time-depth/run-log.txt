@@ -1,0 +1,12 @@
+22:17:45 stored conv-26 419 events 94.1 s
+22:19:18 conv-26 +1d done
+22:20:48 conv-26 +365d done
+22:20:49 asked conv-26 277.9 s
+22:22:07 stored conv-30 368 events 78.3 s
+22:22:53 conv-30 +1d done
+22:23:38 conv-30 +365d done
+22:23:39 asked conv-30 170.1 s
+22:25:32 stored conv-41 663 events 113.3 s
+22:27:10 conv-41 +1d done
+22:28:45 conv-41 +365d done
+22:28:46 asked conv-41 307.5 s

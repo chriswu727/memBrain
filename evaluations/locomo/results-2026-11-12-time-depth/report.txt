@@ -1,0 +1,78 @@
+
+===== now = last session +1d (383 questions) =====
+
++1d: questions (all evidence shown / mean share shown)
+                          n            auto all   share       auto_flat all   share            tool all   share    tool_replies all   share
+all                     383               77.5%   83.5%               80.4%   85.7%               77.5%   83.5%               80.7%   85.8%
+one evidence turn       291               91.8%   91.8%               92.8%   92.8%               91.8%   91.8%               92.8%   92.8%
+several                  92               32.6%   57.6%               41.3%   63.2%               32.6%   57.6%               42.4%   63.7%
+oldest ev under 30 d     73               90.4%   92.5%               89.0%   91.1%               90.4%   92.5%               89.0%   91.1%
+oldest ev 30-90 d        98               85.7%   89.3%               84.7%   87.4%               85.7%   89.3%               84.7%   87.4%
+oldest ev 90-180 d      164               75.6%   81.9%               80.5%   86.2%               75.6%   81.9%               81.1%   86.5%
+oldest ev over 180 d     48               47.9%   64.1%               58.3%   72.0%               47.9%   64.1%               58.3%   72.0%
+
++1d: evidence turns shown, by the turn's age
+                        turns          auto     auto_flat          tool  tool_replies
+under 30 d                 97         87.6%         85.6%         87.6%         85.6%
+30-90 d                   138         82.6%         81.2%         82.6%         81.2%
+90-180 d                  222         71.2%         77.9%         71.2%         78.4%
+over 180 d                 62         56.5%         64.5%         56.5%         64.5%
+
++1d: questions with all evidence under one arm only: {'auto only': 4, 'flat only': 15, 'auto != tool': 0}
+
++1d: questions where the host searched in the recorded run
+                          n            auto all   share       auto_flat all   share        searches all   share   searches_flat all   share   auto+searches all   shareflat+searches_flat all   share
+searched                 75               70.7%   76.9%               73.3%   78.9%               81.3%   85.9%               82.7%   87.2%               81.3%   85.9%               84.0%   87.9%
+
++1d: rank weights in the auto candidate lists
+  candidates per question: 278.0
+  evidence statements among candidates: 1104
+  questions with evidence among candidates: 371
+  mean weight, evidence statements: 0.2354
+  mean weight, other candidates (per-question means): 0.2357
+  per-question ratio evidence/other, mean: 0.9991
+  per-question ratio, median: 0.8232
+  evidence tiers: {'deep': 594, 'cue': 293, 'everyday': 217}
+  other tiers: {'everyday': 19907, 'cue': 32516, 'deep': 52945}
+  weight range, all evidence: [0.150778, 0.460954]
+
++1d: auto block p50 130.2 ms, mean characters 8351 (flat 8502)
+
+===== now = last session +365d (383 questions) =====
+
++365d: questions (all evidence shown / mean share shown)
+                          n            auto all   share       auto_flat all   share            tool all   share    tool_replies all   share
+all                     383               80.4%   85.7%               80.4%   85.7%               80.4%   85.7%               80.7%   85.8%
+one evidence turn       291               92.8%   92.8%               92.8%   92.8%               92.8%   92.8%               92.8%   92.8%
+several                  92               41.3%   63.2%               41.3%   63.2%               41.3%   63.2%               42.4%   63.7%
+oldest ev 365-395 d      78               87.2%   90.0%               87.2%   90.0%               87.2%   90.0%               87.2%   90.0%
+oldest ev 395-455 d      95               86.3%   88.4%               86.3%   88.4%               86.3%   88.4%               86.3%   88.4%
+oldest ev 455-545 d     162               80.2%   86.1%               80.2%   86.1%               80.2%   86.1%               80.9%   86.4%
+oldest ev over 545 d     48               58.3%   72.0%               58.3%   72.0%               58.3%   72.0%               58.3%   72.0%
+
++365d: evidence turns shown, by the turn's age
+                        turns          auto     auto_flat          tool  tool_replies
+365-395 d                 104         84.6%         84.6%         84.6%         84.6%
+395-455 d                 134         81.3%         81.3%         81.3%         81.3%
+455-545 d                 219         78.1%         78.1%         78.1%         78.5%
+over 545 d                 62         64.5%         64.5%         64.5%         64.5%
+
++365d: questions with all evidence under one arm only: {'auto only': 0, 'flat only': 0, 'auto != tool': 0}
+
++365d: questions where the host searched in the recorded run
+                          n            auto all   share       auto_flat all   share        searches all   share   searches_flat all   share   auto+searches all   shareflat+searches_flat all   share
+searched                 75               73.3%   78.9%               73.3%   78.9%               82.7%   87.2%               82.7%   87.2%               84.0%   87.9%               84.0%   87.9%
+
++365d: rank weights in the auto candidate lists
+  candidates per question: 278.0
+  evidence statements among candidates: 1104
+  questions with evidence among candidates: 371
+  mean weight, evidence statements: 0.15
+  mean weight, other candidates (per-question means): 0.15
+  per-question ratio evidence/other, mean: 1.0
+  per-question ratio, median: 1.0
+  evidence tiers: {'deep': 1104}
+  other tiers: {'everyday': 0, 'cue': 0, 'deep': 105368}
+  weight range, all evidence: [0.15, 0.150038]
+
++365d: auto block p50 128.4 ms, mean characters 8502 (flat 8502)
