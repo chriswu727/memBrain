@@ -71,7 +71,7 @@ def test_the_slash_command_the_manifest_and_the_skill_describe_switching():
     assert "any case" in command  # Types are read in any case.
     assert "mcp__plugin_membrain_membrain__memory_persona" in front and "Bash(membrain plugin tool persona)" in front
     assert '"switch"' in command and '"list"' in command and "do not ask again" in command
-    assert "membrain plugin tool persona" in command and "one or two plain sentences" in command
+    assert "membrain plugin tool persona" in command and "in one or two sentences" in command
     skill = (PLUGIN / "skills" / "membrain" / "SKILL.md").read_text(encoding="utf-8")
     section = skill[skill.index("## Persona and mood"):]
     for text in ("memory_persona", "/membrain:persona", "memory_manner_feedback", "clear yes", "own taste"):

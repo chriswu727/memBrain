@@ -44,7 +44,10 @@ RESET = ("Pick another personality type at random? It is saved as a new version,
          "restored. The mood and familiarity carry over.")
 DELETE_NOTE = "Delete this note? Its content is erased."
 # English words that may stay in the Chinese page: product names, and "agent", which the Chinese text keeps.
-ENGLISH_KEPT = {"memBrain", "agent", "Claude", "Code", "Codex", "hook"}
+# The four-letter personality type codes (and the name of the scheme they come from) read the same in Chinese.
+TYPE_CODES = {"INTJ", "INTP", "ENTJ", "ENTP", "INFJ", "INFP", "ENFJ", "ENFP", "ISTJ", "ISFJ", "ESTJ", "ESFJ", "ISTP",
+              "ISFP", "ESTP", "ESFP", "MBTI"}
+ENGLISH_KEPT = {"memBrain", "agent", "Claude", "Code", "Codex", "hook", *TYPE_CODES}
 VIEWS = ["notes", "brain", "persona", "plans", "people", "feelings", "conversations", "search", "privacy"]
 
 
