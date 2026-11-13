@@ -1,5 +1,4 @@
-from .helpers import DomainError
-from .turns import _hash, _identifier, _integer
+from .helpers import DomainError, _hash, _identifier, _integer
 
 
 def require_current(brain, row):

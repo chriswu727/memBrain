@@ -4,9 +4,12 @@ from psycopg.types.json import Jsonb
 
 from . import cognition
 from .contracts import validate
-from .episode_semantics import ORGANIZATION_STATEMENT_SCHEMA
 from .helpers import DomainError
 
+# The organization statement of an episode. Archives carry it, so it lives here, beside archive validation.
+ORGANIZATION_STATEMENT_SCHEMA = {
+    "type": "string", "minLength": 1, "maxLength": 2048, "pattern": r"\S",
+}
 REBUILD_POLICY = {
     "embeddings": "rebuild_from_available_assertions",
     "access_state": "reset_requires_new_external_feedback",

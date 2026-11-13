@@ -6,10 +6,10 @@ import secrets
 from dataclasses import asdict, dataclass
 from pathlib import Path
 
-from .chat_provider import ReasoningEffort
+from .cognition_policy import SemanticPolicy
 from .config import validate_cognition_transport
 from .local_profile import LocalProfileError, _open_private, _pairs, load_profile, profile_lock
-from .semantic import SemanticPolicy
+from .reasoning import ReasoningEffort
 
 CONFIGURATION_FILE = "cognition-policy.json"
 _MAX_CONFIGURATION_BYTES = 4096

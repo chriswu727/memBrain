@@ -73,7 +73,7 @@ class Settings:
             raise ValueError("Configure either a local embedding model or an embedding provider URL, not both")
 
     def semantic_policy(self):
-        from .semantic import SemanticPolicy
+        from .cognition_policy import SemanticPolicy
 
         return SemanticPolicy(max_wall_time_ms=self.cognition_max_wall_time_ms,
                               max_output_tokens=self.cognition_max_output_tokens,
@@ -142,8 +142,6 @@ def _environment_integer(name, default):
 @contextmanager
 def configured_service(settings: Settings, *, principals=None):
     from .embeddings import ChatCompletionsEmbeddingProvider
-    from .semantic import SemanticProcessor
-    from .semantic_provider import ChatCompletionsSemanticProvider
     from .service import MemoryService
     from .storage import Database
 
@@ -163,6 +161,9 @@ def configured_service(settings: Settings, *, principals=None):
             configure_authority(database, settings, principals=principals)
         processor, embedding = None, None
         if settings.cognition_base_url is not None:
+            from .semantic import SemanticProcessor
+            from .semantic_provider import ChatCompletionsSemanticProvider
+
             provider = resources.enter_context(ChatCompletionsSemanticProvider(
                 settings.cognition_base_url, settings.cognition_api_key, settings.cognition_model,
                 thinking=settings.cognition_thinking,

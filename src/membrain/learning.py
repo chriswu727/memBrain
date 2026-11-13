@@ -7,7 +7,7 @@ from psycopg.types.json import Jsonb
 from . import cognition
 from .consolidation_planning import plan_consolidation, select_consolidation_candidates
 from .contracts import validate
-from .helpers import DomainError, digest, now, uid
+from .helpers import DomainError, _hash, _identifier, _integer, _refs, digest, now, uid
 from .jobs import NO_UNSETTLED_RETRY_POLICY, JobStore, require_learning_recording
 from .learning_allocations import ENCODING_PHASE, HISTORY_PHASE, freeze_input, phase
 from .learning_packages import empty_working, local_neighborhood, snapshot_fingerprint
@@ -24,7 +24,7 @@ from .semantic import (
     check_result_mode,
     validate_input_contract,
 )
-from .turns import TurnStore, _hash, _identifier, _integer, _refs
+from .turns import TurnStore
 
 
 def _snapshot_policy(snapshot, default=None):

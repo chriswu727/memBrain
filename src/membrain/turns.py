@@ -1,12 +1,11 @@
 import hashlib
 import secrets
-import unicodedata
 from contextlib import contextmanager
 
 from psycopg.types.json import Jsonb
 
 from .contracts import validate
-from .helpers import DomainError, digest
+from .helpers import DomainError, _hash, _identifier, _integer, _refs, digest
 
 STAGES = (
     "started", "captured", "prepared", "generating", "generated", "delivering",
@@ -28,41 +27,6 @@ PUBLIC_FIELDS = (
     "prepared_memory_selection",
     "failure_code", "created_at", "updated_at",
 )
-
-
-def _identifier(value):
-    if (not isinstance(value, str) or not 1 <= len(value) <= 256
-            or any(character.isspace() or unicodedata.category(character).startswith("C")
-                   for character in value)):
-        raise DomainError("validation_failed", "Identifiers must be bounded and contain no whitespace or controls.")
-    return value
-
-
-def _integer(value, minimum=0, maximum=2**63 - 1):
-    if type(value) is not int or not minimum <= value <= maximum:
-        raise DomainError("validation_failed", "Counter is outside its permitted range.")
-    return value
-
-
-def _hash(value):
-    if (not isinstance(value, str) or len(value) != 64
-            or any(character not in "0123456789abcdef" for character in value)):
-        raise DomainError("validation_failed", "Fingerprint must be a SHA-256 digest.")
-    return value
-
-
-def _refs(value):
-    if not isinstance(value, list) or len(value) > 64:
-        raise DomainError("validation_failed", "A turn may reference at most 64 events per group.")
-    result = []
-    for ref in value:
-        if not isinstance(ref, dict) or set(ref) != {"event_id", "revision"}:
-            raise DomainError("validation_failed", "Event references contain only an identifier and revision.")
-        checked = {"event_id": _identifier(ref["event_id"]), "revision": _integer(ref["revision"], 1)}
-        if checked in result:
-            raise DomainError("validation_failed", "Event references must be distinct.")
-        result.append(checked)
-    return result
 
 
 class TurnStore:

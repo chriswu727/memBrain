@@ -1,13 +1,12 @@
 from psycopg.types.json import Jsonb
 
-from .helpers import DomainError
+from .helpers import DomainError, _hash, _identifier
 from .learning_funding import (
     FUNDING_FIELDS,
     validate_funded_root,
     validate_funding_metadata,
     validate_private_funding_sources,
 )
-from .turns import _hash, _identifier
 
 CONTRACT_VERSION = "encoding-integration-v1"
 ENCODING_PHASE = "encoding"

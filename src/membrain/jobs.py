@@ -4,9 +4,8 @@ from contextlib import contextmanager
 
 from psycopg.types.json import Jsonb
 
-from .helpers import DomainError
+from .helpers import DomainError, _hash, _identifier, _integer
 from .recording_guard import require_recording
-from .turns import _hash, _identifier, _integer
 
 NO_UNSETTLED_RETRY_POLICY = "no_unsettled_retry-v1"
 FAILURE_CODES = frozenset({

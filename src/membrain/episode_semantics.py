@@ -3,6 +3,7 @@ from __future__ import annotations
 import copy
 
 from . import cognition
+from .archive_views import ORGANIZATION_STATEMENT_SCHEMA  # noqa: F401  (still exported here)
 from .belief_capabilities import RELATION_CAPABILITIES_INPUT_VERSIONS
 from .source_composition import SOURCE_COMPOSITION_INPUT_VERSIONS
 
@@ -16,9 +17,6 @@ EPISODE_SOURCE_VIEW_INSTRUCTIONS = (
     "connection or transition. A shared group does not establish a shared external event, causal "
     "relationship, agreement or completion. Only exact source contributions can support those claims."
 )
-ORGANIZATION_STATEMENT_SCHEMA = {
-    "type": "string", "minLength": 1, "maxLength": 2048, "pattern": r"\S",
-}
 EPISODE_INSTRUCTIONS = (
     "Episodes organize observed interaction records, not independently established external events. "
     "Every episode action must include organization_statement: a bounded, source-grounded proposition "

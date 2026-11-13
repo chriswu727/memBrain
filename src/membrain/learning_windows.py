@@ -1,6 +1,6 @@
 from psycopg.types.json import Jsonb
 
-from .helpers import DomainError, digest
+from .helpers import DomainError, _identifier, digest
 from .learning_allocations import (
     AUTHORITY_FIELDS,
     CONTRACT_VERSION,
@@ -17,7 +17,6 @@ from .learning_allocations import (
 )
 from .learning_funding import ordinary_root_metadata
 from .semantic import COMMUNICATION_INTENT_INPUT_VERSION
-from .turns import _identifier
 
 WINDOW_SIZE = 8
 SAMPLING_RESERVE_BYTES = 2048

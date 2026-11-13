@@ -5,9 +5,8 @@ import copy
 from jsonschema import Draft202012Validator
 
 from .citation_coverage import CITATION_COVERAGE_INPUT_VERSIONS
-from .helpers import digest
+from .helpers import _hash, _identifier, _integer, digest
 from .history_attention import validate_attention
-from .turns import _hash, _identifier, _integer
 
 MANIFEST_VERSION = "bounded-history-manifest-v1"
 LINK_DERIVED_INPUT_VERSION = "history-link-coverage-v1"

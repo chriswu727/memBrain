@@ -1,6 +1,5 @@
-from .helpers import DomainError, digest
+from .helpers import DomainError, _hash, _identifier, digest
 from .history_attention import POLICY as ATTENTION_POLICY
-from .turns import _hash, _identifier
 
 PERMISSION_VERSION = "private-brain-history-funding-v1"
 ORIGIN_VERSION = "unattempted-history-funding-v1"

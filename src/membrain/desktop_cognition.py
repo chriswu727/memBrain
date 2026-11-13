@@ -2,7 +2,6 @@ from dataclasses import asdict, replace
 from pathlib import Path
 from typing import get_args
 
-from .chat_provider import ReasoningEffort
 from .cognition_config import (
     CognitionConfigurationError,
     CognitionPolicyConfiguration,
@@ -10,6 +9,7 @@ from .cognition_config import (
     load_cognition_policy,
     save_cognition_policy,
 )
+from .reasoning import ReasoningEffort
 
 
 def add_commands(actions):

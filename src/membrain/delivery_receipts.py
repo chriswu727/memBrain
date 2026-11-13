@@ -1,8 +1,7 @@
 import copy
 import hashlib
 
-from .helpers import DomainError
-from .turns import _hash, _identifier, _integer, _refs
+from .helpers import DomainError, _hash, _identifier, _integer, _refs
 
 VERSION = "runtime-delivery-receipt-v1"
 STATES = frozenset({"delivered", "partially_delivered", "cancelled"})

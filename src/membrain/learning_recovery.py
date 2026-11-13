@@ -2,11 +2,10 @@ import copy
 
 from psycopg.types.json import Jsonb
 
-from .helpers import DomainError, digest
+from .helpers import DomainError, _identifier, _integer, digest
 from .learning_allocations import ENCODING_PHASE, allocation_metadata, phase
 from .learning_windows import bounds
 from .recording_guard import require_recording
-from .turns import _identifier, _integer
 
 DEFAULT_MODEL_CALLS = 2
 DEFAULT_INPUT_BYTES = 196608
