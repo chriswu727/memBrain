@@ -19,7 +19,9 @@ mv memBrain-main/integrations/astrbot/astrbot_plugin_membrain . && rm -rf memBra
 
 - **每次请求模型前**，在系统提示词末尾加入：机器人为这个人保存的笔记、他在之前几天发过的消息，以及与当前消息相关的早期消息。
 - **每次回复后**，保存这个人的消息和机器人的回复。
-- **给模型的工具**：`membrain_note`（记下一条持久事实，并可替换过时的笔记）、`membrain_search`（此人问起机器人之前说过的话时设置 `my_replies`）、`membrain_boundary`（此人要求不要主动提起的话题）、`membrain_consolidate`（为此人的早期消息建立索引，以便之后检索；当有五条或更多消息等待时，记忆说明会请模型调用）、`membrain_manner_feedback`（此人对机器人说话方式的评价，例如太长或太正式，并附上来源消息；累计三次后，此人可在记忆页面接受或拒绝对人设的修改；录制暂停时不发送任何内容）、`membrain_pause` 和 `membrain_resume`（当有人说“别记这个”时使用）。memBrain 不为建立索引调用任何模型：线索由机器人自己的模型编写。
+- **给模型的工具**：`membrain_note`（记下一条持久事实，并可替换过时的笔记）、`membrain_search`（此人问起机器人之前说过的话时设置 `my_replies`）、`membrain_boundary`（此人要求不要主动提起的话题）、`membrain_consolidate`（为此人的早期消息建立索引，以便之后检索；当有五条或更多消息等待时，记忆说明会请模型调用）、`membrain_manner_feedback`（此人对机器人说话方式的评价，例如太长或太正式，并附上来源消息；累计三次后，此人可在记忆页面接受或拒绝对人设的修改；录制暂停时不发送任何内容）、`membrain_persona`（列出预设人设；此人要求时切换；或提议修改人设，只有此人在之后的消息里同意才会保存；录制暂停时拒绝所有修改操作；角色扮演机器人没有这个工具，因为角色本身就是人设）、`membrain_pause` 和 `membrain_resume`（当有人说“别记这个”时使用）。memBrain 不为建立索引调用任何模型：线索由机器人自己的模型编写。
+
+每个人的记忆都会随机选用五个预设人设之一（沉稳 Steady、明快 Bright、冷幽默 Wry、温柔 Gentle、直率 Blunt），机器人会在当天的第一条回复里提一次。memBrain 没有为 AstrBot 提供切换人设的斜杠命令：此人直接用自己的话请机器人切换即可。切换只改变机器人的表现方式，模拟心情和熟悉程度都会保留。
 
 话题边界支持任意语言的别名，与笔记采用相同的用户和群聊隔离。除非此人主动提起，否则自动上下文和检索不会带出该话题；用户可在记忆页面移除边界。通过笔记的 `kind: "milestone", shared: true` 可记录共同经历，`affect` 可附上有来源依据的情绪记录。
 

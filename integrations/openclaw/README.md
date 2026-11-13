@@ -23,11 +23,13 @@ OpenClaw 2026.10 refuses to install a local plugin until you accept its declared
 | --- | --- |
 | `before_prompt_build` | Adds the session notice, saved notes and earlier messages as `appendSystemContext` (kept stable for five minutes per session so provider prompt caches work), and related earlier messages for this request as `prependContext`. Stages the request. |
 | `agent_end` | Stores the request and the final assistant reply of a successful run. |
-| Tools | `membrain_note`, `membrain_search` (with `my_replies` for the assistant's own earlier replies), `membrain_boundary`, `membrain_pause`, `membrain_resume`, `membrain_consolidate`, `membrain_manner_feedback`. |
+| Tools | `membrain_note`, `membrain_search` (with `my_replies` for the assistant's own earlier replies), `membrain_boundary`, `membrain_pause`, `membrain_resume`, `membrain_consolidate`, `membrain_manner_feedback`, `membrain_persona`. |
 
 Once five or more of the user's earlier messages await indexing, the session notice asks the model to call `membrain_consolidate` once: the first call returns a batch of those messages with instructions and a `reviewed_through` number, and the second call passes back retrieval cues with that number. memBrain calls no model for this; OpenClaw's own model writes the cues.
 
 Use `membrain_boundary` when the user asks the agent not to bring up a topic. It applies to that conversation's memory owner, supports aliases in any language, and keeps the topic out of automatic context and searches unless the user raises it. The user can remove a boundary on the memory page. With `membrain_note`, `kind: "milestone", shared: true` records a shared moment; `affect` attaches an evidence-backed feeling to a note. When the user comments on how the agent talks (too long, too formal, fewer emoji), `membrain_manner_feedback` reports the kind with the message it came from; after three such comments the user can accept or reject a persona change on the memory page. It sends nothing while recording is paused.
+
+A new memory starts with one of five preset personas (Steady, Bright, Wry, Gentle, Blunt), picked at random, and the session notice asks the agent to mention it once in its first reply. `membrain_persona` lists the presets, switches when the user asks (citing their message), and proposes a change to the persona that is saved only after the user says yes in a later message. OpenClaw has no slash command from memBrain for this: the user asks in words. Switching changes only how the agent presents itself; the simulated mood and familiarity carry over. Writing actions are refused while recording is paused.
 
 Set the plugin's `directory` setting to keep this assistant's memory apart from your other hosts. `membrain plugin ui` opens the memory page, and `<private>…</private>` text and credential-like values are never stored.
 
