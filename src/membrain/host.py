@@ -2254,7 +2254,10 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
                 log(directory, f"replay failed at session start: {type(error).__name__}")
             first = _first_persona(directory, client, roleplay=roleplay,
                                    paused_now=policy["paused"] or paused(directory, user_id, session))
-            intro = _intro(_pending_intro(directory, session, client.brain_id, first), tools)
+            try:
+                intro = _intro(_pending_intro(directory, session, client.brain_id, first), tools)
+            except Exception as error:  # The intro is a courtesy; it never costs the session its context.
+                log(directory, f"persona intro failed: {type(error).__name__}")
             try:
                 _, current = _saved_context(client, real_life, roleplay, options)
                 _acknowledge(client, current)  # This block is returned below, so its one-time lines are shown.
@@ -2329,9 +2332,10 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
         same_brain = context.get("brain_id") == client.brain_id
         options = ({name: context[name] for name in ("tools", "skip_imports_from", "share_real_life")}
                    if same_brain else {"tools": tools, "skip_imports_from": [], "share_real_life": False})
-        # The session's first prompt: a first persona's intro has been shown, or is shown now, and never again.
-        waiting = _pending_intro(directory, session, client.brain_id, clear=True) if "persona_intro" in state else None
+        waiting = None
         try:
+            if "persona_intro" in state:  # The session's first prompt: the intro was shown, or is now, never again.
+                waiting = _pending_intro(directory, session, client.brain_id, clear=True)
             first = None if same_brain else _first_persona(
                 directory, client, roleplay=roleplay, paused_now=policy["paused"] or paused(directory, user_id, session))
             saved, current = _saved_context(client, real_life, roleplay, options)

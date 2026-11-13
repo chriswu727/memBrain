@@ -1098,6 +1098,9 @@ def propose_change(service, principal, brain_id: str, changes, *, reason, source
         proposed = _merged(card, changes)
         if proposed == normalize_card(card):
             raise DomainError("validation_failed", "The persona already is like that: nothing to propose.")
+        # The fields as stored in the card (scrubbed and trimmed like it), never the raw request.
+        changes = {field: {name: proposed["voice"][name] for name in changes["voice"]} if field == "voice"
+                   else proposed[field] for field in changes}
         proposal_id = _write(service, conn, principal, brain, {
             "persona_proposal": HOST, "changes": changes, "proposed_card": proposed, "base_version": version,
             "reason": reason, "source_event_ids": ids, "source_messages": messages, "proposed_at": _iso(when)})
