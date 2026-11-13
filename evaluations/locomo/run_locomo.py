@@ -179,7 +179,12 @@ def wait_for_embeddings(directory: Path, timeout: float = 3600) -> dict:
 
 
 def start(directory: Path, timeout: float = 600) -> None:
-    """Start the installation; a slow start (a loaded machine) is waited for instead of failing the run."""
+    """Start the installation; a slow start (a loaded machine) is waited for instead of failing the run.
+
+    The memory is then marked as having no persona. A new user's first session is given a preset persona picked at
+    random, which would put a different block and a one-time line in each run's context; the harnesses measure
+    memory, so they leave it out. What a persona costs the session context is measured on its own.
+    """
     from membrain import desktop, host
 
     try:
@@ -193,6 +198,12 @@ def start(directory: Path, timeout: float = 600) -> None:
                 raise
             time.sleep(5)
         host.start(directory)
+    marker = Path(directory) / "evaluation-no-persona"
+    if not marker.exists():
+        with host.ready_client(directory) as client:
+            if not client.persona().get("version"):
+                client.delete_persona_history()  # Leaves the marker after which no first persona is assigned.
+        marker.write_text("The harness left this memory without a persona.\n", encoding="utf-8")
 
 
 def extract_with_retry(directory: Path, extractor, text: str, turn_id: str) -> None:
