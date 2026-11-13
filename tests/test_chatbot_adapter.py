@@ -234,7 +234,8 @@ def test_astrbot_plugin_remembers_each_qq_user_separately_through_a_real_service
         assert "marathon" in bob and "Biscuit" not in bob
         capture, _ = json.JSONDecoder().raw_decode(alice.split("recording_capture=", 1)[1])
         shared = json.loads(asyncio.run(plugin.membrain_note(Event("1001", ""),
-            "We planned Biscuit's meals together.", kind="milestone", shared=True, recording_capture=capture)))
+            "We planned Biscuit's meals together.", kind="milestone", shared=True, moment="other",
+            recording_capture=capture)))
         assert "note_id" in shared
         boundary = json.loads(asyncio.run(plugin.membrain_boundary(Event("1001", ""), "my cat", ["Biscuit", "小饼干"])))
         assert boundary["boundaries"][0]["aliases"] == ["Biscuit", "小饼干"]

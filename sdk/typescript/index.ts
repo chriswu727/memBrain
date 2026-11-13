@@ -598,7 +598,7 @@ export class MemoryClient {
     contextSourceMessages?: readonly NoteSource[]; requireCurrentSources?: boolean; expectedDependencyGeneration?: number;
     expectedRecordingRevision?: number;
     kind?: string; status?: string; about?: string; aliases?: readonly string[]; due?: string; occursAt?: string;
-    pinned?: boolean; sensitive?: boolean; shared?: boolean; affect?: NoteAffect;
+    pinned?: boolean; sensitive?: boolean; shared?: boolean; moment?: "play" | "other"; affect?: NoteAffect;
     role?: "user" | "assistant" } = {}): Promise<JsonObject> {
     const brain = encodeURIComponent(this.#scope(options).brain_ref);
     return this.#request("POST", `v1/brains/${brain}/notes`, {
@@ -606,7 +606,7 @@ export class MemoryClient {
       source_event_ids: options.sourceEventIds ?? [], source_messages: options.sourceMessages ?? [],
       ...Object.fromEntries(Object.entries({ kind: options.kind, status: options.status, about: options.about,
         aliases: options.aliases, due: options.due, occurs_at: options.occursAt, pinned: options.pinned,
-        sensitive: options.sensitive, shared: options.shared, affect: options.affect,
+        sensitive: options.sensitive, shared: options.shared, moment: options.moment, affect: options.affect,
         role: options.role, context_source_messages: options.contextSourceMessages,
         require_current_sources: options.requireCurrentSources,
         expected_dependency_generation: options.expectedDependencyGeneration,

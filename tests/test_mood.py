@@ -649,6 +649,49 @@ def test_a_shared_achievement_is_glad_and_a_shared_joke_is_playful(brain, clock)
     assert rules(mood(brain, "2027-03-25T10:00:00Z"))[0] == ("shared_play", chinese["note_id"], "active")
 
 
+def test_the_host_ais_moment_kind_decides_and_the_word_list_is_only_the_fallback(brain, clock):
+    clock("2027-03-14T21:00:00Z")
+    # Play the word list cannot read (a paraphrase, another language) is playful when the host AI says so.
+    charades = shared(brain, "We spent the evening acting out film titles.", moment="play")
+    german = shared(brain, "Wir haben uns über den Kuchen kaputtgelacht.", moment="play")
+    # And a moment the word list would misread is glad when the host AI says it was not play.
+    farewell = shared(brain, "We laughed and cried at the end of the long project.", moment="other")
+    # Without the field, the word list decides exactly as before.
+    unlabelled = shared(brain, "We laughed about the burnt pancakes.")
+    plain = shared(brain, "Wir haben den Halbmarathon zusammen geschafft.")
+    found = {trigger["source"]["id"]: trigger["rule"] for trigger in mood(brain, "2027-03-14T21:01:00Z")["triggers"]}
+    assert found == {charades["note_id"]: "shared_play", german["note_id"]: "shared_play",
+                     farewell["note_id"]: "shared_moment", unlabelled["note_id"]: "shared_play",
+                     plain["note_id"]: "shared_moment"}
+    service, principal, ident = brain
+    texts = {item["event_id"]: item["text"] for item in service.timeline(
+        principal, ident, roles=("assistant",), conversation_id="membrain-notes", limit=50)["items"]}
+    assert texts[charades["note_id"]] == "[milestone · shared · moment play] We spent the evening acting out film titles."
+    assert texts[unlabelled["note_id"]] == "[milestone · shared] We laughed about the burnt pancakes."
+    # The playful reason reads the same whichever source decided.
+    state = mood(brain, "2027-03-14T21:01:00Z")
+    assert all(trigger["reason"].startswith("you and the user shared a light moment: ") for trigger in state["triggers"]
+               if trigger["rule"] == "shared_play")
+
+
+def test_a_moment_kind_is_dropped_with_the_shared_flag_after_a_relationship_reset(brain, clock):
+    service, principal, ident = brain
+    clock("2027-03-14T21:00:00Z")
+    source = say(brain, "Haha, we did the silly dance again!")["result"]["accepted_event_ids"][0]
+    clock("2027-03-14T21:05:00Z")
+    reset_relationship(service, principal, ident)
+    clock("2027-03-14T21:10:00Z")
+    again = shared(brain, "We did the silly dance together.", moment="play", source_event_ids=[source])
+    assert "never recreated" in again["shared_refused"]
+    text = next(item["text"] for item in service.timeline(principal, ident, roles=("assistant",),
+                                                          conversation_id="membrain-notes", limit=50)["items"]
+                if item["event_id"] == again["note_id"])
+    assert text == "[milestone] We did the silly dance together."
+    assert mood(brain, "2027-03-14T21:11:00Z")["triggers"] == []
+    with pytest.raises(service_module.DomainError):
+        write(brain, "A moment.", kind="milestone", moment="play")  # A kind of moment needs shared.
+
+
 def test_sensitive_bounded_imported_future_and_ordinary_milestones_never_trigger(brain, clock):
     service, principal, ident = brain
     clock("2027-03-14T21:00:00Z")

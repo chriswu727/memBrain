@@ -31,6 +31,9 @@ KINDS = ("person", "constraint", "preference", "plan", "routine", "milestone", "
          "other")
 STATUSES = ("intended", "scheduled", "done", "cancelled", "superseded")
 OPEN_STATUSES = ("intended", "scheduled")
+# What kind of shared moment a milestone is, as the host AI judged it: play (a joke, a game, play together) or any
+# other moment. The simulated mood is the only reader, and it tells exactly these two apart (``mood.py``).
+MOMENTS = ("play", "other")
 COMING_UP_DAYS = 14
 SECTIONS = (("person", "People"), ("constraint", "Health and constraints"), ("plan", "Plans"),
             ("agent_commitment", "Your commitments"), ("milestone", "Milestones and dates"),
@@ -46,7 +49,8 @@ NOTE_TOOL_DESCRIPTION = (
     "aliases, and the relation in the text), constraint, preference, plan (with status intended until the user "
     "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD or YYYY-MM when the day is unknown), "
     "routine, milestone (shared true when it "
-    "is a moment you and the user shared: a first conversation, a goal reached together, a shared joke), relationship, or "
+    "is a moment you and the user shared: a first conversation, a goal reached together, a shared joke; with it, "
+    "moment play for a joke, a game or play together, otherwise moment other), relationship, or "
     "agent_commitment for something you promised to do. Status done means everything in the note has happened: a "
     "purchase paid for but not yet delivered, or a booking still ahead, is scheduled, with its date. "
     "When a fact changes (a plan is done, moved or cancelled), "
@@ -73,6 +77,9 @@ NOTE_FIELDS = {
     "sensitive": {"type": "boolean", "description": "Health, money or other private matters."},
     "shared": {"type": "boolean", "description": "With kind milestone: a moment the user and you shared, such as "
                                                  "your first conversation, a goal reached together or a shared joke."},
+    "moment": {"type": "string", "enum": list(MOMENTS),
+               "description": "With shared: play when the moment was a joke, a game or play together; other for any "
+                              "other shared moment."},
     "affect": {"type": "object", "additionalProperties": False, "required": ["label", "valence", "intensity", "basis"],
                "description": "A feeling the user expressed about this note's subject. Kept as evidence, never "
                               "as a score.",
@@ -221,10 +228,11 @@ def note_fields(arguments: dict) -> dict:
 
 
 def format_note(text: str, *, kind=None, about=None, aliases=(), status=None, due=None, occurs_at=None,
-                pinned=False, sensitive=False, shared=False) -> str:
+                pinned=False, sensitive=False, shared=False, moment=None) -> str:
     """The stored form: plain text, or ``[kind · status · due DATE · about NAME · aka A, B] sentence``.
 
-    ``shared`` marks a milestone as a shared moment of the relationship layer (``relationship.py``)."""
+    ``shared`` marks a milestone as a shared moment of the relationship layer (``relationship.py``); ``moment`` says
+    what kind of shared moment it is (``MOMENTS``), stored as ``moment play``."""
     text = " ".join(str(text).split())
     if not text:
         raise ValueError("A note needs text.")
@@ -232,6 +240,10 @@ def format_note(text: str, *, kind=None, about=None, aliases=(), status=None, du
         raise ValueError(f"Keep a note under {NOTE_CHARACTERS} characters; save separate facts separately.")
     if shared and kind != "milestone":
         raise ValueError("shared marks a shared moment: use it with kind milestone.")
+    if moment is not None and moment not in MOMENTS:
+        raise ValueError(f"moment must be one of {', '.join(MOMENTS)}.")
+    if moment and not shared:
+        raise ValueError("moment says what kind of shared moment a note is: use it with shared true.")
     if not any((kind, about, aliases, status, due, occurs_at, pinned, sensitive)):
         if _HEADER.fullmatch(text) and parse_note(text)[0]:
             raise ValueError("A note cannot start with a bracketed header; pass the fields instead.")
@@ -248,6 +260,7 @@ def format_note(text: str, *, kind=None, about=None, aliases=(), status=None, du
     names = [_name(alias, "aliases") for alias in (aliases or ())]
     tokens += [f"aka {', '.join(names)}"] if names else []
     tokens += ["pinned"] * bool(pinned) + ["sensitive"] * bool(sensitive) + ["shared"] * bool(shared)
+    tokens += [f"moment {moment}"] if moment else []
     header = ' · '.join(tokens)
     stored = f"[{header}] {text}"
     if len(header) > 200 or len(stored) > STORED_CHARACTERS:
@@ -279,6 +292,8 @@ def parse_note(stored: str) -> tuple[dict, str]:
             fields["about"] = value
         elif word == "aka" and value:
             fields["aliases"] = [alias.strip() for alias in value.split(",") if alias.strip()]
+        elif word == "moment" and value in MOMENTS and fields.get("shared"):
+            fields["moment"] = value
         else:
             return {}, stored  # Not a header this module wrote.
     return fields, match.group(2)
@@ -688,7 +703,7 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
                     sequences.append(row["sequence"])
             shared_refused = shared_refusal(service, conn, principal, brain_id, sequences)
             if shared_refused:
-                text = format_note(scrub(arguments["text"]), **{**fields, "shared": False})
+                text = format_note(scrub(arguments["text"]), **{**fields, "shared": False, "moment": None})
         from .note_sources import reference
 
         references = [*arguments.get("source_messages", []), *arguments.get("context_source_messages", [])]

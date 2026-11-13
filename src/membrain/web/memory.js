@@ -97,6 +97,8 @@ const KINDS = ["person", "constraint", "preference", "plan", "routine", "milesto
 const STATUSES = ["intended", "scheduled", "done", "cancelled", "superseded"];
 const LABELS = { person: "Person", constraint: "Health or constraint", preference: "Preference", plan: "Plan", routine: "Routine",
   milestone: "Milestone", relationship: "Relationship", agent_commitment: "Agent promise", other: "Other" };
+// The kind of a shared moment, as the agent or the user judged it; the simulated mood reads it (notes.MOMENTS).
+const MOMENTS = ["play", "other"];
 const openPlan = (fields) => ["intended", "scheduled"].includes(fields.status || "intended");
 
 function typedNote(text) {
@@ -111,6 +113,7 @@ function typedNote(text) {
     else if (/^(due|on) \d{4}-\d{2}(-\d{2})?$/.test(token)) fields[token.startsWith("due ") ? "due" : "occurs_at"] = token.split(" ")[1];
     else if (token.startsWith("about ")) fields.about = token.slice(6);
     else if (token.startsWith("aka ")) fields.aliases = token.slice(4).split(",").map((value) => value.trim());
+    else if (MOMENTS.includes(token.slice(7)) && token.startsWith("moment ") && fields.shared) fields.moment = token.slice(7);
     else return { fields: {}, tags: [], sentence: text };
   }
   return { fields, tags: tokens.map((token) => token.replace("agent_commitment", "agent promise")), sentence: match[2] };
@@ -184,6 +187,8 @@ function noteEditor(note, merged = [], after = () => loadNotes(), initialSources
     ["shared", "Shared moment: something we did or reached together"]]) {
     const input = field(form, controls, name, title, "checkbox"); input.checked = Boolean(fields[name]); input.parentElement.classList.add("check");
   }
+  field(form, controls, "moment", "Kind of moment", "text", [["", "Not set"], ["play", "Play or a joke together"],
+    ["other", "Another kind of moment"]]).value = fields.moment || "";
   const sources = new Set([...(note?.source_event_ids || []), ...initialSources]);
   const sourceDetails = element("details", undefined, "source-picker");
   sourceDetails.append(element("summary", "Link original messages"), element("p", "Choose messages this note is based on. Unlinked notes stay clearly labelled.", "hint"));
@@ -214,8 +219,10 @@ function noteEditor(note, merged = [], after = () => loadNotes(), initialSources
   const updateStatus = () => {
     controls.status.parentElement.hidden = !["plan", "agent_commitment"].includes(controls.kind.value);
     controls.shared.parentElement.hidden = controls.kind.value !== "milestone";
+    controls.moment.parentElement.hidden = controls.kind.value !== "milestone" || !controls.shared.checked;
   };
-  controls.kind.addEventListener("change", updateStatus); updateStatus();
+  controls.kind.addEventListener("change", updateStatus); controls.shared.addEventListener("change", updateStatus);
+  updateStatus();
   let requestId = uid(), previousBody = "";
   onSubmit(form, async () => {
     const body = { text: controls.text.value.trim(), kind: controls.kind.value, role: "user", producer: "membrain-memory-page",
@@ -226,6 +233,7 @@ function noteEditor(note, merged = [], after = () => loadNotes(), initialSources
     if (controls.aliases.value.trim()) body.aliases = controls.aliases.value.split(",").map((value) => value.trim()).filter(Boolean);
     body.pinned = controls.pinned.checked; body.sensitive = controls.sensitive.checked;
     body.shared = controls.kind.value === "milestone" && controls.shared.checked;
+    if (body.shared && controls.moment.value) body.moment = controls.moment.value;
     const serialized = JSON.stringify(body);
     if (serialized !== previousBody) { requestId = uid(); previousBody = serialized; }
     await api(`/v1/brains/${encodeURIComponent(state.brain)}/notes`, { request_id: requestId, ...body });
@@ -566,7 +574,7 @@ guard($("moment-add"), async () => {
   const form = noteEditor(null, [], async () => { $("moment-form-host").replaceChildren(); await loadRelationship(); });
   $("moment-form-host").replaceChildren(form);
   form.elements.kind.value = "milestone"; form.elements.kind.dispatchEvent(new Event("change"));
-  form.elements.shared.checked = true; form.elements.text.focus();
+  form.elements.shared.checked = true; form.elements.shared.dispatchEvent(new Event("change")); form.elements.text.focus();
 });
 guard($("relationship-reset"), async () => {
   if (!confirm("Reset the relationship? This deletes every shared moment, the support style, every boundary (so those topics are no longer kept out), the familiarity limit and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. Conversations, your other notes, the personality and feelings stay.")) return;

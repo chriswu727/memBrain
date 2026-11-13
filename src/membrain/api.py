@@ -90,6 +90,7 @@ class NoteWrite(RuntimeBody):
     pinned: bool = False
     sensitive: bool = False
     shared: bool = False
+    moment: str | None = None
     affect: NoteAffect | None = None
 
 

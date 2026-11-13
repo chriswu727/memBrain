@@ -55,7 +55,8 @@ const TOOLS = [
       "constraints, plans and their changes) so it is shown at the start of every later session. One fact per note, " +
       "under 300 characters, with dates when they matter. Set kind when it is clear: person (with about = their name, " +
       "aliases, and the relation in the text), constraint, preference, plan (with status intended until the user " +
-      "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD), routine, milestone, relationship, or " +
+      "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD), routine, milestone (shared true for a " +
+      "moment you and the user shared, with moment play for a joke or play together, otherwise other), relationship, or " +
       "agent_commitment for something you promised to do. Status done means everything in the note has happened: a " +
       "purchase paid for but not yet delivered, or a booking still ahead, is scheduled, with its date. " +
       "When a fact changes, save the updated note and pass the " +
@@ -82,6 +83,8 @@ const TOOLS = [
       pinned: { type: "boolean" },
       sensitive: { type: "boolean" },
       shared: { type: "boolean", description: "With kind milestone: a moment you and the user shared, such as a goal reached together or a shared joke." },
+      moment: { type: "string", enum: ["play", "other"],
+        description: "With shared: play when the moment was a joke, a game or play together; other for any other shared moment." },
       affect: { type: "object", description: "A feeling the user expressed about this; kept as evidence, never a score.",
         properties: {
           label: { type: "string", maxLength: 40, description: "The user's own word, e.g. nervous." },

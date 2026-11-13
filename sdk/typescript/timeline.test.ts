@@ -56,6 +56,9 @@ test("notes preserve shared moments and evidence-backed feelings including neutr
   await client.writeNote("A personal milestone.", { kind: "milestone", shared: false });
   assert.equal(bodies[1].shared, false);
   assert.equal("affect" in bodies[1], false);
+  assert.equal("moment" in bodies[1], false);
+  await client.writeNote("We laughed about the burnt pancakes.", { kind: "milestone", shared: true, moment: "play" });
+  assert.equal(bodies[2].moment, "play");
 });
 
 test("note writes preserve explicit sources and retry identity while timeline cursors stay encoded", async () => {

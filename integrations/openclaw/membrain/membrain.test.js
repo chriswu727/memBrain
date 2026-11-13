@@ -155,7 +155,7 @@ test("memory carries across OpenClaw sessions through the real runtime",
     const third = await memory.beforePromptBuild({ prompt: "Hello again", messages: [] }, { sessionId: "oc-3" });
     assert.doesNotMatch(third.appendSystemContext, /groom's speech/);
     const shared = JSON.parse(await memory.tool("membrain_note", {
-      text: "We planned the Lisbon trip together.", kind: "milestone", shared: true,
+      text: "We planned the Lisbon trip together.", kind: "milestone", shared: true, moment: "other",
       recording_capture: JSON.parse(third.prependContext.match(/recording_capture=("[^"]+")/)[1]),
     }));
     assert.ok(shared.note_id);

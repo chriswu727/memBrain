@@ -37,6 +37,29 @@ def test_invalid_fields_are_rejected(fields):
         format_note("A fact.", **fields)
 
 
+def test_a_shared_moment_keeps_the_kind_the_host_gave_it():
+    stored = format_note("We laughed about the burnt pancakes.", kind="milestone", shared=True, moment="play")
+    assert stored == "[milestone · shared · moment play] We laughed about the burnt pancakes."
+    assert parse_note(stored) == ({"kind": "milestone", "shared": True, "moment": "play"},
+                                  "We laughed about the burnt pancakes.")
+    other = format_note("Wir haben den Halbmarathon geschafft.", kind="milestone", shared=True, moment="other")
+    assert parse_note(other)[0]["moment"] == "other"
+    # Without it a shared moment is stored exactly as before.
+    assert format_note("Our first chat.", kind="milestone", shared=True) == "[milestone · shared] Our first chat."
+    for fields in ({"kind": "milestone", "shared": True, "moment": "achievement"},
+                   {"kind": "milestone", "moment": "play"}, {"kind": "plan", "moment": "other"}):
+        with pytest.raises(ValueError):
+            format_note("A moment.", **fields)
+    # A header this module never writes is not read as one.
+    for text in ("[milestone · moment play] A moment.", "[milestone · shared · moment joke] A moment.",
+                 "[plan · moment play] A moment."):
+        assert parse_note(text) == ({}, text)
+    assert notes.note_fields({"kind": "milestone", "shared": True, "moment": "play", "pinned": False}) == {
+        "kind": "milestone", "shared": True, "moment": "play"}
+    assert notes.NOTE_FIELDS["moment"]["enum"] == list(notes.MOMENTS) == ["play", "other"]
+    assert "moment play" in notes.NOTE_TOOL_DESCRIPTION
+
+
 def test_text_cannot_impersonate_a_header():
     with pytest.raises(ValueError):
         format_note("[plan · done] Booked the restaurant.")
