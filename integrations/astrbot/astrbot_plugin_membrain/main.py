@@ -105,7 +105,7 @@ class MembrainPlugin(star.Star):
             recording_capture(string): Copy recording_capture from this turn's membrain-source block; never substitute another turn's value.
             affect(object): A feeling the user expressed about this: label (their own word), valence -2 to 2, intensity 0 to 3, basis reported or inferred, optional topic and felt_at YYYY-MM-DD.
             shared(boolean): With kind milestone: a moment you and the user shared, such as a goal reached together or a shared joke.
-            moment(string): With shared: play when the moment was a joke, a game or play together; other for any other shared moment.
+            moment(string): With shared: play when the moment was a joke, a game or play together; hard when it was a difficult time the two of you went through (a disagreement between you, a time you let them down, a rough stretch you kept them company in); other for any other shared moment.
         """
         fields = {"kind": kind, "about": about, "aliases": aliases, "status": status, "due": due,
                   "occurs_at": occurs_at, "pinned": pinned, "sensitive": sensitive,

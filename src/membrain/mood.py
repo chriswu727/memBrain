@@ -5,7 +5,8 @@ card's baseline mood and the triggers found in events already stored, with an in
 
 - good news the user shared (a positive affect record, or a plan noted done) makes it glad;
 - distress the user shared (a negative affect record) makes it concerned, and less lively;
-- a shared moment of the relationship layer makes it playful when it was a joke or play, and glad otherwise
+- a shared moment of the relationship layer makes it playful when it was a joke or play, leaves it as it is when
+  it was a hard time (what the user felt then is an affect record of its own), and makes it glad otherwise
   (``relationship_triggers``). The host AI says which when it saves the moment (the note's ``moment``); a moment
   saved without it is read with a small word list.
 
@@ -213,7 +214,9 @@ def _plan_triggers(service, conn, principal, brain_id) -> list[dict]:
 def relationship_triggers(service, conn, principal, brain_id) -> list[dict]:
     """Shared moments (milestone notes flagged ``shared``) after the latest relationship reset marker: a joke or play
     is ``shared_play``, any other moment ``shared_moment``, by the note's ``moment`` when the host AI gave one and by
-    ``PLAY_WORDS`` otherwise. A sensitive moment, one about a boundary topic, an
+    ``PLAY_WORDS`` otherwise. A hard time (``moment hard``) is no trigger: being glad about it would be wrong, and
+    the user's feeling at the time is recorded as affect when they expressed one. A sensitive moment, one about a
+    boundary topic, an
     imported or restored one and one whose date is still ahead never trigger: the mood line would raise it, or it is
     not new. The mood reset marker and pins apply in ``derive``, as for every trigger."""
     from .notes import IMPORT_PREFIX, NOTES_CONVERSATION, parse_note
@@ -242,6 +245,8 @@ def relationship_triggers(service, conn, principal, brain_id) -> list[dict]:
         if fields.get("occurs_at") and fields["occurs_at"] > recorded[:len(fields["occurs_at"])]:
             continue
         moment = fields.get("moment")
+        if moment == "hard":
+            continue
         play = moment == "play" if moment else _PLAY.search(sentence) is not None
         triggers.append({"rule": "shared_play" if play else "shared_moment", "strength": SHARED_MOMENT_STRENGTH,
                          "sequence": document["sequence"], "at": recorded,

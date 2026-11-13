@@ -184,7 +184,7 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
         about: str | None = None, aliases: list[str] | None = None,
         status: Literal["intended", "scheduled", "done", "cancelled", "superseded"] | None = None,
         due: str | None = None, occurs_at: str | None = None, pinned: bool = False, sensitive: bool = False,
-        affect: dict[str, Any] | None = None, shared: bool = False, moment: Literal["play", "other"] | None = None,
+        affect: dict[str, Any] | None = None, shared: bool = False, moment: Literal["play", "hard", "other"] | None = None,
         recording_capture: str | None = None,
     ) -> dict[str, Any]:
         from membrain.notes import note_fields, save_note

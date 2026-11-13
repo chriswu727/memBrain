@@ -83,8 +83,8 @@ const TOOLS = [
       pinned: { type: "boolean" },
       sensitive: { type: "boolean" },
       shared: { type: "boolean", description: "With kind milestone: a moment you and the user shared, such as a goal reached together or a shared joke." },
-      moment: { type: "string", enum: ["play", "other"],
-        description: "With shared: play when the moment was a joke, a game or play together; other for any other shared moment." },
+      moment: { type: "string", enum: ["play", "hard", "other"],
+        description: "With shared: play when the moment was a joke, a game or play together; hard when it was a difficult time the two of you went through (a disagreement between you, a time you let them down, a rough stretch you kept them company in); other for any other shared moment." },
       affect: { type: "object", description: "A feeling the user expressed about this; kept as evidence, never a score.",
         properties: {
           label: { type: "string", maxLength: 40, description: "The user's own word, e.g. nervous." },

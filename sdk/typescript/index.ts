@@ -598,7 +598,7 @@ export class MemoryClient {
     contextSourceMessages?: readonly NoteSource[]; requireCurrentSources?: boolean; expectedDependencyGeneration?: number;
     expectedRecordingRevision?: number;
     kind?: string; status?: string; about?: string; aliases?: readonly string[]; due?: string; occursAt?: string;
-    pinned?: boolean; sensitive?: boolean; shared?: boolean; moment?: "play" | "other"; affect?: NoteAffect;
+    pinned?: boolean; sensitive?: boolean; shared?: boolean; moment?: "play" | "hard" | "other"; affect?: NoteAffect;
     role?: "user" | "assistant" } = {}): Promise<JsonObject> {
     const brain = encodeURIComponent(this.#scope(options).brain_ref);
     return this.#request("POST", `v1/brains/${brain}/notes`, {

@@ -31,9 +31,11 @@ KINDS = ("person", "constraint", "preference", "plan", "routine", "milestone", "
          "other")
 STATUSES = ("intended", "scheduled", "done", "cancelled", "superseded")
 OPEN_STATUSES = ("intended", "scheduled")
-# What kind of shared moment a milestone is, as the host AI judged it: play (a joke, a game, play together) or any
-# other moment. The simulated mood is the only reader, and it tells exactly these two apart (``mood.py``).
-MOMENTS = ("play", "other")
+# What kind of shared moment a milestone is, as the host AI judged it: play (a joke, a game, play together), hard
+# (a difficult time the two went through) or any other moment. The simulated mood reads it (``mood.py``: playful,
+# nothing, glad), and the relationship layer shows a hard time differently until it has mellowed
+# (``relationship.py``).
+MOMENTS = ("play", "hard", "other")
 COMING_UP_DAYS = 14
 SECTIONS = (("person", "People"), ("constraint", "Health and constraints"), ("plan", "Plans"),
             ("agent_commitment", "Your commitments"), ("milestone", "Milestones and dates"),
@@ -50,7 +52,9 @@ NOTE_TOOL_DESCRIPTION = (
     "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD or YYYY-MM when the day is unknown), "
     "routine, milestone (shared true when it "
     "is a moment you and the user shared: a first conversation, a goal reached together, a shared joke; with it, "
-    "moment play for a joke, a game or play together, otherwise moment other), relationship, or "
+    "moment play for a joke, a game or play together, moment hard for a difficult time the two of you went "
+    "through, such as a disagreement between you, a time you let them down or a rough stretch you kept them "
+    "company in, otherwise moment other), relationship, or "
     "agent_commitment for something you promised to do. Status done means everything in the note has happened: a "
     "purchase paid for but not yet delivered, or a booking still ahead, is scheduled, with its date. "
     "When a fact changes (a plan is done, moved or cancelled), "
@@ -78,7 +82,9 @@ NOTE_FIELDS = {
     "shared": {"type": "boolean", "description": "With kind milestone: a moment the user and you shared, such as "
                                                  "your first conversation, a goal reached together or a shared joke."},
     "moment": {"type": "string", "enum": list(MOMENTS),
-               "description": "With shared: play when the moment was a joke, a game or play together; other for any "
+               "description": "With shared: play when the moment was a joke, a game or play together; hard when it "
+                              "was a difficult time the two of you went through (a disagreement between you, a "
+                              "time you let them down, a rough stretch you kept them company in); other for any "
                               "other shared moment."},
     "affect": {"type": "object", "additionalProperties": False, "required": ["label", "valence", "intensity", "basis"],
                "description": "A feeling the user expressed about this note's subject. Kept as evidence, never "

@@ -98,7 +98,7 @@ const STATUSES = ["intended", "scheduled", "done", "cancelled", "superseded"];
 const LABELS = { person: "Person", constraint: "Health or constraint", preference: "Preference", plan: "Plan", routine: "Routine",
   milestone: "Milestone", relationship: "Relationship", agent_commitment: "Agent promise", other: "Other" };
 // The kind of a shared moment, as the agent or the user judged it; the simulated mood reads it (notes.MOMENTS).
-const MOMENTS = ["play", "other"];
+const MOMENTS = ["play", "hard", "other"];
 const openPlan = (fields) => ["intended", "scheduled"].includes(fields.status || "intended");
 
 function typedNote(text) {
@@ -188,7 +188,7 @@ function noteEditor(note, merged = [], after = () => loadNotes(), initialSources
     const input = field(form, controls, name, title, "checkbox"); input.checked = Boolean(fields[name]); input.parentElement.classList.add("check");
   }
   field(form, controls, "moment", "Kind of moment", "text", [["", "Not set"], ["play", "Play or a joke together"],
-    ["other", "Another kind of moment"]]).value = fields.moment || "";
+    ["hard", "A hard time we went through"], ["other", "Another kind of moment"]]).value = fields.moment || "";
   const sources = new Set([...(note?.source_event_ids || []), ...initialSources]);
   const sourceDetails = element("details", undefined, "source-picker");
   sourceDetails.append(element("summary", "Link original messages"), element("p", "Choose messages this note is based on. Unlinked notes stay clearly labelled.", "hint"));
@@ -530,6 +530,7 @@ function momentItem(moment) {
   meta.append(element("span", shortDate(moment.occurs_at || moment.recorded_at)));
   if (moment.written_by_user) meta.append(element("span", "written by you", "tag"));
   if (moment.sensitive) meta.append(element("span", "sensitive", "tag"));
+  if (moment.moment === "hard") meta.append(element("span", moment.mellowed ? "a hard time, mellowed since" : "a hard time", "tag"));
   const actions = element("span", undefined, "actions");
   const edit = element("button", "Edit", "link"), remove = element("button", "Delete", "link danger");
   actions.append(edit, remove); meta.append(actions);

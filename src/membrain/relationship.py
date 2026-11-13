@@ -56,6 +56,14 @@ BOUNDARIES_CHARACTERS = 900  # The rendered boundaries line; a new boundary that
 RELATIONSHIP_CHARACTERS = 2200  # The whole block, including its fixed header.
 MOMENTS_IN_CONTEXT = 3
 MAX_MOMENTS = 500
+# A hard time the two went through (a shared moment with ``moment hard``) mellows with time and with time spent
+# together: once this many days have passed since it and the user has talked on this many later days, it is shown
+# as something they came through, no longer as something to tread around. It counts toward familiarity from the
+# start, like every shared moment.
+HARD_MELLOW_DAYS = 30
+HARD_MELLOW_CONVERSATION_DAYS = 5
+HARD_RECENT = "a hard time, still recent: leave it unless the user brings it up, and be gentle when they do"
+HARD_MELLOWED = "a hard time you came through together: it can be remembered without the old weight"
 _VISIBLE = ("tenant_id=%s AND owner_id=%s AND brain_id=%s AND is_current AND NOT deleted AND NOT suppressed "
             "AND NOT retired AND document IS NOT NULL")
 # Leading words dropped from a boundary topic before matching, so "my ex" matches "my ex texted" and "the ex".
@@ -266,6 +274,7 @@ def _moment_state(service, conn, principal, brain_id, after, *, protected=frozen
         sensitive |= private
         if len(moments) < MAX_MOMENTS:
             moments.append({"id": note["id"], "text": note["text"], "occurs_at": note["fields"].get("occurs_at"),
+                            "moment": note["fields"].get("moment"),
                             "sensitive": private, "recorded_at": note["recorded_at"],
                             "written_by_user": note["actor_role"] == "user", "source_event_ids": note["source_event_ids"],
                             "sequence": note["sequence"], "note_text": note["stored"]})
@@ -279,6 +288,18 @@ def _date(value) -> _datetime.date | None:
         return _datetime.date.fromisoformat(value if len(value) == 10 else value + "-01") if value else None
     except (TypeError, ValueError):
         return None
+
+
+def mellowed(moment: dict, days: list[str], today: _datetime.date) -> bool:
+    """Whether a hard time has mellowed: ``HARD_MELLOW_DAYS`` have passed since its day (the day it happened, or
+    the day it was recorded) and the user talked on ``HARD_MELLOW_CONVERSATION_DAYS`` distinct later days. A moment
+    dated only to a month counts from the month's last day, so it never mellows early."""
+    when = moment.get("occurs_at") or (moment.get("recorded_at") or "")[:10]
+    day = _as_date(when, end=True) if when else None
+    if day is None:
+        return False
+    later = sum(1 for value in days if value > day.isoformat())
+    return (today - day).days >= HARD_MELLOW_DAYS and later >= HARD_MELLOW_CONVERSATION_DAYS
 
 
 def _commitments(service, conn, principal, brain_id, after, acknowledged, today) -> dict:
@@ -389,7 +410,11 @@ def _read(service, conn, principal, brain_id, today) -> dict:
     moments = moment_state["items"]
     commitments = _commitments(service, conn, principal, brain_id, after, state["acknowledged"], today)
     cap = state["cap"]["level"] if state["cap"] else None
-    known = familiarity(_days(service, conn, principal, brain_id, after), moment_state["total"], cap, today)
+    days = _days(service, conn, principal, brain_id, after)
+    known = familiarity(days, moment_state["total"], cap, today)
+    for moment in moments:
+        if moment["moment"] == "hard":
+            moment["mellowed"] = mellowed(moment, days, today)
     support = state["support_style"]
     return {"familiarity": known, "shared_moments_total": moment_state["total"],
             "shared_moments_truncated": moment_state["truncated"],
@@ -470,7 +495,9 @@ def relationship_context(result: dict | None) -> dict:
     chosen = []
     for moment in reversed(moments[-MOMENTS_IN_CONTEXT:]):  # The most recent first, until the block is full.
         when = moment.get("occurs_at") or (moment.get("recorded_at") or "")[:10]
-        text = f"- {_short(when, today)}: {moment['text']} (id: {moment['id']})"
+        hard = ("" if moment.get("moment") != "hard"
+                else f"; {HARD_MELLOWED if moment.get('mellowed') else HARD_RECENT}")
+        text = f"- {_short(when, today)}: {moment['text']} (id: {moment['id']}{hard})"
         size = len(header) + len(body) + len(footer) + len("\nShared moments, oldest first:") + sum(
             len(value) + 1 for value in chosen) + len(text) + 1
         if size > RELATIONSHIP_CHARACTERS:

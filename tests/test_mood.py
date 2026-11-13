@@ -674,6 +674,21 @@ def test_the_host_ais_moment_kind_decides_and_the_word_list_is_only_the_fallback
                if trigger["rule"] == "shared_play")
 
 
+def test_a_hard_time_together_does_not_make_the_mood_glad_or_playful(brain, clock):
+    clock("2027-03-14T21:00:00Z")
+    # Not glad because something was shared, and not playful because the sentence has a word of the play list.
+    shared(brain, "We argued about the budget and I had it wrong.", moment="hard")
+    shared(brain, "I laughed off their worry about the exam and it hurt them.", moment="hard")
+    state = mood(brain, "2027-03-14T21:01:00Z")
+    assert state["triggers"] == [] and state["at_baseline"]
+    # What the user felt then is its own record, and moves the mood as any reported feeling does.
+    upset = shared(brain, "We fell out over the missed reminder.", moment="hard",
+                   affect={"label": "let down", "valence": -2, "intensity": 2, "basis": "reported"})
+    state = mood(brain, "2027-03-14T21:02:00Z")
+    assert [trigger["rule"] for trigger in state["triggers"]] == ["reported_distress"]
+    assert state["label"] == "concerned" and upset["note_id"]
+
+
 def test_a_moment_kind_is_dropped_with_the_shared_flag_after_a_relationship_reset(brain, clock):
     service, principal, ident = brain
     clock("2027-03-14T21:00:00Z")

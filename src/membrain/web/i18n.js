@@ -328,6 +328,8 @@ const ZH = {
   "Shared moment: something we did or reached together": "共同时刻：我们一起做过或一起达成的事",
   "Kind of moment": "时刻的类型", "Not set": "未设置", "Play or a joke together": "一起玩或开玩笑",
   "Another kind of moment": "其他时刻", "moment play": "一起玩", "moment other": "其他时刻",
+  "A hard time we went through": "一起经历过的不愉快", "moment hard": "不愉快的时刻",
+  "a hard time": "不愉快的时刻", "a hard time, mellowed since": "不愉快的时刻，已随时间淡去",
   "Remove this boundary? Your companion may bring the topic up again, and earlier messages about it are recalled normally.":
     "移除这个边界？伙伴可能会再次提起这个话题，之前关于它的消息也会照常召回。",
   "Boundary removed.": "边界已移除。", "Boundary added.": "边界已添加。",

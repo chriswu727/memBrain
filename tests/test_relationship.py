@@ -28,6 +28,7 @@ from membrain.relationship import (
     add_boundary,
     familiarity,
     kept_out,
+    mellowed,
     relationship,
     relationship_context,
     remove_boundary,
@@ -115,6 +116,39 @@ def test_the_block_lists_familiarity_style_boundaries_three_recent_moments_and_a
     assert later["stable"] == context["stable"] and later["block"] != block and later["once"] == []
     assert relationship_context({**result, "commitments": {"missed": []}})["stable"] != context["stable"]
     assert relationship_context(None) == {"block": None, "stable": None, "once": []}
+
+
+def test_a_hard_time_mellows_with_days_passed_and_days_talked_since():
+    hard = {"id": "h", "text": "We argued about the budget.", "moment": "hard", "occurs_at": "2027-02-20"}
+    later = [f"2027-03-{day:02d}" for day in range(1, 6)]
+    assert mellowed(hard, later, TODAY)  # 38 days on, five later days of conversation.
+    assert not mellowed(hard, later[:4], TODAY)  # Time alone is not enough: too few days together since.
+    assert not mellowed(hard, ["2027-02-19", "2027-02-20", *later[:4]], TODAY)  # That day and earlier ones do not count.
+    assert not mellowed({**hard, "occurs_at": "2027-03-10"}, [f"2027-03-{day}" for day in range(11, 30)], TODAY)
+    assert mellowed(hard, later, datetime.date(2027, 3, 22)) and not mellowed(hard, later, datetime.date(2027, 3, 21))
+    # Dated to a month only, it counts from the month's end; without a date, from the day it was recorded.
+    assert not mellowed({**hard, "occurs_at": "2027-02"}, later, datetime.date(2027, 3, 29))
+    assert mellowed({**hard, "occurs_at": "2027-02"}, later, TODAY)
+    assert mellowed({**hard, "occurs_at": None, "recorded_at": "2027-02-20T09:00:00Z"}, later, TODAY)
+    assert not mellowed({**hard, "occurs_at": None, "recorded_at": None}, later, TODAY)
+
+
+def test_the_block_marks_a_recent_hard_time_to_be_left_alone_and_a_mellowed_one_as_come_through():
+    moments = [{"id": "h1", "text": "We argued about the budget.", "moment": "hard", "mellowed": True,
+                "occurs_at": "2027-02-20"},
+               {"id": "m1", "text": "We finished the plan.", "moment": "other", "occurs_at": "2027-03-05"},
+               {"id": "h2", "text": "I forgot the reminder I promised.", "moment": "hard", "mellowed": False,
+                "occurs_at": "2027-03-25"}]
+    context = relationship_context(state(shared_moments=moments))
+    block = context["block"]
+    assert ("- 20 Feb: We argued about the budget. (id: h1; a hard time you came through together: it can be "
+            "remembered without the old weight)") in block
+    assert "- 5 Mar: We finished the plan. (id: m1)\n" in block
+    assert ("- 25 Mar: I forgot the reminder I promised. (id: h2; a hard time, still recent: leave it unless the "
+            "user brings it up, and be gentle when they do)") in block
+    # Mellowing changes what decides a refresh, so the host receives the block again once.
+    later = relationship_context(state(shared_moments=[*moments[:2], {**moments[2], "mellowed": True}]))
+    assert later["stable"] != context["stable"]
 
 
 def test_a_new_relationship_with_nothing_beyond_the_default_renders_no_block():
@@ -428,6 +462,26 @@ def test_familiarity_crosses_its_thresholds_with_the_numbers_the_page_shows(brai
         "payload": {"idempotency_key": uid(), "selector": {"kind": "events", "ids": [first["note_id"]]},
                     "mode": "erase_content", "expected_scope_generation": generation}})
     assert relationship(service, principal, ident, today=TODAY)["familiarity"]["level"] == "getting_to_know"
+
+
+def test_a_hard_time_counts_toward_familiarity_and_mellows_as_the_two_keep_talking(brain, monkeypatch):
+    service, principal, ident = brain
+    days_of_conversation(brain, monkeypatch, 3, start=datetime.date(2027, 2, 18))
+    hard = note(brain, "We argued about the budget and I had it wrong.", kind="milestone", shared=True,
+                moment="hard", occurs_at="2027-02-20")
+    note(brain, "Our first conversation.", kind="milestone", shared=True, occurs_at="2027-02-18")
+    result = relationship(service, principal, ident, today=TODAY)
+    assert result["familiarity"]["shared_moments"] == 2  # A hard time is part of the history too.
+    found = {moment["id"]: moment for moment in result["shared_moments"]}
+    assert found[hard["note_id"]]["moment"] == "hard" and found[hard["note_id"]]["mellowed"] is False
+    assert "a hard time, still recent" in result["block"]
+    assert all("mellowed" not in moment for moment in result["shared_moments"] if moment["id"] != hard["note_id"])
+    days_of_conversation(brain, monkeypatch, 5, start=datetime.date(2027, 3, 1))
+    assert relationship(service, principal, ident, today=datetime.date(2027, 3, 21))["shared_moments"][-1][
+        "mellowed"] is False  # Five later days, but only 29 days on.
+    result = relationship(service, principal, ident, today=TODAY)
+    assert {moment["id"]: moment for moment in result["shared_moments"]}[hard["note_id"]]["mellowed"] is True
+    assert "a hard time you came through together" in result["block"] and "still recent" not in result["block"]
 
 
 def test_a_missed_commitment_is_shown_once_and_kept_ones_are_recorded(installation):
