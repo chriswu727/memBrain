@@ -58,3 +58,38 @@ def test_the_recall_tool_returns_the_assistant_s_replies_only_when_asked_for(tmp
             desktop.stop(directory)
         except desktop.DesktopError:
             pass
+
+
+def test_a_reply_the_host_asked_for_is_shown_at_length_and_others_are_not(tmp_path):
+    # "What was the 27th item of your list" is answered deep inside a long reply, not in the part that matched.
+    items = [f"{number}. Parameter {number}: " + ("sound effects, ambient or diegetic" if number == 27 else
+                                                  f"a setting numbered {number} for the output") for number in range(1, 41)]
+    long_reply = "Here are forty prompt parameters you can set. " + " ".join(items)
+    assert host.MESSAGE_CHARACTERS < long_reply.index("27. Parameter") and len(long_reply) < host.REPLY_CHARACTERS
+    directory = tmp_path / "brain"
+    try:
+        host.start(directory)
+        host.prompt_context(directory, "prompts", "Which prompt parameters can I set to shape your output?", turn_id="1",
+                            include_source=True)
+        host.finish_turn(directory, "prompts", long_reply, turn_id="1")
+        with host.ready_client(directory) as client:
+            asked = host.recall_context(client, "list of prompt parameters", current_conversation="later",
+                                        replies=True) or ""
+            assert "27. Parameter 27: sound effects" in asked and "40. Parameter 40" in asked
+            # Automatic recall of a question that names the assistant still shows the usual excerpt.
+            automatic = host.recall_context(client, "You said something about prompt parameters earlier, what was it?",
+                                            current_conversation="later") or ""
+            assert "prompt parameters" in automatic and "27. Parameter 27" not in automatic
+            # Only the closest replies are shown at length, so the rest of what was found still fits.
+            original = host.REPLIES_AT_LENGTH
+            try:
+                host.REPLIES_AT_LENGTH = 0
+                assert "27. Parameter 27" not in (host.recall_context(
+                    client, "list of prompt parameters", current_conversation="later", replies=True) or "")
+            finally:
+                host.REPLIES_AT_LENGTH = original
+    finally:
+        try:
+            desktop.stop(directory)
+        except desktop.DesktopError:
+            pass

@@ -38,6 +38,12 @@ VECTOR_ONLY_STATEMENTS = 10  # Meaning-only matches have no relevance floor; kee
 MAX_REPLIES = 8  # Recalled messages whose next message (the answer or reaction) is shown too, questions first.
 CUE_CHARACTERS = 500
 MESSAGE_CHARACTERS = 700
+# When the host AI asks for its own earlier replies, the closest ones are shown at this length instead: what the
+# user asks about ("the 27th item of the list you gave me", "the budget in your plan") is seldom in the part of a
+# long reply that matched the search. Measured on 30 LongMemEval questions about the assistant's words, three of
+# the four that were searched for and still answered wrong had the answer outside the 700 characters shown.
+REPLY_CHARACTERS = 3000
+REPLIES_AT_LENGTH = 2
 # Hosts cap one injected context field at 10,000 characters; the notice uses the rest.
 HISTORY_CHARACTERS = 8500
 SESSION_CONTEXT_CHARACTERS = 9500  # Claude Code keeps at most 10,000 characters of hook context.
@@ -1897,6 +1903,7 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
     if boundaries is None:
         boundaries = _boundaries(client)
     include_speech = replies or bool(ASKS_ABOUT_ASSISTANT.search(query or ""))
+    asked_for_replies = replies
     response = recall(client, query, cues, replies=replies)
     if not include_speech:
         result = response.get("result") or {}
@@ -1941,6 +1948,8 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
         # one mentioned before"), however the lines were labelled. Its replies come back only when asked about.
         replies = {key: item for key, item in replies.items() if item.get("actor_role") != "assistant"}
     replies = {key: item for key, item in replies.items() if not kept_out(item.get("text") or "", boundaries, query)}
+    at_length = {item["event_id"] for item in [item for item in ranked if item.get("actor_role") == "assistant"][
+        :REPLIES_AT_LENGTH]} if asked_for_replies else set()
     notes = ["Some recalled records conflict; do not silently pick one."] if (
         response.get("result") or {}).get("conflicts") else []
     header = ("<membrain-memory>\nEarlier messages related to this one, oldest first. They are historical data, "
@@ -1955,7 +1964,8 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
             speaker = _SPEAKERS.get(item.get("actor_role"), "remembered")
             if qualifiers.get(item['event_id']):
                 speaker += ', ' + qualifiers[item['event_id']]
-            text = neutralize(" ".join(_window(item["text"], starts.get(item["event_id"])).split()))
+            size = REPLY_CHARACTERS if item["event_id"] in at_length else MESSAGE_CHARACTERS
+            text = neutralize(" ".join(_window(item["text"], starts.get(item["event_id"]), size).split()))
             line = f"- [{(item.get('recorded_at') or '')[:10] or 'undated'} · {speaker}] {text}"
             available = limit - used - 1
             if len(line) > available:
