@@ -19,7 +19,7 @@ The first start creates a local PostgreSQL database inside AstrBot's `data/plugi
 
 - **Before each model request** it appends to the system prompt: the notes the bot keeps about this person, their messages from earlier days, and earlier messages related to the current one.
 - **After each reply** it stores the person's message and the reply.
-- **Tools** for the model: `membrain_note` (keep a lasting fact, replacing an outdated one), `membrain_search`, `membrain_boundary` (a topic this person asked the bot not to bring up), `membrain_pause` and `membrain_resume` (when someone says "don't remember this").
+- **Tools** for the model: `membrain_note` (keep a lasting fact, replacing an outdated one), `membrain_search` (with `my_replies` when the person asks about something the bot said earlier), `membrain_boundary` (a topic this person asked the bot not to bring up), `membrain_consolidate` (index this person's earlier messages so memory can find them later, when the memory notice asks for it once five or more await), `membrain_pause` and `membrain_resume` (when someone says "don't remember this"). memBrain calls no model to index messages: the bot's own model writes the cues.
 
 Boundaries support aliases in any language and belong to the same person and group scope as their notes. The topic stays out of automatic context and searches unless the person raises it; the memory page can remove the boundary. A note with `kind: "milestone", shared: true` records a shared moment, and `affect` attaches a feeling with its evidence.
 
