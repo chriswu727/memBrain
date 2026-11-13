@@ -167,9 +167,14 @@ test("memory carries across OpenClaw sessions through the real runtime",
     assert.doesNotMatch(hidden.context, /brother Tomas's wedding/);
     const raised = JSON.parse(await memory.tool("membrain_search", { query: "Lisbon trip wedding" }));
     assert.match(raised.context, /brother Tomas's wedding/);
+    await memory.beforePromptBuild({ prompt: "I took up pottery on Thursdays.", messages: [] }, { sessionId: "oc-4" });
+    await memory.agentEnd({ success: true, messages: [{ role: "assistant", content: "Nice." }] }, { sessionId: "oc-4" });
     // Each tool call is a new process: the batch's number travels with the cues.
     const batch = JSON.parse(await memory.tool("membrain_consolidate", {}));
     assert.ok(batch.messages.length > 0 && Number.isInteger(batch.reviewed_through));
+    // Messages about a topic the user asked not to have raised are never handed out for indexing.
+    assert.doesNotMatch(JSON.stringify(batch.messages), /Lisbon|Tomas/);
+    assert.match(JSON.stringify(batch.messages), /pottery/);
     assert.match(batch.instructions, new RegExp(`reviewed_through = ${batch.reviewed_through}`));
     assert.match(JSON.parse(await memory.tool("membrain_consolidate", { cues: [] })).error, /reviewed_through/);
     const saved = JSON.parse(await memory.tool("membrain_consolidate",

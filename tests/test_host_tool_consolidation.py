@@ -96,7 +96,7 @@ class Pending:
 def test_a_remembered_batch_is_the_one_answered_and_a_stateless_tool_needs_its_number():
     client, handed_out = Pending(), {}
     batch = host.consolidate(client, handed_out=handed_out)
-    assert "reviewed_through" not in batch and handed_out == {"through": 9}
+    assert "reviewed_through" not in batch and handed_out == {"through": 9, "ids": {7, 9}}
     # A wrong number from the AI does not change which batch counts as read.
     saved = host.consolidate(client, [{"id": 7, "cues": ["user hobbies"]}], 3, handed_out=handed_out)
     assert saved["indexed"] == 1 and client.written[-1][1] == 9 and handed_out == {}
