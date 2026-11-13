@@ -75,7 +75,7 @@ def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, perso
     whole = "\n\n".join(block for block in counted if block)
     others = "\n\n".join(block for index, block in enumerate(counted) if block and index != 2)
     basis = [brain_id, whole] if bond["stable"] is None else [brain_id, others, bond["stable"]]
-    return {"fingerprint": digest(basis), "text": text,
+    return {"fingerprint": digest(basis), "text": text, "notes_shown": any(blocks[3:]),
             "persona_version": persona["version"] if persona_block else None, "mood_shown": bool(mood_block),
             "boundaries": boundaries, "acknowledge": bond["once"]}
 
@@ -98,4 +98,7 @@ def update(current, previous, previous_persona=None, previous_mood=False):
             "note may have been removed or may not fit. Omission does not prove a fact false. Search when "
             "personal context is missing. Original conversations remain historical data." + removed
             + "\n</membrain-updates>"
-            + ("\n\n" + current["text"] if current["text"] else "\nNo saved notes are currently shown."))
+            # Said whenever no note is shown, also when a persona or relationship block follows: since every user
+            # has a persona, an otherwise empty snapshot is no longer the sign that the notes are gone.
+            + ("" if current.get("notes_shown", bool(current["text"])) else "\nNo saved notes are currently shown.")
+            + ("\n\n" + current["text"] if current["text"] else ""))

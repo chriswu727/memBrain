@@ -38,6 +38,17 @@ def test_corrected_and_deleted_notes_refresh_even_when_all_user_history_was_load
     client.notes = {"items": []}
     removed = host.prompt_context(tmp_path, "s2", "What is saved now?")
     assert "No saved notes are currently shown" in removed and "Omission does not prove a fact false" in removed
+    # With a persona block in the snapshot the notes are just as gone, and the notice still says so.
+    from membrain.host_context import snapshot, update
+    from membrain.persona import normalize_card
+
+    card = {"version": 1, "card": normalize_card({"traits": ["calm"]})}
+    with_persona = snapshot({"items": []}, brain_id="b", tools=None, persona=card)
+    assert with_persona["text"].startswith("<membrain-persona") and with_persona["notes_shown"] is False
+    refreshed = update(with_persona, "an earlier fingerprint")
+    assert "</membrain-updates>\nNo saved notes are currently shown.\n\n<membrain-persona" in refreshed
+    shown = snapshot({"items": [note("p", "Prefers short replies.")]}, brain_id="b", tools=None, persona=card)
+    assert shown["notes_shown"] is True and "No saved notes" not in update(shown, "an earlier fingerprint")
 
 
 def test_a_failed_refresh_does_not_publish_an_empty_snapshot_or_forget_the_last_fingerprint(tmp_path, monkeypatch):
