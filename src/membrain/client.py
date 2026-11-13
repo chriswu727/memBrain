@@ -395,6 +395,16 @@ class MemoryClient:
         """Reject a suggestion; none of the same kind is offered again for 30 days."""
         return self._request("POST", self._persona_path(brain_id, f"/proposals/{quote(proposal_id, safe='')}/reject"))
 
+    def report_manner_feedback(self, kind: str, *, source_event_ids: Sequence[str] = (),
+                               source_messages: Sequence[Mapping[str, Any]] = (),
+                               brain_id: str | None = None) -> JsonObject:
+        """The host AI reports that the user commented on the companion's manner (one of the persona feedback
+        kinds), citing the user messages it came from. It counts with the feedback memBrain recognises itself; only
+        the user can accept a resulting persona change."""
+        return self._request("POST", self._persona_path(brain_id, "/feedback"),
+                             json={"kind": kind, "source_event_ids": list(source_event_ids),
+                                   "source_messages": [dict(reference) for reference in source_messages]})
+
     def _relationship_path(self, brain_id: str | None, suffix: str = "") -> str:
         return f"v1/brains/{quote(self._scope(brain_id=brain_id)['brain_ref'], safe='')}/relationship{suffix}"
 

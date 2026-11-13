@@ -6,9 +6,17 @@ behaves at least ``THRESHOLD`` times, in any sessions ("you're too formal", "能
 suggestion (a "proposal") that names the card edit and the messages it came from. Accepting it saves a new persona
 version with ``made_by="feedback"`` and a reason citing those messages; rolling back is the ordinary restore.
 
-Detection is deterministic and deliberately narrow: a small fixed table of feedback kinds (``KINDS``), each with
-English and Chinese patterns that only match feedback addressed to the companion's manner ("your replies are too
-long", not "the formal dinner was too long"), and the edit it proposes. There is no model call.
+Two sources say which messages are feedback of one of the kinds in ``KINDS``, and both feed the same counting below:
+
+- The host AI reports it (``report_feedback``, the ``memory_manner_feedback`` tool): the kind and the user messages
+  it came from. It understands paraphrases and every language. A report stores the kind and message ids (or the
+  exact reference of the current message, which is recorded when the turn finishes), never words. A reported
+  message counts only while it is itself eligible (below).
+- A small fixed table (``detect``): English and Chinese patterns that only match feedback addressed to the
+  companion's manner ("your replies are too long", not "the formal dinner was too long"). There is no model call.
+
+A message counts once for each kind it gives, whichever source saw it, or both: the counting is by message and kind,
+so feedback the table recognises and the host AI also reports is never counted twice.
 
 What counts as feedback: a current, undeleted message the user wrote (``actor_role`` user) in an ordinary
 conversation, recorded after the latest persona reset marker (written by "Delete personality history"). Role-play,
@@ -56,6 +64,10 @@ ARCHIVE_PRODUCER = "archive-import"
 # Written when a native feedback message arrives: {"persona_feedback_seen": "<event id>"}; ids only, never words.
 SEEN = "persona_feedback_seen"
 SEEN_PREFIX = '{"' + SEEN + '"'
+# Written when the host AI reports feedback: {"persona_feedback_reported": {"kind": ..., "event_id": ...}}, or with
+# "message" (producer_ref, source_event_key, source_revision) for a message not recorded yet. Ids only, never words.
+REPORTED = "persona_feedback_reported"
+REPORTED_PREFIX = '{"' + REPORTED + '"'
 THRESHOLD = 3
 PAUSE = _datetime.timedelta(days=30)
 MAX_SOURCES = 10  # The most recent matching messages a suggestion quotes.
@@ -297,6 +309,20 @@ def _clock(now) -> _datetime.datetime:
     return _time(now if now is not None else _now())
 
 
+def _reference(value) -> dict:
+    """An exact message reference, as the host's source block gives it; ValueError for anything else."""
+    if (not isinstance(value, dict) or set(value) != {"producer_ref", "source_event_key", "source_revision"}
+            or any(not isinstance(value[name], str) or not 0 < len(value[name]) <= 256
+                   for name in ("producer_ref", "source_event_key"))
+            or type(value["source_revision"]) is not int or not 1 <= value["source_revision"] <= 2**63 - 1):
+        raise ValueError("source reference")
+    return {name: value[name] for name in ("producer_ref", "source_event_key", "source_revision")}
+
+
+def _key(reference: dict) -> tuple:
+    return reference["producer_ref"], reference["source_event_key"], reference["source_revision"]
+
+
 def _ids(value, low, high) -> list[str]:
     if (not isinstance(value, list) or not low <= len(value) <= high or len(set(value)) != len(value)
             or not all(isinstance(item, str) and 0 < len(item) <= 200 for item in value)):
@@ -327,6 +353,16 @@ def _entry(row) -> dict | None:
             if not isinstance(stored[SEEN], str) or not 0 < len(stored[SEEN]) <= 200:
                 return None
             return {**base, "type": "seen", "event_id": stored[SEEN]}
+        if set(stored) == {REPORTED}:
+            report = stored[REPORTED]
+            if not isinstance(report, dict) or report.get("kind") not in KINDS:
+                return None
+            if set(report) == {"kind", "event_id"} and isinstance(report["event_id"], str) and (
+                    0 < len(report["event_id"]) <= 200):
+                return {**base, "type": "reported", "kind": report["kind"], "event_id": report["event_id"]}
+            if set(report) == {"kind", "message"}:
+                return {**base, "type": "reported", "kind": report["kind"], "message": _reference(report["message"])}
+            return None
         if set(stored) == {"persona_proposal_decision", "proposal_id", "kind", "decided_at", "version"}:
             decision, version = stored["persona_proposal_decision"], stored["version"]
             if decision not in ("accepted", "rejected") or stored["kind"] not in KINDS:
@@ -353,8 +389,10 @@ _VISIBLE = ("tenant_id=%s AND owner_id=%s AND brain_id=%s AND is_current AND NOT
 def _records(service, conn, principal, brain_id) -> list[dict]:
     rows = conn.execute(
         f"SELECT producer_ref,document FROM memory_events WHERE {_VISIBLE} AND conversation_id=%s "
+        "AND document->'observed'->'content'->>'text' NOT LIKE %s "
         "AND document->'observed'->'content'->>'text' NOT LIKE %s ORDER BY sequence DESC LIMIT 2000",
-        (*service._params(principal, brain_id), PROPOSALS_CONVERSATION, SEEN_PREFIX + "%")).fetchall()
+        (*service._params(principal, brain_id), PROPOSALS_CONVERSATION, SEEN_PREFIX + "%",
+         REPORTED_PREFIX + "%")).fetchall()
     return list(reversed([entry for entry in map(_entry, rows) if entry is not None]))
 
 
@@ -367,6 +405,44 @@ def _seen(service, conn, principal, brain_id) -> list[str]:
         "AND document->'observed'->'content'->>'text' LIKE %s",
         (*service._params(principal, brain_id), PROPOSALS_CONVERSATION, SEEN_PREFIX + "%")).fetchall()
     return [entry["event_id"] for entry in map(_entry, rows) if entry is not None and entry["type"] == "seen"]
+
+
+def _reports(service, conn, principal, brain_id) -> list[dict]:
+    """Every feedback report the host AI made, oldest first."""
+    rows = conn.execute(
+        f"SELECT producer_ref,document FROM memory_events WHERE {_VISIBLE} AND conversation_id=%s "
+        "AND document->'observed'->'content'->>'text' LIKE %s ORDER BY sequence",
+        (*service._params(principal, brain_id), PROPOSALS_CONVERSATION, REPORTED_PREFIX + "%")).fetchall()
+    return [entry for entry in map(_entry, rows) if entry is not None and entry["type"] == "reported"]
+
+
+def _recorded(service, conn, principal, brain_id, keys) -> dict[tuple, str]:
+    """The ids of the current, visible messages with these exact references (producer, key, revision)."""
+    keys = list(dict.fromkeys(keys))
+    if not keys:
+        return {}
+    rows = conn.execute(
+        "SELECT id,producer_ref,source_key,source_revision FROM memory_events "
+        f"WHERE {_VISIBLE} AND (producer_ref,source_key,source_revision) IN "
+        "(SELECT * FROM unnest(%s::text[],%s::text[],%s::bigint[]))",
+        (*service._params(principal, brain_id), [key[0] for key in keys], [key[1] for key in keys],
+         [key[2] for key in keys])).fetchall()
+    return {(row["producer_ref"], row["source_key"], row["source_revision"]): row["id"] for row in rows}
+
+
+def _reported(service, conn, principal, brain_id) -> dict[str, set[str]]:
+    """The kinds the host AI reported for each message id. A report on a message that was not recorded yet counts
+    once that message is recorded. Whether the message itself may count is checked where it is read
+    (``_candidates``), as for the table's own matches."""
+    reports = _reports(service, conn, principal, brain_id)
+    found = _recorded(service, conn, principal, brain_id,
+                      [_key(entry["message"]) for entry in reports if "message" in entry])
+    result: dict[str, set[str]] = {}
+    for entry in reports:
+        ident = found.get(_key(entry["message"])) if "message" in entry else entry["event_id"]
+        if ident:
+            result.setdefault(ident, set()).add(entry["kind"])
+    return result
 
 
 def latest_marker(service, conn, principal, brain_id) -> dict | None:
@@ -394,9 +470,10 @@ def _reserved() -> list[str]:
             MOOD_CONVERSATION, RELATIONSHIP_CONVERSATION, "membrain-memory-page"]
 
 
-def _candidates(service, conn, principal, brain_id, *, after: int, ids=None, seen=(), newest=True):
+def _candidates(service, conn, principal, brain_id, *, after: int, ids=None, seen=(), reported=(), newest=True):
     """Candidate rows after ``after`` that may count as feedback: the newest ``SCAN_ROWS`` (newest first), or with
-    ``newest=False`` the oldest ``SCAN_ROWS`` (oldest first)."""
+    ``newest=False`` the oldest ``SCAN_ROWS`` (oldest first). Messages the host AI reported (``reported``) are read
+    whatever their words and length; every other rule applies to them as to the rest."""
     return conn.execute(
         "SELECT id,sequence,conversation_id,document->'observed'->'content'->>'text' AS text,"
         "document->'system_time'->>'recorded_at' AS recorded_at FROM memory_events "
@@ -414,18 +491,21 @@ def _candidates(service, conn, principal, brain_id, *, after: int, ids=None, see
         "document->>'imported_producer_ref' IS NOT NULL "
         "AND document->>'imported_producer_ref' NOT IN ('membrain-memory-page', %s) "
         "AND document->>'imported_producer_ref' NOT LIKE 'membrain-import:%%')) "
-        "AND length(document->'observed'->'content'->>'text') <= %s "
         "AND (%s::text[] IS NULL OR id = ANY(%s::text[])) "
-        "AND document->'observed'->'content'->>'text' ~* %s ORDER BY sequence " + ("DESC" if newest else "ASC")
+        "AND (id = ANY(%s::text[]) OR (length(document->'observed'->'content'->>'text') <= %s "
+        "AND document->'observed'->'content'->>'text' ~* %s)) ORDER BY sequence " + ("DESC" if newest else "ASC")
         + " LIMIT %s",
         (*service._params(principal, brain_id), after, _reserved(), ids, ARCHIVE_PRODUCER, list(seen), ARCHIVE_PRODUCER,
-         SCAN_CHARACTERS, ids, ids, STEMS, SCAN_ROWS)).fetchall()
+         ids, ids, list(reported), SCAN_CHARACTERS, STEMS, SCAN_ROWS)).fetchall()
 
 
-def _items(rows) -> list[dict]:
+def _items(rows, reported=None) -> list[dict]:
+    """The rows that give feedback, each with its kinds in table order: what the table recognises and what the host
+    AI reported, each kind once."""
     result = []
     for row in rows:
-        kinds = detect(row["text"])
+        found, given = detect(row["text"]), (reported or {}).get(row["id"], ())
+        kinds = [kind for kind in KINDS if kind in found or kind in given]
         if kinds:
             result.append({"event_id": row["id"], "sequence": row["sequence"], "text": row["text"],
                            "recorded_at": row["recorded_at"], "conversation_id": row["conversation_id"],
@@ -433,20 +513,23 @@ def _items(rows) -> list[dict]:
     return result
 
 
-def _feedback(service, conn, principal, brain_id, *, after: int, ids=None, seen=()) -> list[dict]:
+def _feedback(service, conn, principal, brain_id, *, after: int, ids=None, seen=(), reported=None) -> list[dict]:
     """Messages after ``after`` that count as feedback, oldest first, each with the kinds it gives. With ``ids``,
-    only those messages (to check a suggestion's sources); otherwise the most recent candidates."""
-    rows = _candidates(service, conn, principal, brain_id, after=after, ids=ids, seen=seen)
-    return _items(reversed(rows))
+    only those messages (to check a suggestion's sources); otherwise the most recent candidates. ``reported``: the
+    host AI's reports (``_reported``)."""
+    rows = _candidates(service, conn, principal, brain_id, after=after, ids=ids, seen=seen, reported=reported or ())
+    return _items(reversed(rows), reported)
 
 
-def _first_feedback(service, conn, principal, brain_id, kind: str, *, after: int, seen=()) -> dict | None:
+def _first_feedback(service, conn, principal, brain_id, kind: str, *, after: int, seen=(),
+                    reported=None) -> dict | None:
     """The first message after ``after`` that gives feedback of ``kind``, or None. Every later message is read, in
     pages of ``SCAN_ROWS``, so however long the history is, an earlier message is never missed; memory stays bounded
     by one page."""
     while True:
-        rows = _candidates(service, conn, principal, brain_id, after=after, seen=seen, newest=False)
-        found = next((item for item in _items(rows) if kind in item["kinds"]), None)
+        rows = _candidates(service, conn, principal, brain_id, after=after, seen=seen, reported=reported or (),
+                           newest=False)
+        found = next((item for item in _items(rows, reported) if kind in item["kinds"]), None)
         if found is not None or len(rows) < SCAN_ROWS:
             return found
         after = rows[-1]["sequence"]
@@ -507,6 +590,7 @@ class _State:
         self.marker = latest_marker(service, conn, principal, brain_id)
         self.after = self.marker["applies_from_sequence"] if self.marker else 0
         self.records = _records(service, conn, principal, brain_id)
+        self.reported = _reported(service, conn, principal, brain_id)
         self.card, self.version = _current_card(service, conn, principal, brain_id)
         self.decisions = {entry["proposal_id"]: entry for entry in self.records if entry["type"] == "decision"}
         self.decision_sequences, self.accepted_sequences = {}, {}
@@ -518,10 +602,11 @@ class _State:
         proposals = [entry for entry in self.records if entry["type"] == "proposal"]
         undecided = sorted({source for entry in proposals for source in entry["source_event_ids"]})
         valid = {item["event_id"]: item for item in _feedback(
-            service, conn, principal, brain_id, after=self.after, ids=undecided)} if undecided else {}
+            service, conn, principal, brain_id, after=self.after, ids=undecided,
+            reported=self.reported)} if undecided else {}
         self._contradiction = lambda kind, after: _first_feedback(
             service, conn, principal, brain_id, OPPOSITES[kind], after=max(self.after, after),
-            seen=self._seen_ids(service, conn, principal, brain_id))
+            seen=self._seen_ids(service, conn, principal, brain_id), reported=self.reported)
         self._seen_cache = None
         self.proposals = [self._status(entry, valid) for entry in proposals]
 
@@ -606,7 +691,7 @@ def _sync(service, conn, principal, brain, now: _datetime.datetime, kinds=None) 
             continue
         if feedback is None:
             feedback = _feedback(service, conn, principal, brain["id"], after=state.after,
-                                 seen=_seen(service, conn, principal, brain["id"]))
+                                 seen=_seen(service, conn, principal, brain["id"]), reported=state.reported)
         after = state.feedback_cutoff(kind)
         opposite = OPPOSITES.get(kind)
         if opposite:
@@ -729,26 +814,115 @@ def reject_proposal(service, principal, brain_id: str, proposal_id: str, *, now=
     return _decide(service, principal, brain_id, proposal_id, "rejected", now)
 
 
+# The host AI as a source ------------------------------------------------------------------------------------------
+
+UNUSABLE_SOURCE = ("Manner feedback must cite the user's own messages in an ordinary conversation of this memory, "
+                   "recorded after the latest personality reset and not deleted. Nothing was recorded.")
+
+
+def _sources(source_event_ids, source_messages) -> tuple[list[str], list[dict]]:
+    try:
+        if not all(isinstance(value or [], (list, tuple)) for value in (source_event_ids, source_messages)):
+            raise ValueError("sources")
+        ids = _ids(list(dict.fromkeys(source_event_ids or [])), 0, MAX_SOURCES)
+        messages = list({_key(reference): reference
+                         for reference in map(_reference, list(source_messages or []))}.values())
+    except (ValueError, TypeError):
+        raise DomainError("validation_failed", "Cite the messages as source_event_ids (message ids) or "
+                                               "source_messages (exact producer, key and revision).") from None
+    if not 1 <= len(ids) + len(messages) <= MAX_SOURCES:
+        raise DomainError("validation_failed", f"Cite 1 to {MAX_SOURCES} user messages the feedback came from.")
+    return ids, messages
+
+
+def report_feedback(service, principal, brain_id: str, kind: str, *, source_event_ids=(), source_messages=(),
+                    now=None) -> dict:
+    """The host AI reports that the user gave feedback of ``kind`` on the companion's manner, in these messages.
+
+    It feeds the same counting as the table's own matches (``THRESHOLD``, ``PAUSE``, decisions using up feedback,
+    ``OPPOSITES``); only the source of the reading is new. Each cited message that is already recorded must be the
+    user's own message in an ordinary conversation, after the latest persona reset marker and not deleted, or the
+    whole report is refused and nothing is stored. A reference to the current message (``source_messages`` from the
+    host's source block) may not be recorded yet: it is kept, and counts once that message is recorded and passes
+    the same checks. Reporting the same kind for the same message again changes nothing.
+
+    The result says what was recorded and nothing about suggestions: a pending suggestion never reaches the agent.
+    """
+    if kind not in KINDS:
+        raise DomainError("validation_failed", f"kind must be one of {', '.join(KINDS)}.")
+    ids, messages = _sources(source_event_ids, source_messages)
+    when = _clock(now)
+    with service.database.transaction(principal) as conn:
+        conn.execute("SET LOCAL lock_timeout = '5s'")
+        brain = service._brain(conn, principal, brain_id)
+        marker = latest_marker(service, conn, principal, brain_id)
+        found = _recorded(service, conn, principal, brain_id, [_key(reference) for reference in messages])
+        recorded = list(dict.fromkeys(ids + [found[_key(reference)] for reference in messages
+                                             if _key(reference) in found]))
+        waiting = [reference for reference in messages if _key(reference) not in found]
+        seen = _seen(service, conn, principal, brain_id)
+        if recorded:
+            usable = {row["id"] for row in _candidates(
+                service, conn, principal, brain_id, after=marker["applies_from_sequence"] if marker else 0,
+                ids=recorded, seen=seen, reported=recorded)}
+            if any(ident not in usable for ident in recorded):
+                raise DomainError("source_unavailable", UNUSABLE_SOURCE)
+        reported = _reported(service, conn, principal, brain_id)
+        known = {_key(entry["message"]) for entry in _reports(service, conn, principal, brain_id)
+                 if "message" in entry and entry["kind"] == kind}
+        added = 0
+        for ident in recorded:
+            if kind in reported.get(ident, ()):
+                continue
+            _write(service, conn, principal, brain, {REPORTED: {"kind": kind, "event_id": ident}})
+            if ident not in seen:  # As for a match of the table, so it still counts after an archive restore.
+                _write(service, conn, principal, brain, {SEEN: ident})
+            added += 1
+        for reference in waiting:
+            if _key(reference) in known:
+                continue
+            _write(service, conn, principal, brain, {REPORTED: {"kind": kind, "message": reference}})
+            added += 1
+        if added and recorded:
+            _sync(service, conn, principal, brain, when, [kind])
+    return {"kind": kind, "label": KINDS[kind]["label"][0], "recorded": added,
+            "unchanged": len(recorded) + len(waiting) - added, "waiting_for_message": len(waiting)}
+
+
+def _waiting(service, conn, principal, brain_id, event) -> list[str]:
+    """The kinds the host AI reported for this message before it was recorded (by its exact reference)."""
+    key = (event.get("producer_ref"), event.get("source_event_key"), event.get("source_revision"))
+    given = {entry["kind"] for entry in _reports(service, conn, principal, brain_id)
+             if "message" in entry and _key(entry["message"]) == key}
+    return [kind for kind in KINDS if kind in given]
+
+
 def observe_feedback(service, conn, principal, brain, target, event, event_id) -> None:
-    """Called for each new user message: when it is feedback, store a suggestion if it brought its kind to the
-    threshold. Never fails the observation: any error is rolled back to a savepoint and logged."""
+    """Called for each new user message: when it is feedback (the table matches it, or the host AI reported it
+    before it was recorded), store a suggestion if it brought its kind to the threshold. A report on the message's
+    reference is stored again by the message's id, so it stays tied to the message through an archive restore.
+    Never fails the observation: any error is rolled back to a savepoint and logged."""
     if (target.get("conversation_ref") in _reserved() or event.get("producer_ref") == "membrain-memory-page"
             or str(event.get("producer_ref", "")).startswith("membrain-import:")
             or event.get("interpretation_hint", "unknown") not in ("unknown", "real_world_report")
             or event.get("event_kind") != "message"):
         return
     kinds = detect((event.get("content") or {}).get("text"))
-    if not kinds:
-        return
     sequence = brain["durable_sequence"]
     try:
         with conn.transaction():
+            waiting = _waiting(service, conn, principal, brain["id"], event)
+            if not kinds and not waiting:
+                return
             row = conn.execute(
                 "SELECT document->'system_time'->>'recorded_at' AS recorded_at FROM memory_events "
                 f"WHERE {_VISIBLE} AND id=%s", (*service._params(principal, brain["id"]), event_id)).fetchone()
             if row is not None:
+                for kind in waiting:
+                    _write(service, conn, principal, brain, {REPORTED: {"kind": kind, "event_id": event_id}})
                 _write(service, conn, principal, brain, {SEEN: event_id})
-                _sync(service, conn, principal, brain, _time(row["recorded_at"]), kinds)
+                _sync(service, conn, principal, brain, _time(row["recorded_at"]),
+                      [kind for kind in KINDS if kind in kinds or kind in waiting])
     except Exception:  # A suggestion must never stop a message from being recorded.
         brain["durable_sequence"] = sequence
         _logger.warning("persona feedback check failed", exc_info=True)

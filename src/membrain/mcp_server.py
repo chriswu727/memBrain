@@ -251,6 +251,21 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
             scopes: other controls may still block capture. This does not confirm message storage."""
             return await asyncio.to_thread(host_recording.resume, installation, current_turn=True, session=session_id)
 
+        from membrain.manner_feedback import TOOL_DESCRIPTION as MANNER_TOOL_DESCRIPTION
+
+        @server.tool(annotations=WRITE, description=MANNER_TOOL_DESCRIPTION)
+        async def memory_manner_feedback(
+            kind: Literal["less_formal", "more_formal", "more_playful", "shorter", "longer", "less_emoji",
+                          "more_emoji"],
+            source_messages: list[dict[str, Any]] | None = None, source_event_ids: list[str] | None = None,
+            recording_capture: str | None = None,
+        ) -> dict[str, Any]:
+            from membrain import manner_feedback
+
+            return await asyncio.to_thread(
+                manner_feedback.report, installation, client, kind, source_event_ids=source_event_ids or (),
+                source_messages=source_messages or (), recording_capture=recording_capture)
+
     @server.tool(annotations=READ_ONLY)
     async def memory_prepare(
         turn_id: str, conversation_id: str, branch_id: str,

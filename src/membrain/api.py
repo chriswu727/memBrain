@@ -117,6 +117,14 @@ class PersonaReset(RuntimeBody):
     reason: PersonaReason | None = None
 
 
+# Feedback on the companion's manner that the host AI reports (P2); the kind and sources are checked by
+# persona_growth.report_feedback, whose messages say what is wrong.
+class MannerFeedback(RuntimeBody):
+    kind: Annotated[str, Field(min_length=1, max_length=40)]
+    source_event_ids: Annotated[list[RuntimeIdentifier], Field(max_length=10)] = []
+    source_messages: Annotated[list[NoteSource], Field(max_length=10)] = []
+
+
 # Relationship (R1). The texts are checked by relationship.py, whose messages say what is wrong.
 class SupportStyleWrite(RuntimeBody):
     text: Annotated[str, Field(max_length=2000)]
@@ -751,6 +759,13 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
         from .persona_growth import reject_proposal
 
         return reject_proposal(service, principal, brain_id, proposal_id)
+
+    @app.post("/v1/brains/{brain_id}/persona/feedback")
+    async def post_manner_feedback(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
+        from .persona_growth import report_feedback
+
+        body = await persona_body(request, MannerFeedback)
+        return await run_in_threadpool(report_feedback, service, principal, brain_id, body.pop("kind"), **body)
 
     async def relationship_body(request: Request, model: type[RuntimeBody]) -> dict:
         document = await read_document(request)

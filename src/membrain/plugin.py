@@ -47,7 +47,7 @@ TRANSCRIPT_TAIL_BYTES = 2 * 1024 * 1024
 HOST_TOOLS = {"openclaw": {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause",
                            "resume": "membrain_resume", "consolidate": "membrain_consolidate",
                            "replies": "my_replies"}}
-TOOLS = ("note", "search", "pause", "resume", "boundary", "consolidate")
+TOOLS = ("note", "search", "pause", "resume", "boundary", "consolidate", "manner_feedback")
 # Hosts that put their own memory files in the prompt; notes imported from them are not shown to them again.
 HOST_SKIPS = {"codex": ("codex",), "openclaw": ("openclaw",)}
 
@@ -286,6 +286,14 @@ def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
                     elif name == "boundary":
                         saved = client.add_boundary(arguments.get("topic", ""), arguments.get("aliases") or ())
                         result = {"boundaries": saved.get("boundaries", [])}
+                    elif name == "manner_feedback":
+                        from . import manner_feedback
+
+                        result = manner_feedback.report(
+                            directory, client, arguments.get("kind"),
+                            source_event_ids=arguments.get("source_event_ids") or (),
+                            source_messages=arguments.get("source_messages") or (),
+                            user_id=user, recording_capture=arguments.get("recording_capture"))
                     elif name == "consolidate":
                         # A new process per call remembers no batch: the AI passes back the batch's number.
                         result = host.consolidate(client, arguments.get("cues"), arguments.get("reviewed_through"))
