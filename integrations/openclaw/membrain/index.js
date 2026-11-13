@@ -139,6 +139,29 @@ const TOOLS = [
         description: "The batch's reviewed_through number, exactly as the first call returned it." },
     } },
   },
+  {
+    name: "membrain_manner_feedback",
+    // The same text as membrain.manner_feedback.TOOL_DESCRIPTION, which tests/test_persona_feedback_host.py checks.
+    description: "Record that the user gave you feedback on how you talk or behave, only when they actually said so: " +
+      "too long (shorter), too short or too thin (longer), too formal or stiff (less_formal), too casual " +
+      "(more_formal), too serious or more jokes please (more_playful), fewer emoji (less_emoji), more emoji " +
+      "(more_emoji). Never record your own guess about what they might like, a comment about someone else, " +
+      "role-play or a quotation, and skip comments that fit none of these kinds. Cite the message it came from: " +
+      "source_messages from the current membrain-source block, or source_event_ids for earlier recorded messages; " +
+      "never invent a source. One kind per call. memBrain counts it with the user's other feedback; after three, " +
+      "the user can accept or reject a change to the persona on their memory page. Keep doing what the user asked " +
+      "in the conversation itself.",
+    parameters: { type: "object", properties: {
+      kind: { type: "string", enum: ["less_formal", "more_formal", "more_playful", "shorter", "longer", "less_emoji",
+        "more_emoji"] },
+      source_messages: { type: "array", maxItems: 10, items: { type: "object", properties: {
+        producer_ref: { type: "string" }, source_event_key: { type: "string" }, source_revision: { type: "integer", minimum: 1 },
+      }, required: ["producer_ref", "source_event_key", "source_revision"] } },
+      source_event_ids: { type: "array", items: { type: "string" }, maxItems: 10 },
+      recording_capture: { type: "string", maxLength: 130,
+        description: "Copy recording_capture from this turn's membrain-source block. Never reuse another turn's value." },
+    }, required: ["kind"] },
+  },
 ];
 
 // Whose memory a turn uses. The owner's own private chats share the owner's memory (the one Claude Code and

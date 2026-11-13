@@ -5,11 +5,13 @@
   "categories": ["memory"],
   "activation": { "onStartup": true },
   "contracts": {
-    "tools": ["membrain_note", "membrain_search", "membrain_boundary", "membrain_pause", "membrain_resume", "membrain_consolidate"]
+    "tools": ["membrain_note", "membrain_search", "membrain_boundary", "membrain_pause", "membrain_resume", "membrain_consolidate",
+      "membrain_manner_feedback"]
   },
   "toolMetadata": {
     "membrain_note": { "sideEffecting": true },
     "membrain_consolidate": { "sideEffecting": true },
+    "membrain_manner_feedback": { "sideEffecting": true },
     "membrain_pause": { "sideEffecting": true },
     "membrain_resume": { "sideEffecting": true }
   },

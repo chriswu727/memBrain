@@ -9,6 +9,8 @@ from astrbot.api.provider import LLMResponse, ProviderRequest
 from astrbot.core.utils.astrbot_path import get_astrbot_plugin_data_path
 
 from membrain.adapters.chatbot import TOOLS, ChatMemory, Speaker
+from membrain.manner_feedback import KINDS as MANNER_KINDS
+from membrain.manner_feedback import TOOL_DESCRIPTION as MANNER_TOOL_DESCRIPTION
 
 _STATE = "membrain"
 # The tools below as memory's notices name them; consolidation is asked for only on hosts that have its tool.
@@ -152,6 +154,24 @@ class MembrainPlugin(star.Star):
         """
         result = await asyncio.to_thread(self.memory.boundary, _speaker(event), topic, aliases or ())
         return json.dumps(result, ensure_ascii=False)
+
+    async def membrain_manner_feedback(self, event: AstrMessageEvent, kind: str, source_messages: list | None = None,
+                                       source_event_ids: list | None = None, recording_capture: str | None = None):
+        result = await asyncio.to_thread(self.memory.manner_feedback, _speaker(event), kind,
+                                         source_messages=source_messages or (), source_event_ids=source_event_ids or (),
+                                         recording_capture=recording_capture)
+        return json.dumps(result, ensure_ascii=False)
+
+    # AstrBot reads a tool's description from its docstring when registering it: the runtime's own text goes in first.
+    membrain_manner_feedback.__doc__ = MANNER_TOOL_DESCRIPTION + f"""
+
+        Args:
+            kind(string): One of {', '.join(MANNER_KINDS)}.
+            source_messages(array[object]): Exact source references from the current membrain-source block.
+            source_event_ids(array[string]): Original recorded message IDs, for an earlier message.
+            recording_capture(string): Copy recording_capture from this turn's membrain-source block; never substitute another turn's value.
+        """
+    membrain_manner_feedback = filter.llm_tool(name="membrain_manner_feedback")(membrain_manner_feedback)
 
     @filter.llm_tool(name="membrain_pause")
     async def membrain_pause(self, event: AstrMessageEvent, hours: float | None = None, until_resumed: bool = False):

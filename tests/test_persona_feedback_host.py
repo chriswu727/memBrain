@@ -8,8 +8,11 @@ Nothing calls a model.
 """
 import asyncio
 import hashlib
+import inspect
+import io
 import json
 import re
+import types
 from dataclasses import replace
 from pathlib import Path
 
@@ -21,6 +24,7 @@ from test_persona_growth import brain as brain
 from test_persona_growth import installation as installation
 
 from membrain import desktop, embedded_database, host, manner_feedback, notes, plugin, plugin_cli
+from membrain.adapters.chatbot import ChatMemory, Speaker
 from membrain.api import create_app
 from membrain.helpers import DomainError, Principal, uid
 from membrain.mcp_server import create_server
@@ -38,6 +42,7 @@ from membrain.persona_growth import (
 )
 
 ROOT = Path(__file__).parents[1]
+OPENCLAW = ROOT / "integrations/openclaw/membrain"
 # Feedback the fixed table cannot read: paraphrases and other languages.
 UNREAD = ("Could you lighten up a bit? You sound like a legal notice.", "Bitte etwas lockerer, du klingst so steif.",
           "Sois moins guindé, s'il te plaît.")
@@ -93,6 +98,78 @@ def test_the_tool_refuses_and_sends_nothing_while_recording_is_paused(tmp_path, 
         "kind": "shorter", "source_event_ids": ["evt-1"]}))
     assert "paused" in result["error"] and "Nothing was saved" in result["error"]
     assert "paused" in manner_feedback.report(tmp_path, Unused(), "shorter", source_event_ids=["e"])["error"]
+
+
+def test_openclaw_and_astrbot_offer_the_tool_with_the_same_text_and_kinds(monkeypatch, tmp_path):
+    from test_chatbot_adapter import _load_astrbot_plugin
+
+    script = (OPENCLAW / "index.js").read_text(encoding="utf-8")
+    declared = script[script.index('name: "membrain_manner_feedback"'):]
+    description = declared[declared.index("description:"):declared.index("parameters:")]
+    assert "".join(re.findall(r'"([^"]*)"', description)) == manner_feedback.TOOL_DESCRIPTION  # Written out in JS.
+    kinds = re.search(r"kind: \{ type: \"string\", enum: \[([^\]]*)\]", declared).group(1)
+    assert tuple(re.findall(r'"(\w+)"', kinds)) == manner_feedback.KINDS
+    manifest = json.loads((OPENCLAW / "openclaw.plugin.json").read_text(encoding="utf-8"))
+    assert "membrain_manner_feedback" in manifest["contracts"]["tools"]
+    assert manifest["toolMetadata"]["membrain_manner_feedback"] == {"sideEffecting": True}
+    _, handlers = _load_astrbot_plugin(monkeypatch, tmp_path)
+    doc = inspect.getdoc(handlers["membrain_manner_feedback"])
+    assert doc.startswith(manner_feedback.TOOL_DESCRIPTION) and all(kind in doc for kind in manner_feedback.KINDS)
+
+
+class Reported:
+    """A client that keeps the reports a host passes on."""
+    brain_id = "brain"
+
+    def __init__(self):
+        self.reports = []
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *exc):
+        pass
+
+    def report_manner_feedback(self, kind, **sources):
+        self.reports.append((kind, sources))
+        return {"recorded": 1, "unchanged": 0, "waiting_for_message": 1}
+
+
+def test_openclaw_and_astrbot_pass_the_report_and_its_sources_and_send_nothing_while_paused(tmp_path, monkeypatch,
+                                                                                            capsys):
+    from test_chatbot_adapter import Event, _load_astrbot_plugin
+
+    client, users = Reported(), []
+    monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: users.append(user_id) or client)
+    reference = [{"producer_ref": "membrain-openclaw", "source_event_key": "turn-1", "source_revision": 1}]
+    stranger = "openclaw:telegram::-1:7"
+
+    def openclaw(arguments):  # OpenClaw's membrain_manner_feedback runs `membrain plugin tool manner_feedback`.
+        assert plugin.run_tool("manner_feedback", tmp_path, stream=io.BytesIO(json.dumps(arguments).encode())) == 0
+        return json.loads(capsys.readouterr().out)
+
+    module, _ = _load_astrbot_plugin(monkeypatch, tmp_path)
+    bot = module.MembrainPlugin.__new__(module.MembrainPlugin)
+    bot.memory = ChatMemory(tmp_path)
+    event = Event("1001", "Way too long, honestly.")
+    person = bot.memory.user_id(module._speaker(event))
+
+    def astrbot(kind, **sources):
+        return json.loads(asyncio.run(bot.membrain_manner_feedback(event, kind, **sources)))
+
+    assert openclaw({"kind": "shorter", "source_messages": reference, "membrain_user": stranger})["recorded"] == 1
+    assert "memory page" in astrbot("shorter", source_event_ids=["evt-1"])["note"]
+    assert client.reports == [("shorter", {"source_event_ids": [], "source_messages": reference}),
+                              ("shorter", {"source_event_ids": ["evt-1"], "source_messages": []})]
+    assert users == [stranger, person]  # Each in the memory of the person who said it.
+    unrecorded = ChatMemory(tmp_path, record_groups=False).manner_feedback(Speaker("telegram", "42", "9"), "shorter")
+    assert "not available" in unrecorded["error"] and len(users) == 2
+    # Each person's own pause covers their reports.
+    host.pause(tmp_path, user_id=stranger)
+    host.pause(tmp_path, user_id=person)
+    assert "paused" in openclaw({"kind": "longer", "source_messages": reference, "membrain_user": stranger})["error"]
+    assert "paused" in astrbot("longer", source_event_ids=["evt-1"])["error"]
+    assert len(client.reports) == 2
 
 
 def test_the_sdk_and_the_cli_reach_the_feedback_route(capsys):
@@ -341,6 +418,70 @@ def test_the_api_route_checks_keys_owners_and_strict_bodies(installation, brain)
 
 
 # The whole path, as a host AI uses it --------------------------------------------------------------------------
+
+@pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
+def test_openclaw_and_astrbot_reports_count_toward_a_suggestion(tmp_path, monkeypatch, capsys):
+    from test_chatbot_adapter import Event, _load_astrbot_plugin
+
+    directory = tmp_path / "brain"
+    module, _ = _load_astrbot_plugin(monkeypatch, tmp_path)
+
+    def source(context):
+        found = re.search(r"pass source_messages=(\[.*?\])\. This reference", context or "")
+        assert found, context
+        return json.loads(found.group(1))
+
+    def hook(event, payload):  # OpenClaw's hooks and tools are these commands with --host openclaw.
+        assert plugin.run_hook(event, directory, stream=io.BytesIO(json.dumps(payload).encode()),
+                               host_name="openclaw") == 0
+        output = capsys.readouterr().out
+        return json.loads(output)["hookSpecificOutput"]["additionalContext"] if output else None
+
+    def tool(arguments):
+        assert plugin.run_tool("manner_feedback", directory, stream=io.BytesIO(json.dumps(arguments).encode())) == 0
+        return json.loads(capsys.readouterr().out)
+
+    async def astrbot_turn(event, kind):
+        request = types.SimpleNamespace(system_prompt="", prompt=event.text,
+                                        conversation=types.SimpleNamespace(cid="c1"))
+        await bot.add_memory(event, request)
+        result = json.loads(await bot.membrain_manner_feedback(event, kind,
+                                                               source_messages=source(request.system_prompt)))
+        await bot.store_turn(event, types.SimpleNamespace(role="assistant", completion_text="Got it."))
+        return result
+
+    try:
+        host.start(directory)
+        bot = module.MembrainPlugin(context=None, config={"directory": str(directory)})
+        hook("session-start", {"session_id": "oc"})
+        for number, text in enumerate(UNREAD, start=1):
+            # Each host reports the comment before its turn is recorded, citing the turn's source block.
+            context = hook("user-prompt", {"session_id": "oc", "prompt_id": f"t{number}", "prompt": text})
+            result = tool({"kind": "less_formal", "source_messages": source(context)})
+            assert (result["recorded"], result["waiting_for_message"]) == (1, 1) and "memory page" in result["note"]
+            hook("stop", {"session_id": "oc", "prompt_id": f"t{number}", "last_assistant_message": "Got it."})
+            result = asyncio.run(astrbot_turn(Event("1001", text, message_id=f"m{number}"), "less_formal"))
+            assert (result["recorded"], result["waiting_for_message"]) == (1, 1)
+        for user in (None, bot.memory.user_id(Speaker("aiocqhttp", "1001"))):
+            with host.ready_client(directory, user) as client:
+                proposals = client.persona_proposals()["proposals"]
+            assert [(p["kind"], p["status"], p["source_count"]) for p in proposals] == [("less_formal", "open", 3)]
+            assert [s["text"] for s in proposals[0]["sources"]] == list(UNREAD)
+
+        # A kind memBrain does not count is refused with the reason, by each host.
+        context = hook("user-prompt", {"session_id": "oc", "prompt_id": "t9", "prompt": "Be friendlier."})
+        refused = tool({"kind": "friendlier", "source_messages": source(context)})
+        assert refused["code"] == "validation_failed" and "kind must be one of" in refused["error"]
+        refused = asyncio.run(astrbot_turn(Event("1001", "Be friendlier.", message_id="m9"), "friendlier"))
+        assert refused["code"] == "validation_failed" and "kind must be one of" in refused["error"]
+
+        host.pause(directory)
+        assert "paused" in tool({"kind": "shorter", "source_event_ids": ["evt-1"]})["error"]
+        assert "paused" in json.loads(asyncio.run(bot.membrain_manner_feedback(
+            Event("1001", "Shorter, please."), "shorter", source_event_ids=["evt-1"])))["error"]
+    finally:
+        desktop.stop(directory)
+
 
 @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
 def test_a_host_ai_reports_feedback_and_marks_a_playful_moment_through_its_tools(tmp_path):

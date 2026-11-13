@@ -26,7 +26,21 @@ test("the plugin registers its hooks and tools", () => {
   assert.deepEqual(installs, ["/data/membrain"]);
   assert.deepEqual(hooks, ["before_prompt_build", "agent_end"]);
   assert.deepEqual(tools, ["membrain_note", "membrain_search", "membrain_boundary", "membrain_pause", "membrain_resume",
-    "membrain_consolidate"]);
+    "membrain_consolidate", "membrain_manner_feedback"]);
+});
+
+test("manner feedback runs as its own tool command in the conversation's memory, with the turn's sources", async () => {
+  const calls = [];
+  const memory = createMembrain({ exec: async (args, { input }) => {
+    calls.push([args, input]);
+    return JSON.stringify(input.membrain_user ? { membrainUser: input.membrain_user } : {});
+  } });
+  await memory.beforePromptBuild({ prompt: "hi" }, { sessionKey: "k1", channel: "telegram", chatId: "-1", senderId: "7" });
+  const source_messages = [{ producer_ref: "membrain-openclaw", source_event_key: "k", source_revision: 1 }];
+  await memory.tool("membrain_manner_feedback", { kind: "shorter", source_messages, recording_capture: "c" },
+    memory.toolUser({ sessionKey: "k1" }));
+  assert.deepEqual(calls.at(-1), [["tool", "manner_feedback"],
+    { kind: "shorter", source_messages, recording_capture: "c", membrain_user: "openclaw:telegram::-1:7" }]);
 });
 
 test("consolidation runs as its own tool command in the conversation's memory, with the batch number", async () => {
@@ -134,6 +148,14 @@ test("memory carries across OpenClaw sessions through the real runtime",
     const note = JSON.parse(await memory.tool("membrain_note", { text: "Flying to Lisbon 3 Dec for brother Tomas's wedding.",
       recording_capture: JSON.parse(first.prependContext.match(/recording_capture=("[^"]+")/)[1]) }));
     assert.ok(note.note_id);
+    // Feedback on the assistant's manner cites the turn's message from its source block.
+    const cited = JSON.parse(first.prependContext.match(/pass source_messages=(\[.*?\])\. This reference/)[1]);
+    const feedback = JSON.parse(await memory.tool("membrain_manner_feedback", { kind: "shorter", source_messages: cited }));
+    assert.equal(feedback.recorded, 1);
+    assert.match(feedback.note, /memory page/);
+    const unknown = JSON.parse(await memory.tool("membrain_manner_feedback", { kind: "friendlier", source_messages: cited }));
+    assert.equal(unknown.code, "validation_failed");
+    assert.match(unknown.error, /kind must be one of/);
     const second = await memory.beforePromptBuild(
       { prompt: "What do I still need to pack for the wedding trip?", currentUserMessageId: "u2", messages: [] },
       { sessionId: "oc-2" });
@@ -142,6 +164,8 @@ test("memory carries across OpenClaw sessions through the real runtime",
     const found = JSON.parse(await memory.tool("membrain_search", { query: "Lisbon wedding" }));
     assert.match(found.context, /Lisbon/);
     assert.deepEqual(JSON.parse(await memory.tool("membrain_pause", {})).recording, "paused");
+    assert.match(JSON.parse(await memory.tool("membrain_manner_feedback", { kind: "longer", source_messages: cited })).error,
+      /paused/);
     await memory.beforePromptBuild({ prompt: "Off the record: I hate the groom's speech.", messages: [] },
       { sessionId: "oc-2" });
     await memory.agentEnd({ success: true, messages: [{ role: "assistant", content: "Understood." }] },

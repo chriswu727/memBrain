@@ -226,6 +226,23 @@ class ChatMemory:
             result = client.add_boundary(topic, aliases)
         return {"boundaries": result.get("boundaries", [])}
 
+    def manner_feedback(self, speaker: Speaker, kind, *, roleplay: str | None = None, source_event_ids=(),
+                        source_messages=(), recording_capture: str | None = None) -> dict:
+        """The manner-feedback tool (``manner_feedback.report``): this speaker's feedback on how the bot talks, with
+        the message it came from, cited like a note's. Refused, with nothing sent, while recording is paused."""
+        from .. import manner_feedback
+
+        if not self._recording(speaker):
+            return {"error": "Memory tools are not available in this conversation."}
+        user = self.memory_user(speaker, roleplay)
+        client = self._client(user)
+        if client is None:
+            return {"error": "memBrain is starting; try again in a few seconds."}
+        with client:
+            return manner_feedback.report(self.directory, client, kind, source_event_ids=source_event_ids,
+                                          source_messages=source_messages, user_id=user,
+                                          recording_capture=recording_capture)
+
     def search(self, speaker: Speaker, query: str, *, session: str | None = None, roleplay: str | None = None,
                replies: bool = False) -> dict:
         """Recall for the search tool. ``replies`` adds the bot's own earlier replies, which automatic recall leaves

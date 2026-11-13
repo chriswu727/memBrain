@@ -197,7 +197,8 @@ def test_astrbot_plugin_remembers_each_qq_user_separately_through_a_real_service
     module, handlers = _load_astrbot_plugin(monkeypatch, tmp_path)
     directory = tmp_path / "plugin_data" / "membrain"
     assert set(handlers) == {"request", "response", "membrain_note", "membrain_search", "membrain_pause",
-                             "membrain_resume", "membrain_forget", "membrain_boundary", "membrain_consolidate"}
+                             "membrain_resume", "membrain_forget", "membrain_boundary", "membrain_consolidate",
+                             "membrain_manner_feedback"}
     try:
         # AstrBot constructs the plugin before any installation exists; its background start must still succeed.
         plugin = module.MembrainPlugin(context=None, config={})
@@ -308,7 +309,7 @@ def test_astrbot_tool_docstrings_follow_astrbots_parameter_format(monkeypatch, t
     module, handlers = _load_astrbot_plugin(monkeypatch, tmp_path)
     supported = {"string", "number", "object", "array", "boolean"}
     for name in ("membrain_note", "membrain_search", "membrain_boundary", "membrain_pause", "membrain_resume",
-                 "membrain_consolidate"):
+                 "membrain_consolidate", "membrain_manner_feedback"):
         function = handlers[name]
         parameters = [p for p in inspect.signature(function).parameters if p not in ("self", "event")]
         doc = inspect.getdoc(function)
