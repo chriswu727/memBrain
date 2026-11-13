@@ -1,3 +1,4 @@
+# Arm E needs a runtime with the note-extraction model, removed after 77c1f841: set MEMBRAIN_SRC to such a checkout.
 """C5 (Phase C companion) harness: plugin path (P), proxy with note extraction (E) and whole history (F).
 
 Built on the Phase B harness (v1-2026-10-29-phase-b-harness.py), with what companion scenarios need:

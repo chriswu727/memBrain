@@ -1,7 +1,7 @@
 """Affect records (``user_affect``): feelings the user expressed, kept as evidence and never as a score.
 
-A record belongs to one note. The host writes it with the note tool's ``affect`` field and, behind the proxy, the
-optional extraction model does; no model call is made for it. Each record is one event in a reserved conversation,
+A record belongs to one note. The host's own model writes it with the note tool's ``affect`` field; memBrain makes
+no model call for it. Each record is one event in a reserved conversation,
 stored apart from the note it belongs to, with the ``system`` role: it is configuration-like evidence, not something
 anyone said, so it is never extracted into recalled memories, shown as history or counted as a message.
 

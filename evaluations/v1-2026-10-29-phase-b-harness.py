@@ -1,3 +1,4 @@
+# Arms X and E need a runtime with the note-extraction model (membrain.extraction), removed after 77c1f841.
 """Phase B (B7) held-out run: plugin now (P), plugin before Phase B (O), full history (F), no memory (N).
 
 P and O run the plugin's own hook functions and MCP tools in process against their own embedded installation, the

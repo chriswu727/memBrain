@@ -73,13 +73,9 @@ def offline(monkeypatch):
 @pytest.mark.parametrize("tools", [None, TOOLS])
 @pytest.mark.parametrize("roleplay", [None, "rehearsal"])
 @pytest.mark.parametrize("stage", [False, True])
-def test_excluded_turn_never_reaches_staging_spool_or_extraction(
+def test_excluded_turn_never_reaches_staging_or_spool(
         tmp_path, offline, prompt, tools, roleplay, stage):
-    class Extractor:
-        def submit(self, task):
-            pytest.fail("An excluded turn must not schedule extraction")
-
-    memory = ChatMemory(tmp_path, tools=tools, roleplay=roleplay, extractor=Extractor())
+    memory = ChatMemory(tmp_path, tools=tools, roleplay=roleplay)
     speaker = Speaker("public-recording-regression", "synthetic-user")
     if stage:
         context = memory.context(speaker, prompt, session="synthetic-session", turn_id="private-turn")

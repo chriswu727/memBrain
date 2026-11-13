@@ -14,7 +14,6 @@ from membrain import desktop, embedded_database, host, notes
 from membrain.affect import AFFECT_CONVERSATION, affect_records, clear_affect
 from membrain.api import create_app
 from membrain.config import configured_service
-from membrain.extraction import INSTRUCTIONS, Extractor
 from membrain.helpers import DomainError, uid
 from membrain.host_context import _notes
 from membrain.local_profile import load_profile
@@ -177,23 +176,6 @@ def test_list_notes_reads_feelings_when_the_client_can_and_still_shows_notes_whe
 
 
 # Who writes feelings ------------------------------------------------------------------------------------------
-
-def test_extraction_saves_a_feeling_only_as_the_person_expressed_it():
-    reply = {"notes": [
-        {"text": "Job interview at Acme on Friday.", "kind": "plan", "status": "scheduled",
-         "affect": {"label": "nervous", "valence": -1, "intensity": 2, "basis": "reported", "topic": "the interview"}},
-        {"text": "Moving flat next month.", "kind": "plan", "affect": {"label": "stressed", "valence": 9}},
-        {"text": "Prefers tea.", "affect": "happy"},
-    ]}
-    extractor = Extractor("https://api.example/v1", "cheap-model", transport=httpx.MockTransport(
-        lambda request: httpx.Response(200, json={"choices": [{"message": {"content": json.dumps(reply)}}]})))
-    interview, moving, tea = extractor.propose("I'm really nervous about Friday's interview", "Good luck!", "",
-                                               today=datetime.date(2027, 3, 10))
-    assert interview["affect"] == {"label": "nervous", "valence": -1, "intensity": 2, "basis": "reported",
-                                   "felt_at": "2027-03-10", "topic": "the interview"}
-    assert "affect" not in moving and "affect" not in tea  # A malformed feeling is dropped; the note stays.
-    assert "Never invent a feeling" in INSTRUCTIONS and '"reported" only if they said it' in INSTRUCTIONS
-
 
 def test_every_note_tool_explains_when_to_attach_a_feeling():
     assert "add affect" in NOTE_TOOL_DESCRIPTION and "Never invent a feeling" in NOTE_TOOL_DESCRIPTION

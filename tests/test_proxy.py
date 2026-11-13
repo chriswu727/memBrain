@@ -236,3 +236,29 @@ def test_explicit_session_headers_are_bound_to_person_group_and_roleplay(tmp_pat
     sessions = [session for _, _, session in memory.contexts]
     assert len(set(sessions[:-1])) == len(scopes) - 1
     assert sessions[0] == sessions[-1]
+
+
+def test_a_proxy_environment_that_still_names_an_extraction_model_starts_without_it(tmp_path, monkeypatch):
+    """MEMBRAIN_EXTRACT_* configured the removed note-extraction model. A profile whose environment still sets them,
+    even without the key that used to be required, starts as usual: the settings are not read and no model is called."""
+    import sys
+
+    import uvicorn
+
+    from membrain import proxy
+
+    monkeypatch.setenv("MEMBRAIN_EXTRACT_MODEL", "deepseek-chat")
+    monkeypatch.setenv("MEMBRAIN_EXTRACT_BASE_URL", "https://extract.invalid/v1")
+    monkeypatch.delenv("MEMBRAIN_EXTRACT_KEY", raising=False)
+    monkeypatch.setattr(host, "ensure_installation", lambda directory: None)
+    monkeypatch.setattr(host, "ready_client", lambda *args, **kwargs: None)
+    monkeypatch.setattr(host, "start_in_background", lambda *args, **kwargs: None)
+    built, served = [], []
+    original = proxy.create_proxy_app
+    monkeypatch.setattr(proxy, "create_proxy_app", lambda memory, *args, **kwargs: built.append(memory) or original(
+        memory, *args, transport=httpx.MockTransport(Upstream()), **kwargs))
+    monkeypatch.setattr(uvicorn, "run", lambda app, **options: served.append(app))
+    proxy.serve("https://api.deepseek.com/v1", directory=tmp_path)
+    (memory,) = built
+    assert served and memory.tools is None and not hasattr(memory, "extractor")
+    assert "membrain.extraction" not in sys.modules

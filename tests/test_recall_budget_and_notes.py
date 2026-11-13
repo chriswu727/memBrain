@@ -1,5 +1,4 @@
-"""The recall block uses its budget, every current note is a candidate, and a failed extraction read shows."""
-import json
+"""The recall block uses its budget and every current note is a candidate."""
 
 import httpx
 import pytest
@@ -7,7 +6,6 @@ from test_plugin import _ReadyClient, _response, _source
 
 from membrain import host, plugin
 from membrain.adapters.chatbot import ChatMemory, Speaker
-from membrain.extraction import Extractor, UnreadableOutput, extract_turn, extraction_status
 from membrain.notes import NOTE_PAGES, format_note, list_notes, render_notes
 
 
@@ -140,39 +138,3 @@ def test_note_listing_is_bounded_and_says_when_it_stopped_early():
     listed = list_notes(failing)
     assert len(listed["items"]) == 200 and not listed["complete"]  # The newest notes still show.
     assert "did not fit" in render_notes(listed)
-
-
-def _extractor(content):
-    def handler(request: httpx.Request) -> httpx.Response:
-        return httpx.Response(200, json={"choices": [{"message": {"content": content}}]})
-    return Extractor("https://api.example/v1", "cheap-model", "sk-test", transport=httpx.MockTransport(handler))
-
-
-@pytest.mark.parametrize("content", ['{"notes": [{"text": "Mei is allergic to ses', "[1, 2]", "not json at all"])
-def test_cut_off_or_malformed_extractor_output_is_an_error(content):
-    with pytest.raises(UnreadableOutput):
-        _extractor(content).propose("My sister Mei can't eat sesame.", "Noted!", "(none)")
-
-
-@pytest.mark.parametrize("content", ['{"notes": []}', "{}", ""])
-def test_an_exchange_with_nothing_to_keep_is_not_an_error(content):
-    assert _extractor(content).propose("My sister Mei can't eat sesame.", "Noted!", "(none)") == []
-
-
-def test_an_unreadable_extraction_shows_as_a_failed_read_not_a_successful_one(tmp_path, monkeypatch):
-    source = {"producer_ref": "membrain-chat", "source_event_key": "s:t1:user", "source_revision": 1}
-
-    class Client(_ReadyClient):
-        def source_messages(self, references):
-            return {"dependency_generation": 1, "recording": {"paused": False, "revision": 0},
-                    "items": [{"reference": source, "actor_role": "user", "text": "My sister Mei can't eat sesame."}]}
-
-    monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: Client({"complete": True, "items": []}))
-    monkeypatch.setattr("membrain.recording_guard.require_recording", lambda *args, **kwargs: None)
-    saved = extract_turn(tmp_path, _extractor('{"notes": [{"text": "Mei is allerg'), None, sources=[source],
-                         recording={"revision": 0, "target": None})
-    assert saved == []
-    status = extraction_status(tmp_path)
-    assert status["state"] == "degraded" and status["turns_failed"] == 1 and status["turns_read"] == 0
-    assert status["last_error"] == "unreadable_model_output"
-    assert "Mei" not in json.dumps(status)

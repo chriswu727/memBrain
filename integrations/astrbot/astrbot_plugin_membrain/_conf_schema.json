@@ -36,23 +36,5 @@
     "type": "bool",
     "default": false,
     "hint": "Show each person's non-sensitive real-life notes in the role-play, marked as real life."
-  },
-  "extract_model": {
-    "description": "Note extraction model (optional)",
-    "type": "string",
-    "default": "",
-    "hint": "AstrBot's model already saves notes with the membrain_note tool when it supports tool calls. If it does not, give an OpenAI-compatible model (for example deepseek-chat) and memBrain reads each finished turn with it, after the reply, to save lasting facts as notes. Each turn costs one extra call."
-  },
-  "extract_base_url": {
-    "description": "Extraction model base URL",
-    "type": "string",
-    "default": "",
-    "hint": "For example https://api.deepseek.com/v1"
-  },
-  "extract_key": {
-    "description": "Extraction model API key",
-    "type": "string",
-    "default": "",
-    "hint": "Stored in AstrBot's plugin configuration."
   }
 }

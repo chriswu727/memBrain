@@ -23,7 +23,7 @@ from .. import host, host_outcomes, host_receipts, host_recording
 
 TOOLS = {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause", "resume": "membrain_resume"}
 GROUP_MEMORY = ("separate", "shared")
-PREVIOUS_EXCHANGES = 2000
+BATCH_SESSIONS = 2000  # Consolidation batches remembered per memory user and session.
 
 
 @dataclass(frozen=True)
@@ -58,6 +58,8 @@ class ChatMemory:
     """One memBrain installation serving every user of a bot. Methods block; async hosts run them in a thread.
 
     ``block_seconds`` is retained for constructor compatibility; personal context is always refreshed.
+    ``extractor`` is accepted and ignored: the separate note-extraction model it configured was removed, so older
+    hosts that still pass it keep working. Notes come from the host's own model through the note tool.
     """
 
     def __init__(self, directory: Path, *, group_memory: str = "separate", record_groups: bool = True,
@@ -70,10 +72,6 @@ class ChatMemory:
         self.group_memory, self.record_groups, self.producer, self.tools = group_memory, record_groups, producer, tools
         # A bot that plays a character keeps that story's memory apart from each person's real-life memory.
         self.roleplay, self.share_real_life = roleplay or None, share_real_life
-        # Optional: a model that saves notes from each turn, for bots whose own model cannot call the note tool.
-        self.extractor = extractor
-        # Exact references let short follow-ups use their context without caching erased message text.
-        self._previous: OrderedDict[tuple[str, str], tuple[dict, ...]] = OrderedDict()
         # The consolidation batch handed out last to each memory user in each session (``consolidate``).
         self._batches: OrderedDict[tuple[str, str | None], dict] = OrderedDict()
         self._lock = threading.Lock()
@@ -137,24 +135,8 @@ class ChatMemory:
             return host_receipts.turn([host_receipts.message(role, None, "excluded", reason, scope="adapter")
                                        for role in roles])
         receipt = {}
-        records = host.finish_turn(self.directory, session, reply, turn_id=turn_id, producer=self.producer,
-                                   prompt=prompt, user_id=self.user_id(speaker), roleplay=roleplay or self.roleplay,
-                                   receipt=receipt)
-        # Only a turn that was actually recorded or queued is read, and its notes are linked to its messages, so
-        # forgetting those messages forgets the notes too.
-        message = next((record for record in records if record["role"] == "user"), None)
-        if self.extractor is not None and message is not None:
-            sources = [{"producer_ref": record["producer_ref"], "source_event_key": record["source_event_key"],
-                        "source_revision": 1} for record in records]
-            user = self.memory_user(speaker, roleplay)
-            with self._lock:
-                previous = self._previous.pop((user, session), ())
-                self._previous[(user, session)] = tuple(sources)
-                while len(self._previous) > PREVIOUS_EXCHANGES:
-                    self._previous.popitem(last=False)
-            recording = message.get("_recording", {"revision": 0, "target": None})
-            self._extract(user, sources, previous, session=session,
-                          recording=dict(recording) if isinstance(recording, dict) else recording)
+        host.finish_turn(self.directory, session, reply, turn_id=turn_id, producer=self.producer, prompt=prompt,
+                         user_id=self.user_id(speaker), roleplay=roleplay or self.roleplay, receipt=receipt)
         return receipt or None
 
     def exchange(self, speaker: Speaker, *, session: str, turn_id: str, roleplay: str | None = None) -> str | None:
@@ -180,19 +162,6 @@ class ChatMemory:
         """This speaker's most recently observed exchanges in one session, newest first."""
         return host_outcomes.recent(self.directory, session=session, producer=self.producer,
                                     user_id=self.user_id(speaker), roleplay=roleplay or self.roleplay, limit=limit)
-
-    def _extract(self, user: str, sources: list[dict], previous_sources: tuple[dict, ...] = (), *, recording,
-                 session: str | None = None) -> None:
-        from ..extraction import extract_turn
-
-        def task():
-            extract_turn(self.directory, self.extractor, user, sources=sources, previous_sources=previous_sources,
-                         recording=recording, session=session)
-
-        if not self.extractor.submit(task):
-            from ..extraction import record_outcome
-
-            record_outcome(self.directory, skipped=True)
 
     def note(self, speaker: Speaker, text: str, replaces=(), *, roleplay: str | None = None, source_event_ids=(), source_messages=(),
              recording_capture: str | None = None, **fields) -> dict:
@@ -299,7 +268,7 @@ class ChatMemory:
         with self._lock:
             handed_out = self._batches.pop((user, session), {})
             self._batches[(user, session)] = handed_out
-            while len(self._batches) > PREVIOUS_EXCHANGES:
+            while len(self._batches) > BATCH_SESSIONS:
                 self._batches.popitem(last=False)
         with client:
             return host.consolidate(client, cues, reviewed_through, handed_out=handed_out)
@@ -319,8 +288,6 @@ class ChatMemory:
             users.append(self.memory_user(speaker))
         results = [host.erase_user(self.directory, user) for user in dict.fromkeys(users)]
         with self._lock:
-            for key in [key for key in self._previous if key[0] in users or host.real_life_user(key[0]) in users]:
-                del self._previous[key]
             for key in [key for key in self._batches if key[0] in users or host.real_life_user(key[0]) in users]:
                 del self._batches[key]
         return {"erased": all(result["erased"] in ("accepted", "completed") for result in results),

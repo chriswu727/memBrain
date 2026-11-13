@@ -28,19 +28,11 @@ For `POST /v1/chat/completions` it puts a fenced memory block at the start of th
 
 The proxy does not add tools, so the model cannot write notes or pause recording through it; text inside `<private>…</private>` and values that look like keys or passwords are still never stored.
 
-## Notes from a model of your choice (optional)
+## Notes
 
-**Frozen:** note extraction with a separate model, in which memBrain calls that model itself, is frozen and outside the product's main line; it stays off unless you set `MEMBRAIN_EXTRACT_MODEL`, and existing setups keep working until it is removed.
+The proxy adds no tools, so the bot's own model cannot save notes, and memBrain does not call a model of its own to write them. Behind the proxy, people get recall of their earlier messages, but no new notes (plans, people, preferences) are written for them. Recording and recall work as described above.
 
-The proxy adds no tools, so the bot's own model cannot save notes. To give people notes, plans and people anyway, name a cheap model for note extraction:
-
-```sh
-export MEMBRAIN_EXTRACT_MODEL=deepseek-chat        # turns extraction on
-export MEMBRAIN_EXTRACT_KEY=sk-your-provider-key   # defaults to MEMBRAIN_UPSTREAM_KEY
-# MEMBRAIN_EXTRACT_BASE_URL defaults to --upstream
-```
-
-After each reply has been sent, the extraction model reads that exchange once, together with the person's current notes, and saves the lasting facts as typed notes, replacing notes they update. It runs in the background, skips greetings and thanks (short updates such as "cancelled it" are read, together with the exchange before them), never runs while recording is paused, and costs one extra model call per message worth reading. Notes it saves are linked to the messages they came from, so deleting those messages deletes the notes. A provider error is retried twice when it is temporary; a turn that still fails is skipped. `membrain plugin status`, `membrain doctor` and the memory page then report how many messages were not read for notes and the last error. The messages themselves are always recorded. Queued turns are kept in memory only, so turns not yet read when the proxy stops are not read.
+Earlier versions could read each exchange with a separate note-extraction model (`MEMBRAIN_EXTRACT_MODEL`, `MEMBRAIN_EXTRACT_KEY`, `MEMBRAIN_EXTRACT_BASE_URL`). That model has been removed. An environment that still sets these variables starts as usual and they are ignored; the key is no longer required or sent anywhere. Notes it saved earlier are kept as ordinary notes, linked to the messages they came from, so deleting those messages still deletes them. For notes, connect the bot through a host whose own model calls memBrain's note tool.
 
 ## What it refuses
 

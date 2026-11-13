@@ -1,3 +1,4 @@
+# The turn arm needs a runtime with the note-extraction model (membrain.extraction), removed after 77c1f841.
 """LoCoMo answer accuracy with and without consolidation into notes. PAID: calls DeepSeek; needs DEEPSEEK_API_KEY.
 
 Three arms on the same conversations, each in its own installations, answered and judged like ``run_locomo.py``:

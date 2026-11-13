@@ -35,7 +35,7 @@ STORED = ("evidence", "applies_to")
 
 
 def source(record: dict | None) -> dict | None:
-    """The exact reference a note or extraction would cite, or None when this call never knew the message key."""
+    """The exact reference a note would cite, or None when this call never knew the message key."""
     if not isinstance(record, dict) or not isinstance(record.get("source_event_key"), str):
         return None
     return {"producer_ref": record.get("producer_ref"), "source_event_key": record["source_event_key"],

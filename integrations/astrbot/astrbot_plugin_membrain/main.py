@@ -42,16 +42,13 @@ class MembrainPlugin(star.Star):
         super().__init__(context, config)
         config = config or {}
         directory = config.get("directory") or str(Path(get_astrbot_plugin_data_path()) / "membrain")
-        extractor = None
-        if config.get("extract_model") and config.get("extract_base_url"):
-            from membrain.extraction import Extractor
-
-            extractor = Extractor(config["extract_base_url"], config["extract_model"], config.get("extract_key") or None)
+        # extract_model, extract_base_url and extract_key configured a separate note-extraction model, which was
+        # removed; a configuration that still holds them is read as usual and they are ignored.
         self.memory = ChatMemory(Path(directory), group_memory=config.get("group_memory") or "separate",
                                  record_groups=config.get("record_groups", True), producer="membrain-astrbot",
                                  tools=_TOOLS,
                                  roleplay=config.get("roleplay_character") or None,
-                                 share_real_life=bool(config.get("share_real_life")), extractor=extractor)
+                                 share_real_life=bool(config.get("share_real_life")))
         self.memory.start()
 
     @filter.on_llm_request()

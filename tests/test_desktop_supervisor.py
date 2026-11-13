@@ -182,3 +182,7 @@ def test_downloaded_model_activates_in_place_and_is_never_reported_as_needing_a_
         assert semantic() == "ready" and service.embedding_provider is not None
         assert client.post("/v1/local/semantic-model", headers=headers).json() == {"semantic_recall": "ready"}
         assert launched == []
+        # A status file the removed note-extraction model left behind is ignored, not reported.
+        (profile.directory / "plugin").mkdir(exist_ok=True)
+        (profile.directory / "plugin" / "extraction.json").write_text('{"failed_since_success": 3}')
+        assert "note_extraction" not in client.get("/v1/local/memory-status", headers=headers).json()

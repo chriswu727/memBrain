@@ -160,6 +160,39 @@ class Event:
         return text
 
 
+def test_an_astrbot_configuration_that_still_holds_the_extraction_settings_loads_and_ignores_them(
+        tmp_path, monkeypatch):
+    """extract_model, extract_base_url and extract_key configured the removed note-extraction model. A saved AstrBot
+    configuration that still holds them loads without an error or a prompt; they are ignored, and the configuration
+    page no longer offers them."""
+    module, _ = _load_astrbot_plugin(monkeypatch, tmp_path)
+    monkeypatch.setattr(host, "ready_client", lambda *args, **kwargs: None)
+    monkeypatch.setattr(host, "start_in_background", lambda *args, **kwargs: None)
+    plugin = module.MembrainPlugin(object(), {"directory": str(tmp_path / "memory"), "extract_model": "deepseek-chat",
+                                              "extract_base_url": "https://api.deepseek.com/v1",
+                                              "extract_key": "sk-old-synthetic"})
+    assert plugin.memory.directory == tmp_path / "memory" and plugin.memory.tools
+    assert not hasattr(plugin.memory, "extractor") and "membrain.extraction" not in sys.modules
+    schema = json.loads((PLUGIN / "_conf_schema.json").read_text())
+    assert not {key for key in schema if key.startswith("extract")}
+
+
+def test_chat_memory_accepts_and_ignores_an_extractor_from_an_older_host(tmp_path, monkeypatch):
+    """Older hosts passed ``extractor`` to ChatMemory. It is accepted and never used: recording goes on as usual."""
+    monkeypatch.setattr(host, "ready_client", lambda *args, **kwargs: None)
+    monkeypatch.setattr(host, "start_in_background", lambda *args, **kwargs: None)
+
+    class OldExtractor:
+        def __getattr__(self, name):
+            pytest.fail(f"the ignored extractor was used: {name}")
+
+    memory, speaker = ChatMemory(tmp_path, tools=None, extractor=OldExtractor()), Speaker("telegram", "42")
+    session = memory.session(speaker)
+    memory.context(speaker, "My sister Mei visits on Friday.", session=session, turn_id="t1")
+    receipt = memory.record(speaker, "Have a lovely visit.", session=session, turn_id="t1")
+    assert receipt["states"] == {"queued": 2}
+
+
 def test_astrbot_plugin_files_are_complete():
     for name in ("main.py", "metadata.yaml", "requirements.txt", "_conf_schema.json"):
         assert (PLUGIN / name).is_file()

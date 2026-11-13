@@ -1,3 +1,4 @@
+# --extract-model needs a runtime with the note-extraction model (membrain.extraction), removed after 77c1f841.
 """LoCoMo end-to-end answer accuracy for memBrain (roadmap A6).
 
 Arms, all answered by the same host model and judged by the same judge:

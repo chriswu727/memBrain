@@ -1,5 +1,8 @@
 """C5 harness hardening (no model call, no network): a degraded live arm stops, harness events carry no content,
-failed extraction is reported, timed pauses are refused and unintended unrecorded turns are flagged."""
+timed pauses are refused and unintended unrecorded turns are flagged.
+
+Arm E (the proxy with a separate note-extraction model) needs a runtime from before that model was removed, so its
+tests were retired with it; the live-stop test below runs on arm P instead."""
 import importlib.util
 import json
 from pathlib import Path
@@ -120,54 +123,6 @@ def test_every_harness_event_call_passes_only_kinds_positions_and_counts():
             assert ast.unparse(reason).startswith("failure_code("), ast.unparse(call)
 
 
-# B3: failed extraction is reported ------------------------------------------------------------------------------
-
-class _FailingExtractor:
-    """A stub extraction transport that refuses every request (a 400, which is not retried)."""
-
-    def __init__(self, script=None):
-        self.key = None
-
-    def __call__(self, request):
-        import httpx
-
-        return httpx.Response(400, json={"error": {"message": "stub extraction refused"}})
-
-
-@pytest.fixture
-def extraction_watch(tmp_path):
-    import logging
-
-    watch = harness.watch_extraction(tmp_path)
-    yield watch
-    logging.getLogger("membrain.extraction").removeHandler(watch)
-
-
-def test_a_failed_extraction_is_read_from_the_extractors_own_status(tmp_path, extraction_watch):
-    from membrain.extraction import record_outcome
-
-    assert not extraction_watch.failed()
-    record_outcome(tmp_path, saved=1)
-    assert not extraction_watch.failed()
-    record_outcome(tmp_path, error="HTTP 400")
-    assert extraction_watch.failed() and not extraction_watch.failed()  # Each failure is reported once.
-    record_outcome(tmp_path, skipped=True)
-    assert extraction_watch.failed()
-
-
-def test_a_failure_the_extractor_only_logs_is_detected(tmp_path, extraction_watch):
-    import httpx
-
-    from membrain.extraction import Extractor
-
-    extractor = Extractor("http://stub.invalid", "stub", "stub", transport=httpx.MockTransport(_FailingExtractor()))
-    extractor.submit(lambda: extractor.propose("I moved to Lisbon.", "Nice.", ""))
-    extractor.wait(10)
-    assert not extractor._queue.unfinished_tasks
-    assert extraction_watch.failed()  # Extractor._run swallowed the HTTP error and only logged it.
-    assert not extraction_watch.failed()
-
-
 SCENARIO = '''
 HOST = "You are a companion. Reply briefly."
 SESSIONS_LONG = [
@@ -194,7 +149,6 @@ def _free_ports(count: int) -> list:
 @pytest.fixture
 def stub_run(tmp_path, monkeypatch):
     """Runs one arm of a synthetic scenario through ``run`` in stub mode, on a real local service."""
-    import logging
     import os
     import socket
     import time
@@ -203,7 +157,7 @@ def stub_run(tmp_path, monkeypatch):
 
     if not embedded_database.available():
         pytest.skip("embedded PostgreSQL binaries are not installed")
-    environment, handlers = dict(os.environ), list(logging.getLogger("membrain.extraction").handlers)
+    environment = dict(os.environ)
     monkeypatch.setattr(harness, "STUB", True)
     monkeypatch.setattr(socket.socket, "connect", socket.socket.connect)  # refuse_network replaces it.
     for name in ("MEMBRAIN_MODEL_CACHE", evaluation_clock.ENV):
@@ -232,20 +186,6 @@ def stub_run(tmp_path, monkeypatch):
         os.environ.clear()
         os.environ.update(environment)
         time.tzset()
-        for handler in logging.getLogger("membrain.extraction").handlers:
-            if handler not in handlers:
-                logging.getLogger("membrain.extraction").removeHandler(handler)
-
-
-def test_a_stub_proxy_run_reports_every_failed_extraction_turn_and_finishes(stub_run, monkeypatch, capsys):
-    monkeypatch.setattr(harness, "StubExtractor", _FailingExtractor)
-    rows, events = stub_run("E", SCENARIO)
-    assert len(rows) == 4 and all(row["recorded"] for row in rows)  # A dry run records the event and goes on.
-    failed = [(event["session"], event["turn"]) for event in events if event["kind"] == "extraction_failed"]
-    assert failed == [("s1", 0), ("s1", 1), ("s1", 2), ("s2", 0)]
-    assert all(set(event) == {"time", "kind", "session", "turn"} for event in events
-               if event["kind"] == "extraction_failed")
-    assert capsys.readouterr().out.rstrip().endswith("E zq-synthetic-scenario finished")
 
 
 # I3: timed pauses are refused; unintended unrecorded turns are flagged ------------------------------------------
@@ -328,22 +268,24 @@ def test_a_live_stop_during_a_turns_bookkeeping_waits_for_its_row(tmp_path, monk
 
 
 def test_a_live_arm_stopped_by_a_turns_event_writes_that_turns_row_first(stub_run, tmp_path, monkeypatch, capsys):
+    from membrain import host
+
     review = _load("c5_acceptance_review_hardening", ROOT / "evaluations" / "acceptance_review.py")
-    monkeypatch.setattr(harness, "StubExtractor", _FailingExtractor)
-    monkeypatch.setattr(harness, "stops_on_events", lambda: True)  # The live stop, with the stub host and extractor.
+    monkeypatch.setattr(host, "finish_turn", lambda *args, **kwargs: [])  # The first turn is not recorded.
+    monkeypatch.setattr(harness, "stops_on_events", lambda: True)  # The live stop, with the stub host.
     scenario = ROOT / "evaluations" / "c5-practice-scenario.py"
     with pytest.raises(harness.DegradedRun) as stopped:
-        stub_run("E", scenario)
-    assert stopped.value.kind == "extraction_failed" and stopped.value.code == 3
-    directory = tmp_path / "run-E"
+        stub_run("P", scenario)
+    assert stopped.value.kind == "turn_not_recorded" and stopped.value.code == 3
+    directory = tmp_path / "run-P"
     (directory / "run.log").write_text(capsys.readouterr().out)
-    (row,) = [json.loads(line) for line in (directory / f"results_{scenario.stem}_E.jsonl").read_text().splitlines()]
-    assert (row["session"], row["turn"], row["stopped_after"]) == ("s1-arrival", 0, "extraction_failed")
+    (row,) = [json.loads(line) for line in (directory / f"results_{scenario.stem}_P.jsonl").read_text().splitlines()]
+    assert (row["session"], row["turn"], row["stopped_after"]) == ("s1-arrival", 0, "turn_not_recorded")
     assert row["reply"].startswith("(stub reply") and row["usage"]["total_tokens"] > 0 and row["transcript"]
-    assert row["input"] == practice.SESSIONS_LONG[0][1][0] and row["recorded"] is True
-    assert [event["kind"] for event in _events(directory)] == ["extraction_failed"]
+    assert row["input"] == practice.SESSIONS_LONG[0][1][0] and row["recorded"] is False
+    assert [event["kind"] for event in _events(directory)] == ["turn_not_recorded"]
     result = review.validity([directory])
-    assert result["valid"] is False and any("harness degradation extraction_failed" in problem
+    assert result["valid"] is False and any("harness degradation turn_not_recorded" in problem
                                             for problem in result["problems"])
 
 
@@ -361,10 +303,9 @@ class _FakeProvider:
 
         model = json.loads(request.content)["model"]
         self.models.append(model)
-        content = json.dumps({"notes": []}) if model == "fake-extract" else "Fake reply."
         response = httpx.Response(200, json={
             "model": model, "choices": [{"message": self.messages.get(
-                len(self.models), {"role": "assistant", "content": content})}],
+                len(self.models), {"role": "assistant", "content": "Fake reply."})}],
             "usage": {"prompt_tokens": 10, "completion_tokens": 5, "total_tokens": 15}})
         if len(self.models) in self.after:
             self.after[len(self.models)]()
@@ -385,12 +326,11 @@ def shared_ledger(tmp_path, monkeypatch):
     path = tmp_path / "ledger.json"
     frozen = budget.create_ledger(path, run_id="fake-attempt", limit_cny="100",
                                   endpoint=harness.BASE_URL + "/chat/completions",
-                                  models={harness.MODEL: rate, "fake-extract": rate})
+                                  models={harness.MODEL: rate})
     for name in [key for key in os.environ if key.startswith(("MEMORY_", "MEMBRAIN_EXTRACT", "MEMBRAIN_UPSTREAM"))
                  or key.endswith("_API_KEY")]:
         monkeypatch.delenv(name)
     monkeypatch.setenv("DEEPSEEK_API_KEY", "fake-key")
-    monkeypatch.setenv("EXTRACT_MODEL", "fake-extract")
     monkeypatch.setenv("C5_BILLING_LEDGER", str(path))
     monkeypatch.setenv("C5_ATTEMPT_ID", "fake-attempt")
     monkeypatch.setenv("C5_BILLING_POLICY_SHA256", frozen["policy_sha256"])
@@ -413,9 +353,9 @@ class SimpleLedger:
         return json.loads(self.path.read_text())
 
 
-@pytest.mark.parametrize("arm", ["F", "E"])
 def test_an_arm_writes_its_paid_row_before_a_stop_another_arm_made_during_its_call(
-        stub_run, shared_ledger, tmp_path, monkeypatch, arm):
+        stub_run, shared_ledger, tmp_path, monkeypatch):
+    arm = "F"
     monkeypatch.setattr(harness, "STUB", False)  # Live, with the fake provider behind the real guard.
     monkeypatch.setattr(harness, "BILLING", None)
     budget = harness.billing_module()
@@ -427,7 +367,7 @@ def test_an_arm_writes_its_paid_row_before_a_stop_another_arm_made_during_its_ca
               (tmp_path / f"run-{arm}" / f"results_zq-synthetic-scenario_{arm}.jsonl").read_text().splitlines()]
     assert (row["session"], row["turn"], row["stopped_after"]) == ("s1", 0, "billing_stop")
     assert row["reply"] == "Fake reply." and row["usage"]["total_tokens"] == 15 and row["transcript"]
-    # No paid call after the stop: no extraction of the turn, no next turn.
+    # No paid call after the stop: no next turn.
     assert shared_ledger.provider.models == [harness.MODEL]
     state = shared_ledger.state()
     assert state["blocked"] is True and state["stop_reason"] == "arm_failed"

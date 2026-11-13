@@ -592,10 +592,7 @@ class LocalSupervisor:
                     app.state.service, "embedding_provider", None) is None:
                 # Installed but not yet picked up by this service's provider; it activates in place.
                 semantic = "activating"
-            from .extraction import extraction_status
-
-            return {**self.snapshot(), "semantic_recall": semantic,
-                    "pending_records": pending, "note_extraction": extraction_status(self.profile.directory)}
+            return {**self.snapshot(), "semantic_recall": semantic, "pending_records": pending}
 
         @app.post("/v1/local/semantic-model")
         def prepare_semantic_model(authorization: str | None = Header(default=None)):

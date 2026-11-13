@@ -263,7 +263,7 @@ def test_separate_arm_processes_share_one_cap(tmp_path):
 
 
 @pytest.mark.parametrize("url", ["https://other.test/chat/completions", ENDPOINT + "/other"])
-def test_the_extractor_can_omit_stream_but_another_endpoint_is_refused(tmp_path, url):
+def test_a_request_can_omit_stream_but_another_endpoint_is_refused(tmp_path, url):
     path = ledger(tmp_path)
     guard = guarded(path, transport=httpx.MockTransport(reply))
     with httpx.Client(transport=guard) as client:
@@ -279,26 +279,6 @@ def test_the_provider_version_must_be_explicitly_frozen(tmp_path):
     models = {"host": {**MODELS["host"], "response_models": ["host-version-reviewed"]}}
     budget.create_ledger(path, run_id="practice", limit_cny="1", endpoint=ENDPOINT, models=models)
     assert send(path, lambda request: reply(model="host-version-reviewed")).status_code == 200
-
-
-def test_the_real_extractor_request_uses_the_same_transport_and_settlement(tmp_path):
-    from membrain.extraction import Extractor
-
-    path = tmp_path / "billing.json"
-    models = {"host": {**MODELS["host"], "max_output_tokens": 1200}}
-    budget.create_ledger(path, run_id="practice", limit_cny="1", endpoint=ENDPOINT, models=models)
-
-    def extraction(request):
-        return reply(choices=[{"message": {"content": '{"notes": []}'}}])
-
-    extractor = Extractor("https://provider.test", "host", "fake-key", transport=guarded(
-        path, transport=httpx.MockTransport(extraction)))
-    try:
-        assert extractor.propose("I prefer tea", "Okay", "") == []
-    finally:
-        extractor._http.close()
-    entry, = json.loads(path.read_text())["requests"].values()
-    assert entry["max_tokens"] == 1200 and entry["actual_micros"] == 30
 
 
 @pytest.mark.parametrize("override", [{"input_cny_per_million": "0"}, {"output_cny_per_million": "NaN"},

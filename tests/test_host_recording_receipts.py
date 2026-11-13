@@ -386,7 +386,7 @@ def test_receipt_values_are_validated():
     assert host_receipts.needs_attention(None) and not host_receipts.needs_attention(host_receipts.turn([]))
 
 
-def test_chat_memory_returns_the_receipt_and_keeps_extraction_sources(tmp_path, offline):
+def test_chat_memory_returns_the_receipt(tmp_path, offline):
     memory, speaker = ChatMemory(tmp_path), Speaker("telegram", "42")
     session = memory.session(speaker)
     memory.context(speaker, QUESTION, session=session, turn_id="t")

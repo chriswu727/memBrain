@@ -1135,11 +1135,8 @@ async function loadServiceStatus() {
     ]);
     const lag = brain.index_lag;
     const semantic = local?.semantic_recall;
-    const extraction = local?.note_extraction;
-    const extractionFailing = extraction?.state === "degraded";
     $("service-heading").textContent = (local && !local.ready) || brain.failed_jobs ? "Memory service needs attention"
       : local?.pending_records ? "Messages waiting for delivery" : lag ? "Indexing your messages"
-      : extractionFailing ? "Note extraction needs attention"
       : semantic === "ready" ? "Memory is ready" : "Keyword memory is ready";
     const recall = semantic === "ready" ? "Keyword and semantic recall enabled"
       : semantic === "downloading" ? "Keyword recall ready; semantic model downloading"
@@ -1147,10 +1144,6 @@ async function loadServiceStatus() {
       : semantic === "activating" ? "Keyword recall ready; semantic model activating"
       : local ? "Keyword recall ready; semantic model not enabled" : "Keyword recall available; local model status unknown";
     $("service-detail").textContent = `${recall}. ${lag ? `${lag} message(s) waiting for indexing.` : "Message index is up to date."} ${local?.pending_records ? `${local.pending_records} queued record(s).` : ""} ${brain.failed_jobs ? `${brain.failed_jobs} background job(s) need attention. Run membrain doctor.` : ""}`;
-    $("extraction-detail").hidden = !extractionFailing;
-    $("extraction-detail").textContent = extractionFailing
-      ? `${extraction.failed_since_success} message(s) could not be read for notes (last error: ${extraction.last_error}). They are still stored and recalled; notes from them are missing. Run membrain doctor.`
-      : "";
     showConnection(brain, local);
   } catch (error) {
     $("service-heading").textContent = "Unable to check memory";
