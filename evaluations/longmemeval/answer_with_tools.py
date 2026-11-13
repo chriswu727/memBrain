@@ -134,6 +134,11 @@ def report(args) -> None:
     rows = [json.loads(line) for line in (Path(args.out) / "answers.jsonl").read_text(encoding="utf-8").splitlines()]
     by_arm = {arm: {row["id"]: row for row in rows if row["arm"] == arm} for arm in ARMS}
     shared = sorted(set(by_arm["before"]) & set(by_arm["after"]))
+    if not shared:  # A run of one arm: there is nothing to compare within it.
+        for arm in ARMS:
+            if by_arm[arm]:
+                print(f"{arm}: {sum(row['correct'] for row in by_arm[arm].values())} of {len(by_arm[arm])} correct")
+        return
     kinds = sorted({by_arm["after"][qid]["type"] for qid in shared})
     print(f"questions answered in both arms: {len(shared)}")
     print(f"{'':28}{'n':>4}{'before':>9}{'after':>9}{'searched':>10}{'my_replies':>12}")

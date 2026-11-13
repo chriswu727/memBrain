@@ -1,6 +1,6 @@
 # Does the host AI use the option to search its own replies? Thirty questions it had not been tried on
 
-Runtime `75f3f49` (pin `df630c25`), the product as pushed in `0165297f`; nothing was changed for this run. It follows the [first answer check](assistant-replies-and-warm-up-2026-11-12.md), which had only five questions of the relevant kind and could not say whether the option helps. Paid: 1.02 CNY here, 1.78 CNY in all of a 10 CNY approval. It closes no release gate: **R4 remains failed and C5 invalid/unscored.**
+Runtime `75f3f49` (pin `df630c25`), the product as pushed in `0165297f`; nothing was changed for the first run, and the change it led to is measured at the end. It follows the [first answer check](assistant-replies-and-warm-up-2026-11-12.md), which had only five questions of the relevant kind and could not say whether the option helps. Paid: 1.55 CNY here, 2.31 CNY in all of a 10 CNY approval. It closes no release gate: **R4 remains failed and C5 invalid/unscored.**
 
 ## What was asked
 
@@ -33,11 +33,38 @@ Seven questions gained and two were lost.
 - **It did not search when the block was enough**: none of the 12 questions with the evidence in the block led to a search, and 11 were answered correctly in both arms.
 - **Thirty questions are few.** Seven gained against two lost is what a real gain looks like, but a difference of this size on this many questions could also be chance (an exact sign test gives about 0.18). The two losses do not look like an effect of the option: one was answered without a search in both arms, and the other lists the processes the reference answer names and was judged wrong.
 
-## What it found that is not yet fixed
+## What it found
 
 **Long replies come back cut.** Three of the four questions that were searched for and still answered wrong failed the same way: the reply holding the answer was found, but the recall tool shows at most 700 characters of one message (`host.MESSAGE_CHARACTERS`), and the answer lay outside the part shown. The three replies are 2,173, 2,557 and 2,879 characters long, with the answer 898, 1,505 and 2,252 characters in. One question asked for the 27th item of a list of 100; the model said which items it could see and that the 27th was not among them. The other two asked for a list and a figure from inside a long plan. The model did not invent an answer in any of them.
 
-The evidence measure above counts a reply as returned when any part of it is shown, so it reports 100% here and overstates what the host can read. Next: show the part of a long message that matches the search, or let the host read one stored message in full; and count evidence as returned only when the answering part is.
+The evidence measure above counts a reply as returned when any part of it is shown, so it reports 100% here and overstates what the host can read.
+
+## The change: replies the host asked for are shown at length
+
+When the host AI asks for its own replies, the two closest replies are now shown up to 3,000 characters each (`host.REPLY_CHARACTERS`, `REPLIES_AT_LENGTH`); every other message, and everything in automatic recall, keeps the 700-character limit. The numbers were chosen with a sweep that calls no model ([reply_length_sweep.py](longmemeval/reply_length_sweep.py)): on the 30 questions and two more from the development set, how much of the evidence reply does the tool's result show?
+
+| Replies at length | Evidence reply shown whole, asked with the question (32) | Asked with the answer model's own search (14) | Messages in the result |
+| --- | --- | --- | --- |
+| none (700 characters, as before) | 7 | 3 | 18.0 |
+| 1 × 3,000 | 26 | 13 | 16.8 |
+| 2 × 2,000 | 25 | 8 | 16.1 |
+| **2 × 3,000** | **28** | **13** | **15.5** |
+| 3 × 3,000 | 29 | 13 | 14.8 |
+| 2 × 4,000 | 29 | 14 | 15.4 |
+
+The evidence replies are 1,237 characters at the median and 3,959 at most; 25 of 32 are longer than 700. Showing two at length costs about 2.5 of the 18 messages a result otherwise holds.
+
+The "after" arm was then run again with the change (0.53 CNY):
+
+| Answers on the 30 questions | Correct |
+| --- | --- |
+| Before the option | 19 (63.3%) |
+| With the option, 700 characters | 24 (80.0%) |
+| With the option, replies at length | 27 (90.0%) |
+
+All three questions that had failed on a cut reply were answered correctly. One question was lost: the model made one search without the option this time, where it had made two before, the second with it. The model searched on 14 questions again and set the option on 13.
+
+**These 30 questions are no longer untouched.** The lengths were chosen on them, so the last row is a result on the questions the change was made for, not an independent check. Eleven questions of this kind remain unused.
 
 **Four questions had the evidence outside the block and no search was made.** Three were answered correctly anyway from the user's own turns, one was wrong.
 
@@ -47,4 +74,4 @@ The evidence measure above counts a reply as returned when any part of it is sho
 - Whether the gain holds on a larger set.
 - What the option costs on a host: each search adds one model call and up to about 9,000 characters of results.
 
-Evidence: [recall](longmemeval/results-2026-11-12/assistant-set-recall.jsonl.gz), [answers](longmemeval/results-2026-11-12/assistant-set-answers-before-after.jsonl.gz), [ledger](longmemeval/results-2026-11-12/assistant-set-answers-ledger.json).
+Evidence: [recall](longmemeval/results-2026-11-12/assistant-set-recall.jsonl.gz), [answers](longmemeval/results-2026-11-12/assistant-set-answers-before-after.jsonl.gz), [ledger](longmemeval/results-2026-11-12/assistant-set-answers-ledger.json); [sweep](longmemeval/results-2026-11-12/assistant-reply-length-sweep.jsonl.gz), [answers at length](longmemeval/results-2026-11-12/assistant-set-answers-at-length.jsonl.gz), [its ledger](longmemeval/results-2026-11-12/assistant-set-answers-at-length-ledger.json).

@@ -1,0 +1,25 @@
+{
+  "ceiling_cny": 2.0,
+  "spent_cny": 0.531026,
+  "stopped": null,
+  "models": {
+    "deepseek-flash": {
+      "calls": 74,
+      "prompt_tokens": 249937,
+      "completion_tokens": 3894,
+      "cny": 0.531026,
+      "unknown": 0,
+      "errors": 0
+    }
+  },
+  "phases": {
+    "answer:after": {
+      "calls": 44,
+      "cny": 0.515968
+    },
+    "judge:after": {
+      "calls": 30,
+      "cny": 0.015058
+    }
+  }
+}
