@@ -21,6 +21,17 @@ TOOL_DESCRIPTION = (
     "to the persona on their memory page. Keep doing what the user asked in the conversation itself.")
 
 
+def refusal(directory: Path, user_id=None, recording_capture=None) -> dict | None:
+    """Why a report is refused before anything is sent: recording is paused. Hosts that open a client for each call
+    ask this first, so a paused user gets this answer whether or not the service is running."""
+    from . import host
+    from .host_recording import capture_marker
+
+    if host.paused(directory, user_id, marker=capture_marker(recording_capture)):
+        return {"error": "Recording is paused, so manner feedback is not recorded. Nothing was saved."}
+    return None
+
+
 def report(directory: Path, client, kind, *, source_event_ids=(), source_messages=(), user_id=None,
            recording_capture=None) -> dict:
     """The ``memory_manner_feedback`` tool: pass a report of the user's feedback on the companion's manner to the
@@ -28,11 +39,9 @@ def report(directory: Path, client, kind, *, source_event_ids=(), source_message
     Errors come back to the AI as ``error``."""
     import httpx
 
-    from . import host
-    from .host_recording import capture_marker
-
-    if host.paused(directory, user_id, marker=capture_marker(recording_capture)):
-        return {"error": "Recording is paused, so manner feedback is not recorded. Nothing was saved."}
+    refused = refusal(directory, user_id, recording_capture)
+    if refused:
+        return refused
     try:
         result = client.report_manner_feedback(kind, source_event_ids=list(source_event_ids or ()),
                                                source_messages=list(source_messages or ()))

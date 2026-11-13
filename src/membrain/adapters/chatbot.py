@@ -235,6 +235,9 @@ class ChatMemory:
         if not self._recording(speaker):
             return {"error": "Memory tools are not available in this conversation."}
         user = self.memory_user(speaker, roleplay)
+        refused = manner_feedback.refusal(self.directory, user, recording_capture)
+        if refused:
+            return refused
         client = self._client(user)
         if client is None:
             return {"error": "memBrain is starting; try again in a few seconds."}

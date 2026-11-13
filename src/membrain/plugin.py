@@ -16,7 +16,7 @@ import time
 import traceback
 from pathlib import Path
 
-from . import host, host_receipts, host_recording
+from . import host, host_receipts, host_recording, manner_feedback
 from .host import (  # noqa: F401  (re-exported for callers of the previous plugin API)
     CONTEXT_CHARACTERS,
     HISTORY_CHARACTERS,
@@ -269,6 +269,8 @@ def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
             result = {"error": "Recording is paused. Resume before saving agent notes."}
         elif name == "consolidate" and host.paused(directory, user):
             result = {"error": host.CONSOLIDATION_PAUSED}
+        elif name == "manner_feedback" and manner_feedback.refusal(directory, user, arguments.get("recording_capture")):
+            result = manner_feedback.refusal(directory, user, arguments.get("recording_capture"))
         else:
             client = host.ready_client(directory, user)
             if client is None:
@@ -287,8 +289,6 @@ def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
                         saved = client.add_boundary(arguments.get("topic", ""), arguments.get("aliases") or ())
                         result = {"boundaries": saved.get("boundaries", [])}
                     elif name == "manner_feedback":
-                        from . import manner_feedback
-
                         result = manner_feedback.report(
                             directory, client, arguments.get("kind"),
                             source_event_ids=arguments.get("source_event_ids") or (),

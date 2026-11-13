@@ -169,7 +169,13 @@ def test_openclaw_and_astrbot_pass_the_report_and_its_sources_and_send_nothing_w
     host.pause(tmp_path, user_id=person)
     assert "paused" in openclaw({"kind": "longer", "source_messages": reference, "membrain_user": stranger})["error"]
     assert "paused" in astrbot("longer", source_event_ids=["evt-1"])["error"]
-    assert len(client.reports) == 2
+    assert len(client.reports) == 2 and len(users) == 2  # Refused before a client is opened,
+    monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: None)
+    monkeypatch.setattr(host, "start_in_background", lambda directory: users.append("started"))
+    # so with the service down the answer is still "paused", and the call does not start the service.
+    assert "paused" in openclaw({"kind": "longer", "source_messages": reference, "membrain_user": stranger})["error"]
+    assert "paused" in astrbot("longer", source_event_ids=["evt-1"])["error"]
+    assert len(users) == 2
 
 
 def test_the_sdk_and_the_cli_reach_the_feedback_route(capsys):
