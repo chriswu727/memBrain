@@ -934,6 +934,7 @@ Compatibility: archives from runtimes without this field restore as before. An a
 - `src/membrain/legacy_erasure.py`: erasure of derived rows that the runtime no longer writes but older data can hold.
 - `src/membrain/candidates.py`, `retrieval.py`, `dynamics.py`: candidate fusion, version dependencies, access tiers, and external feedback.
 - `src/membrain/jobs.py`, `embeddings.py`, `vector_jobs.py`: persistent jobs, call budgets, and optional vector processing.
+- `src/membrain/capture_jobs.py`, `snapshots.py`: the statement-capture and embedding jobs every brain runs, and source-snapshot checks for query embeddings.
 - `src/membrain/service.py`: transactions, versions, lifecycle management, and the ten memory operations.
 - `src/membrain/storage.py`, `migrations/`: PostgreSQL data model and isolation.
 - `src/membrain/api.py`, `web/`: authentication, HTTP, and the local workbench.

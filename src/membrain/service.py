@@ -297,9 +297,9 @@ class MemoryService:
                     response["request_id"] = request["request_id"]
                     return response, False
                 if vector_snapshot:
-                    from .learning import validate_snapshot
+                    from .snapshots import validate_source_snapshot
 
-                    validate_snapshot(conn, self, principal, brain, vector_snapshot)
+                    validate_source_snapshot(conn, self, principal, brain, vector_snapshot)
                 if action in {"prepare", "recall"}:
                     result = getattr(self, "_" + action)(conn, principal, brain, request, query_embedding=vector)
                 else:
@@ -1632,9 +1632,14 @@ class MemoryService:
                 "quarantined_event_count": quarantined, "excluded_deleted_count": excluded, "read_enabled": True}
 
     def work_once(self, principal, brain_id):
-        from .learning import LearningEngine
+        if self.semantic_processor:
+            from .learning import LearningEngine
 
-        result = LearningEngine(self).work_once(principal, brain_id)
+            result = LearningEngine(self).work_once(principal, brain_id)
+        else:
+            from . import capture_jobs
+
+            result = capture_jobs.work_once(self, principal, brain_id)
         if not result:
             from .read_cache import maintain
 

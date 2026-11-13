@@ -4,7 +4,7 @@ from datetime import datetime, timedelta, timezone
 
 from psycopg.types.json import Jsonb
 
-from . import cognition
+from . import capture_jobs, cognition
 from .consolidation_planning import plan_consolidation, select_consolidation_candidates
 from .contracts import validate
 from .helpers import DomainError, _hash, _identifier, _integer, _refs, digest, now, uid
@@ -24,6 +24,7 @@ from .semantic import (
     check_result_mode,
     validate_input_contract,
 )
+from .snapshots import check_snapshot_sources, check_uncorrected_sources
 from .turns import TurnStore
 
 
@@ -169,28 +170,9 @@ def _validated_snapshot(conn, service, principal, brain, result):
     _snapshot_input_contract(result)
     _snapshot_policy(result)
     scope = result.get("scope", {})
-    try:
-        validate("BoundScope", scope)
-    except DomainError as error:
-        raise DomainError("context_stale", "Cognitive scope binding is malformed.") from error
-    if scope.get("scope_generation") != brain["scope_generation"]:
-        raise DomainError("context_stale", "Cognitive scope changed.")
-    if "dependency_generation" in result and result["dependency_generation"] != brain["dependency_generation"]:
-        raise DomainError("context_stale", "Cognitive dependency generation changed.")
-    refs = result.get("source_snapshot", [])
-    events = service._events(conn, principal, brain, event_ids=[r["event_id"] for r in refs], limit=128)
-    lookup = {(e["event_id"], e["revision"]): e for e in events}
-    for ref in refs:
-        event = lookup.get((ref["event_id"], ref["revision"]))
-        if (event is None or event["content_sha256"] != ref["content_sha256"]
-                or not cognition._scope_allows(event["scope"], scope)):
-            raise DomainError("source_unavailable", "Cognitive source changed.")
+    events, lookup = check_snapshot_sources(conn, service, principal, brain, result)
     _validate_current_input_binding(conn, service, principal, brain, result, lookup)
-    superseded = service._superseded_evidence(conn, principal, brain, [r["event_id"] for r in refs])
-    if any((ref["event_id"], ref["event_revision"]) in lookup
-           and lookup[(ref["event_id"], ref["event_revision"])]["content_sha256"] == ref["source_content_sha256"]
-           for ref in superseded):
-        raise DomainError("context_stale", "Cognitive source was corrected.")
+    check_uncorrected_sources(conn, service, principal, brain, result, lookup)
     references = result.get("memory_snapshot", [])
     memories = _snapshot_documents(conn, service, principal, brain, references, "memory_assertions", "memory_id",
                                    "NOT invalidated AND NOT deleted AND NOT suppressed")
@@ -728,73 +710,10 @@ class LearningEngine:
         return row
 
     def _literal(self, principal, brain_id, job):
-        from .service import reading
-
-        service = self.service
-        # Only reads: the captures are published below under the exclusive lock, and only for events still current.
-        with reading(), service.database.transaction(principal) as conn:
-            brain = service._brain(conn, principal, brain_id)
-            event_ids = ([job["payload"]["event_id"]] if job["kind"] == "extract"
-                         else job["payload"].get("event_ids", []))
-            events = service._events(conn, principal, brain, event_ids=event_ids[:128], limit=128)
-            if job["kind"] == "extract":
-                events = [e for e in events if e["revision"] == job["payload"]["revision"]]
-            memories = [(event, service._current_captures(conn, principal, brain, event)) for event in events]
-
-        def publish(conn, _):
-            brain = service._brain(conn, principal, brain_id)
-            current = {(e["event_id"], e["revision"]) for e in service._events(
-                conn, principal, brain, event_ids=event_ids[:128], limit=128)}
-            for event, captures in memories:
-                if (event["event_id"], event["revision"]) in current:
-                    blocked = service._superseded_evidence(conn, principal, brain, [event["event_id"]])
-                    for memory in captures:
-                        if not any(cognition.evidence_overlaps(ref, old) for ref in memory["evidence_refs"] for old in blocked):
-                            service._publish(conn, principal, brain, memory)
-            if len(event_ids) > 128:
-                service._job(conn, principal, brain, "rebuild", {"event_ids": event_ids[128:]})
-            # Runs under the exclusive brain lock once per indexed message. A brain the statistics have not seen yet
-            # (any new one, or one that just took a bulk import) is estimated at one row, and the planner then
-            # compares every pending job with every event (seconds at a few thousand messages, while reads wait).
-            # The hash join answers the same query in milliseconds at any size; the setting is restored after it.
-            nestloop = conn.execute("SELECT current_setting('enable_nestloop') AS value").fetchone()["value"]
-            conn.execute("SELECT set_config('enable_nestloop','off',true)")
-            pending = conn.execute(
-                "SELECT min(e.sequence) AS value FROM memory_events e JOIN memory_jobs j ON "
-                "j.tenant_id=e.tenant_id AND j.brain_id=e.brain_id AND j.payload->>'event_id'=e.id "
-                "AND (j.payload->>'revision')::bigint=e.revision "
-                "WHERE e.tenant_id=%s AND e.owner_id=%s AND e.brain_id=%s AND j.kind='extract' "
-                "AND j.state<>'completed' AND j.id<>%s", (*service._params(principal, brain_id), job["id"]),
-            ).fetchone()["value"]
-            conn.execute("SELECT set_config('enable_nestloop',%s,true)", (nestloop,))
-            indexed = brain["durable_sequence"] if pending is None else pending - 1
-            conn.execute("UPDATE memory_brains SET indexed_sequence=%s WHERE tenant_id=%s AND owner_id=%s AND id=%s",
-                         (indexed, *service._params(principal, brain_id)))
-
-        self.jobs.complete(principal, brain_id, job["id"], lease_token=job["lease_token"], fence=job["fence"], publish=publish)
+        capture_jobs.capture(self.service, self.jobs, principal, brain_id, job)
 
     def _execute(self, principal, brain_id, job):
-        try:
-            if job["kind"] in ("extract", "rebuild"):
-                self._literal(principal, brain_id, job)
-            elif job["kind"] in ("orient", "consolidate"):
-                self.semantic(principal, brain_id, job)
-            elif job["kind"] == "embed":
-                from .vector_jobs import embed_memory
-
-                embed_memory(self.service, principal, brain_id, job)
-        except Exception as error:
-            try:
-                self.jobs.fail(principal, brain_id, job["id"], lease_token=job["lease_token"], fence=job["fence"],
-                               failure_code=error.code if isinstance(error, DomainError) and error.code in {
-                                   "source_unavailable", "context_stale", "budget_exceeded", "provider_uncertain",
-                                   "recording_paused", "recording_stale"} else "internal_error",
-                               retry=not isinstance(error, DomainError),
-                               retry_delay_seconds=(60 * 2 ** min(job["attempts"] - 1, 5)
-                                                    if job["kind"] == "consolidate" else 0))
-            except DomainError:
-                pass
-            raise
+        capture_jobs.execute(self.service, self.jobs, principal, brain_id, job, semantic=self.semantic)
 
     def work_once(self, principal, brain_id):
         kinds = ["extract", "rebuild"]
@@ -807,19 +726,4 @@ class LearningEngine:
 
                     reconsider(conn, self.service, principal, brain)
             kinds.append("consolidate")
-        if self.service.embedding_provider:
-            kinds.append("embed")
-        job = self.jobs.claim(principal, brain_id, worker_id=uid(), kinds=kinds, lease_seconds=120)
-        if job is None and self.service.embedding_provider:
-            from .vector_jobs import backfill_embeddings
-
-            if backfill_embeddings(self.service, principal, brain_id):
-                job = self.jobs.claim(principal, brain_id, worker_id=uid(), kinds=kinds, lease_seconds=120)
-        if job is None:
-            return 0
-        if job["kind"] == "embed" and not getattr(self.service.embedding_provider, "metered", True):
-            from .vector_jobs import embed_local_batch
-
-            return embed_local_batch(self.service, principal, brain_id, job)
-        self._execute(principal, brain_id, job)
-        return 1
+        return capture_jobs.run_next(self.service, self.jobs, principal, brain_id, kinds, self._execute)

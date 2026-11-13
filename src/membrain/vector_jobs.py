@@ -258,7 +258,7 @@ def _local_query_embedding(service, principal, request):
 
 
 def query_embedding(service, principal, request):
-    from .learning import validate_snapshot
+    from .snapshots import validate_source_snapshot
 
     payload = request["payload"]
     if (service.embedding_provider is None or request["action"] not in {"prepare", "recall"}
@@ -286,7 +286,7 @@ def query_embedding(service, principal, request):
             raise DomainError("idempotency_conflict", "Query job already binds another request.")
         if existing["state"] == "completed" and existing["result"]:
             data = existing["result"]
-            validate_snapshot(conn, service, principal, brain, data["snapshot"])
+            validate_source_snapshot(conn, service, principal, brain, data["snapshot"])
             return EmbeddingResult(EmbeddingSpace(**data["space"]), (tuple(data["vector"]),), data["usage"],
                                    data["fingerprint"], data["input_bytes"]), data["snapshot"], 1
     jobs = JobStore(service.database)
@@ -299,7 +299,7 @@ def query_embedding(service, principal, request):
 
         def publish(conn, _):
             brain = service._brain(conn, principal, brain_id)
-            validate_snapshot(conn, service, principal, brain, snapshot)
+            validate_source_snapshot(conn, service, principal, brain, snapshot)
             data = {"snapshot": snapshot, "space": result.space.descriptor(), "vector": result.vectors[0],
                     "usage": result.usage, "fingerprint": result.request_fingerprint, "input_bytes": result.input_bytes}
             conn.execute("UPDATE memory_jobs SET result=%s WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=%s",

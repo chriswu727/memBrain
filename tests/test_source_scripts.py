@@ -2,8 +2,7 @@ import pytest
 from test_candidates import Candidates, key
 from test_candidates import candidates as candidates
 
-from membrain import source_scripts
-from membrain.learning import LearningEngine
+from membrain import capture_jobs, source_scripts
 
 pytestmark = pytest.mark.integration
 
@@ -26,7 +25,7 @@ def test_publication_classifies_original_content_and_idle_backfill_is_bounded_an
         with owner.database.transaction(owner.principal) as conn:
             conn.execute("UPDATE memory_assertions SET source_han_majority=NULL WHERE brain_id=%s", (owner.brain_id,))
     monkeypatch.setattr(source_scripts, "BACKFILL_BATCH", 2)
-    monkeypatch.setattr(LearningEngine, "work_once", lambda *args: 0)
+    monkeypatch.setattr(capture_jobs, "work_once", lambda *args: 0)
 
     with pytest.raises(RuntimeError, match="interrupted"):
         with candidates.database.transaction(candidates.principal) as conn:
