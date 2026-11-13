@@ -525,7 +525,7 @@ def test_masked_map_details_hide_recording_time_and_preserve_public_dates(server
 # 4. Every companion section in English and Chinese -----------------------------------------------------------------
 
 SECTIONS = {  # selector: (English, Chinese) strings that must render.
-    ".persona-current": [("Current card", "当前设定"), ("Edit personality", "编辑个性"), ("Version 1", "版本 1")],
+    ".persona-current": [("Current card", "当前设定"), ("Edit personality", "编辑人格"), ("Version 1", "版本 1")],
     "#persona-proposals-card": [("Suggestions from your feedback", "根据你的反馈提出的建议"),
                                 ("More casual: from 3 messages", "更随意：来自 3 条消息"),
                                 ("waiting for you", "等你决定"), ("What you said:", "你说过的话："),
@@ -558,7 +558,7 @@ def assert_language(page, language: str):
             expect(section).to_contain_text(pair[index])
         if language == "zh":
             assert untranslated(page, selector) == [], selector
-    expect(page.locator("#view-persona h1").first).to_have_text("Personality" if language == "en" else "个性")
+    expect(page.locator("#view-persona h1").first).to_have_text("Personality" if language == "en" else "人格")
     expect(page.locator("#relationship h1")).to_have_text("Relationship" if language == "en" else "关系")
 
 

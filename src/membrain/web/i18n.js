@@ -253,10 +253,10 @@ const ZH = {
   "Delete this feeling": "删除这条感受", "feeling of:": "所属笔记：",
   "中文": "中文", "English": "English",
   // Personality (persona card)
-  "Personality": "个性",
+  "Personality": "人格",
   "How your companion presents itself: its name, character, voice, values and boundaries. Your agent receives it in its own block, apart from what it remembers about you. Every save keeps the earlier versions. How you like replies, as your agent learns it, stays in your preference notes.":
     "你的伙伴如何展现自己：名字、性格、说话方式、价值观和边界。agent 会在单独的区块里收到它，和它记得的关于你的内容分开。每次保存都会保留之前的版本。agent 学到的你喜欢的回复方式，仍然放在你的偏好笔记里。",
-  "Current card": "当前设定", "Edit personality": "编辑个性", "Reset personality": "重置个性",
+  "Current card": "当前设定", "Edit personality": "编辑人格", "Reset personality": "重置人格",
   "Name": "名字", "Traits, one per line (up to 8)": "性格特点，每行一个（最多 8 个）", "Voice": "说话方式",
   "Register": "语体", "casual, formal…": "随意、正式……", "Typical length": "通常长度", "short, a few sentences…": "简短、几句话……",
   "Emoji use": "表情符号", "rarely, never…": "很少、从不……", "Language": "语言", "follows the user…": "跟随用户……",
@@ -270,24 +270,24 @@ const ZH = {
     "设定最多 1,200 个字符。看起来像密码或密钥的内容会被移除。",
   "Save as a new version": "保存为新版本", "Versions": "版本",
   "Newest first. Restoring a version saves its content as a new version.": "最新的在前。恢复某个版本会把它的内容保存为一个新版本。",
-  "Delete personality history": "删除个性历史",
-  "Persona card field baseline_mood.label: give the mood a name.": "个性字段 baseline_mood.label：请给这个心情起个名字。",
-  "Only the host sets the default persona card.": "只有宿主应用可以设定默认个性。",
+  "Delete personality history": "删除人格历史",
+  "Persona card field baseline_mood.label: give the mood a name.": "人格字段 baseline_mood.label：请给这个心情起个名字。",
+  "Only the host sets the default persona card.": "只有宿主应用可以设定默认人格。",
   "Erases every version, including the current card. Deletion is recorded, so it also holds if an older backup is restored. Notes and messages are not touched.":
     "清除所有版本，包括当前设定。删除会被记录下来，即使从旧备份恢复也不会回来。笔记和消息不受影响。",
   "Traits": "性格特点", "Values": "价值观", "Boundaries": "边界", "register": "语体", "length": "长度", "emoji": "表情符号",
   "language": "语言", "No versions yet": "还没有版本",
-  "No personality card is set. Your agent keeps its usual manner.": "还没有设定个性。agent 会保持它平常的方式。",
-  "No versions yet. Edit the personality to save the first one.": "还没有版本。编辑个性即可保存第一个版本。",
+  "No personality card is set. Your agent keeps its usual manner.": "还没有设定人格。agent 会保持它平常的方式。",
+  "No versions yet. Edit the personality to save the first one.": "还没有版本。编辑人格即可保存第一个版本。",
   "Only the most recent versions are listed.": "只列出了最近的版本。",
   "set by you": "你设定的", "set by the host": "宿主设定的", "from accepted feedback": "来自已接受的反馈",
   "reset to no card": "重置为无设定", "reset to the host's default": "重置为宿主默认设定", "host default": "宿主默认", "edited": "已编辑",
   "current": "当前", "Restore": "恢复", "No card.": "无设定。",
   "No change: that is already the current card.": "没有变化：这已经是当前设定。",
   "Reset the personality to the host's default, or to no card? Earlier versions are kept and can be restored. Notes and messages are not touched.":
-    "把个性重置为宿主的默认设定，或者清空设定？之前的版本会保留，可以恢复。笔记和消息不受影响。",
-  "Delete every personality version, including the current card? This cannot be undone.": "删除所有个性版本，包括当前设定？此操作无法撤销。",
-  "Personality history deleted.": "个性历史已删除。",
+    "把人格重置为宿主的默认设定，或者清空设定？之前的版本会保留，可以恢复。笔记和消息不受影响。",
+  "Delete every personality version, including the current card? This cannot be undone.": "删除所有人格版本，包括当前设定？此操作无法撤销。",
+  "Personality history deleted.": "人格历史已删除。",
   // Personality types (the persona presets)
   "Switch": "切换",
   "Personality type:": "人格类型：", "Your own card": "你自己的设定", "No personality type": "没有使用人格类型",
@@ -363,7 +363,7 @@ const ZH = {
     "来自 agent 的承诺笔记。错过的承诺会给 agent 看一次，让它可以承认。",
   "Reset the relationship": "重置关系",
   "Deletes the shared moments, the support style, every boundary, the familiarity limit and the record of promises. Familiarity starts again at new. Conversations, your other notes, the personality and feelings stay.":
-    "删除共同时刻、支持方式、所有边界、熟悉程度上限和承诺记录。熟悉程度从“初识”重新开始。对话、你的其他笔记、个性和感受都会保留。",
+    "删除共同时刻、支持方式、所有边界、熟悉程度上限和承诺记录。熟悉程度从“初识”重新开始。对话、你的其他笔记、人格和感受都会保留。",
   "Reset relationship": "重置关系",
   "No boundaries. Add a topic you don't want your companion to bring up.": "没有边界。添加一个你不希望伙伴提起的话题。",
   "No shared moments yet. When you and your companion do something together, your agent can keep it here.":
@@ -384,7 +384,7 @@ const ZH = {
   "Familiarity limit removed.": "熟悉程度上限已取消。", "Support style saved.": "支持方式已保存。",
   "Support style removed.": "支持方式已删除。", "Relationship reset.": "关系已重置。",
   "Reset the relationship? This deletes every shared moment, the support style, every boundary (so those topics are no longer kept out), the familiarity limit and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. Conversations, your other notes, the personality and feelings stay.":
-    "重置关系？这会删除所有共同时刻、支持方式、所有边界（这些话题将不再被略过）、熟悉程度上限，以及做到和错过的承诺记录。熟悉程度从“初识”重新开始，只计算从现在起的天数。对话、你的其他笔记、个性和感受都会保留。",
+    "重置关系？这会删除所有共同时刻、支持方式、所有边界（这些话题将不再被略过）、熟悉程度上限，以及做到和错过的承诺记录。熟悉程度从“初识”重新开始，只计算从现在起的天数。对话、你的其他笔记、人格和感受都会保留。",
   "The support style is text.": "支持方式必须是文字。",
   "Keep the support style under 200 characters.": "支持方式请控制在 200 个字符以内。",
   "A boundary is a topic and an optional list of other words for it.": "边界是一个话题，加上可选的其他说法。",
@@ -412,7 +412,7 @@ const ZH = {
   "No triggers yet.": "还没有触发记录。", "Only the most recent triggers are listed.": "只列出了最近的触发记录。",
   "Mood pinned to its baseline.": "心情已固定在基础心情。", "Mood pin lifted.": "已取消固定心情。", "Mood reset.": "心情已重置。",
   "Put the mood back at its baseline and forget its triggers? Feelings, notes and the personality are not touched, and events before now never change the mood again.":
-    "把心情恢复到基础心情，并忘掉它的触发记录？感受、笔记和个性不受影响，之前发生的事也不会再改变心情。",
+    "把心情恢复到基础心情，并忘掉它的触发记录？感受、笔记和人格不受影响，之前发生的事也不会再改变心情。",
   "Leave the mood empty to rest at calm. It is the resting point the simulated mood returns to; it is not a feeling.":
     "心情留空则以平静为基础心情。它是模拟心情回归的起点，不是一种真实的感受。",
   // Persona suggestions from feedback (P2)
@@ -469,7 +469,7 @@ const ZH = {
   "Episodes and associations": "情节与关联",
   "Episode membership and typed links between memories. Not available yet. “Recent messages” are original messages, not episodes.":
     "情节包含哪些记录，以及记忆之间有类型的关联。暂不可用。“最近的消息”是原始消息，不是情节。",
-  "Personality development": "个性的变化", "Versions, suggestions and your decisions. Not available yet; the Companion tab shows them.":
+  "Personality development": "人格的变化", "Versions, suggestions and your decisions. Not available yet; the Companion tab shows them.":
     "版本、建议和你的决定。暂不可用；可以在“伙伴”标签页查看。",
   "Triggers and the baseline. Not available yet; the Companion tab shows them.": "触发记录和基础心情。暂不可用；可以在“伙伴”标签页查看。",
   "Relationship evidence": "关系的依据",
@@ -522,18 +522,18 @@ const ZH_PATTERNS = [
   [/^(\S+) · (\d+) messages · (.*)$/s, (m, date, n, first) => `${date} · ${n} 条消息 · ${first}`],
   [/^Request failed \((\d+)\)$/, (m, status) => `请求失败（${status}）`],
   [/^Version (\d+)$/, (m, n) => `版本 ${n}`],
-  [/^History deleted on (.+)$/, (m, date) => `个性历史已于 ${date} 删除`],
+  [/^History deleted on (.+)$/, (m, date) => `人格历史已于 ${date} 删除`],
   [/^Saved as version (\d+)\.$/, (m, n) => `已保存为版本 ${n}。`],
-  [/^Personality reset as version (\d+)\.$/, (m, n) => `个性已重置，保存为版本 ${n}。`],
+  [/^Personality reset as version (\d+)\.$/, (m, n) => `人格已重置，保存为版本 ${n}。`],
   [/^restored from version (\d+)$/, (m, n) => `从版本 ${n} 恢复`],
   [/^Restore version (\d+)\? Its content becomes a new version\.$/, (m, n) => `恢复版本 ${n}？它的内容会成为一个新版本。`],
   [/^\(valence ([+-]?\d), energy (\d) of 3\)$/, (m, valence, energy) => `（情绪倾向 ${valence}，活力 ${energy}/3）`],
-  [/^Persona version (\d+) is not available\.$/, (m, version) => `个性版本 ${version} 已不存在。`],
+  [/^Persona version (\d+) is not available\.$/, (m, version) => `人格版本 ${version} 已不存在。`],
   [/^A reason is text of at most (\d+) characters\.$/, (m, n) => `原因最多 ${n} 个字符。`],
   // Field checks name the field; the detail after it comes from the validator and stays in English.
-  [/^Persona card field ([\w.\[\]]+): (.+)$/s, (m, where, detail) => `个性字段 ${where}：${detail}`],
+  [/^Persona card field ([\w.\[\]]+): (.+)$/s, (m, where, detail) => `人格字段 ${where}：${detail}`],
   [/^The persona card is (\d+) characters when rendered; the limit is 1,200\. Shorten it\. Nothing was saved and nothing was cut\.$/,
-    (m, n) => `这份个性设定有 ${n} 个字符，上限是 1,200。请缩短后再保存。没有保存任何内容，也没有截断。`],
+    (m, n) => `这份人格设定有 ${n} 个字符，上限是 1,200。请缩短后再保存。没有保存任何内容，也没有截断。`],
   [/^(\d+) memories and (\d+) links( \(a bounded selection; more exist\))?\.$/, (m, n, e, more) =>
     `${n} 条记忆，${e} 条关联${more ? "（显示数量有限，还有更多）" : ""}。`],
   [/^(\d+) memor(?:y|ies) · (\d+) links?$/, (m, n, e) => `${n} 条记忆 · ${e} 条关联`],
