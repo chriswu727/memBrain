@@ -1,0 +1,184 @@
+{
+  "conv-42": {
+    "turns": 629,
+    "events_matched": 629,
+    "seconds_after_session_date": {
+      "min": 0.0,
+      "max": 18.7,
+      "median": 0.2
+    },
+    "examples": [
+      {
+        "dia_id": "D1:1",
+        "session_date": "2022-01-21T19:31:00+00:00",
+        "recorded_at": "2022-01-21T19:31:18.425085Z"
+      },
+      {
+        "dia_id": "D16:11",
+        "session_date": "2022-06-24T10:55:00+00:00",
+        "recorded_at": "2022-06-24T10:55:00.168522Z"
+      },
+      {
+        "dia_id": "D29:15",
+        "session_date": "2022-11-11T00:06:00+00:00",
+        "recorded_at": "2022-11-11T00:06:00.295835Z"
+      }
+    ]
+  },
+  "conv-43": {
+    "turns": 680,
+    "events_matched": 680,
+    "seconds_after_session_date": {
+      "min": 0.0,
+      "max": 18.9,
+      "median": 0.2
+    },
+    "examples": [
+      {
+        "dia_id": "D1:1",
+        "session_date": "2023-05-21T19:48:00+00:00",
+        "recorded_at": "2023-05-21T19:48:18.690819Z"
+      },
+      {
+        "dia_id": "D15:20",
+        "session_date": "2023-10-21T17:51:00+00:00",
+        "recorded_at": "2023-10-21T17:51:00.375881Z"
+      },
+      {
+        "dia_id": "D29:15",
+        "session_date": "2024-01-12T13:41:00+00:00",
+        "recorded_at": "2024-01-12T13:41:00.275125Z"
+      }
+    ]
+  },
+  "conv-44": {
+    "turns": 675,
+    "events_matched": 675,
+    "seconds_after_session_date": {
+      "min": 0.0,
+      "max": 19.0,
+      "median": 0.2
+    },
+    "examples": [
+      {
+        "dia_id": "D1:1",
+        "session_date": "2023-03-27T13:10:00+00:00",
+        "recorded_at": "2023-03-27T13:10:18.716995Z"
+      },
+      {
+        "dia_id": "D14:21",
+        "session_date": "2023-08-04T11:05:00+00:00",
+        "recorded_at": "2023-08-04T11:05:00.393058Z"
+      },
+      {
+        "dia_id": "D28:18",
+        "session_date": "2023-11-22T09:02:00+00:00",
+        "recorded_at": "2023-11-22T09:02:00.322831Z"
+      }
+    ]
+  },
+  "conv-47": {
+    "turns": 689,
+    "events_matched": 689,
+    "seconds_after_session_date": {
+      "min": 0.0,
+      "max": 19.3,
+      "median": 0.2
+    },
+    "examples": [
+      {
+        "dia_id": "D1:1",
+        "session_date": "2022-03-17T15:47:00+00:00",
+        "recorded_at": "2022-03-17T15:47:18.912064Z"
+      },
+      {
+        "dia_id": "D15:16",
+        "session_date": "2022-06-19T21:59:00+00:00",
+        "recorded_at": "2022-06-19T21:59:00.266375Z"
+      },
+      {
+        "dia_id": "D31:25",
+        "session_date": "2022-11-07T20:57:00+00:00",
+        "recorded_at": "2022-11-07T20:57:00.494635Z"
+      }
+    ]
+  },
+  "conv-48": {
+    "turns": 681,
+    "events_matched": 681,
+    "seconds_after_session_date": {
+      "min": 0.0,
+      "max": 18.7,
+      "median": 0.2
+    },
+    "examples": [
+      {
+        "dia_id": "D1:1",
+        "session_date": "2023-01-23T16:06:00+00:00",
+        "recorded_at": "2023-01-23T16:06:18.496296Z"
+      },
+      {
+        "dia_id": "D15:29",
+        "session_date": "2023-07-09T19:37:00+00:00",
+        "recorded_at": "2023-07-09T19:37:00.529083Z"
+      },
+      {
+        "dia_id": "D30:18",
+        "session_date": "2023-09-20T10:17:00+00:00",
+        "recorded_at": "2023-09-20T10:17:00.312870Z"
+      }
+    ]
+  },
+  "conv-49": {
+    "turns": 509,
+    "events_matched": 509,
+    "seconds_after_session_date": {
+      "min": 0.0,
+      "max": 18.6,
+      "median": 0.2
+    },
+    "examples": [
+      {
+        "dia_id": "D1:1",
+        "session_date": "2023-05-18T13:47:00+00:00",
+        "recorded_at": "2023-05-18T13:47:18.340721Z"
+      },
+      {
+        "dia_id": "D13:15",
+        "session_date": "2023-10-14T16:07:00+00:00",
+        "recorded_at": "2023-10-14T16:07:00.303136Z"
+      },
+      {
+        "dia_id": "D25:20",
+        "session_date": "2024-01-11T21:37:00+00:00",
+        "recorded_at": "2024-01-11T21:37:00.366384Z"
+      }
+    ]
+  },
+  "conv-50": {
+    "turns": 568,
+    "events_matched": 568,
+    "seconds_after_session_date": {
+      "min": 0.0,
+      "max": 18.4,
+      "median": 0.1
+    },
+    "examples": [
+      {
+        "dia_id": "D1:1",
+        "session_date": "2023-03-23T11:53:00+00:00",
+        "recorded_at": "2023-03-23T11:53:18.214485Z"
+      },
+      {
+        "dia_id": "D16:14",
+        "session_date": "2023-08-31T14:55:00+00:00",
+        "recorded_at": "2023-08-31T14:55:00.272654Z"
+      },
+      {
+        "dia_id": "D30:24",
+        "session_date": "2023-11-17T10:54:00+00:00",
+        "recorded_at": "2023-11-17T10:54:00.246923Z"
+      }
+    ]
+  }
+}
