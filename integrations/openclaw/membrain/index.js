@@ -162,6 +162,38 @@ const TOOLS = [
         description: "Copy recording_capture from this turn's membrain-source block. Never reuse another turn's value." },
     }, required: ["kind"] },
   },
+  {
+    name: "membrain_persona",
+    // The same text as membrain.persona_tool.TOOL_DESCRIPTION, which tests/test_persona_presets_host.py checks.
+    description: "The companion persona: how you present yourself to this user. One persona, one relationship: " +
+      "switching or changing it never resets the mood or familiarity. action list: the preset personas (id, " +
+      "label, summary) and which one is current. action switch with preset (an id from list, or random for " +
+      "a different one): only when the user asked in this conversation to switch; that request is enough, " +
+      "do not ask again. action propose with changes (any of name, traits, voice, values, boundaries, " +
+      "baseline_mood) and a short reason: only when the user explicitly asks you to behave differently from " +
+      "now on ('be more patient from now on') or keeps asking for something the persona does not say, " +
+      "beyond what the manner-feedback tool records (too long, too formal, more jokes, emoji). Never " +
+      "propose a change on your own taste. Nothing changes until the user says yes: describe the change in " +
+      "a sentence and ask; when they clearly say yes in a later message, call confirm with the proposal_id; " +
+      "when they say no, call decline and do not propose the same change again in this conversation. Cite " +
+      "the user's message for switch and confirm (and for propose when a message prompted it): " +
+      "source_messages from the current membrain-source block, or source_event_ids for an earlier recorded " +
+      "message; never invent a source. Writing actions are refused while recording is paused.",
+    parameters: { type: "object", properties: {
+      action: { type: "string", enum: ["list", "switch", "propose", "confirm", "decline"] },
+      preset: { type: "string", maxLength: 40, description: "For switch: a preset id from list, or random." },
+      changes: { type: "object", description: "For propose: the card fields to change (name, traits, voice, " +
+        "values, boundaries, baseline_mood)." },
+      reason: { type: "string", maxLength: 200, description: "For propose: why, in one short sentence." },
+      proposal_id: { type: "string", description: "For confirm and decline: the id propose returned." },
+      source_messages: { type: "array", maxItems: 10, items: { type: "object", properties: {
+        producer_ref: { type: "string" }, source_event_key: { type: "string" }, source_revision: { type: "integer", minimum: 1 },
+      }, required: ["producer_ref", "source_event_key", "source_revision"] } },
+      source_event_ids: { type: "array", items: { type: "string" }, maxItems: 10 },
+      recording_capture: { type: "string", maxLength: 130,
+        description: "Copy recording_capture from this turn's membrain-source block. Never reuse another turn's value." },
+    }, required: ["action"] },
+  },
 ];
 
 // Whose memory a turn uses. The owner's own private chats share the owner's memory (the one Claude Code and

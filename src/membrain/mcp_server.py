@@ -268,6 +268,22 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
                 manner_feedback.report, installation, client, kind, source_event_ids=source_event_ids or (),
                 source_messages=source_messages or (), recording_capture=recording_capture)
 
+        from membrain.persona_tool import TOOL_DESCRIPTION as PERSONA_TOOL_DESCRIPTION
+
+        @server.tool(annotations=WRITE, description=PERSONA_TOOL_DESCRIPTION)
+        async def memory_persona(
+            action: Literal["list", "switch", "propose", "confirm", "decline"], preset: str | None = None,
+            changes: dict[str, Any] | None = None, reason: str | None = None, proposal_id: str | None = None,
+            source_messages: list[dict[str, Any]] | None = None, source_event_ids: list[str] | None = None,
+            recording_capture: str | None = None,
+        ) -> dict[str, Any]:
+            from membrain import persona_tool
+
+            return await asyncio.to_thread(
+                persona_tool.run, installation, client, action, preset=preset, changes=changes, reason=reason,
+                proposal_id=proposal_id, source_event_ids=source_event_ids or (),
+                source_messages=source_messages or (), recording_capture=recording_capture)
+
     @server.tool(annotations=READ_ONLY)
     async def memory_prepare(
         turn_id: str, conversation_id: str, branch_id: str,

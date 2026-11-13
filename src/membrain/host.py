@@ -67,7 +67,8 @@ ASSISTANT_LINES = ('Lines marked "assistant said" are your own earlier replies: 
                    'not the user\'s decision or a fact about the user unless a "user said" line confirms it.')
 
 TOOL_NAMES = {"note": "memory_note", "recall": "memory_recall", "pause": "memory_pause", "resume": "memory_resume",
-              "resume_session": "session_id", "consolidate": "memory_consolidate", "replies": "my_replies"}
+              "resume_session": "session_id", "consolidate": "memory_consolidate", "replies": "my_replies",
+              "persona": "memory_persona"}
 CONSOLIDATION_MESSAGES = 40  # At most this many earlier messages go to the host AI in one consolidation call;
 # the batch ends where a conversation ends when it can (``message_cues.pending``).
 # The host AI is asked only once this many messages await indexing: a session that follows a short one would
@@ -1338,7 +1339,8 @@ def _mark_history(directory: Path, session: str, complete: bool, brain_id: str |
             # (chat bots, the proxy) would otherwise never have one.
             key: state[key] for key in ("pending", "user_id", "paused_turn", "paused_at", "resumed_turn",
                                         "turns", "turns_managed", "turns_require_staging", "callbacks",
-                                        "last_prompt", "last_prompt_key", "last_prompt_recording")
+                                        "last_prompt", "last_prompt_key", "last_prompt_recording",
+                                        "persona_intro")
             if key in state}})
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         cutoff = time.time() - SESSION_MARKER_SECONDS
@@ -1399,6 +1401,55 @@ def _persona(client, route: str = "persona") -> dict | None:
             return None
         raise
     return persona if isinstance(persona, dict) else None
+
+
+def _first_persona(directory: Path, client, *, roleplay, paused_now: bool) -> dict | None:
+    """Give a new user's memory its first persona, a preset picked at random (``persona_presets``): the preset's
+    id, label and summary when this call assigned it, else None. Never for a role-play (its character is the
+    persona) or while recording is paused. A failure, or an older service without the route, never blocks the
+    session: it starts with whatever persona there is, as ``_persona`` does."""
+    assign = getattr(client, "assign_first_persona", None)
+    if roleplay or paused_now or not callable(assign):
+        return None
+    try:
+        result = assign()
+    except Exception as error:
+        if getattr(getattr(error, "response", None), "status_code", None) not in (404, 405):
+            log(directory, f"first persona failed: {type(error).__name__}")
+        return None
+    return result.get("preset") if isinstance(result, dict) and result.get("assigned") else None
+
+
+def _intro(preset: dict | None, tools: dict | None) -> str:
+    """The one-time line for the session in which the first persona was picked."""
+    if not preset:
+        return ""
+    how = (f"they can switch with {tools['persona_command']} (or by asking you)" if tools and tools.get("persona_command")
+           else "they can ask you to switch to another one at any time")
+    return (f"A companion persona was picked at random for this user: {preset['label']} ({preset['summary']}). In "
+            f"your first reply, mention it once, briefly and naturally, and say that {how}. If you already told them "
+            "in this conversation, do not repeat it.")
+
+
+def _pending_intro(directory: Path, session: str, brain_id: str, preset: dict | None = None,
+                   *, clear: bool = False) -> dict | None:
+    """The first persona's intro waits in the session's state until the session's first prompt, so a session
+    context rebuilt before it (a resumed or compacted session) shows it again, and nothing after it does. It is kept
+    out of the saved-memory snapshot, so it never changes the context fingerprint. ``preset`` stores it; ``clear``
+    ends it. Returns the intro waiting for this brain (before clearing)."""
+    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        state = session_state(directory, session)
+        waiting = state.get("persona_intro")
+        if not isinstance(waiting, dict) or waiting.get("brain_id") != brain_id or not isinstance(
+                waiting.get("preset"), dict):
+            waiting = None
+        if preset:
+            waiting = state["persona_intro"] = {"brain_id": brain_id, "preset": preset}
+            _write_session_state(directory, session, state)
+        elif clear and "persona_intro" in state:
+            del state["persona_intro"]
+            _write_session_state(directory, session, state)
+    return waiting["preset"] if waiting else None
 
 
 # Relationship (R1) --------------------------------------------------------------------------------------------
@@ -2176,7 +2227,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     real_life = user_id
     user_id = roleplay_user(user_id, roleplay)
     options = {"tools": tools, "skip_imports_from": list(skip_imports_from), "share_real_life": share_real_life}
-    history, current, complete, consolidation = None, None, False, ""
+    history, current, complete, consolidation, intro = None, None, False, "", ""
     resumed = ("Recording was paused for an earlier conversation only; that local pause has ended. "
                if end_conversation_pause(directory, session, real_life) else "")
     if not resumed and _paused_elsewhere(directory, session, real_life):
@@ -2201,6 +2252,9 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
                 _finish_abandoned(directory, client)
             except Exception as error:
                 log(directory, f"replay failed at session start: {type(error).__name__}")
+            first = _first_persona(directory, client, roleplay=roleplay,
+                                   paused_now=policy["paused"] or paused(directory, user_id, session))
+            intro = _intro(_pending_intro(directory, session, client.brain_id, first), tools)
             try:
                 _, current = _saved_context(client, real_life, roleplay, options)
                 _acknowledge(client, current)  # This block is returned below, so its one-time lines are shown.
@@ -2211,7 +2265,8 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
                 try:
                     # Notice and history header take about 1,000 characters of the host's limit.
                     # Room for the longest notice, the history block's header and the separators between blocks.
-                    reserved = max(len(_session_notice(value, tools, True, roleplay)) for value in (True, False)) + 400
+                    reserved = (max(len(_session_notice(value, tools, True, roleplay)) for value in (True, False))
+                                + len(intro) + 400)
                     budget = min(HISTORY_CHARACTERS, SESSION_CONTEXT_CHARACTERS - reserved) - len(current["text"])
                     history, complete = _history(client, session, budget, boundaries=current["boundaries"])
                 except Exception as error:
@@ -2224,6 +2279,8 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     notice += " " + host_recording.notice(policy)
     if consolidation and not paused(directory, user_id, session):
         notice = notice.strip() + " " + consolidation
+    if intro and current is not None:
+        notice = notice.strip() + " " + intro
     return "\n\n".join(part for part in (notice, current["text"] if current else None, history) if part)
 
 
@@ -2272,7 +2329,11 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
         same_brain = context.get("brain_id") == client.brain_id
         options = ({name: context[name] for name in ("tools", "skip_imports_from", "share_real_life")}
                    if same_brain else {"tools": tools, "skip_imports_from": [], "share_real_life": False})
+        # The session's first prompt: a first persona's intro has been shown, or is shown now, and never again.
+        waiting = _pending_intro(directory, session, client.brain_id, clear=True) if "persona_intro" in state else None
         try:
+            first = None if same_brain else _first_persona(
+                directory, client, roleplay=roleplay, paused_now=policy["paused"] or paused(directory, user_id, session))
             saved, current = _saved_context(client, real_life, roleplay, options)
             refreshed = update(current, context.get("fingerprint") if same_brain else None,
                                context.get("persona_version") if same_brain else None,
@@ -2284,6 +2345,8 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
                 if options["tools"]:
                     notice += (f"Save lasting facts with {options['tools']['note']}; search with "
                                f"{options['tools']['recall']} when personal context is missing. ")
+                if first or waiting:
+                    notice += _intro(first or waiting, options["tools"]) + " "
                 refreshed = notice + "\n\n" + refreshed
             _remember_context(directory, session, client.brain_id, current, options)
             if refreshed:

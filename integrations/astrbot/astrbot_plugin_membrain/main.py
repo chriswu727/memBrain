@@ -11,6 +11,8 @@ from astrbot.core.utils.astrbot_path import get_astrbot_plugin_data_path
 from membrain.adapters.chatbot import TOOLS, ChatMemory, Speaker
 from membrain.manner_feedback import KINDS as MANNER_KINDS
 from membrain.manner_feedback import TOOL_DESCRIPTION as MANNER_TOOL_DESCRIPTION
+from membrain.persona_tool import ACTIONS as PERSONA_ACTIONS
+from membrain.persona_tool import TOOL_DESCRIPTION as PERSONA_TOOL_DESCRIPTION
 
 _STATE = "membrain"
 # The tools below as memory's notices name them; consolidation is asked for only on hosts that have its tool.
@@ -172,6 +174,30 @@ class MembrainPlugin(star.Star):
             recording_capture(string): Copy recording_capture from this turn's membrain-source block; never substitute another turn's value.
         """
     membrain_manner_feedback = filter.llm_tool(name="membrain_manner_feedback")(membrain_manner_feedback)
+
+    async def membrain_persona(self, event: AstrMessageEvent, action: str, preset: str | None = None,
+                               changes: dict | None = None, reason: str | None = None, proposal_id: str | None = None,
+                               source_messages: list | None = None, source_event_ids: list | None = None,
+                               recording_capture: str | None = None):
+        result = await asyncio.to_thread(self.memory.persona, _speaker(event), action, preset=preset, changes=changes,
+                                         reason=reason, proposal_id=proposal_id,
+                                         source_messages=source_messages or (), source_event_ids=source_event_ids or (),
+                                         recording_capture=recording_capture)
+        return json.dumps(result, ensure_ascii=False)
+
+    membrain_persona.__doc__ = PERSONA_TOOL_DESCRIPTION + f"""
+
+        Args:
+            action(string): One of {', '.join(PERSONA_ACTIONS)}.
+            preset(string): For switch: a preset id from list, or random.
+            changes(object): For propose: the card fields to change (name, traits, voice, values, boundaries, baseline_mood).
+            reason(string): For propose: why, in one short sentence.
+            proposal_id(string): For confirm and decline: the id propose returned.
+            source_messages(array[object]): Exact source references from the current membrain-source block.
+            source_event_ids(array[string]): Original recorded message IDs, for an earlier message.
+            recording_capture(string): Copy recording_capture from this turn's membrain-source block; never substitute another turn's value.
+        """
+    membrain_persona = filter.llm_tool(name="membrain_persona")(membrain_persona)
 
     @filter.llm_tool(name="membrain_pause")
     async def membrain_pause(self, event: AstrMessageEvent, hours: float | None = None, until_resumed: bool = False):

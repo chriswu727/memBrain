@@ -320,6 +320,7 @@ def test_cross_session_three_requests_make_one_proposal_accept_then_roll_back(in
     user = "growth-" + uid()
     host.session_context(directory, "s1", user_id=user)
     with host.ready_client(directory, user) as client:
+        client.delete_persona_history()  # The session's random first preset; this test starts from its own card.
         assert client.set_persona(CARD, made_by="host", reason="Initial character")["version"] == 1
 
     # Sessions 1 and 2: the user asks three times, in different words, for more casual replies.

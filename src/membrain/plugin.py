@@ -16,7 +16,7 @@ import time
 import traceback
 from pathlib import Path
 
-from . import host, host_receipts, host_recording, manner_feedback
+from . import host, host_receipts, host_recording, manner_feedback, persona_tool
 from .host import (  # noqa: F401  (re-exported for callers of the previous plugin API)
     CONTEXT_CHARACTERS,
     HISTORY_CHARACTERS,
@@ -44,10 +44,12 @@ PRODUCERS = {"claude-code": PRODUCER, "codex": "membrain-codex", "openclaw": "me
              "workbuddy": "membrain-workbuddy"}
 TRANSCRIPT_TAIL_BYTES = 2 * 1024 * 1024
 # Hosts that run the MCP bridge use its tool names; others call ``membrain plugin tool`` under these names.
+# ``persona_command``: the host has the /membrain:persona slash command (only Claude Code's plugin format has one).
 HOST_TOOLS = {"openclaw": {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause",
                            "resume": "membrain_resume", "consolidate": "membrain_consolidate",
-                           "replies": "my_replies"}}
-TOOLS = ("note", "search", "pause", "resume", "boundary", "consolidate", "manner_feedback")
+                           "replies": "my_replies", "persona": "membrain_persona"},
+              "claude-code": {**host.TOOL_NAMES, "persona_command": "/membrain:persona"}}
+TOOLS = ("note", "search", "pause", "resume", "boundary", "consolidate", "manner_feedback", "persona")
 # Hosts that put their own memory files in the prompt; notes imported from them are not shown to them again.
 HOST_SKIPS = {"codex": ("codex",), "openclaw": ("openclaw",)}
 
@@ -271,6 +273,9 @@ def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
             result = {"error": host.CONSOLIDATION_PAUSED}
         elif name == "manner_feedback" and manner_feedback.refusal(directory, user, arguments.get("recording_capture")):
             result = manner_feedback.refusal(directory, user, arguments.get("recording_capture"))
+        elif name == "persona" and persona_tool.refusal(directory, arguments.get("action"), user,
+                                                        arguments.get("recording_capture")):
+            result = persona_tool.refusal(directory, arguments.get("action"), user, arguments.get("recording_capture"))
         else:
             client = host.ready_client(directory, user)
             if client is None:
@@ -291,6 +296,14 @@ def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
                     elif name == "manner_feedback":
                         result = manner_feedback.report(
                             directory, client, arguments.get("kind"),
+                            source_event_ids=arguments.get("source_event_ids") or (),
+                            source_messages=arguments.get("source_messages") or (),
+                            user_id=user, recording_capture=arguments.get("recording_capture"))
+                    elif name == "persona":
+                        result = persona_tool.run(
+                            directory, client, arguments.get("action"), preset=arguments.get("preset"),
+                            changes=arguments.get("changes"), reason=arguments.get("reason"),
+                            proposal_id=arguments.get("proposal_id"),
                             source_event_ids=arguments.get("source_event_ids") or (),
                             source_messages=arguments.get("source_messages") or (),
                             user_id=user, recording_capture=arguments.get("recording_capture"))

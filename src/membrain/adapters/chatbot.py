@@ -246,6 +246,31 @@ class ChatMemory:
                                           source_messages=source_messages, user_id=user,
                                           recording_capture=recording_capture)
 
+    def persona(self, speaker: Speaker, action, *, roleplay: str | None = None, preset=None, changes=None,
+                reason=None, proposal_id=None, source_event_ids=(), source_messages=(),
+                recording_capture: str | None = None) -> dict:
+        """The persona tool (``persona_tool.run``) in this speaker's own memory: list the presets, switch when they
+        ask, or propose a change they confirm in the conversation. Not in a role-play, whose character is the
+        persona. Writing actions are refused, with nothing sent, while recording is paused."""
+        from .. import persona_tool
+
+        if not self._recording(speaker):
+            return {"error": "Memory tools are not available in this conversation."}
+        if roleplay or self.roleplay:
+            return {"error": "In a role-play the character is the persona; there is no persona to change here."}
+        user = self.memory_user(speaker)
+        refused = persona_tool.refusal(self.directory, action, user, recording_capture)
+        if refused:
+            return refused
+        client = self._client(user)
+        if client is None:
+            return {"error": "memBrain is starting; try again in a few seconds."}
+        with client:
+            return persona_tool.run(self.directory, client, action, preset=preset, changes=changes, reason=reason,
+                                    proposal_id=proposal_id, source_event_ids=source_event_ids,
+                                    source_messages=source_messages, user_id=user,
+                                    recording_capture=recording_capture)
+
     def search(self, speaker: Speaker, query: str, *, session: str | None = None, roleplay: str | None = None,
                replies: bool = False) -> dict:
         """Recall for the search tool. ``replies`` adds the bot's own earlier replies, which automatic recall leaves

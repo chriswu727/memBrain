@@ -26,7 +26,7 @@ test("the plugin registers its hooks and tools", () => {
   assert.deepEqual(installs, ["/data/membrain"]);
   assert.deepEqual(hooks, ["before_prompt_build", "agent_end"]);
   assert.deepEqual(tools, ["membrain_note", "membrain_search", "membrain_boundary", "membrain_pause", "membrain_resume",
-    "membrain_consolidate", "membrain_manner_feedback"]);
+    "membrain_consolidate", "membrain_manner_feedback", "membrain_persona"]);
 });
 
 test("manner feedback runs as its own tool command in the conversation's memory, with the turn's sources", async () => {
@@ -41,6 +41,20 @@ test("manner feedback runs as its own tool command in the conversation's memory,
     memory.toolUser({ sessionKey: "k1" }));
   assert.deepEqual(calls.at(-1), [["tool", "manner_feedback"],
     { kind: "shorter", source_messages, recording_capture: "c", membrain_user: "openclaw:telegram::-1:7" }]);
+});
+
+test("the persona tool runs as its own tool command in the conversation's memory, with the turn's sources", async () => {
+  const calls = [];
+  const memory = createMembrain({ exec: async (args, { input }) => {
+    calls.push([args, input]);
+    return JSON.stringify(input.membrain_user ? { membrainUser: input.membrain_user } : {});
+  } });
+  await memory.beforePromptBuild({ prompt: "hi" }, { sessionKey: "k1", channel: "telegram", chatId: "-1", senderId: "7" });
+  const source_messages = [{ producer_ref: "membrain-openclaw", source_event_key: "k", source_revision: 1 }];
+  await memory.tool("membrain_persona", { action: "switch", preset: "wry", source_messages, recording_capture: "c" },
+    memory.toolUser({ sessionKey: "k1" }));
+  assert.deepEqual(calls.at(-1), [["tool", "persona"],
+    { action: "switch", preset: "wry", source_messages, recording_capture: "c", membrain_user: "openclaw:telegram::-1:7" }]);
 });
 
 test("consolidation runs as its own tool command in the conversation's memory, with the batch number", async () => {

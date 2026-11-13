@@ -21,7 +21,7 @@ def add_commands(commands):
     hook.add_argument("--host", choices=HOOK_HOSTS, default="claude-code", help="Host whose hook format is read")
     tool = actions.add_parser("tool", help="Run one memory tool with JSON arguments on stdin (for hosts without MCP)")
     tool.add_argument("name", choices=("note", "search", "pause", "resume", "boundary", "consolidate",
-                                       "manner_feedback"))  # plugin.TOOLS
+                                       "manner_feedback", "persona"))  # plugin.TOOLS
     imports = actions.add_parser("import", help="Import the memory files hosts keep (Claude Code, Hermes, OpenClaw, "
                                                 "Codex) as notes; safe to repeat")
     imports.add_argument("--from", dest="hosts", action="append", choices=("claude-code", "hermes", "openclaw", "codex"),

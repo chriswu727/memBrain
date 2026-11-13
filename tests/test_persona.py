@@ -149,6 +149,10 @@ def test_exact_block_new_versions_restore_and_reset_across_turns(installation):
     host.prompt_context(directory, "s0", "I'm planning a trip to Kyoto in April.", turn_id="t0", user_id=user)
     host.finish_turn(directory, "s0", "Sounds lovely.", turn_id="t0", user_id=user)
     with host.ready_client(directory, user) as client:
+        # The first session gave this new memory a random preset (test_persona_presets_host.py); this test is about
+        # a memory without one, as a user who deleted the personality history has, and no preset is given again.
+        assert client.persona_versions()["versions"][0]["action"] == "preset"
+        client.delete_persona_history()
         note = notes.save_note(client, "Prefers short replies.", kind="preference")["note_id"]
         first = client.set_persona(CARD, made_by="host", reason="Initial character")
         assert (first["version"], first["unchanged"], first["made_by"]) == (1, False, "host")
