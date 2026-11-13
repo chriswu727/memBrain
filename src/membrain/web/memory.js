@@ -591,7 +591,7 @@ const personaPath = (suffix = "") => `/v1/brains/${encodeURIComponent(state.brai
 const VOICE = [["register", "register"], ["length", "length"], ["emoji", "emoji"], ["language", "language"]];
 const MADE_BY = { user: "set by you", host: "set by the host", feedback: "from accepted feedback" };
 // Preset personas: which one is current, and switching to another. The labels and summaries are the service's own.
-const PRESET_KIND = { preset: "Preset:", custom: "Your own card", none: "No preset" };
+const PRESET_KIND = { preset: "Personality type:", custom: "Your own card", none: "No personality type" };
 const lines = (text) => text.split("\n").map((value) => value.trim()).filter(Boolean);
 // By name, not as properties: a control named "length" would otherwise read as the collection's length.
 const personaControl = (name) => $("persona-form").elements.namedItem(name);
@@ -639,7 +639,7 @@ function personaForm(card) {
 }
 
 function personaHistory(version) {
-  if (version.action === "preset") return version.host_default ? "first preset, picked at random" : "switched preset";
+  if (version.action === "preset") return version.made_by === "host" ? "first type, picked at random" : "switched type";
   if (version.action === "proposal") {
     return version.host_proposal?.confirmed_by ? "your agent's suggestion, confirmed in conversation" : "your agent's suggestion, accepted here";
   }
@@ -652,11 +652,13 @@ function personaHistory(version) {
 function personaPresets(listing) {
   const current = listing.current, line = $("persona-preset");
   line.replaceChildren(element("span", PRESET_KIND[current.kind], "hint"));
+  // The label is the four-letter code, the same in every language; the summary is translated.
   if (current.kind === "preset") line.append(" ", element("strong", current.preset.label), " ", element("span", current.preset.summary, "hint"));
   if (current.kind === "custom" && current.based_on) line.append(" ", element("span", "based on", "hint"), " ", element("strong", current.based_on.label));
   const choice = $("persona-preset-choice");
   choice.replaceChildren(...listing.presets.map((item) => {
     const option = element("option", item.label);
+    option.title = item.summary;
     option.value = item.id;
     return option;
   }));
@@ -673,7 +675,6 @@ async function loadPersona() {
   view.replaceChildren(current.empty
     ? element("p", "No personality card is set. Your agent keeps its usual manner.", "empty")
     : personaCard(current.card));
-  $("persona-reset").hidden = !current.version || (current.empty && !history.versions.some((item) => item.host_default));
   $("persona-form").hidden = true;
   const list = $("persona-versions");
   list.replaceChildren();
@@ -745,17 +746,19 @@ onSubmit($("persona-form"), async () => {
   notify(saved.unchanged ? "No change: that is already the current card." : `Saved as version ${saved.version}.`);
   await loadPersona();
 });
-guard($("persona-reset"), async () => {
-  if (!confirm("Reset the personality to the host's default, or to no card? Earlier versions are kept and can be restored. Notes and messages are not touched.")) return;
-  const saved = await api(personaPath("/reset"), { made_by: "user" });
-  notify(saved.unchanged ? "No change: that is already the current card." : `Personality reset as version ${saved.version}.`);
-  await loadPersona();
-});
-guard($("persona-preset-switch"), async () => {
-  if (!confirm("Switch to this preset? It is saved as a new version, and earlier versions can be restored. The mood and familiarity carry over.")) return;
-  const saved = await api(personaPath("/preset"), { preset: $("persona-preset-choice").value, made_by: "user" });
+async function switchType(preset) {
+  const saved = await api(personaPath("/preset"), { preset, made_by: "user" });
   notify(saved.unchanged ? "No change: that is already the current card." : `Saved as version ${saved.version}.`);
   await loadPersona();
+}
+guard($("persona-preset-switch"), async () => {
+  if (!confirm("Switch to this personality type? It is saved as a new version, and earlier versions can be restored. The mood and familiarity carry over.")) return;
+  await switchType($("persona-preset-choice").value);
+});
+// Picking again: a different type at random (the owner's meaning of resetting the personality).
+guard($("persona-random"), async () => {
+  if (!confirm("Pick another personality type at random? It is saved as a new version, and earlier versions can be restored. The mood and familiarity carry over.")) return;
+  await switchType("random");
 });
 guard($("persona-delete-history"), async () => {
   if (!confirm("Delete every personality version, including the current card? This cannot be undone.")) return;

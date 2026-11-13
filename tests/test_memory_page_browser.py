@@ -40,8 +40,8 @@ CARD = {"name": "Wren", "traits": ["warm", "curious"],
 ACCEPT = ("Accept this suggestion? The card is saved as a new version; you can restore the earlier one at any "
           "time.")
 REJECT = "Reject this suggestion? None of the same kind is offered again for 30 days."
-RESET = ("Reset the personality to the host's default, or to no card? Earlier versions are kept and can be "
-         "restored. Notes and messages are not touched.")
+RESET = ("Pick another personality type at random? It is saved as a new version, and earlier versions can be "
+         "restored. The mood and familiarity carry over.")
 DELETE_NOTE = "Delete this note? Its content is erased."
 # English words that may stay in the Chinese page: product names, and "agent", which the Chinese text keeps.
 ENGLISH_KEPT = {"memBrain", "agent", "Claude", "Code", "Codex", "hook"}
@@ -417,18 +417,18 @@ def test_the_personality_card_is_edited_restored_and_reset_on_the_page_without_r
     expect(newest).to_contain_text("set by you")
     expect(newest).to_contain_text("Warmer for daily chats")
 
-    # Reset: dismissing the confirm changes nothing; accepting returns to the host default as version 3.
+    # Pick another at random: dismissing the confirm changes nothing; accepting saves a personality type as version 3.
     seen = answer_next_dialog(page, accept=False)
-    page.locator("#persona-reset").click()
-    expect(page.locator("#persona-reset")).to_be_enabled()
+    page.locator("#persona-random").click()
+    expect(page.locator("#persona-random")).to_be_enabled()
     assert len(seen) == 1 and seen[0] == ("confirm", RESET)
     expect(page.locator("#persona-version")).to_have_text("Version 2")
     seen = answer_next_dialog(page, accept=True)
-    page.locator("#persona-reset").click()
+    page.locator("#persona-random").click()
     expect(page.locator("#persona-version")).to_have_text("Version 3")
     assert seen == [("confirm", RESET)]
-    expect(page.locator("#persona-view .user-text").first).to_have_text("Wren")
-    expect(page.locator("#persona-versions .persona-version").first).to_contain_text("reset to the host's default")
+    expect(page.locator("#persona-preset")).to_contain_text("Personality type:")
+    expect(page.locator("#persona-versions .persona-version").first).to_contain_text("switched type")
 
     # Restore version 2 through the real confirm: its content becomes version 4.
     seen = answer_next_dialog(page, accept=True)
@@ -441,7 +441,7 @@ def test_the_personality_card_is_edited_restored_and_reset_on_the_page_without_r
     expect(page.locator("#persona-versions .persona-version")).to_have_count(4)
     assert same_page(page), "editing, restoring and resetting must not reload the page"
     versions = client.persona_versions()["versions"]
-    assert [(item["version"], item["action"]) for item in versions][:2] == [(4, "restore"), (3, "reset")]
+    assert [(item["version"], item["action"]) for item in versions][:2] == [(4, "restore"), (3, "preset")]
     assert client.persona()["card"]["name"] == "Wren the Gardener"
 
 

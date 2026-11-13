@@ -1,4 +1,4 @@
-"""Preset personas through the hosts: the first session's random persona and its one-time intro, the persona tool on
+"""Personality types through the hosts: the first session's random type and its one-time intro, the persona tool on
 every host (MCP ``memory_persona``, OpenClaw and AstrBot ``membrain_persona``, ``membrain plugin tool persona``), the
 Claude Code ``/membrain:persona`` command, and a change the host AI proposes and the user confirms in conversation."""
 import asyncio
@@ -18,7 +18,7 @@ from membrain.persona_presets import IDS
 ROOT = Path(__file__).parents[1]
 OPENCLAW = ROOT / "integrations/openclaw/membrain"
 PLUGIN = ROOT / "plugins/membrain"
-INTRO = "A companion persona was picked at random"
+INTRO = "A personality type was picked at random"
 
 
 # Without a database ---------------------------------------------------------------------------------------------
@@ -45,7 +45,8 @@ def test_every_host_offers_the_persona_tool_with_the_same_text():
     description = persona_tool.TOOL_DESCRIPTION
     for rule in ("only when the user asked in this conversation to switch", "Never propose a change on your own taste",
                  "Nothing changes until the user says yes", "manner-feedback tool", "never invent a source",
-                 "never resets the mood or familiarity"):
+                 "never resets the mood or familiarity", "sixteen personality types",
+                 "reset their persona, that means switch with random, or with the type they name"):
         assert rule in description, rule
 
 
@@ -66,6 +67,8 @@ def test_the_slash_command_the_manifest_and_the_skill_describe_switching():
     assert command.startswith("---\ndescription: ") and "$ARGUMENTS" in command
     front = command.split("---", 2)[1]
     assert "argument-hint:" in front and all(ident in front for ident in IDS) and "random" in front
+    assert "reset [<type>]" in front and "`reset` alone" in command and "`reset` followed by a type" in command
+    assert "any case" in command  # Types are read in any case.
     assert "mcp__plugin_membrain_membrain__memory_persona" in front and "Bash(membrain plugin tool persona)" in front
     assert '"switch"' in command and '"list"' in command and "do not ask again" in command
     assert "membrain plugin tool persona" in command and "one or two plain sentences" in command
@@ -89,11 +92,11 @@ def test_writing_actions_are_refused_while_paused_and_listing_still_works(tmp_pa
     assert "memory_persona" not in {tool.name for tool in asyncio.run(create_server(Unused()).list_tools())}
     host.ensure_installation(tmp_path)
     reference = [{"producer_ref": "membrain-claude-code", "source_event_key": "t", "source_revision": 1}]
-    assert "Cite the user's message" in persona_tool.run(tmp_path, Unused(), "switch", preset="wry")["error"]
+    assert "Cite the user's message" in persona_tool.run(tmp_path, Unused(), "switch", preset="intj")["error"]
     assert "Cite the user's message" in persona_tool.run(tmp_path, Unused(), "confirm", proposal_id="p")["error"]
     assert "action must be one of" in persona_tool.run(tmp_path, Unused(), "delete")["error"]
     host.pause(tmp_path)
-    for arguments in ({"action": "switch", "preset": "wry", "source_messages": reference},
+    for arguments in ({"action": "switch", "preset": "intj", "source_messages": reference},
                       {"action": "propose", "changes": {"traits": ["calm"]}, "reason": "Asked."},
                       {"action": "confirm", "proposal_id": "p", "source_messages": reference},
                       {"action": "decline", "proposal_id": "p"}):
@@ -153,21 +156,21 @@ def test_openclaw_and_astrbot_pass_the_actions_and_sources_and_send_nothing_whil
     module, _ = _load_astrbot_plugin(monkeypatch, tmp_path)
     bot = module.MembrainPlugin.__new__(module.MembrainPlugin)
     bot.memory = ChatMemory(tmp_path)
-    event = Event("1001", "Switch to the wry one.")
+    event = Event("1001", "Be an INTJ.")
     person = bot.memory.user_id(module._speaker(event))
 
     def astrbot(action, **arguments):
         return json.loads(asyncio.run(bot.membrain_persona(event, action, **arguments)))
 
-    switched = openclaw({"action": "switch", "preset": "wry", "source_messages": reference,
+    switched = openclaw({"action": "switch", "preset": "intj", "source_messages": reference,
                          "membrain_user": stranger})
-    assert switched["current"]["preset"]["id"] == "wry" and "carried over" in switched["note"]
+    assert switched["current"]["preset"]["id"] == "intj" and "carried over" in switched["note"]
     proposed = astrbot("propose", changes={"traits": ["calm"]}, reason="Asked twice.", source_event_ids=["evt-1"])
     assert proposed["proposal_id"] == "p1" and "ask" in proposed["note"]
     assert astrbot("confirm", proposal_id="p1", source_messages=reference)["status"] == "waiting_for_message"
     assert "Do not propose the same change again" in openclaw({"action": "decline", "proposal_id": "p1"})["note"]
     assert client.calls == [
-        ("switch", "wry", {"source_event_ids": [], "source_messages": reference}),
+        ("switch", "intj", {"source_event_ids": [], "source_messages": reference}),
         ("propose", {"traits": ["calm"]}, "Asked twice.", {"source_event_ids": ["evt-1"], "source_messages": []}),
         ("confirm", "p1", {"source_event_ids": [], "source_messages": reference}),
         ("decline", "p1")]
@@ -175,16 +178,16 @@ def test_openclaw_and_astrbot_pass_the_actions_and_sources_and_send_nothing_whil
     assert "role-play" in ChatMemory(tmp_path, roleplay="Ada").persona(module._speaker(event), "list")["error"]
     host.pause(tmp_path, user_id=stranger)
     host.pause(tmp_path, user_id=person)
-    assert "paused" in openclaw({"action": "switch", "preset": "bright", "source_messages": reference,
+    assert "paused" in openclaw({"action": "switch", "preset": "enfj", "source_messages": reference,
                                  "membrain_user": stranger})["error"]
-    assert "paused" in astrbot("switch", preset="bright", source_messages=reference)["error"]
+    assert "paused" in astrbot("switch", preset="enfj", source_messages=reference)["error"]
     assert len(client.calls) == 4 and len(users) == 4  # Refused before a client is opened.
 
 
 def test_the_intro_names_the_command_only_where_the_host_has_it():
-    preset = {"id": "wry", "label": "Wry", "summary": "Dry humour."}
+    preset = {"id": "intj", "label": "INTJ", "summary": "Thinks ahead."}
     claude = host._intro(preset, plugin.HOST_TOOLS["claude-code"])
-    assert claude.startswith(INTRO) and "Wry (Dry humour.)" in claude and "/membrain:persona" in claude
+    assert claude.startswith(INTRO) and "companion: INTJ (Thinks ahead.)" in claude and "/membrain:persona" in claude
     for tools in (host.TOOL_NAMES, plugin.HOST_TOOLS["openclaw"], None):
         text = host._intro(preset, tools)
         assert "/membrain:persona" not in text and "ask you to switch" in text
@@ -222,7 +225,7 @@ def test_the_first_session_gets_a_random_persona_and_mentions_it_once(directory)
         versions = client.persona_versions()["versions"]
     assert current["kind"] == "preset" and current["preset"]["label"] in opening
     assert [(v["version"], v["made_by"], v["action"], v["host_default"]) for v in versions] == [
-        (1, "host", "preset", True)]
+        (1, "host", "preset", False)]
     # A context rebuilt before the first prompt (a resumed session) still has it.
     rebuilt = host.session_context(directory, "s1", tools=tools, user_id=user)
     assert rebuilt.count(INTRO) == 1

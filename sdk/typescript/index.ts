@@ -638,9 +638,10 @@ export class MemoryClient {
       version, made_by: options.madeBy ?? "host", reason: options.reason,
     });
   }
-  resetPersona(options: PersonaChangeOptions = {}): Promise<JsonObject> {
+  // Picks the persona again: the named personality type, else the host's own default card, else a random other type.
+  resetPersona(options: PersonaChangeOptions & { preset?: string } = {}): Promise<JsonObject> {
     return this.#request("POST", `${this.#brainPath(options.brainId)}/persona/reset`, {
-      made_by: options.madeBy ?? "host", reason: options.reason,
+      made_by: options.madeBy ?? "host", reason: options.reason, preset: options.preset,
     });
   }
   deletePersonaHistory(brainId?: string): Promise<JsonObject> {

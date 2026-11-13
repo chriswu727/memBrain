@@ -166,22 +166,25 @@ const TOOLS = [
     name: "membrain_persona",
     // The same text as membrain.persona_tool.TOOL_DESCRIPTION, which tests/test_persona_presets_host.py checks.
     description: "The companion persona: how you present yourself to this user. One persona, one relationship: " +
-      "switching or changing it never resets the mood or familiarity. action list: the preset personas (id, " +
-      "label, summary) and which one is current. action switch with preset (an id from list, or random for " +
-      "a different one): only when the user asked in this conversation to switch; that request is enough, " +
-      "do not ask again. action propose with changes (any of name, traits, voice, values, boundaries, " +
-      "baseline_mood) and a short reason: only when the user explicitly asks you to behave differently from " +
-      "now on ('be more patient from now on') or keeps asking for something the persona does not say, " +
-      "beyond what the manner-feedback tool records (too long, too formal, more jokes, emoji). Never " +
-      "propose a change on your own taste. Nothing changes until the user says yes: describe the change in " +
-      "a sentence and ask; when they clearly say yes in a later message, call confirm with the proposal_id; " +
-      "when they say no, call decline and do not propose the same change again in this conversation. Cite " +
-      "the user's message for switch and confirm (and for propose when a message prompted it): " +
-      "source_messages from the current membrain-source block, or source_event_ids for an earlier recorded " +
-      "message; never invent a source. Writing actions are refused while recording is paused.",
+      "switching or changing it never resets the mood or familiarity. action list: the sixteen personality " +
+      "types (id such as intj, label, summary) and which one is current. action switch with preset (a type, " +
+      "in any case, or random for a different one): only when the user asked in this conversation to " +
+      "switch; that request is enough, do not ask again. When the user asks to reset their persona, that " +
+      "means switch with random, or with the type they name. action propose with changes (any of name, " +
+      "traits, voice, values, boundaries, baseline_mood) and a short reason: only when the user explicitly " +
+      "asks you to behave differently from now on ('be more patient from now on') or keeps asking for " +
+      "something the persona does not say, beyond what the manner-feedback tool records (too long, too " +
+      "formal, more jokes, emoji). Never propose a change on your own taste. Nothing changes until the user " +
+      "says yes: describe the change in a sentence and ask; when they clearly say yes in a later message, " +
+      "call confirm with the proposal_id; when they say no, call decline and do not propose the same change " +
+      "again in this conversation. Cite the user's message for switch and confirm (and for propose when a " +
+      "message prompted it): source_messages from the current membrain-source block, or source_event_ids " +
+      "for an earlier recorded message; never invent a source. Writing actions are refused while recording " +
+      "is paused.",
     parameters: { type: "object", properties: {
       action: { type: "string", enum: ["list", "switch", "propose", "confirm", "decline"] },
-      preset: { type: "string", maxLength: 40, description: "For switch: a preset id from list, or random." },
+      preset: { type: "string", maxLength: 40,
+        description: "For switch: a personality type such as intj (any case), or random." },
       changes: { type: "object", description: "For propose: the card fields to change (name, traits, voice, " +
         "values, boundaries, baseline_mood)." },
       reason: { type: "string", maxLength: 200, description: "For propose: why, in one short sentence." },

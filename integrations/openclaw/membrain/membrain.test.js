@@ -51,10 +51,10 @@ test("the persona tool runs as its own tool command in the conversation's memory
   } });
   await memory.beforePromptBuild({ prompt: "hi" }, { sessionKey: "k1", channel: "telegram", chatId: "-1", senderId: "7" });
   const source_messages = [{ producer_ref: "membrain-openclaw", source_event_key: "k", source_revision: 1 }];
-  await memory.tool("membrain_persona", { action: "switch", preset: "wry", source_messages, recording_capture: "c" },
+  await memory.tool("membrain_persona", { action: "switch", preset: "INTJ", source_messages, recording_capture: "c" },
     memory.toolUser({ sessionKey: "k1" }));
   assert.deepEqual(calls.at(-1), [["tool", "persona"],
-    { action: "switch", preset: "wry", source_messages, recording_capture: "c", membrain_user: "openclaw:telegram::-1:7" }]);
+    { action: "switch", preset: "INTJ", source_messages, recording_capture: "c", membrain_user: "openclaw:telegram::-1:7" }]);
 });
 
 test("consolidation runs as its own tool command in the conversation's memory, with the batch number", async () => {

@@ -1404,8 +1404,8 @@ def _persona(client, route: str = "persona") -> dict | None:
 
 
 def _first_persona(directory: Path, client, *, roleplay, paused_now: bool) -> dict | None:
-    """Give a new user's memory its first persona, a preset picked at random (``persona_presets``): the preset's
-    id, label and summary when this call assigned it, else None. Never for a role-play (its character is the
+    """Give a new user's memory its first persona, a personality type picked at random (``persona_presets``): the
+    type's id, label and summary when this call assigned it, else None. Never for a role-play (its character is the
     persona) or while recording is paused. A failure, or an older service without the route, never blocks the
     session: it starts with whatever persona there is, as ``_persona`` does."""
     assign = getattr(client, "assign_first_persona", None)
@@ -1424,11 +1424,12 @@ def _intro(preset: dict | None, tools: dict | None) -> str:
     """The one-time line for the session in which the first persona was picked."""
     if not preset:
         return ""
-    how = (f"they can switch with {tools['persona_command']} (or by asking you)" if tools and tools.get("persona_command")
-           else "they can ask you to switch to another one at any time")
-    return (f"A companion persona was picked at random for this user: {preset['label']} ({preset['summary']}). In "
-            f"your first reply, mention it once, briefly and naturally, and say that {how}. If you already told them "
-            "in this conversation, do not repeat it.")
+    command = (tools or {}).get("persona_command")
+    how = (f"they can switch with {command} (or by asking you)" if command
+           else "they can ask you to switch to another type, or pick one at random, at any time")
+    return (f"A personality type was picked at random for this user's companion: {preset['label']} "
+            f"({preset['summary']}). In your first reply, mention it once, briefly and naturally, and say that {how}. "
+            "If you already told them in this conversation, do not repeat it.")
 
 
 def _pending_intro(directory: Path, session: str, brain_id: str, preset: dict | None = None,
@@ -2337,7 +2338,8 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
             if "persona_intro" in state:  # The session's first prompt: the intro was shown, or is now, never again.
                 waiting = _pending_intro(directory, session, client.brain_id, clear=True)
             first = None if same_brain else _first_persona(
-                directory, client, roleplay=roleplay, paused_now=policy["paused"] or paused(directory, user_id, session))
+                directory, client, roleplay=roleplay,
+                paused_now=policy["paused"] or paused(directory, user_id, session))
             saved, current = _saved_context(client, real_life, roleplay, options)
             refreshed = update(current, context.get("fingerprint") if same_brain else None,
                                context.get("persona_version") if same_brain else None,

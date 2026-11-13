@@ -371,11 +371,14 @@ class MemoryClient:
         return self._request("POST", self._persona_path(brain_id, "/restore"), json=body)
 
     def reset_persona(self, *, made_by: Literal["host", "user", "feedback"] = "host", reason: str | None = None,
-                      brain_id: str | None = None) -> JsonObject:
-        """Make the host's default card, or an empty card, current as a new version; history is kept."""
+                      preset: str | None = None, brain_id: str | None = None) -> JsonObject:
+        """Pick the persona again as a new version: the named personality type (``preset``), else the host's own
+        default card if it saved one, else a type picked at random other than the current one; history is kept."""
         body: JsonObject = {"made_by": made_by}
         if reason is not None:
             body["reason"] = reason
+        if preset is not None:
+            body["preset"] = preset
         return self._request("POST", self._persona_path(brain_id, "/reset"), json=body)
 
     def delete_persona_history(self, *, brain_id: str | None = None) -> JsonObject:
@@ -406,7 +409,7 @@ class MemoryClient:
                                    "source_messages": [dict(reference) for reference in source_messages]})
 
     def persona_presets(self, *, brain_id: str | None = None) -> JsonObject:
-        """The preset personas (id, label, summary) and which one the current persona is (or ``custom``)."""
+        """The sixteen personality types (id, label, summary) and which one the current persona is (or ``custom``)."""
         return self._request("GET", self._persona_path(brain_id, "/presets"))
 
     def assign_first_persona(self, *, brain_id: str | None = None) -> JsonObject:
@@ -417,7 +420,7 @@ class MemoryClient:
     def switch_persona_preset(self, preset: str, *, made_by: Literal["host", "user"] = "user",
                               source_event_ids: Sequence[str] = (), source_messages: Sequence[Mapping[str, Any]] = (),
                               brain_id: str | None = None) -> JsonObject:
-        """Save a preset (or ``random``: one other than the current) as the new persona version, citing at most one
+        """Save a personality type (or ``random``: one other than the current) as the new persona version, citing one
         user message that asked for it. Mood and familiarity are not touched."""
         return self._request("POST", self._persona_path(brain_id, "/preset"),
                              json={"preset": preset, "made_by": made_by, "source_event_ids": list(source_event_ids),

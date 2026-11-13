@@ -410,16 +410,20 @@ def restore_persona(service, principal, brain_id: str, version: int, *, made_by:
                  reason=reason, action="restore")
 
 
-def reset_persona(service, principal, brain_id: str, *, made_by: str, reason: str | None = None) -> dict:
-    """Make the host's default card, or an empty card, current as a new version; history is kept."""
-    def choose(find):
-        default = find(lambda entry: entry["host_default"])
-        if default is None:
-            return dict(EMPTY_CARD), {}
-        return normalize_card(default["card"]), {"restored_from": default["version"], **_origin(default, edited=False)}
+def reset_persona(service, principal, brain_id: str, *, made_by: str, reason: str | None = None,
+                  preset: str | None = None, choose=None) -> dict:
+    """Pick the persona again, as a new version; history is kept (``persona_presets.pick_again``).
 
-    return _save(service, principal, brain_id, choose, made_by=made_by,
-                 reason=reason, action="reset")
+    With ``preset``, that personality type (or "random"). Otherwise the card the host itself saved as its default
+    (``host_default``), for a host that set one; otherwise a type picked at random other than the current one.
+    Before personality types, a reset without a host default emptied the card; it no longer does.
+    """
+    from .persona_presets import pick_again
+
+    if made_by not in MADE_BY:
+        raise DomainError("validation_failed", f"made_by must be one of {', '.join(MADE_BY)}.")
+    return pick_again(service, principal, brain_id, made_by=made_by, reason=_reason(reason), ident=preset,
+                      choose=choose)
 
 
 def delete_persona_history(service, principal, brain_id: str) -> dict:

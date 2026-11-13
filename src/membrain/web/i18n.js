@@ -288,21 +288,52 @@ const ZH = {
     "把个性重置为宿主的默认设定，或者清空设定？之前的版本会保留，可以恢复。笔记和消息不受影响。",
   "Delete every personality version, including the current card? This cannot be undone.": "删除所有个性版本，包括当前设定？此操作无法撤销。",
   "Personality history deleted.": "个性历史已删除。",
-  // Preset personas
-  "Switch to a preset": "切换到预设个性", "Switch": "切换",
-  "A new memory starts with one preset picked at random. Switching changes only how your companion presents itself: its mood and how familiar you are carry over. You can also ask your agent to switch.":
-    "新的记忆会随机选用一个预设个性。切换只改变伙伴的表现方式：它的心情和你们的熟悉程度都会保留。你也可以直接让 agent 帮你切换。",
-  "Preset:": "预设：", "Your own card": "你自己的设定", "No preset": "没有使用预设", "based on": "基于",
-  "first preset, picked at random": "随机选用的第一个预设", "switched preset": "切换了预设",
+  // Personality types (the persona presets)
+  "Switch": "切换",
+  "Personality type:": "人格类型：", "Your own card": "你自己的设定", "No personality type": "没有使用人格类型",
+  "based on": "基于", "first type, picked at random": "随机选用的第一个类型", "switched type": "切换了类型",
+  "Personality type": "人格类型", "Pick another at random": "随机换一个",
+  "Your companion presents itself as one of sixteen personality types (the four-letter types familiar from MBTI). A new memory starts with one picked at random. Switching changes only how your companion presents itself: its mood and how familiar you are carry over. You can also ask your agent to switch.":
+    "你的伙伴会以十六种人格类型之一来表现自己（也就是 MBTI 里常见的四字母类型）。新的记忆会随机选用一种。切换只改变伙伴的表现方式：它的心情和你们的熟悉程度都会保留。你也可以直接让 agent 帮你切换。",
+  "Switch to this personality type? It is saved as a new version, and earlier versions can be restored. The mood and familiarity carry over.":
+    "切换到这个人格类型？它会保存为一个新版本，之前的版本可以恢复。心情和熟悉程度都会保留。",
+  "Pick another personality type at random? It is saved as a new version, and earlier versions can be restored. The mood and familiarity carry over.":
+    "随机换一个人格类型？它会保存为一个新版本，之前的版本可以恢复。心情和熟悉程度都会保留。",
   "your agent's suggestion, confirmed in conversation": "agent 提出的建议，你在对话中确认",
   "your agent's suggestion, accepted here": "agent 提出的建议，你在这里接受",
-  "Switch to this preset? It is saved as a new version, and earlier versions can be restored. The mood and familiarity carry over.":
-    "切换到这个预设？它会保存为一个新版本，之前的版本可以恢复。心情和熟悉程度都会保留。",
-  "Steady": "沉稳", "Calm, plain-spoken and patient; explains things in order.": "冷静、说话直白、有耐心；讲事情有条有理。",
-  "Bright": "明快", "Upbeat and encouraging; notices progress and says so.": "积极、爱鼓励人；看到你的进步会说出来。",
-  "Wry": "冷幽默", "Dry humour and a light tease now and then; sharp but kind.": "冷幽默，偶尔轻轻打趣；犀利但友善。",
-  "Gentle": "温柔", "Warm and soft-spoken; listens first and asks before advising.": "温暖、轻声细语；先倾听，给建议前先问你。",
-  "Blunt": "直率", "Direct with no padding; says what it thinks and why.": "直截了当、不绕弯子；直说想法和理由。",
+  // The sixteen personality types: the codes stay as they are, the summaries are translated.
+  "Thinks ahead and plans; independent and exacting; says little but means it.":
+    "有远见、善于规划；独立、严谨；话不多，但说出的话都算数。",
+  "Curious and analytical; likes to take an idea apart and follow where it leads.":
+    "好奇、爱分析；喜欢把一个想法拆开，看它能引向哪里。",
+  "Decisive and organised; takes charge of a problem and drives it to a plan.":
+    "果断、有条理；会主动接手问题，一路推进到拿出计划。",
+  "Quick and inventive; enjoys debating ideas and trying new angles.":
+    "反应快、点子多；喜欢讨论各种想法，换个角度试试。",
+  "Quiet and insightful; thinks about what matters to you and where things are going.":
+    "安静、有洞察力；会想什么对你重要、事情往哪里走。",
+  "Gentle and idealistic; listens closely and cares about what feels right to you.":
+    "温和、有理想；认真倾听，在意你觉得什么是对的。",
+  "Warm and encouraging; brings people along and helps you aim for your goals.":
+    "热情、爱鼓励人；能带动大家，也帮你朝目标努力。",
+  "Enthusiastic and imaginative; full of ideas and interested in everything about you.":
+    "热情、富有想象力；点子多，对你的一切都感兴趣。",
+  "Steady and thorough; sticks to the facts and follows through on what it says.":
+    "稳重、细致；尊重事实，说到做到。",
+  "Kind and dependable; remembers the details that matter to you and looks after them.":
+    "体贴、可靠；记得对你重要的细节，并把它们照顾好。",
+  "Practical and direct; likes clear plans, clear rules and getting things done.":
+    "务实、直接；喜欢清楚的计划和规则，把事情办成。",
+  "Friendly and attentive; keeps things warm, organised and considerate.":
+    "友善、周到；让气氛温暖、井井有条，也顾及大家的感受。",
+  "Calm and hands-on; works out how things work and fixes them without fuss.":
+    "冷静、爱动手；弄清事情怎么运作，不声不响地把它解决。",
+  "Easy-going and gentle; notices small things and lets you go at your own pace.":
+    "随和、温柔；留意细小的事，让你按自己的节奏来。",
+  "Lively and practical; likes action, quick solutions and a bit of fun.":
+    "活泼、务实；喜欢行动和快办法，也爱找点乐子。",
+  "Playful and warm; lives in the moment and makes conversation fun.":
+    "爱玩、热情；活在当下，让聊天变得有趣。",
   // Relationship (R1) and the Companion tab that holds it with the personality
   "Companion": "伙伴", "Relationship": "关系",
   "What you and your companion share: moments you had together, how familiar you are, how you like to be supported and the topics it should not bring up. Your agent receives it in its own block.":

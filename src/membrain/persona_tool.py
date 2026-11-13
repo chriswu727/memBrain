@@ -1,5 +1,5 @@
-"""The persona tool the host AI calls: list the presets, switch when the user asks, and propose a change the user
-then confirms or declines in the conversation.
+"""The persona tool the host AI calls: list the personality types, switch when the user asks (a request to reset the
+persona is a switch too), and propose a change the user then confirms or declines in the conversation.
 
 Switching is the user's own request, so it is done at once; it must cite the user's message, as notes do. A proposed
 change waits for the user's answer, and the service will not apply it without a later user message
@@ -14,9 +14,11 @@ ACTIONS = ("list", "switch", "propose", "confirm", "decline")
 WRITES = ("switch", "propose", "confirm", "decline")
 TOOL_DESCRIPTION = (
     "The companion persona: how you present yourself to this user. One persona, one relationship: switching or "
-    "changing it never resets the mood or familiarity. action list: the preset personas (id, label, summary) and "
-    "which one is current. action switch with preset (an id from list, or random for a different one): only when "
-    "the user asked in this conversation to switch; that request is enough, do not ask again. action propose with "
+    "changing it never resets the mood or familiarity. action list: the sixteen personality types (id such as intj, "
+    "label, summary) and which one is current. action switch with preset (a type, in any case, or random for a "
+    "different one): only when the user asked in this conversation to switch; that request is enough, do not ask "
+    "again. When the user asks to reset their persona, that means switch with random, or with the type they name. "
+    "action propose with "
     "changes (any of name, traits, voice, values, boundaries, baseline_mood) and a short reason: only when the user "
     "explicitly asks you to behave differently from now on ('be more patient from now on') or keeps asking for "
     "something the persona does not say, beyond what the manner-feedback tool records (too long, too formal, more "

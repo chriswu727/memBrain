@@ -184,20 +184,25 @@ def test_exact_block_new_versions_restore_and_reset_across_turns(installation):
     turn = host.prompt_context(directory, "s1", "And now?", turn_id="t4", user_id=user) or ""
     assert block(3) in turn
 
-    # 3. Reset removes the card from the next turn and leaves notes and messages untouched.
+    # 3. Reset picks a personality type again and leaves notes and messages untouched.
     with host.ready_client(directory, user) as client:
         messages = client.timeline(roles=("user", "assistant"), limit=1000)["items"]
         status = client.memory_status()["recorded_messages"]
         reset = client.reset_persona(made_by="user")
-        assert (reset["version"], reset["empty"], reset["block"]) == (4, True, None)
+        assert (reset["version"], reset["empty"], reset["action"]) == (4, False, "preset") and reset["preset"]
         assert client.timeline(roles=("user", "assistant"), limit=1000)["items"] == messages
         assert client.memory_status()["recorded_messages"] == status
         assert [item["event_id"] for item in notes.list_notes(client)["items"]] == [note]
         assert len(client.persona_versions()["versions"]) == 4  # History is kept, so a reset can be undone.
     turn = host.prompt_context(directory, "s1", "Kyoto plans?", turn_id="t5", user_id=user) or ""
-    assert '<membrain-persona version=' not in turn and "persona (v3) was reset or removed" in turn
+    assert '<membrain-persona version="4">' in turn and "Prefers short replies." in turn
+    # Deleting the history removes the card from the next turn, and the removal is announced.
+    with host.ready_client(directory, user) as client:
+        client.delete_persona_history()
+    turn = host.prompt_context(directory, "s1", "And Osaka?", turn_id="t6", user_id=user) or ""
+    assert '<membrain-persona version=' not in turn and "persona (v4) was reset or removed" in turn
     assert "Prefers short replies." in turn
-    # A new session starts without a persona block, with the same notes.
+    # A new session starts without a persona block, with the same notes: no type is given again.
     fresh = host.session_context(directory, "s2", user_id=user)
     assert "<membrain-persona" not in fresh and "Prefers short replies." in fresh
 
@@ -240,12 +245,13 @@ def test_reset_returns_to_the_host_default_and_restore_needs_a_kept_version(inst
     service, principal, ident = brain
     with pytest.raises(DomainError, match="host"):
         set_persona(service, principal, ident, CARD, made_by="user", host_default=True)
-    assert reset_persona(service, principal, ident, made_by="user")["unchanged"] is True  # Nothing to reset yet.
+    picked = reset_persona(service, principal, ident, made_by="user")  # Without a host default: a type.
+    assert (picked["version"], picked["action"], picked["empty"]) == (1, "preset", False)
     default = set_persona(service, principal, ident, CARD, made_by="host", host_default=True)
     set_persona(service, principal, ident, {"name": "Someone else"}, made_by="user")
     reset = reset_persona(service, principal, ident, made_by="user")
-    assert (reset["version"], reset["card"], reset["restored_from"]) == (3, normalize_card(CARD), default["version"])
-    assert render_persona(reset) == block(3)
+    assert (reset["version"], reset["card"], reset["restored_from"]) == (4, normalize_card(CARD), default["version"])
+    assert render_persona(reset) == block(4)
     with pytest.raises(DomainError) as missing:
         restore_persona(service, principal, ident, 42, made_by="user")
     assert missing.value.code == "not_found_or_forbidden"
@@ -278,7 +284,8 @@ def test_api_and_sdk_routes_check_keys_owners_limits_and_delete_history(installa
     assert client.put(path, json={"card": CARD, "made_by": "user"}).json()["version"] == 2
     assert client.post(path + "/restore", json={"version": 1, "made_by": "user"}).json()["version"] == 3
     assert client.post(path + "/restore", json={"version": 9, "made_by": "user"}).status_code == 404
-    assert client.post(path + "/reset", json={"made_by": "user"}).json()["empty"] is True
+    reset = client.post(path + "/reset", json={"made_by": "user"}).json()  # A personality type, picked again.
+    assert reset["empty"] is False and reset["preset"] and reset["version"] == 4
     assert [v["version"] for v in client.get(path + "/versions").json()["versions"]] == [4, 3, 2, 1]
     say(brain, "Feedback given before the history was deleted.")
     deleted = client.delete(path + "/versions").json()

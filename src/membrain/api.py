@@ -115,6 +115,7 @@ class PersonaRestore(RuntimeBody):
 class PersonaReset(RuntimeBody):
     made_by: PersonaAuthor
     reason: PersonaReason | None = None
+    preset: Annotated[str, Field(min_length=1, max_length=40)] | None = None  # A personality type, or "random".
 
 
 # Feedback on the companion's manner that the host AI reports (P2); the kind and sources are checked by

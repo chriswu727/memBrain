@@ -249,8 +249,8 @@ class ChatMemory:
     def persona(self, speaker: Speaker, action, *, roleplay: str | None = None, preset=None, changes=None,
                 reason=None, proposal_id=None, source_event_ids=(), source_messages=(),
                 recording_capture: str | None = None) -> dict:
-        """The persona tool (``persona_tool.run``) in this speaker's own memory: list the presets, switch when they
-        ask, or propose a change they confirm in the conversation. Not in a role-play, whose character is the
+        """The persona tool (``persona_tool.run``) in this speaker's own memory: list the personality types, switch
+        when they ask, or propose a change they confirm in the conversation. Not in a role-play, whose character is the
         persona. Writing actions are refused, with nothing sent, while recording is paused."""
         from .. import persona_tool
 
