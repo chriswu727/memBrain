@@ -94,7 +94,9 @@ def run(args) -> None:
 
     read_key()
     data = json.loads(Path(args.data).read_text(encoding="utf-8"))
-    chosen = sample(data, args.per_type, args.skip)
+    wanted = set(args.ids.split(",")) if args.ids else None
+    chosen = [item for item in data if item["question_id"] in wanted] if wanted else sample(
+        data, args.per_type, args.skip)
     out = Path(args.out)
     ledger = Ledger(out / "ledger.json", args.ceiling)
     model = Model(ENDPOINT, ANSWER_MODEL, cap=5000)
@@ -158,6 +160,7 @@ def main() -> None:
     parser.add_argument("--out", required=True)
     parser.add_argument("--per-type", type=int, default=5)
     parser.add_argument("--skip", type=int, default=10)
+    parser.add_argument("--ids", default="", help="Answer exactly these question ids instead of the sample")
     parser.add_argument("--arms", default=",".join(ARMS))
     parser.add_argument("--ceiling", type=float, default=0.0, help="Spending ceiling in CNY for this run directory")
     parser.add_argument("--report", action="store_true")
