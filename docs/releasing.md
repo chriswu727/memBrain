@@ -6,9 +6,9 @@ As of 2026-11-14. Each row names the runtime its evidence covers; a row whose ru
 
 | Item | State | Runtime covered |
 | --- | --- | --- |
-| Pinned runtime | `8c2860c` (pin `8c071bee`); the default branch follows the integration branch at verified milestones and was last moved at `2600219b` (runtime `fc99653`) | — |
-| Full source suite, local Linux | 8,387 passed, 4 skipped (Docker journeys), none failed ([report](../evaluations/age-weight-and-importance-2026-11-13.md)) | `8c2860c` |
-| Second AI | memBrain asks for no model of its own; its chat mode and learning pipeline are frozen, about 17,000 source lines to be removed in slices, four of eight done: no model can be configured for memBrain itself any more ([plan](../evaluations/audits-2026-11-12/unused-code-removal-plan.md), [record](../evaluations/no-second-model-2026-11-13.md)) | `4b0f977` |
+| Pinned runtime | `d1acd13` (pin `ba70e7cd`); the default branch follows the integration branch at verified milestones and was last moved at `2600219b` (runtime `fc99653`) | — |
+| Full source suite, local Linux | 5,353 passed, 4 skipped (Docker journeys), none failed; fewer tests because the removed learning pipeline's are retired ([report](../evaluations/no-learning-pipeline-2026-11-14.md)) | `d1acd13` |
+| Second AI | memBrain asks for no model of its own; its chat mode and learning pipeline are frozen, about 17,000 source lines to be removed in slices, five of eight done: no model can be configured for memBrain itself, and the background learning it drove is gone ([plan](../evaluations/audits-2026-11-12/unused-code-removal-plan.md), [record](../evaluations/no-learning-pipeline-2026-11-14.md)) | `d1acd13` |
 | Second benchmark, model-free | LongMemEval, 60 questions, nothing tuned: evidence in the user's words 90.2% against 84.3% for plain retrieval; in the assistant's words 11% against 100% ([report](../evaluations/longmemeval-evidence-recall-2026-11-12.md)) | `75f50fd` |
 | GitHub Verify | Last result recorded in this repository: passed | `2ef05f3` |
 | Five-platform native qualification | Passed | `978312c` |
@@ -24,6 +24,8 @@ As of 2026-11-14. Each row names the runtime its evidence covers; a row whose ru
 No version tag, release or package upload exists, and none is made until the product is mature.
 
 ## History
+
+**No-learning runtime `d1acd13` (2026-11-14):** [The learning pipeline of memBrain's own model is removed, and the acceptance tooling runs two arms](../evaluations/no-learning-pipeline-2026-11-14.md). Pin `ba70e7cd` points all nine launchers at it. Removal slice 5 deletes 29 modules (44,328 to 35,115 source lines); the plugin path's recall is unchanged on 385 questions; old profiles, backups, queued learning jobs, derived rows and archives are handled, each with a test. The R4 tooling is adapted to the plugin path and the full-history reference, judged on the plugin path alone, with a persona drawn from the attempt id, arms run in turn under an 80 CNY guard, and a rewritten kit for isolated scenario authors; an independent review's twelve findings are fixed. No scenario is written and nothing is spent yet. The full local source suite on the pin commit passes 5,353 tests with 4 skips and no failure. Verify, native Windows, macOS, five-platform qualification, the R5 overhead protocol and an independent review were not run. R4 remains failed and C5 invalid/unscored.
 
 **Withdrawal runtime `8c2860c` (2026-11-14):** the note-anchor ranking rule of the previous runtime [failed on the conversations not used for tuning](../evaluations/age-weight-and-importance-2026-11-13.md) and is removed; nothing else changed. Pin `8c071bee` points all nine launchers at it. The check cost 3.18 CNY of an approved 10: a stand-in host's notes made a fifth of all messages "important", the rule gained 10 questions net of 1,152 where 12 were required, and evidence without a note older than 90 days was shown 6.2 points less often. "Important memories first" remains unbuilt. The full local source suite on the pin commit passes 8,387 tests with 4 skips and no failure. Verify, native Windows, macOS, five-platform qualification, the R5 overhead protocol and an independent review were not run. R4 remains failed and C5 invalid/unscored.
 
