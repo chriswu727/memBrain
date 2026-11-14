@@ -265,13 +265,13 @@ def test_page_reports_a_host_conversation_pause_as_narrower_than_device_capture(
     expect(page.locator("#recording")).to_have_text(
         "Host conversation paused" if language == "en" else "宿主对话已暂停记录")
     expect(page.locator("#local-recording-text")).to_contain_text(
-        "It does not apply to direct chat; direct chat still follows its server, device and conversation controls"
-        if language == "en" else "不适用于直接聊天；直接聊天仍遵循其服务端、本机和对话的记录控制")
+        "This pause covers the host conversations that were active when it was set."
+        if language == "en" else "这项暂停适用于设置时正在进行的宿主对话。")
     expect(page.locator("#local-recording-text")).to_contain_text(
         "covers the host conversations that were active when it was set" if language == "en"
         else "适用于设置时正在进行的宿主对话")
-    for forbidden in (("Chat capture is paused on this device", "captured", "that host")
-                      if language == "en" else ("本机聊天捕获已暂停", "仍会被捕获", "该宿主")):
+    for forbidden in (("Chat capture is paused on this device", "captured", "that host", "direct chat")
+                      if language == "en" else ("本机聊天捕获已暂停", "仍会被捕获", "该宿主", "直接聊天")):
         expect(page.locator("#local-recording")).not_to_contain_text(forbidden)
     expect(page.locator("#local-recording .hint")).to_contain_text(
         "applies to new messages and turns" if language == "en" else "对新的消息和轮次生效")
@@ -299,8 +299,8 @@ def test_page_shows_a_server_pause_and_a_host_conversation_pause_as_separate_sco
         "New messages and notes are paused for this memory" if language == "en"
         else "此记忆库已暂停新消息和笔记")
     expect(page.locator("#local-recording-text")).to_contain_text(
-        "This pause covers the host conversations that were active when it was set. It does not apply to direct chat"
-        if language == "en" else "这项暂停适用于设置时正在进行的宿主对话，不适用于直接聊天")
+        "This pause covers the host conversations that were active when it was set."
+        if language == "en" else "这项暂停适用于设置时正在进行的宿主对话。")
     card = page.locator("#view-privacy > .card:nth-child(2)")
     for forbidden in (("captured", "Recording on", "Chat capture is enabled") if language == "en"
                       else ("仍会被捕获", "正在记录", "本机聊天捕获已开启")):
