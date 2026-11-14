@@ -214,7 +214,6 @@ The current context still has a limit. The runtime selects memory within that bu
 ```sh
 membrain desktop status
 membrain desktop logs
-membrain desktop learning-status
 membrain desktop stop
 membrain desktop start
 ```
@@ -288,7 +287,7 @@ Read the [acceptance criteria](architecture/v1-acceptance.md), [closed longitudi
 | [Runtime and integration reference](docs/reference.md) | Detailed setup, model configuration, SDK/API/MCP, limits, monitoring, and evaluation commands. |
 | [Architecture and acceptance specification](architecture/architecture.html) | Memory structures, system responsibilities, and the larger design. |
 | [Automatic runtime contract](architecture/autonomous-runtime.contract.json) | Lifecycle responsibilities, integration requirements, and implementation boundaries. |
-| [Cognitive budget controls](architecture/cognitive-budgets.md) | Explicit model-call allowances, accounting, and configuration. |
+| [Cognitive budget controls (removed feature, kept as history)](architecture/cognitive-budgets.md) | Background learning with a model of memBrain's own and its allowances; removed with that feature. |
 | [Memory quality and efficiency](architecture/memory-quality-and-efficiency.md) | Measured costs, algorithm choices, and boundaries for future personality and emotion research. |
 | [Roadmap: memory for chat and life agents](architecture/companion-roadmap.md) | Parity with other memory tools and memory of people, plans and relationships (largely implemented, with status per item), then personality, feelings, mood and relationship (implemented, including personality growth from repeated feedback; their C5 behavioural evaluation remains incomplete). |
 | [Development setup](docs/reference.md#development-setup) | Clone-based setup, database migrations, and the worker. |

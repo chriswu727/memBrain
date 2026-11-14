@@ -218,7 +218,6 @@ flowchart LR
 ```sh
 membrain desktop status
 membrain desktop logs
-membrain desktop learning-status
 membrain desktop stop
 membrain desktop start
 ```
@@ -298,7 +297,7 @@ membrain desktop start
 | [运行时与接入参考](docs/reference.md) | 详细设置、模型配置、SDK／API／MCP、限制、监控和评估命令。 |
 | [架构与验收规范](architecture/architecture.html) | 记忆结构、系统职责和完整设计。 |
 | [自动运行时契约](architecture/autonomous-runtime.contract.json) | 生命周期职责、接入要求和实现边界。 |
-| [认知预算控制](architecture/cognitive-budgets.md) | 明确的模型调用额度、用量记录和配置。 |
+| [认知预算控制（已移除的功能，仅作历史记录）](architecture/cognitive-budgets.md) | memBrain 自带模型的后台学习及其额度，已随该功能一并移除。 |
 | [记忆质量与效率](architecture/memory-quality-and-efficiency.md) | 实测开销、算法选择，以及未来人格与情绪研究的架构边界。 |
 | [路线图：面向聊天与生活类 Agent 的记忆](architecture/companion-roadmap.md) | 与其他记忆工具功能对齐、记住人物、计划与关系（大部分已实现，每项都标明状态），然后是人格、感受、心情与关系（已实现，包括根据反复反馈的人格成长；C5 行为评测仍未完成）。 |
 | [开发设置](docs/reference.md#development-setup) | 克隆仓库后的设置、数据库迁移和后台任务处理器。 |
