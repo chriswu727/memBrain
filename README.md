@@ -119,48 +119,15 @@ Setup asks for no model and no API key. It creates a persistent brain and starts
 
 The first upgrade of an older embedded database preserves its original engine and a cold backup before changing catalogs. This needs extra free disk space. The API starts only after database maintenance, application initialization and recovery checks succeed. After adoption, older runtimes refuse the profile; keep the installed tool and MCP configuration on the same package source. A failed upgrade blocks readiness and preserves existing data and recovery files.
 
-**Storage is local, and memBrain needs no model service of its own.** Recall uses keywords and, once the local model is installed, meaning; the host's AI does any interpretation. An installation that configured a cognition model in an earlier version keeps it, but that model-driven learning is frozen and outside the product's main line ([reference](docs/reference.md#desktop-setup)).
-
-### Frozen: standalone chat
-
-The bundled chat mode (`membrain desktop configure-chat`, `membrain desktop chat`), in which memBrain calls a reply model itself, is frozen and outside the product's main line; it will be removed later. Existing chat configurations keep working. `configure-chat` asks for a Chat Completions-compatible endpoint, model name and API key for replies, which can incur API charges and send relevant content to that provider. See [direct chat](docs/reference.md#direct-chat-and-python-sessions).
+**Storage is local, and memBrain needs no model service of its own.** Recall uses keywords and, once the local model is installed, meaning; the host's AI does any interpretation. Background learning with a model of memBrain's own was removed; an installation that configured one in an earlier version keeps loading and runs without it ([reference](docs/reference.md#desktop-setup)).
 
 <a id="automatic-integration"></a>
 
 ## Python integration
 
-The Python session runtime below (`open_agent`, `BrainRuntime`) belongs to the frozen chat mode: memBrain calls the reply model itself, which is outside the product's main line. It keeps working for existing hosts and will be removed later.
+The bundled chat mode (`membrain desktop configure-chat`, `membrain desktop chat`) and the Python session SDK that ran it (`open_agent`, `BrainRuntime`) were removed: memBrain is fitted to agent hosts through the plugins, adapters, MCP and proxy described here, and the host's AI replies ([details](docs/reference.md#bundled-chat-and-python-sessions-removed)).
 
-After desktop setup and chat configuration, install the package in your application's Python 3.12+ environment too. Run this from a project with an active virtual environment or a `.venv` directory. The CLI's isolated environment does not make the SDK importable in your application.
-
-```sh
-uv pip install 'membrain-ai @ https://github.com/chriswu727/membrain/archive/refs/heads/main.zip'
-```
-
-The following terminal example uses your saved model configuration and persistent brain:
-
-```python
-from membrain.agent_session import open_agent
-from membrain.runtime import DeliveryReceipt
-
-
-def deliver(request):
-    print(request.text, flush=True)
-    return DeliveryReceipt("delivered")
-
-
-with open_agent(conversation_id="writing", deliver=deliver) as agent:
-    agent.respond(
-        "Help me plan my next writing session.",
-        message_id="writing-request-001",
-    )
-```
-
-Run this in a Python 3.12+ environment. In a real host, replace `deliver` with the actual sending operation and return success only when sending is confirmed. The example confirms a terminal write, not that a person read the answer. Give each new incoming message a stable unique ID and reuse that ID only when reconciling the same message. Replaying a completed message does not generate or deliver another response.
-
-When the selected brain's server recording switch is paused, Python sessions and `desktop chat` continue in [temporary mode](docs/reference.md#temporary-chat-while-server-recording-is-paused). Messages and replies stay in a bounded in-process buffer; existing recent same-branch history may still be read. Resuming never backfills temporary messages. Content-free control markers prevent duplicate attempts; temporary answers cannot be recovered after process exit. Pausing chat capture on this device, or taking one conversation branch off the record with `/off-record`, selects the same mode without pausing the brain; the three controls stay [independent](docs/reference.md#local-recording-controls-for-direct-chat), and a control that cannot be read is reported as unknown.
-
-For your own model callback, delivery channel, recovery handling, or optional answer reviewer, see the [automatic integration reference](docs/reference.md#automatic-integration). HTTP and TypeScript clients expose the underlying operations; the ready-made automatic text runtime is currently Python. The TypeScript client also provides [persona, feelings, simulated mood, relationship controls and stored-memory maps](docs/reference.md#typescript-companion-controls-and-maps), with explicit user decisions for persona proposals. See [host features and verification scope](docs/host-compatibility.md) for the controls each integration exposes and the native-host journeys still unverified.
+Python, HTTP and TypeScript clients expose the underlying memory operations ([low-level interfaces](docs/reference.md#current-low-level-interfaces)). The TypeScript client also provides [persona, feelings, simulated mood, relationship controls and stored-memory maps](docs/reference.md#typescript-companion-controls-and-maps), with explicit user decisions for persona proposals. See [host features and verification scope](docs/host-compatibility.md) for the controls each integration exposes and the native-host journeys still unverified.
 
 <a id="mcp"></a>
 
@@ -218,7 +185,7 @@ membrain desktop stop
 membrain desktop start
 ```
 
-Stopping the service retains committed memories. The next chat, MCP, or SDK connection can start it again. Configuration lives in the installation directory; memory content lives in its database (the embedded database's data directory, or the Docker volume with the Docker engine). Copying the configuration directory alone is not a database backup.
+Stopping the service retains committed memories. The next MCP or SDK connection can start it again. Configuration lives in the installation directory; memory content lives in its database (the embedded database's data directory, or the Docker volume with the Docker engine). Copying the configuration directory alone is not a database backup.
 
 See [updating and configuration](docs/reference.md#local-status-and-configuration), [backup and recovery](architecture/desktop-recovery.md), and [troubleshooting](architecture/integration-troubleshooting.md). No management UI is required.
 
@@ -244,7 +211,7 @@ Each attempt ran the plugin path (`P`) and the proxy with note extraction (`E`) 
 
 In those earlier runs, almost every remaining memory-caused error had the same pattern: the host restated a recalled assistant suggestion as a fact about the user. Automatic recall now leaves the assistant's own replies out unless the user asks what the assistant said (commit `ac93f33`). The [third maturity attempt](evaluations/maturity-third-attempt-2026-11-06.md) tested that runtime: extraction passed R4, but the plugin failed at 17.5 points against the 18-point threshold, with two memory-caused critical replies. C5 is incomplete. A subsequent source repair closes an auxiliary-cue bypass and rejects draft/cancelled note sources; it has not received fresh behavioral acceptance.
 
-The current release candidate supports **local synchronous text agents**, with a Python runtime, HTTP API, TypeScript client, MCP tools, and a direct terminal chat entry point. Core memory behavior is independent of chat frameworks. Desktop end-to-end verification currently covers **macOS with uv and Docker**.
+The current release candidate supports **local synchronous text agents**, with host plugins and adapters, an HTTP API, Python and TypeScript clients, and MCP tools. Core memory behavior is independent of chat frameworks. Desktop end-to-end verification currently covers **macOS with uv and Docker**.
 
 [Plugin mode](architecture/plugin-mode.md) is verified end to end on **Linux x86_64**. The embedded database passed real start, restart, backup, restore and activation checks as root and as an unprivileged user. An isolated Claude Code 2.1.311 installed the plugin from a local marketplace; with a stub model API, it recorded messages and replies, and a new session's model request contained the previous session's record. That check covers integration, not answer quality. At that time automatic recall was keyword-only; it now also matches by meaning once the local model is installed. On a Windows 11 machine the embedded database, the service, the hook launchers (Git Bash and `cmd.exe`), the proxy and the AstrBot and OpenClaw plugins ran for real; that run found and fixed two installation bugs that stopped every new Windows installation and every first AstrBot start. Claude Code and Codex have not been run on Windows. Independent Mac checks passed 17 installation checks on the model-activation candidate, including the embedded database. The earlier 49-check run at `6656720`, pinned to `a01903a`, is retained as [history](evaluations/maturity-install-mac-2026-11-03.json). The complete Mac installation acceptance also passed all 49 checks on the later CPU candidate `91271f5`, pinned to `9d8509c` ([check list](evaluations/maturity-install-mac-cpu3-2026-11-03.json)). It covers a fresh install, an upgrade, companion state, the proxy, and backup and restore. It validates that earlier runtime only; it still missed the R5 concurrent recall latency targets. The later `d4d7126` runtime met R5, but the later `e749a24` follow-up reopens its fullscreen bound in the [release checklist](docs/releasing.md); runtime `f1fc97b` subsequently passed all 36 windows. The newer `b994ec8` graph-privacy follow-up passes fresh installation and parity but fails three eight-brain windows in its full comparison (maximum 659.56 ms), so that runtime failed R5. Preceding runtime `f5e265c` subsequently passed all 36 windows, as recorded in the [current qualification](evaluations/maturity-month-qualification-2026-11-07.md). The latest [real-model maturity attempt](evaluations/maturity-fifth-attempt-2026-11-07.md) failed R4 overall (plugin passed; extraction had one memory-caused privacy error); C5 is invalid and unscored. See the [provisional maturity evidence](evaluations/maturity-free-checks-2026-11-03.md) for newer implementation checks and remaining gates.
 
@@ -278,7 +245,7 @@ Known limits remain visible: a model can treat historical information as current
 
 <a id="manual-deepseek-evaluation"></a>
 
-Read the [acceptance criteria](architecture/v1-acceptance.md), [closed longitudinal failure](evaluations/v1-2026-10-25-longitudinal-v5-stopped.md), and [evaluation reference](docs/reference.md#manual-deepseek-evaluation) for reproducible methods, preserved failures, and evidence boundaries. All historical reports remain available.
+Read the [acceptance criteria](architecture/v1-acceptance.md), [closed longitudinal failure](evaluations/v1-2026-10-25-longitudinal-v5-stopped.md), and [evaluation reference](docs/reference.md#retired-model-evaluations) for reproducible methods, preserved failures, and evidence boundaries. All historical reports remain available.
 
 ## Documentation
 

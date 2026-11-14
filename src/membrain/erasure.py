@@ -50,10 +50,45 @@ def apply_erasure(service, conn, principal, brain, *, event_ids, memory_ids, mod
             )
     erase = mode == 'erase_content'
     if erase:
-        from .legacy_erasure import invalidate_belief_relations, invalidate_pattern_views
+        from .legacy_erasure import (
+            REDACTED_DIGEST,
+            invalidate_belief_relations,
+            invalidate_pattern_views,
+            redact_legacy_digests,
+            redact_runtime_turns,
+        )
 
         invalidate_pattern_views(conn, params, event_ids=event_ids, memory_ids=memory_ids, deleted=True)
         invalidate_belief_relations(conn, params, event_ids=event_ids, memory_ids=memory_ids, deleted=True)
+        redact_runtime_turns(conn, params, event_ids=event_ids, memory_ids=memory_ids)
+        redact_legacy_digests(conn, params, event_ids=event_ids, memory_ids=memory_ids)
+        # An erased message keeps no digest of itself: content_hash and input_hash (both NOT NULL) of every revision.
+        conn.execute(
+            'UPDATE memory_events SET content_hash=%s,input_hash=%s '
+            'WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=ANY(%s::text[])',
+            (REDACTED_DIGEST, REDACTED_DIGEST, *params, sorted(event_ids)),
+        )
+        # A host that has no turn id for a message keys it by a digest of its session, role and text
+        # (host.message_record), so such a source key would confirm a guess too. An erased event's key that holds a
+        # digest-shaped run (32 or more hex digits) is replaced by one naming only the event. Hosts' queued copies
+        # are refused anyway, by the capture revision the erasure revoked; other callers' keys are left, so a copy
+        # they send again is still refused as erased (MemoryService._append_event).
+        conn.execute(
+            "UPDATE memory_events SET source_key='erased:' || id WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+            "AND id=ANY(%s::text[]) AND source_key ~ '[0-9a-f]{32}'",
+            (*params, sorted(event_ids)),
+        )
+        # Request fingerprints are digests of whole requests, and an observation's or a recall's request holds the
+        # message or query text beside values a reader of the table can see (its key, target and budget), so it would
+        # confirm a guess; an observation's key can hold a content-derived source key too. Which stored request
+        # carried the erased text cannot be told once responses are cleared (every change of the brain clears them).
+        # So content erasure removes every stored observation request of the brain (an observation sent again is
+        # matched by its events: still recorded, a duplicate; erased, refused) and wipes every other fingerprint (a
+        # request sent again with the same key is then answered as one whose stored response is gone).
+        conn.execute("DELETE FROM memory_requests WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND action='observe'",
+                     params)
+        conn.execute('UPDATE memory_requests SET request_hash=%s WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s',
+                     (REDACTED_DIGEST, *params))
     from .legacy_erasure import clear_query_embeddings
 
     clear_query_embeddings(conn, params)

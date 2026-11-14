@@ -991,7 +991,7 @@ async function loadRecording() {
     const serverPaused = result.server.paused;
     const localPaused = result.local?.paused;
     // A pause a host conversation asked for lists the host conversations active when it was set; it is not a
-    // pause of the device and says nothing about whether a direct chat is recorded.
+    // pause of the device.
     const hostConversation = localPaused && result.local.scope === "conversations";
     $("recording").hidden = false;
     $("recording").textContent = serverPaused ? "Recording paused" : hostConversation ? "Host conversation paused"
@@ -1007,7 +1007,7 @@ async function loadRecording() {
     $("resume").hidden = !serverPaused;
     $("local-recording").hidden = !result.local;
     $("local-recording-text").textContent = hostConversation
-      ? "A host conversation asked not to be recorded. This pause covers the host conversations that were active when it was set. It does not apply to direct chat; direct chat still follows its server, device and conversation controls."
+      ? "A host conversation asked not to be recorded. This pause covers the host conversations that were active when it was set."
       : localPaused ? "Chat capture is paused on this device." : "Chat capture is enabled on this device.";
     $("pause-local").hidden = localPaused;
     $("pause-hours").hidden = localPaused;

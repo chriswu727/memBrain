@@ -2,7 +2,7 @@ import copy
 import json
 
 import pytest
-from test_turns import turns as turns
+from service_harness import turns as turns
 
 from membrain.client import default_budget, default_read_fence
 from membrain.embeddings import EmbeddingResult, EmbeddingSpace

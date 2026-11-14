@@ -46,7 +46,8 @@ class Held:
 
     def __init__(self, harness, monkeypatch):
         self.inside, self.release, self.calls = threading.Event(), threading.Event(), 0
-        original = harness.service._working
+        # Recall no longer reads working state; it still filters the default one against the sources it read.
+        original = harness.service._working_from_events
 
         def working(*args, **kwargs):
             self.calls += 1
@@ -55,7 +56,7 @@ class Held:
                 assert self.release.wait(20)
             return original(*args, **kwargs)
 
-        monkeypatch.setattr(harness.service, "_working", working)
+        monkeypatch.setattr(harness.service, "_working_from_events", working)
 
     def run(self, target):
         results = {}

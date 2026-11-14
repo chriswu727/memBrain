@@ -6,13 +6,13 @@ from threading import Event
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-from test_turns import Turns
+from service_harness import Conversation
 
 from membrain import host
 from membrain.api import create_app
 from membrain.client import MemoryActionError, MemoryClient, default_budget
 from membrain.config import Settings
-from membrain.helpers import DomainError, Principal, digest, uid
+from membrain.helpers import DomainError, Principal, uid
 from membrain.notes import store_note
 from membrain.recording_control import recording_status, set_recording
 from membrain.service import MemoryService
@@ -25,7 +25,7 @@ def turns():
         settings = Settings.from_env()
     except ValueError:
         pytest.skip("MEMORY_DATABASE_URL must point to the dedicated test database")
-    return Turns(Database(settings.database_url))
+    return Conversation(Database(settings.database_url))
 
 
 def policy(turns, paused, revision):
@@ -80,8 +80,6 @@ def test_pause_rejects_raw_events_notes_and_new_turns_without_storing_requests(t
     assert rejected["error"]["retryable"] is False
     with pytest.raises(DomainError, match="Recording is paused"):
         store_note(turns.service, turns.principal, turns.brain, {"text": "Rejected note.", "request_id": uid()})
-    with pytest.raises(DomainError, match="Recording is paused"):
-        turns.begin()
     with turns.database.transaction(turns.principal) as conn:
         params = turns.service._params(turns.principal, turns.brain)
         assert conn.execute("SELECT count(*) AS n FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s",
@@ -130,43 +128,6 @@ def test_paused_brain_can_read_export_and_erase_but_cannot_import(turns):
     turns.action("forget", {"idempotency_key": uid(), "selector": {"kind": "events", "ids": [event["event_id"]]},
                             "mode": "erase_content", "expected_scope_generation": 1})
     assert not turns.service.timeline(turns.principal, turns.brain)["items"]
-
-
-@pytest.mark.parametrize("stage,reason", [("started", "cancelled"), ("prepared", "cancelled"),
-                                        ("generating", "generation_uncertain"),
-                                        ("delivering", "delivery_uncertain")])
-def test_pause_stops_active_turns_and_resume_does_not_revive_them(turns, stage, reason):
-    if stage == "started":
-        turns.begin()
-    elif stage == "delivering":
-        turns.generate()
-        turns.advance("delivering")
-    else:
-        turns.prepare()
-        if stage == "generating":
-            turns.advance("generating")
-    policy(turns, True, 0)
-    row = turns.store.get(turns.principal, turns.brain, turns.turn_id)
-    assert row["stage"] == "failed" and row["failure_code"] == reason
-    assert not row["scope_reserved"] and not row["lease_active"]
-    assert turns.call("history")[-1]["operation"] == "fail"
-    policy(turns, False, 1)
-    assert turns.begin()["stage"] == "failed"
-    with pytest.raises(DomainError):
-        turns.claim()
-    if turns.token:
-        with pytest.raises(DomainError):
-            turns.record_output("Late output must not be recorded.", "delivered" if stage == "delivering" else "draft")
-    turns.store.begin(turns.principal, turns.brain, turn_id=uid(), conversation_id=turns.conversation,
-                      branch_id=turns.branch, input_fingerprint=digest("new input"))
-
-
-def test_pause_preserves_confirmed_delivery_and_allows_completion(turns):
-    turns.deliver()
-    policy(turns, True, 0)
-    assert turns.store.get(turns.principal, turns.brain, turns.turn_id)["stage"] == "delivered"
-    result = turns.call("finish", lease_token=turns.token, expected_revision=turns.row["revision"])
-    assert result["stage"] == "completed"
 
 
 def test_pause_waits_for_prior_write_transaction_and_then_rejects_new_content(turns, monkeypatch):

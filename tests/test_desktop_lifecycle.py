@@ -1,3 +1,4 @@
+import argparse
 import itertools
 import json
 from contextlib import contextmanager
@@ -6,7 +7,6 @@ from unittest.mock import Mock
 
 import httpx
 import pytest
-from test_desktop_chat import arguments
 from test_legacy_cognition_settings import with_cognition
 
 from membrain import desktop, desktop_cli
@@ -16,6 +16,12 @@ from membrain.local_profile import (
     ensure_profile,
     load_profile,
 )
+
+
+def arguments(*values):
+    parser = argparse.ArgumentParser()
+    desktop_cli.add_commands(parser.add_subparsers())
+    return parser.parse_args(["desktop", *values])
 
 
 @pytest.fixture

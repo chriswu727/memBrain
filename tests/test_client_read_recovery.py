@@ -3,16 +3,15 @@ import socket
 import threading
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
 
 import httpx
 import pytest
 from fastapi import FastAPI
 from httpcore._sync.http11 import HTTP11Connection
+from loopback import loopback_server
 from uvicorn.protocols.http.h11_impl import H11Protocol
 
 from membrain.client import MemoryClient
-from membrain.runtime_client import RuntimeClient
 
 
 @contextmanager
@@ -58,9 +57,9 @@ def test_read_recovers_once_after_real_response_disconnect(caplog):
     epoch = "ddf1ea58-8dfc-4ea1-b366-fd018a684fc1"
     with server(["drop", "ok"]) as (url, requests):
         with MemoryClient(url, "synthetic-key", "brain", trust_env=False, recovery_epoch=epoch) as client:
-            assert RuntimeClient(client).status() == {"ready": True}
+            assert client.memory_status() == {"ready": True}
     assert len(requests) == 2 and requests[0] == requests[1]
-    assert requests[0][1] == "/v1/brains/brain/runtime/status"
+    assert requests[0][1] == "/v1/brains/brain/status"
     assert requests[0][2]["Authorization"] == "Bearer synthetic-key"
     assert requests[0][2]["X-Memory-Recovery-Epoch"] == epoch
     assert "retrying once" in caplog.text
@@ -71,7 +70,7 @@ def test_repeated_read_disconnect_is_reported_after_two_requests():
     with server(["drop"]) as (url, requests):
         with MemoryClient(url, "key", "brain", trust_env=False) as client:
             with pytest.raises(httpx.RemoteProtocolError):
-                RuntimeClient(client).status()
+                client.memory_status()
     assert len(requests) == 2
 
 
@@ -108,13 +107,10 @@ def test_other_read_failures_are_not_retried(error):
 
 
 def test_read_recovers_when_keepalive_closes_after_pool_reuse_check(monkeypatch):
-    monkeypatch.syspath_prepend(str(Path(__file__).parents[1]))
-    from examples.evaluation_host import loopback_server
-
     app, requests, protocols = FastAPI(), [], []
     closed, armed, completed = threading.Event(), threading.Event(), threading.Event()
 
-    @app.get("/v1/brains/brain/runtime/status")
+    @app.get("/v1/brains/brain/status")
     def usage():
         requests.append("GET")
         return {"requests_seen": len(requests)}
@@ -146,11 +142,10 @@ def test_read_recovers_when_keepalive_closes_after_pool_reuse_check(monkeypatch)
     monkeypatch.setattr(HTTP11Connection, "has_expired", has_expired)
     with loopback_server(app) as url:
         with MemoryClient(url, "key", "brain", trust_env=False) as client:
-            runtime = RuntimeClient(client)
-            assert runtime.status() == {"requests_seen": 1}
+            assert client.memory_status() == {"requests_seen": 1}
             assert completed.wait(3)
             armed.set()
-            assert runtime.status() == {"requests_seen": 2}
+            assert client.memory_status() == {"requests_seen": 2}
     assert closed.is_set() and requests == ["GET", "GET"]
 
 

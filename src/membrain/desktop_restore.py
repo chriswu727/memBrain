@@ -59,17 +59,18 @@ def _new_profile(directory, journal, configuration, *, api_port, database_port):
 
 
 def _restore_configuration(profile, configuration):
-    """Write the chat configuration back. A backup from an older runtime can also hold the limits of the removed
-    cognition model (``cognition_policy``): they are not restored and nothing reads them, whatever they contain."""
-    from .chat_config import load_chat_configuration
-
+    """Write the chat configuration back as it was backed up. It configured the bundled desktop chat, removed with
+    runtime mode; it is restored unread, so that restoring and backing up again keeps it. A backup from an older
+    runtime can also hold the limits of the removed cognition model (``cognition_policy``): they are not restored
+    and nothing reads them, whatever they contain."""
+    chat = configuration['chat']
+    if chat is not None and not isinstance(chat, dict):
+        raise BackupError('backup_invalid')
     existing = read_document(profile.directory / 'chat.json')
-    if existing is not None and existing != configuration['chat']:
+    if existing is not None and existing != chat:
         raise BackupError('backup_conflict')
-    if existing is None and configuration['chat'] is not None:
-        write_document(profile.directory / 'chat.json', configuration['chat'])
-    if configuration['chat'] is not None:
-        load_chat_configuration(profile.directory)
+    if existing is None and chat is not None:
+        write_document(profile.directory / 'chat.json', chat)
 
 
 def _database_source(profile, manifest):

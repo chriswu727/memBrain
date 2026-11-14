@@ -12,7 +12,6 @@ from mcp.client.stdio import stdio_client
 from membrain import desktop
 from membrain.desktop_connection import mcp_config, open_client
 from membrain.local_profile import ensure_profile, load_profile
-from membrain.runtime import BrainRuntime, DeliveryReceipt
 
 pytestmark = [pytest.mark.integration, pytest.mark.skipif(
     os.environ.get("MEMORY_DESKTOP_E2E") != "1",
@@ -35,7 +34,6 @@ def test_cold_start_concurrent_connect_restart_and_mcp_preserve_one_brain(tmp_pa
     monkeypatch.setenv("MEMORY_API_KEY", "wrong-inherited-key")
     monkeypatch.setenv("HTTP_PROXY", "http://127.0.0.1:1")
     monkeypatch.setenv("NO_PROXY", "")
-    generated, delivered = [], []
     try:
         with ThreadPoolExecutor(max_workers=2) as pool:
             results = list(pool.map(lambda _: desktop.start(profile.directory), range(2)))
@@ -45,23 +43,15 @@ def test_cold_start_concurrent_connect_restart_and_mcp_preserve_one_brain(tmp_pa
         assert {item["instance_id"] for item in results} == {first["instance_id"]}
         assert desktop.start(profile.directory)["instance_id"] == first["instance_id"]
 
-        def generate(request):
-            generated.append(request)
-            return "收到，你周五想去看海。"
-
-        def deliver(request):
-            delivered.append(request)
-            return DeliveryReceipt("delivered")
-
         with open_client(profile.directory) as client:
             assert [brain["id"] for brain in client.brains()["brains"]] == [profile.brain_id]
-            runtime = BrainRuntime(client, generate, deliver=deliver)
-            result = runtime.respond("我周五想去看海。", message_id="desktop-message-1", conversation_id="trip")
-            assert result.stage == "completed"
+            client.observe("我周五想去看海。", conversation_id="trip", branch_id="main",
+                           source_event_key="desktop-message-1")
+            client.observe("收到，你周五想去看海。", role="assistant", conversation_id="trip", branch_id="main",
+                           source_event_key="desktop-reply-1", delivery_state="delivered")
             events = client.dashboard()["events"]
             assert len(events) == 2
             original_event_ids = {event["event_id"] for event in events}
-        assert len(generated) == len(delivered) == 1
         assert desktop.stop(profile.directory)["data_preserved"]
         assert desktop.status(profile.directory)["state"] == "stopped"
         configuration = mcp_config(profile.directory)["mcpServers"]["membrain"]
@@ -83,11 +73,8 @@ def test_cold_start_concurrent_connect_restart_and_mcp_preserve_one_brain(tmp_pa
         assert after["instance_id"] != first["instance_id"]
         assert load_profile(profile.directory).brain_id == profile.brain_id
         with open_client(profile.directory) as client:
-            resumed = BrainRuntime(client, generate, deliver=deliver).resume(result.turn_id)
-            assert resumed.stage == "completed"
             assert {event["event_id"] for event in client.dashboard()["events"]} == original_event_ids
             assert len(client.brains()["brains"]) == 1
-        assert len(generated) == len(delivered) == 1
         with httpx.Client(trust_env=False) as client:
             assert client.get(profile.base_url + "/v1/local/status").status_code == 401
         log = (profile.directory / "service.log").read_text()

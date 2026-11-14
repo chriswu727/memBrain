@@ -1,6 +1,6 @@
 """A statement captured from a message is embedded as that message, and the meaning route lists a message once."""
 import pytest
-from test_turns import turns as turns
+from service_harness import turns as turns
 from test_vector_jobs import drain
 
 from membrain import vector_jobs

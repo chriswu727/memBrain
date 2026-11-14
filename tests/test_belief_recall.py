@@ -5,9 +5,7 @@ import pytest
 from legacy_cognition import fixture, legacy_brain
 from legacy_cognition import memory as memory
 from test_cognition import STAMP, event, prepare_payload, request, scope, state, working
-from test_contextual_recall import CONDITION, UNBOUNDED, observation
-from test_recall_control import decision, run
-from test_recall_control import packet as control_packet
+from test_contextual_recall import UNBOUNDED
 
 from membrain import cognition
 from membrain.belief_resolution import _cyclic_nodes, frozen_relations, version
@@ -20,7 +18,6 @@ from membrain.belief_store import (
 from membrain.contracts import validate
 from membrain.helpers import DomainError
 from membrain.ontology import CORE_REGISTRY
-from membrain.recall_control import RecallPolicy
 
 
 def ref(memory):
@@ -85,17 +82,6 @@ def test_current_resolution_preserves_original_versions_and_evidence(kind, expec
     validate("RecallResult", result)
 
 
-def test_unknown_condition_keeps_old_rule_uncertain_and_expiry_restores_old_rule():
-    sources, memories, current = scenario(kind="exception", conditions=copy.deepcopy(CONDITION))
-    assert states(recall(sources, memories, current))[version(memories[0])] == "uncertain"
-    current["context_observations"] = [observation(sources[1])]
-    assert states(recall(sources, memories, current))[version(memories[0])] == "exception_applies"
-    current["applicability_at"] = "2026-10-23T12:00:00Z"
-    current["belief_relations"] = [relation(memories[1], memories[:1], kind="exception", valid_during={
-        "kind": "interval", "start": {"kind": "unbounded"}, "end": {"kind": "instant", "at": STAMP}})]
-    assert set(states(recall(sources, memories, current)).values()) == {"unchanged"}
-
-
 @pytest.mark.parametrize("change", ["disputed", "unknown", "contested"])
 def test_unsettled_new_claim_cannot_unambiguously_override_old(change):
     sources, memories, current = scenario()
@@ -106,33 +92,6 @@ def test_unsettled_new_claim_cannot_unambiguously_override_old(change):
     current["belief_relations"] = [relation(memories[1], memories[:1])]
     result = recall(sources, memories, current)
     assert states(result)[version(memories[0])] in {"uncertain", "conflicted"}
-
-
-def test_false_old_target_is_historical_and_not_a_current_conflict():
-    sources, memories, current = scenario(kind="contradicts")
-    memories[0].update(conditions={"op": "not", "arg": copy.deepcopy(CONDITION)}, valid_during=copy.deepcopy(UNBOUNDED))
-    current["context_observations"] = [observation(sources[1])]
-    current["belief_relations"] = [relation(memories[1], memories[:1], kind="contradicts")]
-    result = recall(sources, memories, current)
-    assert states(result)[version(memories[0])] == "unchanged"
-    assert states(result)[version(memories[1])] == "unchanged"
-
-
-def test_source_condition_observation_roles_survive_relation_assessment():
-    sources, memories, current = scenario()
-    memories[1].update(conditions=copy.deepcopy(CONDITION), valid_during=copy.deepcopy(UNBOUNDED))
-    current["belief_relations"] = [relation(memories[1], memories[:1])]
-    current["context_observations"] = [observation(sources[1])]
-    result = recall(sources, memories, current)
-    applicability = result["belief_relations"][0]["applicability"]
-    assert applicability["supporting_observation_ids"]
-    assert applicability["opposing_observation_ids"] == []
-    current["context_observations"].append(observation(sources[0], polarity="negative"))
-    result = recall(sources, memories, current)
-    applicability = result["belief_relations"][0]["applicability"]
-    assert applicability["supporting_observation_ids"] and applicability["opposing_observation_ids"]
-    assert set(applicability["supporting_observation_ids"]).isdisjoint(applicability["opposing_observation_ids"])
-    assert states(result)[version(memories[0])] == "conflicted"
 
 
 def test_chain_and_cycles_do_not_resurrect_an_intermediate_old_rule():
@@ -279,46 +238,6 @@ def test_prepare_rechecks_expiry_and_binds_uncited_context_roots():
     assert all(content["belief_resolution"]["state"] == "unchanged" for _, content in blocks(packet))
     assert any(ref["event_id"] == extra["event_id"] and ref["relationship"] == "context_only"
                for block, _ in blocks(packet) for ref in block["evidence_refs"])
-
-
-def test_controller_freezes_only_shown_relation_versions_and_all_observed_roots():
-    sources, memories, current = scenario()
-    recalled = recall(sources, memories, current)
-    initial = control_packet(*memories)
-    initial["recall_results"][0]["items"] = recalled["items"]
-    initial["recall_results"][0]["belief_relations"] = recalled["belief_relations"]
-    seen, reserved = [], []
-
-    def reason(request):
-        shown = json.loads(request.messages[1]["content"])["candidates"]
-        assert all("belief_resolution" in item for item in shown)
-        seen.extend(shown)
-        return decision(selected=[memories[0]["memory_id"]])
-
-    plan = run(reason, initial=initial, reserve=lambda **values: reserved.append(values))
-    assert plan["belief_relation_refs"] == [relation_ref(current["belief_relations"][0])]
-    assert {ref["event_id"] for ref in reserved[0]["source_refs"]} == {"event-1", "event-2", "recent"}
-    assert plan["observed_event_refs"] == reserved[0]["source_refs"]
-
-
-def test_controller_trims_a_connected_belief_group_atomically():
-    sources, memories, current = scenario()
-    memories[1]["statement"] *= 1000
-    current["belief_relations"] = [relation(memories[1], memories[:1])]
-    recalled = recall(sources, memories, current)
-    initial = control_packet(*memories)
-    initial["recall_results"][0]["items"] = recalled["items"]
-    initial["recall_results"][0]["belief_relations"] = recalled["belief_relations"]
-
-    def reason(request):
-        offered = json.loads(request.messages[1]["content"])["candidates"]
-        assert offered == []
-        assert json.loads(request.messages[1]["content"])["relations"] == {}
-        return decision(outcome="insufficient")
-
-    plan = run(reason, initial=initial, policy=RecallPolicy(max_request_bytes=10000))
-    assert plan["belief_relation_refs"] == []
-    assert plan["outcome"] == "insufficient"
 
 
 def test_equivalent_and_abstracted_views_do_not_transfer_instance_details_or_confidence():

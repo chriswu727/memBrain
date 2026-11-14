@@ -6,12 +6,11 @@ from psycopg.conninfo import make_conninfo
 from membrain import storage
 from membrain.build_identity import MIGRATIONS
 from membrain.config import Settings
-from membrain.helpers import DomainError, Principal, digest, uid
+from membrain.helpers import Principal, digest, uid
 from membrain.storage import Database
-from membrain.turns import TurnStore
 
 
-def test_upgrade_preserves_turns_without_refreshing_legacy_capture_authority(monkeypatch):
+def test_upgrade_preserves_old_turns_unchanged_with_row_security(monkeypatch):
     settings = Settings.from_env()
     admin = settings.migration_database_url or settings.database_url
     namespace = "turn_recording_" + uid().replace("-", "")
@@ -43,16 +42,9 @@ def test_upgrade_preserves_turns_without_refreshing_legacy_capture_authority(mon
             assert conn.execute("SELECT relrowsecurity,relforcerowsecurity FROM pg_class "
                                 "WHERE oid='memory_runtime_turns'::regclass").fetchone() == {
                                     "relrowsecurity": True, "relforcerowsecurity": True}
-        store = TurnStore(database)
-        old = store.claim(principal, brain, "old", worker_id=uid())
-        with pytest.raises(DomainError) as rejected:
-            store.renew(principal, brain, "old", lease_token=old["lease_token"])
-        assert rejected.value.code == "context_stale"
-        fresh = store.begin(principal, brain, turn_id="new", conversation_id="new-chat", branch_id="main",
-                            input_fingerprint=digest("new input"))
-        assert fresh["recording_revision"] == 2
+        # The lifecycle store that claimed and renewed such a turn went with runtime mode; the row stays as stored.
         with pytest.raises(psycopg.errors.CheckViolation), database.transaction(principal) as conn:
-            conn.execute("UPDATE memory_runtime_turns SET recording_revision=-1 WHERE turn_id='new'")
+            conn.execute("UPDATE memory_runtime_turns SET recording_revision=-1 WHERE turn_id='old'")
     finally:
         with psycopg.connect(admin, autocommit=True) as conn:
             conn.execute(sql.SQL("DROP SCHEMA {} CASCADE").format(sql.Identifier(namespace)))

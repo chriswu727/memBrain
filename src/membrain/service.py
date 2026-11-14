@@ -105,24 +105,6 @@ class MemoryService:
     def embedding_provider(self, provider):
         self._embedding_provider = provider
 
-    def orient_turn(self, principal, brain_id, turn_id, *, lease_token, expected_revision):
-        """Check that a captured turn may be oriented and return it unchanged.
-
-        Orientation was a call to the removed cognition model; a runtime turn now goes on without it. The checks
-        are the ones the turn passed before the model was asked (lease, stage, recording), so a turn that could
-        not have been oriented is still refused.
-        """
-        from .turns import TurnStore
-
-        turns = TurnStore(self.database)
-        with turns._transaction(principal, brain_id) as (conn, brain):
-            row = turns._row(conn, principal, brain_id, turn_id)
-            turns._lease(row, lease_token, expected_revision)
-            if row["stage"] != "captured":
-                raise DomainError("stage_conflict", "Orientation requires a captured turn.")
-            turns._recording(brain, row)
-            return turns._public(conn, principal, row)
-
     def _params(self, principal, brain_id):
         return principal.tenant_id, principal.principal_id, brain_id
 
@@ -292,8 +274,12 @@ class MemoryService:
                     "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND action=%s AND key=%s",
                     (*params, action, key),
                 ).fetchone()
+                from .legacy_erasure import REDACTED_DIGEST
+
                 if existing:
-                    if existing["request_hash"] != fingerprint:
+                    # Content erasure wipes fingerprints (erasure.apply_erasure): such a request is answered as one
+                    # whose stored response is gone.
+                    if existing["request_hash"] not in (fingerprint, REDACTED_DIGEST):
                         raise DomainError("idempotency_conflict", "Idempotency key has different content.")
                     if action in READ_ACTIONS:
                         from .read_cache import load
@@ -301,11 +287,19 @@ class MemoryService:
                         cached = load(conn, params, action, key)
                     else:
                         cached = existing["response"]
-                    if cached is None:
+                    if cached is not None:
+                        response = copy.deepcopy(cached)
+                        response["request_id"] = request["request_id"]
+                        return response, False
+                    if action != "observe":
                         raise DomainError("version_conflict", "Cached response expired or was invalidated; use a new request ID.")
-                    response = copy.deepcopy(cached)
-                    response["request_id"] = request["request_id"]
-                    return response, False
+                    # An unrelated brain write invalidates replay responses, not the source events. Recheck the
+                    # current recording fence and each event's identity/content through _observe. Its duplicate
+                    # path does not re-run learning or append events. The brain lock serializes this replacement.
+                    conn.execute(
+                        "DELETE FROM memory_requests WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+                        "AND action=%s AND key=%s", (*params, action, key),
+                    )
                 if vector_snapshot:
                     from .snapshots import validate_source_snapshot
 
@@ -472,6 +466,10 @@ class MemoryService:
         if len(json.dumps(incoming, ensure_ascii=False).encode()) > 262144:
             raise DomainError("validation_failed", "One event may contain at most 256 KiB.")
         if previous and previous["source_revision"] == incoming["source_revision"]:
+            if previous["deleted"]:
+                # Erased: its digests are gone, so it is not compared, and it is never brought back. The answer a
+                # capture revoked by the erasure gets; hosts drop such a queued copy without reporting a failure.
+                raise DomainError("recording_stale", "This message was erased; a copy captured before is not recorded.")
             if previous["input_hash"] != input_hash:
                 raise DomainError("idempotency_conflict", "Source event version has different content.")
             return previous["id"], True, None
@@ -573,9 +571,6 @@ class MemoryService:
                     (*self._params(principal, brain["id"]), event_id, *self._params(principal, brain["id"]),
                      event["producer_ref"], list(event["parent_source_event_keys"]), event_id))
             if not duplicate and event["actor_role"] == "user" and event["delivery_state"] == "received":
-                from .feedback import observe_feedback
-
-                observe_feedback(conn, self, principal, brain, request["target"], event_id)
                 # Feedback on the companion's manner may bring a persona suggestion to its threshold (P2).
                 observe_persona_feedback(self, conn, principal, brain, request["target"], event, event_id)
             if job_id:
@@ -613,16 +608,17 @@ class MemoryService:
                 raise DomainError("invalid_evidence", "Evidence span is outside the source.")
         return [lookup[(r["event_id"], r["event_revision"])] for r in refs]
 
+    def _default_working(self, principal, brain, target):
+        return {"scope": self._scope(principal, brain, target), "revision": 0, "through_sequence": 0,
+                "items": [], "open_loops": [], "updated_at": now()}
+
     def _working(self, conn, principal, brain, target, events):
         row = conn.execute(
             "SELECT document FROM memory_working_states WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
             "AND conversation_id=%s AND branch_id=%s",
             (*self._params(principal, brain["id"]), target.get("conversation_ref", ""), target.get("branch_ref", "")),
         ).fetchone()
-        state = self._rebind(row["document"], principal, brain) if row else {
-            "scope": self._scope(principal, brain, target), "revision": 0, "through_sequence": 0,
-            "items": [], "open_loops": [], "updated_at": now(),
-        }
+        state = self._rebind(row["document"], principal, brain) if row else self._default_working(principal, brain, target)
         return self._working_from_events(state, events) if events is not None else state
 
     def _working_from_events(self, state, events):
@@ -685,49 +681,8 @@ class MemoryService:
                 if not any(cognition.evidence_overlaps(reference, old)
                            for reference in memory["evidence_refs"] for old in superseded)]
 
-    def _context_observations(self, conn, principal, brain, target, working):
-        from .orientation import validate_orientation_snapshot as validate_snapshot
-
-        candidates = []
-        timestamp = cognition._stamp(now())
-        for item in working["items"]:
-            value = item["value"]
-            if (not isinstance(value, dict) or "observation" not in value
-                    or value.get("evidence_use") == "current_request"
-                    or not isinstance(value.get("orientation_job_id"), str)
-                    or item["expires_at"] is None or cognition._stamp(item["expires_at"]) <= timestamp):
-                continue
-            candidates.append((value["orientation_job_id"], value["observation"]))
-        job_ids = sorted({key for key, _ in candidates})
-        complete = len(job_ids) <= 32
-        if not job_ids:
-            return [], complete
-        rows = conn.execute(
-            "SELECT id,result FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
-            "AND id=ANY(%s::text[]) AND kind='orient' AND state='completed' AND result IS NOT NULL "
-            "AND completed_at > clock_timestamp() - interval '24 hours'",
-            (*self._params(principal, brain["id"]), job_ids[:32]),
-        ).fetchall()
-        observations = []
-        for row in rows:
-            result = row["result"]
-            scope = result.get("scope", {})
-            if (scope.get("conversation_id"), scope.get("branch_id")) != (
-                    target.get("conversation_ref"), target.get("branch_ref")):
-                continue
-            try:
-                validate_snapshot(conn, self, principal, brain, result)
-            except DomainError:
-                continue
-            for item in result.get("situation_updates", []):
-                observation = item.get("observation")
-                if (observation and item.get("evidence_use") != "current_request"
-                        and (row["id"], observation) in candidates):
-                    observations.append(observation)
-        return observations, complete
-
-    def _retrieval(self, conn, principal, brain, target, query, recall_plan=None, query_embedding=None, context_observations=None,
-                   *, save_traces=True):
+    def _retrieval(self, conn, principal, brain, target, query, recall_plan=None, query_embedding=None,
+                   *, save_traces=True, with_working=False):
         params = self._params(principal, brain["id"])
         from .belief_resolution import frozen_relations, resolution_evidence
         from .belief_store import load_belief_relations
@@ -749,15 +704,15 @@ class MemoryService:
             candidate_state["candidate_versions"],
         )
         memories = merge_belief_candidates(memories, candidate_state, beliefs, selected=recall_plan is not None)
-        raw_working = self._working(conn, principal, brain, target, None)
+        # Recall does not read working state: only prepare shows it, because commit and checkpoint still write it.
+        raw_working = (self._working(conn, principal, brain, target, None) if with_working
+                       else self._default_working(principal, brain, target))
         source_ids = {r["event_id"] for memory in memories for r in memory["evidence_refs"]}
         source_ids.update(event_id for memory in memories for event_id in memory.get("root_event_ids", []))
         source_ids.update(event["event_id"] for event in beliefs["events"])
         source_ids.update(r["event_id"] for field in ("items", "open_loops") for item in raw_working[field] for r in item["evidence_refs"])
         source_ids.update(query.get("query_event_ids", []))
         source_ids.update(query["cue_event_ids"])
-        source_ids.update(ref["event_id"] for observation in context_observations or []
-                          for ref in observation["evidence_refs"])
         if recall_plan is not None:
             source_ids.update(ref["event_id"] for ref in recall_plan["observed_event_refs"])
         if query.get("evidence_cutoff", {}).get("event_id"):
@@ -771,15 +726,8 @@ class MemoryService:
         state.update(candidate_state)
         state.update(belief_relations=beliefs["relations"], belief_incomplete_versions=beliefs["incomplete_versions"],
                      belief_memories=memories)
-        stored_observations, context_complete = self._context_observations(conn, principal, brain, target, working)
-        observations = {}
-        for observation in [*(context_observations or []), *stored_observations]:
-            canonical = {key: value for key, value in observation.items() if key != "observation_id"}
-            canonical["evidence_refs"] = sorted(observation["evidence_refs"], key=digest)
-            fingerprint = digest(canonical)
-            observations.setdefault(fingerprint, {**canonical, "observation_id": "observation-" + fingerprint})
-        state["context_observations_complete"] = context_complete and len(observations) <= 128 and len(source_ids) <= 1024
-        state["context_observations"] = list(observations.values())[:128]
+        # Whether every source the recall needed was read; conditions are judged unknown otherwise.
+        state["context_observations_complete"] = len(source_ids) <= 1024
         if recall_plan is not None:
             lookup = {(event["event_id"], event["revision"]): event for event in events}
             scope = self._scope(principal, brain, target)
@@ -835,11 +783,15 @@ class MemoryService:
         return self._retrieval(conn, principal, brain, request["target"], request["payload"],
                                query_embedding=query_embedding, save_traces=False)[0]
 
-    def _prepare(self, conn, principal, brain, request, query_embedding=None, *, persist_preflight=True):
+    def _prepare(self, conn, principal, brain, request, query_embedding=None):
         payload = request["payload"]
         if ("expected_dependency_generation" in payload
                 and payload["expected_dependency_generation"] != brain["dependency_generation"]):
             raise DomainError("context_stale", "Memory changed during recall planning.")
+        if payload.get("assess_orientation"):
+            # The assessment routed a turn of the removed runtime mode to its orientation step; it always needed
+            # that turn. ``turn_id`` is only an identifier for this packet now, whatever turn it once named.
+            raise DomainError("unsupported_capability", "Orientation assessment was part of the removed runtime mode.")
         events = self._events(conn, principal, brain, event_ids=payload["latest_input_event_ids"], limit=128)
         lookup = {e["event_id"]: e for e in events}
         if any(i not in lookup for i in payload["latest_input_event_ids"]):
@@ -853,34 +805,8 @@ class MemoryService:
             if field in payload:
                 query[field] = payload[field]
         plan = payload.get("recall_plan")
-        turn = conn.execute(
-            "SELECT * FROM memory_runtime_turns WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND turn_id=%s",
-            (*self._params(principal, brain["id"]), payload["turn_id"]),
-        ).fetchone()
-        orientation = None
-        if payload.get("assess_orientation"):
-            if (not turn or (turn["conversation_id"], turn["branch_id"]) != (
-                    request["target"].get("conversation_ref"), request["target"].get("branch_ref"))
-                    or not turn["input_event_refs"]
-                    or sorted(payload["latest_input_event_ids"]) != sorted(
-                        ref["event_id"] for ref in turn["input_event_refs"])
-                    or any(lookup[ref["event_id"]]["revision"] != ref["revision"]
-                           for ref in turn["input_event_refs"] if ref["event_id"] in lookup)):
-                raise DomainError("invalid_evidence", "Orientation assessment requires the bound turn input and scope.")
-        if turn and turn["orientation_job_id"]:
-            from .orientation import orientation_result
-
-            if (turn["conversation_id"], turn["branch_id"]) != (
-                    request["target"].get("conversation_ref"), request["target"].get("branch_ref")):
-                raise DomainError("invalid_evidence", "Turn belongs to another context.")
-            if set(payload["latest_input_event_ids"]) != {ref["event_id"] for ref in turn["input_event_refs"]}:
-                raise DomainError("invalid_evidence", "Orientation belongs to different input.")
-            orientation = orientation_result(conn, self, principal, brain, turn)
-        observations = [item["observation"] for item in orientation.get("situation_updates", [])
-                        if "observation" in item and item.get("evidence_use") != "current_request"] if orientation else []
-        result, working, state = self._retrieval(conn, principal, brain, request["target"], query, plan, query_embedding, observations)
-        if orientation:
-            state["current_situation"] = orientation.get("situation_updates", [])
+        result, working, state = self._retrieval(conn, principal, brain, request["target"], query, plan, query_embedding,
+                                                 with_working=True)
         state["recent_events"] = self._recent_context(conn, principal, brain, request["target"], payload)
         safe_payload = copy.deepcopy(payload)
         capabilities = safe_payload["capabilities"]
@@ -890,22 +816,6 @@ class MemoryService:
             capabilities["guarantee_level"] = "partial_automation"
         capabilities["limitations"].append("Lifecycle guarantees have not been independently verified by this service.")
         packet = cognition.prepare(self._scope(principal, brain, request["target"]), safe_payload, working, result, state)
-        if payload.get("assess_orientation"):
-            from .orientation import assess_orientation
-
-            assessment = assess_orientation(
-                turn, working, state, planned=plan is not None,
-                embedded=self.embedding_provider is not None or query_embedding is not None,
-                historical=payload.get("evidence_mode") == "prior_record_check",
-            )
-            packet["orientation_assessment"] = assessment
-            if turn["stage"] == "captured" and persist_preflight:
-                conn.execute(
-                    "UPDATE memory_runtime_turns SET orientation_preflight=%s "
-                    "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND turn_id=%s",
-                    (Jsonb({"assessment": assessment, "request": request}),
-                     *self._params(principal, brain["id"]), turn["turn_id"]),
-                )
         self._save_traces(conn, principal, brain, packet.get("recall_traces", []))
         return packet
 
@@ -1045,9 +955,9 @@ class MemoryService:
             )
             if exact_capture or exact_direct_source:
                 if proposal["memory_kind"] != memory["memory_kind"] or proposal["world_hint"] != memory["world"]:
-                    raise DomainError("invalid_evidence", "Semantic or world promotion needs a validating provider.")
+                    raise DomainError("invalid_evidence", "A proposal must keep the memory kind and world of the statement it restates.")
                 return memory
-        raise DomainError("invalid_evidence", "The deterministic extractor cannot substantiate this proposal.")
+        raise DomainError("invalid_evidence", "A proposal must restate a statement captured from its source exactly.")
 
     def _save_traces(self, conn, principal, brain, traces, *, validated=False):
         """``validated`` only for traces already validated as RecallTraces, unchanged since. Every trace is
@@ -1177,7 +1087,7 @@ class MemoryService:
             if item["knowledge_state"] == "grounded":
                 item["value"] = self._grounded_working_value(item, events, target)
         if any(loop["state"] != "unknown" for loop in payload["proposed_open_loops"]):
-            raise DomainError("unsupported_capability", "Open-loop status validation requires a semantic provider.")
+            raise DomainError("unsupported_capability", "memBrain does not check an open loop's status; propose open loops with state unknown.")
         state.update(revision=state["revision"] + 1, through_sequence=brain["durable_sequence"],
                      items=items, open_loops=payload["proposed_open_loops"], updated_at=now())
         self._working_save(conn, principal, brain, target, state)

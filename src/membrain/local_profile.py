@@ -237,8 +237,8 @@ class DesktopProfile:
     app_password: str = field(repr=False)
     tenant_id: str
     principal_id: str
-    # The provider an older runtime's background learning used. Still parsed so that such profiles load, kept in
-    # backups, and read only by the frozen desktop chat's --use-cognition; the service never starts a model with it.
+    # The provider an older runtime's background learning used. Still parsed so that such profiles load, and kept in
+    # backups; nothing reads it and the service never starts a model with it.
     cognition: dict | None = field(default=None, repr=False)
     database_engine: str = "docker"
     native_engine: str | None = None

@@ -1,13 +1,11 @@
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from threading import Event
-from unittest.mock import Mock
 
 import pytest
 from service_harness import harness as harness
 from test_host_recording import connected as connected
 from test_host_recording import local_text
 from test_recovery_erasure import recovery as recovery
-from test_runtime import memory as memory
 from test_server_recording import observation
 from test_server_recording import turns as turns
 
@@ -15,58 +13,13 @@ from membrain import host
 from membrain.helpers import DomainError, uid
 from membrain.notes import store_note
 from membrain.recording_control import recording_status, set_recording
-from membrain.runtime import BrainRuntime, DeliveryReceipt, RuntimeBlocked
 from membrain.service import MemoryService
 
 pytestmark = pytest.mark.integration
 
 
-def test_runtime_revokes_input_if_erasure_wins_after_last_lease_check(memory, monkeypatch):
-    runtime = BrainRuntime(memory, Mock(return_value="Public fresh response."),
-                           deliver=Mock(return_value=DeliveryReceipt("delivered")))
-    original = memory.observe
-
-    def delayed(*args, **kwargs):
-        memory.forget([], kind="all_authorized_scope", mode="erase_content", expected_scope_generation=1)
-        return original(*args, **kwargs)
-
-    with monkeypatch.context() as patch:
-        patch.setattr(memory, "observe", delayed)
-        with pytest.raises(RuntimeBlocked, match="context_stale"):
-            runtime.respond("Public delayed input.", message_id="old", conversation_id="chat")
-    row = runtime.journal.list()[0]
-    assert row["stage"] == "failed" and not row["scope_reserved"] and row["input_event_refs"] == []
-    runtime.generate.assert_not_called()
-    runtime.deliver.assert_not_called()
-    assert runtime.respond("Public fresh input.", message_id="new", conversation_id="chat").stage == "completed"
-
-
-def test_runtime_keeps_delivery_receipt_without_saving_post_erasure_text(memory):
-    calls = []
-
-    def deliver(request):
-        calls.append(request)
-        if len(calls) == 1:
-            memory.forget([uid()], kind="events", mode="erase_content", expected_scope_generation=1)
-        return DeliveryReceipt("partially_delivered", "Public actual external reply.")
-
-    runtime = BrainRuntime(memory, lambda _: "Public original draft.", deliver=deliver)
-    with pytest.raises(RuntimeBlocked, match="context_stale"):
-        runtime.respond("Public original input.", message_id="old", conversation_id="chat")
-    row = runtime.journal.list()[0]
-    assert row["stage"] == "failed" and not row["scope_reserved"]
-    assert row["delivery_receipt"]["state"] == "partially_delivered"
-    assert row["delivery_receipt"]["disposition"] == "content_withheld"
-    assert "recording_changed" in row["delivery_receipt"]["stale_reasons"]
-    events = runtime.journal.sources(row["turn_id"])["output_events"]
-    assert len(events) == 1 and events[0]["revision"] == 1
-    assert events[0]["observed"]["content"]["text"] == "Public original draft."
-    assert runtime.respond("Public new input.", message_id="new", conversation_id="chat").stage == "completed"
-    assert len(calls) == 2
-
-
 def erase(turns, *, mode="erase_content", kind="all_authorized_scope", ids=()):
-    generation = turns.store.status(turns.principal, turns.brain)["scope_generation"]
+    generation = turns.scope_generation()
     return turns.action("forget", {"idempotency_key": uid(), "selector": {"kind": kind, "ids": list(ids)},
                                   "mode": mode, "expected_scope_generation": generation})
 
@@ -136,39 +89,6 @@ def test_rejected_erasure_does_not_change_capture_authority(turns):
                    "mode": "erase_content", "expected_scope_generation": 99})
     assert turns.service.handle(turns.principal, request)["error"]["code"] == "version_conflict"
     assert turns.service.handle(turns.principal, captured(turns))["outcome"] == "completed"
-
-
-@pytest.mark.parametrize("stage", ["started", "prepared", "generating", "delivering"])
-def test_erasure_fences_active_content_but_preserves_delivery_facts(turns, stage):
-    if stage == "started":
-        turns.begin()
-        turns.claim()
-    elif stage == "delivering":
-        turns.generate()
-        turns.advance("delivering")
-    else:
-        turns.prepare()
-        if stage == "generating":
-            turns.advance("generating")
-    erase(turns, kind="events", ids=[uid()])
-    if stage != "delivering":
-        with pytest.raises(DomainError) as stale:
-            turns.call("renew", lease_token=turns.token, expected_revision=turns.row["revision"])
-        assert stale.value.code == "context_stale"
-    if stage == "delivering":
-        turns.call("renew", lease_token=turns.token, expected_revision=turns.row["revision"])
-        before = turns.service.timeline(turns.principal, turns.brain, roles=("user", "assistant"))
-        row = turns.record_output("Public externally delivered output.", "delivered")
-        assert row["stage"] == "failed" and not row["scope_reserved"]
-        assert row["delivery_receipt"]["state"] == "delivered"
-        assert row["delivery_receipt"]["disposition"] == "content_withheld"
-        assert "recording_changed" in row["delivery_receipt"]["stale_reasons"]
-        assert turns.service.timeline(turns.principal, turns.brain, roles=("user", "assistant")) == before
-    elif stage == "generating":
-        with pytest.raises(DomainError):
-            turns.record_output("Public delayed draft.")
-    else:
-        assert turns.service.handle(turns.principal, captured(turns))["error"]["code"] == "recording_stale"
 
 
 @pytest.mark.parametrize("erase_first", [True, False])
@@ -270,6 +190,56 @@ def test_host_drops_pre_erasure_callback_and_offline_replay(turns, connected, tm
     assert len(host.finish_turn(tmp_path, "s", "Public new reply.", turn_id="new")) == 2
 
 
+def test_a_stored_message_replayed_after_its_erasure_is_dropped_quietly(turns, connected, tmp_path, monkeypatch):
+    """The host stored a message but lost the answer, so it queued a copy; the user then erased the message. The
+    replay finds the request's fingerprint wiped by the erasure and the message erased: it is refused as a capture
+    the erasure revoked, the host drops the queued copy, keeps no rejected copy and reports it as not recorded."""
+    import httpx
+
+    from membrain import host_recording
+
+    original = host_recording.observe
+    host.prompt_context(tmp_path, "s", "Public erased draft.", turn_id="old")
+
+    def lost_answer(client, record):
+        original(client, record)
+        raise httpx.ReadError("answer lost")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(host_recording, "observe", lost_answer)
+        host.finish_turn(tmp_path, "s", "Public erased reply.", turn_id="old")
+    assert (tmp_path / "plugin" / "spool.jsonl").exists()
+    stored = turns.service.timeline(turns.principal, turns.brain, roles=("user", "assistant"))["items"]
+    assert stored
+    erase(turns, kind="events", ids=[item["event_id"] for item in stored])
+    outcomes = {}
+    with connected(tmp_path) as client:
+        assert host.flush(client, tmp_path, outcomes=outcomes) >= 1
+    assert outcomes and all(value["state"] == "policy" for value in outcomes.values())
+    assert not (tmp_path / "plugin" / "spool-rejected.jsonl").exists()
+    assert "Public erased" not in local_text(tmp_path)
+    assert turns.service.timeline(turns.principal, turns.brain, roles=("user", "assistant"))["items"] == []
+
+
+@pytest.mark.parametrize("same", [True, False])
+def test_an_erased_message_sent_again_is_refused_without_comparing_it(turns, same):
+    """Its digests were wiped, so a copy is neither compared with it nor stored; the answer is recording_stale."""
+    first = turns.observe("Public erased message.", source_key="erased-key")
+    erase(turns, kind="events", ids=[first["event_id"]])
+    response = turns.service.handle(turns.principal, {
+        "contract_version": "1.0.0-draft", "message_type": "request", "request_id": uid(), "action": "observe",
+        "target": {"brain_ref": turns.brain, "conversation_ref": turns.conversation, "branch_ref": turns.branch},
+        "payload": {"idempotency_key": uid(), "events": [{
+            "producer_ref": "turn-test", "source_event_key": "erased-key", "source_revision": 1,
+            "actor_ref": "user", "actor_role": "user", "event_kind": "message",
+            "content": {"media_type": "text/plain",
+                        "text": "Public erased message." if same else "Something else entirely."},
+            "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
+            "interpretation_hint": "real_world_report", "delivery_state": "received"}]}})
+    assert response["error"]["code"] == "recording_stale"
+    assert turns.service.timeline(turns.principal, turns.brain)["items"] == []
+
+
 def test_real_backup_restore_rejects_pre_erasure_revision_above_checkpoint(tmp_path):
     from test_desktop_recovery_e2e import connection
 
@@ -351,3 +321,51 @@ def test_replacement_intent_replays_without_revoking_recording(recovery):
     harness.memory.forget([original], kind="events", mode="suppress_recall", expected_scope_generation=generation)
     assert harness.memory.recording_status()["revision"] == 1
     assert authority.registry.intent(2)["recording_revision_floor"] == 1
+
+
+def test_stored_host_message_replay_survives_unrelated_brain_write(turns, connected, tmp_path, monkeypatch):
+    import httpx
+
+    from membrain import host_recording
+
+    original = host_recording.observe
+    host.prompt_context(tmp_path, "replay", "Retained draft.", turn_id="stable")
+
+    def lost_answer(client, record):
+        original(client, record)
+        raise httpx.ReadError("answer lost")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(host_recording, "observe", lost_answer)
+        host.finish_turn(tmp_path, "replay", "Retained reply.", turn_id="stable")
+    turns.observe("An unrelated message.", source_key="other")
+    turns.observe("An unrelated edit.", source_key="other", revision=2)
+    before = turns.service.timeline(turns.principal, turns.brain, roles=("user", "assistant"))["items"]
+    outcomes = {}
+    with connected(tmp_path) as client:
+        assert host.flush(client, tmp_path, outcomes=outcomes) == 2
+    assert len(outcomes) == 2
+    assert all(value["state"] == "recorded" for value in outcomes.values())
+    assert sum(bool(value["duplicate"]) for value in outcomes.values()) == 1
+    assert not (tmp_path / "plugin" / "spool-rejected.jsonl").exists()
+    after = turns.service.timeline(turns.principal, turns.brain, roles=("user", "assistant"))["items"]
+    assert {item["event_id"] for item in before} < {item["event_id"] for item in after}
+    assert len(after) == len(before) + 1  # The reply had not reached the server before the lost answer.
+
+
+def test_invalidated_observe_keeps_idempotency_content_conflicts(turns):
+    import copy
+
+    from test_server_recording import observation
+
+    request = observation(turns)
+    assert turns.service.handle(turns.principal, request)["outcome"] == "completed"
+    turns.observe("An unrelated message.", source_key="other")
+    turns.observe("Invalidate the cached response.", source_key="other", revision=2)
+    altered = copy.deepcopy(request)
+    altered["payload"]["events"][0]["content"]["text"] = "Different source content."
+    assert turns.service.handle(turns.principal, altered)["error"]["code"] == "idempotency_conflict"
+    altered["payload"]["idempotency_key"] = uid()
+    assert turns.service.handle(turns.principal, altered)["error"]["code"] == "idempotency_conflict"
+    result = turns.service.handle(turns.principal, request)
+    assert result["result"]["duplicate_event_ids"] and not result["result"]["accepted_event_ids"]

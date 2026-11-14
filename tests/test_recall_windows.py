@@ -2,8 +2,8 @@ import copy
 
 import pytest
 from psycopg.types.json import Jsonb
+from service_harness import turns as turns
 from test_passage_index import TEXT, PassageProvider
-from test_turns import turns as turns
 from test_vector_jobs import drain, recall_request
 
 from membrain import host, relationship

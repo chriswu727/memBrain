@@ -1,7 +1,9 @@
-"""One principal's brain on a real service behind the HTTP API, with an SDK client: the harness many tests share.
+"""Harnesses many tests share: one principal's brain on a real service, directly or behind the HTTP API.
 
-It replaces the harness of the retired ``test_learning.py``, which also gave the service a deterministic cognition
-model; background learning was removed, so the service here runs as every installation now does, with no model.
+``harness`` replaces the harness of the retired ``test_learning.py``, which also gave the service a deterministic
+cognition model; background learning was removed, so the service here runs as every installation now does, with no
+model. ``turns`` replaces the harness of the retired ``test_turns.py``, whose turn lifecycle store went with runtime
+mode; the fixture keeps its old name so the tests that only used its brain, ``action`` and ``observe`` read as before.
 """
 import hashlib
 
@@ -12,9 +14,8 @@ from fastapi.testclient import TestClient
 from membrain.api import create_app
 from membrain.client import MemoryClient
 from membrain.config import Settings
-from membrain.helpers import Principal, digest, uid
-from membrain.runtime import DeliveryReceipt
-from membrain.runtime_client import RuntimeClient
+from membrain.contracts import CONTRACT_VERSION
+from membrain.helpers import Principal, uid
 from membrain.service import MemoryService
 from membrain.storage import Database
 
@@ -32,19 +33,6 @@ class Harness:
             text, conversation_id=conversation, branch_id=branch, source_event_key=source_key or uid(),
             producer_ref="service-test", source_revision=revision, interpretation_hint="real_world_report",
         )["result"]
-
-    def capture(self, text="现在我要制定复习计划。", *, conversation="chat", branch="main"):
-        journal = RuntimeClient(self.memory)
-        turn_id = "turn-" + uid()
-        row = journal.begin(turn_id=turn_id, conversation_id=conversation, branch_id=branch,
-                            input_fingerprint=digest(text))
-        row = journal.claim(turn_id, worker_id=uid(), expected_revision=row["revision"])
-        token = row["lease_token"]
-        receipt = self.observe(text, conversation=conversation, branch=branch, source_key=turn_id)
-        row = journal.advance(turn_id, lease_token=token, expected_revision=row["revision"], stage="captured",
-                              input_event_refs=[{"event_id": receipt["accepted_event_ids"][0], "revision": 1}],
-                              durable_sequence=receipt["durable_through_sequence"])
-        return journal, row, token
 
     def job(self, job_id):
         with self.database.transaction(self.principal) as conn:
@@ -81,5 +69,51 @@ def harness():
             yield value
 
 
-def delivered(_):
-    return DeliveryReceipt("delivered")
+class Conversation:
+    """A brain with one conversation branch, driven through ``MemoryService.handle``."""
+
+    def __init__(self, database):
+        self.database = database
+        self.service = MemoryService(database)
+        self.principal = Principal(uid(), uid())
+        self.brain = self.service.create_brain(self.principal, "Lifecycle journal tests")["id"]
+        self.turn_id = uid()
+        self.conversation = "测试会话"
+        self.branch = "main"
+
+    def action(self, action, payload, conversation=None):
+        response = self.service.handle(self.principal, {
+            "contract_version": CONTRACT_VERSION, "message_type": "request", "request_id": uid(),
+            "action": action, "target": {"brain_ref": self.brain,
+                "conversation_ref": conversation or self.conversation, "branch_ref": self.branch},
+            "payload": payload,
+        })
+        assert response["outcome"] == "completed", response
+        return response["result"]
+
+    def observe(self, text="Private input never belongs in monitoring.", role="user", delivery="received",
+                source_key=None, revision=1, conversation=None):
+        result = self.action("observe", {"idempotency_key": uid(), "events": [{
+            "producer_ref": "turn-test", "source_event_key": source_key or uid(), "source_revision": revision,
+            "actor_ref": role, "actor_role": role, "event_kind": "message",
+            "content": {"media_type": "text/plain", "text": text},
+            "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
+            "interpretation_hint": "real_world_report", "delivery_state": delivery,
+        }]}, conversation)
+        event_id = (result["accepted_event_ids"] + result["duplicate_event_ids"])[0]
+        return {"event_id": event_id, "revision": revision}
+
+    def scope_generation(self):
+        """Read without the service, so a test that holds the service's brain lock is not affected."""
+        with self.database.transaction(self.principal) as conn:
+            return conn.execute("SELECT scope_generation FROM memory_brains WHERE tenant_id=%s AND owner_id=%s AND id=%s",
+                                self.service._params(self.principal, self.brain)).fetchone()["scope_generation"]
+
+
+@pytest.fixture
+def turns():
+    try:
+        settings = Settings.from_env()
+    except ValueError:
+        pytest.skip("MEMORY_DATABASE_URL must point to the dedicated test database")
+    return Conversation(Database(settings.database_url))

@@ -40,31 +40,6 @@ def local_status(directory):
                 **({"scope": _pause_scope(value)} if paused and isinstance(value, dict) else {})}
 
 
-def device_capture(directory):
-    """Installation-scoped device capture as one read-only snapshot, for direct chat sessions.
-
-    It creates nothing, takes no lock and leaves an expired pause in place: pause files are replaced atomically and
-    expiry cleanup belongs to the host paths that hold the state lock. Only a pause of the whole installation, timed
-    or until resumed, pauses a direct conversation. A pause a host conversation asked for covers the host
-    conversations it lists: a direct conversation is not one of them, so it stays ``on`` here, reports that pause
-    separately and never ends it. ``revision`` identifies one exact pause, so a pause that was lifted and set again
-    is a different policy even with the same duration. Unreadable metadata is ``unknown``: the host blocks capture
-    on it, and a caller must not report it as recording on or off.
-    """
-    from . import host
-
-    state, value = host._pause_state(host._pause_file(directory, create=False))
-    if state == "paused" and _pause_scope(value) == "conversations":
-        return {"scope": "installation", "state": "on", "host_conversations": "paused"}
-    if state == "paused":
-        # Hashing the parsed pause (its nonce, start and expiry) needs no second read of the file.
-        identity = hashlib.sha256(json.dumps(value, sort_keys=True).encode()).hexdigest()
-        return {"scope": "installation", "state": "paused", "until": value.get("until"), "revision": identity}
-    if state == "unreadable":
-        return {"scope": "installation", "state": "unknown", "reason": "local_state_unreadable"}
-    return {"scope": "installation", "state": "on"}
-
-
 def status(directory, service, principal, brain_id):
     from .recording_control import recording_status
 

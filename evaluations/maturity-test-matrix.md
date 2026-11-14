@@ -302,9 +302,7 @@ Each is a free test (no model call). Items 1 to 3 are done by the P2 pull reques
 
 ### Temporary direct chat under server recording pause
 
-`tests/test_ephemeral_chat.py` covers bounded in-process dialogue, exact-branch historical reads, no persistent messages/input hashes/learning jobs, replay and resume without backfill, policy changes and erasure during generation, delivery uncertainty, content-free API/schema guards, volatile answer review, actual process exit and explicit scope cancellation. It also covers a pause racing with durable begin and a pause during an existing generation. This is engineering coverage for the direct Python runtime, not held-out R4/C5 qualification or synchronization of other adapters' local controls.
-
-`tests/test_ephemeral_context_index.py` exercises the production temporary-history query against 20,006 synthetic rows: the exact six-message result is preserved while the existing conversation/branch index avoids filtering 20,000 other-branch rows. Temporary-chat regressions also cover client brain switching and a reduced runtime context budget before the next generation. Runtime-specific qualification and the 1,000-turn local storage probe are recorded in [the temporary-chat report](backend-ephemeral-chat-2026-11-09.md).
+Removed with runtime mode after `ba70e7cd`, with its tests (`tests/test_ephemeral_chat.py`, `tests/test_ephemeral_context_index.py`). Their record stays in [the temporary-chat report](backend-ephemeral-chat-2026-11-09.md). What older runtimes stored for runtime turns, temporary ones included, is covered by `tests/test_legacy_runtime_data.py::test_the_rows_load_as_that_runtime_left_them`, `tests/test_legacy_runtime_data.py::test_pausing_recording_still_stops_every_unfinished_old_turn` and `tests/test_legacy_runtime_data.py::test_erasing_a_turns_message_leaves_its_text_in_no_row_of_the_brain`.
 
 ### Conversation-scoped pause and erasure of refused records
 

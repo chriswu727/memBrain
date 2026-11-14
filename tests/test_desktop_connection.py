@@ -85,7 +85,7 @@ def test_open_client_starts_service_before_loading_bound_credentials(local_conne
     ]
     profile = local_connection.profile
     factory.assert_called_once_with(profile.base_url, profile.api_key, profile.brain_id,
-                                    timeout=httpx.Timeout(30, connect=5, read=615, pool=5), trust_env=False)
+                                    timeout=httpx.Timeout(30, connect=5, read=120, pool=5), trust_env=False)
 
 
 def test_open_client_can_connect_without_starting_services(local_connection, capsys):
@@ -228,7 +228,7 @@ def test_desktop_rpc_timeout_keeps_the_long_read_limit(tmp_path, monkeypatch, fa
 
     def handle(request):
         calls.append(request)
-        assert request.extensions["timeout"] == {"connect": 5, "read": 615, "write": 30, "pool": 5}
+        assert request.extensions["timeout"] == {"connect": 5, "read": 120, "write": 30, "pool": 5}
         if failure:
             raise httpx.ReadTimeout("request did not finish", request=request)
         return httpx.Response(200, json={"state": "completed"})

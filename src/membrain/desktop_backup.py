@@ -42,8 +42,6 @@ def file_digest(path, *, max_bytes):
 
 
 def _configuration(profile):
-    from .chat_config import load_chat_configuration
-
     with profile_lock(profile.directory):
         current = load_profile(profile.directory)
         value = {name: getattr(current, name) for name in (
@@ -51,19 +49,31 @@ def _configuration(profile):
         )}
         if current.database_engine != 'docker':
             value['database_engine'] = current.database_engine
+        # chat.json configured the bundled desktop chat, which was removed with runtime mode. A profile an older
+        # runtime set up for it still has the file: it is backed up as it is, unread, so the backup format, which
+        # older runtimes also read, is unchanged.
         value['chat'] = read_document(profile.directory / 'chat.json')
         # Background learning with a cognition model was removed, so its limits (cognition-policy.json, which an
         # older runtime kept beside the profile) are no longer part of the configuration. The key stays, always
         # empty, so that the backup format, which older runtimes also read, is unchanged.
         value['cognition_policy'] = None
-        if value['chat'] is not None:
-            load_chat_configuration(profile.directory)
         return value
 
 
-def _sessions(profile, path):
-    from .agent_session import _identity, _read_pending
+def _session_identity(profile, identity):
+    """The identity a pending chat session of this profile names, or ``None`` if it names another one."""
+    if not isinstance(identity, dict):
+        return None
+    return {name: getattr(profile, name) for name in ('installation_id', 'brain_id', 'tenant_id', 'principal_id')} | {
+        'conversation_id': identity.get('conversation_id'), 'branch_id': identity.get('branch_id')}
 
+
+def _sessions(profile, path):
+    """Copy the pending chat sessions an older runtime's desktop chat left (``sessions/``) into the backup.
+
+    Nothing reads them any more: a restore keeps them only as recovery evidence. Each pending document is copied
+    as it is, after checking that it belongs to this profile's directory layout.
+    """
     root = profile.directory / 'sessions'
     descriptor = _open_private(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
     count = 0
@@ -78,14 +88,10 @@ def _sessions(profile, path):
                 pending = read_document(directory / 'pending.json', max_bytes=_MAX_SESSION_BYTES)
                 if pending is None:
                     continue
-                identity = pending.get('identity', {})
-                expected = _identity(profile, identity.get('conversation_id'), identity.get('branch_id'))
-                if directory.name != digest(expected):
+                expected = _session_identity(profile, pending.get('identity'))
+                if expected is None or directory.name != digest(expected) or pending['identity'] != expected:
                     raise BackupError('backup_invalid')
-                validated = _read_pending(directory / 'pending.json', expected)
-                if validated is None:
-                    continue
-                stream.write((json.dumps(validated, sort_keys=True) + '\n').encode())
+                stream.write((json.dumps(pending, sort_keys=True) + '\n').encode())
         stream.flush()
         os.fsync(stream.fileno())
 

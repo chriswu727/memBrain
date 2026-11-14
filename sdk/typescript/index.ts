@@ -719,11 +719,6 @@ export class MemoryClient {
   work(brainId?: string): Promise<JsonObject> {
     return this.#request("POST", `v1/brains/${encodeURIComponent(this.#scope({ brainId }).brain_ref)}/work`);
   }
-  activeScope(conversationId: string, branchId = "main", brainId?: string): Promise<JsonObject> {
-    const brain = encodeURIComponent(this.#scope({ brainId }).brain_ref);
-    const query = new URLSearchParams({ conversation_id: conversationId, branch_id: branchId });
-    return this.#request("GET", `v1/brains/${brain}/runtime/scope?${query}`);
-  }
   async observe(text: string, options: BranchOptions & {
     sourceEventKey: string; role?: ObservedEventInput["actor_role"];
     producerRef?: string; actorRef?: string; sourceRevision?: number;

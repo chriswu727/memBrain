@@ -48,7 +48,3 @@ def test_general_http_environment_is_still_ignored(monkeypatch, tmp_path):
     monkeypatch.setenv("NETRC", str(netrc))
     transport = outbound.provider_transport("https://api.deepseek.com")
     assert transport._pool is not None
-    from membrain.chat_provider import ChatCompletionsGenerator
-
-    generator = ChatCompletionsGenerator("https://api.deepseek.com", "key", "model")
-    assert generator._http._trust_env is False

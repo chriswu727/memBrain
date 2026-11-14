@@ -396,19 +396,8 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
             truncated = truncated or passage_truncated
             for key, (score, _) in zip(remember([row for _, row in passages]), passages, strict=True):
                 neighbors[key] = (score, SOURCE_PASSAGE_VERSION)
-            association_rows = conn.execute(
-                "WITH seeds AS (SELECT * FROM unnest(%s::text[],%s::bigint[],%s::double precision[]) AS s(id,revision,score)) "
-                "SELECT a.id,a.revision,a.document,max(s.score) AS relevance FROM memory_associations e JOIN seeds s "
-                "ON (e.source_id=s.id AND e.source_revision=s.revision) "
-                "OR (e.target_id=s.id AND e.target_revision=s.revision) "
-                "JOIN memory_assertions a ON a.tenant_id=e.tenant_id AND a.owner_id=e.owner_id AND a.brain_id=e.brain_id "
-                "AND ((e.source_id=s.id AND e.source_revision=s.revision AND a.id=e.target_id AND a.revision=e.target_revision) "
-                "OR (e.target_id=s.id AND e.target_revision=s.revision AND a.id=e.source_id AND a.revision=e.source_revision)) "
-                "WHERE " + _eligible(include_speech=include_speech) + scope_sql + "AND NOT e.invalidated "
-                "AND NOT EXISTS (SELECT 1 FROM seeds own WHERE own.id=a.id AND own.revision=a.revision) "
-                "GROUP BY a.id,a.revision,a.document ORDER BY relevance DESC,a.id,a.revision LIMIT %s",
-                (seed_ids, seed_revisions, seed_scores, *params, *scope_params, candidate_limit + 1),
-            ).fetchall()
+            # Associations between memories (migration 007) were written only by the removed background learning;
+            # recall no longer follows the ones older runtimes stored. Episodes may be written again by the host.
             episode_rows = conn.execute(
                 "WITH seeds AS (SELECT * FROM unnest(%s::text[],%s::bigint[],%s::double precision[]) AS s(id,revision,score)), "
                 "matched AS MATERIALIZED (SELECT e.id,e.revision,max(s.score) AS score FROM memory_episode_members seed "
@@ -430,8 +419,8 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
                 (seed_ids, seed_revisions, seed_scores, *params, target.get("conversation_ref"),
                  target.get("branch_ref"), *params, *params, *scope_params, candidate_limit + 1),
             ).fetchall()
-            truncated = truncated or len(association_rows) > candidate_limit or len(episode_rows) > candidate_limit
-            expand(association_rows[:candidate_limit] + episode_rows[:candidate_limit], "bounded-seed-neighborhood-v2")
+            truncated = truncated or len(episode_rows) > candidate_limit
+            expand(episode_rows[:candidate_limit], "bounded-seed-neighborhood-v2")
             if query.get("intent") == "continue_conversation":
                 from .source_neighborhood import (
                     SOURCE_NEIGHBORHOOD_VERSION,

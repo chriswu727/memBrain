@@ -5,6 +5,7 @@ from unittest.mock import Mock
 
 import httpx
 import pytest
+from legacy_runtime import load_runtime_brain
 from psycopg.types.json import Jsonb
 from service_harness import harness as harness
 from test_deletion_registry import acknowledgement
@@ -16,8 +17,6 @@ from membrain.helpers import DomainError, digest, uid
 from membrain.jobs import JobStore
 from membrain.recovery import activate_database, quarantine
 from membrain.recovery_authority import RecoveryAuthority
-from membrain.runtime import BrainRuntime, RuntimeBlocked
-from membrain.turns import TurnStore
 
 pytestmark = pytest.mark.integration
 
@@ -102,56 +101,16 @@ def records(case, table):
                             (harness.principal.tenant_id, harness.principal.principal_id)).fetchall()
 
 
-def turn_at(case, stage):
-    harness = case.harness
-    store = TurnStore(harness.database, service=harness.service)
-    turn_id = "phase-" + stage
-    row = store.begin(harness.principal, harness.brain, turn_id=turn_id, conversation_id=stage,
-                       branch_id="main", input_fingerprint=digest([stage, "original input"]))
-    row = store.claim(harness.principal, harness.brain, turn_id, worker_id="old-host")
-    token = row["lease_token"]
+PHASES = ("started", "captured", "prepared", "generating", "generated", "delivering", "delivered",
+          "committed", "completed", "failed")
 
-    def advance(target, **kwargs):
-        nonlocal row
-        row = store.advance(harness.principal, harness.brain, turn_id, lease_token=token,
-                             expected_revision=row["revision"], stage=target, **kwargs)
 
-    def output(state):
-        nonlocal row
-        row = store.record_output(harness.principal, harness.brain, turn_id, lease_token=token,
-                                   expected_revision=row["revision"], text="Actual reply for " + stage, delivery_state=state)
-
-    if stage == "failed":
-        row = store.fail(harness.principal, harness.brain, turn_id, lease_token=token,
-                          expected_revision=row["revision"], failure_code="generation_failed")
-    elif stage != "started":
-        event = harness.observe("Original input for " + stage, conversation=stage)["accepted_event_ids"][0]
-        advance("captured", input_event_refs=[{"event_id": event, "revision": 1}])
-        if stage != "captured":
-            advance("prepared", context_event_refs=[], context_fingerprint=digest(stage),
-                    context_generation=store.status(harness.principal, harness.brain)["dependency_generation"],
-                    working_revision=0, context_tokens=50, selection_omitted_reason="custom_context")
-            if stage != "prepared":
-                advance("generating")
-                if stage != "generating":
-                    output("draft")
-                    if stage != "generated":
-                        advance("delivering")
-                        if stage != "delivering":
-                            output("delivered")
-                            if stage == "committed":
-                                with harness.database.transaction(harness.principal) as conn:
-                                    conn.execute("UPDATE memory_runtime_turns SET stage='committed' WHERE tenant_id=%s "
-                                                 "AND owner_id=%s AND brain_id=%s AND turn_id=%s", (
-                                                     harness.principal.tenant_id, harness.principal.principal_id,
-                                                     harness.brain, turn_id,
-                                                 ))
-                                row = store.get(harness.principal, harness.brain, turn_id)
-                            elif stage == "completed":
-                                row = store.finish(harness.principal, harness.brain, turn_id, lease_token=token,
-                                                    expected_revision=row["revision"])
-    assert row["stage"] == stage
-    return {"row": row, "lease_token": token}
+def old_turns(case):
+    """A second brain of the harness principal holding the rows the runtime at ba70e7cd left: runtime turns at
+    every stage (``phase_<stage>``, made with its lifecycle store) and the turns its BrainRuntime ran. Runtime mode
+    was removed, so nothing creates turns any more; they are written as that runtime stored them."""
+    case.old = load_runtime_brain(case.harness.database, principal=case.harness.principal)
+    return {stage: case.old.turn("phase_" + stage) for stage in PHASES}
 
 
 def seeded_job(case, state="running", *, kind="consolidate"):
@@ -223,9 +182,7 @@ def test_quarantine_preserves_sources_assertions_receipts_and_all_accounting(res
         brain = harness.service._brain(conn, harness.principal, harness.brain)
         event, = harness.service._events(conn, harness.principal, brain, event_ids=[event_id])
         harness.service._publish(conn, harness.principal, brain, cognition.extract_event(event)[0])
-    phases = ("started", "captured", "prepared", "generating", "generated", "delivering", "delivered",
-              "committed", "completed", "failed")
-    turns = {phase: turn_at(case, phase) for phase in phases}
+    turns = old_turns(case)
     recalled = harness.memory.recall("retained original statement", conversation_id="chat", branch_id="main")
     # Snapshots from older runtimes can contain durable candidate diagnostics.
     with harness.database.transaction(harness.principal) as conn:
@@ -262,7 +219,7 @@ def test_quarantine_preserves_sources_assertions_receipts_and_all_accounting(res
         for key in ("delivery_receipt", "input_event_refs", "output_event_refs", "context_event_refs",
                     "claim_count", "generation_count", "recall_model_calls", "recall_input_bytes", "response_review_calls"):
             assert current[key] == old[key], (old["stage"], key)
-    assert turns["delivered"]["row"]["delivery_receipt"] is not None
+    assert turns["delivered"]["delivery_receipt"] is not None
     for old in before["memory_jobs"]:
         current = next(row for row in after["memory_jobs"] if row["id"] == old["id"])
         if old["state"] == "completed":
@@ -290,7 +247,9 @@ def test_quarantine_preserves_sources_assertions_receipts_and_all_accounting(res
         assert current["durable_sequence"] == old["durable_sequence"]
     ledger = records(case, "memory_recovery_quarantine")
     assert {(row["object_id"], row["prior_state"]) for row in ledger if row["object_kind"] == "turn"} == {
-        (item["row"]["turn_id"], stage) for stage, item in turns.items() if stage not in {"completed", "failed"}}
+        (row["turn_id"], row["stage"]) for row in before["memory_runtime_turns"] if row["stage"] not in {"completed", "failed"}}
+    assert {(turn["turn_id"], stage) for stage, turn in turns.items() if stage not in {"completed", "failed"}} <= {
+        (row["object_id"], row["prior_state"]) for row in ledger if row["object_kind"] == "turn"}
     assert {row["object_id"] for row in ledger if row["object_kind"] == "job"} == {
         row["id"] for row in before["memory_jobs"]}
     assert outcomes(case) == {"completed": 1, "failed": 1, "uncertain": 2}
@@ -305,7 +264,7 @@ def snapshot(case):
 
 def test_quarantine_reentry_is_exactly_idempotent_and_wrong_binding_rolls_back(restored):
     case = restored
-    turn_at(case, "captured")
+    old_turns(case)
     before = snapshot(case)
     for changes in ({"source_installation_id": uid()}, {"registry_id": uid()}):
         with pytest.raises(RegistryError):
@@ -322,46 +281,34 @@ def test_quarantine_reentry_is_exactly_idempotent_and_wrong_binding_rolls_back(r
         assert snapshot(case) == first
 
 
-def test_old_turn_and_job_leases_cannot_publish_reserve_or_send_after_activation(restored):
+def test_old_job_leases_cannot_publish_and_old_turns_stay_stopped_after_activation(restored):
+    """Old turns can no longer be claimed, advanced or resumed at all: the turn lifecycle API and the runtime that
+    drove it were removed. What is checked is that activation leaves them stopped and old job leases fenced."""
     case, harness = restored, restored.harness
-    turns = {stage: turn_at(case, stage) for stage in ("started", "captured", "generating", "generated", "delivering")}
+    turns = old_turns(case)
     job = seeded_job(case, kind="rebuild")
     reservation(case, job)
     apply_quarantine(case)
     activate(case)
-    store = TurnStore(harness.database)
     publish = Mock()
-    for item in turns.values():
-        identifier, old = item["row"]["turn_id"], item["row"]
-        for action, kwargs in (
-            ("renew", {}), ("claim", {"worker_id": "new-host"}),
-            ("record_output", {"expected_revision": old["revision"], "text": "must not append", "delivery_state": "draft"}),
-            ("advance", {"expected_revision": old["revision"], "stage": "generating"}),
-        ):
-            if action != "claim":
-                kwargs["lease_token"] = item["lease_token"]
-            with pytest.raises(DomainError):
-                getattr(store, action)(harness.principal, harness.brain, identifier, **kwargs)
     for action, kwargs in (("renew", {}), ("complete", {"publish": publish})):
         with pytest.raises(DomainError):
             getattr(case.jobs, action)(harness.principal, harness.brain, job["id"],
                                        lease_token=job["lease_token"], fence=job["fence"], **kwargs)
     publish.assert_not_called()
     assert case.jobs.claim(harness.principal, harness.brain, worker_id="new-worker", max_attempts=100) is None
-    generate, send = Mock(), Mock()
-    runtime = BrainRuntime(harness.memory, generate, deliver=send, generation_is_idempotent=True)
+    current = {row["turn_id"]: row for row in case.old.rows("memory_runtime_turns")}
+    for stage, turn in turns.items():
+        row = current[turn["turn_id"]]
+        assert row["stage"] == ("completed" if stage == "completed" else "failed") and not row["scope_reserved"]
+        if stage not in ("completed", "failed"):
+            assert row["lease_token_digest"] is None
     with pytest.raises(httpx.HTTPStatusError) as unacknowledged:
-        runtime.resume(turns["captured"]["row"]["turn_id"])
+        harness.memory.recording_status()
     assert unacknowledged.value.response.json()["error"]["code"] == "recovery_acknowledgement_required"
     with MemoryClient("http://testserver", "service-test", harness.brain,
                       transport=harness.memory._http._transport,
                       recovery_epoch=case.options["recovery_epoch"]) as reconciled:
-        runtime = BrainRuntime(reconciled, generate, deliver=send, generation_is_idempotent=True)
-        for stage, item in turns.items():
-            with pytest.raises(RuntimeBlocked, match="source_unavailable" if stage == "started" else "cancelled"):
-                runtime.resume(item["row"]["turn_id"])
-        generate.assert_not_called()
-        send.assert_not_called()
         assert harness.service.work_once(harness.principal, harness.brain) == 0
         fresh = reconciled.observe("A new explicitly received input after activation.",
                                     source_event_key=uid(), conversation_id="chat", branch_id="main")
@@ -371,7 +318,7 @@ def test_old_turn_and_job_leases_cannot_publish_reserve_or_send_after_activation
 
 def test_activation_requires_exact_epoch_manifest_and_live_registry_installation(restored):
     case, harness = restored, restored.harness
-    turn_at(case, "captured")
+    old_turns(case)
     apply_quarantine(case)
     restoring = RecoveryAuthority(case.registry, case.options["installation_id"], restoring=True)
     arguments = {key: case.options[key] for key in ("recovery_epoch", "manifest_hash")}

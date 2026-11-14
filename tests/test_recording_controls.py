@@ -139,28 +139,21 @@ def test_invalid_local_controls_do_not_change_either_state(connected, fields):
     assert controls(connected) == previous
 
 
-def test_direct_chat_sees_a_new_pause_identity_and_the_scope_of_each_pause(tmp_path, monkeypatch):
+def test_local_status_reports_the_scope_of_each_pause(tmp_path, monkeypatch):
     monkeypatch.setattr(host.time, "time", lambda: 12345)
-    assert local_recording.device_capture(tmp_path) == {"scope": "installation", "state": "on"}
-    assert not (tmp_path / "plugin").exists()
+    assert not local_recording.local_status(tmp_path)["paused"]
     host.pause(tmp_path, 2)
-    first = local_recording.device_capture(tmp_path)
-    assert first["state"] == "paused" and first["until"] == 12345 + 7200
-    assert local_recording.local_status(tmp_path)["scope"] == "installation"
-    assert local_recording.device_capture(tmp_path) == first
+    first = local_recording.local_status(tmp_path)
+    assert first["paused"] and first["scope"] == "installation"
     host.resume(tmp_path)
     host.pause(tmp_path, 2)
-    second = local_recording.device_capture(tmp_path)
-    assert second["until"] == first["until"] and second["revision"] != first["revision"]
+    assert local_recording.local_status(tmp_path)["revision"] != first["revision"]
     host.pause(tmp_path, conversation=True, session="a-host-session")
-    assert local_recording.device_capture(tmp_path) == {
-        "scope": "installation", "state": "on", "host_conversations": "paused"}
     status = local_recording.local_status(tmp_path)
     assert status["paused"] and status["scope"] == "conversations" and host.paused(tmp_path)
     # Without a bounded list of conversations nothing ends the pause but a resume: it covers the installation.
     path = host._pause_file(tmp_path)
     path.write_text(json.dumps(json.loads(path.read_text()) | {"conversations": "all"}))
-    assert local_recording.device_capture(tmp_path)["state"] == "paused"
     assert local_recording.local_status(tmp_path)["scope"] == "installation"
     host.resume(tmp_path)
     assert "scope" not in local_recording.local_status(tmp_path)
@@ -256,49 +249,9 @@ def test_page_changes_real_server_policy_and_preserves_device_pause(connected, i
     assert observe(connected)["result"]["accepted_event_ids"]
 
 
-def test_page_device_pause_covers_direct_chat_and_resume_records_new_messages(connected, installation, page):
-    from playwright.sync_api import expect
-
-    from membrain.agent_session import open_agent
-    from membrain.runtime import DeliveryReceipt
-
-    conversation, prompts = "page-direct-" + uuid4().hex, []
-
-    def chat(text):
-        with open_agent(installation.directory, conversation_id=conversation,
-                        generate=lambda request: prompts.append(json.dumps(request.messages)) or "Synthetic reply",
-                        generator_fingerprint="fixture", deliver=lambda _: DeliveryReceipt("delivered"),
-                        start_service=False) as agent:
-            return agent.respond(text, message_id=uuid4().hex), agent.recording_state()
-
-    def recorded():
-        return [item["text"] for item in connected.timeline(conversation_id=conversation)["items"]]
-
-    sign_in(page, installation.base_url, installation.api_key)
-    open_view(page, "privacy")
-    page.locator("#pause-local").click()
-    expect(page.locator("#recording")).to_have_text("Device capture paused")
-    server = connected.recording_status()
-    result, state = chat("Private while the page shows device capture paused")
-    assert result.ephemeral and [cause.reason for cause in result.temporary_causes] == ["local_pause"]
-    assert state["recording"] == "paused" and state["controls"]["server"]["state"] == "on"
-    assert state["controls"]["device"]["state"] == "paused" and state["controls"]["conversation"]["state"] == "on"
-    assert recorded() == [] and connected.recording_status() == server
-    page.locator("#resume-local").click()
-    expect(page.locator("#recording")).to_have_text("Recording on")
-    result, state = chat("Public after the page resumed device capture")
-    assert not result.ephemeral and state["recording"] == "on"
-    assert recorded() == ["Public after the page resumed device capture"]
-    assert "Private while the page shows" not in prompts[-1]
-    assert not list(installation.directory.rglob("pending.json"))
-
-
 @pytest.mark.parametrize("language", ["en", "zh"])
 def test_page_reports_a_host_conversation_pause_as_narrower_than_device_capture(connected, installation, page, language):
     from playwright.sync_api import expect
-
-    from membrain.agent_session import open_agent
-    from membrain.runtime import DeliveryReceipt
 
     host.pause(installation.directory, conversation=True, session="a-host-session-" + uuid4().hex)
     control = host._pause_file(installation.directory).read_bytes()
@@ -312,23 +265,16 @@ def test_page_reports_a_host_conversation_pause_as_narrower_than_device_capture(
     expect(page.locator("#recording")).to_have_text(
         "Host conversation paused" if language == "en" else "宿主对话已暂停记录")
     expect(page.locator("#local-recording-text")).to_contain_text(
-        "It does not apply to direct chat; direct chat still follows its server, device and conversation controls"
-        if language == "en" else "不适用于直接聊天；直接聊天仍遵循其服务端、本机和对话的记录控制")
+        "This pause covers the host conversations that were active when it was set."
+        if language == "en" else "这项暂停适用于设置时正在进行的宿主对话。")
     expect(page.locator("#local-recording-text")).to_contain_text(
         "covers the host conversations that were active when it was set" if language == "en"
         else "适用于设置时正在进行的宿主对话")
-    for forbidden in (("Chat capture is paused on this device", "captured", "that host")
-                      if language == "en" else ("本机聊天捕获已暂停", "仍会被捕获", "该宿主")):
+    for forbidden in (("Chat capture is paused on this device", "captured", "that host", "direct chat")
+                      if language == "en" else ("本机聊天捕获已暂停", "仍会被捕获", "该宿主", "直接聊天")):
         expect(page.locator("#local-recording")).not_to_contain_text(forbidden)
     expect(page.locator("#local-recording .hint")).to_contain_text(
         "applies to new messages and turns" if language == "en" else "对新的消息和轮次生效")
-    conversation = "page-unrelated-direct-" + uuid4().hex
-    with open_agent(installation.directory, conversation_id=conversation, generate=lambda _: "Synthetic reply",
-                    generator_fingerprint="fixture", deliver=lambda _: DeliveryReceipt("delivered"),
-                    start_service=False) as agent:
-        assert not agent.respond("Direct chat beside a paused host conversation", message_id=uuid4().hex).ephemeral
-    assert [item["text"] for item in connected.timeline(conversation_id=conversation)["items"]] == [
-        "Direct chat beside a paused host conversation"]
     assert host._pause_file(installation.directory).read_bytes() == control and host.paused(installation.directory)
     page.locator("#resume-local").click()
     expect(page.locator("#recording")).to_have_text("Recording on" if language == "en" else "正在记录")
@@ -337,11 +283,8 @@ def test_page_reports_a_host_conversation_pause_as_narrower_than_device_capture(
 
 @pytest.mark.parametrize("language", ["en", "zh"])
 def test_page_shows_a_server_pause_and_a_host_conversation_pause_as_separate_scopes(connected, installation, page, language):
-    """With both in place a direct message is not recorded, so the page must not promise that it is."""
+    """With both in place the page must not promise that anything is recorded."""
     from playwright.sync_api import expect
-
-    from membrain.agent_session import open_agent
-    from membrain.runtime import DeliveryReceipt
 
     host.pause(installation.directory, conversation=True, session="a-host-session-" + uuid4().hex)
     control = host._pause_file(installation.directory).read_bytes()
@@ -356,8 +299,8 @@ def test_page_shows_a_server_pause_and_a_host_conversation_pause_as_separate_sco
         "New messages and notes are paused for this memory" if language == "en"
         else "此记忆库已暂停新消息和笔记")
     expect(page.locator("#local-recording-text")).to_contain_text(
-        "This pause covers the host conversations that were active when it was set. It does not apply to direct chat"
-        if language == "en" else "这项暂停适用于设置时正在进行的宿主对话，不适用于直接聊天")
+        "This pause covers the host conversations that were active when it was set."
+        if language == "en" else "这项暂停适用于设置时正在进行的宿主对话。")
     card = page.locator("#view-privacy > .card:nth-child(2)")
     for forbidden in (("captured", "Recording on", "Chat capture is enabled") if language == "en"
                       else ("仍会被捕获", "正在记录", "本机聊天捕获已开启")):
@@ -365,17 +308,7 @@ def test_page_shows_a_server_pause_and_a_host_conversation_pause_as_separate_sco
         expect(page.locator("#recording")).not_to_contain_text(forbidden)
     expect(page.locator("#resume")).to_be_visible()
     expect(page.locator("#resume-local")).to_be_visible()
-    conversation = "page-both-paused-" + uuid4().hex
-    with open_agent(installation.directory, conversation_id=conversation, generate=lambda _: "Synthetic reply",
-                    generator_fingerprint="fixture", deliver=lambda _: DeliveryReceipt("delivered"),
-                    start_service=False) as agent:
-        state = agent.recording_state()
-        assert state["new_message"] == "temporary" and state["controls"]["server"]["state"] == "paused"
-        assert state["controls"]["device"] == {"scope": "installation", "state": "on", "host_conversations": "paused"}
-        result = agent.respond("Direct chat while the brain is paused", message_id=uuid4().hex)
-        assert [cause.reason for cause in result.temporary_causes] == ["server_paused"]
-    assert connected.timeline(conversation_id=conversation)["items"] == []
-    # Showing and using both scopes changed neither control.
+    # Showing both scopes changed neither control.
     assert connected.recording_status() == server
     assert host._pause_file(installation.directory).read_bytes() == control
 

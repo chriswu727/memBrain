@@ -396,7 +396,9 @@ def ready_client(directory: Path, user_id: str | None = None):
         return None
     client = open_client(directory, start_service=False, timeout=10)
     try:
-        return use_brain(client, user_id)
+        use_brain(client, user_id)
+        host_recording.status(directory, client, user_id)
+        return client
     except Exception:
         client.close()
         raise
@@ -770,15 +772,14 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
     replay lock throughout (in the same order as ``flush``), so a replay in progress can neither store this
     person's queued messages after the erase nor lose other people's records when the queue is rewritten.
     """
-    with profile_lock(state_directory(directory) / "spool-lock", timeout=60):
-        client = ready_client(directory, user_id)
-        if client is None:
-            start_in_background(directory)
-            raise RuntimeError("memBrain is starting; try again in a few seconds.")
-        with client:
-            generation = client.dashboard()["brain"]["scope_generation"]
-            response = client.forget([], kind="all_authorized_scope", mode="erase_content",
-                                     expected_scope_generation=generation)
+    client = ready_client(directory, user_id)
+    if client is None:
+        start_in_background(directory)
+        raise RuntimeError("memBrain is starting; try again in a few seconds.")
+    with client, profile_lock(state_directory(directory) / "spool-lock", timeout=60):
+        generation = client.dashboard()["brain"]["scope_generation"]
+        response = client.forget([], kind="all_authorized_scope", mode="erase_content",
+                                 expected_scope_generation=generation)
         dropped = 0
         with (profile_lock(state_directory(directory) / "session-state-lock", timeout=5),
               profile_lock(state_directory(directory) / "spool-write-lock", timeout=5)):
@@ -803,9 +804,12 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
                     continue
                 if not isinstance(state, dict):
                     continue
-                for entry in host_turns.entries(state).values():
+                for identity, entry in list(host_turns.entries(state).items()):
                     if entry["owner"] == user_id:
+                        if re.search(r"[0-9a-f]{32}", str(entry.get("source", ""))):
+                            del state["turns"][identity]
                         host_turns.complete(entry)
+                        entry.pop("fingerprint", None)
                         entry.pop("note_capture", None)
                         entry["exclusion"] = host_receipts.exclusion("erased", "brain")
                         state["turns_require_staging"] = True
@@ -816,6 +820,10 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
                              if key in ("turns", "turns_managed", "turns_require_staging", "callbacks")}
                 host_turns.compact(state)
                 _write_session_marker(path, state)
+            if host_recording.local_target(directory, user_id) == host_recording._target(client):
+                from .host_erasure import _redact_legacy
+
+                _redact_legacy(directory, client.brain_id)
     return {"erased": response.get("outcome"), "queued_records_dropped": dropped}
 
 
@@ -1051,6 +1059,10 @@ def _spool_records(directory: Path, records: list[dict]) -> bool:
     payload = "".join(json.dumps(record, ensure_ascii=False) + "\n" for record in records).encode("utf-8")
     path = state_directory(directory) / "spool.jsonl"
     with profile_lock(state_directory(directory) / "spool-write-lock", timeout=5):
+        from .host_erasure import blocked
+
+        if any(blocked(directory, record) for record in records):
+            return False
         descriptor = os.open(path, os.O_RDWR | os.O_CREAT | os.O_APPEND, 0o600)
         with os.fdopen(descriptor, "a+b", buffering=0) as stream:
             size = stream.seek(0, os.SEEK_END)
@@ -1104,8 +1116,15 @@ def _discard_recording(directory: Path, record: dict, exclusion: dict | None = N
         entry = host_turns.entries(state).get(identity)
         if entry is not None:
             entry.pop("record", None)
+            entry.pop("fingerprint", None)
+            entry.pop("note_capture", None)
             entry.pop("resumed", None)
             entry["paused"] = "server"
+            if re.search(r"[0-9a-f]{32}", str(entry.get("source", ""))):
+                # Old implicit identities can themselves be digests of the rejected text.
+                state["turns"].pop(identity, None)
+                state["callbacks"] = [item for item in state.get("callbacks", [])
+                                      if item.get("key") != identity or item.get("owner") != record.get("_user")]
             if exclusion is not None:
                 entry["exclusion"] = dict(exclusion)
             else:
@@ -1561,6 +1580,10 @@ def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: b
            legacy_source: str | None = None, server_paused: bool = False,
            server_policy: dict | None = None) -> str | None:
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        from .host_erasure import blocked
+
+        if blocked(directory, record):
+            return None
         explicit_pause = requests_pause(prompt)
         if explicit_pause:
             _pause_for_request(directory, session, record.get("_user"))

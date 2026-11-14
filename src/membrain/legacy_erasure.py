@@ -5,6 +5,8 @@ their sources must keep clearing them. Plain SQL only: this module must not impo
 ``params`` is ``(tenant_id, owner_id, brain_id)``, as ``MemoryService._params`` returns it.
 """
 
+import re
+
 # Policy version stamped on recomputed access state (migration 014).
 ACCESS_VERSION = "contextual-access-v2"
 
@@ -82,4 +84,85 @@ def clear_query_embeddings(conn, params):
     conn.execute(
         "UPDATE memory_jobs SET result=NULL WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND kind='query_embedding'",
         params,
+    )
+
+
+# A digest erased from a row reads as 64 zeros: the content-free marker temporary turns already carry (migration
+# 034), which no real SHA-256 digest is taken to be. The columns that hold digests are NOT NULL (and some must be 64
+# hex digits), so they cannot be cleared; JSON fields keep their shape so the rows stay readable.
+REDACTED_DIGEST = "0" * 64
+_HEX = re.compile(r"[0-9a-f]{64}")
+# Configuration fingerprints: they identify a reviewer's setup, never content.
+_CONFIGURATION_KEYS = frozenset({"policy_fingerprint"})
+
+
+def redact_digests(value, keep=_CONFIGURATION_KEYS):
+    """``value`` with every 64-hex string replaced by ``REDACTED_DIGEST``, except under the keys in ``keep``."""
+    if isinstance(value, dict):
+        return {key: item if key in keep else redact_digests(item, keep) for key, item in value.items()}
+    if isinstance(value, list):
+        return [redact_digests(item, keep) for item in value]
+    if isinstance(value, str) and _HEX.fullmatch(value):
+        return REDACTED_DIGEST
+    return value
+
+
+def redact_runtime_turns(conn, params, *, event_ids=(), memory_ids=()):
+    """Remove every digest from the runtime turn rows (migration 004 and later) that name erased content.
+
+    Older runtimes stored digests beside each turn's references: of its input (``input_fingerprint``), of its
+    prepared context (``context_fingerprint``, ``prepared_memory_selection.model_context_sha256``), of the delivered
+    answer and the reviewed draft, of each selected memory's statement and source, of recall queries, orientation
+    dependencies and transitions. One rule: a turn row that names an erased event or memory keeps none of them. Every
+    digest becomes ``REDACTED_DIGEST`` (``last_transition_hash``, which may be NULL, is cleared), except the
+    reviewer's configuration fingerprint. The rows, their stages and every id stay, for recovery quarantine.
+    """
+    ids = sorted(set(event_ids) | set(memory_ids))
+    if not ids:
+        return 0
+    from psycopg.types.json import Jsonb
+
+    columns = ("delivery_receipt", "response_review", "prepared_memory_selection", "recall_plan",
+               "orientation_route", "orientation_preflight")
+    rows = conn.execute(
+        "SELECT turn_id,context_fingerprint," + ",".join(columns) + " FROM memory_runtime_turns t "
+        "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+        "AND EXISTS (SELECT 1 FROM unnest(%s::text[]) i WHERE strpos(t::text, i) > 0)",
+        (*params, ids),
+    ).fetchall()
+    for row in rows:
+        values = [Jsonb(redact_digests(row[column])) if row[column] is not None else None for column in columns]
+        conn.execute(
+            "UPDATE memory_runtime_turns SET input_fingerprint=%s,context_fingerprint=%s,last_transition_hash=NULL,"
+            + ",".join(f"{column}=%s" for column in columns)
+            + " WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND turn_id=%s",
+            (REDACTED_DIGEST, REDACTED_DIGEST if row["context_fingerprint"] is not None else None, *values,
+             *params, row["turn_id"]),
+        )
+    return len(rows)
+
+
+def redact_legacy_digests(conn, params, *, event_ids=(), memory_ids=()):
+    """Digests of erased content in the other rows only older runtimes wrote: feedback contributions (migration 014)
+    keep the content hashes of the confirmation and of the delivered answer they cite, and model-call reservations
+    (migration 006) the fingerprints of the request and response a learning job sent about its sources."""
+    event_ids, memory_ids = sorted(set(event_ids)), sorted(set(memory_ids))
+    if not event_ids and not memory_ids:
+        return
+    conn.execute(
+        "UPDATE memory_feedback_contributions SET feedback_content_hash=%s,delivery_content_hash=%s,"
+        "source_event_refs=(SELECT coalesce(jsonb_agg(CASE WHEN jsonb_typeof(r)='object' AND r ? 'content_sha256' "
+        "THEN r || jsonb_build_object('content_sha256',%s::text) ELSE r END),'[]'::jsonb) "
+        "FROM jsonb_array_elements(source_event_refs) r) "
+        "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND (source_event_ids && %s::text[] "
+        "OR source_memory_ids && %s::text[] OR feedback_event_id=ANY(%s::text[]) OR delivery_event_id=ANY(%s::text[]))",
+        (REDACTED_DIGEST, REDACTED_DIGEST, REDACTED_DIGEST, *params, event_ids, memory_ids, event_ids, event_ids),
+    )
+    conn.execute(
+        "UPDATE memory_cognitive_operations o SET request_fingerprint=%s,"
+        "response_fingerprint=CASE WHEN o.response_fingerprint IS NULL THEN NULL ELSE %s END "
+        "FROM memory_jobs j WHERE j.tenant_id=o.tenant_id AND j.owner_id=o.owner_id AND j.brain_id=o.brain_id "
+        "AND j.id=o.job_id AND o.tenant_id=%s AND o.owner_id=%s AND o.brain_id=%s "
+        "AND (j.source_event_ids && %s::text[] OR j.source_memory_ids && %s::text[])",
+        (REDACTED_DIGEST, REDACTED_DIGEST, *params, event_ids, memory_ids),
     )

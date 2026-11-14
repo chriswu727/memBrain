@@ -659,7 +659,9 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
             "SELECT request_hash,response FROM memory_requests WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
             "AND action='note' AND key=%s", (*params, request_id)).fetchone()
         if cached:
-            if cached["request_hash"] != fingerprint:
+            from .legacy_erasure import REDACTED_DIGEST
+
+            if cached["request_hash"] not in (fingerprint, REDACTED_DIGEST):  # Content erasure wiped it.
                 raise DomainError("idempotency_conflict", "This note request already has different content.")
             if cached["response"] is None:
                 raise DomainError("version_conflict", "This note request was invalidated; use a new request ID.")

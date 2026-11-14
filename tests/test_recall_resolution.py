@@ -6,7 +6,6 @@ erasure still removes them. The memory here is the one the runtime at 2600219b p
 """
 import copy
 import json
-from types import SimpleNamespace
 
 import pytest
 from legacy_cognition import FIXTURES
@@ -131,16 +130,3 @@ def test_external_use_can_keep_old_details_active_without_rewriting_the_memory()
                               access_at="2036-10-22T12:00:00Z")
     assert result["items"][0]["presentation"]["level"] == "full"
     assert "yellow lid" in result["model_context"] and memory == original
-
-
-@pytest.mark.parametrize("character", ['"', '\\', '\n', '🙂'])
-def test_host_budget_accounts_for_instructions_and_escaped_memory_before_retrieval(character):
-    from membrain.runtime import BrainRuntime, RuntimePolicy
-
-    runtime = BrainRuntime(SimpleNamespace(brain_id="budget-test"), lambda _: pytest.fail("No model call"),
-                           policy=RuntimePolicy(memory_context_tokens=16000, max_input_tokens=24000))
-    budget = runtime._memory_budget("turn", "Continue the task")
-    context = json.dumps({"text": character * (budget // 8)}, ensure_ascii=False)
-    assert len(context.encode()) <= budget < 16000
-    prompt = runtime._prompt("turn", "Continue the task", {"model_context": context})
-    assert prompt.input_tokens_estimate <= 24000

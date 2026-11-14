@@ -2,8 +2,8 @@ import copy
 from concurrent.futures import ThreadPoolExecutor
 
 import pytest
+from service_harness import turns as turns
 from test_response_validation import recall_request
-from test_turns import turns as turns
 from test_vector_jobs import drain
 
 from membrain.helpers import uid

@@ -9,7 +9,6 @@ from membrain.deletion_registry import DeletionRegistry, RegistryError
 from membrain.helpers import digest, uid
 from membrain.jobs import JobStore
 from membrain.recovery_authority import RecoveryAuthority
-from membrain.turns import TurnStore
 
 pytestmark = pytest.mark.integration
 
@@ -64,7 +63,8 @@ def test_forget_is_authoritative_before_database_commit_and_replays_once(recover
         assert harness.service._brain(conn, harness.principal, harness.brain)['scope_generation'] == 2
 
 
-@pytest.mark.parametrize('surface', ['service', 'turn', 'job'])
+# The turn lifecycle store, the third surface this covered, was removed with runtime mode.
+@pytest.mark.parametrize('surface', ['service', 'job'])
 def test_pending_erasure_is_applied_before_every_operational_brain_access(recovery, surface):
     harness, authority = recovery
     identifier = harness.observe('A pending deletion.')['accepted_event_ids'][0]
@@ -72,8 +72,6 @@ def test_pending_erasure_is_applied_before_every_operational_brain_access(recove
     if surface == 'service':
         with harness.database.transaction(harness.principal) as conn:
             harness.service._brain(conn, harness.principal, harness.brain)
-    elif surface == 'turn':
-        TurnStore(harness.database).list(harness.principal, harness.brain)
     else:
         JobStore(harness.database).list(harness.principal, harness.brain)
     assert raw_event(harness, identifier) == {'document': None, 'deleted': True}
