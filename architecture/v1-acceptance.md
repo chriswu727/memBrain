@@ -56,11 +56,15 @@ The existing regressions pass with zero known defects in any of these:
 
 This gate follows a plan frozen and independently reviewed before any paid call: [attempt 3 plan](../evaluations/v1-2026-11-04-final-acceptance-plan-3.md).
 - **Scenarios.** Two new held-out scenarios, written without access to the product.
-- **Paths.** The plugin path and the proxy-with-extraction path run on the candidate, next to a reference arm that puts the whole history in the prompt. Replies are scored blind.
-- **Pass rule.** Each gated path must meet all three conditions:
+- **Paths.** R4 is judged on the **plugin path alone** (arm `P`), against a reference arm that puts the whole history in the prompt (arm `F`). These are the only two arms, run one after the other; replies are scored blind under labels A and B. The gated arm is `P`. Both arms carry one fixed personality type, drawn from the attempt id by a recorded rule, because the companion layer is always on in the product; the reference gets the same persona block, so the comparison stays about memory.
+  - The proxy path is **not part of acceptance**. Its note extraction no longer exists in the product (removed on 2026-11-13), so the proxy-with-extraction arm of the first five maturity attempts cannot run, and no proxy arm is gated. Hosts whose model cannot call tools (the proxy, and bots such as AstrBot with such a model) get recording and recall but no notes, and **R4 does not cover them**: a pass says nothing about their behaviour.
+  - Until 2026-11-14 this rule named the plugin path and the proxy-with-extraction path as gated paths; the first five maturity attempts were run and judged under that rule and their records keep it.
+- **Pass rule.** The gated path must meet all three conditions:
   - it scores no lower than the reference minus 1 point;
   - it has no critical error caused by memory;
   - it has no more host-caused critical errors than the reference.
+
+  As coded (`evaluations/acceptance_review.py gate`): over the attempt's scenarios, `P`'s total is at least `F`'s total minus 1; no reply of `P` with a standing critical error is attributed to memory (two independent attributors; anything but two "host" answers counts as memory); and the number of `P`'s replies with a host-caused critical error is at most the number of `F`'s replies with a standing critical error. A tally or sealed mapping without exactly the arms `P` and `F` is refused, so a missing arm can never pass.
 - **Why this rule.** The [gate review](../evaluations/v1-2026-11-03-gate-review.md) explains the change. The first rule (at least 20 of 22 and no critical error, attempts 1 and 2) could not be met even by the reference arm with perfect information, so it measured the host model rather than memBrain.
 - **If it fails.** The cause is repaired, and the gate is retried only on new scenarios.
 - **Current status:** the [third maturity attempt](../evaluations/maturity-third-attempt-2026-11-06.md) completed R4 and failed for the plugin, while its extraction arm passed; C5 stopped incomplete. Subsequent runtime repairs and the [proposal-action tooling repair](../evaluations/maturity-proposal-selection-2026-11-06.md) have public regression evidence but no fresh real-model acceptance. Any further attempt requires new held-out scenarios and separate approval.
