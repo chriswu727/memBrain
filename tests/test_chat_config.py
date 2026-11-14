@@ -7,6 +7,7 @@ from dataclasses import FrozenInstanceError, replace
 
 import httpx
 import pytest
+from test_legacy_cognition_settings import with_cognition
 
 from membrain import chat_config, local_profile
 from membrain.chat_config import (
@@ -17,7 +18,7 @@ from membrain.chat_config import (
     use_cognition_configuration,
 )
 from membrain.desktop import _fingerprint
-from membrain.local_profile import configure_cognition, ensure_profile, load_profile
+from membrain.local_profile import ensure_profile, load_profile
 
 
 @pytest.fixture
@@ -37,7 +38,7 @@ def assert_redacted(error):
 
 
 def test_saved_chat_is_separate_from_identity_cognition_and_service_configuration(profile, configuration):
-    profile = configure_cognition(profile, "https://memory.example/v1", "memory-model",
+    profile = with_cognition(profile, "https://memory.example/v1", "memory-model",
                                   "private-cognition-key", "enabled")
     before = (profile.directory / "profile.json").read_bytes()
     service_fingerprint = _fingerprint(profile)
@@ -62,7 +63,7 @@ def test_chat_configuration_is_frozen(configuration):
 
 
 def test_cognition_is_never_an_implicit_chat_fallback(profile):
-    profile = configure_cognition(profile, "https://memory.example/v1", "memory-model",
+    profile = with_cognition(profile, "https://memory.example/v1", "memory-model",
                                   "private-cognition-key", "disabled")
     before = (profile.directory / "profile.json").read_bytes()
     with pytest.raises(ChatConfigurationError) as error:
@@ -79,7 +80,7 @@ def test_cognition_is_never_an_implicit_chat_fallback(profile):
 
 
 def test_copying_cognition_does_not_replace_existing_chat(profile, configuration):
-    profile = configure_cognition(profile, "https://memory.example", "memory-model", "memory-key")
+    profile = with_cognition(profile, "https://memory.example", "memory-model", "memory-key")
     save_chat_configuration(configuration, profile.directory)
     before = (profile.directory / "chat.json").read_bytes()
     copied = use_cognition_configuration(profile.directory)

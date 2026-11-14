@@ -43,7 +43,6 @@ def file_digest(path, *, max_bytes):
 
 def _configuration(profile):
     from .chat_config import load_chat_configuration
-    from .cognition_config import load_cognition_policy
 
     with profile_lock(profile.directory):
         current = load_profile(profile.directory)
@@ -53,10 +52,12 @@ def _configuration(profile):
         if current.database_engine != 'docker':
             value['database_engine'] = current.database_engine
         value['chat'] = read_document(profile.directory / 'chat.json')
-        value['cognition_policy'] = read_document(profile.directory / 'cognition-policy.json')
+        # Background learning with a cognition model was removed, so its limits (cognition-policy.json, which an
+        # older runtime kept beside the profile) are no longer part of the configuration. The key stays, always
+        # empty, so that the backup format, which older runtimes also read, is unchanged.
+        value['cognition_policy'] = None
         if value['chat'] is not None:
             load_chat_configuration(profile.directory)
-        load_cognition_policy(profile.directory)
         return value
 
 

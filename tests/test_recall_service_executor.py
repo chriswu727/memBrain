@@ -15,8 +15,7 @@ from membrain.service import MemoryService
 
 def test_workers_receive_no_models_or_provider_credentials():
     settings = Settings(database_url="database", migration_database_url="private-admin", api_keys={"private": PRINCIPAL},
-                        cognition_base_url="https://example.com", cognition_api_key="private-text-key",
-                        cognition_model="model", embedding_local_directory="/private/model")
+                        embedding_local_directory="/private/model")
     executor = RecallServiceExecutor(4, settings)
     try:
         child = executor._settings
@@ -24,10 +23,8 @@ def test_workers_receive_no_models_or_provider_credentials():
         assert executor._principals == (PRINCIPAL,)
         assert child.migration_database_url is None
         assert not child.api_keys and child.api_keys_file is None
-        assert child.cognition_base_url is child.cognition_api_key is child.cognition_model is None
         assert child.embedding_local_directory is None
         assert child.recall_processes == 0
-        assert settings.cognition_api_key == "private-text-key"
         assert settings.embedding_local_directory == "/private/model"
     finally:
         executor.close()

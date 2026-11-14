@@ -4,12 +4,10 @@ import os
 from contextlib import ExitStack, contextmanager
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Literal
 
 from dotenv import load_dotenv
 
 from .helpers import Principal
-from .reasoning import ReasoningEffort, _validate_reasoning_effort
 
 
 @dataclass
@@ -21,15 +19,6 @@ class Settings:
     max_request_bytes: int = 2_000_000
     recall_processes: int = field(default_factory=lambda: _environment_integer("MEMBRAIN_RECALL_PROCESSES", 4))
     allowed_hosts: tuple[str, ...] = ("localhost", "127.0.0.1", "testserver")
-    cognition_base_url: str | None = None
-    cognition_api_key: str | None = field(default=None, repr=False)
-    cognition_model: str | None = None
-    cognition_thinking: Literal["enabled", "disabled"] | None = None
-    cognition_reasoning_effort: ReasoningEffort | None = None
-    cognition_max_wall_time_ms: int = 30_000
-    cognition_max_output_tokens: int = 8192
-    cognition_max_response_bytes: int = 32768
-    cognition_max_envelope_bytes: int = 65536
     embedding_local_directory: str | None = None
     recovery_registry_path: Path | None = None
     recovery_registry_id: str | None = None
@@ -38,29 +27,9 @@ class Settings:
     def __post_init__(self):
         if type(self.recall_processes) is not int or not 0 <= self.recall_processes <= 4:
             raise ValueError("MEMBRAIN_RECALL_PROCESSES must be an integer from 0 to 4")
-        self.semantic_policy()
-        validate_cognition_transport(self.cognition_reasoning_effort, self.cognition_thinking,
-                                     self.cognition_max_envelope_bytes)
         recovery = (self.recovery_registry_path, self.recovery_registry_id, self.recovery_installation_id)
         if any(value is not None for value in recovery) and any(value is None for value in recovery):
             raise ValueError("Recovery authority requires its path, registry identity and installation identity.")
-        names = ("base_url", "api_key", "model")
-        values = [getattr(self, "cognition_" + name) for name in names]
-        configured = any(value is not None for value in values) or self.cognition_thinking is not None
-        if configured and any(value is None or (isinstance(value, str) and not value.strip()) for value in values):
-            raise ValueError(f"MEMORY_COGNITION requires all of: {', '.join(name.upper() for name in names)}")
-        if self.cognition_thinking is not None and (
-            not isinstance(self.cognition_thinking, str)
-            or self.cognition_thinking not in ("enabled", "disabled")
-        ):
-            raise ValueError("MEMORY_COGNITION_THINKING must be 'enabled' or 'disabled' when set")
-
-    def semantic_policy(self):
-        from .cognition_policy import SemanticPolicy
-
-        return SemanticPolicy(max_wall_time_ms=self.cognition_max_wall_time_ms,
-                              max_output_tokens=self.cognition_max_output_tokens,
-                              max_response_bytes=self.cognition_max_response_bytes)
 
     @classmethod
     def from_env(cls) -> "Settings":
@@ -76,6 +45,14 @@ class Settings:
             logging.getLogger("membrain.config").warning(
                 "Ignoring %s: the remote embedding provider was removed. Set MEMORY_EMBEDDING_LOCAL_DIRECTORY to "
                 "use the local embedding model.", ", ".join(removed))
+        removed = sorted(name for name in os.environ if name.startswith(REMOVED_COGNITION_PREFIX))
+        if removed:
+            # Background learning with a cognition model of memBrain's own was removed: the host's AI does every
+            # model task. Its settings are ignored rather than refused, so a deployment that still sets them starts
+            # (also with a partial or malformed configuration); only the names are logged, never their values.
+            logging.getLogger("membrain.config").warning(
+                "Ignoring %s: background learning with a cognition model was removed; memBrain calls no model of "
+                "its own.", ", ".join(removed))
         return cls(
             database_url=database_url,
             migration_database_url=os.environ.get("MEMORY_MIGRATION_DATABASE_URL"),
@@ -83,15 +60,6 @@ class Settings:
             allowed_hosts=tuple(os.environ.get(
                 "MEMORY_ALLOWED_HOSTS", "localhost,127.0.0.1,testserver"
             ).split(",")),
-            cognition_base_url=os.environ.get("MEMORY_COGNITION_BASE_URL"),
-            cognition_api_key=os.environ.get("MEMORY_COGNITION_API_KEY"),
-            cognition_model=os.environ.get("MEMORY_COGNITION_MODEL"),
-            cognition_thinking=os.environ.get("MEMORY_COGNITION_THINKING"),
-            cognition_reasoning_effort=os.environ.get("MEMORY_COGNITION_REASONING_EFFORT"),
-            cognition_max_wall_time_ms=_environment_integer("MEMORY_COGNITION_MAX_WALL_TIME_MS", 30_000),
-            cognition_max_output_tokens=_environment_integer("MEMORY_COGNITION_MAX_OUTPUT_TOKENS", 8192),
-            cognition_max_response_bytes=_environment_integer("MEMORY_COGNITION_MAX_RESPONSE_BYTES", 32768),
-            cognition_max_envelope_bytes=_environment_integer("MEMORY_COGNITION_MAX_ENVELOPE_BYTES", 65536),
             embedding_local_directory=os.environ.get("MEMORY_EMBEDDING_LOCAL_DIRECTORY"),
         )
 
@@ -105,16 +73,9 @@ class Settings:
 # Settings of the metered remote embedding provider, which was removed; still set, they are ignored with a warning.
 REMOVED_EMBEDDING_SETTINGS = ("MEMORY_EMBEDDING_BASE_URL", "MEMORY_EMBEDDING_API_KEY", "MEMORY_EMBEDDING_MODEL",
                               "MEMORY_EMBEDDING_MODEL_VERSION", "MEMORY_EMBEDDING_DIMENSIONS")
-
-
-def validate_cognition_transport(reasoning_effort, thinking, max_envelope_bytes):
-    try:
-        _validate_reasoning_effort(reasoning_effort, thinking)
-    except ValueError:
-        raise ValueError("MEMORY_COGNITION_REASONING_EFFORT must be unset or a supported effort level, "
-                         "and cannot be set when MEMORY_COGNITION_THINKING is disabled.") from None
-    if type(max_envelope_bytes) is not int or not 1 <= max_envelope_bytes <= 1048576:
-        raise ValueError("MEMORY_COGNITION_MAX_ENVELOPE_BYTES must be an integer from 1 to 1048576")
+# Settings of the removed cognition model (MEMORY_COGNITION_BASE_URL, _API_KEY, _MODEL, _THINKING, _REASONING_EFFORT
+# and the _MAX_* limits); still set, they are ignored with a warning.
+REMOVED_COGNITION_PREFIX = "MEMORY_COGNITION_"
 
 
 def _environment_integer(name, default):
@@ -145,23 +106,9 @@ def configured_service(settings: Settings, *, principals=None):
             configure_authority(database, settings)
         else:
             configure_authority(database, settings, principals=principals)
-        processor, embedding = None, None
-        if settings.cognition_base_url is not None:
-            from .semantic import SemanticProcessor
-            from .semantic_provider import ChatCompletionsSemanticProvider
-
-            provider = resources.enter_context(ChatCompletionsSemanticProvider(
-                settings.cognition_base_url, settings.cognition_api_key, settings.cognition_model,
-                thinking=settings.cognition_thinking,
-                reasoning_effort=settings.cognition_reasoning_effort,
-                max_response_bytes=settings.cognition_max_envelope_bytes,
-            ))
-            processor = SemanticProcessor(provider, verify=provider, policy=settings.semantic_policy())
+        embedding = None
         if settings.embedding_local_directory is not None:
             from .local_embeddings import LocalEmbeddingProvider
 
             embedding = resources.enter_context(LocalEmbeddingProvider(Path(settings.embedding_local_directory)))
-        yield MemoryService(
-            database,
-            semantic_processor=processor, embedding_provider=embedding,
-        )
+        yield MemoryService(database, embedding_provider=embedding)

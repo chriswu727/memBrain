@@ -1,5 +1,4 @@
 import json
-import os
 import sys
 from pathlib import Path
 
@@ -15,31 +14,16 @@ def add_commands(commands):
             parser.add_argument("--database-port", type=int)
             parser.add_argument("--database", choices=("auto", "docker", "embedded"), default="auto",
                                 help="Database engine for a new installation; auto uses the embedded engine when installed")
-            # The cognition options are frozen: memBrain needs no model of its own, and setup never
-            # asks for one. They remain only for installations that already configured a provider.
-            parser.add_argument("--base-url", help="Frozen: OpenAI-compatible cognition provider URL")
-            parser.add_argument("--model", help="Frozen: cognition model name")
-            parser.add_argument("--api-key-env",
-                                help="Frozen: name of the environment variable containing the cognition provider key")
-            parser.add_argument("--thinking", choices=("enabled", "disabled"), help="Frozen: cognition thinking mode")
-            parser.add_argument("--cognition-preset", choices=("reasoning",),
-                                help="Frozen: allow 240s per cognitive batch and 16384 output tokens per request")
             parser.add_argument("--no-start", action="store_true", help="Save configuration without starting services")
             parser.add_argument("--non-interactive", action="store_true",
                                 help="Accepted for compatibility; setup never prompts")
         elif name == "logs":
             parser.add_argument("--lines", type=int, default=30)
-    from .desktop_budget import add_commands as add_budget_commands
     from .desktop_chat import add_commands as add_chat_commands
-    from .desktop_cognition import add_commands as add_cognition_commands
-    from .desktop_learning import add_commands as add_learning_commands
     from .desktop_recovery import add_commands as add_recovery_commands
     from .desktop_turns import add_commands as add_turn_commands
 
     add_chat_commands(actions)
-    add_learning_commands(actions)
-    add_budget_commands(actions)
-    add_cognition_commands(actions)
     add_recovery_commands(actions)
     add_turn_commands(actions)
 
@@ -47,47 +31,16 @@ def add_commands(commands):
 def _setup(args):
     from . import desktop
     from .desktop_connection import mcp_config
-    from .local_profile import configure_cognition, ensure_profile, profile_lock
+    from .local_profile import ensure_profile, profile_lock
 
     engine = getattr(args, "database", "docker")
     if engine == "auto":
         from .embedded_database import default_engine
 
         engine = default_engine()
+    # memBrain asks for no model of its own: the host's AI does every model task.
     profile = ensure_profile(args.directory, api_port=args.api_port, database_port=args.database_port,
                              database_engine=engine)
-    configuration = (args.base_url, args.model, args.api_key_env, args.thinking)
-    if any(configuration):
-        if not all(configuration[:3]):
-            raise ValueError("Provide --base-url, --model and --api-key-env together.")
-        api_key = os.environ.get(args.api_key_env)
-        if not api_key:
-            raise ValueError("The selected provider key environment variable is empty.")
-        profile = configure_cognition(profile, base_url=args.base_url, model=args.model,
-                                      api_key=api_key, thinking=args.thinking)
-    # memBrain asks for no model of its own: the host's AI does every model task. The explicit
-    # cognition options above are frozen and kept only for installations that already use them.
-    preset = getattr(args, "cognition_preset", None)
-    if preset is not None:
-        from dataclasses import replace
-
-        from .cognition_config import (
-            CognitionConfigurationError,
-            CognitionPolicyConfiguration,
-            cognition_policy_preset,
-            load_cognition_policy,
-            save_cognition_policy,
-        )
-
-        try:
-            current_policy = load_cognition_policy(profile.directory)
-        except CognitionConfigurationError as error:
-            if error.code != "cognition_policy_invalid":
-                raise
-            current_policy = CognitionPolicyConfiguration()
-        selected_policy = replace(cognition_policy_preset(preset), reasoning_effort=current_policy.reasoning_effort,
-                                  max_envelope_bytes=current_policy.max_envelope_bytes)
-        save_cognition_policy(selected_policy, profile.directory)
     with profile_lock(profile.directory):
         configuration = mcp_config(profile.directory)
         path = profile.directory / "mcp.json"
@@ -100,10 +53,6 @@ def _setup(args):
     else:
         result = desktop.start(profile.directory)
     result.update(mcp_config=configuration, mcp_config_file=str(path))
-    if preset is not None:
-        from dataclasses import asdict
-
-        result["cognition_policy"] = asdict(selected_policy)
     return result
 
 
@@ -159,22 +108,10 @@ def dispatch(args):
             return
         elif action == "logs":
             result = _logs(args.directory, args.lines)
-        elif action in {"cognition-policy", "configure-cognition-policy"}:
-            from .desktop_cognition import run as run_cognition
-
-            result = run_cognition(args)
-        elif action in {"budget", "configure-budget"}:
-            from .desktop_budget import run as run_budget
-
-            result = run_budget(args)
         elif action in {"backup", "restore-backup", "activate-recovery", "recovery-status", "cancel-backup"}:
             from .desktop_recovery import run as run_recovery
 
             result = run_recovery(args)
-        elif action in {"learning-status", "retry-learning"}:
-            from .desktop_learning import run as run_learning
-
-            result = run_learning(args)
         elif action == "turn-status":
             from .desktop_turns import run as run_turns
 

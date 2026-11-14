@@ -14,7 +14,6 @@ import subprocess
 import sys
 import threading
 import time
-from dataclasses import asdict
 from importlib.resources import files
 from logging.handlers import RotatingFileHandler
 from pathlib import Path
@@ -50,6 +49,9 @@ def _port_open(port: int) -> bool:
 
 
 WORK_SLICE_SECONDS = 2.0
+# A worker that has made no progress for this long is reported stalled. This was the larger of 300 seconds and a
+# cognition batch's wall time plus 30; without background learning no job runs anywhere near that long.
+_WORKER_STALL_SECONDS = 300
 
 
 def _environment() -> dict[str, str]:
@@ -166,13 +168,11 @@ def _database_stop(profile) -> None:
 
 
 def _fingerprint(profile, *, settings=None) -> str:
+    """What a running service must match to count as current. An older profile's cognition section is not part of it:
+    no setting of it reaches the service any more."""
     from .recovery_profile import load_binding
 
-    settings = settings or profile.settings()
     values = {"database_port": profile.database_port, "api_port": profile.api_port,
-              "cognition": profile.cognition, "cognition_policy": asdict(settings.semantic_policy()),
-              "cognition_reasoning_effort": settings.cognition_reasoning_effort,
-              "cognition_max_envelope_bytes": settings.cognition_max_envelope_bytes,
               "recovery_binding": load_binding(profile), "version": __version__, "build_id": BUILD_ID}
     return hashlib.sha256(json.dumps(values, sort_keys=True).encode()).hexdigest()
 
@@ -226,7 +226,6 @@ def _probe(profile) -> dict | None:
 def _base_status(profile) -> dict:
     return {"profile": str(profile.directory), "brain_id": profile.brain_id,
             "installation_id": profile.installation_id, "base_url": profile.base_url,
-            "cognition": "configured" if profile.cognition else "not_configured",
             "host_adapter": "not_verified", "mcp": "tools_only",
             "version": __version__, "build_id": BUILD_ID, "schema_id": SCHEMA_ID}
 
@@ -523,7 +522,7 @@ class LocalSupervisor:
         worker = self.worker_state
         if self.worker is None or not self.worker.is_alive():
             worker = "stopped"
-        elif time.monotonic() - self.last_progress > max(300, self.settings.cognition_max_wall_time_ms / 1000 + 30):
+        elif time.monotonic() - self.last_progress > _WORKER_STALL_SECONDS:
             worker = "stalled"
         ready = (database == "ready" and worker in {"ready", "busy"}
                  and not self.stopped.is_set())

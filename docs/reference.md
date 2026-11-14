@@ -53,13 +53,11 @@ uv tool install --python 3.12 'membrain @ https://github.com/chriswu727/membrain
 membrain desktop setup
 ```
 
-This installation does not require Git or a repository clone, or separate startup commands for the database, API, and worker. If installation reports that the command directory is not in `PATH`, run `uv tool update-shell` and reopen your terminal. Setup asks for no model and no API key, and makes no model calls; status reports `cognition: not_configured` unless an earlier installation configured one.
+This installation does not require Git or a repository clone, or separate startup commands for the database, API, and worker. If installation reports that the command directory is not in `PATH`, run `uv tool update-shell` and reopen your terminal. Setup asks for no model and no API key, and makes no model calls.
 
-**Frozen:** the cognition model (model-driven background learning, configured with `desktop setup --base-url --model --api-key-env [--thinking]` or the `MEMORY_COGNITION_*` variables) is frozen and outside the product's main line, in which the host's own AI does every model task; existing configurations keep working, and the reference material below is kept until the code is removed.
+**Removed:** background learning with a cognition model of memBrain's own (configured with `desktop setup --base-url --model --api-key-env [--thinking] [--cognition-preset reasoning]` or the `MEMORY_COGNITION_*` variables, and inspected with `desktop learning-status`, `retry-learning`, `budget`, `configure-budget`, `cognition-policy` and `configure-cognition-policy`) was removed after runtime `2600219b`; the host's own AI does every model task. Setup no longer accepts those options and the commands are gone. An installation that configured a model keeps loading: the `cognition` section of `profile.json`, a `cognition-policy.json` beside it, and a `MEMORY_COGNITION_*` variable are ignored (the variables with one warning in the log that names them, never their values), and status no longer reports a `cognition` line. What that learning stored stays readable and erasable; see [what the removed learning left behind](#what-the-removed-learning-left-behind).
 
 Setup creates a stable brain identity and local credentials, prepares a dedicated database, applies migrations, and starts the memory service and worker in the background. Repeating setup does not recreate the brain or clear its memories. The default API address is `127.0.0.1:8788`, and the database defaults to `127.0.0.1:55433`. On first setup, occupied ports are replaced with available ports and saved. An existing installation reports a port conflict rather than stopping another process or silently switching to a different brain.
-
-For a reasoning model that needs more time or output than the default cognitive limits, explicitly use `desktop setup --cognition-preset reasoning`. The preset permits 240 seconds for proposal plus verification, 16,384 output tokens per request, and 65,536 decoded-content bytes. It does not select a model, enable thinking mode, or increase cumulative spending allowances. See [cognitive policy and recovery](../architecture/cognition-policy.md) for existing installations and the measured DeepSeek tradeoffs.
 
 Setup prints an MCP configuration containing no secrets and saves it as `mcp.json` in the local configuration directory. You can retrieve it again with:
 
@@ -69,7 +67,7 @@ membrain desktop mcp-config
 
 Add this configuration to a host that supports stdio MCP to connect the memory tools. Configuration locations vary by host; setup does not currently modify external client configuration automatically. Starting this MCP connection automatically starts or connects to the local service. Closing the MCP connection leaves the service processing background tasks. After a computer restart, the next MCP connection or SDK `open_client()` call starts the service again with the same brain; no new setup is required.
 
-**The MCP connection is still `tools_only`.** It does not automatically read all host conversations, take over compaction, or confirm message delivery. Agents that need automatic memory should use a host plugin or adapter that supplies the host message lifecycle ([plugin mode](#plugin-mode)); the Python runtime below is frozen. Successful installation, a configured cognition model, and automatic host integration are three distinct states.
+**The MCP connection is still `tools_only`.** It does not automatically read all host conversations, take over compaction, or confirm message delivery. Agents that need automatic memory should use a host plugin or adapter that supplies the host message lifecycle ([plugin mode](#plugin-mode)); the Python runtime below is frozen. Successful installation and automatic host integration are distinct states.
 
 ### Direct chat and Python sessions
 
@@ -77,18 +75,16 @@ Add this configuration to a host that supports stdio MCP to connect the memory t
 
 The Python `MemoryClient` retries a bodyless GET once if the connection resets or closes with a protocol/read error. It preserves the same destination, authentication, recovery acknowledgement and request options, and emits a warning without request content. A second failure propagates. Each attempt retains the configured HTTP timeout; this is not a total wall-clock deadline. Writes, GET requests with bodies, timeouts, HTTP error responses and invalid JSON are not automatically retried. This does not authorize repeating a model call or an uncertain delivery.
 
-After setup, explicitly reuse the configured memory learning provider for replies, or run `configure-chat` without flags to enter a separate provider:
+Run `configure-chat` without flags to enter a reply provider; an installation that configured a cognition model under an older runtime can copy that provider with `--use-cognition`:
 
 ```sh
-membrain desktop configure-chat --use-cognition
+membrain desktop configure-chat
 membrain desktop chat
 ```
 
 Chat uses the same persistent brain and automatically captures input, recalls memory, generates an answer, records actual terminal delivery, and updates working state. No chat framework or memory-tool calls are required. The next invocation reconnects to the same brain and default conversation. Use `--conversation <stable-id>` and `--branch <stable-id>` to select a session. A new conversation is not a separate brain or a tenant privacy boundary; unrelated users need separate authorized brain identities.
 
-Successful delivery does not prove successful learning. Chat reports unavailable or incomplete situation processing on stderr after checking only the completed turn and its orientation job. Interactive startup also checks background progress once; scripted single-message invocations do not scan that history. Diagnostic failures do not retry the model or turn an already delivered answer into a failed operation.
-
-Reply settings live in private `chat.json`, separate from the cognition settings in `profile.json`. They are protected local plaintext, not a system keychain. Changing the reply model does not restart the memory service or change the brain. `configure-chat` supports `--base-url`, `--model`, `--api-key-env`, optional `--thinking`, and `--non-interactive`. The default per-request limits are 4,096 output tokens, 180 seconds of network timeout and elapsed-time checks, and 1 MiB of response bytes. Override them with `--max-output-tokens`, `--timeout-seconds`, and `--max-response-bytes`. These are not cumulative spending limits or a hard cancellation deadline for a remote request. The runtime separately caps delivered text at 64,000 bytes. Configuring only replies leaves model-driven memory learning disabled, and chat reports that state.
+Reply settings live in private `chat.json`, separate from `profile.json`. They are protected local plaintext, not a system keychain. Changing the reply model does not restart the memory service or change the brain. `configure-chat` supports `--base-url`, `--model`, `--api-key-env`, optional `--thinking`, and `--non-interactive`. The default per-request limits are 4,096 output tokens, 180 seconds of network timeout and elapsed-time checks, and 1 MiB of response bytes. Override them with `--max-output-tokens`, `--timeout-seconds`, and `--max-response-bytes`. These are not cumulative spending limits or a hard cancellation deadline for a remote request. The runtime separately caps delivered text at 64,000 bytes.
 
 The Python entry point uses the same saved model configuration and session protection:
 
@@ -211,7 +207,7 @@ membrain desktop start
 membrain desktop restart
 ```
 
-`status` checks the authenticated service, database, brain identity, and worker. The presence of model configuration does not verify provider availability or memory quality. `logs` returns bounded, structured service events without conversation bodies or API keys. `stop` and `restart` retain the database volume and configuration; they do not delete memories. Shutdown is requested through the authenticated service instance rather than by killing a process using a stale PID. Updating cognition configuration through `setup` automatically restarts the services that need the update. With `--no-start`, setup only saves configuration; run `restart` later to apply it. After updating the installed program, also run `desktop restart` so the background instance loads the new code.
+`status` checks the authenticated service, database, brain identity, and worker; it does not verify memory quality. `logs` returns bounded, structured service events without conversation bodies or API keys. `stop` and `restart` retain the database volume and configuration; they do not delete memories. Shutdown is requested through the authenticated service instance rather than by killing a process using a stale PID. When the saved configuration differs from the running service's, `setup` restarts the service. With `--no-start`, setup only saves configuration; run `restart` later to apply it. After updating the installed program, also run `desktop restart` so the background instance loads the new code.
 
 To update the source-URL installation above to the current `main` branch, reinstall the package and restart the service:
 
@@ -239,7 +235,7 @@ membrain desktop setup --non-interactive --no-start
 membrain desktop start
 ```
 
-The cognition options are frozen (see [desktop setup](#desktop-setup)) and remain only for installations that already use them. To configure cognition non-interactively, use `--base-url`, `--model`, and `--api-key-env` to specify the service URL, model, and **name of an already-set environment variable containing the key**. Do not put the key value in command arguments. The optional `--thinking enabled|disabled` flag is only for providers that support it. The desktop service uses its own configuration; it does not automatically read the repository's `.env` or migrate brains from the development database into the new installation.
+Setup takes no model options (see [desktop setup](#desktop-setup)). The desktop service uses its own configuration; it does not automatically read the repository's `.env` or migrate brains from the development database into the new installation.
 
 The current delivery provides local command-line installation and service management and still requires uv and Docker Desktop. There is no native one-click installer or complete lifecycle adapter for a specific host yet. The implementation includes Windows and Linux path and process handling, but desktop end-to-end acceptance currently covers macOS; the other operating systems have not been tested on actual machines. See [desktop installation and recovery acceptance](../evaluations/desktop-2026-10-24.md) for coverage and limitations.
 

@@ -7,12 +7,12 @@ from unittest.mock import Mock
 import httpx
 import pytest
 from test_desktop_chat import arguments
+from test_legacy_cognition_settings import with_cognition
 
 from membrain import desktop, desktop_cli
 from membrain.local_profile import (
     LocalProfileBusy,
     LocalProfileError,
-    configure_cognition,
     ensure_profile,
     load_profile,
 )
@@ -83,8 +83,13 @@ def test_start_degraded_owned_service_does_not_spawn_a_second_process(profile, m
 
 
 def test_changed_configuration_requires_restart_without_implicit_new_process(profile, monkeypatch):
+    from dataclasses import replace
+
+    from membrain.local_profile import _save
+
     previous = ready(profile)
-    updated = configure_cognition(profile, "https://provider.example/v1", "model", "private-model-key")
+    _save(replace(profile, api_port=profile.api_port + 1))
+    updated = load_profile(profile.directory)
     monkeypatch.setattr(desktop, "_probe", lambda candidate: dict(previous))
     monkeypatch.setattr(desktop, "_prepare_database", forbid)
     monkeypatch.setattr(desktop, "_launch", forbid)
@@ -98,11 +103,11 @@ def test_changed_configuration_requires_restart_without_implicit_new_process(pro
 
 
 def test_status_does_not_confuse_configured_provider_with_running_service(profile, monkeypatch):
-    configured = configure_cognition(profile, "https://provider.example/v1", "model", "private-model-key")
+    configured = with_cognition(profile, "https://provider.example/v1", "model", "private-model-key")
     monkeypatch.setattr(desktop, "_probe", lambda candidate: None)
     monkeypatch.setattr(desktop, "_port_open", lambda port: False)
     result = desktop.status(configured.directory)
-    assert result["cognition"] == "configured"
+    assert "cognition" not in result
     assert result["ready"] is False
     assert result["state"] == "stopped"
     assert result["host_adapter"] == "not_verified"
@@ -404,49 +409,13 @@ def test_private_managed_file_writer_rejects_hardlinks_before_truncation(profile
     assert original.read_text() == "keep this original content"
 
 
-@pytest.mark.parametrize("no_start", [False, True])
-def test_setup_applies_changed_provider_with_automatic_restart_unless_disabled(profile, monkeypatch, no_start):
-    from membrain import desktop_connection
-
-    profile = configure_cognition(profile, "https://old-provider.example/v1", "old-model", "old-private-key")
-    monkeypatch.setenv("TEST_DESKTOP_PROVIDER_KEY", "new-private-key")
-    monkeypatch.setattr(desktop_connection, "mcp_config", lambda directory: {"mcpServers": {"memory": {}}})
-    monkeypatch.setattr(desktop, "start", forbid)
-    operations = []
-
-    def status(directory):
-        current = load_profile(directory)
-        assert current.cognition == {"base_url": "https://new-provider.example/v1", "model": "new-model",
-                                     "api_key": "new-private-key", "thinking": "enabled"}
-        operations.append("status")
-        return ready(profile, state="restart_required", ready=False, configuration_current=False)
-
-    def restart(directory):
-        assert not no_start
-        operations.append("restart")
-        return ready(load_profile(directory), configuration_current=True)
-
-    monkeypatch.setattr(desktop, "status", status)
-    monkeypatch.setattr(desktop, "restart", restart)
-    args = SimpleNamespace(directory=profile.directory, api_port=None, database_port=None,
-                           base_url="https://new-provider.example/v1", model="new-model",
-                           api_key_env="TEST_DESKTOP_PROVIDER_KEY", thinking="enabled",
-                           no_start=no_start, non_interactive=True)
-    result = desktop_cli._setup(args)
-    assert operations == (["status"] if no_start else ["status", "restart"])
-    assert result["state"] == ("restart_required" if no_start else "ready")
-    assert result["ready"] is not no_start
-    assert "new-private-key" not in json.dumps(result)
-    assert load_profile(profile.directory).brain_id == profile.brain_id
-
-
 @pytest.mark.parametrize("configured", [False, True])
 def test_interactive_setup_never_asks_for_a_model(profile, monkeypatch, capsys, configured):
     from membrain import desktop_connection
 
     if configured:
-        profile = configure_cognition(profile, "https://existing-provider.example/v1", "existing-model",
-                                      "existing-private-key")
+        profile = with_cognition(profile, "https://existing-provider.example/v1", "existing-model",
+                                 "existing-private-key")
     monkeypatch.setattr(desktop_cli.sys, "stdin", Mock(isatty=lambda: True))
     monkeypatch.setattr("builtins.input", forbid)
     monkeypatch.setattr("getpass.getpass", forbid)
@@ -457,7 +426,7 @@ def test_interactive_setup_never_asks_for_a_model(profile, monkeypatch, capsys, 
     desktop_cli.dispatch(arguments("setup", "--directory", str(profile.directory), "--no-start"))
     output = capsys.readouterr()
     result = json.loads(output.out)
-    assert result["cognition"] == ("configured" if configured else "not_configured")
+    assert "cognition" not in result
     assert output.err == ""
     assert "existing-private-key" not in output.out
     assert load_profile(profile.directory).cognition == profile.cognition

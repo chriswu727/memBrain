@@ -59,18 +59,17 @@ def _new_profile(directory, journal, configuration, *, api_port, database_port):
 
 
 def _restore_configuration(profile, configuration):
+    """Write the chat configuration back. A backup from an older runtime can also hold the limits of the removed
+    cognition model (``cognition_policy``): they are not restored and nothing reads them, whatever they contain."""
     from .chat_config import load_chat_configuration
-    from .cognition_config import load_cognition_policy
 
-    for key, name in (('chat', 'chat.json'), ('cognition_policy', 'cognition-policy.json')):
-        existing = read_document(profile.directory / name)
-        if existing is not None and existing != configuration[key]:
-            raise BackupError('backup_conflict')
-        if existing is None and configuration[key] is not None:
-            write_document(profile.directory / name, configuration[key])
+    existing = read_document(profile.directory / 'chat.json')
+    if existing is not None and existing != configuration['chat']:
+        raise BackupError('backup_conflict')
+    if existing is None and configuration['chat'] is not None:
+        write_document(profile.directory / 'chat.json', configuration['chat'])
     if configuration['chat'] is not None:
         load_chat_configuration(profile.directory)
-    load_cognition_policy(profile.directory)
 
 
 def _database_source(profile, manifest):

@@ -41,7 +41,7 @@ def test_cold_start_concurrent_connect_restart_and_mcp_preserve_one_brain(tmp_pa
             results = list(pool.map(lambda _: desktop.start(profile.directory), range(2)))
         first = results[0]
         assert all(item["ready"] for item in results)
-        assert first["cognition"] == "not_configured"
+        assert "cognition" not in first
         assert {item["instance_id"] for item in results} == {first["instance_id"]}
         assert desktop.start(profile.directory)["instance_id"] == first["instance_id"]
 

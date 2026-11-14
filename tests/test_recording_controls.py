@@ -353,8 +353,8 @@ def test_page_shows_a_server_pause_and_a_host_conversation_pause_as_separate_sco
         assert untranslated(page, "#view-privacy > .card:nth-child(2)") == []
     expect(page.locator("#recording")).to_have_text("Recording paused" if language == "en" else "记录已暂停")
     expect(page.locator("#recording-text")).to_contain_text(
-        "New messages, notes and background learning are paused for this memory" if language == "en"
-        else "此记忆库已暂停新消息、笔记和后台学习")
+        "New messages and notes are paused for this memory" if language == "en"
+        else "此记忆库已暂停新消息和笔记")
     expect(page.locator("#local-recording-text")).to_contain_text(
         "This pause covers the host conversations that were active when it was set. It does not apply to direct chat"
         if language == "en" else "这项暂停适用于设置时正在进行的宿主对话，不适用于直接聊天")

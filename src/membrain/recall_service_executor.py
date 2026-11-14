@@ -55,8 +55,6 @@ class RecallServiceExecutor(RecallExecutor):
         self._principals = tuple(set(settings.principals().values()))
         self._settings = replace(
             settings, recall_processes=0, api_keys={}, api_keys_file=None, migration_database_url=None,
-            cognition_base_url=None, cognition_api_key=None, cognition_model=None,
-            cognition_thinking=None, cognition_reasoning_effort=None,
             embedding_local_directory=None,
         )
 

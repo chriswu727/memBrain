@@ -303,8 +303,6 @@ def _cancel(agent, turn_id, acknowledge_uncertain, recovery=None):
 
 def run(args):
     from .agent_session import open_agent
-    from .desktop_chat_monitor import learning_monitor
-    from .local_profile import load_profile
 
     if (args.message is None) != (args.message_id is None):
         raise ValueError("--message and --message-id must be supplied together.")
@@ -336,18 +334,14 @@ def run(args):
             instructions = contents.decode("utf-8")
         except UnicodeDecodeError:
             raise ValueError("The instructions file must contain UTF-8 text.") from None
-    profile = load_profile(args.directory)
+    # Background learning was removed, so there is no learning monitor: replies report only their own outcome.
+    monitor = None
     with open_agent(args.directory, conversation_id=args.conversation, branch_id=args.branch,
                     deliver=_deliver, instructions=instructions,
-                    policy=RuntimePolicy(orientation_policy=args.orientation)) as agent, learning_monitor(
-                        args.directory, startup=interactive,
-                        enabled=profile.cognition is not None and args.cancel is None and control == (None, False),
-                    ) as monitor:
+                    policy=RuntimePolicy(orientation_policy=args.orientation)) as agent:
         def recovery(error):
             _recovery_notice(error, agent, args)
 
-        if profile.cognition is None:
-            print("Memory learning is not configured; persistent sources and lexical recall are available.", file=sys.stderr)
         if control != (None, False):
             # A recording control sends no message. The machine-readable state goes to standard output.
             state = _recording_command(agent, control[0])

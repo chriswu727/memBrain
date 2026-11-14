@@ -237,6 +237,8 @@ class DesktopProfile:
     app_password: str = field(repr=False)
     tenant_id: str
     principal_id: str
+    # The provider an older runtime's background learning used. Still parsed so that such profiles load, kept in
+    # backups, and read only by the frozen desktop chat's --use-cognition; the service never starts a model with it.
     cognition: dict | None = field(default=None, repr=False)
     database_engine: str = "docker"
     native_engine: str | None = None
@@ -258,21 +260,16 @@ class DesktopProfile:
         return f"postgresql://postgres:{quote(self.admin_password, safe='')}@127.0.0.1:{self.database_port}/agent_memory?connect_timeout=5&require_auth=scram-sha-256"
 
     def settings(self) -> Settings:
-        from .cognition_config import load_cognition_policy
+        """The service settings. An older profile's ``cognition`` section and ``cognition-policy.json`` are not used:
+        background learning with a cognition model was removed, so neither starts any model."""
         from .recovery_profile import profile_settings
 
-        cognition = self.cognition or {}
         return Settings(
             database_url=self.database_url,
             migration_database_url=self.migration_database_url,
             api_keys={hashlib.sha256(self.api_key.encode()).hexdigest(): Principal(self.tenant_id, self.principal_id)},
             allowed_hosts=("localhost", "127.0.0.1"),
-            cognition_base_url=cognition.get("base_url"),
-            cognition_api_key=cognition.get("api_key"),
-            cognition_model=cognition.get("model"),
-            cognition_thinking=cognition.get("thinking"),
             embedding_local_directory=_local_embeddings(self.directory),
-            **load_cognition_policy(self.directory).settings(),
             **profile_settings(self),
         )
 
@@ -487,21 +484,3 @@ def ensure_profile(
         )
         _save(profile)
         return profile
-
-
-def configure_cognition(
-    profile: DesktopProfile, base_url: str, model: str, api_key: str, thinking: str | None = None,
-) -> DesktopProfile:
-    cognition = _cognition({"base_url": base_url, "model": model, "api_key": api_key, "thinking": thinking})
-    with profile_lock(profile.directory):
-        current = _load(profile.directory)
-        if any(getattr(current, name) != getattr(profile, name) for name in (
-            "installation_id", "brain_id", "tenant_id", "principal_id", "api_key", "admin_password", "app_password",
-        )):
-            raise LocalProfileError("Profile identity changed; reload it before configuring cognition.")
-        from .cognition_config import load_cognition_policy
-
-        load_cognition_policy(profile.directory).validate_thinking(cognition["thinking"])
-        result = replace(current, cognition=cognition)
-        _save(result)
-        return result

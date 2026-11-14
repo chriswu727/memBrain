@@ -10,9 +10,9 @@ from membrain import (
     config,
     desktop,
     embedded_database,
+    local_embeddings,
     native_adoption,
     native_bundle,
-    semantic_provider,
     storage,
 )
 from membrain.config import Settings
@@ -213,10 +213,9 @@ def test_service_factory_checks_current_schema_before_constructing_provider(monk
         raise SchemaCompatibilityError()
 
     monkeypatch.setattr(storage.Database, "check_compatibility", check)
-    monkeypatch.setattr(semantic_provider, "ChatCompletionsSemanticProvider", forbid)
+    monkeypatch.setattr(local_embeddings, "LocalEmbeddingProvider", forbid)
     settings = Settings(database_url="application-connection", migration_database_url="admin-connection",
-                        cognition_base_url="https://provider.example/v1", cognition_model="model",
-                        cognition_api_key="private-provider-key")
+                        embedding_local_directory="/models/local-embedding")
     with pytest.raises(SchemaCompatibilityError):
         with config.configured_service(settings):
             pytest.fail("An incompatible service must not start")

@@ -1,5 +1,5 @@
 import hashlib
-import traceback
+import os
 from contextlib import contextmanager
 from types import SimpleNamespace
 
@@ -12,7 +12,6 @@ from membrain import (
     config,
     local_embeddings,
     recall_service_executor,
-    semantic_provider,
     service,
     storage,
 )
@@ -23,32 +22,40 @@ from membrain.helpers import Principal
 @pytest.fixture
 def cognitive_env(monkeypatch):
     monkeypatch.setattr(config, "load_dotenv", lambda: None)
-    for prefix in ("MEMORY_COGNITION", "MEMORY_EMBEDDING"):
-        for key in ("BASE_URL", "API_KEY", "MODEL", "MODEL_VERSION", "DIMENSIONS", "THINKING",
-                    "REASONING_EFFORT", "MAX_ENVELOPE_BYTES"):
-            monkeypatch.delenv(prefix + "_" + key, raising=False)
+    for key in ("BASE_URL", "API_KEY", "MODEL", "MODEL_VERSION", "DIMENSIONS"):
+        monkeypatch.delenv("MEMORY_EMBEDDING_" + key, raising=False)
+    for name in [name for name in os.environ if name.startswith("MEMORY_COGNITION_")]:
+        monkeypatch.delenv(name)
     monkeypatch.setenv("MEMORY_DATABASE_URL", "postgresql://unused")
     return monkeypatch
 
 
-def test_model_backends_are_disabled_without_explicit_configuration(cognitive_env):
-    settings = Settings.from_env()
-    assert settings.cognition_base_url is None
-    assert settings.cognition_thinking is None
+COGNITION = {"MEMORY_COGNITION_BASE_URL": "https://cognition.example/v1",
+             "MEMORY_COGNITION_API_KEY": "private-cognition-token", "MEMORY_COGNITION_MODEL": "configured-model",
+             "MEMORY_COGNITION_THINKING": "disabled", "MEMORY_COGNITION_REASONING_EFFORT": "private-effort",
+             "MEMORY_COGNITION_MAX_WALL_TIME_MS": "not-a-number", "MEMORY_COGNITION_MAX_ENVELOPE_BYTES": "0"}
+
+
+def test_model_backends_are_disabled_without_explicit_configuration(cognitive_env, caplog):
+    with caplog.at_level("WARNING", logger="membrain.config"):
+        settings = Settings.from_env()
     assert settings.embedding_local_directory is None
+    assert "MEMORY_COGNITION" not in caplog.text
 
 
-def test_complete_environment_preserves_model_identity_and_hides_keys(cognitive_env):
-    for key, value in {
-        "MEMORY_COGNITION_BASE_URL": "https://cognition.example/v1",
-        "MEMORY_COGNITION_API_KEY": "private-cognition-token",
-        "MEMORY_COGNITION_MODEL": "configured-model",
-        "MEMORY_COGNITION_THINKING": "disabled",
-    }.items():
-        cognitive_env.setenv(key, value)
-    settings = Settings.from_env()
-    assert settings.cognition_model == "configured-model"
-    assert settings.cognition_thinking == "disabled"
+@pytest.mark.parametrize("names", [list(COGNITION), ["MEMORY_COGNITION_MODEL"], ["MEMORY_COGNITION_THINKING"],
+                                   ["MEMORY_COGNITION_MAX_WALL_TIME_MS", "MEMORY_COGNITION_MAX_ENVELOPE_BYTES"]])
+def test_settings_of_the_removed_cognition_model_are_ignored_with_a_warning(cognitive_env, caplog, names):
+    """A deployment that configured a cognition model starts: its settings, complete, partial or malformed, are
+    ignored with one warning that names them and never their values, and no setting of the model is kept."""
+    for name in names:
+        cognitive_env.setenv(name, COGNITION[name])
+    with caplog.at_level("WARNING", logger="membrain.config"):
+        settings = Settings.from_env()
+    assert not any(name.startswith("cognition") or name == "semantic_policy" for name in dir(settings))
+    warnings = [record.getMessage() for record in caplog.records if record.name == "membrain.config"]
+    assert len(warnings) == 1 and all(name in warnings[0] for name in names)
+    assert not any(COGNITION[name] in warnings[0] for name in names)
     assert "private-cognition-token" not in repr(settings)
 
 
@@ -99,106 +106,17 @@ def test_the_factory_builds_only_the_local_embedding_model(cognitive_env, monkey
     assert [str(directory) for directory in opened] == ["/models/local-embedding"]
 
 
-@pytest.mark.parametrize("key,value", [
-    ("MEMORY_COGNITION_MODEL", "configured-model"),
-    ("MEMORY_COGNITION_THINKING", "enabled"),
-    ("MEMORY_COGNITION_THINKING", "disabled"),
-])
-def test_partial_or_malformed_configuration_does_not_silently_activate_defaults(cognitive_env, key, value):
-    cognitive_env.setenv(key, value)
-    with pytest.raises(ValueError):
-        Settings.from_env()
-
-
-@pytest.mark.parametrize("thinking", ["enabled", "disabled"])
-def test_thinking_environment_is_preserved_with_complete_provider(cognitive_env, thinking):
-    for key, value in {
-        "BASE_URL": "https://cognition.example/v1", "API_KEY": "private-token",
-        "MODEL": "configured-model", "THINKING": thinking,
-    }.items():
-        cognitive_env.setenv("MEMORY_COGNITION_" + key, value)
-    assert Settings.from_env().cognition_thinking == thinking
-
-
-@pytest.mark.parametrize("thinking", ["", "ENABLED", " disabled", "none", "private-invalid-value"])
-def test_invalid_thinking_environment_is_rejected_without_echoing_configuration(cognitive_env, thinking):
-    for key, value in {
-        "BASE_URL": "https://cognition.example/v1", "API_KEY": "private-token",
-        "MODEL": "configured-model", "THINKING": thinking,
-    }.items():
-        cognitive_env.setenv("MEMORY_COGNITION_" + key, value)
-    with pytest.raises(ValueError, match="MEMORY_COGNITION_THINKING") as error:
-        Settings.from_env()
-    rendered = "".join(traceback.format_exception(error.value))
-    assert "private-token" not in rendered
-    assert "private-invalid-value" not in rendered
-
-
-@pytest.mark.parametrize("thinking", [True, 1, [], {}])
-def test_direct_settings_reject_nonstring_thinking(thinking):
-    with pytest.raises(ValueError, match="MEMORY_COGNITION_THINKING"):
-        Settings(database_url="unused", cognition_base_url="https://cognition.example/v1",
-                 cognition_api_key="token", cognition_model="model", cognition_thinking=thinking)
-
-
-@pytest.mark.parametrize("missing", ["cognition_base_url", "cognition_api_key", "cognition_model"])
-@pytest.mark.parametrize("empty", [None, "", "   "])
-def test_thinking_cannot_enable_an_incomplete_provider(missing, empty):
-    values = {
-        "cognition_base_url": "https://cognition.example/v1",
-        "cognition_api_key": "private-token", "cognition_model": "configured-model",
-        "cognition_thinking": "disabled",
-    }
-    values[missing] = empty
-    with pytest.raises(ValueError, match="MEMORY_COGNITION requires all of"):
-        Settings(database_url="unused", **values)
-
-
-@pytest.mark.parametrize("thinking", [None, "enabled", "disabled"])
-def test_factory_uses_one_explicit_provider_for_proposal_and_verification_and_closes_it(monkeypatch, thinking):
-    opened, closed = [], []
-    monkeypatch.setattr(storage.Database, "check_compatibility", lambda *args, **kwargs: None)
-
-    class Provider:
-        def __init__(self, *args, **kwargs):
-            opened.append((args, kwargs, self))
-
-        def __enter__(self):
-            return self
-
-        def __exit__(self, *args):
-            closed.append(self)
-
-        def __call__(self, request):
-            pytest.fail("Configuration must not make a model request")
-
-    monkeypatch.setattr(semantic_provider, "ChatCompletionsSemanticProvider", Provider)
-    monkeypatch.setattr(service, "MemoryService", lambda database, **kwargs: SimpleNamespace(database=database, **kwargs))
-    settings = Settings(
-        database_url="unused", cognition_base_url="https://cognition.example/v1",
-        cognition_api_key="cognition-token", cognition_model="cognition-model",
-        cognition_thinking=thinking,
-    )
-    with configured_service(settings) as configured:
-        assert configured.semantic_processor.propose is configured.semantic_processor.verify is opened[0][2]
-        assert configured.embedding_provider is None and len(opened) == 1
-        assert opened[0][0] == (settings.cognition_base_url, "cognition-token", "cognition-model")
-        assert opened[0][1] == {"thinking": thinking, "reasoning_effort": None, "max_response_bytes": 65536}
-        assert closed == []
-    assert closed == [opened[0][2]]
-
-
-def test_default_factory_constructs_no_external_provider(monkeypatch):
+def test_default_factory_constructs_no_external_provider(cognitive_env, monkeypatch):
     monkeypatch.setattr(storage.Database, "check_compatibility", lambda *args, **kwargs: None)
     def forbidden(*args, **kwargs):
         pytest.fail("Unconfigured provider must not be created")
 
-    monkeypatch.setattr(semantic_provider, "ChatCompletionsSemanticProvider", forbidden)
     monkeypatch.setattr(local_embeddings, "LocalEmbeddingProvider", forbidden)
     monkeypatch.setattr(service, "MemoryService", lambda database, **kwargs: SimpleNamespace(**kwargs))
-    with configured_service(Settings(database_url="unused")) as configured:
-        assert configured.semantic_processor is None
-        assert configured.embedding_provider is None
+    for name, value in COGNITION.items():
+        cognitive_env.setenv(name, value)
+    with configured_service(Settings.from_env()) as configured:
+        assert vars(configured) == {"embedding_provider": None}
 
 
 def test_api_and_worker_share_factory_lifetime(monkeypatch):

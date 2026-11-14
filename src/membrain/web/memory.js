@@ -998,7 +998,7 @@ async function loadRecording() {
       : localPaused ? "Device capture paused" : "Recording on";
     $("recording").classList.toggle("paused", serverPaused || localPaused);
     $("recording-text").textContent = serverPaused
-      ? "New messages, notes and background learning are paused for this memory. Earlier memory stays available."
+      ? "New messages and notes are paused for this memory. Earlier memory stays available."
       : hostConversation ? "Memory accepts writes. A local pause covers existing host conversations on this device; it is not a pause of device capture."
       : localPaused ? "Memory accepts writes, but chat capture is paused on this device."
         : "Memory accepts new messages and notes. Conversation-specific pauses still apply.";

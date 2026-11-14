@@ -129,7 +129,7 @@ const ZH = {
   "Chat capture is enabled on this device.": "本机聊天捕获已开启。",
   "Memory accepts writes, but chat capture is paused on this device.": "记忆库允许写入，但本机聊天捕获已暂停。",
   "Memory accepts new messages and notes. Conversation-specific pauses still apply.": "记忆库允许写入新消息和笔记，单独对话的暂停仍然有效。",
-  "New messages, notes and background learning are paused for this memory. Earlier memory stays available.": "此记忆库已暂停新消息、笔记和后台学习，已有记忆仍然可用。",
+  "New messages and notes are paused for this memory. Earlier memory stays available.": "此记忆库已暂停新消息和笔记，已有记忆仍然可用。",
   "Memory recording controls all connected agents using this memory. Pausing does not cancel data already sent to your agent or model provider.": "记忆库记录开关适用于使用此记忆库的所有 agent。暂停不会撤回已经发送给 agent 或模型服务商的数据。",
   "Pausing device capture covers every locally connected chat, including direct chat, and applies to new messages and turns. A pause that a host conversation asked for covers the host conversations that were active when it was set, not direct chat. Other connected agents may still write to this memory. Resuming either control leaves the other unchanged.": "暂停本机捕获适用于在此设备接入的所有聊天（包括直接聊天），并对新的消息和轮次生效。由宿主对话提出的暂停适用于设置时正在进行的宿主对话，不适用于直接聊天。其他 agent 仍可能写入此记忆库。恢复其中一项不会解除另一项暂停。",
   "Host conversation paused": "宿主对话已暂停记录",

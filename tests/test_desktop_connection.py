@@ -220,12 +220,10 @@ def test_memory_client_preserves_existing_proxy_default(monkeypatch):
 
 
 @pytest.mark.parametrize("failure", [False, True])
-def test_desktop_rpc_timeout_covers_frozen_policy_after_current_limits_are_lowered(tmp_path, monkeypatch, failure):
-    from membrain.cognition_config import CognitionPolicyConfiguration, save_cognition_policy
+def test_desktop_rpc_timeout_keeps_the_long_read_limit(tmp_path, monkeypatch, failure):
     from membrain.local_profile import ensure_profile
 
     profile = ensure_profile(tmp_path / "profile")
-    save_cognition_policy(CognitionPolicyConfiguration(max_wall_time_ms=1), profile.directory)
     calls = []
 
     def handle(request):

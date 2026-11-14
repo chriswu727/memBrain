@@ -10,12 +10,12 @@ from types import SimpleNamespace
 from urllib.parse import parse_qs, urlsplit
 
 import pytest
+from test_legacy_cognition_settings import with_cognition
 
 from membrain import local_profile
 from membrain.local_profile import (
     LocalProfileBusy,
     LocalProfileError,
-    configure_cognition,
     default_profile_directory,
     ensure_profile,
     load_profile,
@@ -111,13 +111,13 @@ def test_windows_private_access_always_applies_its_acl(tmp_path, monkeypatch):
     assert writes == [path, path]
 
 def test_secrets_are_absent_from_repr_and_environment_is_ignored(tmp_path, monkeypatch):
-    profile = configure_cognition(ensure_profile(tmp_path), "https://provider.example/v1", "model", "model-secret")
+    profile = with_cognition(ensure_profile(tmp_path), "https://provider.example/v1", "model", "model-secret")
     monkeypatch.setenv("MEMORY_DATABASE_URL", "postgresql://wrong")
     monkeypatch.setenv("MEMORY_COGNITION_API_KEY", "wrong")
     monkeypatch.setattr("membrain.config.load_dotenv", lambda: pytest.fail("No dotenv lookup allowed"))
     settings = profile.settings()
     assert settings.database_url == profile.database_url
-    assert settings.cognition_api_key == "model-secret"
+    assert not any(name.startswith("cognition") for name in vars(settings))
     assert settings.api_keys_file is None
     assert len(settings.principals()) == 1
     principal = next(iter(settings.principals().values()))
@@ -336,7 +336,7 @@ def test_nested_locks_and_helpers_are_reentrant(tmp_path):
         profile = ensure_profile(tmp_path)
         with profile_lock(tmp_path):
             assert load_profile(tmp_path) == profile
-            updated = configure_cognition(profile, "https://provider.example/v1", "model", "secret")
+            updated = with_cognition(profile, "https://provider.example/v1", "model", "secret")
     assert load_profile(tmp_path) == updated
 
 
@@ -395,14 +395,14 @@ print(profile.installation_id, profile.brain_id)
     assert set(outputs) == {f"{profile.installation_id} {profile.brain_id}"}
 
 
-def test_cognition_configuration_replaces_only_cognition(tmp_path):
+def test_an_old_cognition_section_loads_unchanged_and_reaches_no_setting(tmp_path):
     profile = ensure_profile(tmp_path)
-    updated = configure_cognition(profile, "https://provider.example/v1", "model", "first-secret", "enabled")
+    updated = with_cognition(profile, "https://provider.example/v1", "model", "first-secret", "enabled")
     assert replace(updated, cognition=None) == profile
-    updated = configure_cognition(profile, "http://127.0.0.1:11434/v1", "local-model", "second-secret")
+    updated = with_cognition(profile, "http://127.0.0.1:11434/v1", "local-model", "second-secret")
     assert load_profile(tmp_path) == updated
     assert updated.cognition["thinking"] is None
-    assert updated.settings().cognition_base_url == "http://127.0.0.1:11434/v1"
+    assert vars(updated.settings()) == vars(profile.settings())
 
 
 @pytest.mark.parametrize("base_url,model,api_key,thinking", [
@@ -423,21 +423,19 @@ def test_cognition_configuration_replaces_only_cognition(tmp_path):
     ("https://provider.example", "model", "secret\nkey", None),
     ("https://provider.example", "model", "secret", "invalid"),
 ])
-def test_invalid_cognition_configuration_preserves_previous_profile(tmp_path, base_url, model, api_key, thinking):
+def test_an_invalid_cognition_section_is_refused_without_echoing_it(tmp_path, base_url, model, api_key, thinking):
     profile = ensure_profile(tmp_path)
     before = (tmp_path / "profile.json").read_bytes()
     with pytest.raises(LocalProfileError) as error:
-        configure_cognition(profile, base_url, model, api_key, thinking)
+        with_cognition(profile, base_url, model, api_key, thinking)
     assert "secret" not in str(error.value)
     assert (tmp_path / "profile.json").read_bytes() == before
-
-
-def test_stale_identity_cannot_update_another_profile(tmp_path):
-    profile = ensure_profile(tmp_path)
-    forged = replace(profile, brain_id="00000000-0000-0000-0000-000000000000")
-    with pytest.raises(LocalProfileError, match="identity changed"):
-        configure_cognition(forged, "https://provider.example", "model", "secret")
-    assert load_profile(tmp_path) == profile
+    document = json.loads(before)
+    document["cognition"] = {"base_url": base_url, "model": model, "api_key": api_key, "thinking": thinking}
+    (tmp_path / "profile.json").write_text(json.dumps(document), encoding="utf-8")
+    with pytest.raises(LocalProfileError) as error:
+        load_profile(tmp_path)
+    assert "secret" not in str(error.value)
 
 
 def test_atomic_replace_failure_keeps_the_complete_original_profile(tmp_path, monkeypatch):
@@ -449,7 +447,7 @@ def test_atomic_replace_failure_keeps_the_complete_original_profile(tmp_path, mo
 
     monkeypatch.setattr(local_profile.os, "replace", fail)
     with pytest.raises(OSError, match="disk failure"):
-        configure_cognition(profile, "https://provider.example", "model", "secret")
+        local_profile._save(replace(profile, name="Renamed memory"))
     assert (tmp_path / "profile.json").read_bytes() == original
     assert not list(tmp_path.glob("*.tmp"))
     assert load_profile(tmp_path) == profile
