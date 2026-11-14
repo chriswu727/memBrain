@@ -1,5 +1,7 @@
 # Source-preserving recall resolution
 
+**Partly removed:** the short views (recall summaries) and retention priorities described here were written by background learning with a cognition model, removed after runtime `2600219b` (see [what the removed learning left behind](../docs/reference.md#what-the-removed-learning-left-behind)). Recall still reads the ones an older runtime stored, and erasure still removes them; nothing writes new ones.
+
 Original sources and full assertion statements remain persistent. Age changes accessibility and the default detail supplied to a model; it does not delete source content. Explicit user erasure remains separate and removes dependent short expressions too.
 
 ## Encoding and verification

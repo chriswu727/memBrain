@@ -60,8 +60,8 @@ Resolve an existing turn through its owning host. A draft created by a different
 
 `pending_turn_recording_excluded` means a recorded turn is still pending while device capture is paused, the conversation branch is off the record, or one of them cannot be read. The turn was neither converted to a temporary turn nor resumed. Cancel it with its exact turn ID, or turn recording back on (`/on-record`, or resume device capture) and then resume it. `/resume` itself never changes a recording control.
 
-## Learning is separate from delivery
+## Learning
 
-Use `desktop learning-status` for background learning and `desktop learning-status --job JOB_ID` for an exact cognitive job. A completed answer, a ready service, and a queued recovery job are different from successful learning. See [cognitive policy and recovery](cognition-policy.md) for explicit reasoning limits and bounded recovery of a blocked learning interval.
+Background learning with a cognition model, and with it `desktop learning-status`, was removed after runtime `2600219b` (see [what the removed learning left behind](../docs/reference.md#what-the-removed-learning-left-behind)). A completed answer means the turn was delivered and recorded; nothing is learned from it in the background.
 
 The CLI diagnostics are covered by deterministic fake-transport tests for authentication failure, rate limiting, unknown outcomes, scope changes, wrong-scope responses, malformed metadata, and unavailable diagnostics. These tests make no paid calls and do not claim real provider availability.

@@ -1,5 +1,7 @@
 # Link-derived historical comparison accounting
 
+**Removed:** this page describes background learning with a cognition model of memBrain's own, which was removed after runtime `2600219b` (see [what the removed learning left behind](../docs/reference.md#what-the-removed-learning-left-behind)). It is kept as a historical record and no longer describes the runtime.
+
 The first finite acceptance attempt stopped on an internally contradictory proposal. A relation named two historical endpoints, but the model declared one corresponding comparison unchanged. The strict validator correctly refused publication. The [failed attempt](../evaluations/v1-2026-10-25-acceptance-attempt-1.md) remains a failure; its exact request and response are retained in an offline regression fixture.
 
 The `history-link-coverage-v1` input contract removes redundant model bookkeeping. In historical integration, the model supplies its proposed claims and `belief_links`, plus `integration_abstentions` containing an objective ID and an allowed reason for each selected objective with no proposed link. It does not emit `integration_decisions` under this contract.

@@ -1,5 +1,7 @@
 # Versioned relation capabilities and speech-event attribution
 
+**Removed:** this page describes background learning with a cognition model of memBrain's own, which was removed after runtime `2600219b` (see [what the removed learning left behind](../docs/reference.md#what-the-removed-learning-left-behind)). It is kept as a historical record and no longer describes the runtime.
+
 New semantic snapshots use `relation-capabilities-v1`, inheriting source-backed episode navigation, fidelity assessment, operation scope and communication-intent rules. Previously frozen versions keep their serialized requests and guards. This contract does not reinterpret stored memories or retry paid failures.
 
 Before generation, a deterministic table describes structural restrictions for each exact supplied memory version. It lists evidence-compatible claim kinds, unavailable relations with fixed reasons, conditional relations and eligible independent abstraction partners. The table shares the authoritative source and abstraction gates; it does not infer missing attribution, conditions or time metadata. Assistant speech cannot support an inferred-pattern abstraction. Equivalent claims require complete identical attribution, conditions and time metadata.

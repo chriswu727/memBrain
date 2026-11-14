@@ -1,5 +1,7 @@
 # Learning phase monitoring
 
+**Removed:** this page describes background learning with a cognition model of memBrain's own, which was removed after runtime `2600219b` (see [what the removed learning left behind](../docs/reference.md#what-the-removed-learning-left-behind)). It is kept as a historical record and no longer describes the runtime.
+
 The current implementation separates local encoding from historical integration in diagnostics. The broader [local observation and historical integration contract](local-observation-consolidation.md) remains an implementation contract pending integrated acceptance. These diagnostics have focused offline and database coverage; they do not establish the semantic quality of model outputs.
 
 ## Inspecting progress

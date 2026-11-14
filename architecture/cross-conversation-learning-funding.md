@@ -1,5 +1,7 @@
 # Private historical learning capacity
 
+**Removed:** this page describes background learning with a cognition model of memBrain's own, which was removed after runtime `2600219b` (see [what the removed learning left behind](../docs/reference.md#what-the-removed-learning-left-behind)). It is kept as a historical record and no longer describes the runtime.
+
 Fresh ordinary encoding roots carry a server-issued `private-brain-history-funding-v1` permission. After encoding, their complete unused history allocation can fund an older, never-attempted historical comparison in another conversation of the same private brain, owner and branch. This allows work to progress when a conversation is abandoned and the owner continues elsewhere.
 
 The transfer changes resource accounting only. The recipient retains its original conversation, input revisions, source hashes, historical cutoff, admitted objectives and encoding parent. The donor's text is not added to that comparison's inputs or evidence. Ordinary authorized cross-conversation retrieval is unchanged; a new conversation can still legitimately recall an older private memory.

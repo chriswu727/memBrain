@@ -1,5 +1,7 @@
 # Bounded attention for historical comparison
 
+**Removed:** this page describes background learning with a cognition model of memBrain's own, which was removed after runtime `2600219b` (see [what the removed learning left behind](../docs/reference.md#what-the-removed-learning-left-behind)). It is kept as a historical record and no longer describes the runtime.
+
 Historical retrieval and paid historical comparison have different purposes. Retrieval keeps a broad set of possible leads, including source-span bridges and weak character matches. The `bounded-comparison-attention-v1` policy admits at most **three comparison objectives per fresh learning input** from that bounded candidate set. It does not delete memories, narrow ordinary recall, or declare the other candidates irrelevant.
 
 The policy is server-issued as `history_attention_policy` on new ordinary encoding roots. A root without that marker retains the previous discovery and continuation behavior. Existing manifests, outstanding obligations, operation reservations, and accounting are not rewritten when the software is upgraded. An explicit recovery or ranking change does not authorize comparison of the same input and endpoint again under a new objective identity.

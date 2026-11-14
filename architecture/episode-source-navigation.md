@@ -1,5 +1,7 @@
 # Source-backed episode navigation
 
+**Removed:** this page describes background learning with a cognition model of memBrain's own, which was removed after runtime `2600219b` (see [what the removed learning left behind](../docs/reference.md#what-the-removed-learning-left-behind)). It is kept as a historical record and no longer describes the runtime.
+
 Status: implemented with integrated local verification. The [verification report](../evaluations/v1-source-navigation-2026-10-25.md) records 4,282 passing tests and an inspected installed artifact. This boundary follows the [failed fixed-proposal diagnostic](../evaluations/deepseek-2026-10-25-episode-fidelity.md), which found that four positive fidelity judgments could still accept unsupported meaning. It contains reuse of an erroneous episode label; it does not turn semantic verification into a truth certificate.
 
 ## Separate organization from factual support

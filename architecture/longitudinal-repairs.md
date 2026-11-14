@@ -1,5 +1,7 @@
 # Source interpretation and recall repairs
 
+**Partly removed:** the source-act and citation checks of model proposals described here went with background learning, removed after runtime `2600219b` (see [what the removed learning left behind](../docs/reference.md#what-the-removed-learning-left-behind)); the recall and ranking repairs remain.
+
 The [varied longitudinal diagnostic](../evaluations/v1-2026-10-26-longitudinal-round.md) exposed valid declarative source rejection, missed meaningful recall, assistant-origin contamination and expensive processing. This batch repairs specific mechanisms; it does not establish biological equivalence or complete longitudinal acceptance.
 
 Apply this candidate through the normal runtime upgrade and service restart. It introduces no database migration, re-embedding requirement or brain reset; existing source and index rows remain in place, and started cognitive jobs retain their frozen contracts.

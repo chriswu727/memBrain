@@ -1,5 +1,7 @@
 # Citation coverage at semantic publication
 
+**Removed:** this page describes background learning with a cognition model of memBrain's own, which was removed after runtime `2600219b` (see [what the removed learning left behind](../docs/reference.md#what-the-removed-learning-left-behind)). It is kept as a historical record and no longer describes the runtime.
+
 An assertion can accurately summarize a complete source while citing an incomplete subset of that source. The [four-turn longitudinal checkpoint](../evaluations/v1-2026-10-25-longitudinal-publication-failure.json) exposed this distinction: a published summary listed five writing suggestions, but its references omitted the suggestion about the letter's location and physical details. The verifier saw the missing text in complete source context and still approved the reference set.
 
 The `citation-coverage-v1` cognitive input contract adds a separate required `citation_coverage_verdict` for claims, current-situation updates and belief links. The runtime constructs each proposal's `citation_scope` from its own references. Positive support is limited to that proposal's numbered supporting excerpts; an abstraction additionally limits support to the excerpts selected as relevant. The coverage target is the entire proposal, including attribution, conditions, negation, uncertainty, world, time, procedural outcomes and the asserted relationship.

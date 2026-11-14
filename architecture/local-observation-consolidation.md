@@ -1,5 +1,7 @@
 # Local observation encoding and historical integration
 
+**Removed:** this page describes background learning with a cognition model of memBrain's own, which was removed after runtime `2600219b` (see [what the removed learning left behind](../docs/reference.md#what-the-removed-learning-left-behind)). It is kept as a historical record and no longer describes the runtime.
+
 Status: implemented with integrated local verification, 2026-10-25. Local encoding, finite phase allocations, complete comparison packaging, deferred scheduling, episode fidelity, phase diagnostics, and recovery passed the 4,249-test integrated run, including Docker and installed-wheel flows. New real-model acceptance remains pending. See the [verification report](../evaluations/v1-bounded-learning-2026-10-25.md). This contract does not change the stopped evaluation, old frozen jobs, or published memories.
 
 ## Evidence and failure boundary

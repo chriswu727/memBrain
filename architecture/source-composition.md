@@ -1,5 +1,7 @@
 # Source-faithful composition
 
+**Removed:** this page describes background learning with a cognition model of memBrain's own, which was removed after runtime `2600219b` (see [what the removed learning left behind](../docs/reference.md#what-the-removed-learning-left-behind)). It is kept as a historical record and no longer describes the runtime.
+
 `source-composition-v1` extends `recall-resolution-v1`; version 2 also covers ordinary claims and their short views. Version 3 adds source-rendered communication views, and current `source-composition-v4` shares full sources in general verification. These contracts address observed failures: an autobiographical draft can invent circumstances after correctly recalling a scene, and compressed descriptions can assign one person's actions to someone else. Authentic citations and correct speaker attribution alone do not establish either kind of fidelity.
 
 The shared composition procedure fixes the event's participants, actions, objects, expressed meaning, time, frequency and qualifications before changing its wording. It applies to complete answers, including captions, letters and other drafts in the user's voice. Modifiers, possessives, pluralization and habitual expressions can introduce facts, so the check covers those phrases as well as main verbs. When a paraphrase cannot be supported confidently, the model should retain or quote the source wording. The procedure stays out of ordinary user-facing responses.

@@ -1,5 +1,7 @@
 # Query relevance for belief neighborhoods
 
+**Removed:** this page describes background learning with a cognition model of memBrain's own, which was removed after runtime `2600219b` (see [what the removed learning left behind](../docs/reference.md#what-the-removed-learning-left-behind)). It is kept as a historical record and no longer describes the runtime.
+
 The `belief-neighborhood-v2` route preserves query relevance when completing an already loaded belief component. A related assertion is needed to explain a conflict or correction; that dependency does not independently establish relevance to the user's current task.
 
 The previous route assigned each newly introduced endpoint a fixed reciprocal-rank score of `1 / 61`. Other candidate routes already scale their scores by lexical relevance and access state. A weak query match could therefore introduce a much stronger endpoint and move an unrelated conflict to the front of context admission.
