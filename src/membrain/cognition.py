@@ -981,30 +981,16 @@ def _has_applicability(memory):
 
 
 def _memory_applicability(memory, state, scope, events, timestamp):
-    observations = {}
+    # Context observations, the situation facts a condition was checked against, came only from the orientation of
+    # turns of the removed runtime mode. Nothing supplies one now, so a condition is evaluated against none. The flag
+    # still says whether every source the recall needed was read.
     complete = state.get("context_observations_complete", True) is True
-    supplied = state.get("context_observations", [])
-    if not isinstance(supplied, (list, tuple)):
-        supplied, complete = [], False
-    for observation in supplied:
-        try:
-            validate_observation(observation)
-        except (ValueError, TypeError):
-            continue
-        if all(_valid_ref(ref, events, scope)
-               and events[ref["event_id"]]["observed"]["actor_role"] in {"user", "operator", "tool"}
-               and not any(evidence_overlaps(ref, old) for old in state.get("superseded_evidence_refs", []))
-               for ref in observation["evidence_refs"]):
-            canonical = {key: value for key, value in observation.items() if key != "observation_id"}
-            canonical["evidence_refs"] = sorted(observation["evidence_refs"], key=digest)
-            observations.setdefault(digest(canonical), observation)
-    complete = complete and len(observations) <= 128
     at = state.get("applicability_at", timestamp)
     try:
         if memory.get("condition_registry_fingerprint", CORE_REGISTRY.fingerprint) != CORE_REGISTRY.fingerprint:
             raise ValueError("Unknown registry definition")
         condition = memory.get("conditions", {"op": "always"})
-        assessment = evaluate_applicability(condition, list(observations.values())[:128], at=at)
+        assessment = evaluate_applicability(condition, [], at=at)
         result = assessment.to_dict()
         if (memory.get("memory_id") and memory.get("conditions") == {"op": "always"}
                 and "condition_registry_fingerprint" not in memory):
@@ -1146,14 +1132,6 @@ def prepare(scope: dict, payload: dict, working: dict, recall_result: dict, stat
                     result.append(context_ref)
         return result
 
-    for item in state.get("current_situation", []):
-        value, use = contextual_value({
-            key: item[key] for key in ("kind", "key", "value", "state", "world", "conditions", "verification")
-        } | {key: item[key] for key in ("observation", "evidence_use", "request_verification") if key in item},
-                                     current=True)
-        blocks.append(("current_situation", _serialized(
-            value | {"use": use or "fallible_current_context_not_historical_evidence"}),
-            context_references(item["evidence_refs"], value)))
     for item in clean["items"]:
         value, use = contextual_value(item["value"])
         blocks.append(("working_state", _serialized({

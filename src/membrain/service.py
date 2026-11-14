@@ -592,16 +592,17 @@ class MemoryService:
                 raise DomainError("invalid_evidence", "Evidence span is outside the source.")
         return [lookup[(r["event_id"], r["event_revision"])] for r in refs]
 
+    def _default_working(self, principal, brain, target):
+        return {"scope": self._scope(principal, brain, target), "revision": 0, "through_sequence": 0,
+                "items": [], "open_loops": [], "updated_at": now()}
+
     def _working(self, conn, principal, brain, target, events):
         row = conn.execute(
             "SELECT document FROM memory_working_states WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
             "AND conversation_id=%s AND branch_id=%s",
             (*self._params(principal, brain["id"]), target.get("conversation_ref", ""), target.get("branch_ref", "")),
         ).fetchone()
-        state = self._rebind(row["document"], principal, brain) if row else {
-            "scope": self._scope(principal, brain, target), "revision": 0, "through_sequence": 0,
-            "items": [], "open_loops": [], "updated_at": now(),
-        }
+        state = self._rebind(row["document"], principal, brain) if row else self._default_working(principal, brain, target)
         return self._working_from_events(state, events) if events is not None else state
 
     def _working_from_events(self, state, events):
@@ -665,7 +666,7 @@ class MemoryService:
                            for reference in memory["evidence_refs"] for old in superseded)]
 
     def _retrieval(self, conn, principal, brain, target, query, recall_plan=None, query_embedding=None,
-                   *, save_traces=True):
+                   *, save_traces=True, with_working=False):
         params = self._params(principal, brain["id"])
         from .belief_resolution import frozen_relations, resolution_evidence
         from .belief_store import load_belief_relations
@@ -687,7 +688,9 @@ class MemoryService:
             candidate_state["candidate_versions"],
         )
         memories = merge_belief_candidates(memories, candidate_state, beliefs, selected=recall_plan is not None)
-        raw_working = self._working(conn, principal, brain, target, None)
+        # Recall does not read working state: only prepare shows it, because commit and checkpoint still write it.
+        raw_working = (self._working(conn, principal, brain, target, None) if with_working
+                       else self._default_working(principal, brain, target))
         source_ids = {r["event_id"] for memory in memories for r in memory["evidence_refs"]}
         source_ids.update(event_id for memory in memories for event_id in memory.get("root_event_ids", []))
         source_ids.update(event["event_id"] for event in beliefs["events"])
@@ -707,10 +710,8 @@ class MemoryService:
         state.update(candidate_state)
         state.update(belief_relations=beliefs["relations"], belief_incomplete_versions=beliefs["incomplete_versions"],
                      belief_memories=memories)
-        # Context observations came from the orientations the removed runtime mode stored for its turns (and the
-        # working-state items its commits derived from them, which expired after 24 hours). Nothing supplies one now.
+        # Whether every source the recall needed was read; conditions are judged unknown otherwise.
         state["context_observations_complete"] = len(source_ids) <= 1024
-        state["context_observations"] = []
         if recall_plan is not None:
             lookup = {(event["event_id"], event["revision"]): event for event in events}
             scope = self._scope(principal, brain, target)
@@ -788,7 +789,8 @@ class MemoryService:
             if field in payload:
                 query[field] = payload[field]
         plan = payload.get("recall_plan")
-        result, working, state = self._retrieval(conn, principal, brain, request["target"], query, plan, query_embedding)
+        result, working, state = self._retrieval(conn, principal, brain, request["target"], query, plan, query_embedding,
+                                                 with_working=True)
         state["recent_events"] = self._recent_context(conn, principal, brain, request["target"], payload)
         safe_payload = copy.deepcopy(payload)
         capabilities = safe_payload["capabilities"]

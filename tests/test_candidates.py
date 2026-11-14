@@ -201,19 +201,14 @@ def test_configured_space_mismatch_and_malformed_query_vectors_are_rejected(cand
             candidates.query("query", query_embedding=invalid)
 
 
-def test_association_expansion_is_one_hop_and_respects_current_scope(candidates):
+def test_stored_associations_no_longer_expand_recall(candidates):
+    """Associations were written only by the removed background learning; recall does not follow old ones."""
     first = candidates.add("quartz keynote")
     second = candidates.add("indigo lantern")
-    third = candidates.add("bronze canyon")
-    forbidden = candidates.add("cobalt bridge", branch="other")
-    invalidated = candidates.add("copper island")
     candidates.edge(first, second)
-    candidates.edge(second, third)
-    candidates.edge(first, forbidden)
-    candidates.edge(first, invalidated, invalidated=True)
     _, state = candidates.query("quartz")
-    assert set(state["candidate_versions"]) == {key(first), key(second)}
-    assert {signal["method"] for signal in state["rank_signals"][key(second)]} == {"association"}
+    assert set(state["candidate_versions"]) == {key(first)}
+    assert all(signal["method"] != "association" for signals in state["rank_signals"].values() for signal in signals)
 
 
 def test_episode_membership_expands_detail_without_keyword_overlap(candidates):
@@ -297,35 +292,6 @@ def test_actual_external_usage_changes_candidate_priority_without_mutating_asser
     returned = next(memory for memory in memories if key(memory) == key(promoted))
     assert returned["revision"] == promoted["revision"]
     assert returned["epistemic_status"] == promoted["epistemic_status"]
-
-
-def test_weak_matches_cannot_gain_strong_relevance_from_unrelated_neighborhoods(candidates):
-    anchor = candidates.add("Revise the pottery workshop timetable")
-    relevant = candidates.add("Twenty minutes is manageable")
-    candidates.edge(anchor, relevant)
-    distractors = []
-    for text in ("Revise the hiking route", "Revise the garden layout", "Revise the grocery list"):
-        seed = candidates.add(text)
-        neighbor = candidates.add("An unrelated detail")
-        candidates.edge(seed, neighbor)
-        distractors.extend([seed, neighbor])
-    _, state = candidates.query("Revise the pottery workshop timetable")
-    ordering = state["candidate_versions"]
-    assert ordering[0] == key(anchor)
-    assert all(ordering.index(key(relevant)) < ordering.index(key(item)) for item in distractors)
-    assert state["rank_signals"][key(relevant)][0]["method"] == "association"
-
-
-def test_duplicate_paths_do_not_multiply_neighbor_relevance(candidates, monkeypatch):
-    anchor = candidates.add("pottery workshop timetable")
-    neighbor = candidates.add("Twenty minutes is manageable")
-    timestamp = now()
-    monkeypatch.setattr("membrain.candidates.now", lambda: timestamp)
-    candidates.edge(anchor, neighbor)
-    first = candidates.query("pottery workshop timetable")[1]
-    candidates.edge(anchor, neighbor)
-    second = candidates.query("pottery workshop timetable")[1]
-    assert first["rank_signals"][key(neighbor)] == second["rank_signals"][key(neighbor)]
 
 
 def test_episode_seeds_neither_boost_themselves_nor_exhaust_neighbor_slots(candidates):

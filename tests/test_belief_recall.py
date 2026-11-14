@@ -5,7 +5,7 @@ import pytest
 from legacy_cognition import fixture, legacy_brain
 from legacy_cognition import memory as memory
 from test_cognition import STAMP, event, prepare_payload, request, scope, state, working
-from test_contextual_recall import CONDITION, UNBOUNDED, observation
+from test_contextual_recall import UNBOUNDED
 
 from membrain import cognition
 from membrain.belief_resolution import _cyclic_nodes, frozen_relations, version
@@ -82,17 +82,6 @@ def test_current_resolution_preserves_original_versions_and_evidence(kind, expec
     validate("RecallResult", result)
 
 
-def test_unknown_condition_keeps_old_rule_uncertain_and_expiry_restores_old_rule():
-    sources, memories, current = scenario(kind="exception", conditions=copy.deepcopy(CONDITION))
-    assert states(recall(sources, memories, current))[version(memories[0])] == "uncertain"
-    current["context_observations"] = [observation(sources[1])]
-    assert states(recall(sources, memories, current))[version(memories[0])] == "exception_applies"
-    current["applicability_at"] = "2026-10-23T12:00:00Z"
-    current["belief_relations"] = [relation(memories[1], memories[:1], kind="exception", valid_during={
-        "kind": "interval", "start": {"kind": "unbounded"}, "end": {"kind": "instant", "at": STAMP}})]
-    assert set(states(recall(sources, memories, current)).values()) == {"unchanged"}
-
-
 @pytest.mark.parametrize("change", ["disputed", "unknown", "contested"])
 def test_unsettled_new_claim_cannot_unambiguously_override_old(change):
     sources, memories, current = scenario()
@@ -103,33 +92,6 @@ def test_unsettled_new_claim_cannot_unambiguously_override_old(change):
     current["belief_relations"] = [relation(memories[1], memories[:1])]
     result = recall(sources, memories, current)
     assert states(result)[version(memories[0])] in {"uncertain", "conflicted"}
-
-
-def test_false_old_target_is_historical_and_not_a_current_conflict():
-    sources, memories, current = scenario(kind="contradicts")
-    memories[0].update(conditions={"op": "not", "arg": copy.deepcopy(CONDITION)}, valid_during=copy.deepcopy(UNBOUNDED))
-    current["context_observations"] = [observation(sources[1])]
-    current["belief_relations"] = [relation(memories[1], memories[:1], kind="contradicts")]
-    result = recall(sources, memories, current)
-    assert states(result)[version(memories[0])] == "unchanged"
-    assert states(result)[version(memories[1])] == "unchanged"
-
-
-def test_source_condition_observation_roles_survive_relation_assessment():
-    sources, memories, current = scenario()
-    memories[1].update(conditions=copy.deepcopy(CONDITION), valid_during=copy.deepcopy(UNBOUNDED))
-    current["belief_relations"] = [relation(memories[1], memories[:1])]
-    current["context_observations"] = [observation(sources[1])]
-    result = recall(sources, memories, current)
-    applicability = result["belief_relations"][0]["applicability"]
-    assert applicability["supporting_observation_ids"]
-    assert applicability["opposing_observation_ids"] == []
-    current["context_observations"].append(observation(sources[0], polarity="negative"))
-    result = recall(sources, memories, current)
-    applicability = result["belief_relations"][0]["applicability"]
-    assert applicability["supporting_observation_ids"] and applicability["opposing_observation_ids"]
-    assert set(applicability["supporting_observation_ids"]).isdisjoint(applicability["opposing_observation_ids"])
-    assert states(result)[version(memories[0])] == "conflicted"
 
 
 def test_chain_and_cycles_do_not_resurrect_an_intermediate_old_rule():

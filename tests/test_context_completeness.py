@@ -23,31 +23,6 @@ def assess(memory, current):
     return cognition._memory_applicability(memory, current, scope(), current["working_event_metadata"], STAMP)
 
 
-@pytest.mark.parametrize("first", ["positive", "negative"])
-def test_direct_context_overflow_cannot_turn_a_truncated_side_into_a_decision(first):
-    memory, _, current = case("conflict")
-    first_index = 0 if first == "positive" else 1
-    selected = current["context_observations"][first_index]
-    contrary = current["context_observations"][1 - first_index]
-    current["context_observations"] = [variant(selected, index) for index in range(128)] + [contrary]
-    result = assess(memory, current)
-    assert result["value"] == "unknown"
-    assert "context_incomplete" in result["reasons"]
-    assert result["evidence_refs"] == selected["evidence_refs"]
-
-
-def test_model_generated_ids_do_not_make_duplicate_observations_consume_the_limit():
-    memory, _, current = case("conflict")
-    positive, negative = current["context_observations"]
-    current["context_observations"] = [
-        {**copy.deepcopy(positive), "observation_id": f"random-model-id-{index}"} for index in range(160)
-    ] + [negative]
-    result = assess(memory, current)
-    assert result["value"] == "unknown" and result["conflict"]
-    assert "context_incomplete" not in result["reasons"]
-    assert {ref["event_id"] for ref in result["evidence_refs"]} == {"event-2", "event-3"}
-
-
 @pytest.mark.parametrize("condition,expired,expected", [
     (None, False, "unknown"),
     ({"op": "eq", "key": "activity", "value": "exam_preparation"}, False, "unknown"),

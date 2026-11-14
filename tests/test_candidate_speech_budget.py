@@ -54,7 +54,7 @@ def test_ineligible_speech_cannot_consume_lexical_scan_budget(candidates, kind):
     assert any(identifier.startswith("speech-") for identifier, _ in explicit["candidate_versions"])
 
 
-@pytest.mark.parametrize("route", ["association", "episode"])
+@pytest.mark.parametrize("route", ["episode"])  # Associations no longer expand recall.
 def test_ineligible_speech_cannot_consume_neighborhood_budget(candidates, route):
     seed = candidates.add("turquoise lighthouse", memory_id="seed")
     owned = candidates.add("I always choose chamomile.", memory_id="zz-owned")

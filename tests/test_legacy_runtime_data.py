@@ -114,6 +114,28 @@ def test_prepare_commit_and_checkpoint_still_work_beside_old_turns(old):
     assert checkpoint["compaction_safe"]
 
 
+def test_recall_reads_no_working_state_but_prepare_still_shows_what_commit_saved(old, monkeypatch):
+    """Working state is still written by commit and checkpoint, and prepare shows it; recall no longer reads it."""
+    from membrain.helpers import now
+
+    working = old.rows("memory_working_states", "AND conversation_id='chat' AND branch_id='main'")[0]
+    old.action("commit", {
+        "turn_id": "turn-" + uid(), "idempotency_key": uid(), "expected_working_revision": working["revision"],
+        "delivered_event_ids": [], "proposed_open_loops": [], "assertion_proposals": [], "recall_feedback": [],
+        "proposed_items": [{"key": "next-task", "value": "pick the sandalwood sample", "knowledge_state": "unknown",
+                            "evidence_refs": [], "expires_at": None, "updated_at": now()}]})
+    reads = []
+    original = old.service._working
+    monkeypatch.setattr(old.service, "_working", lambda *args, **kwargs: reads.append(1) or original(*args, **kwargs))
+    recall(old, "松木香味")
+    assert reads == []
+    question = old.events(QUESTION)[0]
+    packet = old.action("prepare", {
+        "turn_id": "turn-" + uid(), "latest_input_event_ids": [question["id"]], "read_fence": default_read_fence(),
+        "budget": default_budget(4000), "capabilities": integration_capabilities()})
+    assert reads and "pick the sandalwood sample" in json.dumps(packet, ensure_ascii=False)
+
+
 def test_pausing_recording_still_stops_every_unfinished_old_turn(old):
     unfinished = {row["turn_id"] for row in old.rows("memory_runtime_turns")
                   if row["stage"] not in ("delivered", "committed", "completed", "failed")
