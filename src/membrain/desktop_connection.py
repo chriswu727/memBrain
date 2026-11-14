@@ -8,8 +8,11 @@ import httpx
 
 from .client import MemoryClient
 
-# Frozen jobs may retain a 600-second deadline after the current policy is lowered.
-_RPC_TIMEOUT = httpx.Timeout(30, connect=5, read=615, pool=5)
+# The longest request a client of the local service makes is one memory action. The service bounds each action's
+# transaction to its wall-time budget, at most 30 seconds (``recall_deadline``, the statement and lock timeouts in
+# ``MemoryService._respond``); a query embedding computed before it can first wait for the local model to load.
+# 120 seconds covers both. (It was 615 for jobs of the removed cognition model, whose frozen policy allowed 600.)
+_RPC_TIMEOUT = httpx.Timeout(30, connect=5, read=120, pool=5)
 
 
 def mcp_config(directory: Path | None = None) -> dict:
