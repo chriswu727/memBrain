@@ -1,18 +1,163 @@
+"""Feedback on a delivered answer: the ``recall_feedback`` of the public ``commit`` action.
+
+Confirmation or correction is credited to a memory only when the answer it refers to was delivered by a runtime
+turn that had selected that memory (``memory_runtime_turns``). The bundled runtime mode that created such turns was
+removed; brains from older runtimes still hold them, so the proof below still reads them, and a ``commit`` that
+names one can still credit its memory. Without such a turn, feedback is kept as a trace and credits nothing, as
+before. The checks of a turn's delivery receipt and prepared memory selection that the proof needs are those of
+the runtime mode's ``delivery_receipts`` and ``prepared_selection`` modules, moved here unchanged.
+"""
+import copy
+import hashlib
+import json
 import re
 from datetime import datetime
 
 from psycopg.types.json import Jsonb
 
 from . import cognition
-from .delivery_receipts import recorded_delivery_receipt
-from .helpers import digest, now, uid
+from .contracts import validate
+from .helpers import DomainError, _hash, _identifier, _integer, _refs, digest, now, uid
 from .legacy_erasure import recompute_access
-from .prepared_selection import selection_for_turn, text_hash
 from .retrieval import resolve_dependency_closure
 
 ATTRIBUTION_VERSION = "sole-exact-statement-v1"
 CONFIRMATION = re.compile(r"\s*(yes|correct|confirmed|对|是的|没错|确认)[。.!！\s]*", re.I)
 CORRECTION = re.compile(r"\s*(不是|不对|错了|incorrect|wrong)[。.!！\s]*", re.I)
+
+RECEIPT_VERSION = "runtime-delivery-receipt-v1"
+RECEIPT_STATES = frozenset({"delivered", "partially_delivered", "cancelled"})
+RECEIPT_REASONS = frozenset({
+    "source_unavailable", "context_generation_changed", "working_revision_changed", "orientation_changed",
+    "recording_changed",
+})
+RECEIPT_FAILURES = frozenset({"source_unavailable", "context_stale", "commit_failed", "cancelled"})
+SELECTION_MAX_BYTES = 131072
+
+
+def text_hash(text):
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()
+
+
+def _receipt_failure(reasons, state):
+    if "source_unavailable" in reasons:
+        return "source_unavailable"
+    if "working_revision_changed" in reasons:
+        return "commit_failed"
+    if reasons:
+        return "context_stale"
+    return "cancelled" if state == "cancelled" else None
+
+
+def _sanitize_delivery_receipt(value):
+    if not isinstance(value, dict):
+        return None
+    try:
+        state, disposition, failure = (value[key] for key in ("state", "disposition", "failure_code"))
+        if (value["version"] != RECEIPT_VERSION or not isinstance(state, str) or state not in RECEIPT_STATES
+                or disposition not in ("content_recorded", "content_withheld")
+                or failure is not None and (not isinstance(failure, str) or failure not in RECEIPT_FAILURES)):
+            return None
+        content_hash = _hash(value["content_sha256"])
+        size = _integer(value["content_bytes"], 0 if state == "cancelled" else 1, 64000)
+        if state == "cancelled" and (size or content_hash != hashlib.sha256(b"").hexdigest()):
+            return None
+        reasons = value["stale_reasons"]
+        if (not isinstance(reasons, list) or len(reasons) > len(RECEIPT_REASONS)
+                or any(not isinstance(reason, str) or reason not in RECEIPT_REASONS for reason in reasons)
+                or len(set(reasons)) != len(reasons)):
+            return None
+        if ((disposition == "content_withheld" and not {"source_unavailable", "recording_changed"}.intersection(reasons))
+                or failure != _receipt_failure(reasons, state)):
+            return None
+        binding = value["authorization"]
+        reference = binding["draft_event_ref"]
+        authorized = {
+            "draft_event_ref": {"event_id": _identifier(reference["event_id"]),
+                                "revision": _integer(reference["revision"], 1)},
+            "context_fingerprint": _hash(binding["context_fingerprint"]),
+            "context_generation": _integer(binding["context_generation"]),
+            "working_revision": _integer(binding["working_revision"]),
+            "turn_fence": _integer(binding["turn_fence"], 1),
+            "turn_revision": _integer(binding["turn_revision"], 1),
+        }
+        return {"version": RECEIPT_VERSION, "state": state, "content_sha256": content_hash, "content_bytes": size,
+                "authorization": authorized, "disposition": disposition,
+                "stale_reasons": sorted(reasons), "failure_code": failure}
+    except (DomainError, KeyError, TypeError):
+        return None
+
+
+def recorded_delivery_receipt(row):
+    """Whether a runtime turn row carries a delivery receipt that matches the turn it is stored on."""
+    if (not isinstance(row, dict) or not isinstance(row.get("stage"), str)
+            or row["stage"] not in {"delivered", "completed", "failed"}):
+        return False
+    receipt = _sanitize_delivery_receipt(row.get("delivery_receipt"))
+    if receipt is None or row.get("failure_code") != receipt["failure_code"]:
+        return False
+    terminal = row["stage"] != "delivered"
+    if row.get("scope_reserved") is not (not terminal):
+        return False
+    if (row["stage"] == "failed") != (receipt["failure_code"] is not None):
+        return False
+    binding = receipt["authorization"]
+    try:
+        if (_hash(row["context_fingerprint"]) != binding["context_fingerprint"]
+                or _integer(row["context_generation"]) != binding["context_generation"]
+                or _integer(row["working_revision"]) != binding["working_revision"] + int(row["stage"] == "completed")
+                or _integer(row["fence"], 1) < binding["turn_fence"]
+                or _integer(row["revision"], 1) <= binding["turn_revision"]):
+            return False
+        reference = binding["draft_event_ref"]
+        expected = {"event_id": reference["event_id"], "revision": reference["revision"] + int(
+            receipt["disposition"] == "content_recorded")}
+        return _refs(row["output_event_refs"]) == [expected]
+    except (DomainError, KeyError, TypeError):
+        return False
+
+
+def _sanitize_prepared_selection(value):
+    if value is None:
+        return None
+    try:
+        validate("PreparedMemorySelection", value)
+        if len(json.dumps(value, separators=(",", ":"), ensure_ascii=False).encode()) > SELECTION_MAX_BYTES:
+            return None
+        if value["state"] == "unavailable" and value["unavailable_reason"] == "custom_context":
+            return copy.deepcopy(value)
+        references = value["input_event_refs"] + value["source_event_refs"]
+        if (not value["input_event_refs"] or any(type(ref["revision"]) is not int for ref in references)
+                or any(type(value[key]) is not int for key in ("context_generation", "working_revision"))
+                or any(len({ref["event_id"] for ref in value[key]}) != len(value[key])
+                       for key in ("input_event_refs", "source_event_refs"))
+                or len({item["memory_id"] for item in value["memories"]}) != len(value["memories"])):
+            return None
+        sources = {(ref["event_id"], ref["revision"], ref["content_sha256"]) for ref in value["source_event_refs"]}
+        for memory in value["memories"]:
+            if (type(memory["memory_revision"]) is not int or not memory["evidence_refs"]
+                    or any(type(ref["event_revision"]) is not int
+                           or (ref["event_id"], ref["event_revision"], ref["source_content_sha256"]) not in sources
+                           for ref in memory["evidence_refs"])):
+                return None
+    except (DomainError, TypeError, ValueError, UnicodeError):
+        return None
+    return copy.deepcopy(value)
+
+
+def selection_for_turn(row):
+    """The complete memory selection a runtime turn stored for the context it prepared, or ``None``."""
+    selection = _sanitize_prepared_selection(row.get("prepared_memory_selection"))
+    if (selection is None or selection["state"] != "complete"
+            or selection["turn_id"] != row["turn_id"]
+            or selection["context_fingerprint"] != row["context_fingerprint"]
+            or selection["context_generation"] != row["context_generation"]
+            or any(selection[key] != row[key] for key in ("brain_id", "conversation_id", "branch_id"))
+            or selection["input_event_refs"] != row["input_event_refs"]
+            or any({"event_id": ref["event_id"], "revision": ref["revision"]} not in row["context_event_refs"]
+                   for ref in selection["source_event_refs"])):
+        return None
+    return selection
 
 
 def feedback_kind(event, *, allow_unknown=False):
