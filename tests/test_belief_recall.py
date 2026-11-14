@@ -6,8 +6,6 @@ from legacy_cognition import fixture, legacy_brain
 from legacy_cognition import memory as memory
 from test_cognition import STAMP, event, prepare_payload, request, scope, state, working
 from test_contextual_recall import CONDITION, UNBOUNDED, observation
-from test_recall_control import decision, run
-from test_recall_control import packet as control_packet
 
 from membrain import cognition
 from membrain.belief_resolution import _cyclic_nodes, frozen_relations, version
@@ -20,7 +18,6 @@ from membrain.belief_store import (
 from membrain.contracts import validate
 from membrain.helpers import DomainError
 from membrain.ontology import CORE_REGISTRY
-from membrain.recall_control import RecallPolicy
 
 
 def ref(memory):
@@ -279,46 +276,6 @@ def test_prepare_rechecks_expiry_and_binds_uncited_context_roots():
     assert all(content["belief_resolution"]["state"] == "unchanged" for _, content in blocks(packet))
     assert any(ref["event_id"] == extra["event_id"] and ref["relationship"] == "context_only"
                for block, _ in blocks(packet) for ref in block["evidence_refs"])
-
-
-def test_controller_freezes_only_shown_relation_versions_and_all_observed_roots():
-    sources, memories, current = scenario()
-    recalled = recall(sources, memories, current)
-    initial = control_packet(*memories)
-    initial["recall_results"][0]["items"] = recalled["items"]
-    initial["recall_results"][0]["belief_relations"] = recalled["belief_relations"]
-    seen, reserved = [], []
-
-    def reason(request):
-        shown = json.loads(request.messages[1]["content"])["candidates"]
-        assert all("belief_resolution" in item for item in shown)
-        seen.extend(shown)
-        return decision(selected=[memories[0]["memory_id"]])
-
-    plan = run(reason, initial=initial, reserve=lambda **values: reserved.append(values))
-    assert plan["belief_relation_refs"] == [relation_ref(current["belief_relations"][0])]
-    assert {ref["event_id"] for ref in reserved[0]["source_refs"]} == {"event-1", "event-2", "recent"}
-    assert plan["observed_event_refs"] == reserved[0]["source_refs"]
-
-
-def test_controller_trims_a_connected_belief_group_atomically():
-    sources, memories, current = scenario()
-    memories[1]["statement"] *= 1000
-    current["belief_relations"] = [relation(memories[1], memories[:1])]
-    recalled = recall(sources, memories, current)
-    initial = control_packet(*memories)
-    initial["recall_results"][0]["items"] = recalled["items"]
-    initial["recall_results"][0]["belief_relations"] = recalled["belief_relations"]
-
-    def reason(request):
-        offered = json.loads(request.messages[1]["content"])["candidates"]
-        assert offered == []
-        assert json.loads(request.messages[1]["content"])["relations"] == {}
-        return decision(outcome="insufficient")
-
-    plan = run(reason, initial=initial, policy=RecallPolicy(max_request_bytes=10000))
-    assert plan["belief_relation_refs"] == []
-    assert plan["outcome"] == "insufficient"
 
 
 def test_equivalent_and_abstracted_views_do_not_transfer_instance_details_or_confidence():

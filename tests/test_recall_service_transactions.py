@@ -2,9 +2,9 @@ import copy
 import time
 
 import pytest
+from service_harness import turns as turns
 from test_recall_executor import canonical
 from test_response_validation import recall_request
-from test_turns import turns as turns
 from test_vector_jobs import drain, provider
 
 from membrain.config import Settings

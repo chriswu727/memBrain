@@ -1,6 +1,6 @@
 """Cues attached to a message let recall find it by words it never used; what is recalled is the message."""
 import pytest
-from test_turns import turns as turns
+from service_harness import turns as turns
 from test_vector_jobs import drain, recall_request
 
 from membrain import host, message_cues
@@ -30,7 +30,7 @@ def _cue_rows(turns):
 
 
 def _generation(turns):
-    return turns.store.status(turns.principal, turns.brain)["scope_generation"]
+    return turns.scope_generation()
 
 
 def _elsewhere(turns):

@@ -3,7 +3,7 @@ from concurrent.futures import ThreadPoolExecutor
 from threading import Barrier
 
 import pytest
-from test_turns import turns as turns
+from service_harness import turns as turns
 from test_vector_jobs import drain, recall_request
 
 from membrain.client import integration_capabilities
@@ -107,9 +107,6 @@ def test_concurrent_local_queries_keep_the_same_request_binding(turns, different
 @pytest.mark.parametrize('revise', [False, True])
 def test_local_prepare_keeps_the_exact_input_revision(turns, revise):
     ref = turns.observe('Meet me at the willow cafe.', source_key='meeting')
-    turns.begin()
-    turns.claim()
-    turns.advance('captured', input_event_refs=[ref])
 
     def change():
         if revise:

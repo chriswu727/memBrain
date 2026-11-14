@@ -105,24 +105,6 @@ class MemoryService:
     def embedding_provider(self, provider):
         self._embedding_provider = provider
 
-    def orient_turn(self, principal, brain_id, turn_id, *, lease_token, expected_revision):
-        """Check that a captured turn may be oriented and return it unchanged.
-
-        Orientation was a call to the removed cognition model; a runtime turn now goes on without it. The checks
-        are the ones the turn passed before the model was asked (lease, stage, recording), so a turn that could
-        not have been oriented is still refused.
-        """
-        from .turns import TurnStore
-
-        turns = TurnStore(self.database)
-        with turns._transaction(principal, brain_id) as (conn, brain):
-            row = turns._row(conn, principal, brain_id, turn_id)
-            turns._lease(row, lease_token, expected_revision)
-            if row["stage"] != "captured":
-                raise DomainError("stage_conflict", "Orientation requires a captured turn.")
-            turns._recording(brain, row)
-            return turns._public(conn, principal, row)
-
     def _params(self, principal, brain_id):
         return principal.tenant_id, principal.principal_id, brain_id
 

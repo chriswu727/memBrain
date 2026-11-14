@@ -2,9 +2,9 @@ import copy
 from dataclasses import replace
 
 import pytest
+from service_harness import turns as turns
 from test_candidates import SPACE, key, query_vector
 from test_candidates import candidates as candidates
-from test_turns import turns as turns
 from test_vector_jobs import drain, recall_request
 
 from membrain import host, vector_jobs

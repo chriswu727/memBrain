@@ -22,10 +22,8 @@ from .helpers import DomainError, Principal
 from .service import MemoryService, reading
 
 RuntimeIdentifier = Annotated[str, Field(min_length=1, max_length=256)]
-RuntimeFingerprint = Annotated[str, Field(pattern=r"^[0-9a-f]{64}$")]
 RuntimeCounter = Annotated[int, Field(ge=0, le=2**63 - 1)]
 RuntimeRevision = Annotated[int, Field(ge=1, le=2**63 - 1)]
-RuntimeLeaseSeconds = Annotated[int, Field(ge=1, le=300)]
 
 
 class RuntimeBody(BaseModel):
@@ -168,152 +166,9 @@ class MoodPin(RuntimeBody):
     pinned: bool
 
 
-class RuntimeBegin(RuntimeBody):
-    turn_id: RuntimeIdentifier
-    conversation_id: RuntimeIdentifier
-    branch_id: RuntimeIdentifier
-    input_fingerprint: RuntimeFingerprint
-
-
-class EphemeralBegin(RuntimeBody):
-    turn_id: RuntimeIdentifier
-    conversation_id: RuntimeIdentifier
-    branch_id: RuntimeIdentifier
-    expected_recording_revision: Annotated[int, Field(ge=0, lt=2**63)]
-    review_policy: RuntimeFingerprint | None = None
-    # An explicit request for one unrecorded turn while the brain's recording stays enabled.
-    off_record: bool | None = None
-
-
 class RecordingControl(RuntimeBody):
     paused: bool
     expected_revision: Annotated[int, Field(ge=0, lt=2**63 - 1)]
-
-
-class RuntimeScope(RuntimeBody):
-    conversation_id: RuntimeIdentifier
-    branch_id: RuntimeIdentifier
-
-
-class RuntimeClaim(RuntimeBody):
-    worker_id: RuntimeIdentifier
-    lease_seconds: RuntimeLeaseSeconds = 30
-    expected_revision: RuntimeRevision | None = None
-
-
-class RuntimeRenew(RuntimeBody):
-    lease_token: RuntimeIdentifier
-    lease_seconds: RuntimeLeaseSeconds = 30
-    expected_revision: RuntimeRevision | None = None
-
-
-class RuntimeLeaseMutation(RuntimeBody):
-    lease_token: RuntimeIdentifier
-    expected_revision: RuntimeRevision
-
-
-class EphemeralAdvance(RuntimeLeaseMutation):
-    stage: Literal["generating", "generated", "delivering", "completed"]
-    delivery_state: Literal["delivered", "partially_delivered", "cancelled", "unknown", "returned"] | None = None
-
-
-class EphemeralContext(RuntimeBody):
-    lease_token: RuntimeIdentifier
-    limit: Annotated[int, Field(ge=0, le=8)] = 6
-    max_bytes: Annotated[int, Field(ge=1, le=32000)] = 4000
-
-
-class RuntimeEventRef(RuntimeBody):
-    event_id: RuntimeIdentifier
-    revision: RuntimeRevision
-
-
-class RuntimeOutput(RuntimeLeaseMutation):
-    text: Annotated[str, Field(max_length=64000)]
-    delivery_state: Literal["draft", "delivered", "partially_delivered", "cancelled"]
-
-
-class RuntimeAdvance(RuntimeLeaseMutation):
-    stage: Literal[
-        "captured", "prepared", "generating", "generated", "delivering",
-        "delivered",
-    ]
-    input_event_refs: Annotated[list[RuntimeEventRef], Field(max_length=64)] | None = None
-    output_event_refs: Annotated[list[RuntimeEventRef], Field(max_length=64)] | None = None
-    context_event_refs: Annotated[list[RuntimeEventRef], Field(max_length=64)] | None = None
-    context_fingerprint: RuntimeFingerprint | None = None
-    context_generation: RuntimeCounter | None = None
-    working_revision: RuntimeCounter | None = None
-    durable_sequence: RuntimeCounter | None = None
-    context_tokens: RuntimeCounter | None = None
-    recall_plan: dict | None = None
-    response_review_policy: RuntimeFingerprint | None = None
-    orientation_route: dict | None = None
-    prepared_packet_id: RuntimeIdentifier | None = None
-    memory_context_sha256: RuntimeFingerprint | None = None
-    selection_omitted_reason: Literal["custom_context"] | None = None
-
-
-class RuntimeResponseReviewReservation(RuntimeLeaseMutation):
-    policy_fingerprint: RuntimeFingerprint
-    request_fingerprint: RuntimeFingerprint
-    draft_sha256: RuntimeFingerprint
-
-
-class RuntimeResponseReviewCompletion(RuntimeLeaseMutation):
-    request_fingerprint: RuntimeFingerprint
-    status: Literal["approved", "rejected", "inconclusive"]
-    issue_codes: Annotated[list[Literal[
-        "current_input_misread", "unsupported_memory_claim", "applicability_override", "uncertainty_erased",
-        "unconfirmed_action", "uncertain_current_input_fidelity", "uncertain_memory_fidelity",
-        "uncertain_applicability", "uncertain_uncertainty", "uncertain_action_claims",
-        "incomplete_review", "review_unavailable",
-    ]], Field(max_length=16)]
-
-
-class RuntimeRecallReservation(RuntimeLeaseMutation):
-    input_bytes: Annotated[int, Field(ge=1, le=262144)]
-    max_model_calls: Annotated[int, Field(ge=1, le=8)]
-    max_input_bytes: Annotated[int, Field(ge=1, le=262144)]
-    context_generation: RuntimeCounter
-    source_refs: Annotated[list[RuntimeEventRef], Field(max_length=64)]
-    request_fingerprint: RuntimeFingerprint
-
-
-class RuntimeFail(RuntimeLeaseMutation):
-    failure_code: Literal[
-        "capture_failed", "prepare_failed", "generation_failed", "generation_uncertain",
-        "delivery_failed", "delivery_uncertain", "commit_failed", "source_unavailable",
-        "context_stale", "cancelled", "budget_exceeded", "dependency_unavailable", "internal_error",
-    ]
-
-
-def runtime_metadata(record: dict, *, include_lease: bool = False) -> dict:
-    from .delivery_receipts import sanitize_delivery_receipt
-    from .prepared_selection import sanitize_prepared_selection
-    from .turns import PUBLIC_FIELDS
-
-    allowed = {*PUBLIC_FIELDS, "lease_active", "unavailable_event_refs", "sources_available"}
-    if include_lease:
-        allowed.add("lease_token")
-    result = {key: value for key, value in record.items() if key in allowed}
-    if "delivery_receipt" in result:
-        result["delivery_receipt"] = sanitize_delivery_receipt(result["delivery_receipt"])
-    if "prepared_memory_selection" in result:
-        result["prepared_memory_selection"] = sanitize_prepared_selection(result["prepared_memory_selection"])
-    if result.get("recall_plan") is not None:
-        validate("RecallPlan", result["recall_plan"])
-    if result.get("response_review") is not None:
-        validate("ResponseReview", result["response_review"])
-    if result.get("orientation_route") is not None:
-        validate("OrientationRoute", result["orientation_route"])
-    for field in ("input_event_refs", "output_event_refs", "context_event_refs", "unavailable_event_refs"):
-        if field in result:
-            result[field] = [
-                {key: value for key, value in ref.items() if key in {"event_id", "revision"}}
-                for ref in result[field]
-            ]
-    return result
 
 
 def capabilities(*, embedding_enabled=False) -> dict:
@@ -360,7 +215,7 @@ def _unmodified_service(service) -> bool:
             and not {"handle", "respond", "_respond"}.intersection(own))
 
 
-def create_app(settings: Settings | None = None, service=None, turns=None, jobs=None) -> FastAPI:
+def create_app(settings: Settings | None = None, service=None, jobs=None) -> FastAPI:
     settings = settings or Settings.from_env()
     resources = ExitStack()
     recall_runner = None
@@ -389,7 +244,6 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
 
     app = FastAPI(title="memBrain", version=__version__, lifespan=lifespan)
     app.state.service = service
-    app.state.turns = turns
     app.state.jobs = jobs
     app.add_middleware(TrustedHostMiddleware, allowed_hosts=list(settings.allowed_hosts))
     bearer = HTTPBearer(auto_error=False)
@@ -431,17 +285,6 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
             return document
         except (ValueError, UnicodeDecodeError) as error:
             raise DomainError("validation_failed", "A valid JSON object is required") from error
-
-    def turn_store():
-        if app.state.turns is None:
-            from .storage import Database
-            from .turns import TurnStore
-
-            database = getattr(service, "database", None) or Database(
-                settings.database_url, settings.migration_database_url,
-            )
-            app.state.turns = TurnStore(database, service=service)
-        return app.state.turns
 
     def job_store():
         if app.state.jobs is None:
@@ -934,27 +777,6 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
         except (TypeError, ValueError):
             return result
 
-    @app.get("/v1/brains/{brain_id}/runtime/status")
-    def runtime_status(brain_id: str, principal: Principal = Depends(authenticate)):
-        result = turn_store().status(principal, brain_id)
-        fields = {
-            "brain_id", "durable_sequence", "indexed_sequence", "dependency_generation",
-            "scope_generation", "turn_count", "active_lease_count", "reserved_scope_count", "stage_counts", "pending_job_count",
-            "response_review_counts", "response_review_calls",
-        }
-        return {key: value for key, value in result.items() if key in fields}
-
-    @app.get("/v1/brains/{brain_id}/runtime/scope")
-    def active_scope(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
-        if any(len(request.query_params.getlist(key)) != 1 for key in request.query_params):
-            raise DomainError("validation_failed", "Scope parameters must not be repeated.")
-        try:
-            body = RuntimeScope.model_validate(dict(request.query_params)).model_dump()
-        except ValidationError as error:
-            raise DomainError("validation_failed", "A conversation ID and branch ID are required.") from error
-        row = turn_store().active_scope(principal, brain_id, **body)
-        return {"turn": runtime_metadata(row) if row is not None else None}
-
     @app.get("/v1/brains/{brain_id}/runtime/jobs")
     def list_jobs(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
         return {"jobs": [job_metadata(record) for record in job_store().list(
@@ -965,184 +787,8 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     def get_job(brain_id: str, job_id: str, principal: Principal = Depends(authenticate)):
         return job_metadata(job_store().get(principal, brain_id, job_id))
 
-    @app.post("/v1/brains/{brain_id}/runtime/turns", status_code=201)
-    async def begin_turn(
-        brain_id: str, request: Request, principal: Principal = Depends(authenticate),
-    ):
-        body = await runtime_body(request, RuntimeBegin)
-        from starlette.concurrency import run_in_threadpool
-
-        result = await run_in_threadpool(turn_store().begin, principal, brain_id, **body)
-        return runtime_metadata(result)
-
-    @app.post("/v1/brains/{brain_id}/runtime/ephemeral-turns", status_code=201)
-    async def begin_ephemeral(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
-        from starlette.concurrency import run_in_threadpool
-
-        from .ephemeral_turns import begin
-
-        body = await runtime_body(request, EphemeralBegin)
-        result = await run_in_threadpool(begin, turn_store(), principal, brain_id, **body)
-        return runtime_metadata(result)
-
-    @app.post("/v1/brains/{brain_id}/runtime/turns/{turn_id}/ephemeral-advance")
-    async def advance_ephemeral(brain_id: str, turn_id: str, request: Request,
-                                principal: Principal = Depends(authenticate)):
-        from starlette.concurrency import run_in_threadpool
-
-        from .ephemeral_turns import advance
-
-        body = await runtime_body(request, EphemeralAdvance)
-        result = await run_in_threadpool(advance, turn_store(), principal, brain_id, turn_id, **body)
-        return runtime_metadata(result)
-
-    @app.post("/v1/brains/{brain_id}/runtime/turns/{turn_id}/ephemeral-context")
-    async def ephemeral_context(brain_id: str, turn_id: str, request: Request,
-                                principal: Principal = Depends(authenticate)):
-        from starlette.concurrency import run_in_threadpool
-
-        from .ephemeral_turns import context
-
-        body = await runtime_body(request, EphemeralContext)
-        return await run_in_threadpool(context, turn_store(), principal, brain_id, turn_id, **body)
-
-    @app.get("/v1/brains/{brain_id}/runtime/turns")
-    def list_turns(
-        brain_id: str, request: Request, principal: Principal = Depends(authenticate),
-    ):
-        return {"turns": [runtime_metadata(record) for record in turn_store().list(
-            principal, brain_id, limit=runtime_limit(request),
-        )]}
-
-    @app.get("/v1/brains/{brain_id}/runtime/turns/{turn_id}")
-    def get_turn(brain_id: str, turn_id: str, principal: Principal = Depends(authenticate)):
-        return runtime_metadata(turn_store().get(principal, brain_id, turn_id))
-
-    @app.get("/v1/brains/{brain_id}/runtime/turns/{turn_id}/sources")
-    def turn_sources(brain_id: str, turn_id: str, principal: Principal = Depends(authenticate)):
-        return turn_store().sources(principal, brain_id, turn_id)
-
-    @app.get("/v1/brains/{brain_id}/runtime/turns/{turn_id}/history")
-    def turn_history(
-        brain_id: str, turn_id: str, request: Request, principal: Principal = Depends(authenticate),
-    ):
-        fields = {"revision", "stage", "operation", "fence", "failure_code", "occurred_at"}
-        return {"history": [
-            {key: value for key, value in record.items() if key in fields}
-            for record in turn_store().history(
-                principal, brain_id, turn_id, limit=runtime_limit(request),
-            )
-        ]}
-
-    @app.post("/v1/brains/{brain_id}/runtime/turns/{turn_id}/claim")
-    async def claim_turn(
-        brain_id: str, turn_id: str, request: Request, principal: Principal = Depends(authenticate),
-    ):
-        body = await runtime_body(request, RuntimeClaim)
-        from starlette.concurrency import run_in_threadpool
-
-        result = await run_in_threadpool(turn_store().claim, principal, brain_id, turn_id, **body)
-        return runtime_metadata(result, include_lease=True)
-
-    @app.post("/v1/brains/{brain_id}/runtime/turns/{turn_id}/renew")
-    async def renew_turn(
-        brain_id: str, turn_id: str, request: Request, principal: Principal = Depends(authenticate),
-    ):
-        body = await runtime_body(request, RuntimeRenew)
-        from starlette.concurrency import run_in_threadpool
-
-        result = await run_in_threadpool(turn_store().renew, principal, brain_id, turn_id, **body)
-        return runtime_metadata(result)
-
-    @app.post("/v1/brains/{brain_id}/runtime/turns/{turn_id}/advance")
-    async def advance_turn(
-        brain_id: str, turn_id: str, request: Request, principal: Principal = Depends(authenticate),
-    ):
-        body = await runtime_body(request, RuntimeAdvance)
-        from starlette.concurrency import run_in_threadpool
-
-        result = await run_in_threadpool(turn_store().advance, principal, brain_id, turn_id, **body)
-        return runtime_metadata(result)
-
-    @app.post("/v1/brains/{brain_id}/runtime/turns/{turn_id}/recall-reservations")
-    async def reserve_turn_recall(
-        brain_id: str, turn_id: str, request: Request, principal: Principal = Depends(authenticate),
-    ):
-        body = await runtime_body(request, RuntimeRecallReservation)
-        from starlette.concurrency import run_in_threadpool
-
-        result = await run_in_threadpool(turn_store().reserve_recall, principal, brain_id, turn_id, **body)
-        return runtime_metadata(result)
-
-    @app.post("/v1/brains/{brain_id}/runtime/turns/{turn_id}/response-review/reserve")
-    async def reserve_turn_response_review(
-        brain_id: str, turn_id: str, request: Request, principal: Principal = Depends(authenticate),
-    ):
-        body = await runtime_body(request, RuntimeResponseReviewReservation)
-        from starlette.concurrency import run_in_threadpool
-
-        result = await run_in_threadpool(turn_store().reserve_response_review, principal, brain_id, turn_id, **body)
-        return runtime_metadata(result)
-
-    @app.post("/v1/brains/{brain_id}/runtime/turns/{turn_id}/response-review/complete")
-    async def complete_turn_response_review(
-        brain_id: str, turn_id: str, request: Request, principal: Principal = Depends(authenticate),
-    ):
-        body = await runtime_body(request, RuntimeResponseReviewCompletion)
-        from starlette.concurrency import run_in_threadpool
-
-        result = await run_in_threadpool(turn_store().complete_response_review, principal, brain_id, turn_id, **body)
-        return runtime_metadata(result)
-
-    @app.post("/v1/brains/{brain_id}/runtime/turns/{turn_id}/output")
-    async def record_turn_output(
-        brain_id: str, turn_id: str, request: Request, principal: Principal = Depends(authenticate),
-    ):
-        body = await runtime_body(request, RuntimeOutput)
-        from starlette.concurrency import run_in_threadpool
-
-        result = await run_in_threadpool(turn_store().record_output, principal, brain_id, turn_id, **body)
-        return runtime_metadata(result)
-
-    @app.post("/v1/brains/{brain_id}/runtime/turns/{turn_id}/orient")
-    async def orient_turn(
-        brain_id: str, turn_id: str, request: Request, principal: Principal = Depends(authenticate),
-    ):
-        body = await runtime_body(request, RuntimeLeaseMutation)
-        from starlette.concurrency import run_in_threadpool
-
-        result = await run_in_threadpool(service.orient_turn, principal, brain_id, turn_id, **body)
-        return runtime_metadata(result)
-
-    @app.post("/v1/brains/{brain_id}/runtime/turns/{turn_id}/release")
-    async def release_turn(
-        brain_id: str, turn_id: str, request: Request, principal: Principal = Depends(authenticate),
-    ):
-        body = await runtime_body(request, RuntimeLeaseMutation)
-        from starlette.concurrency import run_in_threadpool
-
-        result = await run_in_threadpool(turn_store().release, principal, brain_id, turn_id, **body)
-        return runtime_metadata(result)
-
-    @app.post("/v1/brains/{brain_id}/runtime/turns/{turn_id}/fail")
-    async def fail_turn(
-        brain_id: str, turn_id: str, request: Request, principal: Principal = Depends(authenticate),
-    ):
-        body = await runtime_body(request, RuntimeFail)
-        from starlette.concurrency import run_in_threadpool
-
-        result = await run_in_threadpool(turn_store().fail, principal, brain_id, turn_id, **body)
-        return runtime_metadata(result)
-
-    @app.post("/v1/brains/{brain_id}/runtime/turns/{turn_id}/finish")
-    async def finish_turn(
-        brain_id: str, turn_id: str, request: Request, principal: Principal = Depends(authenticate),
-    ):
-        body = await runtime_body(request, RuntimeLeaseMutation)
-        from starlette.concurrency import run_in_threadpool
-
-        result = await run_in_threadpool(turn_store().finish, principal, brain_id, turn_id, **body)
-        return runtime_metadata(result)
+    # The turn lifecycle API (runtime/status, runtime/scope, runtime/turns, runtime/ephemeral-turns and the
+    # operations on a turn) was removed with runtime mode; its paths answer 404 like any unknown path.
 
     @app.get("/v1/archives/{archive_id}")
     def download_archive(archive_id: str, principal: Principal = Depends(authenticate)):

@@ -12,7 +12,6 @@ import uuid
 
 import psycopg
 import pytest
-from service_harness import delivered
 from service_harness import harness as harness
 from test_recovery_erasure import pending, raw_event
 from test_recovery_erasure import recovery as recovery
@@ -26,7 +25,6 @@ from membrain.embeddings import EmbeddingResult, EmbeddingSpace
 from membrain.mood import mood_state
 from membrain.persona import current_persona, persona_versions
 from membrain.relationship import relationship
-from membrain.runtime import BrainRuntime
 from membrain.service import reading
 
 pytestmark = pytest.mark.integration
@@ -127,8 +125,7 @@ def semantic(recovery):
     calls = []
     with fake_embeddings(calls) as provider:
         harness.service.embedding_provider = provider
-        runtime = BrainRuntime(harness.memory, lambda request: "我们先安排今天的复习。", deliver=delivered)
-        assert runtime.respond("现在我要制定复习计划。", message_id="first", conversation_id="chat").stage == "completed"
+        harness.observe("现在我要制定复习计划。")
         harness.observe("The rendezvous is beneath the crimson canopy.")
         harness.observe("I prefer green tea in the afternoon.")
         drain(harness)

@@ -1,13 +1,11 @@
 from concurrent.futures import ThreadPoolExecutor, TimeoutError
 from threading import Event
-from unittest.mock import Mock
 
 import pytest
 from service_harness import harness as harness
 from test_host_recording import connected as connected
 from test_host_recording import local_text
 from test_recovery_erasure import recovery as recovery
-from test_runtime import memory as memory
 from test_server_recording import observation
 from test_server_recording import turns as turns
 
@@ -15,58 +13,13 @@ from membrain import host
 from membrain.helpers import DomainError, uid
 from membrain.notes import store_note
 from membrain.recording_control import recording_status, set_recording
-from membrain.runtime import BrainRuntime, DeliveryReceipt, RuntimeBlocked
 from membrain.service import MemoryService
 
 pytestmark = pytest.mark.integration
 
 
-def test_runtime_revokes_input_if_erasure_wins_after_last_lease_check(memory, monkeypatch):
-    runtime = BrainRuntime(memory, Mock(return_value="Public fresh response."),
-                           deliver=Mock(return_value=DeliveryReceipt("delivered")))
-    original = memory.observe
-
-    def delayed(*args, **kwargs):
-        memory.forget([], kind="all_authorized_scope", mode="erase_content", expected_scope_generation=1)
-        return original(*args, **kwargs)
-
-    with monkeypatch.context() as patch:
-        patch.setattr(memory, "observe", delayed)
-        with pytest.raises(RuntimeBlocked, match="context_stale"):
-            runtime.respond("Public delayed input.", message_id="old", conversation_id="chat")
-    row = runtime.journal.list()[0]
-    assert row["stage"] == "failed" and not row["scope_reserved"] and row["input_event_refs"] == []
-    runtime.generate.assert_not_called()
-    runtime.deliver.assert_not_called()
-    assert runtime.respond("Public fresh input.", message_id="new", conversation_id="chat").stage == "completed"
-
-
-def test_runtime_keeps_delivery_receipt_without_saving_post_erasure_text(memory):
-    calls = []
-
-    def deliver(request):
-        calls.append(request)
-        if len(calls) == 1:
-            memory.forget([uid()], kind="events", mode="erase_content", expected_scope_generation=1)
-        return DeliveryReceipt("partially_delivered", "Public actual external reply.")
-
-    runtime = BrainRuntime(memory, lambda _: "Public original draft.", deliver=deliver)
-    with pytest.raises(RuntimeBlocked, match="context_stale"):
-        runtime.respond("Public original input.", message_id="old", conversation_id="chat")
-    row = runtime.journal.list()[0]
-    assert row["stage"] == "failed" and not row["scope_reserved"]
-    assert row["delivery_receipt"]["state"] == "partially_delivered"
-    assert row["delivery_receipt"]["disposition"] == "content_withheld"
-    assert "recording_changed" in row["delivery_receipt"]["stale_reasons"]
-    events = runtime.journal.sources(row["turn_id"])["output_events"]
-    assert len(events) == 1 and events[0]["revision"] == 1
-    assert events[0]["observed"]["content"]["text"] == "Public original draft."
-    assert runtime.respond("Public new input.", message_id="new", conversation_id="chat").stage == "completed"
-    assert len(calls) == 2
-
-
 def erase(turns, *, mode="erase_content", kind="all_authorized_scope", ids=()):
-    generation = turns.store.status(turns.principal, turns.brain)["scope_generation"]
+    generation = turns.scope_generation()
     return turns.action("forget", {"idempotency_key": uid(), "selector": {"kind": kind, "ids": list(ids)},
                                   "mode": mode, "expected_scope_generation": generation})
 
@@ -136,39 +89,6 @@ def test_rejected_erasure_does_not_change_capture_authority(turns):
                    "mode": "erase_content", "expected_scope_generation": 99})
     assert turns.service.handle(turns.principal, request)["error"]["code"] == "version_conflict"
     assert turns.service.handle(turns.principal, captured(turns))["outcome"] == "completed"
-
-
-@pytest.mark.parametrize("stage", ["started", "prepared", "generating", "delivering"])
-def test_erasure_fences_active_content_but_preserves_delivery_facts(turns, stage):
-    if stage == "started":
-        turns.begin()
-        turns.claim()
-    elif stage == "delivering":
-        turns.generate()
-        turns.advance("delivering")
-    else:
-        turns.prepare()
-        if stage == "generating":
-            turns.advance("generating")
-    erase(turns, kind="events", ids=[uid()])
-    if stage != "delivering":
-        with pytest.raises(DomainError) as stale:
-            turns.call("renew", lease_token=turns.token, expected_revision=turns.row["revision"])
-        assert stale.value.code == "context_stale"
-    if stage == "delivering":
-        turns.call("renew", lease_token=turns.token, expected_revision=turns.row["revision"])
-        before = turns.service.timeline(turns.principal, turns.brain, roles=("user", "assistant"))
-        row = turns.record_output("Public externally delivered output.", "delivered")
-        assert row["stage"] == "failed" and not row["scope_reserved"]
-        assert row["delivery_receipt"]["state"] == "delivered"
-        assert row["delivery_receipt"]["disposition"] == "content_withheld"
-        assert "recording_changed" in row["delivery_receipt"]["stale_reasons"]
-        assert turns.service.timeline(turns.principal, turns.brain, roles=("user", "assistant")) == before
-    elif stage == "generating":
-        with pytest.raises(DomainError):
-            turns.record_output("Public delayed draft.")
-    else:
-        assert turns.service.handle(turns.principal, captured(turns))["error"]["code"] == "recording_stale"
 
 
 @pytest.mark.parametrize("erase_first", [True, False])
