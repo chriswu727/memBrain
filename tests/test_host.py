@@ -175,6 +175,83 @@ def test_the_session_notice_names_manner_feedback_persona_changes_hard_moments_a
     assert len(host._session_notice(False, host.TOOL_NAMES, True, None)) <= 1380 + 450
 
 
+COMMAND = "/membrain:persona intj"
+
+
+def test_a_command_line_is_left_out_of_the_history_at_session_start():
+    class Timeline:
+        def timeline(self, **options):
+            return {"complete": True, "items": [
+                {"event_id": "e2", "text": COMMAND, "recorded_at": "2026-11-13T10:01:00Z"},
+                {"event_id": "e1", "text": "I adopted a corgi called Biscuit.", "recorded_at": "2026-11-13T10:00:00Z"}]}
+
+    history, complete = host._history(Timeline(), "now", 5000)
+    assert "Biscuit" in history and "/membrain:" not in history and "(1 messages" in history
+    assert complete  # Recall leaves the command out too, so nothing is missing.
+
+
+def test_a_command_line_is_never_handed_out_for_consolidation():
+    class Pending:
+        def __init__(self):
+            self.batches = [[{"sequence": 4, "text": " " + COMMAND, "recorded_at": "2026-11-13T10:00:00Z"}],
+                            [{"sequence": 5, "text": "/membrain:persona reset", "recorded_at": "2026-11-13T10:01:00Z"},
+                             {"sequence": 6, "text": "My sister Mei lives in Lisbon.", "recorded_at": "2026-11-13T10:02:00Z"}]]
+            self.read = []
+
+        def relationship_boundaries(self):
+            return {"boundaries": []}
+
+        def pending_message_cues(self, **options):
+            items = self.batches[0] if self.batches else []
+            return {"items": items, "through_sequence": items[-1]["sequence"] if items else None, "remaining": 2}
+
+        def write_message_cues(self, items, reviewed_through_sequence=None, **options):
+            self.read.append(reviewed_through_sequence)
+            self.batches.pop(0)
+
+    client = Pending()
+    batch = host.consolidation_batch(client)
+    assert [item["sequence"] for item in batch["messages"]] == [6]  # The batch of only a command was counted as read.
+    assert client.read == [4]
+
+
+def test_a_command_line_is_not_recalled_as_a_remembered_message():
+    from test_plugin import _response, _source
+
+    messages = {"c": {"event_id": "c", "conversation_id": "old", "actor_role": "user", "text": COMMAND,
+                      "recorded_at": "2026-11-13T10:00:00Z"},
+                "r": {"event_id": "r", "conversation_id": "old", "actor_role": "user",
+                      "text": "/membrain:persona reset", "recorded_at": "2026-11-13T10:02:00Z"},
+                "m": {"event_id": "m", "conversation_id": "old", "actor_role": "user",
+                      "text": "I like the INTJ persona's calm.", "recorded_at": "2026-11-13T10:01:00Z"}}
+
+    class Recall:
+        brain_id = "brain"
+
+        def recall(self, query, **options):
+            return _response(_source(f"user user (direct_statement): {COMMAND}", "c", score=0.9),
+                             _source("user user (direct_statement): I like the INTJ persona's calm.", "m"))
+
+        def relationship_boundaries(self):
+            return {"boundaries": []}
+
+        def timeline(self, **options):
+            return {"items": [messages[key] for key in options["event_ids"] if key in messages]}
+
+        def following(self, event_ids):  # The message after the persona remark is a command too.
+            return {"items": [{**messages["r"], "source_event_id": "m"}]}
+
+    context = host.recall_context(Recall(), "Which persona is INTJ?", current_conversation="now")
+    assert "INTJ persona's calm" in context and "/membrain:" not in context
+
+    class Statements(Recall):
+        def timeline(self, **options):
+            raise RuntimeError("messages cannot be read")
+
+    fallback = host.recall_context(Statements(), "Which persona is INTJ?", current_conversation="now")
+    assert "INTJ persona's calm" in fallback and "/membrain:" not in fallback
+
+
 def test_mcp_recall_for_a_local_installation_is_the_compact_hook_recall(tmp_path, monkeypatch):
     import asyncio
 

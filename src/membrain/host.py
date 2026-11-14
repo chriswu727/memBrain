@@ -66,6 +66,16 @@ ASKS_ABOUT_ASSISTANT = re.compile(
 ASSISTANT_LINES = ('Lines marked "assistant said" are your own earlier replies: a suggestion, draft or plan there is '
                    'not the user\'s decision or a fact about the user unless a "user said" line confirms it.')
 
+COMMAND_PREFIX = "/membrain:"
+
+
+def is_command(text) -> bool:
+    """A memBrain slash command the user typed (``/membrain:persona intj``). It is recorded, since the persona tool
+    cites it as the user's request, but it is not the user's words about themselves: history, consolidation and
+    recall leave it out."""
+    return isinstance(text, str) and text.lstrip().startswith(COMMAND_PREFIX)
+
+
 TOOL_NAMES = {"note": "memory_note", "recall": "memory_recall", "pause": "memory_pause", "resume": "memory_resume",
               "resume_session": "session_id", "consolidate": "memory_consolidate", "replies": "my_replies",
               "persona": "memory_persona", "manner_feedback": "memory_manner_feedback"}
@@ -96,8 +106,8 @@ def consolidation_batch(client) -> dict:
 
     A message about a topic the user asked not to have raised is never handed out: the host AI would be shown,
     unasked, exactly what recall keeps back. It counts as read with the rest of its batch and gets no cue. A batch
-    that holds nothing else is counted as read here and the next one is looked at. Boundaries that cannot be read
-    stop the batch, as they stop recall.
+    that holds nothing else is counted as read here and the next one is looked at. A slash command line
+    (``is_command``) is passed over the same way. Boundaries that cannot be read stop the batch, as they stop recall.
     """
     from .relationship import kept_out
 
@@ -108,7 +118,8 @@ def consolidation_batch(client) -> dict:
                                               whole_conversations=True)
         if offered.get("recording_paused") or not offered["items"]:
             return {**offered, "messages": []}
-        messages = [item for item in offered["items"] if not kept_out(item["text"], boundaries)]
+        messages = [item for item in offered["items"]
+                    if not kept_out(item["text"], boundaries) and not is_command(item["text"])]
         if messages:
             return {**offered, "messages": messages}
         client.write_message_cues([], reviewed_through_sequence=offered["through_sequence"])
@@ -1849,6 +1860,8 @@ def render_context(response: dict, *, current_conversation: str | None = None,
         match = _STATEMENT.match(statement)
         speaker, text = (_SPEAKERS.get(match.group(1), match.group(1)), match.group(3)) if match else (
             "remembered", statement)
+        if is_command(text):
+            continue
         text = neutralize(" ".join(text.split()))
         if text in seen:
             continue
@@ -2041,7 +2054,8 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
     ranked = [messages[event_id] for event_id, _ in sources if event_id in messages
               and messages[event_id].get("conversation_id") != current_conversation
               and (include_speech or messages[event_id].get("actor_role") != "assistant")
-              and not kept_out(messages[event_id].get("text") or "", boundaries, query)]
+              and not kept_out(messages[event_id].get("text") or "", boundaries, query)
+              and not is_command(messages[event_id].get("text"))]
     try:
         # The next message holds the answer to a recalled question, or the reaction to a recalled statement.
         replies = _replies(client, [item for item in ranked if item["event_id"] in questions]
@@ -2052,7 +2066,8 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
         # Hosts restated the assistant's own earlier suggestions as facts about the user ("Mum's folding stool, the
         # one mentioned before"), however the lines were labelled. Its replies come back only when asked about.
         replies = {key: item for key, item in replies.items() if item.get("actor_role") != "assistant"}
-    replies = {key: item for key, item in replies.items() if not kept_out(item.get("text") or "", boundaries, query)}
+    replies = {key: item for key, item in replies.items()
+               if not kept_out(item.get("text") or "", boundaries, query) and not is_command(item.get("text"))}
     at_length = {item["event_id"] for item in [item for item in ranked if item.get("actor_role") == "assistant"][
         :REPLIES_AT_LENGTH]} if asked_for_replies else set()
     notes = ["Some recalled records conflict; do not silently pick one."] if (
@@ -2152,6 +2167,8 @@ def _history(client, session: str, budget: int, boundaries=()) -> tuple[str | No
 
     response = client.timeline(roles=("user",), max_characters=200_000, max_item_characters=20_000, limit=1000,
                                exclude_conversation=session)
+    # A slash command line is left out without making the history incomplete: recall leaves it out as well.
+    response = {**response, "items": [item for item in response.get("items", []) if not is_command(item.get("text"))]}
     if boundaries:
         kept = [item for item in response.get("items", []) if not touches(item.get("text") or "", boundaries)]
         if len(kept) != len(response.get("items", [])):
