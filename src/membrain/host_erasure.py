@@ -6,6 +6,7 @@ redacted cannot be resolved without an event receipt, and must retain the ordina
 """
 import json
 import re
+import time
 from pathlib import Path
 
 from . import host_outcomes, host_queue, host_recording, host_turns
@@ -86,8 +87,11 @@ def reconcile(directory, client, owner=None, *, revision=None):
 
             def add(identity, event_id=None):
                 producer, source = identity
-                if not isinstance(producer, str) or not isinstance(source, str):
-                    return
+                if (not isinstance(producer, str) or not 1 <= len(producer) <= 256
+                        or not isinstance(source, str) or not 1 <= len(source) <= 256):
+                    return  # A malformed refused record must not prevent other sources' cleanup.
+                if not isinstance(event_id, str) or not 1 <= len(event_id) <= 256:
+                    event_id = None
                 if re.search(r"[0-9a-f]{32}", source) and not event_id:
                     return  # Erasure has removed that digest from the server; absence cannot identify a deletion.
                 references.append({"producer_ref": producer, "source_event_key": "event-reference" if event_id else source,
@@ -178,7 +182,8 @@ def reconcile(directory, client, owner=None, *, revision=None):
                         for item in entry.get("outcome", {}).get("messages", []):
                             if item.get("role") == "assistant":
                                 item.clear()
-                                item.update(role="assistant", state="excluded", reason="erased", scope="brain")
+                                item.update(role="assistant", state="excluded", reason="erased", scope="brain",
+                                            at=round(time.time(), 3), by="recovery")
                                 changed = True
                 # Context fingerprints can depend on any erased note, persona or message. They carry no
                 # per-source provenance, so discard that disposable cache for this owner after an erasure.

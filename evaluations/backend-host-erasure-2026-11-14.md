@@ -31,6 +31,8 @@ Ruff over src/tests/examples and git diff whitespace checks passed.
   tests, recording fences, retained outcomes, database digest erasure and legacy installation backup/restore.
 - Both runners reported database_stopped=true. Earlier failure logs are retained alongside the successful logs;
   they include the first test-fixture correction, generator-consumption bug and malformed-record compatibility fix.
+- Final independent review also checks malformed identities cannot block another source's cleanup, verifies the
+  public outcome lookup after reply-only erasure, and checks a unique concurrent append survives the rewrite.
 - These batch counts overlap; they are not a count of distinct tests. Full PR Verify is reported separately.
 
 No model calls or behavioural acceptance were started. R4 remains failed; C5 remains invalid/unscored. This WSL

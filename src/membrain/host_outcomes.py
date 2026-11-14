@@ -12,7 +12,7 @@ describe, so they share that ledger's owner, bounds, private files, expiry and e
   is kept in a short per-session list and never changes the exchange it named.
 
 An outcome is the last observation, not the present state. ``recorded`` says the service confirmed storage when it was
-observed; a later deletion made elsewhere is not reflected. ``queued`` says journal admission was confirmed and server
+observed; a later deletion is reflected once an authenticated host contact reconciles its identity. ``queued`` says journal admission was confirmed and server
 storage was not: an answer that was lost may already be committed. Nothing here contains message text, and a lookup
 only reads local files: it never contacts the service, replays the journal or changes a recording control.
 

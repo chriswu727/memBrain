@@ -7,7 +7,7 @@ from test_erasure_recording_fence import erase
 from test_host_recording import connected as connected
 from test_server_recording import turns as turns
 
-from membrain import host, host_erasure, host_queue, host_recording
+from membrain import host, host_erasure, host_outcomes, host_queue, host_recording
 from membrain.helpers import digest
 
 
@@ -84,13 +84,17 @@ def test_reconciliation_serializes_with_journal_admission(turns, connected, tmp_
             reconcile = pool.submit(host_erasure.reconcile, tmp_path, client)
             assert entered.wait(4)
             erased_append = pool.submit(host.spool, tmp_path, removed[0])
-            kept_append = pool.submit(host.spool, tmp_path, control[0])
+            concurrent = {**control[0], "source_event_key": "concurrent:new:user",
+                          "text": "Unique concurrently admitted message."}
+            kept_append = pool.submit(host.spool, tmp_path, concurrent)
             release.set()
             assert reconcile.result()
             assert erased_append.result() is False
             assert kept_append.result() is True
     text = files(tmp_path)
     assert removed[0]["text"] not in text and control[0]["text"] in text
+    queued = [json.loads(line) for line in host_queue.unacknowledged(tmp_path / "plugin" / "spool.jsonl")]
+    assert queued == [*control, concurrent]
 
 
 def test_failed_contact_does_not_clear_local_content_or_checkpoint(turns, connected, tmp_path):
@@ -196,3 +200,18 @@ def test_deleting_only_reply_preserves_user_prompt(turns, connected, tmp_path, m
     assert "Keep the user's message." in files(tmp_path)
     entry = next(iter(host.session_state(tmp_path, "reply")["turns"].values()))
     assert next(item for item in entry["outcome"]["messages"] if item["role"] == "assistant")["reason"] == "erased"
+    visible = host_outcomes.lookup(tmp_path, session="reply", turn_id="t")
+    assert visible["status"] == "observed"
+    assert next(item for item in visible["messages"] if item["role"] == "assistant")["state"] == "excluded"
+    assert next(item for item in visible["messages"] if item["role"] == "user")["state"] == "recorded"
+
+
+def test_invalid_queued_identity_does_not_block_confirmed_cleanup(turns, connected, tmp_path):
+    removed, control = capture(turns, connected, tmp_path)
+    invalid = {**control[0], "source_event_key": "x" * 300, "text": "Unresolvable malformed record."}
+    assert host.spool(tmp_path, invalid)
+    with connected(tmp_path) as client:
+        assert host_erasure.reconcile(tmp_path, client)
+    queued = [json.loads(line) for line in host_queue.unacknowledged(tmp_path / "plugin" / "spool.jsonl")]
+    assert queued == [*control, invalid]
+    assert removed[0]["text"] not in files(tmp_path)
