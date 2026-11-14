@@ -2,12 +2,12 @@
 
 ## Current state
 
-As of 2026-11-13. Each row names the runtime its evidence covers; a row whose runtime is older than the pinned one is **not** evidence for the pinned runtime. The dated entries under [History](#history) hold the detail and every retained failure.
+As of 2026-11-14. Each row names the runtime its evidence covers; a row whose runtime is older than the pinned one is **not** evidence for the pinned runtime. The dated entries under [History](#history) hold the detail and every retained failure.
 
 | Item | State | Runtime covered |
 | --- | --- | --- |
-| Pinned runtime | `fc99653` (pin `d2e9ac1a`); the default branch follows the integration branch at verified milestones and was last moved at `77c1f841` (runtime `bb55fb0`) | — |
-| Full source suite, local Linux | 8,395 passed, 4 skipped (Docker journeys), none failed ([report](../evaluations/trial-fixes-and-anchors-2026-11-13.md)) | `fc99653` |
+| Pinned runtime | `8c2860c` (pin `8c071bee`); the default branch follows the integration branch at verified milestones and was last moved at `2600219b` (runtime `fc99653`) | — |
+| Full source suite, local Linux | 8,387 passed, 4 skipped (Docker journeys), none failed ([report](../evaluations/age-weight-and-importance-2026-11-13.md)) | `8c2860c` |
 | Second AI | memBrain asks for no model of its own; its chat mode and learning pipeline are frozen, about 17,000 source lines to be removed in slices, four of eight done: no model can be configured for memBrain itself any more ([plan](../evaluations/audits-2026-11-12/unused-code-removal-plan.md), [record](../evaluations/no-second-model-2026-11-13.md)) | `4b0f977` |
 | Second benchmark, model-free | LongMemEval, 60 questions, nothing tuned: evidence in the user's words 90.2% against 84.3% for plain retrieval; in the assistant's words 11% against 100% ([report](../evaluations/longmemeval-evidence-recall-2026-11-12.md)) | `75f50fd` |
 | GitHub Verify | Last result recorded in this repository: passed | `2ef05f3` |
@@ -24,6 +24,8 @@ As of 2026-11-13. Each row names the runtime its evidence covers; a row whose ru
 No version tag, release or package upload exists, and none is made until the product is mature.
 
 ## History
+
+**Withdrawal runtime `8c2860c` (2026-11-14):** the note-anchor ranking rule of the previous runtime [failed on the conversations not used for tuning](../evaluations/age-weight-and-importance-2026-11-13.md) and is removed; nothing else changed. Pin `8c071bee` points all nine launchers at it. The check cost 3.18 CNY of an approved 10: a stand-in host's notes made a fifth of all messages "important", the rule gained 10 questions net of 1,152 where 12 were required, and evidence without a note older than 90 days was shown 6.2 points less often. "Important memories first" remains unbuilt. The full local source suite on the pin commit passes 8,387 tests with 4 skips and no failure. Verify, native Windows, macOS, five-platform qualification, the R5 overhead protocol and an independent review were not run. R4 remains failed and C5 invalid/unscored.
 
 **Real-host runtime `fc99653` (2026-11-13):** [A real-host trial](../evaluations/host-trial-2026-11-13.md) on Claude Code (Sonnet and Haiku, 86 turns in two rounds) and [what it led to](../evaluations/trial-fixes-and-anchors-2026-11-13.md). Pin `d2e9ac1a` points all nine launchers at it. The first round found that the host never proposed a persona change, recorded manner feedback or saved a hard moment, because their instructions were not where it reads; the plugin's tool server now sends standing instructions and the session notice names them, and in the second round all three happened. Also from the trial: dates written for the host are local, command lines stay out of history, proposals add to the persona card instead of replacing its lists. Separately, a first form of [important memories first](../evaluations/age-weight-and-importance-2026-11-13.md) was built in this runtime (a message a note was written from ranking as if as recent as the newest memory it competes with) and withdrawn in the next after it failed on the conversations not used for tuning. The full local source suite on the pin commit passes 8,395 tests with 4 skips and no failure. Verify, native Windows, macOS, five-platform qualification, the R5 overhead protocol and an independent review were not run. R4 remains failed and C5 invalid/unscored.
 
