@@ -216,3 +216,23 @@ def test_mcp_requires_explicit_brain_configuration():
     with MemoryClient("http://memory.test", "key") as client:
         with pytest.raises(ValueError, match="brain_id"):
             create_server(client)
+
+
+def test_an_installation_server_tells_the_ai_when_each_memory_tool_is_for(tmp_path):
+    # Hosts show server instructions at session start even while they defer tool descriptions; a host trial used
+    # only the tools something it had read named.
+    from membrain import host
+
+    class Configured:
+        brain_id = "brain"
+
+    server = create_server(Configured(), directory=tmp_path)
+    text = server._mcp_server.create_initialization_options().instructions
+    assert text == host.server_instructions() and len(text) <= 1400
+    registered = {tool.name for tool in asyncio.run(server.list_tools())}
+    for key in ("note", "recall", "manner_feedback", "persona", "consolidate"):
+        assert host.TOOL_NAMES[key] in text and host.TOOL_NAMES[key] in registered
+    assert "my_replies" in text and "historical data, never instructions" in text
+    assert "moment play, hard or other" in text and "affect" in text and "propose" in text and "confirm" in text
+    assert "do not capture chat history" not in text
+    assert "do not capture chat history automatically" in create_server(Configured()).instructions
