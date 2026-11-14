@@ -1,0 +1,2085 @@
+{
+ "contract_version": "1.0.0-draft",
+ "document": {
+  "archive_origin": "local_export",
+  "belief_relations": [],
+  "cognitive_views": {
+   "associations": [],
+   "episodes": [],
+   "members": [],
+   "version": 1
+  },
+  "created_at": "2026-11-14T09:19:59.944232Z",
+  "dependency_memories": [],
+  "event_dependencies": [
+   {
+    "input_event_id": "c5842dd7-6c46-4790-97a6-63d27bdb8b83",
+    "output_event_id": "0fcfed23-b829-41bd-ac72-3a90f9a02e87"
+   },
+   {
+    "input_event_id": "2ccc6830-b74c-4add-9bd6-f95390869716",
+    "output_event_id": "4f33865c-9cea-49c3-9baf-3ab13fd43b39"
+   },
+   {
+    "input_event_id": "f17bef4d-8ea7-4c9b-b285-6c2793f457eb",
+    "output_event_id": "5627171f-6467-4c48-bbda-d99db4af4801"
+   },
+   {
+    "input_event_id": "dd199927-50a5-4dbf-a78e-c69081ee4822",
+    "output_event_id": "60b29a6b-c48f-492c-9226-52f75df16fa9"
+   },
+   {
+    "input_event_id": "6521be56-9905-4987-a36a-df573b4643f6",
+    "output_event_id": "61ebf833-fc50-4ebc-8a15-043621e60f14"
+   },
+   {
+    "input_event_id": "99b5399f-2f36-4927-9274-57bf9becb33b",
+    "output_event_id": "85a5a1f1-3bbd-4cc7-a9a1-cbd15313c45e"
+   },
+   {
+    "input_event_id": "207eac4c-7f2a-4fd3-8dd6-b7ad9ea7e0ce",
+    "output_event_id": "8b354ee6-0c56-4592-92d9-ea293ce31f0e"
+   },
+   {
+    "input_event_id": "3c9f0a0c-011b-4107-8c42-204412a4b4c9",
+    "output_event_id": "a51a317d-a817-4e79-b668-27e7eed636ab"
+   },
+   {
+    "input_event_id": "1f3ede26-a2f5-4947-ae66-ba0adf78d7fd",
+    "output_event_id": "be8ac9cd-ab31-408e-8a2c-7875443b90cc"
+   },
+   {
+    "input_event_id": "33bca87b-0dd8-46b7-8366-4e1c2071e93c",
+    "output_event_id": "be8ac9cd-ab31-408e-8a2c-7875443b90cc"
+   },
+   {
+    "input_event_id": "7d588d42-19c4-4a36-a078-15f5fdd70fc5",
+    "output_event_id": "bf094440-abeb-43d1-ae47-9184ccd1a2bd"
+   },
+   {
+    "input_event_id": "4c273786-f446-4901-9477-d6f0f476ab66",
+    "output_event_id": "c71d7345-f52a-4563-bd28-3ddbafc69b0a"
+   },
+   {
+    "input_event_id": "7c07aeba-0a68-4b88-a1ff-76012f159d84",
+    "output_event_id": "cec7a3c4-ef14-4d22-8631-2b9d76b67e9d"
+   },
+   {
+    "input_event_id": "35a56f59-8151-420d-8d28-2a1cb5e22c37",
+    "output_event_id": "d7c000c4-f89c-44f7-8a9f-8338089eb1e0"
+   }
+  ],
+  "events": [
+   {
+    "content_sha256": "eafd4af45d423632910e0d5e1515a3885fa29fe337202c971275086e60c9e801",
+    "event_id": "33bca87b-0dd8-46b7-8366-4e1c2071e93c",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "我喜欢松木香味。"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "producer_ref": "feedback-tests",
+     "source_event_key": "9c009f09-7460-4e60-b0b8-4f529924149f",
+     "source_revision": 1
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "chat",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 1,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:56.009268Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 8,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "3719dea3b93a7cb534ec5a81a92b10aa8cc912e64995251c801e8c4102effc17",
+    "event_id": "1f3ede26-a2f5-4947-ae66-ba0adf78d7fd",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "我喜欢哪种香味，松木吗？"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "turn-8534f56b4bf2f639d683c302ccb0f335d3162220:input",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "chat",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 2,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:56.096294Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "inquiry",
+      "span": {
+       "end": 12,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "9d0ec033dced8bb8370f46e8af4603bfebb2b7b86be097f19ed1cbcbf12ce8c6",
+    "event_id": "be8ac9cd-ab31-408e-8a2c-7875443b90cc",
+    "observed": {
+     "actor_ref": "assistant",
+     "actor_role": "assistant",
+     "content": {
+      "media_type": "text/plain",
+      "text": "user user (direct_statement): 我喜欢松木香味。"
+     },
+     "delivery_state": "delivered",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "runtime-output:5261957bd0e2a8855342b25503c64f38263cacee9a1e01edc9b93bd6e232422c",
+     "source_revision": 2,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "assistant_output",
+    "origin_verification": "unknown",
+    "previous_revision": 1,
+    "revision": 2,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "chat",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 4,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:56.377683Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 38,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "5fb2679c88fd6d8addabbaca1a2ddc6c8ae9b08617c8ad975be02651e68394b2",
+    "event_id": "7c07aeba-0a68-4b88-a1ff-76012f159d84",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "yes"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "turn-69ad4469864e8e7e0174f0b2945cc6c809a25628:input",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "chat",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 5,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:56.488777Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 3,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "d8bcef08b7e4c165a11ac858455b02c01633beaefc5565ca1cd81da3daaabd0e",
+    "event_id": "cec7a3c4-ef14-4d22-8631-2b9d76b67e9d",
+    "observed": {
+     "actor_ref": "assistant",
+     "actor_role": "assistant",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Acknowledged."
+     },
+     "delivery_state": "delivered",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "runtime-output:43e21a50b8e3bca4fc585e88a7b5d3a25a179471b98e0ce7d650d17096372532",
+     "source_revision": 2,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "assistant_output",
+    "origin_verification": "unknown",
+    "previous_revision": 1,
+    "revision": 2,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "chat",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 7,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:56.728292Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 13,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "a3704330c0c4a220ff616ed2d2b150733ed1f05995932a9515447306fe6c0e24",
+    "event_id": "7d588d42-19c4-4a36-a078-15f5fdd70fc5",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Remember that the lantern code for the boathouse is amber-417."
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "turn-2151f5115bd264c06a4108703b22da5c292fab15:input",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "reviewed",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 8,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:56.840970Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 62,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "e386009b34aefb762faae9e2e2d2df7572163e49f06aef15a976ea93f1b711eb",
+    "event_id": "bf094440-abeb-43d1-ae47-9184ccd1a2bd",
+    "observed": {
+     "actor_ref": "assistant",
+     "actor_role": "assistant",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Noted: the lantern code for the boathouse is amber-417."
+     },
+     "delivery_state": "delivered",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "runtime-output:0cd0ee50d864eb78337d984390d18b7c777056ce3b4329e7ee13307b8582350e",
+     "source_revision": 2,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "assistant_output",
+    "origin_verification": "unknown",
+    "previous_revision": 1,
+    "revision": 2,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "reviewed",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 10,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:57.152052Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 55,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "6d6cf1f34fb0765cdb8013bf0fc38f71222e64a78dcaacfc9b4751f8df815d6a",
+    "event_id": "207eac4c-7f2a-4fd3-8dd6-b7ad9ea7e0ce",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Which way did we agree to walk to the quarry garden?"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "turn-8bdeb97548c0a44190ec390c0fe2fe6c0c49206e:input",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "rejected",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 11,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:57.248098Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "inquiry",
+      "span": {
+       "end": 52,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "5a95566e19fe8a5b6f7370198fb41f4bc02faa47520327301b97560c098d5480",
+    "event_id": "8b354ee6-0c56-4592-92d9-ea293ce31f0e",
+    "observed": {
+     "actor_ref": "assistant",
+     "actor_role": "assistant",
+     "content": {
+      "media_type": "text/plain",
+      "text": "We always walk past the quarry garden gate first."
+     },
+     "delivery_state": "draft",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "runtime-output:fbe635876f26ddf2696908fdf778a0b57d32c60f37c2052ab185981041e22038",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "assistant_output",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "rejected",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 12,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:57.394536Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 49,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "63421def8fb42488045eb4695f8e7dabb2b0cbe6ccf5a71a334fba25ac8c917e",
+    "event_id": "99b5399f-2f36-4927-9274-57bf9becb33b",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Tell me about the copper kettle I keep on the windowsill."
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "turn-a71aa92755c828e14c85dd5f87f793749a68b77b:input",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "draft",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 13,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:57.570353Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 57,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "8129eade04962184ae1a6d039b7a805b7d6afbbbd9534344f20352ca6a293aad",
+    "event_id": "85a5a1f1-3bbd-4cc7-a9a1-cbd15313c45e",
+    "observed": {
+     "actor_ref": "assistant",
+     "actor_role": "assistant",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Your copper kettle on the windowsill came from Lisbon."
+     },
+     "delivery_state": "draft",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "runtime-output:ed0d6c3cc00534c95067168045884018093f1cd3626e35bd4d71b8cc37c172da",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "assistant_output",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "draft",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 14,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:57.717004Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 54,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "bb12570d02dfb0e3bce7671558bac39447cfa341dd09d8adc6ce9923ae008edd",
+    "event_id": "c5842dd7-6c46-4790-97a6-63d27bdb8b83",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "My cousin Ilse moves to Tromso in the spring."
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "turn-ccd45417f009e73229f44a06f11276fd3ce5c6c2:input",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "unknown",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 15,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:57.824556Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 45,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "b0bee13552d15368ba8ddde606193e56da2e3e3efc133ee1c9460961a2a27643",
+    "event_id": "0fcfed23-b829-41bd-ac72-3a90f9a02e87",
+    "observed": {
+     "actor_ref": "assistant",
+     "actor_role": "assistant",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Ilse moving to Tromso in the spring sounds exciting."
+     },
+     "delivery_state": "draft",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "runtime-output:c4c73ff480fd7ed1ac019ac715513eacc6832960141a469288813c7279598ad4",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "assistant_output",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "unknown",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 16,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:57.971262Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 52,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "82396ed8139c7f4252e8760aaeecf2b89eff820c038218d277d5bc98fe808c97",
+    "event_id": "3c9f0a0c-011b-4107-8c42-204412a4b4c9",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "The spare key for the shed hangs behind the calendar."
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "turn-ab466394f32f86e7d0ceb8991d49e1bc4be09037:input",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "cancelled",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 17,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:58.103254Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 53,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "539e4448fd2fe0664e72a76a094a4e2d770ff46a948f8dd02464c5470630576b",
+    "event_id": "a51a317d-a817-4e79-b668-27e7eed636ab",
+    "observed": {
+     "actor_ref": "assistant",
+     "actor_role": "assistant",
+     "content": {
+      "media_type": "text/plain",
+      "text": ""
+     },
+     "delivery_state": "cancelled",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "runtime-output:ea900b5ba9627e985334ee76c535c64241fc1dc4219e9f01dece21131f28d9f6",
+     "source_revision": 2,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "assistant_output",
+    "origin_verification": "unknown",
+    "previous_revision": 1,
+    "revision": 2,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "cancelled",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 19,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:58.310589Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "unknown"
+     }
+    ]
+   },
+   {
+    "content_sha256": "cad91aa6758a79532e1eff7b3ec73d4cdb3bb330450f170686eb09f33379f228",
+    "event_id": "2ccc6830-b74c-4add-9bd6-f95390869716",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "I planted saffron crocus bulbs along the north fence."
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "turn-cbb43728035b95e769d8e0027780d4aff22199b9:input",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "partial",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 20,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:58.375653Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 53,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "fcb9595648030d881f4a1af283027a07819b9234c132f1b20cca918a1b6adf99",
+    "event_id": "4f33865c-9cea-49c3-9baf-3ab13fd43b39",
+    "observed": {
+     "actor_ref": "assistant",
+     "actor_role": "assistant",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Saffron crocus bulbs along the"
+     },
+     "delivery_state": "partially_delivered",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "runtime-output:4dde4cf2bdf8cc95a6025dfa1cabc6b15470c173e9b02c7028225c9d88b45b2c",
+     "source_revision": 2,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "assistant_output",
+    "origin_verification": "unknown",
+    "previous_revision": 1,
+    "revision": 2,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "partial",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 22,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:58.585217Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 30,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "a9d61e681b9f75754a7c3e15dab4e6819070deb717f0db7d360642654e82c654",
+    "event_id": "d0ab9028-9a77-49a8-bdac-ccae30bac313",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "The violin lesson moved to Thursday evenings."
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "turn-c08b1f41786bbe5432d0c9d264e306341a976981:input",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "generation-failed",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 23,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:58.692220Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 45,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "cad55ec7a1c946ba6c52dc3871f6f345d7fd10657a105f90cff1c909a4ceaca6",
+    "event_id": "bec22ed8-09c4-4a1c-bd50-0e8cfbf64f5f",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "My library card number ends in 5521."
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "runtime-fixture",
+     "source_event_key": "turn-9d9bb991-a5d1-4872-b9bf-3a3f5819bc04",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "host-captured",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 24,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:58.886323Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 36,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "9b5ec8abec04f20dc03ec930d434c6f42496bd048af54a41973be85204292a51",
+    "event_id": "8e49a8b1-1748-47b4-ba43-ec73df167868",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Original input for captured"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "service-test",
+     "source_event_key": "d2904379-eff1-4b60-ac30-6b5af1c7245e",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "captured",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 25,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:59.126831Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 27,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "382a5a5aff3eef5a875142e7d1abbca577e9d8428ed6eb28e6f59fe22fa2a010",
+    "event_id": "34c44b22-5655-45fb-b492-7be58df46ad3",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Original input for prepared"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "service-test",
+     "source_event_key": "b9a83ea8-36e8-4a4a-b619-217e50f43733",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "prepared",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 26,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:59.171937Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 27,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "4ce43022b92400524d4aef82b78c9cb0ca25b8d1f9574da4180a73dfca7ef856",
+    "event_id": "9d3e5210-d32b-4d67-873b-0d56ba5c0d27",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Original input for generating"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "service-test",
+     "source_event_key": "0f249ca9-82ef-4224-8207-44c4f870d6e5",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "generating",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 27,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:59.237376Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 29,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "b5be68855b3346693ab25ab2fed6ffb126c4579ef859c07c8dbd7b9066921009",
+    "event_id": "dd199927-50a5-4dbf-a78e-c69081ee4822",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Original input for generated"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "service-test",
+     "source_event_key": "aab1149a-3b21-4680-a30a-13b6d5611110",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "generated",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 28,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:59.312791Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 28,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "3771bc18b8e2f208289701e8f5a90de478b0868162a1603aae99c7c16c2d60bc",
+    "event_id": "60b29a6b-c48f-492c-9226-52f75df16fa9",
+    "observed": {
+     "actor_ref": "assistant",
+     "actor_role": "assistant",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Actual reply for generated"
+     },
+     "delivery_state": "draft",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "runtime-output:a97168f66184184cd2020d1c869340e2ac7a85a0ad4d0b8a4acda418802b291f",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "assistant_output",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "generated",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 29,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:59.367725Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 26,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "a429379225a11e30df0ac48b601195ddb521eba567848447f7c92256030ed3f1",
+    "event_id": "f17bef4d-8ea7-4c9b-b285-6c2793f457eb",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Original input for delivering"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "service-test",
+     "source_event_key": "1da133cd-9470-412e-924a-55d407a3a9db",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "delivering",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 30,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:59.401916Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 29,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "b9f36fa1acb8be2ce9d69f9e88141c4ecf362773fc14955d382ce937e40427fb",
+    "event_id": "5627171f-6467-4c48-bbda-d99db4af4801",
+    "observed": {
+     "actor_ref": "assistant",
+     "actor_role": "assistant",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Actual reply for delivering"
+     },
+     "delivery_state": "draft",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "runtime-output:88d7ba9dac21e466a08b3708641ddcfca9d98c062e9ea5b1d3b395c81ed0ebcf",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "assistant_output",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "delivering",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 31,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:59.470627Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 27,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "c9c1ddc25940ddb4c9935d8710fcc8b1dfbbb5bccf2266ea5900334dd2047875",
+    "event_id": "6521be56-9905-4987-a36a-df573b4643f6",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Original input for delivered"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "service-test",
+     "source_event_key": "5f40beee-3d63-4b75-bbce-8a0af3430bef",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "delivered",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 32,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:59.514862Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 28,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "23aec4e22264ffc2753f53e0150e1772fd0b54988709664906c569bbb179e8a0",
+    "event_id": "61ebf833-fc50-4ebc-8a15-043621e60f14",
+    "observed": {
+     "actor_ref": "assistant",
+     "actor_role": "assistant",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Actual reply for delivered"
+     },
+     "delivery_state": "delivered",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "runtime-output:2c793e2922f69d28a40b959dd0bc14de8c394d47f4503b282f3445ce9f568135",
+     "source_revision": 2,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "assistant_output",
+    "origin_verification": "unknown",
+    "previous_revision": 1,
+    "revision": 2,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "delivered",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 34,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:59.597799Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 26,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "9a72a8a831ac9c08a95d431a1dc43939e712706e4230f9ed6c187b11545f6713",
+    "event_id": "35a56f59-8151-420d-8d28-2a1cb5e22c37",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Original input for committed"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "service-test",
+     "source_event_key": "1f222cd2-631a-4d53-975f-4b229a37ca1a",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "committed",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 35,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:59.630442Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 28,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "502676d053986d96da399ca4c7d41cb93ac593f37978bd7704b39ee65aa88db0",
+    "event_id": "d7c000c4-f89c-44f7-8a9f-8338089eb1e0",
+    "observed": {
+     "actor_ref": "assistant",
+     "actor_role": "assistant",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Actual reply for committed"
+     },
+     "delivery_state": "delivered",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "runtime-output:414bfa1f6923ea85b0aaa97a9aaa5e9d116a6915ba94b9bec03c535a8073cf87",
+     "source_revision": 2,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "assistant_output",
+    "origin_verification": "unknown",
+    "previous_revision": 1,
+    "revision": 2,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "committed",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 37,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:59.713061Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 26,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "2c4da839fa3cb2dd6d7341277f093148a8cac82637581b63828706bad5e5a876",
+    "event_id": "4c273786-f446-4901-9477-d6f0f476ab66",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Original input for completed"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "service-test",
+     "source_event_key": "9e2e0002-01ac-4d72-9876-bb1d55ef9bfa",
+     "source_revision": 1,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "completed",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 38,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:59.766217Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 28,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "62731fece395b249f26bfe37609e869458ea66e8f876dffb8f965d92138d54b5",
+    "event_id": "c71d7345-f52a-4563-bd28-3ddbafc69b0a",
+    "observed": {
+     "actor_ref": "assistant",
+     "actor_role": "assistant",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Actual reply for completed"
+     },
+     "delivery_state": "delivered",
+     "event_kind": "message",
+     "interpretation_hint": "unknown",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "parent_source_event_keys": [],
+     "producer_ref": "brain-runtime",
+     "source_event_key": "runtime-output:e262ea526550c583b243a0ace8b6722d651eec13004552b5fe433fd87783f296",
+     "source_revision": 2,
+     "speech_act_hint": "unknown"
+    },
+    "origin": "assistant_output",
+    "origin_verification": "unknown",
+    "previous_revision": 1,
+    "revision": 2,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "completed",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 40,
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:59.851337Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 26,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   }
+  ],
+  "excluded_deleted_event_ids": [],
+  "format": "agent-memory-jsonl-bundle",
+  "format_version": "1.0.0-draft",
+  "memories": [
+   {
+    "derivation": {
+     "method": "direct_capture",
+     "model_version": null,
+     "rule_version": "literal-episodes-v3",
+     "source_memory_versions": []
+    },
+    "disclosure_basis": {
+     "dependency_generation": 0,
+     "release_mode": "supported_scope",
+     "selected_path_ids": [
+      "path-memory-0f3e6d5d561275b93fc4d00dea368fed"
+     ],
+     "support_paths": [
+      {
+       "dependency_generation": 0,
+       "evidence_refs": [
+        {
+         "event_id": "33bca87b-0dd8-46b7-8366-4e1c2071e93c",
+         "event_revision": 1,
+         "relationship": "supports",
+         "source_content_sha256": "eafd4af45d423632910e0d5e1515a3885fa29fe337202c971275086e60c9e801",
+         "span": {
+          "end": 8,
+          "start": 0,
+          "unit": "unicode_code_point"
+         }
+        }
+       ],
+       "independently_supports_complete_statement": true,
+       "path_id": "path-memory-0f3e6d5d561275b93fc4d00dea368fed",
+       "permitted_scope": {
+        "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+        "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+        "branch_id": "main",
+        "conversation_id": "chat",
+        "policy_revision": 1,
+        "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+        "scope_generation": 1,
+        "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+        "visibility": "private"
+       },
+       "source_memory_versions": [],
+       "state": "current"
+      }
+     ],
+     "validation_state": "current"
+    },
+    "dynamics": {
+     "activation": 0.5,
+     "decay_policy_version": "external-use-only-v1",
+     "detail_level": "verbatim",
+     "last_external_reinforcement_at": null,
+     "last_recalled_at": null,
+     "reasons": [
+      "default_policy"
+     ],
+     "retention_priority": 0.5,
+     "user_pinned": false
+    },
+    "epistemic_status": "supported_report",
+    "evidence_refs": [
+     {
+      "event_id": "33bca87b-0dd8-46b7-8366-4e1c2071e93c",
+      "event_revision": 1,
+      "relationship": "supports",
+      "source_content_sha256": "eafd4af45d423632910e0d5e1515a3885fa29fe337202c971275086e60c9e801",
+      "span": {
+       "end": 8,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ],
+    "lifecycle": "active",
+    "memory_id": "memory-0f3e6d5d561275b93fc4d00dea368fed",
+    "memory_kind": "episodic",
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "chat",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "statement": "user user (direct_statement): 我喜欢松木香味。",
+    "supersedes_memory_ids": [],
+    "system_time": {
+     "recorded_at": "2026-11-14T09:19:56.009268Z",
+     "superseded_at": null
+    },
+    "valid_time": {
+     "basis": "unknown",
+     "end": null,
+     "precision": "unknown",
+     "start": null
+    },
+    "world": "real_world"
+   }
+  ],
+  "rebuild_policy": {
+   "access_state": "reset_requires_new_external_feedback",
+   "cognitive_views": "restore_only_exact_versions_with_available_sources",
+   "embeddings": "rebuild_from_available_assertions",
+   "jobs": "execution_and_leases_not_restored"
+  },
+  "retired_event_ids": [],
+  "source_brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+  "tombstones": [],
+  "working_states": [
+   {
+    "items": [],
+    "open_loops": [],
+    "revision": 2,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "chat",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "through_sequence": 7,
+    "updated_at": "2026-11-14T09:19:56.753588Z"
+   },
+   {
+    "items": [],
+    "open_loops": [],
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "completed",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "through_sequence": 40,
+    "updated_at": "2026-11-14T09:19:59.865933Z"
+   },
+   {
+    "items": [],
+    "open_loops": [],
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "partial",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "through_sequence": 22,
+    "updated_at": "2026-11-14T09:19:58.607281Z"
+   },
+   {
+    "items": [],
+    "open_loops": [],
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "brain_id": "debca6e4-35aa-47b1-93d9-7f4ff9954ab1",
+     "branch_id": "main",
+     "conversation_id": "reviewed",
+     "policy_revision": 1,
+     "principal_binding_id": "bf81782b-9f86-40f6-a27b-68dfddeaec0d",
+     "scope_generation": 1,
+     "tenant_id": "77dd4248-95b8-4120-acbd-73ffb1858c18",
+     "visibility": "private"
+    },
+    "through_sequence": 10,
+    "updated_at": "2026-11-14T09:19:57.169516Z"
+   }
+  ]
+ },
+ "exported_by_build": "5e90372bbd80523780817fa8cbd167704e3f21f497c762f6800b449cb536b119",
+ "note": "The local archive the runtime at ba70e7cd exported from the brain of runtime_turns.json."
+}
