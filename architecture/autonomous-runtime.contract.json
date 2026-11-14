@@ -2,7 +2,7 @@
   "contract_version": "1.0.0-draft",
   "status": "target_specification_partially_implemented",
   "title": "Headless Autonomous Agent Memory Runtime",
-  "description": "Defines operational responsibilities of the autonomous memory product and its host. The synchronous text lifecycle and optional budgeted semantic recall controller are implemented; the full cognitive architecture remains a target. This file is not a declaration that every capability is complete.",
+  "description": "Defines operational responsibilities of the autonomous memory product and its host. Host lifecycle integrations (plugins, adapters and the proxy) and the memory actions are implemented. memBrain's own synchronous text runtime and its model-driven recall controller were removed after ba70e7cd; the host's AI replies. The full cognitive architecture remains a target. This file is not a declaration that every capability is complete.",
   "product_boundary": {
     "primary_deliverable": "A persistent cognitive memory runtime integrated into the agent inference lifecycle",
     "management_ui_required": false,
@@ -24,7 +24,7 @@
     "turn_ownership": "Each turn has exactly one lifecycle orchestrator; plugins and model proxies must not duplicate capture, injection, or generation",
     "continuity": "An authorized model or adapter change can bind the original brain; uninstalling an adapter does not delete core data",
     "identity_mapping": "Cross-platform participants and conversations are linked explicitly through trusted configuration only; do not merge by nickname or model inference or automatically cross private/group-chat scopes",
-    "current_boundary": "The core, desktop chat command, and open_agent Python sessions have no QQ-framework dependency. The direct entry supports synchronous Chat Completions text, durable database reservations for conversation/branch exclusion across hosts, and explicit recovery with delivery receipts. All API processes must be upgraded together; external delivery remains dependent on host acknowledgements and idempotency. A model-compatible gateway and QQ adapter plugins have not shipped"
+    "current_boundary": "The core has no chat-framework dependency. Hosts integrate through the plugin hooks and MCP server, the OpenClaw, AstrBot and Hermes adapters, and the OpenAI-compatible proxy; each host owns its turn and its reply. The bundled desktop chat, the open_agent Python sessions and the turn lifecycle API they used (durable conversation/branch reservations and delivery receipts) were removed after ba70e7cd. External delivery remains dependent on host acknowledgements. QQ adapter plugins have not shipped"
   },
   "full_integration_requirements": [
     "Authenticated stable agent, participant, conversation, branch, and message identifiers",
@@ -146,7 +146,7 @@
   ],
   "current_implementation": {
     "status": "historical_synchronous_runtime_baseline",
-    "scope_note": "The available and remaining lists below preserve the early synchronous-runtime baseline, not the current feature inventory. Optional semantic consolidation and later scoped real-model evaluations are documented in the linked implementation and evaluation reports. Full autonomous-runtime acceptance remains incomplete.",
+    "scope_note": "The available and remaining lists below preserve the early synchronous-runtime baseline, not the current feature inventory. Optional semantic consolidation and later scoped real-model evaluations are documented in the linked implementation and evaluation reports. Full autonomous-runtime acceptance remains incomplete. The items under removed_after_ba70e7cd belonged to the bundled runtime mode and are no longer in the package; rows they stored stay readable and erasable.",
     "current_progress": "../README.md#current-implementation-boundaries",
     "evaluation_report": "../evaluations/deepseek-2026-10-24-orientation-routing.md",
     "available": [
@@ -156,14 +156,10 @@
       "Provenance constraints",
       "Correction and deletion",
       "Underlying HTTP/SDK/MCP interfaces",
-      "Automatic Python synchronous text lifecycle",
-      "Persistent turns, leases, and atomic output capture",
-      "Authenticated status and stage-log interfaces",
+      "Authenticated status and job interfaces",
       "Generated-output source dependencies and deletion propagation",
       "Recent conversational context bounded by time and scope",
-      "Optional model-driven cue search, ambiguity assessment, and source selection",
       "Server-revalidated persistent recall plans and deterministic reconstruction",
-      "Persistent pre-request reservations for model calls and input bytes",
       "Content-free recall decision traces and stopping reasons"
     ],
     "remaining": [
@@ -189,7 +185,14 @@
         "elapsed_ms"
       ],
       "actual_provider_billing_recorded": false
-    }
+    },
+    "removed_after_ba70e7cd": [
+      "Automatic Python synchronous text lifecycle",
+      "Persistent turns, leases, and atomic output capture",
+      "Authenticated status and stage-log interfaces",
+      "Optional model-driven cue search, ambiguity assessment, and source selection",
+      "Persistent pre-request reservations for model calls and input bytes"
+    ]
   },
   "memory_stratification": {
     "status": "target_not_implemented",
