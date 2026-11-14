@@ -190,8 +190,11 @@ def reconcile(directory, client, owner=None, *, revision=None):
                 if has_erasures and state.get("user_id") == owner:
                     context = state.get("memory_context")
                     if isinstance(context, dict) and context.get("brain_id") == client.brain_id:
-                        state.pop("memory_context", None)
-                        changed = True
+                        # Keep content-free version/visibility/options metadata: it tells the host to announce
+                        # a removed persona or mood, and preserves the user's context-sharing settings.
+                        if "fingerprint" in context:
+                            context.pop("fingerprint")
+                            changed = True
                 callbacks = state.get("callbacks", [])
                 kept = [item for item in callbacks if not (
                     item.get("owner") == owner and item.get("target") == target

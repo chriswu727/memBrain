@@ -50,3 +50,14 @@ Stable-source guards survive process restarts. Content-derived identities are ne
 A bounded identity read uses existing event indexes; filesystem reconciliation occurs on a newly observed recording
 revision. Opening a host connection also reads current recording policy. No latency, recall-quality or throughput
 improvement is claimed: a same-fixture performance benchmark was not run.
+
+
+## First full PR Verify: retained failure
+
+[Verify 43628281075](https://github.com/chriswu727/memBrain/actions/runs/43628281075) on 61c16960 finished with
+**1 failed, 4,065 passed and 3 warnings**, not a runner failure. The normal CLI log view was truncated; the raw job
+log contains the complete result. The failure was test_persona.py::test_exact_block_new_versions_restore_and_reset_across_turns:
+clearing the whole host context cache also removed the previous persona version, so the host omitted its removal
+announcement. Cleanup now removes only the content fingerprint and retains content-free persona/mood visibility and
+sharing options. The existing persona/mood/context regressions passed locally after that change; the added fixture
+also verifies the fingerprint is gone while those controls remain. This failure is not relabelled as success.

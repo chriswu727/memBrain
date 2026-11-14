@@ -33,9 +33,17 @@ def capture(turns, connected, root):
 
 def test_external_erasure_clears_host_files_on_policy_contact(turns, connected, tmp_path):
     removed, control = capture(turns, connected, tmp_path)
+    state = host.session_state(tmp_path, "s")
+    state["memory_context"] = {"brain_id": turns.brain, "fingerprint": digest(["private cached context"]),
+                               "persona_version": 4, "mood_shown": True, "share_real_life": True,
+                               "tools": host.TOOL_NAMES, "skip_imports_from": []}
+    host._write_session_state(tmp_path, "s", state)
     with connected(tmp_path) as client:
         host_recording.status(tmp_path, client)
     text = files(tmp_path)
+    context = host.session_state(tmp_path, "s")["memory_context"]
+    assert "fingerprint" not in context
+    assert context["persona_version"] == 4 and context["mood_shown"] and context["share_real_life"]
     for record in removed:
         assert record["text"] not in text
         assert digest([record["text"]]) not in text
