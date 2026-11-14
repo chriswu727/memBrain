@@ -66,7 +66,7 @@ CASES = [
 
 STUB_HOST = {
     ("s1-start", 0): [{"tool": "memory_note", "arguments": {"text": "Noor keeps bees on her roof in Utrecht.",
-                                                             "kind": "fact"}, "source": "current"}],
+                                                             "kind": "routine"}, "source": "current"}],
     ("s1-start", 1): [{"tool": "memory_note", "arguments": {"text": "Noor's sister Lena visits on 2026-03-14.",
                                                              "kind": "plan", "status": "scheduled",
                                                              "occurs_at": "2026-03-14"}, "source": "current"}],
