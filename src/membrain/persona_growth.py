@@ -1044,8 +1044,15 @@ def _host_quotes(service, conn, principal, brain_id, proposals) -> dict[str, lis
     return {proposal: [quoted[ident] for ident in values if ident in quoted] for proposal, values in wanted.items()}
 
 
+LIST_FIELDS = ("traits", "values", "boundaries")
+
+
 def _merged(card: dict, changes) -> dict:
-    """The current card with the proposed fields replaced; ``voice`` is changed field by field."""
+    """The current card with the proposed change applied: ``traits``, ``values`` and ``boundaries`` are ADDED to the
+    ones the card has (a host asked for "be more patient" would otherwise have to repeat every value of the
+    personality type or wipe them; in a trial it squeezed the behaviour into a 60-character voice field instead);
+    ``voice`` is changed field by field; ``name`` and ``baseline_mood`` are replaced. Removing or rewriting an entry
+    is the user's edit on the memory page."""
     if not isinstance(changes, dict) or not changes or not set(changes) <= set(CHANGE_FIELDS):
         raise DomainError("validation_failed", f"changes must name one or more of {', '.join(CHANGE_FIELDS)}.")
     merged = json.loads(json.dumps({**EMPTY_CARD, **card}))
@@ -1054,6 +1061,10 @@ def _merged(card: dict, changes) -> dict:
             if not isinstance(value, dict):
                 raise DomainError("validation_failed", "changes.voice must be an object of voice fields.")
             merged["voice"] = {**merged["voice"], **value}
+        elif field in LIST_FIELDS:
+            if not isinstance(value, list):
+                raise DomainError("validation_failed", f"changes.{field} must be a list of phrases to add.")
+            merged[field] = merged[field] + [entry for entry in value if entry not in merged[field]]
         else:
             merged[field] = value
     return normalize_card(merged)
@@ -1077,7 +1088,7 @@ def _accept_host(service, conn, principal, brain, proposal, confirmed_by) -> dic
 def propose_change(service, principal, brain_id: str, changes, *, reason, source_event_ids=(), source_messages=(),
                    now=None) -> dict:
     """The host AI proposes a change to the persona card: ``changes`` is a partial card (any of ``CHANGE_FIELDS``;
-    lists are replaced whole, ``voice`` field by field) and ``reason`` says why in a sentence. Nothing changes: an
+    lists are added to, ``voice`` changes field by field) and ``reason`` says why in a sentence. Nothing changes: an
     open proposal of kind ``host`` is stored, and any earlier open one is withdrawn ("replaced"). The resulting card
     must pass ``persona.normalize_card`` now. Cited messages (optional, up to ``MAX_SOURCES``) are checked like manner
     feedback: recorded ones must be the user's own messages; a reference to the current message may wait."""

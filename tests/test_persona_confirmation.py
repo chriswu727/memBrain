@@ -81,7 +81,9 @@ def test_proposals_are_validated_and_at_most_one_is_open(brain):
     assert "nothing to propose" in refused("validation_failed", propose, brain, {"traits": ["warm"]})
     assert "changes must name" in refused("validation_failed", propose, brain, {"mood": "glad"})
     assert "Persona card field traits" in refused("validation_failed", propose, brain, {"traits": ["x" * 61]})
-    assert "rendered" in refused("validation_failed", propose, brain, {"values": ["v" * 150] * 8})
+    too_many = refused("validation_failed", propose, brain, {"values": [f"{n} " + "v" * 150 for n in range(8)]})
+    assert "rendered" in too_many or "values" in too_many
+    assert "list of phrases" in refused("validation_failed", propose, brain, {"values": "be patient"})
     assert "reason" in refused("validation_failed", propose, brain, PATIENT, reason="")
     reply = said(brain, "Sure.", role="assistant")
     assert refused("source_unavailable", propose, brain, PATIENT, source_event_ids=[reply])

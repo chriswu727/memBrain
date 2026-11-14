@@ -173,8 +173,10 @@ const TOOLS = [
       "types (id such as intj, label, summary) and which one is current. action switch with preset (a type, " +
       "in any case, or random for a different one): only when the user asked in this conversation to " +
       "switch; that request is enough, do not ask again. When the user asks to reset their persona, that " +
-      "means switch with random, or with the type they name. action propose with changes (any of name, " +
-      "traits, voice, values, boundaries, baseline_mood) and a short reason: only when the user explicitly " +
+      "means switch with random, or with the type they name. action propose with changes and a short " +
+      "reason: values, traits or boundaries are lists of phrases to ADD to the card (a behaviour goes in " +
+      "values as one sentence), voice is an object of short phrases (register, length, emoji, language), " +
+      "name and baseline_mood replace; only when the user explicitly " +
       "asks you to behave differently from now on ('be more patient from now on') or keeps asking for " +
       "something the persona does not say, beyond what the manner-feedback tool records (too long, too " +
       "formal, more jokes, emoji). Never propose a change on your own taste. Nothing changes until the user " +
