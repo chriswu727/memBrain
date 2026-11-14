@@ -48,13 +48,14 @@ NOTE_TOOL_DESCRIPTION = (
     "Save one short, lasting fact about the user (health, people, dates, places, preferences, decisions, "
     "constraints, plans and their changes) so it is shown at the start of every later session. One fact per note, "
     "under 300 characters, with dates when they matter. Set kind when it is clear: person (with about = their name, "
-    "aliases, and the relation in the text), constraint, preference, plan (with status intended until the user "
+    "aliases, and the relation in the text; also the user's family, friends and pets), constraint (a limit on what "
+    "the user can do, eat, afford or use, not their job), preference, plan (with status intended until the user "
     "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD or YYYY-MM when the day is unknown), "
     "routine, milestone (shared true when it "
     "is a moment you and the user shared: a first conversation, a goal reached together, a shared joke; with it, "
     "moment play for a joke, a game or play together, moment hard for a difficult time the two of you went "
     "through, such as a disagreement between you, a time you let them down or a rough stretch you kept them "
-    "company in, otherwise moment other), relationship, or "
+    "company in, otherwise moment other), relationship (about you and the user only), or "
     "agent_commitment for something you promised to do. Status done means everything in the note has happened: a "
     "purchase paid for but not yet delivered, or a booking still ahead, is scheduled, with its date. "
     "When a fact changes (a plan is done, moved or cancelled), "
@@ -65,7 +66,7 @@ NOTE_TOOL_DESCRIPTION = (
     "When the user expresses a feeling about what the note covers, add affect {label in their own words, valence "
     "-2..2, intensity 0..3, basis, topic, felt_at}: basis reported only if they said it, or inferred, with the "
     "message it was read from as a source, if it is clearly evident but unsaid. Never invent a feeling. "
-    "Do not save routine requests or anything the "
+    "Never note something the user did not state. Do not save routine requests or anything the "
     "user asked you not to keep.")
 NOTE_FIELDS = {
     "kind": {"type": "string", "enum": list(KINDS)},

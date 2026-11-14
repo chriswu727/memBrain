@@ -89,12 +89,12 @@ class MembrainPlugin(star.Star):
                             pinned: bool = False, sensitive: bool = False, source_event_ids: list | None = None,
                             source_messages: list | None = None, affect: dict | None = None, shared: bool = False,
                             moment: str | None = None, recording_capture: str | None = None):
-        """Save one short, lasting fact about the user you are talking to (health, people, dates, places, preferences, decisions, plans and their changes) so it is shown in every later conversation. One fact per note, under 300 characters. Set kind when it is clear; a plan stays intended until the user confirms it is scheduled or done, and done means everything in the note has happened (paid but not yet delivered is scheduled). When a fact changes, save the new note and pass the old note's id in replaces. When the user expresses a feeling about it, add affect: reported only if they said it, inferred (with source_event_ids or source_messages) if clearly evident but unsaid; never invent one. Do not save routine requests or anything the user asked you not to keep.
+        """Save one short, lasting fact about the user you are talking to (health, people, dates, places, preferences, decisions, plans and their changes) so it is shown in every later conversation. One fact per note, under 300 characters. Set kind when it is clear; a plan stays intended until the user confirms it is scheduled or done, and done means everything in the note has happened (paid but not yet delivered is scheduled). When a fact changes, save the new note and pass the old note's id in replaces. When the user expresses a feeling about it, add affect: reported only if they said it, inferred (with source_event_ids or source_messages) if clearly evident but unsaid; never invent one. Never note something the user did not state. Do not save routine requests or anything the user asked you not to keep.
 
         Args:
             text(string): The fact, in one sentence, with dates when they matter.
             replaces(array[string]): IDs of earlier notes this one replaces, when a fact changed.
-            kind(string): person, constraint, preference, plan, routine, milestone, relationship, agent_commitment or other.
+            kind(string): person (also the user's family, friends and pets), constraint (a limit on what the user can do, eat, afford or use, not their job), preference, plan, routine, milestone, relationship (about you and the user only), agent_commitment or other.
             about(string): Who the fact is about, by name, if not the user.
             aliases(array[string]): Other names for that person, such as a nickname.
             status(string): For plans and promises: intended, scheduled, done, cancelled or superseded.

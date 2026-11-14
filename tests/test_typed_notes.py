@@ -16,6 +16,23 @@ def item(event_id, text, recorded="2026-10-20T09:00:00Z", **extra):
             "recorded_at": recorded, **extra}
 
 
+def test_every_note_tool_says_which_kind_family_pets_and_jobs_are_and_never_to_note_what_was_not_said():
+    # A host trial saved a pet as a relationship note, a job as a constraint and a trip the user never planned.
+    import re
+    from pathlib import Path
+
+    root = Path(__file__).parents[1]
+    openclaw = (root / "integrations/openclaw/membrain/index.js").read_text(encoding="utf-8")
+    openclaw = "".join(re.findall(r'"([^"]*)"', openclaw[openclaw.index('name: "membrain_note"'):
+                                                         openclaw.index("parameters:")]))
+    astrbot = " ".join((root / "integrations/astrbot/astrbot_plugin_membrain/main.py").read_text(
+        encoding="utf-8").split())
+    for text in (notes.NOTE_TOOL_DESCRIPTION, openclaw, astrbot):
+        assert "also the user's family, friends and pets" in text and "relationship (about you and the user only)" in text
+        assert "constraint (a limit on what the user can do, eat, afford or use, not their job)" in text
+        assert "Never note something the user did not state." in text
+
+
 def test_typed_notes_round_trip_and_plain_text_stays_plain():
     stored = format_note("Book a sesame-free restaurant for Mei's birthday.", kind="plan", status="intended",
                          due="2026-11-14", about="Mei", aliases=["Meimei", "little sis"], pinned=True)
