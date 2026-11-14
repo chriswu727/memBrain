@@ -8,7 +8,7 @@ It continues [the measurement of the age weight](time-depth-recall-2026-11-12.md
 
 - **Cues do not work as a sign of importance. Nothing was built from them.** The only judgement of importance memBrain has is the host AI's, which attaches a cue to a message that holds a lasting fact. Five ways of sparing cued memories from the age weight were measured; every one made questions about the last 30 days worse, and with all memories equally old every one lost between 1.3 and 7.6 points.
 - **The age weight was too steep, and is now gentler.** A new memory outranked a six-month-old one of equal relevance by 3 to 1; it is now about 1.8 to 1 (`AccessPolicy.rank_floor` 0.30 in place of 0.15). On the seven conversations not used for tuning, all the evidence is shown for 76.2% of 1,152 questions, against 72.2% before; questions about the last 30 days lose 2 of 232.
-- **"Important first" now has a first form:** a message a note was written from does not sink (added later the same day; see below). It passed its rule on the development conversations and is not yet checked on others.
+- **"Important first" is still not built.** A third form, a message a note was written from not sinking, passed its rule on the development conversations, was built, failed the same rule on the conversations not used for tuning, and was withdrawn (see below).
 
 ## Cues as a sign of importance: measured and rejected
 
@@ -67,9 +67,9 @@ Floor 0.30 gains in each of the ten conversations. It recovers about 70% of what
 
 **Changed:** `rank_floor` 0.30 (and the floor for distinctive events, which must not be lower, 0.40). Nothing else: the half-life, the tiers and the search made on purpose, which ignores the weight, are as they were.
 
-## Important first: a message a note was written from does not sink
+## Important first: a message a note was written from does not sink (built, then withdrawn)
 
-Added on 2026-11-13, after the owner asked for another way to make "important first" real. Runtime commit `fc99653b`.
+Added on 2026-11-13, after the owner asked for another way to make "important first" real: runtime commit `fc99653b`. Withdrawn on 2026-11-14, runtime commit `8c2860c4`, when it failed on the conversations not used for tuning; that result is at the end of this section. What follows is left as written on the 13th.
 
 **The sign of importance.** When the host AI saves a note it cites the message the fact came from. That is the only judgement of importance that is both deliberate and rare: notes written turn by turn cite one message each, and their sources were 11% of the user's messages and 35% of evidence turns, three times the base rate, where cues covered 45% of candidates.
 
@@ -95,6 +95,28 @@ With every memory equally old the age weight changes nothing and the order is by
 - A replacement note keeps the messages the old note cited; a note corrected twice may come to cite three and stop anchoring.
 
 Evidence: [results](locomo/results-2026-11-13-age-weight/anchors/) (the three rounds' reports, per-question rows, the notes' real sources, the run with the built code).
+
+### Checked on the conversations not used for tuning: it does not hold
+
+On 2026-11-14, with the owner's approval of up to 10 CNY (3.18 CNY spent), a stand-in host wrote notes on the seven held-out conversations: `deepseek-flash`, given the product's own note tool, read each conversation in windows of twelve turns and noted what it judged lasting; the turn a note names is its source. It wrote 950 notes. Their sources are **21% of all messages** and 54% of evidence turns. The development notes' sources were 11% and 35%: after the one tightening of the prompt that was allowed, the stand-in still noted about twice as often.
+
+The rule had been fixed beforehand and scaled to this set: at most 3 questions about the last 30 days lost a day after the last session; at most 1 lost net a year after; and at least 12 gained net, or noted evidence older than 90 days shown at least five points more often with other old evidence falling by no more than one. Measured with the built code on 1,152 questions:
+
+| Condition | Result | |
+| --- | --- | --- |
+| Questions about the last 30 days lost, a day after | 3 of 232 | passes, at the limit |
+| A year after, all memories equally old | identical for all 1,152 questions | passes |
+| Net gain a day after | 33 gained, 23 lost: 10 | **fails** (12 needed) |
+| Noted evidence older than 90 days shown | 73.4% → 82.0% | meets its half |
+| Other evidence older than 90 days shown | 61.6% → 55.4% | **fails** (a fall of 6.2 points, 1 allowed) |
+
+All evidence was shown for 77.1% of questions against 76.2%, so the rule did not make recall worse overall; it moved evidence. What it lifted it lifted, and it pushed out evidence that had no note behind it, the same way session-written notes had on the development conversations. With a fifth of all messages counting as important, the sign is not rare enough to be selective.
+
+**Withdrawn.** The lead had told the owner that the change would be withdrawn if it failed this check, and it is: the runtime no longer contains it. Nothing was adjusted after seeing this result.
+
+**What the failure does and does not show.** It shows that the rule depends on notes being rare, and that nothing in the product keeps them rare: how often a host writes a note is the host's choice. It does not show how often a real host notes: that has not been counted, and in the first session of the trial on Claude Code the host wrote notes on three of four turns. A form that survives a host that notes a great deal has not been found.
+
+Evidence: [held-out run](locomo/results-2026-11-13-age-weight/anchors/heldout/) (the stand-in's script and notes, the ledger, the report and per-question rows).
 
 ## What the weight's strength does not show
 

@@ -4,6 +4,8 @@ Base: pin `7a2a3253` (runtime `4b0f977`). Runtime commits `3c3b46c6` to `fc99653
 
 Two lines of work, each done by sub-sessions in their own working copies and reviewed and merged by the lead.
 
+**Added on 2026-11-14: the second line was withdrawn.** The anchor rule described under "Important first" failed its check on the conversations not used for tuning and was removed from the runtime the next day (`8c2860c4`); see the [report](age-weight-and-importance-2026-11-13.md). The rest of this record stands.
+
 ## From the trial
 
 The [trial](host-trial-2026-11-13.md) has the detail. What changed in the product:

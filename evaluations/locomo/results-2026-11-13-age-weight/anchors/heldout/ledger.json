@@ -1,0 +1,29 @@
+{
+  "ceiling_cny": 10.0,
+  "spent_cny": 3.177162,
+  "stopped": null,
+  "models": {
+    "deepseek-flash": {
+      "calls": 524,
+      "prompt_tokens": 1119325,
+      "completion_tokens": 117314,
+      "cny": 3.177162,
+      "unknown": 0,
+      "errors": 0
+    }
+  },
+  "phases": {
+    "pilot": {
+      "calls": 54,
+      "cny": 0.35371
+    },
+    "pilot-v2": {
+      "calls": 54,
+      "cny": 0.329954
+    },
+    "run": {
+      "calls": 416,
+      "cny": 2.493498
+    }
+  }
+}

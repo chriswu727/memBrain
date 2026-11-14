@@ -1,0 +1,425 @@
+{
+ "coverage": {
+  "messages": 0.2121,
+  "evidence": 0.5453,
+  "anchors": 940
+ },
+ "+1d": {
+  "all": {
+   "before": [
+    1152,
+    0.7622,
+    0.835
+   ],
+   "notes_plain": [
+    1152,
+    0.7622,
+    0.835
+   ],
+   "built": [
+    1152,
+    0.7708,
+    0.8375
+   ]
+  },
+  "one evidence": {
+   "before": [
+    831,
+    0.8965,
+    0.8965
+   ],
+   "notes_plain": [
+    831,
+    0.8965,
+    0.8965
+   ],
+   "built": [
+    831,
+    0.8869,
+    0.8869
+   ]
+  },
+  "several": {
+   "before": [
+    321,
+    0.4143,
+    0.6759
+   ],
+   "notes_plain": [
+    321,
+    0.4143,
+    0.6759
+   ],
+   "built": [
+    321,
+    0.4704,
+    0.7096
+   ]
+  },
+  "oldest under 30 d": {
+   "before": [
+    232,
+    0.8922,
+    0.9172
+   ],
+   "notes_plain": [
+    232,
+    0.8922,
+    0.9172
+   ],
+   "built": [
+    232,
+    0.8793,
+    0.9043
+   ]
+  },
+  "oldest 30-90 d": {
+   "before": [
+    249,
+    0.8755,
+    0.8976
+   ],
+   "notes_plain": [
+    249,
+    0.8755,
+    0.8976
+   ],
+   "built": [
+    249,
+    0.8715,
+    0.8909
+   ]
+  },
+  "oldest 90-180 d": {
+   "before": [
+    309,
+    0.7314,
+    0.8202
+   ],
+   "notes_plain": [
+    309,
+    0.7314,
+    0.8202
+   ],
+   "built": [
+    309,
+    0.7443,
+    0.8152
+   ]
+  },
+  "oldest over 180 d": {
+   "before": [
+    362,
+    0.6271,
+    0.7521
+   ],
+   "notes_plain": [
+    362,
+    0.6271,
+    0.7521
+   ],
+   "built": [
+    362,
+    0.6547,
+    0.7769
+   ]
+  }
+ },
+ "+1d paired": {
+  "notes_plain": {
+   "gained": 0,
+   "lost": 0,
+   "gained_recent": 0,
+   "lost_recent": 0,
+   "identical": 1152
+  },
+  "built": {
+   "gained": 33,
+   "lost": 23,
+   "gained_recent": 0,
+   "lost_recent": 3,
+   "identical": 1056
+  }
+ },
+ "+1d turns": {
+  "anchored all ages": {
+   "pairs": 1161,
+   "before": 0.7838,
+   "notes_plain": 0.7838,
+   "built": 0.8363
+  },
+  "anchored under 30 d": {
+   "pairs": 256,
+   "before": 0.8477,
+   "notes_plain": 0.8477,
+   "built": 0.8242
+  },
+  "anchored 30-90 d": {
+   "pairs": 265,
+   "before": 0.8415,
+   "notes_plain": 0.8415,
+   "built": 0.8868
+  },
+  "anchored 90-180 d": {
+   "pairs": 312,
+   "before": 0.7244,
+   "notes_plain": 0.7244,
+   "built": 0.8109
+  },
+  "anchored over 180 d": {
+   "pairs": 328,
+   "before": 0.7439,
+   "notes_plain": 0.7439,
+   "built": 0.8293
+  },
+  "anchored older than 90 d": {
+   "pairs": 640,
+   "before": 0.7344,
+   "notes_plain": 0.7344,
+   "built": 0.8203
+  },
+  "not anchored all ages": {
+   "pairs": 678,
+   "before": 0.6858,
+   "notes_plain": 0.6858,
+   "built": 0.6357
+  },
+  "not anchored under 30 d": {
+   "pairs": 157,
+   "before": 0.7707,
+   "notes_plain": 0.7707,
+   "built": 0.7516
+  },
+  "not anchored 30-90 d": {
+   "pairs": 167,
+   "before": 0.7545,
+   "notes_plain": 0.7545,
+   "built": 0.7006
+  },
+  "not anchored 90-180 d": {
+   "pairs": 193,
+   "before": 0.6114,
+   "notes_plain": 0.6114,
+   "built": 0.5492
+  },
+  "not anchored over 180 d": {
+   "pairs": 161,
+   "before": 0.6211,
+   "notes_plain": 0.6211,
+   "built": 0.559
+  },
+  "not anchored older than 90 d": {
+   "pairs": 354,
+   "before": 0.6158,
+   "notes_plain": 0.6158,
+   "built": 0.5537
+  }
+ },
+ "+365d": {
+  "all": {
+   "before": [
+    1152,
+    0.7786,
+    0.851
+   ],
+   "notes_plain": [
+    1152,
+    0.7786,
+    0.851
+   ],
+   "built": [
+    1152,
+    0.7786,
+    0.851
+   ]
+  },
+  "one evidence": {
+   "before": [
+    831,
+    0.911,
+    0.911
+   ],
+   "notes_plain": [
+    831,
+    0.911,
+    0.911
+   ],
+   "built": [
+    831,
+    0.911,
+    0.911
+   ]
+  },
+  "several": {
+   "before": [
+    321,
+    0.4361,
+    0.6958
+   ],
+   "notes_plain": [
+    321,
+    0.4361,
+    0.6958
+   ],
+   "built": [
+    321,
+    0.4361,
+    0.6958
+   ]
+  },
+  "oldest 365-395 d": {
+   "before": [
+    237,
+    0.865,
+    0.8958
+   ],
+   "notes_plain": [
+    237,
+    0.865,
+    0.8958
+   ],
+   "built": [
+    237,
+    0.865,
+    0.8958
+   ]
+  },
+  "oldest 395-455 d": {
+   "before": [
+    257,
+    0.8716,
+    0.8985
+   ],
+   "notes_plain": [
+    257,
+    0.8716,
+    0.8985
+   ],
+   "built": [
+    257,
+    0.8716,
+    0.8985
+   ]
+  },
+  "oldest 455-545 d": {
+   "before": [
+    315,
+    0.7429,
+    0.8361
+   ],
+   "notes_plain": [
+    315,
+    0.7429,
+    0.8361
+   ],
+   "built": [
+    315,
+    0.7429,
+    0.8361
+   ]
+  },
+  "oldest over 545 d": {
+   "before": [
+    343,
+    0.6822,
+    0.7982
+   ],
+   "notes_plain": [
+    343,
+    0.6822,
+    0.7982
+   ],
+   "built": [
+    343,
+    0.6822,
+    0.7982
+   ]
+  }
+ },
+ "+365d paired": {
+  "notes_plain": {
+   "gained": 0,
+   "lost": 0,
+   "gained_recent": 0,
+   "lost_recent": 0,
+   "identical": 1152
+  },
+  "built": {
+   "gained": 0,
+   "lost": 0,
+   "gained_recent": 0,
+   "lost_recent": 0,
+   "identical": 1152
+  }
+ },
+ "+365d turns": {
+  "anchored all ages": {
+   "pairs": 1161,
+   "before": 0.7993,
+   "notes_plain": 0.7993,
+   "built": 0.7993
+  },
+  "anchored 365-395 d": {
+   "pairs": 262,
+   "before": 0.8092,
+   "notes_plain": 0.8092,
+   "built": 0.8092
+  },
+  "anchored 395-455 d": {
+   "pairs": 271,
+   "before": 0.8413,
+   "notes_plain": 0.8413,
+   "built": 0.8413
+  },
+  "anchored 455-545 d": {
+   "pairs": 319,
+   "before": 0.7649,
+   "notes_plain": 0.7649,
+   "built": 0.7649
+  },
+  "anchored over 545 d": {
+   "pairs": 309,
+   "before": 0.7896,
+   "notes_plain": 0.7896,
+   "built": 0.7896
+  },
+  "not anchored all ages": {
+   "pairs": 678,
+   "before": 0.7153,
+   "notes_plain": 0.7153,
+   "built": 0.7153
+  },
+  "not anchored 365-395 d": {
+   "pairs": 158,
+   "before": 0.7278,
+   "notes_plain": 0.7278,
+   "built": 0.7278
+  },
+  "not anchored 395-455 d": {
+   "pairs": 173,
+   "before": 0.763,
+   "notes_plain": 0.763,
+   "built": 0.763
+  },
+  "not anchored 455-545 d": {
+   "pairs": 192,
+   "before": 0.6667,
+   "notes_plain": 0.6667,
+   "built": 0.6667
+  },
+  "not anchored over 545 d": {
+   "pairs": 155,
+   "before": 0.7097,
+   "notes_plain": 0.7097,
+   "built": 0.7097
+  }
+ },
+ "verdict": {
+  "validates": false,
+  "recent_lost": 3,
+  "net365_loss": 0,
+  "net1": 10,
+  "anchored_old_delta": 0.0859,
+  "not_anchored_old_delta": -0.0621
+ }
+}
