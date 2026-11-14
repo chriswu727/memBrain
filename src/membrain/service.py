@@ -287,11 +287,19 @@ class MemoryService:
                         cached = load(conn, params, action, key)
                     else:
                         cached = existing["response"]
-                    if cached is None:
+                    if cached is not None:
+                        response = copy.deepcopy(cached)
+                        response["request_id"] = request["request_id"]
+                        return response, False
+                    if action != "observe":
                         raise DomainError("version_conflict", "Cached response expired or was invalidated; use a new request ID.")
-                    response = copy.deepcopy(cached)
-                    response["request_id"] = request["request_id"]
-                    return response, False
+                    # An unrelated brain write invalidates replay responses, not the source events. Recheck the
+                    # current recording fence and each event's identity/content through _observe. Its duplicate
+                    # path does not re-run learning or append events. The brain lock serializes this replacement.
+                    conn.execute(
+                        "DELETE FROM memory_requests WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+                        "AND action=%s AND key=%s", (*params, action, key),
+                    )
                 if vector_snapshot:
                     from .snapshots import validate_source_snapshot
 

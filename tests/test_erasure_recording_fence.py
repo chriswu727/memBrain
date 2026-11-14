@@ -321,3 +321,51 @@ def test_replacement_intent_replays_without_revoking_recording(recovery):
     harness.memory.forget([original], kind="events", mode="suppress_recall", expected_scope_generation=generation)
     assert harness.memory.recording_status()["revision"] == 1
     assert authority.registry.intent(2)["recording_revision_floor"] == 1
+
+
+def test_stored_host_message_replay_survives_unrelated_brain_write(turns, connected, tmp_path, monkeypatch):
+    import httpx
+
+    from membrain import host_recording
+
+    original = host_recording.observe
+    host.prompt_context(tmp_path, "replay", "Retained draft.", turn_id="stable")
+
+    def lost_answer(client, record):
+        original(client, record)
+        raise httpx.ReadError("answer lost")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(host_recording, "observe", lost_answer)
+        host.finish_turn(tmp_path, "replay", "Retained reply.", turn_id="stable")
+    turns.observe("An unrelated message.", source_key="other")
+    turns.observe("An unrelated edit.", source_key="other", revision=2)
+    before = turns.service.timeline(turns.principal, turns.brain, roles=("user", "assistant"))["items"]
+    outcomes = {}
+    with connected(tmp_path) as client:
+        assert host.flush(client, tmp_path, outcomes=outcomes) == 2
+    assert len(outcomes) == 2
+    assert all(value["state"] == "recorded" for value in outcomes.values())
+    assert sum(bool(value["duplicate"]) for value in outcomes.values()) == 1
+    assert not (tmp_path / "plugin" / "spool-rejected.jsonl").exists()
+    after = turns.service.timeline(turns.principal, turns.brain, roles=("user", "assistant"))["items"]
+    assert {item["event_id"] for item in before} < {item["event_id"] for item in after}
+    assert len(after) == len(before) + 1  # The reply had not reached the server before the lost answer.
+
+
+def test_invalidated_observe_keeps_idempotency_content_conflicts(turns):
+    import copy
+
+    from test_server_recording import observation
+
+    request = observation(turns)
+    assert turns.service.handle(turns.principal, request)["outcome"] == "completed"
+    turns.observe("An unrelated message.", source_key="other")
+    turns.observe("Invalidate the cached response.", source_key="other", revision=2)
+    altered = copy.deepcopy(request)
+    altered["payload"]["events"][0]["content"]["text"] = "Different source content."
+    assert turns.service.handle(turns.principal, altered)["error"]["code"] == "idempotency_conflict"
+    altered["payload"]["idempotency_key"] = uid()
+    assert turns.service.handle(turns.principal, altered)["error"]["code"] == "idempotency_conflict"
+    result = turns.service.handle(turns.principal, request)
+    assert result["result"]["duplicate_event_ids"] and not result["result"]["accepted_event_ids"]
