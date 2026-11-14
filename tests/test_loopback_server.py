@@ -70,6 +70,9 @@ def test_loopback_cancels_hung_async_startup_within_shutdown_budget():
     assert cancelled.is_set()
 
 
+@pytest.mark.parametrize("kwargs", [
+    {"startup_timeout_seconds": 0}, {"shutdown_timeout_seconds": float("inf")},
+])
 def test_loopback_rejects_invalid_timeouts(kwargs):
     with pytest.raises(ValueError):
         with loopback_server(FastAPI(), **kwargs):

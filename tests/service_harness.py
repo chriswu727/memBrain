@@ -104,7 +104,10 @@ class Conversation:
         return {"event_id": event_id, "revision": revision}
 
     def scope_generation(self):
-        return self.service.dashboard(self.principal, self.brain)["brain"]["scope_generation"]
+        """Read without the service, so a test that holds the service's brain lock is not affected."""
+        with self.database.transaction(self.principal) as conn:
+            return conn.execute("SELECT scope_generation FROM memory_brains WHERE tenant_id=%s AND owner_id=%s AND id=%s",
+                                self.service._params(self.principal, self.brain)).fetchone()["scope_generation"]
 
 
 @pytest.fixture

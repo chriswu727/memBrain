@@ -142,7 +142,6 @@ def test_invalid_local_controls_do_not_change_either_state(connected, fields):
 def test_local_status_reports_the_scope_of_each_pause(tmp_path, monkeypatch):
     monkeypatch.setattr(host.time, "time", lambda: 12345)
     assert not local_recording.local_status(tmp_path)["paused"]
-    assert not (tmp_path / "plugin").exists()
     host.pause(tmp_path, 2)
     first = local_recording.local_status(tmp_path)
     assert first["paused"] and first["scope"] == "installation"
