@@ -24,8 +24,10 @@ name starting with `STUB_`.
   at least one hour apart. A role-play session's id starts with `roleplay-`.
 - `CASES`: exactly 11 `(session_id, turn_index, case_id, "Criteria: ...")`, each pointing at a real user message
   (0-based turn index), with unique ids `<PREFIX>01-<slug>` to `<PREFIX>11-<slug>`.
-- `EXPECT_RECORDING_P`: every off-the-record turn (the request itself included) as `False`, then the resume request
-  as `True`, all in the same session.
+- `EXPECT_RECORDING_P`: present, one stretch only: every off-the-record turn (the request itself included, and every
+  message up to the resume request) as `False`, then the resume request as `True`, all in the same session at
+  consecutive turn indexes.
+- Values are plain literals written out in full (no f-strings, no names used as values, no `**`).
 - Language: mainly English with one session in Spanish or German, or mainly Chinese with one session in English.
 
 **Persona-agnostic script.** No user message depends on an assistant's earlier reply, name, style or personality;

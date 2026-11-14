@@ -824,6 +824,7 @@ def test_load_manifest_accepts_the_persona_draw_of_its_attempt_id(pipeline, tmp_
 @pytest.mark.parametrize("damage", {
     "extra field": lambda m: m.update(extra=1),
     "missing field": lambda m: m.pop("files"),
+    "practice not true": lambda m: m.update(practice=False),
     "version": lambda m: m.update(version=2),
     "boolean version": lambda m: m.update(version=True),
     "empty attempt": lambda m: m.update(attempt_id=" "),
@@ -1022,7 +1023,7 @@ def test_both_gates_write_their_file_then_exit_nonzero_only_on_failure(pipeline,
 
 # Positional arguments each command takes (after removing --companion and --manifest PATH); None: one or more.
 ARGUMENTS = {"validity": None, "verdicts": 2, "split": 5, "r5-inputs": 5, "r5-check": 3, "actions-digest": None,
-             "tally": 4, "attribution-inputs": 5, "gate": None}
+             "tally": 4, "attribution-inputs": 5, "remarks": 2, "gate": None}
 
 
 def runbook_blocks():
@@ -1042,7 +1043,9 @@ def test_runbook_lists_the_commands_in_order_with_manifest_binding(pipeline, uni
     order = [words[2] for words in lines]
     expected = ["validity", "verdicts", "split", "r5-inputs", "r5-check", "actions-digest", "tally",
                 "attribution-inputs", "gate"]
-    assert order == ([step for step in expected if step != "actions-digest"] if unit == "R4" else expected)
+    r4 = [step for step in expected if step != "actions-digest"]
+    r4.insert(r4.index("gate"), "remarks")  # The partial-blinding count, after unsealing.
+    assert order == (r4 if unit == "R4" else expected)
     for words in lines:
         command, rest = words[2], words[3:]
         assert command in pipeline.__doc__  # A command the module documents and dispatches.

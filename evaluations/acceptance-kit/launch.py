@@ -1,23 +1,31 @@
 #!/usr/bin/env python3
 """Start ONE isolated scenario author, reviewer or fixer session and print only hashes and counts.
 
-  launch.py --role author|reviewer|fixer --key KEY --private PRIVATE_ROOT --tool codex|claude --model MODEL
-            --allowed-models FILE --workdir-root DIR [--brief FILE] [--session-command TEMPLATE] [--timeout S]
+  launch.py --role author|reviewer|fixer --key KEY --private PRIVATE_ROOT --tool claude|codex --model MODEL
+            --allowed-models FILE --workdir-root DIR [--assignment FILE] [--brief FILE] [--python PATH]
+            [--accept-risk RISK] [--session-command TEMPLATE] [--timeout S]
 
 Isolation (decision 7 of the sixth maturity attempt: isolated sessions launched by a script, never the largest model,
 so that only hashes and counts reach the lead):
 - **Model.** MODEL must be listed in FILE, a JSON list the lead writes into the private control directory before the
-  first launch (it is frozen with the attempt). The lead lists only models that are not the provider's largest; this
-  kit names none.
+  first launch (freeze.py requires and freezes it). The lead lists only models that are not the provider's largest;
+  this kit names none.
 - **Directory.** Each session runs in a new, empty directory WORKDIR_ROOT/KEY-ROLE-N (mode 700) that must lie
-  outside every git checkout (no .git in it or any parent) and outside PRIVATE_ROOT. It receives only its brief (and,
-  for a reviewer or fixer, the scenario under review, and for a fixer the reviewer's findings) as plain files.
-- **No repository, no web.** The default session commands give the tool no extra directory, no shell, no web
-  search or fetch, and write access to its own directory only (session-commands.json beside this file). Check them
-  against the installed tool's --help before the first real launch: a flag a tool does not support is a refusal
-  there, never a silent widening.
-- **Environment.** The session gets PATH, HOME, USER, LOGNAME, LANG, LC_ALL, TERM and TMPDIR only: no provider
-  credential (*_API_KEY), no memBrain or attempt variable. The tool uses its own stored subscription login.
+  outside every git checkout (no .git in it or any parent) and outside PRIVATE_ROOT; this is checked before anything
+  is created. It receives only its brief (an author also its assignment; a reviewer or fixer the scenario under
+  review; a fixer the reviewer's findings) as plain files.
+- **The tool** (session-commands.json, an argument list per tool). The Claude Code command runs with `--safe-mode`
+  (no CLAUDE.md, skills, installed plugins, hooks, MCP servers or custom agents, subscription login kept),
+  `--restricted` (no code-running tool, no WebFetch, no user/project/local settings files, and the file tools
+  confined to the working directory), `--strict-mcp-config` (no MCP server), `--no-session-persistence` (no
+  transcript on disk), `--tools Read,Write,Edit` and web search disallowed. The Codex command is marked
+  non-isolating (its sandbox limits writes and network, not reads, and it always has a shell) and is refused unless
+  `--accept-risk reads-outside-the-session-directory` names that risk.
+- **Environment.** The session gets PATH, HOME, USER, LOGNAME, LANG, LC_ALL, TERM and TMPDIR, plus MEMBRAIN_DIRECTORY
+  set to an empty, read-only throwaway directory: no provider credential (*_API_KEY), no other memBrain or attempt
+  variable. The plugin's hook commands resolve their installation from MEMBRAIN_DIRECTORY (host.profile_directory),
+  so even if a memBrain plugin loaded despite --safe-mode its hooks would find no installation, could not create one,
+  and could neither show the owner's memory nor record the session. The tool uses its own stored login.
 - **Outputs.** The session writes, in its directory: an author or fixer `scenario.py` (a fixer also `fixes.json`
   {"applied": N}); a reviewer `review.json` {"approved": bool, "findings": N, "blocking": N} and `findings.md`.
   They are moved to PRIVATE_ROOT/KEY/ (mode 600): `scenario_KEY.py` (author, fixer; the earlier version is kept as
@@ -25,21 +33,22 @@ so that only hashes and counts reach the lead):
   PRIVATE_ROOT/logs/, which the lead never opens. A reviewer's approval writes the receipt
   PRIVATE_ROOT/control/KEY-review-approved.json {"key", "sha256", "sessions", "turns", "cases", "approved",
   "findings"} that freeze.py checks.
-- **What is printed.** One JSON line: role, key, the output files' sha256, and counts (sessions, turns, cases; a
-  reviewer's findings and approval; a fixer's applied count) plus the R4 precheck's result codes. Never a message,
-  a criterion, a fact, a name or the session's output.
+- **Nothing a session wrote runs here.** The scenario is read with scenario_literals.py (literal assignments only;
+  anything else is the code `not_literal`), and `c5-precheck.py --r4` runs in a subprocess with the repository's
+  interpreter (REPO/.venv/bin/python unless --python). Only the precheck's own codes are relayed.
+- **What is printed.** One JSON line: role, key, the output files' sha256, counts (sessions, turns, cases; a
+  reviewer's findings and approval; a fixer's applied count) and fixed codes. Never a message, a criterion, a fact,
+  a name, an exception's text or the session's output.
 
-`--session-command` replaces the tool's command with TEMPLATE ({workdir}, {role}, {brief}, {model} are substituted),
-for the offline dry mode the tests use with a fake session. Exit 0 when the session produced its outputs, 1 when it
-did not, 2 on a refusal before anything ran.
+`--session-command` replaces the tool's argument list with TEMPLATE, split with shlex before {workdir}, {role},
+{brief}, {model} and {prompt} are substituted into whole arguments; it is the offline dry mode the tests use with a
+fake session. Exit 0 when the session produced its outputs, 1 when it did not, 2 on a refusal before anything ran.
 """
 from __future__ import annotations
 
 import argparse
-import contextlib
 import hashlib
 import importlib.util
-import io
 import json
 import os
 import shlex
@@ -50,6 +59,7 @@ from pathlib import Path
 
 KIT = Path(__file__).resolve().parent
 EVALUATIONS = KIT.parent
+REPOSITORY = EVALUATIONS.parent
 ROLES = ("author", "reviewer", "fixer")
 BRIEFS = {"author": "author-brief.md", "reviewer": "reviewer-brief.md", "fixer": "fixer-brief.md"}
 KEPT_ENVIRONMENT = ("PATH", "HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "TERM", "TMPDIR")
@@ -67,6 +77,13 @@ class Refused(Exception):
     pass
 
 
+def _module(name: str, path: Path):
+    spec = importlib.util.spec_from_file_location(name, path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
 def sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
@@ -75,40 +92,44 @@ def inside_checkout(path: Path) -> bool:
     return any((parent / ".git").exists() for parent in (path, *path.parents))
 
 
-def counts(scenario: Path) -> dict:
-    """Session, turn and case counts and the R4 precheck's codes, from the scenario file; its output is discarded."""
-    sink = io.StringIO()
+def counts(scenario: Path, python: Path) -> dict:
+    """Session, turn and case counts (the file read without running it) and the R4 precheck's codes."""
+    literals = _module("scenario_literals_for_launch", EVALUATIONS / "scenario_literals.py")
     try:
-        with contextlib.redirect_stdout(sink), contextlib.redirect_stderr(sink):
-            spec = importlib.util.spec_from_file_location("scenario_for_launch", scenario)
-            module = importlib.util.module_from_spec(spec)
-            spec.loader.exec_module(module)
-    except BaseException as error:  # noqa: BLE001 - never shown: it may quote the scenario.
-        if isinstance(error, KeyboardInterrupt):
-            raise
-        return {"sessions": 0, "turns": 0, "cases": 0, "loads": False}
-    sessions = list(getattr(module, "SESSIONS_LONG", None) or [])
-    result = {"sessions": len(sessions), "turns": sum(len(turns) for _, turns in sessions),
-              "cases": len(list(getattr(module, "CASES", None) or [])), "loads": True}
-    precheck = subprocess.run([sys.executable, str(EVALUATIONS / "c5-precheck.py"), "--r4", str(scenario)],
-                              capture_output=True, text=True)
+        module = literals.read(scenario)
+        sessions = list(getattr(module, "SESSIONS_LONG", None) or [])
+        result = {"sessions": len(sessions), "turns": sum(len(turns) for _, turns in sessions),
+                  "cases": len(list(getattr(module, "CASES", None) or [])), "loads": True}
+    except (literals.NotLiteral, TypeError, ValueError):
+        return {"sessions": 0, "turns": 0, "cases": 0, "loads": False,
+                "precheck": {"ok": False, "codes": ["not_literal"]}}
+    known = set(_module("c5_precheck_codes_for_launch", EVALUATIONS / "c5-precheck.py").CODES)
     try:
-        summary = json.loads(precheck.stdout.strip().splitlines()[-1])
-        result["precheck"] = {"ok": summary.get("ok"), "codes": summary.get("codes")}
-    except (ValueError, IndexError):
+        done = subprocess.run([str(python), str(EVALUATIONS / "c5-precheck.py"), "--r4", str(scenario)],
+                              capture_output=True, text=True, timeout=300)
+        summary = json.loads(done.stdout.strip().splitlines()[-1])
+        codes = summary.get("codes") if isinstance(summary.get("codes"), list) else ["precheck_unreadable"]
+        result["precheck"] = {"ok": summary.get("ok") is True and done.returncode == 0,
+                              "codes": sorted({code if code in known else "unknown_code" for code in codes})}
+    except (OSError, ValueError, IndexError, AttributeError, subprocess.TimeoutExpired):
         result["precheck"] = {"ok": False, "codes": ["precheck_unreadable"]}
     return result
 
 
 def session_command(args, workdir: Path) -> list[str]:
+    """The session's argument list: the template's arguments with the values substituted into whole arguments (a
+    value is never split or re-quoted). Refuses a non-isolating tool unless --accept-risk names its risk."""
     if args.session_command:
-        template = args.session_command
+        template = shlex.split(args.session_command)
     else:
-        commands = json.loads((KIT / "session-commands.json").read_text())
-        template = commands[args.tool]
+        command = json.loads((KIT / "session-commands.json").read_text())[args.tool]
+        if not command.get("isolating") and args.accept_risk != command.get("risk"):
+            raise Refused(f"the {args.tool} command does not isolate the session ({command.get('risk')}): pass "
+                          f"--accept-risk {command.get('risk')} to use it anyway")
+        template = list(command["argv"])
     values = {"workdir": str(workdir), "role": args.role, "brief": str(workdir / "brief.md"), "model": args.model,
               "prompt": PROMPTS[args.role]}
-    return [part.format(**values) for part in shlex.split(template)]
+    return [part.format(**values) for part in template]
 
 
 def launch(args) -> dict:
@@ -123,6 +144,14 @@ def launch(args) -> dict:
         raise Refused("the allowed-models file is unreadable") from None
     if not isinstance(allowed, list) or args.model not in allowed:
         raise Refused("the model is not in the lead's list of allowed (not largest) models")
+    session_command(args, Path("/nonexistent"))  # A non-isolating tool is refused before anything is created.
+
+    def argv(workdir: Path) -> list[str]:
+        return session_command(args, workdir)
+
+    python = Path(args.python) if args.python else REPOSITORY / ".venv" / "bin" / "python"
+    if not python.is_file():
+        raise Refused("the repository's interpreter is missing (give --python)")
     root = Path(args.workdir_root).absolute().resolve()  # Checked before anything is created there.
     if inside_checkout(root):
         raise Refused("the session directory must be outside every checkout")
@@ -154,13 +183,18 @@ def launch(args) -> dict:
         if not findings:
             raise Refused("there are no findings to apply")
         shutil.copyfile(findings[-1], workdir / "findings.md")
+    # A second barrier behind --safe-mode: a memBrain plugin, if one loaded, would look for its installation here,
+    # find none and be unable to create one.
+    nomemory = root / f"nomemory-{args.key}-{args.role}-{number}"
+    nomemory.mkdir(mode=0o500)
     environment = {name: os.environ[name] for name in KEPT_ENVIRONMENT if name in os.environ}
+    environment["MEMBRAIN_DIRECTORY"] = str(nomemory)
     logs = private / "logs"
     logs.mkdir(mode=0o700, exist_ok=True)
     log = logs / f"{args.key}-{args.role}-{number}.log"
     with log.open("ab") as output:
         try:
-            done = subprocess.run(session_command(args, workdir), cwd=workdir, env=environment,
+            done = subprocess.run(argv(workdir), cwd=workdir, env=environment,
                                   stdin=subprocess.DEVNULL, stdout=output, stderr=subprocess.STDOUT,
                                   timeout=args.timeout)
             code = done.returncode
@@ -192,7 +226,7 @@ def launch(args) -> dict:
             if fixes.exists():
                 keep(fixes, folder / f"fixes-{number}.json")
         result["sha256"] = keep(written, scenario)
-        result.update(counts(scenario))
+        result.update(counts(scenario, python))
         result["produced"] = True
     else:
         verdict, findings = workdir / "review.json", workdir / "findings.md"
@@ -213,7 +247,7 @@ def launch(args) -> dict:
             control = private / "control"
             control.mkdir(mode=0o700, exist_ok=True)
             receipt = control / f"{args.key}-review-approved.json"
-            stats = counts(scenario)
+            stats = counts(scenario, python)
             receipt.write_text(json.dumps({"key": args.key, "sha256": result["reviewed_sha256"],
                                            "sessions": stats["sessions"], "turns": stats["turns"],
                                            "cases": stats["cases"], "approved": True, "findings": found,
@@ -235,6 +269,8 @@ def main(argv=None) -> int:
     parser.add_argument("--brief")
     parser.add_argument("--assignment", help="author only: a file with the case prefix and the two languages")
     parser.add_argument("--session-command", help="offline dry mode: a fake session command template")
+    parser.add_argument("--accept-risk", help="use a non-isolating tool command anyway, naming its risk exactly")
+    parser.add_argument("--python", help="the repository's interpreter for the precheck (default REPO/.venv/bin/python)")
     parser.add_argument("--timeout", type=float, default=3600)
     args = parser.parse_args(argv)
     if not args.key.replace("-", "").replace("_", "").isalnum():

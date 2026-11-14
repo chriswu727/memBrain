@@ -752,9 +752,65 @@ def test_a_live_persona_is_the_draw_of_the_attempt_id(monkeypatch):
         harness.fixed_persona(_NoPersona)
 
 
-def test_a_c5_scenario_keeps_its_own_persona_card():
+def test_a_c5_dry_run_keeps_its_own_persona_card_but_an_attempt_never_does(monkeypatch):
+    monkeypatch.delenv("C5_PERSONA_PRESET", raising=False)
+    monkeypatch.setattr(harness, "STUB", True)
     chosen = harness.fixed_persona(practice)
     assert chosen["source"] == "scenario" and chosen["card"] == practice.PERSONA and chosen["preset"] is None
+    # Given the manifest's draw (the driver passes it), or live, a scenario's card cannot replace the seeded type.
+    monkeypatch.setenv("C5_PERSONA_PRESET", persona_draw.draw("stub-practice"))
+    with pytest.raises(SystemExit, match="scenario PERSONA card is refused"):
+        harness.fixed_persona(practice)
+    monkeypatch.delenv("C5_PERSONA_PRESET")
+    monkeypatch.setattr(harness, "STUB", False)
+    monkeypatch.setenv("C5_ATTEMPT_ID", "zq-attempt")
+    with pytest.raises(SystemExit, match="scenario PERSONA card is refused"):
+        harness.fixed_persona(practice)
+
+
+def test_a_live_run_reads_its_scenario_without_running_it(tmp_path, monkeypatch):
+    marker = tmp_path / "ran"
+    path = tmp_path / "zq-scenario.py"
+    path.write_text(SCENARIO + f"\nopen({str(marker)!r}, 'w').close()\n")
+    monkeypatch.setattr(harness, "STUB", False)
+    with pytest.raises(SystemExit, match="only literal assignments"):
+        harness.load_scenario(str(path))
+    assert not marker.exists()
+    path.write_text(SCENARIO)
+    loaded = harness.load_scenario(str(path))
+    assert loaded.SESSIONS_LONG[0][0] == "s1" and not marker.exists()
+    monkeypatch.setattr(harness, "STUB", True)  # A dry run's public practice scenario is loaded as a module.
+    assert harness.load_scenario(str(ROOT / "evaluations" / "c5-practice-scenario.py")).PERSONA == practice.PERSONA
+
+
+def _clean_live_environment(monkeypatch):
+    import os
+
+    for key in list(os.environ):
+        if key.startswith(("MEMORY_", "MEMBRAIN_EXTRACT", "MEMBRAIN_UPSTREAM")) or key.endswith("_API_KEY") \
+                or key in harness.LIVE_OVERRIDES + harness.PREFLIGHT_OVERRIDES:
+            monkeypatch.delenv(key)
+
+
+@pytest.mark.parametrize("name", ["HOST_MODEL", "MEMBRAIN_SRC"])
+def test_a_live_run_refuses_a_variable_that_changes_the_host_or_the_code(monkeypatch, name):
+    _clean_live_environment(monkeypatch)
+    harness.check_live_environment()
+    monkeypatch.setenv(name, "zq-override")
+    with pytest.raises(SystemExit, match=f"override variables: {name}"):
+        harness.check_live_environment()
+
+
+@pytest.mark.parametrize("name", ["PYTHONPATH", "MEMBRAIN_SEMANTIC", "MEMBRAIN_EVALUATION_CLOCK"])
+def test_the_preflight_refuses_variables_that_change_what_the_arms_run(monkeypatch, name):
+    _clean_live_environment(monkeypatch)
+    harness.check_preflight_environment()
+    monkeypatch.setenv(name, "0")
+    harness.check_live_environment()  # The arms' own check leaves these to the preflight.
+    monkeypatch.delenv(name)
+    monkeypatch.setenv(name, "0")
+    with pytest.raises(SystemExit, match=f"override variables: {name}"):
+        harness.check_preflight_environment()
 
 
 def test_the_stub_host_answers_a_consolidation_batch_with_a_cue(monkeypatch):
@@ -806,9 +862,25 @@ def test_both_arms_carry_the_seeded_persona_and_p_gets_the_shipped_tools_and_ins
                                                                                           monkeypatch):
     import re
 
+    from membrain import host as product_host
+
     monkeypatch.setenv("C5_PERSONA_SEED", "zq-seed-1")
+    systems, original = [], harness.Host.call
+
+    def call(self, messages, tools=None):
+        systems.append(messages[0]["content"])
+        return original(self, messages, tools)
+
+    monkeypatch.setattr(harness.Host, "call", call)
     p_rows, p_events = stub_run("P", SCENARIO)
+    p_systems = list(systems)
     f_rows, f_events = stub_run("F", SCENARIO)
+    skill = (ROOT / "plugins" / "membrain" / "skills" / "membrain" / "SKILL.md").read_text().split("---", 2)[2]
+    distinctive = max(skill.strip().splitlines(), key=len)
+    # P gets what a host gives its model unasked: the server's instructions and the session context, not the skill.
+    assert p_systems and all(product_host.server_instructions() in text and distinctive not in text
+                             for text in p_systems)
+    assert all(product_host.server_instructions() not in text for text in systems[len(p_systems):])
     assert p_events == [] and f_events == []
     recorded = {arm: json.loads((tmp_path / f"run-{arm}" / "persona.json").read_text()) for arm in "PF"}
     assert recorded["P"]["preset"] == persona_draw.draw("zq-seed-1")
@@ -820,6 +892,7 @@ def test_both_arms_carry_the_seeded_persona_and_p_gets_the_shipped_tools_and_ins
     assert {"memory_recall", "memory_note", "memory_boundary", "memory_pause", "memory_resume", "memory_consolidate",
             "memory_persona", "memory_manner_feedback", "memory_forget"} <= set(offered["offered"])
     assert offered["server_instructions_chars"] > 500 and offered["host"] == "claude-code"
+    assert offered["skill_in_prompt"] is False
     assert all("server instructions: given" in row["reply"] for row in p_rows)
     assert all("server instructions: none" in row["reply"] for row in f_rows)
 
@@ -846,3 +919,77 @@ def test_p_takes_a_consolidation_batch_when_the_notice_asks_and_answers_it_in_on
     handed, answered = json.loads(results[0]), json.loads(results[1])
     assert handed["messages"] and "reviewed_through" not in handed  # One server per session keeps the batch.
     assert answered["indexed"] >= 1 and "error" not in answered
+
+
+def test_a_session_without_a_ready_memory_service_degrades_the_run(stub_run, monkeypatch):
+    monkeypatch.setattr(harness.Memory, "session_start", lambda self, session: (
+        harness.MEMORY_UNAVAILABLE + ". Earlier memory has not been loaded."))
+    rows, events = stub_run("P", SCENARIO)
+    assert [(event["kind"], event["session"]) for event in events] == [("memory_unavailable", "s1"),
+                                                                        ("memory_unavailable", "s2")]
+    assert set(events[0]) == {"time", "kind", "session"}
+
+
+def test_tool_errors_shown_to_the_host_are_counted_by_name_and_do_not_degrade_the_run(stub_run, tmp_path):
+    script = {("s1", 0): [{"tool": "memory_note", "arguments": {"text": "x", "kind": "not-a-kind"}}],
+              ("s1", 1): [{"tool": "memory_recall", "arguments": {"query": "Ana"}}]}
+    rows, events = stub_run("P", SCENARIO, script)
+    assert events == []
+    assert json.loads((tmp_path / "run-P" / "tool-errors.json").read_text()) == {"memory_note": 1}
+    assert harness.tool_error(rows[0]["tool_calls"][0]["result"]) and not harness.tool_error("No matching memory.")
+
+
+def _marked_profile(tmp_path, monkeypatch, installation="id-1", recorded="id-1"):
+    from membrain import local_profile
+
+    directory = tmp_path / "brain-zq-P"
+    directory.mkdir()
+    (directory / evaluation_clock.MARKER).write_text(json.dumps({"purpose": evaluation_clock.PURPOSE,
+                                                                 "installation_id": recorded}))
+    monkeypatch.setattr(evaluation_clock, "_installation_id", lambda path: installation)
+    monkeypatch.setattr(local_profile, "load_profile", lambda path: type("Profile", (), {
+        "api_port": 41001, "database_port": 41002})())
+    return directory
+
+
+def test_cleanup_stops_a_marked_profile_of_this_installation_and_reports_its_ports(tmp_path, monkeypatch):
+    from membrain import desktop
+
+    stopped = []
+    _marked_profile(tmp_path, monkeypatch)
+    monkeypatch.setattr(desktop, "stop", lambda directory: stopped.append(Path(directory).name))
+    monkeypatch.setattr(harness, "_port_open", lambda port: False)
+    report = harness.cleanup(tmp_path, wait=0)
+    assert report["ok"] is True and (report["profiles"], report["stopped"]) == (1, 1) and stopped == ["brain-zq-P"]
+
+
+def test_cleanup_reports_a_failed_stop_and_an_open_port(tmp_path, monkeypatch):
+    from membrain import desktop
+
+    _marked_profile(tmp_path, monkeypatch)
+
+    def refuse(directory):
+        raise desktop.DesktopError("stop_unconfirmed", "no")
+
+    monkeypatch.setattr(desktop, "stop", refuse)
+    monkeypatch.setattr(harness, "_port_open", lambda port: port == 41002)
+    report = harness.cleanup(tmp_path, wait=0)
+    assert report["ok"] is False and report["stopped"] == 0
+    assert report["failed"] == [{"profile": "brain-zq-P", "error": "DesktopError"}] and report["ports_open"] == [41002]
+
+
+def test_cleanup_never_follows_a_link_or_stops_another_installations_profile(tmp_path, monkeypatch):
+    from membrain import desktop
+
+    stopped = []
+    monkeypatch.setattr(desktop, "stop", lambda directory: stopped.append(directory))
+    elsewhere = tmp_path / "elsewhere"
+    elsewhere.mkdir()
+    run = tmp_path / "run"
+    run.mkdir()
+    (run / "brain-linked").symlink_to(elsewhere, target_is_directory=True)
+    report = harness.cleanup(run, wait=0)
+    assert report["failed"] == [{"profile": "brain-linked", "error": "symlink"}] and not report["ok"]
+    _marked_profile(run, monkeypatch, installation="id-2", recorded="id-1")
+    report = harness.cleanup(run, wait=0)
+    assert {"profile": "brain-zq-P", "error": "not_this_installation"} in report["failed"] and stopped == []

@@ -15,12 +15,15 @@ module. Built on the Phase B harness (v1-2026-10-29-phase-b-harness.py), with:
   so the product never assigns a random first type and never shows its one-time announcement; F gets the same card
   as the product-rendered `<membrain-persona>` block. A C5 scenario's own PERSONA card is set instead, as before.
   Each arm writes persona.json (seed, type, card hash) into its run directory; validity compares them.
-- **The plugin path as shipped.** P drives the plugin's own hook functions (membrain.plugin.session_start,
-  user_prompt and stop, with Claude Code's tool names) and offers every tool the plugin's MCP server lists, with
-  its own schemas and descriptions. One server per session, as a host keeps one MCP connection, so
-  memory_consolidate's batch survives between its two calls. The server's instructions go into P's system prompt
-  after the skill body, where a host shows them. The host model is still DeepSeek through this emulation, not
-  Claude Code: no hook subprocess and no stdio MCP.
+- **What a plugin host gives its model unasked.** P drives the plugin's own hook functions
+  (membrain.plugin.session_start, user_prompt and stop, with Claude Code's tool names) and offers every tool the
+  plugin's MCP server lists, with its own schemas and descriptions. One server per session, as a host keeps one MCP
+  connection, so memory_consolidate's batch survives between its two calls. The system prompt holds the scenario's
+  HOST text, the date, the server's instructions and the session context; NOT the skill body, which a host loads
+  only when its model opens the skill (never, in 86 turns of the 2026-11-13 trial). Two differences from a real
+  host remain: Claude Code may defer tool descriptions until the model looks a tool up, while P gets them all up
+  front, and the host model is DeepSeek through this emulation, not Claude Code (no hook subprocess, no stdio MCP,
+  no Claude Code system prompt).
 - **Page actions.** PAGE_ACTIONS = [(session, before_turn, action), ...] are the user's actions on the memory page,
   applied before that turn through the public API (the MemoryClient SDK, the same routes the page calls) in P, and
   mirrored in F's world, logged to run.log and page-actions.jsonl with what each one removed. R4 scenarios have none
@@ -101,10 +104,30 @@ def billing_module():
     return load(str(Path(__file__).with_name("evaluation_budget.py")))
 
 
+# Variables that would change the host model or the code a live run executes: HOST_MODEL replaces the frozen model
+# (the guard would then refuse the first request and block the ledger); MEMBRAIN_SRC puts another source tree first on
+# sys.path. The run script's preflight also refuses PREFLIGHT_OVERRIDES.
+LIVE_OVERRIDES = ("HOST_MODEL", "MEMBRAIN_SRC")
+# Refused before any arm starts, by `--preflight` only (tests run the arms in-process with them set): PYTHONPATH can
+# shadow the frozen package, MEMBRAIN_SEMANTIC=0 turns off the meaning route the product ships with, and
+# MEMBRAIN_EVALUATION_CLOCK is the harness's own, set per disposable profile.
+PREFLIGHT_OVERRIDES = ("PYTHONPATH", "MEMBRAIN_SEMANTIC", "MEMBRAIN_EVALUATION_CLOCK")
+
+
 def check_live_environment():
     if any(value and (key.startswith(("MEMORY_", "MEMBRAIN_EXTRACT", "MEMBRAIN_UPSTREAM"))
                       or key.endswith("_API_KEY") and key != "DEEPSEEK_API_KEY") for key, value in os.environ.items()):
         raise SystemExit("Live evaluation refuses unrelated provider or memory configuration in the environment.")
+    found = [name for name in LIVE_OVERRIDES if name in os.environ]
+    if found:
+        raise SystemExit(f"Live evaluation refuses override variables: {', '.join(found)}.")
+
+
+def check_preflight_environment():
+    check_live_environment()
+    found = [name for name in PREFLIGHT_OVERRIDES if name in os.environ]
+    if found:
+        raise SystemExit(f"Live evaluation refuses override variables: {', '.join(found)}.")
 
 
 @contextmanager
@@ -423,8 +446,6 @@ class Memory:
                 time.sleep(5)
         if "evaluation_clock_enabled" not in (directory / "service.log").read_text():
             raise SystemExit("the service did not enable the scenario clock")
-        skill = SOURCE.parent / "plugins" / "membrain" / "skills" / "membrain" / "SKILL.md"
-        self.skill = skill.read_text().split("---", 2)[2].strip()
 
     def client(self):
         client = self.host.ready_client(self.directory, self.user)
@@ -874,6 +895,26 @@ TIMED_PAUSE_REFUSED = ("Timed pauses are unavailable in this evaluation. Pause w
                        "conversation) and resume when the user asks.")
 
 
+MEMORY_UNAVAILABLE = "memBrain is starting or unavailable"  # The session notice of a hook that found no service.
+
+
+def tool_error(result: str) -> bool:
+    """Whether a tool's answer to the host is an error (the host sees it, as it would through MCP)."""
+    try:
+        value = json.loads(result)
+    except (TypeError, ValueError):
+        return False
+    return isinstance(value, dict) and "error" in value
+
+
+def count_tool_error(out: Path, counts: dict, name: str) -> None:
+    """Tool errors are the host's or the service's, not the harness's: counted by tool name only, in
+    tool-errors.json, which validity reports without refusing (a host passing bad arguments is product behaviour;
+    stopping a paid run on it would lose the attempt)."""
+    counts[name] = counts.get(name, 0) + 1
+    (out / "tool-errors.json").write_text(json.dumps(counts, sort_keys=True))
+
+
 def call_tool(memory: Memory, server, name: str, arguments, out: Path, session: str, index: int) -> str:
     """One tool call of the host model. A timed pause is refused: its end is wall-clock time (host.pause), so on the
     scenario clock it would span scenario days, or nothing, depending on how fast the run goes."""
@@ -939,6 +980,11 @@ def fixed_persona(module) -> dict:
                                          separators=(",", ":")).encode("utf-8")).hexdigest()
 
     if getattr(module, "PERSONA", None):
+        # An attempt's persona is its seeded draw: a live run, or any run given the manifest's draw, refuses a
+        # scenario's own card rather than let it replace the type both arms must carry. (A live C5 attempt, whose
+        # scenarios set PERSONA on purpose, would need its own decision and a change here.)
+        if not STUB or os.environ.get("C5_PERSONA_PRESET"):
+            raise SystemExit("this attempt's persona is the seeded draw: a scenario PERSONA card is refused")
         card = module.PERSONA
         return {"source": "scenario", "seed": None, "seed_source": None, "preset": None, "card": card,
                 "card_sha256": digest(card), "rule": None}
@@ -985,11 +1031,24 @@ def load_named(name: str, path: str):
     return module
 
 
+def load_scenario(path: str):
+    """The scenario a run uses. A live run reads it without running it (scenario_literals.py: literal assignments
+    only), so a held-out scenario's text can never execute code in the paid process; a dry run loads its public
+    practice scenario as a module."""
+    if STUB:
+        return load(path)
+    literals = load_named("scenario_literals_for_harness", str(Path(__file__).with_name("scenario_literals.py")))
+    try:
+        return literals.read(path)
+    except literals.NotLiteral as error:
+        raise SystemExit(f"a live scenario must hold only literal assignments ({error.code})") from None
+
+
 def run(arm: str, scenario_path: str, out: Path) -> None:
     global BILLING
     if arm not in ARMS:
         raise SystemExit(f"arms: {', '.join(ARMS)} (the proxy-with-extraction arm E no longer exists)")
-    module = load(scenario_path)
+    module = load_scenario(scenario_path)
     sessions = module.SESSIONS_LONG
     scenario = Path(scenario_path).stem
     out.mkdir(parents=True, exist_ok=True)
@@ -1038,6 +1097,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
         "seed from", persona.get("seed_source") or "scenario")
 
     deletions: list[dict] = []
+    tool_errors: dict[str, int] = {}
 
     def page_actions(session, before):
         for at_session, at_turn, action in actions:
@@ -1093,6 +1153,9 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
         if memory is not None:
             memory.wait_until_indexed()
             session_context = memory.session_start(session)
+            if MEMORY_UNAVAILABLE in (session_context or ""):
+                # The hook found no ready service: P would run this session without memory. That degrades the run.
+                harness_event(out, "memory_unavailable", session=session)
             # One MCP server for the whole session, as a host keeps one connection.
             client, server, schemas, instructions = memory.tools()
             if not (out / "tools.json").exists():
@@ -1101,7 +1164,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                     "schema_chars": len(json.dumps(schemas, ensure_ascii=False)),
                     "server_instructions_chars": len(instructions),
                     "server_instructions_sha256": hashlib.sha256(instructions.encode("utf-8")).hexdigest(),
-                    "skill_chars": len(memory.skill), "host": HOST_NAME}, sort_keys=True))
+                    "skill_in_prompt": False, "host": HOST_NAME}, sort_keys=True))
         if stub_host:
             from membrain import host as product_host
 
@@ -1118,9 +1181,10 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 persona_block = None
                 if memory is not None:
                     prompt_context = memory.user_prompt(session, index, text)
-                    # Where a host puts them: the skill, the MCP server's instructions, then the session's context.
-                    system += "\n\n" + memory.skill + "\n\n" + instructions + (
-                        "\n\n" + session_context if session_context else "")
+                    # What an MCP host gives its model without being asked: the MCP server's instructions, then the
+                    # session's context (the hook's notice and memory). The skill body is not given: a host loads it
+                    # only when the model opens the skill, which the 2026-11-13 trial never saw in 86 turns.
+                    system += "\n\n" + instructions + ("\n\n" + session_context if session_context else "")
                 else:
                     persona_block = reference.block()
                     system += "\n\n" + persona_block if persona_block else ""
@@ -1154,6 +1218,8 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                         except ValueError:
                             arguments = {}
                         result = call_tool(memory, server, call["function"]["name"], arguments, out, session, index)
+                        if tool_error(result):
+                            count_tool_error(out, tool_errors, call["function"]["name"])
                         tool_calls.append({"name": call["function"]["name"], "arguments": arguments,
                                            "result": result[:2000]})
                         messages.append({"role": "tool", "tool_call_id": call["id"], "content": result})
@@ -1236,7 +1302,7 @@ def _port_open(port: int) -> bool:
         return probe.connect_ex(("127.0.0.1", port)) == 0
 
 
-def cleanup(run_dir: Path) -> dict:
+def cleanup(run_dir: Path, wait: float = 30) -> dict:
     """After an arm, whatever its result: stop every installation this harness made in RUN_DIR (``brain-*`` with a
     profile and the harness's disposable marker, so nothing else is ever stopped), then check that their ports are
     closed. Returns counts and ports only; ``ok`` is false when a stop failed or a port is still open."""
@@ -1246,8 +1312,21 @@ def cleanup(run_dir: Path) -> dict:
     run_dir = Path(run_dir).resolve()
     report = {"run_dir": run_dir.name, "profiles": 0, "stopped": 0, "failed": [], "ports_open": []}
     for directory in sorted(run_dir.glob("brain-*")):
-        if not directory.is_dir() or not (directory / evaluation_clock.MARKER).exists():
+        if directory.is_symlink():  # Never follow a link out of the run directory.
+            report["failed"].append({"profile": directory.name, "error": "symlink"})
+            continue
+        marker = directory / evaluation_clock.MARKER
+        if not directory.is_dir() or not marker.exists():
             continue  # Not a disposable evaluation profile this harness made.
+        try:
+            document = json.loads(marker.read_text()) if not marker.is_symlink() else None
+            installation = evaluation_clock._installation_id(directory)
+        except (OSError, ValueError):
+            document, installation = None, None
+        if (not isinstance(document, dict) or document.get("purpose") != evaluation_clock.PURPOSE
+                or installation is None or document.get("installation_id") != installation):
+            report["failed"].append({"profile": directory.name, "error": "not_this_installation"})
+            continue
         report["profiles"] += 1
         try:
             profile = load_profile(directory)
@@ -1260,7 +1339,7 @@ def cleanup(run_dir: Path) -> dict:
             report["stopped"] += 1
         except Exception as error:  # noqa: BLE001
             report["failed"].append({"profile": directory.name, "error": type(error).__name__})
-        deadline = time.monotonic() + 30
+        deadline = time.monotonic() + wait
         while any(_port_open(port) for port in ports) and time.monotonic() < deadline:
             time.sleep(1)
         report["ports_open"] += [port for port in ports if _port_open(port)]
@@ -1291,7 +1370,7 @@ if __name__ == "__main__":
         print(json.dumps(result, sort_keys=True))
         raise SystemExit(0 if result["ok"] else 1)
     if sys.argv[1:] == ["--preflight"]:
-        check_live_environment()
+        check_preflight_environment()
         guard = billing_transport()
         print(json.dumps({"ledger": str(guard.path), "attempt": guard.run_id, "policy_sha256": guard.policy_sha256}))
         guard.close()

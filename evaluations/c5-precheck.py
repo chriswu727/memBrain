@@ -15,7 +15,18 @@ With --r4 (an R4 behavioural-acceptance scenario) it also refuses PAGE_ACTIONS (
 never need to know product internals. It refuses stub scripts (`r4_stub_script`), and checks the R4 shape: eleven
 cases (`r4_case_count`), 60 to 66 user messages (`r4_turn_count`), HOST, FACTS and CASES present (`r4_missing`),
 every case names a real (session, turn) position (`r4_case_position`) with a unique id (`r4_case_id`), and every
-EXPECT_RECORDING_P entry names a real position (`r4_recording_position`).
+EXPECT_RECORDING_P entry names a real position (`r4_recording_position`). In --r4 mode the file is read without
+running it (scenario_literals.py: top-level literal assignments only, `r4_not_literal`), every session states a
+weekday (`r4_no_weekday`), and EXPECT_RECORDING_P is present (`r4_recording_missing`) with the one shape the harness
+can run without stopping a live arm (`r4_recording_shape`): all entries in one session, at consecutive turns, every
+one False except the last, which is True (the request to resume). The harness treats a False entry as "may stay
+unrecorded" and stops a live arm on any unrecorded turn the scenario did not declare, so a stretch declared one turn
+short, split across sessions, or without the resume turn would end a paid attempt.
+
+In every mode a stated weekday must be that date's weekday in the scenario's YEAR (`weekday_mismatch`): English
+"Today is Tuesday, March 3", Spanish "Hoy es martes, 3 de marzo", German "Heute ist Dienstag, der 3. März", Chinese
+"今天是3月3日，星期二" or "周二". Both arms are told "Today's date: … (weekday)" from the parsed date, so a wrong weekday
+would contradict the user's own words.
 
 It prints only counts and positions (session index, turn index, action index) with short failure codes. It never
 prints a message, a session id, a topic, a label or an exception's text: held-out scenarios can be prechecked
@@ -27,6 +38,7 @@ import datetime
 import importlib.util
 import io
 import json
+import re
 import sys
 import warnings
 from pathlib import Path
@@ -34,6 +46,43 @@ from types import SimpleNamespace
 
 MIN_GAP = datetime.timedelta(hours=1)
 R4_CASES, R4_TURNS = 11, (60, 66)  # An R4 scenario: eleven cases, 60 to 66 user messages.
+# Weekday names by Python weekday (Monday = 0), as scenarios state them.
+WEEKDAYS = [("monday", "lunes", "montag", "一"), ("tuesday", "martes", "dienstag", "二"),
+            ("wednesday", "miércoles", "mittwoch", "三"), ("thursday", "jueves", "donnerstag", "四"),
+            ("friday", "viernes", "freitag", "五"), ("saturday", "sábado", "samstag", "六"),
+            ("sunday", "domingo", "sonntag", "日", "天")]
+STATED = re.compile(r"(?:Today is|Hoy es|Heute ist) (\w+),|今天是\d+月\d+日[，,、\s]*(?:星期|周)([一二三四五六日天])",
+                    re.IGNORECASE)
+# Every failure code this precheck prints; tools that relay its result print only these.
+CODES = ("no_sessions", "malformed_session", "duplicate_session", "no_date", "no_time", "bad_date", "not_increasing",
+         "too_close", "weekday_mismatch", "bad_action", "proposal_without_card", "proposals_unsupported",
+         "malformed_action", "timed_pause", "load_failed", "r4_not_literal", "r4_page_actions", "r4_persona",
+         "r4_missing", "r4_stub_script", "r4_case_count", "r4_turn_count", "r4_case_position", "r4_case_id",
+         "r4_recording_position", "r4_recording_missing", "r4_recording_shape", "r4_no_weekday")
+
+
+def stated_weekday(text: str):
+    """The weekday a session's first message states, as an index (Monday = 0), None when it states none, or -1 for
+    a word that is no weekday."""
+    match = STATED.search(text)
+    if not match:
+        return None
+    word = (match[1] or match[2] or "").lower()
+    return next((index for index, names in enumerate(WEEKDAYS) if word in names), -1)
+
+
+def recording_shape_ok(entries) -> bool:
+    """EXPECT_RECORDING_P as the harness can run it: one session, consecutive turns, False ... False, then True."""
+    try:
+        entries = [(session, turn, expected) for session, turn, expected in entries]
+    except (TypeError, ValueError):
+        return False
+    if len(entries) < 2 or len({session for session, _, _ in entries}) != 1:
+        return False
+    turns = [turn for _, turn, _ in entries]
+    if any(type(turn) is not int for turn in turns) or turns != list(range(turns[0], turns[0] + len(turns))):
+        return False
+    return all(expected is False for _, _, expected in entries[:-1]) and entries[-1][2] is True
 
 
 def _load(name: str, path: Path):
@@ -104,6 +153,18 @@ def check_r4(module, positions: dict) -> list[dict]:
             known = False
         if not known:
             failures.append({"code": "r4_recording_position", "entry": number})
+    recording = list(getattr(module, "EXPECT_RECORDING_P", None) or [])
+    if not recording:
+        failures.append({"code": "r4_recording_missing"})
+    elif not recording_shape_ok(recording):
+        failures.append({"code": "r4_recording_shape"})
+    for number, entry in enumerate(list(getattr(module, "SESSIONS_LONG", None) or [])):
+        try:
+            first = entry[1][0]
+        except (TypeError, IndexError, KeyError):
+            continue
+        if isinstance(first, str) and stated_weekday(first) is None:
+            failures.append({"code": "r4_no_weekday", "session": number})
     return failures
 
 
@@ -147,6 +208,9 @@ def check(module, harness, *, r4: bool = False) -> dict:
             elif start - previous < MIN_GAP:
                 failures.append({"code": "too_close", "session": number})
         previous = start
+        weekday = stated_weekday(entry[1][0])
+        if weekday is not None and weekday != start.date().weekday():
+            failures.append({"code": "weekday_mismatch", "session": number})
 
     # Page actions, one at a time so that each failure has its own position.
     actions = list(getattr(module, "PAGE_ACTIONS", None) or [])
@@ -199,15 +263,21 @@ def main(argv: list) -> int:
         with contextlib.redirect_stdout(sink), contextlib.redirect_stderr(sink), warnings.catch_warnings():
             warnings.simplefilter("ignore")
             harness = _load("c5_harness_for_precheck", Path(__file__).with_name("c5-harness.py"))
+            code = "load_failed"
             try:
-                module = _load("c5_scenario_for_precheck", Path(argv[0]))
+                if r4:  # Read without running it: an R4 scenario holds only literal assignments.
+                    code = "r4_not_literal"
+                    module = _load("scenario_literals_for_precheck",
+                                   Path(__file__).with_name("scenario_literals.py")).read(Path(argv[0]))
+                else:
+                    module = _load("c5_scenario_for_precheck", Path(argv[0]))
             except BaseException as error:  # noqa: BLE001 - never shown: it may quote the scenario.
                 if isinstance(error, KeyboardInterrupt):
                     raise
                 module = None
             result = check(module, harness, r4=r4) if module is not None else {
                 "ok": False, "sessions": 0, "turns": 0, "actions": 0, "intended_unrecorded": None, "cases": 0,
-                "failures": [{"code": "load_failed"}]}
+                "failures": [{"code": code}]}
     except Exception:  # noqa: BLE001 - an internal error is reported by code only.
         print(json.dumps({"ok": False, "error": "internal_error"}))
         return 2

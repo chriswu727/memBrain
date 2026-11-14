@@ -19,6 +19,8 @@
   diagnose RUN_DIR...                                 for an invalid attempt: where each arm stopped, harness
                                                       event kinds with counts and positions, and error counts by
                                                       exception class; never a message, payload or log line
+  remarks BLIND_DIR SCENARIO                          after unsealing: per arm, the count and share of replies with
+                                                      a memory remark ("Saved.") that could unblind them
   gate REVIEW_DIR KEY...                              the attempt-3 pass rule from tallies and attributions
 
 verdicts, tally and gate accept --companion for C5 (critical types 1–9). C5 writes gate-c5.json and never writes
@@ -27,6 +29,8 @@ tally and gate accept --manifest PATH, the frozen attempt manifest (load_manifes
 file in its gate's pair with the manifest's hash, and gate R4 (or C5) needs exactly that pair's keys, each tally made
 with that manifest. Every tally records its scenario's key, file stem and sha256.
 A failed gate, R4 or C5, writes its report (gate.json or gate-c5.json) and then exits nonzero.
+validity also accepts --persona PRESET, the manifest's persona draw (the driver passes it), and then requires every
+arm to have carried that seeded type.
 validity and diagnose accept --scenario PATH for scenarios outside this script's directory. The driver supplies
 the manifest-bound path; without it, historical runs retain their evaluations/<scenario>.py lookup.
 
@@ -131,7 +135,8 @@ def load_manifest(path) -> dict:
      "pairs": [{"gate": "R4" | "C5", "scenarios": [{"key": "<key>", "path": "<repo-relative .py>", "sha256": "..."}]}],
      "order": ["<key>", ...], "persona": {"seed": "<attempt_id>", "preset": "<type id>"}}
 
-    Exactly these fields; "persona" may be left out (earlier attempts had none, and a live driver run requires it).
+    "practice": true marks a stub-rehearsal manifest made without review receipts (freeze.py --no-receipts, practice
+    copies only); a live driver run refuses it. Exactly these fields; "persona" may be left out (earlier attempts had none, and a live driver run requires it).
     When present it records the attempt's fixed personality type: its seed is the attempt_id and its preset is
     acceptance_persona.draw(seed). Each gate names at most one pair; scenario keys, paths and file stems are unique; every
     order key is in exactly one pair and every pair key is in the order once; a scenario path listed in "files" has
@@ -140,9 +145,12 @@ def load_manifest(path) -> dict:
         data = json.loads(Path(path).read_text())
     except (OSError, ValueError) as error:
         raise ManifestError(f"invalid manifest: not readable JSON ({error})") from error
-    if not isinstance(data, dict) or set(data) - {"persona"} != {"version", "attempt_id", "files", "pairs", "order"}:
+    if (not isinstance(data, dict)
+            or set(data) - {"persona", "practice"} != {"version", "attempt_id", "files", "pairs", "order"}):
         raise ManifestError("invalid manifest: expected exactly version, attempt_id, files, pairs and order (and "
-                            "optionally persona)")
+                            "optionally persona and practice)")
+    if "practice" in data and data["practice"] is not True:
+        raise ManifestError("invalid manifest: practice, when present, is true")
     if type(data["version"]) is not int or data["version"] != 1:
         raise ManifestError("invalid manifest: version must be 1")
     if not isinstance(data["attempt_id"], str) or not data["attempt_id"].strip():
@@ -879,12 +887,15 @@ def _supervision(run: Path) -> dict:
     return stamps
 
 
-def validity(run_dirs: list[Path], scenario_path: Path | None = None) -> dict:
+def validity(run_dirs: list[Path], scenario_path: Path | None = None, persona_preset: str | None = None) -> dict:
     """Refuse an attempt whose runs degraded: a missing or unfinished log, missing or empty replies, a call cap, a
-    harness error or an index timeout in any arm, an arm outside the frozen arms or given twice, arms that carried
-    different personas (persona.json), or arms that overlapped in time (the run script's supervisor.log). Names turns
-    by position only. Prints the reference arm's largest prompt and each arm's count of retried empty replies."""
-    problems, largest, retried = [], 0, {}
+    harness error or an index timeout in any arm; run directories that are not exactly the frozen arms, once each; an
+    arm without persona.json, arms that carried different personas, or (with ``persona_preset``, the manifest's
+    draw, which the driver passes) an arm whose persona is not that seeded type; an arm without complete supervisor
+    stamps, or arms that overlapped in time. Names turns by position only. Prints the reference arm's largest
+    prompt, each arm's count of retried empty replies, and each arm's count of tool errors its host was shown
+    (reported, never refused: they are the host's or the service's, and are part of what is measured)."""
+    problems, largest, retried, tool_errors = [], 0, {}, {}
     arms_seen, personas, supervision = set(), {}, {}
     if not run_dirs:
         problems.append("No run directories supplied")
@@ -937,25 +948,36 @@ def validity(run_dirs: list[Path], scenario_path: Path | None = None) -> dict:
                 problems.append(f"{run}: harness degradation {event['kind']}")
         if arm == "F":
             largest = max(largest, max(row["usage"].get("prompt_tokens", 0) for row in rows))
-    # The arms carried one persona: when any run recorded one, every run did, and they agree.
-    if any(value is not None for value in personas.values()):
-        if any(value is None for value in personas.values()):
-            problems.append("a run directory has no persona.json while another has one")
-        else:
-            fields = ("source", "seed", "preset", "card_sha256", "version")
-            if len({tuple(value.get(field) for field in fields) for value in personas.values()}) != 1:
-                problems.append("the arms carried different personas")
+        errors = run / "tool-errors.json"
+        try:
+            counted = json.loads(errors.read_text()) if errors.exists() else {}
+            tool_errors[f"{run.name} ({arm})"] = sum(int(value) for value in counted.values())
+        except (ValueError, TypeError, AttributeError):
+            problems.append(f"{run}: tool-errors.json is malformed")
+    # Every frozen arm ran, once (a missing arm is never a pass).
+    if run_dirs and arms_seen != set(ARMS):
+        problems.append(f"the run directories are not exactly the frozen arms {', '.join(ARMS)}")
+    # The arms carried one persona: every arm recorded it, they agree, and with --persona it is the attempt's
+    # seeded draw (a scenario's own card can never stand in for it).
+    if any(value is None for value in personas.values()):
+        problems.append("a run directory has no persona.json")
+    elif personas:
+        fields = ("source", "seed", "preset", "card_sha256", "version")
+        if len({tuple(value.get(field) for field in fields) for value in personas.values()}) != 1:
+            problems.append("the arms carried different personas")
+        if persona_preset is not None and any(value.get("source") != "seeded" or value.get("preset") != persona_preset
+                                              for value in personas.values()):
+            problems.append("the arms did not carry the attempt's seeded persona")
     # The arms ran one after the other: each started after the previous one was cleaned up.
-    if any(supervision.values()):
-        stamps = list(supervision.values())
-        if any(not {"started", "finished", "cleaned"} <= set(value) for value in stamps):
-            problems.append("a run directory has no complete supervisor stamps (started, finished, cleaned)")
-        else:
-            spans = sorted((value["started"], value["cleaned"]) for value in stamps)
-            if any(later[0] < earlier[1] for earlier, later in zip(spans, spans[1:])):
-                problems.append("the arms overlapped in time")
+    stamps = list(supervision.values())
+    if any(not {"started", "finished", "cleaned"} <= set(value) for value in stamps):
+        problems.append("a run directory has no complete supervisor stamps (started, finished, cleaned)")
+    elif stamps:
+        spans = sorted((value["started"], value["cleaned"]) for value in stamps)
+        if any(later[0] < earlier[1] for earlier, later in zip(spans, spans[1:])):
+            problems.append("the arms overlapped in time")
     result = {"valid": not problems, "problems": problems, "reference_largest_prompt_tokens": largest,
-              "empty_replies_retried": retried}
+              "empty_replies_retried": retried, "tool_errors_reported_to_the_host": tool_errors}
     print(json.dumps(result))
     return result
 
@@ -1052,6 +1074,42 @@ def diagnose(run_dirs: list[Path], scenario_path: Path | None = None) -> None:
                 counts["cap reached"] = counts.get("cap reached", 0) + 1
         for name, count in sorted(counts.items()):
             print(f"   log: {name}: {count}")
+
+
+# Wording by which a reply can show that its assistant uses memory tools ("Saved.", "Memory's updated."), which with
+# two arms would unblind both replies of a case. Fixed before any run; matched case-insensitively as substrings.
+MEMORY_REMARKS = (
+    "saved", "i've noted", "i have noted", "noted that", "noted it", "memory", "i'll remember", "i will remember",
+    "i'll keep that in mind", "remembered", "updated", "indexed", "recording", "recorded", "off the record",
+    "记下", "记住", "已保存", "保存了", "记忆", "已记录", "已更新",
+    "guardado", "lo recordaré", "anotado", "gespeichert", "ich merke mir", "notiert")
+
+
+def has_memory_remark(text: str) -> bool:
+    lowered = (text or "").casefold()
+    return any(phrase in lowered for phrase in MEMORY_REMARKS)
+
+
+def remarks(blind_dir: Path, scenario_path: str) -> dict:
+    """Content-free: per arm, how many replies (the scored case replies, and all replies) contain a memory remark
+    from MEMORY_REMARKS, with the share. For the record's statement of partial blinding; run after unsealing, since it
+    names arms. Prints counts and shares only, never a reply or a phrase found."""
+    module = load(scenario_path)
+    scenario = Path(scenario_path).stem
+    cases = {(session, turn) for session, turn, _case, _criteria in module.CASES}
+    report = {"phrases": len(MEMORY_REMARKS), "arms": {}}
+    for arm in ARMS:
+        rows = [json.loads(line) for line in (blind_dir / f"results_{scenario}_{arm}.jsonl").read_text().splitlines()
+                if line.strip()]
+        scored = [row for row in rows if (row["session"], row["turn"]) in cases]
+        marked_scored = sum(has_memory_remark(row.get("reply")) for row in scored)
+        marked_all = sum(has_memory_remark(row.get("reply")) for row in rows)
+        report["arms"][arm] = {"case_replies": len(scored), "case_with_remarks": marked_scored,
+                               "case_share": round(marked_scored / len(scored), 3) if scored else 0.0,
+                               "all_replies": len(rows), "all_with_remarks": marked_all,
+                               "all_share": round(marked_all / len(rows), 3) if rows else 0.0}
+    print(json.dumps(report, sort_keys=True))
+    return report
 
 
 def verdicts(path: Path, scenario_path: str, *, companion=False) -> None:
@@ -1226,6 +1284,13 @@ if __name__ == "__main__":
             raise SystemExit("--scenario PATH is valid once for validity or diagnose")
         scenario_path = Path(args[at + 1])
         del args[at:at + 2]
+    persona_preset = None
+    if "--persona" in args:
+        at = args.index("--persona")
+        if command != "validity" or args.count("--persona") != 1 or at + 1 >= len(args):
+            raise SystemExit("--persona PRESET is valid once for validity")
+        persona_preset = args[at + 1]
+        del args[at:at + 2]
     companion = "--companion" in args
     if companion:
         if command not in ("verdicts", "tally", "gate") or args.count("--companion") != 1:
@@ -1245,8 +1310,10 @@ if __name__ == "__main__":
     elif command == "attribution-inputs":
         attribution_inputs(Path(args[0]), Path(args[1]), args[2], args[3], Path(args[4]))
     elif command == "validity":
-        if not validity([Path(arg) for arg in args], scenario_path)["valid"]:
+        if not validity([Path(arg) for arg in args], scenario_path, persona_preset)["valid"]:
             raise SystemExit(1)
+    elif command == "remarks":
+        remarks(Path(args[0]), args[1])
     elif command == "r5-inputs":
         r5_inputs(Path(args[0]), Path(args[1]), args[2], args[3], Path(args[4]))
     elif command == "r5-check":

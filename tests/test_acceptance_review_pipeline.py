@@ -67,11 +67,13 @@ def test_validity_refuses_duplicate_turns_even_when_the_row_count_matches(pipeli
     assert not json.loads(capsys.readouterr().out)["valid"]
 
 
-def test_validity_accepts_a_complete_practice_run_without_harness_events(pipeline, tmp_path, monkeypatch, capsys):
+def test_validity_refuses_a_single_complete_arm(pipeline, tmp_path, monkeypatch, capsys):
+    """One complete arm is not an attempt: a missing arm is refused (two complete arms: two_arm_runs below)."""
     row = {"arm": "P", "scenario": "practice", "session": "s1", "turn": 0, "reply": "Hello"}
     monkeypatch.setattr(pipeline, "_run", lambda _: ([row], [("s1", 0)], "12:00:00 P practice finished"))
     pipeline.validity([tmp_path])
-    assert json.loads(capsys.readouterr().out)["valid"]
+    report = json.loads(capsys.readouterr().out)
+    assert not report["valid"] and any("not exactly the frozen arms" in item for item in report["problems"])
 
 
 @pytest.mark.parametrize("changed", [{"arm": "E"}, {"scenario": "another-practice"}])
@@ -453,15 +455,17 @@ def test_a_tally_missing_the_gated_arm_cannot_pass_as_zero(pipeline, tmp_path):
         pipeline.gate(tmp_path, ["practice"])
 
 
-def gate_world(tmp_path, p_scores, f_scores, p_critical=(), f_critical=(), causes=None):
-    """A synthetic two-scenario R4 result: per case a P reply and an F reply. ``p_critical`` and ``f_critical`` name
-    case numbers (1-based) whose reply carries a standing type 4 mark; ``causes`` maps P's to the two attributors'
-    answers (default: both host)."""
+def gate_world(tmp_path, p_scores, f_scores, p_critical=(), f_critical=(), causes=None, p_label="A"):
+    """A synthetic two-scenario R4 result: per case a P reply (label ``p_label``) and an F reply (the other label).
+    ``p_critical`` and ``f_critical`` name case numbers (1-based) whose reply carries a standing type 4 mark;
+    ``causes`` maps P's to the two attributors' answers (default: both host)."""
+    f_label = "B" if p_label == "A" else "A"
     for key, start in (("one", 0), ("two", len(p_scores) // 2)):
         rows, totals = [], {"P": 0, "F": 0}
         for number in range(start + 1, start + len(p_scores) // 2 + 1):
             case = f"S{number:02d}-practice"
-            for label, arm, scores, marked in (("A", "P", p_scores, p_critical), ("B", "F", f_scores, f_critical)):
+            for label, arm, scores, marked in ((p_label, "P", p_scores, p_critical),
+                                               (f_label, "F", f_scores, f_critical)):
                 resolved = [4] if number in marked else []
                 base = scores[number - 1]
                 rows.append({"case": case, "label": label, "arm": arm, "base": base, "literal": resolved,
@@ -469,7 +473,7 @@ def gate_world(tmp_path, p_scores, f_scores, p_critical=(), f_critical=(), cause
                 totals[arm] += 0 if resolved else base
                 if arm == "P" and resolved:
                     for attempt, cause in zip("12", (causes or {}).get(number, ("host", "host")), strict=True):
-                        put(tmp_path / f"attribution-{key}" / f"S{number:02d}-A.{attempt}.json",
+                        put(tmp_path / f"attribution-{key}" / f"S{number:02d}-{p_label}.{attempt}.json",
                             attribution(cause))
         put(tmp_path / f"tally-{key}.json", {"totals": {"resolved": totals}, "rows": rows})
     return pipeline_gate(tmp_path)
@@ -559,46 +563,107 @@ def test_the_split_refuses_a_sheet_with_a_third_reply(pipeline, tmp_path):
         pipeline.split(sheet, verdicts, blind, str(scenario), tmp_path / "refused")
 
 
-@pytest.mark.parametrize("persona", [False, True])
-def test_validity_refuses_arm_e_a_repeated_arm_and_personas_that_differ(pipeline, tmp_path, monkeypatch, persona):
-    def make(name, arm, preset="intj"):
-        run = tmp_path / name
-        run.mkdir()
-        if persona:
-            put(run / "persona.json", {"arm": arm, "source": "seeded", "seed": "x", "preset": preset,
-                                       "card_sha256": preset, "version": 1})
-        return run
 
-    rows = {}
-    monkeypatch.setattr(pipeline, "_run", lambda run: (rows[run.name], [("s1", 0)], f"12:00:00 {rows[run.name][0]['arm']} practice finished"))
-    for name, arm in (("k-P", "P"), ("k-F", "F"), ("k-E", "E"), ("k-P2", "P")):
-        rows[name] = [{"arm": arm, "scenario": "practice", "session": "s1", "turn": 0, "reply": "Hello",
-                       "usage": {"prompt_tokens": 1}}]
-    good = [make("k-P", "P"), make("k-F", "F")]
-    assert pipeline.validity(good)["valid"]
-    assert not pipeline.validity([*good, make("k-E", "E")])["valid"]
-    assert not pipeline.validity([*good, make("k-P2", "P")])["valid"]
-    if persona:
-        put(tmp_path / "k-F" / "persona.json", {"arm": "F", "source": "seeded", "seed": "x", "preset": "enfp",
-                                                "card_sha256": "enfp", "version": 1})
-        result = pipeline.validity(good)
-        assert not result["valid"] and "the arms carried different personas" in result["problems"]
+
+def two_arm_runs(pipeline, tmp_path, monkeypatch, arms=("P", "F"), persona="enfp", source="seeded", stamps=True):
+    """Synthetic run directories, one per arm, with persona.json and supervisor stamps as the run script writes
+    them; the results are stubbed through _run."""
+    rows, runs = {}, []
+    for number, arm in enumerate(arms):
+        run = tmp_path / f"k-{arm}{number}"
+        run.mkdir(parents=True)
+        rows[run.name] = [{"arm": arm, "scenario": "practice", "session": "s1", "turn": 0, "reply": "Hello",
+                           "usage": {"prompt_tokens": 1}}]
+        if persona is not None:
+            put(run / "persona.json", {"arm": arm, "source": source, "seed": "x", "preset": persona,
+                                       "card_sha256": persona, "version": 1})
+        if stamps:
+            start = 10.0 + 20 * number
+            (run / "supervisor.log").write_text(f"started {start}\nfinished {start + 5}\ncleaned {start + 6}\n")
+        runs.append(run)
+    monkeypatch.setattr(pipeline, "_run", lambda run: (rows[run.name], [("s1", 0)],
+                                                       f"12:00:00 {rows[run.name][0]['arm']} practice finished"))
+    return runs
+
+
+def test_validity_accepts_two_complete_arms(pipeline, tmp_path, monkeypatch):
+    result = pipeline.validity(two_arm_runs(pipeline, tmp_path, monkeypatch), persona_preset="enfp")
+    assert result["valid"], result["problems"]
+
+
+@pytest.mark.parametrize("arms, problem", [
+    (("P",), "not exactly the frozen arms"), (("F",), "not exactly the frozen arms"),
+    (("P", "F", "E"), "not one of the frozen arms"), (("P", "F", "P"), "a second run directory of arm P"),
+], ids=["only P", "only F", "an arm E", "P twice"])
+def test_validity_refuses_a_missing_extra_or_repeated_arm(pipeline, tmp_path, monkeypatch, arms, problem):
+    result = pipeline.validity(two_arm_runs(pipeline, tmp_path, monkeypatch, arms))
+    assert not result["valid"] and any(problem in item for item in result["problems"]), result["problems"]
+
+
+def test_validity_refuses_runs_without_persona_or_supervisor_stamps(pipeline, tmp_path, monkeypatch):
+    result = pipeline.validity(two_arm_runs(pipeline, tmp_path / "a", monkeypatch, persona=None))
+    assert not result["valid"] and "a run directory has no persona.json" in result["problems"]
+    result = pipeline.validity(two_arm_runs(pipeline, tmp_path / "b", monkeypatch, stamps=False))
+    assert not result["valid"] and any("supervisor stamps" in item for item in result["problems"])
+
+
+def test_validity_refuses_personas_that_differ_or_are_not_the_seeded_draw(pipeline, tmp_path, monkeypatch):
+    runs = two_arm_runs(pipeline, tmp_path / "a", monkeypatch)
+    put(runs[1] / "persona.json", {"arm": "F", "source": "seeded", "seed": "x", "preset": "intj",
+                                   "card_sha256": "intj", "version": 1})
+    result = pipeline.validity(runs)
+    assert not result["valid"] and "the arms carried different personas" in result["problems"]
+    runs = two_arm_runs(pipeline, tmp_path / "b", monkeypatch)
+    result = pipeline.validity(runs, persona_preset="intj")  # The manifest drew another type.
+    assert not result["valid"] and "the arms did not carry the attempt's seeded persona" in result["problems"]
+    runs = two_arm_runs(pipeline, tmp_path / "c", monkeypatch, source="scenario")  # A scenario's own card.
+    assert pipeline.validity(runs)["valid"]  # Without the manifest's draw, agreeing personas pass ...
+    result = pipeline.validity(runs, persona_preset="enfp")  # ... with it, only the seeded type does.
+    assert not result["valid"] and "the arms did not carry the attempt's seeded persona" in result["problems"]
 
 
 def test_validity_refuses_arms_that_overlapped_in_time(pipeline, tmp_path, monkeypatch):
-    rows = {name: [{"arm": name[-1], "scenario": "practice", "session": "s1", "turn": 0, "reply": "Hello",
-                    "usage": {"prompt_tokens": 1}}] for name in ("k-P", "k-F")}
-    monkeypatch.setattr(pipeline, "_run", lambda run: (rows[run.name], [("s1", 0)],
-                                                       f"12:00:00 {run.name[-1]} practice finished"))
-    runs = []
-    for name in rows:
-        (tmp_path / name).mkdir()
-        runs.append(tmp_path / name)
-    (tmp_path / "k-P" / "supervisor.log").write_text("started 10.0\nfinished 20.0\ncleaned 21.0\n")
-    (tmp_path / "k-F" / "supervisor.log").write_text("started 22.0\nfinished 30.0\ncleaned 30.5\n")
+    runs = two_arm_runs(pipeline, tmp_path, monkeypatch)
     assert pipeline.validity(runs)["valid"]
-    (tmp_path / "k-F" / "supervisor.log").write_text("started 20.5\nfinished 30.0\ncleaned 30.5\n")
+    (runs[1] / "supervisor.log").write_text("started 15.5\nfinished 30.0\ncleaned 30.5\n")
     result = pipeline.validity(runs)
     assert not result["valid"] and "the arms overlapped in time" in result["problems"]
-    (tmp_path / "k-F" / "supervisor.log").write_text("started 22.0\nfinished 30.0\n")
-    assert not pipeline.validity(runs)["valid"]
+
+
+def test_validity_reports_tool_errors_without_refusing(pipeline, tmp_path, monkeypatch):
+    runs = two_arm_runs(pipeline, tmp_path, monkeypatch)
+    (runs[0] / "tool-errors.json").write_text(json.dumps({"memory_note": 2, "memory_recall": 1}))
+    result = pipeline.validity(runs)
+    assert result["valid"] and result["tool_errors_reported_to_the_host"] == {"k-P0 (P)": 3, "k-F1 (F)": 0}
+
+
+def test_validity_cli_takes_the_manifests_persona(pipeline, tmp_path):
+    result = subprocess.run([sys.executable, pipeline.__file__, "validity", str(tmp_path), "--persona"],
+                            capture_output=True, text=True)
+    assert result.returncode != 0 and "--persona PRESET is valid once for validity" in result.stderr
+
+
+def test_remarks_counts_memory_wording_per_arm_without_printing_replies(pipeline, tmp_path, capsys):
+    scenario = tmp_path / "practice.py"
+    scenario.write_text('CASES = [("s1", 0, "S01-a", "x"), ("s1", 1, "S02-b", "x")]\n')
+    replies = {"P": [f"{PLANT_REMARK} Saved.", "Fine.", "我记住了。"], "F": ["Fine.", "Fine.", "Sure."]}
+    for arm, texts in replies.items():
+        (tmp_path / f"results_practice_{arm}.jsonl").write_text("".join(json.dumps(
+            {"arm": arm, "session": "s1", "turn": turn, "reply": text}) + "\n" for turn, text in enumerate(texts)))
+    report = pipeline.remarks(tmp_path, str(scenario))
+    assert report["arms"]["P"] == {"case_replies": 2, "case_with_remarks": 1, "case_share": 0.5, "all_replies": 3,
+                                   "all_with_remarks": 2, "all_share": 0.667}
+    assert report["arms"]["F"]["all_with_remarks"] == 0 and report["phrases"] == len(pipeline.MEMORY_REMARKS)
+    assert PLANT_REMARK not in capsys.readouterr().out
+
+
+PLANT_REMARK = "ZQ-REPLY-TEXT-41"
+
+
+@pytest.mark.parametrize("p_label", ["A", "B"])
+@pytest.mark.parametrize("name", ["P equals F", "a memory-caused critical reply",
+                                  "more host-caused critical replies than F has", "P below F minus 1"])
+def test_the_gate_reads_the_arm_not_the_label(tmp_path, name, p_label):
+    p, f, p_critical, f_critical, causes, passes, failing = GATE_CASES[name]
+    result = gate_world(tmp_path, p, f, p_critical, f_critical, causes, p_label=p_label)
+    assert result["R4"] is passes and set(result["arms"]) == {"P"}

@@ -2,9 +2,17 @@
 """Freeze an R4 behavioural-acceptance attempt: hash every frozen file and the held-out scenarios into the manifest
 the attempt driver validates (acceptance-attempt-driver.md, "Manifest").
 
-  freeze.py --repo REPO --attempt-id ID --private-root REL --out MANIFEST
+  freeze.py --repo REPO --attempt-id ID --private-root REL --out MANIFEST --allowed-models REL
             --scenario KEY=REL_PATH [--scenario KEY=REL_PATH ...]
-            [--receipt KEY=REL_PATH ...] [--control REL_PATH ...] [--no-receipts]
+            [--receipt KEY=REL_PATH ...] [--control REL_PATH ...] [--binding REL] [--python PATH] [--no-receipts]
+
+- Every scenario is read without running it (scenario_literals.py); every held-out scenario must pass
+  `c5-precheck.py --r4`, run in a subprocess with the repository's interpreter (REPO/.venv/bin/python unless
+  --python), and only the precheck's own codes are relayed.
+- The lead's allowed-models file (the session models launch.py accepted) is required and frozen.
+- With --binding (the committed execution binding), the binding must name the attempt id in backquotes: the persona
+  seed is the attempt id fixed there before the draw is computed.
+- Errors never print a traceback or any text from a scenario.
 
 - REPO is the execution clone. Paths are repo-relative; scenarios, receipts and control files must lie inside the
   private root REL (git-excluded in the execution clone) and scenarios must not be tracked by git: a held-out
@@ -16,7 +24,9 @@ the attempt driver validates (acceptance-attempt-driver.md, "Manifest").
 - The working tree must be clean outside the private root (no tracked change, no untracked file elsewhere).
 - Each scenario needs its review receipt (KEY=path of a JSON {"key", "sha256", "cases", "turns", "approved": true,
   ...} written by launch.py for the approving reviewer), whose hash, case count and turn count must match the
-  scenario file. --no-receipts is for the public stub rehearsal only and is printed in the summary.
+  scenario file. --no-receipts is for the public stub rehearsal only: every scenario must be a practice copy (its file
+  name contains "practice"), the manifest records "practice": true (the live driver refuses it), and the summary
+  says so. A practice copy is never frozen with receipts.
 - The manifest has one R4 pair with the scenarios in the given order, "order" the same, and "persona" the draw of
   the attempt id (acceptance_persona.py). It is validated with both the review pipeline's load_manifest and the
   driver's validate_manifest before it is written; an existing MANIFEST is refused.
@@ -28,10 +38,8 @@ Standard library only.
 from __future__ import annotations
 
 import argparse
-import contextlib
 import hashlib
 import importlib.util
-import io
 import json
 import os
 import subprocess
@@ -105,13 +113,38 @@ def check_clean(repo: Path, private_root: str) -> None:
         raise Refused("the working tree is not clean outside the private root")
 
 
-def scenario_counts(path: Path) -> dict:
-    sink = io.StringIO()
-    with contextlib.redirect_stdout(sink), contextlib.redirect_stderr(sink):
-        module = _module("scenario_for_freeze", path)
-    sessions = list(getattr(module, "SESSIONS_LONG", None) or [])
-    return {"sessions": len(sessions), "turns": sum(len(turns) for _, turns in sessions),
-            "cases": len(list(getattr(module, "CASES", None) or []))}
+def scenario_counts(path: Path, evaluations: Path) -> dict:
+    """Counts from the scenario read without running it (literal assignments only); never its text."""
+    literals = _module("scenario_literals_for_freeze", evaluations / "scenario_literals.py")
+    try:
+        module = literals.read(path)
+        sessions = list(getattr(module, "SESSIONS_LONG", None) or [])
+        return {"sessions": len(sessions), "turns": sum(len(turns) for _, turns in sessions),
+                "cases": len(list(getattr(module, "CASES", None) or []))}
+    except literals.NotLiteral as error:
+        raise Refused(f"a scenario is not literal assignments only ({error.code})") from None
+    except (TypeError, ValueError):
+        raise Refused("a scenario's sessions are malformed") from None
+
+
+def precheck(python: Path, evaluations: Path, path: Path) -> list[str]:
+    """`c5-precheck.py --r4` in a subprocess with the repository's interpreter: [] when ok, else its codes (only
+    codes the precheck itself defines are relayed)."""
+    known = set(_module("c5_precheck_codes_for_freeze", evaluations / "c5-precheck.py").CODES)
+    done = subprocess.run([str(python), str(evaluations / "c5-precheck.py"), "--r4", str(path)],
+                          capture_output=True, text=True, timeout=300)
+    try:
+        summary = json.loads(done.stdout.strip().splitlines()[-1])
+    except (ValueError, IndexError):
+        return ["precheck_unreadable"]
+    if done.returncode == 0 and summary.get("ok") is True:
+        return []
+    codes = summary.get("codes") if isinstance(summary.get("codes"), list) else []
+    return sorted({code if code in known else "unknown_code" for code in codes}) or ["precheck_failed"]
+
+
+def is_practice(path: str) -> bool:
+    return "practice" in PurePosixPath(path).name
 
 
 def _pairs(values: list[str], what: str) -> list[tuple[str, str]]:
@@ -140,26 +173,51 @@ def freeze(args) -> dict:
         raise Refused("at least one --scenario is required")
     if args.no_receipts and receipts:
         raise Refused("--no-receipts and --receipt exclude each other")
+    if args.no_receipts and not all(is_practice(path) for _, path in scenarios):
+        raise Refused("--no-receipts is for practice copies only (a file name containing 'practice')")
+    if not args.no_receipts and any(is_practice(path) for _, path in scenarios):
+        raise Refused("a practice scenario is never frozen as a held-out one")
+    python = Path(args.python) if args.python else repo / ".venv" / "bin" / "python"
+    if not python.is_file():
+        raise Refused("the repository's interpreter is missing (give --python)")
     if not args.no_receipts and set(receipts) != {key for key, _ in scenarios}:
         raise Refused("every scenario needs exactly one --receipt (or --no-receipts for the stub rehearsal)")
     tracked = set(_git(repo, "ls-files", "-z"))
     for what, path in [*((f"scenario {key}", path) for key, path in scenarios),
                        *((f"receipt {key}", path) for key, path in receipts.items()),
-                       *(("control file", path) for path in args.control)]:
+                       *(("control file", path) for path in args.control),
+                       ("the allowed-models file", args.allowed_models)]:
         _relative(repo, path, what)
         if not path.startswith(private + "/"):
             raise Refused(f"{what} must lie inside the private root")
     if any(path in tracked for _, path in scenarios):
         raise Refused("a held-out scenario is tracked by git")
     check_clean(repo, private)
+    try:
+        models = json.loads((repo / args.allowed_models).read_text())
+    except (OSError, ValueError):
+        models = None
+    if not isinstance(models, list) or not models or not all(isinstance(name, str) and name for name in models):
+        raise Refused("the allowed-models file must be a non-empty JSON list of model names")
+    if args.binding:
+        _relative(repo, args.binding, "the binding")
+        if args.binding not in tracked:
+            raise Refused("the binding must be committed before freezing")
+        if f"`{args.attempt_id}`" not in (repo / args.binding).read_text(encoding="utf-8"):
+            raise Refused("the binding does not name this attempt id: the persona seed is fixed by the binding")
 
+    evaluations = repo / "evaluations"
     files = {path: sha256(repo / path) for path in frozen_tracked(repo)}
-    for path in [*args.control, *receipts.values()]:
+    for path in [*args.control, *receipts.values(), args.allowed_models]:
         files[path] = sha256(repo / path)
     entries, printed = [], []
     for key, path in scenarios:
         digest = sha256(repo / path)
-        counts = scenario_counts(repo / path)
+        counts = scenario_counts(repo / path, evaluations)
+        if not is_practice(path):
+            codes = precheck(python, evaluations, repo / path)
+            if codes:
+                raise Refused(f"scenario {key} fails the R4 precheck: {', '.join(codes)}")
         if key in receipts:
             receipt = json.loads((repo / receipts[key]).read_text())
             if not isinstance(receipt, dict) or receipt.get("approved") is not True or receipt.get("key") != key:
@@ -171,11 +229,12 @@ def freeze(args) -> dict:
         files[path] = digest
         entries.append({"key": key, "path": path, "sha256": digest})
         printed.append({"key": key, "sha256": digest, **counts})
-    evaluations = repo / "evaluations"
     drawing = _module("acceptance_persona_for_freeze", evaluations / "acceptance_persona.py")
     manifest = {"version": 1, "attempt_id": args.attempt_id, "files": dict(sorted(files.items())),
                 "pairs": [{"gate": "R4", "scenarios": entries}], "order": [key for key, _ in scenarios],
                 "persona": drawing.record(args.attempt_id)}
+    if args.no_receipts:
+        manifest["practice"] = True  # Frozen without review receipts: the live driver refuses it.
     data = (json.dumps(manifest, indent=1, sort_keys=True) + "\n").encode("utf-8")
     temporary = out.with_name(out.name + ".partial")
     temporary.write_bytes(data)
@@ -205,11 +264,18 @@ def main(argv=None) -> int:
     parser.add_argument("--receipt", action="append", default=[])
     parser.add_argument("--control", action="append", default=[])
     parser.add_argument("--no-receipts", action="store_true", help="the public stub rehearsal only")
+    parser.add_argument("--allowed-models", required=True,
+                        help="the lead's allowed-models.json in the private root (frozen as a control file)")
+    parser.add_argument("--binding", help="the committed execution binding; it must name the attempt id")
+    parser.add_argument("--python", help="the repository's interpreter for the precheck (default REPO/.venv/bin/python)")
     args = parser.parse_args(argv)
     try:
         print(json.dumps(freeze(args), sort_keys=True))
     except Refused as error:
         print(json.dumps({"refused": str(error)}))
+        return 2
+    except Exception as error:  # noqa: BLE001 - never a traceback: it could quote a scenario's lines.
+        print(json.dumps({"refused": f"internal error ({type(error).__name__})"}))
         return 2
     return 0
 

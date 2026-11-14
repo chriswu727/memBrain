@@ -14,7 +14,9 @@ acceptance-attempt-driver.md; the same format as acceptance_review.py's manifest
 - runs RUNNER SCENARIO OUT_ROOT KEY, then VALIDITY OUT_ROOT/KEY-P OUT_ROOT/KEY-F (the frozen arms ARMS = P, F: the
   plugin path and the full-history reference; the run script runs them one after the other);
 - passes the manifest's persona draw to every child as C5_PERSONA_SEED and C5_PERSONA_PRESET, so both arms carry
-  the attempt's fixed personality type (the harness refuses a preset that is not the draw of its seed);
+  the attempt's fixed personality type (the harness refuses a preset that is not the draw of its seed, and a
+  scenario's own PERSONA card), and gives the default validity `--persona PRESET`, so an arm that did not carry the
+  seeded type is invalid; a live run refuses a manifest marked "practice" (frozen without review receipts);
 - stops at the first non-zero exit (any runner exit but 0 is a scenario failure, including the run script's
   supervisor exits after a failed or refused arm), invalid scenario, changed input or blocked ledger. It never
   starts another scenario after that, and it never resumes, reuses or retries anything.
@@ -117,8 +119,10 @@ def validate_manifest(manifest) -> dict:
     """The shared manifest format: raises ValueError naming the first structural problem. It accepts and rejects
     exactly what acceptance_review.py's load_manifest does (structure only, not the files on disk)."""
     keys = {"version", "attempt_id", "files", "pairs", "order"}
-    _exact(manifest, keys | ({"persona"} if isinstance(manifest, dict) and "persona" in manifest else set()),
-           "the manifest")
+    optional = {key for key in ("persona", "practice") if isinstance(manifest, dict) and key in manifest}
+    _exact(manifest, keys | optional, "the manifest")
+    if "practice" in manifest and manifest["practice"] is not True:
+        raise ValueError("practice, when present, is true")
     if type(manifest["version"]) is not int or manifest["version"] != 1:
         raise ValueError("version must be 1")
     attempt = manifest["attempt_id"]
@@ -418,6 +422,9 @@ class Driver:
             if "persona" not in self.manifest:
                 raise Refused("persona_binding", "a live attempt's manifest records its persona draw "
                                                  '("persona": {"seed": attempt_id, "preset": ...})')
+            if self.manifest.get("practice"):
+                raise Refused("practice_manifest", "a practice manifest (frozen without review receipts) never "
+                                                   "runs live")
         persona = self.manifest.get("persona")
         self.child_env = ({"C5_PERSONA_SEED": persona["seed"], "C5_PERSONA_PRESET": persona["preset"]}
                           if persona else {})
@@ -613,6 +620,8 @@ class Driver:
         record["logs"].append(str(validity_log))
         self.save()
         validity_args = ["--scenario", scenario] if self.default_validity else []
+        if self.default_validity and self.manifest.get("persona"):  # Every arm must have carried the seeded type.
+            validity_args += ["--persona", self.manifest["persona"]["preset"]]
         code = self.spawn(self.validity + validity_args + [str(self.run_dir(key, arm)) for arm in ARMS], validity_log)
         record.update(validity_exit=code, validity_finished_at=_now())
         if self.signal is not None:

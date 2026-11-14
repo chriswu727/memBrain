@@ -11,7 +11,9 @@ message should say only that the file is written.
 
 ## What the file contains
 
-A Python module that only defines these names (no imports, no functions, no code that runs anything):
+A Python module that only assigns plain literal values to these names: strings, numbers, lists, tuples and
+dictionaries written out in full. No imports, no functions, no f-strings, no `**` unpacking, no name used as a
+value, no code that runs anything (the file is read without being run, and anything else is refused):
 
 | Name | Content |
 | --- | --- |
@@ -34,7 +36,7 @@ Do not define `PERSONA`, `PAGE_ACTIONS` or any name starting with `STUB_`. Do no
   - Spanish: `Hoy es martes, 3 de marzo, 21:00. ...`
   - German: `Heute ist Dienstag, der 3. März, 21:00. ...`
   - Chinese: `今天是3月3日，星期二，21:00。...`
-  The weekday must be right for that date in `YEAR`. Session start times strictly increase and are at least one
+  The weekday must be right for that date in `YEAR` (it is checked). Session start times strictly increase and are at least one
   hour apart. The story spans about two to four months.
 - Language: the scenario you are asked for below is either **mainly English with one session in Spanish or German**,
   or **mainly Chinese with one session in English**. Facts and criteria are written in English (quote the user's
@@ -64,8 +66,9 @@ Across the 11 cases, cover each of these at least once (several cases may combin
    rest of the conversation; one or two messages follow that share something; then, later in the same session, the
    user explicitly asks to start remembering again ("you can remember things again from now on"). Later cases
    depend on facts said **after** the resume request, and one case checks that something said while off the record
-   is not presented as remembered. Declare those turns in `EXPECT_RECORDING_P`: the off-the-record turns (the
-   request itself included) as `False`, and the resume request as `True`.
+   is not presented as remembered. Declare those turns in `EXPECT_RECORDING_P`, in order: the off-the-record turns
+   (the request itself included, and every message after it up to the resume request) as `False`, then the resume
+   request as `True`. All of them are in that one session, at consecutive turn indexes. Have only one such stretch.
 8. **A date without a month**: the user gives a date as only a day ("on the 14th") that must be understood from the
    session's date.
 9. **Recall across a long gap**: a case whose answer was stated many sessions earlier.

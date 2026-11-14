@@ -1,5 +1,16 @@
 {
-  "_note": "Templates for launch.py. {workdir}, {model} and {prompt} are substituted. Before the first real launch, check every flag against the installed tool's --help, and check that the session loads no user setting, plugin, hook or MCP server (a memBrain plugin installed for the user would otherwise record the session and inject the user's memory). Change a template only by a reviewed, frozen commit.",
-  "claude": "claude -p {prompt} --model {model} --setting-sources project --strict-mcp-config --mcp-config {{\"mcpServers\":{{}}}} --tools Read,Write,Edit --disallowedTools Bash,WebFetch,WebSearch,Task --permission-mode acceptEdits",
-  "codex": "codex exec --model {model} --cd {workdir} --skip-git-repo-check --sandbox workspace-write -c tools.web_search=false -c mcp_servers={{}} {prompt}"
+  "_note": "Session commands for launch.py, as argument lists: {workdir}, {model} and {prompt} are substituted into whole arguments, never re-split. Checked against `claude --help` of Claude Code 2.1.322 on 2026-11-14 (no session launched): --safe-mode disables CLAUDE.md, skills, installed plugins, hooks, MCP servers, custom commands and agents while keeping the subscription login; --restricted removes the code-running tools and WebFetch, ignores user, project and local settings files, and confines the file tools to the working directories; --strict-mcp-config with no --mcp-config loads no MCP server; --no-session-persistence keeps the transcript off disk (print mode only). Change these only by a reviewed, frozen commit.",
+  "claude": {
+    "isolating": true,
+    "argv": ["claude", "-p", "{prompt}", "--model", "{model}", "--safe-mode", "--restricted", "--strict-mcp-config",
+             "--no-session-persistence", "--tools", "Read,Write,Edit", "--disallowedTools",
+             "Bash,WebFetch,WebSearch,Task", "--permission-mode", "acceptEdits"]
+  },
+  "codex": {
+    "isolating": false,
+    "risk": "reads-outside-the-session-directory",
+    "why": "Codex's sandbox limits writes and network, not reads, and Codex always has a shell: a session can read the execution clone, the product source, earlier scenarios and the private root. Not installed in WSL; not verified.",
+    "argv": ["codex", "exec", "--model", "{model}", "--cd", "{workdir}", "--skip-git-repo-check", "--sandbox",
+             "workspace-write", "-c", "tools.web_search=false", "{prompt}"]
+  }
 }

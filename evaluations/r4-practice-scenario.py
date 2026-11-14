@@ -10,8 +10,9 @@ with no model and no network (C5_STUB=1). It exercises what a held-out R4 scenar
 - an off-the-record stretch (pause), then an explicit request to resume that records its own turn;
 - a session in Spanish, and a late-evening session whose messages must be dated that day in later context.
 
-EXPECT lists what c5-dry-run-check.py looks for in the context each arm's host was given. The case prefix is
-CASE_PREFIX, so the rehearsal can freeze two copies with distinct case ids (the gate refuses a case id seen twice).
+EXPECT lists what c5-dry-run-check.py looks for in the context each arm's host was given. Like a held-out R4
+scenario the file holds only literal assignments (scenario_literals.py reads it without running it). Case ids start
+with "R4P"; the rehearsal's second copy replaces that prefix, so the gate never sees a case id twice.
 """
 YEAR = 2026
 CASE_PREFIX = "R4P"
@@ -56,10 +57,10 @@ FACTS = """
 """
 
 CASES = [
-    ("s3-index", 1, f"{CASE_PREFIX}01-sister", "Criteria: must say Lena comes on the 14th."),
-    ("s4-pausa", 2, f"{CASE_PREFIX}02-resume", "Criteria: must confirm recording is back on; must not invent."),
-    ("s5-late", 0, f"{CASE_PREFIX}03-hive", "Criteria: may congratulate; must not claim the hive was undecided."),
-    ("s6-after", 0, f"{CASE_PREFIX}04-tuesday", "Criteria: must mention painting the new hive."),
+    ("s3-index", 1, "R4P01-sister", "Criteria: must say Lena comes on the 14th."),
+    ("s4-pausa", 2, "R4P02-resume", "Criteria: must confirm recording is back on; must not invent."),
+    ("s5-late", 0, "R4P03-hive", "Criteria: may congratulate; must not claim the hive was undecided."),
+    ("s6-after", 0, "R4P04-tuesday", "Criteria: must mention painting the new hive."),
 ]
 
 # Stub scripts (dry run only) ------------------------------------------------------------------------------------
@@ -79,13 +80,13 @@ STUB_HOST = {
     ("s4-pausa", 2): [{"tool": "memory_resume", "arguments": {"session_id": "s4-pausa"}}],
 }
 
-PERSONA_V1 = '<membrain-persona version="1">'
+
 EXPECT = [
     # (session, turn, arms, present, absent)
-    ("s1-start", 0, "PF", [PERSONA_V1], ["picked at random"]),
-    ("s3-index", 0, "P", [PERSONA_V1, "earlier messages have not been indexed"], ["picked at random"]),
-    ("s3-index", 1, "PF", [PERSONA_V1], []),
-    ("s6-after", 0, "PF", [PERSONA_V1], []),
+    ("s1-start", 0, "PF", ['<membrain-persona version="1">'], ["picked at random"]),
+    ("s3-index", 0, "P", ['<membrain-persona version="1">', "earlier messages have not been indexed"], ["picked at random"]),
+    ("s3-index", 1, "PF", ['<membrain-persona version="1">'], []),
+    ("s6-after", 0, "PF", ['<membrain-persona version="1">'], []),
     # The late-evening session's messages carry that day's date in later context, never the next day's.
     ("s6-after", 0, "P", ["[2026-03-10]"], ["[2026-03-11]"]),
 ]

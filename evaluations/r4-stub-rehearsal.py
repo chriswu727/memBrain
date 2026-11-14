@@ -20,7 +20,8 @@ C5_BILLING_LEDGER or C5_ATTEMPT_ID is set, because the driver would then be live
    verdicts, split, second reviews, R5 inputs and checks, an empty resolution, tallies bound to the manifest,
    attribution inputs and answers, and the gate. One gated reply carries a host-caused critical mark and one
    reference reply a critical mark, so the attribution and the host-caused comparison are exercised.
-7. It checks that no run attempted a network connection, that the ledger is byte-for-byte unchanged with no request,
+7. It checks that no run's harness process attempted a network connection (the local service subprocess is outside
+   that check, and the summary says so), that the ledger is byte-for-byte unchanged with no request,
    and that P's ports are closed; then it deletes the stopped synthetic databases (brain-* directories) unless --keep.
 
 The last stdout line is one JSON summary. Exit 0 only when every step passed. Practice content only.
@@ -141,20 +142,25 @@ def run(out: Path, keep: bool, summary: dict) -> dict:
             target.parent.mkdir(mode=0o700)
             text = PRACTICE.read_text()
             if index:
-                text = text.replace('CASE_PREFIX = "R4P"', 'CASE_PREFIX = "R4Q"', 1)
+                text = text.replace('"R4P', '"R4Q')  # CASE_PREFIX and every case id.
             target.write_text(text)
             target.chmod(0o600)
             paths.append(target)
         manifest = control / "manifest.json"
+        (private / "control").mkdir(mode=0o700)
+        allowed = private / "control" / "allowed-models.json"
+        allowed.write_text(json.dumps(["practice-model-not-used"]))  # No session is launched in a rehearsal.
         frozen = subprocess.run([sys.executable, str(EVALUATIONS / "acceptance-kit" / "freeze.py"), "--repo", str(REPO),
                                  "--attempt-id", attempt, "--private-root", private_rel, "--out", str(manifest),
-                                 "--no-receipts",
+                                 "--no-receipts", "--python", sys.executable,
+                                 "--allowed-models", allowed.relative_to(REPO).as_posix(),
                                  *[item for key, path in zip(KEYS, paths)
                                    for item in ("--scenario", f"{key}={path.relative_to(REPO).as_posix()}")]],
                                 capture_output=True, text=True)
         summary["steps"]["freeze"] = json.loads(frozen.stdout.strip().splitlines()[-1])
         if frozen.returncode != 0:
             raise RuntimeError("freeze refused")
+        summary["steps"]["freeze"]["manifest_marked_practice"] = json.loads(manifest.read_text()).get("practice")
         budget = _module("evaluation_budget_for_rehearsal", EVALUATIONS / "evaluation_budget.py")
         policy = json.loads(POLICY.read_text())
         models = {name: {key: value for key, value in rate.items()} for name, rate in policy["models"].items()}
@@ -174,7 +180,7 @@ def run(out: Path, keep: bool, summary: dict) -> dict:
         summary["steps"]["driver"] = json.loads(driver.stdout.strip().splitlines()[-1])
         if driver.returncode != 0:
             raise RuntimeError("the driver stopped")
-        checks, review, blind_root = {}, out / "review", out / "blind"
+        checks, remarks, review, blind_root = {}, {}, out / "review", out / "blind"
         for key, path in zip(KEYS, paths):
             done = subprocess.run([sys.executable, str(EVALUATIONS / "c5-dry-run-check.py"), str(path), str(runs), key],
                                   capture_output=True, text=True, cwd=REPO)
@@ -191,6 +197,7 @@ def run(out: Path, keep: bool, summary: dict) -> dict:
             synthetic_reviews(review, blind, path, key, gated_critical=key == KEYS[0],
                               reference_critical=key == KEYS[0])
             review_cli("tally", review, blind, path, key, "--manifest", manifest)
+            remarks[key] = json.loads(review_cli("remarks", blind, path).stdout)["arms"]
             review_cli("attribution-inputs", review, blind, path, key, review / f"attribution-inputs-{key}")
             for source in sorted((review / f"attribution-inputs-{key}").glob("*.md")):
                 for number in ("1", "2"):
@@ -206,13 +213,19 @@ def run(out: Path, keep: bool, summary: dict) -> dict:
         network = sum(json.loads(line).get("kind") == "network_refused"
                       for events in runs.glob("*/harness-events.jsonl") for line in events.read_text().splitlines())
         state = json.loads(ledger.read_text())
+        summary["steps"]["memory_remarks"] = remarks
         summary["steps"]["no_network"] = {"network_refused_events": network,
+                                          "scope": "the harness process only: the local memory service runs as a "
+                                                   "separate process the harness does not police; it has no provider "
+                                                   "key and no model download in a dry run (the model is copied from "
+                                                   "the local cache)",
                                           "run_dirs": sorted(path.name for path in runs.iterdir() if path.is_dir()
                                                              and path.name != "driver-logs")}
         summary["steps"]["ledger"] = {"unchanged": sha(ledger) == before, "requests": len(state["requests"]),
                                       "blocked": state["blocked"], "policy_sha256": bound["policy_sha256"]}
         summary["steps"]["ports_closed"] = not any(port_open(port) for port in P_PORTS)
         summary["ok"] = (summary["steps"]["driver"]["result"] == "complete"
+                         and summary["steps"]["freeze"]["manifest_marked_practice"] is True
                          and all(item["ok"] for item in checks.values())
                          and result["R4"] is True and gate.returncode == 0 and network == 0
                          and summary["steps"]["ledger"]["unchanged"] and not state["requests"]

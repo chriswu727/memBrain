@@ -68,6 +68,12 @@ if "--scenario" in args:
     index = args.index("--scenario")
     scenario = pathlib.Path(args[index + 1])
     del args[index:index + 2]
+if "--persona" in args:
+    index = args.index("--persona")
+    if config.get("persona_seen"):
+        with open(config["persona_seen"], "a") as seen:
+            seen.write(args[index + 1] + "\n")
+    del args[index:index + 2]
 runs = [pathlib.Path(arg) for arg in args]
 key = runs[0].name.rsplit("-", 1)[0]
 if scenario is not None:
@@ -578,6 +584,20 @@ def test_live_mode_needs_its_commands_frozen_in_the_manifest(attempt, omit):
     assert attempt.calls() == []
 
 
+def test_live_validity_requires_the_manifests_persona_and_a_practice_manifest_never_runs_live(attempt):
+    attempt.config["persona_seen"] = str(attempt.root / "persona-seen.txt")
+    attempt.make_live()
+    result = attempt.run_live()
+    assert result.returncode == 0, result.stderr
+    assert Path(attempt.config["persona_seen"]).read_text().split() == [PERSONA_DRAW] * len(ORDER)
+    attempt.manifest["practice"] = True
+    attempt.write_manifest()
+    argv = attempt.live_argv()
+    argv[argv.index("--out") + 1] = str(attempt.root / "out-practice")
+    result = attempt.run_live(argv=argv)
+    assert result.returncode == 2 and summary(result)["stop"] == "practice_manifest"
+
+
 def test_live_mode_needs_the_manifest_to_record_its_persona_draw(attempt):
     attempt.make_live(persona=False)
     result = attempt.run_live()
@@ -841,6 +861,8 @@ STRUCTURE_ERRORS = {
     "pair not object": lambda m: m["pairs"].append("C5"),
     "scenario not object": lambda m: m["pairs"][0]["scenarios"].append("five"),
     "persona not object": lambda m: m.update(persona="intj"),
+    "practice false": lambda m: m.update(practice=False),
+    "practice not boolean": lambda m: m.update(practice="yes"),
     "persona extra key": lambda m: m.update(persona={"seed": "x", "preset": PERSONA.draw("x"), "by": "hand"}),
     "persona seed not the attempt": lambda m: m.update(persona={"seed": "y", "preset": PERSONA.draw("y")}),
     "persona preset chosen by hand": lambda m: m.update(persona={"seed": "x", "preset": next(
@@ -858,6 +880,7 @@ STRUCTURE_ACCEPTED = {
                                       m.update(order=["Zeta_9-x", "two", "three", "four"])),
     "C5 pair first": lambda m: m["pairs"].reverse(),
     "persona draw of the attempt id": lambda m: m.update(persona={"seed": "x", "preset": PERSONA.draw("x")}),
+    "a practice manifest": lambda m: m.update(practice=True),
 }
 
 

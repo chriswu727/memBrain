@@ -158,8 +158,14 @@ python evaluations/acceptance_review.py r5-inputs REVIEW BLIND SCENARIO.py KEY R
 python evaluations/acceptance_review.py r5-check REVIEW/r5-inputs-KEY REVIEW/r5-answers-KEY REVIEW/r5-KEY
 python evaluations/acceptance_review.py tally REVIEW BLIND SCENARIO.py KEY --manifest MANIFEST.json
 python evaluations/acceptance_review.py attribution-inputs REVIEW BLIND SCENARIO.py KEY REVIEW/attribution-inputs-KEY
+python evaluations/acceptance_review.py remarks BLIND SCENARIO.py
 python evaluations/acceptance_review.py gate REVIEW KEY1 KEY2 --manifest MANIFEST.json
 ```
+
+`remarks` runs after unsealing (it names arms) and prints, per arm, how many case replies and all replies contain a
+memory remark from a fixed phrase list ("saved", "memory", "记住", …), as counts and shares only. With two arms such a
+remark in one reply can reveal which assistant wrote both replies of a case; reviewers are told to ignore such
+wording, and the record states these numbers as the measure of partial blinding.
 
 With `--manifest`, `tally` refuses a key outside its gate's pair or a scenario file whose hash differs from the
 manifest, and `gate` refuses any keys but exactly its pair's, or a tally not made with that manifest. Each pair is
