@@ -8,7 +8,7 @@ It continues [the measurement of the age weight](time-depth-recall-2026-11-12.md
 
 - **Cues do not work as a sign of importance. Nothing was built from them.** The only judgement of importance memBrain has is the host AI's, which attaches a cue to a message that holds a lasting fact. Five ways of sparing cued memories from the age weight were measured; every one made questions about the last 30 days worse, and with all memories equally old every one lost between 1.3 and 7.6 points.
 - **The age weight was too steep, and is now gentler.** A new memory outranked a six-month-old one of equal relevance by 3 to 1; it is now about 1.8 to 1 (`AccessPolicy.rank_floor` 0.30 in place of 0.15). On the seven conversations not used for tuning, all the evidence is shown for 76.2% of 1,152 questions, against 72.2% before; questions about the last 30 days lose 2 of 232.
-- **"Important first" is still not built.** A useful sign would have to be much rarer than "has a cue".
+- **"Important first" now has a first form:** a message a note was written from does not sink (added later the same day; see below). It passed its rule on the development conversations and is not yet checked on others.
 
 ## Cues as a sign of importance: measured and rejected
 
@@ -67,7 +67,36 @@ Floor 0.30 gains in each of the ten conversations. It recovers about 70% of what
 
 **Changed:** `rank_floor` 0.30 (and the floor for distinctive events, which must not be lower, 0.40). Nothing else: the half-life, the tiers and the search made on purpose, which ignores the weight, are as they were.
 
-## What this does not show
+## Important first: a message a note was written from does not sink
+
+Added on 2026-11-13, after the owner asked for another way to make "important first" real. Runtime commit `fc99653b`.
+
+**The sign of importance.** When the host AI saves a note it cites the message the fact came from. That is the only judgement of importance that is both deliberate and rare: notes written turn by turn cite one message each, and their sources were 11% of the user's messages and 35% of evidence turns, three times the base rate, where cues covered 45% of candidates.
+
+**Two forms failed before one passed**, on the three development conversations with the notes a stand-in host wrote on 2026-11-11 and their real cited sources:
+
+| Form | A day after the last session | A year after, all memories equally old |
+| --- | --- | --- |
+| The source message weighted as if recorded today | 9 questions gained, 4 lost | 6 lost net |
+| The source message given the highest weight among that request's candidates | 9 gained, 4 lost; none about the last 30 days | identical for all 383 questions |
+
+With every memory equally old the age weight changes nothing and the order is by relevance alone; a fixed high weight for noted messages is then a boost beyond relevance and pushes out better matches. So importance is made to cancel sinking and nothing more: a noted message ranks as if it were as recent as the most recent memory it competes with, never higher. This form has no number to tune.
+
+**The rule, fixed before each round:** against the shipped weight, at most one question about the last 30 days lost a day after the last session and at most one lost net a year after; and at least four gained net, or noted evidence older than 90 days shown at least five points more often without other evidence falling by more than one. Result with the built code, which reproduces the measurement question for question: all evidence shown for 82.8% of 383 questions against 81.5%; noted evidence older than 90 days shown 92.2% of the time against 81.7%; evidence without a note older than 90 days 70.4% against 69.8%.
+
+**Only notes citing at most two messages count.** Notes written once per session cited 3.7 messages on average, made a quarter of all messages "important" and failed the rule (two recent questions lost; other old evidence down 5.3 points).
+
+**What this does not show.**
+
+- It was not checked on other conversations: the seven not used for tuning have no notes. Writing them needs a paid stand-in host.
+- The gain is small, five questions net on 383, just over the threshold and within the noise of one run. Its cost falls on evidence 30 to 90 days old that has no note: 4 of 73 such turns were no longer shown.
+- LoCoMo's questions are not specially about what a host would note; two thirds of evidence turns have no note behind them.
+- The notes are a stand-in's. A real host notes what it judges lasting, and cites the current message.
+- A replacement note keeps the messages the old note cited; a note corrected twice may come to cite three and stop anchoring.
+
+Evidence: [results](locomo/results-2026-11-13-age-weight/anchors/) (the three rounds' reports, per-question rows, the notes' real sources, the run with the built code).
+
+## What the weight's strength does not show
 
 - **The benefit of putting recent memories first.** LoCoMo asks about old and new sessions alike, so it measures what the preference costs and not what it gives a user who mostly talks about recent things. The floor was chosen to give up little of it, not shown to be the best trade.
 - A history a year long with newer memories on top was not built.

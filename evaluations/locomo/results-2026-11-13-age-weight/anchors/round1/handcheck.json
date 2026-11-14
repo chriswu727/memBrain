@@ -1,0 +1,167 @@
+[
+ {
+  "n": 1,
+  "set": "session-conv-41",
+  "note": "John is part of a virtual support group and as of 3 August 2023 asked family and friends to join as advocates for the military.",
+  "dia_id": "D27:1",
+  "turn": "John: Hey Maria, hope you're doing OK. I had to share something cool with you - I asked family and friends to join the virtual support group I am a part of and be advocates for the military. It's been awesome seeing so many people coming together to back the courageous people serving our nation.",
+  "similarity": 0.8742,
+  "overlap": 0.846,
+  "verdict": "right",
+  "kept_at_0.844": true
+ },
+ {
+  "n": 2,
+  "set": "session-conv-26",
+  "note": "Caroline is building a library of children's books (classics, multicultural, educational) for when she has kids; she looks forward to reading to them and opening their minds.",
+  "dia_id": "D6:7",
+  "turn": "Caroline: Being a mom is awesome. I'm creating a library for when I have kids. I'm really looking forward to reading to them and opening up their minds.",
+  "similarity": 0.8534,
+  "overlap": 0.5,
+  "verdict": "right",
+  "kept_at_0.844": true
+ },
+ {
+  "n": 3,
+  "set": "session-conv-41",
+  "note": "Maria's grandmother passed away in the week of 27 February 2023; Maria is trying to stay positive but finds it tough.",
+  "dia_id": "D7:7",
+  "turn": "Maria: She had a tough time, going through a divorce, losing her job, and ending up homeless. Yet, she still values the little things and believes in the good of kindness.",
+  "similarity": 0.8388,
+  "overlap": 0.143,
+  "verdict": "wrong: grandmother death matched to a turn about a homeless woman",
+  "kept_at_0.844": false
+ },
+ {
+  "n": 4,
+  "set": "turn-conv-30",
+  "note": "Gina built a new website for customers to place orders around mid-July 2023.",
+  "dia_id": "D18:1",
+  "turn": "Gina: Hey Jon! Long time no talk! Last week, I built a new website for customers to make orders. It's been a wild ride but I'm loving it. What's up with you? How's the dance studio?",
+  "similarity": 0.8521,
+  "overlap": 0.545,
+  "verdict": "right",
+  "kept_at_0.844": true
+ },
+ {
+  "n": 5,
+  "set": "session-conv-26",
+  "note": "Melanie is motivated by her husband and kids, and she cherishes family time and moments together.",
+  "dia_id": "D10:22",
+  "turn": "Melanie: Yeah, they sure are. It's special moments like these that make me appreciate life and how lucky I am to be with my family and have our love.",
+  "similarity": 0.8813,
+  "overlap": 0.333,
+  "verdict": "doubtful (counted wrong): generic family-motivation note matched to a later family-moments turn",
+  "kept_at_0.844": true
+ },
+ {
+  "n": 6,
+  "set": "turn-conv-41",
+  "note": "John went on a mountaineering trip with workmates in early June 2023, which he found great and helped clear his head.",
+  "dia_id": "D18:2",
+  "turn": "John: Hey Maria, thanks for your kind words. It's still tough, but I'm finding some comfort in the good memories. Wow, your camping trip sounds awesome! I went on a mountaineering trip last week with some workmates. It was great and helped clear my head. Anything else cool happening in your life?",
+  "similarity": 0.8575,
+  "overlap": 0.692,
+  "verdict": "right",
+  "kept_at_0.844": true
+ },
+ {
+  "n": 7,
+  "set": "session-conv-30",
+  "note": "Jon and Gina plan to have a dance session together on Friday, January 27, 2023.",
+  "dia_id": "D2:11",
+  "turn": "Gina: Believe in yourself, Jon! The process may be tough, but you got this. Push through and it'll be worth it. Don't forget to take breaks and dance it out when you need to destress!",
+  "similarity": 0.8253,
+  "overlap": 0.333,
+  "verdict": "wrong: plan for a dance session matched to an unrelated encouragement turn",
+  "kept_at_0.844": false
+ },
+ {
+  "n": 8,
+  "set": "turn-conv-41",
+  "note": "John organized a 5K charity run in his neighborhood to help veterans and their families and raised funds.",
+  "dia_id": "D29:4",
+  "turn": "John: I set up a 5K charity run in our neighborhood. It was all for a good cause - to help out veterans and their families. We were able to raise some funds! Here's a pic from the day.",
+  "similarity": 0.8885,
+  "overlap": 0.8,
+  "verdict": "right",
+  "kept_at_0.844": true
+ },
+ {
+  "n": 9,
+  "set": "session-conv-41",
+  "note": "John failed the military aptitude test in late December 2022, but retook it in the week of 27 February 2023 with great results, feels drawn to serve his country, and his family and friends are supportive.",
+  "dia_id": "D7:8",
+  "turn": "John: It's really inspiring to see someone staying optimistic even when things get tough.",
+  "similarity": 0.8124,
+  "overlap": 0.045,
+  "verdict": "wrong: aptitude-test note matched to a generic remark",
+  "kept_at_0.844": false
+ },
+ {
+  "n": 10,
+  "set": "session-conv-30",
+  "note": "Gina plans to attend Jon's dance studio grand opening on June 20, 2023.",
+  "dia_id": "D15:6",
+  "turn": "Gina: Congrats, Jon! The studio looks amazing. You've put a lot of work into this and I'm so pumped for the launch tomorrow. Don't miss a beat!",
+  "similarity": 0.8449,
+  "overlap": 0.2,
+  "verdict": "right",
+  "kept_at_0.844": true
+ },
+ {
+  "n": 11,
+  "set": "session-conv-26",
+  "note": "Melanie paints as a hobby (lake sunrise, horse, with her kids, Oct 2023 sunset and abstract blue piece); she also runs, reads, plays violin daily, attends pottery class, and made a plate on 24 Aug 2023. In Sep 2023 she got hurt and took a break from pottery.",
+  "dia_id": "D17:9",
+  "turn": "Caroline: Oh man, sorry to hear that, Melanie. I hope you're okay. Pottery's a great way to relax, so it must have been tough taking a break. Need any help?",
+  "similarity": 0.8511,
+  "overlap": 0.069,
+  "verdict": "wrong: multi-fact hobby summary matched to the other speaker",
+  "kept_at_0.844": true
+ },
+ {
+  "n": 12,
+  "set": "turn-conv-41",
+  "note": "Maria met an inspiring woman named Jean while volunteering on 2023-02-24, who taught her about gratitude and connection through her optimism and resilience.",
+  "dia_id": "D7:5",
+  "turn": "Maria: Wow John, your enthusiasm for making a better future is inspiring. Making a positive impact is so rewarding! While volunteering yesterday, I met this amazing woman, Jean, who had been through a lot, yet stayed optimistic and resilient. She showed me the importance of gratitude and connection.",
+  "similarity": 0.8794,
+  "overlap": 0.667,
+  "verdict": "right",
+  "kept_at_0.844": true
+ },
+ {
+  "n": 13,
+  "set": "session-conv-26",
+  "note": "Melanie's family went on a roadtrip in mid-October 2023; her son got into an accident but was okay, and the kids enjoyed the Grand Canyon.",
+  "dia_id": "D18:1",
+  "turn": "Melanie: Hey Caroline, that roadtrip this past weekend was insane! We were all freaked when my son got into an accident. We were so lucky he was okay. It was a real scary experience. Thankfully it's over now. What's been up since we last talked?",
+  "similarity": 0.8652,
+  "overlap": 0.312,
+  "verdict": "right",
+  "kept_at_0.844": true
+ },
+ {
+  "n": 14,
+  "set": "session-conv-30",
+  "note": "Jon is opening his own dance studio; the official opening night is planned for June 20, 2023, and as of July 9, 2023 he plans to go full-time with his business idea. He plans to offer classes, workshops, and mentoring in a supportive space for dancers of all ages and backgrounds.",
+  "dia_id": "D15:5",
+  "turn": "Jon: The official opening night is tomorrow. I'm working hard to make everything just right. Can't wait to see it all come together!",
+  "similarity": 0.8534,
+  "overlap": 0.192,
+  "verdict": "right (one of several sources)",
+  "kept_at_0.844": true
+ },
+ {
+  "n": 15,
+  "set": "turn-conv-30",
+  "note": "Gina owns a clothing store and launched an ad campaign to grow the business.",
+  "dia_id": "D2:1",
+  "turn": "Gina: Hey Jon! Long time no see! Things have been hectic lately. I just launched an ad campaign for my clothing store in hopes of growing the business. Starting my own store and taking risks is both scary and rewarding. I'm excited to see where it takes me!",
+  "similarity": 0.8612,
+  "overlap": 0.75,
+  "verdict": "right",
+  "kept_at_0.844": true
+ }
+]

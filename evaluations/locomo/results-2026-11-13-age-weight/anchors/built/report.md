@@ -1,0 +1,24 @@
+## +1d (n = 383)
+- before: all evidence shown 81.5%
+- notes_plain: all evidence shown 81.5%
+- built: all evidence shown 82.8%
+- round 2 auto: all evidence shown 81.5%
+- round 2 real_turn_top: all evidence shown 82.8%
+- round 2 flat: all evidence shown 83.8%
+- before vs round 2 auto: +0/-0 (net +0); lost among the 73 questions whose oldest evidence is under 30 d: 0; identical evidence sets 383/383
+- notes_plain vs round 2 auto: +0/-0 (net +0); lost among the 73 questions whose oldest evidence is under 30 d: 0; identical evidence sets 383/383
+- built vs round 2 auto: +9/-4 (net +5); lost among the 73 questions whose oldest evidence is under 30 d: 0; identical evidence sets 363/383; gained ['conv-26-q78', 'conv-30-q31', 'conv-30-q50', 'conv-41-q9', 'conv-41-q10', 'conv-41-q25', 'conv-41-q98', 'conv-41-q107', 'conv-41-q122']; lost ['conv-26-q19', 'conv-41-q38', 'conv-41-q112', 'conv-41-q114']
+- built vs round 2 real_turn_top: +0/-0 (net +0); lost among the 73 questions whose oldest evidence is under 30 d: 0; identical evidence sets 383/383
+- before: anchored evidence turns older than 90 d shown 81.7% of 115; not anchored 69.8% of 169
+- built: anchored evidence turns older than 90 d shown 92.2% of 115; not anchored 70.4% of 169
+## +365d (n = 383)
+- before: all evidence shown 83.8%
+- notes_plain: all evidence shown 83.8%
+- built: all evidence shown 83.8%
+- round 2 auto: all evidence shown 83.8%
+- round 2 real_turn_top: all evidence shown 83.8%
+- round 2 flat: all evidence shown 83.8%
+- before vs round 2 auto: +0/-0 (net +0); lost among the 78 questions whose oldest evidence is under 395 d: 0; identical evidence sets 383/383
+- notes_plain vs round 2 auto: +0/-0 (net +0); lost among the 78 questions whose oldest evidence is under 395 d: 0; identical evidence sets 383/383
+- built vs round 2 auto: +0/-0 (net +0); lost among the 78 questions whose oldest evidence is under 395 d: 0; identical evidence sets 383/383
+- built vs round 2 real_turn_top: +0/-0 (net +0); lost among the 78 questions whose oldest evidence is under 395 d: 0; identical evidence sets 383/383
