@@ -12,7 +12,7 @@ import datetime as _datetime
 import re
 
 from . import helpers as _helpers
-from .helpers import uid
+from .helpers import local_date, uid
 from .privacy import neutralize, scrub
 
 
@@ -403,7 +403,7 @@ def _line(item: dict, fields: dict, sentence: str, feelings: tuple[str, ...] = (
     detail = f" ({'; '.join(tags)})" if tags else ""
     pin = "pinned · " if fields.get("pinned") else ""
     feeling = "".join(" " + phrase for phrase in feelings)
-    return neutralize(f"- [{pin}{(item.get('recorded_at') or '')[:10]}{_label(item)}] {who}{sentence}{feeling}"
+    return neutralize(f"- [{pin}{local_date(item.get('recorded_at'))}{_label(item)}] {who}{sentence}{feeling}"
                       f"{detail} (id: {item['event_id']})")
 
 

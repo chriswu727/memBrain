@@ -6,6 +6,18 @@ from pathlib import Path
 import pytest
 
 
+@pytest.fixture(autouse=True)
+def dates_for_the_host_in_utc(monkeypatch):
+    """Dates written for the host AI follow the computer's time zone (``helpers.display_zone``). Tests fix it to UTC
+    so the dates they expect hold on any machine; tests about the zone set their own (test_local_dates.py). A
+    service or hook started in another process still uses the machine's zone."""
+    import datetime
+
+    from membrain import helpers
+
+    monkeypatch.setattr(helpers, "display_zone", lambda: datetime.UTC)
+
+
 @pytest.fixture(scope="session", autouse=True)
 def remove_test_clusters(tmp_path_factory):
     """Remove embedded database clusters that this run's installations left outside their temporary directory.

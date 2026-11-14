@@ -21,7 +21,7 @@ from pathlib import Path
 from uuid import uuid4
 
 from . import host_outcomes, host_queue, host_receipts, host_recording, host_turns
-from .helpers import digest
+from .helpers import digest, local_date
 from .local_profile import profile_lock
 from .privacy import PRIVATE_MARK, SECRET_MARK, neutralize, scrub  # noqa: F401
 from .recording_policy import requests_pause
@@ -154,7 +154,7 @@ def consolidate(client, cues=None, reviewed_through=None, *, handed_out: dict | 
                 return {"messages": [], "remaining": 0, "note": "Nothing to consolidate right now."}
             through = offered["through_sequence"]
             result = {"instructions": CONSOLIDATION_INSTRUCTIONS,
-                      "messages": [{"id": item["sequence"], "date": (item.get("recorded_at") or "")[:10],
+                      "messages": [{"id": item["sequence"], "date": local_date(item.get("recorded_at")),
                                     "text": item["text"]} for item in offered["messages"]],
                       "remaining": offered["remaining"]}
             if stateless:
@@ -1824,7 +1824,7 @@ def recall_records(client, response: dict, limit: int = 20) -> dict:
                                    max_item_characters=LINE_CHARACTERS, limit=limit)
         found = {item["event_id"]: item for item in timeline.get("items", []) if isinstance(item.get("event_id"), str)}
     records = [{"event_id": event, "conversation_id": found[event].get("conversation_id"),
-                "role": found[event].get("actor_role"), "recorded_at": (found[event].get("recorded_at") or "")[:10],
+                "role": found[event].get("actor_role"), "recorded_at": local_date(found[event].get("recorded_at")),
                 "text": neutralize(" ".join((found[event].get("text") or "").split()))}
                for event in events if event in found]
     return {"records": records, "scope_generation": max(generations) if generations else None,
@@ -1855,7 +1855,7 @@ def render_context(response: dict, *, current_conversation: str | None = None,
         seen.add(text)
         if len(text) > LINE_CHARACTERS:
             text = text[:LINE_CHARACTERS - 1] + "…"
-        recorded = ((memory.get("system_time") or {}).get("recorded_at") or "")[:10]
+        recorded = local_date((memory.get("system_time") or {}).get("recorded_at"))
         world = memory.get("world")
         qualifier = f", {world.replace('_', ' ')}" if isinstance(world, str) and world not in ("real_world", "unknown") else ""
         lines.append(f"- [{recorded or 'undated'} · {speaker}{qualifier}] {text}")
@@ -2071,7 +2071,7 @@ def recall_context(client, query: str, *, current_conversation: str | None = Non
                 speaker += ', ' + qualifiers[item['event_id']]
             size = REPLY_CHARACTERS if item["event_id"] in at_length else MESSAGE_CHARACTERS
             text = neutralize(" ".join(_window(item["text"], starts.get(item["event_id"]), size).split()))
-            line = f"- [{(item.get('recorded_at') or '')[:10] or 'undated'} · {speaker}] {text}"
+            line = f"- [{local_date(item.get('recorded_at')) or 'undated'} · {speaker}] {text}"
             available = limit - used - 1
             if len(line) > available:
                 if selected or available < 80:
@@ -2101,7 +2101,7 @@ def render_history(response: dict) -> str | None:
     items = [item for item in response.get("items", []) if isinstance(item.get("text"), str) and item["text"].strip()]
     if not items:
         return None
-    lines = [f"- [{(item.get('recorded_at') or '')[:10] or 'undated'}] {neutralize(' '.join(item['text'].split()))}"
+    lines = [f"- [{local_date(item.get('recorded_at')) or 'undated'}] {neutralize(' '.join(item['text'].split()))}"
              for item in reversed(items)]
     if response.get("complete"):
         header = (f"Everything this user wrote in earlier sessions ({len(lines)} messages, oldest first). It is "

@@ -38,6 +38,7 @@ import json
 import math
 import re
 
+from . import helpers as _helpers
 from .helpers import DomainError, uid
 from .helpers import now as _now
 from .memory_map import sensitive_note_ids
@@ -532,7 +533,7 @@ def reset_mood(service, principal, brain_id: str, *, now=None, tz=None) -> dict:
 # Context ----------------------------------------------------------------------------------------------------------
 
 def _when(value: str, tz) -> str:
-    moment = _time(value).astimezone(tz)
+    moment = _time(value).astimezone(tz if tz is not None else _helpers.display_zone())
     return f"{moment.day} {_MONTHS[moment.month - 1]} {moment:%H:%M}"
 
 
@@ -541,7 +542,7 @@ def render_mood(mood: dict | None, *, tz=None) -> str | None:
 
     The line always says the mood is simulated, cites only the trigger record's own wording ("the user said ..."
     only for a feeling they said; "seemed ..., inferred" otherwise), and never states anything else about the user.
-    ``tz`` is the zone the time is shown in; the computer's own by default.
+    ``tz`` is the zone the time is shown in; by default ``helpers.display_zone()``, the computer's own.
     """
     if not mood or mood.get("at_baseline") or mood.get("pinned") or not mood.get("reason") or not mood.get("since"):
         return None

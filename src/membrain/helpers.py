@@ -53,6 +53,27 @@ def today() -> date:
     return _scenario_clock().astimezone().date() if _scenario_clock is not None else date.today()
 
 
+def display_zone():
+    """The time zone of dates and times written for the host AI: this computer's own (None), which is the user's,
+    since memBrain runs on their computer. Tests replace this function to fix the zone."""
+    return None
+
+
+def local_date(value) -> str:
+    """The user's calendar date (YYYY-MM-DD) of a recorded time, for text written for the host AI.
+
+    Records and API fields keep UTC, so a message recorded on a Friday evening west of UTC carries Saturday's UTC
+    date. A bare date (one the user gave) is returned as it is; text that is not a time is cut to ten characters."""
+    text = str(value or "")
+    if len(text) <= 10:
+        return text
+    try:
+        moment = datetime.fromisoformat(text.replace("Z", "+00:00"))
+    except ValueError:
+        return text[:10]
+    return (moment if moment.tzinfo else moment.replace(tzinfo=UTC)).astimezone(display_zone()).date().isoformat()
+
+
 def digest(value: Any) -> str:
     encoded = json.dumps(
         value, ensure_ascii=False, sort_keys=True, separators=(",", ":"), allow_nan=False

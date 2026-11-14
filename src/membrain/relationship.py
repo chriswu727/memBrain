@@ -32,7 +32,7 @@ import re
 from collections.abc import Iterator
 from itertools import islice
 
-from .helpers import DomainError, uid
+from .helpers import DomainError, local_date, uid
 from .helpers import today as _clock_today
 from .notes import _MONTHS, NOTES_CONVERSATION, OPEN_STATUSES, _as_date, parse_note
 from .privacy import neutralize, scrub
@@ -335,28 +335,48 @@ def _utc_day(value) -> str | None:
 
 
 def _days(service, conn, principal, brain_id, after) -> list[str]:
-    """Distinct days (UTC) with a user message after the marker. Notes, messages written on the memory page and
-    every reserved conversation are not conversation.
+    return _conversation_days(service, conn, principal, brain_id, after)[0]
+
+
+def _conversation_days(service, conn, principal, brain_id, after) -> tuple[list[str], str | None]:
+    """Distinct days (UTC) with a user message after the marker, and the earliest time on the first of them (for
+    writing that day in the user's own zone). Notes, messages written on the memory page and every reserved
+    conversation are not conversation.
 
     A message's day is when it occurred as its host reported it, but never later than when it was recorded. With no
     reported time, it is the day it was recorded. A message restored from an archive was recorded when the original
     was (``restored_from_recorded_at``), not on the day of the restore, so a restore never folds its days into one."""
     rows = conn.execute(
-        "SELECT DISTINCT left(document->'system_time'->>'recorded_at',10) AS recorded,"
+        "SELECT left(document->'system_time'->>'recorded_at',10) AS recorded,"
         "left(document->'system_time'->>'restored_from_recorded_at',10) AS restored_from,"
-        "document->'observed'->'occurred_time'->>'start' AS occurred FROM memory_events "
+        "document->'observed'->'occurred_time'->>'start' AS occurred,"
+        "min(document->'system_time'->>'recorded_at') AS recorded_time,"
+        "min(document->'system_time'->>'restored_from_recorded_at') AS restored_time FROM memory_events "
         f"WHERE {_VISIBLE} AND sequence>%s AND document->'observed'->>'event_kind'='message' "
         "AND document->'observed'->>'actor_role'='user' AND conversation_id IS DISTINCT FROM %s "
-        "AND producer_ref <> 'membrain-memory-page'",
+        "AND producer_ref <> 'membrain-memory-page' GROUP BY 1, 2, 3",
         (*service._params(principal, brain_id), after, NOTES_CONVERSATION)).fetchall()
-    days = set()
+    days = {}
     for row in rows:
         if not row["recorded"]:
             continue
-        latest = min(row["recorded"], row["restored_from"] or row["recorded"])
+        restored = bool(row["restored_from"]) and row["restored_from"] < row["recorded"]
+        latest, at = ((row["restored_from"], row["restored_time"]) if restored
+                      else (row["recorded"], row["recorded_time"]))
         occurred = _utc_day(row["occurred"]) if row["occurred"] else None
-        days.add(occurred if occurred and occurred <= latest else latest)  # Never a time still to come.
-    return sorted(days)
+        day, at = (occurred, row["occurred"]) if occurred and occurred <= latest else (latest, at)  # Never ahead.
+        if day not in days or _instant(at) < _instant(days[day]):
+            days[day] = at
+    ordered = sorted(days)
+    return ordered, days[ordered[0]] if ordered else None
+
+
+def _instant(value) -> _datetime.datetime:
+    try:
+        moment = _datetime.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+    except (TypeError, ValueError):
+        return _datetime.datetime.max.replace(tzinfo=_datetime.UTC)
+    return moment if moment.tzinfo else moment.replace(tzinfo=_datetime.UTC)
 
 
 def _short(value: str | None, today: _datetime.date) -> str:
@@ -370,14 +390,17 @@ def _plural(number: int, word: str) -> str:
     return f"{number} {word}{'' if number == 1 else 's'}"
 
 
-def familiarity(days: list[str], moments: int, cap: str | None, today: _datetime.date) -> dict:
-    """The derived level, the cap applied, and the reason in the same numbers the rule used."""
+def familiarity(days: list[str], moments: int, cap: str | None, today: _datetime.date, *,
+                first: str | None = None) -> dict:
+    """The derived level, the cap applied, and the reason in the same numbers the rule used. Days are counted in
+    UTC; ``first``, the earliest time on the first day, writes that day in the user's zone in the reason."""
     derived = "new"
     for level, minimum_days, minimum_moments in THRESHOLDS:
         if len(days) >= minimum_days and moments >= minimum_moments:
             derived = level
     level = cap if cap is not None and LEVELS.index(cap) < LEVELS.index(derived) else derived
-    count = (f"{_plural(len(days), 'day')} of conversation since {_short(days[0], today)}" if days
+    since = (local_date(first) if first else "") or (days[0] if days else "")
+    count = (f"{_plural(len(days), 'day')} of conversation since {_short(since, today)}" if days
              else "no conversation yet")
     reason = f"{LEVEL_LABELS[level]}: {count}, {_plural(moments, 'shared moment')}"
     if level != derived:
@@ -410,8 +433,8 @@ def _read(service, conn, principal, brain_id, today) -> dict:
     moments = moment_state["items"]
     commitments = _commitments(service, conn, principal, brain_id, after, state["acknowledged"], today)
     cap = state["cap"]["level"] if state["cap"] else None
-    days = _days(service, conn, principal, brain_id, after)
-    known = familiarity(days, moment_state["total"], cap, today)
+    days, first = _conversation_days(service, conn, principal, brain_id, after)
+    known = familiarity(days, moment_state["total"], cap, today, first=first)
     for moment in moments:
         if moment["moment"] == "hard":
             moment["mellowed"] = mellowed(moment, days, today)
@@ -494,7 +517,7 @@ def relationship_context(result: dict | None) -> dict:
     body = "\n".join(lines + once_lines)
     chosen = []
     for moment in reversed(moments[-MOMENTS_IN_CONTEXT:]):  # The most recent first, until the block is full.
-        when = moment.get("occurs_at") or (moment.get("recorded_at") or "")[:10]
+        when = moment.get("occurs_at") or local_date(moment.get("recorded_at"))
         hard = ("" if moment.get("moment") != "hard"
                 else f"; {HARD_MELLOWED if moment.get('mellowed') else HARD_RECENT}")
         text = f"- {_short(when, today)}: {moment['text']} (id: {moment['id']}{hard})"

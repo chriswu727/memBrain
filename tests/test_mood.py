@@ -10,7 +10,7 @@ import httpx
 import pytest
 from fastapi.testclient import TestClient
 
-from membrain import desktop, embedded_database, host, notes
+from membrain import desktop, embedded_database, helpers, host, notes
 from membrain import service as service_module
 from membrain.affect import clear_affect, latest_marker
 from membrain.api import create_app
@@ -155,7 +155,7 @@ def test_cross_session_job_news_is_glad_then_easing_then_exactly_the_baseline(br
         return snapshot({"items": []}, brain_id="b", tools=None, mood=state)
 
     one, two, three = context(first), context(second), context(third)
-    local = moment("2027-03-14T21:00:00Z").astimezone()
+    local = moment("2027-03-14T21:00:00Z").astimezone(helpers.display_zone())  # The zone of every host date.
     host_when = f"{local.day} Mar {local:%H:%M}"
     assert one["mood_shown"] and first["block"].replace("14 Mar 21:00", host_when) in one["text"]
     assert update(context(mood(brain, "2027-03-14T22:00:00Z")), one["fingerprint"], None, True) is None
