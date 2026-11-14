@@ -7,15 +7,19 @@ search the host AI makes through a tool asks the service to rank by relevance al
 import asyncio
 import io
 import json
+from datetime import UTC, datetime, timedelta
 
 import pytest
+from test_turns import turns as turns
+from test_vector_jobs import drain, recall_request
 
-from membrain import host, plugin
+from membrain import helpers, host, plugin
 from membrain.adapters.chatbot import ChatMemory, Speaker
 from membrain.client import default_budget, default_read_fence
 from membrain.contracts import validate
-from membrain.helpers import DomainError
+from membrain.helpers import DomainError, uid
 from membrain.mcp_server import create_server
+from membrain.notes import store_note
 
 
 class Recording:
@@ -76,3 +80,37 @@ def test_every_host_s_search_tool_is_a_search_made_on_purpose(tmp_path, monkeypa
     client = Recording()
     asyncio.run(create_server(client, directory=tmp_path).call_tool("memory_recall", {"query": "quartz", "with_ids": True}))
     assert client.calls[0]["ranking"] == "relevance"
+
+
+@pytest.mark.integration
+def test_a_message_a_note_was_written_from_does_not_sink_and_never_rises_above_a_newer_one(turns, monkeypatch):
+    """Recent and important first: the message a note cites ranks as if it were as recent as the newest one."""
+    moment = {"value": datetime(2026, 1, 1, tzinfo=UTC)}
+    monkeypatch.setattr(helpers, "_scenario_clock", lambda: moment["value"])
+    text = "The quartz keynote is in Lisbon."
+    noted, plain = (turns.observe(text, conversation="spring")["event_id"] for _ in range(2))
+    moment["value"] += timedelta(days=200)
+    newest = turns.observe(text, conversation="autumn")["event_id"]
+    note = store_note(turns.service, turns.principal, turns.brain,
+                      {"request_id": uid(), "text": "Worth keeping.", "source_event_ids": [noted]})
+    assert note["source_event_ids"] == [noted]
+    drain(turns)
+    moment["value"] += timedelta(days=1)
+    turns.conversation = "later"
+
+    def scores(**payload):
+        request = recall_request(turns, "quartz keynote")
+        request["payload"].update(payload)
+        response = turns.service.handle(turns.principal, request)
+        assert response["outcome"] == "completed", response
+        found = {}
+        for item in response["result"]["items"]:
+            event = item["memory"]["evidence_refs"][0]["event_id"]
+            found[event] = max(found.get(event, 0.0), sum(signal["score"] for signal in item["rank_signals"]))
+        return found
+
+    # Equally relevant messages are scored by their fused rank, so the age weight is the score over the score a
+    # search by relevance alone gives the same message.
+    automatic, relevance = scores(), scores(ranking="relevance")
+    weight = {event: automatic[event] / relevance[event] for event in (noted, plain, newest)}
+    assert weight[noted] == pytest.approx(weight[newest]) and weight[plain] < weight[newest]

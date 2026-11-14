@@ -5,13 +5,15 @@ from types import SimpleNamespace
 import pytest
 from psycopg.types.json import Jsonb
 
+from membrain import candidates as candidate_module
 from membrain import cognition
-from membrain.candidates import collect_candidates
+from membrain.candidates import anchor_weights, anchored_events, collect_candidates
 from membrain.client import default_budget, default_read_fence
 from membrain.config import Settings
 from membrain.contracts import CONTRACT_VERSION
 from membrain.embeddings import EmbeddingResult, EmbeddingSpace
 from membrain.helpers import DomainError, Principal, digest, now, uid
+from membrain.notes import store_note
 from membrain.service import MemoryService
 from membrain.storage import Database
 
@@ -59,9 +61,27 @@ class Candidates:
                          "AND brain_id=%s AND id=%s AND revision=%s", (Jsonb(memory), *self.params, memory["memory_id"], memory["revision"]))
         return memory
 
-    def query(self, text, *, budget=64000, intent="explore", recall_plan=None, query_embedding=None, cues=()):
+    def note(self, *memories, replaces=()):
+        """A note written from the messages ``memories`` were captured from, as a host saves one."""
+        return store_note(self.service, self.principal, self.brain_id, {
+            "request_id": uid(), "text": "Worth keeping.", "replaces": list(replaces),
+            "source_event_ids": [memory["evidence_refs"][0]["event_id"] for memory in memories]})
+
+    def forget(self, event_ids, mode):
+        with self.database.transaction(self.principal) as conn:
+            generation = self.service._brain(conn, self.principal, self.brain_id)["scope_generation"]
+        result = self.service.handle(self.principal, {
+            "contract_version": CONTRACT_VERSION, "message_type": "request", "request_id": uid(),
+            "action": "forget", "target": self.target,
+            "payload": {"idempotency_key": uid(), "selector": {"kind": "events", "ids": list(event_ids)},
+                        "mode": mode, "expected_scope_generation": generation},
+        })
+        assert result["outcome"] == "completed", result
+
+    def query(self, text, *, budget=64000, intent="explore", recall_plan=None, query_embedding=None, cues=(),
+              **extra):
         query = {"query": text, "intent": intent, "budget": default_budget(budget),
-                 "read_fence": default_read_fence(), "cue_event_ids": [], "additional_cues": list(cues)}
+                 "read_fence": default_read_fence(), "cue_event_ids": [], "additional_cues": list(cues), **extra}
         with self.database.transaction(self.principal) as conn:
             brain = self.service._brain(conn, self.principal, self.brain_id)
             return collect_candidates(conn, self.service, self.principal, brain, self.target, query,
@@ -363,3 +383,140 @@ def test_a_search_ranked_by_relevance_gives_an_old_detail_its_full_score_and_cha
     assert 0 < score(weighted) == score(recency) < score(relevance)
     # The same score the recovery of a memory from a cue gives it, without that intent's check of earlier records.
     assert score(relevance) == score(candidates.query("quartz", intent="cue_recovery")[1])
+
+
+OLD = {"recorded_at": datetime(1990, 1, 1, tzinfo=UTC).isoformat(), "superseded_at": None}
+
+
+def _weights(candidates):
+    """The age weight each candidate of a "quartz" request was given: its score over its score by relevance alone.
+
+    Equally relevant candidates do not have equal scores (fused ranks score by position), so weights are compared.
+    """
+    _, automatic = candidates.query("quartz")
+    _, relevance = candidates.query("quartz", ranking="relevance")
+    return {version: sum(signal["score"] for signal in automatic["rank_signals"][version])
+            / sum(signal["score"] for signal in signals) for version, signals in relevance["rank_signals"].items()}
+
+
+@pytest.fixture
+def frozen(monkeypatch):
+    """One access time for every query of a test, so weights compare exactly."""
+    timestamp = now()
+    monkeypatch.setattr("membrain.candidates.now", lambda: timestamp)
+
+
+def test_an_old_message_a_note_was_written_from_weighs_as_much_as_the_newest_competitor_and_no_more(candidates,
+                                                                                                     frozen):
+    noted = candidates.add("quartz keynote", system_time=OLD)
+    plain = candidates.add("quartz keynote", system_time=OLD)
+    newest = candidates.add("quartz keynote")
+    before = _weights(candidates)
+    _, relevance_before = candidates.query("quartz", ranking="relevance")
+    candidates.note(noted)
+    after = _weights(candidates)
+    assert before[key(noted)] == pytest.approx(before[key(plain)]) and before[key(plain)] < before[key(newest)]
+    assert after[key(noted)] == pytest.approx(after[key(newest)]) == pytest.approx(before[key(newest)])
+    assert after[key(plain)] == pytest.approx(before[key(plain)])
+    # A search made on purpose has no age weight, so there is nothing to lift.
+    assert candidates.query("quartz", ranking="relevance")[1]["rank_signals"] == relevance_before["rank_signals"]
+
+
+def test_when_every_candidate_is_equally_old_a_note_changes_no_score(candidates, frozen):
+    noted = candidates.add("quartz keynote", system_time=OLD)
+    candidates.add("quartz keynote", system_time=OLD)
+    _, before = candidates.query("quartz")
+    candidates.note(noted)
+    _, after = candidates.query("quartz")
+    assert after["rank_signals"] == before["rank_signals"]
+
+
+def test_a_note_citing_three_messages_anchors_none_and_one_citing_two_anchors_both(candidates, frozen):
+    many = [candidates.add("quartz keynote", system_time=OLD) for _ in range(3)]
+    pair = [candidates.add("quartz keynote", system_time=OLD) for _ in range(2)]
+    plain = candidates.add("quartz keynote", system_time=OLD)
+    newest = candidates.add("quartz keynote")
+    assert len(candidates.note(*many)["source_event_ids"]) == 3
+    assert len(candidates.note(*pair)["source_event_ids"]) == 2
+    weights = _weights(candidates)
+    assert weights[key(plain)] < weights[key(newest)]
+    assert all(weights[key(memory)] == pytest.approx(weights[key(plain)]) for memory in many)
+    assert all(weights[key(memory)] == pytest.approx(weights[key(newest)]) for memory in pair)
+
+
+def test_replacing_or_deleting_the_note_removes_the_anchor(candidates, frozen):
+    first, second, third = (candidates.add("quartz keynote", system_time=OLD) for _ in range(3))
+    plain = candidates.add("quartz keynote", system_time=OLD)
+    newest = candidates.add("quartz keynote")
+
+    def anchored(memory):
+        weights = _weights(candidates)
+        assert weights[key(plain)] < weights[key(newest)]
+        assert weights[key(memory)] in (pytest.approx(weights[key(plain)]), pytest.approx(weights[key(newest)]))
+        return weights[key(memory)] == pytest.approx(weights[key(newest)])
+
+    note = candidates.note(first)
+    assert anchored(first)
+    # The correction keeps what the old note cited and adds two messages: three in all, so none is an anchor, and
+    # the replaced note no longer anchors the first message on its own.
+    replacement = candidates.note(second, third, replaces=[note["note_id"]])
+    assert replacement["replaced"] == [note["note_id"]] and len(replacement["source_event_ids"]) == 3
+    assert not any(anchored(memory) for memory in (first, second, third))
+    kept = candidates.note(first)
+    assert anchored(first)
+    candidates.forget([kept["note_id"]], "suppress_recall")
+    assert not anchored(first)
+
+
+def test_erasing_the_message_a_note_was_written_from_erases_the_note_and_the_candidate(candidates, frozen):
+    noted = candidates.add("quartz keynote", system_time=OLD)
+    candidates.add("quartz keynote")
+    note = candidates.note(noted)
+    event = noted["evidence_refs"][0]["event_id"]
+    with candidates.database.transaction(candidates.principal) as conn:
+        assert anchored_events(conn, candidates.params, [event]) == {event}
+    candidates.forget([event], "erase_content")
+    assert key(noted) not in candidates.query("quartz")[1]["candidate_versions"]
+    with candidates.database.transaction(candidates.principal) as conn:
+        assert anchored_events(conn, candidates.params, [event]) == set()
+        assert conn.execute("SELECT deleted FROM memory_events WHERE brain_id=%s AND id=%s",
+                            (candidates.brain_id, note["note_id"])).fetchone()["deleted"]
+
+
+def test_another_brain_s_or_another_user_s_note_never_anchors(candidates):
+    other_brain = Candidates(candidates.database)
+    other_brain.principal = candidates.principal
+    other_brain.brain_id = candidates.service.create_brain(candidates.principal, "Another brain")["id"]
+    other_brain.target = {**candidates.target, "brain_ref": other_brain.brain_id}
+    other_user = Candidates(candidates.database)
+    ours = candidates.add("quartz keynote", system_time=OLD)
+    candidates.note(ours)
+    theirs = {"brain": other_brain.add("quartz keynote", system_time=OLD),
+              "user": other_user.add("quartz keynote", system_time=OLD)}
+    other_brain.note(theirs["brain"])
+    other_user.note(theirs["user"])
+    event = {name: memory["evidence_refs"][0]["event_id"] for name, memory in {"ours": ours, **theirs}.items()}
+    every = list(event.values())
+    with candidates.database.transaction(candidates.principal) as conn:
+        assert anchored_events(conn, candidates.params, every) == {event["ours"]}
+        assert anchored_events(conn, other_brain.params, every) == {event["brain"]}
+        # Row security hides another user's rows even when their brain is named.
+        assert anchored_events(conn, other_user.params, every) == set()
+    with candidates.database.transaction(other_user.principal) as conn:
+        assert anchored_events(conn, other_user.params, every) == {event["user"]}
+
+
+def test_an_anchor_takes_the_highest_weight_of_its_request_and_never_more(monkeypatch):
+    documents = {(name, 1): {"evidence_refs": [{"event_id": "event-" + name}]} for name in "abcd"}
+    weights = {("a", 1): 0.47, ("b", 1): 0.3, ("c", 1): 0.35, ("d", 1): 0.3}
+    asked = []
+    monkeypatch.setattr(candidate_module, "anchored_events",
+                        lambda conn, params, events: asked.append(sorted(events)) or {"event-a", "event-b"})
+    lifted = anchor_weights(None, (), documents, weights)
+    assert lifted == {("a", 1): 0.47, ("b", 1): 0.47, ("c", 1): 0.35, ("d", 1): 0.3}
+    assert asked == [["event-a", "event-b", "event-c", "event-d"]]  # One query for the whole request.
+    relevance = {("a", 1): 1.0, ("b", 1): 1.0, ("c", 1): 2.0, ("d", 1): 1.0}
+    order = sorted(weights, key=lambda item: (-relevance[item] * lifted[item], item))
+    assert order == [("c", 1), ("a", 1), ("b", 1), ("d", 1)]  # Never above the newer one of equal relevance.
+    same = dict.fromkeys(weights, 0.3)
+    assert anchor_weights(None, (), documents, same) == same and len(asked) == 1  # Nothing to lift, nothing asked.
