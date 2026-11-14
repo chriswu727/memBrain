@@ -19,7 +19,8 @@ Live mode is on with `--live`, and whenever `C5_BILLING_LEDGER`, `C5_ATTEMPT_ID`
 | --- | --- | --- |
 | Commands | Only the repository's `evaluations/c5-run-scenario.sh` and `<this python> evaluations/acceptance_review.py validity`; `--runner` and `--validity` are refused | Overrides allowed |
 | Frozen command files | `evaluations/c5-run-scenario.sh`, `evaluations/acceptance_review.py`, `evaluations/c5-harness.py` and `evaluations/acceptance_persona.py` must be in `files` | Any command file inside the repository must be in `files` |
-| Persona | The manifest must have `persona` (`persona_binding`); every child gets `C5_PERSONA_SEED` and `C5_PERSONA_PRESET` from it | Passed on when the manifest has one |
+| Persona | The manifest must have `persona` (`persona_binding`); every child gets `C5_PERSONA_SEED` and `C5_PERSONA_PRESET` from it, and the default validity gets `--persona PRESET`, so an arm that did not carry the seeded type is invalid | Passed on when the manifest has one |
+| Practice manifest | A manifest with `"practice": true` (frozen without review receipts) is refused (`practice_manifest`) | Allowed (the stub rehearsal) |
 | Ledger | `C5_BILLING_LEDGER`, required and absolute; a different `--ledger` is refused | Only with `--ledger` |
 | Attempt binding | `C5_ATTEMPT_ID` required and equal to `attempt_id` (`attempt_binding`) | None |
 | Policy binding | `C5_BILLING_POLICY_SHA256` required, 64 lowercase hex characters (`policy_binding`), and equal to the ledger's `policy_sha256` | None |
