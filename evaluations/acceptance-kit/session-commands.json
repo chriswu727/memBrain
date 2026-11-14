@@ -1,0 +1,5 @@
+{
+  "_note": "Templates for launch.py. {workdir}, {model} and {prompt} are substituted. Before the first real launch, check every flag against the installed tool's --help, and check that the session loads no user setting, plugin, hook or MCP server (a memBrain plugin installed for the user would otherwise record the session and inject the user's memory). Change a template only by a reviewed, frozen commit.",
+  "claude": "claude -p {prompt} --model {model} --setting-sources project --strict-mcp-config --mcp-config {{\"mcpServers\":{{}}}} --tools Read,Write,Edit --disallowedTools Bash,WebFetch,WebSearch,Task --permission-mode acceptEdits",
+  "codex": "codex exec --model {model} --cd {workdir} --skip-git-repo-check --sandbox workspace-write -c tools.web_search=false -c mcp_servers={{}} {prompt}"
+}
