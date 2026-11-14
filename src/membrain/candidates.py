@@ -7,7 +7,6 @@ from .context_views import assistant_speech
 from .dynamics import access_state, rank_weight
 from .embeddings import EmbeddingResult
 from .helpers import DomainError, digest, now
-from .notes import NOTES_CONVERSATION
 from .recall_diversity import diversify
 from .retrieval import RANK_METHODS, fuse_rankings, resolve_dependency_closure
 from .source_scripts import han_majority as _han_majority
@@ -191,56 +190,6 @@ def _cued_statements(conn, params, target, text, query_embedding, lexical_scores
         (*params, *scope_params, [key[0] for key in missing], [key[1] for key in missing]),
     ).fetchall() if missing else []
     return chosen, fetched
-
-
-# Recent and important memories come first. Age already sinks an old memory (``dynamics.rank_weight``); importance
-# cancels that sinking for a message a current note was written from: the host AI cited it when it saved the note,
-# its judgement and the user's that this was worth keeping. Such a message is an anchor. In automatic recall an
-# anchored candidate takes the highest age weight among the candidates of the same request, as if it were as recent
-# as the newest memory it competes with, so it never outranks relevance: when all candidates are equally old nothing
-# changes. Only a note citing at most ``ANCHOR_NOTE_SOURCES`` messages, one written from one exchange, makes anchors;
-# nothing else does (no cues, no pins: notes are shown anyway). On the development conversations only (383
-# questions, messages stored at their dates, asked a day after the last session, notes written turn by turn by a
-# stand-in host), anchors were 11% of the user's messages and 35% of evidence turns; anchored evidence older than 90
-# days was shown for 92.2% instead of 81.7%, other evidence older than 90 days for 70.4% instead of 69.8%; 9
-# questions gained and 4 lost, none about the last 30 days; a year after the last session nothing changed. Notes
-# summarising a session (3.7 messages cited on average) anchored 25% of all messages and made recall worse. Not
-# checked on other conversations: they have no notes.
-ANCHOR_NOTE_SOURCES = 2
-
-
-def anchored_events(conn, params, event_ids):
-    """The events among ``event_ids`` cited by a current note of this brain that cites at most two messages.
-
-    A note cites the messages linked to it (``memory_event_dependencies``, the timeline's ``source_event_ids``) and
-    those it names that are not recorded yet; both count. A replaced, deleted or hidden note anchors nothing.
-    """
-    if not event_ids:
-        return set()
-    return {row["input_event_id"] for row in conn.execute(
-        "SELECT DISTINCT d.input_event_id FROM memory_event_dependencies d JOIN memory_events n "
-        "ON n.tenant_id=d.tenant_id AND n.owner_id=d.owner_id AND n.brain_id=d.brain_id AND n.id=d.output_event_id "
-        "WHERE d.tenant_id=%s AND d.owner_id=%s AND d.brain_id=%s AND d.input_event_id=ANY(%s::text[]) "
-        "AND n.conversation_id=%s AND n.is_current AND NOT n.deleted AND NOT n.suppressed AND NOT n.retired "
-        "AND n.document IS NOT NULL AND GREATEST(jsonb_array_length(coalesce("
-        "n.document #> '{observed,source_references}','[]'::jsonb)),(SELECT count(*) FROM memory_event_dependencies s "
-        "WHERE s.tenant_id=d.tenant_id AND s.owner_id=d.owner_id AND s.brain_id=d.brain_id "
-        "AND s.output_event_id=d.output_event_id))<=%s",
-        (*params, sorted(event_ids), NOTES_CONVERSATION, ANCHOR_NOTE_SOURCES))}
-
-
-def anchor_weights(conn, params, documents, weights):
-    """The age ``weights`` of one request's candidates, each anchored candidate given the highest of them.
-
-    The weight is replaced, not multiplied by a factor, so an anchor and an equally relevant newest candidate get the
-    same score to the last bit and their order is the one ties already had.
-    """
-    top = max(weights.values(), default=0.0)
-    if len(set(weights.values())) < 2:
-        return weights
-    sources = {key: {ref["event_id"] for ref in documents[key]["evidence_refs"]} for key in weights}
-    anchored = anchored_events(conn, params, set().union(*sources.values()))
-    return {key: top if sources[key] & anchored else weight for key, weight in weights.items()}
 
 
 def _one_per_message(rows, lexical_scores):
@@ -515,14 +464,9 @@ def collect_candidates(conn, service, principal, brain, target, query, recall_pl
         timestamp = now() if access_at is None else access_at
         direct = (query.get("intent") in {"exact_quote", "episode", "timeline", "cue_recovery"}
                   or query.get("ranking") == "relevance")
-        weights = {}
         for item in ranked:
             key = (item["memory_id"], item["revision"])
-            weights[key] = rank_weight(access_state(documents[key], usage.get(key), at=timestamp), direct=direct)
-        if not direct:  # A search made on purpose weighs nothing, so nothing is lifted either.
-            weights = anchor_weights(conn, params, documents, weights)
-        for item in ranked:
-            weight = weights[(item["memory_id"], item["revision"])]
+            weight = rank_weight(access_state(documents[key], usage.get(key), at=timestamp), direct=direct)
             item["score"] *= weight
             for signal in item["rank_signals"]:
                 signal["score"] *= weight
