@@ -301,3 +301,26 @@ def _completion_metadata(body: bytearray, capture_content: bool) -> dict:
         if capture_content and isinstance(message, dict) and isinstance(message.get("content"), str):
             result["assistant_content"] = message["content"]
     return result
+
+
+def save(path, value):
+    """Write a JSON report atomically and durably (moved here from the retired evaluate_deepseek.py)."""
+    temporary = path.with_suffix(".tmp")
+    with temporary.open("w", encoding="utf-8") as handle:
+        handle.write(json.dumps(value, ensure_ascii=False, indent=2) + "\n")
+        handle.flush()
+        os.fsync(handle.fileno())
+    temporary.replace(path)
+    descriptor = os.open(path.parent, os.O_RDONLY)
+    try:
+        os.fsync(descriptor)
+    finally:
+        os.close(descriptor)
+
+
+def safe_error(error):
+    """An error's type and short code, never its message (moved here from the retired evaluate_conversation.py)."""
+    code = getattr(error, "code", None)
+    return {"type": type(error).__name__,
+            "code": code if isinstance(code, str) and code.isascii()
+            and code.replace("_", "").isalnum() and len(code) <= 80 else None}

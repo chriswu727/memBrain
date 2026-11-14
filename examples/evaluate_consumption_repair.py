@@ -11,9 +11,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
-from examples.evaluate_deepseek import save
 from examples.evaluation_host import ChatCompletionsHost
-from examples.evaluation_support import MeteredTransport
+from examples.evaluation_support import MeteredTransport, save
 from membrain.helpers import digest
 from membrain.runtime import (
     MEMORY_CONSUMPTION_INSTRUCTIONS,
@@ -40,7 +39,7 @@ REVIEW = (
 
 def fingerprints():
     return {name: digest((ROOT / name).read_text()) for name in (
-        "examples/evaluate_consumption_repair.py", "examples/evaluate_deepseek.py",
+        "examples/evaluate_consumption_repair.py",
         "examples/evaluation_host.py", "examples/evaluation_support.py",
         "src/membrain/runtime.py", "src/membrain/helpers.py",
     )}

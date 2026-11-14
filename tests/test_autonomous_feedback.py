@@ -1,9 +1,7 @@
 import copy
 import hashlib
-import importlib
 import json
 from dataclasses import replace
-from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
@@ -220,33 +218,6 @@ def test_tail_only_selection_does_not_publish_an_assertion_to_create_credit(auto
             assert conn.execute(f"SELECT count(*) AS n FROM {table} WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s",
                                 data.params).fetchone()["n"] == 0
     assert len(autonomous.calls) == len(autonomous.sends) == 1
-
-
-@pytest.mark.parametrize("summary", ["", "A private rolling summary unrelated to selected source records."])
-def test_existing_baseline_runtime_delivers_custom_context_without_automatic_credit(autonomous, summary, monkeypatch):
-    monkeypatch.syspath_prepend(str(Path(__file__).parents[1]))
-    baseline = importlib.import_module("examples.evaluate_memory_lifecycle").BaselineRuntime
-    data = autonomous.data
-    _, memory = data.seed()
-    calls = []
-
-    def generate(request):
-        calls.append(request)
-        return memory["statement"]
-
-    runtime = baseline(autonomous.client, generate, deliver=lambda _: DeliveryReceipt("delivered"),
-                       frozen_summary=summary, policy=RuntimePolicy(orientation_policy="on_demand"))
-    result = runtime.respond(QUESTION, message_id="baseline", conversation_id="chat")
-    assert result.stage == "completed" and len(calls) == 1
-    assert runtime.journal.get(result.turn_id)["prepared_memory_selection"] == {
-        "version": "prepared-memory-selection-v1", "state": "unavailable", "unavailable_reason": "custom_context",
-    }
-    context = json.loads(calls[0].memory_context)
-    assert bool(context["blocks"]) == bool(summary)
-    if summary:
-        assert context["blocks"][0]["content"]["statement"] == summary
-    confirm(autonomous.client)
-    assert data.access(memory) is None
 
 
 def test_custom_prompt_cannot_claim_bound_context_that_actual_messages_omit(autonomous):

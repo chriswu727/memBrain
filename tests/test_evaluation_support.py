@@ -5,14 +5,12 @@ import importlib.util
 import json
 import threading
 from concurrent.futures import ThreadPoolExecutor
-from dataclasses import replace
 from pathlib import Path
 
 import httpx
 import pytest
 from test_semantic_provider import REQUEST
 
-from membrain.runtime import ModelRequest
 from membrain.semantic_provider import ChatCompletionsSemanticProvider, SemanticProviderError
 
 _SPEC = importlib.util.spec_from_file_location(
@@ -170,38 +168,6 @@ def test_invalid_meter_envelope_limit_is_rejected_before_creating_ledger(tmp_pat
     with pytest.raises(ValueError, match="max_response_bytes"):
         meter(tmp_path, lambda _: pytest.fail("No request expected"), max_response_bytes=limit)
     assert not (tmp_path / "run").exists()
-
-
-def test_increasing_envelope_limit_cannot_settle_or_retry_prior_unknown_call(tmp_path, monkeypatch):
-    monkeypatch.syspath_prepend(str(Path(__file__).parents[1]))
-    evaluation = importlib.import_module("examples.evaluate_longitudinal")
-    calls = []
-    stream = Chunks([b"x" * 65537, b"must not be read"])
-
-    def handle(request):
-        calls.append(request)
-        return httpx.Response(200, stream=stream)
-
-    with evaluation.CampaignJournal(tmp_path / "campaign", evaluation.plan()) as journal:
-        path = journal.path / "calls.jsonl"
-        transport = MeteredTransport(path, transport=httpx.MockTransport(handle), capture_content=False)
-        with ChatCompletionsSemanticProvider("https://example.test", "fake-key", "model",
-                                              transport=transport) as provider:
-            with pytest.raises(SemanticProviderError, match="response_too_large"):
-                evaluation.RecordedProvider(journal, transport, provider, "cognition")(REQUEST)
-        original = path.read_bytes()
-        restored = MeteredTransport(path, max_response_bytes=262144,
-                                    transport=httpx.MockTransport(lambda _: pytest.fail("No retry permitted")))
-        with restored:
-            with pytest.raises(evaluation.CampaignStopped, match="unknown_provider_usage"):
-                evaluation.RecordedProvider(
-                    journal, restored, lambda _: pytest.fail("Unknown call cannot be retried"), "cognition",
-                )(REQUEST)
-            assert restored.summary()["reserved_calls"] == restored.summary()["usage_unknown_calls"] == 1
-            assert restored.summary()["usage_confirmed_calls"] == 0
-            assert restored.summary()["usage_totals"] == {}
-        assert path.read_bytes() == original
-    assert len(calls) == stream.reads == 1
 
 
 def test_gzip_stream_is_metered_without_changing_wire_bytes(tmp_path):
@@ -498,41 +464,6 @@ def test_ambiguous_usage_json_never_confirms_accounting(tmp_path, body):
         assert client.send(request()).content == body
     assert transport.summary()["usage_unknown_calls"] == 1
     assert transport.summary()["usage_totals"] == {}
-
-
-@pytest.mark.parametrize("role", ["host", "user", "cognition"])
-@pytest.mark.parametrize("usage", [
-    {"completion_tokens": 8},
-    {"prompt_tokens": 20, "completion_tokens": 8, "total_tokens": 9},
-    {"prompt_tokens": 20, "completion_tokens": 8, "total_tokens": 28,
-     "prompt_cache_hit_tokens": 21},
-])
-def test_invalid_usage_stops_every_subsequent_role(tmp_path, monkeypatch, role, usage):
-    monkeypatch.syspath_prepend(str(Path(__file__).parents[1]))
-    evaluation = importlib.import_module("examples.evaluate_longitudinal")
-    calls = []
-
-    def provider(request):
-        calls.append(request)
-        return httpx.Response(200, json=completion(usage=usage))
-
-    with evaluation.CampaignJournal(tmp_path / "run", evaluation.plan()) as journal:
-        transport = MeteredTransport(journal.path / "calls.jsonl", transport=httpx.MockTransport(provider))
-        provider_type = ChatCompletionsSemanticProvider if role == "cognition" else evaluation.ChatCompletionsHost
-        actual_request = (replace(REQUEST, response_schema={"type": "object"}) if role == "cognition"
-                          else ModelRequest("turn", "request", ({"role": "user", "content": "Hello"},), 5, ""))
-        with provider_type("https://example.test", "fake-key", "model", transport=transport) as client:
-            with pytest.raises(evaluation.CampaignStopped, match="unknown_provider_usage"):
-                evaluation.RecordedProvider(journal, transport, client, role)(actual_request)
-            for next_role in ("host", "user", "cognition"):
-                with pytest.raises(evaluation.CampaignStopped, match="unknown_provider_usage"):
-                    evaluation.RecordedProvider(
-                        journal, transport, lambda _: pytest.fail("Unknown usage must stop all roles"), next_role,
-                    )(actual_request)
-        assert len(calls) == 1
-        assert transport.summary()["reserved_calls"] == transport.summary()["usage_unknown_calls"] == 1
-        assert transport.summary()["usage_totals"] == {}
-        assert [event["kind"] for event in journal.events] == ["provider_started", "provider_completed"]
 
 
 def test_broken_ledger_blocks_network_instead_of_resetting_budget(tmp_path):
