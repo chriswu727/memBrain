@@ -132,10 +132,12 @@ def test_desktop_offers_no_chat_or_turn_commands(values, capsys):
 @pytest.mark.integration
 def test_a_real_backup_of_an_old_installation_restores_its_turns_chat_files_and_sessions(tmp_path):
     from test_desktop_recovery_e2e import connection
+    from test_legacy_runtime_data import digests, holding, text_events, turn_texts
 
     from membrain.desktop_backup import backup
     from membrain.desktop_restore import activate, restore
     from membrain.recovery_profile import authority_for
+    from membrain.service import MemoryService
     from membrain.storage import Database
 
     source = ensure_profile(tmp_path / "source", database_engine="embedded")
@@ -150,6 +152,11 @@ def test_a_real_backup_of_an_old_installation_restores_its_turns_chat_files_and_
         saved = backup(source.directory, output=archive, request_id="old-runtime-backup")
         assert json.loads((archive / "configuration.json").read_text())["chat"] == CHAT
         assert (archive / "sessions.jsonl").read_text().splitlines() == [json.dumps(pending, sort_keys=True)]
+        # Erased after the backup was taken: the restore must apply this erasure to the old turns too.
+        erased = turn_texts(old, "draft")
+        with connection(source) as (_, database, _):
+            old.database, old.service = database, MemoryService(database)
+            old.forget("events", text_events(old, erased))
         authority = authority_for(source)
         result = restore(backup_path=archive, directory=target, registry_path=authority.registry.directory,
                          request_id="old-runtime-restore")
@@ -162,17 +169,15 @@ def test_a_real_backup_of_an_old_installation_restores_its_turns_chat_files_and_
                  expected_sequence=head["sequence"], expected_head_hash=head["head_hash"],
                  acknowledge_host_reconciliation=True)
         with connection(restored, recovery_epoch=result["recovery_epoch"]) as (client, database, _):
-            old.database, old.service.database = database, database
+            old.database, old.service = database, MemoryService(database)
+            assert holding(old, erased | digests(*erased)) == {}
             stages = {row["turn_id"]: row["stage"] for row in old.rows("memory_runtime_turns")}
             # The restore quarantined every turn an older runtime left unfinished; finished ones are unchanged.
             assert {stages[old.turns[name]] for name in ("remembered", "confirmation", "reviewed")} == {"completed"}
             assert set(stages.values()) <= {"completed", "failed"}
-            text = old.texts["reviewed_input"]
-            old.forget("events", [event["id"] for event in old.events(text)])
-            with database.transaction(principal) as conn:
-                assert not [row for row in conn.execute(
-                    "SELECT t::text AS value FROM memory_runtime_turns t WHERE tenant_id=%s AND owner_id=%s",
-                    (principal.tenant_id, principal.principal_id)) if text in row["value"]]
+            texts = turn_texts(old, "reviewed")
+            old.forget("events", text_events(old, texts))
+            assert holding(old, texts | digests(*texts)) == {}
     finally:
         if restored is None and (target / "profile.json").exists():
             restored = load_profile(target)

@@ -168,44 +168,91 @@ def test_erasing_every_message_of_a_turn_leaves_none_of_its_words_in_the_brain(o
     assert {table: values for table, values in survivors.items() if values} == {}
 
 
-def digests(text, message_id):
-    """The digests the runtime stored of a text: SHA-256 of the text, and of the message (its id and text)."""
-    return {hashlib.sha256(text.encode()).hexdigest(), digest({"message_id": message_id, "text": text})}
+QUESTION = "我喜欢哪种香味，松木吗？"
+SEED = "我喜欢松木香味。"
 
 
-# What each turn keeps after every message it recorded is erased, column by column: digests of the input
-# (input_fingerprint), of the delivered answer (delivery_receipt.content_sha256), of the reviewed draft
-# (response_review.draft_sha256) and of the selected memory's statement (prepared_memory_selection). Never text.
-KEPT = {
-    "remembered": {"input_fingerprint", "delivery_receipt", "prepared_memory_selection"},
-    "reviewed": {"input_fingerprint", "delivery_receipt", "response_review"},
-    "rejected": {"input_fingerprint", "response_review"},
-    "draft": {"input_fingerprint"},
-    "partial": {"input_fingerprint", "delivery_receipt"},
-}
+def digests(*texts):
+    """Every digest an older runtime stored of a text: SHA-256 of the text (delivery receipts, answer reviews,
+    prepared selections), of the message, its id and text (turn input fingerprints), and of the text alone (the
+    input fingerprint a host gave a captured turn)."""
+    found = set()
+    for text in texts:
+        found.update((hashlib.sha256(text.encode()).hexdigest(), digest(text)))
+        found.update(digest({"message_id": message_id, "text": text}) for message_id in ("m", "question", "reply"))
+    return found
 
 
-@pytest.mark.parametrize("name", sorted(KEPT))
-def test_an_erased_turn_keeps_digests_and_references_but_no_text(old, name):
-    """Erasure does not rewrite turn rows. This records exactly which columns keep a digest of an erased message,
-    so that a change in either direction is noticed; it is reported with the slice as a finding."""
-    question, statement = "我喜欢哪种香味，松木吗？", old.memory["statement"]
+def turn_texts(old, name):
+    """The input and answer texts of one fixture turn (a partial delivery also recorded its delivered part)."""
     if name == "remembered":
-        texts = {question: "question", statement: "question"}
-    else:
-        texts = {old.texts[name + "_input"]: "m", old.texts[name + "_output"]: "m"}
-        if name == "partial":
-            texts[old.texts["partial_output"][:30]] = "m"
-    events = sorted({row["id"] for row in old.rows("memory_events") if row["document"] is not None
-                     and row["document"]["observed"]["content"].get("text") in texts})
+        # The question, the answer (the remembered statement) and the message the statement was captured from.
+        return {QUESTION, old.memory["statement"], SEED}
+    texts = {old.texts[name + "_input"]}
+    if name + "_output" in old.texts:
+        texts.add(old.texts[name + "_output"])
+    if name == "partial":
+        texts.add(old.texts["partial_output"][:30])
+    return texts
+
+
+def text_events(old, texts):
+    return sorted({row["id"] for row in old.rows("memory_events") if row["document"] is not None
+                   and row["document"]["observed"]["content"].get("text") in texts})
+
+
+def holding(old, needles):
+    """Each of the brain's tables with the rows (as text) that contain one of ``needles``."""
+    found = {table: [value for value in everything(old, table) if any(needle in value for needle in needles)]
+             for table in brain_tables(old)}
+    return {table: values for table, values in found.items() if values}
+
+
+REDACTED = ["remembered", "reviewed", "rejected", "draft", "unknown", "cancelled", "partial", "failed", "captured"]
+
+
+@pytest.mark.parametrize("name", REDACTED)
+def test_erasing_a_turns_messages_leaves_no_digest_of_them_in_any_row(old, name):
+    """Erasure replaces every digest of an erased input, reply or memory statement on old turn rows with the
+    redaction marker (64 zeros); each turn row and its ids stay. An untouched turn keeps its digests."""
+    texts = turn_texts(old, name)
+    hashes = digests(*texts)
+    assert "memory_runtime_turns" in holding(old, hashes)
+    untouched = old.turn("phase_completed")
+    events = text_events(old, texts)
     old.forget("events", events)
-    assert all(row["document"] is None for row in old.rows("memory_events", "AND id=ANY(%s::text[])", (events,)))
+    assert holding(old, hashes) == {}
+    assert holding(old, texts) == {}
     turn = old.turn(name)
-    encoded = {column: json.dumps(value, default=str, ensure_ascii=False) for column, value in turn.items()}
-    assert not [column for column, value in encoded.items() if any(text in value for text in texts)]
-    hashes = set().union(*(digests(text, message_id) for text, message_id in texts.items()))
-    assert {column for column, value in encoded.items() if any(item in value for item in hashes)} == KEPT[name]
     assert {ref["event_id"] for ref in turn["input_event_refs"]} <= set(events)
+    if name != "remembered" or turn["input_event_refs"]:
+        assert turn["input_fingerprint"] == "0" * 64
+    assert old.turn("phase_completed") == untouched
+    assert len(old.rows("memory_runtime_turns")) == len(old.data["tables"]["memory_runtime_turns"])
+
+
+def test_hiding_a_message_keeps_its_turns_digests(old):
+    """Only content erasure removes digests; suppressing recall hides the message and keeps them."""
+    before = old.turn("reviewed")
+    old.forget("events", text_events(old, turn_texts(old, "reviewed")), mode="suppress_recall")
+    after = old.turn("reviewed")
+    assert {key: after[key] for key in ("input_fingerprint", "delivery_receipt", "response_review")} == {
+        key: before[key] for key in ("input_fingerprint", "delivery_receipt", "response_review")}
+
+
+def test_an_archive_stored_before_erasure_keeps_no_text_or_digest_of_the_erased_messages(old):
+    """Erasure rewrites the archives the server holds: the erased events leave them with their content digests."""
+    exported = old.action("export", {
+        "include_events": True, "include_assertions": True, "include_working_states": True,
+        "include_provenance": True, "include_tombstones": True, "budget": default_budget(64000)})
+    texts = turn_texts(old, "reviewed")
+    content = {digest({"media_type": "text/plain", "text": text}) for text in texts}
+    stored = old.service.download_archive(old.principal, exported["archive_id"])["document"]
+    assert any(text in json.dumps(stored, ensure_ascii=False) for text in texts)
+    assert any(item in json.dumps(stored) for item in content)
+    old.forget("events", text_events(old, texts))
+    rows = everything(old, "memory_archives")
+    assert rows and not [value for value in rows if any(n in value for n in texts | digests(*texts) | content)]
 
 
 def test_erasing_the_confirmation_withdraws_the_feedback_and_access_it_wrote(old):

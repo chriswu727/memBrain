@@ -50,10 +50,15 @@ def apply_erasure(service, conn, principal, brain, *, event_ids, memory_ids, mod
             )
     erase = mode == 'erase_content'
     if erase:
-        from .legacy_erasure import invalidate_belief_relations, invalidate_pattern_views
+        from .legacy_erasure import (
+            invalidate_belief_relations,
+            invalidate_pattern_views,
+            redact_runtime_turns,
+        )
 
         invalidate_pattern_views(conn, params, event_ids=event_ids, memory_ids=memory_ids, deleted=True)
         invalidate_belief_relations(conn, params, event_ids=event_ids, memory_ids=memory_ids, deleted=True)
+        redact_runtime_turns(conn, params, event_ids=event_ids, memory_ids=memory_ids)
     from .legacy_erasure import clear_query_embeddings
 
     clear_query_embeddings(conn, params)

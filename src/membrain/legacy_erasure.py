@@ -83,3 +83,69 @@ def clear_query_embeddings(conn, params):
         "UPDATE memory_jobs SET result=NULL WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND kind='query_embedding'",
         params,
     )
+
+
+# A digest erased from a runtime turn row reads as 64 zeros: the content-free marker temporary turns already carry
+# (migration 034), which no real SHA-256 digest is taken to be. ``input_fingerprint`` is NOT NULL and must be 64 hex
+# digits, so it cannot be cleared; the JSON fields keep their shape so the rows stay readable.
+REDACTED_DIGEST = "0" * 64
+
+
+def _refers(refs, event_ids):
+    return any(isinstance(ref, dict) and ref.get("event_id") in event_ids for ref in refs or ())
+
+
+def redact_runtime_turns(conn, params, *, event_ids=(), memory_ids=()):
+    """Remove from runtime turn rows (migration 004 and later) every digest of erased content.
+
+    Older runtimes stored, beside each turn's event references, SHA-256 digests of what the turn said and showed:
+    of its input (``input_fingerprint``, over the message id and text), of the delivered answer
+    (``delivery_receipt.content_sha256``), of the reviewed draft (``response_review.draft_sha256``) and of each
+    selected memory's statement (``prepared_memory_selection.memories[].statement_sha256``). A digest of a short
+    message confirms a guess of it, so content erasure replaces those of erased events and memories with
+    ``REDACTED_DIGEST``. The rows, their stages and every id stay, for recovery quarantine and referential integrity.
+    """
+    event_ids, memory_ids = set(event_ids), set(memory_ids)
+    if not event_ids and not memory_ids:
+        return 0
+    from psycopg.types.json import Jsonb
+
+    rows = conn.execute(
+        "SELECT turn_id,input_fingerprint,input_event_refs,output_event_refs,delivery_receipt,response_review,"
+        "prepared_memory_selection FROM memory_runtime_turns t WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND ("
+        "EXISTS (SELECT 1 FROM jsonb_array_elements(t.input_event_refs || t.output_event_refs) r "
+        "WHERE r->>'event_id'=ANY(%s::text[])) "
+        "OR t.delivery_receipt #>> '{authorization,draft_event_ref,event_id}'=ANY(%s::text[]) "
+        "OR EXISTS (SELECT 1 FROM jsonb_array_elements(CASE WHEN jsonb_typeof(t.prepared_memory_selection->'memories')"
+        "='array' THEN t.prepared_memory_selection->'memories' ELSE '[]'::jsonb END) m "
+        "WHERE m->>'memory_id'=ANY(%s::text[]) OR (jsonb_typeof(m->'evidence_refs')='array' AND EXISTS ("
+        "SELECT 1 FROM jsonb_array_elements(m->'evidence_refs') e WHERE e->>'event_id'=ANY(%s::text[])))))",
+        (*params, sorted(event_ids), sorted(event_ids), sorted(memory_ids), sorted(event_ids)),
+    ).fetchall()
+    for row in rows:
+        inputs = _refers(row["input_event_refs"], event_ids)
+        receipt = row["delivery_receipt"]
+        outputs = _refers(row["output_event_refs"], event_ids) or (
+            isinstance(receipt, dict)
+            and _refers([(receipt.get("authorization") or {}).get("draft_event_ref")], event_ids))
+        fingerprint = REDACTED_DIGEST if inputs else row["input_fingerprint"]
+        if outputs and isinstance(receipt, dict) and receipt.get("content_bytes"):
+            receipt = {**receipt, "content_sha256": REDACTED_DIGEST}
+        review = row["response_review"]
+        if outputs and isinstance(review, dict) and "draft_sha256" in review:
+            review = {**review, "draft_sha256": REDACTED_DIGEST}
+        selection = row["prepared_memory_selection"]
+        if isinstance(selection, dict) and isinstance(selection.get("memories"), list):
+            selection = {**selection, "memories": [
+                {**memory, "statement_sha256": REDACTED_DIGEST}
+                if isinstance(memory, dict) and (memory.get("memory_id") in memory_ids
+                                                 or _refers(memory.get("evidence_refs"), event_ids))
+                else memory for memory in selection["memories"]]}
+        conn.execute(
+            "UPDATE memory_runtime_turns SET input_fingerprint=%s,delivery_receipt=%s,response_review=%s,"
+            "prepared_memory_selection=%s WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND turn_id=%s",
+            (fingerprint, Jsonb(receipt) if receipt is not None else None,
+             Jsonb(review) if review is not None else None,
+             Jsonb(selection) if selection is not None else None, *params, row["turn_id"]),
+        )
+    return len(rows)
