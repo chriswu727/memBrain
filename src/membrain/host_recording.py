@@ -151,6 +151,12 @@ def status(directory, client=None, user_id=None):
                 return previous
             path.parent.mkdir(mode=0o700, parents=True, exist_ok=True)
             _write_state(path, policy)
+        from .host_erasure import reconcile
+
+        try:
+            reconcile(directory, client, user_id, revision=policy["revision"])
+        except Exception as error:
+            log(directory, f"local erasure reconciliation pending: {type(error).__name__}")
         return {**policy, "availability": "current"}
     except Exception as error:
         log(directory, f"recording policy unavailable: {type(error).__name__}")

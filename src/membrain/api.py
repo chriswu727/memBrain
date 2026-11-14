@@ -36,6 +36,16 @@ class NoteSource(RuntimeBody):
     source_revision: RuntimeRevision = 1
 
 
+class ErasureReference(RuntimeBody):
+    producer_ref: RuntimeIdentifier
+    source_event_key: RuntimeIdentifier
+    event_id: RuntimeIdentifier | None = None
+
+
+class ErasureRead(RuntimeBody):
+    references: Annotated[list[ErasureReference], Field(max_length=128)]
+
+
 class SourceMessagesRead(RuntimeBody):
     messages: Annotated[list[NoteSource], Field(min_length=1, max_length=64)]
 
@@ -501,6 +511,12 @@ def create_app(settings: Settings | None = None, service=None, jobs=None) -> Fas
         from .recording_control import recording_status
 
         return recording_status(service, principal, brain_id)
+
+    @app.post("/v1/brains/{brain_id}/recording/erasures")
+    def read_recording_erasures(brain_id: str, body: ErasureRead, principal: Principal = Depends(authenticate)):
+        from .recording_control import erased_sources
+
+        return erased_sources(service, principal, brain_id, [ref.model_dump() for ref in body.references])
 
     @app.put("/v1/brains/{brain_id}/recording")
     async def change_recording(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):

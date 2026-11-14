@@ -221,6 +221,12 @@ class MemoryClient:
         brain = self._scope()["brain_ref"]
         return self._request("GET", f"v1/brains/{quote(brain, safe='')}/recording")
 
+    def recording_erasures(self, references: Sequence[Mapping[str, Any]]) -> JsonObject:
+        """Deletion confirmations for at most 128 source identities. Missing identities are not deletions."""
+        brain = self._scope()["brain_ref"]
+        return self._request("POST", f"v1/brains/{quote(brain, safe='')}/recording/erasures",
+                             json={"references": [dict(ref) for ref in references]})
+
     def set_recording(self, *, paused: bool, expected_revision: int) -> JsonObject:
         brain = self._scope()["brain_ref"]
         return self._request("PUT", f"v1/brains/{quote(brain, safe='')}/recording",

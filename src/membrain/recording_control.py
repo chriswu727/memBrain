@@ -46,3 +46,33 @@ def set_recording(service, principal, brain_id, *, paused, expected_revision):
                 "revision,stage,'fail',fence,failure_code FROM stopped", params,
             )
         return _status(brain)
+
+
+def erased_sources(service, principal, brain_id, references):
+    """Read deletion state for bounded, content-free host identities; absence is never proof of erasure."""
+    from .service import reading
+
+    with service.database.transaction(principal) as conn, reading():
+        conn.execute("SET LOCAL lock_timeout = '5s'")
+        brain = service._brain(conn, principal, brain_id)
+        params = service._params(principal, brain_id)
+        erased = []
+        for index, ref in enumerate(references):
+            if ref.get("event_id"):
+                row = conn.execute(
+                    "SELECT 1 FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+                    "AND id=%s AND deleted LIMIT 1", (*params, ref["event_id"]),
+                ).fetchone()
+            else:
+                row = conn.execute(
+                    "SELECT 1 FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+                    "AND producer_ref=%s AND source_key=%s AND deleted LIMIT 1",
+                    (*params, ref["producer_ref"], ref["source_event_key"]),
+                ).fetchone()
+            if row:
+                erased.append(index)
+        any_erasure = conn.execute(
+            "SELECT 1 FROM memory_tombstones WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+            "AND mode='erase_content' LIMIT 1", params,
+        ).fetchone() is not None
+        return {"revision": brain["recording_revision"], "erased": erased, "has_erasures": any_erasure}
