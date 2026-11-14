@@ -342,3 +342,114 @@ def test_an_idempotent_stop_handle_cannot_send_a_request_or_clear_the_original_r
         client.post(ENDPOINT, json={"model": "host", "max_tokens": 100})
     state = json.loads(path.read_text())
     assert state["blocked"] and state["stop_reason"] == "arm_failed" and not state["requests"]
+
+
+# The sixth maturity attempt's policy: one model, 80 CNY, arms run one after the other ---------------------------------
+
+SIXTH_POLICY = Path(__file__).resolve().parents[1] / "evaluations/maturity-provider-policy-2026-11-14.json"
+SIXTH_MAX_TOKENS = 16384  # The harness's request bound.
+
+
+def sixth_ledger(tmp_path):
+    """A temporary ledger configured from the attempt's policy file exactly as preparation creates the real one."""
+    policy = json.loads(SIXTH_POLICY.read_text())
+    path = tmp_path / "sixth-ledger.json"
+    budget.create_ledger(path, run_id="sixth-practice", limit_cny=policy["proposed_limit_cny"],
+                         endpoint=policy["endpoint"], models=policy["models"])
+    return path, policy
+
+
+def sixth_send(path, handler):
+    state = json.loads(path.read_text())
+    transport = budget.GuardedTransport(path, run_id="sixth-practice", policy_sha256=state["policy_sha256"],
+                                        transport=httpx.MockTransport(handler))
+    body = {"model": "deepseek-v4-pro", "max_tokens": SIXTH_MAX_TOKENS, "stream": False,
+            "thinking": {"type": "enabled"}, "messages": [{"role": "user", "content": "billing-fixture"}]}
+    with httpx.Client(transport=transport) as client:
+        return client.post(state["endpoint"], json=body)
+
+
+def sixth_reply(prompt, completion=0):
+    def handler(request):
+        return httpx.Response(200, json={"model": "deepseek-v4-pro", "usage": {
+            "prompt_tokens": prompt, "completion_tokens": completion, "total_tokens": prompt + completion}})
+    return handler
+
+
+def test_the_sixth_attempt_policy_has_one_model_and_an_80_cny_limit():
+    policy = json.loads(SIXTH_POLICY.read_text())
+    assert set(policy["models"]) == {"deepseek-v4-pro"} and policy["proposed_limit_cny"] == "80"
+    rate = policy["models"]["deepseek-v4-pro"]
+    assert rate["response_models"] == ["deepseek-v4-pro"]
+    assert (rate["context_tokens"], rate["max_output_tokens"]) == (1048576, 393216)
+    assert (rate["input_cny_per_million"], rate["output_cny_per_million"]) == ("9", "27")
+    assert policy["requests_in_flight"] == 1
+
+
+def _settle_up_to(path, target_micros):
+    """Settle sequential requests of about 8 CNY each until the settled total reaches target_micros or just below."""
+    settled = 0
+    while target_micros - settled >= 9:
+        tokens = min(888_888, (target_micros - settled) // 9)  # 9 micros a prompt token; at most 8 CNY a request.
+        assert sixth_send(path, sixth_reply(tokens)).status_code == 200
+        settled += tokens * 9
+    state = json.loads(path.read_text())
+    assert sum(entry["actual_micros"] for entry in state["requests"].values()) == settled
+    return settled
+
+
+def test_two_requests_in_flight_are_refused_above_the_parallel_threshold(tmp_path):
+    path, _ = sixth_ledger(tmp_path)
+    state = json.loads(path.read_text())
+    reservation = 1048576 * 9 + 393216 * 27  # Micros: the full context and published output at list price.
+    assert reservation == 20_054_016 and state["limit_micros"] == 80_000_000
+    parallel = state["limit_micros"] - 2 * reservation  # 39.891968 CNY: what two open requests leave.
+    settled = _settle_up_to(path, parallel + 100_000)  # Just above it, far below the sequential threshold.
+    assert parallel < settled <= state["limit_micros"] - reservation
+    inside, release = threading.Barrier(2), threading.Event()
+
+    def pending(request):
+        inside.wait(timeout=10)
+        assert release.wait(10)
+        return sixth_reply(10)(request)
+
+    with ThreadPoolExecutor(max_workers=1) as pool:
+        first = pool.submit(sixth_send, path, pending)
+        try:
+            inside.wait(timeout=10)
+            with pytest.raises(budget.BudgetStop, match="cap"):
+                sixth_send(path, lambda request: pytest.fail("a second request in flight reached the provider"))
+        finally:
+            release.set()
+        assert first.result().status_code == 200
+    state = json.loads(path.read_text())
+    assert state["blocked"] and state["stop_reason"] == "reservation_limit"
+
+
+def test_the_sequential_pattern_is_accepted_up_to_the_limit_and_refused_beyond(tmp_path):
+    path, _ = sixth_ledger(tmp_path)
+    reservation, limit = 20_054_016, 80_000_000
+    sequential = limit - reservation  # 59.945984 CNY settled still leaves room for one more request.
+    settled = _settle_up_to(path, sequential)
+    assert sequential - 9 < settled <= sequential
+    # One request at the threshold: settled + its full reservation is within the limit, so it is accepted.
+    assert sixth_send(path, sixth_reply(10)).status_code == 200
+    state = json.loads(path.read_text())
+    assert not state["blocked"] and all("actual_micros" in entry for entry in state["requests"].values())
+    # Now the settled charge is past the threshold: the next request is refused before any network call.
+    with pytest.raises(budget.BudgetStop, match="cap"):
+        sixth_send(path, lambda request: pytest.fail("a request past the threshold reached the provider"))
+    state = json.loads(path.read_text())
+    assert state["blocked"] and state["stop_reason"] == "reservation_limit"
+    assert sum(entry.get("actual_micros", entry["reserved_micros"]) for entry in state["requests"].values()) <= limit
+
+
+def test_any_other_model_is_refused_by_the_sixth_policy(tmp_path):
+    path, _ = sixth_ledger(tmp_path)
+    state = json.loads(path.read_text())
+    transport = budget.GuardedTransport(path, run_id="sixth-practice", policy_sha256=state["policy_sha256"],
+                                        transport=httpx.MockTransport(lambda request: pytest.fail("reached")))
+    with httpx.Client(transport=transport) as client, pytest.raises(budget.BudgetStop):
+        client.post(state["endpoint"], json={"model": "another-model", "max_tokens": 100, "stream": False,
+                                             "messages": []})
+    assert json.loads(path.read_text())["stop_reason"] == "request_refused"

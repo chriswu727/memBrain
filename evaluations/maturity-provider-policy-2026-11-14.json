@@ -1,0 +1,22 @@
+{
+  "status": "draft_not_approved",
+  "for": "sixth maturity attempt: R4 only, arms P and F run one after the other",
+  "checked_on": "2026-11-14",
+  "revalidate_before_use": "official prices, context and output limits on the day of the run; a mismatch stops preparation",
+  "sources": [
+    "https://api-docs.deepseek.com/zh-cn/quick_start/pricing/",
+    "https://api-docs.deepseek.com/api/create-chat-completion/"
+  ],
+  "proposed_limit_cny": "80",
+  "requests_in_flight": 1,
+  "endpoint": "https://api.deepseek.com/chat/completions",
+  "models": {
+    "deepseek-v4-pro": {
+      "context_tokens": 1048576,
+      "max_output_tokens": 393216,
+      "input_cny_per_million": "9",
+      "output_cny_per_million": "27",
+      "response_models": ["deepseek-v4-pro"]
+    }
+  }
+}
