@@ -555,9 +555,6 @@ class MemoryService:
                     (*self._params(principal, brain["id"]), event_id, *self._params(principal, brain["id"]),
                      event["producer_ref"], list(event["parent_source_event_keys"]), event_id))
             if not duplicate and event["actor_role"] == "user" and event["delivery_state"] == "received":
-                from .feedback import observe_feedback
-
-                observe_feedback(conn, self, principal, brain, request["target"], event_id)
                 # Feedback on the companion's manner may bring a persona suggestion to its threshold (P2).
                 observe_persona_feedback(self, conn, principal, brain, request["target"], event, event_id)
             if job_id:
@@ -667,48 +664,7 @@ class MemoryService:
                 if not any(cognition.evidence_overlaps(reference, old)
                            for reference in memory["evidence_refs"] for old in superseded)]
 
-    def _context_observations(self, conn, principal, brain, target, working):
-        from .orientation import validate_orientation_snapshot as validate_snapshot
-
-        candidates = []
-        timestamp = cognition._stamp(now())
-        for item in working["items"]:
-            value = item["value"]
-            if (not isinstance(value, dict) or "observation" not in value
-                    or value.get("evidence_use") == "current_request"
-                    or not isinstance(value.get("orientation_job_id"), str)
-                    or item["expires_at"] is None or cognition._stamp(item["expires_at"]) <= timestamp):
-                continue
-            candidates.append((value["orientation_job_id"], value["observation"]))
-        job_ids = sorted({key for key, _ in candidates})
-        complete = len(job_ids) <= 32
-        if not job_ids:
-            return [], complete
-        rows = conn.execute(
-            "SELECT id,result FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
-            "AND id=ANY(%s::text[]) AND kind='orient' AND state='completed' AND result IS NOT NULL "
-            "AND completed_at > clock_timestamp() - interval '24 hours'",
-            (*self._params(principal, brain["id"]), job_ids[:32]),
-        ).fetchall()
-        observations = []
-        for row in rows:
-            result = row["result"]
-            scope = result.get("scope", {})
-            if (scope.get("conversation_id"), scope.get("branch_id")) != (
-                    target.get("conversation_ref"), target.get("branch_ref")):
-                continue
-            try:
-                validate_snapshot(conn, self, principal, brain, result)
-            except DomainError:
-                continue
-            for item in result.get("situation_updates", []):
-                observation = item.get("observation")
-                if (observation and item.get("evidence_use") != "current_request"
-                        and (row["id"], observation) in candidates):
-                    observations.append(observation)
-        return observations, complete
-
-    def _retrieval(self, conn, principal, brain, target, query, recall_plan=None, query_embedding=None, context_observations=None,
+    def _retrieval(self, conn, principal, brain, target, query, recall_plan=None, query_embedding=None,
                    *, save_traces=True):
         params = self._params(principal, brain["id"])
         from .belief_resolution import frozen_relations, resolution_evidence
@@ -738,8 +694,6 @@ class MemoryService:
         source_ids.update(r["event_id"] for field in ("items", "open_loops") for item in raw_working[field] for r in item["evidence_refs"])
         source_ids.update(query.get("query_event_ids", []))
         source_ids.update(query["cue_event_ids"])
-        source_ids.update(ref["event_id"] for observation in context_observations or []
-                          for ref in observation["evidence_refs"])
         if recall_plan is not None:
             source_ids.update(ref["event_id"] for ref in recall_plan["observed_event_refs"])
         if query.get("evidence_cutoff", {}).get("event_id"):
@@ -753,15 +707,10 @@ class MemoryService:
         state.update(candidate_state)
         state.update(belief_relations=beliefs["relations"], belief_incomplete_versions=beliefs["incomplete_versions"],
                      belief_memories=memories)
-        stored_observations, context_complete = self._context_observations(conn, principal, brain, target, working)
-        observations = {}
-        for observation in [*(context_observations or []), *stored_observations]:
-            canonical = {key: value for key, value in observation.items() if key != "observation_id"}
-            canonical["evidence_refs"] = sorted(observation["evidence_refs"], key=digest)
-            fingerprint = digest(canonical)
-            observations.setdefault(fingerprint, {**canonical, "observation_id": "observation-" + fingerprint})
-        state["context_observations_complete"] = context_complete and len(observations) <= 128 and len(source_ids) <= 1024
-        state["context_observations"] = list(observations.values())[:128]
+        # Context observations came from the orientations the removed runtime mode stored for its turns (and the
+        # working-state items its commits derived from them, which expired after 24 hours). Nothing supplies one now.
+        state["context_observations_complete"] = len(source_ids) <= 1024
+        state["context_observations"] = []
         if recall_plan is not None:
             lookup = {(event["event_id"], event["revision"]): event for event in events}
             scope = self._scope(principal, brain, target)
@@ -817,11 +766,15 @@ class MemoryService:
         return self._retrieval(conn, principal, brain, request["target"], request["payload"],
                                query_embedding=query_embedding, save_traces=False)[0]
 
-    def _prepare(self, conn, principal, brain, request, query_embedding=None, *, persist_preflight=True):
+    def _prepare(self, conn, principal, brain, request, query_embedding=None):
         payload = request["payload"]
         if ("expected_dependency_generation" in payload
                 and payload["expected_dependency_generation"] != brain["dependency_generation"]):
             raise DomainError("context_stale", "Memory changed during recall planning.")
+        if payload.get("assess_orientation"):
+            # The assessment routed a turn of the removed runtime mode to its orientation step; it always needed
+            # that turn. ``turn_id`` is only an identifier for this packet now, whatever turn it once named.
+            raise DomainError("unsupported_capability", "Orientation assessment was part of the removed runtime mode.")
         events = self._events(conn, principal, brain, event_ids=payload["latest_input_event_ids"], limit=128)
         lookup = {e["event_id"]: e for e in events}
         if any(i not in lookup for i in payload["latest_input_event_ids"]):
@@ -835,34 +788,7 @@ class MemoryService:
             if field in payload:
                 query[field] = payload[field]
         plan = payload.get("recall_plan")
-        turn = conn.execute(
-            "SELECT * FROM memory_runtime_turns WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND turn_id=%s",
-            (*self._params(principal, brain["id"]), payload["turn_id"]),
-        ).fetchone()
-        orientation = None
-        if payload.get("assess_orientation"):
-            if (not turn or (turn["conversation_id"], turn["branch_id"]) != (
-                    request["target"].get("conversation_ref"), request["target"].get("branch_ref"))
-                    or not turn["input_event_refs"]
-                    or sorted(payload["latest_input_event_ids"]) != sorted(
-                        ref["event_id"] for ref in turn["input_event_refs"])
-                    or any(lookup[ref["event_id"]]["revision"] != ref["revision"]
-                           for ref in turn["input_event_refs"] if ref["event_id"] in lookup)):
-                raise DomainError("invalid_evidence", "Orientation assessment requires the bound turn input and scope.")
-        if turn and turn["orientation_job_id"]:
-            from .orientation import orientation_result
-
-            if (turn["conversation_id"], turn["branch_id"]) != (
-                    request["target"].get("conversation_ref"), request["target"].get("branch_ref")):
-                raise DomainError("invalid_evidence", "Turn belongs to another context.")
-            if set(payload["latest_input_event_ids"]) != {ref["event_id"] for ref in turn["input_event_refs"]}:
-                raise DomainError("invalid_evidence", "Orientation belongs to different input.")
-            orientation = orientation_result(conn, self, principal, brain, turn)
-        observations = [item["observation"] for item in orientation.get("situation_updates", [])
-                        if "observation" in item and item.get("evidence_use") != "current_request"] if orientation else []
-        result, working, state = self._retrieval(conn, principal, brain, request["target"], query, plan, query_embedding, observations)
-        if orientation:
-            state["current_situation"] = orientation.get("situation_updates", [])
+        result, working, state = self._retrieval(conn, principal, brain, request["target"], query, plan, query_embedding)
         state["recent_events"] = self._recent_context(conn, principal, brain, request["target"], payload)
         safe_payload = copy.deepcopy(payload)
         capabilities = safe_payload["capabilities"]
@@ -872,22 +798,6 @@ class MemoryService:
             capabilities["guarantee_level"] = "partial_automation"
         capabilities["limitations"].append("Lifecycle guarantees have not been independently verified by this service.")
         packet = cognition.prepare(self._scope(principal, brain, request["target"]), safe_payload, working, result, state)
-        if payload.get("assess_orientation"):
-            from .orientation import assess_orientation
-
-            assessment = assess_orientation(
-                turn, working, state, planned=plan is not None,
-                embedded=self.embedding_provider is not None or query_embedding is not None,
-                historical=payload.get("evidence_mode") == "prior_record_check",
-            )
-            packet["orientation_assessment"] = assessment
-            if turn["stage"] == "captured" and persist_preflight:
-                conn.execute(
-                    "UPDATE memory_runtime_turns SET orientation_preflight=%s "
-                    "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND turn_id=%s",
-                    (Jsonb({"assessment": assessment, "request": request}),
-                     *self._params(principal, brain["id"]), turn["turn_id"]),
-                )
         self._save_traces(conn, principal, brain, packet.get("recall_traces", []))
         return packet
 

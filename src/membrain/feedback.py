@@ -10,20 +10,17 @@ the runtime mode's ``delivery_receipts`` and ``prepared_selection`` modules, mov
 import copy
 import hashlib
 import json
-import re
 from datetime import datetime
 
 from psycopg.types.json import Jsonb
 
 from . import cognition
 from .contracts import validate
-from .helpers import DomainError, _hash, _identifier, _integer, _refs, digest, now, uid
+from .helpers import DomainError, _hash, _identifier, _integer, _refs, digest
 from .legacy_erasure import recompute_access
 from .retrieval import resolve_dependency_closure
 
 ATTRIBUTION_VERSION = "sole-exact-statement-v1"
-CONFIRMATION = re.compile(r"\s*(yes|correct|confirmed|对|是的|没错|确认)[。.!！\s]*", re.I)
-CORRECTION = re.compile(r"\s*(不是|不对|错了|incorrect|wrong)[。.!！\s]*", re.I)
 
 RECEIPT_VERSION = "runtime-delivery-receipt-v1"
 RECEIPT_STATES = frozenset({"delivered", "partially_delivered", "cancelled"})
@@ -158,21 +155,6 @@ def selection_for_turn(row):
                    for ref in selection["source_event_refs"])):
         return None
     return selection
-
-
-def feedback_kind(event, *, allow_unknown=False):
-    observed = event["observed"]
-    text = observed["content"].get("text")
-    if (event["origin"] != "user_statement" or event["origin_verification"] == "unverified_import"
-            or observed["actor_role"] != "user" or observed["delivery_state"] != "received"
-            or observed["interpretation_hint"] not in ({"real_world_report", "unknown"} if allow_unknown
-                                                       else {"real_world_report"})
-            or not isinstance(text, str) or event["content_sha256"] != digest(observed["content"])
-            or cognition._world(observed, text) != "real_world" or not event["utterance_segments"]
-            or any(segment["act"] not in {"direct_statement", "confirmation", "correction"}
-                   for segment in event["utterance_segments"])):
-        return None
-    return "user_confirmed" if CONFIRMATION.fullmatch(text) else "user_corrected" if CORRECTION.fullmatch(text) else None
 
 
 def _source_proof(conn, service, principal, brain, target, memory):
@@ -449,42 +431,3 @@ def record_feedback(conn, service, principal, brain, target, memory, proposal, e
     if result.rowcount:
         recompute_access(conn, params, [(memory["memory_id"], memory["revision"])])
     return bool(result.rowcount)
-
-
-def observe_feedback(conn, service, principal, brain, target, event_id):
-    events = service._events(conn, principal, brain, event_ids=[event_id], limit=1)
-    if len(events) != 1 or (kind := feedback_kind(events[0], allow_unknown=True)) is None:
-        return
-    event = events[0]
-    params = service._params(principal, brain["id"])
-    latest = _latest_delivery(conn, params, target, event)
-    if latest is None or (selection := selection_for_turn(latest[0])) is None:
-        return
-    turn, output = latest
-    matches = [item for item in selection["memories"]
-               if item["statement_sha256"] in _statement_hashes(output["document"]["observed"]["content"].get("text"))]
-    if len(matches) != 1:
-        return
-    chosen = matches[0]
-    proposal = {"memory_id": chosen["memory_id"], "recall_id": chosen["recall_id"], "kind": kind}
-    row = conn.execute(
-        "SELECT document FROM memory_assertions WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
-        "AND id=%s AND revision=%s AND is_current AND NOT invalidated AND NOT deleted AND NOT suppressed",
-        (*params, chosen["memory_id"], chosen["memory_revision"]),
-    ).fetchone()
-    applied = row is not None and record_feedback(
-        conn, service, principal, brain, target, service._rebind(row["document"], principal, brain), proposal, event,
-    )
-    trace = {
-        "trace_id": uid(), "recall_id": chosen["recall_id"],
-        "retrieval_snapshot_id": "feedback:" + chosen["recall_id"], "scope": service._scope(principal, brain, target),
-        "turn_id": turn["turn_id"], "memory_id": chosen["memory_id"], "memory_revision": chosen["memory_revision"],
-        "kind": kind, "source": "user_message", "feedback_event_id": event_id,
-        "evidence_refs": [{"event_id": event_id, "event_revision": event["revision"],
-                           "source_content_sha256": event["content_sha256"], "relationship": "supports"}],
-        "recorded_at": now(), "allowed_effect": "external_reassessment",
-    }
-    service._save_traces(conn, principal, brain, [trace])
-    if applied:
-        conn.execute("UPDATE memory_traces SET applied_at=now() WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND id=%s",
-                     (*params, trace["trace_id"]))
