@@ -6,7 +6,7 @@ Latest verification: [historical feedback use and remaining acceptance work](../
 
 A model-independent, headless memory runtime for agents. The goal is to let a host integrate once, then let the runtime continuously manage the agent's working memory, long-term beliefs, and recall. Users should be able to converse normally; memory must form and be used even when the main agent does not explicitly call save or search tools.
 
-See the [architecture and acceptance specification](../architecture/architecture.html) for the complete target, and the [autonomous runtime contract](../architecture/autonomous-runtime.contract.json) for product boundaries and host responsibilities. The current implementation provides the underlying memory service, an automatic synchronous text lifecycle, and optional situation understanding, semantic consolidation, and semantic recall: it uses recent conversation to identify the current goal, creates beliefs and episode structures with traceable sources, and searches and selects memories within a budget. Complete host integration and long-term memory quality still need validation. This is not yet a complete autonomous brain.
+See the [architecture and acceptance specification](../architecture/architecture.html) for the complete target, and the [autonomous runtime contract](../architecture/autonomous-runtime.contract.json) for product boundaries and host responsibilities. The current implementation provides the underlying memory service, host lifecycle integrations, and optional situation understanding, semantic consolidation, and semantic recall: it uses recent conversation to identify the current goal, creates beliefs and episode structures with traceable sources, and searches and selects memories within a budget. Complete host integration and long-term memory quality still need validation. This is not yet a complete autonomous brain.
 
 First-release work is bounded by the [finite acceptance and stop criteria](../architecture/v1-acceptance.md). Memory quality now requires [longitudinal evaluation](../architecture/longitudinal-memory-evaluation.md) of realistic use across multiple sessions: continuity in daily life and ongoing tasks, and whether remembered information helps the user. The new runner supports sixteen irregular sessions, answer-dependent user choices, normal recent context and durable continuation. Its [verification report](../evaluations/v1-2026-10-25-longitudinal-harness.md) separates executed checks from unassessed memory quality. Simulated story time does not prove real elapsed operation or aging, and the release gates have not yet all passed.
 
@@ -42,7 +42,7 @@ The core owns persistent memories, provenance, identity and scope, recall, learn
 
 Changing models, channels, or chat frameworks should allow the agent to retain its existing brain. Trusted configuration must explicitly map participants and conversations across platforms; display names or model guesses must not merge identities, and private-chat memories must not automatically enter group chats. Uninstalling an adapter should not delete core data. Independent operation and adapter replacement both require acceptance checks for restart recovery, retry deduplication, scope isolation, corrections, and deletion. These goals must not be presented as completed capabilities.
 
-The core, HTTP API, and Python synchronous text runtime operate independently of these chat frameworks. The desktop chat command and `open_agent()` session entry point connect directly to a configured Chat Completions model. External hosts still supply actual delivery and stable message identities. A model-compatible gateway and QQ framework adapters have not been delivered. MCP remains supplementary and cannot replace missing lifecycle integration.
+The core and HTTP API operate independently of these chat frameworks. (The bundled desktop chat and the `open_agent()` session entry point, which connected directly to a configured Chat Completions model, were removed; see [bundled chat and Python sessions](#bundled-chat-and-python-sessions-removed).) External hosts still supply actual delivery and stable message identities. A model-compatible gateway and QQ framework adapters have not been delivered. MCP remains supplementary and cannot replace missing lifecycle integration.
 
 ## Desktop setup
 
@@ -67,135 +67,13 @@ membrain desktop mcp-config
 
 Add this configuration to a host that supports stdio MCP to connect the memory tools. Configuration locations vary by host; setup does not currently modify external client configuration automatically. Starting this MCP connection automatically starts or connects to the local service. Closing the MCP connection leaves the service processing background tasks. After a computer restart, the next MCP connection or SDK `open_client()` call starts the service again with the same brain; no new setup is required.
 
-**The MCP connection is still `tools_only`.** It does not automatically read all host conversations, take over compaction, or confirm message delivery. Agents that need automatic memory should use a host plugin or adapter that supplies the host message lifecycle ([plugin mode](#plugin-mode)); the Python runtime below is frozen. Successful installation and automatic host integration are distinct states.
+**The MCP connection is still `tools_only`.** It does not automatically read all host conversations, take over compaction, or confirm message delivery. Agents that need automatic memory should use a host plugin or adapter that supplies the host message lifecycle ([plugin mode](#plugin-mode)); memBrain's own chat runtime was removed (below). Successful installation and automatic host integration are distinct states.
 
-### Direct chat and Python sessions
+### Bundled chat and Python sessions (removed)
 
-**Frozen:** the bundled chat mode (`desktop configure-chat`, `desktop chat`, `open_agent()` and the `BrainRuntime` turns behind them), in which memBrain calls a reply model itself, is frozen and outside the product's main line; it keeps working for existing users and will be removed later.
+**Removed:** the bundled chat mode and the Python session SDK built on it were removed after runtime `ba70e7cd`: the commands `membrain desktop configure-chat`, `desktop chat` and `desktop turn-status` (argparse now refuses them as an invalid choice), `membrain.agent_session.open_agent`, `membrain.runtime.BrainRuntime` with its on-demand orientation, its answer reviewer (`membrain.answer_review`) and its model-driven recall controller (`membrain.recall_control`, `membrain.recall_provider`), the chat model adapter (`membrain.chat_provider`), `membrain.runtime_client.RuntimeClient`, the turn lifecycle API they used, and the temporary (unrecorded) chat turns with the direct chat's own recording controls (`/off-record`, device capture for direct chat). Importing a removed module raises `ModuleNotFoundError`. In that mode memBrain called a reply model itself. It is fitted to agent hosts instead, through [plugin mode](#plugin-mode), the OpenClaw, AstrBot and Hermes adapters, [MCP](#mcp) and the [proxy](#openai-compatible-proxy), where the host's AI replies. Profiles, backups, turns and archives an older runtime left keep working; see [what the removed runtime mode left behind](#what-the-removed-runtime-mode-left-behind).
 
 The Python `MemoryClient` retries a bodyless GET once if the connection resets or closes with a protocol/read error. It preserves the same destination, authentication, recovery acknowledgement and request options, and emits a warning without request content. A second failure propagates. Each attempt retains the configured HTTP timeout; this is not a total wall-clock deadline. Writes, GET requests with bodies, timeouts, HTTP error responses and invalid JSON are not automatically retried. This does not authorize repeating a model call or an uncertain delivery.
-
-Run `configure-chat` without flags to enter a reply provider; an installation that configured a cognition model under an older runtime can copy that provider with `--use-cognition`:
-
-```sh
-membrain desktop configure-chat
-membrain desktop chat
-```
-
-Chat uses the same persistent brain and automatically captures input, recalls memory, generates an answer, records actual terminal delivery, and updates working state. No chat framework or memory-tool calls are required. The next invocation reconnects to the same brain and default conversation. Use `--conversation <stable-id>` and `--branch <stable-id>` to select a session. A new conversation is not a separate brain or a tenant privacy boundary; unrelated users need separate authorized brain identities.
-
-Reply settings live in private `chat.json`, separate from `profile.json`. They are protected local plaintext, not a system keychain. Changing the reply model does not restart the memory service or change the brain. `configure-chat` supports `--base-url`, `--model`, `--api-key-env`, optional `--thinking`, and `--non-interactive`. The default per-request limits are 4,096 output tokens, 180 seconds of network timeout and elapsed-time checks, and 1 MiB of response bytes. Override them with `--max-output-tokens`, `--timeout-seconds`, and `--max-response-bytes`. These are not cumulative spending limits or a hard cancellation deadline for a remote request. The runtime separately caps delivered text at 64,000 bytes.
-
-The Python entry point uses the same saved model configuration and session protection:
-
-```python
-from membrain.agent_session import open_agent
-from membrain.runtime import DeliveryReceipt
-
-def deliver(request):
-    channel.send(request.text)
-    return DeliveryReceipt("delivered")
-
-with open_agent(conversation_id=conversation_id, deliver=deliver) as agent:
-    result = agent.respond(text, message_id=message_id)
-```
-
-Install the package in the host's Python environment as well. The host supplies `channel`, input text, and stable identities. `open_agent()` starts or connects to the local service; `directory`, `branch_id`, `instructions`, `policy`, and `start_service=False` provide explicit overrides. A custom `generate` callback also requires a stable `generator_fingerprint` identifying its actual model and configuration. During normal recording, without `deliver`, the result remains a draft and the session remains pending; reopening with a delivery callback and calling `resume()` can deliver an eligible draft without generating it again. The lower-level `BrainRuntime` below remains available for custom recall controllers and answer reviewers; desktop chat does not enable those paid calls implicitly.
-
-One local session holds a cross-process lock for its brain, conversation, and branch. Other sessions using that same installation cannot run a second turn in that scope concurrently. This does not serialize clients on other machines, lower-level `BrainRuntime` instances, or direct API calls. A small durable sidecar holds pending identities and fingerprints, never message or answer bodies; the database remains authoritative. Pending work blocks a different message and freezes the model configuration, instructions, and runtime policy while generation or delivery remains possible. Already delivered or completed turns can finish or replay after a configuration change, with database identity and source checks retained and no new generation or delivery. Rotating a key alone does not change the generation fingerprint. Keep the installation directory intact when restarting.
-
-Interactive commands are `/quit`, `/resume`, `/retry <original input>`, `/cancel <turn-id>`, and the recording commands `/off-record`, `/on-record` and `/recording` described under [local recording controls for direct chat](#local-recording-controls-for-direct-chat). `/resume` only recovers a pending turn; it never changes recording. Recovery is explicit. If input capture was interrupted, retry the exact original input; the CLI reuses its saved message identity. For scripted use:
-
-```sh
-membrain desktop chat --conversation example --message 'Hello' --message-id event-001
-membrain desktop chat --conversation example --resume
-```
-
-Keep the same message ID and text when retrying a scripted send. During normal recording, reusing an existing ID with different input is rejected before creating new pending state. Recovery checks the pending input fingerprint against the database. A completed replay does not print or send the answer again. An uncertain model call or terminal write stays blocked rather than automatically charging or sending again; `/resume` cannot resolve an unknown external outcome. A successful terminal receipt means output was written and flushed, not that a person read it.
-
-To deliberately close a blocked turn, use `/cancel <exact-turn-id>` or `chat --cancel <exact-turn-id>`. This preserves its sources and failure record and permits a new message with a new ID. For an unknown generation or delivery outcome, explicitly use `/cancel-uncertain <exact-turn-id>` or add `--acknowledge-uncertain` to the scripted cancellation. Cancellation neither retries the model nor sends a reply, and cannot undo a possible charge or send; the journal retains `generation_uncertain` or `delivery_uncertain`. A confirmed delivery still awaiting commit must be resumed, not cancelled. The Python equivalent is `agent.cancel(turn_id=..., acknowledge_uncertain=False)`. A cancellation network failure keeps the pending record so the same cancellation can be reconciled against the durable journal. Cancelling is also the way to close an undelivered turn before changing a frozen policy or model; do not manually delete its sidecar.
-
-Inspect the unfinished turn before choosing a recovery action:
-
-```sh
-membrain desktop turn-status --conversation example --branch main
-```
-
-Use the original conversation, branch, and installation directory; defaults are `desktop-chat` and `main`. This command reads bounded metadata from an already-running service without generating, sending, resuming, or cancelling anything. `turn: null` means no unfinished owner was found at that moment, not that all messages were delivered. See [integration and recovery diagnostics](../architecture/integration-troubleshooting.md) for provider errors, occupied conversations, and uncertain outcomes.
-
-This entry point supports synchronous text Chat Completions only. It preserves runtime messages, rejects truncated replies and tool calls, and does not retry provider requests. It does not implement streaming, tool loops, multimodal input, a model proxy, or automatic integration into another client. `ChatCompletionsGenerator.last_usage` and `last_request_id` expose bounded, validated diagnostics for its most recent call; missing or invalid usage remains unknown, and these fields are not a persistent billing ledger. Full cognitive quality remains a separate evaluation target. The default orientation policy stays `always`; `chat --orientation on_demand` explicitly selects the tradeoffs described below. `--instructions-file` accepts a UTF-8 file up to 64,000 bytes, subject to the smaller effective full-input budget.
-
-#### Temporary chat while server recording is paused
-
-With migration `034_ephemeral_turns.sql`, `BrainRuntime`, `open_agent` and `desktop chat` automatically use temporary turns when the selected brain's **server recording** switch is paused. They generate and deliver a reply without observing messages, saving drafts or replies, preparing persistent memory packets, running orientation, updating working state, or queuing learning. `TurnResult.ephemeral` is true. The CLI labels the result and does not report it as a completed learning turn. Resume permits new durable messages; temporary history is never backfilled.
-
-The runtime holds a bounded recent temporary dialogue in memory, separated by brain, conversation and branch. Updated context limits apply before the next generation. It also reads a bounded slice of existing messages from that exact conversation and branch. This is recent-history context, not the ordinary cross-conversation semantic recall pipeline. `recent_context_events` and `memory_context_tokens` bound the temporary buffer; at most 32 scopes are retained by one runtime. A policy or dependency-generation change invalidates the buffer when next checked. Closing `open_agent` clears its runtime-owned buffer; restarting does not restore it. Hosts/providers may retain their own inputs or transcripts, and this is not a secure-memory-erasure guarantee.
-
-The service keeps content-free control rows: opaque turn identity, conversation/branch identifiers, recording/context revisions, lease/stage metadata, a reported delivery-state enum, model-call reservation counts and an optional reviewer-configuration fingerprint. The input fingerprint is a fixed zero marker, never a digest of temporary text. Source references, draft/response hashes, review contents and delivery bodies are absent. A database constraint and separate state-transition endpoint prevent temporary turns from becoming durable turns. Completed temporary IDs replay only a completion marker, without returning text or calling generation/delivery again. Reusing such an ID after recording resumes is rejected; use a new stable ID for a new message. Without retaining a content digest, the service cannot compare the text of reused temporary IDs; it never treats their reuse as a new message. Without a delivery callback, completion means the response was prepared for return, not that an external recipient received it.
-
-An explicitly configured answer reviewer still runs once, before delivery. Its draft, request and assessment remain in process memory; the service reserves only the call count and configuration fingerprint. Rejection, uncertainty or invalid output prevents delivery. A crash during generation, review or delivery is not automatically retried. Inspect the exact turn with `desktop turn-status`; after its lease expires, explicitly cancel it through the owning session, acknowledging an uncertain external outcome when required. Cancellation releases the scope but cannot undo a model charge or a send. A restarted temporary turn cannot reconstruct its input or answer from control metadata. Restoring a database checkpoint that predates those control rows is outside the restart/deduplication guarantee.
-
-Pausing during an already durable turn preserves content accepted before the pause and stops subsequent capture; it does not erase earlier records or recall an external request. A raced begin leaves no new capture and its local pending marker is removed. A generation/delivery already in flight retains its uncertainty and may require explicit cancellation before a new temporary message. Resuming or erasing memory during temporary generation invalidates its context before delivery; a callback already dispatched cannot be recalled. Its returned delivery state can still settle without storing a body, even if the policy changed; stale text is then withheld from the result and temporary history.
-
-The server switch is one of three independent reasons a direct turn can be temporary; the next section describes the other two and the per-turn opt-out. Conversation-specific switches of other host adapters remain separate controls, and this runtime is not added to every host. All service processes and Python clients must be upgraded together.
-
-#### Local recording controls for direct chat
-
-`open_agent` and `desktop chat` bind two machine-local controls to their turns, beside the brain's server switch. Each is read separately before a new message, and any one of them makes that message a temporary turn with the guarantees above:
-
-| Control | Scope | Changed by |
-| --- | --- | --- |
-| Server recording | The whole brain, every client | `PUT /v1/brains/{brain_id}/recording`, the memory page |
-| Device capture | Every direct conversation of this installation, for a limited time or until resumed | The memory page's **Chat capture on this device**, `POST /v1/local/recording`, `membrain plugin pause`/`resume` |
-| Conversation choice | One conversation branch of this installation, brain and user | `/off-record` and `/on-record` in `desktop chat`, `chat --off-record`/`--on-record`, `AgentSession.set_off_record`, or a recognized opening command |
-
-The controls never change one another, but their scopes differ. Pausing device capture intentionally excludes every direct conversation on this installation; it does not pause the brain, and other clients can still write. Taking one conversation branch off the record excludes only that branch: another conversation, another branch of the same conversation and the brain keep recording. Neither changes the service's recording revision. Resuming server recording leaves a device pause and an off-record choice in place; `/on-record` leaves a device pause in place; resuming device capture leaves an off-record conversation off the record.
-
-`/off-record` keeps new messages of the current conversation branch out of memory until `/on-record`; `/recording` shows the three controls without changing them. The scripted forms `desktop chat --off-record`, `--on-record` and `--recording-status` send no message and print the state as JSON on standard output. These commands and their text are never sent to the model or the memory service as a message; a mistyped form such as `/off-record: ...` is refused instead of being sent. The existing `/resume` and `--resume` keep their meaning: recovery of a pending turn.
-
-A message that opens with a recognized [direct control](#chat-adapter-identity-compatibility), such as `Off the record: ...` or `请不要记录这一段：...`, takes the conversation branch off the record before anything is captured, and is then answered as a temporary turn. The same bounded English/Chinese grammar as the host lifecycle applies: the whole first clause must match, so quoted examples and reported speech do not trigger it. No natural-language resume is inferred; use `/on-record` or `set_off_record(False)`.
-
-The conversation choice is stored as one small file beside the session's pending sidecar, under the same key: installation, brain, tenant, user, conversation and branch. It holds that identity and the word `off`, and no message text. Only a missing file means on the record. A file that cannot be read, or that names another identity, is reported as `unknown`, never as off the record. Device capture is read from the existing installation pause file without taking a lock, creating host state or removing an expired pause; a limited-duration pause ends by the host's existing expiry rule.
-
-Only a pause of the whole installation, timed or until resumed, pauses a direct conversation. The host lifecycle can also store a narrower pause in the same file: a host conversation asked not to be recorded, and the file lists the host conversations that were active on this installation when it was set. The list is shared by the installation and does not name an originating adapter. By the host lifecycle's own rule the pause covers those listed conversations. A host conversation outside the list is not covered and does not end it: the pause ends with a resume, or when a conversation outside the list starts after every listed one is over (no unfinished turn and no activity for six hours). A pause that could identify no conversation when it was set lists none; it covers every host conversation until the next one starts. A direct conversation is not in that list, so this pause does not apply to it, and it neither inherits nor ends the pause; the listed host conversations stay excluded. Whether a direct message is recorded still depends on its own server, device and conversation controls. `recording_state()` then reports device capture as `on` with `host_conversations: "paused"`. `GET /v1/local/recording` still reports `local.paused: true`, because some local capture is blocked, and adds `local.scope`: `installation` or `conversations`. The memory page shows the narrower case as **Host conversation paused**, says that it does not apply to direct chat, and does not promise that direct messages are recorded. If the list is missing or malformed, nothing but a resume ends the pause, so it is treated as covering the installation.
-
-`AgentSession.recording_state()` returns `recording` (`on`, `paused` or `unknown`), `new_message` and `controls.server`, `controls.device` and `controls.conversation`, each with its `scope` and `state`. A paused device control also carries `until` and an opaque `revision` identifying that exact pause. `recording` is `paused` when a control is known to exclude new messages, and `unknown` when none is known to but one could not be confirmed. Each control keeps its own known state; an unconfirmed one is never shown as off.
-
-`new_message` says what sending a message would do now, and keeps local uncertainty apart from service reachability:
-
-| `new_message` | When | Meaning |
-| --- | --- | --- |
-| `record` | All three controls are confirmed on | The message starts a recorded turn |
-| `temporary` | The service answered, and a control excludes recording or a local control is unreadable | The message is handled as temporary, which always needs the service to confirm a temporary reservation; without it the turn stops before generation. For an unreadable local control this is a precaution, not confirmation that recording is off |
-| `unavailable` | The service did not answer or gave no valid state | No turn can start, recorded or temporary. A known local pause is still reported, but temporary handling is unconfirmed until the service answers |
-
-These are separately read snapshots, not a transaction across stores.
-
-`TurnResult.temporary_causes` names every control behind a temporary turn as `TemporaryCause(reason, scope, until)`:
-
-| Reason | Scope | Meaning |
-| --- | --- | --- |
-| `server_paused` | `brain` | The server switch was paused when the turn began |
-| `local_pause` | `installation` | Device capture was paused; `until` carries a limited pause's expiry |
-| `off_record` | `conversation_branch` | This conversation branch is off the record |
-| `caller_opt_out` | `turn` | The caller passed `record=False` |
-| `local_state_unreadable` | `installation` or `conversation_branch` | That local control could not be read. The turn is temporary as a precaution; the control's state is unknown, not confirmed off |
-
-Causes are a recording outcome and say nothing about delivery, which `DeliveryReceipt` reports. A completed stage does not mean a turn was recorded: check `ephemeral`. A replayed temporary completion marker carries no causes, because the service does not store why a turn was temporary.
-
-`BrainRuntime` is host-independent and reads no device-local files. `BrainRuntime.respond(..., record=False)` keeps one turn out of memory while the brain's recording stays enabled. It is never downgraded to a recorded turn: combining it with `allow_temporary=False` raises `ValueError` before any request, and `record` must be a boolean.
-
-Without a server pause, the runtime asks the service for an explicit reservation: `POST /v1/brains/{brain_id}/runtime/ephemeral-turns` with `"off_record": true`. The service checks the same authentication, expected recording revision, dependency generation, branch reservation, lease and turn identity as for a paused brain, and changes no recording control. A turn identity that already belongs to a recorded turn is refused. A service that predates this field rejects the request, or has no such route; the runtime then raises `RuntimeBlocked("off_record_reservation_rejected")` before any model call and never falls back to a recorded turn. The same code is used when the service refuses the reservation as invalid for another reason.
-
-A recorded turn that is still pending is never converted to a temporary one, and nothing resumes it automatically. While a local control excludes recording or cannot be read, `respond` with the same message and `resume` raise `SessionError("pending_turn_recording_excluded")`. Cancel the turn with its identifier, or turn recording back on and then resume it. Only bookkeeping for a reply that was already delivered may finish, since it captures nothing new. A different message is still refused with `pending_turn`, and a privacy command in a refused message changes nothing.
-
-Temporary content from any of these causes stays out of memory events, learning and consolidation queues, the host spool, pending sidecars, draft or review bodies, personality and relationship state, and the memory map. It is never backfilled when a control is lifted.
-
-Temporary context ends with the local policy it was built under, as it does with the server's. Changing the conversation choice ends it, and so does any change of the applicable device pause seen at the next message: a pause that began, ended, expired, or was lifted and set again, even with the same duration and with no message sent in between. The session compares the pause's own identity, read in the same single file read. A limited pause that expires is such a change by this machine's clock. A service that does not answer is not: the turn stops, the context is left alone, and the service's own revision decides once it answers.
-
-Local controls are a capture decision for a new message, and a precondition for explicitly recovering a pending one. They are not a fence around a turn already running. A device pause set while a recorded turn's model or delivery callback is executing does not cancel that call, withdraw what was sent to the model or a recipient, or remove what that turn captures; it applies from the next message. Only the server switch fences a recorded turn in progress, as described under [server recording control](#server-recording-control).
-
-Limits: local controls and the service are not one transaction, so a control changed after the session's read, including during a running turn, applies from the next message. While recording stays enabled, a correction, erasure or newly published belief relation advances the dependency generation; an in-flight temporary turn then stops with `context_stale` and the temporary context restarts. Per-user pause files of multi-user chat adapters do not apply to a direct session, which uses the installation's own identity. Other hosts' hooks, the proxy and Hermes are unchanged by this section.
 
 ### Local status and configuration
 
@@ -276,151 +154,17 @@ The database binds to `127.0.0.1:55432` by default, and HTTP binds to `127.0.0.1
 
 ## Automatic integration
 
-**Frozen:** `BrainRuntime`, with its orientation, answer review and recall controller, belongs to the frozen chat mode, in which memBrain calls models itself; the product's main line integrates through host plugins and adapters, where the host's AI replies.
-
-Python's `BrainRuntime` manages synchronous text turns. The host initializes it once with a model generation function and an actual delivery function. Application code submits received messages without calling memory tools or orchestrating reads and writes on each turn. The following example is for host developers. Install `membrain` in the host's Python environment as well, using the same source URL if needed; the CLI installed by `uv tool install` has an isolated environment and does not change the host's Python dependencies. Integration code can read the local configuration and connect to the stable brain directly:
-
-```python
-from membrain.desktop_connection import open_client
-from membrain.runtime import BrainRuntime, DeliveryReceipt
-
-def generate(request):
-    return model.generate(messages=list(request.messages))
-
-def deliver(request):
-    channel.send(request.text)
-    return DeliveryReceipt("delivered")
-
-with open_client() as memory:
-    runtime = BrainRuntime(memory, generate, deliver=deliver, instructions=agent_instructions)
-    result = runtime.respond(text, message_id=message_id, conversation_id=conversation_id)
-```
+Automatic memory, recording each exchange and recalling before each reply without the main agent calling memory tools, comes from a host's own lifecycle: [plugin mode](#plugin-mode) for Claude Code, Codex and the other plugin hosts, the [OpenClaw](#openclaw), [AstrBot](#chat-bots-and-astrbot) and [Hermes](#hermes-agent) adapters, and the [proxy](#openai-compatible-proxy). memBrain's own Python turn runtime (`BrainRuntime`), with its on-demand orientation, its answer review before delivery and its model-driven recall controller, was removed with the [bundled chat](#bundled-chat-and-python-sessions-removed). Applications that drive the memory operations themselves use the [low-level interfaces](#current-low-level-interfaces).
 
 `open_client()` starts or connects to the local service and returns a `MemoryClient` bound to the stable `brain_id`. Pass `directory=Path(...)` to select an installation directory, or `start_service=False` to connect only to an already-running service. It does not require copying an access token and does not read `.env` from the current working directory. Development deployments can still construct `MemoryClient` manually and retain the brain in their original database.
 
-The host supplies `model`, `channel`, and message identities in this example; `open_client()` does not capture host messages itself. The generation function must use the runtime-provided `messages`, which preserve host system instructions and add sourced, budgeted memory material and the current input. The host must persistently assign `message_id` when receiving a message and keep it unchanged across retries. A new process reconnects using the same brain identity. [examples/autonomous.py](../examples/autonomous.py) uses a fixed reply instead of a reply model. A configured server-side cognition model can still make paid calls for situation analysis and background processing. To run this example without paid model calls, use a service and worker without one.
+Historical user feedback may guide a reversible suggestion for the same task without certifying a permanent current rule. The host shares this [bounded permission](../architecture/historical-suggestions.md); current changes, false applicability and unresolved conflicts still constrain use. An earlier assistant proposal does not establish user adoption.
 
-The runtime automatically persists inputs, recalls before answering, saves drafts, confirms delivery, retains valid working state, and checkpoints. Each turn uses leases and revision checks. Draft persistence and phase advancement share one transaction, as do delivery recording and phase advancement. `runtime.resume(turn_id)` continues from the persistent phase; completed turns return their delivered result without generating or sending again. With a cognition processor configured, the runtime also interprets the current situation before answering. Source-checked situation inferences are merged into working state only after actual delivery, and remain labeled as inferences rather than verified facts.
-
-Return `delivered` only after the host confirms actual sending. For partial delivery, use `DeliveryReceipt("partially_delivered", delivered_text=actual_text)`; use `cancelled` for cancellation and `unknown` when the sending outcome cannot be confirmed. Without a delivery function, the turn stops at `generated`, and its draft is excluded from recall. `delivered` means host-confirmed delivery, not proof that the user has read the message.
-
-A durable reservation allows one unfinished turn per brain, conversation, and branch across hosts connected to the same upgraded service. A competing new turn receives `scope_conflict` before its input is captured or its model is called. Releasing or expiring the worker lease does not release that reservation: a saved draft or uncertain external operation still belongs to its original turn. Resume that turn or explicitly close it before submitting a different message. Independent conversations and branches remain available. A completed message can still replay while a newer turn owns the scope. `scope_reserved` and `reserved_scope_count` expose occupancy separately from active worker leases.
-
-Delivery recording distinguishes the host's confirmed send from successful memory-state commit. After a valid sending authorization, `record_output` preserves a bounded `delivery_receipt` containing the actual-text SHA-256 digest and byte count, authorization metadata, and fixed disposition and failure codes. It never copies response text into monitoring. If unrelated memory or working state changes during sending, the actual delivered content can be retained while the turn closes as `failed`; stale situation updates are not applied. If a bound source was changed or erased, only receipt metadata is retained and no deleted text is revived. The receipt's `state` can therefore be `delivered` while the turn's `stage` is `failed`. A later invalidation before `finish` also preserves the receipt and closes the uncommitted turn without overwriting newer working state.
-
-The runtime reports that failure without sending again. A local session clears its pending marker only after verifying the matching terminal receipt; an uncertain network response keeps recovery pending. A confirmed scope rejection with no remote turn can also clear a local marker, without cancelling the other host's turn. A lease lost to another worker still requires reconciliation: this does not guarantee exactly-once delivery across a process crash between sending and recording its receipt. Existing checks before generation and before sending remain enforced.
-
-Upgrade all API service processes before relying on cross-host exclusion; mixing older servers against the same database is unsupported. Migration preserves historical unfinished turns and grants each scope's oldest turn the reservation, leaving later legacy turns available for ordered recovery. Migration requires a database role that can see all rows despite row-level security and fails rather than silently skipping hidden turns. The normal desktop migration connection already has that role. Runtime reservations and delivery receipts are operational records and are not copied into memory archives.
-
-For an older delivered turn with no receipt, resume can still close a stale turn and release its reservation after source deletion. If this returns a terminal failure, explicitly cancel its local pending marker before sending the next message; the session cannot automatically verify a receipt that was never recorded.
-
-When an external model call or delivery has an uncertain outcome, the default is to stop and report `generation_uncertain` / `delivery_uncertain`. Enable `generation_is_idempotent=True` / `delivery_is_idempotent=True` only if the host implements durable deduplication or result lookup using `request_id` / `delivery_id`. Ordinary HTTP retries, printing output, or a typical model API do not establish this property. Lease expiration can block later writes and calls, but cannot cancel a request already accepted by an external system. Similarly, deletion and correction cannot retract content already provided to a model or delivery channel; subsequent generation results are checked again.
-
-`RuntimePolicy` separately limits memory material and the full message budget, using UTF-8 bytes as a conservative estimate. The runtime reserves host/protocol/current-input overhead and JSON escaping before requesting memory; the final complete prompt remains bounded. The host should reserve space within the model's total context window for output and protocol overhead. The current service limit for text output is 64,000 bytes. The synchronous adapter does not handle tool loops, streaming messages, automatic message editing, context compaction, or merging branches from concurrent turns. Its capability is explicitly reported as `partial_automation`.
-
-### On-demand analysis before answering
-
-The default `RuntimePolicy(orientation_policy="always")` retains a situation proposal and an independent verification on every turn. After applying `011_orientation_route.sql`, integrations focused on ordinary conversation and recall of known facts and preferences can explicitly select:
-
-```python
-from membrain.runtime import RuntimePolicy
-
-runtime = BrainRuntime(
-    memory, generate, deliver=deliver,
-    policy=RuntimePolicy(orientation_policy="on_demand"),
-    answer_reviewer=answer_reviewer,
-)
-```
-
-The server examines candidate dependencies and relations from the current retrieval before applicability filtering. When there are no situation dependencies, it reuses the same context packet to answer directly, avoiding two foreground semantic calls. Conditional memories or relations, working items, unresolved items, or incomplete dependencies still require full analysis. Existing orientation jobs continue to resume; semantic recall controllers and vector recall also retain full analysis for now. Routing adds no classifier-model call, does not guess from keywords, and does not claim that the entire brain contains no other relevant memories.
-
-`orientation_route` persistently records the policy, the decision to skip or analyze, fixed reasons, and input and dependency fingerprints. Skipping is not successful semantic verification. The server stores an internal preflight and rechecks it under a lock before preparation and generation. A version counter alone is insufficient because newly published background beliefs may not yet have advanced it. After generation, the skip prerequisites, current context, and sources are checked again even without an answer reviewer. Recovery cannot silently change the policy. Preflight records are excluded from ordinary monitoring responses; routing exposes only identifiers, counts, and hashes, without copying message bodies.
-
-The two policies are not fully equivalent: skipped turns do not immediately derive or commit new situation summaries, goals, or pending-task state. The original input is still independently passed to the host and persisted. With a cognition processor configured, background learning is still queued and must be executed by the worker. Agents that depend on immediate goal tracking should retain `always`. The existing `answer_reviewer` independently controls answer review; the fast path does not disable it automatically.
-
-The on-demand path trades extra local reads for less foreground model waiting. Complete delivery typically prepares or rechecks context five times. Snapshots remain conservatively bound to brain-wide event and index progress. Other conversations or background activity may trigger `context_stale` even when the ultimately relevant content is unchanged. This concurrency limitation has not been optimized; current small-sample latency must not be extrapolated to high-concurrency performance.
-
-### Answer review before delivery
-
-Correctly calculating a memory's applicability does not guarantee a correct host response. An integration can enable independent answer review:
-
-```python
-import os
-
-from membrain.answer_review import AnswerReviewer, AnswerReviewPolicy
-from membrain.answer_review_provider import ChatCompletionsAnswerReviewProvider
-
-with ChatCompletionsAnswerReviewProvider(
-    base_url=os.environ["MEMORY_REVIEW_BASE_URL"],
-    api_key=os.environ["MEMORY_REVIEW_API_KEY"],
-    model=os.environ["MEMORY_REVIEW_MODEL"],
-) as provider:
-    runtime = BrainRuntime(
-        memory, generate, deliver=deliver, instructions=agent_instructions,
-        answer_reviewer=AnswerReviewer(
-            provider, reviewer_id="my-review-provider-and-model-config-v1",
-            policy=AnswerReviewPolicy(max_output_tokens=4096),
-        ),
-    )
-    result = runtime.respond(text, message_id=message_id, conversation_id=conversation_id)
-```
-
-Apply `010_response_review.sql` before enabling review. The example explicitly reads these environment variables. Existing integrations without `answer_reviewer` remain disabled and do not incur hidden model calls. `reviewer_id` must stably identify the actual endpoint, model, and reasoning configuration; change it when changing providers. The runtime cannot automatically identify the internal implementation of an arbitrary custom callback.
-
-For durable turns, each draft is reviewed at most once. The runtime first persists the draft and call reservation, then supplies the reviewer with the full messages used for generation and the original draft as material. The reviewer separately checks the current input, historical support, applicability, uncertainty, and claims that actions have completed. Returning or sending the draft is permitted only when all checks explicitly agree and coverage is complete. Problems, uncertainty, invalid responses, or provider failures raise `RuntimeBlocked`. The draft is retained but neither delivered nor included in recall. Hosts must handle this state; there is currently no automatic rewriting or paid retry to generate a replacement answer.
-
-The policy, request and draft digests, and memory versions are bound to the turn; the server also checks delivery permission. Recovery does not call the reviewer again if a process interruption leaves review `pending`. An approved draft can continue after reconstructing and checking its original context and current applicability. A prepared policy cannot be downgraded by disabling review. Completed turns still replay the original delivery fact, without retroactively declaring that an old answer passed a new review. An unknown sending outcome remains `delivery_uncertain`, even if the recovery instance has no delivery callback.
-
-`GET /v1/brains/{brain_id}/runtime/turns/{turn_id}` exposes `response_review_policy`, `response_review`, and reserved call counts; `runtime/status` exposes counts by state. Diagnostics store only fingerprints, states, and fixed reason codes, without copying drafts or conversation bodies. Completed review counts, reservations, and actual token usage are different quantities; callers must meter actual provider usage separately.
-
-Review adds one model request and its latency. Separate budgets limit input bytes, output tokens, and response bytes. The built-in HTTP adapter enforces network timeouts; custom synchronous callbacks must honor request deadlines themselves. Semantic consistency and complete coverage remain model judgments, not factual proof. Permission is bound only to the draft passed to the delivery callback. Text truncated or rewritten by a channel is recorded as actually delivered, without claiming it passed the same review.
-
-Historical user feedback may guide a reversible suggestion for the same task without certifying a permanent current rule. The host and optional answer reviewer share this [bounded permission](../architecture/historical-suggestions.md); current changes, false applicability and unresolved conflicts still constrain use. An earlier assistant proposal does not establish user adoption.
-
-The host interpretation protocol, `memory-consumption-v5`, distinguishes a natural conversational acknowledgment from a claim that storage has completed. Without trustworthy completion evidence for the corresponding operation, the host must not claim that something has already been saved or permanently remembered. Capturing the original message does not establish that semantic consolidation is complete. This is a semantic constraint, not a word blacklist. If an answer is rejected, the received user input remains persisted. With a semantic processor configured, its background learning window was already queued in the capture transaction and must actually run in the worker; queuing alone is not successful learning.
+The host interpretation protocol, `memory-consumption-v5`, distinguishes a natural conversational acknowledgment from a claim that storage has completed. Without trustworthy completion evidence for the corresponding operation, the host must not claim that something has already been saved or permanently remembered. Capturing the original message does not establish that semantic consolidation is complete. This is a semantic constraint, not a word blacklist.
 
 Assistant speech exposed for an explicit speech, quotation, episode or commitment request carries `assistant_speech_not_user_experience`; it cannot prove details of the user's life or external outcomes. An older literal's optional `source_act` explains a corrected speech-act interpretation while preserving its original statement. New events explicitly record their segmentation version. New cognitive jobs use `recall-resolution-v1`, inheriting `source-act-boundary-v1`; older frozen requests retain their prior contract. See the [source and recall repair architecture](../architecture/longitudinal-repairs.md) for scope and ranking, and [source-preserving recall resolution](../architecture/recall-resolution.md) for verified short expressions and compatibility.
 
 `recall` accepts optional `detail_level="auto" | "summary" | "full"`; MCP exposes the same option. Auto can use a verified short expression for an older memory. Concrete detail cues and explicit recollection intents keep full detail. `summary` is a preference, not permission to omit necessary qualifications. `inspect(memory_ids=[...])` returns the full assertion and original sources. Compact context marks short expressions as `summary_expandable`; raw results retain complete memory documents and presentation diagnostics. Use the SDK context helpers for model injection rather than dumping that raw result. Existing assertions without a verified summary remain detailed, and upgrade performs no automatic paid archive rewrite.
-
-### Semantic recall
-
-The host can configure a model for recall during initialization. The main agent still receives assembled context and does not need to decide when to call memory tools. This example reuses the earlier `memory`, `generate`, and `deliver`; actual model calls use API credentials supplied by the host:
-
-```python
-import os
-
-from membrain.recall_control import RecallController, RecallPolicy
-from membrain.recall_provider import ChatCompletionsRecallReasoner
-
-with ChatCompletionsRecallReasoner(
-    base_url=os.environ["MEMORY_REASONER_BASE_URL"],
-    api_key=os.environ["MEMORY_REASONER_API_KEY"],
-    model=os.environ["MEMORY_REASONER_MODEL"],
-) as reason:
-    runtime = BrainRuntime(
-        memory, generate, deliver=deliver,
-        recall_controller=RecallController(reason, RecallPolicy(
-            max_model_calls=3, max_search_calls=4,
-            max_input_bytes=48000, max_request_bytes=16000,
-        )),
-    )
-    result = runtime.respond(text, message_id=message_id, conversation_id=conversation_id)
-```
-
-The adapter uses Chat Completions JSON mode and requires support for `response_format: {"type": "json_object"}`. `base_url` is the API root; the adapter appends `chat/completions`. The host explicitly selects the model. See [DeepSeek JSON Output](https://api-docs.deepseek.com/guides/json_mode/) and the [Chat Completion API](https://api-docs.deepseek.com/api/create-chat-completion) for the protocol. You can also supply your own `reason(RecallReasoningRequest) -> str` function, returning a decision according to the request's JSON Schema. Without a controller, recall remains lexical and makes no additional model calls.
-
-Each turn automatically retains recent received or delivered messages from the same conversation and branch: up to six by default, configurable from zero to eight through `RuntimePolicy(recent_context_events=...)`. They provide chronological context and are explicitly labeled as conversation material. Assumptions in questions, assistant statements, and dreams do not thereby become objective facts. Recent messages and long-term candidates share the context budget.
-
-Both default lexical recall and semantic recall in the synchronous runtime use a historical evidence boundary preceding the current input. The current statement still participates in answering and situation understanding as the current input, but cannot be retrieved again as independent evidence that it was already remembered. Recovery reassesses memory applicability. The diagnostic-only field `evaluated_at` is excluded from the model projection so that merely refreshing the evaluation time does not alter the same request. Full diagnostics retain that timestamp; actual changes in validity, expiration, or sources still prevent reuse of an old request.
-
-Earlier user instructions such as “Please keep your answers brief” can be recalled as preferences after independent semantic verification. Their source must be a received user message, and the full instruction fragment must be cited. This rule also preserves preferences with counterevidence. It neither turns the original instruction directly into a fact nor relaxes historical-evidence restrictions for question presuppositions, the current input, or its descendants.
-
-The controller can stop recalling or propose another cue and continue searching. At completion, it can select only memory IDs it has already seen. All searches retain the evidence boundary preceding the current input. The server ultimately rechecks sources, versions, corrections, deletions, and scope. Indistinguishable candidates remain `ambiguous`; inadequate support remains `insufficient`. `sufficient` means only that the model considers the material relevant, not that facts are verified or history has been exhausted.
-
-Selected versions, recent-conversation references, and coverage limits are persisted as a `recall_plan` before generation. Recovery reconstructs context from the same plan and stops if a source becomes invalid, rather than silently substituting another memory. Model-call counts and input bytes are durably reserved before each request and do not reset after a process interruption. Search-count and elapsed-time limits apply to each planning attempt; they do not accumulate across restarts. Failed requests still consume their reservations, and the adapter does not retry automatically.
-
-By default, each planning attempt has a 15-second limit, and each model output is limited to 1,024 tokens, with a response-byte limit checked as well. Timeouts use network-operation limits and checks after return; they cannot forcibly interrupt arbitrary host callbacks. Call and byte budgets limit resource use but are not connected to actual provider token billing and are not monetary caps. Provider failures, invalid decisions, or budget exhaustion record a stop reason and preserve uncertainty in the answer.
 
 ### Recall workers, embeddings and lexical retrieval
 
@@ -442,7 +186,7 @@ What an older runtime's learning stored stays in the database (no table or migra
 - **Correcting, forgetting and erasing** a message or memory still clears every row derived from it, also in archives the server holds: claims, episodes and their members, associations, belief relations, pattern views, learning jobs (result cleared, state `superseded`), feedback contributions and the access state recomputed from them (`legacy_erasure.py`).
 - **Archives** that carry cognitive views and belief relations still export and restore (a local archive with its views; an uploaded one with its interpretations quarantined), and what is restored is erasable.
 - **Learning jobs** (`orient`, `consolidate`) left queued, failed, deferred or running are never claimed again, whatever kinds a caller asks for, and are not counted as pending or failed in the status the plugin and the memory page show; they stay listed with the other jobs. Model-call reservations and budgets stay in their tables for recovery and erasure; nothing reads them otherwise.
-- A runtime turn captured before the upgrade can still use a completed orientation stored for it while all its sources are current; no new one is made, and `orient` now only checks the turn's lease, stage and recording.
+- Orientations stored for runtime turns are no longer read: `prepare` no longer reads runtime turns (see [what the removed runtime mode left behind](#what-the-removed-runtime-mode-left-behind)).
 
 Pattern views, which grouped facts that several episodes shared into one definition with per-episode differences, have been removed. The runtime no longer builds or reads them. Rows that an older runtime stored in `memory_pattern_views` stay in the database: correcting, deleting or erasing their sources, memories or episodes still clears them (`legacy_erasure.py`), and the memory page still shows the ones that remain valid. Exported archives never contained them, and restoring an archive no longer rebuilds them. `prepare` presents each selected fact on its own, with its own sources and applicability.
 
@@ -470,9 +214,7 @@ Lexical retrieval combines the original feature-hash route with a bounded Postgr
 
 Candidates can come from lexical retrieval, configured semantic vectors, episode structure, and association paths, then undergo common source and applicability checks. After a lexical hit on a retained original source, retrieval also follows supporting evidence to the corresponding semantic belief. For example, even if the source is Chinese and its generalization is English, a query matching a valid supporting fragment can still find that belief. The bridge checks exact source versions, content hashes, scope, branch, and deletion status; counterexamples or background citations cannot masquerade as support. Complete dependencies and current applicability are still checked afterward. The source bridge reads at most 64 source events and retains at most 512 linked beliefs for recall or 256 for learning, with actual budgets potentially lower and one extra candidate row used to detect truncation. Reaching a limit reports restricted coverage. This does not establish arbitrary cross-language understanding or recover every paraphrase from sources with no lexical match. Representations use different access-decay policies: details move into deeper tiers sooner, while generalizations and key beliefs remain accessible longer, and explicit cues may still recover details. Decay parameters are adjustable engineering policies, not yet calibrated against long-term conversation and not biological laws of human forgetting. Access decay does not automatically erase original sources; permanent deletion still uses `forget`.
 
-Internal retrieval hits and model claims that a memory was helpful do not increase external-use counts. The runtime now automatically considers a following original user message containing a complete explicit confirmation or correction, such as “correct” or “wrong.” It can affect access only after an actual delivered answer containing one unique exact selected statement or quotation, with the current memory version and all supporting sources intact. The original interpretation hint is preserved; no additional model request or belief promotion occurs. Paraphrases, added questions or claims, ambiguous identical statements, imported feedback, and tool observations without outcome linkage remain trace-only. A recalled literal tail without a published assertion also remains trace-only.
-
-The prepared turn durably binds the final server-issued packet, exact context hash, selected versions, and source hashes. Later validation prepares or request-cache eviction cannot replace that binding. Custom contexts explicitly opt out, preventing both automatic credit and manual legacy fallback. Older turns without a binding retain their conservative manual checks, including rejection of ambiguous preparation attempts, and receive no automatic credit. State transitions and event sequence establish delivery order without requiring application and database wall clocks to agree.
+Internal retrieval hits and model claims that a memory was helpful do not increase external-use counts. External feedback credits a memory only through the `recall_feedback` of the `commit` action: a received original user message with a complete explicit confirmation or correction, such as “correct” or “wrong”, credits a memory only after a runtime turn delivered an answer containing one unique exact selected statement or quotation, with the current memory version and all supporting sources intact. Runtime turns are no longer created, so only turns an older runtime left can establish that; otherwise the feedback is kept as a trace that credits nothing. The runtime's automatic attribution of the user's next message to its previous answer was removed with it. Paraphrases, added questions or claims, ambiguous identical statements, imported feedback, and tool observations without outcome linkage remain trace-only. The binding such a turn stored (the final server-issued packet, exact context hash, selected versions and source hashes) is what the check reads; custom contexts opted out of it.
 
 Each attributable feedback event/version contributes once to a separate provenance ledger. Correction or erasure invalidates affected contributions and rebuilds access from surviving evidence. Processing an older feedback event does not make it recent. Negative outcomes lower utility without increasing activation or refreshing reinforcement time. Migration 014 clears older access aggregates because they cannot establish exact delivered-use provenance; original sources and memories remain. These metrics describe utility, not truth probabilities, and do not promote an assistant's earlier statements into facts about the world.
 
@@ -480,24 +222,27 @@ The [first-release foundations report](../evaluations/v1-foundations-2026-10-25.
 
 The fresh [October 25 lifecycle smoke](../evaluations/deepseek-2026-10-25-lifecycle-smoke.md) completed all five short scenarios with source-consistent delivered answers, known usage for 24 calls, and a correctly resolved preference change. It retains a minor unsupported detail in one stored episode and substantial `always`-mode latency. Sustained-history and first-release acceptance remain separate gates.
 
+### What the removed runtime mode left behind
+
+What an older runtime's chat mode and session SDK stored stays where it was (no table or migration changed), and the runtime still handles it:
+
+- **Turn rows** (`memory_runtime_turns`, `memory_runtime_turn_transitions`), the working states their commits saved, and the feedback contributions and access state an attributed confirmation wrote stay in the database. A brain holding them starts, recalls, shows on the memory page, exports and restores as before; turns were never part of archives.
+- **Nothing creates or advances a turn any more.** Pausing recording still stops every unfinished old turn (`recording_control.py`), and restoring an installation backup still quarantines them (`recovery.py`), both with plain SQL.
+- **`prepare`, `commit` and `checkpoint` stay**, with the MCP tools `memory_prepare` and `memory_checkpoint`, and need no runtime turn. `prepare`'s `turn_id` is only the packet's identifier; it no longer reads the turn it names, adds an orientation stored for it, or reads context observations from working state that runtime commits derived from orientations. `assess_orientation`, which always needed a runtime turn, is refused with `unsupported_capability`. `commit`'s `recall_feedback` can still credit a memory that an old turn delivered, so access state can still change, and recall keeps reading it.
+- **Forgetting or erasing** a message an old turn recorded leaves no text of it in any row of the brain, the turn rows included: they hold references and digests, never message bodies. Erasure does not rewrite turn rows, so SHA-256 digests of erased messages stay on them: of the input (`input_fingerprint`, over the message id and text), of the delivered answer (`delivery_receipt`), of a reviewed draft (`response_review`) and of the selected memories' statements (`prepared_memory_selection`), with the ids of the erased events.
+- **Profiles and backups**: `chat.json` (the chat model's address, model and key) and `sessions/` (pending chat turns) beside an old profile are ignored. A backup carries them unread, as older runtimes wrote them; a restore writes `chat.json` back unchanged and keeps the sessions only as recovery evidence, as before.
+- **Removed interfaces fail plainly**: the CLI commands are an invalid choice for argparse, the HTTP paths answer `404` like any unknown path, the Python modules raise `ModuleNotFoundError`, and the TypeScript `activeScope()` method no longer exists.
+
 ## Development monitoring interfaces
 
 These endpoints use the same Bearer authentication as the memory service:
 
 | GET path (prefix `/v1/brains/{brain_id}/runtime`) | Content |
 | --- | --- |
-| `/status` | Persistence and index progress, non-completed job counts (learning jobs an older runtime left are not counted), turn phases, active lease counts, and reserved scope counts |
-| `/scope?conversation_id=...&branch_id=...` | Reserved turn, or oldest unfinished legacy turn, for the exact scope; `turn: null` when empty |
-| `/turns?limit=100` | Recent turns, up to 200 |
-| `/turns/{turn_id}` | Current phase, revision, source versions, context usage, recall plan, cumulative call budget, and recovery state |
-| `/turns/{turn_id}/history?limit=100` | Ordered phase history, up to 200 entries |
-| `/turns/{turn_id}/sources` | Separately authorized expansion of currently valid inputs and outputs |
 | `/jobs?limit=100` | Recent background jobs, up to 200, including learning jobs an older runtime left |
 | `/jobs/{job_id}` | Job type, status, attempts, cumulative call and input counters, and error category |
 
-Use `RuntimeClient(memory).active_scope(conversation_id, branch_id="main")` in Python or `memory.activeScope(conversationId, branchId)` in TypeScript to find the turn holding up a conversation. This lookup is independent of the recent-turn list, reads metadata only, and does not claim or cancel the turn. A legacy queued turn can have `scope_reserved=false` until claimed after the previous owner finishes.
-
-`recall_plan` contains selected memory versions, observed source versions, stop reasons, search counts, elapsed time, coverage limits, and a structured decision trace. The trace stores actions, query hashes, and candidate counts without copying query text or model explanations. `recall_model_calls` and `recall_input_bytes` provide cumulative budget records across recovery. `orientation_job_id` links to the turn's situation job. Job endpoints do not return job bodies, raw model results, or lease credentials. The service enforces call-count and input-byte limits but does not guarantee a monetary cap.
+The turn endpoints were removed with runtime mode and now answer `404`: `GET /runtime/status`, `GET /runtime/scope`, `GET` and `POST /runtime/turns`, `GET /runtime/turns/{turn_id}` with its `/history` and `/sources`, the turn operations (`claim`, `renew`, `advance`, `recall-reservations`, `response-review/reserve` and `complete`, `output`, `orient`, `release`, `fail`, `finish`) and `/runtime/ephemeral-turns` with `ephemeral-advance` and `ephemeral-context`; so were `RuntimeClient` in Python and `activeScope()` in TypeScript. Job endpoints do not return job bodies, raw model results, or lease credentials.
 
 The learning endpoints `GET /runtime/learning-progress`, `GET` and `PUT /runtime/cognitive-budget`, `GET /runtime/cognitive-usage` and `POST /runtime/jobs/{job_id}/retry-learning` were removed with background learning and now answer `404`; so were the Python `RuntimeClient` methods `learning_progress()`, `cognitive_usage()`, `cognitive_budget()`, `configure_cognitive_budget()` and `retry_learning()`, the TypeScript methods `learningProgress()`, `cognitiveUsage()`, `cognitiveBudget()`, `configureCognitiveBudget()` and `retryLearning()`, `learning_progress` in `/runtime/status`, `learning_summary` in job records, and the desktop commands `learning-status`, `retry-learning`, `budget` and `configure-budget`.
 
@@ -708,13 +453,13 @@ Limits: a deletion, correction or reset made directly in the service or memory p
 
 Python: `client.recording_status()` and `client.set_recording(paused=True, expected_revision=state["revision"])`. TypeScript: `client.recordingStatus()` and `client.setRecording({paused: true, expectedRevision: state.revision})`. These require the same authenticated brain access as other memory operations. The memory page's **Pause memory recording** and **Resume memory recording** controls use this server policy for the selected brain, including when opened from a remote service. They submit the displayed revision; conflicts refresh the state without automatically retrying the change. Local conversation pause tools retain their narrower capture scope.
 
-The local page also exposes **Chat capture on this device**, including the existing timed pause. It does not change the server policy, and server resume does not clear a device pause. Other clients may still write while only device capture is paused. `open_agent` and `desktop chat` sessions on this installation follow it and continue as [temporary chat](#local-recording-controls-for-direct-chat). `GET /v1/local/recording` returns the effective `recording` value plus `brain_id`, `server: {paused, revision}` and `local: {paused, revision}`, with `local.scope` (`installation` or `conversations`) while paused; by default the server state belongs to the installation's home brain. An authenticated `brain_id` query selects another authorized brain without changing the installation-wide local scope. These are two separately read states, not one cross-store transaction. User-specific conversation controls still apply separately.
+The local page also exposes **Chat capture on this device**, including the existing timed pause. It does not change the server policy, and server resume does not clear a device pause. Other clients may still write while only device capture is paused. `GET /v1/local/recording` returns the effective `recording` value plus `brain_id`, `server: {paused, revision}` and `local: {paused, revision}`, with `local.scope` (`installation` or `conversations`) while paused; by default the server state belongs to the installation's home brain. An authenticated `brain_id` query selects another authorized brain without changing the installation-wide local scope. These are two separately read states, not one cross-store transaction. User-specific conversation controls still apply separately.
 
 `POST /v1/local/recording` changes device capture only and returns the same combined state for the home brain. It accepts `paused`, optional numeric `hours` when pausing, and optional `expected_revision` from the **local** state (an opaque string, not the server's integer revision). The page always supplies that revision. A stale token returns 409 without changing either control; omission remains supported for legacy callers and provides no compare-and-set guarantee. Every new local pause carries a fresh nonce, and expiry cleanup shares the state lock with pause/resume so an expired snapshot cannot erase a newer pause. If the final server-state read fails, the local change may already have succeeded: read the state before another deliberate change rather than blindly reversing it. No local command automatically resumes the server.
 
 The page shows unavailable status and hides mutation controls when state cannot be confirmed. Responses arriving after a newer status read cannot overwrite it. Corrupt local control metadata is reported as unavailable rather than displayed as recording on; the host also keeps capture paused when a pause file is unreadable, malformed or has an invalid expiry. Only a missing file means no local pause. Inspect a damaged control file before explicitly clearing its device pause with `membrain plugin resume`; that command cannot resume the server. The page refreshes periodically and before showing its privacy view; it is a snapshot, not a real-time subscription. A disconnected device still cannot discover a remote pause immediately.
 
-The policy change and source ingestion serialize on the same PostgreSQL brain lock. A write already holding that lock completes before pause is acknowledged; a write obtaining it while paused is rejected with non-retryable `recording_paused`. This covers observations, notes, event-backed companion changes, archive upload/restore and new durable-runtime turns. Unfinished durable turns are closed and release their scope reservations. Generation/delivery already executing outside the database is marked uncertain, not falsely claimed cancelled. Resume permits new turns and does not revive those old turns. Already-confirmed delivery may finish its bookkeeping; source history written before the pause remains. Reading, exporting and core memory erasure remain available, and processing of existing memories is not a global shutdown. The direct Python runtime can continue through the separate [temporary-chat path](#temporary-chat-while-server-recording-is-paused); durable recovery never reconstructs temporary content.
+The policy change and source ingestion serialize on the same PostgreSQL brain lock. A write already holding that lock completes before pause is acknowledged; a write obtaining it while paused is rejected with non-retryable `recording_paused`. This covers observations, notes, event-backed companion changes and archive upload/restore. Unfinished runtime turns an older runtime left are closed and release their scope reservations; a turn whose generation or delivery was in progress is marked uncertain, not cancelled, and resume does not revive them. Source history written before the pause remains. Reading, exporting and core memory erasure remain available, and processing of existing memories is not a global shutdown.
 
 Background cognitive learning also obeyed this policy until it was removed (see [what the removed learning left behind](#what-the-removed-learning-left-behind)); the learning jobs an older runtime left are never claimed, paused or not.
 
@@ -730,7 +475,7 @@ Durable runtime turns bind their recording revision at `begin`, and generated in
 
 New independent deletion-log intents persist a minimum recording revision. Reconciliation after restoring an older database applies at least that revision, so restoring an old counter cannot revive a capture from before that deletion. Intent/receipt replay is idempotent. Historical intents without this field remain readable and advance the restored counter, but their missing historical revision cannot be reconstructed. No claim is made that an arbitrary unmanaged database rollback preserves authorization, or that these controls erase external transcripts. Direct writes that intentionally omit capture metadata retain the separate current-policy contract described above.
 
-A disconnected host cannot learn a remote change immediately: input may still be buffered under its last known unpaused policy, but will be rejected on replay if the revision changed. Server control does not remotely erase disconnected files, synchronize local conversation/timed switches back to the server, or erase host/provider transcripts. Whole-turn-only hosts check policy when the completed turn is supplied; they cannot reconstruct a policy change that occurred before that capture. The capture revision fence covers observations and lifecycle-integrated manual note tools. Tools-only MCP and direct custom clients remain caller-managed operations without an original host-turn guarantee. No historical erasure, atomic user/reply pair or crash-atomic ledger-to-delivery guarantee is implied. The direct Python temporary-chat path has the separate content-free control and restart limits described above. The following conversation-level controls retain their existing scope.
+A disconnected host cannot learn a remote change immediately: input may still be buffered under its last known unpaused policy, but will be rejected on replay if the revision changed. Server control does not remotely erase disconnected files, synchronize local conversation/timed switches back to the server, or erase host/provider transcripts. Whole-turn-only hosts check policy when the completed turn is supplied; they cannot reconstruct a policy change that occurred before that capture. The capture revision fence covers observations and lifecycle-integrated manual note tools. Tools-only MCP and direct custom clients remain caller-managed operations without an original host-turn guarantee. No historical erasure, atomic user/reply pair or crash-atomic ledger-to-delivery guarantee is implied. The following conversation-level controls retain their existing scope.
 
 ### Manual tools and original-turn recording permission
 
@@ -754,7 +499,7 @@ The shared host lifecycle also recognizes a bounded set of direct opening contro
 
 A recognized control uses the existing conversation pause: the current exchange and following turns are excluded, including raw staging and offline spooling. The originating session is included even when the first callback is `finish_turn`. The pause belongs to the conversations in progress when it was set: a conversation that starts later is recorded as usual, is told that another conversation is off the record, and does not end the pause, which lasts until those conversations are over or recording is resumed. A memory write that carries a turn's `recording_capture` is checked against that turn's conversation; a write that names no conversation is refused while any conversation pause is in effect. An existing timed or until-resumed pause is never shortened. An explicit exclusion cannot be revived by a resume tool in that same turn. Resuming through the controls can enable later turns; the finish callback does not repeat a pause already handled during staging. No natural-language resume is inferred. Local MCP `memory_observe` and `memory_note` refuse new content while paused.
 
-These controls belong to `host.prompt_context` / `finish_turn` and their plugin, bot and proxy adapters. `open_agent` and `desktop chat` apply the same opening grammar to their own [conversation choice](#local-recording-controls-for-direct-chat). They are not a server-wide recording policy for raw HTTP/SDK `observe`, and the host-independent `BrainRuntime` does not read them. The chat host and upstream reply provider still receive the message needed to answer; memBrain cannot erase their transcripts. Previously stored content is not retroactively deleted. See the [backend control-flow review](../architecture/backend-control-flow-2026-11-07.md).
+These controls belong to `host.prompt_context` / `finish_turn` and their plugin, bot and proxy adapters. They are not a server-wide recording policy for raw HTTP/SDK `observe`. The chat host and upstream reply provider still receive the message needed to answer; memBrain cannot erase their transcripts. Previously stored content is not retroactively deleted. See the [backend control-flow review](../architecture/backend-control-flow-2026-11-07.md).
 
 `finish_turn` matches owner, producer and turn ID before taking an input. Shared hosts must pass the owner on every call. Stable turn IDs support overlapping requests and replies in either order. Without a turn ID, a supplied prompt must match exactly after privacy scrubbing; a callback with neither is accepted only for a single input that has not overlapped another input in the same owner/producer scope. Ambiguous callbacks and mismatched prompts are discarded without consuming another turn. Replies retain their matched input's exact parent key, including colons in host IDs. New turn IDs containing colons use an encoded source-key namespace so different session/turn pairs cannot concatenate to the same source key. Ordinary IDs keep their existing keys; legacy staged keys retain their existing links during completion. Historical records are not rekeyed.
 
@@ -806,9 +551,9 @@ MCP lets a model explicitly recall memories and submit notes with source labels.
 | Access dynamics | Representation- and time-dependent access tiers; trusted external feedback updates use counts and usefulness assessments |
 | Correction and deletion | Version updates, synchronous invalidation, derived-dependency cleanup, and deletion-record checks during archive restoration |
 | Isolation | Server-bound identity, application query filtering, and forced PostgreSQL row-level security |
-| Integration | Python automatic synchronous text runtime; low-level HTTP, Python, TypeScript, and MCP operations |
+| Integration | Host plugins and adapters with automatic capture and recall; low-level HTTP, Python, TypeScript, and MCP operations |
 | Desktop operation | Stable local profile, brain, and credentials; automatic database/API/worker startup; automatic MCP and SDK connections; data retained on shutdown |
-| Development aids | Authenticated status, turn and phase logs, background jobs, recall stop reasons and budgets, separate source expansion, and a removable local workbench |
+| Development aids | Authenticated status, background jobs, recall stop reasons and budgets, and a removable local workbench |
 
 Condition-triggered proactive reminders, calibrated decay and association propagation, multimodal understanding, complete tool loops and streaming host adapters, cloud accounts, and shared permissions still need implementation and validation. Procedural candidates are only sourced steps and conditions; they do not execute themselves or prove task success. Only owner-private scope is currently supported; shared-collection requests are explicitly rejected. Without configured semantic embeddings, existing lexical feature hashes are not treated as semantic vectors. With embeddings configured, vectors are used only when model, version, dimensions, and content hash match.
 
@@ -829,8 +574,6 @@ Compatibility: archives from runtimes without this field restore as before. An a
 ## Project structure
 
 - `src/membrain/cognition.py`: episode capture, cue-driven recall, evidence boundaries, and workspace assembly.
-- `src/membrain/runtime.py`, `turns.py`: automatic text lifecycle, persistent phases, and call budgets.
-- `src/membrain/recall_control.py`, `recall_provider.py`: semantic recall decisions and the optional model adapter.
 - `src/membrain/belief_store.py`, `belief_resolution.py`: reading, restoring and resolving stored belief relations, with their complete evidence closure.
 - `src/membrain/legacy_erasure.py`: plain-SQL erasure of derived rows (pattern views, belief relations, feedback contributions and access state) that older data can hold although the default path no longer writes them.
 - `src/membrain/candidates.py`, `retrieval.py`, `dynamics.py`: candidate fusion, version dependencies, access tiers, and external feedback.
@@ -841,7 +584,7 @@ Compatibility: archives from runtimes without this field restore as before. An a
 - `src/membrain/api.py`, `web/`: authentication, HTTP, and the local workbench.
 - `src/membrain/client.py`, `mcp_server.py`, `sdk/typescript/`: host integration.
 - `src/membrain/local_profile.py`, `desktop.py`, `desktop_connection.py`: local configuration, service lifecycle, and automatic connections.
-- `src/membrain/agent_session.py`, `chat_config.py`, `chat_provider.py`, `desktop_chat.py`: direct model integration, durable local sessions, explicit recovery, and terminal chat.
+- `src/membrain/feedback.py`: the delivered-use proof that lets `commit`'s `recall_feedback` credit a memory an older runtime's turn delivered.
 - `architecture/`: complete goals, machine-readable contracts, and 52 system acceptance scenarios.
 
 ## Verification
@@ -860,11 +603,11 @@ See `sdk/typescript/package.json` for TypeScript tests and type-check commands. 
 
 The Verify workflow runs on GitHub for pull requests and pushes to `main` (changes to Markdown and `evaluations/` alone do not start it) and can be started by hand; the native-engine workflow runs for pull requests that touch its inputs. Day-to-day development is verified locally, on the integration branch, without opening a pull request. Before publishing, validate according to the change's impact and avoid redundant cloud CI runs.
 
-The [standalone chat acceptance report](../evaluations/standalone-chat-2026-10-24.md) records the installed-wheel, real-database, local-provider checks for direct chat, restart recovery, deduplication, and explicit cancellation. Its deterministic provider does not measure semantic learning quality.
+The historical [standalone chat acceptance report](../evaluations/standalone-chat-2026-10-24.md) (the chat it verified was removed after `ba70e7cd`) records the installed-wheel, real-database, local-provider checks for direct chat, restart recovery, deduplication, and explicit cancellation. Its deterministic provider does not measure semantic learning quality.
 
 The historical [background learning recovery report](../evaluations/learning-recovery-2026-10-24.md) records blocked-window monitoring, explicit recovery, preserved budgets and uncertainty, and the remaining architecture gaps.
 
-The [cross-host conversation and delivery recovery report](../evaluations/runtime-concurrency-2026-10-25.md) records durable scope ownership, delivery receipts during memory invalidation, upgrade recovery, and the remaining external-delivery uncertainty.
+The historical [cross-host conversation and delivery recovery report](../evaluations/runtime-concurrency-2026-10-25.md) (runtime mode, removed after `ba70e7cd`) records durable scope ownership, delivery receipts during memory invalidation, upgrade recovery, and the remaining external-delivery uncertainty.
 
 Interface-structure validation, deterministic regression tests, actual MCP protocol round trips, and database tests verify only their covered behavior. They do not establish that all 52 system scenarios in the complete architecture pass. The project also makes no claim of surpassing any baseline in long-term memory quality.
 
@@ -872,7 +615,7 @@ Interface-structure validation, deterministic regression tests, actual MCP proto
 
 The paid DeepSeek evaluations of background learning and of the full runtime with it (`examples/evaluate_deepseek.py`, `evaluate_conversation.py`, `evaluate_interaction_repair.py`, `evaluate_temporal_repair.py`, `evaluate_memory_repairs.py`, `evaluate_episode_fidelity.py`, `evaluate_episode_scope_repair.py`, `evaluate_memory_lifecycle.py`, `lifecycle_learning.py`, `evaluate_longitudinal.py`, `longitudinal_learning.py`, `longitudinal_cue_diagnostics.py` and `release_scenario.py`) were removed with it; they need a runtime from `2600219b` or earlier. Their recorded reports stay in `evaluations/`, unchanged, among them the [initial evaluation](../evaluations/deepseek-2026-10-24.md), the [complete synchronous conversation diagnostic](../evaluations/deepseek-2026-10-24-conversation.md), the [continuous-learning repair diagnostic](../evaluations/deepseek-2026-10-25-learning-repair-stopped.md), the [answer-review and foreground-work evaluation](../evaluations/deepseek-2026-10-24-answer-review.md) and the [on-demand analysis and latency evaluation](../evaluations/deepseek-2026-10-24-orientation-routing.md).
 
-`examples/evaluate_answer_review.py` and `examples/evaluate_consumption_repair.py` (`--plan / --live / --resume`), which exercise the frozen bundled runtime with a host model and no cognition model, remain.
+`examples/evaluate_answer_review.py`, `examples/evaluate_consumption_repair.py` and `examples/autonomous.py`, which drove the bundled runtime with a host model, were removed with it after `ba70e7cd`, with their support modules `examples/evaluation_host.py` and `examples/evaluation_support.py`; they need a runtime from `ba70e7cd` or earlier. Their recorded reports stay in `evaluations/`, unchanged.
 
 ### Memory workflow and diagnostics
 

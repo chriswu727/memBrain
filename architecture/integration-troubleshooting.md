@@ -1,6 +1,6 @@
 # Text-agent integration and recovery
 
-**Frozen:** the desktop chat and Python runtime described here, in which memBrain calls the reply model itself, are frozen and outside the product's main line; host plugins and adapters are the supported integration.
+**Removed:** this page describes the bundled desktop chat and the Python session runtime (`desktop chat`, `desktop turn-status`, `open_agent`, `BrainRuntime`), in which memBrain called the reply model itself. They were removed after runtime `ba70e7cd` (see [bundled chat and Python sessions](../docs/reference.md#bundled-chat-and-python-sessions-removed)); host plugins and adapters are the supported integration. The page is kept as a historical record and no longer describes the runtime.
 
 The desktop chat and Python runtime support synchronous text generation with a host-confirmed delivery receipt. Streaming, tool loops, automatic message edits, and generic client interception remain outside this adapter's supported mode. MCP alone does not supply missing lifecycle hooks.
 
@@ -54,7 +54,7 @@ Resolve an existing turn through its owning host. A draft created by a different
 
 ## Recording is off or unconfirmed for a direct chat
 
-`desktop chat --recording-status` (or `/recording`) reads the three controls that decide whether a new message is recorded: the brain's server switch, device capture for this installation, and this conversation branch's own choice. See [local recording controls for direct chat](../docs/reference.md#local-recording-controls-for-direct-chat). `unknown` means a control could not be read or the service did not answer; it is not shown as off. With an unreadable local control and a reachable service, a message is handled as temporary only after the service confirms a temporary reservation. When the service itself does not answer, no message can be answered at all, and temporary handling is unconfirmed even if a local control is known to exclude recording. The two local controls apply to new messages and do not cancel a turn that is already running; pausing the server switch also stops recorded turns in progress.
+`desktop chat --recording-status` (or `/recording`) reads the three controls that decide whether a new message is recorded: the brain's server switch, device capture for this installation, and this conversation branch's own choice. See [local recording controls for direct chat](../docs/reference.md#bundled-chat-and-python-sessions-removed). `unknown` means a control could not be read or the service did not answer; it is not shown as off. With an unreadable local control and a reachable service, a message is handled as temporary only after the service confirms a temporary reservation. When the service itself does not answer, no message can be answered at all, and temporary handling is unconfirmed even if a local control is known to exclude recording. The two local controls apply to new messages and do not cancel a turn that is already running; pausing the server switch also stops recorded turns in progress.
 
 `off_record_reservation_rejected` means the service did not accept an explicit off-record reservation, as a service older than the client does. Nothing was generated, sent or saved, and the message was not recorded instead. Upgrade and restart the service.
 

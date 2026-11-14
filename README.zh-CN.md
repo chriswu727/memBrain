@@ -122,47 +122,14 @@ membrain desktop setup
 
 **数据存储在本地，memBrain 不需要自己的模型服务。** 回忆按关键词匹配，本地模型安装后还会按语义匹配；需要理解和解释的工作由宿主的 AI 完成。在早期版本中配置过认知模型的安装会保留该配置，但这种由模型驱动的学习已冻结，不属于产品主线（见[参考文档](docs/reference.md#desktop-setup)）。
 
-### 已冻结：独立聊天模式
-
-内置聊天模式（`membrain desktop configure-chat`、`membrain desktop chat`）由 memBrain 自己调用回复模型，现已冻结，不属于产品主线，之后会移除。已有的聊天配置仍可继续使用。`configure-chat` 会询问兼容 Chat Completions 的模型服务地址、模型名称和用于回复的 API key；回复可能产生 API 费用，并将相关内容发送给该提供方。详见[直接聊天](docs/reference.md#direct-chat-and-python-sessions)。
-
 <a id="automatic-integration"></a>
 <a id="python-integration"></a>
 
 ## Python 接入
 
-下面的 Python 会话运行时（`open_agent`、`BrainRuntime`）属于已冻结的聊天模式：由 memBrain 自己调用回复模型，不属于产品主线。现有宿主仍可继续使用，之后会移除。
+内置聊天模式（`membrain desktop configure-chat`、`membrain desktop chat`）以及运行它的 Python 会话 SDK（`open_agent`、`BrainRuntime`）已移除：memBrain 通过本文介绍的插件、适配器、MCP 和代理接入智能体宿主，由宿主的 AI 回复（[详情](docs/reference.md#bundled-chat-and-python-sessions-removed)）。
 
-完成桌面设置和聊天配置后，还需在应用自己的 Python 3.12+ 环境中安装此包。请在已激活虚拟环境或包含 `.venv` 目录的项目中运行以下命令。CLI 使用的隔离环境不会让应用自动获得可导入的 SDK。
-
-```sh
-uv pip install 'membrain-ai @ https://github.com/chriswu727/membrain/archive/refs/heads/main.zip'
-```
-
-下面的终端示例会使用已保存的模型配置和持久大脑：
-
-```python
-from membrain.agent_session import open_agent
-from membrain.runtime import DeliveryReceipt
-
-
-def deliver(request):
-    print(request.text, flush=True)
-    return DeliveryReceipt("delivered")
-
-
-with open_agent(conversation_id="writing", deliver=deliver) as agent:
-    agent.respond(
-        "Help me plan my next writing session.",
-        message_id="writing-request-001",
-    )
-```
-
-请在 Python 3.12+ 环境中运行。在实际宿主中，将 `deliver` 替换为真实的发送操作，并只在确认发送成功后返回成功回执。此示例确认的是终端写入，不代表有人已经阅读回答。每条新输入都需要一个稳定且唯一的消息 ID；只有在处理同一条消息的恢复或核对时，才复用该 ID。重放已完成的消息不会再次生成或交付回复。
-
-暂停所选大脑的服务端记录开关后，Python 会话和 `desktop chat` 可以继续[临时对话](docs/reference.md#temporary-chat-while-server-recording-is-paused)。消息和回复只保存在有容量限制的进程内缓冲区，仍可读取同一会话分支已有的近期记录；恢复记录不会补写临时消息。服务端只保留不含正文的控制标记以防重复执行，进程退出后不能恢复临时回复。暂停本机聊天采集，或用 `/off-record` 让单个会话分支不留记录，也会进入同一模式，且不会暂停整个大脑；三项控制[相互独立](docs/reference.md#local-recording-controls-for-direct-chat)，无法读取的控制会报告为未知。
-
-如需自己的模型回调、交付渠道、恢复处理或可选的回答核验器，请参阅[自动接入参考](docs/reference.md#automatic-integration)。HTTP 和 TypeScript 客户端提供底层操作；目前开箱即用的自动文本运行时是 Python 版本。TypeScript 客户端还提供[人格、感受、模拟心情、关系控制和真实记忆图接口](docs/reference.md#typescript-companion-controls-and-maps)，人格建议须由用户明确接受或拒绝。各接入方式提供的控制和仍未验证的原生宿主流程，见[宿主功能与验证范围](docs/host-compatibility.md)。
+Python、HTTP 和 TypeScript 客户端提供底层记忆操作（[底层接口](docs/reference.md#current-low-level-interfaces)）。TypeScript 客户端还提供[人格、感受、模拟心情、关系控制和真实记忆图接口](docs/reference.md#typescript-companion-controls-and-maps)，人格建议须由用户明确接受或拒绝。各接入方式提供的控制和仍未验证的原生宿主流程，见[宿主功能与验证范围](docs/host-compatibility.md)。
 
 <a id="mcp"></a>
 
@@ -222,7 +189,7 @@ membrain desktop stop
 membrain desktop start
 ```
 
-停止服务会保留已提交的记忆。下一次聊天、MCP 或 SDK 连接可以重新启动服务。配置位于安装目录，记忆内容位于数据库中（嵌入式数据库的数据目录，或使用 Docker 引擎时的 Docker 数据卷）。仅复制配置目录不等于备份数据库。
+停止服务会保留已提交的记忆。下一次 MCP 或 SDK 连接可以重新启动服务。配置位于安装目录，记忆内容位于数据库中（嵌入式数据库的数据目录，或使用 Docker 引擎时的 Docker 数据卷）。仅复制配置目录不等于备份数据库。
 
 参阅[更新与配置](docs/reference.md#local-status-and-configuration)、[备份与恢复](architecture/desktop-recovery.md)和[故障排查](architecture/integration-troubleshooting.md)。无需管理界面。
 
@@ -254,7 +221,7 @@ membrain desktop start
 
 在上述较早的测试中，剩余的记忆导致的错误几乎都是同一种：宿主把召回的助手建议当成了用户的事实。现在自动召回不再带回助手自己的回复，除非用户明确问助手之前说过什么（提交 `ac93f33`）。[第三次成熟度验收](evaluations/maturity-third-attempt-2026-11-06.md)已测试该运行时：提取模式通过 R4，但插件模式仅得 17.5 分，低于 18 分门槛，并有两次归因于记忆系统的严重错误；C5 未完成。之后的源码修复堵住了辅助检索线索绕过召回限制的路径，并拒绝以草稿或已取消消息作为笔记来源；这些修复尚未经过新一轮行为验收。
 
-当前候选版本支持**本地同步文本 Agent**，提供 Python 运行时、HTTP API、TypeScript 客户端、MCP 工具和直接终端聊天入口。核心记忆行为独立于聊天框架。桌面端到端验证目前覆盖 **macOS、uv 和 Docker** 的组合。
+当前候选版本支持**本地同步文本 Agent**，提供宿主插件和适配器、HTTP API、Python 和 TypeScript 客户端以及 MCP 工具。核心记忆行为独立于聊天框架。桌面端到端验证目前覆盖 **macOS、uv 和 Docker** 的组合。
 
 [插件模式](architecture/plugin-mode.md)已在 **Linux x86_64** 上完成端到端验证。嵌入式数据库分别以 root 和普通用户身份，通过了真实的启动、重启、备份、恢复和激活检查。在隔离配置的 Claude Code 2.1.311 中，插件从本地插件市场安装成功；使用模拟模型 API 时，插件记录了消息和回复，新会话发给模型的请求中包含上一个会话的记录。这项检查覆盖的是集成流程，不是回答质量。当时自动召回只做关键词匹配；现在安装本地模型后还会按语义匹配。在一台 Windows 11 机器上，嵌入式数据库、本地服务、hook 启动脚本（Git Bash 与 `cmd.exe`）、代理以及 AstrBot 和 OpenClaw 插件都已实际运行；这次运行发现并修复了两个安装问题，它们会让所有新的 Windows 安装以及 AstrBot 首次启动失败。Claude Code 和 Codex 尚未在 Windows 上运行。模型激活候选版本已在真实 Mac 上通过 17 项独立安装检查，包括嵌入式数据库。较早的 `6656720`（固定到 `a01903a`）通过 49 项检查的结果仍作为[历史证据](evaluations/maturity-install-mac-2026-11-03.json)保留。之后的 CPU 候选版本 `91271f5`（固定到 `9d8509c`）也在 macOS 上通过了完整安装验收的全部 49 项检查（[检查清单](evaluations/maturity-install-mac-cpu3-2026-11-03.json)），覆盖全新安装、升级、伙伴状态、代理以及备份与恢复。这只验证了当时的运行时；该版本尚未达到 R5 并发召回延迟目标。之后的 `d4d7126` 已通过 R5 门槛，但之后 `e749a24` 的全屏对照再次超标，[发布清单](docs/releasing.md)中的这项门槛重新打开，之后运行时 `f1fc97b` 的 36 个窗口已全部达标。新的图谱隐私候选版本 `b994ec8` 已通过全新安装及文件一致性检查，但完整对照中有三个八脑窗口失败（最高 659.56 ms），因此该运行时未通过 R5。此前运行时 `f5e265c` 随后已通过全部 36 个窗口，详见[当前验收](evaluations/maturity-month-qualification-2026-11-07.md)。最新[真实模型成熟度验收](evaluations/maturity-fifth-attempt-2026-11-07.md)整体未通过 R4（插件模式通过，提取模式存在一个记忆系统导致的隐私错误）；C5 无效且未评分。新的实现验证和剩余门槛见[临时成熟度证据](evaluations/maturity-free-checks-2026-11-03.md)。
 

@@ -16,7 +16,7 @@ Other MCP hosts use one stdio server entry instead.
 
 Plugin mode is an optional host adapter over the unchanged core. The core still owns storage, provenance, recall, erasure and validation. The adapter never owns the host's turn loop: it observes the host's own lifecycle events and returns optional context.
 
-| Concern | Server mode (existing) | Plugin mode |
+| Concern | Runtime mode (removed after `ba70e7cd`) | Plugin mode |
 | --- | --- | --- |
 | Database | Docker PostgreSQL + pgvector | Embedded PostgreSQL + pgvector from the `pgserver` wheel, same schema and migrations |
 | Turn ownership | `BrainRuntime` generates and delivers | The host replies; hooks only record and recall |
