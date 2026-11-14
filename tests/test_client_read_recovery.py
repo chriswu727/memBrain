@@ -3,12 +3,12 @@ import socket
 import threading
 from contextlib import contextmanager
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
-from pathlib import Path
 
 import httpx
 import pytest
 from fastapi import FastAPI
 from httpcore._sync.http11 import HTTP11Connection
+from loopback import loopback_server
 from uvicorn.protocols.http.h11_impl import H11Protocol
 
 from membrain.client import MemoryClient
@@ -108,9 +108,6 @@ def test_other_read_failures_are_not_retried(error):
 
 
 def test_read_recovers_when_keepalive_closes_after_pool_reuse_check(monkeypatch):
-    monkeypatch.syspath_prepend(str(Path(__file__).parents[1]))
-    from examples.evaluation_host import loopback_server
-
     app, requests, protocols = FastAPI(), [], []
     closed, armed, completed = threading.Event(), threading.Event(), threading.Event()
 

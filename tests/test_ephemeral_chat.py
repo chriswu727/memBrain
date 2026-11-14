@@ -5,7 +5,6 @@ import subprocess
 import sys
 from contextlib import contextmanager
 from dataclasses import replace
-from pathlib import Path
 from types import SimpleNamespace
 
 import httpx
@@ -415,8 +414,7 @@ def test_temporary_api_rejects_content_and_durable_output_even_after_resume(syst
 
 
 def test_process_death_does_not_recover_private_input_and_explicit_cancel_releases_scope(system, monkeypatch):
-    monkeypatch.syspath_prepend(str(Path(__file__).parents[1]))
-    from examples.evaluation_host import loopback_server
+    from loopback import loopback_server
 
     pause(system)
     key = system.profile.api_key
