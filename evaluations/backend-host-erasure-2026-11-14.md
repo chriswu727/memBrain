@@ -61,3 +61,25 @@ clearing the whole host context cache also removed the previous persona version,
 announcement. Cleanup now removes only the content fingerprint and retains content-free persona/mood visibility and
 sharing options. The existing persona/mood/context regressions passed locally after that change; the added fixture
 also verifies the fingerprint is gone while those controls remain. This failure is not relabelled as success.
+
+
+## Final qualification and integration
+
+Pinned runtime: 83d2282e6915ac1a8094f9a08b972f464d6de3ec. Qualified source/pin:
+6b6be0f1673b20cc42446d32b9a331fb0828ea6a.
+
+- [Full Verify 43631724853](https://github.com/chriswu727/memBrain/actions/runs/43631724853):
+  **4,066 Python tests passed**, zero skipped, three existing Python fork warnings; **39 TypeScript tests passed**,
+  zero skipped. Ruff, TypeScript type checking, sdist and wheel builds passed.
+- [Native qualification 43631724954](https://github.com/chriswu727/memBrain/actions/runs/43631724954):
+  the five native engine jobs passed on Linux x86_64/aarch64, macOS x86_64/arm64 and Windows x86_64. The two
+  optional Linux compatibility build/current jobs were conditionally skipped; they are not additional platform passes.
+- [PR #66](https://github.com/chriswu727/memBrain/pull/66) merged into integration/maturity-candidate as
+  ebf04c7edbcd6855b5cb63cd19326a2828163cc8. Its tree matches the qualified source exactly.
+- The interrupted Claude full run's stopped synthetic database/recovery/test directories (about 1.8 GB) were
+  removed after checking the runner result and process list; its result, compressed JUnit and full log remain.
+  Codex's ten synthetic run roots were also removed after teardown. Compact failure/success logs and final CI
+  metadata remain under the task's local runs directory. Source worktrees, Claude RC, models and real data remain.
+
+The previous Verify failure remains in its own run and in the section above. The final engineering checks do not
+replace R4, C5, current-runtime R5 measurements or a release decision. No main push, tag or release was performed.

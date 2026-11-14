@@ -6,12 +6,12 @@ As of 2026-11-14. Each row names the runtime its evidence covers; a row whose ru
 
 | Item | State | Runtime covered |
 | --- | --- | --- |
-| Pinned runtime | `d1acd13` (pin `ba70e7cd`); the default branch follows the integration branch at verified milestones and was last moved at `2600219b` (runtime `fc99653`) | — |
-| Full source suite, local Linux | 5,353 passed, 4 skipped (Docker journeys), none failed; fewer tests because the removed learning pipeline's are retired ([report](../evaluations/no-learning-pipeline-2026-11-14.md)) | `d1acd13` |
-| Second AI | memBrain asks for no model of its own; its chat mode and learning pipeline are frozen, about 17,000 source lines to be removed in slices, five of eight done: no model can be configured for memBrain itself, and the background learning it drove is gone ([plan](../evaluations/audits-2026-11-12/unused-code-removal-plan.md), [record](../evaluations/no-learning-pipeline-2026-11-14.md)) | `d1acd13` |
+| Pinned runtime | Source `83d2282e` (pin `6b6be0f1`); integrated through [PR #66](https://github.com/chriswu727/memBrain/pull/66) | — |
+| Full source suite, CI Linux | 4,066 passed, zero skipped, three existing Python fork warnings ([report](../evaluations/backend-host-erasure-2026-11-14.md)); retired runtime tests are no longer counted | `83d2282e` |
+| Second AI | memBrain calls no model of its own; the own-model learning pipeline and bundled turn/chat runtime are removed. Host tools drive memory writes; legacy data remains readable/exportable/erasable ([closeout](../evaluations/backend-host-erasure-2026-11-14.md)) | `83d2282e` |
 | Second benchmark, model-free | LongMemEval, 60 questions, nothing tuned: evidence in the user's words 90.2% against 84.3% for plain retrieval; in the assistant's words 11% against 100% ([report](../evaluations/longmemeval-evidence-recall-2026-11-12.md)) | `75f50fd` |
-| GitHub Verify | Last result recorded in this repository: passed | `2ef05f3` |
-| Five-platform native qualification | Passed | `978312c` |
+| GitHub Verify | [Passed](https://github.com/chriswu727/memBrain/actions/runs/43631724853): Python plus 39 TypeScript tests, type checks and both package builds | `83d2282e` |
+| Five-platform native qualification | [Five native engine jobs passed](https://github.com/chriswu727/memBrain/actions/runs/43631724954), including Windows and both Mac architectures | `83d2282e` |
 | Real Mac installation, 49 checks | Passed | `7902c16e` |
 | R5 overhead on the reference fixture | Passed 36 of 36 windows; **must be repeated**, the recall path has changed since | `f5e265c` |
 | R4 behavioural acceptance | **Failed** ([fifth attempt](../evaluations/maturity-fifth-attempt-2026-11-07.md): plugin passed, extraction failed). The extraction path has since been removed; no attempt has been run without it | `7902c16e` |
@@ -24,6 +24,14 @@ As of 2026-11-14. Each row names the runtime its evidence covers; a row whose ru
 No version tag, release or package upload exists, and none is made until the product is mature.
 
 ## History
+
+**Host-erasure closeout (2026-11-14):** [Report and retained failure](../evaluations/backend-host-erasure-2026-11-14.md).
+PR #66 preserves Claude's 18 interrupted/unpublished commits and fixes invalidated observation replay and target-bound
+host erasure cleanup. The first full Verify failed one persona-removal notification test (4,065 passed); cleanup now
+retains content-free context controls while clearing the content fingerprint. Final Verify passes 4,066 Python and
+39 TypeScript tests with zero skips and three Python fork warnings; all five native engine jobs pass on the final
+source. Legacy content-derived identities without event receipts still have the documented local cleanup limit.
+No new memory-quality, R4, C5 or R5 result is claimed, and no release or main push is part of this closeout.
 
 **No-learning runtime `d1acd13` (2026-11-14):** [The learning pipeline of memBrain's own model is removed, and the acceptance tooling runs two arms](../evaluations/no-learning-pipeline-2026-11-14.md). Pin `ba70e7cd` points all nine launchers at it. Removal slice 5 deletes 29 modules (44,328 to 35,115 source lines); the plugin path's recall is unchanged on 385 questions; old profiles, backups, queued learning jobs, derived rows and archives are handled, each with a test. The R4 tooling is adapted to the plugin path and the full-history reference, judged on the plugin path alone, with a persona drawn from the attempt id, arms run in turn under an 80 CNY guard, and a rewritten kit for isolated scenario authors; an independent review's twelve findings are fixed. No scenario is written and nothing is spent yet. The full local source suite on the pin commit passes 5,353 tests with 4 skips and no failure. Verify, native Windows, macOS, five-platform qualification, the R5 overhead protocol and an independent review were not run. R4 remains failed and C5 invalid/unscored.
 
