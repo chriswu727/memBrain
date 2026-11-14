@@ -42,8 +42,36 @@ By the host's own accounting: 42 Sonnet turns, 88 model calls, 1.80 USD; 11 Haik
 
 In headless use every resumed turn runs the session-start hook again and adds the whole session context again (2,200 to 9,400 characters); that is how `--resume` works and is not seen in an interactive session.
 
-## What follows
+## Second round, after the fixes: the three behaviours happened
 
-Being fixed now, to be tried again on the same host: standing instructions from the tool server and two sentences in the session notice for the behaviours that never happened; local dates throughout the context; command lines left out of history, consolidation and recall; note guidance for the kinds that went wrong; the notice's sentence about the agent's own replies.
+Runtime `fca414b0`: standing instructions from the tool server, two sentences in the session notice, local dates, command lines left out of history, note guidance. The same host and models, fresh memories, 26 Sonnet turns and 7 Haiku turns ([summaries](evidence/host-trial-2026-11-13/round2/)).
 
-Not tried: confirming and declining a proposal, the suggestion after three comments, and a hard moment mellowing, because nothing led to them; an interactive session; Codex, WorkBuddy and CodeBuddy; a first start with the service down; old dates, since the seeded history was all recorded on the day.
+| Expected | Round 1 | Round 2 |
+| --- | --- | --- |
+| Propose a lasting change, ask, change nothing before a yes | never (0 of 3) | happened twice on Sonnet, once on Haiku |
+| Confirm with the user's "yes" as its source; a new persona version | not reached | happened (Sonnet and Haiku) |
+| Decline after "No, leave it" | not reached | happened |
+| No proposal for a passing complaint | (nothing proposed at all) | no proposal |
+| Record manner feedback, no note in its place, no announcement | never (0 of 3) | three of three on Sonnet, two of two on Haiku |
+| A suggestion after the third comment | no | an open suggestion to be shorter |
+| A hard time saved as a shared moment marked hard | no | yes, saved when the two had sorted it out |
+| The user's feeling recorded with it | no | **no** |
+| Search its own replies with `my_replies` for item 11 of a 12-item list | searched without it | set it; the reply came back at length; answered correctly |
+| Command lines absent from history; one local day throughout | no | yes |
+| Haiku writing the preference into the host's own memory files | yes | no |
+
+The inference of the first round is as good as confirmed: once the instructions were where the host reads them, it followed them. Whether it was the server's instructions or the notice that did it cannot be told apart from the logs: the stream does not show the system prompt, so the server's instructions are known to be sent (a handshake with the same server returns them) and not seen to arrive.
+
+**New in this round, and what was done:**
+
+- **A turn whose visible reply was only "Memory's updated."** The host consolidated in a turn where the user had asked a question, and its answer stayed in its reasoning. The tool's result now says to write the answer if it is not yet written. Not tried again.
+- **A proposal cost extra calls and bent the card.** Two of five `propose` calls were refused for form (the voice given as a sentence; a phrase over 60 characters), and Sonnet then squeezed the behaviour into the voice's 60-character register. A proposed list would also have replaced the personality type's own values. Proposed traits, values and boundaries are now added to the card's, and the tool says a behaviour goes into values as one sentence. Not tried again.
+- **No feeling was recorded** for "I'm frustrated". The instructions now say a hard moment is saved with what the user felt. Not tried again.
+- Lines such as "Memory's tidied up." still end replies after consolidation; Haiku repeated an answer after one.
+- After a confirmed change the persona is listed as the user's own card based on the type, no longer as the type itself, which is as designed and was read as a loss by the tester.
+
+**Cost of the new behaviours on the host:** a proposal 2 to 4 extra calls (mostly the refused attempts), about 0.04 to 0.05 USD; a confirmation or a refusal 1 call, about 0.016 USD; manner feedback 1 call, 0.014 to 0.028 USD; the round as a whole 1.07 USD on Sonnet and 0.02 USD on Haiku.
+
+## What remains untried
+
+A confirmation attempted in the same turn as its proposal (the host never tried one); the three wordings changed after the second round; a hard moment mellowing; the mood after a hard moment when the resting mood is not already playful; an interactive session; Codex, WorkBuddy and CodeBuddy; a first start with the service down; old dates, since every message was recorded on the day.
