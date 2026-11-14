@@ -274,8 +274,12 @@ class MemoryService:
                     "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND action=%s AND key=%s",
                     (*params, action, key),
                 ).fetchone()
+                from .legacy_erasure import REDACTED_DIGEST
+
                 if existing:
-                    if existing["request_hash"] != fingerprint:
+                    # Content erasure wipes fingerprints (erasure.apply_erasure): such a request is answered as one
+                    # whose stored response is gone.
+                    if existing["request_hash"] not in (fingerprint, REDACTED_DIGEST):
                         raise DomainError("idempotency_conflict", "Idempotency key has different content.")
                     if action in READ_ACTIONS:
                         from .read_cache import load
@@ -454,6 +458,10 @@ class MemoryService:
         if len(json.dumps(incoming, ensure_ascii=False).encode()) > 262144:
             raise DomainError("validation_failed", "One event may contain at most 256 KiB.")
         if previous and previous["source_revision"] == incoming["source_revision"]:
+            if previous["deleted"]:
+                # Erased: its digests are gone, so it is not compared, and it is never brought back. The answer a
+                # capture revoked by the erasure gets; hosts drop such a queued copy without reporting a failure.
+                raise DomainError("recording_stale", "This message was erased; a copy captured before is not recorded.")
             if previous["input_hash"] != input_hash:
                 raise DomainError("idempotency_conflict", "Source event version has different content.")
             return previous["id"], True, None

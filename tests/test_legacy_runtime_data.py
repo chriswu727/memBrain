@@ -7,6 +7,7 @@ plain SQL, as that runtime left them; nothing in the package can create them any
 import hashlib
 import json
 import os
+import re
 
 import pytest
 from legacy_runtime import archive_document, load_runtime_brain
@@ -251,6 +252,42 @@ def test_erasing_a_turns_messages_leaves_no_digest_of_them_in_any_row(old, name)
         assert turn["input_fingerprint"] == "0" * 64
     assert old.turn("phase_completed") == untouched
     assert len(old.rows("memory_runtime_turns")) == len(old.data["tables"]["memory_runtime_turns"])
+
+
+HEX = re.compile(r"(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])")
+# Digests in rows that name erased messages but are not derived from any content.
+NOT_CONTENT = {"response_review_policy": "the reviewer configuration's fingerprint",
+               "lease_token_digest": "the digest of a random lease token"}
+
+
+@pytest.mark.parametrize("name", ["remembered", "reviewed", "partial", "unknown", "captured"])
+def test_no_digest_from_a_row_that_named_an_erased_message_survives_anywhere(old, name):
+    """Systematic: every digest-shaped value in a row of any table that names one of the erased messages, and in no
+    row that does not, is gone from every table after the erasure; the columns in NOT_CONTENT are exempt."""
+    events = text_events(old, turn_texts(old, name))
+    with old.database.transaction(old.principal) as conn:
+        memory_ids = [row["id"] for row in conn.execute(
+            "SELECT id FROM memory_assertions WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+            "AND event_ids && %s::text[]", (*old.params, events))]
+        exempt = set()
+        for column, table in (("response_review_policy", "memory_runtime_turns"),
+                              ("lease_token_digest", "memory_runtime_turns"), ("lease_token_digest", "memory_jobs")):
+            exempt.update(row["value"] for row in conn.execute(
+                f"SELECT {column} AS value FROM {table} WHERE tenant_id=%s AND brain_id=%s AND {column} IS NOT NULL",
+                (old.principal.tenant_id, old.brain_id)))
+    named, unnamed = set(), set()
+    for table in brain_tables(old):
+        for value in everything(old, table):
+            (named if any(item in value for item in events + memory_ids) else unnamed).update(HEX.findall(value))
+    captured = named - unnamed - exempt
+    assert captured
+    old.forget("events", events)
+    left = {}
+    for table in brain_tables(old):
+        for value in everything(old, table):
+            for item in set(HEX.findall(value)) & captured - {"0" * 64}:
+                left.setdefault(item, set()).add(table + ": " + value[:160])
+    assert left == {}
 
 
 def test_hiding_a_message_keeps_its_turns_digests(old):

@@ -190,6 +190,56 @@ def test_host_drops_pre_erasure_callback_and_offline_replay(turns, connected, tm
     assert len(host.finish_turn(tmp_path, "s", "Public new reply.", turn_id="new")) == 2
 
 
+def test_a_stored_message_replayed_after_its_erasure_is_dropped_quietly(turns, connected, tmp_path, monkeypatch):
+    """The host stored a message but lost the answer, so it queued a copy; the user then erased the message. The
+    replay finds the request's fingerprint wiped by the erasure and the message erased: it is refused as a capture
+    the erasure revoked, the host drops the queued copy, keeps no rejected copy and reports it as not recorded."""
+    import httpx
+
+    from membrain import host_recording
+
+    original = host_recording.observe
+    host.prompt_context(tmp_path, "s", "Public erased draft.", turn_id="old")
+
+    def lost_answer(client, record):
+        original(client, record)
+        raise httpx.ReadError("answer lost")
+
+    with monkeypatch.context() as patch:
+        patch.setattr(host_recording, "observe", lost_answer)
+        host.finish_turn(tmp_path, "s", "Public erased reply.", turn_id="old")
+    assert (tmp_path / "plugin" / "spool.jsonl").exists()
+    stored = turns.service.timeline(turns.principal, turns.brain, roles=("user", "assistant"))["items"]
+    assert stored
+    erase(turns, kind="events", ids=[item["event_id"] for item in stored])
+    outcomes = {}
+    with connected(tmp_path) as client:
+        assert host.flush(client, tmp_path, outcomes=outcomes) >= 1
+    assert outcomes and all(value["state"] == "policy" for value in outcomes.values())
+    assert not (tmp_path / "plugin" / "spool-rejected.jsonl").exists()
+    assert "Public erased" not in local_text(tmp_path)
+    assert turns.service.timeline(turns.principal, turns.brain, roles=("user", "assistant"))["items"] == []
+
+
+@pytest.mark.parametrize("same", [True, False])
+def test_an_erased_message_sent_again_is_refused_without_comparing_it(turns, same):
+    """Its digests were wiped, so a copy is neither compared with it nor stored; the answer is recording_stale."""
+    first = turns.observe("Public erased message.", source_key="erased-key")
+    erase(turns, kind="events", ids=[first["event_id"]])
+    response = turns.service.handle(turns.principal, {
+        "contract_version": "1.0.0-draft", "message_type": "request", "request_id": uid(), "action": "observe",
+        "target": {"brain_ref": turns.brain, "conversation_ref": turns.conversation, "branch_ref": turns.branch},
+        "payload": {"idempotency_key": uid(), "events": [{
+            "producer_ref": "turn-test", "source_event_key": "erased-key", "source_revision": 1,
+            "actor_ref": "user", "actor_role": "user", "event_kind": "message",
+            "content": {"media_type": "text/plain",
+                        "text": "Public erased message." if same else "Something else entirely."},
+            "occurred_time": {"start": None, "end": None, "precision": "unknown", "basis": "unknown"},
+            "interpretation_hint": "real_world_report", "delivery_state": "received"}]}})
+    assert response["error"]["code"] == "recording_stale"
+    assert turns.service.timeline(turns.principal, turns.brain)["items"] == []
+
+
 def test_real_backup_restore_rejects_pre_erasure_revision_above_checkpoint(tmp_path):
     from test_desktop_recovery_e2e import connection
 
