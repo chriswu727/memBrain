@@ -119,7 +119,7 @@ Setup asks for no model and no API key. It creates a persistent brain and starts
 
 The first upgrade of an older embedded database preserves its original engine and a cold backup before changing catalogs. This needs extra free disk space. The API starts only after database maintenance, application initialization and recovery checks succeed. After adoption, older runtimes refuse the profile; keep the installed tool and MCP configuration on the same package source. A failed upgrade blocks readiness and preserves existing data and recovery files.
 
-**Storage is local, and memBrain needs no model service of its own.** Recall uses keywords and, once the local model is installed, meaning; the host's AI does any interpretation. An installation that configured a cognition model in an earlier version keeps it, but that model-driven learning is frozen and outside the product's main line ([reference](docs/reference.md#desktop-setup)).
+**Storage is local, and memBrain needs no model service of its own.** Recall uses keywords and, once the local model is installed, meaning; the host's AI does any interpretation. Background learning with a model of memBrain's own was removed; an installation that configured one in an earlier version keeps loading and runs without it ([reference](docs/reference.md#desktop-setup)).
 
 <a id="automatic-integration"></a>
 
@@ -245,7 +245,7 @@ Known limits remain visible: a model can treat historical information as current
 
 <a id="manual-deepseek-evaluation"></a>
 
-Read the [acceptance criteria](architecture/v1-acceptance.md), [closed longitudinal failure](evaluations/v1-2026-10-25-longitudinal-v5-stopped.md), and [evaluation reference](docs/reference.md#manual-deepseek-evaluation) for reproducible methods, preserved failures, and evidence boundaries. All historical reports remain available.
+Read the [acceptance criteria](architecture/v1-acceptance.md), [closed longitudinal failure](evaluations/v1-2026-10-25-longitudinal-v5-stopped.md), and [evaluation reference](docs/reference.md#retired-model-evaluations) for reproducible methods, preserved failures, and evidence boundaries. All historical reports remain available.
 
 ## Documentation
 

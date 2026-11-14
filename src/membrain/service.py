@@ -937,9 +937,9 @@ class MemoryService:
             )
             if exact_capture or exact_direct_source:
                 if proposal["memory_kind"] != memory["memory_kind"] or proposal["world_hint"] != memory["world"]:
-                    raise DomainError("invalid_evidence", "Semantic or world promotion needs a validating provider.")
+                    raise DomainError("invalid_evidence", "A proposal must keep the memory kind and world of the statement it restates.")
                 return memory
-        raise DomainError("invalid_evidence", "The deterministic extractor cannot substantiate this proposal.")
+        raise DomainError("invalid_evidence", "A proposal must restate a statement captured from its source exactly.")
 
     def _save_traces(self, conn, principal, brain, traces, *, validated=False):
         """``validated`` only for traces already validated as RecallTraces, unchanged since. Every trace is
@@ -1069,7 +1069,7 @@ class MemoryService:
             if item["knowledge_state"] == "grounded":
                 item["value"] = self._grounded_working_value(item, events, target)
         if any(loop["state"] != "unknown" for loop in payload["proposed_open_loops"]):
-            raise DomainError("unsupported_capability", "Open-loop status validation requires a semantic provider.")
+            raise DomainError("unsupported_capability", "memBrain does not check an open loop's status; propose open loops with state unknown.")
         state.update(revision=state["revision"] + 1, through_sequence=brain["durable_sequence"],
                      items=items, open_loops=payload["proposed_open_loops"], updated_at=now())
         self._working_save(conn, principal, brain, target, state)

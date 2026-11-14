@@ -120,7 +120,7 @@ membrain desktop setup
 
 旧版内置数据库首次升级时，会先保存原引擎和冷备份，再修改数据库目录，因此需要额外的可用磁盘空间。数据库维护、应用初始化和恢复检查全部成功后，API 才会启动。采用新引擎后，旧版程序会拒绝该配置；请让已安装的工具和 MCP 配置使用相同的软件包来源。升级失败会阻止就绪，并保留现有数据和恢复文件。
 
-**数据存储在本地，memBrain 不需要自己的模型服务。** 回忆按关键词匹配，本地模型安装后还会按语义匹配；需要理解和解释的工作由宿主的 AI 完成。在早期版本中配置过认知模型的安装会保留该配置，但这种由模型驱动的学习已冻结，不属于产品主线（见[参考文档](docs/reference.md#desktop-setup)）。
+**数据存储在本地，memBrain 不需要自己的模型服务。** 回忆按关键词匹配，本地模型安装后还会按语义匹配；需要理解和解释的工作由宿主的 AI 完成。由 memBrain 自带模型驱动的后台学习已移除；在早期版本中配置过这种模型的安装仍可正常加载，并在没有它的情况下运行（见[参考文档](docs/reference.md#desktop-setup)）。
 
 <a id="automatic-integration"></a>
 <a id="python-integration"></a>
@@ -255,7 +255,7 @@ membrain desktop start
 
 <a id="manual-deepseek-evaluation"></a>
 
-[验收标准](architecture/v1-acceptance.md)、[已关闭的长线失败记录](evaluations/v1-2026-10-25-longitudinal-v5-stopped.md)和[评估参考](docs/reference.md#manual-deepseek-evaluation)提供可复现的方法、保留的失败结果与证据边界。所有历史报告继续保留。
+[验收标准](architecture/v1-acceptance.md)、[已关闭的长线失败记录](evaluations/v1-2026-10-25-longitudinal-v5-stopped.md)和[评估参考](docs/reference.md#retired-model-evaluations)提供可复现的方法、保留的失败结果与证据边界。所有历史报告继续保留。
 
 ## 文档
 
