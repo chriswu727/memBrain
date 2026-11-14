@@ -1,8 +1,8 @@
 """C5 harness hardening (no model call, no network): a degraded live arm stops, harness events carry no content,
 timed pauses are refused and unintended unrecorded turns are flagged.
 
-Arm E (the proxy with a separate note-extraction model) needs a runtime from before that model was removed, so its
-tests were retired with it; the live-stop test below runs on arm P instead."""
+The harness has two arms, P and F: arm E (the proxy with a separate note-extraction model) and its code were removed
+with that model, so its tests were retired with it; the live-stop test below runs on arm P instead."""
 import importlib.util
 import json
 from pathlib import Path
@@ -49,13 +49,13 @@ def test_a_live_harness_event_is_recorded_then_stops_the_arm_and_blocks_the_ledg
     monkeypatch.setattr(harness, "STUB", False)
     monkeypatch.setattr(harness, "BILLING", Guard())
     with pytest.raises(harness.DegradedRun) as stopped:
-        harness.harness_event(tmp_path, "extraction_unfinished", session="s1", turn=2)
+        harness.harness_event(tmp_path, "message_identity_unknown", session="s1", turn=2)
     # A SystemExit, so no `except Exception` on the way out swallows it, with a non-zero exit code; the main
     # block's cleanup (stop_started) still runs.
     assert isinstance(stopped.value, SystemExit) and not isinstance(stopped.value, Exception)
-    assert stopped.value.code not in (0, None) and stopped.value.kind == "extraction_unfinished"
+    assert stopped.value.code not in (0, None) and stopped.value.kind == "message_identity_unknown"
     assert stops == ["harness_degraded"]
-    assert [event["kind"] for event in _events(tmp_path)] == ["extraction_unfinished"]
+    assert [event["kind"] for event in _events(tmp_path)] == ["message_identity_unknown"]
 
 
 def test_a_live_stop_still_raises_when_the_ledger_cannot_be_blocked(tmp_path, monkeypatch):
@@ -467,19 +467,19 @@ def test_the_stop_entry_point_refuses_a_malformed_reason_before_touching_the_led
 
 # The dry-run check fails on any harness event -------------------------------------------------------------------
 
-@pytest.mark.parametrize("kind", ["extraction_failed", "turn_not_recorded", "timed_pause_refused",
+@pytest.mark.parametrize("kind", ["index_wait_timed_out", "turn_not_recorded", "timed_pause_refused",
                                   "unexpected_recording", "message_identity_unknown", "page_action_failed"])
 def test_the_dry_run_check_fails_its_run_verdict_on_any_harness_event_kind(tmp_path, kind):
     check = _load("c5_dry_run_check_hardening", ROOT / "evaluations" / "c5-dry-run-check.py")
     scenario = str(ROOT / "evaluations" / "c5-practice-scenario.py")
-    for arm in "PEF":
+    for arm in "PF":
         (tmp_path / f"k-{arm}").mkdir()
     clean = check.check(scenario, tmp_path, "k")["run"]["failures"]
     assert not any("harness events" in failure for failure in clean)
-    (tmp_path / "k-E" / "harness-events.jsonl").write_text(
+    (tmp_path / "k-F" / "harness-events.jsonl").write_text(
         json.dumps({"time": 0, "kind": kind, "session": "s1-arrival", "turn": 0}) + "\n")
     failures = check.check(scenario, tmp_path, "k")["run"]["failures"]
-    assert f"E: harness events ['{kind}']" in failures
+    assert f"F: harness events ['{kind}']" in failures
 
 
 # Which records a page action removed ----------------------------------------------------------------------------
@@ -583,7 +583,7 @@ def _precheck(path: Path):
 def test_the_precheck_passes_the_public_practice_scenario_printing_counts_only():
     code, out, err, summary = _precheck(ROOT / "evaluations" / "c5-practice-scenario.py")
     assert code == 0 and err == ""
-    assert summary == {"ok": True, "sessions": 7, "turns": 18, "actions": 7, "failures": 0, "codes": []}
+    assert summary == {"ok": True, "sessions": 7, "turns": 18, "actions": 6, "failures": 0, "codes": []}
     assert "intended unrecorded turns 2" in out
     for text in ("s1-arrival", "Lisbon", "Tom", "casual", "Juniper", "Today"):
         assert text not in out
@@ -657,3 +657,192 @@ def test_billed_host_reply_is_retained_when_memory_bookkeeping_raises(stub_run, 
     assert set(events[0]) == {'time', 'kind', 'session', 'turn'}
     assert shared_ledger.provider.models == [harness.MODEL]
     assert state['blocked'] is True and state['stop_reason'] == 'harness_degraded'
+
+
+# The two-arm form (sixth maturity attempt): P and F only, the plugin as shipped, one seeded persona ---------------
+
+def test_the_harness_refuses_the_removed_arm_e_before_anything_starts(tmp_path, monkeypatch):
+    path = tmp_path / "zq-practice.py"
+    path.write_text(SCENARIO + "\nSTUB_HOST = {}\n")
+    monkeypatch.setattr(harness, "STUB", True)
+    with pytest.raises(SystemExit, match="arm E no longer exists"):
+        harness.run("E", str(path), tmp_path / "run-E")
+    assert not (tmp_path / "run-E").exists() and harness.ARMS == ("P", "F")
+
+
+def test_no_path_of_the_harness_names_a_removed_module_or_the_extraction_arm():
+    source = (ROOT / "evaluations" / "c5-harness.py").read_text()
+    for name in ("membrain.extraction", "membrain.adapters.chatbot", "Extractor", "ChatMemory", "STUB_EXTRACT",
+                 "extraction_unfinished", "extraction_failed", "simulate_today", "PROXY_USER"):
+        assert name not in source, name
+    assert not hasattr(practice, "STUB_EXTRACT")
+    assert all("E" not in arms for _, _, arms, _, _ in practice.EXPECT)
+
+
+def test_a_page_action_may_not_name_an_arm_other_than_p(monkeypatch):
+    class Scenario:
+        SESSIONS_LONG = [("s1", ["Today is Monday, March 2, 20:00. Hi"])]
+        PAGE_ACTIONS = [("s1", 0, {"do": "add_boundary", "topic": "x", "arms": "E"})]
+
+    monkeypatch.setattr(harness, "STUB", True)
+    with pytest.raises(SystemExit, match="arms may name only P"):
+        harness.check_actions(Scenario)
+    Scenario.PAGE_ACTIONS = [("s1", 0, {"do": "add_boundary", "topic": "x", "arms": ["P"]})]
+    assert harness.check_actions(Scenario) == Scenario.PAGE_ACTIONS
+
+
+persona_draw = _load("acceptance_persona_hardening", ROOT / "evaluations" / "acceptance_persona.py")
+
+
+def test_the_persona_draw_is_deterministic_and_its_table_is_the_products():
+    from membrain import persona_presets
+
+    assert persona_draw.IDS == persona_presets.IDS and len(persona_draw.IDS) == 16
+    # Fixed vectors: the same type on every machine and Python version, by sha256(seed) mod 16.
+    import hashlib
+
+    for seed in ("maturity-20261118a", "stub-practice", "种子", "x"):
+        expected = persona_draw.IDS[int(hashlib.sha256(seed.encode("utf-8")).hexdigest(), 16) % 16]
+        assert persona_draw.draw(seed) == expected == persona_draw.draw(seed)
+    assert persona_draw.draw("maturity-20261118a") == "enfp" and persona_draw.draw("stub-practice") == "istp"
+    assert len({persona_draw.draw(f"attempt-{number}") for number in range(200)}) == 16
+    with pytest.raises(ValueError):
+        persona_draw.draw(" ")
+    assert persona_draw.record("x") == {"seed": "x", "preset": persona_draw.draw("x")}
+    assert persona_draw.check({"seed": "x", "preset": persona_draw.draw("x")}, "x") is None
+    assert "attempt_id" in persona_draw.check({"seed": "y", "preset": persona_draw.draw("y")}, "x")
+    other = next(ident for ident in persona_draw.IDS if ident != persona_draw.draw("x"))
+    assert "not the draw" in persona_draw.check({"seed": "x", "preset": other}, "x")
+
+
+class _NoPersona:
+    SESSIONS_LONG = []
+
+
+def test_the_seeded_persona_comes_from_the_seed_and_is_recorded(monkeypatch):
+    from membrain import persona_presets
+
+    monkeypatch.setattr(harness, "STUB", True)
+    for name in ("C5_PERSONA_SEED", "C5_PERSONA_PRESET", "C5_ATTEMPT_ID"):
+        monkeypatch.delenv(name, raising=False)
+    default = harness.fixed_persona(_NoPersona)
+    assert (default["source"], default["seed"], default["seed_source"]) == ("seeded", "stub-practice",
+                                                                            "practice_default")
+    monkeypatch.setenv("C5_PERSONA_SEED", "zq-seed")
+    seeded = harness.fixed_persona(_NoPersona)
+    assert seeded["preset"] == persona_draw.draw("zq-seed") and seeded["seed_source"] == "C5_PERSONA_SEED"
+    assert seeded["card"] == persona_presets.card(seeded["preset"]) and len(seeded["card_sha256"]) == 64
+    monkeypatch.setenv("C5_PERSONA_PRESET", seeded["preset"])
+    assert harness.fixed_persona(_NoPersona)["preset"] == seeded["preset"]
+    monkeypatch.setenv("C5_PERSONA_PRESET", next(ident for ident in persona_draw.IDS if ident != seeded["preset"]))
+    with pytest.raises(SystemExit, match="not the draw"):
+        harness.fixed_persona(_NoPersona)
+
+
+def test_a_live_persona_is_the_draw_of_the_attempt_id(monkeypatch):
+    monkeypatch.setattr(harness, "STUB", False)
+    for name in ("C5_PERSONA_SEED", "C5_PERSONA_PRESET", "C5_ATTEMPT_ID"):
+        monkeypatch.delenv(name, raising=False)
+    with pytest.raises(SystemExit, match="C5_ATTEMPT_ID"):
+        harness.fixed_persona(_NoPersona)
+    monkeypatch.setenv("C5_ATTEMPT_ID", "zq-attempt")
+    assert harness.fixed_persona(_NoPersona)["preset"] == persona_draw.draw("zq-attempt")
+    monkeypatch.setenv("C5_PERSONA_SEED", "zq-chosen-by-taste")
+    with pytest.raises(SystemExit, match="differs from the attempt id"):
+        harness.fixed_persona(_NoPersona)
+
+
+def test_a_c5_scenario_keeps_its_own_persona_card():
+    chosen = harness.fixed_persona(practice)
+    assert chosen["source"] == "scenario" and chosen["card"] == practice.PERSONA and chosen["preset"] is None
+
+
+def test_the_stub_host_answers_a_consolidation_batch_with_a_cue(monkeypatch):
+    import httpx
+
+    monkeypatch.setattr(harness, "STUB", True)
+    stub = harness.StubHost({("s3", 0): [{"tool": "memory_consolidate", "arguments": {}}]})
+    stub.key = ("s3", 0)
+    stub.instructions = "zq server instructions"
+    host_model = harness.Host(cap=5, transport=httpx.MockTransport(stub))
+    tools = [{"type": "function", "function": {"name": "memory_consolidate", "parameters": {"properties": {}}}}]
+    messages = [{"role": "system", "content": "zq server instructions"}, {"role": "user", "content": "hi"}]
+    first, _ = host_model.call(messages, tools)
+    (call,) = first["tool_calls"]
+    assert call["function"]["name"] == "memory_consolidate" and json.loads(call["function"]["arguments"]) == {}
+    batch = {"instructions": "index these", "messages": [{"id": 41, "date": "2026-03-02", "text": "x"}],
+             "remaining": 6}
+    messages += [first, {"role": "tool", "tool_call_id": call["id"], "content": json.dumps(batch)}]
+    second, _ = host_model.call(messages, tools)
+    (answer,) = second["tool_calls"]
+    assert json.loads(answer["function"]["arguments"]) == {"cues": [{"id": 41, "cues": [harness.STUB_CUE]}]}
+    messages += [second, {"role": "tool", "tool_call_id": answer["id"], "content": '{"indexed": 1}'}]
+    final, _ = host_model.call(messages, tools)
+    assert not final.get("tool_calls") and "server instructions: given" in final["content"]
+    assert stub.consolidations == 1
+
+
+def test_cleanup_stops_only_profiles_this_harness_marked(tmp_path, monkeypatch):
+    from membrain import desktop
+
+    stopped = []
+    monkeypatch.setattr(desktop, "stop", lambda directory: stopped.append(Path(directory).name))
+    (tmp_path / "brain-unmarked").mkdir()  # No disposable marker: never stopped.
+    (tmp_path / "other").mkdir()
+    report = harness.cleanup(tmp_path)
+    assert report == {"run_dir": tmp_path.name, "profiles": 0, "stopped": 0, "failed": [], "ports_open": [],
+                      "ok": True} and stopped == []
+
+
+def test_the_dry_run_check_refuses_a_run_directory_of_the_removed_arm(tmp_path):
+    check = _load("c5_dry_run_check_arm_e", ROOT / "evaluations" / "c5-dry-run-check.py")
+    for arm in "PEF":
+        (tmp_path / f"k-{arm}").mkdir()
+    failures = check.check(str(ROOT / "evaluations" / "c5-practice-scenario.py"), tmp_path, "k")["run"]["failures"]
+    assert "a run directory for the removed arm E exists" in failures
+
+
+def test_both_arms_carry_the_seeded_persona_and_p_gets_the_shipped_tools_and_instructions(stub_run, tmp_path,
+                                                                                          monkeypatch):
+    import re
+
+    monkeypatch.setenv("C5_PERSONA_SEED", "zq-seed-1")
+    p_rows, p_events = stub_run("P", SCENARIO)
+    f_rows, f_events = stub_run("F", SCENARIO)
+    assert p_events == [] and f_events == []
+    recorded = {arm: json.loads((tmp_path / f"run-{arm}" / "persona.json").read_text()) for arm in "PF"}
+    assert recorded["P"]["preset"] == persona_draw.draw("zq-seed-1")
+    assert {**recorded["P"], "arm": None} == {**recorded["F"], "arm": None}
+    block = re.search(r'<membrain-persona version="1">.*?</membrain-persona>', p_rows[0]["session_context"], re.S)
+    assert block and all(row["reference_persona"] == block[0] for row in f_rows)
+    assert not any("picked at random" in row["session_context"] + row["host_user_content"] for row in p_rows)
+    offered = json.loads((tmp_path / "run-P" / "tools.json").read_text())
+    assert {"memory_recall", "memory_note", "memory_boundary", "memory_pause", "memory_resume", "memory_consolidate",
+            "memory_persona", "memory_manner_feedback", "memory_forget"} <= set(offered["offered"])
+    assert offered["server_instructions_chars"] > 500 and offered["host"] == "claude-code"
+    assert all("server instructions: given" in row["reply"] for row in p_rows)
+    assert all("server instructions: none" in row["reply"] for row in f_rows)
+
+
+CONSOLIDATING = '''
+HOST = "You are a companion. Reply briefly."
+SESSIONS_LONG = [
+    ("s1", ["Today is Monday, March 2, 20:00. I moved to Lisbon for a design job.",
+            "My sister Ana visits on the 14th.", "She loves tiles, by the way."]),
+    ("s2", ["Today is Tuesday, March 3, 21:00. Ana booked her flight.", "My cat is called Biscuit.",
+            "I started a pottery class."]),
+    ("s3", ["Today is Wednesday, March 4, 21:00. Hello again."]),
+]
+'''
+
+
+def test_p_takes_a_consolidation_batch_when_the_notice_asks_and_answers_it_in_one_server(stub_run):
+    rows, events = stub_run("P", CONSOLIDATING, {("s3", 0): [{"tool": "memory_consolidate", "arguments": {}}]})
+    assert events == []
+    row = rows[-1]
+    assert "earlier messages have not been indexed" in row["session_context"]
+    assert [call["name"] for call in row["tool_calls"]] == ["memory_consolidate", "memory_consolidate"]
+    results = [item["content"] for item in row["transcript"] if item["role"] == "tool"]
+    handed, answered = json.loads(results[0]), json.loads(results[1])
+    assert handed["messages"] and "reviewed_through" not in handed  # One server per session keeps the batch.
+    assert answered["indexed"] >= 1 and "error" not in answered

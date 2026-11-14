@@ -156,20 +156,24 @@ def test_page_actions_are_checked_before_any_model_call(monkeypatch):
 
 # Tools ----------------------------------------------------------------------------------------------------------
 
-def test_arm_p_offers_the_boundary_tool_and_the_note_tools_companion_fields(tmp_path):
+def test_arm_p_offers_every_tool_the_plugins_server_lists_with_its_instructions(tmp_path, monkeypatch):
     directory = tmp_path / "installation"
     host.ensure_installation(directory)
     client = MemoryClient("http://127.0.0.1:9", "key", brain_id="brain")
     from membrain.mcp_server import create_server
 
-    server = create_server(client, directory=directory)
-    listed = {tool.name: tool for tool in asyncio.run(server.list_tools())}
-    offered = [name for name in harness.TOOLS if name in listed]
-    assert offered == list(harness.TOOLS)
-    assert "memory_boundary" in offered
-    note = listed["memory_note"].inputSchema["properties"]
+    listed = {tool.name: tool for tool in asyncio.run(create_server(client, directory=directory).list_tools())}
+    memory = SimpleNamespace(directory=directory, host=host, client=lambda: client)
+    returned, _server, schemas, instructions = harness.Memory.tools(memory)
+    offered = [schema["function"]["name"] for schema in schemas]
+    assert returned is client and offered == list(listed)  # Every tool, in the server's own order.
+    assert {"memory_boundary", "memory_consolidate", "memory_persona", "memory_manner_feedback"} <= set(offered)
+    assert instructions == host.server_instructions() and "memory_consolidate" in instructions
+    schema = {item["function"]["name"]: item["function"] for item in schemas}
+    assert schema["memory_note"]["description"] == listed["memory_note"].description
+    note = schema["memory_note"]["parameters"]["properties"]
     assert {"affect", "shared", "recording_capture"} <= set(note)
-    assert listed["memory_boundary"].inputSchema["required"] == ["topic"]
+    assert schema["memory_boundary"]["parameters"]["required"] == ["topic"]
 
 
 # The reference arm ----------------------------------------------------------------------------------------------

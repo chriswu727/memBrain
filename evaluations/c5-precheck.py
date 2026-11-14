@@ -1,6 +1,6 @@
 """Count-only C5 scenario precheck: is a scenario file fit for the C5 harness, before any service or model starts?
 
-Usage: python c5-precheck.py SCENARIO.py
+Usage: python c5-precheck.py [--r4] SCENARIO.py
 
 Checks, with the harness's own parsers:
 - every session's first message states a date and a time (`session_start`);
@@ -9,6 +9,13 @@ Checks, with the harness's own parsers:
   card);
 - no timed pause is scripted (a `memory_pause` with `hours` in STUB_HOST, or a page action with `hours`): the pause
   would run on the wall clock while the scenario clock moves by days.
+
+With --r4 (an R4 behavioural-acceptance scenario) it also refuses PAGE_ACTIONS (`r4_page_actions`) and PERSONA
+(`r4_persona`): both arms carry the attempt's seeded personality type, which the harness sets, and scenario authors
+never need to know product internals. It refuses stub scripts (`r4_stub_script`), and checks the R4 shape: eleven
+cases (`r4_case_count`), 60 to 66 user messages (`r4_turn_count`), HOST, FACTS and CASES present (`r4_missing`),
+every case names a real (session, turn) position (`r4_case_position`) with a unique id (`r4_case_id`), and every
+EXPECT_RECORDING_P entry names a real position (`r4_recording_position`).
 
 It prints only counts and positions (session index, turn index, action index) with short failure codes. It never
 prints a message, a session id, a topic, a label or an exception's text: held-out scenarios can be prechecked
@@ -26,6 +33,7 @@ from pathlib import Path
 from types import SimpleNamespace
 
 MIN_GAP = datetime.timedelta(hours=1)
+R4_CASES, R4_TURNS = 11, (60, 66)  # An R4 scenario: eleven cases, 60 to 66 user messages.
 
 
 def _load(name: str, path: Path):
@@ -60,7 +68,46 @@ def _timed(arguments) -> bool:
     return isinstance(arguments, dict) and arguments.get("hours") is not None
 
 
-def check(module, harness) -> dict:
+def check_r4(module, positions: dict) -> list[dict]:
+    """The R4-only rules, as codes and positions only."""
+    failures = []
+    if list(getattr(module, "PAGE_ACTIONS", None) or []):
+        failures.append({"code": "r4_page_actions"})
+    if getattr(module, "PERSONA", None):
+        failures.append({"code": "r4_persona"})
+    for name in ("HOST", "FACTS", "CASES"):
+        if not getattr(module, name, None):
+            failures.append({"code": "r4_missing", "field": name})
+    if [name for name in vars(module) if name.startswith("STUB_")]:
+        failures.append({"code": "r4_stub_script"})
+    if len(list(getattr(module, "CASES", None) or [])) != R4_CASES:
+        failures.append({"code": "r4_case_count"})
+    if not R4_TURNS[0] <= len(positions) <= R4_TURNS[1]:
+        failures.append({"code": "r4_turn_count"})
+    seen = set()
+    for number, entry in enumerate(list(getattr(module, "CASES", None) or [])):
+        try:
+            session, turn, case, _criteria = entry
+        except (TypeError, ValueError):
+            failures.append({"code": "r4_case_position", "case": number})
+            continue
+        if (session, turn) not in positions:
+            failures.append({"code": "r4_case_position", "case": number})
+        if not isinstance(case, str) or case in seen:
+            failures.append({"code": "r4_case_id", "case": number})
+        seen.add(case)
+    for number, entry in enumerate(list(getattr(module, "EXPECT_RECORDING_P", None) or [])):
+        try:
+            session, turn, _expected = entry
+            known = (session, turn) in positions
+        except (TypeError, ValueError):
+            known = False
+        if not known:
+            failures.append({"code": "r4_recording_position", "entry": number})
+    return failures
+
+
+def check(module, harness, *, r4: bool = False) -> dict:
     failures: list[dict] = []
     sessions = list(getattr(module, "SESSIONS_LONG", None) or [])
     if not sessions:
@@ -132,12 +179,18 @@ def check(module, harness) -> dict:
                     failure["at"] = list(positions[key])
                 failures.append(failure)
 
+    if r4:
+        failures += check_r4(module, positions)
     intended = len(harness.intended_unrecorded(module)) if not failures else None
     return {"ok": not failures, "sessions": len(sessions), "turns": turns, "actions": len(actions),
-            "intended_unrecorded": intended, "failures": failures}
+            "intended_unrecorded": intended, "cases": len(list(getattr(module, "CASES", None) or [])),
+            "failures": failures}
 
 
 def main(argv: list) -> int:
+    r4 = bool(argv) and argv[0] == "--r4"
+    if r4:
+        argv = argv[1:]
     if len(argv) != 1:
         print(json.dumps({"ok": False, "error": "usage"}))
         return 2
@@ -152,8 +205,8 @@ def main(argv: list) -> int:
                 if isinstance(error, KeyboardInterrupt):
                     raise
                 module = None
-            result = check(module, harness) if module is not None else {
-                "ok": False, "sessions": 0, "turns": 0, "actions": 0, "intended_unrecorded": None,
+            result = check(module, harness, r4=r4) if module is not None else {
+                "ok": False, "sessions": 0, "turns": 0, "actions": 0, "intended_unrecorded": None, "cases": 0,
                 "failures": [{"code": "load_failed"}]}
     except Exception:  # noqa: BLE001 - an internal error is reported by code only.
         print(json.dumps({"ok": False, "error": "internal_error"}))
@@ -161,6 +214,8 @@ def main(argv: list) -> int:
     print(f"sessions {result['sessions']}")
     print(f"turns {result['turns']}")
     print(f"actions {result['actions']}")
+    if r4:
+        print(f"cases {result['cases']}")
     if result["intended_unrecorded"] is not None:
         print(f"intended unrecorded turns {result['intended_unrecorded']}")
     for failure in result["failures"]:
@@ -169,6 +224,8 @@ def main(argv: list) -> int:
     summary = {"ok": result["ok"], "sessions": result["sessions"], "turns": result["turns"],
                "actions": result["actions"], "failures": len(result["failures"]),
                "codes": sorted({failure["code"] for failure in result["failures"]})}
+    if r4:
+        summary.update(mode="r4", cases=result["cases"])
     print(json.dumps(summary, sort_keys=True))
     return 0 if result["ok"] else 1
 

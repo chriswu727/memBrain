@@ -11,7 +11,10 @@ acceptance-attempt-driver.md; the same format as acceptance_review.py's manifest
 - before each scenario, in manifest order: re-verifies every hash, reads the billing ledger (read only, when one is
   given: `blocked` must be false, `run_id` the attempt_id, and `policy_sha256` C5_BILLING_POLICY_SHA256 when set) and
   refuses existing run directories;
-- runs RUNNER SCENARIO OUT_ROOT KEY, then VALIDITY OUT_ROOT/KEY-P OUT_ROOT/KEY-E OUT_ROOT/KEY-F;
+- runs RUNNER SCENARIO OUT_ROOT KEY, then VALIDITY OUT_ROOT/KEY-P OUT_ROOT/KEY-F (the frozen arms ARMS = P, F: the
+  plugin path and the full-history reference; the run script runs them one after the other);
+- passes the manifest's persona draw to every child as C5_PERSONA_SEED and C5_PERSONA_PRESET, so both arms carry
+  the attempt's fixed personality type (the harness refuses a preset that is not the draw of its seed);
 - stops at the first non-zero exit (any runner exit but 0 is a scenario failure, including the run script's
   supervisor exits after a failed or refused arm), invalid scenario, changed input or blocked ledger. It never
   starts another scenario after that, and it never resumes, reuses or retries anything.
@@ -19,7 +22,8 @@ acceptance-attempt-driver.md; the same format as acceptance_review.py's manifest
 Live mode is on with --live, or whenever C5_BILLING_LEDGER, C5_ATTEMPT_ID or any provider credential (*_API_KEY) is
 set. It refuses --runner and --validity: it runs only the repository's evaluations/c5-run-scenario.sh and `<this
 python> evaluations/acceptance_review.py validity`, which must be frozen in the manifest's files together with
-evaluations/c5-harness.py. It requires C5_ATTEMPT_ID equal to the attempt_id and a 64-hex C5_BILLING_POLICY_SHA256
+evaluations/c5-harness.py and evaluations/acceptance_persona.py, and its manifest must record the persona draw
+("persona": {"seed": attempt_id, "preset": draw(attempt_id)}). It requires C5_ATTEMPT_ID equal to the attempt_id and a 64-hex C5_BILLING_POLICY_SHA256
 equal to the ledger's policy_sha256. Its ledger is C5_BILLING_LEDGER (required, absolute; a different --ledger is
 refused). On a
 stop the driver decides itself (invalid, hash_mismatch including inputs changed during a scenario, run_dir_exists,
@@ -60,7 +64,7 @@ from pathlib import Path, PurePosixPath
 
 STATE = "attempt-state.json"
 LOGS = "driver-logs"
-ARMS = ("P", "E", "F")
+ARMS = ("P", "F")  # The same frozen arms as acceptance_review.ARMS; the parity test checks they agree.
 GATES = ("R4", "C5")
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _KEY = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
@@ -112,12 +116,16 @@ def _exact(value, keys: set, what: str) -> dict:
 def validate_manifest(manifest) -> dict:
     """The shared manifest format: raises ValueError naming the first structural problem. It accepts and rejects
     exactly what acceptance_review.py's load_manifest does (structure only, not the files on disk)."""
-    _exact(manifest, {"version", "attempt_id", "files", "pairs", "order"}, "the manifest")
+    keys = {"version", "attempt_id", "files", "pairs", "order"}
+    _exact(manifest, keys | ({"persona"} if isinstance(manifest, dict) and "persona" in manifest else set()),
+           "the manifest")
     if type(manifest["version"]) is not int or manifest["version"] != 1:
         raise ValueError("version must be 1")
     attempt = manifest["attempt_id"]
     if not isinstance(attempt, str) or not attempt.strip():
         raise ValueError("attempt_id must be a non-empty string")
+    if "persona" in manifest and (problem := _persona_module().check(manifest["persona"], attempt)):
+        raise ValueError(problem)
     files = manifest["files"]
     if not isinstance(files, dict):
         raise ValueError("files must be an object of path to sha256")
@@ -165,6 +173,17 @@ def validate_manifest(manifest) -> dict:
     if set(order) != keys:
         raise ValueError("order must name every scenario key in the pairs exactly once, and nothing else")
     return manifest
+
+
+def _persona_module():
+    """acceptance_persona.py from this driver's own directory (standard library only)."""
+    import importlib.util
+
+    source = Path(__file__).resolve().with_name("acceptance_persona.py")
+    spec = importlib.util.spec_from_file_location("acceptance_persona_for_driver", source)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
 
 
 def _shared_loader():
@@ -246,6 +265,7 @@ MAX_GRACE_SECONDS = 600.0
 LIVE_RUNNER = "evaluations/c5-run-scenario.sh"
 LIVE_VALIDITY = "evaluations/acceptance_review.py"
 LIVE_STOPPER = "evaluations/c5-harness.py"
+LIVE_PERSONA = "evaluations/acceptance_persona.py"  # The harness draws the attempt's persona with it.
 SHARED_STOP_SECONDS = 300.0
 _STOP_REASON = re.compile(r"[a-z][a-z0-9_]{0,39}")  # What the harness's `--stop --reason CODE` accepts.
 # Stops the driver decides itself. On these, in live mode, it blocks the shared billing run for every future provider
@@ -362,6 +382,7 @@ class Driver:
         self.signal: int | None = None
         self.current: str | None = None
         self.state: dict = {}
+        self.child_env: dict = {}  # The manifest's persona draw, for every child (set in prepare).
 
     # Before anything ------------------------------------------------------------------------------------------------
 
@@ -390,10 +411,16 @@ class Driver:
             raise Refused("environment", "--ledger differs from C5_BILLING_LEDGER")
         frozen = set(self.manifest["files"])
         if self.live:
-            missing = [path for path in (LIVE_RUNNER, LIVE_VALIDITY, LIVE_STOPPER) if path not in frozen]
+            missing = [path for path in (LIVE_RUNNER, LIVE_VALIDITY, LIVE_STOPPER, LIVE_PERSONA) if path not in frozen]
             if missing:
                 raise Refused("unfrozen_command", f"a live attempt needs these in the manifest's files: "
                                                   f"{', '.join(missing)}")
+            if "persona" not in self.manifest:
+                raise Refused("persona_binding", "a live attempt's manifest records its persona draw "
+                                                 '("persona": {"seed": attempt_id, "preset": ...})')
+        persona = self.manifest.get("persona")
+        self.child_env = ({"C5_PERSONA_SEED": persona["seed"], "C5_PERSONA_PRESET": persona["preset"]}
+                          if persona else {})
         driver = Path(__file__).resolve()
         unfrozen = unfrozen_command_files(self.runner + self.validity, self.repo, frozen)
         if self.repo in driver.parents and driver.relative_to(self.repo).as_posix() not in frozen:
@@ -434,6 +461,8 @@ class Driver:
             "runner": self.runner,
             "validity": self.validity,
             "ledger": str(self.ledger) if self.ledger else None,
+            "arms": list(ARMS),
+            "persona": self.manifest.get("persona"),
             **evidence(self.live),
             "shared_stop": None,
             "created_at": _now(),
@@ -490,7 +519,8 @@ class Driver:
         with log.open("ab") as output:
             try:
                 self.child = subprocess.Popen(argv, cwd=self.repo, stdin=subprocess.DEVNULL, stdout=output,
-                                              stderr=subprocess.STDOUT, start_new_session=True)
+                                              stderr=subprocess.STDOUT, start_new_session=True,
+                                              env={**os.environ, **self.child_env})
             except OSError as error:
                 output.write(f"driver: could not start {argv[0]}: {type(error).__name__}\n".encode())
                 self.protected = False

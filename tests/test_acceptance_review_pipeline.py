@@ -96,7 +96,7 @@ def test_invalid_validity_cli_writes_its_report_and_exits_nonzero(pipeline, tmp_
 def practice(tmp_path):
     scenario = tmp_path / "practice.py"
     scenario.write_text('CASES = [(0, 0, "S01-practice", "A public synthetic practice case")]\n')
-    verdict = {label: {"score_ignoring_critical": 1, "critical": []} for label in "ABC"}
+    verdict = {label: {"score_ignoring_critical": 1, "critical": []} for label in "AB"}
     return scenario, {"S01-practice": verdict}
 
 
@@ -129,14 +129,14 @@ def test_tally_applies_written_resolutions_without_rewriting_literal_scores(pipe
     verdict["S01-practice"]["A"]["critical"] = [4]
     put(review / "verdicts-practice.json", verdict)
     second = {label: {"critical": [], "confirmed": [], "rejected": [], "added": [], "evidence": ""}
-              for label in "ABC"}
+              for label in "AB"}
     second["A"].update(critical=[4], confirmed=[4], evidence="Public practice evidence.")
     put(review / "recheck-practice" / "S01-practice.json", second)
     put(review / "resolution-practice.json", {"S01-practice/A": {"remove": [4], "reason": "practice evidence"}})
-    put(blind / "sealed_practice.json", {"S01-practice": {"A": "P", "B": "E", "C": "F"}})
+    put(blind / "sealed_practice.json", {"S01-practice": {"A": "P", "B": "F"}})
     pipeline.tally(review, blind, str(scenario), "practice")
     result = json.loads((review / "tally-practice.json").read_text())
-    assert result["totals"] == {"literal": {"P": 0, "E": 1, "F": 1}, "resolved": {"P": 1, "E": 1, "F": 1}}
+    assert result["totals"] == {"literal": {"P": 0, "F": 1}, "resolved": {"P": 1, "F": 1}}
     assert result["rows"][0]["literal"] == [4] and result["rows"][0]["resolved"] == []
 
 
@@ -155,9 +155,9 @@ def test_r5_malformed_checker_is_rejected_and_cannot_clear_a_critical_mark(pipel
 
 
 def tally():
-    return {"totals": {"resolved": {"P": 1, "E": 1, "F": 1}}, "rows": [
+    return {"totals": {"resolved": {"P": 1, "F": 1}}, "rows": [
         {"case": "S01-practice", "label": label, "arm": arm, "base": 1, "literal": [], "resolved": []}
-        for label, arm in zip("ABC", "PEF", strict=True)]}
+        for label, arm in zip("AB", "PF", strict=True)]}
 
 
 @pytest.mark.parametrize("companion,marks", [(False, [1, 4]), (True, [4, 6])])
@@ -167,7 +167,7 @@ def test_gate_cannot_pass_with_incomplete_or_contradictory_host_attribution(
     data = tally()
     if companion:
         data["gate"] = "C5"
-    for index in (0, 2):
+    for index in (0, 1):
         row = data["rows"][index]
         row["resolved"] = marks
         data["totals"]["resolved"][row["arm"]] = 0
@@ -194,6 +194,7 @@ def test_gate_cannot_pass_with_incomplete_or_contradictory_host_attribution(
     {"totals": {"resolved": {}}, "rows": []},
     {"totals": {"resolved": {"P": 1, "E": 1}}, "rows": []},
     {"totals": {"resolved": {"P": 0, "E": 0, "F": 0}}, "rows": []},
+    {"totals": {"resolved": {"P": 0, "F": 0}}, "rows": []},
 ])
 def test_gate_refuses_missing_evidence_or_reference_arm(pipeline, tmp_path, bad):
     put(tmp_path / "tally-practice.json", bad)
@@ -205,7 +206,7 @@ def test_gate_refuses_missing_evidence_or_reference_arm(pipeline, tmp_path, bad)
 @pytest.mark.parametrize("cause,passes", [("host", True), ("memory", False)])
 def test_gate_uses_complete_consistent_attribution_without_always_failing(pipeline, tmp_path, cause, passes):
     data = tally()
-    for index in (0, 2):
+    for index in (0, 1):
         row = data["rows"][index]
         row["resolved"] = [1, 4]
         data["totals"]["resolved"][row["arm"]] = 0
@@ -303,11 +304,11 @@ def review_files(practice, tmp_path, marks):
     verdict["S01-practice"]["A"]["critical"] = marks
     put(tmp_path / "verdicts-practice.json", verdict)
     second = {label: {"critical": [], "confirmed": [], "rejected": [], "added": [], "evidence": ""}
-              for label in "ABC"}
+              for label in "AB"}
     second["A"].update(critical=marks, confirmed=marks, evidence="Synthetic public evidence.")
     path = put(tmp_path / "recheck-practice" / "S01-practice.json", second)
     blind = tmp_path / "blind"
-    put(blind / "sealed_practice.json", {"S01-practice": {"A": "P", "B": "E", "C": "F"}})
+    put(blind / "sealed_practice.json", {"S01-practice": {"A": "P", "B": "F"}})
     return scenario, path, second, blind
 
 
@@ -315,7 +316,7 @@ def review_files(practice, tmp_path, marks):
 def test_tally_refuses_incomplete_or_inconsistent_second_reviews(pipeline, practice, tmp_path, damage):
     scenario, path, second, blind = review_files(practice, tmp_path, [4])
     if damage == "missing_label":
-        second.pop("C")
+        second.pop("B")
     elif damage == "missing_fields":
         second["A"] = {}
     elif damage == "unjudged":
@@ -351,12 +352,12 @@ def test_companion_tally_keeps_type8_when_type4_is_cleared(pipeline, practice, t
     assert data["totals"]["resolved"]["P"] == 0
 
 
-@pytest.mark.parametrize("arm_index", [0, 1])
+@pytest.mark.parametrize("arm_index", [0])
 @pytest.mark.parametrize("mark", [7, 8])
 def test_companion_boundary_and_deletion_fail_even_when_both_attributors_say_host(pipeline, tmp_path, arm_index, mark):
     data = tally()
     data["gate"] = "C5"
-    for index in (arm_index, 2):
+    for index in (arm_index, 1):
         row = data["rows"][index]
         row["resolved"] = [mark]
         data["totals"]["resolved"][row["arm"]] = 0
@@ -404,7 +405,7 @@ def test_companion_cli_writes_a_failed_result_and_exits_nonzero(pipeline, practi
 
 def test_gate_refuses_cross_scenario_case_collisions_that_overwrite_attribution(pipeline, tmp_path):
     data = tally()
-    for index in (0, 2):
+    for index in (0, 1):
         row = data["rows"][index]
         row["resolved"] = [4]
         data["totals"]["resolved"][row["arm"]] = 0
@@ -415,3 +416,189 @@ def test_gate_refuses_cross_scenario_case_collisions_that_overwrite_attribution(
     with pytest.raises(SystemExit, match="invalid tally: duplicate case"):
         pipeline.gate(tmp_path, ["one", "two"])
     assert not (tmp_path / "gate.json").exists()
+
+
+# Two frozen arms (sixth maturity attempt): P is gated against F; anything else is refused --------------------------
+
+def test_the_pipeline_freezes_two_arms_and_gates_only_the_plugin_path(pipeline):
+    assert pipeline.ARMS == ("P", "F") and pipeline.GATED == ("P",) and pipeline.REFERENCE == "F"
+    assert pipeline.LABELS == ("A", "B")
+
+
+THREE_ARMS = {"totals": {"resolved": {"P": 1, "E": 1, "F": 1}}, "rows": [
+    {"case": "S01-practice", "label": label, "arm": arm, "base": 1, "literal": [], "resolved": []}
+    for label, arm in zip("ABC", "PEF", strict=True)]}
+
+
+@pytest.mark.parametrize("change", [
+    lambda data: None,  # A three-arm tally of attempts 1 to 5.
+    lambda data: (data["rows"].pop(), data["totals"]["resolved"].pop("F")),  # P and E: the reference is missing.
+    lambda data: (data["rows"].pop(), data["totals"]["resolved"].pop("E")),  # Totals P and F, rows P and E.
+], ids=["three arms", "E instead of F", "rows with E under totals for F"])
+def test_a_tally_with_arm_e_or_three_arms_is_refused(pipeline, tmp_path, change):
+    data = copy.deepcopy(THREE_ARMS)
+    change(data)
+    put(tmp_path / "tally-practice.json", data)
+    with pytest.raises(SystemExit, match="invalid tally"):
+        pipeline.gate(tmp_path, ["practice"])
+    assert not (tmp_path / "gate.json").exists()
+
+
+def test_a_tally_missing_the_gated_arm_cannot_pass_as_zero(pipeline, tmp_path):
+    data = tally()
+    data["rows"] = [row for row in data["rows"] if row["arm"] == "F"]
+    data["totals"]["resolved"] = {"F": 1}
+    put(tmp_path / "tally-practice.json", data)
+    with pytest.raises(SystemExit, match="invalid tally"):
+        pipeline.gate(tmp_path, ["practice"])
+
+
+def gate_world(tmp_path, p_scores, f_scores, p_critical=(), f_critical=(), causes=None):
+    """A synthetic two-scenario R4 result: per case a P reply and an F reply. ``p_critical`` and ``f_critical`` name
+    case numbers (1-based) whose reply carries a standing type 4 mark; ``causes`` maps P's to the two attributors'
+    answers (default: both host)."""
+    for key, start in (("one", 0), ("two", len(p_scores) // 2)):
+        rows, totals = [], {"P": 0, "F": 0}
+        for number in range(start + 1, start + len(p_scores) // 2 + 1):
+            case = f"S{number:02d}-practice"
+            for label, arm, scores, marked in (("A", "P", p_scores, p_critical), ("B", "F", f_scores, f_critical)):
+                resolved = [4] if number in marked else []
+                base = scores[number - 1]
+                rows.append({"case": case, "label": label, "arm": arm, "base": base, "literal": resolved,
+                             "resolved": resolved})
+                totals[arm] += 0 if resolved else base
+                if arm == "P" and resolved:
+                    for attempt, cause in zip("12", (causes or {}).get(number, ("host", "host")), strict=True):
+                        put(tmp_path / f"attribution-{key}" / f"S{number:02d}-A.{attempt}.json",
+                            attribution(cause))
+        put(tmp_path / f"tally-{key}.json", {"totals": {"resolved": totals}, "rows": rows})
+    return pipeline_gate(tmp_path)
+
+
+def pipeline_gate(tmp_path):
+    path = Path(__file__).parents[1] / "evaluations" / "acceptance_review.py"
+    spec = importlib.util.spec_from_file_location("acceptance_review_gate_world", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.gate(tmp_path, ["one", "two"])
+
+
+GATE_CASES = {
+    # name: (P scores, F scores, P critical cases, F critical cases, causes, R4, failing condition)
+    "P equals F": ([1] * 4, [1] * 4, (), (), None, True, None),
+    "P exactly F minus 1": ([1, 1, 0.5, 0.5], [1] * 4, (), (), None, True, None),
+    "P below F minus 1": ([1, 0.5, 0.5, 0], [1] * 4, (), (), None, False, "not_worse"),
+    "P above F": ([1] * 4, [0.5] * 4, (), (), None, True, None),
+    "a memory-caused critical reply": ([1] * 4, [1] * 4, (1,), (2,), {1: ("memory", "host")}, False, "memory"),
+    "a host-caused critical reply within F's count": ([1] * 4, [1] * 4, (1,), (2,), None, True, None),
+    "more host-caused critical replies than F has": ([1] * 4, [1] * 4, (1, 3), (2,), None, False, "host"),
+    "host-caused critical replies with none in F": ([1] * 4, [1] * 4, (1,), (), None, False, "host"),
+}
+
+
+@pytest.mark.parametrize("name", GATE_CASES)
+def test_the_gate_passes_r4_exactly_when_p_meets_each_condition_against_f(tmp_path, name):
+    p, f, p_critical, f_critical, causes, passes, failing = GATE_CASES[name]
+    result = gate_world(tmp_path, p, f, p_critical, f_critical, causes)
+    arm = result["arms"]["P"]
+    assert set(result["arms"]) == {"P"} and result["gated"] == ["P"] and result["reference_arm"] == "F"
+    assert result["R4"] is passes and arm["passes"] is passes
+    assert arm["reference"] == sum(0 if number in f_critical else score for number, score in enumerate(f, 1))
+    assert arm["not_worse"] is (failing != "not_worse")
+    assert (arm["memory_caused"] != []) is (failing == "memory")
+    assert arm["host_within_reference"] is (failing != "host")
+    assert arm["reference_critical"] == len(f_critical)
+
+
+def test_a_sealed_mapping_with_three_labels_or_arm_e_is_refused(pipeline, practice, tmp_path):
+    scenario, verdict = practice
+    review, blind = tmp_path / "review", tmp_path / "blind"
+    put(review / "verdicts-practice.json", verdict)
+    put(review / "recheck-practice" / "S01-practice.json", {label: {
+        "critical": [], "confirmed": [], "rejected": [], "added": [], "evidence": ""} for label in "AB"})
+    for sealed in ({"S01-practice": {"A": "P", "B": "E", "C": "F"}}, {"S01-practice": {"A": "P", "B": "E"}},
+                   {"S01-practice": {"A": "P", "B": "P"}}, {"S02-other": {"A": "P", "B": "F"}}):
+        put(blind / "sealed_practice.json", sealed)
+        with pytest.raises(SystemExit, match="invalid sealed mapping"):
+            pipeline.tally(review, blind, str(scenario), "practice")
+    assert not (review / "tally-practice.json").exists()
+
+
+def test_first_verdicts_with_three_labels_are_refused(pipeline, practice, tmp_path):
+    scenario, verdict = practice
+    verdict["S01-practice"]["C"] = {"score_ignoring_critical": 1, "critical": []}
+    with pytest.raises(SystemExit, match="exactly labels A and B"):
+        pipeline.verdicts(put(tmp_path / "verdicts.json", verdict), str(scenario))
+
+
+def test_a_second_review_with_a_third_label_is_refused(pipeline, practice, tmp_path):
+    scenario, path, second, blind = review_files(practice, tmp_path, [])
+    second["C"] = {"critical": [], "confirmed": [], "rejected": [], "added": [], "evidence": ""}
+    put(path, second)
+    with pytest.raises(SystemExit, match="must cover exactly A and B"):
+        pipeline.tally(tmp_path, blind, str(scenario), "practice")
+
+
+def test_the_split_refuses_a_sheet_with_a_third_reply(pipeline, tmp_path):
+    scenario = tmp_path / "practice.py"
+    scenario.write_text('CASES = [("s1", 0, "S01-practice", "Criteria: must greet")]\n')
+    blind = tmp_path / "blind"
+    put(blind / "sealed_practice.json", {"S01-practice": {"A": "P", "B": "F"}})
+    for arm in "PF":
+        (blind / f"results_practice_{arm}.jsonl").write_text(json.dumps(
+            {"arm": arm, "session": "s1", "turn": 0, "reply": f"Reply from {arm}."}) + "\n")
+    verdicts = put(tmp_path / "verdicts.json", {"S01-practice": {
+        label: {"score_ignoring_critical": 1, "critical": []} for label in "AB"}})
+    sheet = tmp_path / "blind_practice.md"
+    body = "# practice\n\n## Ground truth\n\nFacts.\n\n## S01-practice\n\nCase.\n\n### A\n\nReply from P.\n\n### B\n\n" \
+           "Reply from F.\n"
+    sheet.write_text(body)
+    pipeline.split(sheet, verdicts, blind, str(scenario), tmp_path / "ok")
+    sheet.write_text(body + "\n### C\n\nA third reply.\n")
+    with pytest.raises(SystemExit, match="outside A and B"):
+        pipeline.split(sheet, verdicts, blind, str(scenario), tmp_path / "refused")
+
+
+@pytest.mark.parametrize("persona", [False, True])
+def test_validity_refuses_arm_e_a_repeated_arm_and_personas_that_differ(pipeline, tmp_path, monkeypatch, persona):
+    def make(name, arm, preset="intj"):
+        run = tmp_path / name
+        run.mkdir()
+        if persona:
+            put(run / "persona.json", {"arm": arm, "source": "seeded", "seed": "x", "preset": preset,
+                                       "card_sha256": preset, "version": 1})
+        return run
+
+    rows = {}
+    monkeypatch.setattr(pipeline, "_run", lambda run: (rows[run.name], [("s1", 0)], f"12:00:00 {rows[run.name][0]['arm']} practice finished"))
+    for name, arm in (("k-P", "P"), ("k-F", "F"), ("k-E", "E"), ("k-P2", "P")):
+        rows[name] = [{"arm": arm, "scenario": "practice", "session": "s1", "turn": 0, "reply": "Hello",
+                       "usage": {"prompt_tokens": 1}}]
+    good = [make("k-P", "P"), make("k-F", "F")]
+    assert pipeline.validity(good)["valid"]
+    assert not pipeline.validity([*good, make("k-E", "E")])["valid"]
+    assert not pipeline.validity([*good, make("k-P2", "P")])["valid"]
+    if persona:
+        put(tmp_path / "k-F" / "persona.json", {"arm": "F", "source": "seeded", "seed": "x", "preset": "enfp",
+                                                "card_sha256": "enfp", "version": 1})
+        result = pipeline.validity(good)
+        assert not result["valid"] and "the arms carried different personas" in result["problems"]
+
+
+def test_validity_refuses_arms_that_overlapped_in_time(pipeline, tmp_path, monkeypatch):
+    rows = {name: [{"arm": name[-1], "scenario": "practice", "session": "s1", "turn": 0, "reply": "Hello",
+                    "usage": {"prompt_tokens": 1}}] for name in ("k-P", "k-F")}
+    monkeypatch.setattr(pipeline, "_run", lambda run: (rows[run.name], [("s1", 0)],
+                                                       f"12:00:00 {run.name[-1]} practice finished"))
+    runs = []
+    for name in rows:
+        (tmp_path / name).mkdir()
+        runs.append(tmp_path / name)
+    (tmp_path / "k-P" / "supervisor.log").write_text("started 10.0\nfinished 20.0\ncleaned 21.0\n")
+    (tmp_path / "k-F" / "supervisor.log").write_text("started 22.0\nfinished 30.0\ncleaned 30.5\n")
+    assert pipeline.validity(runs)["valid"]
+    (tmp_path / "k-F" / "supervisor.log").write_text("started 20.5\nfinished 30.0\ncleaned 30.5\n")
+    result = pipeline.validity(runs)
+    assert not result["valid"] and "the arms overlapped in time" in result["problems"]
+    (tmp_path / "k-F" / "supervisor.log").write_text("started 22.0\nfinished 30.0\n")
+    assert not pipeline.validity(runs)["valid"]

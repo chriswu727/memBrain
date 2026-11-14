@@ -7,7 +7,7 @@ python3 evaluations/acceptance-attempt-driver.py run --manifest M --out OUT_ROOT
     [--repo ROOT] [--runner CMD] [--validity CMD] [--ledger LEDGER] [--grace SECONDS] [--live]
 ```
 
-The runner defaults to `evaluations/c5-run-scenario.sh` and is called as `RUNNER SCENARIO OUT_ROOT KEY`, with an absolute scenario path and `OUT_ROOT`. The validity check defaults to `python evaluations/acceptance_review.py validity`, using the driver's own interpreter, and receives `--scenario SCENARIO OUT_ROOT/KEY-P OUT_ROOT/KEY-E OUT_ROOT/KEY-F`. This is the same absolute, manifest-bound scenario path the runner receives, including private subdirectories. Offline custom validity commands still receive only the three run directories. Both run with the repository as their working directory and inherit the environment. Their output goes only to `OUT_ROOT/driver-logs/KEY.runner.log` and `KEY.validity.log`. `--grace` must be a finite number of seconds above 0 and at most 600; anything else, including NaN or infinity, is refused.
+The runner defaults to `evaluations/c5-run-scenario.sh` and is called as `RUNNER SCENARIO OUT_ROOT KEY`, with an absolute scenario path and `OUT_ROOT`. The validity check defaults to `python evaluations/acceptance_review.py validity`, using the driver's own interpreter, and receives `--scenario SCENARIO OUT_ROOT/KEY-P OUT_ROOT/KEY-F`. This is the same absolute, manifest-bound scenario path the runner receives, including private subdirectories. Offline custom validity commands still receive only the two run directories. The arms are frozen as `ARMS = ("P", "F")`: the plugin path and the full-history reference, run one after the other by the run script. The proxy-with-extraction arm `E` of maturity attempts 1 to 5 no longer exists; those attempts' records keep describing three arms. Both run with the repository as their working directory and inherit the environment. Their output goes only to `OUT_ROOT/driver-logs/KEY.runner.log` and `KEY.validity.log`. `--grace` must be a finite number of seconds above 0 and at most 600; anything else, including NaN or infinity, is refused.
 
 For diagnosis, `acceptance_review.py diagnose --scenario SCENARIO RUN_DIR...` uses the explicit scenario for turn positions without printing its content. Direct validity/diagnose commands without `--scenario` retain the historical `evaluations/<scenario>.py` lookup. An explicit path must match the result rows' scenario stem. A tooling repair never resumes a stopped attempt or converts its original invalid result into accepted evidence.
 
@@ -18,7 +18,8 @@ Live mode is on with `--live`, and whenever `C5_BILLING_LEDGER`, `C5_ATTEMPT_ID`
 | | Live mode | Offline (tests) |
 | --- | --- | --- |
 | Commands | Only the repository's `evaluations/c5-run-scenario.sh` and `<this python> evaluations/acceptance_review.py validity`; `--runner` and `--validity` are refused | Overrides allowed |
-| Frozen command files | `evaluations/c5-run-scenario.sh`, `evaluations/acceptance_review.py` and `evaluations/c5-harness.py` must be in `files` | Any command file inside the repository must be in `files` |
+| Frozen command files | `evaluations/c5-run-scenario.sh`, `evaluations/acceptance_review.py`, `evaluations/c5-harness.py` and `evaluations/acceptance_persona.py` must be in `files` | Any command file inside the repository must be in `files` |
+| Persona | The manifest must have `persona` (`persona_binding`); every child gets `C5_PERSONA_SEED` and `C5_PERSONA_PRESET` from it | Passed on when the manifest has one |
 | Ledger | `C5_BILLING_LEDGER`, required and absolute; a different `--ledger` is refused | Only with `--ledger` |
 | Attempt binding | `C5_ATTEMPT_ID` required and equal to `attempt_id` (`attempt_binding`) | None |
 | Policy binding | `C5_BILLING_POLICY_SHA256` required, 64 lowercase hex characters (`policy_binding`), and equal to the ledger's `policy_sha256` | None |
@@ -40,11 +41,14 @@ This is the format shared with `acceptance_review.py`. Until that file's `load_m
  "files": {"<repo-relative path>": "<sha256>"},
  "pairs": [{"gate": "R4", "scenarios": [{"key": "<key>", "path": "<repo-relative scenario path>", "sha256": "<sha256>"}]},
            {"gate": "C5", "scenarios": [{"key": "<key>", "path": "...", "sha256": "..."}]}],
- "order": ["<key>"]}
+ "order": ["<key>"],
+ "persona": {"seed": "<attempt_id>", "preset": "<one of the sixteen type ids>"}}
 ```
 
+`persona` is optional in the format (earlier attempts' manifests have none) and required for a live run. It records the attempt's fixed personality type, which both arms carry: `seed` must equal `attempt_id`, and `preset` must equal `acceptance_persona.draw(seed)`, that is `IDS[int(sha256(seed).hexdigest(), 16) % 16]` over the product's sixteen types in their order. Nobody chooses it.
+
 The driver checks the structure:
-- Each object has exactly these keys.
+- Each object has exactly these keys (`persona` may be left out).
 - `version` is the integer 1, and `attempt_id` is a string that is not blank.
 - Paths are normalised and repo-relative. They contain no `..`, and before any hashing they may not resolve outside the repository, even through a symlink.
 - Each sha256 is lowercase hex.
@@ -64,8 +68,8 @@ The driver also refuses:
 
 ## Order of work
 
-1. **Before anything.** The driver validates the manifest, verifies the hash of the manifest file, every `files` entry and every scenario, and reads the ledger flag. It refuses when `OUT_ROOT` already has `attempt-state.json`, whether for this attempt or another, because it never overwrites, resumes or reuses one. It also refuses when any `KEY-P/E/F` directory exists. Then it creates the state file exclusively. Exit code 2 means nothing ran.
-2. **Each key in `order`.** The driver first reads the ledger flag, re-verifies every hash and refuses an existing run directory. Then it runs the runner. A non-zero exit is `runner_failed`, which covers the supervisor's exits after a failed or refused arm, a port wait and a preflight. On a zero exit, it runs validity on the three directories, and a non-zero exit is `invalid`. Last, it re-verifies every hash; an input that changed while the scenario ran makes it `inputs_changed`. If any step fails, it stops. It never starts another scenario and never retries.
+1. **Before anything.** The driver validates the manifest, verifies the hash of the manifest file, every `files` entry and every scenario, and reads the ledger flag. It refuses when `OUT_ROOT` already has `attempt-state.json`, whether for this attempt or another, because it never overwrites, resumes or reuses one. It also refuses when any `KEY-P` or `KEY-F` directory exists. Then it creates the state file exclusively. Exit code 2 means nothing ran.
+2. **Each key in `order`.** The driver first reads the ledger flag, re-verifies every hash and refuses an existing run directory. Then it runs the runner. A non-zero exit is `runner_failed`, which covers the supervisor's exits after a failed or refused arm, a port wait and a preflight. On a zero exit, it runs validity on the two directories, and a non-zero exit is `invalid`. Last, it re-verifies every hash; an input that changed while the scenario ran makes it `inputs_changed`. If any step fails, it stops. It never starts another scenario and never retries.
 3. **Pairs.** A pair is `complete` when all its scenarios are `valid`. It stays complete whatever happens later. At the end, a pair with any started scenario that is not complete is `incomplete`, and a pair with none started is `not_run`. `eligible` lists the gates whose pair is complete. The driver never decides R4 or C5.
 
 The driver only reads the ledger. Anything other than an explicit `"blocked": false` stops the attempt, and that includes a missing, malformed or unreadable ledger. The harness's guard and its `--stop` entry point write `blocked`.
@@ -123,7 +127,7 @@ The stop `reason` is one of `hash_mismatch`, `run_dir_exists`, `ledger_blocked`,
 
 The driver deliberately does none of the following:
 - **Pre-checks.** It does not check the pin, a clean `git status`, `MEMBRAIN_SRC`, the port state or leftover memBrain services before the first call.
-- **Choosing the frozen files.** Apart from the three live-mode command files, it does not decide which files to freeze, such as review instructions or the runtime pin. It only enforces what the manifest lists.
+- **Choosing the frozen files.** Apart from the four live-mode command files, it does not decide which files to freeze, such as review instructions or the runtime pin. It only enforces what the manifest lists.
 - **Billing.** It does not set any `C5_*` billing variable, create the ledger or write it directly, read balances, or reconcile cost. It does not recompute the ledger's policy hash; the harness's guard does.
 - **Results.** It does not decide what a stopped attempt means, re-run anything after an invalid run or a port-wait failure (use a fresh `OUT_ROOT` and the plan's rules), or run `diagnose`.
 - **Scoring.** It does not run blinding, any scoring step, `gate`, or the R4 or C5 decision.

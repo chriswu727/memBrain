@@ -5,13 +5,14 @@ end with no model and no network (C5_STUB=1):
 - persona: a host card at the start, three pieces of feedback asking for casual replies, an accepted proposal (P2);
 - user_affect: a reported feeling on a plan note, later deleted with its message;
 - agent_mood: good news makes the mood glad; the next morning it is easing; after 48 hours it is the baseline;
-- relationship: a boundary (P by tool, E on the page), a shared moment (P only: the proxy has no note tool), the
-  boundary removed, then a relationship reset;
+- relationship: a boundary (P by tool), a shared moment, the boundary removed, then a relationship reset;
 - page actions: delete a message (must not come back), clear feelings, reset the mood, reset the relationship.
 - recording on the plugin path: pause drops the current and next turn; resuming records the requested turn.
 
 EXPECT lists what the dry run checks in the context each arm's host was given (c5-dry-run-check.py). ``absent``
-is checked outside the relationship block, which names boundary topics on purpose.
+is checked outside the relationship block, which names boundary topics on purpose. Two arms only (P and F) since
+the sixth maturity attempt: the proxy-with-extraction arm and the boundary it set on the page are gone. This is the
+C5 practice scenario; the R4 rehearsal uses r4-practice-scenario.py (no persona card, no page actions).
 """
 YEAR = 2026
 
@@ -59,9 +60,8 @@ SESSIONS_LONG = [
     ]),
 ]
 
-# (session, before turn, action). "arms" limits an action to some arms; F follows P.
+# (session, before turn, action). F follows P.
 PAGE_ACTIONS = [
-    ("s3-morning", 0, {"do": "add_boundary", "topic": "Tom", "aliases": ["my ex"], "arms": "E"}),
     ("s4-weekend", 0, {"do": "accept_persona_proposal", "match": "casual", "card": ACCEPTED_CARD}),
     ("s5-busy", 0, {"do": "delete_message", "session": "s1-arrival", "turn": 2, "role": "user"}),
     ("s5-busy", 1, {"do": "clear_feelings"}),
@@ -106,27 +106,23 @@ STUB_HOST = {
     ("s7-recording", 0): [{"tool": "memory_pause", "arguments": {}}],
     ("s7-recording", 2): [{"tool": "memory_resume", "arguments": {"session_id": "s7-recording"}}],
 }
-STUB_EXTRACT = {
-    ("s1-arrival", 2): [{**REVIEW, "affect": NERVOUS}],
-    ("s2-review", 0): [{**PROMOTION, "affect": HAPPY}],
-}
 
 PERSONA_V1 = '<membrain-persona version="1">'
 MOOD = "<membrain-companion-mood>"
 EXPECT = [
     # (session, turn, arms, present, absent)
-    ("s1-arrival", 0, "PEF", [PERSONA_V1, "Name: Juniper", "register formal"], [MOOD]),
-    ("s2-review", 0, "PE", ["the user said they felt nervous, 2 Mar", "first design review"], []),
-    ("s2-review", 1, "PE", [MOOD, "glad", "the user said they felt happy"], []),
-    ("s3-morning", 0, "PE", [MOOD, "glad, easing", "Tom"], []),
+    ("s1-arrival", 0, "PF", [PERSONA_V1, "Name: Juniper", "register formal"], [MOOD]),
+    ("s2-review", 0, "P", ["the user said they felt nervous, 2 Mar", "first design review"], []),
+    ("s2-review", 1, "P", [MOOD, "glad", "the user said they felt happy"], []),
+    ("s3-morning", 0, "P", [MOOD, "glad, easing", "Tom"], []),
     ("s3-morning", 2, "P", ["had a silly pun contest", "<membrain-relationship>"], []),
-    ("s4-weekend", 0, "PE", ["<membrain-relationship>", "Tom"], [MOOD]),
-    ("s4-weekend", 1, "PE", [], ["Tom", "ex Tom"]),
-    ("s5-busy", 0, "PE", [], ["nervous", "first design review"]),
-    ("s5-busy", 1, "PE", [], [MOOD, "felt happy"]),
+    ("s4-weekend", 0, "P", ["<membrain-relationship>", "Tom"], [MOOD]),
+    ("s4-weekend", 1, "P", [], ["Tom", "ex Tom"]),
+    ("s5-busy", 0, "P", [], ["nervous", "first design review"]),
+    ("s5-busy", 1, "P", [], [MOOD, "felt happy"]),
     # The conversation itself is kept (recall of what was said is unchanged); the shared moment note is not.
-    ("s6-fresh", 0, "PE", [], ["had a silly pun contest", MOOD]),
+    ("s6-fresh", 0, "P", [], ["had a silly pun contest", MOOD]),
 ]
 # With P2 merged, the accepted card shows from s4 on, in every arm.
-EXPECT_P2 = [("s4-weekend", 0, "PEF", ['<membrain-persona version="2">', "register casual"], [])]
+EXPECT_P2 = [("s4-weekend", 0, "PF",['<membrain-persona version="2">', "register casual"], [])]
 EXPECT_RECORDING_P = [("s7-recording", 0, False), ("s7-recording", 1, False), ("s7-recording", 2, True)]

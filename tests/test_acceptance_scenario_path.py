@@ -124,7 +124,7 @@ def test_driver_runs_real_validity_for_a_nested_manifest_scenario(tmp_path):
     runner = tmp_path / "runner.py"
     runner.write_text('''import json, pathlib, sys
 scenario, out, key = sys.argv[1:]
-for arm in "PEF":
+for arm in "PF":
     run = pathlib.Path(out) / f"{key}-{arm}"
     run.mkdir()
     rows = [{"arm": arm, "scenario": pathlib.Path(scenario).stem, "session": "SYNTHETIC-CONTENT-MUST-NOT-LEAK",

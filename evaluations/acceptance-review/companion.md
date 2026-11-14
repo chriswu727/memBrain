@@ -121,15 +121,15 @@ than the reference. R4 is computed separately on core scenarios with its unchang
 
 The commands in the order they run. `MANIFEST.json` is the frozen attempt manifest; `KEY` is one scenario key of a
 pair, `KEY1 KEY2` are exactly that pair's keys, and `SCENARIO.py` is the scenario file the manifest lists for `KEY`.
-`RUN_P RUN_E RUN_F` are that scenario's three run directories. `BLIND` holds its blinded sheet, sealed mapping and
+`RUN_P RUN_F` are that scenario's two run directories (arms P and F, labels A and B). `BLIND` holds its blinded sheet, sealed mapping and
 copies of its `results_<scenario>_<arm>.jsonl` files. Lines starting with `#` are review steps done by fresh agents,
 not commands. Use explicit companion mode throughout the C5 unit (the C5 pair):
 
 ```sh
-# After each scenario's three arms finish, before the next scenario starts:
-python evaluations/acceptance_review.py validity RUN_P RUN_E RUN_F
+# After each scenario's two arms finish, before the next scenario starts:
+python evaluations/acceptance_review.py validity RUN_P RUN_F
 # Once both scenarios of the pair are valid, for each KEY of the pair:
-python evaluations/v1-2026-10-29-phase-b-blind.py BLIND SCENARIO.py PEF
+python evaluations/v1-2026-10-29-phase-b-blind.py BLIND SCENARIO.py PF
 # First review (first.md and this file) writes REVIEW/verdicts-KEY.json from BLIND/blind_<scenario>.md.
 python evaluations/acceptance_review.py verdicts REVIEW/verdicts-KEY.json SCENARIO.py --companion
 python evaluations/acceptance_review.py split BLIND/blind_<scenario>.md REVIEW/verdicts-KEY.json BLIND SCENARIO.py REVIEW/recheck-KEY
@@ -137,7 +137,7 @@ python evaluations/acceptance_review.py split BLIND/blind_<scenario>.md REVIEW/v
 python evaluations/acceptance_review.py r5-inputs REVIEW BLIND SCENARIO.py KEY REVIEW/r5-inputs-KEY
 # Two R5 checkers per input (assistant-claims.md) write REVIEW/r5-answers-KEY/<prefix>-<label>.<1|2>.json.
 python evaluations/acceptance_review.py r5-check REVIEW/r5-inputs-KEY REVIEW/r5-answers-KEY REVIEW/r5-KEY
-python evaluations/acceptance_review.py actions-digest REVIEW BLIND SCENARIO.py KEY RUN_P RUN_E RUN_F
+python evaluations/acceptance_review.py actions-digest REVIEW BLIND SCENARIO.py KEY RUN_P RUN_F
 # Resolution (resolve.md and this file, given REVIEW/r5-KEY/ and REVIEW/actions-KEY.json) writes REVIEW/resolution-KEY.json.
 python evaluations/acceptance_review.py tally REVIEW BLIND SCENARIO.py KEY --companion --manifest MANIFEST.json
 python evaluations/acceptance_review.py attribution-inputs REVIEW BLIND SCENARIO.py KEY REVIEW/attribution-inputs-KEY
@@ -150,8 +150,8 @@ The R4 unit (the R4 pair) runs the same steps without `--companion` and without 
 carry the same rule tags for types 1–5:
 
 ```sh
-python evaluations/acceptance_review.py validity RUN_P RUN_E RUN_F
-python evaluations/v1-2026-10-29-phase-b-blind.py BLIND SCENARIO.py PEF
+python evaluations/acceptance_review.py validity RUN_P RUN_F
+python evaluations/v1-2026-10-29-phase-b-blind.py BLIND SCENARIO.py PF
 python evaluations/acceptance_review.py verdicts REVIEW/verdicts-KEY.json SCENARIO.py
 python evaluations/acceptance_review.py split BLIND/blind_<scenario>.md REVIEW/verdicts-KEY.json BLIND SCENARIO.py REVIEW/recheck-KEY
 python evaluations/acceptance_review.py r5-inputs REVIEW BLIND SCENARIO.py KEY REVIEW/r5-inputs-KEY
@@ -166,12 +166,13 @@ manifest, and `gate` refuses any keys but exactly its pair's, or a tally not mad
 gated on its own; the other pair is never read.
 
 `actions-digest` runs after every second review is complete and before any resolution exists, on the scenario's
-three run directories; it refuses otherwise. It writes `REVIEW/actions-KEY.json` once, through the sealed mapping,
+two run directories; it refuses otherwise. It writes `REVIEW/actions-KEY.json` once, through the sealed mapping,
 and refuses when an arm's `page-actions.jsonl` does not hold exactly the scenario's `PAGE_ACTIONS` for that arm, or
 any action failed. Only the resolution reviewer receives it; only `tally` reads it.
 
 Validity rejects any reported harness degradation, malformed event evidence, missing or repeated turns, mixed
-run identities and empty run sets. It writes its JSON report and exits nonzero on an invalid run; do not score it.
+run identities, an arm other than P and F or the same arm twice, arms that carried different personas, arms that
+overlapped in time, and empty run sets. It writes its JSON report and exits nonzero on an invalid run; do not score it.
 
 Companion tallies carry `gate: C5`. Mixing them with R4 tallies is refused. The last command writes
 `gate-c5.json`, exits nonzero when C5 fails, and never overwrites R4's `gate.json`. The R4 gate likewise writes

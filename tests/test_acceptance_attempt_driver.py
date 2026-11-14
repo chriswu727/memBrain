@@ -25,10 +25,13 @@ scenario, out, key = sys.argv[1:4]
 config = json.loads(pathlib.Path(os.environ["FAKE_CONFIG"]).read_text())
 with open(config["calls"], "a") as calls:
     calls.write(json.dumps(["runner", key, scenario, out]) + "\n")
+if config.get("env"):
+    with open(config["env"], "a") as seen:
+        seen.write(json.dumps([os.environ.get("C5_PERSONA_SEED"), os.environ.get("C5_PERSONA_PRESET")]) + "\n")
 text = pathlib.Path(scenario).read_text()
 print(text)  # A careless runner: its own output carries the scenario's content.
 print(text, file=sys.stderr)
-for arm in "PEF":
+for arm in "PF":
     run = pathlib.Path(out) / f"{key}-{arm}"
     run.mkdir()
     (run / "run.log").write_text(text + f"\n{arm} finished\n")
@@ -87,7 +90,7 @@ if args == ["--stop"]:
 elif config.get("accept_reason", True) and len(args) == 3 and args[:2] == ["--stop", "--reason"]:
     reason = args[2]
 else:
-    sys.exit("arms: P, E, F")  # As an older harness answers any argument but a bare --stop.
+    sys.exit("arms: P, F")  # As an older harness answers any argument but a bare --stop.
 ledger = pathlib.Path(os.environ["C5_BILLING_LEDGER"])  # Stands in for the harness's own --stop entry point.
 state = json.loads(ledger.read_text())
 state["blocked"] = True
@@ -96,6 +99,12 @@ ledger.write_text(json.dumps(state))
 sys.exit(config.get("stop_exit", 0))
 '''
 POLICY = "c" * 64
+PERSONA_SOURCE = (DRIVER.parent / "acceptance_persona.py").read_text()
+_persona_spec = importlib.util.spec_from_file_location("acceptance_persona_driver_test",
+                                                       DRIVER.parent / "acceptance_persona.py")
+PERSONA = importlib.util.module_from_spec(_persona_spec)
+_persona_spec.loader.exec_module(PERSONA)
+PERSONA_DRAW = PERSONA.draw("attempt-test-1")
 
 
 @pytest.fixture(autouse=True)
@@ -174,17 +183,21 @@ class Attempt:
     def run(self, *extra, env=None):
         return subprocess.run(self.argv(*extra), env=env or self.env(), capture_output=True, text=True, timeout=120)
 
-    def make_live(self, *, omit=()):
+    def make_live(self, *, omit=(), persona=True):
         """Synthetic stand-ins at the repository's own command paths (never the real scripts), frozen in the manifest
-        unless omitted, and a synthetic ledger bound to this attempt."""
+        unless omitted, the real persona draw beside them, the manifest's persona record, and a synthetic ledger
+        bound to this attempt."""
         for relative, code in (("evaluations/c5-run-scenario.sh", RUNNER),
                                ("evaluations/acceptance_review.py", VALIDITY),
-                               ("evaluations/c5-harness.py", STOPPER)):
+                               ("evaluations/c5-harness.py", STOPPER),
+                               ("evaluations/acceptance_persona.py", PERSONA_SOURCE)):
             path = self.repo / relative
-            path.write_text(f"#!{sys.executable}\n{code}")
+            path.write_text(code if relative.endswith("persona.py") else f"#!{sys.executable}\n{code}")
             path.chmod(0o755)
             if relative not in omit:
                 self.manifest["files"][relative] = sha(path)
+        if persona:
+            self.manifest["persona"] = {"seed": "attempt-test-1", "preset": PERSONA_DRAW}
         self.write_manifest()
         self.ledger = Path(self.config["ledger"])
         self.ledger.write_text(json.dumps({"version": 1, "run_id": "attempt-test-1", "ledger_path": str(self.ledger),
@@ -249,7 +262,7 @@ def test_happy_path_runs_every_scenario_in_manifest_order_and_validates_each(att
     assert attempt.calls() == [
         item for key in ORDER for item in (
             ["runner", key, str(attempt.repo / "held" / f"{key}.py"), str(attempt.out)],
-            ["validity", key, [f"{key}-P", f"{key}-E", f"{key}-F"]])]
+            ["validity", key, [f"{key}-P", f"{key}-F"]])]
     state = attempt.state()
     assert state["result"] == "complete" and state["stop"] is None
     assert state["attempt_id"] == "attempt-test-1" and state["manifest_sha256"] == sha(attempt.manifest_path)
@@ -360,7 +373,7 @@ def test_runner_failure_in_the_third_scenario_never_starts_the_fourth(attempt):
     assert result.returncode == 1
     assert attempt.runner_keys() == ["alpha", "beta", "gamma"]
     assert [call[1] for call in attempt.calls() if call[0] == "validity"] == ["alpha", "beta"]
-    assert not any((attempt.out / f"delta-{arm}").exists() for arm in "PEF")
+    assert not any((attempt.out / f"delta-{arm}").exists() for arm in "PF")
     state = attempt.state()
     assert [state["scenarios"][key]["status"] for key in ORDER] == ["valid", "valid", "runner_failed", "not_run"]
     assert state["scenarios"]["gamma"]["runner_exit"] == 3 and state["scenarios"]["gamma"]["validity_exit"] is None
@@ -403,9 +416,9 @@ def test_runner_that_cannot_start_counts_as_a_failure(attempt):
 # Never resume or reuse ------------------------------------------------------------------------------------------------
 
 def test_an_existing_run_directory_is_refused_before_start(attempt):
-    (attempt.out / "delta-E").mkdir(parents=True)
+    (attempt.out / "delta-F").mkdir(parents=True)
     result = attempt.run()
-    assert result.returncode == 2 and summary(result)["stop"] == "run_dir_exists" and "delta-E" in result.stderr
+    assert result.returncode == 2 and summary(result)["stop"] == "run_dir_exists" and "delta-F" in result.stderr
     assert attempt.calls() == [] and not (attempt.out / "attempt-state.json").exists()
 
 
@@ -557,12 +570,50 @@ def test_a_validity_override_cannot_turn_an_invalid_live_attempt_complete(attemp
 
 
 @pytest.mark.parametrize("omit", ["evaluations/c5-run-scenario.sh", "evaluations/acceptance_review.py",
-                                  "evaluations/c5-harness.py"])
+                                  "evaluations/c5-harness.py", "evaluations/acceptance_persona.py"])
 def test_live_mode_needs_its_commands_frozen_in_the_manifest(attempt, omit):
     attempt.make_live(omit=(omit,))
     result = attempt.run_live()
     assert result.returncode == 2 and summary(result)["stop"] == "unfrozen_command" and omit in result.stderr
     assert attempt.calls() == []
+
+
+def test_live_mode_needs_the_manifest_to_record_its_persona_draw(attempt):
+    attempt.make_live(persona=False)
+    result = attempt.run_live()
+    assert result.returncode == 2 and summary(result)["stop"] == "persona_binding" and attempt.calls() == []
+
+
+@pytest.mark.parametrize("live", [False, True])
+def test_every_child_gets_the_manifests_persona_draw(attempt, live):
+    attempt.config["env"] = str(attempt.root / "env.jsonl")
+    if live:
+        attempt.make_live()
+        result = attempt.run_live()
+    else:
+        attempt.manifest["persona"] = {"seed": "attempt-test-1", "preset": PERSONA_DRAW}
+        attempt.write_manifest()
+        result = attempt.run()
+    assert result.returncode == 0, result.stderr
+    seen = [json.loads(line) for line in Path(attempt.config["env"]).read_text().splitlines()]
+    assert seen == [["attempt-test-1", PERSONA_DRAW]] * len(ORDER)
+    assert attempt.state()["persona"] == {"seed": "attempt-test-1", "preset": PERSONA_DRAW}
+    assert attempt.state()["arms"] == ["P", "F"]
+
+
+def test_without_a_persona_record_an_offline_child_gets_no_persona_variables(attempt):
+    attempt.config["env"] = str(attempt.root / "env.jsonl")
+    result = attempt.run()
+    assert result.returncode == 0, result.stderr
+    assert {tuple(json.loads(line)) for line in Path(attempt.config["env"]).read_text().splitlines()} == {
+        (None, None)}
+
+
+def test_the_driver_and_the_review_pipeline_freeze_the_same_arms(driver):
+    spec = importlib.util.spec_from_file_location("acceptance_review_arms", DRIVER.parent / "acceptance_review.py")
+    review = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(review)
+    assert driver.ARMS == review.ARMS == ("P", "F") and review.GATED == ("P",)
 
 
 @pytest.mark.parametrize("changes, extra", [({"C5_BILLING_LEDGER": None}, ()),
@@ -603,7 +654,7 @@ def test_a_missing_policy_variable_no_longer_skips_the_ledger_policy_check(attem
 SHARED = {"invalid": (lambda a: {"invalid": ["gamma"]}, "invalid", "invalid", "invalid"),
           "inputs_changed": (lambda a: {"modify": {"gamma": [str(a.frozen)]}}, "hash_mismatch", "inputs_changed",
                              "inputs_changed"),
-          "run_dir_exists": (lambda a: {"touch": {"beta": [str(a.out / "gamma-E")]}}, "run_dir_exists", "not_run",
+          "run_dir_exists": (lambda a: {"touch": {"beta": [str(a.out / "gamma-F")]}}, "run_dir_exists", "not_run",
                              "run_dir_exists")}
 STOP_COMMAND = [sys.executable, "{repo}/evaluations/c5-harness.py", "--stop"]
 
@@ -789,6 +840,11 @@ STRUCTURE_ERRORS = {
     "scenario hash differs from files": lambda m: m.update(files={"held/one.py": "b" * 64}),
     "pair not object": lambda m: m["pairs"].append("C5"),
     "scenario not object": lambda m: m["pairs"][0]["scenarios"].append("five"),
+    "persona not object": lambda m: m.update(persona="intj"),
+    "persona extra key": lambda m: m.update(persona={"seed": "x", "preset": PERSONA.draw("x"), "by": "hand"}),
+    "persona seed not the attempt": lambda m: m.update(persona={"seed": "y", "preset": PERSONA.draw("y")}),
+    "persona preset chosen by hand": lambda m: m.update(persona={"seed": "x", "preset": next(
+        ident for ident in PERSONA.IDS if ident != PERSONA.draw("x"))}),
 }
 
 # Accepted by acceptance_review.py's load_manifest, so accepted here too.
@@ -801,6 +857,7 @@ STRUCTURE_ACCEPTED = {
     "arbitrary key names": lambda m: (m["pairs"][0]["scenarios"][0].update(key="Zeta_9-x"),
                                       m.update(order=["Zeta_9-x", "two", "three", "four"])),
     "C5 pair first": lambda m: m["pairs"].reverse(),
+    "persona draw of the attempt id": lambda m: m.update(persona={"seed": "x", "preset": PERSONA.draw("x")}),
 }
 
 

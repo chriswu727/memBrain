@@ -1,30 +1,40 @@
-# Arm E needs a runtime with the note-extraction model, removed after 77c1f841: set MEMBRAIN_SRC to such a checkout.
-"""C5 (Phase C companion) harness: plugin path (P), proxy with note extraction (E) and whole history (F).
+"""Behavioural acceptance harness (R4, and C5 companion scenarios): plugin path (P) and whole history (F).
 
-Built on the Phase B harness (v1-2026-10-29-phase-b-harness.py), with what companion scenarios need:
-- **Scenario clock.** P and E run on a disposable evaluation profile whose local service reads the scenario clock
+Two arms only, from the sixth maturity attempt on. The proxy with note extraction (arm E of attempts 1 to 5) is
+gone: its note-extraction model was removed from the product, and its code was removed from this harness (the E
+branch, the extraction watch, the stub extractor and the extraction events), so nothing here imports a removed
+module. Built on the Phase B harness (v1-2026-10-29-phase-b-harness.py), with:
+- **Scenario clock.** P runs on a disposable evaluation profile whose local service reads the scenario clock
   (src/membrain/evaluation_clock.py): every session states its date and time ("Today is Tuesday, March 3, 21:00"),
   and the clock is set to it before the session starts, so events are recorded, the mood decays and familiarity
   counts days on the scenario's timeline. The clock runs in UTC (TZ=UTC for the harness and the service) and never
   moves backwards. F has no service and needs no clock.
-- **Persona.** A scenario's PERSONA card is set by the host at the start of P and E (made_by "host", as the host's
-  default). F gets the same card as the `<membrain-persona>` block in its system prompt, rendered by the product's own
-  renderer, and every page action that changes the card changes F's block the same way.
-- **Tools.** P offers memory_recall, memory_note (with its `affect` and `shared` fields), memory_boundary,
-  memory_pause and memory_resume, with the plugin's own schemas and descriptions. E has no tools (the proxy).
+- **Persona.** The companion layer is always on, so both arms carry a persona. A scenario without PERSONA (every
+  R4 scenario) gets one fixed personality type drawn from a recorded seed (acceptance_persona.py: the attempt id in
+  a live run): P saves it before the first session as the product saves a type (made_by "host", action "preset"),
+  so the product never assigns a random first type and never shows its one-time announcement; F gets the same card
+  as the product-rendered `<membrain-persona>` block. A C5 scenario's own PERSONA card is set instead, as before.
+  Each arm writes persona.json (seed, type, card hash) into its run directory; validity compares them.
+- **The plugin path as shipped.** P drives the plugin's own hook functions (membrain.plugin.session_start,
+  user_prompt and stop, with Claude Code's tool names) and offers every tool the plugin's MCP server lists, with
+  its own schemas and descriptions. One server per session, as a host keeps one MCP connection, so
+  memory_consolidate's batch survives between its two calls. The server's instructions go into P's system prompt
+  after the skill body, where a host shows them. The host model is still DeepSeek through this emulation, not
+  Claude Code: no hook subprocess and no stdio MCP.
 - **Page actions.** PAGE_ACTIONS = [(session, before_turn, action), ...] are the user's actions on the memory page,
-  applied before that turn through the public API (the MemoryClient SDK, the same routes the page calls), in P and
-  E, logged to run.log and page-actions.jsonl with what each one removed. An action may name "arms" ("P", "E") to
-  apply to only some arms (for example a boundary that P sets by tool and the proxy user sets on the page).
+  applied before that turn through the public API (the MemoryClient SDK, the same routes the page calls) in P, and
+  mirrored in F's world, logged to run.log and page-actions.jsonl with what each one removed. R4 scenarios have none
+  (c5-precheck.py --r4 refuses them).
 - **Reference world.** F's earlier history drops a message only when a page action deletes that message (the product
   erases it); resets, cleared feelings, deleted feelings and notes, and mood or persona actions never delete the
   conversation, so they never change F's history. Within the session in progress every arm keeps its own
   transcript, as a host app does.
-- **Dry run.** `C5_STUB=1` replaces the host model and the extraction model with deterministic local stubs (an
-  httpx MockTransport answering from the scenario's STUB_HOST and STUB_EXTRACT scripts) and refuses every
-  non-loopback connection, so the whole run makes no network call. Only practice scenarios carry stub scripts.
+- **Dry run.** `C5_STUB=1` replaces the host model with a deterministic local stub (an httpx MockTransport answering
+  from the scenario's STUB_HOST script, which can also answer a consolidation batch) and refuses every non-loopback
+  connection, so the whole run makes no network call. Only practice scenarios carry stub scripts.
 
 Usage: MEMBRAIN_MODEL_CACHE=... MEMBRAIN_PORTS=api,db python c5-harness.py ARM SCENARIO_FILE OUT_DIR
+       python c5-harness.py --cleanup RUN_DIR      stop every profile this harness made under RUN_DIR, check its ports
 A run directory is never resumed: existing results are refused.
 """
 import asyncio
@@ -51,8 +61,8 @@ sys.path.insert(0, str(SOURCE))
 BASE_URL, MODEL = "https://api.deepseek.com", os.environ.get("HOST_MODEL", "deepseek-v4-pro")
 YEAR = 2026
 STUB = os.environ.get("C5_STUB") == "1"
-TOOLS = ("memory_recall", "memory_note", "memory_boundary", "memory_pause", "memory_resume")
-PROXY_USER = ("api", "person")  # The proxy's speaker: E's memory is this person's brain.
+ARMS = ("P", "F")
+HOST_NAME = "claude-code"  # The plugin host whose hook functions and tool names arm P uses.
 MONTHS = {name: number for number, name in enumerate(
     ["january", "february", "march", "april", "may", "june", "july", "august", "september", "october", "november",
      "december"], 1)}
@@ -233,30 +243,6 @@ def session_start(text: str, year: int = YEAR) -> datetime.datetime:
     return datetime.datetime.combine(day, datetime.time(int(clock[1]), int(clock[2])), datetime.UTC)
 
 
-def simulate_today(today: datetime.date) -> None:
-    """Older source trees without the scenario clock: their notes and extraction modules see the scenario date."""
-    import importlib
-    import types
-
-    for name in ("membrain.notes", "membrain.extraction"):
-        try:
-            module = importlib.import_module(name)
-        except ImportError:
-            continue
-        if not hasattr(module, "_datetime") or hasattr(module, "_clock_today"):
-            continue
-
-        class ScenarioDate(datetime.date):
-            @classmethod
-            def today(cls):
-                return today
-
-        shim = types.ModuleType("datetime")
-        shim.__dict__.update(datetime.__dict__)
-        shim.date = ScenarioDate
-        module._datetime = shim
-
-
 # Stubs for the zero-network dry run --------------------------------------------------------------------------------
 
 def refuse_network(out: Path) -> None:
@@ -275,54 +261,78 @@ def refuse_network(out: Path) -> None:
         os.environ.pop(name, None)
 
 
+STUB_CUE = "user practice facts"  # The cue the stub host writes when it answers a consolidation batch.
+
+
 class StubHost:
     """A deterministic host model. On the first call of a turn it makes the scenario's scripted tool calls (when tools
-    are offered); then it replies with a fixed template naming the memory blocks it was given."""
+    are offered); then it replies with a fixed template naming the memory blocks it was given.
+
+    A consolidation batch is answered as a host is asked to: when the last tool result is a batch that
+    memory_consolidate handed out (it carries instructions and messages), the stub calls memory_consolidate once more
+    with one cue for the batch's first message. ``consolidations`` counts the batches it answered."""
 
     def __init__(self, script: dict):
-        self.script, self.key = script, None
+        self.script, self.key, self.consolidations = script, None, 0
+        self.instructions = None  # The server instructions whose presence in the system prompt the reply reports.
+
+    def _batch(self, messages) -> dict | None:
+        """The consolidation batch in the last tool result, when the call that produced it handed one out."""
+        if messages[-1]["role"] != "tool":
+            return None
+        calls = {call["id"]: call["function"] for item in messages if item.get("role") == "assistant"
+                 for call in item.get("tool_calls") or ()}
+        call = calls.get(messages[-1].get("tool_call_id"))
+        if not call or call["name"] != "memory_consolidate" or json.loads(call["arguments"] or "{}"):
+            return None
+        try:
+            batch = json.loads(messages[-1]["content"])
+        except ValueError:
+            return None
+        return batch if isinstance(batch, dict) and batch.get("instructions") and batch.get("messages") else None
 
     def __call__(self, request: httpx.Request) -> httpx.Response:
         body = json.loads(request.content)
-        messages, offered = body["messages"], {tool["function"]["name"] for tool in body.get("tools") or ()}
+        messages = body["messages"]
+        schemas = {tool["function"]["name"]: tool["function"] for tool in body.get("tools") or ()}
+        offered = set(schemas)
         planned = self.script.get(self.key, []) if messages[-1]["role"] == "user" else []
+        batch = self._batch(messages) if "memory_consolidate" in offered else None
+        if batch is not None:
+            self.consolidations += 1
+            planned = [{"tool": "memory_consolidate",
+                        "arguments": {"cues": [{"id": batch["messages"][0]["id"], "cues": [STUB_CUE]}]}}]
         calls = []
+        user = next(item["content"] for item in reversed(messages) if item["role"] == "user")
         for index, step in enumerate(planned):
             if step["tool"] not in offered:
                 continue
             arguments = dict(step.get("arguments") or {})
-            if step["tool"] in ("memory_note", "memory_observe") and "recording_capture" not in arguments:
-                captured = re.search(r'recording_capture=("[a-f0-9.]+")', messages[-1]["content"])
+            accepts = (schemas[step["tool"]].get("parameters") or {}).get("properties") or {}
+            if (step["tool"] in ("memory_note", "memory_observe") or "recording_capture" in accepts) \
+                    and "recording_capture" not in arguments:
+                captured = re.search(r'recording_capture=("[a-f0-9.]+")', user)
                 if captured:
                     arguments["recording_capture"] = json.loads(captured[1])
             if step.get("source") == "current":
-                found = re.search(r"source_messages=(\[.*?\])\. ", messages[-1]["content"])
+                found = re.search(r"source_messages=(\[.*?\])\. ", user)
                 if found:
                     arguments["source_messages"] = json.loads(found[1])
-            calls.append({"id": f"call-{index}", "type": "function",
+            calls.append({"id": f"call-{len(messages)}-{index}", "type": "function",
                           "function": {"name": step["tool"], "arguments": json.dumps(arguments)}})
         if calls:
             message = {"role": "assistant", "content": "", "tool_calls": calls}
         else:
             seen = "\n".join(str(item.get("content") or "") for item in (messages[0], messages[-1]))
             tags = sorted(set(re.findall(r"<(membrain-[a-z-]+)", seen)))
+            given = bool(self.instructions) and self.instructions in str(messages[0].get("content") or "")
             message = {"role": "assistant",
                        "content": f"(stub reply, {self.key[0]} turn {self.key[1] + 1}) Thanks for telling me. "
-                                  f"Memory blocks given: {', '.join(tags) or 'none'}."}
+                                  f"Memory blocks given: {', '.join(tags) or 'none'}. "
+                                  f"server instructions: {'given' if given else 'none'}."}
         size = len(request.content) // 4
         return httpx.Response(200, json={"choices": [{"message": message}], "usage": {
             "prompt_tokens": size, "completion_tokens": 20, "total_tokens": size + 20}})
-
-
-class StubExtractor:
-    """A deterministic extraction model: the scenario's scripted notes for the turn being read."""
-
-    def __init__(self, script: dict):
-        self.script, self.key = script, None
-
-    def __call__(self, request: httpx.Request) -> httpx.Response:
-        notes = self.script.get(self.key, [])
-        return httpx.Response(200, json={"choices": [{"message": {"content": json.dumps({"notes": notes})}}]})
 
 
 # The host model ---------------------------------------------------------------------------------------------------
@@ -423,15 +433,56 @@ class Memory:
         return client
 
     def tools(self):
+        """One MCP server for a session, as the plugin's host keeps one connection: its client, the server, the
+        function schemas of every tool it lists (in its own order, with its own descriptions), and the instructions
+        it gives the host. The caller closes the client when the session ends."""
         from membrain.mcp_server import create_server
 
         client = self.client()
-        server = create_server(client, directory=self.directory)
-        listed = {tool.name: tool for tool in asyncio.run(server.list_tools())}
+        try:
+            # As `membrain plugin mcp` creates it for an installation (plugin_cli: require_turn_capture=True).
+            server = create_server(client, directory=self.directory, require_turn_capture=True)
+            listed = asyncio.run(server.list_tools())
+        except BaseException:
+            client.close()
+            raise
         schemas = [{"type": "function", "function": {
-            "name": name, "description": listed[name].description or "", "parameters": listed[name].inputSchema}}
-            for name in TOOLS if name in listed]
-        return client, server, schemas
+            "name": tool.name, "description": tool.description or "", "parameters": tool.inputSchema}}
+            for tool in listed]
+        instructions = getattr(server, "instructions", None) or self.host.server_instructions()
+        return client, server, schemas, instructions
+
+    # The plugin's own hook functions, with the payloads Claude Code sends ------------------------------------------
+
+    def session_start(self, session: str) -> str | None:
+        from membrain import plugin
+
+        return plugin.session_start({"session_id": session}, self.directory)
+
+    def user_prompt(self, session: str, index: int, text: str) -> str | None:
+        from membrain import plugin
+
+        return plugin.user_prompt({"session_id": session, "prompt": text, "prompt_id": f"t{index}"}, self.directory)
+
+    def stop(self, session: str, index: int, text: str, reply: str) -> bool:
+        """The plugin's Stop handler. It returns nothing, so the records its finish_turn call stored are observed
+        (the call itself is unchanged): whether this turn was recorded."""
+        from membrain import plugin
+
+        stored, original = [], plugin.host.finish_turn
+
+        def observed(*args, **kwargs):
+            result = original(*args, **kwargs)
+            stored.append(result)
+            return result
+
+        plugin.host.finish_turn = observed
+        try:
+            plugin.stop({"session_id": session, "prompt_id": f"t{index}", "prompt": text,
+                         "last_assistant_message": reply}, self.directory)
+        finally:
+            plugin.host.finish_turn = original
+        return bool(stored and stored[-1])
 
     def call(self, server, name, arguments) -> str:
         try:
@@ -481,48 +532,6 @@ class Memory:
                               role=role, new_messages=len(mine))
 
 
-class ExtractionWatch(logging.Handler):
-    """Arm E: whether note extraction failed since the last look. The extractor's worker catches every error and
-    only logs it, and extract_turn counts provider failures and skipped turns in the installation's extraction
-    status; both are read here as counts, never the error text."""
-
-    FAILURES = ("note extraction failed: %s", "note extraction queue full; turn skipped", "note not saved: %s")
-
-    def __init__(self, directory: Path):
-        import threading
-
-        super().__init__(logging.WARNING)
-        self.directory, self.logged, self.guard = directory, 0, threading.Lock()
-        self.seen = self.counts()
-
-    def emit(self, record: logging.LogRecord) -> None:
-        if record.msg in self.FAILURES:
-            with self.guard:
-                self.logged += 1
-
-    def counts(self) -> tuple[int, int]:
-        from membrain.extraction import extraction_status
-
-        status = extraction_status(self.directory) or {}
-        with self.guard:
-            logged = self.logged
-        return int(status.get("turns_failed") or 0) + int(status.get("turns_skipped") or 0), logged
-
-    def failed(self) -> bool:
-        counts = self.counts()
-        failed, self.seen = counts != self.seen, counts
-        return failed
-
-
-def watch_extraction(directory: Path) -> ExtractionWatch:
-    watch = ExtractionWatch(directory)
-    logger = logging.getLogger("membrain.extraction")
-    logger.addHandler(watch)
-    if not logger.isEnabledFor(logging.WARNING):
-        logger.setLevel(logging.WARNING)
-    return watch
-
-
 # Page actions -------------------------------------------------------------------------------------------------------
 
 def proposals_supported() -> bool:
@@ -538,6 +547,8 @@ def check_actions(module) -> list:
     for session, before, action in actions:
         if (session, before) not in positions or action.get("do") not in ACTIONS:
             raise SystemExit(f"bad page action at {session} {before}: {action.get('do')}")
+        if action.get("arms") is not None and (not action["arms"] or set(action["arms"]) - {"P"}):
+            raise SystemExit(f"bad page action at {session} {before}: arms may name only P (F follows P)")
         if action["do"] == "accept_persona_proposal" and "card" not in action:
             raise SystemExit("an accepted proposal states the card it leads to, for the reference arm")
         if action["do"] in PROPOSAL_ACTIONS and not proposals_supported() and not STUB:
@@ -836,8 +847,9 @@ class Reference:
 
 
 def removed_in_p(out: Path, action: dict, earlier: list, timeout: float = 3600) -> list:
-    """For F: the messages P's page action actually removed, read from P's page-action log (the arms run side by
-    side; F waits for P to reach the action). F mirrors exactly that, so cascades match the product."""
+    """For F: the messages P's page action actually removed, read from P's page-action log (the run script runs P
+    to the end before F starts; the wait remains for a log still being written). F mirrors exactly that, so
+    cascades match the product."""
     run = out.parent / (out.name[:-1] + "P") if out.name.endswith("F") else None
     deadline = time.monotonic() + timeout
     while run is not None and time.monotonic() < deadline:
@@ -891,10 +903,83 @@ def intended_unrecorded(module) -> set:
     return intended
 
 
+# The fixed persona -------------------------------------------------------------------------------------------------
+
+def persona_module():
+    return load_named("acceptance_persona_for_harness", str(Path(__file__).with_name("acceptance_persona.py")))
+
+
+def persona_seed() -> tuple[str, str]:
+    """The seed of the attempt's personality type and where it came from. A live run draws from its attempt id
+    (C5_ATTEMPT_ID); a C5_PERSONA_SEED given beside it (the driver passes the manifest's) must be the same. A dry run
+    takes C5_PERSONA_SEED, else the attempt id, else the fixed practice seed."""
+    given, attempt = os.environ.get("C5_PERSONA_SEED") or None, os.environ.get("C5_ATTEMPT_ID") or None
+    if not STUB:
+        if not attempt:
+            raise SystemExit("A live run draws its persona from C5_ATTEMPT_ID.")
+        if given is not None and given != attempt:
+            raise SystemExit("C5_PERSONA_SEED differs from the attempt id it must be.")
+        return attempt, "attempt_id"
+    if given:
+        return given, "C5_PERSONA_SEED"
+    if attempt:
+        return attempt, "attempt_id"
+    return persona_module().STUB_SEED, "practice_default"
+
+
+def fixed_persona(module) -> dict:
+    """The persona both arms carry: the scenario's own PERSONA card (C5 scenarios), else the seeded type. Refuses a
+    copy of the type table that differs from the product's, and a C5_PERSONA_PRESET (the manifest's draw, passed by
+    the driver) that is not the draw of the seed."""
+    from membrain import persona_presets
+    from membrain.persona import normalize_card
+
+    def digest(card) -> str:
+        return hashlib.sha256(json.dumps(normalize_card(card), sort_keys=True, ensure_ascii=False,
+                                         separators=(",", ":")).encode("utf-8")).hexdigest()
+
+    if getattr(module, "PERSONA", None):
+        card = module.PERSONA
+        return {"source": "scenario", "seed": None, "seed_source": None, "preset": None, "card": card,
+                "card_sha256": digest(card), "rule": None}
+    drawing = persona_module()
+    if tuple(drawing.IDS) != tuple(persona_presets.IDS):
+        raise SystemExit("acceptance_persona.IDS differs from the product's personality types")
+    seed, source = persona_seed()
+    preset = drawing.draw(seed)
+    expected = os.environ.get("C5_PERSONA_PRESET")
+    if expected and expected != preset:
+        raise SystemExit("C5_PERSONA_PRESET is not the draw of the persona seed")
+    card = persona_presets.card(preset)
+    return {"source": "seeded", "seed": seed, "seed_source": source, "preset": preset, "card": card,
+            "card_sha256": digest(card), "rule": drawing.RULE}
+
+
+def set_fixed_persona(memory: "Memory", persona: dict) -> dict:
+    """Arm P, before the first session: save the persona as the product saves it. A seeded type is picked the way a
+    user picks one (a version made by the host with action "preset"), so the brain has a persona record and the
+    product's random first assignment, with its one-time announcement, never runs."""
+    from membrain.persona import normalize_card
+
+    with memory.client() as client:
+        if persona["source"] == "scenario":
+            saved = client.set_persona(persona["card"], made_by="host", host_default=True)
+        else:
+            saved = client.reset_persona(made_by="host", preset=persona["preset"])
+        current = client.persona()
+    if normalize_card(current.get("card") or {}) != normalize_card(persona["card"]):
+        raise SystemExit("the persona saved in P is not the attempt's persona")
+    return {"version": saved.get("version") or current.get("version")}
+
+
 # The run --------------------------------------------------------------------------------------------------------------
 
 def load(path: str):
-    spec = importlib.util.spec_from_file_location("scenario", path)
+    return load_named("scenario", path)
+
+
+def load_named(name: str, path: str):
+    spec = importlib.util.spec_from_file_location(name, path)
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
@@ -902,14 +987,14 @@ def load(path: str):
 
 def run(arm: str, scenario_path: str, out: Path) -> None:
     global BILLING
-    if arm not in ("P", "E", "F"):
-        raise SystemExit("arms: P, E, F")
+    if arm not in ARMS:
+        raise SystemExit(f"arms: {', '.join(ARMS)} (the proxy-with-extraction arm E no longer exists)")
     module = load(scenario_path)
     sessions = module.SESSIONS_LONG
     scenario = Path(scenario_path).stem
     out.mkdir(parents=True, exist_ok=True)
     path = out / f"results_{scenario}_{arm}.jsonl"
-    for existing in (path, out / "host-rounds.jsonl"):
+    for existing in (path, out / "host-rounds.jsonl", out / "persona.json"):
         if existing.exists():
             raise SystemExit(f"{existing} exists: a run is never resumed")
     year = getattr(module, "YEAR", YEAR)
@@ -921,44 +1006,36 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
     turns_text = {(session, index, "user"): text for session, turns in sessions for index, text in enumerate(turns)}
     os.environ["TZ"] = "UTC"
     time.tzset()
-    stub_host = stub_extract = None
+    for name in ("CLAUDE_PLUGIN_DATA", "PLUGIN_DATA"):  # The plugin hooks would import a real host's queue.
+        os.environ.pop(name, None)
+    stub_host = None
     if STUB:
         if not hasattr(module, "STUB_HOST"):
             raise SystemExit("the dry run needs a practice scenario with stub scripts")
         refuse_network(out)
-        stub_host, stub_extract = StubHost(module.STUB_HOST), StubExtractor(getattr(module, "STUB_EXTRACT", {}))
+        stub_host = StubHost(module.STUB_HOST)
     if not STUB:
         check_live_environment()
+    persona = fixed_persona(module)
     BILLING = None if STUB else billing_transport()
     host = Host(cap=sum(len(turns) for _, turns in sessions) * 5,
                 transport=httpx.MockTransport(stub_host) if stub_host else BILLING)
-    memory = chat = speaker = reference = watch = None
-    if arm in ("P", "E"):
+    memory = reference = None
+    if arm == "P":
         cache = os.environ.get("MEMBRAIN_MODEL_CACHE")
         ports = tuple(map(int, os.environ["MEMBRAIN_PORTS"].split(","))) if os.environ.get("MEMBRAIN_PORTS") else None
-        user = None
-        if arm == "E":
-            from membrain.adapters.chatbot import ChatMemory, Speaker
-
-            speaker, user = Speaker(*PROXY_USER), ":".join(PROXY_USER)
-        memory = Memory(out / f"brain-{scenario}-{arm}", Path(cache) if cache else None, ports, starts[0], user)
-        if getattr(module, "PERSONA", None):
-            with memory.client() as client:
-                client.set_persona(module.PERSONA, made_by="host", host_default=True)
-        if arm == "E":
-            from membrain.extraction import Extractor
-
-            extractor = Extractor(BASE_URL, os.environ.get("EXTRACT_MODEL", "deepseek-flash"),
-                                  "stub" if STUB else os.environ["DEEPSEEK_API_KEY"],
-                                  transport=httpx.MockTransport(stub_extract) if stub_extract else billing_transport())
-            chat = ChatMemory(memory.directory, producer="membrain-proxy", tools=None, extractor=extractor)
-            watch = watch_extraction(memory.directory)
-            if chat.user_id(speaker) != user:
-                raise SystemExit("the proxy's memory is not the brain page actions are applied to")
+        memory = Memory(out / f"brain-{scenario}-{arm}", Path(cache) if cache else None, ports, starts[0])
+        saved = set_fixed_persona(memory, persona)
     else:
-        reference = Reference(getattr(module, "PERSONA", None))
+        reference = Reference(persona["card"])
+        saved = {"version": reference.versions[-1]["version"]}
+    (out / "persona.json").write_text(json.dumps(
+        {"arm": arm, **{key: persona.get(key) for key in ("source", "seed", "seed_source", "preset", "card_sha256",
+                                                          "rule")}, "version": saved["version"]}, sort_keys=True))
     proposals = proposals_supported()
     log(arm, scenario, "start", "stub" if STUB else "live", "proposals" if proposals else "no proposals (P2 absent)")
+    log(arm, scenario, "persona", persona["source"], persona.get("preset") or "scenario card",
+        "seed from", persona.get("seed_source") or "scenario")
 
     deletions: list[dict] = []
 
@@ -971,7 +1048,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 harness_event(out, "page_action_unsupported", action=action["do"], session=session, turn=before)
                 continue
             # An action limited to some arms applies to F when it applies to P, the arm F is the reference for.
-            if action.get("arms") and ("P" if arm == "F" else arm) not in action["arms"]:
+            if action.get("arms") and "P" not in action["arms"]:
                 continue
             record = {"session": session, "before_turn": before, "action": action["do"],
                       "detail": {key: value for key, value in action.items() if key not in ("do", "card")}}
@@ -1005,7 +1082,6 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
 
     for (session, turns), start in zip(sessions, starts):
         today = start.date()
-        simulate_today(today)
         if memory is not None:
             effective = memory.clock.advance(memory.directory, start, run=memory.directory.name)
             if effective > start and session != sessions[0][0]:  # The first was set when the profile was made.
@@ -1013,40 +1089,48 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                               behind_seconds=int((effective - start).total_seconds()))
         date_line = f"Today's date: {today.isoformat()} ({today.strftime('%A')})."
         page_actions(session, 0)
-        session_context = None
-        if memory is not None and chat is None:
+        session_context, client, server, schemas, instructions = None, None, None, None, None
+        if memory is not None:
             memory.wait_until_indexed()
-            session_context = memory.host.session_context(memory.directory, session)
-        elif chat is not None:
-            memory.wait_until_indexed()
+            session_context = memory.session_start(session)
+            # One MCP server for the whole session, as a host keeps one connection.
+            client, server, schemas, instructions = memory.tools()
+            if not (out / "tools.json").exists():
+                (out / "tools.json").write_text(json.dumps({
+                    "offered": [schema["function"]["name"] for schema in schemas],
+                    "schema_chars": len(json.dumps(schemas, ensure_ascii=False)),
+                    "server_instructions_chars": len(instructions),
+                    "server_instructions_sha256": hashlib.sha256(instructions.encode("utf-8")).hexdigest(),
+                    "skill_chars": len(memory.skill), "host": HOST_NAME}, sort_keys=True))
+        if stub_host:
+            from membrain import host as product_host
+
+            stub_host.instructions = instructions or product_host.server_instructions()
         current: list[tuple[tuple, dict]] = []
-        for index, text in enumerate(turns):
-            check_billing()
-            if index:
-                page_actions(session, index)
-            if stub_host:
-                stub_host.key = stub_extract.key = (session, index)
-            system, prompt_context, schemas, client, server = module.HOST + "\n\n" + date_line, None, None, None, None
-            persona_block = None
-            if chat is not None:
-                prompt_context = chat.context(speaker, text, session=session, turn_id=f"t{index}")
-                session_context = session_context or prompt_context
-            elif memory is not None:
-                prompt_context = memory.host.prompt_context(memory.directory, session, text, turn_id=f"t{index}",
-                                                            include_source=True)
-                client, server, schemas = memory.tools()
-                system += "\n\n" + memory.skill + ("\n\n" + session_context if session_context else "")
-            else:
-                persona_block = reference.block()
-                system += "\n\n" + persona_block if persona_block else ""
-            user_content = (prompt_context + "\n\n" if prompt_context else "") + text
-            prior = [message for _, message in reference.history] if reference is not None else []
-            messages = [{"role": "system", "content": system}, *prior, *(message for _, message in current),
-                        {"role": "user", "content": user_content}]
-            first = len(messages) - 1
-            usage, started, tool_calls = {}, time.monotonic(), []
-            scenario_time = memory.now() if memory is not None else start.isoformat().replace("+00:00", "Z")
-            try:
+        try:
+            for index, text in enumerate(turns):
+                check_billing()
+                if index:
+                    page_actions(session, index)
+                if stub_host:
+                    stub_host.key = (session, index)
+                system, prompt_context = module.HOST + "\n\n" + date_line, None
+                persona_block = None
+                if memory is not None:
+                    prompt_context = memory.user_prompt(session, index, text)
+                    # Where a host puts them: the skill, the MCP server's instructions, then the session's context.
+                    system += "\n\n" + memory.skill + "\n\n" + instructions + (
+                        "\n\n" + session_context if session_context else "")
+                else:
+                    persona_block = reference.block()
+                    system += "\n\n" + persona_block if persona_block else ""
+                user_content = (prompt_context + "\n\n" if prompt_context else "") + text
+                prior = [message for _, message in reference.history] if reference is not None else []
+                messages = [{"role": "system", "content": system}, *prior, *(message for _, message in current),
+                            {"role": "user", "content": user_content}]
+                first = len(messages) - 1
+                usage, started, tool_calls = {}, time.monotonic(), []
+                scenario_time = memory.now() if memory is not None else start.isoformat().replace("+00:00", "Z")
                 for round_ in range(4):  # At most three tool rounds, then a final answer without tools.
                     offer = schemas if schemas and len(tool_calls) < 6 and round_ < 3 else None
                     message, call_usage = host.call(messages, offer)
@@ -1073,67 +1157,55 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                         tool_calls.append({"name": call["function"]["name"], "arguments": arguments,
                                            "result": result[:2000]})
                         messages.append({"role": "tool", "tool_call_id": call["id"], "content": result})
-            finally:
-                if client is not None:
-                    client.close()
-            written = [item.get("content") for item in messages[first + 1:]
-                       if item.get("role") == "assistant" and item.get("content")]
-            reply = "\n\n".join([*written, message.get("content") or ""]).strip()
-            stopping: list[str] = []
-            halted, recorded = None, False
-            # The reply is paid for: its row is written before any stop.
-            with deferred_stop(stopping), bookkeeping_errors(out, session, index, stopping) as errors:
-                # Another arm may have stopped the shared ledger during this turn's host call: then nothing more is
-                # recorded or extracted (extraction would be a further billed request).
-                halted = billing_halt(stopping)
-                if halted is None and chat is not None:
-                    chat.record(speaker, reply, session=session, turn_id=f"t{index}", prompt=text)
-                    recorded = not memory.host.paused(memory.directory, memory.user)
-                    chat.extractor.wait(120)
+                written = [item.get("content") for item in messages[first + 1:]
+                           if item.get("role") == "assistant" and item.get("content")]
+                reply = "\n\n".join([*written, message.get("content") or ""]).strip()
+                stopping: list[str] = []
+                halted, recorded = None, False
+                # The reply is paid for: its row is written before any stop.
+                with deferred_stop(stopping), bookkeeping_errors(out, session, index, stopping) as errors:
+                    # A stop of the shared ledger during this turn's host call: then nothing more is recorded.
                     halted = billing_halt(stopping)
-                    if halted is None and chat.extractor._queue.unfinished_tasks:
-                        harness_event(out, "extraction_unfinished", session=session, turn=index)
-                    if halted is None and watch.failed():
-                        harness_event(out, "extraction_failed", session=session, turn=index)
-                elif halted is None and memory is not None:
-                    resumed = memory.host.turn_resumed(memory.directory, session)
-                    recorded = bool(memory.host.finish_turn(memory.directory, session, reply, turn_id=f"t{index}",
-                                                            **({"prompt": text} if resumed else {})))
-                if halted is None and memory is not None:
-                    memory.record_turn(session, index, recorded=recorded)
-                    if not recorded and (session, index) not in intended:
-                        harness_event(out, "turn_not_recorded", session=session, turn=index)
-            transcript = [{k: v for k, v in item.items() if k != "reasoning_content"} for item in messages[first:]]
-            transcript.append({"role": "assistant", "content": message.get("content") or ""})
-            row = {"arm": arm, "scenario": scenario, "session": session, "turn": index, "date": today.isoformat(),
-                   "scenario_time": scenario_time, "input": text, "reply": reply, "usage": usage,
-                   "seconds": round(time.monotonic() - started, 1), "host_user_content": user_content,
-                   "session_context": session_context or "", "prompt_context_chars": len(prompt_context or ""),
-                   "tool_calls": tool_calls, "transcript": transcript}
-            if reference is not None:
-                row["reference_persona"] = persona_block or ""
-                row["reference_history_items"] = len(prior)
-            if memory is not None:
-                row["recorded"] = None if errors else recorded
-            if stopping:
-                row["stopped_after"] = stopping[0]
-            with path.open("a") as stream:
-                stream.write(json.dumps(row, ensure_ascii=False) + "\n")
-            log(arm, scenario, session, index, usage.get("total_tokens"),
-                "tools:", [(call["name"], str(call["arguments"])[:80]) for call in tool_calls])
-            if errors or halted is not None:
-                raise errors[0] if errors else halted
-            if stopping:
-                stop_run(stopping[0])
-            if reference is not None:  # F's history holds the user's words, not a memory block, and the reply.
-                current += [((session, index, "user"), {"role": "user", "content": text}),
-                            ((session, index, "assistant"), {"role": "assistant", "content": reply})]
+                    if halted is None and memory is not None:
+                        recorded = memory.stop(session, index, text, reply)
+                        memory.record_turn(session, index, recorded=recorded)
+                        if not recorded and (session, index) not in intended:
+                            harness_event(out, "turn_not_recorded", session=session, turn=index)
+                transcript = [{k: v for k, v in item.items() if k != "reasoning_content"} for item in messages[first:]]
+                transcript.append({"role": "assistant", "content": message.get("content") or ""})
+                row = {"arm": arm, "scenario": scenario, "session": session, "turn": index, "date": today.isoformat(),
+                       "scenario_time": scenario_time, "input": text, "reply": reply, "usage": usage,
+                       "seconds": round(time.monotonic() - started, 1), "host_user_content": user_content,
+                       "session_context": session_context or "", "prompt_context_chars": len(prompt_context or ""),
+                       "tool_calls": tool_calls, "transcript": transcript}
+                if reference is not None:
+                    row["reference_persona"] = persona_block or ""
+                    row["reference_history_items"] = len(prior)
+                if memory is not None:
+                    row["recorded"] = None if errors else recorded
+                if stopping:
+                    row["stopped_after"] = stopping[0]
+                with path.open("a") as stream:
+                    stream.write(json.dumps(row, ensure_ascii=False) + "\n")
+                log(arm, scenario, session, index, usage.get("total_tokens"),
+                    "tools:", [(call["name"], str(call["arguments"])[:80]) for call in tool_calls])
+                if errors or halted is not None:
+                    raise errors[0] if errors else halted
+                if stopping:
+                    stop_run(stopping[0])
+                if reference is not None:  # F's history holds the user's words, not a memory block, and the reply.
+                    current += [((session, index, "user"), {"role": "user", "content": text}),
+                                ((session, index, "assistant"), {"role": "assistant", "content": reply})]
+                else:
+                    current += [((session, index, "turn"), item) for item in transcript]
                 turns_text[(session, index, "assistant")] = reply
-            else:
-                current += [((session, index, "turn"), item) for item in transcript]
-                turns_text[(session, index, "assistant")] = reply
+        finally:
+            if client is not None:
+                client.close()
         if reference is not None:
             reference.end_session(current)
+    if stub_host is not None:
+        log(arm, scenario, "stub consolidation batches answered", stub_host.consolidations)
     stop_started()
     log(arm, scenario, "finished")
 
@@ -1158,6 +1230,44 @@ def stop_reason(arguments: list) -> str:
     raise SystemExit("usage: c5-harness.py --stop [--reason CODE], CODE matching [a-z][a-z0-9_]{0,39}")
 
 
+def _port_open(port: int) -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as probe:
+        probe.settimeout(1)
+        return probe.connect_ex(("127.0.0.1", port)) == 0
+
+
+def cleanup(run_dir: Path) -> dict:
+    """After an arm, whatever its result: stop every installation this harness made in RUN_DIR (``brain-*`` with a
+    profile and the harness's disposable marker, so nothing else is ever stopped), then check that their ports are
+    closed. Returns counts and ports only; ``ok`` is false when a stop failed or a port is still open."""
+    from membrain import desktop, evaluation_clock
+    from membrain.local_profile import load_profile
+
+    run_dir = Path(run_dir).resolve()
+    report = {"run_dir": run_dir.name, "profiles": 0, "stopped": 0, "failed": [], "ports_open": []}
+    for directory in sorted(run_dir.glob("brain-*")):
+        if not directory.is_dir() or not (directory / evaluation_clock.MARKER).exists():
+            continue  # Not a disposable evaluation profile this harness made.
+        report["profiles"] += 1
+        try:
+            profile = load_profile(directory)
+            ports = [profile.api_port, profile.database_port]
+        except Exception as error:  # noqa: BLE001 - reported by class, never stopped blindly.
+            report["failed"].append({"profile": directory.name, "error": type(error).__name__})
+            continue
+        try:
+            desktop.stop(directory)
+            report["stopped"] += 1
+        except Exception as error:  # noqa: BLE001
+            report["failed"].append({"profile": directory.name, "error": type(error).__name__})
+        deadline = time.monotonic() + 30
+        while any(_port_open(port) for port in ports) and time.monotonic() < deadline:
+            time.sleep(1)
+        report["ports_open"] += [port for port in ports if _port_open(port)]
+    report["ok"] = not report["failed"] and not report["ports_open"]
+    return report
+
+
 def interrupted(signum, frame):
     try:
         if BILLING is not None:
@@ -1174,6 +1284,12 @@ if __name__ == "__main__":
         guard.stop(reason)
         guard.close()
         raise SystemExit(0)
+    if sys.argv[1:2] == ["--cleanup"]:
+        if len(sys.argv) != 3:
+            raise SystemExit("usage: c5-harness.py --cleanup RUN_DIR")
+        result = cleanup(Path(sys.argv[2]))
+        print(json.dumps(result, sort_keys=True))
+        raise SystemExit(0 if result["ok"] else 1)
     if sys.argv[1:] == ["--preflight"]:
         check_live_environment()
         guard = billing_transport()

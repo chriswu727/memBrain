@@ -86,7 +86,6 @@ CASES = [({BETA!r}, 1, "S01-case", "Criteria: {SECRET}"), ({ALPHA!r}, 1, "S02-ca
 PAGE_ACTIONS = [
     ({BETA!r}, 0, {{"do": "delete_message", "session": {ALPHA!r}, "turn": 0}}),
     ({BETA!r}, 0, {{"do": "delete_feeling", "label": "{SECRET}-label"}}),
-    ({BETA!r}, 1, {{"do": "add_boundary", "topic": "{SECRET}-topic", "arms": ["E"]}}),
     ({BETA!r}, 1, {{"do": "reset_relationship"}}),
     ({BETA!r}, 2, {{"do": "clear_feelings"}}),
 ]
@@ -123,8 +122,9 @@ def harness_ref(kind, sources=None, content=None):
 
 # Refs as the harness computes them. FEELING_1 ("nervous about the job", said in alpha message 2) is deleted before
 # S01-case; FEELING_2 is removed only after it; a same-kind "visa" feeling (alpha message 3) is never removed. Two
-# relationship records: MOMENT_1 removed before S01-case, MOMENT_2 never. A support style has no sources, so each arm
-# gives it a content ref from its own text (SUPPORT_P, SUPPORT_E). UNSETTLED is an unestablished removal.
+# relationship records: MOMENT_1 removed before S01-case, MOMENT_2 never. A support style has no sources, so a world
+# gives it a content ref from its own text (SUPPORT_P; SUPPORT_E is the same style as another world would write it).
+# UNSETTLED is an unestablished removal. Two arms: P (plugin path) and F (full-history reference).
 FEELING_1, FEELING_2 = harness_ref("feeling", [[ALPHA, 1, "user"]]), harness_ref("feeling", [[BETA, 0, "user"]])
 VISA = [[1, 3, "user"]]  # The visa feeling's source, as the digest and a resolution name it.
 MOMENT_SOURCES = ((ALPHA, 2, "user"), (ALPHA, 1, "assistant"))
@@ -148,7 +148,8 @@ def result(*records, complete=True, **extra):
     return {**extra, "removed_records": ordered, "removed_records_complete": complete}
 
 
-# P and F record every removal completely (F lists only messages); E's reset has an unidentified removal.
+# P and F record every removal completely (F lists only messages); unsettled_reset() gives P's reset an unidentified
+# removal.
 RECORDS = {
     "P": [record(BETA, 0, "delete_message", world(), world(messages=4),
                  result(*messages_gone(*REMOVED_P), deleted=1, removed=REMOVED_P)),
@@ -157,16 +158,6 @@ RECORDS = {
           record(BETA, 1, "reset_relationship", world(), world(shared_moments=0, familiarity_days=0,
                                                                familiarity=f"{SECRET}-new"),
                  result(removed("shared_moment", MOMENT_1, *MOMENT_SOURCES), removed("support_style", SUPPORT_P))),
-          record(BETA, 2, "clear_feelings", world(), world(feelings=0),
-                 result(removed("feeling", FEELING_2, (BETA, 0, "user"))))],
-    "E": [record(BETA, 0, "delete_message", world(feelings=2), world(messages=5, feelings=2),
-                 result(*messages_gone([ALPHA, 0, "user"]), deleted=1, removed=[[ALPHA, 0, "user"]])),
-          record(BETA, 0, "delete_feeling", world(feelings=2), world(feelings=1),
-                 result(removed("feeling", FEELING_1, (ALPHA, 1, "user")), deleted=1)),
-          record(BETA, 1, "add_boundary", world(boundaries=[]), world(), result()),
-          record(BETA, 1, "reset_relationship", world(), world(shared_moments=0), result(
-              removed("shared_moment", MOMENT_1, *MOMENT_SOURCES), removed("support_style", SUPPORT_E),
-              {"kind": "familiarity", "ref": UNSETTLED, "established": False}, complete=False)),
           record(BETA, 2, "clear_feelings", world(), world(feelings=0),
                  result(removed("feeling", FEELING_2, (BETA, 0, "user"))))],
     "F": [record(BETA, 0, "delete_message", {"history_items": 6, "persona_version": 1},
@@ -182,25 +173,28 @@ def blank():
     return {"critical": [], "confirmed": [], "rejected": [], "added": [], "evidence": f"{SECRET} evidence"}
 
 
+MAPPING = {"S01-case": {"A": "F", "B": "P"}, "S02-case": {"A": "P", "B": "F"}}
+
+
 def companion_world(tmp_path, mapping=None, records=None):
-    """A synthetic companion scenario, its three arms' run directories, blinded mapping and review files."""
+    """A synthetic companion scenario, its two arms' run directories, blinded mapping and review files. In S01-case
+    the first reviewer marks A with type 8 and the second confirms it and adds it to B; in S02-case the first marks
+    A and the second rejects it."""
     scenario = tmp_path / "practice.py"
     scenario.write_text(SCENARIO)
     review, blind = tmp_path / "review", tmp_path / "blind"
-    mapping = mapping or {"S01-case": {"A": "E", "B": "F", "C": "P"}, "S02-case": {"A": "P", "B": "E", "C": "F"}}
+    mapping = mapping or MAPPING
     put(blind / "sealed_practice.json", mapping)
     verdict = {case: {label: {"score_ignoring_critical": 1, "critical": [], "reason": f"{SECRET} reason"}
-                      for label in "ABC"} for case in ("S01-case", "S02-case")}
-    for label in "AB":
-        verdict["S01-case"][label]["critical"] = [8]
+                      for label in "AB"} for case in ("S01-case", "S02-case")}
+    verdict["S01-case"]["A"]["critical"] = [8]
     verdict["S02-case"]["A"]["critical"] = [8]
     put(review / "verdicts-practice.json", verdict)
-    first = {label: blank() for label in "ABC"}
-    for label in "AB":
-        first[label].update(critical=[8], confirmed=[8])
-    first["C"].update(critical=[8], added=[8])
+    first = {label: blank() for label in "AB"}
+    first["A"].update(critical=[8], confirmed=[8])
+    first["B"].update(critical=[8], added=[8])
     put(review / "recheck-practice" / "S01-case.json", first)
-    second = {label: blank() for label in "ABC"}
+    second = {label: blank() for label in "AB"}
     second["A"].update(rejected=[8])
     put(review / "recheck-practice" / "S02-case.json", second)
     runs = []
@@ -234,10 +228,6 @@ OUTCOMES = {  # What each arm's actions before S01-case removed: (action, kind, 
     "P": [ASSISTANT_GONE, USER_GONE, (FEELING, "feeling", FEELING_1, [[1, 2, "user"]], True),
           (RESET, "shared_moment", MOMENT_1, [[1, 2, "assistant"], [1, 3, "user"]], True),
           (RESET, "support_style", SUPPORT_P, [], True)],
-    "E": [USER_GONE, (FEELING, "feeling", FEELING_1, [[1, 2, "user"]], True),
-          (RESET, "familiarity", None, None, False),
-          (RESET, "shared_moment", MOMENT_1, [[1, 2, "assistant"], [1, 3, "user"]], True),
-          (RESET, "support_style", SUPPORT_E, [], True)],
     "F": [ASSISTANT_GONE, USER_GONE],  # The reference history holds only the conversation.
 }
 
@@ -249,10 +239,7 @@ def flat(entry):
             entry.get("sources"), entry["established"])
 
 
-@pytest.mark.parametrize("mapping", [
-    {"S01-case": {"A": "E", "B": "F", "C": "P"}, "S02-case": {"A": "P", "B": "E", "C": "F"}},
-    {"S01-case": {"A": "F", "B": "P", "C": "E"}, "S02-case": {"A": "E", "B": "F", "C": "P"}},
-])
+@pytest.mark.parametrize("mapping", [MAPPING, {"S01-case": {"A": "P", "B": "F"}, "S02-case": {"A": "F", "B": "P"}}])
 def test_actions_digest_reports_actual_removals_per_blinded_label(pipeline, tmp_path, mapping):
     scenario, review, blind, runs = companion_world(tmp_path, mapping)
     pipeline.actions_digest(review, blind, str(scenario), "practice", runs)
@@ -260,16 +247,16 @@ def test_actions_digest_reports_actual_removals_per_blinded_label(pipeline, tmp_
     assert written["stage"] == "resolution" and "resolution reviewer only" in written["disclosure"]
     assert any("suggest which assistant" in item for item in written["limitations"])
     digest = written["replies"]
-    # Only replies with a candidate type 8 mark: S01 A and B (first reviewer), C (added), S02 A (later rejected).
-    assert sorted(digest) == ["S01-case/A", "S01-case/B", "S01-case/C", "S02-case/A"]
+    # Only replies with a candidate type 8 mark: S01 A (first reviewer), B (added), S02 A (later rejected).
+    assert sorted(digest) == ["S01-case/A", "S01-case/B", "S02-case/A"]
     assert digest["S02-case/A"] == {"session": 1, "message": 2, "removed": [], "removal_coverage_complete": True}
     for label, arm in mapping["S01-case"].items():
         entry = digest[f"S01-case/{label}"]
         assert (entry["session"], entry["message"]) == (2, 2)
-        # Only records removed before the case's message (not FEELING_2), never MOMENT_2, and an unestablished
-        # removal without its ref. No counts, state or comparison with the other replies.
+        # Only records removed before the case's message (not FEELING_2), never MOMENT_2. No counts, state or
+        # comparison with the other replies.
         assert sorted(map(flat, entry["removed"]), key=repr) == sorted(OUTCOMES[arm], key=repr)
-        assert entry["removal_coverage_complete"] is (arm != "E")
+        assert entry["removal_coverage_complete"] is True
         assert all(set(item) <= {"action", "kind", "ref", "sources", "established"} for item in entry["removed"])
 
 
@@ -282,7 +269,7 @@ def test_actions_digest_of_an_older_run_gives_only_unestablished_kinds(pipeline,
     scenario, review, blind, runs = companion_world(tmp_path, records=records)
     pipeline.actions_digest(review, blind, str(scenario), "practice", runs)
     digest = json.loads((review / "actions-practice.json").read_text())["replies"]
-    assert [flat(item) for item in digest["S01-case/C"]["removed"]] == [  # C is P.
+    assert [flat(item) for item in digest["S01-case/B"]["removed"]] == [  # B is P.
         ASSISTANT_GONE, USER_GONE, (FEELING, "feeling", None, None, False),
         (RESET, "shared_moment", None, None, False), (RESET, "familiarity", None, None, False)]
 
@@ -303,11 +290,11 @@ def test_actions_digest_is_arm_blind_and_holds_no_content(pipeline, tmp_path, ca
 def test_actions_digest_refuses_incomplete_or_failed_action_evidence(pipeline, tmp_path, damage):
     records = json.loads(json.dumps(RECORDS))
     if damage == "failed":
-        records["E"][1]["result"] = {"failed": f"no feeling '{SECRET}'"}
+        records["P"][1]["result"] = {"failed": f"no feeling '{SECRET}'"}
     elif damage == "missing":
-        records["E"].pop(2)
+        records["P"].pop(2)
     elif damage == "extra":
-        records["F"].append(records["E"][2])
+        records["F"].append(records["P"][1])
     elif damage == "wrong_kind":
         records["P"][1]["action"] = "clear_feelings"
     elif damage == "unknown_position":
@@ -324,7 +311,7 @@ def test_actions_digest_refuses_incomplete_or_failed_action_evidence(pipeline, t
 def test_actions_digest_is_written_once_and_needs_every_sealed_arm(pipeline, tmp_path):
     scenario, review, blind, runs = companion_world(tmp_path)
     with pytest.raises(SystemExit, match="not the arms of the sealed mapping"):
-        pipeline.actions_digest(review, blind, str(scenario), "practice", runs[:2])
+        pipeline.actions_digest(review, blind, str(scenario), "practice", runs[:1])
     result = subprocess.run([sys.executable, pipeline.__file__, "actions-digest", str(review), str(blind),
                              str(scenario), "practice", *map(str, runs)], capture_output=True, text=True)
     assert result.returncode == 0, result.stderr
@@ -385,8 +372,8 @@ def rc2_clearing(pipeline, tmp_path, label, rc2=None, records=None, mapping=None
 
 def test_citing_the_removed_record_alone_never_clears_type8(pipeline, tmp_path):
     """The exact change dd4aef8 accepted: a removed record cited as if its removal cleared the mark."""
-    with pytest.raises(SystemExit, match=f"invalid resolution: S01-case/C: .*rc2_refs is not a clearing basis.*{REDO}"):
-        rc2_clearing(pipeline, tmp_path, "C", reason="RC2: this record was removed.", rc2_refs=[FEELING_1])
+    with pytest.raises(SystemExit, match=f"invalid resolution: S01-case/B: .*rc2_refs is not a clearing basis.*{REDO}"):
+        rc2_clearing(pipeline, tmp_path, "B", reason="RC2: this record was removed.", rc2_refs=[FEELING_1])
     assert not (tmp_path / "review" / "tally-practice.json").exists()
 
 
@@ -403,14 +390,14 @@ JOB_STILL_USED = {  # The deleted job feeling, used by the reply and never resta
 @pytest.mark.parametrize("name", JOB_STILL_USED)
 def test_a_used_removed_record_cannot_clear_type8_under_either_basis(pipeline, tmp_path, name):
     rc2, message = JOB_STILL_USED[name]
-    with pytest.raises(SystemExit, match=f"S01-case/C: RC2: .*{message}.*{REDO}"):
-        rc2_clearing(pipeline, tmp_path, "C", rc2)
+    with pytest.raises(SystemExit, match=f"S01-case/B: RC2: .*{message}.*{REDO}"):
+        rc2_clearing(pipeline, tmp_path, "B", rc2)
 
 
 @pytest.mark.parametrize("rc2", [{"basis": "not_removed", "kind": "feeling", "sources": VISA},
                                  {"basis": "not_removed", "content_ref": "content:" + "9" * 64}])
 def test_a_mistaken_type8_on_an_untouched_record_clears_with_complete_coverage(pipeline, tmp_path, rc2):
-    row = rc2_clearing(pipeline, tmp_path, "C", rc2)  # C is arm P, whose removals are completely recorded.
+    row = rc2_clearing(pipeline, tmp_path, "B", rc2)  # B is arm P, whose removals are completely recorded.
     assert row["literal"] == [8] and row["resolved"] == []
 
 
@@ -420,8 +407,17 @@ def incomplete_reset():
     return records
 
 
-@pytest.mark.parametrize("label, records", [("A", None), ("C", incomplete_reset())],
-                         ids=["incomplete world", "one action incomplete"])
+def unsettled_reset():
+    """P's reset also removed something it could not identify, and says its list is incomplete."""
+    records = json.loads(json.dumps(RECORDS))
+    entry = records["P"][2]["result"]
+    entry["removed_records"].append({"kind": "familiarity", "ref": UNSETTLED, "established": False})
+    entry["removed_records_complete"] = False
+    return records
+
+
+@pytest.mark.parametrize("label, records", [("B", unsettled_reset()), ("B", incomplete_reset())],
+                         ids=["an unidentified removal", "one action incomplete"])
 def test_not_removed_is_refused_without_complete_coverage(pipeline, tmp_path, label, records):
     with pytest.raises(SystemExit, match=f"S01-case/{label}: RC2: .*completely.*{REDO}"):
         rc2_clearing(pipeline, tmp_path, label, {"basis": "not_removed", "kind": "feeling", "sources": VISA},
@@ -438,22 +434,35 @@ def test_a_generic_removal_never_clears_type8(pipeline, tmp_path):
                 {"basis": "reintroduced", "ref": FEELING_1, "restated_at": [2, 1]}):
         world_dir = tmp_path / rc2["basis"]
         world_dir.mkdir()
-        with pytest.raises(SystemExit, match=f"S01-case/C: RC2: .*{REDO}"):
-            rc2_clearing(pipeline, world_dir, "C", rc2, records=records)
+        with pytest.raises(SystemExit, match=f"S01-case/B: RC2: .*{REDO}"):
+            rc2_clearing(pipeline, world_dir, "B", rc2, records=records)
 
 
 def test_not_removed_refuses_a_content_record_that_was_removed(pipeline, tmp_path):
     with pytest.raises(SystemExit, match="under RC2 the mark stands"):
-        rc2_clearing(pipeline, tmp_path, "C", {"basis": "not_removed", "content_ref": SUPPORT_P})
+        rc2_clearing(pipeline, tmp_path, "B", {"basis": "not_removed", "content_ref": SUPPORT_P})
 
 
 def test_a_content_ref_is_never_matched_across_replies(pipeline, tmp_path):
-    """The same support style has a different content ref in each arm: E's ref cannot identify P's record."""
-    with pytest.raises(SystemExit, match=f"S01-case/C: RC2: .*another reply's world.*{REDO}"):
-        rc2_clearing(pipeline, tmp_path, "C", {"basis": "not_removed", "content_ref": SUPPORT_E})
+    """The same support style can have a different content ref in each world: a ref that appears only in another
+    reply's digest entry cannot identify a record in this one. With two arms the reference world holds no content
+    records, so the other entry is written into the digest here, standing for any other world that has one."""
+    scenario, review, blind, runs = companion_world(tmp_path)
+    pipeline.actions_digest(review, blind, str(scenario), "practice", runs)
+    path = review / "actions-practice.json"
+    digest = json.loads(path.read_text())
+    digest["replies"]["S01-case/A"]["removed"].append(
+        {"action": {"do": "reset_relationship", "session": 2, "before_message": 2}, "kind": "support_style",
+         "ref": SUPPORT_E, "sources": [], "established": True})
+    path.write_text(json.dumps(digest))
+    put(review / "resolution-practice.json", {"S01-case/B": {
+        "remove": [8], "rules": {"8": "RC2"}, "reason": "RC2: see the basis",
+        "rc2": {"basis": "not_removed", "content_ref": SUPPORT_E}}})
+    with pytest.raises(SystemExit, match=f"S01-case/B: RC2: .*another reply's world.*{REDO}"):
+        pipeline.tally(review, blind, str(scenario), "practice", companion=True)
 
 
-SWAPPED = {"S01-case": {"A": "F", "B": "E", "C": "P"}, "S02-case": {"A": "P", "B": "E", "C": "F"}}
+SWAPPED = {"S01-case": {"A": "P", "B": "F"}, "S02-case": {"A": "F", "B": "P"}}
 
 
 @pytest.mark.parametrize("rc2", [{"basis": "not_removed", "kind": "feeling", "sources": VISA},
@@ -461,7 +470,7 @@ SWAPPED = {"S01-case": {"A": "F", "B": "E", "C": "P"}, "S02-case": {"A": "P", "B
                                  {"basis": "not_removed", "kind": "note", "sources": VISA},
                                  {"basis": "not_removed", "content_ref": "content:" + "9" * 64}],
                          ids=["feeling", "relationship", "note", "content"])
-@pytest.mark.parametrize("label, mapping", [("B", None), ("A", SWAPPED)], ids=["F is B", "F is A"])
+@pytest.mark.parametrize("label, mapping", [("A", None), ("B", SWAPPED)], ids=["F is A", "F is B"])
 def test_not_removed_never_names_a_kind_the_reference_world_does_not_hold(pipeline, tmp_path, rc2, label, mapping):
     """The reference arm holds only its conversation: a feeling, note or relationship identity there does not exist,
     so it can never clear type 8. The refusal is the same whichever label is F and names no arm."""
@@ -474,13 +483,13 @@ def test_not_removed_never_names_a_kind_the_reference_world_does_not_hold(pipeli
 
 
 def test_not_removed_on_the_reference_world_may_name_a_message(pipeline, tmp_path):
-    row = rc2_clearing(pipeline, tmp_path, "B", {"basis": "not_removed", "kind": "message", "sources": VISA})  # B: F.
+    row = rc2_clearing(pipeline, tmp_path, "A", {"basis": "not_removed", "kind": "message", "sources": VISA})  # A: F.
     assert row["resolved"] == []
 
 
 def test_not_removed_refuses_a_duplicated_source(pipeline, tmp_path):
     with pytest.raises(SystemExit, match=f"listed twice.*{REDO}"):
-        rc2_clearing(pipeline, tmp_path, "C", {"basis": "not_removed", "kind": "feeling", "sources": VISA + VISA})
+        rc2_clearing(pipeline, tmp_path, "B", {"basis": "not_removed", "kind": "feeling", "sources": VISA + VISA})
 
 
 # Fixed vectors from record_ref in c5-harness.py at 9582513, computed once by running that function.
@@ -505,33 +514,35 @@ def test_record_ref_matches_the_harness_formula(pipeline, arguments, expected):
 def test_not_removed_recomputes_the_harness_ref_from_index_positions(pipeline, tmp_path):
     """Naming the deleted job feeling by its source positions gives exactly the harness's ref, so it is refused."""
     with pytest.raises(SystemExit, match="under RC2 the mark stands"):
-        rc2_clearing(pipeline, tmp_path, "C", {"basis": "not_removed", "kind": "feeling", "sources": [[1, 2, "user"]]})
+        rc2_clearing(pipeline, tmp_path, "B", {"basis": "not_removed", "kind": "feeling", "sources": [[1, 2, "user"]]})
     assert FEELING_1 == pipeline.record_ref("feeling", [[ALPHA, 1, "user"]])
 
 
 @pytest.mark.parametrize("restated_at", [[2, 1], [2, 2]], ids=["between", "the case's own message"])
 def test_reintroduced_clears_when_restated_after_the_deletion_and_by_the_case(pipeline, tmp_path, restated_at):
     # The job feeling was deleted before beta message 1; the case is beta message 2.
-    row = rc2_clearing(pipeline, tmp_path, "C", {"basis": "reintroduced", "ref": FEELING_1, "restated_at": restated_at})
+    row = rc2_clearing(pipeline, tmp_path, "B", {"basis": "reintroduced", "ref": FEELING_1, "restated_at": restated_at})
     assert row["literal"] == [8] and row["resolved"] == []
 
 
 REINTRODUCED_REFUSED = {
-    "a restatement before the deletion": ("C", FEELING_1, [1, 3], "not after the last removal"),
-    "a restatement after the case": ("C", FEELING_1, [2, 3], "not after the last removal"),
-    "a message the scenario does not have": ("C", FEELING_1, [2, 9], "not a user message"),
-    "a ref removed only after the case": ("C", FEELING_2, [2, 1], "not a record removed before this case"),
-    "a ref removed only in another reply's world": ("B", FEELING_1, [2, 1], "not a record removed before"),  # B is F.
-    "a ref never removed": ("C", MOMENT_2, [2, 1], "not a record removed before"),
-    "an unestablished removal": ("A", UNSETTLED, [2, 2], "not a record removed before"),
+    "a restatement before the deletion": ("B", FEELING_1, [1, 3], "not after the last removal"),
+    "a restatement after the case": ("B", FEELING_1, [2, 3], "not after the last removal"),
+    "a message the scenario does not have": ("B", FEELING_1, [2, 9], "not a user message"),
+    "a ref removed only after the case": ("B", FEELING_2, [2, 1], "not a record removed before this case"),
+    "a ref removed only in another reply's world": ("A", FEELING_1, [2, 1], "not a record removed before"),  # A is F.
+    "a ref never removed": ("B", MOMENT_2, [2, 1], "not a record removed before"),
+    "an unestablished removal": ("B", UNSETTLED, [2, 2], "not a record removed before"),
 }
 
 
 @pytest.mark.parametrize("name", REINTRODUCED_REFUSED)
 def test_reintroduced_is_refused_without_ordered_evidence_in_that_world(pipeline, tmp_path, name):
     label, ref, restated_at, message = REINTRODUCED_REFUSED[name]
+    records = unsettled_reset() if ref == UNSETTLED else None  # P's world, where that removal is unidentified.
     with pytest.raises(SystemExit, match=f"S01-case/{label}: RC2: .*{message}.*{REDO}"):
-        rc2_clearing(pipeline, tmp_path, label, {"basis": "reintroduced", "ref": ref, "restated_at": restated_at})
+        rc2_clearing(pipeline, tmp_path, label, {"basis": "reintroduced", "ref": ref, "restated_at": restated_at},
+                     records=records)
 
 
 # Turn order: a page action before message N, then user message N, then the reply. Synthetic digests with complete
@@ -589,16 +600,16 @@ def resolution_world(tmp_path, first, confirmed=(), added=(), conditions=(), cha
     """One synthetic case whose reply A has these first-review marks, second-review decisions and resolution."""
     scenario = tmp_path / "practice.py"
     scenario.write_text('CASES = [(0, 0, "S01-practice", "A public synthetic practice case")]\n')
-    verdict = {label: {"score_ignoring_critical": 1, "critical": []} for label in "ABC"}
+    verdict = {label: {"score_ignoring_critical": 1, "critical": []} for label in "AB"}
     verdict["A"].update(critical=list(first), conditions=[{"type": mark, "condition": "practice"}
                                                          for mark in conditions])
     put(tmp_path / "verdicts-practice.json", {"S01-practice": verdict})
     second = {label: {"critical": [], "confirmed": [], "rejected": [], "added": [], "evidence": ""}
-              for label in "ABC"}
+              for label in "AB"}
     second["A"].update(critical=sorted({*confirmed, *added}), confirmed=list(confirmed), added=list(added),
                        rejected=[mark for mark in first if mark not in confirmed], evidence="Practice evidence.")
     put(tmp_path / "recheck-practice" / "S01-practice.json", second)
-    put(tmp_path / "blind" / "sealed_practice.json", {"S01-practice": {"A": "P", "B": "E", "C": "F"}})
+    put(tmp_path / "blind" / "sealed_practice.json", {"S01-practice": {"A": "P", "B": "F"}})
     if change is not None:
         put(tmp_path / "resolution-practice.json", {"S01-practice/A": change})
     if r5 is not None:
@@ -759,11 +770,11 @@ def synthetic_attempt(tmp_path):
             scenario.parent.mkdir(parents=True, exist_ok=True)
             scenario.write_text(f'CASES = [(0, 0, "{case}", "A public synthetic practice case")]\n')
             put(review / f"verdicts-{key}.json",
-                {case: {label: {"score_ignoring_critical": 1, "critical": []} for label in "ABC"}})
+                {case: {label: {"score_ignoring_critical": 1, "critical": []} for label in "AB"}})
             put(review / f"recheck-{key}" / f"{case}.json",
                 {label: {"critical": [], "confirmed": [], "rejected": [], "added": [], "evidence": ""}
-                 for label in "ABC"})
-            put(blind / f"sealed_practice-{key}.json", {case: {"A": "P", "B": "E", "C": "F"}})
+                 for label in "AB"})
+            put(blind / f"sealed_practice-{key}.json", {case: {"A": "P", "B": "F"}})
             digest = pipeline_sha(scenario)
             scenarios.append({"key": key, "path": path, "sha256": digest})
             files[path] = digest
@@ -796,6 +807,20 @@ def first_scenario(manifest):
     return manifest["pairs"][0]["scenarios"][0]
 
 
+_persona_spec = importlib.util.spec_from_file_location(
+    "acceptance_persona_review_hardening", Path(__file__).parents[1] / "evaluations" / "acceptance_persona.py")
+_PERSONA = importlib.util.module_from_spec(_persona_spec)
+_persona_spec.loader.exec_module(_PERSONA)
+_draw = _PERSONA.draw
+
+
+def test_load_manifest_accepts_the_persona_draw_of_its_attempt_id(pipeline, tmp_path):
+    _, _, path, manifest = synthetic_attempt(tmp_path)
+    manifest["persona"] = {"seed": "synthetic-attempt", "preset": _draw("synthetic-attempt")}
+    put(path, manifest)
+    assert pipeline.load_manifest(path)["persona"]["preset"] == _draw("synthetic-attempt")
+
+
 @pytest.mark.parametrize("damage", {
     "extra field": lambda m: m.update(extra=1),
     "missing field": lambda m: m.pop("files"),
@@ -819,6 +844,11 @@ def first_scenario(manifest):
     "hash differs from files": lambda m: first_scenario(m).update(sha256="0" * 64),
     "bad files entry": lambda m: m["files"].update({"/abs.py": "0" * 64}),
     "unsafe key": lambda m: (first_scenario(m).update(key="../x"), m["order"].__setitem__(0, "../x")),
+    "persona of another seed": lambda m: m.update(persona={"seed": "other", "preset": _draw("other")}),
+    "persona picked by hand": lambda m: m.update(persona={"seed": "synthetic-attempt", "preset": next(
+        ident for ident in _PERSONA.IDS if ident != _draw("synthetic-attempt"))}),
+    "persona with an extra field": lambda m: m.update(persona={"seed": "synthetic-attempt",
+                                                               "preset": _draw("synthetic-attempt"), "note": "x"}),
 }.items(), ids=lambda item: item[0] if isinstance(item, tuple) else None)
 def test_load_manifest_refuses_an_invalid_structure(pipeline, tmp_path, damage):
     _, _, path, manifest = synthetic_attempt(tmp_path)
@@ -974,8 +1004,8 @@ def test_manifest_cli_for_tally_and_gate(pipeline, tmp_path):
 @pytest.mark.parametrize("passes", [True, False])
 def test_both_gates_write_their_file_then_exit_nonzero_only_on_failure(pipeline, tmp_path, gate_name, passes):
     rows = [{"case": "S01-practice", "label": label, "arm": arm, "base": 1, "literal": [], "resolved": []}
-            for label, arm in zip("ABC", "PEF", strict=True)]
-    totals = {"P": 1, "E": 1, "F": 1}
+            for label, arm in zip("AB", "PF", strict=True)]
+    totals = {"P": 1, "F": 1}
     if not passes:
         rows[0]["resolved"] = [4]  # A standing critical error in P with no attribution: memory-caused.
         totals["P"] = 0

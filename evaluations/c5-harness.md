@@ -4,12 +4,26 @@ Free prerequisites 4 and 5 of the [paid acceptance plan draft](maturity-paid-acc
 
 | File | What it is |
 | --- | --- |
-| [`c5-harness.py`](c5-harness.py) | Arms `P` (plugin path), `E` (proxy with extraction) and `F` (whole history), built on the Phase B harness |
-| [`c5-run-scenario.sh`](c5-run-scenario.sh) | Runs the three arms in parallel, as `v1-2026-11-05-run-scenario.sh` does |
-| [`c5-practice-scenario.py`](c5-practice-scenario.py) | A **public practice** scenario with stub scripts. Never a held-out scenario |
+| [`c5-harness.py`](c5-harness.py) | Arms `P` (plugin path) and `F` (whole history), built on the Phase B harness |
+| [`c5-run-scenario.sh`](c5-run-scenario.sh) | Runs `P`, cleans it up, then runs `F`: one arm at a time |
+| [`c5-practice-scenario.py`](c5-practice-scenario.py) | A **public practice** C5 scenario with stub scripts. Never a held-out scenario |
+| [`r4-practice-scenario.py`](r4-practice-scenario.py) | A **public practice** R4 scenario (no persona card, no page actions) with stub scripts |
+| [`r4-stub-rehearsal.py`](r4-stub-rehearsal.py) | The free two-arm rehearsal: freeze, driver, run script, dry-run check, review pipeline and gate |
+| [`acceptance_persona.py`](acceptance_persona.py) | The seeded draw of the attempt's fixed personality type |
 | [`c5-dry-run-check.py`](c5-dry-run-check.py) | Checks a dry run, layer by layer |
-| [`c5-precheck.py`](c5-precheck.py) | Checks a scenario file before a run, printing counts and positions only |
+| [`c5-precheck.py`](c5-precheck.py) | Checks a scenario file before a run, printing counts and positions only (`--r4` for R4 scenarios) |
 | [`../src/membrain/evaluation_clock.py`](../src/membrain/evaluation_clock.py) | The evaluation-only scenario clock |
+
+## Two arms, from the sixth maturity attempt on (2026-11-14)
+
+What changed, and what each change means for comparing a new attempt with maturity attempts 1 to 5:
+- **Arms `P` and `F` only.** The proxy-with-extraction arm `E` and its code (the `E` branch, the extraction watch, the stub extractor, the extraction events, the older-source date shim) are removed: its note-extraction model was removed from the product. `run` refuses `E`. Earlier attempts' `E` results are not comparable with anything new.
+- **One arm at a time.** The run script runs `P` to the end, stops `P`'s installation (`c5-harness.py --cleanup RUN_DIR`, which stops only profiles carrying the harness's disposable marker and checks their ports), checks the ports free, then runs `F`. Attempts 1 to 5 ran the arms in parallel; the arms never shared state, so scores are unaffected, but wall time roughly doubles and only one request is ever open against the billing ledger. Each run directory gets `supervisor.log` (started, finished, cleaned) and `cleanup.log`; validity refuses arms that overlapped.
+- **One fixed persona in both arms.** Without a scenario `PERSONA` (every R4 scenario), the harness draws a personality type from the seed (the attempt id) and saves it in `P` before the first session as the product saves a chosen type, so the product's random first type and its one-time announcement never happen; `F` gets the same product-rendered block. Attempts 1 to 5 ran R4 with no persona in either arm: every prompt of both arms is now about 250 tokens longer and carries a personality, which can change tone and length of replies in both arms alike.
+- **The plugin as shipped.** `P` calls the plugin's own hook functions (`membrain.plugin.session_start`, `user_prompt`, `stop`, with Claude Code's tool names), offers every tool the plugin's MCP server lists (attempt 5 offered five; now also consolidation, persona, manner feedback, forget and the low-level tools), keeps one server per session, and puts the server's instructions into the system prompt after the skill body. This tests the current product; it also means `P`'s prompts are several thousand characters longer and `P` may consolidate (two more tool calls in a turn) when the session notice asks, which attempts 1 to 5 never did. `F` is unchanged apart from the persona block.
+- **Stub host.** It answers a consolidation batch with a cue and reports whether the server's instructions were in the system prompt, so the dry run checks both.
+- The host model, the call shape, the round and tool-call limits, the billing guard, validity's other rules, the review criteria and the pass rule are unchanged.
+- Earlier sections of this file describe the three-arm harness as it was when those runs were made; they are kept as records.
 
 ## Scenario clock
 

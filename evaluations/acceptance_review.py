@@ -30,6 +30,13 @@ A failed gate, R4 or C5, writes its report (gate.json or gate-c5.json) and then 
 validity and diagnose accept --scenario PATH for scenarios outside this script's directory. The driver supplies
 the manifest-bound path; without it, historical runs retain their evaluations/<scenario>.py lookup.
 
+Arms are frozen: ARMS = ("P", "F") (the plugin path and the full-history reference), GATED = ("P",), labels A and B.
+Every sealed mapping, first review, second review and tally must have exactly those labels and arms; one that does
+not (three labels, an arm E, a missing arm) is refused. The three-arm records of attempts 1 to 5 stay as they were
+written and are not re-scored by this version. The gate passes when every gated arm, against the reference, scores
+at least the reference's total minus 1, has no memory-caused critical reply, and has no more host-caused critical
+replies than the reference has critical replies (C5 also: no standing type 7 or 8 reply).
+
 Final score of a reply: 0 when a critical error stands, otherwise the first reviewer's score_ignoring_critical.
 A mark stands when the first reviewer made it and the second confirmed it, or the second added it; written
 resolutions (resolution-KEY.json, made before unsealing by the resolution reviewer) then add or remove marks.
@@ -65,6 +72,45 @@ GATES = ("R4", "C5")
 _SHA256 = re.compile(r"[0-9a-f]{64}")
 _KEY = re.compile(r"[A-Za-z0-9][A-Za-z0-9_-]{0,63}")
 
+# The frozen arms of an attempt (from the sixth maturity attempt on): the plugin path and the full-history reference.
+ARMS = ("P", "F")
+GATED = ("P",)
+REFERENCE = "F"
+LABELS = tuple("ABCD"[:len(ARMS)])  # As v1-2026-10-29-phase-b-blind.py labels len(arms) arms.
+
+
+def _labels_text() -> str:
+    return " and ".join(LABELS)
+
+
+def _check_sealed(sealed, cases=None) -> dict:
+    """A sealed mapping ({case id: {label: arm}}) with exactly the frozen labels, each case mapping them to the frozen
+    arms one to one; with ``cases``, exactly those case ids. Raises SystemExit naming no arm."""
+    if not isinstance(sealed, dict) or not sealed:
+        raise SystemExit("invalid sealed mapping: not an object of cases")
+    if cases is not None and set(sealed) != set(cases):
+        raise SystemExit("invalid sealed mapping: its cases are not the scenario's cases")
+    for mapping in sealed.values():
+        if (not isinstance(mapping, dict) or set(mapping) != set(LABELS)
+                or sorted(mapping.values()) != sorted(ARMS)):
+            raise SystemExit(f"invalid sealed mapping: every case must map labels {_labels_text()} to the frozen "
+                             f"arms, one each")
+    return sealed
+
+
+def _sealed(blind_dir: Path, scenario: str, module=None) -> dict:
+    cases = [case for _, _, case, _ in module.CASES] if module is not None else None
+    return _check_sealed(json.loads((blind_dir / f"sealed_{scenario}.json").read_text()), cases)
+
+
+def persona_module():
+    """acceptance_persona.py from this script's own directory: the draw of an attempt's fixed personality type."""
+    spec = importlib.util.spec_from_file_location("acceptance_persona_for_review",
+                                                  Path(__file__).resolve().with_name("acceptance_persona.py"))
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
 
 def sha256_file(path) -> str:
     return hashlib.sha256(Path(path).read_bytes()).hexdigest()
@@ -83,21 +129,26 @@ def load_manifest(path) -> dict:
 
     {"version": 1, "attempt_id": "...", "files": {"<repo-relative path>": "<sha256>"},
      "pairs": [{"gate": "R4" | "C5", "scenarios": [{"key": "<key>", "path": "<repo-relative .py>", "sha256": "..."}]}],
-     "order": ["<key>", ...]}
+     "order": ["<key>", ...], "persona": {"seed": "<attempt_id>", "preset": "<type id>"}}
 
-    Exactly these fields. Each gate names at most one pair; scenario keys, paths and file stems are unique; every
+    Exactly these fields; "persona" may be left out (earlier attempts had none, and a live driver run requires it).
+    When present it records the attempt's fixed personality type: its seed is the attempt_id and its preset is
+    acceptance_persona.draw(seed). Each gate names at most one pair; scenario keys, paths and file stems are unique; every
     order key is in exactly one pair and every pair key is in the order once; a scenario path listed in "files" has
     the same hash there. Hashes are lowercase hex SHA-256. It checks structure only, not the files on disk."""
     try:
         data = json.loads(Path(path).read_text())
     except (OSError, ValueError) as error:
         raise ManifestError(f"invalid manifest: not readable JSON ({error})") from error
-    if not isinstance(data, dict) or set(data) != {"version", "attempt_id", "files", "pairs", "order"}:
-        raise ManifestError("invalid manifest: expected exactly version, attempt_id, files, pairs and order")
+    if not isinstance(data, dict) or set(data) - {"persona"} != {"version", "attempt_id", "files", "pairs", "order"}:
+        raise ManifestError("invalid manifest: expected exactly version, attempt_id, files, pairs and order (and "
+                            "optionally persona)")
     if type(data["version"]) is not int or data["version"] != 1:
         raise ManifestError("invalid manifest: version must be 1")
     if not isinstance(data["attempt_id"], str) or not data["attempt_id"].strip():
         raise ManifestError("invalid manifest: attempt_id must be a non-empty string")
+    if "persona" in data and (problem := persona_module().check(data["persona"], data["attempt_id"])):
+        raise ManifestError(f"invalid manifest: {problem}")
     files = data["files"]
     if not isinstance(files, dict) or any(not _repo_path(name) or not isinstance(digest, str)
                                           or not _SHA256.fullmatch(digest) for name, digest in files.items()):
@@ -151,7 +202,7 @@ def _manifest(path) -> tuple[dict, str]:
 
 def replies(blind_dir: Path, module, scenario: str) -> dict:
     """(case, label) -> reply text, from the results the blinded sheet was built from."""
-    sealed = json.loads((blind_dir / f"sealed_{scenario}.json").read_text())
+    sealed = _sealed(blind_dir, scenario, module)
     rows = {}
     for path in blind_dir.glob(f"results_{scenario}_*.jsonl"):
         for line in path.read_text().splitlines():
@@ -177,7 +228,9 @@ def split(sheet: Path, verdicts: Path, blind_dir: Path, scenario_path: str, out:
     out.mkdir(parents=True, exist_ok=True)
     for index, (start, case) in enumerate(starts):
         body = text[start:starts[index + 1][0] if index + 1 < len(starts) else len(text)]
-        for label in "ABC":
+        if any(body.count(f"\n### {label}\n") for label in "ABCD" if label not in LABELS):
+            raise SystemExit(f"{case}: the case file has a reply label outside {_labels_text()}")
+        for label in LABELS:
             if body.count(f"\n### {label}\n") != 1 or full[(case, label)].strip() not in body:
                 raise SystemExit(f"{case}: reply {label} is not complete in its case file")
         first = {label: {"critical": verdict.get("critical", []), "conditions": verdict.get("conditions", [])}
@@ -195,7 +248,7 @@ def r5_inputs(review: Path, blind_dir: Path, scenario_path: str, key: str, out: 
     message. It names the reply by case prefix and label, never by arm."""
     module = load(scenario_path)
     scenario = Path(scenario_path).stem
-    sealed = json.loads((blind_dir / f"sealed_{scenario}.json").read_text())
+    sealed = _sealed(blind_dir, scenario, module)
     rows = {}
     for path in blind_dir.glob(f"results_{scenario}_*.jsonl"):
         for line in path.read_text().splitlines():
@@ -216,7 +269,7 @@ def r5_inputs(review: Path, blind_dir: Path, scenario_path: str, key: str, out: 
             if 4 not in set(mine.get("critical", [])) | set(theirs.get("critical", [])) | set(theirs.get("added", [])):
                 continue
             body = case_text[case_text.index(f"\n### {label}\n"):]
-            following = [body.find(f"\n### {other}\n", 1) for other in "ABC" if other != label]
+            following = [body.find(f"\n### {other}\n", 1) for other in LABELS if other != label]
             ends = [index for index in following + [body.find("\n## First reviewer", 1)] if index > 0]
             reply = body[:min(ends)] if ends else body
             lines = [head.rstrip(), reply.rstrip(), "", "## The reviewers' marks on this reply", "",
@@ -425,9 +478,9 @@ def actions_digest(review: Path, blind_dir: Path, scenario_path: str, key: str, 
             second = json.loads((review / f"recheck-{key}" / f"{case}.json").read_text())
         except (OSError, ValueError):
             second = None
-        if not isinstance(second, dict) or set(second) != set("ABC"):
+        if not isinstance(second, dict) or set(second) != set(LABELS):
             raise SystemExit("the actions digest is disclosed only after every second review is complete")
-    sealed = json.loads((blind_dir / f"sealed_{scenario}.json").read_text())
+    sealed = _sealed(blind_dir, scenario, module)
     first = json.loads((review / f"verdicts-{key}.json").read_text())
     sessions = [session for session, _ in module.SESSIONS_LONG]
     actions = list(getattr(module, "PAGE_ACTIONS", None) or [])
@@ -665,7 +718,7 @@ def tally(review: Path, blind_dir: Path, scenario_path: str, key: str, *, compan
     verdicts(review / f"verdicts-{key}.json", scenario_path, companion=companion)
     module = load(scenario_path)
     sessions_long = list(getattr(module, "SESSIONS_LONG", None) or [])
-    sealed = json.loads((blind_dir / f"sealed_{scenario}.json").read_text())
+    sealed = _sealed(blind_dir, scenario, module)
     first = json.loads((review / f"verdicts-{key}.json").read_text())
     path = review / f"resolution-{key}.json"
     resolution = json.loads(path.read_text()) if path.exists() else {}
@@ -688,8 +741,8 @@ def tally(review: Path, blind_dir: Path, scenario_path: str, key: str, *, compan
     totals, rows = {"literal": {}, "resolved": {}}, []
     for _, _, case, _ in module.CASES:
         second = json.loads((review / f"recheck-{key}" / f"{case}.json").read_text())
-        if not isinstance(second, dict) or set(second) != set("ABC"):
-            raise SystemExit(f"invalid second review: {case} must cover A, B and C")
+        if not isinstance(second, dict) or set(second) != set(LABELS):
+            raise SystemExit(f"invalid second review: {case} must cover exactly {_labels_text()}")
         for label, verdict in first[case].items():
             arm = sealed[case][label]
             check = second.get(label, {})
@@ -751,13 +804,13 @@ def _content(item: dict) -> str:
 
 
 def attribution_inputs(review: Path, blind_dir: Path, scenario_path: str, key: str, out: Path,
-                       gated: str = "PE") -> None:
+                       gated=GATED) -> None:
     """One file per gated reply with a standing critical error: the marks and evidence, taken from the review files,
     and everything memory gave the host in that session up to and including the scored turn. Files are named by
     case and label only; nothing is written by hand."""
     module = load(scenario_path)
     scenario = Path(scenario_path).stem
-    sealed = json.loads((blind_dir / f"sealed_{scenario}.json").read_text())
+    sealed = _sealed(blind_dir, scenario, module)
     tally_rows = json.loads((review / f"tally-{key}.json").read_text())["rows"]
     first = json.loads((review / f"verdicts-{key}.json").read_text())
     path = review / f"resolution-{key}.json"
@@ -812,11 +865,27 @@ def _position(order: list, row: dict) -> str:
     return f"turn {order.index(key) + 1} of {len(order)}" if key in order else "an unknown turn"
 
 
+def _supervision(run: Path) -> dict:
+    """The run script's supervisor.log stamps ("started", "finished", "cleaned": epoch seconds); {} when absent."""
+    path = run / "supervisor.log"
+    stamps = {}
+    if path.exists():
+        for line in path.read_text(errors="replace").splitlines():
+            name, _, value = line.partition(" ")
+            try:
+                stamps[name] = float(value)
+            except ValueError:
+                continue
+    return stamps
+
+
 def validity(run_dirs: list[Path], scenario_path: Path | None = None) -> dict:
     """Refuse an attempt whose runs degraded: a missing or unfinished log, missing or empty replies, a call cap, a
-    harness error or an index timeout in any arm. Names turns by position only. Prints the reference arm's largest
-    prompt and each arm's count of retried empty replies."""
+    harness error or an index timeout in any arm, an arm outside the frozen arms or given twice, arms that carried
+    different personas (persona.json), or arms that overlapped in time (the run script's supervisor.log). Names turns
+    by position only. Prints the reference arm's largest prompt and each arm's count of retried empty replies."""
     problems, largest, retried = [], 0, {}
+    arms_seen, personas, supervision = set(), {}, {}
     if not run_dirs:
         problems.append("No run directories supplied")
     for run in run_dirs:
@@ -829,6 +898,17 @@ def validity(run_dirs: list[Path], scenario_path: Path | None = None) -> dict:
             problems.append(f"{run}: expected one results file with rows")
             continue
         arm, scenario = rows[0]["arm"], rows[0]["scenario"]
+        if arm not in ARMS:
+            problems.append(f"{run}: arm {arm!r} is not one of the frozen arms {', '.join(ARMS)}")
+        elif arm in arms_seen:
+            problems.append(f"{run}: a second run directory of arm {arm}")
+        arms_seen.add(arm)
+        persona = run / "persona.json"
+        try:
+            personas[run.name] = json.loads(persona.read_text()) if persona.exists() else None
+        except ValueError:
+            problems.append(f"{run}: persona.json is not JSON")
+        supervision[run.name] = _supervision(run)
         if [(row["session"], row["turn"]) for row in rows] != order:
             problems.append(f"{run}: missing, duplicate or out-of-order turns ({len(rows)} of {len(order)} rows)")
         if any(row["arm"] != arm or row["scenario"] != scenario for row in rows):
@@ -857,6 +937,23 @@ def validity(run_dirs: list[Path], scenario_path: Path | None = None) -> dict:
                 problems.append(f"{run}: harness degradation {event['kind']}")
         if arm == "F":
             largest = max(largest, max(row["usage"].get("prompt_tokens", 0) for row in rows))
+    # The arms carried one persona: when any run recorded one, every run did, and they agree.
+    if any(value is not None for value in personas.values()):
+        if any(value is None for value in personas.values()):
+            problems.append("a run directory has no persona.json while another has one")
+        else:
+            fields = ("source", "seed", "preset", "card_sha256", "version")
+            if len({tuple(value.get(field) for field in fields) for value in personas.values()}) != 1:
+                problems.append("the arms carried different personas")
+    # The arms ran one after the other: each started after the previous one was cleaned up.
+    if any(supervision.values()):
+        stamps = list(supervision.values())
+        if any(not {"started", "finished", "cleaned"} <= set(value) for value in stamps):
+            problems.append("a run directory has no complete supervisor stamps (started, finished, cleaned)")
+        else:
+            spans = sorted((value["started"], value["cleaned"]) for value in stamps)
+            if any(later[0] < earlier[1] for earlier, later in zip(spans, spans[1:])):
+                problems.append("the arms overlapped in time")
     result = {"valid": not problems, "problems": problems, "reference_largest_prompt_tokens": largest,
               "empty_replies_retried": retried}
     print(json.dumps(result))
@@ -960,8 +1057,8 @@ def diagnose(run_dirs: list[Path], scenario_path: Path | None = None) -> None:
 def verdicts(path: Path, scenario_path: str, *, companion=False) -> None:
     """Check a first-review file before the split, and rename prefix keys ("L01") to full case ids.
 
-    Refuses unless the result covers exactly the scenario's cases, each with labels A, B and C, a score of 0, 0.5 or
-    1, and critical types from 1 to 5 (1 to 9 for C5). A rename happens only when every key is the prefix of one case; the
+    Refuses unless the result covers exactly the scenario's cases, each with exactly the frozen labels (A and B), a
+    score of 0, 0.5 or 1, and critical types from 1 to 5 (1 to 9 for C5). A rename happens only when every key is the prefix of one case; the
     original is kept as <name>.raw.json and nothing but the top-level keys changes."""
     ids = [case for _, _, case, _ in load(scenario_path).CASES]
     try:
@@ -979,8 +1076,8 @@ def verdicts(path: Path, scenario_path: str, *, companion=False) -> None:
     if sorted(renamed.values()) != sorted(ids):
         raise SystemExit("invalid: the keys do not cover exactly the scenario's cases")
     for key, verdict in data.items():
-        if not isinstance(verdict, dict) or sorted(verdict) != ["A", "B", "C"]:
-            raise SystemExit(f"invalid: {renamed[key].split('-')[0]} does not have exactly labels A, B and C")
+        if not isinstance(verdict, dict) or sorted(verdict) != list(LABELS):
+            raise SystemExit(f"invalid: {renamed[key].split('-')[0]} does not have exactly labels {_labels_text()}")
         for label, item in verdict.items():
             critical = item.get("critical") if isinstance(item, dict) else None
             if (not isinstance(item, dict) or type(item.get("score_ignoring_critical")) not in (int, float)
@@ -1001,14 +1098,15 @@ def _checked_tally(path: Path, *, companion=False) -> dict:
         totals, rows = data["totals"]["resolved"], data["rows"]
         if data.get("gate", "R4") != ("C5" if companion else "R4"):
             raise ValueError("tally belongs to a different gate")
-        if (not isinstance(totals, dict) or set(totals) != set("PEF")
-                or not isinstance(rows, list) or not rows):
+        if not isinstance(totals, dict) or set(totals) != set(ARMS):
+            raise ValueError(f"the totals must be exactly the frozen arms {', '.join(ARMS)}")
+        if not isinstance(rows, list) or not rows:
             raise ValueError("missing totals or rows")
-        calculated, cases = dict.fromkeys("PEF", 0), {}
+        calculated, cases = dict.fromkeys(ARMS, 0), {}
         for row in rows:
             case, label, arm, base, marks = (row[field] for field in ("case", "label", "arm", "base", "resolved"))
-            if (not isinstance(case, str) or not case or label not in ("A", "B", "C")
-                    or arm not in ("P", "E", "F") or type(base) not in (int, float)
+            if (not isinstance(case, str) or not case or label not in LABELS
+                    or arm not in ARMS or type(base) not in (int, float)
                     or base not in (0, 0.5, 1) or not _valid_marks(marks, 9 if companion else 5)):
                 raise ValueError("bad row")
             labels = cases.setdefault(case, {})
@@ -1016,7 +1114,7 @@ def _checked_tally(path: Path, *, companion=False) -> dict:
                 raise ValueError("duplicate case label")
             labels[label] = arm
             calculated[arm] += 0 if marks else base
-        if any(set(labels) != set("ABC") or set(labels.values()) != set("PEF") for labels in cases.values()):
+        if any(set(labels) != set(LABELS) or sorted(labels.values()) != sorted(ARMS) for labels in cases.values()):
             raise ValueError("incomplete case")
         if any(type(value) not in (int, float) or value != calculated[arm] for arm, value in totals.items()):
             raise ValueError("totals disagree with rows")
@@ -1080,7 +1178,7 @@ def gate(review: Path, keys: list[str], *, companion=False, manifest: Path | Non
                 critical.setdefault(row["arm"], []).append(f"{row['case']}/{row['label']}")
                 if companion and set(row["resolved"]) & {7, 8}:
                     protected.setdefault(row["arm"], []).append(f"{row['case']}/{row['label']}")
-                if row["arm"] in "PE":
+                if row["arm"] in GATED:
                     answers = []
                     for attempt in ("1", "2"):
                         path = review / f"attribution-{key}" / f"{row['case'].split('-')[0]}-{row['label']}.{attempt}.json"
@@ -1091,20 +1189,25 @@ def gate(review: Path, keys: list[str], *, companion=False, manifest: Path | Non
                             answers.append(None)
                     cause = "host" if answers == ["host", "host"] else "memory"
                     causes[f"{row['case']}/{row['label']}"] = {"answers": answers, "cause": cause}
-    reference = totals.get("F", 0)
+    # Every tally holds exactly the frozen arms (_checked_tally), so a missing gated arm can never pass as zero.
+    reference = totals[REFERENCE]
+    reference_critical = len(critical.get(REFERENCE, []))
     verdict = {}
-    for arm in "PE":
+    for arm in GATED:
         replies = critical.get(arm, [])
         memory = [reply for reply in replies if causes[reply]["cause"] == "memory"]
         host = [reply for reply in replies if causes[reply]["cause"] == "host"]
-        verdict[arm] = {"total": totals.get(arm, 0), "reference": reference,
-                        "not_worse": totals.get(arm, 0) >= reference - 1, "memory_caused": memory,
-                        "host_caused": host, "reference_critical": len(critical.get("F", [])),
-                        "passes": totals.get(arm, 0) >= reference - 1 and not memory
-                        and len(host) <= len(critical.get("F", [])) and not protected.get(arm)}
+        not_worse = totals[arm] >= reference - 1
+        verdict[arm] = {"total": totals[arm], "reference": reference,
+                        "not_worse": not_worse, "memory_caused": memory,
+                        "host_caused": host, "reference_critical": reference_critical,
+                        "host_within_reference": len(host) <= reference_critical,
+                        "passes": not_worse and not memory and len(host) <= reference_critical
+                        and not protected.get(arm)}
         if companion:
             verdict[arm]["boundary_or_deletion_errors"] = protected.get(arm, [])
-    result = {"arms": verdict, "attributions": causes, name: all(item["passes"] for item in verdict.values())}
+    result = {"arms": verdict, "attributions": causes, "frozen_arms": list(ARMS), "gated": list(GATED),
+              "reference_arm": REFERENCE, name: all(item["passes"] for item in verdict.values())}
     if companion:
         result["strict_boundaries_and_deletions"] = True
     if bound:
