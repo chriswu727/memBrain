@@ -3,8 +3,8 @@ import hashlib
 import httpx
 import pytest
 from fastapi.testclient import TestClient
-from test_belief_store import linked
-from test_consolidation import memory as _memory
+from legacy_cognition import fixture
+from legacy_cognition import memory as _memory
 from test_legacy_erasure import populated
 from test_legacy_erasure import store as _store
 from test_memory_hologram_browser import preview as _preview
@@ -28,7 +28,7 @@ def graph(store, **options):
 
 
 def test_stored_assertions_episodes_patterns_and_exact_membership(store):
-    sources, memories, episodes, _, _ = populated(store)
+    sources, memories, episodes = populated(store)
     result = graph(store)
     nodes = {node["id"]: node for node in result["nodes"]}
     assert result["contract_version"] == "memory-structure-v1"
@@ -55,17 +55,18 @@ def test_stored_assertions_episodes_patterns_and_exact_membership(store):
 
 
 def test_exact_belief_versions_and_labels_are_projected(store):
-    _, old, new, _, _, _, metadata = linked(store)
+    (stored,) = fixture("views")["belief_relations"]
+    populated(store)
+    new, (old,) = stored["source_memory_version"], stored["target_memory_versions"]
     result = graph(store)
     relation = next(edge for edge in result["edges"] if edge["type"] == "belief_relation")
     assert relation == {"source": memory_key(new["memory_id"], new["revision"]),
                         "target": memory_key(old["memory_id"], old["revision"]),
                         "type": "belief_relation", "basis": "exception"}
-    assert metadata["belief_relation_versions"]
 
 
 def test_sensitive_evidence_masks_assertions_episodes_patterns_and_sources(store):
-    sources, _, _, _, _ = populated(store)
+    sources, _, _ = populated(store)
     sensitive = sources[0]["event_id"]
     store_note(store.service, store.principal, store.brain_id,
                {"request_id": uid(), "text": "This source is private.", "kind": "constraint", "sensitive": True,
@@ -87,11 +88,10 @@ def test_sensitive_evidence_masks_assertions_episodes_patterns_and_sources(store
 
 @pytest.mark.parametrize("mode", ["erase_content", "suppress_recall"])
 def test_forgetting_a_source_removes_dependent_nodes_and_links(store, mode):
-    sources, _, _, _, _ = populated(store)
+    sources, _, _ = populated(store)
     before = graph(store)
     source = sources[0]
-    store.action("forget", {"selector": {"kind": "events", "ids": [source["event_id"]]}, "mode": mode,
-                            "expected_scope_generation": 1, "idempotency_key": uid()})
+    store.forget("events", [source["event_id"]], mode)
     after = graph(store)
     ids = {node["id"] for node in after["nodes"]}
     assert "msg:" + source["event_id"] not in ids
@@ -102,7 +102,7 @@ def test_forgetting_a_source_removes_dependent_nodes_and_links(store, mode):
 
 @pytest.mark.parametrize("nodes,edges", [(1, 0), (2, 1), (8, 4), (200, 400), (500, 1000)])
 def test_bounds_and_trace_counts_match_the_returned_graph(store, nodes, edges):
-    sources, _, _, _, _ = populated(store)
+    sources, _, _ = populated(store)
     result = graph(store, max_nodes=nodes, max_edges=edges,
                    trace={"at": "2026-11-03T12:00:00Z", "event_ids": [source["event_id"] for source in sources]})
     assert len(result["nodes"]) <= nodes and len(result["edges"]) <= edges
@@ -168,7 +168,7 @@ def test_invalid_limits_are_rejected(store, options):
 
 @pytest.mark.parametrize("language", ["en", "zh"])
 def test_database_graph_is_identical_in_3d_hologram_and_2d(store, browser, preview, language):
-    sources, _, _, _, _ = populated(store)
+    sources, _, _ = populated(store)
     saved_state(store, sources[0])
     payload = graph(store)
     preview.set_map(payload)
@@ -199,8 +199,7 @@ def test_database_graph_is_identical_in_3d_hologram_and_2d(store, browser, previ
         page.locator("#mode-2d").click()
         assert set(page.locator(".brain-node").evaluate_all("nodes => nodes.map(node => node.dataset.id)")) == expected
         assert page.locator(".brain-edge").count() == len(payload["edges"])
-        store.action("forget", {"selector": {"kind": "events", "ids": [sources[0]["event_id"]]},
-                                "mode": "erase_content", "expected_scope_generation": 1, "idempotency_key": uid()})
+        store.forget("events", [sources[0]["event_id"]])
         updated = graph(store)
         preview.set_map(updated)
         page.reload()

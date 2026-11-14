@@ -1,78 +1,51 @@
+"""Archives that carry the cognitive views and interpretations an older runtime's learning stored.
+
+Nothing writes these views any more, but archives exported by older runtimes hold them, and a brain restored from one
+holds them again. The brains here are restored from archives the runtime at 2600219b exported (see
+``legacy_cognition.py``); each test then exports, restores, uploads or erases as the original tests of these views
+did when the pipeline still built them.
+"""
 import copy
 import json
 
 import pytest
+from legacy_cognition import archive as archive
+from legacy_cognition import fixture, legacy_brain
 from psycopg.types.json import Jsonb
-from test_consolidation import Consolidation
-from test_semantic import claim, episode, proposals, run
 
 from membrain.archive_views import REBUILD_POLICY
-from membrain.client import default_budget
-from membrain.config import Settings
 from membrain.context_views import assistant_speech
-from membrain.helpers import DomainError, uid
-from membrain.storage import Database
+from membrain.helpers import DomainError
 
 pytestmark = pytest.mark.integration
 
-
-class Archives(Consolidation):
-    def export(self, **changes):
-        exported = self.action("export", {
-            "include_events": True, "include_assertions": True, "include_working_states": True,
-            "include_provenance": True, "include_tombstones": True, "budget": default_budget(64000), **changes,
-        })
-        return self.service.download_archive(self.principal, exported["archive_id"])
-
-    def restore(self, archive, *, new_brain=True, upload=False):
-        if new_brain:
-            self.brain_id = self.service.create_brain(self.principal, "Restored cognitive archive")["id"]
-        if upload:
-            archive = self.service.upload_archive(self.principal, self.brain_id, archive["document"])
-        return self.action("restore", {
-            "uploaded_archive_ref": archive["archive_id"], "expected_manifest_sha256": archive["manifest_sha256"],
-            "mode": "new_brain" if new_brain else "merge_authorized_brain", "apply_current_tombstones": True,
-            "expected_scope_generation": self.service.dashboard(self.principal, self.brain_id)["brain"]["scope_generation"],
-            "budget": default_budget(64000),
-        })
+CLAIM_SOURCE_KEY = "versioned-source"
+CONTEXT = "这段上下文决定本次记忆的适用情境。"
+DERIVED = "工作情境中的反馈模式。"
 
 
-@pytest.fixture
-def archive():
-    try:
-        settings = Settings.from_env()
-    except ValueError:
-        pytest.skip("A dedicated PostgreSQL database is required")
-    return Archives(Database(settings.database_url))
-
-
-def populated(archive, *, source_revision=1):
-    source = archive.observe("工作时我希望直接获得建议。", key="versioned-source")
-    if source_revision == 2:
-        source = archive.observe("工作时我希望获得直接、具体的建议。", key="versioned-source", revision=2)
-    context = archive.observe("这段上下文决定本次记忆的适用情境。")
-    first_batch = archive.batch(source, context)
-    first = archive.publish(first_batch, run(first_batch, proposals(claim(source), episodes=[episode(source)])))
-    parent = next(row["document"] for row in archive.rows("memory_assertions") if row["id"] == first["memory_versions"][0]["memory_id"])
-    batch = archive.batch(source, context, existing_assertions=(parent,))
-    derived = claim(source, proposal_id="pattern", representation="schema", claim_kind="inferred_pattern",
-                    statement="工作情境中的反馈模式。",
-                    source_memory_versions=[{"memory_id": parent["memory_id"], "revision": parent["revision"]}])
-    archive.publish(batch, run(batch, proposals(derived)))
+def populated(archive, name="views"):
+    """Restore a brain an older runtime's learning filled; return its claim source and unselected context."""
+    result, _ = legacy_brain(archive, name)
+    assert result["quarantined_event_count"] == 0
+    events = [archive.event(row["id"]) for row in archive.rows("memory_events", "AND is_current")]
+    source = next(event for event in events if event["observed"]["source_event_key"] == next(
+        item["event_id"] for item in fixture(name)["events"]
+        if item["observed"]["source_event_key"] == CLAIM_SOURCE_KEY))
+    context = next(event for event in events if event["observed"]["content"]["text"] == CONTEXT)
     return source, context
 
 
 def test_local_cognitive_archive_restores_exact_views_and_remaps_source_revisions(archive):
-    source, _ = populated(archive, source_revision=2)
-    exported = archive.export()
-    data = exported["document"]
+    data = fixture("views_revised")
     assert data["archive_origin"] == "local_export"
-    assert data["cognitive_views"]["episodes"]
-    assert data["cognitive_views"]["members"]
+    assert data["cognitive_views"]["episodes"] and data["cognitive_views"]["members"]
     assert data["cognitive_views"]["associations"]
     assert data["rebuild_policy"] == REBUILD_POLICY
-    result = archive.restore(exported)
-    assert result["quarantined_event_count"] == 0
+    original = next(item for item in data["events"] if item["observed"]["source_event_key"] == CLAIM_SOURCE_KEY)
+    assert original["revision"] == 2
+    source, _ = populated(archive, "views_revised")
+    assert source["event_id"] == original["event_id"] and source["revision"] == 1
     restored_memories = {row["id"]: row["document"] for row in archive.rows("memory_assertions")}
     for memory in data["memories"]:
         restored = restored_memories[memory["memory_id"]]
@@ -100,59 +73,49 @@ def test_local_cognitive_archive_restores_exact_views_and_remaps_source_revision
 
 
 def test_export_includes_exact_noncurrent_parent_version_without_rewriting_to_latest(archive):
-    source = archive.observe("工作时我希望直接获得建议。")
-    batch = archive.batch(source)
-    archive.publish(batch, run(batch, proposals(claim(source))))
-    parent = archive.rows("memory_assertions")[0]["document"]
-    parent["revision"] = 7
-    with archive.database.transaction(archive.principal) as conn:
-        conn.execute("UPDATE memory_assertions SET revision=7,document=%s WHERE brain_id=%s AND id=%s",
-                     (Jsonb(parent), archive.brain_id, parent["memory_id"]))
-    batch = archive.batch(source, existing_assertions=(parent,))
-    child = claim(source, proposal_id="child", representation="schema", claim_kind="inferred_pattern",
-                  source_memory_versions=[{"memory_id": parent["memory_id"], "revision": 7}])
-    archive.publish(batch, run(batch, proposals(child)))
-    with archive.database.transaction(archive.principal) as conn:
-        conn.execute("UPDATE memory_assertions SET is_current=false WHERE brain_id=%s AND id=%s", (archive.brain_id, parent["memory_id"]))
-    exported = archive.export()
-    assert [(m["memory_id"], m["revision"]) for m in exported["document"]["dependency_memories"]] == [(parent["memory_id"], 7)]
-    result = archive.restore(exported)
+    data = fixture("noncurrent_parent")
+    (parent,) = data["dependency_memories"]
+    assert parent["revision"] == 7
+    result, _ = legacy_brain(archive, "noncurrent_parent")
     assert result["quarantined_event_count"] == 0
     rows = archive.rows("memory_assertions")
     restored_parent = next(row for row in rows if row["id"] == parent["memory_id"])
     assert restored_parent["revision"] == 7 and not restored_parent["is_current"]
     restored_child = next(row["document"] for row in rows if row["id"] != parent["memory_id"])
     assert restored_child["derivation"]["source_memory_versions"] == [{"memory_id": parent["memory_id"], "revision": 7}]
+    exported = archive.export()
+    assert [(m["memory_id"], m["revision"]) for m in exported["document"]["dependency_memories"]] == [
+        (parent["memory_id"], 7)]
 
 
 def test_erasure_removes_archived_semantics_episodes_and_unselected_root_context(archive):
     _, context = populated(archive)
     exported = archive.export()
     semantic_ids = {m["memory_id"] for m in exported["document"]["memories"] if m.get("verification")}
+    assert semantic_ids
     offline = copy.deepcopy(exported["document"])
     offline["events"] = [event for event in offline["events"] if event["event_id"] != context["event_id"]]
     for memory in offline["memories"]:
         if memory["memory_id"] in semantic_ids:
             memory["memory_id"] = "offline-renamed-" + memory["memory_id"]
-    archive.action("forget", {"idempotency_key": uid(), "selector": {"kind": "events", "ids": [context["event_id"]]},
-                              "mode": "erase_content", "expected_scope_generation": 1})
+    archive.forget("events", [context["event_id"]])
     sanitized = archive.service.download_archive(archive.principal, exported["archive_id"])["document"]
-    assert not any(m.get("verification") for m in sanitized["memories"])
+    assert not any(m.get("verification") and context["event_id"] in m.get("root_event_ids", [])
+                   for m in sanitized["memories"])
     assert not sanitized["cognitive_views"]["episodes"]
     assert not sanitized["cognitive_views"]["members"]
     assert not sanitized["cognitive_views"]["associations"]
-    assert "工作情境中的反馈模式" not in json.dumps(sanitized, ensure_ascii=False)
+    assert DERIVED not in json.dumps(sanitized, ensure_ascii=False)
     uploaded = archive.service.upload_archive(archive.principal, archive.brain_id, offline)
     sanitized_upload = archive.service.download_archive(archive.principal, uploaded["archive_id"])["document"]
-    assert not any(m.get("verification") for m in sanitized_upload["memories"])
+    assert not any(m.get("verification") and context["event_id"] in m.get("root_event_ids", [])
+                   for m in sanitized_upload["memories"])
     assert not sanitized_upload["cognitive_views"]["episodes"]
 
 
 def test_upload_cannot_assert_local_semantic_verification_or_restore_execution_state(archive):
-    populated(archive)
-    exported = archive.export()
-    assert exported["document"]["cognitive_views"]["episodes"][0]["document"]["organization_statement"]
-    result = archive.restore(exported, upload=True)
+    assert fixture("views")["cognitive_views"]["episodes"][0]["document"]["organization_statement"]
+    result, _ = legacy_brain(archive, upload=True)
     assert result["quarantined_event_count"] >= 2
     assert all(row["document"].get("verification") is None for row in archive.rows("memory_assertions"))
     assert not archive.rows("memory_episodes")
@@ -162,30 +125,13 @@ def test_upload_cannot_assert_local_semantic_verification_or_restore_execution_s
 
 
 def test_episode_transition_archive_preserves_audit_identity_without_restoring_old_history(archive):
-    sources = []
-    previous = None
-    for index, operation in enumerate(("create", "continue", "close")):
-        key = f"episode-source-{index}"
-        archive.observe("准备讨论复习安排。", key=key)
-        source = archive.observe("讨论复习安排。" if operation != "close" else "这一段讨论结束。",
-                                 key=key, revision=2)
-        sources.append(source)
-        proposed = episode(source)
-        if previous is not None:
-            proposed.update(action=operation, episode_id=previous["episode_id"],
-                            expected_revision=previous["revision"])
-        if operation == "close":
-            proposed["boundary_ref"] = {"event_id": source["event_id"], "revision": source["revision"]}
-        batch = archive.batch(*sources, episodes=(previous,) if previous else ())
-        archive.publish(batch, run(batch, proposals(episodes=[proposed])))
-        previous = next(row["document"] for row in archive.rows("memory_episodes") if row["is_current"])
-    assert previous["revision"] == 3
-    assert previous["organization_source_version"] == {"episode_id": previous["episode_id"], "revision": 2}
-    exported = archive.export()
-    assert len(exported["document"]["cognitive_views"]["episodes"]) == 1
-    archived_episode = copy.deepcopy(exported["document"]["cognitive_views"]["episodes"][0]["document"])
+    data = fixture("episode_transition")
+    assert len(data["cognitive_views"]["episodes"]) == 1
+    archived_episode = copy.deepcopy(data["cognitive_views"]["episodes"][0]["document"])
     assert archived_episode["revision"] == 3
-    result = archive.restore(exported)
+    assert archived_episode["organization_source_version"] == {"episode_id": archived_episode["episode_id"],
+                                                               "revision": 2}
+    result, stored = legacy_brain(archive, "episode_transition")
     assert result["quarantined_event_count"] == 0
     restored_rows = archive.rows("memory_episodes")
     assert len(restored_rows) == 1 and restored_rows[0]["revision"] == 3
@@ -195,8 +141,8 @@ def test_episode_transition_archive_preserves_audit_identity_without_restoring_o
     assert restored["organization_statement"] == archived_episode["organization_statement"]
     assert restored["organization_scope"] == "episode_transition" and restored["organization_action"] == "close"
     assert all(ref["revision"] == 1 for ref in restored["member_refs"])
-    assert restored["boundary_ref"] == {"event_id": sources[-1]["event_id"], "revision": 1}
-    assert archive.service.download_archive(archive.principal, exported["archive_id"])["document"][
+    assert restored["boundary_ref"] == {"event_id": archived_episode["boundary_ref"]["event_id"], "revision": 1}
+    assert archive.service.download_archive(archive.principal, stored["archive_id"])["document"][
         "cognitive_views"]["episodes"][0]["document"] == archived_episode
 
 
@@ -219,11 +165,10 @@ def test_legacy_episode_archive_roundtrip_does_not_invent_organization_metadata(
 
 
 def test_upload_literal_label_cannot_hide_an_unsupported_statement(archive):
-    populated(archive)
-    exported = archive.export()
-    literal = next(m for m in exported["document"]["memories"] if m["derivation"]["method"] == "direct_capture")
+    document = fixture("views")
+    literal = next(m for m in document["memories"] if m["derivation"]["method"] == "direct_capture")
     literal["statement"] = "Unsupported private claim that was never in the source."
-    result = archive.restore(exported, upload=True)
+    result = archive.restore({"document": document}, upload=True)
     assert result["quarantined_event_count"] >= 1
     assert all("Unsupported private claim" not in row["document"]["statement"] for row in archive.rows("memory_assertions"))
 
@@ -233,7 +178,8 @@ def test_export_without_assertions_does_not_include_cognitive_interpretations(ar
     data = archive.export(include_assertions=False)["document"]
     assert data["memories"] == data["dependency_memories"] == []
     assert all(data["cognitive_views"][field] == [] for field in ("episodes", "members", "associations"))
-    assert "工作情境中的反馈模式" not in json.dumps(data, ensure_ascii=False)
+    assert data["belief_relations"] == []
+    assert DERIVED not in json.dumps(data, ensure_ascii=False)
 
 
 def test_archive_without_sources_quarantines_interpretations_instead_of_assuming_latest(archive):
@@ -260,6 +206,10 @@ def test_cognitive_archive_extension_fields_are_strict_and_bounded(archive, muta
     mutate(data)
     with pytest.raises(DomainError):
         archive.service.upload_archive(archive.principal, archive.brain_id, data)
+    original = fixture("views")
+    mutate(original)
+    with pytest.raises(DomainError):
+        archive.service.upload_archive(archive.principal, archive.brain_id, original)
 
 
 def test_same_local_archive_merge_is_idempotent_for_episode_versions(archive):
@@ -308,3 +258,15 @@ def test_invalidated_episode_does_not_reappear_or_abort_entire_restore(archive):
     assert archive.rows("memory_episodes")[0]["document"] is None
     assert result["read_enabled"]
     assert '"quarantined_views": 0' not in result["job"]["details"][1]
+
+
+def test_an_older_archive_restored_twice_keeps_one_copy_and_stays_erasable(archive):
+    """The stored fixture restored into the same brain again merges instead of duplicating, and forgetting its
+    claim source then clears what was restored both times."""
+    source, _ = populated(archive)
+    stored = archive.export()
+    archive.restore(stored, new_brain=False)
+    assert len(archive.rows("memory_episodes")) == 1
+    archive.forget("events", [source["event_id"]])
+    assert all(row["invalidated"] for row in archive.rows("memory_episodes"))
+    assert all(row["invalidated"] for row in archive.rows("memory_associations"))

@@ -2,9 +2,9 @@ import copy
 import json
 
 import pytest
-from test_consolidation import memory as memory
+from legacy_cognition import memory as memory
+from legacy_cognition import reference
 from test_legacy_erasure import store as store
-from test_semantic import reference
 
 from membrain.contracts import validate
 from membrain.helpers import now, uid

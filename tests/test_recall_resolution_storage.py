@@ -1,15 +1,13 @@
-import copy
 import json
 from datetime import datetime, timedelta
 
 import httpx
 import pytest
+from legacy_cognition import FIXTURES, stored_archive
 from test_candidates import candidates as candidates
-from test_recall_resolution import SHORT, TEXT, example
-from test_source_passages import captures
+from test_recall_resolution import SHORT
 
 from membrain.client import MemoryClient
-from membrain.consolidation import _assertion, _publish_assertion, validate_batch
 from membrain.service import MemoryService
 from membrain.storage import Database
 
@@ -17,14 +15,22 @@ pytestmark = pytest.mark.integration
 
 
 def published(stored):
-    source, _ = captures(stored, TEXT)
-    _, data, result, _ = example(source=source)
+    """Restore the local archive the runtime at 2600219b exported after publishing a claim with a verified short view
+    over one long message; move the harness to the restored brain and return that message and claim."""
+    wrapper = json.loads((FIXTURES / "recall_summary.json").read_text(encoding="utf-8"))
+    archive = stored_archive(stored, "recall_summary")
+    fresh = stored.service.create_brain(stored.principal, "Restored recall summary")["id"]
+    restored = client(stored, fresh).restore(archive["archive_id"], expected_manifest_sha256=archive["manifest_sha256"],
+                                             expected_scope_generation=1, mode="new_brain", brain_id=fresh)["result"]
+    assert restored["read_enabled"] and restored["quarantined_event_count"] == 0
+    stored.brain_id = fresh
+    stored.target = {**stored.target, "brain_ref": fresh}
     with stored.database.transaction(stored.principal) as conn:
-        brain = stored.service._brain(conn, stored.principal, stored.brain_id)
-        snapshot = validate_batch(conn, stored.service, stored.principal, brain, data, result)
-        memory = _assertion(result.claims[0], data, brain, snapshot)
-        _publish_assertion(conn, stored.service, stored.principal, brain, memory)
-    return source, memory
+        brain = stored.service._brain(conn, stored.principal, fresh)
+        source = stored.service._events(conn, stored.principal, brain, event_ids=[wrapper["source_event_id"]])[0]
+        memory = conn.execute("SELECT document FROM memory_assertions WHERE tenant_id=%s AND brain_id=%s AND id=%s "
+                              "AND is_current", (stored.principal.tenant_id, fresh, wrapper["memory_id"])).fetchone()
+    return source, stored.service._rebind(memory["document"], stored.principal, brain)
 
 
 def client(stored, brain_id=None):
@@ -52,16 +58,6 @@ def test_database_recall_restart_and_expansion_preserve_the_same_source_and_memo
     assert memory_client.recall("Grandma safe", detail_level="full", conversation_id="current", branch_id="main")["result"]["usage"]["model_calls"] == 0
     again = memory_client.inspect([memory["memory_id"]], conversation_id="current", branch_id="main")["result"]
     assert again["memories"] == inspected["memories"]
-
-
-def test_same_verified_summary_can_be_published_idempotently(candidates):
-    _, memory = published(candidates)
-    original = copy.deepcopy(memory)
-    with candidates.database.transaction(candidates.principal) as conn:
-        brain = candidates.service._brain(conn, candidates.principal, candidates.brain_id)
-        repeated = _publish_assertion(conn, candidates.service, candidates.principal, brain, memory)
-        assert repeated["recall_summary"] == original["recall_summary"]
-        assert repeated["memory_id"] == original["memory_id"]
 
 
 def test_trusted_archive_keeps_both_views_and_explicit_erasure_removes_both(candidates):

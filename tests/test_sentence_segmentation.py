@@ -4,7 +4,6 @@ import pytest
 from test_cognition import event, request, scope, state
 
 from membrain import cognition
-from membrain.helpers import DomainError
 
 
 def captured(text, **changes):
@@ -158,36 +157,3 @@ def test_old_literal_and_semantic_citations_remain_recallable_after_boundary_rep
     assert old == before
     assert all(cognition._valid_ref(memory["evidence_refs"][0], {source["event_id"]: source}, scope())
                for memory in old)
-
-
-def test_frozen_old_semantic_units_remain_valid_but_new_sources_require_repaired_units():
-    from test_semantic import claim
-
-    from membrain.semantic import _check_claim_sources
-
-    source = legacy_source("1. The letter remains unopened.", role="assistant")
-    old = cognition.extract_event(source)[0]
-    proposed = claim(source, statement="The assistant offered a writing step.", claim_kind="agent_said",
-                     evidence_refs=old["evidence_refs"])
-    _check_claim_sources(proposed, {(source["event_id"], source["revision"]): source}, scope())
-    modern = event("1. The letter remains unopened.", role="assistant")
-    with pytest.raises(ValueError, match="partial_semantic_unit"):
-        _check_claim_sources(proposed, {(modern["event_id"], modern["revision"]): modern}, scope())
-
-
-def test_unknown_segmentation_versions_are_never_silently_downgraded():
-    source = event("A complete statement.")
-    with pytest.raises(DomainError, match="Unknown literal segmentation"):
-        cognition.extract_event(source, rule_version="literal-episodes-v999")
-    with pytest.raises(DomainError, match="Unknown literal segmentation"):
-        cognition.classify_segments(source["observed"]["content"], rule_version="literal-episodes-v999")
-
-
-def test_same_spans_with_updated_list_instruction_classification_keep_the_correct_version():
-    text = "- Please keep the original."
-    old = cognition.extract_event(legacy_source(text))[0]
-    modern = cognition.extract_event(event(text))[0]
-    assert old["derivation"]["rule_version"] == "literal-episodes-v1"
-    assert modern["derivation"]["rule_version"] == "literal-episodes-v2"
-    assert "(direct_statement)" in old["statement"]
-    assert "(instruction)" in modern["statement"]

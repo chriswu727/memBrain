@@ -2,9 +2,9 @@ import copy
 import json
 
 import pytest
-from test_belief_store import linked
+from legacy_cognition import fixture, legacy_brain
+from legacy_cognition import memory as memory
 from test_cognition import STAMP, event, prepare_payload, request, scope, state, working
-from test_consolidation import memory as memory
 from test_contextual_recall import CONDITION, UNBOUNDED, observation
 from test_recall_control import decision, run
 from test_recall_control import packet as control_packet
@@ -339,8 +339,15 @@ def test_equivalent_and_abstracted_views_do_not_transfer_instance_details_or_con
 
 @pytest.mark.integration
 def test_service_routes_zero_lexical_endpoint_and_plan_replay_requires_frozen_relationship(memory, monkeypatch):
+    """Over the exception relation an older runtime's learning stored (restored from its archive)."""
     monkeypatch.setattr(cognition, "now", lambda: "2026-10-24T12:00:00Z")
-    sources, old, new, _, _, _, _ = linked(memory, hidden=True)
+    (stored,) = fixture("views")["belief_relations"]
+    legacy_brain(memory)
+    memory.work()
+    documents = {(row["id"], row["revision"]): row["document"] for row in memory.rows("memory_assertions")}
+    new = documents[(stored["source_memory_version"]["memory_id"], stored["source_memory_version"]["revision"])]
+    old = documents[(stored["target_memory_versions"][0]["memory_id"], stored["target_memory_versions"][0]["revision"])]
+    sources = [memory.event(row["id"]) for row in memory.rows("memory_events", "AND is_current ORDER BY sequence")]
     current = memory.observe("请继续聊具体建议。")
     query = request("具体建议", evidence_mode="prior_record_check",
                     evidence_cutoff={"mode": "before_event", "event_id": current["event_id"]},
@@ -363,7 +370,8 @@ def test_service_routes_zero_lexical_endpoint_and_plan_replay_requires_frozen_re
     packet = memory.action("prepare", payload)
     assert any(content.get("belief_resolution", {}).get("state") == "exception_applies" for _, content in blocks(packet))
     original = copy.deepcopy(plan)
-    plan["observed_event_refs"] = plan["observed_event_refs"][:2]
+    plan["observed_event_refs"] = [ref for ref in plan["observed_event_refs"]
+                                   if ref["event_id"] != stored["root_event_ids"][-1]]
     with memory.database.transaction(memory.principal) as conn:
         brain = memory.service._brain(conn, memory.principal, memory.brain_id)
         with pytest.raises(DomainError) as failure:
@@ -385,30 +393,3 @@ def test_service_routes_zero_lexical_endpoint_and_plan_replay_requires_frozen_re
             memory.service._prepare(conn, memory.principal, brain, {
                 "target": {"conversation_ref": "test", "branch_ref": "main"}, "payload": payload})
         assert failure.value.code == "context_stale"
-
-
-@pytest.mark.integration
-def test_service_retrieves_parent_exception_for_a_differently_worded_derived_claim(memory, monkeypatch):
-    from test_semantic import claim, proposals
-    from test_semantic import run as semantic_run
-
-    monkeypatch.setattr(cognition, "now", lambda: "2026-10-24T12:00:00Z")
-    sources, old, new, _, _, _, _ = linked(memory)
-    original = memory.observe("Family dinner coordination follows my prior interaction preference.")
-    batch = memory.batch(*sources, original, existing_assertions=(old,))
-    proposal = claim(original, statement="Family dinner coordination follows the prior preference.",
-                     source_memory_versions=[ref(old)], representation="schema",
-                     conditions={"op": "always"}, valid_during=copy.deepcopy(UNBOUNDED))
-    proposal["evidence_refs"].extend(copy.deepcopy(old["evidence_refs"]))
-    outcome = semantic_run(batch, proposals(proposal))
-    assert outcome.claims, outcome.rejected
-    published = memory.publish(batch, outcome)
-    child = published["memory_versions"][0]
-    assert cognition._lexical_score("Family dinner", old["statement"]) == 0
-    assert cognition._lexical_score("Family dinner", new["statement"]) == 0
-    result = memory.action("recall", request("Family dinner"))
-    item = next(value for value in result["items"] if ref(value["memory"]) == child)
-    assert item["belief_resolution"]["state"] == "uncertain"
-    assert item["belief_resolution"]["complete"] is True
-    assert {version(old), version(new)} <= states(result).keys()
-    assert len(frozen_relations([item])) == 1

@@ -1,8 +1,8 @@
 import copy
 
 import pytest
+from legacy_cognition import archive as archive
 from test_cognition import request
-from test_cognitive_archives import archive as archive
 from test_sentence_segmentation import legacy_source
 
 from membrain import cognition

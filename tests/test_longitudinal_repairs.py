@@ -4,16 +4,10 @@ import json
 import pytest
 from test_cognition import event as old_event
 from test_cognition import request, scope, state
-from test_semantic import claim, reference
 
 from membrain import cognition
-from membrain.citation_coverage import (
-    CITATION_PROVENANCE_INPUT_VERSION,
-    SOURCE_ACT_INPUT_VERSION,
-)
 from membrain.context_views import memory_content
 from membrain.lexical_candidates import LexicalScorer
-from membrain.semantic import _check_claim_sources
 
 BLACKOUT = (
     "When our power went out, Grandma would light a lantern and put buttons in a tea tin "
@@ -32,51 +26,6 @@ def event(*args, **kwargs):
     return source
 
 
-@pytest.mark.parametrize(
-    "text",
-    [
-        BLACKOUT,
-        "I remember how she made a dark house feel safe.",
-        "This is where I left the notebook.",
-        "I know what I want to write.",
-        "She asked where we had put the tea tin.",
-    ],
-)
-def test_embedded_question_words_do_not_turn_declarations_into_questions(text):
-    source = event(text)
-    assert source["utterance_segments"][0]["act"] == "direct_statement"
-    _check_claim_sources(
-        claim(source),
-        {(source["event_id"], source["revision"]): source},
-        scope(),
-        input_contract_version=SOURCE_ACT_INPUT_VERSION,
-    )
-
-
-@pytest.mark.parametrize(
-    "text",
-    [
-        "When did Grandma light the lantern?",
-        "When did Grandma light the lantern",
-        "How long have we known each other",
-        "Where is the tea tin",
-        "Did we sort buttons together",
-        "What happened during that power cut",
-        "你还记得停电那天吗？",
-    ],
-)
-def test_actual_questions_still_cannot_prove_their_presuppositions(text):
-    source = event(text)
-    assert source["utterance_segments"][0]["act"] == "inquiry"
-    with pytest.raises(ValueError, match="presupposition_not_evidence"):
-        _check_claim_sources(
-            claim(source),
-            {(source["event_id"], source["revision"]): source},
-            scope(),
-            input_contract_version=SOURCE_ACT_INPUT_VERSION,
-        )
-
-
 def legacy_blackout():
     source = event(BLACKOUT + " Could you help me write a caption?")
     source.pop("segmentation_rule_version")
@@ -84,53 +33,6 @@ def legacy_blackout():
         source["observed"]["content"], rule_version="literal-episodes-v2"
     )
     return source
-
-
-def test_new_source_act_contract_recovers_legacy_declaration_without_rewriting_or_relaxing_old_job():
-    source = legacy_blackout()
-    before = copy.deepcopy(source)
-    captures = cognition.extract_event(source)
-    assert captures[0]["derivation"]["rule_version"] == "literal-episodes-v2"
-    assert "(inquiry)" in captures[0]["statement"]
-    ref = reference(source)
-    ref["span"]["end"] = len(BLACKOUT)
-    proposed = claim(source, evidence_refs=[ref])
-    events = {(source["event_id"], source["revision"]): source}
-    with pytest.raises(ValueError, match="presupposition_not_evidence"):
-        _check_claim_sources(
-            proposed, events, scope(), input_contract_version=CITATION_PROVENANCE_INPUT_VERSION
-        )
-    _check_claim_sources(proposed, events, scope(), input_contract_version=SOURCE_ACT_INPUT_VERSION)
-    with pytest.raises(ValueError, match="presupposition_not_evidence"):
-        _check_claim_sources(
-            claim(source), events, scope(), input_contract_version=SOURCE_ACT_INPUT_VERSION
-        )
-    assert source == before and cognition.extract_event(source) == captures
-    result = cognition.recall(
-        scope(),
-        request(
-            "Grandma lantern",
-            intent="cue_recovery",
-            evidence_cutoff={"mode": "through_sequence", "through_sequence": 1},
-        ),
-        captures,
-        [source],
-        state(candidate_total=len(captures)),
-    )
-    assert [item["memory"]["memory_id"] for item in result["items"]] == [captures[0]["memory_id"]]
-
-
-def test_explicit_new_source_restriction_is_not_mistaken_for_a_legacy_classifier_error():
-    source = event(BLACKOUT)
-    source["utterance_segments"][0]["act"] = "presupposition"
-    assert cognition.evidence_segments(source)[0]["act"] == "presupposition"
-    with pytest.raises(ValueError, match="presupposition_not_evidence"):
-        _check_claim_sources(
-            claim(source),
-            {(source["event_id"], source["revision"]): source},
-            scope(),
-            input_contract_version=SOURCE_ACT_INPUT_VERSION,
-        )
 
 
 def test_contractions_and_source_labels_do_not_create_spurious_search_terms():

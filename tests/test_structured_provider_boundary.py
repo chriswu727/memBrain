@@ -8,21 +8,18 @@ import httpx
 import pytest
 from test_answer_review import assessment, prompt, reviewer
 from test_recall_provider import REQUEST as RECALL_REQUEST
-from test_semantic_provider import REQUEST as SEMANTIC_REQUEST
 
 from membrain.answer_review import AnswerReviewError
 from membrain.answer_review_provider import ChatCompletionsAnswerReviewProvider
 from membrain.recall_provider import ChatCompletionsRecallReasoner, RecallProviderError
-from membrain.semantic_provider import ChatCompletionsSemanticProvider, SemanticProviderError
 
 USAGE = {"prompt_tokens": 10, "completion_tokens": 3, "total_tokens": 13}
 
 
-@pytest.fixture(params=["recall", "semantic", "review"])
+@pytest.fixture(params=["recall", "review"])
 def adapter(request):
     return {
         "recall": (ChatCompletionsRecallReasoner, RecallProviderError, RECALL_REQUEST),
-        "semantic": (ChatCompletionsSemanticProvider, SemanticProviderError, SEMANTIC_REQUEST),
         "review": (ChatCompletionsAnswerReviewProvider, AnswerReviewError,
                    reviewer(assessment()).prepare(prompt(), "A proposed answer.")),
     }[request.param]
@@ -103,7 +100,6 @@ def test_structured_usage_is_per_call_and_unknown_is_not_zero(adapter):
 
 
 @pytest.mark.parametrize("provider_type,model_request", [
-    (ChatCompletionsSemanticProvider, SEMANTIC_REQUEST),
     (ChatCompletionsAnswerReviewProvider, reviewer(assessment()).prepare(prompt(), "A proposed answer.")),
 ])
 def test_invalid_phase_does_not_reuse_previous_provider_usage(provider_type, model_request):

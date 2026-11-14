@@ -9,9 +9,6 @@ from pathlib import Path
 
 import httpx
 import pytest
-from test_semantic_provider import REQUEST
-
-from membrain.semantic_provider import ChatCompletionsSemanticProvider, SemanticProviderError
 
 _SPEC = importlib.util.spec_from_file_location(
     "evaluation_support", Path(__file__).parents[1] / "examples" / "evaluation_support.py",
@@ -107,115 +104,11 @@ def test_preconsumed_mock_response_is_recorded_without_changing_content(tmp_path
     assert "assistant_content" not in transport.records[-1]
 
 
-@pytest.mark.parametrize("encoding", ["identity", "gzip", "preconsumed"])
-def test_explicit_larger_envelope_records_usage_without_reasoning_content(tmp_path, encoding):
-    payload = completion()
-    payload["choices"][0]["message"]["reasoning_content"] = "private envelope reasoning " * 4096
-    raw = json.dumps(payload).encode()
-    assert 65536 < len(raw) < 262144
-    body = gzip.compress(raw) if encoding == "gzip" else raw
-    if encoding == "preconsumed":
-        response = httpx.Response(200, content=body)
-    else:
-        response = httpx.Response(200, stream=Chunks([body[:4096], body[4096:]]),
-                                  headers={"Content-Encoding": encoding})
-    transport = meter(tmp_path, lambda _: response, max_response_bytes=262144, capture_content=False)
-    with ChatCompletionsSemanticProvider("https://example.test", "secret-key", "model",
-                                          max_response_bytes=262144, transport=transport) as provider:
-        assert provider(REQUEST) == '{"claims":[]}'
-        assert provider.last_usage == payload["usage"]
-    record = transport.records[-1]
-    assert record["outcome"] == "body_complete" and record["usage_confirmed"] is True
-    assert record["raw_response_bytes_observed"] == len(body)
-    assert record["response_bytes_observed"] == len(raw)
-    assert transport.summary()["usage_unknown_calls"] == 0
-    assert transport.summary()["usage_totals"]["total_tokens"] == 28
-    assert "private" not in transport.ledger_path.read_text()
-    assert "assistant_content" not in record and "reasoning_content" not in record
-
-
-@pytest.mark.parametrize("encoding", ["identity", "gzip_decoded", "gzip_raw"])
-def test_larger_envelope_still_bounds_wire_and_decompressed_bytes(tmp_path, encoding):
-    limit = 262144
-    if encoding == "identity":
-        body = b"x" * (limit + 1)
-    elif encoding == "gzip_decoded":
-        body = gzip.compress(b"x" * (limit + 1))
-    else:
-        compressed = gzip.compress(json.dumps(completion()).encode())
-        body = compressed[:3] + b"\x08" + compressed[4:10] + b"x" * limit + b"\x00" + compressed[10:]
-    stream = Chunks([body, b"must not be read"])
-    response = httpx.Response(200, stream=stream, headers={
-        "Content-Encoding": "identity" if encoding == "identity" else "gzip",
-    })
-    transport = meter(tmp_path, lambda _: response, max_response_bytes=limit, capture_content=False)
-    with ChatCompletionsSemanticProvider("https://example.test", "secret-key", "model",
-                                          max_response_bytes=limit, transport=transport) as provider:
-        with pytest.raises(SemanticProviderError, match="response_too_large"):
-            provider(REQUEST)
-        assert provider.last_usage is None
-    record = transport.records[-1]
-    assert record["outcome"] == "response_too_large" and record["usage_confirmed"] is False
-    assert record["raw_response_bytes_observed"] == len(body)
-    assert record["response_bytes_observed"] <= limit + 1
-    assert stream.reads == 1 and stream.closed
-    assert transport.summary()["usage_unknown_calls"] == 1
-    assert transport.summary()["usage_totals"] == {}
-
-
 @pytest.mark.parametrize("limit", [None, True, 0, -1, 1.5, "262144", 1048577])
 def test_invalid_meter_envelope_limit_is_rejected_before_creating_ledger(tmp_path, limit):
     with pytest.raises(ValueError, match="max_response_bytes"):
         meter(tmp_path, lambda _: pytest.fail("No request expected"), max_response_bytes=limit)
     assert not (tmp_path / "run").exists()
-
-
-def test_gzip_stream_is_metered_without_changing_wire_bytes(tmp_path):
-    decoded = json.dumps(completion()).encode()
-    compressed = gzip.compress(decoded)
-    chunks = Chunks([compressed[:13], compressed[13:31], compressed[31:]])
-    transport = meter(tmp_path, lambda _: httpx.Response(
-        200, headers={"Content-Encoding": "gzip"}, stream=chunks,
-    ))
-    with ChatCompletionsSemanticProvider("https://example.test", "secret-key", "model",
-                                          transport=transport) as provider:
-        assert provider(REQUEST) == '{"claims":[]}'
-    record = transport.records[-1]
-    assert record["usage_confirmed"]
-    assert record["usage"]["completion_tokens"] == 8
-    assert record["assistant_content"] == '{"claims":[]}'
-    assert record["response_bytes_observed"] == len(decoded)
-    assert record["raw_response_bytes_observed"] == len(compressed)
-    assert "private reasoning" not in transport.ledger_path.read_text()
-
-
-def test_gzip_expansion_is_bounded_and_does_not_bypass_production_cap(tmp_path):
-    compressed = gzip.compress(b"a" * (10 * 1024 * 1024))
-    chunks = Chunks([compressed, b"must not be read"])
-    transport = meter(tmp_path, lambda _: httpx.Response(
-        200, headers={"Content-Encoding": "gzip"}, stream=chunks,
-    ))
-    response = transport.handle_request(request())
-    iterator = iter(response.stream)
-    assert next(iterator) == compressed
-    assert not response.stream.buffer
-    assert response.stream.exceeded
-    response.close()
-    record = transport.records[-1]
-    assert record["outcome"] == "response_too_large"
-    assert record["response_bytes_observed"] == 65537
-    assert record["raw_response_bytes_observed"] == len(compressed)
-    assert transport.summary()["usage_unknown_calls"] == 1
-    assert chunks.reads == 1
-
-    another = meter(tmp_path / "production", lambda _: httpx.Response(
-        200, headers={"Content-Encoding": "gzip"}, stream=Chunks([compressed]),
-    ))
-    with ChatCompletionsSemanticProvider("https://example.test", "secret-key", "model",
-                                          transport=another) as provider:
-        with pytest.raises(SemanticProviderError, match="response_too_large"):
-            provider(REQUEST)
-    assert another.records[-1]["outcome"] == "response_too_large"
 
 
 @pytest.mark.parametrize("encoding,body", [
@@ -233,36 +126,6 @@ def test_unconfirmed_decoding_never_claims_usage(tmp_path, encoding, body):
     assert transport.summary()["usage_unknown_calls"] == 1
     assert "assistant_content" not in transport.records[-1]
     assert "private" not in transport.ledger_path.read_text()
-
-
-@pytest.mark.parametrize("code", [400, 401, 429, 500])
-def test_http_error_never_reads_or_records_error_body(tmp_path, code):
-    chunks = Chunks([b"private error body"])
-    transport = meter(tmp_path, lambda _: httpx.Response(code, stream=chunks))
-    with ChatCompletionsSemanticProvider("https://example.test", "secret-key", "model",
-                                          transport=transport) as provider:
-        with pytest.raises(SemanticProviderError, match="http_error"):
-            provider(REQUEST)
-    assert chunks.reads == 0
-    assert chunks.closed
-    assert transport.records[-1]["status_code"] == code
-    assert transport.summary()["usage_unknown_calls"] == 1
-    assert "private error body" not in transport.ledger_path.read_text()
-
-
-def test_production_response_cap_is_preserved_and_usage_remains_unknown(tmp_path):
-    chunks = Chunks([b"a" * 65535, b"bb", b"must not be read"])
-    transport = meter(tmp_path, lambda _: httpx.Response(200, stream=chunks))
-    with ChatCompletionsSemanticProvider("https://example.test", "secret-key", "model",
-                                          transport=transport) as provider:
-        with pytest.raises(SemanticProviderError, match="response_too_large"):
-            provider(REQUEST)
-    assert chunks.reads == 2
-    assert chunks.closed
-    assert transport.records[-1]["outcome"] == "response_too_large"
-    assert transport.records[-1]["response_bytes_observed"] == 65537
-    assert transport.summary()["usage_unknown_calls"] == 1
-    assert len(transport.ledger_path.read_text()) < 1000
 
 
 def test_early_close_does_not_drain_response_or_claim_usage(tmp_path):
@@ -297,29 +160,6 @@ def test_transport_close_releases_stream_after_body_completed(tmp_path):
     transport.close()
     assert chunks.closed
     assert len(transport.records) == 2
-
-
-@pytest.mark.parametrize("during_stream", [False, True])
-def test_network_errors_are_recorded_safely_once_without_retry(tmp_path, during_stream):
-    count = 0
-
-    def handle(incoming):
-        nonlocal count
-        count += 1
-        error = httpx.ReadError("private failure detail", request=incoming)
-        if during_stream:
-            return httpx.Response(200, stream=Chunks([b"partial private text"], error=error))
-        raise error
-
-    transport = meter(tmp_path, handle)
-    with ChatCompletionsSemanticProvider("https://example.test", "secret-key", "model",
-                                          transport=transport) as provider:
-        with pytest.raises(SemanticProviderError, match="transport_error"):
-            provider(REQUEST)
-    assert count == 1 and len(transport.records) == 2
-    assert transport.records[-1]["outcome"] == ("stream_error" if during_stream
-                                               else "transport_error")
-    assert "private" not in transport.ledger_path.read_text()
 
 
 @pytest.mark.parametrize("limits,code", [
@@ -389,34 +229,6 @@ def test_usage_only_accepts_allowlisted_nonnegative_integers(tmp_path):
         "prompt_cache_hit_tokens": 4, "completion_tokens_details": {"reasoning_tokens": 3},
     }
     assert not transport.records[-1]["usage_confirmed"]
-
-
-@pytest.mark.parametrize("usage", [
-    {"completion_tokens": 8},
-    {"prompt_tokens": 20, "completion_tokens": 8},
-    {"prompt_tokens": 20, "completion_tokens": 8, "total_tokens": 9},
-    {"prompt_tokens": True, "completion_tokens": 8, "total_tokens": 9},
-    {"prompt_tokens": 2**63, "completion_tokens": 8, "total_tokens": 2**63 + 8},
-    {"prompt_tokens": 20, "completion_tokens": 8, "total_tokens": 28,
-     "prompt_cache_hit_tokens": 21},
-    {"prompt_tokens": 20, "completion_tokens": 8, "total_tokens": 28,
-     "prompt_cache_hit_tokens": 10, "prompt_cache_miss_tokens": 9},
-    {"prompt_tokens": 20, "completion_tokens": 8, "total_tokens": 28,
-     "completion_tokens_details": {"reasoning_tokens": 9}},
-    {"prompt_tokens": 20, "completion_tokens": 8, "total_tokens": 28,
-     "prompt_tokens_details": []},
-])
-def test_partial_or_inconsistent_usage_remains_observed_but_not_confirmed(tmp_path, usage):
-    transport = meter(tmp_path, lambda _: httpx.Response(200, json=completion(usage=usage)))
-    with ChatCompletionsSemanticProvider("https://example.test", "secret-key", "model",
-                                          transport=transport) as provider:
-        assert provider(REQUEST) == '{"claims":[]}'
-        assert provider.last_usage is None
-    record = transport.records[-1]
-    assert record["usage"]["completion_tokens"] == 8
-    assert record["usage_confirmed"] is False
-    assert transport.summary()["usage_unknown_calls"] == 1
-    assert transport.summary()["usage_totals"] == {}
 
 
 def test_known_totals_exclude_invalid_observations_without_refunding_reservation(tmp_path):

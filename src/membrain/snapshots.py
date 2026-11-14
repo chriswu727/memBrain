@@ -1,7 +1,8 @@
 """Checks that the sources a stored snapshot was built from are still the current, visible, uncorrected ones.
 
 A snapshot binds a scope and exact source event versions (``source_snapshot``). Query embeddings use these checks on
-their own; background learning adds its own checks of memories, episodes and belief relations around them.
+their own; orientation results that older runtimes stored add checks of memories, episodes and belief relations
+around them (``orientation.validate_orientation_snapshot``).
 """
 from . import cognition
 from .contracts import validate

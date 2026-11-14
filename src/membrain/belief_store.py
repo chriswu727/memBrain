@@ -245,50 +245,6 @@ def _insert(conn, service, principal, brain, document, memories):
     return document, True
 
 
-def publish_links(conn, service, principal, brain, batch, result, *, published_memories, snapshot):
-    links = getattr(result, "belief_links", ())
-    if not links:
-        return []
-    if len(links) > MAX_RELATIONS:
-        raise DomainError("budget_exceeded", "Belief relation publication exceeds its limit")
-    claims = {item["proposal_id"]: memory for item, memory in zip(result.claims, published_memories, strict=True)}
-    existing = {(memory["memory_id"], memory["revision"]) for memory in batch.existing_assertions}
-    documents = []
-    for item in links:
-        if item["claim_proposal_id"] not in claims:
-            _unavailable("Belief source must be a claim accepted in the same batch")
-        source = claims[item["claim_proposal_id"]]
-        targets = {_version(ref) for ref in item["target_memory_versions"]}
-        if not targets.issubset(existing):
-            _unavailable("Belief target must be an observed exact assertion version")
-        versions = targets | {(source["memory_id"], source["revision"])}
-        memories, events = _package(conn, service, principal, brain, batch.scope, versions,
-                                   source_ids=snapshot["root_event_ids"], references=item["evidence_refs"])
-        document = {key: copy.deepcopy(item[key]) for key in (
-            "kind", "evidence_refs", "conditions", "valid_during", "world",
-            "condition_registry_fingerprint", "verification")}
-        document.update(
-            revision=1, scope=copy.deepcopy(batch.scope), source_memory_version=_ref((source["memory_id"], source["revision"])),
-            target_memory_versions=[_ref(key) for key in sorted(targets)],
-            root_event_ids=sorted(events), endpoint_snapshots=[
-                {"memory_version": _ref(key), "content_sha256": assertion_fingerprint(memories[key])}
-                for key in sorted(versions)],
-        )
-        document["evidence_refs"].sort(key=digest)
-        document["relation_id"] = _relation_id(document)
-        validate_relation(document)
-        _validate_package(conn, service, principal, brain, batch.scope, [document])
-        documents.append((document, memories))
-    saved, inserted = {}, False
-    for document, memories in documents:
-        previous, created = _insert(conn, service, principal, brain, document, memories)
-        saved[previous["relation_id"]] = previous
-        inserted = inserted or created
-    if inserted:
-        service._advance(conn, principal, brain)
-    return [service._rebind(document, principal, brain) for document in saved.values()]
-
-
 def load_belief_relations(conn, service, principal, brain, scope, memory_versions, max_relations=32):
     if type(max_relations) is not int or not 1 <= max_relations <= MAX_RELATIONS:
         raise ValueError("Belief read limit must be between 1 and 32")
