@@ -11,7 +11,7 @@ from membrain.jobs import JobStore
 from membrain.storage import Database
 
 
-def test_upgrade_preserves_task_authority_and_binds_only_unstarted_work_to_current_policy(monkeypatch):
+def test_upgrade_preserves_learning_tasks_which_are_then_never_claimed(monkeypatch):
     settings = Settings.from_env()
     admin = settings.migration_database_url or settings.database_url
     namespace = "learning_recording_" + uid().replace("-", "")
@@ -43,11 +43,14 @@ def test_upgrade_preserves_task_authority_and_binds_only_unstarted_work_to_curre
             assert conn.execute("SELECT relrowsecurity,relforcerowsecurity FROM pg_class "
                                 "WHERE oid='memory_jobs'::regclass").fetchone() == {
                                     "relrowsecurity": True, "relforcerowsecurity": True}
+        # Background learning was removed after this migration: the jobs it preserved are kept as they were and
+        # never claimed again (they used to bind the brain's recording policy on their first claim).
         store = JobStore(database)
-        for name, expected in (("unstarted", 2), ("interrupted", 0)):
-            row = store.claim(principal, brain, worker_id=uid(), job_id=name)
-            assert row["recording_revision"] == expected
-            assert row["payload"] == {"original": True}
+        for name in ("unstarted", "interrupted"):
+            assert store.claim(principal, brain, worker_id=uid(), job_id=name) is None
+        with database.transaction(principal) as conn:
+            unchanged = conn.execute("SELECT * FROM memory_jobs ORDER BY id").fetchall()
+            assert all(row.pop("recording_revision") is None for row in unchanged) and unchanged == after
         with pytest.raises(psycopg.errors.CheckViolation), database.transaction(principal) as conn:
             conn.execute("UPDATE memory_jobs SET recording_revision=-1 WHERE id='unstarted'")
     finally:
