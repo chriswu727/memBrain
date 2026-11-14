@@ -47,7 +47,8 @@ TRANSCRIPT_TAIL_BYTES = 2 * 1024 * 1024
 # ``persona_command``: the host has the /membrain:persona slash command (only Claude Code's plugin format has one).
 HOST_TOOLS = {"openclaw": {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause",
                            "resume": "membrain_resume", "consolidate": "membrain_consolidate",
-                           "replies": "my_replies", "persona": "membrain_persona"},
+                           "replies": "my_replies", "persona": "membrain_persona",
+                           "manner_feedback": "membrain_manner_feedback"},
               "claude-code": {**host.TOOL_NAMES, "persona_command": "/membrain:persona"}}
 TOOLS = ("note", "search", "pause", "resume", "boundary", "consolidate", "manner_feedback", "persona")
 # Hosts that put their own memory files in the prompt; notes imported from them are not shown to them again.

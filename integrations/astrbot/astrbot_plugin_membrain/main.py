@@ -16,7 +16,8 @@ from membrain.persona_tool import TOOL_DESCRIPTION as PERSONA_TOOL_DESCRIPTION
 
 _STATE = "membrain"
 # The tools below as memory's notices name them; consolidation is asked for only on hosts that have its tool.
-_TOOLS = {**TOOLS, "consolidate": "membrain_consolidate", "replies": "my_replies"}
+_TOOLS = {**TOOLS, "consolidate": "membrain_consolidate", "replies": "my_replies", "persona": "membrain_persona",
+          "manner_feedback": "membrain_manner_feedback"}
 
 
 def _speaker(event: AstrMessageEvent) -> Speaker:

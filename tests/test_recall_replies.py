@@ -48,8 +48,7 @@ def test_the_recall_tool_returns_the_assistant_s_replies_only_when_asked_for(tmp
             assert "Forno Feliziani" in tool({"query": "deli near the Vatican", "my_replies": True})
 
         opening = host.session_context(directory, "later")
-        if "Related messages from earlier conversations" in opening:  # Not shown when the whole history fits.
-            assert "my_replies" in opening
+        assert "my_replies" in opening  # Also when the whole history fits: it holds only the user's messages.
         assert "my_replies" not in host._session_notice(False, {key: value for key, value in host.TOOL_NAMES.items()
                                                                 if key != "replies"}, False, None)
         assert "my_replies" in host._session_notice(False, host.TOOL_NAMES, False, None)

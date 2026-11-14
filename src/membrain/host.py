@@ -206,7 +206,28 @@ def notes_notice(tools: dict | None = TOOL_NAMES) -> str:
             "preferences, decisions, constraints, or a change to an earlier plan), save it as one short note with the "
             f"{tools['note']} tool, with its kind (a plan stays intended until the user confirms it is scheduled or "
             "done), and replace the outdated note when something changes. Notes are shown at the start of every "
-            "session; raw messages are not always.")
+            "session; raw messages are not always. A moment the two of you shared, a hard one too, is a note of kind "
+            "milestone with shared and moment.")
+
+
+def conduct_notice(tools: dict | None = TOOL_NAMES) -> str:
+    """Manner feedback and lasting persona changes, for hosts with those tools. In a host trial (2026-11-13) the AI
+    saved both as preference notes, and told a user it could not change, while no notice named the tools."""
+    parts = [text.format(tools[key]) for key, text in (
+        ("manner_feedback", "record the user's comments on how you talk with {}"),
+        ("persona", "when the user asks you to behave differently from now on, propose it with {} and wait for "
+                    "their yes")) if (tools or {}).get(key)]
+    sentence = "; ".join(parts)
+    return sentence[:1].upper() + sentence[1:] + "." if sentence else ""
+
+
+def replies_notice(tools: dict | None = TOOL_NAMES) -> str:
+    if not tools or not tools.get("replies"):
+        return ""
+    # Recall shows them unasked when ``ASKS_ABOUT_ASSISTANT`` matches the user's message.
+    return ("Your own earlier replies are shown only when the user's message asks about them in words memory "
+            "recognises; otherwise, when the user asks about something you said in an earlier conversation, search "
+            f"with {tools['recall']} and {tools['replies']} set.")
 
 
 def privacy_notice(tools: dict | None = TOOL_NAMES) -> str:
@@ -2212,20 +2233,19 @@ def _finish_abandoned(directory: Path, client) -> int:
 
 def _session_notice(complete: bool, tools: dict | None, is_paused: bool, roleplay: str | None) -> str:
     if complete:
-        notice = ("memBrain memory is active for this user. Their complete history from earlier sessions is "
-                  "below. " + notes_notice(tools))
+        notice = "memBrain memory is active for this user. Their complete history from earlier sessions is below."
     else:
         notice = ("memBrain memory is active for this user. Related messages from earlier conversations are "
                   "added automatically before replies. " + (
                       "When a request depends on the user's personal context and nothing relevant is shown, search "
                       f"with the {tools['recall']} tool using a few concrete keywords before answering. What is "
                       "added automatically favours recent conversations; a search reaches older ones just as "
-                      "easily. "
-                      + (f"Your own earlier replies are not shown unasked: when the user asks about something you "
-                         f"said, recommended or explained in an earlier conversation, search with {tools['replies']} "
-                         "set. " if tools.get("replies") else "")
-                      if tools else "") + notes_notice(tools))
-    notice = " ".join(part for part in (notice.strip(), privacy_notice(tools),
+                      "easily." if tools else ""))
+    # The complete history holds only the user's messages, so it too needs the way to the AI's own replies. In a
+    # role-play the character is the persona: there is none to change.
+    conduct = conduct_notice({**tools, "persona": None} if tools and roleplay else tools)
+    notice = " ".join(part for part in (notice.strip(), replies_notice(tools), notes_notice(tools), conduct,
+                                       privacy_notice(tools),
                                        _recording_notice(is_paused, tools)) if part)
     if is_paused:
         notice += " Tell the user once, early in this conversation, and offer to resume."
