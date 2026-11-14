@@ -1,0 +1,41 @@
+diff -r (path) (path)
+4c4
+<       "command": "uvx",
+---
+>       "command": "(path)",
+6,10c6,7
+<         "--python",
+<         "3.12",
+<         "--from",
+<         "${MEMBRAIN_PACKAGE:-membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/(id).zip}",
+<         "membrain",
+---
+>         "-m",
+>         "membrain.cli",
+16c13
+< }
+---
+> }
+\ No newline at end of file
+diff -r (path) (path)
+8c8
+<             "command": "command -v uvx >/dev/null 2>&1 && uv tool install --quiet --python 3.12 \"${MEMBRAIN_PACKAGE:-membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/(id).zip}\" >/dev/null 2>&1; uvx --offline --python 3.12 --from membrain-ai membrain plugin start >/dev/null 2>&1; true",
+---
+>             "command": "(path) -m membrain.cli plugin start >/dev/null 2>&1; true",
+17c17
+<             "command": "command -v uvx >/dev/null 2>&1 && uvx --offline --python 3.12 --from membrain-ai membrain plugin hook session-start 2>/dev/null; true",
+---
+>             "command": "(path) -m membrain.cli plugin hook session-start 2>/dev/null | tee \"(path)\"; true",
+28c28
+<             "command": "command -v uvx >/dev/null 2>&1 && uvx --offline --python 3.12 --from membrain-ai membrain plugin hook user-prompt 2>/dev/null; true",
+---
+>             "command": "(path) -m membrain.cli plugin hook user-prompt 2>/dev/null | tee \"(path)\"; true",
+39c39
+<             "command": "command -v uvx >/dev/null 2>&1 && uvx --offline --python 3.12 --from membrain-ai membrain plugin hook stop 2>/dev/null; true",
+---
+>             "command": "(path) -m membrain.cli plugin hook stop 2>/dev/null; true",
+46c46
+< }
+---
+> }
+\ No newline at end of file

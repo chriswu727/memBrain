@@ -1,0 +1,56 @@
+turn       model              calls    cost$ in+cache_read cache_write   out  tools
+a1-1       claude-sonnet-5-5      3   0.0908         69761       19323   648  ToolSearch, memory_note
+a1-2       claude-sonnet-5-5      3   0.0235         62407        2287   809  memory_note, memory_note
+a1-3       claude-sonnet-5-5      1   0.0124         32829        1401   350  
+a1-4       claude-sonnet-5-5      3   0.0264         69142        1898  1190  memory_note, memory_note
+a2-1       claude-sonnet-5-5      1   0.0699         13091       16020   455  
+b1         claude-sonnet-5-5      2   0.0790         42852       17584   436  memory_persona(list)
+b2         claude-sonnet-5-5      2   0.0230         64107        3218   371  memory_persona(switch)
+b3         claude-sonnet-5-5      4   0.0307        106832        3516   590  memory_persona(switch), memory_consolidate(), memory_consolidate(cues)
+c1         claude-sonnet-5-5      3   0.0868         73270       18295   624  ToolSearch, memory_note
+c2         claude-sonnet-5-5      1   0.0124         31386        1947   147  
+c3         claude-sonnet-5-5      1   0.0110         33333         563   544  
+c4         claude-sonnet-5-5      2   0.0170         68635        1305   487  memory_note
+c5         claude-sonnet-5-5      4   0.0388        149507        3878   831  ToolSearch, memory_consolidate(), memory_consolidate(cues)
+c6         claude-sonnet-5-5      3   0.0896         73895       18630   766  ToolSearch, memory_note
+d1         claude-sonnet-5-5      1   0.0793         13091       16554  1178  
+d2         claude-sonnet-5-5      1   0.0115         29645        1473   266  
+d3         claude-sonnet-5-5      1   0.0100         31118         574   461  
+d4         claude-sonnet-5-5      5   0.0544        141165        6711  1341  ToolSearch, memory_consolidate(), memory_note, memory_consolidate(cues)
+d5         claude-sonnet-5-5      1   0.0152         38403        2334   198  
+d6         claude-sonnet-5-5      1   0.0071         40737         492   102  
+e-hard-1   claude-sonnet-5-5      2   0.0200         82894        1200   692  memory_note
+e-hard-2   claude-sonnet-5-5      1   0.0140         42429        2384    18  
+e-play-1   claude-sonnet-5-5      4   0.0923        105412       18641   717  ToolSearch, memory_consolidate(), memory_consolidate(cues)
+e-play-2   claude-sonnet-5-5      3   0.0355        102089        4784   616  ToolSearch, memory_note
+e-next-1   claude-sonnet-5-5      1   0.0747         13091       17413   373  
+f1-1       claude-sonnet-5-5      3   0.0959         69975       19560  1063  ToolSearch, memory_note
+f1-2       claude-sonnet-5-5      2   0.0255         63063        2058  1091  memory_note
+f2-1       claude-sonnet-5-5      1   0.0697         13092       15910   473  
+f2-2       claude-sonnet-5-5      3   0.0319         90282        2960  1097  ToolSearch, memory_note
+f2-3       claude-sonnet-5-5      1   0.0163         31962        2226   416  
+f2-4       claude-sonnet-5-5      4   0.0415        146181        4216  1004  ToolSearch, memory_consolidate(), memory_consolidate(cues)
+f3-1       claude-sonnet-5-5      1   0.0716         13092       16130   575  
+f3-2       claude-sonnet-5-5      1   0.0112         29222         875   474  
+f3-3       claude-sonnet-5-5      1   0.0104         30097         764   429  
+f4-1       claude-sonnet-5-5      1   0.0780         13092       18779   160  
+f4-2       claude-sonnet-5-5      4   0.0369        135914        3877   776  ToolSearch, memory_consolidate(), memory_consolidate(cues)
+f4-3       claude-sonnet-5-5      1   0.0051         35748         302    36  
+f4-4       claude-sonnet-5-5      2   0.0149         72421        1099   329  memory_recall()
+g1         claude-sonnet-5-5      4   0.1260        117174       25044  1404  ToolSearch, memory_consolidate(), memory_consolidate(cues)
+g2         claude-sonnet-5-5      1   0.0310         38136        6312   193  
+g3         claude-sonnet-5-5      1   0.0437         44448        6577  1297  
+g4         claude-sonnet-5-5      3   0.0654        168897       11134   398  ToolSearch, memory_recall(my_replies)
+ha-1       claude-haiku-5-5       3   0.0052         71596       20364   850  ToolSearch, memory_note
+ha-2       claude-haiku-5-5       3   0.0016         64562        2411   855  memory_note, memory_note
+hc-1       claude-haiku-5-5       4   0.0051         74132       17479  1733  Bash, Write, Write
+hc-2       claude-haiku-5-5       3   0.0025         97170        3241  1717  ToolSearch, memory_inspect
+hc-3       claude-haiku-5-5       4   0.0027        142327        1969  1770  Bash, Bash, Bash
+hb-1       claude-haiku-5-5       6   0.0049        239148        6912  2288  Skill, ToolSearch, memory_persona(switch), memory_consolidate(), memory_consolidate()
+hd-1       claude-haiku-5-5       1   0.0017         43495        2401  1636  
+hd-2       claude-haiku-5-5       1   0.0014         45896        3998   260  
+hf-1       claude-haiku-5-5       1   0.0046         11219       21669   269  
+hf-2       claude-haiku-5-5       1   0.0008         32888         584   632  
+hf-3       claude-haiku-5-5       4   0.0027        144455        4424   703  ToolSearch, memory_consolidate(), memory_consolidate(cues)
+TOTAL claude-sonnet-5-5: 42 turns, 88 model calls, 1.8000 USD
+TOTAL claude-haiku-5-5: 11 turns, 31 model calls, 0.0331 USD
