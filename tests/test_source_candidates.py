@@ -5,8 +5,6 @@ from psycopg.types.json import Jsonb
 from test_candidates import candidates as candidates
 from test_candidates import key
 from test_cognition import request
-from test_learning import learning as learning
-from test_learning_neighborhood import literal, publish, select, source, versions
 
 from membrain import cognition
 from membrain.contracts import CONTRACT_VERSION
@@ -185,17 +183,3 @@ def test_source_route_does_not_reintroduce_current_cue_as_historical_evidence(ca
         brain = candidates.service._brain(conn, candidates.principal, candidates.brain_id)
         result, _, _ = candidates.service._retrieval(conn, candidates.principal, brain, candidates.target, query)
     assert key(memory) not in {key(item["memory"]) for item in result["items"]}
-
-
-def test_learning_neighborhood_recovers_foreign_language_assertion_beyond_recent_window(learning):
-    original = source(learning, "备考时需要安静。", conversation="old")
-    literal(learning, original)
-    memory = publish(learning, original, epistemic_status="derived_inference",
-                     statement="The user prefers a quiet environment during exam preparation.")
-    for _ in range(30):
-        source(learning, "窗外没有新消息。")
-    current = source(learning, "备考时应该怎样安排？")
-    result = select(learning, current)
-    assert key(memory) in versions(result)
-    assert result.sampling["source_candidate_count"] == 1
-    assert not result.sampling["publication_restricted"]

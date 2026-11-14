@@ -106,22 +106,6 @@ export type NoteAffect = {
   topic?: string;
   felt_at?: string;
 };
-export type RetryLearningOptions = {
-  requestId: string;
-  expectedFence: number;
-  brainId?: string;
-};
-export type CognitiveBudgetPolicy = {
-  window_seconds: number;
-  max_model_calls: number;
-  max_input_bytes: number;
-};
-export type CognitiveBudgetOptions = {
-  requestId: string;
-  expectedRevision: number;
-  policy: CognitiveBudgetPolicy;
-  brainId?: string;
-};
 export type PrepareOptions = BranchOptions & Partial<Omit<PreparePayload,
   "turn_id" | "recall_plan" | "evidence_mode" | "expected_dependency_generation"
 >> & PrepareRecallSelection;
@@ -735,35 +719,11 @@ export class MemoryClient {
   work(brainId?: string): Promise<JsonObject> {
     return this.#request("POST", `v1/brains/${encodeURIComponent(this.#scope({ brainId }).brain_ref)}/work`);
   }
-  cognitiveUsage(brainId?: string): Promise<JsonObject> {
-    return this.#request("GET", `v1/brains/${encodeURIComponent(this.#scope({ brainId }).brain_ref)}/runtime/cognitive-usage`);
-  }
-
-  cognitiveBudget(brainId?: string): Promise<JsonObject> {
-    return this.#request("GET", `v1/brains/${encodeURIComponent(this.#scope({ brainId }).brain_ref)}/runtime/cognitive-budget`);
-  }
-  configureCognitiveBudget(options: CognitiveBudgetOptions): Promise<JsonObject> {
-    const brain = encodeURIComponent(this.#scope(options).brain_ref);
-    return this.#request("PUT", `v1/brains/${brain}/runtime/cognitive-budget`, {
-      request_id: options.requestId, expected_revision: options.expectedRevision, policy: options.policy,
-    });
-  }
-
-  learningProgress(brainId?: string): Promise<JsonObject> {
-    return this.#request("GET", `v1/brains/${encodeURIComponent(this.#scope({ brainId }).brain_ref)}/runtime/learning-progress`);
-  }
   activeScope(conversationId: string, branchId = "main", brainId?: string): Promise<JsonObject> {
     const brain = encodeURIComponent(this.#scope({ brainId }).brain_ref);
     const query = new URLSearchParams({ conversation_id: conversationId, branch_id: branchId });
     return this.#request("GET", `v1/brains/${brain}/runtime/scope?${query}`);
   }
-  retryLearning(jobId: string, options: RetryLearningOptions): Promise<JsonObject> {
-    const brain = encodeURIComponent(this.#scope(options).brain_ref);
-    return this.#request("POST", `v1/brains/${brain}/runtime/jobs/${encodeURIComponent(jobId)}/retry-learning`, {
-      request_id: options.requestId, expected_fence: options.expectedFence,
-    });
-  }
-
   async observe(text: string, options: BranchOptions & {
     sourceEventKey: string; role?: ObservedEventInput["actor_role"];
     producerRef?: string; actorRef?: string; sourceRevision?: number;

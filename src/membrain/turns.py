@@ -224,8 +224,6 @@ class TurnStore:
             return [{**row, "occurred_at": row["occurred_at"].isoformat()} for row in reversed(rows)]
 
     def status(self, principal, brain_id):
-        from .learning_progress import learning_progress
-
         with self._transaction(principal, brain_id) as (conn, brain):
             params = (principal.tenant_id, principal.principal_id, brain_id)
             counts = conn.execute(
@@ -234,9 +232,10 @@ class TurnStore:
                 "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s GROUP BY stage",
                 params,
             ).fetchall()
+            # Learning jobs an older runtime left (orient, consolidate) are never run again and are not counted.
             jobs = conn.execute(
                 "SELECT count(*) AS count FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
-                "AND state<>'completed'", params,
+                "AND state<>'completed' AND kind NOT IN ('orient','consolidate')", params,
             ).fetchone()["count"]
             reviews = conn.execute(
                 "SELECT response_review->>'status' AS status,count(*) AS count "
@@ -252,10 +251,6 @@ class TurnStore:
                 "stage_counts": {row["stage"]: row["count"] for row in counts}, "pending_job_count": jobs,
                 "response_review_counts": {row["status"]: row["count"] for row in reviews},
                 "response_review_calls": sum(row["count"] for row in reviews),
-                "learning_progress": learning_progress(
-                    conn, principal, brain_id,
-                    configured=getattr(self.service, "semantic_processor", None) is not None,
-                ),
             }
 
     def claim(self, principal, brain_id, turn_id, *, worker_id, lease_seconds=30, expected_revision=None):
@@ -835,7 +830,7 @@ class TurnStore:
 
     def _record_delivery(self, conn, principal, brain, row, incoming):
         from .delivery_receipts import receipt_for
-        from .learning import orientation_result
+        from .orientation import orientation_result
         from .service import MemoryService
 
         if len(row["output_event_refs"]) != 1:
@@ -972,7 +967,7 @@ class TurnStore:
                 except DomainError:
                     reasons.append("orientation_changed")
             if row["orientation_job_id"] is not None and not reasons:
-                from .learning import orientation_updates
+                from .orientation import orientation_updates
 
                 try:
                     updates = orientation_updates(conn, service, principal, brain, row)

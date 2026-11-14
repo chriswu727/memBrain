@@ -43,12 +43,6 @@ class Jobs:
     def lease(self):
         return {"lease_token": self.claimed["lease_token"], "fence": self.claimed["fence"]}
 
-    def reserve(self, **kwargs):
-        values = {"operation_id": uid(), "request_fingerprint": digest("request"), "input_bytes": 100,
-                  "max_model_calls": 3, "max_input_bytes": 300, **self.lease()}
-        values.update(kwargs)
-        return self.call("reserve_operation", **values)
-
     def expire(self):
         with self.database.transaction(self.principal) as conn:
             conn.execute(
@@ -117,7 +111,6 @@ def test_exact_claim_and_kind_filter_do_not_take_another_turn_job(jobs):
 
 def test_expired_claim_fences_old_worker_after_restart(jobs):
     old = jobs.claim()
-    reservation = jobs.reserve()
     jobs.expire()
     jobs.store = JobStore(jobs.database)
     assert jobs.claim()["fence"] == old["fence"] + 1
@@ -126,96 +119,11 @@ def test_expired_claim_fences_old_worker_after_restart(jobs):
         ("renew", {}),
         ("complete", {"publish": lambda *_: invoked.append(True)}),
         ("fail", {"failure_code": "provider_failed"}),
-        ("reserve_operation", {"operation_id": uid(), "request_fingerprint": digest("other"),
-                               "input_bytes": 1, "max_model_calls": 3, "max_input_bytes": 300}),
     ):
         with pytest.raises(DomainError, match="expired, or fenced"):
             jobs.call(method, lease_token=old["lease_token"], fence=old["fence"], **extra)
     assert not invoked
-    operation = jobs.store.get_operation(jobs.principal, jobs.brain, jobs.job_id, reservation["operation_id"])
-    assert operation["outcome"] == "uncertain"
-    assert operation["job_model_calls"] == 1
     assert jobs.call("renew", **jobs.lease())["lease_active"]
-
-
-def test_reservation_replay_never_authorizes_another_provider_call(jobs):
-    jobs.claim()
-    operation_id = uid()
-    first = jobs.reserve(operation_id=operation_id)
-    repeated = jobs.reserve(operation_id=operation_id)
-    assert first["newly_reserved"] is True
-    assert repeated["newly_reserved"] is False
-    assert repeated["job_model_calls"] == 1
-    assert repeated["job_input_bytes"] == 100
-    for changes in ({"input_bytes": 101}, {"request_fingerprint": digest("changed")}):
-        with pytest.raises(DomainError, match="another request"):
-            jobs.reserve(operation_id=operation_id, **changes)
-    jobs.call("fail", **jobs.lease(), failure_code="provider_uncertain")
-    jobs.store = JobStore(jobs.database)
-    jobs.claim()
-    assert jobs.reserve(operation_id=operation_id)["newly_reserved"] is False
-    assert jobs.reserve()["job_model_calls"] == 2
-
-
-def test_unknown_outcome_keeps_budget_charged_and_retry_cannot_raise_caps(jobs):
-    jobs.claim()
-    jobs.reserve(max_model_calls=1, max_input_bytes=100)
-    jobs.expire()
-    jobs.store = JobStore(jobs.database)
-    jobs.claim()
-    with pytest.raises(DomainError, match="Durable job budget"):
-        jobs.reserve(max_model_calls=99, max_input_bytes=9999)
-    assert jobs.call("get")["model_calls"] == 1
-    assert jobs.call("get")["input_bytes"] == 100
-
-
-def test_input_byte_budget_counts_entire_request_across_calls(jobs):
-    jobs.claim()
-    jobs.reserve(input_bytes=100, max_input_bytes=150)
-    with pytest.raises(DomainError, match="Durable job budget"):
-        jobs.reserve(input_bytes=51)
-    assert jobs.reserve(input_bytes=50)["job_input_bytes"] == 150
-
-
-def test_background_window_is_shared_across_jobs_and_survives_restart(jobs):
-    jobs.claim()
-    jobs.reserve(window_max_model_calls=1)
-    jobs.call("complete", **jobs.lease())
-    jobs.job_id = jobs.enqueue("rebuild", {"event_ids": [uid()]})
-    jobs.store = JobStore(jobs.database)
-    jobs.claim()
-    with pytest.raises(DomainError, match="background budget window"):
-        jobs.reserve(window_max_model_calls=9999)
-    assert jobs.call("get")["model_calls"] == 0
-    with jobs.database.transaction(jobs.principal) as conn:
-        conn.execute(
-            "UPDATE memory_cognitive_operations SET created_at=clock_timestamp()-interval '2 hours' "
-            "WHERE tenant_id=%s AND brain_id=%s", (jobs.principal.tenant_id, jobs.brain),
-        )
-    assert jobs.reserve()["newly_reserved"]
-
-
-def test_concurrent_jobs_cannot_overspend_shared_window(jobs):
-    first = jobs.claim()
-    other_id = jobs.enqueue()
-    second = jobs.claim()
-    barrier = Barrier(2)
-
-    def reserve(claim):
-        barrier.wait()
-        try:
-            return JobStore(jobs.database).reserve_operation(
-                jobs.principal, jobs.brain, claim["id"], lease_token=claim["lease_token"], fence=claim["fence"],
-                operation_id=uid(), request_fingerprint=digest("request"), input_bytes=100,
-                max_model_calls=3, max_input_bytes=300, window_max_model_calls=1,
-            )["newly_reserved"]
-        except DomainError as error:
-            return error.code
-
-    with ThreadPoolExecutor(max_workers=2) as pool:
-        outcomes = list(pool.map(reserve, [first, second]))
-    assert set(outcomes) == {True, "budget_exceeded"}
-    assert other_id == second["id"]
 
 
 def test_publish_and_completion_are_atomic_and_do_not_run_twice(jobs):
@@ -274,17 +182,8 @@ def test_retry_delay_attempt_limit_and_terminal_failure(jobs):
     assert jobs.claim(max_attempts=100) is None
 
 
-def test_settlement_stores_only_safe_usage_and_is_idempotent(jobs):
+def test_failure_codes_are_redacted_and_monitoring_shows_no_payload(jobs):
     jobs.claim()
-    reservation = jobs.reserve()
-    arguments = {**jobs.lease(), "operation_id": reservation["operation_id"], "outcome": "completed",
-                 "usage": {"input_tokens": 12, "output_tokens": None}, "response_fingerprint": digest("response")}
-    assert jobs.call("settle_operation", **arguments)["usage"] == arguments["usage"]
-    assert jobs.call("settle_operation", **arguments)["usage"] == arguments["usage"]
-    with pytest.raises(DomainError, match="another result"):
-        jobs.call("settle_operation", **{**arguments, "usage": {"input_tokens": 13}})
-    with pytest.raises(DomainError, match="token counters"):
-        jobs.call("settle_operation", **{**arguments, "usage": {"prompt": "private"}})
     with pytest.raises(DomainError, match="redacted failure code"):
         jobs.call("fail", **jobs.lease(), failure_code="Private network response")
     monitoring = json.dumps(jobs.store.list(jobs.principal, jobs.brain))
@@ -294,14 +193,24 @@ def test_settlement_stores_only_safe_usage_and_is_idempotent(jobs):
 
 
 def test_cognitive_operation_and_budget_tables_enforce_rls(jobs):
+    """The removed cognition pipeline's reservations and budget, as an older runtime stored them, stay private."""
     jobs.claim()
-    operation = jobs.reserve()
+    with jobs.database.transaction(jobs.principal) as conn:
+        conn.execute(
+            "INSERT INTO memory_cognitive_operations(tenant_id,owner_id,brain_id,job_id,operation_id,request_fingerprint,"
+            "input_bytes,fence) VALUES(%s,%s,%s,%s,%s,%s,100,%s)",
+            (jobs.principal.tenant_id, jobs.principal.principal_id, jobs.brain, jobs.job_id, uid(), digest("request"),
+             jobs.claimed["fence"]))
+        conn.execute(
+            "INSERT INTO memory_cognitive_budgets(tenant_id,owner_id,brain_id,window_seconds,max_model_calls,"
+            "max_input_bytes) VALUES(%s,%s,%s,3600,100,2000000)",
+            (jobs.principal.tenant_id, jobs.principal.principal_id, jobs.brain))
     for outsider in (Principal(jobs.principal.tenant_id, uid()), Principal(uid(), jobs.principal.principal_id)):
         with jobs.database.transaction(outsider) as conn:
             for table in ("memory_cognitive_operations", "memory_cognitive_budgets"):
                 assert conn.execute(f"SELECT * FROM {table} WHERE brain_id=%s", (jobs.brain,)).fetchall() == []
         with pytest.raises(DomainError, match="Brain is unavailable"):
-            jobs.store.get_operation(outsider, jobs.brain, jobs.job_id, operation["operation_id"])
+            jobs.store.get(outsider, jobs.brain, jobs.job_id)
     with jobs.database.transaction(jobs.principal) as conn:
         rows = conn.execute(
             "SELECT relname,relrowsecurity,relforcerowsecurity FROM pg_class "

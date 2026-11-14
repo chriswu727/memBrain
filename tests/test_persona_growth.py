@@ -704,23 +704,22 @@ def test_decisions_leave_the_other_layers_unchanged(brain):
     assert layers() == before
 
 
-def test_records_are_never_learned_recalled_or_counted_and_cannot_be_planted(brain, monkeypatch):
-    from membrain import learning_windows
+def learning_jobs(service, principal, ident):
+    """Background learning was removed: no message or record queues an orient or consolidate job any more."""
+    with service.database.transaction(principal) as conn:
+        return conn.execute("SELECT count(*) AS value FROM memory_jobs WHERE tenant_id=%s AND brain_id=%s "
+                            "AND kind IN ('orient','consolidate')", (principal.tenant_id, ident)).fetchone()["value"]
 
+
+def test_records_are_never_learned_recalled_or_counted_and_cannot_be_planted(brain):
     service, principal, ident = brain
-    scheduled = []
-    monkeypatch.setattr(learning_windows, "enqueue_window",
-                        lambda conn, svc, who, brain_row, target, *args, **kwargs: scheduled.append(
-                            target["conversation_ref"]))
-    monkeypatch.setattr(service, "semantic_processor", object(), raising=False)
     for text in ("you're too formal", "be more casual", "be less formal", "be more playful", "be more playful!",
                  "could you be more playful"):
         said(brain, text)
     proposals = {p["kind"]: p for p in listing(brain)["proposals"]}
     accept_proposal(service, principal, ident, proposals["less_formal"]["id"])
     reject_proposal(service, principal, ident, proposals["more_playful"]["id"])
-    assert scheduled and set(scheduled) == {"chat"}  # The user's own messages learn; suggestions never do.
-    monkeypatch.undo()
+    assert learning_jobs(service, principal, ident) == 0
     status = service.memory_status(principal, ident)["recorded_messages"]
     assert status == 6
     service.work_once(principal, ident)

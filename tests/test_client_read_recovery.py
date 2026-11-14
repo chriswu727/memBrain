@@ -58,9 +58,9 @@ def test_read_recovers_once_after_real_response_disconnect(caplog):
     epoch = "ddf1ea58-8dfc-4ea1-b366-fd018a684fc1"
     with server(["drop", "ok"]) as (url, requests):
         with MemoryClient(url, "synthetic-key", "brain", trust_env=False, recovery_epoch=epoch) as client:
-            assert RuntimeClient(client).cognitive_usage() == {"ready": True}
+            assert RuntimeClient(client).status() == {"ready": True}
     assert len(requests) == 2 and requests[0] == requests[1]
-    assert requests[0][1] == "/v1/brains/brain/runtime/cognitive-usage"
+    assert requests[0][1] == "/v1/brains/brain/runtime/status"
     assert requests[0][2]["Authorization"] == "Bearer synthetic-key"
     assert requests[0][2]["X-Memory-Recovery-Epoch"] == epoch
     assert "retrying once" in caplog.text
@@ -71,7 +71,7 @@ def test_repeated_read_disconnect_is_reported_after_two_requests():
     with server(["drop"]) as (url, requests):
         with MemoryClient(url, "key", "brain", trust_env=False) as client:
             with pytest.raises(httpx.RemoteProtocolError):
-                RuntimeClient(client).cognitive_usage()
+                RuntimeClient(client).status()
     assert len(requests) == 2
 
 
@@ -114,7 +114,7 @@ def test_read_recovers_when_keepalive_closes_after_pool_reuse_check(monkeypatch)
     app, requests, protocols = FastAPI(), [], []
     closed, armed, completed = threading.Event(), threading.Event(), threading.Event()
 
-    @app.get("/v1/brains/brain/runtime/cognitive-usage")
+    @app.get("/v1/brains/brain/runtime/status")
     def usage():
         requests.append("GET")
         return {"requests_seen": len(requests)}
@@ -147,10 +147,10 @@ def test_read_recovers_when_keepalive_closes_after_pool_reuse_check(monkeypatch)
     with loopback_server(app) as url:
         with MemoryClient(url, "key", "brain", trust_env=False) as client:
             runtime = RuntimeClient(client)
-            assert runtime.cognitive_usage() == {"requests_seen": 1}
+            assert runtime.status() == {"requests_seen": 1}
             assert completed.wait(3)
             armed.set()
-            assert runtime.cognitive_usage() == {"requests_seen": 2}
+            assert runtime.status() == {"requests_seen": 2}
     assert closed.is_set() and requests == ["GET", "GET"]
 
 

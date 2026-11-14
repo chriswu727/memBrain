@@ -1,10 +1,10 @@
-"""Shared (read-only) brain accesses stay read-only with semantic processing and embeddings on (R5, gap 20).
+"""Shared (read-only) brain accesses stay read-only with embeddings on (R5, gap 20).
 
 Inside ``reading()`` the brain row is only shared, so a read path that created a job, advanced a generation or
 appended an event would raise from ``_writable()``, and one that wrote anything else would do it beside other
-readers. These tests drive every read path with the deterministic semantic processor of ``test_learning`` and a fake
-embedding provider, record each statement executed while a read is in progress, and allow only the writes audited
-as safe beside other readers.
+readers. These tests drive every read path with a fake embedding provider, record each statement executed while a
+read is in progress, and allow only the writes audited as safe beside other readers. (They also ran with a
+deterministic cognition model until background learning was removed.)
 """
 import hashlib
 import re
@@ -12,8 +12,8 @@ import uuid
 
 import psycopg
 import pytest
-from test_learning import delivered
-from test_learning import learning as learning
+from service_harness import delivered
+from service_harness import harness as harness
 from test_recovery_erasure import pending, raw_event
 from test_recovery_erasure import recovery as recovery
 
@@ -117,7 +117,7 @@ def drain(harness):
         try:
             if not harness.service.work_once(harness.principal, harness.brain):
                 return
-        except Exception:  # noqa: BLE001 - a semantic job the fake cannot satisfy fails and is retried later
+        except Exception:  # noqa: BLE001 - a job the fake cannot satisfy fails and is retried later
             continue
 
 
@@ -135,10 +135,7 @@ def semantic(recovery):
         with harness.database.transaction(harness.principal) as conn:
             embedded = conn.execute("SELECT count(*) AS n FROM memory_embeddings WHERE tenant_id=%s AND brain_id=%s",
                                     (harness.principal.tenant_id, harness.brain)).fetchone()["n"]
-            oriented = conn.execute("SELECT count(*) AS n FROM memory_jobs WHERE tenant_id=%s AND brain_id=%s "
-                                    "AND kind='orient' AND state='completed'",
-                                    (harness.principal.tenant_id, harness.brain)).fetchone()["n"]
-        assert embedded and oriented, "the semantic and embedding paths must have produced state for reads to use"
+        assert embedded, "the embedding path must have produced state for reads to use"
         yield harness, authority, calls
 
 

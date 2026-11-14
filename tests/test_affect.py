@@ -460,22 +460,23 @@ def test_a_feeling_with_many_sources_still_appears_on_the_map(brain):
     assert "affect:" + moving["affect_id"] in {node["id"] for node in result["nodes"]}
 
 
-def test_saving_or_clearing_feelings_never_schedules_learning(brain, monkeypatch):
-    from membrain import learning_windows
+def learning_jobs(service, principal, ident):
+    """Background learning was removed: no message or record queues an orient or consolidate job any more."""
+    with service.database.transaction(principal) as conn:
+        return conn.execute("SELECT count(*) AS value FROM memory_jobs WHERE tenant_id=%s AND brain_id=%s "
+                            "AND kind IN ('orient','consolidate')", (principal.tenant_id, ident)).fetchone()["value"]
 
+
+def test_saving_or_clearing_feelings_never_schedules_learning(brain):
     service, principal, ident = brain
-    scheduled = []
-    monkeypatch.setattr(learning_windows, "enqueue_window",
-                        lambda conn, svc, who, brain_row, target, *args, **kwargs: scheduled.append(
-                            target["conversation_ref"]))
-    monkeypatch.setattr(service, "semantic_processor", object(), raising=False)
     source = say(brain, "I'm thrilled about the new job.")
     write(brain, "Started a new job.", kind="milestone", source_event_ids=[source],
           affect={"label": "thrilled", "valence": 2, "intensity": 3, "basis": "reported"})
-    from membrain.affect import AFFECT_CONVERSATION, clear_affect
+    from membrain.affect import clear_affect
 
     clear_affect(service, principal, ident)
-    assert scheduled and AFFECT_CONVERSATION not in scheduled  # Ordinary messages still learn; feelings never do.
+    service.work_once(principal, ident)
+    assert learning_jobs(service, principal, ident) == 0
 
 
 def test_api_routes_list_and_clear_feelings_with_strict_bodies(installation, brain):

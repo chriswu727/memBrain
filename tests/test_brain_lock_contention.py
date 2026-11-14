@@ -6,7 +6,7 @@ from contextlib import contextmanager
 
 import psycopg
 import pytest
-from test_learning import learning as learning
+from service_harness import harness as harness
 from test_recovery_erasure import pending, raw_event
 from test_recovery_erasure import recovery as recovery
 
@@ -526,7 +526,7 @@ def test_an_idle_poll_does_not_wait_for_a_reader_in_progress(recovery, monkeypat
 
 
 def test_an_idle_poll_still_applies_a_pending_erasure_with_no_job_queued(recovery):
-    """With no job this worker claims (the harness queues learning jobs it does not), an erasure the recovery registry
+    """With no job this worker claims (the worker claims no learning jobs), an erasure the recovery registry
     holds but the database does not is applied by the next exclusive access; an idle poll is one, as before: it
     finds the erasure without the lock, then takes the lock and applies it."""
     harness, authority = recovery

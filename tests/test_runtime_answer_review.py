@@ -3,7 +3,6 @@ import json
 
 import pytest
 from test_answer_review import assessment
-from test_learning import learning as learning
 from test_runtime import memory as memory
 
 from membrain.answer_review import AnswerReviewer, AnswerReviewPolicy
@@ -214,53 +213,3 @@ def test_partial_delivery_is_recorded_as_actual_text_without_certifying_altered_
     assert row["response_review"]["draft_sha256"] == hashlib.sha256(draft.encode()).hexdigest()
     assert row["response_review"]["draft_sha256"] != hashlib.sha256(actual.encode()).hexdigest()
     assert runtime.journal.sources(result.turn_id)["output_events"][0]["observed"]["delivery_state"] == "partially_delivered"
-
-
-def test_validity_expiring_during_review_blocks_delivery_without_a_database_revision_change(learning, monkeypatch):
-    from test_semantic import claim, proposals, run
-
-    from membrain import cognition
-    from membrain.consolidation import publish_semantic
-    from membrain.helpers import uid
-    from membrain.semantic import CognitiveBatch
-
-    clock = ["2026-10-25T12:59:00Z"]
-    monkeypatch.setattr(cognition, "now", lambda: clock[0])
-    receipt = learning.observe("今天到下午一点为止，请简短回答。", conversation="preferences")
-    with learning.database.transaction(learning.principal) as conn:
-        brain = learning.service._brain(conn, learning.principal, learning.brain)
-        source = learning.service._events(conn, learning.principal, brain,
-                                         event_ids=receipt["accepted_event_ids"])[0]
-    proposal = claim(source, statement="用户报告希望回答简短。", valid_during={
-        "kind": "interval", "start": {"kind": "unbounded"},
-        "end": {"kind": "instant", "at": "2026-10-25T13:00:00Z"},
-    })
-    batch = CognitiveBatch(uid(), source["scope"], (source,))
-    processed = run(batch, proposals(proposal))
-    assert processed.status == "completed"
-    with learning.database.transaction(learning.principal) as conn:
-        brain = learning.service._brain(conn, learning.principal, learning.brain)
-        assert publish_semantic(conn, learning.service, learning.principal, brain,
-                                batch, processed, job_id=uid())["published_count"] == 1
-    learning.service.semantic_processor = None
-    reviewed = []
-
-    def review(request):
-        reviewed.append(request)
-        payload = json.loads(request.messages[-1]["content"])
-        assert "source_attributed_applicable_memory" in json.dumps(payload)
-        clock[0] = "2026-10-25T13:01:00Z"
-        return json.dumps(assessment())
-
-    runtime = BrainRuntime(
-        learning.memory, lambda _: "你目前希望回答简短。",
-        answer_reviewer=AnswerReviewer(review, reviewer_id="test-clock"),
-        policy=RuntimePolicy(memory_context_tokens=16000, recent_context_events=0),
-        deliver=lambda _: pytest.fail("An expired current preference must not be delivered"),
-    )
-    with pytest.raises(RuntimeBlocked, match="context_stale"):
-        runtime.respond("回答简短", message_id="current", conversation_id="chat")
-    row = runtime.journal.list()[0]
-    assert row["stage"] == "generated" and row["response_review"]["status"] == "approved"
-    assert row["context_generation"] == runtime.journal.status()["dependency_generation"]
-    assert len(reviewed) == 1

@@ -78,14 +78,12 @@ def _same():
 
 
 class MemoryService:
-    def __init__(self, database, *, semantic_processor=None, embedding_provider=None,
-                 access_time_provider=None, recall_runner=None):
+    def __init__(self, database, *, embedding_provider=None, access_time_provider=None, recall_runner=None):
         if access_time_provider is not None and not callable(access_time_provider):
             raise ValueError("The access time provider must be callable.")
         if recall_runner is not None and not callable(recall_runner):
             raise ValueError("The recall runner must be callable.")
         self.database = database
-        self.semantic_processor = semantic_processor
         self.embedding_provider = embedding_provider
         self.access_time_provider = access_time_provider
         self.recall_runner = recall_runner
@@ -108,10 +106,22 @@ class MemoryService:
         self._embedding_provider = provider
 
     def orient_turn(self, principal, brain_id, turn_id, *, lease_token, expected_revision):
-        from .learning import LearningEngine
+        """Check that a captured turn may be oriented and return it unchanged.
 
-        return LearningEngine(self).orient(principal, brain_id, turn_id,
-                                          lease_token=lease_token, expected_revision=expected_revision)
+        Orientation was a call to the removed cognition model; a runtime turn now goes on without it. The checks
+        are the ones the turn passed before the model was asked (lease, stage, recording), so a turn that could
+        not have been oriented is still refused.
+        """
+        from .turns import TurnStore
+
+        turns = TurnStore(self.database)
+        with turns._transaction(principal, brain_id) as (conn, brain):
+            row = turns._row(conn, principal, brain_id, turn_id)
+            turns._lease(row, lease_token, expected_revision)
+            if row["stage"] != "captured":
+                raise DomainError("stage_conflict", "Orientation requires a captured turn.")
+            turns._recording(brain, row)
+            return turns._public(conn, principal, row)
 
     def _params(self, principal, brain_id):
         return principal.tenant_id, principal.principal_id, brain_id
@@ -517,27 +527,6 @@ class MemoryService:
 
         link(self, conn, principal, brain, document)
         job = self._job(conn, principal, brain, "extract", {"event_id": document["event_id"], "revision": document["revision"]})
-        from .affect import AFFECT_CONVERSATION
-        from .mood import MOOD_CONVERSATION
-        from .persona import PERSONA_CONVERSATION
-        from .persona_growth import PROPOSALS_CONVERSATION
-        from .relationship import RELATIONSHIP_CONVERSATION
-
-        # Persona versions are configuration and affect records are evidence kept with notes, not conversation:
-        # neither is read for learning, so saving or clearing them never starts a model call. Mood pins and reset
-        # markers are settings, and relationship records (support style, boundaries, cap, acknowledgements, reset
-        # markers) are the user's requests, likewise. Persona suggestions and decisions (P2) too.
-        if (self.semantic_processor and target.get("conversation_ref") and target.get("branch_ref")
-                and target.get("conversation_ref") not in (PERSONA_CONVERSATION, AFFECT_CONVERSATION,
-                                                           MOOD_CONVERSATION, RELATIONSHIP_CONVERSATION,
-                                                           PROPOSALS_CONVERSATION)
-                and incoming["delivery_state"] in ("received", "delivered", "partially_delivered")
-                and incoming["event_kind"] not in ("source_correction", "delivery_receipt")):
-            from .learning_allocations import CONTRACT_VERSION
-            from .learning_windows import enqueue_window
-
-            enqueue_window(conn, self, principal, brain, target, document["sequence"],
-                           document["sequence"], coalesce=True, learning_contract_version=CONTRACT_VERSION)
         return document["event_id"], False, job["job_id"]
 
     def _observe(self, conn, principal, brain, request):
@@ -697,7 +686,7 @@ class MemoryService:
                            for reference in memory["evidence_refs"] for old in superseded)]
 
     def _context_observations(self, conn, principal, brain, target, working):
-        from .learning import validate_snapshot
+        from .orientation import validate_orientation_snapshot as validate_snapshot
 
         candidates = []
         timestamp = cognition._stamp(now())
@@ -879,7 +868,7 @@ class MemoryService:
                            for ref in turn["input_event_refs"] if ref["event_id"] in lookup)):
                 raise DomainError("invalid_evidence", "Orientation assessment requires the bound turn input and scope.")
         if turn and turn["orientation_job_id"]:
-            from .learning import orientation_result
+            from .orientation import orientation_result
 
             if (turn["conversation_id"], turn["branch_id"]) != (
                     request["target"].get("conversation_ref"), request["target"].get("branch_ref")):
@@ -1626,14 +1615,9 @@ class MemoryService:
                 "quarantined_event_count": quarantined, "excluded_deleted_count": excluded, "read_enabled": True}
 
     def work_once(self, principal, brain_id):
-        if self.semantic_processor:
-            from .learning import LearningEngine
+        from . import capture_jobs
 
-            result = LearningEngine(self).work_once(principal, brain_id)
-        else:
-            from . import capture_jobs
-
-            result = capture_jobs.work_once(self, principal, brain_id)
+        result = capture_jobs.work_once(self, principal, brain_id)
         if not result:
             from .read_cache import maintain
 
@@ -1759,11 +1743,13 @@ class MemoryService:
 
         with reading(), self.database.transaction(principal) as conn:
             brain = self._brain(conn, principal, brain_id)
+            # Learning jobs an older runtime left (orient, consolidate) are never run again and are not counted.
             jobs = conn.execute(
                 "SELECT count(*) FILTER (WHERE state IN ('queued','running','failed')) AS pending_jobs, "
                 "count(*) FILTER (WHERE state='failed') AS failed_jobs, "
                 "count(*) FILTER (WHERE kind='embed' AND state IN ('queued','running','failed')) AS embedding_pending "
-                "FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s",
+                "FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+                "AND kind NOT IN ('orient','consolidate')",
                 self._params(principal, brain_id)).fetchone()
             messages = conn.execute(
                 "SELECT count(*) AS recorded_messages, max(sequence) AS last_sequence "
@@ -1802,11 +1788,11 @@ class MemoryService:
             )]
             pending = conn.execute(
                 "SELECT count(*) AS count FROM memory_jobs WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
-                "AND state IN ('queued','running','failed')", params,
+                "AND state IN ('queued','running','failed') AND kind NOT IN ('orient','consolidate')", params,
             ).fetchone()["count"]
             return {"brain": self._public_brain(brain), "events": events[-100:], "memories": memories, "jobs": jobs,
                     "status": {"pending_jobs": pending,
                                "index_lag": brain["durable_sequence"] - brain["indexed_sequence"],
-                               "extraction": "verified_semantic_proposals" if self.semantic_processor else "deterministic_source_capture",
+                               "extraction": "deterministic_source_capture",
                                "candidate_index": "hybrid-semantic-and-lexical" if self.embedding_provider else "lexical-and-structural-cues",
                                "access_policy": DEFAULT_POLICY.version}}

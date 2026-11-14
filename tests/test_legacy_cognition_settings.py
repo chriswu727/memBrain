@@ -70,8 +70,8 @@ def test_a_new_backup_keeps_the_profile_section_and_no_cognition_limits(tmp_path
     value = _configuration(profile)
     assert value["cognition"] == COGNITION
     assert value["cognition_policy"] is None
-    assert set(value) == {"installation_id", "brain_id", "tenant_id", "principal_id", "name", "cognition",
-                          "chat", "cognition_policy", "database_engine"}
+    assert set(value) - {"database_engine"} == {"installation_id", "brain_id", "tenant_id", "principal_id", "name",
+                                                "cognition", "chat", "cognition_policy"}
 
 
 def old_backup(tmp_path, policy):

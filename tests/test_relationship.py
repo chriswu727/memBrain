@@ -667,24 +667,23 @@ def test_reset_starts_familiarity_again_and_nothing_from_before_the_marker_retur
     assert relationship(service, principal, ident)["markers"] == []
 
 
-def test_records_are_never_recalled_counted_or_scheduled_for_learning(brain, monkeypatch):
-    from membrain import learning_windows
+def learning_jobs(service, principal, ident):
+    """Background learning was removed: no message or record queues an orient or consolidate job any more."""
+    with service.database.transaction(principal) as conn:
+        return conn.execute("SELECT count(*) AS value FROM memory_jobs WHERE tenant_id=%s AND brain_id=%s "
+                            "AND kind IN ('orient','consolidate')", (principal.tenant_id, ident)).fetchone()["value"]
 
+
+def test_records_are_never_recalled_counted_or_scheduled_for_learning(brain):
     service, principal, ident = brain
     say(brain, "My sister is visiting next week.")
     status = service.memory_status(principal, ident)["recorded_messages"]
-    scheduled = []
-    monkeypatch.setattr(learning_windows, "enqueue_window",
-                        lambda conn, svc, who, brain_row, target, *args, **kwargs: scheduled.append(
-                            target["conversation_ref"]))
-    monkeypatch.setattr(service, "semantic_processor", object(), raising=False)
     add_boundary(service, principal, ident, "Zephyrine", ["Quillbert"])
     set_support_style(service, principal, ident, "Zephyrine style")
     set_cap(service, principal, ident, "new")
     reset_relationship(service, principal, ident)
-    say(brain, "Ordinary messages still learn.")
-    assert scheduled and RELATIONSHIP_CONVERSATION not in scheduled
-    monkeypatch.undo()
+    say(brain, "Ordinary messages are recorded.")
+    assert learning_jobs(service, principal, ident) == 0
     add_boundary(service, principal, ident, "Zephyrine", ["Quillbert"])
     service.work_once(principal, ident)
     roles = ("user", "assistant", "operator", "tool")

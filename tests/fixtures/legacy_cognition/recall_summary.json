@@ -1,0 +1,548 @@
+{
+ "contract_version": "1.0.0-draft",
+ "document": {
+  "archive_origin": "local_export",
+  "belief_relations": [],
+  "cognitive_views": {
+   "associations": [],
+   "episodes": [],
+   "members": [],
+   "version": 1
+  },
+  "created_at": "2026-11-14T06:34:15.290273Z",
+  "dependency_memories": [],
+  "event_dependencies": [],
+  "events": [
+   {
+    "content_sha256": "6ee8b71ca71e78a86adbfbc56b528be77b699b8960555d296f11e299341cbd63",
+    "event_id": "cfac4073-6c6f-41e3-a8f8-cbdb896dc307",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "Grandma lit a lantern during power cuts and let me sort buttons into a tea tin beside her. She used the tin with the faded yellow lid and kept the lantern on the low shelf. That little ritual made the frightening dark house feel safe."
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "producer_ref": "candidates-test",
+     "source_event_key": "a01221f6-558b-4391-8de5-bb487d14776c",
+     "source_revision": 1
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:91954b0e-d991-4015-933e-2659700bd0ca",
+     "brain_id": "91954b0e-d991-4015-933e-2659700bd0ca",
+     "branch_id": "main",
+     "conversation_id": "current",
+     "policy_revision": 1,
+     "principal_binding_id": "d80efcf8-727b-476d-9dd9-9464a1ea9c6d",
+     "scope_generation": 1,
+     "tenant_id": "35d71536-babf-43d3-87d6-b46352192f51",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 1,
+    "system_time": {
+     "recorded_at": "2026-11-14T06:34:15.234197Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 90,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     },
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 172,
+       "start": 91,
+       "unit": "unicode_code_point"
+      }
+     },
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 234,
+       "start": 173,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   }
+  ],
+  "excluded_deleted_event_ids": [],
+  "format": "agent-memory-jsonl-bundle",
+  "format_version": "1.0.0-draft",
+  "memories": [
+   {
+    "derivation": {
+     "method": "direct_capture",
+     "model_version": null,
+     "rule_version": "literal-episodes-v3",
+     "source_memory_versions": []
+    },
+    "disclosure_basis": {
+     "dependency_generation": 0,
+     "release_mode": "supported_scope",
+     "selected_path_ids": [
+      "path-memory-6016cee138e02f75e5f2215e9b2050ed"
+     ],
+     "support_paths": [
+      {
+       "dependency_generation": 0,
+       "evidence_refs": [
+        {
+         "event_id": "cfac4073-6c6f-41e3-a8f8-cbdb896dc307",
+         "event_revision": 1,
+         "relationship": "supports",
+         "source_content_sha256": "6ee8b71ca71e78a86adbfbc56b528be77b699b8960555d296f11e299341cbd63",
+         "span": {
+          "end": 172,
+          "start": 91,
+          "unit": "unicode_code_point"
+         }
+        }
+       ],
+       "independently_supports_complete_statement": true,
+       "path_id": "path-memory-6016cee138e02f75e5f2215e9b2050ed",
+       "permitted_scope": {
+        "access_policy_id": "owner:91954b0e-d991-4015-933e-2659700bd0ca",
+        "brain_id": "91954b0e-d991-4015-933e-2659700bd0ca",
+        "branch_id": "main",
+        "conversation_id": "current",
+        "policy_revision": 1,
+        "principal_binding_id": "d80efcf8-727b-476d-9dd9-9464a1ea9c6d",
+        "scope_generation": 1,
+        "tenant_id": "35d71536-babf-43d3-87d6-b46352192f51",
+        "visibility": "private"
+       },
+       "source_memory_versions": [],
+       "state": "current"
+      }
+     ],
+     "validation_state": "current"
+    },
+    "dynamics": {
+     "activation": 0.5,
+     "decay_policy_version": "external-use-only-v1",
+     "detail_level": "verbatim",
+     "last_external_reinforcement_at": null,
+     "last_recalled_at": null,
+     "reasons": [
+      "default_policy"
+     ],
+     "retention_priority": 0.5,
+     "user_pinned": false
+    },
+    "epistemic_status": "supported_report",
+    "evidence_refs": [
+     {
+      "event_id": "cfac4073-6c6f-41e3-a8f8-cbdb896dc307",
+      "event_revision": 1,
+      "relationship": "supports",
+      "source_content_sha256": "6ee8b71ca71e78a86adbfbc56b528be77b699b8960555d296f11e299341cbd63",
+      "span": {
+       "end": 172,
+       "start": 91,
+       "unit": "unicode_code_point"
+      }
+     }
+    ],
+    "lifecycle": "active",
+    "memory_id": "memory-6016cee138e02f75e5f2215e9b2050ed",
+    "memory_kind": "episodic",
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:91954b0e-d991-4015-933e-2659700bd0ca",
+     "brain_id": "91954b0e-d991-4015-933e-2659700bd0ca",
+     "branch_id": "main",
+     "conversation_id": "current",
+     "policy_revision": 1,
+     "principal_binding_id": "d80efcf8-727b-476d-9dd9-9464a1ea9c6d",
+     "scope_generation": 1,
+     "tenant_id": "35d71536-babf-43d3-87d6-b46352192f51",
+     "visibility": "private"
+    },
+    "statement": "user user (direct_statement): She used the tin with the faded yellow lid and kept the lantern on the low shelf.",
+    "supersedes_memory_ids": [],
+    "system_time": {
+     "recorded_at": "2026-11-14T06:34:15.234197Z",
+     "superseded_at": null
+    },
+    "valid_time": {
+     "basis": "unknown",
+     "end": null,
+     "precision": "unknown",
+     "start": null
+    },
+    "world": "real_world"
+   },
+   {
+    "derivation": {
+     "method": "direct_capture",
+     "model_version": null,
+     "rule_version": "literal-episodes-v3",
+     "source_memory_versions": []
+    },
+    "disclosure_basis": {
+     "dependency_generation": 0,
+     "release_mode": "supported_scope",
+     "selected_path_ids": [
+      "path-memory-c64d913560396caf383ba0f0ffb2c64d"
+     ],
+     "support_paths": [
+      {
+       "dependency_generation": 0,
+       "evidence_refs": [
+        {
+         "event_id": "cfac4073-6c6f-41e3-a8f8-cbdb896dc307",
+         "event_revision": 1,
+         "relationship": "supports",
+         "source_content_sha256": "6ee8b71ca71e78a86adbfbc56b528be77b699b8960555d296f11e299341cbd63",
+         "span": {
+          "end": 234,
+          "start": 173,
+          "unit": "unicode_code_point"
+         }
+        }
+       ],
+       "independently_supports_complete_statement": true,
+       "path_id": "path-memory-c64d913560396caf383ba0f0ffb2c64d",
+       "permitted_scope": {
+        "access_policy_id": "owner:91954b0e-d991-4015-933e-2659700bd0ca",
+        "brain_id": "91954b0e-d991-4015-933e-2659700bd0ca",
+        "branch_id": "main",
+        "conversation_id": "current",
+        "policy_revision": 1,
+        "principal_binding_id": "d80efcf8-727b-476d-9dd9-9464a1ea9c6d",
+        "scope_generation": 1,
+        "tenant_id": "35d71536-babf-43d3-87d6-b46352192f51",
+        "visibility": "private"
+       },
+       "source_memory_versions": [],
+       "state": "current"
+      }
+     ],
+     "validation_state": "current"
+    },
+    "dynamics": {
+     "activation": 0.5,
+     "decay_policy_version": "external-use-only-v1",
+     "detail_level": "verbatim",
+     "last_external_reinforcement_at": null,
+     "last_recalled_at": null,
+     "reasons": [
+      "default_policy"
+     ],
+     "retention_priority": 0.5,
+     "user_pinned": false
+    },
+    "epistemic_status": "supported_report",
+    "evidence_refs": [
+     {
+      "event_id": "cfac4073-6c6f-41e3-a8f8-cbdb896dc307",
+      "event_revision": 1,
+      "relationship": "supports",
+      "source_content_sha256": "6ee8b71ca71e78a86adbfbc56b528be77b699b8960555d296f11e299341cbd63",
+      "span": {
+       "end": 234,
+       "start": 173,
+       "unit": "unicode_code_point"
+      }
+     }
+    ],
+    "lifecycle": "active",
+    "memory_id": "memory-c64d913560396caf383ba0f0ffb2c64d",
+    "memory_kind": "episodic",
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:91954b0e-d991-4015-933e-2659700bd0ca",
+     "brain_id": "91954b0e-d991-4015-933e-2659700bd0ca",
+     "branch_id": "main",
+     "conversation_id": "current",
+     "policy_revision": 1,
+     "principal_binding_id": "d80efcf8-727b-476d-9dd9-9464a1ea9c6d",
+     "scope_generation": 1,
+     "tenant_id": "35d71536-babf-43d3-87d6-b46352192f51",
+     "visibility": "private"
+    },
+    "statement": "user user (direct_statement): That little ritual made the frightening dark house feel safe.",
+    "supersedes_memory_ids": [],
+    "system_time": {
+     "recorded_at": "2026-11-14T06:34:15.234197Z",
+     "superseded_at": null
+    },
+    "valid_time": {
+     "basis": "unknown",
+     "end": null,
+     "precision": "unknown",
+     "start": null
+    },
+    "world": "real_world"
+   },
+   {
+    "derivation": {
+     "method": "direct_capture",
+     "model_version": null,
+     "rule_version": "literal-episodes-v3",
+     "source_memory_versions": []
+    },
+    "disclosure_basis": {
+     "dependency_generation": 0,
+     "release_mode": "supported_scope",
+     "selected_path_ids": [
+      "path-memory-c9b1baab4a4552e59bf2ec47e08d9c08"
+     ],
+     "support_paths": [
+      {
+       "dependency_generation": 0,
+       "evidence_refs": [
+        {
+         "event_id": "cfac4073-6c6f-41e3-a8f8-cbdb896dc307",
+         "event_revision": 1,
+         "relationship": "supports",
+         "source_content_sha256": "6ee8b71ca71e78a86adbfbc56b528be77b699b8960555d296f11e299341cbd63",
+         "span": {
+          "end": 90,
+          "start": 0,
+          "unit": "unicode_code_point"
+         }
+        }
+       ],
+       "independently_supports_complete_statement": true,
+       "path_id": "path-memory-c9b1baab4a4552e59bf2ec47e08d9c08",
+       "permitted_scope": {
+        "access_policy_id": "owner:91954b0e-d991-4015-933e-2659700bd0ca",
+        "brain_id": "91954b0e-d991-4015-933e-2659700bd0ca",
+        "branch_id": "main",
+        "conversation_id": "current",
+        "policy_revision": 1,
+        "principal_binding_id": "d80efcf8-727b-476d-9dd9-9464a1ea9c6d",
+        "scope_generation": 1,
+        "tenant_id": "35d71536-babf-43d3-87d6-b46352192f51",
+        "visibility": "private"
+       },
+       "source_memory_versions": [],
+       "state": "current"
+      }
+     ],
+     "validation_state": "current"
+    },
+    "dynamics": {
+     "activation": 0.5,
+     "decay_policy_version": "external-use-only-v1",
+     "detail_level": "verbatim",
+     "last_external_reinforcement_at": null,
+     "last_recalled_at": null,
+     "reasons": [
+      "default_policy"
+     ],
+     "retention_priority": 0.5,
+     "user_pinned": false
+    },
+    "epistemic_status": "supported_report",
+    "evidence_refs": [
+     {
+      "event_id": "cfac4073-6c6f-41e3-a8f8-cbdb896dc307",
+      "event_revision": 1,
+      "relationship": "supports",
+      "source_content_sha256": "6ee8b71ca71e78a86adbfbc56b528be77b699b8960555d296f11e299341cbd63",
+      "span": {
+       "end": 90,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ],
+    "lifecycle": "active",
+    "memory_id": "memory-c9b1baab4a4552e59bf2ec47e08d9c08",
+    "memory_kind": "episodic",
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:91954b0e-d991-4015-933e-2659700bd0ca",
+     "brain_id": "91954b0e-d991-4015-933e-2659700bd0ca",
+     "branch_id": "main",
+     "conversation_id": "current",
+     "policy_revision": 1,
+     "principal_binding_id": "d80efcf8-727b-476d-9dd9-9464a1ea9c6d",
+     "scope_generation": 1,
+     "tenant_id": "35d71536-babf-43d3-87d6-b46352192f51",
+     "visibility": "private"
+    },
+    "statement": "user user (direct_statement): Grandma lit a lantern during power cuts and let me sort buttons into a tea tin beside her.",
+    "supersedes_memory_ids": [],
+    "system_time": {
+     "recorded_at": "2026-11-14T06:34:15.234197Z",
+     "superseded_at": null
+    },
+    "valid_time": {
+     "basis": "unknown",
+     "end": null,
+     "precision": "unknown",
+     "start": null
+    },
+    "world": "real_world"
+   },
+   {
+    "claim_kind": "reported_fact",
+    "condition_registry_fingerprint": "14e281b6ca3f39da1c754fecbddce5de8aaac42821b1ef5deb27901a24733a1b",
+    "conditions": {
+     "op": "always"
+    },
+    "counterexamples": [],
+    "derivation": {
+     "method": "aggregation",
+     "model_version": null,
+     "rule_version": "recall-resolution-v1",
+     "source_memory_versions": []
+    },
+    "disclosure_basis": {
+     "dependency_generation": 0,
+     "release_mode": "supported_scope",
+     "selected_path_ids": [
+      "path-semantic-16f016e4070e1e76b706d9a2adc2dabb"
+     ],
+     "support_paths": [
+      {
+       "dependency_generation": 0,
+       "evidence_refs": [
+        {
+         "event_id": "cfac4073-6c6f-41e3-a8f8-cbdb896dc307",
+         "event_revision": 1,
+         "relationship": "supports",
+         "source_content_sha256": "6ee8b71ca71e78a86adbfbc56b528be77b699b8960555d296f11e299341cbd63",
+         "span": {
+          "end": 234,
+          "start": 0,
+          "unit": "unicode_code_point"
+         }
+        }
+       ],
+       "independently_supports_complete_statement": true,
+       "path_id": "path-semantic-16f016e4070e1e76b706d9a2adc2dabb",
+       "permitted_scope": {
+        "access_policy_id": "owner:91954b0e-d991-4015-933e-2659700bd0ca",
+        "brain_id": "91954b0e-d991-4015-933e-2659700bd0ca",
+        "branch_id": "main",
+        "conversation_id": "current",
+        "policy_revision": 1,
+        "principal_binding_id": "d80efcf8-727b-476d-9dd9-9464a1ea9c6d",
+        "scope_generation": 1,
+        "tenant_id": "35d71536-babf-43d3-87d6-b46352192f51",
+        "visibility": "private"
+       },
+       "source_memory_versions": [],
+       "state": "current"
+      }
+     ],
+     "validation_state": "current"
+    },
+    "dynamics": {
+     "activation": 0.5,
+     "decay_policy_version": "external-use-only-v1",
+     "detail_level": "gist",
+     "last_external_reinforcement_at": null,
+     "last_recalled_at": null,
+     "reasons": [
+      "default_policy"
+     ],
+     "retention_priority": 0.7,
+     "user_pinned": false
+    },
+    "epistemic_status": "derived_inference",
+    "evidence_refs": [
+     {
+      "event_id": "cfac4073-6c6f-41e3-a8f8-cbdb896dc307",
+      "event_revision": 1,
+      "relationship": "supports",
+      "source_content_sha256": "6ee8b71ca71e78a86adbfbc56b528be77b699b8960555d296f11e299341cbd63",
+      "span": {
+       "end": 234,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ],
+    "lifecycle": "active",
+    "memory_id": "semantic-16f016e4070e1e76b706d9a2adc2dabb",
+    "memory_kind": "episodic",
+    "procedure": null,
+    "recall_summary": {
+     "detail_cues": [
+      "lantern",
+      "buttons",
+      "tea tin",
+      "yellow lid"
+     ],
+     "statement": "The user reported that Grandma's power-cut ritual made the dark house feel safe."
+    },
+    "representation": "episode_outline",
+    "revision": 1,
+    "root_event_ids": [
+     "cfac4073-6c6f-41e3-a8f8-cbdb896dc307"
+    ],
+    "scope": {
+     "access_policy_id": "owner:91954b0e-d991-4015-933e-2659700bd0ca",
+     "brain_id": "91954b0e-d991-4015-933e-2659700bd0ca",
+     "branch_id": "main",
+     "conversation_id": "current",
+     "policy_revision": 1,
+     "principal_binding_id": "d80efcf8-727b-476d-9dd9-9464a1ea9c6d",
+     "scope_generation": 1,
+     "tenant_id": "35d71536-babf-43d3-87d6-b46352192f51",
+     "visibility": "private"
+    },
+    "statement": "The user reported: Grandma lit a lantern during power cuts and let me sort buttons into a tea tin beside her. She used the tin with the faded yellow lid and kept the lantern on the low shelf. That little ritual made the frightening dark house feel safe.",
+    "supersedes_memory_ids": [],
+    "system_time": {
+     "recorded_at": "2026-11-14T06:34:15.277398Z",
+     "superseded_at": null
+    },
+    "valid_during": {
+     "kind": "unknown"
+    },
+    "valid_time": {
+     "basis": "unknown",
+     "end": null,
+     "precision": "unknown",
+     "start": null
+    },
+    "verification": {
+     "method": "semantic_model",
+     "not_a_truth_certificate": true,
+     "state": "supported_inference"
+    },
+    "world": "real_world"
+   }
+  ],
+  "rebuild_policy": {
+   "access_state": "reset_requires_new_external_feedback",
+   "cognitive_views": "restore_only_exact_versions_with_available_sources",
+   "embeddings": "rebuild_from_available_assertions",
+   "jobs": "execution_and_leases_not_restored"
+  },
+  "retired_event_ids": [],
+  "source_brain_id": "91954b0e-d991-4015-933e-2659700bd0ca",
+  "tombstones": [],
+  "working_states": []
+ },
+ "exported_by_build": "911e47b16d381da1b8c1f0c4e6e628e26ad23ebf0bc288a5a9b49a0ef718ab6e",
+ "memory_id": "semantic-16f016e4070e1e76b706d9a2adc2dabb",
+ "note": "A claim with a verified recall summary and retention priority over one long message.",
+ "source_event_id": "cfac4073-6c6f-41e3-a8f8-cbdb896dc307"
+}

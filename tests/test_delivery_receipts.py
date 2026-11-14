@@ -3,7 +3,6 @@ import hashlib
 import json
 
 import pytest
-from test_learning import learning as learning
 from test_turns import turns as turns
 
 from membrain.delivery_receipts import (
@@ -14,7 +13,6 @@ from membrain.delivery_receipts import (
     sanitize_delivery_receipt,
 )
 from membrain.helpers import DomainError, digest, now, uid
-from membrain.runtime import BrainRuntime, DeliveryReceipt, RuntimeBlocked
 
 
 def authorized_row():
@@ -251,30 +249,3 @@ def test_invalidated_orientation_cannot_erase_a_receipt_or_rebase_old_working_st
     assert row["delivery_receipt"]["stale_reasons"] == ["orientation_changed"]
     assert turns.call("sources")["output_events"][0]["observed"]["content"]["text"] == "Sent output"
     assert working(turns) is None
-
-
-@pytest.mark.integration
-@pytest.mark.parametrize("change", ["generation", "orientation"])
-def test_actual_orientation_snapshot_is_not_rebound_after_postcallback_invalidation(learning, change):
-    learning.observe("Unrelated earlier record", conversation="other", source_key="other")
-    original = []
-
-    def delivered(request):
-        row = runtime.journal.get(request.turn_id)
-        original.append(learning.job(row["orientation_job_id"])["result"])
-        if change == "generation":
-            learning.observe("Changed unrelated record", conversation="other", source_key="other", revision=2)
-        else:
-            with learning.database.transaction(learning.principal) as conn:
-                conn.execute("UPDATE memory_jobs SET state='cancelled' WHERE tenant_id=%s AND brain_id=%s AND id=%s",
-                             (learning.principal.tenant_id, learning.brain, row["orientation_job_id"]))
-        return DeliveryReceipt("delivered")
-
-    runtime = BrainRuntime(learning.memory, lambda _: "The host sent this", deliver=delivered)
-    with pytest.raises(RuntimeBlocked, match="context_stale"):
-        runtime.respond("I need a study plan now.", message_id="one", conversation_id="chat")
-    row = runtime.journal.list()[0]
-    assert confirmed_delivery_receipt(row)
-    assert row["delivery_receipt"]["disposition"] == "content_recorded"
-    assert learning.job(row["orientation_job_id"])["result"] == original[0]
-    assert learning.working() is None

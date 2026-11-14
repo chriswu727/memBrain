@@ -1,0 +1,1054 @@
+{
+ "contract_version": "1.0.0-draft",
+ "document": {
+  "archive_origin": "local_export",
+  "belief_relations": [
+   {
+    "condition_registry_fingerprint": "14e281b6ca3f39da1c754fecbddce5de8aaac42821b1ef5deb27901a24733a1b",
+    "conditions": {
+     "op": "always"
+    },
+    "endpoint_snapshots": [
+     {
+      "content_sha256": "27b9b2894ef22e8734d85edd3adc89fad19d7d9b04a7638f57d01a0cf5d5b062",
+      "memory_version": {
+       "memory_id": "semantic-baea21312631db5d6b29857e3928c6f9",
+       "revision": 1
+      }
+     },
+     {
+      "content_sha256": "d46ee7c40d8a1e30f738fdfac0cb67527736c4e375dcf6362714bf0b9e9d0f99",
+      "memory_version": {
+       "memory_id": "semantic-de0386007935ba8e124477fe8ff42410",
+       "revision": 1
+      }
+     }
+    ],
+    "evidence_refs": [
+     {
+      "event_id": "a8b21a93-d7dc-453a-809e-a6ea6eab6efc",
+      "event_revision": 1,
+      "relationship": "supports",
+      "source_content_sha256": "e509aee3b980fee900fd34f47a179b38cab2037956f46ed0ed5afc8f120ea015",
+      "span": {
+       "end": 27,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     },
+     {
+      "event_id": "e4fff739-003a-4f69-91e5-70aa7ca715f5",
+      "event_revision": 2,
+      "relationship": "supports",
+      "source_content_sha256": "7d9a081bac9a6d6f8d82421d06327da2d37ee13a462a7ce61b7f1da14d33b217",
+      "span": {
+       "end": 14,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ],
+    "kind": "exception",
+    "relation_id": "belief-a174c6a3b8bbd12c528b89b7414eb6ec",
+    "revision": 1,
+    "root_event_ids": [
+     "a8b21a93-d7dc-453a-809e-a6ea6eab6efc",
+     "e4fff739-003a-4f69-91e5-70aa7ca715f5"
+    ],
+    "scope": {
+     "access_policy_id": "owner:fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "branch_id": "main",
+     "conversation_id": "test",
+     "policy_revision": 1,
+     "principal_binding_id": "87dda0d2-406c-4d5d-91ef-78a2a67b5185",
+     "scope_generation": 1,
+     "tenant_id": "42c7a1f8-bcb3-40c8-bdbe-25f98495c10f",
+     "visibility": "private"
+    },
+    "source_memory_version": {
+     "memory_id": "semantic-baea21312631db5d6b29857e3928c6f9",
+     "revision": 1
+    },
+    "target_memory_versions": [
+     {
+      "memory_id": "semantic-de0386007935ba8e124477fe8ff42410",
+      "revision": 1
+     }
+    ],
+    "valid_during": {
+     "end": {
+      "at": "2026-10-25T00:00:00Z",
+      "kind": "instant"
+     },
+     "kind": "interval",
+     "start": {
+      "at": "2026-10-24T00:00:00Z",
+      "kind": "instant"
+     }
+    },
+    "verification": {
+     "method": "semantic_model",
+     "not_a_truth_certificate": true,
+     "state": "supported_inference"
+    },
+    "world": "real_world"
+   }
+  ],
+  "cognitive_views": {
+   "associations": [
+    {
+     "event_ids": [
+      "6724dc17-d606-4344-b1db-bde0da5dad7c",
+      "9a65b18e-030b-4060-a5b6-282d5be304a4"
+     ],
+     "id": "association-301126514ef0f1e549010c2f8846f05b",
+     "relation": "schema",
+     "source_id": "semantic-180319fd83ff650a608c65d940e3e3a9",
+     "source_revision": 1,
+     "target_id": "semantic-dcb71ed27e2c1baa03a30129393a8256",
+     "target_revision": 1
+    }
+   ],
+   "episodes": [
+    {
+     "document": {
+      "boundary_ref": null,
+      "episode_id": "episode-f41a6ff9b2b032c40638314ff05737b2",
+      "job_id": "10d40316-d385-4519-9442-dce1ffc3c62f",
+      "member_refs": [
+       {
+        "event_id": "6724dc17-d606-4344-b1db-bde0da5dad7c",
+        "revision": 2
+       }
+      ],
+      "organization_action": "create",
+      "organization_scope": "episode_transition",
+      "organization_source_version": null,
+      "organization_statement": "These observed messages form an interaction about the user's request.",
+      "organization_status": "inferred",
+      "proposal_id": "episode-1",
+      "revision": 1,
+      "root_event_ids": [
+       "6724dc17-d606-4344-b1db-bde0da5dad7c",
+       "9a65b18e-030b-4060-a5b6-282d5be304a4"
+      ],
+      "scope": {
+       "access_policy_id": "owner:fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+       "brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+       "branch_id": "main",
+       "conversation_id": "test",
+       "policy_revision": 1,
+       "principal_binding_id": "87dda0d2-406c-4d5d-91ef-78a2a67b5185",
+       "scope_generation": 1,
+       "tenant_id": "42c7a1f8-bcb3-40c8-bdbe-25f98495c10f",
+       "visibility": "private"
+      },
+      "state": "open"
+     },
+     "event_ids": [
+      "6724dc17-d606-4344-b1db-bde0da5dad7c",
+      "9a65b18e-030b-4060-a5b6-282d5be304a4"
+     ]
+    }
+   ],
+   "members": [
+    {
+     "episode_id": "episode-f41a6ff9b2b032c40638314ff05737b2",
+     "episode_revision": 1,
+     "memory_id": "memory-08b1af52c5da47f9b491634e647b1cfa",
+     "memory_revision": 1,
+     "position": 0,
+     "role": "fragment"
+    },
+    {
+     "episode_id": "episode-f41a6ff9b2b032c40638314ff05737b2",
+     "episode_revision": 1,
+     "memory_id": "semantic-dcb71ed27e2c1baa03a30129393a8256",
+     "memory_revision": 1,
+     "position": 1,
+     "role": "anchor"
+    }
+   ],
+   "version": 1
+  },
+  "created_at": "2026-11-14T05:36:44.255374Z",
+  "dependency_memories": [],
+  "event_dependencies": [],
+  "events": [
+   {
+    "content_sha256": "bd7e74b78856cfdbe7100909009e21c3ad34f06ebaf481617fb799f573fb71b1",
+    "event_id": "6724dc17-d606-4344-b1db-bde0da5dad7c",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "工作时我希望获得直接、具体的建议。"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "producer_ref": "test",
+     "source_event_key": "versioned-source",
+     "source_revision": 2
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": 1,
+    "revision": 2,
+    "scope": {
+     "access_policy_id": "owner:fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "branch_id": "main",
+     "conversation_id": "test",
+     "policy_revision": 1,
+     "principal_binding_id": "87dda0d2-406c-4d5d-91ef-78a2a67b5185",
+     "scope_generation": 1,
+     "tenant_id": "42c7a1f8-bcb3-40c8-bdbe-25f98495c10f",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 2,
+    "system_time": {
+     "recorded_at": "2026-11-14T05:36:44.041553Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 17,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "61cf9cd03c9d2d59e52a85a1f3ae62cc904e564bb5a2a7ac33ac11953a39e710",
+    "event_id": "9a65b18e-030b-4060-a5b6-282d5be304a4",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "这段上下文决定本次记忆的适用情境。"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "producer_ref": "test",
+     "source_event_key": "34acd37b-c0f7-4125-bc71-44299a0af6c7",
+     "source_revision": 1
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "branch_id": "main",
+     "conversation_id": "test",
+     "policy_revision": 1,
+     "principal_binding_id": "87dda0d2-406c-4d5d-91ef-78a2a67b5185",
+     "scope_generation": 1,
+     "tenant_id": "42c7a1f8-bcb3-40c8-bdbe-25f98495c10f",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 3,
+    "system_time": {
+     "recorded_at": "2026-11-14T05:36:44.061857Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 17,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "7d9a081bac9a6d6f8d82421d06327da2d37ee13a462a7ce61b7f1da14d33b217",
+    "event_id": "e4fff739-003a-4f69-91e5-70aa7ca715f5",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "平时我希望直接获得具体建议。"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "producer_ref": "test",
+     "source_event_key": "old-preference",
+     "source_revision": 2
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": 1,
+    "revision": 2,
+    "scope": {
+     "access_policy_id": "owner:fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "branch_id": "main",
+     "conversation_id": "test",
+     "policy_revision": 1,
+     "principal_binding_id": "87dda0d2-406c-4d5d-91ef-78a2a67b5185",
+     "scope_generation": 1,
+     "tenant_id": "42c7a1f8-bcb3-40c8-bdbe-25f98495c10f",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 5,
+    "system_time": {
+     "recorded_at": "2026-11-14T05:36:44.152165Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 14,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "e509aee3b980fee900fd34f47a179b38cab2037956f46ed0ed5afc8f120ea015",
+    "event_id": "a8b21a93-d7dc-453a-809e-a6ea6eab6efc",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "2026年10月24日只需要先听我说，不要马上给建议。"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "producer_ref": "test",
+     "source_event_key": "1315ea18-f41e-4c01-9db6-79524f9b61ff",
+     "source_revision": 1
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": null,
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "branch_id": "main",
+     "conversation_id": "test",
+     "policy_revision": 1,
+     "principal_binding_id": "87dda0d2-406c-4d5d-91ef-78a2a67b5185",
+     "scope_generation": 1,
+     "tenant_id": "42c7a1f8-bcb3-40c8-bdbe-25f98495c10f",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 6,
+    "system_time": {
+     "recorded_at": "2026-11-14T05:36:44.193382Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 27,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   }
+  ],
+  "excluded_deleted_event_ids": [],
+  "format": "agent-memory-jsonl-bundle",
+  "format_version": "1.0.0-draft",
+  "memories": [
+   {
+    "derivation": {
+     "method": "direct_capture",
+     "model_version": null,
+     "rule_version": "literal-episodes-v3",
+     "source_memory_versions": []
+    },
+    "disclosure_basis": {
+     "dependency_generation": 3,
+     "release_mode": "supported_scope",
+     "selected_path_ids": [
+      "path-memory-08b1af52c5da47f9b491634e647b1cfa"
+     ],
+     "support_paths": [
+      {
+       "dependency_generation": 3,
+       "evidence_refs": [
+        {
+         "event_id": "6724dc17-d606-4344-b1db-bde0da5dad7c",
+         "event_revision": 2,
+         "relationship": "supports",
+         "source_content_sha256": "bd7e74b78856cfdbe7100909009e21c3ad34f06ebaf481617fb799f573fb71b1",
+         "span": {
+          "end": 17,
+          "start": 0,
+          "unit": "unicode_code_point"
+         }
+        }
+       ],
+       "independently_supports_complete_statement": true,
+       "path_id": "path-memory-08b1af52c5da47f9b491634e647b1cfa",
+       "permitted_scope": {
+        "access_policy_id": "owner:fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+        "brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+        "branch_id": "main",
+        "conversation_id": "test",
+        "policy_revision": 1,
+        "principal_binding_id": "87dda0d2-406c-4d5d-91ef-78a2a67b5185",
+        "scope_generation": 1,
+        "tenant_id": "42c7a1f8-bcb3-40c8-bdbe-25f98495c10f",
+        "visibility": "private"
+       },
+       "source_memory_versions": [],
+       "state": "current"
+      }
+     ],
+     "validation_state": "current"
+    },
+    "dynamics": {
+     "activation": 0.5,
+     "decay_policy_version": "external-use-only-v1",
+     "detail_level": "verbatim",
+     "last_external_reinforcement_at": null,
+     "last_recalled_at": null,
+     "reasons": [
+      "default_policy"
+     ],
+     "retention_priority": 0.5,
+     "user_pinned": false
+    },
+    "epistemic_status": "supported_report",
+    "evidence_refs": [
+     {
+      "event_id": "6724dc17-d606-4344-b1db-bde0da5dad7c",
+      "event_revision": 2,
+      "relationship": "supports",
+      "source_content_sha256": "bd7e74b78856cfdbe7100909009e21c3ad34f06ebaf481617fb799f573fb71b1",
+      "span": {
+       "end": 17,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ],
+    "lifecycle": "active",
+    "memory_id": "memory-08b1af52c5da47f9b491634e647b1cfa",
+    "memory_kind": "episodic",
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "branch_id": "main",
+     "conversation_id": "test",
+     "policy_revision": 1,
+     "principal_binding_id": "87dda0d2-406c-4d5d-91ef-78a2a67b5185",
+     "scope_generation": 1,
+     "tenant_id": "42c7a1f8-bcb3-40c8-bdbe-25f98495c10f",
+     "visibility": "private"
+    },
+    "statement": "user user (direct_statement): 工作时我希望获得直接、具体的建议。",
+    "supersedes_memory_ids": [],
+    "system_time": {
+     "recorded_at": "2026-11-14T05:36:44.041553Z",
+     "superseded_at": null
+    },
+    "valid_time": {
+     "basis": "unknown",
+     "end": null,
+     "precision": "unknown",
+     "start": null
+    },
+    "world": "real_world"
+   },
+   {
+    "claim_kind": "inferred_pattern",
+    "condition_registry_fingerprint": "14e281b6ca3f39da1c754fecbddce5de8aaac42821b1ef5deb27901a24733a1b",
+    "conditions": {
+     "op": "holds",
+     "predicate_ref": {
+      "id": "core.activity",
+      "version": 1
+     },
+     "subject_ref": "user",
+     "value": {
+      "id": "activity:work",
+      "type": "concept"
+     }
+    },
+    "counterexamples": [],
+    "derivation": {
+     "method": "aggregation",
+     "model_version": null,
+     "rule_version": "bounded-semantic-v1",
+     "source_memory_versions": [
+      {
+       "memory_id": "semantic-dcb71ed27e2c1baa03a30129393a8256",
+       "revision": 1
+      }
+     ]
+    },
+    "disclosure_basis": {
+     "dependency_generation": 3,
+     "release_mode": "supported_scope",
+     "selected_path_ids": [
+      "path-semantic-180319fd83ff650a608c65d940e3e3a9"
+     ],
+     "support_paths": [
+      {
+       "dependency_generation": 3,
+       "evidence_refs": [
+        {
+         "event_id": "6724dc17-d606-4344-b1db-bde0da5dad7c",
+         "event_revision": 2,
+         "relationship": "supports",
+         "source_content_sha256": "bd7e74b78856cfdbe7100909009e21c3ad34f06ebaf481617fb799f573fb71b1",
+         "span": {
+          "end": 17,
+          "start": 0,
+          "unit": "unicode_code_point"
+         }
+        }
+       ],
+       "independently_supports_complete_statement": true,
+       "path_id": "path-semantic-180319fd83ff650a608c65d940e3e3a9",
+       "permitted_scope": {
+        "access_policy_id": "owner:fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+        "brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+        "branch_id": "main",
+        "conversation_id": "test",
+        "policy_revision": 1,
+        "principal_binding_id": "87dda0d2-406c-4d5d-91ef-78a2a67b5185",
+        "scope_generation": 1,
+        "tenant_id": "42c7a1f8-bcb3-40c8-bdbe-25f98495c10f",
+        "visibility": "private"
+       },
+       "source_memory_versions": [
+        {
+         "memory_id": "semantic-dcb71ed27e2c1baa03a30129393a8256",
+         "revision": 1
+        }
+       ],
+       "state": "current"
+      }
+     ],
+     "validation_state": "current"
+    },
+    "dynamics": {
+     "activation": 0.5,
+     "decay_policy_version": "external-use-only-v1",
+     "detail_level": "gist",
+     "last_external_reinforcement_at": null,
+     "last_recalled_at": null,
+     "reasons": [
+      "default_policy"
+     ],
+     "retention_priority": 0.5,
+     "user_pinned": false
+    },
+    "epistemic_status": "derived_inference",
+    "evidence_refs": [
+     {
+      "event_id": "6724dc17-d606-4344-b1db-bde0da5dad7c",
+      "event_revision": 2,
+      "relationship": "supports",
+      "source_content_sha256": "bd7e74b78856cfdbe7100909009e21c3ad34f06ebaf481617fb799f573fb71b1",
+      "span": {
+       "end": 17,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ],
+    "lifecycle": "active",
+    "memory_id": "semantic-180319fd83ff650a608c65d940e3e3a9",
+    "memory_kind": "interaction_preference",
+    "procedure": null,
+    "representation": "schema",
+    "revision": 1,
+    "root_event_ids": [
+     "6724dc17-d606-4344-b1db-bde0da5dad7c",
+     "9a65b18e-030b-4060-a5b6-282d5be304a4"
+    ],
+    "scope": {
+     "access_policy_id": "owner:fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "branch_id": "main",
+     "conversation_id": "test",
+     "policy_revision": 1,
+     "principal_binding_id": "87dda0d2-406c-4d5d-91ef-78a2a67b5185",
+     "scope_generation": 1,
+     "tenant_id": "42c7a1f8-bcb3-40c8-bdbe-25f98495c10f",
+     "visibility": "private"
+    },
+    "statement": "工作情境中的反馈模式。",
+    "supersedes_memory_ids": [],
+    "system_time": {
+     "recorded_at": "2026-11-14T05:36:44.112928Z",
+     "superseded_at": null
+    },
+    "valid_during": {
+     "kind": "unknown"
+    },
+    "valid_time": {
+     "basis": "unknown",
+     "end": null,
+     "precision": "unknown",
+     "start": null
+    },
+    "verification": {
+     "method": "semantic_model",
+     "not_a_truth_certificate": true,
+     "state": "supported_inference"
+    },
+    "world": "real_world"
+   },
+   {
+    "claim_kind": "reported_preference",
+    "condition_registry_fingerprint": "14e281b6ca3f39da1c754fecbddce5de8aaac42821b1ef5deb27901a24733a1b",
+    "conditions": {
+     "op": "always"
+    },
+    "counterexamples": [],
+    "derivation": {
+     "method": "aggregation",
+     "model_version": null,
+     "rule_version": "bounded-semantic-v1",
+     "source_memory_versions": []
+    },
+    "disclosure_basis": {
+     "dependency_generation": 3,
+     "release_mode": "supported_scope",
+     "selected_path_ids": [
+      "path-semantic-baea21312631db5d6b29857e3928c6f9"
+     ],
+     "support_paths": [
+      {
+       "dependency_generation": 3,
+       "evidence_refs": [
+        {
+         "event_id": "a8b21a93-d7dc-453a-809e-a6ea6eab6efc",
+         "event_revision": 1,
+         "relationship": "supports",
+         "source_content_sha256": "e509aee3b980fee900fd34f47a179b38cab2037956f46ed0ed5afc8f120ea015",
+         "span": {
+          "end": 27,
+          "start": 0,
+          "unit": "unicode_code_point"
+         }
+        }
+       ],
+       "independently_supports_complete_statement": true,
+       "path_id": "path-semantic-baea21312631db5d6b29857e3928c6f9",
+       "permitted_scope": {
+        "access_policy_id": "owner:fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+        "brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+        "branch_id": "main",
+        "conversation_id": "test",
+        "policy_revision": 1,
+        "principal_binding_id": "87dda0d2-406c-4d5d-91ef-78a2a67b5185",
+        "scope_generation": 1,
+        "tenant_id": "42c7a1f8-bcb3-40c8-bdbe-25f98495c10f",
+        "visibility": "private"
+       },
+       "source_memory_versions": [],
+       "state": "current"
+      }
+     ],
+     "validation_state": "current"
+    },
+    "dynamics": {
+     "activation": 0.5,
+     "decay_policy_version": "external-use-only-v1",
+     "detail_level": "gist",
+     "last_external_reinforcement_at": null,
+     "last_recalled_at": null,
+     "reasons": [
+      "default_policy"
+     ],
+     "retention_priority": 0.5,
+     "user_pinned": false
+    },
+    "epistemic_status": "derived_inference",
+    "evidence_refs": [
+     {
+      "event_id": "a8b21a93-d7dc-453a-809e-a6ea6eab6efc",
+      "event_revision": 1,
+      "relationship": "supports",
+      "source_content_sha256": "e509aee3b980fee900fd34f47a179b38cab2037956f46ed0ed5afc8f120ea015",
+      "span": {
+       "end": 27,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ],
+    "lifecycle": "active",
+    "memory_id": "semantic-baea21312631db5d6b29857e3928c6f9",
+    "memory_kind": "interaction_preference",
+    "procedure": null,
+    "representation": "semantic_anchor",
+    "revision": 1,
+    "root_event_ids": [
+     "a8b21a93-d7dc-453a-809e-a6ea6eab6efc",
+     "e4fff739-003a-4f69-91e5-70aa7ca715f5"
+    ],
+    "scope": {
+     "access_policy_id": "owner:fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "branch_id": "main",
+     "conversation_id": "test",
+     "policy_revision": 1,
+     "principal_binding_id": "87dda0d2-406c-4d5d-91ef-78a2a67b5185",
+     "scope_generation": 1,
+     "tenant_id": "42c7a1f8-bcb3-40c8-bdbe-25f98495c10f",
+     "visibility": "private"
+    },
+    "statement": "2026年10月24日用户希望先被倾听。",
+    "supersedes_memory_ids": [],
+    "system_time": {
+     "recorded_at": "2026-11-14T05:36:44.231315Z",
+     "superseded_at": null
+    },
+    "valid_during": {
+     "end": {
+      "at": "2026-10-25T00:00:00Z",
+      "kind": "instant"
+     },
+     "kind": "interval",
+     "start": {
+      "at": "2026-10-24T00:00:00Z",
+      "kind": "instant"
+     }
+    },
+    "valid_time": {
+     "basis": "unknown",
+     "end": null,
+     "precision": "unknown",
+     "start": null
+    },
+    "verification": {
+     "method": "semantic_model",
+     "not_a_truth_certificate": true,
+     "state": "supported_inference"
+    },
+    "world": "real_world"
+   },
+   {
+    "claim_kind": "reported_preference",
+    "condition_registry_fingerprint": "14e281b6ca3f39da1c754fecbddce5de8aaac42821b1ef5deb27901a24733a1b",
+    "conditions": {
+     "op": "holds",
+     "predicate_ref": {
+      "id": "core.activity",
+      "version": 1
+     },
+     "subject_ref": "user",
+     "value": {
+      "id": "activity:work",
+      "type": "concept"
+     }
+    },
+    "counterexamples": [],
+    "derivation": {
+     "method": "aggregation",
+     "model_version": null,
+     "rule_version": "bounded-semantic-v1",
+     "source_memory_versions": []
+    },
+    "disclosure_basis": {
+     "dependency_generation": 3,
+     "release_mode": "supported_scope",
+     "selected_path_ids": [
+      "path-semantic-dcb71ed27e2c1baa03a30129393a8256"
+     ],
+     "support_paths": [
+      {
+       "dependency_generation": 3,
+       "evidence_refs": [
+        {
+         "event_id": "6724dc17-d606-4344-b1db-bde0da5dad7c",
+         "event_revision": 2,
+         "relationship": "supports",
+         "source_content_sha256": "bd7e74b78856cfdbe7100909009e21c3ad34f06ebaf481617fb799f573fb71b1",
+         "span": {
+          "end": 17,
+          "start": 0,
+          "unit": "unicode_code_point"
+         }
+        }
+       ],
+       "independently_supports_complete_statement": true,
+       "path_id": "path-semantic-dcb71ed27e2c1baa03a30129393a8256",
+       "permitted_scope": {
+        "access_policy_id": "owner:fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+        "brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+        "branch_id": "main",
+        "conversation_id": "test",
+        "policy_revision": 1,
+        "principal_binding_id": "87dda0d2-406c-4d5d-91ef-78a2a67b5185",
+        "scope_generation": 1,
+        "tenant_id": "42c7a1f8-bcb3-40c8-bdbe-25f98495c10f",
+        "visibility": "private"
+       },
+       "source_memory_versions": [],
+       "state": "current"
+      }
+     ],
+     "validation_state": "current"
+    },
+    "dynamics": {
+     "activation": 0.5,
+     "decay_policy_version": "external-use-only-v1",
+     "detail_level": "gist",
+     "last_external_reinforcement_at": null,
+     "last_recalled_at": null,
+     "reasons": [
+      "default_policy"
+     ],
+     "retention_priority": 0.5,
+     "user_pinned": false
+    },
+    "epistemic_status": "derived_inference",
+    "evidence_refs": [
+     {
+      "event_id": "6724dc17-d606-4344-b1db-bde0da5dad7c",
+      "event_revision": 2,
+      "relationship": "supports",
+      "source_content_sha256": "bd7e74b78856cfdbe7100909009e21c3ad34f06ebaf481617fb799f573fb71b1",
+      "span": {
+       "end": 17,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ],
+    "lifecycle": "active",
+    "memory_id": "semantic-dcb71ed27e2c1baa03a30129393a8256",
+    "memory_kind": "interaction_preference",
+    "procedure": null,
+    "representation": "semantic_anchor",
+    "revision": 1,
+    "root_event_ids": [
+     "6724dc17-d606-4344-b1db-bde0da5dad7c",
+     "9a65b18e-030b-4060-a5b6-282d5be304a4"
+    ],
+    "scope": {
+     "access_policy_id": "owner:fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "branch_id": "main",
+     "conversation_id": "test",
+     "policy_revision": 1,
+     "principal_binding_id": "87dda0d2-406c-4d5d-91ef-78a2a67b5185",
+     "scope_generation": 1,
+     "tenant_id": "42c7a1f8-bcb3-40c8-bdbe-25f98495c10f",
+     "visibility": "private"
+    },
+    "statement": "用户报告在工作时希望直接获得建议。",
+    "supersedes_memory_ids": [],
+    "system_time": {
+     "recorded_at": "2026-11-14T05:36:44.087903Z",
+     "superseded_at": null
+    },
+    "valid_during": {
+     "kind": "unknown"
+    },
+    "valid_time": {
+     "basis": "unknown",
+     "end": null,
+     "precision": "unknown",
+     "start": null
+    },
+    "verification": {
+     "method": "semantic_model",
+     "not_a_truth_certificate": true,
+     "state": "supported_inference"
+    },
+    "world": "real_world"
+   },
+   {
+    "claim_kind": "reported_preference",
+    "condition_registry_fingerprint": "14e281b6ca3f39da1c754fecbddce5de8aaac42821b1ef5deb27901a24733a1b",
+    "conditions": {
+     "op": "always"
+    },
+    "counterexamples": [],
+    "derivation": {
+     "method": "aggregation",
+     "model_version": null,
+     "rule_version": "bounded-semantic-v1",
+     "source_memory_versions": []
+    },
+    "disclosure_basis": {
+     "dependency_generation": 3,
+     "release_mode": "supported_scope",
+     "selected_path_ids": [
+      "path-semantic-de0386007935ba8e124477fe8ff42410"
+     ],
+     "support_paths": [
+      {
+       "dependency_generation": 3,
+       "evidence_refs": [
+        {
+         "event_id": "e4fff739-003a-4f69-91e5-70aa7ca715f5",
+         "event_revision": 2,
+         "relationship": "supports",
+         "source_content_sha256": "7d9a081bac9a6d6f8d82421d06327da2d37ee13a462a7ce61b7f1da14d33b217",
+         "span": {
+          "end": 14,
+          "start": 0,
+          "unit": "unicode_code_point"
+         }
+        }
+       ],
+       "independently_supports_complete_statement": true,
+       "path_id": "path-semantic-de0386007935ba8e124477fe8ff42410",
+       "permitted_scope": {
+        "access_policy_id": "owner:fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+        "brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+        "branch_id": "main",
+        "conversation_id": "test",
+        "policy_revision": 1,
+        "principal_binding_id": "87dda0d2-406c-4d5d-91ef-78a2a67b5185",
+        "scope_generation": 1,
+        "tenant_id": "42c7a1f8-bcb3-40c8-bdbe-25f98495c10f",
+        "visibility": "private"
+       },
+       "source_memory_versions": [],
+       "state": "current"
+      }
+     ],
+     "validation_state": "current"
+    },
+    "dynamics": {
+     "activation": 0.5,
+     "decay_policy_version": "external-use-only-v1",
+     "detail_level": "gist",
+     "last_external_reinforcement_at": null,
+     "last_recalled_at": null,
+     "reasons": [
+      "default_policy"
+     ],
+     "retention_priority": 0.5,
+     "user_pinned": false
+    },
+    "epistemic_status": "derived_inference",
+    "evidence_refs": [
+     {
+      "event_id": "e4fff739-003a-4f69-91e5-70aa7ca715f5",
+      "event_revision": 2,
+      "relationship": "supports",
+      "source_content_sha256": "7d9a081bac9a6d6f8d82421d06327da2d37ee13a462a7ce61b7f1da14d33b217",
+      "span": {
+       "end": 14,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ],
+    "lifecycle": "active",
+    "memory_id": "semantic-de0386007935ba8e124477fe8ff42410",
+    "memory_kind": "interaction_preference",
+    "procedure": null,
+    "representation": "semantic_anchor",
+    "revision": 1,
+    "root_event_ids": [
+     "e4fff739-003a-4f69-91e5-70aa7ca715f5"
+    ],
+    "scope": {
+     "access_policy_id": "owner:fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+     "branch_id": "main",
+     "conversation_id": "test",
+     "policy_revision": 1,
+     "principal_binding_id": "87dda0d2-406c-4d5d-91ef-78a2a67b5185",
+     "scope_generation": 1,
+     "tenant_id": "42c7a1f8-bcb3-40c8-bdbe-25f98495c10f",
+     "visibility": "private"
+    },
+    "statement": "用户报告在工作时希望直接获得建议。",
+    "supersedes_memory_ids": [],
+    "system_time": {
+     "recorded_at": "2026-11-14T05:36:44.176673Z",
+     "superseded_at": null
+    },
+    "valid_during": {
+     "end": {
+      "kind": "unbounded"
+     },
+     "kind": "interval",
+     "start": {
+      "kind": "unbounded"
+     }
+    },
+    "valid_time": {
+     "basis": "unknown",
+     "end": null,
+     "precision": "unknown",
+     "start": null
+    },
+    "verification": {
+     "method": "semantic_model",
+     "not_a_truth_certificate": true,
+     "state": "supported_inference"
+    },
+    "world": "real_world"
+   }
+  ],
+  "rebuild_policy": {
+   "access_state": "reset_requires_new_external_feedback",
+   "cognitive_views": "restore_only_exact_versions_with_available_sources",
+   "embeddings": "rebuild_from_available_assertions",
+   "jobs": "execution_and_leases_not_restored"
+  },
+  "retired_event_ids": [],
+  "source_brain_id": "fad771d0-37b8-4c21-89d5-4219ffc4e86f",
+  "tombstones": [],
+  "working_states": []
+ },
+ "exported_by_build": "911e47b16d381da1b8c1f0c4e6e628e26ad23ebf0bc288a5a9b49a0ef718ab6e",
+ "note": "As views, with sources edited once before learning."
+}

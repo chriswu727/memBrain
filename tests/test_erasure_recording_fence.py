@@ -3,9 +3,9 @@ from threading import Event
 from unittest.mock import Mock
 
 import pytest
+from service_harness import harness as harness
 from test_host_recording import connected as connected
 from test_host_recording import local_text
-from test_learning import learning as learning
 from test_recovery_erasure import recovery as recovery
 from test_runtime import memory as memory
 from test_server_recording import observation
@@ -63,29 +63,6 @@ def test_runtime_keeps_delivery_receipt_without_saving_post_erasure_text(memory)
     assert events[0]["observed"]["content"]["text"] == "Public original draft."
     assert runtime.respond("Public new input.", message_id="new", conversation_id="chat").stage == "completed"
     assert len(calls) == 2
-
-
-def test_orientation_claim_keeps_turn_permission_across_erasure(learning, monkeypatch):
-    from membrain.learning import LearningEngine
-    from membrain.turns import TurnStore
-
-    _, row, token = learning.capture("Public captured input.")
-    original = TurnStore.bind_orientation
-
-    def erase_after_binding(*args, **kwargs):
-        bound = original(*args, **kwargs)
-        learning.memory.forget([uid()], kind="events", mode="erase_content", expected_scope_generation=1)
-        return bound
-
-    monkeypatch.setattr(TurnStore, "bind_orientation", erase_after_binding)
-    with pytest.raises(DomainError) as rejected:
-        LearningEngine(learning.service).orient(learning.principal, learning.brain, row["turn_id"],
-                                               lease_token=token, expected_revision=row["revision"])
-    assert rejected.value.code == "recording_stale" and learning.calls == []
-    with learning.database.transaction(learning.principal) as conn:
-        job = conn.execute("SELECT recording_revision,model_calls FROM memory_jobs WHERE brain_id=%s AND kind='orient'",
-                           (learning.brain,)).fetchone()
-    assert job == {"recording_revision": 0, "model_calls": 0}
 
 
 def erase(turns, *, mode="erase_content", kind="all_authorized_scope", ids=()):
@@ -291,29 +268,6 @@ def test_host_drops_pre_erasure_callback_and_offline_replay(turns, connected, tm
     assert turns.service.timeline(turns.principal, turns.brain)["items"] == []
     host.prompt_context(tmp_path, "s", "Public new draft.", turn_id="new")
     assert len(host.finish_turn(tmp_path, "s", "Public new reply.", turn_id="new")) == 2
-
-
-def test_erasure_blocks_claimed_learning_before_spending_or_publication(turns):
-    from membrain.helpers import digest
-    from membrain.jobs import JobStore
-
-    store = JobStore(turns.database)
-    with turns.database.transaction(turns.principal) as conn:
-        brain = turns.service._brain(conn, turns.principal, turns.brain)
-        job = turns.service._job(conn, turns.principal, brain, "consolidate", {})
-    selected = store.claim(turns.principal, turns.brain, worker_id=uid(), job_id=job["job_id"])
-    lease = {"lease_token": selected["lease_token"], "fence": selected["fence"]}
-    erase(turns)
-    with pytest.raises(DomainError) as rejected:
-        store.reserve_operation(turns.principal, turns.brain, job["job_id"], **lease,
-                                operation_id=uid(), request_fingerprint=digest("public input"),
-                                input_bytes=10, max_model_calls=1, max_input_bytes=100)
-    assert rejected.value.code == "recording_stale"
-    published = []
-    with pytest.raises(DomainError) as rejected:
-        store.complete(turns.principal, turns.brain, job["job_id"], **lease,
-                       publish=lambda *_: published.append(True))
-    assert rejected.value.code == "recording_stale" and not published
 
 
 def test_real_backup_restore_rejects_pre_erasure_revision_above_checkpoint(tmp_path):

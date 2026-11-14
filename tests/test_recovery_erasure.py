@@ -1,8 +1,8 @@
 import copy
 
 import pytest
+from service_harness import harness as harness
 from test_deletion_registry import acknowledgement
-from test_learning import learning as learning
 
 from membrain.client import MemoryActionError
 from membrain.deletion_registry import DeletionRegistry, RegistryError
@@ -15,13 +15,13 @@ pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
-def recovery(learning, tmp_path):
+def recovery(harness, tmp_path):
     installation = uid()
     registry = DeletionRegistry.create(tmp_path / 'authority', installation)
     authority = RecoveryAuthority(registry, installation)
-    authority.initialize(learning.database, learning.principal)
-    learning.database.recovery_authority = authority
-    return learning, authority
+    authority.initialize(harness.database, harness.principal)
+    harness.database.recovery_authority = authority
+    return harness, authority
 
 
 def raw_event(harness, identifier):

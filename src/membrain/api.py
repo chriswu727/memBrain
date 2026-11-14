@@ -201,23 +201,6 @@ class RuntimeClaim(RuntimeBody):
     expected_revision: RuntimeRevision | None = None
 
 
-class RuntimeLearningRetry(RuntimeBody):
-    request_id: RuntimeIdentifier
-    expected_fence: RuntimeCounter
-
-
-class CognitiveBudgetPolicy(RuntimeBody):
-    window_seconds: Annotated[int, Field(ge=1, le=2_592_000)]
-    max_model_calls: Annotated[int, Field(ge=0, le=1_000_000)]
-    max_input_bytes: Annotated[int, Field(ge=0, le=1_000_000_000_000)]
-
-
-class RuntimeBudgetChange(RuntimeBody):
-    request_id: RuntimeIdentifier
-    expected_revision: Annotated[int, Field(ge=0, le=2**63 - 2)]
-    policy: CognitiveBudgetPolicy
-
-
 class RuntimeRenew(RuntimeBody):
     lease_token: RuntimeIdentifier
     lease_seconds: RuntimeLeaseSeconds = 30
@@ -333,7 +316,7 @@ def runtime_metadata(record: dict, *, include_lease: bool = False) -> dict:
     return result
 
 
-def capabilities(*, semantic_enabled=False, embedding_enabled=False) -> dict:
+def capabilities(*, embedding_enabled=False) -> dict:
     result = {
         "adapter_id": "agent-memory-rest",
         "adapter_version": __version__,
@@ -358,8 +341,7 @@ def capabilities(*, semantic_enabled=False, embedding_enabled=False) -> dict:
             "Host integration must explicitly observe messages and prepare each turn.",
             ("Semantic embedding recall is configured; index coverage may be partial."
              if embedding_enabled else "Semantic embeddings are not configured; recall uses lexical and structural cues."),
-            ("Bounded semantic proposals and verification are configured; long-term memory quality is not validated."
-             if semantic_enabled else "Model-driven semantic processing is not configured."),
+            "memBrain runs no model of its own; notes, cues and other interpretations come from the host's AI.",
             "Typed conditions use a fixed versioned registry; unresolved or expired context does not activate a rule.",
             "Provider billing is unknown; call and input-byte limits are enforced, monetary ceilings are not certified.",
         ],
@@ -471,15 +453,11 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
         return app.state.jobs
 
     def job_metadata(record):
-        from .jobs import FAILURE_CODES, PUBLIC_FIELDS, sanitize_learning_summary
+        from .jobs import FAILURE_CODES, PUBLIC_FIELDS
 
         result = {key: value for key, value in record.items() if key in {*PUBLIC_FIELDS, "lease_active"}}
         if result.get("last_error") is not None and result["last_error"] not in FAILURE_CODES:
             result["last_error"] = "internal_error"
-        if result.get("kind") in {"orient", "consolidate"}:
-            summary = sanitize_learning_summary(record.get("learning_summary"))
-            if summary is not None:
-                result["learning_summary"] = summary
         return result
 
     async def runtime_body(request: Request, model: type[RuntimeBody]) -> dict:
@@ -550,8 +528,7 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
 
     @app.get("/v1/capabilities")
     def get_capabilities(principal: Principal = Depends(authenticate)):
-        return capabilities(semantic_enabled=getattr(service, "semantic_processor", None) is not None,
-                            embedding_enabled=getattr(service, "embedding_provider", None) is not None)
+        return capabilities(embedding_enabled=getattr(service, "embedding_provider", None) is not None)
 
     @app.get("/v1/schema")
     def get_schema(principal: Principal = Depends(authenticate)):
@@ -959,43 +936,13 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
 
     @app.get("/v1/brains/{brain_id}/runtime/status")
     def runtime_status(brain_id: str, principal: Principal = Depends(authenticate)):
-        from .learning_progress import sanitize_learning_progress
-
         result = turn_store().status(principal, brain_id)
         fields = {
             "brain_id", "durable_sequence", "indexed_sequence", "dependency_generation",
             "scope_generation", "turn_count", "active_lease_count", "reserved_scope_count", "stage_counts", "pending_job_count",
             "response_review_counts", "response_review_calls",
         }
-        public = {key: value for key, value in result.items() if key in fields}
-        if "learning_progress" in result:
-            public["learning_progress"] = sanitize_learning_progress(result["learning_progress"])
-        return public
-
-    @app.get("/v1/brains/{brain_id}/runtime/cognitive-usage")
-    def cognitive_usage(brain_id: str, principal: Principal = Depends(authenticate)):
-        return job_store().cognitive_usage(principal, brain_id)
-
-    @app.get("/v1/brains/{brain_id}/runtime/cognitive-budget")
-    def cognitive_budget(brain_id: str, principal: Principal = Depends(authenticate)):
-        return job_store().cognitive_budget(principal, brain_id)
-
-    @app.put("/v1/brains/{brain_id}/runtime/cognitive-budget")
-    async def configure_cognitive_budget(
-        brain_id: str, request: Request, principal: Principal = Depends(authenticate),
-    ):
-        from starlette.concurrency import run_in_threadpool
-
-        body = await runtime_body(request, RuntimeBudgetChange)
-        return await run_in_threadpool(job_store().configure_cognitive_budget, principal, brain_id, **body)
-
-    @app.get("/v1/brains/{brain_id}/runtime/learning-progress")
-    def learning_progress(brain_id: str, principal: Principal = Depends(authenticate)):
-        from .learning_progress import sanitize_learning_progress
-
-        return sanitize_learning_progress(job_store().learning_progress(
-            principal, brain_id, configured=getattr(service, "semantic_processor", None) is not None,
-        ))
+        return {key: value for key, value in result.items() if key in fields}
 
     @app.get("/v1/brains/{brain_id}/runtime/scope")
     def active_scope(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
@@ -1017,19 +964,6 @@ def create_app(settings: Settings | None = None, service=None, turns=None, jobs=
     @app.get("/v1/brains/{brain_id}/runtime/jobs/{job_id}")
     def get_job(brain_id: str, job_id: str, principal: Principal = Depends(authenticate)):
         return job_metadata(job_store().get(principal, brain_id, job_id))
-
-    @app.post("/v1/brains/{brain_id}/runtime/jobs/{job_id}/retry-learning")
-    async def retry_learning(
-        brain_id: str, job_id: str, request: Request, principal: Principal = Depends(authenticate),
-    ):
-        body = await runtime_body(request, RuntimeLearningRetry)
-        from starlette.concurrency import run_in_threadpool
-
-        if getattr(service, "semantic_processor", None) is None:
-            await run_in_threadpool(job_store().get, principal, brain_id, job_id)
-            raise DomainError("dependency_unavailable", "Model-driven learning is not configured.")
-        result = await run_in_threadpool(job_store().retry_learning, principal, brain_id, job_id, **body)
-        return job_metadata(result)
 
     @app.post("/v1/brains/{brain_id}/runtime/turns", status_code=201)
     async def begin_turn(

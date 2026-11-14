@@ -1,8 +1,8 @@
-"""The worker's jobs that every brain runs, with or without a cognition model.
+"""The worker's jobs: ``extract`` and ``rebuild`` publish the literal statement captures of new or rebuilt events
+and advance the indexed sequence; ``embed`` stores vectors for them.
 
-``extract`` and ``rebuild`` publish the literal statement captures of new or rebuilt events and advance the indexed
-sequence; ``embed`` stores vectors for them. Background learning (``learning.LearningEngine``) adds its own job kinds
-on top of these and is only used when a semantic processor is configured.
+Background learning with a cognition model was removed. The ``orient`` and ``consolidate`` jobs an older runtime
+queued stay in the table, readable and erasable with their sources, and are never claimed (``jobs._CLAIMABLE``).
 """
 from . import cognition
 from .helpers import DomainError, uid
@@ -60,21 +60,17 @@ def capture(service, jobs, principal, brain_id, job):
     jobs.complete(principal, brain_id, job["id"], lease_token=job["lease_token"], fence=job["fence"], publish=publish)
 
 
-def execute(service, jobs, principal, brain_id, job, *, semantic=None):
-    """Run one claimed job. ``semantic`` runs ``orient`` and ``consolidate`` jobs; without it they are not claimed."""
+def execute(service, jobs, principal, brain_id, job):
+    """Run one claimed capture job."""
     try:
         if job["kind"] in ("extract", "rebuild"):
             capture(service, jobs, principal, brain_id, job)
-        elif job["kind"] in ("orient", "consolidate") and semantic is not None:
-            semantic(principal, brain_id, job)
     except Exception as error:
         try:
             jobs.fail(principal, brain_id, job["id"], lease_token=job["lease_token"], fence=job["fence"],
                       failure_code=error.code if isinstance(error, DomainError) and error.code in _FAILURE_CODES
                       else "internal_error",
-                      retry=not isinstance(error, DomainError),
-                      retry_delay_seconds=(60 * 2 ** min(job["attempts"] - 1, 5)
-                                           if job["kind"] == "consolidate" else 0))
+                      retry=not isinstance(error, DomainError))
         except DomainError:
             pass
         raise
@@ -102,7 +98,7 @@ def run_next(service, jobs, principal, brain_id, kinds, run):
 
 
 def work_once(service, principal, brain_id):
-    """One worker step for a brain without background learning: capture, rebuild or embed."""
+    """One worker step: capture, rebuild or embed."""
     jobs = JobStore(service.database)
     return run_next(service, jobs, principal, brain_id, ("extract", "rebuild"),
                     lambda principal, brain_id, job: execute(service, jobs, principal, brain_id, job))

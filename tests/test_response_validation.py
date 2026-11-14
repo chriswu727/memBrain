@@ -13,7 +13,7 @@ import pytest
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from fastapi.testclient import TestClient
-from test_learning import learning as learning
+from service_harness import harness as harness
 
 import membrain.api as api_module
 import membrain.service as service_module
@@ -130,8 +130,7 @@ def test_an_action_response_is_encoded_byte_for_byte_as_the_default_encoding_wou
 
 
 @pytest.mark.integration
-def test_a_completed_recall_is_validated_once_and_returned_unchanged(learning, monkeypatch):
-    harness = learning
+def test_a_completed_recall_is_validated_once_and_returned_unchanged(harness, monkeypatch):
     harness.observe("The Vancouver library appointment is on Friday.")
     harness.memory.work()
     checked, original = [], service_module.validate
@@ -151,8 +150,7 @@ def test_a_completed_recall_is_validated_once_and_returned_unchanged(learning, m
 
 
 @pytest.mark.integration
-def test_a_cached_response_is_validated_again_at_the_http_boundary(learning):
-    harness = learning
+def test_a_cached_response_is_validated_again_at_the_http_boundary(harness):
     harness.observe("The Vancouver library appointment is on Friday.")
     harness.memory.work()
     request = recall_request(harness.brain)
@@ -192,8 +190,7 @@ def stored(harness, table):
 
 
 @pytest.mark.integration
-def test_an_invalid_recall_result_is_rejected_and_nothing_of_it_is_kept(learning, monkeypatch):
-    harness = learning
+def test_an_invalid_recall_result_is_rejected_and_nothing_of_it_is_kept(harness, monkeypatch):
     harness.observe("The Vancouver library appointment is on Friday.")
     harness.memory.work()
     request = recall_request(harness.brain)
@@ -209,8 +206,7 @@ def test_an_invalid_recall_result_is_rejected_and_nothing_of_it_is_kept(learning
 
 
 @pytest.mark.integration
-def test_an_invalid_recall_result_is_rejected_when_preparing_context(learning, monkeypatch):
-    harness = learning
+def test_an_invalid_recall_result_is_rejected_when_preparing_context(harness, monkeypatch):
     harness.observe("The Vancouver library appointment is on Friday.")
     harness.memory.work()
     cue = harness.observe("When is the library appointment?")["accepted_event_ids"]
@@ -224,8 +220,7 @@ def test_an_invalid_recall_result_is_rejected_when_preparing_context(learning, m
 
 
 @pytest.mark.integration
-def test_a_recall_receipt_saves_exactly_the_traces_it_returns(learning):
-    harness = learning
+def test_a_recall_receipt_saves_exactly_the_traces_it_returns(harness):
     harness.observe("The Vancouver library appointment is on Friday.")
     harness.memory.work()
     request = recall_request(harness.brain)
@@ -240,10 +235,9 @@ def test_a_recall_receipt_saves_exactly_the_traces_it_returns(learning):
 
 
 @pytest.mark.integration
-def test_an_invalid_recall_trace_is_rejected_and_no_trace_is_saved(learning, monkeypatch):
+def test_an_invalid_recall_trace_is_rejected_and_no_trace_is_saved(harness, monkeypatch):
     import membrain.belief_resolution as belief_resolution
 
-    harness = learning
     harness.observe("The Vancouver library appointment is on Friday.")
     harness.memory.work()
     original = belief_resolution.factor_relations
@@ -261,8 +255,7 @@ def test_an_invalid_recall_trace_is_rejected_and_no_trace_is_saved(learning, mon
 
 @pytest.mark.integration
 @pytest.mark.parametrize("validated", [False, True])
-def test_saving_traces_validates_all_of_them_first_and_writes_each_once(learning, validated):
-    harness = learning
+def test_saving_traces_validates_all_of_them_first_and_writes_each_once(harness, validated):
     harness.observe("The Vancouver library appointment is on Friday.")
     harness.memory.work()
     returned = harness.service.handle(harness.principal, recall_request(harness.brain))["result"]["recall_traces"]

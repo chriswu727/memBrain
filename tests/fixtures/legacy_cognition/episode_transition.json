@@ -1,0 +1,591 @@
+{
+ "contract_version": "1.0.0-draft",
+ "document": {
+  "archive_origin": "local_export",
+  "belief_relations": [],
+  "cognitive_views": {
+   "associations": [],
+   "episodes": [
+    {
+     "document": {
+      "boundary_ref": {
+       "event_id": "d0f23752-b914-4189-a460-c0e8225ca732",
+       "revision": 2
+      },
+      "episode_id": "episode-786eff93408a702390224dc526a6ae1d",
+      "job_id": "9802fd31-05b6-4230-959a-6a907ec2dcb2",
+      "member_refs": [
+       {
+        "event_id": "b665756e-c5ac-4499-99fa-7ec214b85922",
+        "revision": 2
+       },
+       {
+        "event_id": "e0b96224-e9e5-4c33-bf91-79d25af8c31b",
+        "revision": 2
+       },
+       {
+        "event_id": "d0f23752-b914-4189-a460-c0e8225ca732",
+        "revision": 2
+       }
+      ],
+      "organization_action": "close",
+      "organization_scope": "episode_transition",
+      "organization_source_version": {
+       "episode_id": "episode-786eff93408a702390224dc526a6ae1d",
+       "revision": 2
+      },
+      "organization_statement": "These observed messages form an interaction about the user's request.",
+      "organization_status": "inferred",
+      "proposal_id": "episode-1",
+      "revision": 3,
+      "root_event_ids": [
+       "b665756e-c5ac-4499-99fa-7ec214b85922",
+       "d0f23752-b914-4189-a460-c0e8225ca732",
+       "e0b96224-e9e5-4c33-bf91-79d25af8c31b"
+      ],
+      "scope": {
+       "access_policy_id": "owner:786101f1-0879-4783-9bf9-9f587b5b2950",
+       "brain_id": "786101f1-0879-4783-9bf9-9f587b5b2950",
+       "branch_id": "main",
+       "conversation_id": "test",
+       "policy_revision": 1,
+       "principal_binding_id": "6cc23c72-9cdc-490e-819c-10f0ec014d74",
+       "scope_generation": 1,
+       "tenant_id": "6019a98d-506e-47e0-91ee-513b474d7aac",
+       "visibility": "private"
+      },
+      "state": "closed"
+     },
+     "event_ids": [
+      "b665756e-c5ac-4499-99fa-7ec214b85922",
+      "d0f23752-b914-4189-a460-c0e8225ca732",
+      "e0b96224-e9e5-4c33-bf91-79d25af8c31b"
+     ]
+    }
+   ],
+   "members": [
+    {
+     "episode_id": "episode-786eff93408a702390224dc526a6ae1d",
+     "episode_revision": 3,
+     "memory_id": "memory-61adc0cbb35327e6fda7ebe42f0af235",
+     "memory_revision": 1,
+     "position": 2,
+     "role": "fragment"
+    },
+    {
+     "episode_id": "episode-786eff93408a702390224dc526a6ae1d",
+     "episode_revision": 3,
+     "memory_id": "memory-8de069ebf4fd13c592e178547c934749",
+     "memory_revision": 1,
+     "position": 0,
+     "role": "fragment"
+    },
+    {
+     "episode_id": "episode-786eff93408a702390224dc526a6ae1d",
+     "episode_revision": 3,
+     "memory_id": "memory-e4508381865980761a2b3f15726fe3d0",
+     "memory_revision": 1,
+     "position": 1,
+     "role": "fragment"
+    }
+   ],
+   "version": 1
+  },
+  "created_at": "2026-11-14T05:36:44.496833Z",
+  "dependency_memories": [],
+  "event_dependencies": [],
+  "events": [
+   {
+    "content_sha256": "733445a64399cd914891e5c38bc8c3dbbf559d9ef18990e78072ae48087dfba6",
+    "event_id": "b665756e-c5ac-4499-99fa-7ec214b85922",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "讨论复习安排。"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "producer_ref": "test",
+     "source_event_key": "episode-source-0",
+     "source_revision": 2
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": 1,
+    "revision": 2,
+    "scope": {
+     "access_policy_id": "owner:786101f1-0879-4783-9bf9-9f587b5b2950",
+     "brain_id": "786101f1-0879-4783-9bf9-9f587b5b2950",
+     "branch_id": "main",
+     "conversation_id": "test",
+     "policy_revision": 1,
+     "principal_binding_id": "6cc23c72-9cdc-490e-819c-10f0ec014d74",
+     "scope_generation": 1,
+     "tenant_id": "6019a98d-506e-47e0-91ee-513b474d7aac",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 2,
+    "system_time": {
+     "recorded_at": "2026-11-14T05:36:44.312553Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 7,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "733445a64399cd914891e5c38bc8c3dbbf559d9ef18990e78072ae48087dfba6",
+    "event_id": "e0b96224-e9e5-4c33-bf91-79d25af8c31b",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "讨论复习安排。"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "producer_ref": "test",
+     "source_event_key": "episode-source-1",
+     "source_revision": 2
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": 1,
+    "revision": 2,
+    "scope": {
+     "access_policy_id": "owner:786101f1-0879-4783-9bf9-9f587b5b2950",
+     "brain_id": "786101f1-0879-4783-9bf9-9f587b5b2950",
+     "branch_id": "main",
+     "conversation_id": "test",
+     "policy_revision": 1,
+     "principal_binding_id": "6cc23c72-9cdc-490e-819c-10f0ec014d74",
+     "scope_generation": 1,
+     "tenant_id": "6019a98d-506e-47e0-91ee-513b474d7aac",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 4,
+    "system_time": {
+     "recorded_at": "2026-11-14T05:36:44.378923Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 7,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   },
+   {
+    "content_sha256": "ee4eae610ad4facab14ff2a6c8e63482a667dc62e4d1f28fcc9b514f69556e13",
+    "event_id": "d0f23752-b914-4189-a460-c0e8225ca732",
+    "observed": {
+     "actor_ref": "user",
+     "actor_role": "user",
+     "content": {
+      "media_type": "text/plain",
+      "text": "这一段讨论结束。"
+     },
+     "delivery_state": "received",
+     "event_kind": "message",
+     "interpretation_hint": "real_world_report",
+     "occurred_time": {
+      "basis": "unknown",
+      "end": null,
+      "precision": "unknown",
+      "start": null
+     },
+     "producer_ref": "test",
+     "source_event_key": "episode-source-2",
+     "source_revision": 2
+    },
+    "origin": "user_statement",
+    "origin_verification": "unknown",
+    "previous_revision": 1,
+    "revision": 2,
+    "scope": {
+     "access_policy_id": "owner:786101f1-0879-4783-9bf9-9f587b5b2950",
+     "brain_id": "786101f1-0879-4783-9bf9-9f587b5b2950",
+     "branch_id": "main",
+     "conversation_id": "test",
+     "policy_revision": 1,
+     "principal_binding_id": "6cc23c72-9cdc-490e-819c-10f0ec014d74",
+     "scope_generation": 1,
+     "tenant_id": "6019a98d-506e-47e0-91ee-513b474d7aac",
+     "visibility": "private"
+    },
+    "segmentation_rule_version": "literal-episodes-v3",
+    "sequence": 6,
+    "system_time": {
+     "recorded_at": "2026-11-14T05:36:44.449391Z",
+     "superseded_at": null
+    },
+    "utterance_segments": [
+     {
+      "act": "direct_statement",
+      "span": {
+       "end": 8,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ]
+   }
+  ],
+  "excluded_deleted_event_ids": [],
+  "format": "agent-memory-jsonl-bundle",
+  "format_version": "1.0.0-draft",
+  "memories": [
+   {
+    "derivation": {
+     "method": "direct_capture",
+     "model_version": null,
+     "rule_version": "literal-episodes-v3",
+     "source_memory_versions": []
+    },
+    "disclosure_basis": {
+     "dependency_generation": 3,
+     "release_mode": "supported_scope",
+     "selected_path_ids": [
+      "path-memory-61adc0cbb35327e6fda7ebe42f0af235"
+     ],
+     "support_paths": [
+      {
+       "dependency_generation": 3,
+       "evidence_refs": [
+        {
+         "event_id": "d0f23752-b914-4189-a460-c0e8225ca732",
+         "event_revision": 2,
+         "relationship": "supports",
+         "source_content_sha256": "ee4eae610ad4facab14ff2a6c8e63482a667dc62e4d1f28fcc9b514f69556e13",
+         "span": {
+          "end": 8,
+          "start": 0,
+          "unit": "unicode_code_point"
+         }
+        }
+       ],
+       "independently_supports_complete_statement": true,
+       "path_id": "path-memory-61adc0cbb35327e6fda7ebe42f0af235",
+       "permitted_scope": {
+        "access_policy_id": "owner:786101f1-0879-4783-9bf9-9f587b5b2950",
+        "brain_id": "786101f1-0879-4783-9bf9-9f587b5b2950",
+        "branch_id": "main",
+        "conversation_id": "test",
+        "policy_revision": 1,
+        "principal_binding_id": "6cc23c72-9cdc-490e-819c-10f0ec014d74",
+        "scope_generation": 1,
+        "tenant_id": "6019a98d-506e-47e0-91ee-513b474d7aac",
+        "visibility": "private"
+       },
+       "source_memory_versions": [],
+       "state": "current"
+      }
+     ],
+     "validation_state": "current"
+    },
+    "dynamics": {
+     "activation": 0.5,
+     "decay_policy_version": "external-use-only-v1",
+     "detail_level": "verbatim",
+     "last_external_reinforcement_at": null,
+     "last_recalled_at": null,
+     "reasons": [
+      "default_policy"
+     ],
+     "retention_priority": 0.5,
+     "user_pinned": false
+    },
+    "epistemic_status": "supported_report",
+    "evidence_refs": [
+     {
+      "event_id": "d0f23752-b914-4189-a460-c0e8225ca732",
+      "event_revision": 2,
+      "relationship": "supports",
+      "source_content_sha256": "ee4eae610ad4facab14ff2a6c8e63482a667dc62e4d1f28fcc9b514f69556e13",
+      "span": {
+       "end": 8,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ],
+    "lifecycle": "active",
+    "memory_id": "memory-61adc0cbb35327e6fda7ebe42f0af235",
+    "memory_kind": "episodic",
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:786101f1-0879-4783-9bf9-9f587b5b2950",
+     "brain_id": "786101f1-0879-4783-9bf9-9f587b5b2950",
+     "branch_id": "main",
+     "conversation_id": "test",
+     "policy_revision": 1,
+     "principal_binding_id": "6cc23c72-9cdc-490e-819c-10f0ec014d74",
+     "scope_generation": 1,
+     "tenant_id": "6019a98d-506e-47e0-91ee-513b474d7aac",
+     "visibility": "private"
+    },
+    "statement": "user user (direct_statement): 这一段讨论结束。",
+    "supersedes_memory_ids": [],
+    "system_time": {
+     "recorded_at": "2026-11-14T05:36:44.449391Z",
+     "superseded_at": null
+    },
+    "valid_time": {
+     "basis": "unknown",
+     "end": null,
+     "precision": "unknown",
+     "start": null
+    },
+    "world": "real_world"
+   },
+   {
+    "derivation": {
+     "method": "direct_capture",
+     "model_version": null,
+     "rule_version": "literal-episodes-v3",
+     "source_memory_versions": []
+    },
+    "disclosure_basis": {
+     "dependency_generation": 3,
+     "release_mode": "supported_scope",
+     "selected_path_ids": [
+      "path-memory-8de069ebf4fd13c592e178547c934749"
+     ],
+     "support_paths": [
+      {
+       "dependency_generation": 3,
+       "evidence_refs": [
+        {
+         "event_id": "b665756e-c5ac-4499-99fa-7ec214b85922",
+         "event_revision": 2,
+         "relationship": "supports",
+         "source_content_sha256": "733445a64399cd914891e5c38bc8c3dbbf559d9ef18990e78072ae48087dfba6",
+         "span": {
+          "end": 7,
+          "start": 0,
+          "unit": "unicode_code_point"
+         }
+        }
+       ],
+       "independently_supports_complete_statement": true,
+       "path_id": "path-memory-8de069ebf4fd13c592e178547c934749",
+       "permitted_scope": {
+        "access_policy_id": "owner:786101f1-0879-4783-9bf9-9f587b5b2950",
+        "brain_id": "786101f1-0879-4783-9bf9-9f587b5b2950",
+        "branch_id": "main",
+        "conversation_id": "test",
+        "policy_revision": 1,
+        "principal_binding_id": "6cc23c72-9cdc-490e-819c-10f0ec014d74",
+        "scope_generation": 1,
+        "tenant_id": "6019a98d-506e-47e0-91ee-513b474d7aac",
+        "visibility": "private"
+       },
+       "source_memory_versions": [],
+       "state": "current"
+      }
+     ],
+     "validation_state": "current"
+    },
+    "dynamics": {
+     "activation": 0.5,
+     "decay_policy_version": "external-use-only-v1",
+     "detail_level": "verbatim",
+     "last_external_reinforcement_at": null,
+     "last_recalled_at": null,
+     "reasons": [
+      "default_policy"
+     ],
+     "retention_priority": 0.5,
+     "user_pinned": false
+    },
+    "epistemic_status": "supported_report",
+    "evidence_refs": [
+     {
+      "event_id": "b665756e-c5ac-4499-99fa-7ec214b85922",
+      "event_revision": 2,
+      "relationship": "supports",
+      "source_content_sha256": "733445a64399cd914891e5c38bc8c3dbbf559d9ef18990e78072ae48087dfba6",
+      "span": {
+       "end": 7,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ],
+    "lifecycle": "active",
+    "memory_id": "memory-8de069ebf4fd13c592e178547c934749",
+    "memory_kind": "episodic",
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:786101f1-0879-4783-9bf9-9f587b5b2950",
+     "brain_id": "786101f1-0879-4783-9bf9-9f587b5b2950",
+     "branch_id": "main",
+     "conversation_id": "test",
+     "policy_revision": 1,
+     "principal_binding_id": "6cc23c72-9cdc-490e-819c-10f0ec014d74",
+     "scope_generation": 1,
+     "tenant_id": "6019a98d-506e-47e0-91ee-513b474d7aac",
+     "visibility": "private"
+    },
+    "statement": "user user (direct_statement): 讨论复习安排。",
+    "supersedes_memory_ids": [],
+    "system_time": {
+     "recorded_at": "2026-11-14T05:36:44.312553Z",
+     "superseded_at": null
+    },
+    "valid_time": {
+     "basis": "unknown",
+     "end": null,
+     "precision": "unknown",
+     "start": null
+    },
+    "world": "real_world"
+   },
+   {
+    "derivation": {
+     "method": "direct_capture",
+     "model_version": null,
+     "rule_version": "literal-episodes-v3",
+     "source_memory_versions": []
+    },
+    "disclosure_basis": {
+     "dependency_generation": 3,
+     "release_mode": "supported_scope",
+     "selected_path_ids": [
+      "path-memory-e4508381865980761a2b3f15726fe3d0"
+     ],
+     "support_paths": [
+      {
+       "dependency_generation": 3,
+       "evidence_refs": [
+        {
+         "event_id": "e0b96224-e9e5-4c33-bf91-79d25af8c31b",
+         "event_revision": 2,
+         "relationship": "supports",
+         "source_content_sha256": "733445a64399cd914891e5c38bc8c3dbbf559d9ef18990e78072ae48087dfba6",
+         "span": {
+          "end": 7,
+          "start": 0,
+          "unit": "unicode_code_point"
+         }
+        }
+       ],
+       "independently_supports_complete_statement": true,
+       "path_id": "path-memory-e4508381865980761a2b3f15726fe3d0",
+       "permitted_scope": {
+        "access_policy_id": "owner:786101f1-0879-4783-9bf9-9f587b5b2950",
+        "brain_id": "786101f1-0879-4783-9bf9-9f587b5b2950",
+        "branch_id": "main",
+        "conversation_id": "test",
+        "policy_revision": 1,
+        "principal_binding_id": "6cc23c72-9cdc-490e-819c-10f0ec014d74",
+        "scope_generation": 1,
+        "tenant_id": "6019a98d-506e-47e0-91ee-513b474d7aac",
+        "visibility": "private"
+       },
+       "source_memory_versions": [],
+       "state": "current"
+      }
+     ],
+     "validation_state": "current"
+    },
+    "dynamics": {
+     "activation": 0.5,
+     "decay_policy_version": "external-use-only-v1",
+     "detail_level": "verbatim",
+     "last_external_reinforcement_at": null,
+     "last_recalled_at": null,
+     "reasons": [
+      "default_policy"
+     ],
+     "retention_priority": 0.5,
+     "user_pinned": false
+    },
+    "epistemic_status": "supported_report",
+    "evidence_refs": [
+     {
+      "event_id": "e0b96224-e9e5-4c33-bf91-79d25af8c31b",
+      "event_revision": 2,
+      "relationship": "supports",
+      "source_content_sha256": "733445a64399cd914891e5c38bc8c3dbbf559d9ef18990e78072ae48087dfba6",
+      "span": {
+       "end": 7,
+       "start": 0,
+       "unit": "unicode_code_point"
+      }
+     }
+    ],
+    "lifecycle": "active",
+    "memory_id": "memory-e4508381865980761a2b3f15726fe3d0",
+    "memory_kind": "episodic",
+    "revision": 1,
+    "scope": {
+     "access_policy_id": "owner:786101f1-0879-4783-9bf9-9f587b5b2950",
+     "brain_id": "786101f1-0879-4783-9bf9-9f587b5b2950",
+     "branch_id": "main",
+     "conversation_id": "test",
+     "policy_revision": 1,
+     "principal_binding_id": "6cc23c72-9cdc-490e-819c-10f0ec014d74",
+     "scope_generation": 1,
+     "tenant_id": "6019a98d-506e-47e0-91ee-513b474d7aac",
+     "visibility": "private"
+    },
+    "statement": "user user (direct_statement): 讨论复习安排。",
+    "supersedes_memory_ids": [],
+    "system_time": {
+     "recorded_at": "2026-11-14T05:36:44.378923Z",
+     "superseded_at": null
+    },
+    "valid_time": {
+     "basis": "unknown",
+     "end": null,
+     "precision": "unknown",
+     "start": null
+    },
+    "world": "real_world"
+   }
+  ],
+  "rebuild_policy": {
+   "access_state": "reset_requires_new_external_feedback",
+   "cognitive_views": "restore_only_exact_versions_with_available_sources",
+   "embeddings": "rebuild_from_available_assertions",
+   "jobs": "execution_and_leases_not_restored"
+  },
+  "retired_event_ids": [],
+  "source_brain_id": "786101f1-0879-4783-9bf9-9f587b5b2950",
+  "tombstones": [],
+  "working_states": []
+ },
+ "exported_by_build": "911e47b16d381da1b8c1f0c4e6e628e26ad23ebf0bc288a5a9b49a0ef718ab6e",
+ "note": "One episode created, continued and closed."
+}

@@ -80,29 +80,6 @@ class RuntimeClient:
         brain_id = self.memory._scope()["brain_ref"]
         return self.memory._request("GET", f"v1/brains/{quote(brain_id, safe='')}/runtime/status")
 
-    def cognitive_usage(self) -> JsonObject:
-        brain_id = self.memory._scope()["brain_ref"]
-        return self.memory._request("GET", f"v1/brains/{quote(brain_id, safe='')}/runtime/cognitive-usage")
-
-    def cognitive_budget(self) -> JsonObject:
-        brain_id = self.memory._scope()["brain_ref"]
-        return self.memory._request("GET", f"v1/brains/{quote(brain_id, safe='')}/runtime/cognitive-budget")
-
-    def configure_cognitive_budget(
-        self, *, request_id: str, expected_revision: int, window_seconds: int,
-        max_model_calls: int, max_input_bytes: int,
-    ) -> JsonObject:
-        brain_id = self.memory._scope()["brain_ref"]
-        return self.memory._request("PUT", f"v1/brains/{quote(brain_id, safe='')}/runtime/cognitive-budget", json={
-            "request_id": request_id, "expected_revision": expected_revision,
-            "policy": {"window_seconds": window_seconds, "max_model_calls": max_model_calls,
-                       "max_input_bytes": max_input_bytes},
-        })
-
-    def learning_progress(self) -> JsonObject:
-        brain_id = self.memory._scope()["brain_ref"]
-        return self.memory._request("GET", f"v1/brains/{quote(brain_id, safe='')}/runtime/learning-progress")
-
     def active_scope(self, conversation_id: str, branch_id: str = "main") -> JsonObject:
         brain_id = self.memory._scope()["brain_ref"]
         return self.memory._request(
@@ -114,13 +91,6 @@ class RuntimeClient:
         brain_id = self.memory._scope()["brain_ref"]
         return self.memory._request(
             "GET", f"v1/brains/{quote(brain_id, safe='')}/runtime/jobs/{quote(job_id, safe='')}",
-        )
-
-    def retry_learning(self, job_id: str, *, request_id: str, expected_fence: int) -> JsonObject:
-        brain_id = self.memory._scope()["brain_ref"]
-        return self.memory._request(
-            "POST", f"v1/brains/{quote(brain_id, safe='')}/runtime/jobs/{quote(job_id, safe='')}/retry-learning",
-            json={"request_id": request_id, "expected_fence": expected_fence},
         )
 
     def claim(

@@ -1,19 +1,19 @@
 import copy
+import hashlib
 from types import SimpleNamespace
 from unittest.mock import Mock
 
 import httpx
 import pytest
 from psycopg.types.json import Jsonb
+from service_harness import harness as harness
 from test_deletion_registry import acknowledgement
-from test_learning import learning as learning
 
 from membrain import cognition
 from membrain.client import MemoryClient
 from membrain.deletion_registry import DeletionRegistry, RegistryError
 from membrain.helpers import DomainError, digest, uid
 from membrain.jobs import JobStore
-from membrain.learning import LearningEngine
 from membrain.recovery import activate_database, quarantine
 from membrain.recovery_authority import RecoveryAuthority
 from membrain.runtime import BrainRuntime, RuntimeBlocked
@@ -23,17 +23,17 @@ pytestmark = pytest.mark.integration
 
 
 @pytest.fixture
-def restored(learning, tmp_path):
+def restored(harness, tmp_path):
     source_installation = uid()
     registry = DeletionRegistry.create(tmp_path / "authority", source_installation)
-    RecoveryAuthority(registry, source_installation).initialize(learning.database, learning.principal)
+    RecoveryAuthority(registry, source_installation).initialize(harness.database, harness.principal)
     options = {
         "source_installation_id": source_installation, "installation_id": uid(), "registry_id": registry.registry_id,
         "recovery_epoch": uid(), "manifest_hash": digest("immutable backup manifest"),
         "checkpoint": {"backup_id": uid(), "checkpoint_at": "2026-10-25T00:00:00Z"},
     }
-    return SimpleNamespace(harness=learning, registry=registry, options=options,
-                           jobs=JobStore(learning.database))
+    return SimpleNamespace(harness=harness, registry=registry, options=options,
+                           jobs=JobStore(harness.database))
 
 
 def apply_quarantine(case, **changes):
@@ -93,31 +93,6 @@ def activate(case):
     activate_database(harness.database, harness.principal, authority,
                       recovery_epoch=case.options["recovery_epoch"], manifest_hash=case.options["manifest_hash"])
     harness.database.recovery_authority = RecoveryAuthority(case.registry, case.options["installation_id"])
-
-
-@pytest.mark.parametrize("completed", [False, True])
-def test_replayed_erasure_cannot_requeue_a_quarantined_learning_window(restored, completed):
-    case, harness = restored, restored.harness
-    erased = harness.observe("Remove this historical statement.")["accepted_event_ids"][0]
-    harness.observe("A separate original source must remain available.")
-    claimed = case.jobs.claim(harness.principal, harness.brain, worker_id="snapshot-worker", kinds=["consolidate"])
-    assert claimed is not None
-    LearningEngine(harness.service)._snapshot(harness.principal, harness.brain, claimed)
-    assert erased in harness.job(claimed["id"])["source_event_ids"]
-    if completed:
-        case.jobs.complete(harness.principal, harness.brain, claimed["id"],
-                           lease_token=claimed["lease_token"], fence=claimed["fence"])
-    assert harness.calls == []
-    case.registry.append(
-        key_digest=digest("pending erasure"), fingerprint=digest("erase one source"), principal=harness.principal,
-        brain_id=harness.brain, mode="erase_content", cutoff=2, event_ids=[erased], memory_ids=[],
-    )
-    apply_quarantine(case)
-    activate(case)
-    before = case.jobs.list(harness.principal, harness.brain, limit=200)
-    assert harness.service.work_once(harness.principal, harness.brain) == 0
-    assert case.jobs.list(harness.principal, harness.brain, limit=200) == before
-    assert harness.calls == []
 
 
 def records(case, table):
@@ -180,45 +155,65 @@ def turn_at(case, stage):
 
 
 def seeded_job(case, state="running", *, kind="consolidate"):
+    """A job in the state a worker of an older runtime left it: learning jobs (``consolidate``) are no longer run,
+    so they are written here as that runtime wrote them; a running one holds a live lease."""
     harness = case.harness
-    identifier = uid()
+    identifier, token = uid(), uid()
+    claimed = state != "queued"
     with harness.database.transaction(harness.principal) as conn:
-        conn.execute("INSERT INTO memory_jobs(tenant_id,owner_id,brain_id,id,kind,payload) VALUES(%s,%s,%s,%s,%s,%s)", (
-            harness.principal.tenant_id, harness.principal.principal_id, harness.brain, identifier, kind,
-            Jsonb({"target": {"conversation_ref": "chat", "branch_ref": "main"},
-                   "from_sequence": 1, "through_sequence": 2}),
-        ))
-    if state == "queued":
-        return {"id": identifier, "state": state}
-    claimed = case.jobs.claim(harness.principal, harness.brain, worker_id="old-worker", job_id=identifier)
-    if state == "completed":
-        case.jobs.complete(harness.principal, harness.brain, identifier,
-                           lease_token=claimed["lease_token"], fence=claimed["fence"])
-    elif state in {"failed", "cancelled"}:
-        case.jobs.fail(harness.principal, harness.brain, identifier, lease_token=claimed["lease_token"],
-                       fence=claimed["fence"], failure_code="provider_failed", retry=state == "failed")
-    elif state == "superseded":
-        with harness.database.transaction(harness.principal) as conn:
-            conn.execute("UPDATE memory_jobs SET state='superseded' WHERE tenant_id=%s AND owner_id=%s "
-                         "AND brain_id=%s AND id=%s",
-                         (harness.principal.tenant_id, harness.principal.principal_id, harness.brain, identifier))
-    return claimed
+        conn.execute(
+            "INSERT INTO memory_jobs(tenant_id,owner_id,brain_id,id,kind,payload,state,attempts,fence,worker_id,"
+            "lease_token_digest,lease_expires_at,last_error,completed_at) VALUES(%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,"
+            "CASE WHEN %s THEN clock_timestamp()+interval '2 minutes' END,%s,CASE WHEN %s THEN clock_timestamp() END)", (
+                harness.principal.tenant_id, harness.principal.principal_id, harness.brain, identifier, kind,
+                Jsonb({"target": {"conversation_ref": "chat", "branch_ref": "main"},
+                       "from_sequence": 1, "through_sequence": 2}),
+                state, int(claimed), int(claimed), "old-worker" if state == "running" else None,
+                hashlib.sha256(token.encode()).hexdigest() if state == "running" else None, state == "running",
+                "provider_failed" if state in {"failed", "cancelled"} else None, state == "completed",
+            ))
+    return {"id": identifier, "state": state, "lease_token": token, "fence": int(claimed)}
 
 
 def reservation(case, job, outcome="reserved", *, usage=None):
+    """A model-call reservation of the removed cognition pipeline, settled or not, as it was stored."""
     harness = case.harness
     identifier = "semantic:proposal:" + uid()
-    case.jobs.reserve_operation(
-        harness.principal, harness.brain, job["id"], lease_token=job["lease_token"], fence=job["fence"],
-        operation_id=identifier, request_fingerprint=digest(identifier), input_bytes=123,
-        max_model_calls=10, max_input_bytes=1230,
-    )
-    if outcome != "reserved":
-        case.jobs.settle_operation(
-            harness.principal, harness.brain, job["id"], lease_token=job["lease_token"], fence=job["fence"],
-            operation_id=identifier, outcome=outcome, usage=usage, response_fingerprint=digest([outcome, identifier]),
-        )
+    with harness.database.transaction(harness.principal) as conn:
+        conn.execute(
+            "INSERT INTO memory_cognitive_operations(tenant_id,owner_id,brain_id,job_id,operation_id,request_fingerprint,"
+            "input_bytes,fence,outcome,usage,response_fingerprint,completed_at) VALUES(%s,%s,%s,%s,%s,%s,123,%s,%s,%s,%s,"
+            "CASE WHEN %s THEN clock_timestamp() END)", (
+                harness.principal.tenant_id, harness.principal.principal_id, harness.brain, job["id"], identifier,
+                digest(identifier), job["fence"], outcome, Jsonb(usage) if usage is not None else None,
+                digest([outcome, identifier]) if outcome != "reserved" else None, outcome != "reserved",
+            ))
+        conn.execute("UPDATE memory_jobs SET model_calls=model_calls+1,input_bytes=input_bytes+123,max_model_calls=10,"
+                     "max_input_bytes=1230 WHERE tenant_id=%s AND brain_id=%s AND id=%s",
+                     (harness.principal.tenant_id, harness.brain, job["id"]))
     return identifier
+
+
+def budget(case):
+    """An explicitly configured cognitive budget, as the removed budget commands stored it."""
+    harness = case.harness
+    with harness.database.transaction(harness.principal) as conn:
+        conn.execute(
+            "INSERT INTO memory_cognitive_budgets(tenant_id,owner_id,brain_id,window_seconds,max_model_calls,"
+            "max_input_bytes,revision,is_explicit) VALUES(%s,%s,%s,3600,20,10000,1,true)",
+            (harness.principal.tenant_id, harness.principal.principal_id, harness.brain))
+        conn.execute(
+            "INSERT INTO memory_cognitive_budget_changes(tenant_id,owner_id,brain_id,request_id,request_fingerprint,"
+            "expected_revision,revision,window_seconds,max_model_calls,max_input_bytes) "
+            "VALUES(%s,%s,%s,%s,%s,0,1,3600,20,10000)",
+            (harness.principal.tenant_id, harness.principal.principal_id, harness.brain, uid(), digest("budget")))
+
+
+def outcomes(case):
+    counts = {}
+    for row in records(case, "memory_cognitive_operations"):
+        counts[row["outcome"]] = counts.get(row["outcome"], 0) + 1
+    return counts
 
 
 def test_quarantine_preserves_sources_assertions_receipts_and_all_accounting(restored):
@@ -238,8 +233,7 @@ def test_quarantine_preserves_sources_assertions_receipts_and_all_accounting(res
     for state in ("queued", "running", "failed", "cancelled", "superseded", "completed"):
         seeded_job(case, state)
     running = seeded_job(case)
-    case.jobs.configure_cognitive_budget(harness.principal, harness.brain, request_id=uid(), expected_revision=0,
-                                         policy={"window_seconds": 3600, "max_model_calls": 20, "max_input_bytes": 10000})
+    budget(case)
     reservation(case, running)
     reservation(case, running, "completed", usage={"input_tokens": 30, "output_tokens": 12, "total_tokens": 42})
     reservation(case, running, "failed", usage={"input_tokens": 2, "output_tokens": 0, "total_tokens": 2})
@@ -249,7 +243,7 @@ def test_quarantine_preserves_sources_assertions_receipts_and_all_accounting(res
               "memory_brains", "memory_working_states", "memory_traces", "memory_requests")
     before = {table: records(case, table) for table in tables}
     assert before["memory_working_states"] and before["memory_traces"]
-    usage_before = case.jobs.cognitive_usage(harness.principal, harness.brain)
+    assert outcomes(case) == {"reserved": 1, "completed": 1, "failed": 1, "uncertain": 1}
     apply_quarantine(case)
     after = {table: records(case, table) for table in tables}
     for table in tables[:5]:
@@ -299,10 +293,7 @@ def test_quarantine_preserves_sources_assertions_receipts_and_all_accounting(res
         (item["row"]["turn_id"], stage) for stage, item in turns.items() if stage not in {"completed", "failed"}}
     assert {row["object_id"] for row in ledger if row["object_kind"] == "job"} == {
         row["id"] for row in before["memory_jobs"]}
-    usage_after = case.jobs.cognitive_usage(harness.principal, harness.brain)
-    for key in ("reservation_count", "usage_known_count", "usage_unknown_count", "reported_tokens", "counts_complete"):
-        assert usage_after[key] == usage_before[key]
-    assert usage_after["outcome_counts"] == {"reserved": 0, "completed": 1, "failed": 1, "uncertain": 2}
+    assert outcomes(case) == {"completed": 1, "failed": 1, "uncertain": 2}
 
 
 def snapshot(case):
@@ -334,8 +325,8 @@ def test_quarantine_reentry_is_exactly_idempotent_and_wrong_binding_rolls_back(r
 def test_old_turn_and_job_leases_cannot_publish_reserve_or_send_after_activation(restored):
     case, harness = restored, restored.harness
     turns = {stage: turn_at(case, stage) for stage in ("started", "captured", "generating", "generated", "delivering")}
-    job = seeded_job(case)
-    operation = reservation(case, job)
+    job = seeded_job(case, kind="rebuild")
+    reservation(case, job)
     apply_quarantine(case)
     activate(case)
     store = TurnStore(harness.database)
@@ -351,12 +342,7 @@ def test_old_turn_and_job_leases_cannot_publish_reserve_or_send_after_activation
                 kwargs["lease_token"] = item["lease_token"]
             with pytest.raises(DomainError):
                 getattr(store, action)(harness.principal, harness.brain, identifier, **kwargs)
-    for action, kwargs in (
-        ("renew", {}), ("complete", {"publish": publish}),
-        ("settle_operation", {"operation_id": operation, "outcome": "completed", "usage": {"total_tokens": 1}}),
-        ("reserve_operation", {"operation_id": uid(), "request_fingerprint": digest("new"), "input_bytes": 1,
-                               "max_model_calls": 10, "max_input_bytes": 10000}),
-    ):
+    for action, kwargs in (("renew", {}), ("complete", {"publish": publish})):
         with pytest.raises(DomainError):
             getattr(case.jobs, action)(harness.principal, harness.brain, job["id"],
                                        lease_token=job["lease_token"], fence=job["fence"], **kwargs)
@@ -367,7 +353,7 @@ def test_old_turn_and_job_leases_cannot_publish_reserve_or_send_after_activation
     with pytest.raises(httpx.HTTPStatusError) as unacknowledged:
         runtime.resume(turns["captured"]["row"]["turn_id"])
     assert unacknowledged.value.response.json()["error"]["code"] == "recovery_acknowledgement_required"
-    with MemoryClient("http://testserver", "learning-test", harness.brain,
+    with MemoryClient("http://testserver", "service-test", harness.brain,
                       transport=harness.memory._http._transport,
                       recovery_epoch=case.options["recovery_epoch"]) as reconciled:
         runtime = BrainRuntime(reconciled, generate, deliver=send, generation_is_idempotent=True)
@@ -376,7 +362,7 @@ def test_old_turn_and_job_leases_cannot_publish_reserve_or_send_after_activation
                 runtime.resume(item["row"]["turn_id"])
         generate.assert_not_called()
         send.assert_not_called()
-        assert harness.service.work_once(harness.principal, harness.brain) == 0 and harness.calls == []
+        assert harness.service.work_once(harness.principal, harness.brain) == 0
         fresh = reconciled.observe("A new explicitly received input after activation.",
                                     source_event_key=uid(), conversation_id="chat", branch_id="main")
         assert fresh["result"]["accepted_event_ids"]

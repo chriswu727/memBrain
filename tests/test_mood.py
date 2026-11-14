@@ -477,20 +477,20 @@ def test_a_reset_marker_holds_however_many_pin_changes_follow(brain, clock):
     assert state["marker"] is not None and state["triggers"] == [] and not state["pinned"]
 
 
-def test_mood_settings_are_never_learned_recalled_or_counted_and_cannot_be_planted(brain, monkeypatch):
-    from membrain import learning_windows
+def learning_jobs(service, principal, ident):
+    """Background learning was removed: no message or record queues an orient or consolidate job any more."""
+    with service.database.transaction(principal) as conn:
+        return conn.execute("SELECT count(*) AS value FROM memory_jobs WHERE tenant_id=%s AND brain_id=%s "
+                            "AND kind IN ('orient','consolidate')", (principal.tenant_id, ident)).fetchone()["value"]
 
+
+def test_mood_settings_are_never_learned_recalled_or_counted_and_cannot_be_planted(brain):
     service, principal, ident = brain
-    scheduled = []
-    monkeypatch.setattr(learning_windows, "enqueue_window",
-                        lambda conn, svc, who, brain_row, target, *args, **kwargs: scheduled.append(
-                            target["conversation_ref"]))
-    monkeypatch.setattr(service, "semantic_processor", object(), raising=False)
     say(brain, "Hello there.")
     pin_mood(service, principal, ident, True)
     pin_mood(service, principal, ident, False)
     reset_mood(service, principal, ident)
-    assert scheduled == ["chat"]  # Ordinary messages still learn; mood settings never do.
+    assert learning_jobs(service, principal, ident) == 0
     every = service.timeline(principal, ident, roles=("user", "assistant", "operator", "tool"))
     assert not any(entry["conversation_id"] == MOOD_CONVERSATION for entry in every["items"])
     assert service.memory_status(principal, ident)["recorded_messages"] == 1
