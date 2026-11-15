@@ -1,0 +1,190 @@
+{
+  "schema": 1,
+  "source": "b4d0e76176c502ca74ccec7b602b44692efac866",
+  "runtime_tree_sha256": "5fc83de44bf741a98d1943753850bee37d2c8f7cc8a71170fb8aa71274ee4a04",
+  "fixture_sha256": "0fb22fcca9e90dd6393133bf1e78cf1ade150ed8863976e3010c2b9de319a9dd",
+  "environment": {
+    "platform": "Linux-6.18.58.1-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "python": "3.12.16",
+    "semantic": false,
+    "concurrency": 1,
+    "context_cap_characters": 2400,
+    "warm_repeats_per_query": 10,
+    "postgresql": "PostgreSQL 16.15 on x86_64-pc-linux-gnu, compiled by gcc (Debian 12.2.0-14+deb12u1) 12.2.0, 64-bit"
+  },
+  "model_calls": 0,
+  "arms": {
+    "raw": {
+      "brain_id": "ee31e6f7-8700-4de1-b19b-3f81b2d39dd9",
+      "storage": {
+        "memory_events": {
+          "rows": 41,
+          "logical_tuple_bytes": 83878
+        },
+        "memory_event_dependencies": {
+          "rows": 0,
+          "logical_tuple_bytes": 0
+        },
+        "memory_message_cues": {
+          "rows": 0,
+          "logical_tuple_bytes": 0
+        },
+        "memory_cue_progress": {
+          "rows": 0,
+          "logical_tuple_bytes": 0
+        }
+      },
+      "enrichment": {
+        "notes_write_ms": 0,
+        "cue_batch_read_write_ms": 0,
+        "cue_input_characters": 0,
+        "cue_output_characters": 0,
+        "model_generation_cost": "not measured; scripted fixtures, zero model calls"
+      },
+      "first": {
+        "evidence_present": 0,
+        "queries": 8,
+        "latency_ms": {
+          "n": 8,
+          "median": 19.50450349249877,
+          "p95": 26.935532980132848
+        },
+        "context_characters": {
+          "n": 8,
+          "median": 349.5,
+          "p95": 396
+        }
+      },
+      "warm": {
+        "evidence_present": 0,
+        "queries": 80,
+        "latency_ms": {
+          "n": 80,
+          "median": 17.669840482994914,
+          "p95": 54.318123031407595
+        },
+        "context_characters": {
+          "n": 80,
+          "median": 349.5,
+          "p95": 396
+        }
+      }
+    },
+    "notes": {
+      "brain_id": "ac8ad9eb-0b67-4e0f-9cac-fec58cc114f1",
+      "storage": {
+        "memory_events": {
+          "rows": 49,
+          "logical_tuple_bytes": 100474
+        },
+        "memory_event_dependencies": {
+          "rows": 8,
+          "logical_tuple_bytes": 1672
+        },
+        "memory_message_cues": {
+          "rows": 0,
+          "logical_tuple_bytes": 0
+        },
+        "memory_cue_progress": {
+          "rows": 0,
+          "logical_tuple_bytes": 0
+        }
+      },
+      "enrichment": {
+        "notes_write_ms": 132.64501298544928,
+        "cue_batch_read_write_ms": 0,
+        "cue_input_characters": 0,
+        "cue_output_characters": 0,
+        "model_generation_cost": "not measured; scripted fixtures, zero model calls"
+      },
+      "first": {
+        "evidence_present": 5,
+        "queries": 8,
+        "latency_ms": {
+          "n": 8,
+          "median": 53.117572504561394,
+          "p95": 62.74889799533412
+        },
+        "context_characters": {
+          "n": 8,
+          "median": 1771.0,
+          "p95": 1838
+        }
+      },
+      "warm": {
+        "evidence_present": 50,
+        "queries": 80,
+        "latency_ms": {
+          "n": 80,
+          "median": 33.21289800805971,
+          "p95": 93.32397702382877
+        },
+        "context_characters": {
+          "n": 80,
+          "median": 1773.0,
+          "p95": 1822
+        }
+      }
+    },
+    "notes_and_cues": {
+      "brain_id": "e6575856-dc78-4209-b4d8-b5a23d91fa96",
+      "storage": {
+        "memory_events": {
+          "rows": 49,
+          "logical_tuple_bytes": 100474
+        },
+        "memory_event_dependencies": {
+          "rows": 8,
+          "logical_tuple_bytes": 1672
+        },
+        "memory_message_cues": {
+          "rows": 8,
+          "logical_tuple_bytes": 2720
+        },
+        "memory_cue_progress": {
+          "rows": 1,
+          "logical_tuple_bytes": 152
+        }
+      },
+      "enrichment": {
+        "notes_write_ms": 80.45651600696146,
+        "cue_batch_read_write_ms": 44.908778043463826,
+        "cue_input_characters": 7103,
+        "cue_output_characters": 471,
+        "model_generation_cost": "not measured; scripted fixtures, zero model calls"
+      },
+      "first": {
+        "evidence_present": 5,
+        "queries": 8,
+        "latency_ms": {
+          "n": 8,
+          "median": 55.19042498781346,
+          "p95": 61.13067700061947
+        },
+        "context_characters": {
+          "n": 8,
+          "median": 1771.0,
+          "p95": 1822
+        }
+      },
+      "warm": {
+        "evidence_present": 50,
+        "queries": 80,
+        "latency_ms": {
+          "n": 80,
+          "median": 34.10066300421022,
+          "p95": 98.48054696340114
+        },
+        "context_characters": {
+          "n": 80,
+          "median": 1810.0,
+          "p95": 1822
+        }
+      }
+    }
+  },
+  "completed": true,
+  "service_start_ms": 17285.45526403468,
+  "database_stopped": true,
+  "runtime_unchanged": true
+}

@@ -1,0 +1,39 @@
+{
+  "runtime": "e8383a85d319e57a95f60b52dd64b930280c161d",
+  "final_source": "f471c0db988f283c33f768a1a7ba6d7eaf2c37a1",
+  "harness_sha256": "e9493bfd302289b3cb494528fd8b0ebdcbdccee9aa0f6deb345a0085a35d0718",
+  "measurement_start_head": "b4d0e76176c502ca74ccec7b602b44692efac866",
+  "measurement_harness_diff": "source-diff.patch.gz",
+  "note": "The corrected harness was measured before committing it as f471c0db; runtime and fixture stayed unchanged. The saved patch is the exact harness delta.",
+  "local_final": {
+    "tests": [
+      "tests/test_host_persona_evidence.py",
+      "tests/test_memory_evolution_scenario.py",
+      "tests/test_persona_confirmation.py",
+      "tests/test_persona_feedback_revision.py",
+      "tests/test_persona_feedback_browser.py",
+      "tests/test_companion_map.py",
+      "tests/test_memory_page_i18n.py"
+    ],
+    "exit_code": 0,
+    "database_stopped": true,
+    "source_unchanged": true
+  },
+  "first_comparison_valid": false,
+  "full_verify": {
+    "run": 43664724697,
+    "status": "success",
+    "source": "f471c0db988f283c33f768a1a7ba6d7eaf2c37a1",
+    "python_passed": 4084,
+    "python_skipped": 0,
+    "python_warnings": 3,
+    "typescript_passed": 39,
+    "typescript_skipped": 0,
+    "ruff": "passed",
+    "typescript_typecheck": "passed",
+    "sdist_and_wheel": "passed"
+  },
+  "measured_patch_matches_commit": true,
+  "integration_merge": "9e814d4f61fa90883ba2655ca0bb280a3053846c",
+  "integration_tree_matches_qualified_source": true
+}
