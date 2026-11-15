@@ -1,0 +1,21 @@
+{
+  "removed_synthetic_roots": [
+    "/home/yichen/.local/state/membrain-setup/runs/codex-evolution-before/pytest",
+    "/home/yichen/.local/state/membrain-setup/runs/codex-evolution-provenance/pytest",
+    "/home/yichen/.local/state/membrain-setup/runs/codex-evolution-chain/pytest",
+    "/home/yichen/.local/state/membrain-setup/runs/codex-evolution-chain2/pytest",
+    "/home/yichen/.local/state/membrain-setup/runs/codex-evolution-regression/pytest",
+    "/home/yichen/.local/state/membrain-setup/runs/codex-evolution-regression/database",
+    "/home/yichen/.local/state/membrain-setup/runs/codex-evolution-regression/.agent-memory-recovery",
+    "/home/yichen/.local/state/membrain-setup/runs/codex-evolution-final/pytest",
+    "/home/yichen/.local/state/membrain-setup/runs/codex-evolution-final/database",
+    "/home/yichen/.local/state/membrain-setup/runs/codex-evolution-final/.agent-memory-recovery",
+    "/home/yichen/.local/state/membrain-setup/runs/codex-evolution-comparison/installation",
+    "/home/yichen/.local/state/membrain-setup/runs/codex-evolution-comparison/.agent-memory-recovery",
+    "/home/yichen/.local/state/membrain-setup/runs/codex-evolution-comparison2/installation",
+    "/home/yichen/.local/state/membrain-setup/runs/codex-evolution-comparison2/.agent-memory-recovery"
+  ],
+  "source_worktrees_retained": true,
+  "owned_processes_running": false,
+  "results_and_failure_logs_retained": true
+}

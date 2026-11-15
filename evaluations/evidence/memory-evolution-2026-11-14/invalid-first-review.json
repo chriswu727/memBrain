@@ -1,0 +1,5 @@
+{
+  "valid": false,
+  "reason": "Harness bypassed production host historical cutoff and used a 600-token internal memory-document budget; empty recall made the comparison invalid. Retained results must not be used as enrichment gains.",
+  "source": "b4d0e76176c502ca74ccec7b602b44692efac866"
+}
