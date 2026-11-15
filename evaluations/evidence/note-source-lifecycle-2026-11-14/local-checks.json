@@ -1,0 +1,158 @@
+{
+  "before": {
+    "tests": [
+      "tests/test_note_pending_sources.py"
+    ],
+    "exit_code": 1,
+    "database_stopped": true,
+    "source_unchanged": true,
+    "summary": [
+      "E         Left contains one more item: 'ac478ab2-c661-46a2-a6db-090497ca6985'",
+      "E         Use -v to get more diff",
+      "FAILED tests/test_note_pending_sources.py::test_known_unavailable_reference_cannot_replace_a_valid_note[superseded]",
+      "FAILED tests/test_note_pending_sources.py::test_known_unavailable_reference_cannot_replace_a_valid_note[erase_content]",
+      "FAILED tests/test_note_pending_sources.py::test_known_unavailable_reference_cannot_replace_a_valid_note[suppress_recall]",
+      "FAILED tests/test_note_pending_sources.py::test_known_unavailable_reference_cannot_replace_a_valid_note[draft]",
+      "FAILED tests/test_note_pending_sources.py::test_known_unavailable_reference_cannot_replace_a_valid_note[cancelled]",
+      "FAILED tests/test_note_pending_sources.py::test_known_unavailable_reference_cannot_replace_a_valid_note[future]",
+      "FAILED tests/test_note_pending_sources.py::test_invalid_arrival_retires_only_its_pending_interpretation_and_erasure_reaches_it[2-received]",
+      "FAILED tests/test_note_pending_sources.py::test_invalid_arrival_retires_only_its_pending_interpretation_and_erasure_reaches_it[1-draft]",
+      "FAILED tests/test_note_pending_sources.py::test_invalid_arrival_retires_only_its_pending_interpretation_and_erasure_reaches_it[1-cancelled]",
+      "9 failed, 1 passed in 0.74s"
+    ]
+  },
+  "focused": {
+    "tests": [
+      "tests/test_note_pending_sources.py",
+      "tests/test_note_source_fences.py",
+      "tests/test_note_workflow.py",
+      "tests/test_affect_provenance.py"
+    ],
+    "exit_code": 0,
+    "database_stopped": true,
+    "source_unchanged": true,
+    "summary": [
+      "55 passed in 16.45s"
+    ]
+  },
+  "lifecycle": {
+    "tests": [
+      "tests/test_note_pending_sources.py",
+      "tests/test_memory_evolution_scenario.py",
+      "tests/test_note_recording_fence.py",
+      "tests/test_note_source_fences.py",
+      "tests/test_note_workflow.py",
+      "tests/test_affect_provenance.py",
+      "tests/test_relationship_source_privacy.py",
+      "tests/test_mood_source_privacy.py"
+    ],
+    "exit_code": 0,
+    "database_stopped": true,
+    "source_unchanged": true,
+    "summary": [
+      "90 passed in 33.26s"
+    ]
+  },
+  "hidden-before": {
+    "tests": [
+      "tests/test_note_pending_sources.py",
+      "-k",
+      "hidden_pending"
+    ],
+    "exit_code": 1,
+    "database_stopped": true,
+    "source_unchanged": true,
+    "summary": [
+      "E        +  where 2 = len([{'deleted': False, 'document': {'scope': {'brain_id': '1430f990-5dcf-4c50-a5bb-4158b17e3705', 'branch_id': 'main', 't...edia_type': 'text/plain'}, 'actor_ref': 'membrain-notes', 'actor_role': 'system', 'event_kind': 'message', ...}, ...}}])",
+      "E        +  and   False = all(<generator object test_hidden_pending_note_still_acquires_erasure_provenance.<locals>.<genexpr> at 0x79a0ce9eadc0>)",
+      "E       AssertionError: assert (2 == 2 and False)",
+      "E        +  where 2 = len([{'deleted': False, 'document': {'scope': {'brain_id': 'ef44c0b2-399c-4c6a-8834-dbaab18c1b0e', 'branch_id': 'main', 't...edia_type': 'text/plain'}, 'actor_ref': 'membrain-notes', 'actor_role': 'system', 'event_kind': 'message', ...}, ...}}])",
+      "E        +  and   False = all(<generator object test_hidden_pending_note_still_acquires_erasure_provenance.<locals>.<genexpr> at 0x79a0ce9ebb90>)",
+      "E       AssertionError: assert (2 == 2 and False)",
+      "E        +  where 2 = len([{'deleted': False, 'document': {'scope': {'brain_id': 'f7b14141-0223-41be-9d05-c157597cabb5', 'branch_id': 'main', 't...edia_type': 'text/plain'}, 'actor_ref': 'membrain-notes', 'actor_role': 'system', 'event_kind': 'message', ...}, ...}}])",
+      "E        +  and   False = all(<generator object test_hidden_pending_note_still_acquires_erasure_provenance.<locals>.<genexpr> at 0x79a0ce806190>)",
+      "FAILED tests/test_note_pending_sources.py::test_hidden_pending_note_still_acquires_erasure_provenance[1-replacement]",
+      "FAILED tests/test_note_pending_sources.py::test_hidden_pending_note_still_acquires_erasure_provenance[1-suppress_recall]",
+      "FAILED tests/test_note_pending_sources.py::test_hidden_pending_note_still_acquires_erasure_provenance[2-replacement]",
+      "FAILED tests/test_note_pending_sources.py::test_hidden_pending_note_still_acquires_erasure_provenance[2-suppress_recall]"
+    ]
+  },
+  "final": {
+    "tests": [
+      "tests/test_note_pending_sources.py",
+      "tests/test_memory_evolution_scenario.py",
+      "tests/test_note_recording_fence.py",
+      "tests/test_note_source_fences.py",
+      "tests/test_note_workflow.py",
+      "tests/test_affect_provenance.py",
+      "tests/test_relationship_source_privacy.py",
+      "tests/test_mood_source_privacy.py"
+    ],
+    "exit_code": 0,
+    "database_stopped": true,
+    "source_unchanged": true,
+    "summary": [
+      "95 passed in 35.29s"
+    ]
+  },
+  "bounded": {
+    "tests": [
+      "tests/test_note_pending_sources.py",
+      "tests/test_note_source_fences.py",
+      "<TASK_STATE>/test_index_diagnostic.py"
+    ],
+    "exit_code": 1,
+    "database_stopped": true,
+    "source_unchanged": true,
+    "summary": [
+      "E           psycopg.errors.InsufficientPrivilege: must be owner of index memory_events_note_sources",
+      "FAILED ::test_source_arrival_query_uses_the_expanded_index - psycopg.errors.I...",
+      "1 failed, 35 passed in 2.99s"
+    ]
+  },
+  "index": {
+    "tests": [
+      "<TASK_STATE>/test_index_diagnostic.py"
+    ],
+    "exit_code": 1,
+    "database_stopped": true,
+    "source_unchanged": true,
+    "summary": [
+      "E       AssertionError: assert 'memory_events_note_sources' in [None, 'memory_events_tail']",
+      "E        +  where [None, 'memory_events_tail'] = <function test_source_arrival_query_uses_the_expanded_index.<locals>.names at 0x7a0606d1d760>({'Node Type': 'Result', 'Parallel Aware': False, 'Async Capable': False, 'Startup Cost': 0.41, ...})",
+      "FAILED ../../.local/state/membrain-setup/note-sources-20261115/test_index_diagnostic.py::test_source_arrival_query_uses_the_expanded_index"
+    ]
+  },
+  "index-analyzed": {
+    "tests": [
+      "-c",
+      "pyproject.toml",
+      "<TASK_STATE>/test_index_diagnostic.py"
+    ],
+    "exit_code": 1,
+    "database_stopped": true,
+    "source_unchanged": true,
+    "summary": [
+      "E       AssertionError: assert 'memory_events_note_sources' in [None, None]",
+      "E        +  where [None, None] = <function test_source_arrival_query_uses_the_expanded_index.<locals>.names at 0x75b6e6ad58a0>({'Node Type': 'Result', 'Parallel Aware': False, 'Async Capable': False, 'Startup Cost': 0.01, ...})",
+      "FAILED ::test_source_arrival_query_uses_the_expanded_index - AssertionError: ..."
+    ]
+  },
+  "qualified": {
+    "tests": [
+      "tests/test_note_pending_sources.py",
+      "tests/test_note_source_fences.py"
+    ],
+    "exit_code": 0,
+    "database_stopped": true,
+    "source_unchanged": true,
+    "summary": [
+      "35 passed in 2.56s"
+    ]
+  },
+  "notes": [
+    "Development batches overlap; do not add them as independent tests.",
+    "The final source qualification is the qualified 35-test run and the pending full Verify; the broader 95-test run predates the bounded latest-revision lookup and removal of the rejected index migration.",
+    "The expanded-index experiment is rejected, including its index-use assertion; no 037 migration is shipped."
+  ]
+}

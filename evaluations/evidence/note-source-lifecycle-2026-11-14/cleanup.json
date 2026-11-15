@@ -1,0 +1,19 @@
+{
+  "owned_processes": [],
+  "removed": [
+    "before/database",
+    "focused/database",
+    "lifecycle/database",
+    "lifecycle/pytest",
+    "hidden-before/database",
+    "final/database",
+    "final/pytest",
+    "bounded/database",
+    "index/database",
+    "index-analyzed/database",
+    "qualified/database"
+  ],
+  "free_before": 58920480768,
+  "free_after": 60253638656,
+  "retained": "Compact logs/results, source worktrees, real profiles, models, backups and the existing Claude remote-control session."
+}

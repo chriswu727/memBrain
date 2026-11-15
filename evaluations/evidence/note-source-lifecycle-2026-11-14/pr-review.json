@@ -1,0 +1,9 @@
+{
+  "source": "0b0392bcbedabcf6b262efbdae3f612a556a9688",
+  "status": "completed",
+  "has_findings": false,
+  "has_unresolved_findings": false,
+  "kind": "configured automatic pull-request code review",
+  "security_review": null,
+  "url": "https://github.com/chriswu727/memBrain/pull/70#issuecomment-6888117729"
+}
