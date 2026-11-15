@@ -777,7 +777,8 @@ const PROPOSAL_FIELDS = { traits: "Traits", "voice.register": "Register", "voice
   "voice.emoji": "Emoji use", "voice.language": "Language", name: "Name", values: "Values", boundaries: "Boundaries",
   baseline_mood: "Baseline mood" };
 const PROPOSAL_STATUS = { open: "waiting for you", accepted: "accepted", rejected: "rejected", withdrawn: "withdrawn" };
-const PROPOSAL_WITHDRAWN = { sources_removed: "Withdrawn: fewer than three of its messages are still in memory.",
+const PROPOSAL_WITHDRAWN = { source_unavailable: "Withdrawn: a cited message was changed or removed. Ask your agent for a fresh suggestion.",
+  sources_removed: "Withdrawn: fewer than three of its messages are still in memory.",
   already_in_card: "Withdrawn: the card already has this.", does_not_fit: "Withdrawn: the card has no room for it.",
   feedback_used: "Withdrawn: you already decided on this feedback. A new suggestion needs new feedback.",
   contradicted: "Withdrawn: you later asked for the opposite.",
@@ -844,6 +845,9 @@ function proposalItem(proposal) {
       : `Rejected on ${shortDate(proposal.decided_at)}.`, "hint"));
   }
   if (proposal.status === "withdrawn") item.append(element("p", PROPOSAL_WITHDRAWN[proposal.withdrawn_because] || "Withdrawn.", "hint"));
+  if (host && proposal.evidence?.status === "pending") item.append(element("p", "Waiting for the source message to finish recording.", "hint"));
+  if (host && proposal.evidence?.status === "not_cited") item.append(element("p", "Your agent cited no source messages for this suggestion.", "hint"));
+  if (host && proposal.evidence?.status === "unavailable" && proposal.status !== "withdrawn") item.append(element("p", "Some original evidence is no longer available. Your earlier decision is unchanged.", "hint"));
   if (proposal.sources.length) item.append(proposalSources(proposal));
   if (proposal.status === "open") {
     const actions = element("div", undefined, "row persona-actions");
@@ -860,6 +864,7 @@ function proposalItem(proposal) {
       notify(host ? "Suggestion rejected." : "Suggestion rejected. None of this kind for 30 days.");
       await loadProposals();
     });
+    if (host && proposal.evidence?.status === "pending") accept.disabled = true;
     actions.append(accept, reject);
     item.append(actions);
   }

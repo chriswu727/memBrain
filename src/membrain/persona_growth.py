@@ -51,8 +51,10 @@ Changes the host AI proposes (kind ``host``) use the same records and decisions.
 card with a reason (``propose_change``); nothing changes until the user says yes in the conversation
 (``confirm_change``) or accepts it on the memory page, where it is listed with the others. At most one is open: a new
 one withdraws the previous one ("replaced"), and a proposal made on an older version of the card is withdrawn once the
-card changes ("persona_changed"). A declined one is rejected without a pause; the tool tells the AI not to propose the
-same change again in that conversation. The rule that keeps the AI from confirming its own proposal is stated at
+card changes ("persona_changed"). A changed or removed citation withdraws an undecided host suggestion; an
+unrecorded citation is shown as pending and cannot authorize a change. A decision already made is retained, but
+never quotes a later source revision as its evidence. An uncited suggestion is explicitly labelled. A declined one
+is rejected without a pause; the tool tells the AI not to propose the same change again in that conversation. The rule that keeps the AI from confirming its own proposal is stated at
 ``confirm_change``.
 """
 from __future__ import annotations
@@ -356,7 +358,8 @@ def _entry(row) -> dict | None:
     if observed.get("actor_role") != "system" or row["producer_ref"] not in (PROPOSALS_PRODUCER, ARCHIVE_PRODUCER):
         return None
     base = {"id": document["event_id"], "sequence": int(document["sequence"]),
-            "recorded_at": str(document["system_time"]["recorded_at"])}
+            "recorded_at": str(document["system_time"]["recorded_at"]),
+            "imported": row["producer_ref"] == ARCHIVE_PRODUCER}
     try:
         stored = json.loads(observed["content"].get("text") or "")
         if not isinstance(stored, dict):
@@ -647,7 +650,7 @@ class _State:
         self.confirmations = [entry for entry in self.records if entry["type"] == "confirmation"]
         hosts = [entry for entry in proposals if entry["kind"] == HOST]
         self._newest_host = max((entry["sequence"] for entry in hosts), default=0)
-        self._quotes = _host_quotes(service, conn, principal, brain_id, hosts)
+        self._quotes, self._evidence = _host_evidence(service, conn, principal, brain_id, hosts, self.decisions, self.after)
         undecided = sorted({source for entry in proposals if entry["kind"] != HOST
                             for source in entry["source_event_ids"]})
         valid = {item["event_id"]: item for item in _feedback(
@@ -671,7 +674,8 @@ class _State:
         result = {"id": entry["id"], "kind": HOST, "label": HOST_LABEL[0], "language": None,
                   "proposed_at": entry["proposed_at"], "sequence": entry["sequence"], "status": "open",
                   "withdrawn_because": None, "decided_at": None, "version": None, "paused_until": None,
-                  "sources": sources, "source_count": len(sources), "change": None, "changes": None,
+                  "sources": sources, "source_count": len(sources), "evidence": self._evidence[entry["id"]],
+                  "change": None, "changes": None,
                   "proposed_card": None, "current_version": self.version, "reason": entry["reason"],
                   "base_version": entry["base_version"],
                   "waiting_for_confirmation": any(item["proposal_id"] == entry["id"] for item in self.confirmations)}
@@ -684,6 +688,9 @@ class _State:
             return {**result, "status": "withdrawn", "withdrawn_because": "replaced", "waiting_for_confirmation": False}
         if entry["base_version"] != self.version:
             return {**result, "status": "withdrawn", "withdrawn_because": "persona_changed",
+                    "waiting_for_confirmation": False}
+        if result["evidence"]["unavailable"]:
+            return {**result, "status": "withdrawn", "withdrawn_because": "source_unavailable",
                     "waiting_for_confirmation": False}
         return {**result, "changes": _changes(self.card, entry["proposed_card"]),
                 "proposed_card": entry["proposed_card"]}
@@ -1025,23 +1032,70 @@ def _changes(before: dict, after: dict) -> list[dict]:
     return result
 
 
-def _host_quotes(service, conn, principal, brain_id, proposals) -> dict[str, list[dict]]:
-    """The cited user messages each host proposal quotes, read from the messages themselves (so a deleted message
-    is never quoted); references to messages recorded after the proposal resolve to them."""
-    keys = [_key(reference) for entry in proposals for reference in entry["source_messages"]]
-    found = _recorded(service, conn, principal, brain_id, keys)
-    wanted = {entry["id"]: list(dict.fromkeys(entry["source_event_ids"] + [
-        found[_key(reference)] for reference in entry["source_messages"] if _key(reference) in found]))
-        for entry in proposals}
-    ids = sorted({ident for values in wanted.values() for ident in values})
+def _host_evidence(service, conn, principal, brain_id, proposals, decisions, after):
+    """Quote only the revision a suggestion saw, and distinguish an unrecorded reference from lost evidence.
+
+    Event ids refer to the revision preceding the proposal. Exact references may arrive afterwards (hook hosts
+    record the current turn at its end), but never after a decision. Read tombstones as well as visible rows so an
+    erased or superseded reference cannot masquerade as a message still waiting to arrive. No source text is copied.
+    """
+    ids = sorted({ident for entry in proposals for ident in entry["source_event_ids"]})
+    keys = sorted({_key(ref)[:2] for entry in proposals for ref in entry["source_messages"]})
     rows = conn.execute(
-        "SELECT id,conversation_id,document->'observed'->'content'->>'text' AS text,"
-        "document->'system_time'->>'recorded_at' AS recorded_at FROM memory_events "
-        f"WHERE {_VISIBLE} AND id = ANY(%s::text[]) AND document->'observed'->>'actor_role'='user'",
-        (*service._params(principal, brain_id), ids)).fetchall() if ids else []
-    quoted = {row["id"]: {"event_id": row["id"], "text": _quote(row["text"]), "recorded_at": row["recorded_at"],
-                          "conversation_id": row["conversation_id"]} for row in rows}
-    return {proposal: [quoted[ident] for ident in values if ident in quoted] for proposal, values in wanted.items()}
+        "SELECT DISTINCT ON (id) id,sequence,producer_ref,source_key,source_revision,conversation_id,is_current,deleted,suppressed,"
+        "retired,document IS NOT NULL AS has_document,document->'observed'->>'actor_role' AS role,"
+        "document->'observed'->'content'->>'text' AS text,document->'system_time'->>'recorded_at' AS recorded_at "
+        "FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+        "AND (id=ANY(%s::text[]) OR (producer_ref,source_key) IN "
+        "(SELECT * FROM unnest(%s::text[],%s::text[]))) ORDER BY id,source_revision DESC",
+        (*service._params(principal, brain_id), ids, [key[0] for key in keys], [key[1] for key in keys]),
+    ).fetchall() if ids or keys else []
+    by_id, by_key = {}, {}
+    for row in rows:
+        by_id.setdefault(row["id"], row)
+        by_key.setdefault((row["producer_ref"], row["source_key"]), row)
+
+    candidates = list(by_id)
+    eligible = {row["id"] for row in _candidates(service, conn, principal, brain_id, after=after,
+                                                ids=candidates, reported=candidates)} if candidates else set()
+
+    def visible(row):
+        return (row is not None and row["id"] in eligible and row["is_current"] and row["has_document"] and row["role"] == "user"
+                and not (row["deleted"] or row["suppressed"] or row["retired"]))
+
+    quotes, evidence = {}, {}
+    for entry in proposals:
+        available, available_citations, pending, unavailable = {}, 0, 0, 0
+        decision = decisions.get(entry["id"])
+        for ident in entry["source_event_ids"]:
+            row = by_id.get(ident)
+            if visible(row) and row["sequence"] < entry["sequence"]:
+                available[ident] = row
+                available_citations += 1
+            else:
+                unavailable += 1
+        for ref in entry["source_messages"]:
+            row = by_key.get(_key(ref)[:2])
+            if row is None or (visible(row) and row["source_revision"] < ref["source_revision"]):
+                # Once decided, a missing citation is missing evidence, never permission to add it later.
+                if decision or entry["imported"]:
+                    unavailable += 1
+                else:
+                    pending += 1
+            elif (visible(row) and row["source_revision"] == ref["source_revision"]
+                  and (decision is None or row["sequence"] < decision["sequence"])):
+                available[row["id"]] = row
+                available_citations += 1
+            else:
+                unavailable += 1
+        cited = len(entry["source_event_ids"]) + len(entry["source_messages"])
+        status = "unavailable" if unavailable else "pending" if pending else "available" if cited else "not_cited"
+        evidence[entry["id"]] = {"status": status, "cited": cited, "available": available_citations,
+                                  "pending": pending, "unavailable": unavailable}
+        quotes[entry["id"]] = [{"event_id": row["id"], "text": _quote(row["text"]),
+                                "recorded_at": row["recorded_at"], "conversation_id": row["conversation_id"]}
+                               for row in available.values()]
+    return quotes, evidence
 
 
 LIST_FIELDS = ("traits", "values", "boundaries")
@@ -1075,6 +1129,8 @@ def _accept_host(service, conn, principal, brain, proposal, confirmed_by) -> dic
     the host AI proposed it and names the message that confirmed it (None when accepted on the memory page)."""
     from .persona import _origin, _save_in
 
+    if proposal["evidence"]["pending"]:
+        raise DomainError("source_unavailable", "The suggestion is waiting for its source messages to finish recording.")
     host_proposal = {"proposal_id": proposal["id"], "confirmed_by": confirmed_by}
     saved = _save_in(service, conn, principal, brain,
                      lambda find: (proposal["proposed_card"], {"host_proposal": host_proposal,
@@ -1184,6 +1240,8 @@ def confirm_change(service, principal, brain_id: str, proposal_id: str, *, sourc
             return {**result, "status": "confirmed"}
         if not _replied_since(service, conn, principal, brain_id, proposal["sequence"]):
             raise DomainError("source_unavailable", TOO_EARLY)
+        if proposal["evidence"]["pending"]:
+            raise DomainError("source_unavailable", "The suggestion is waiting for its source messages to finish recording.")
         reference = waiting[0]
         if not any(item["proposal_id"] == proposal_id and _key(item["message"]) == _key(reference)
                    for item in state.confirmations):
@@ -1224,7 +1282,7 @@ def _confirm_waiting(service, conn, principal, brain, event, event_id) -> None:
     for proposal_id in dict.fromkeys(wanted):
         state = _State(service, conn, principal, brain["id"])
         proposal = next((item for item in state.proposals if item["id"] == proposal_id and item["kind"] == HOST
-                         and item["status"] == "open"), None)
+                         and item["status"] == "open" and not item["evidence"]["pending"]), None)
         if proposal is not None and _answered(service, conn, principal, brain["id"], event_id, proposal["sequence"]):
             row = conn.execute("SELECT document->'system_time'->>'recorded_at' AS recorded_at FROM memory_events "
                                f"WHERE {_VISIBLE} AND id=%s",

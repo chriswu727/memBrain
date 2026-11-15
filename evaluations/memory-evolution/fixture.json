@@ -1,0 +1,147 @@
+{
+  "description": "Synthetic fixtures authored before measurement. Scripted cues and notes are not model outputs.",
+  "facts": [
+    {
+      "key": "hobby",
+      "text": "I signed up for a pottery class on Thursdays at Clay House.",
+      "note": "Attends pottery class on Thursdays at Clay House.",
+      "kind": "routine",
+      "cues": [
+        "user hobbies and activities"
+      ],
+      "query": "What are my hobbies?",
+      "evidence": [
+        "pottery",
+        "Thursdays"
+      ]
+    },
+    {
+      "key": "sister",
+      "text": "My sister Ana moved to Porto last spring and works at a bakery.",
+      "note": "Sister Ana lives in Porto and works at a bakery.",
+      "kind": "person",
+      "cues": [
+        "user family members residence occupation"
+      ],
+      "query": "Where does my sibling live?",
+      "evidence": [
+        "Ana",
+        "Porto"
+      ]
+    },
+    {
+      "key": "food",
+      "text": "I never eat meat. I switched to a vegetarian diet last year.",
+      "note": "Follows a vegetarian diet.",
+      "kind": "preference",
+      "cues": [
+        "user dietary restrictions food preferences"
+      ],
+      "query": "What dietary restrictions should a dinner invitation respect?",
+      "evidence": [
+        "vegetarian"
+      ]
+    },
+    {
+      "key": "trip",
+      "text": "I booked the train to Kyoto for April 9. The reservation is confirmed.",
+      "note": "Train to Kyoto is booked for April 9.",
+      "kind": "plan",
+      "cues": [
+        "user travel plans destination date"
+      ],
+      "query": "What is my next travel plan?",
+      "evidence": [
+        "Kyoto",
+        "April 9"
+      ]
+    },
+    {
+      "key": "pet",
+      "text": "Our cat Juniper dislikes the vacuum and hides in the wardrobe.",
+      "note": "Cat Juniper hides in the wardrobe when the vacuum runs.",
+      "kind": "person",
+      "cues": [
+        "user pet name habits"
+      ],
+      "query": "What is my pet called?",
+      "evidence": [
+        "Juniper"
+      ]
+    },
+    {
+      "key": "place",
+      "text": "After moving out of Lima, I now live in Cusco near the square.",
+      "note": "Currently lives in Cusco; previously lived in Lima.",
+      "kind": "other",
+      "cues": [
+        "user current city residence move"
+      ],
+      "query": "Which city do I currently live in?",
+      "evidence": [
+        "Cusco"
+      ]
+    },
+    {
+      "key": "work",
+      "text": "I left accounting because the night shifts kept me away from my family.",
+      "note": "Left accounting because night shifts reduced family time.",
+      "kind": "milestone",
+      "cues": [
+        "user reasons for changing jobs"
+      ],
+      "query": "Why did I change jobs?",
+      "evidence": [
+        "night shifts",
+        "family"
+      ]
+    },
+    {
+      "key": "replies",
+      "text": "Your replies are too long. Please keep the next ones brief.",
+      "note": "Prefers brief replies.",
+      "kind": "preference",
+      "cues": [
+        "user communication preferences response length"
+      ],
+      "query": "How much detail do I want in replies?",
+      "evidence": [
+        "brief"
+      ]
+    }
+  ],
+  "distractors": [
+    "Workshop log 00: reviewed cable labels and counted 10 empty containers. No personal plans or decisions were made.",
+    "Workshop log 01: reviewed cable labels and counted 11 empty containers. No personal plans or decisions were made.",
+    "Workshop log 02: reviewed cable labels and counted 12 empty containers. No personal plans or decisions were made.",
+    "Workshop log 03: reviewed cable labels and counted 13 empty containers. No personal plans or decisions were made.",
+    "Workshop log 04: reviewed cable labels and counted 14 empty containers. No personal plans or decisions were made.",
+    "Workshop log 05: reviewed cable labels and counted 15 empty containers. No personal plans or decisions were made.",
+    "Workshop log 06: reviewed cable labels and counted 16 empty containers. No personal plans or decisions were made.",
+    "Workshop log 07: reviewed cable labels and counted 17 empty containers. No personal plans or decisions were made.",
+    "Workshop log 08: reviewed cable labels and counted 18 empty containers. No personal plans or decisions were made.",
+    "Workshop log 09: reviewed cable labels and counted 19 empty containers. No personal plans or decisions were made.",
+    "Workshop log 10: reviewed cable labels and counted 20 empty containers. No personal plans or decisions were made.",
+    "Workshop log 11: reviewed cable labels and counted 21 empty containers. No personal plans or decisions were made.",
+    "Workshop log 12: reviewed cable labels and counted 22 empty containers. No personal plans or decisions were made.",
+    "Workshop log 13: reviewed cable labels and counted 23 empty containers. No personal plans or decisions were made.",
+    "Workshop log 14: reviewed cable labels and counted 24 empty containers. No personal plans or decisions were made.",
+    "Workshop log 15: reviewed cable labels and counted 25 empty containers. No personal plans or decisions were made.",
+    "Workshop log 16: reviewed cable labels and counted 26 empty containers. No personal plans or decisions were made.",
+    "Workshop log 17: reviewed cable labels and counted 27 empty containers. No personal plans or decisions were made.",
+    "Workshop log 18: reviewed cable labels and counted 28 empty containers. No personal plans or decisions were made.",
+    "Workshop log 19: reviewed cable labels and counted 29 empty containers. No personal plans or decisions were made.",
+    "Workshop log 20: reviewed cable labels and counted 30 empty containers. No personal plans or decisions were made.",
+    "Workshop log 21: reviewed cable labels and counted 31 empty containers. No personal plans or decisions were made.",
+    "Workshop log 22: reviewed cable labels and counted 32 empty containers. No personal plans or decisions were made.",
+    "Workshop log 23: reviewed cable labels and counted 33 empty containers. No personal plans or decisions were made.",
+    "Workshop log 24: reviewed cable labels and counted 34 empty containers. No personal plans or decisions were made.",
+    "Workshop log 25: reviewed cable labels and counted 35 empty containers. No personal plans or decisions were made.",
+    "Workshop log 26: reviewed cable labels and counted 36 empty containers. No personal plans or decisions were made.",
+    "Workshop log 27: reviewed cable labels and counted 37 empty containers. No personal plans or decisions were made.",
+    "Workshop log 28: reviewed cable labels and counted 38 empty containers. No personal plans or decisions were made.",
+    "Workshop log 29: reviewed cable labels and counted 39 empty containers. No personal plans or decisions were made.",
+    "Workshop log 30: reviewed cable labels and counted 40 empty containers. No personal plans or decisions were made.",
+    "Workshop log 31: reviewed cable labels and counted 41 empty containers. No personal plans or decisions were made."
+  ]
+}

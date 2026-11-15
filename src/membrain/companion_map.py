@@ -222,8 +222,10 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
         if proposal["status"] == "accepted":
             version_id = persona_ids.get(proposal["version"])
             matched = next((version for version in versions if version["version"] == proposal["version"]), None)
-            if matched and (matched.get("feedback") or {}).get("proposal_id") == proposal["id"]:
-                graph.edge(version_id, ident, "accepted_proposal", "persona_feedback_proposal_id")
+            if matched and any((matched.get(origin) or {}).get("proposal_id") == proposal["id"]
+                               for origin in ("feedback", "host_proposal")):
+                graph.edge(version_id, ident, "accepted_proposal",
+                           "persona_host_proposal_id" if proposal["kind"] == "host" else "persona_feedback_proposal_id")
 
     for trigger in current_mood["triggers"]:
         source = trigger["source"]
