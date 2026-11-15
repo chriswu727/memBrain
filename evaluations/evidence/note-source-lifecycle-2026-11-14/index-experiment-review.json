@@ -1,0 +1,13 @@
+{
+  "status": "rejected_optimization",
+  "reason": "Both index variants produced a sequential scan under the application role after owner-run ANALYZE. No source migration retained.",
+  "matched_rows": 2,
+  "unrelated_rows_filtered": 10000,
+  "scope": "Warm one-query access-path diagnostic; not an end-to-end latency or scaling benchmark.",
+  "harness_failures": [
+    "First run attempted index DDL under the app role and was denied by PostgreSQL.",
+    "Second run analyzed under the app role; corrected to owner-run ANALYZE.",
+    "Owner-analyzed run still did not use the expanded GIN index; its index-use assertion failed."
+  ],
+  "source_runtime_changed": false
+}

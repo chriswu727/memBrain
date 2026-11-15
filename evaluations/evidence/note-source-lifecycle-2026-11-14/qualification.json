@@ -1,0 +1,32 @@
+{
+  "runtime": "548674ce18a147b9fae00b547eae5f50dbbcaa69",
+  "source": "0b0392bcbedabcf6b262efbdae3f612a556a9688",
+  "implementation_pr": 70,
+  "merge": "13b0e906e0f3d5ecca1e3131803484bebb17c3f6",
+  "merge_tree_matches_qualified_source": true,
+  "verify": {
+    "run": 43669203478,
+    "job": 132675253312,
+    "conclusion": "success",
+    "python_passed": 4105,
+    "python_skipped": 0,
+    "python_warnings": 3,
+    "typescript_passed": 39,
+    "typescript_skipped": 0,
+    "ruff": "passed",
+    "typecheck": "passed",
+    "sdist_wheel": "passed"
+  },
+  "local_final": {
+    "tests_passed": 35,
+    "pin_checks_passed": 2,
+    "runtime_unchanged_during_tests": true,
+    "database_stopped": true
+  },
+  "native_platforms_rerun": false,
+  "paid_evaluations_run": false,
+  "R4": "failed (unchanged)",
+  "C5": "invalid/unscored (unchanged)",
+  "index_experiment": "rejected; no migration retained",
+  "main_release_or_tag_changes": false
+}

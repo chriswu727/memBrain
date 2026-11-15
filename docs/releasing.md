@@ -6,12 +6,12 @@ As of 2026-11-14. Each row names the runtime its evidence covers; a row whose ru
 
 | Item | State | Runtime covered |
 | --- | --- | --- |
-| Pinned runtime | Source `e8383a85` (pin `b4d0e761`); qualified source `f471c0db`, integrated through [PR #68](https://github.com/chriswu727/memBrain/pull/68) | — |
-| Full source suite, CI Linux | 4,084 passed, zero skipped, three existing Python fork warnings ([report](../evaluations/memory-evolution-2026-11-14.md)); retired runtime tests are no longer counted | `e8383a85` |
+| Pinned runtime | Source `548674ce` (pin and qualified source `0b0392bc`), integrated through [PR #70](https://github.com/chriswu727/memBrain/pull/70) | — |
+| Full source suite, CI Linux | 4,105 passed, zero skipped, three existing Python fork warnings ([report](../evaluations/note-source-lifecycle-2026-11-14.md)); retired runtime tests are no longer counted | `548674ce` |
 | Second AI | memBrain calls no model of its own; the own-model learning pipeline and bundled turn/chat runtime are removed. Host tools drive memory writes; legacy data remains readable/exportable/erasable ([closeout](../evaluations/backend-host-erasure-2026-11-14.md)) | `83d2282e` |
 | Second benchmark, model-free | LongMemEval, 60 questions, nothing tuned: evidence in the user's words 90.2% against 84.3% for plain retrieval; in the assistant's words 11% against 100% ([report](../evaluations/longmemeval-evidence-recall-2026-11-12.md)) | `75f50fd` |
-| GitHub Verify | [Passed](https://github.com/chriswu727/memBrain/actions/runs/43664724697): Python plus 39 TypeScript tests, type checks and both package builds | `e8383a85` |
-| Five-platform native qualification | [Five native engine jobs passed on the previous source](https://github.com/chriswu727/memBrain/actions/runs/43631724954), including Windows and both Mac architectures; not rerun for `e8383a85` | `83d2282e` |
+| GitHub Verify | [Passed](https://github.com/chriswu727/memBrain/actions/runs/43669203478): Python plus 39 TypeScript tests, type checks and both package builds | `548674ce` |
+| Five-platform native qualification | [Five native engine jobs passed on the previous source](https://github.com/chriswu727/memBrain/actions/runs/43631724954), including Windows and both Mac architectures; not rerun for `548674ce` | `83d2282e` |
 | Real Mac installation, 49 checks | Passed | `7902c16e` |
 | R5 overhead on the reference fixture | Passed 36 of 36 windows; **must be repeated**, the recall path has changed since | `f5e265c` |
 | R4 behavioural acceptance | **Failed** ([fifth attempt](../evaluations/maturity-fifth-attempt-2026-11-07.md): plugin passed, extraction failed). The extraction path has since been removed; no attempt has been run without it | `7902c16e` |
@@ -24,6 +24,15 @@ As of 2026-11-14. Each row names the runtime its evidence covers; a row whose ru
 No version tag, release or package upload exists, and none is made until the product is mature.
 
 ## History
+
+**Deferred-note source lifecycle (2026-11-14):** [Report, failures and rejected index experiment](../evaluations/note-source-lifecycle-2026-11-14.md).
+Known unavailable revisions cannot masquerade as pending sources, and incompatible late arrivals retire the
+interpretation and dependent affect/shared-moment evidence. Hidden or replaced notes still acquire the erasure
+relationship when their source arrives. Exact same-turn references, independent notes, capture fences and replacement
+inheritance are preserved. Full Verify passes 4,105 Python and 39 TypeScript tests with zero skips and three existing
+fork warnings. An expanded GIN index was rejected after it failed to change the application-role query plan; there is
+no new migration or speedup claim. Retained-history lookup cost and legacy identity limits remain documented.
+R4 remains failed and C5 invalid/unscored; native-platform and real-host behaviour were not requalified.
 
 **Memory evolution and evidence (2026-11-14):** [Report, retained failures and diagnostic](../evaluations/memory-evolution-2026-11-14.md).
 Host persona suggestions now distinguish pending, unavailable and uncited evidence; changed sources withdraw an

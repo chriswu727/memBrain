@@ -1,0 +1,58 @@
+"""Compare indexes for the same production source-arrival SELECT on one synthetic data set."""
+import ast
+import json
+import os
+import psycopg
+import sys
+from pathlib import Path
+
+import pytest
+from psycopg.types.json import Jsonb
+
+SOURCE = Path("<WORKTREE>")
+sys.path.insert(0, str(SOURCE / "tests"))
+from test_note_workflow import brain as brain, write
+from test_note_pending_sources import forget, reference
+
+pytestmark = pytest.mark.integration
+
+
+def test_source_arrival_query_uses_the_expanded_index(brain):
+    pending = write(brain, "Synthetic visible interpretation.", source_messages=[reference()])
+    hidden = write(brain, "Synthetic hidden interpretation.", source_messages=[reference()])
+    forget(brain, hidden["note_id"], "suppress_recall")
+    params = (brain.principal.tenant_id, brain.principal.principal_id, brain.brain)
+    tree = ast.parse((SOURCE / "src/membrain/note_sources.py").read_text())
+    sql = next(node.args[0].value for node in ast.walk(tree)
+               if isinstance(node, ast.Call) and node.args and isinstance(node.args[0], ast.Constant)
+               and isinstance(node.args[0].value, str) and "AS refs FROM memory_events" in node.args[0].value)
+    arguments = (*params, ["membrain-notes", "membrain-affect"],
+                 Jsonb([{k: v for k, v in reference().items() if k != "source_revision"}]))
+    output = {"fixture": "10,000 unrelated synthetic note rows, half suppressed, plus two matching notes (one suppressed)",
+              "scope": "One source-arrival SELECT, same runtime, PostgreSQL, data, parameters and connection; no model or recall benchmark",
+              "sql": sql, "plans": {}}
+    with brain.service.database.transaction(brain.principal) as conn:
+        # Clone note-shaped rows directly: this diagnostic measures index access, not write throughput.
+        conn.execute("INSERT INTO memory_events(tenant_id,owner_id,brain_id,id,revision,sequence,producer_ref,"
+                     "source_key,source_revision,conversation_id,branch_id,content_hash,input_hash,document,suppressed) "
+                     "SELECT tenant_id,owner_id,brain_id,'noise-' || n,1,1000+n,producer_ref,'noise-' || n,1,"
+                     "conversation_id,branch_id,content_hash,input_hash,jsonb_set(document,'{observed,source_references}',"
+                     "jsonb_build_array(jsonb_build_object('producer_ref','timeline-test',"
+                     "'source_event_key','unrelated-' || n,'source_revision',1))),n %% 2=0 "
+                     "FROM memory_events CROSS JOIN generate_series(1,10000) AS n WHERE tenant_id=%s AND owner_id=%s "
+                     "AND brain_id=%s AND id=%s", (*params, pending["note_id"]))
+    with psycopg.connect(os.environ["MEMORY_MIGRATION_DATABASE_URL"], autocommit=True) as owner:
+        for label, ddl in (("previous_index", "DROP INDEX memory_events_note_sources;\n" +
+                            (SOURCE / "migrations/025_note_source_references.sql").read_text()),
+                           ("expanded_index", (SOURCE / "migrations/037_note_source_lifecycle.sql").read_text())):
+            owner.execute(ddl)
+            owner.execute("ANALYZE memory_events")
+            with brain.service.database.transaction(brain.principal) as conn:
+                for _ in range(2):
+                    rows = conn.execute(sql, arguments).fetchall()  # Two warmups, identical in each arm.
+                    assert {row["id"] for row in rows} == {pending["note_id"], hidden["note_id"]}
+                output["plans"][label] = conn.execute("EXPLAIN (ANALYZE,BUFFERS,FORMAT JSON) " + sql, arguments).fetchone()["QUERY PLAN"][0]
+    def names(node):
+        return [node.get("Index Name")] + [name for child in node.get("Plans", []) for name in names(child)]
+    Path(__file__).with_name("index-diagnostic.json").write_text(json.dumps(output, indent=2))
+    assert "memory_events_note_sources" in names(output["plans"]["expanded_index"]["Plan"])
