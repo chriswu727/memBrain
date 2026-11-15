@@ -52,3 +52,31 @@ def test_fullscreen_persona_graph_drops_evidence_revised_after_acceptance(server
                    if edge['type'] in {'based_on_feedback', 'proposed_from_feedback'})
     assert client.persona()['card']['voice']['register'] == 'casual'
     page.locator('#show-close').click()
+
+
+def test_host_suggestion_shows_pending_then_withdraws_changed_evidence(server, page, account):
+    key, client = account
+    client.set_persona(CARD, made_by="user")
+    reference = {"producer_ref": "evidence-browser", "source_event_key": "request", "source_revision": 1}
+    proposal = client.propose_persona_change({"traits": ["patient"]}, reason="The user asked for patience.",
+                                             source_messages=[reference])["proposal"]
+    sign_in(page, server.base_url, key)
+    open_view(page, "persona")
+    item = page.locator(".persona-proposal.proposal-open")
+    item.get_by_text("Waiting for the source message to finish recording.", exact=True).wait_for()
+    assert item.get_by_role("button", name="Accept", exact=True).is_disabled()
+    client.observe("Please be patient with me.", conversation_id="chat", branch_id="main",
+                   source_event_key="request", producer_ref="evidence-browser")
+    page.evaluate("async () => { await window.loadProposals(); }")
+    item.get_by_text("Please be patient with me.", exact=True).wait_for()
+    assert item.get_by_role("button", name="Accept", exact=True).is_enabled()
+    client.observe("Keep your present manner instead.", conversation_id="chat", branch_id="main",
+                   source_event_key="request", producer_ref="evidence-browser", source_revision=2)
+    page.evaluate("async () => { await window.loadProposals(); }")
+    page.locator("#persona-proposals-earlier summary").click()
+    withdrawn = page.locator(".persona-proposal.proposal-withdrawn")
+    withdrawn.get_by_text("Withdrawn: a cited message was changed or removed. Ask your agent for a fresh suggestion.",
+                          exact=True).wait_for()
+    assert withdrawn.get_by_role("button", name="Accept", exact=True).count() == 0
+    assert client.persona()["version"] == 1
+    assert client.persona_proposals()["proposals"][0]["id"] == proposal["id"]
