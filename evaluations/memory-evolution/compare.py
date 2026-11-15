@@ -24,7 +24,6 @@ import psycopg
 from psycopg import sql
 
 from membrain import desktop, embedded_database, host
-from membrain.client import default_budget, recalled_context
 from membrain.local_profile import ensure_profile, load_profile
 from membrain.notes import list_notes, render_notes, save_note
 
@@ -128,6 +127,14 @@ def run(out, repeats, cap):
                                       "enrichment": {"notes_write_ms": notes_ms, "cue_batch_read_write_ms": cue_ms,
                                       "cue_input_characters": cue_input, "cue_output_characters": cue_output,
                                       "model_generation_cost": "not measured; scripted fixtures, zero model calls"}}
+            # A known exact fact must be retrievable in every arm before any comparison is valid. This is a
+            # correctness preflight, not one of the eight measurement questions or a claim of a cold cache.
+            for arm in ARMS:
+                client.brain_id = report["arms"][arm]["brain_id"]
+                control = host.recall_context(client, "pottery class Thursdays Clay House", limit=cap, deliberate=True)
+                if not control or "pottery" not in control or "Thursdays" not in control:
+                    raise RuntimeError(f"Positive retrieval control failed in {arm}; comparison is invalid.")
+            report["positive_controls_passed"] = True
             # Rotate the arm order each repetition to avoid always assigning first position to one arm.
             rng = random.Random(20261114)
             for repeat in range(repeats + 1):
@@ -139,9 +146,9 @@ def run(out, repeats, cap):
                         start = time.perf_counter()
                         prefix = (render_notes(list_notes(client), budget=cap // 3, affect=False) or "") if arm != "raw" else ""
                         prefix = prefix[:cap]
-                        response = client.recall(fact["query"], budget={**default_budget(600), "max_embedding_calls": 0},
-                                                 ranking="relevance")
-                        context = prefix + recalled_context(response)[:max(0, cap - len(prefix))]
+                        remaining = max(0, cap - len(prefix))
+                        recalled = host.recall_context(client, fact["query"], limit=remaining, deliberate=True) or ""
+                        context = prefix + recalled[:remaining]
                         elapsed = (time.perf_counter() - start) * 1000
                         rows.append({"arm": arm, "query": fact["key"], "phase": "first" if repeat == 0 else "warm",
                                      "repeat": repeat, "latency_ms": elapsed, "context_characters": len(context),
