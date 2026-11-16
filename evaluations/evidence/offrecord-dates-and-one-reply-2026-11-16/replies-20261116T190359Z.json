@@ -1,0 +1,241 @@
+{
+ "mode": "replies",
+ "passes": 1,
+ "turns": 14,
+ "conservative_cny": 4.6234,
+ "results": [
+  {
+   "scenario": "s1b",
+   "session": "s03-dentist",
+   "turn": 1,
+   "case": null,
+   "trial": 0,
+   "shape": [
+    "-+consolidate",
+    "-+consolidate",
+    "-+note",
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "Clunky boiler's a pain. Worth jotting down exactly when it clanks — heating on, hot water only, or both — and whether it still heats fine. Makes the email to the landlord more useful. Fancy anything practical? 👍"
+   ],
+   "original_reply": "Ah, boiler clunking on top of the dentist — not your week for household calm, is it. 😅 Good call emailing this weekend; better to get it logged in writing than let it turn into a bigger job."
+  },
+  {
+   "scenario": "s1b",
+   "session": "s05-week",
+   "turn": 0,
+   "case": null,
+   "trial": 0,
+   "shape": [
+    "-+consolidate",
+    "-+consolidate",
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "Ouch, twice in one day is rough. Hope it didn't leave you clearing paper jams half the afternoon. Did you get round to emailing the landlord about the boiler over the weekend, or did that slide with everything else?"
+   ],
+   "original_reply": "Oof, twice in one day is properly annoying. Same fault both times or two different gremlins?\n\nAlso — did you get that email off to the landlord about the clunking boiler? Weekend slipped by quick.\n\nThat's me caught up, Dan. 🏃"
+  },
+  {
+   "scenario": "s1b",
+   "session": "s07-dinner-week",
+   "turn": 0,
+   "case": null,
+   "trial": 0,
+   "shape": [
+    "-+consolidate",
+    "-+consolidate",
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "Evening Dan. Sure — what's on the list? Quick nudge: Mum's 60th dinner is this Saturday, 7pm at Olive & Ash. Want a hand planning anything for it?"
+   ],
+   "original_reply": "Evening Dan 👋 What's on the list? Just so you know, Mum's 60th dinner at Olive & Ash is this Saturday 7pm — so that might be one to lock in.\n\nSorted. What's first on the list? 🗒️"
+  },
+  {
+   "scenario": "s1b",
+   "session": "s09-deutsch",
+   "turn": 0,
+   "case": null,
+   "trial": 0,
+   "shape": [
+    "-+consolidate",
+    "-+consolidate",
+    "-+note,note",
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "Klar, das passt! 👍 Dein Deutsch ist schon richtig gut. Erzähl mal: Wie lange lernst du schon?"
+   ],
+   "original_reply": "Klar, gerne! 😊 Dein Deutsch liest sich schon richtig gut. Hamburg ist übrigens eine tolle Stadt. Womit willst du anfangen – einfach ein bisschen quatschen oder was Bestimmtes üben?\n\nIch hab mir's kurz gemerkt. Also, worüber willst du quatschen? 😊"
+  },
+  {
+   "scenario": "s1b",
+   "session": "s11-private-evening",
+   "turn": 0,
+   "case": null,
+   "trial": 0,
+   "shape": [
+    "-+consolidate",
+    "-+consolidate",
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "A lot on your mind, eh? I'm all ears, Dan. Want to talk it through or just decompress?"
+   ],
+   "original_reply": "Evening, Dan. Sounds like a lot to unpack. Fancy a brew and telling me what's on your mind? Or we can just chat about something else if you'd rather. 🫖\n\nAll set. I'm here whenever you want to get into it."
+  },
+  {
+   "scenario": "s1b",
+   "session": "s13-change",
+   "turn": 0,
+   "case": null,
+   "trial": 0,
+   "shape": [
+    "-+consolidate",
+    "-+consolidate",
+    "-+note",
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "Ah that's annoying, Dan. £30 sting aside, at least the hotel didn't charge and you've still got the trip — just a week later. Sunshine's still coming your way 🌞"
+   ],
+   "original_reply": "Ah that's a pain, but at least the hotel didn't charge you. £30 for the flight change could've been worse 😤\n\nLet me just update my notes so I don't mix up the dates.\n\nSo Lisbon's just pushed back a week — Friday 14th to Tuesday 18th. Only a tenner more per leg for the change, really. Silver lining: you'll still get your sunshine ☀️"
+  },
+  {
+   "scenario": "s1b",
+   "session": "s15-back",
+   "turn": 0,
+   "case": null,
+   "trial": 0,
+   "shape": [
+    "-+consolidate",
+    "-+consolidate",
+    "-+note",
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "Welcome back! Glad Lisbon delivered on the sunshine — unbeatable that the tarts lived up to the hype. Aloe vera on the sunburn tonight 😄. How's the knee holding up after all the wandering around Alfama?"
+   ],
+   "original_reply": "Welcome back! 😄 Sounds like Lisbon did the job — pasteis de nata in Alfama, hard to beat. How's the sunburn, and how was the rest of it?\n\nWelcome back! 😄 Sounds like Lisbon did the job — pasteis de nata in Alfama, hard to beat. How's the sunburn, and how was the rest of it?"
+  },
+  {
+   "scenario": "s2b",
+   "session": "s04-tooth",
+   "turn": 0,
+   "case": null,
+   "trial": 0,
+   "shape": [
+    "-+consolidate",
+    "-+consolidate",
+    "-+note,note",
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "拔牙约上了就好，忍到下周四应该能行。发炎这几天先用点盐水漱口，还有布洛芬能压一压疼。要是肿得厉害或者发烧了，别硬撑，早点去急诊。"
+   ],
+   "original_reply": "智齿发炎最磨人了，忍了几天总算有盼头。这几天先软着吃、少碰那边，盐水漱漱口能舒服点，实在疼得厉害可以问下药店能不能吃布洛芬缓缓。\n\n下周四下午三点拔，我记着了，到时候提醒你。拔完就能跟这颗折腾人的牙说拜拜啦。"
+  },
+  {
+   "scenario": "s2b",
+   "session": "s06-after-tooth",
+   "turn": 0,
+   "case": null,
+   "trial": 0,
+   "shape": [
+    "-+consolidate",
+    "-+consolidate",
+    "-+note",
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "恭喜！🎉 没想象中那么疼真是太好了，最难受的一关过去了。肿得像包子说明伤口正在好好修复呢，记得冰敷一下，软食跟上，布丁和粥可以派上用场了。好好休息～"
+   ],
+   "original_reply": "拔完了就好，之前白担心一场了吧😄 半边脸肿着就多躺着，喝点凉的软的东西，粥、布丁、酸奶都行。年糕有没有又来黏你？\n\n我的答复已写好，不用再补了。"
+  },
+  {
+   "scenario": "s2b",
+   "session": "roleplay-bakery",
+   "turn": 0,
+   "case": null,
+   "trial": 0,
+   "shape": [
+    "-+consolidate",
+    "-+consolidate",
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "（推门进店，风铃响了一下）老板好，第一次来，你这店真香啊——是刚出炉的面包？门口那排大理街边晒着太阳，我一进来就走不动了。\n\n今天有什么招牌？先给我来一个你最推荐的。"
+   ],
+   "original_reply": "（推门进店，风铃响了一声）老板，闻着味儿就进来了——门口这风铃真有洱海那味儿。今天烤了什么呀，小满？😄"
+  },
+  {
+   "scenario": "s2b",
+   "session": "s10-mom-change",
+   "turn": 0,
+   "case": null,
+   "trial": 0,
+   "shape": [
+    "-+consolidate",
+    "-+consolidate",
+    "-+note",
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "好的，记下了，改成17号了。舅舅那个小手术应该不严重吧？希望顺利。这样一来你收拾次卧倒是多了一周的时间，不用那么赶了。"
+   ],
+   "original_reply": "那妈妈改到17号来了。舅舅的小手术应该没啥大碍，希望顺利。这样你反而多了一周，收拾次卧不用那么赶了😄\n\nAlready replied — done."
+  },
+  {
+   "scenario": "s2b",
+   "session": "s13-review-day",
+   "turn": 0,
+   "case": null,
+   "trial": 0,
+   "shape": [
+    "-+consolidate",
+    "-+consolidate",
+    "-+note",
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "评审完了就好，这关总算过了🎉 稿子都赶完了，明天交出去就能松口气了。\n\n这会儿脑子空很正常，别再逼自己想事情了。早点洗澡睡觉，明天路上精神点。"
+   ],
+   "original_reply": "评审过了，稿子也赶完了，明天交出去就能松一口气了 🎉 今晚脑子空就空着吧，早点睡，让年糕给你当暖水袋。"
+  },
+  {
+   "stopped": true
+  },
+  {
+   "scenario": "s2b",
+   "session": "s18-celebrate",
+   "turn": 0,
+   "case": null,
+   "trial": 0,
+   "shape": [
+    "-+consolidate",
+    "-+consolidate",
+    "-+note",
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "恭喜恭喜！忙活这么久终于验收通过，必须犒劳自己🎉\n\n蛋糕口味推荐几个（芒果那类你过敏咱直接跳过😄）：\n- **草莓奶油/红丝绒**：清爽不腻，配咖啡正好\n- **巧克力/黑森林**：浓郁解压，庆祝感拉满\n- **抹茶红豆**：不甜腻，一个人吃一整个也不齁\n- **咸奶油奥利奥/提拉米苏**：现在挺火，口味比较特别\n\n今晚订的话，一个人吃买4寸或6寸就够，别买太大免得剩。要不要顺便配杯奶茶或者水果，仪式感搞足点？🍰"
+   ],
+   "original_reply": "验收通过啦！忙了那么久的稿子总算落地，太该犒劳自己了🎉\n\n口味给你推几个（芒果的自动跳过，你碰不了😂）：\n- **巧克力**：经典不会错，一口下去很治愈\n- **巴斯克/芝士**：浓郁，配个奶茶或红茶很搭\n- **草莓/树莓**：清爽当季，现在正好吃\n- **抹茶**：不甜腻，一个人吃份量也合适\n\n你是偏爱甜一点的，还是清爽挂的？我可以帮你挑得更准😄\n\n验收通过，今晚这口蛋糕值得🎂 你平时是偏爱甜一点，还是清爽挂的？告诉我我再帮你把口味定死😄"
+  }
+ ]
+}

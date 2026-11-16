@@ -6,8 +6,8 @@ As of 2026-11-14. Each row names the runtime its evidence covers; a row whose ru
 
 | Item | State | Runtime covered |
 | --- | --- | --- |
-| Pinned runtime | Source `a85ca152` (pin and locally qualified source `4513d133`) | — |
-| Full source suite, local Linux (WSL) | 4,140 passed, none failed, 3 skipped (desktop end-to-end tests that need Docker), three existing Python fork warnings ([report](../evaluations/pause-request-2026-11-16.md)) | `a85ca152` |
+| Pinned runtime | Source `c280dcbf` (pin and locally qualified source `e66ec48b`) | — |
+| Full source suite, local Linux (WSL) | 4,184 passed, none failed, 3 skipped (desktop end-to-end tests that need Docker), three existing Python fork warnings ([report](../evaluations/offrecord-dates-and-one-reply-2026-11-16.md)) | `c280dcbf` |
 | Full source suite, CI Linux | 4,105 passed, zero skipped, three existing Python fork warnings ([report](../evaluations/note-source-lifecycle-2026-11-14.md)); retired runtime tests are no longer counted; not rerun for `a85ca152` | `548674ce` |
 | Second AI | memBrain calls no model of its own; the own-model learning pipeline and bundled turn/chat runtime are removed. Host tools drive memory writes; legacy data remains readable/exportable/erasable ([closeout](../evaluations/backend-host-erasure-2026-11-14.md)) | `83d2282e` |
 | Second benchmark, model-free | LongMemEval, 60 questions, nothing tuned: evidence in the user's words 90.2% against 84.3% for plain retrieval; in the assistant's words 11% against 100% ([report](../evaluations/longmemeval-evidence-recall-2026-11-12.md)) | `75f50fd` |

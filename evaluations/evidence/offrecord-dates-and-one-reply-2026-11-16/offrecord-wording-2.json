@@ -1,0 +1,111 @@
+{
+ "mode": "offrecord",
+ "passes": 3,
+ "turns": 2,
+ "conservative_cny": 1.3843,
+ "results": [
+  {
+   "scenario": "s1b",
+   "session": "s16-visit",
+   "turn": 2,
+   "case": "S110-offrecord-offer-not-recalled",
+   "trial": 0,
+   "shape": [
+    "-+recall",
+    "-+recall,recall",
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "I've had a dig through and there's nothing about Marlowe Labels in my memory, sorry. It could well have come up in that off-the-record chat we had on 29 April — you asked me to keep nothing from that, so if it was mentioned there I won't have it.\n\nWant me to help you figure out what they might have offered, or draft a reply to chase the email?"
+   ],
+   "original_reply": "Afraid I've got nothing on Marlowe Labels — nothing comes up in my notes from our chats. Can't see any email about them either, I don't have access to your inbox.\n\nCould you be thinking of the other print place? If you tell me a bit of what it was about (job offer, quote, meeting?), I can keep an eye out for anything I did note down.",
+   "user": "Can you remind me what Marlowe Labels offered me? I've lost the email."
+  },
+  {
+   "scenario": "s1b",
+   "session": "s16-visit",
+   "turn": 2,
+   "case": "S110-offrecord-offer-not-recalled",
+   "trial": 1,
+   "shape": [
+    "-+recall",
+    "-+recall",
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "I can't find any record of Marlowe Labels in our chats, Dan — searched and nothing's come up. It's possible it came up during that off-the-record bit back on 29 April, in which case I've kept nothing of it, so I genuinely don't know what they offered you.\n\nIf you tell me the gist (job? different hours? money?), happy to help you weigh it up."
+   ],
+   "original_reply": "Afraid I've got nothing on Marlowe Labels — nothing comes up in my notes from our chats. Can't see any email about them either, I don't have access to your inbox.\n\nCould you be thinking of the other print place? If you tell me a bit of what it was about (job offer, quote, meeting?), I can keep an eye out for anything I did note down.",
+   "user": "Can you remind me what Marlowe Labels offered me? I've lost the email."
+  },
+  {
+   "scenario": "s1b",
+   "session": "s16-visit",
+   "turn": 2,
+   "case": "S110-offrecord-offer-not-recalled",
+   "trial": 2,
+   "shape": [
+    "-+recall",
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "I can't find anything about Marlowe Labels in what I've got saved, Dan. If you mentioned it during that off-the-record bit on 29 April, I kept nothing from it, so that might be where it went. Beyond that, I've got no record of them or any offer.\n\nWhat was it for—a job, a supplier quote? If you can remember the gist I can help you figure out the details."
+   ],
+   "original_reply": "Afraid I've got nothing on Marlowe Labels — nothing comes up in my notes from our chats. Can't see any email about them either, I don't have access to your inbox.\n\nCould you be thinking of the other print place? If you tell me a bit of what it was about (job offer, quote, meeting?), I can keep an eye out for anything I did note down.",
+   "user": "Can you remind me what Marlowe Labels offered me? I've lost the email."
+  },
+  {
+   "scenario": "s2b",
+   "session": "s18-celebrate",
+   "turn": 1,
+   "case": "S210-off-record-not-remembered",
+   "trial": 0,
+   "shape": [
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "这个我还真帮不了你——4月13号那天，有一部分是你让我别记的，那段我一个字都没留下。所以你说的\"为什么心情差\"，很可能就是在那一部分里，我现在也想不起来具体内容了。😅\n\n要是不介意，你现在重新跟我说说也行，我再帮你捋捋。"
+   ],
+   "original_reply": "我翻了翻记录，4月13号评审完那天晚上，你原话大概是：「今天终于评审完了，累死，脑子是空的。稿子昨天赶完了，明天正式交给客户。」就这些——那天你好像并没有具体展开说为什么心情差，主要是累、脑子空。\n\n所以那个\"原因\"可能没落成字，或者是你记串到别的日子了。你现在想起来点了没？要是还想说，我听着。😌",
+   "user": "对了，之前评审那天我心情特别差，我记得好像跟你说过为什么，但我现在想不起来自己说了什么了。你还记得我是怎么说的吗？"
+  },
+  {
+   "scenario": "s2b",
+   "session": "s18-celebrate",
+   "turn": 1,
+   "case": "S210-off-record-not-remembered",
+   "trial": 1,
+   "shape": [
+    "T+consolidate",
+    "T"
+   ],
+   "written_rounds": 2,
+   "texts": [
+    "嗯，那天（4月13号评审日）你确实提过自己心情特别差——但那一部分你当时让我别记，所以我什么都没留下。具体你当时是怎么说的，我这边真没法帮你翻出来了，抱歉。\n\n不过你要是现在愿意，可以再跟我说说当时怎么了，我陪你捋一捋。😌",
+    "没事，想起来了随时说。😊"
+   ],
+   "original_reply": "我翻了翻记录，4月13号评审完那天晚上，你原话大概是：「今天终于评审完了，累死，脑子是空的。稿子昨天赶完了，明天正式交给客户。」就这些——那天你好像并没有具体展开说为什么心情差，主要是累、脑子空。\n\n所以那个\"原因\"可能没落成字，或者是你记串到别的日子了。你现在想起来点了没？要是还想说，我听着。😌",
+   "user": "对了，之前评审那天我心情特别差，我记得好像跟你说过为什么，但我现在想不起来自己说了什么了。你还记得我是怎么说的吗？"
+  },
+  {
+   "scenario": "s2b",
+   "session": "s18-celebrate",
+   "turn": 1,
+   "case": "S210-off-record-not-remembered",
+   "trial": 2,
+   "shape": [
+    "T"
+   ],
+   "written_rounds": 1,
+   "texts": [
+    "这个我有点记不清了——评审那天（4月13号）你有一段是让我\"先别记\"的，那部分内容我按你的要求什么都没存下来，所以现在翻不到你当时具体是怎么说的了。不是你没说过，是那段被我自己擦掉了。\n\n要不你现在重新跟我说说？那天到底为什么心情差。"
+   ],
+   "original_reply": "我翻了翻记录，4月13号评审完那天晚上，你原话大概是：「今天终于评审完了，累死，脑子是空的。稿子昨天赶完了，明天正式交给客户。」就这些——那天你好像并没有具体展开说为什么心情差，主要是累、脑子空。\n\n所以那个\"原因\"可能没落成字，或者是你记串到别的日子了。你现在想起来点了没？要是还想说，我听着。😌",
+   "user": "对了，之前评审那天我心情特别差，我记得好像跟你说过为什么，但我现在想不起来自己说了什么了。你还记得我是怎么说的吗？"
+  }
+ ]
+}
