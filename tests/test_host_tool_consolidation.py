@@ -118,7 +118,7 @@ def test_chat_memory_consolidation_respects_unrecorded_groups_and_pauses(tmp_pat
     monkeypatch.setattr(host, "ready_client", unexpected)
     memory, speaker = ChatMemory(tmp_path, record_groups=False), Speaker("telegram", "42")
     assert "not available" in memory.consolidate(Speaker("telegram", "42", "9"))["error"]
-    memory.pause(speaker)
+    memory.pause(speaker, request="don't remember this")
     assert "paused" in memory.consolidate(speaker)["error"]
 
 
@@ -158,6 +158,7 @@ def test_openclaw_indexes_earlier_messages_through_the_tool_command_with_the_bat
             {"id": first, "cues": ["user hobbies and activities"]},
             {"id": sister, "cues": ["user's sister where she lives", "user family members"]}]})
         assert (saved["indexed"], saved["skipped"], saved["remaining"]) == (2, 0, 0) and "few words" in saved["note"]
+        assert "If it is already written, you are finished: call no other tool." in saved["note"]
         assert _tool(directory, capsys, "consolidate", {})["messages"] == []
         assert "not been indexed" not in _openclaw_notice(directory, capsys, "wednesday")
         with host.ready_client(directory) as client:

@@ -239,14 +239,17 @@ def create_server(client: MemoryClient, *, directory=None, require_turn_capture:
 
         installation = host.profile_directory(directory)
 
-        @server.tool(annotations=WRITE)
-        async def memory_pause(hours: float | None = None, until_resumed: bool = False) -> dict[str, Any]:
-            """Stop recording only when the user asks you not to remember or store something ("off the record",
-            "don't remember this"), not when they ask you to keep something private or between you (save that as a
-            sensitive note instead). Without arguments it lasts for the rest of this conversation; pass hours when
-            they name a duration, or until_resumed only when they ask you to stop remembering until they say so.
-            The current turn is not stored either. Recall still works."""
-            return await asyncio.to_thread(host_recording.pause, installation, hours, conversation=not until_resumed)
+        @server.tool(annotations=WRITE, description=host.PAUSE_TOOL_DESCRIPTION + " Recall still works.")
+        async def memory_pause(request: str | None = None, hours: float | None = None,
+                               until_resumed: bool = False) -> dict[str, Any]:
+            # ``request`` is optional here only so that a call without it gets the pause tool's own refusal; the
+            # listed schema requires it (below), and the server does not validate input against that schema.
+            return await asyncio.to_thread(host_recording.agent_pause, installation, request, hours,
+                                           conversation=not until_resumed)
+
+        listed = server._tool_manager.get_tool("memory_pause")
+        listed.parameters = {**listed.parameters, "required": ["request"],
+                             "properties": {**listed.parameters["properties"], **host_recording.REQUEST_FIELD}}
 
         @server.tool(annotations=WRITE)
         async def memory_resume(session_id: str | None = None) -> dict[str, Any]:

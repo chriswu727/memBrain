@@ -262,8 +262,8 @@ def run_tool(name: str, directory: Path | None = None, stream=None) -> int:
             raise ValueError("Tool arguments must be a JSON object.")
         user = _user(arguments)
         if name == "pause":
-            result = host_recording.pause(directory, arguments.get("hours"), user_id=user,
-                                conversation=not arguments.get("until_resumed"))
+            result = host_recording.agent_pause(directory, arguments.get("request"), arguments.get("hours"),
+                                                user_id=user, conversation=not arguments.get("until_resumed"))
         elif name == "resume":
             result = host_recording.resume(directory, user_id=user, current_turn=True,
                                  session=_conversation(arguments) if "session_id" in arguments else None)

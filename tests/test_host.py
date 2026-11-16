@@ -893,7 +893,7 @@ def test_a_pause_the_agent_starts_on_its_own_ends_with_the_conversation(tmp_path
     monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: client)
     host.prompt_context(tmp_path, "s1", "Off the record: I'm job hunting.", turn_id="t1")
     server = create_server(Client(), directory=tmp_path)
-    _, result = asyncio.run(server.call_tool("memory_pause", {}))
+    _, result = asyncio.run(server.call_tool("memory_pause", {"request": "Off the record"}))
     assert result["scope"] == "this conversation"
     host.finish_turn(tmp_path, "s1", "Okay, not keeping that.", turn_id="t1")
     host.session_context(tmp_path, "s1")  # The same conversation continuing (for example after compaction).
@@ -912,7 +912,7 @@ def test_a_pause_the_agent_starts_on_its_own_ends_with_the_conversation(tmp_path
     resumed = host.session_context(tmp_path, "s3")
     assert "paused for an earlier conversation only" in resumed and not host.paused(tmp_path)
 
-    asyncio.run(server.call_tool("memory_pause", {"until_resumed": True}))
+    asyncio.run(server.call_tool("memory_pause", {"request": "stop remembering until I say so", "until_resumed": True}))
     assert "Recording is currently paused" in host.session_context(tmp_path, "s3") and host.paused(tmp_path)
     host.resume(tmp_path)
     tool = {tool.name: tool for tool in asyncio.run(server.list_tools())}["memory_pause"]

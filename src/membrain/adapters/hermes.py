@@ -47,8 +47,9 @@ _SCHEMAS = [
      "parameters": {"type": "object", "properties": {"topic": {"type": "string"},
          "aliases": {"type": "array", "items": {"type": "string"}}}, "required": ["topic"]}},
     {"name": "membrain_pause", "description": host.PAUSE_TOOL_DESCRIPTION,
-     "parameters": {"type": "object", "properties": {"hours": {"type": "number"},
-                                                    "until_resumed": {"type": "boolean"}}}},
+     "parameters": {"type": "object", "properties": {**host_recording.REQUEST_FIELD, "hours": {"type": "number"},
+                                                    "until_resumed": {"type": "boolean"}},
+                    "required": ["request"]}},
     {"name": "membrain_resume", "description": "Resume this local capture control when the user asks. Check the returned recording state and scopes; other controls may still block capture. This does not confirm message storage.",
      "parameters": {"type": "object", "properties": {}}},
     {"name": "membrain_recording_status", "description": (
@@ -215,8 +216,9 @@ class MembrainProvider(_Base):
             if not self._writes and tool_name != "membrain_search":
                 return json.dumps({"error": "This session cannot change memory."})
             if tool_name == "membrain_pause":
-                return json.dumps(host_recording.pause(self._directory, args.get("hours"), user_id=self._user,
-                                             conversation=not args.get("until_resumed")))
+                return json.dumps(host_recording.agent_pause(self._directory, args.get("request"), args.get("hours"),
+                                                             user_id=self._user,
+                                                             conversation=not args.get("until_resumed")))
             if tool_name == "membrain_resume":
                 return json.dumps(host_recording.resume(self._directory, user_id=self._user, current_turn=True,
                                               session=self._session or None))

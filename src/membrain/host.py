@@ -201,8 +201,11 @@ def consolidate(client, cues=None, reviewed_through=None, *, handed_out: dict | 
         left = client.pending_message_cues(limit=1)
         return {"indexed": result["written"], "skipped": result["skipped"], "remaining": left["remaining"],
                 # A host ended a turn with only "Memory's updated.": its answer to the user had stayed unwritten.
+                # A host that had written its answer then paused recording on its own (2026-11-16): nothing told it
+                # that it was finished.
                 "note": ("Done. If your answer to the user's message is not yet written in this turn, write it now "
-                         "in full; this is not the reply. Do not describe the indexing beyond a few words.")}
+                         "in full; this is not the reply. If it is already written, you are finished: call no other "
+                         "tool. Do not describe the indexing beyond a few words.")}
     except httpx.HTTPStatusError as error:
         try:
             detail = error.response.json().get("error", {})
@@ -246,7 +249,7 @@ def replies_notice(tools: dict | None = TOOL_NAMES) -> str:
 def privacy_notice(tools: dict | None = TOOL_NAMES) -> str:
     if not tools:
         return "Text inside <private>…</private> is never stored."
-    return (f"If the user asks you not to remember something, call {tools['pause']}; text inside "
+    return (f"If the user asks you not to remember something, call {tools['pause']} with their words; text inside "
             "<private>…</private> is never stored.")
 
 
@@ -592,7 +595,7 @@ def _pause_file(directory: Path, user_id: str | None = None, *, create: bool = T
     return folder / (user_brain_id(user_id) + ".json")
 
 
-PAUSE_TOOL_DESCRIPTION = ('Stop recording only when the user asks you not to remember or store something ("off the record", "don\'t remember this"), not when they ask you to keep something private or between you: save that as a sensitive note instead. Without arguments the pause lasts for the rest of this conversation; pass hours when they name a duration, or until_resumed only when they ask you to stop remembering until they say so. The current exchange is not stored either.')
+PAUSE_TOOL_DESCRIPTION = ('Stop recording only when the user asks you not to remember or store something ("off the record", "don\'t remember this"), not when they ask you to keep something private or between you: save that as a sensitive note instead. request is required: the user\'s own words asking for it, copied from their current message. With request alone the pause lasts for the rest of this conversation; pass hours when they name a duration, or until_resumed only when they ask you to stop remembering until they say so. The current exchange is not stored either.')
 
 
 def pause(directory: Path, hours: float | None = None, user_id: str | None = None, *,
@@ -674,6 +677,36 @@ def _active_sessions(directory: Path, user_id: str | None, window: float = 6 * 3
         if user_id is None or any(owner == user_id or real_life_user(owner) == user_id for owner in owners):
             sessions.append(marker.stem)
     return sessions
+
+
+def messages_in_progress(directory: Path, user_id: str | None, window: float = 6 * 3600) -> list[str | None]:
+    """The user message of each of this user's conversations with a turn in progress: the newest unfinished turn of
+    each conversation, started within ``window``. An older unfinished turn of the same conversation was left by an
+    interrupted host and is not the current message. The text is as staged, with private parts and credentials
+    already removed; ``None`` for a message that was not kept (its turn was excluded from recording when it arrived).
+    A host AI's pause must quote one of these (``host_recording.agent_pause``)."""
+    messages, now = [], time.time()
+    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        for marker in (state_directory(directory) / "sessions").glob("*.json"):
+            try:
+                state = json.loads(marker.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                continue
+            if not isinstance(state, dict):
+                continue
+            current = None
+            for entry in host_turns.entries(state).values():
+                started = entry.get("started")
+                if (entry.get("done") or not (entry["owner"] == user_id or real_life_user(entry["owner"]) == user_id)
+                        or type(started) not in (int, float) or now - started > window):
+                    continue
+                if current is None or started >= current["started"]:
+                    current = entry
+            if current is not None:
+                record = current.get("record")
+                text = record.get("text") if isinstance(record, dict) else None
+                messages.append(text if isinstance(text, str) else None)
+    return messages
 
 
 def end_conversation_pause(directory: Path, session: str, user_id: str | None = None) -> bool:

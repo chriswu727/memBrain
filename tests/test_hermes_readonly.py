@@ -18,7 +18,7 @@ def test_readonly_context_cannot_change_memory_or_primary_recording(tmp_path, mo
     paused_before = host.paused(directory)
     result = json.loads(instance.handle_tool_call(f"membrain_{tool}", {
         "text": "The user prefers coffee.", "replaces": ["original"], "topic": "tea",
-        "until_resumed": True,
+        "until_resumed": True, "request": "Off the record",
     }))
     assert client.observed == [] and client.forgotten == []
     assert host.paused(directory) == paused_before

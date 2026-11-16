@@ -273,13 +273,15 @@ class ChatMemory:
         with client:
             return host.consolidate(client, cues, reviewed_through, handed_out=handed_out)
 
-    def pause(self, speaker: Speaker, hours: float | None = None, until_resumed: bool = False) -> dict:
-        """Pause recording for this speaker: for the rest of the conversation unless ``hours`` or
-        ``until_resumed`` (the person asked to stop being remembered until they say so)."""
+    def pause(self, speaker: Speaker, hours: float | None = None, until_resumed: bool = False, *,
+              request: str | None = None) -> dict:
+        """The bot AI's pause tool: pause recording for this speaker, for the rest of the conversation unless
+        ``hours`` or ``until_resumed`` (the person asked to stop being remembered until they say so). ``request`` is
+        required: the person's own words asking not to be remembered, copied from their current message; without
+        them, or with words that are not in it, nothing is paused (``host_recording.pause_refusal``)."""
         user = self.user_id(speaker)
-        result = host_recording.pause(self.directory, hours, user_id=user, conversation=not until_resumed,
-                                      roleplay=self.roleplay)
-        return result
+        return host_recording.agent_pause(self.directory, request, hours, user_id=user,
+                                          conversation=not until_resumed, roleplay=self.roleplay)
 
     def forget(self, speaker: Speaker) -> dict:
         """Erase everything this speaker's memory holds here, and their memory of the bot's role-play character."""

@@ -124,7 +124,7 @@ def test_subagents_and_paused_recording_store_nothing(tmp_path, monkeypatch):
     sub.sync_turn("internal task", "done", session_id="h1")
     assert "cannot change memory" in sub.handle_tool_call("membrain_boundary", {"topic": "my ex"})
     instance = provider(tmp_path, monkeypatch, client)
-    assert json.loads(instance.handle_tool_call("membrain_pause", {}))["recording"] == "paused"
+    assert json.loads(instance.handle_tool_call("membrain_pause", {"request": "Off the record"}))["recording"] == "paused"
     instance.sync_turn("Off the record: I'm job hunting.", "Understood.", session_id="h1")
     assert client.observed == []
     result = json.loads(instance.handle_tool_call("membrain_resume", {}))
@@ -190,7 +190,8 @@ def test_hermes_sessions_share_memory_through_a_real_service(tmp_path, monkeypat
         assert "Cat Biscuit: chicken allergy." in readonly.system_prompt_block()
         assert "cannot change memory" in readonly.handle_tool_call("membrain_note", {
             "text": "Unauthorized synthetic replacement.", "replaces": [shared["note_id"]]})
-        assert "cannot change memory" in readonly.handle_tool_call("membrain_pause", {"until_resumed": True})
+        assert "cannot change memory" in readonly.handle_tool_call("membrain_pause", {"request": "Off the record",
+                                                                          "until_resumed": True})
         assert not host.paused(directory, first._user)
         host.pause(directory, user_id=first._user)
         assert "cannot change memory" in readonly.handle_tool_call("membrain_resume", {})

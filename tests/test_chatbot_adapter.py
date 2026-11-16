@@ -69,7 +69,7 @@ def test_session_block_is_refreshed_on_each_turn_including_recording_changes(tmp
     assert memory.context(mei, "hi", session="s") == "notes v1\n\nrelated"
     assert memory.context(mei, "again", session="s") == "notes v2\n\nrelated"
     assert memory.note(mei, "Allergic to sesame.") == {"error": "memBrain is starting; try again in a few seconds."}
-    memory.pause(mei)
+    memory.pause(mei, request="don't remember this")
     assert memory.context(mei, "later", session="s") == "notes v3\n\nrelated"
     assert host.paused(tmp_path, memory.user_id(mei)) and not host.paused(tmp_path)
 
@@ -254,7 +254,7 @@ def test_astrbot_plugin_remembers_each_qq_user_separately_through_a_real_service
             group = await turn(Event("1001", "Hi everyone", group="777"), "Hello!", conversation="g1")
             assert "Biscuit" not in group  # A group never sees a private conversation by default.
             paused = Event("2002", "Off the record: I'm changing jobs.", message_id="m9")
-            await plugin.membrain_pause(paused)
+            await plugin.membrain_pause(paused, request="Off the record")
             await turn(paused, "Understood.")
             await plugin.membrain_resume(paused)
             alice = await turn(Event("1001", "What treats can I buy for my cat?", message_id="m2"), "Fish.",

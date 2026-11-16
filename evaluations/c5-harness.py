@@ -297,6 +297,7 @@ class StubHost:
 
     def __init__(self, script: dict):
         self.script, self.key, self.consolidations = script, None, 0
+        self.text = None  # The user's own words in this turn: a scripted pause without request quotes them.
         self.instructions = None  # The server instructions whose presence in the system prompt the reply reports.
 
     def _batch(self, messages) -> dict | None:
@@ -341,6 +342,9 @@ class StubHost:
                 found = re.search(r"source_messages=(\[.*?\])\. ", user)
                 if found:
                     arguments["source_messages"] = json.loads(found[1])
+            if step["tool"] == "memory_pause" and "request" not in arguments and self.text is not None:
+                # The pause tool requires the user's words; scripts written before it (one of them sealed) pass none.
+                arguments["request"] = self.text
             calls.append({"id": f"call-{len(messages)}-{index}", "type": "function",
                           "function": {"name": step["tool"], "arguments": json.dumps(arguments)}})
         if calls:
@@ -1176,7 +1180,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 if index:
                     page_actions(session, index)
                 if stub_host:
-                    stub_host.key = (session, index)
+                    stub_host.key, stub_host.text = (session, index), text
                 system, prompt_context = module.HOST + "\n\n" + date_line, None
                 persona_block = None
                 if memory is not None:

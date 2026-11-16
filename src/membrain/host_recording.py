@@ -3,6 +3,7 @@
 import json
 import math
 import re
+import unicodedata
 from contextlib import nullcontext
 from pathlib import Path
 from secrets import compare_digest
@@ -263,6 +264,84 @@ def pause(directory, hours=None, user_id=None, *, conversation=False, session=No
 
     result = host.pause(directory, hours, user_id, conversation=conversation, session=session)
     return _control_result(directory, result, host.roleplay_user(user_id, roleplay))
+
+
+REQUEST_FIELD = {"request": {
+    "type": "string",
+    "description": "The user's own words asking you not to remember or store something, copied from their current "
+                   "message."}}
+PAUSE_REFUSAL = ("Pause only when the user asks you not to remember or store something. Pass request: their own "
+                 "words, copied from their current message. Nothing was paused.")
+REQUEST_MISSING = "pause_request_missing"
+REQUEST_NOT_IN_MESSAGE = "pause_request_not_in_message"
+
+
+def _normal(text):
+    return " ".join(unicodedata.normalize("NFKC", text).casefold().split())
+
+
+def _edge(character):
+    return character.isspace() or unicodedata.category(character)[0] == "P" or character in "`´"
+
+
+def _quoted(text):
+    """A quotation as compared with the user's message: normalised, without surrounding quotes and punctuation."""
+    text = _normal(text)
+    start, end = 0, len(text)
+    while start < end and _edge(text[start]):
+        start += 1
+    while end > start and _edge(text[end - 1]):
+        end -= 1
+    return text[start:end]
+
+
+def pause_refusal(directory, request, user_id=None):
+    """Why a host AI's pause is refused, or ``None``. ``request`` must be the user's own words asking not to be
+    remembered: at least two characters, contained in the user message of a turn in progress when one is known
+    (``host.messages_in_progress``). A host that stages no message is trusted with the words alone, and so is one
+    whose current message was not kept (excluded when it arrived), since that text cannot be compared.
+
+    A host AI once paused recording on its own after its answer was written, with no arguments and no reasoning
+    (evaluations/maturity-sixth-attempt-stop-2026-11-16.md): such a slip must not silently end recording."""
+    from . import host
+    from .privacy import scrub
+
+    quoted = [_quoted(text) for text in dict.fromkeys((request, scrub(request)))] if isinstance(request, str) else []
+    quoted = [text for text in quoted if len(text.replace(" ", "")) >= 2]
+    if not quoted:
+        return {"error": PAUSE_REFUSAL, "code": REQUEST_MISSING}
+    messages = host.messages_in_progress(directory, user_id)
+    if not messages or None in messages:
+        return None
+    if any(text in _normal(message) for message in messages for text in quoted):
+        return None
+    return {"error": PAUSE_REFUSAL, "code": REQUEST_NOT_IN_MESSAGE}
+
+
+def _pause_note(result, hours):
+    if result.get("scope") == "this conversation":
+        told = "this conversation is no longer being recorded"
+    elif hours is not None:
+        hours = float(hours)
+        told = f"nothing is being recorded for the next {hours:g} hour{'' if hours == 1 else 's'}"
+    else:
+        told = "nothing is being recorded until they say to start again"
+    return f"Tell the user in a few words that {told}."
+
+
+def agent_pause(directory, request, hours=None, user_id=None, *, conversation=False, session=None, roleplay=None):
+    """The pause tool of a host AI (``memory_pause``, ``membrain_pause``, ``membrain plugin tool pause``): ``pause``
+    once ``pause_refusal`` allows it, with a note asking the AI to tell the user, so a wrong pause is seen and can be
+    undone. A refused call changes nothing. The user's own controls (the CLI, the memory page, the service's
+    recording controls) call ``pause`` directly and need no quotation."""
+    from . import host
+
+    with profile_lock(host.state_directory(directory) / "session-state-lock", timeout=5):
+        refused = pause_refusal(directory, request, user_id)
+        if refused:
+            return refused
+        result = pause(directory, hours, user_id, conversation=conversation, session=session, roleplay=roleplay)
+    return {**result, "note": _pause_note(result, hours)}
 
 
 def resume(directory, user_id=None, *, current_turn=False, session=None, roleplay=None):

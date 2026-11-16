@@ -119,8 +119,12 @@ const TOOLS = [
   },
   {
     name: "membrain_pause",
-    description: 'Stop recording only when the user asks you not to remember or store something ("off the record", "don\'t remember this"), not when they ask you to keep something private or between you: save that as a sensitive note instead. Without arguments the pause lasts for the rest of this conversation; pass hours when they name a duration, or until_resumed only when they ask you to stop remembering until they say so. The current exchange is not stored either.',
-    parameters: { type: "object", properties: { hours: { type: "number" }, until_resumed: { type: "boolean" } } },
+    // The same text as membrain.host.PAUSE_TOOL_DESCRIPTION, which tests/test_pause_request.py checks.
+    description: 'Stop recording only when the user asks you not to remember or store something ("off the record", "don\'t remember this"), not when they ask you to keep something private or between you: save that as a sensitive note instead. request is required: the user\'s own words asking for it, copied from their current message. With request alone the pause lasts for the rest of this conversation; pass hours when they name a duration, or until_resumed only when they ask you to stop remembering until they say so. The current exchange is not stored either.',
+    parameters: { type: "object", properties: {
+      request: { type: "string", description: "The user's own words asking you not to remember or store something, " +
+        "copied from their current message." },
+      hours: { type: "number" }, until_resumed: { type: "boolean" } }, required: ["request"] },
   },
   {
     name: "membrain_resume",

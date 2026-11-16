@@ -21,7 +21,7 @@ if sys.argv[2] == 'hook':
     plugin.HANDLERS['session-start'] = ('SessionStart', lambda *args: text)
     plugin.run_hook('session-start', directory, io.BytesIO(b'{}'))
 else:
-    plugin.host_recording.pause = lambda *args, **kwargs: {'context': text}
+    plugin.host_recording.agent_pause = lambda *args, **kwargs: {'context': text}
     plugin.run_tool('pause', directory, io.BytesIO(b'{}'))
 """
     result = subprocess.run([sys.executable, "-c", code, str(tmp_path), kind],

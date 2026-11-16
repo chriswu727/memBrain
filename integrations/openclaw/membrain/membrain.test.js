@@ -177,7 +177,14 @@ test("memory carries across OpenClaw sessions through the real runtime",
     assert.match(second.appendSystemContext, /Tomas's wedding/);
     const found = JSON.parse(await memory.tool("membrain_search", { query: "Lisbon wedding" }));
     assert.match(found.context, /Lisbon/);
-    assert.deepEqual(JSON.parse(await memory.tool("membrain_pause", {})).recording, "paused");
+    // A pause must quote the user's current message; without the words nothing is paused.
+    assert.equal(JSON.parse(await memory.tool("membrain_pause", {})).code, "pause_request_missing");
+    assert.equal(JSON.parse(await memory.tool("membrain_pause", { request: "don't remember this" })).code,
+      "pause_request_not_in_message");
+    const paused = JSON.parse(await memory.tool("membrain_pause",
+      { request: "What do I still need to pack for the wedding trip?" }));
+    assert.equal(paused.recording, "paused");
+    assert.match(paused.note, /no longer being recorded/);
     assert.match(JSON.parse(await memory.tool("membrain_manner_feedback", { kind: "longer", source_messages: cited })).error,
       /paused/);
     await memory.beforePromptBuild({ prompt: "Off the record: I hate the groom's speech.", messages: [] },

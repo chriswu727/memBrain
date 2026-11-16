@@ -9,6 +9,7 @@ from astrbot.api.provider import LLMResponse, ProviderRequest
 from astrbot.core.utils.astrbot_path import get_astrbot_plugin_data_path
 
 from membrain.adapters.chatbot import TOOLS, ChatMemory, Speaker
+from membrain.host import PAUSE_TOOL_DESCRIPTION
 from membrain.manner_feedback import KINDS as MANNER_KINDS
 from membrain.manner_feedback import TOOL_DESCRIPTION as MANNER_TOOL_DESCRIPTION
 from membrain.persona_tool import ACTIONS as PERSONA_ACTIONS
@@ -197,15 +198,19 @@ class MembrainPlugin(star.Star):
         """
     membrain_persona = filter.llm_tool(name="membrain_persona")(membrain_persona)
 
-    @filter.llm_tool(name="membrain_pause")
-    async def membrain_pause(self, event: AstrMessageEvent, hours: float | None = None, until_resumed: bool = False):
-        """Stop recording only when the user asks you not to remember or store something ("off the record", "don't remember this"), not when they ask you to keep something private or between you: save that as a sensitive note instead. Without arguments the pause lasts for the rest of this conversation; pass hours when they name a duration, or until_resumed only when they ask you to stop remembering until they say so. The current exchange is not stored either.
+    async def membrain_pause(self, event: AstrMessageEvent, request: str | None = None, hours: float | None = None,
+                             until_resumed: bool = False):
+        return json.dumps(await asyncio.to_thread(self.memory.pause, _speaker(event), hours, until_resumed,
+                                                  request=request), ensure_ascii=False)
+
+    membrain_pause.__doc__ = PAUSE_TOOL_DESCRIPTION + """
 
         Args:
+            request(string): Required. The user's own words asking you not to remember or store something, copied from their current message.
             hours(number): Optional number of hours after which recording resumes.
             until_resumed(boolean): Only when the user asks to stop being remembered until they say so.
         """
-        return json.dumps(await asyncio.to_thread(self.memory.pause, _speaker(event), hours, until_resumed))
+    membrain_pause = filter.llm_tool(name="membrain_pause")(membrain_pause)
 
     @filter.command("membrain_forget")
     async def membrain_forget(self, event: AstrMessageEvent, confirm: str = ""):
