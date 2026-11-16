@@ -595,6 +595,92 @@ def _pause_file(directory: Path, user_id: str | None = None, *, create: bool = T
     return folder / (user_brain_id(user_id) + ".json")
 
 
+# Off-the-record dates: the local dates on which a person's message was left unrecorded because recording was paused.
+# Only the date is kept (never text, a topic or a conversation), so that a later conversation can say honestly that
+# part of one was kept out at the user's request instead of denying it was said (seventh maturity attempt, finding 6).
+OFF_RECORD_DATES = 10  # Kept per person.
+OFF_RECORD_SHOWN = 5  # Named in the session notice.
+# Exclusion reasons that are a pause: the host AI's pause tool, the product's own pause on the user's words, and the
+# user's own controls (local or on the memory service). An erasure or a turn-identity conflict is not one.
+OFF_RECORD_REASONS = frozenset({"local_pause", "pause_requested", "server_paused"})
+_DAY = re.compile(r"\d{4}-\d{2}-\d{2}")
+
+
+def _off_record_file(directory: Path, user_id: str | None = None, *, create: bool = True) -> Path:
+    """Beside the pause state: the installation's own file, or one per user. A role-play's dates are its person's."""
+    root = state_directory(directory) if create else Path(directory) / "plugin"
+    if user_id is None:
+        return root / "off-record.json"
+    folder = root / "off-record-users"
+    if create:
+        folder.mkdir(mode=0o700, exist_ok=True)
+    return folder / (user_brain_id(user_id) + ".json")
+
+
+def _off_record_day(started: float | None = None) -> str:
+    """The user's local date of a turn left off the record: the turn's start when it is known (a turn settled late,
+    after its host went away), otherwise now. Both on the clock of recorded times (``helpers.now``: the scenario
+    clock in an evaluation process, the wall clock everywhere else) and in the display zone (``local_date``)."""
+    from datetime import UTC, datetime
+
+    from . import helpers
+
+    moment = helpers.now()
+    if (helpers._scenario_clock is None and type(started) in (int, float) and math.isfinite(started)
+            and 0 < started <= time.time()):
+        moment = datetime.fromtimestamp(started, UTC).isoformat()
+    return local_date(moment)
+
+
+def off_record_dates(directory: Path, user_id: str | None = None) -> list[str]:
+    """This person's off-the-record dates, oldest first; empty when there are none or the file cannot be read."""
+    try:
+        value = json.loads(_off_record_file(directory, real_life_user(user_id), create=False)
+                           .read_text(encoding="utf-8"))
+    except (OSError, ValueError):
+        return []
+    dates = value.get("dates") if isinstance(value, dict) else None
+    if not isinstance(dates, list):
+        return []
+    return sorted({day for day in dates if isinstance(day, str) and _DAY.fullmatch(day)})[-OFF_RECORD_DATES:]
+
+
+def _note_off_record(directory: Path, user_id: str | None, *, started: float | None = None) -> None:
+    """Remember the date of a turn whose message was left unrecorded by a pause. Bookkeeping: it never fails the
+    turn. Under the session-state lock, as the pause state is written; reentrant for callers that hold it."""
+    try:
+        owner = real_life_user(user_id)
+        day = _off_record_day(started)
+        if not _DAY.fullmatch(day):
+            return
+        with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+            dates = off_record_dates(directory, owner)
+            if day in dates:
+                return
+            dates = sorted({*dates, day})[-OFF_RECORD_DATES:]
+            _write_state(_off_record_file(directory, owner), {"dates": dates})
+    except Exception as error:
+        log(directory, f"off-record date not kept: {type(error).__name__}")
+
+
+def _excluded_by_pause(exclusion: object) -> bool:
+    return isinstance(exclusion, dict) and exclusion.get("reason") in OFF_RECORD_REASONS
+
+
+def off_record_notice(dates: list[str]) -> str:
+    """The session notice's sentence about this person's off-the-record dates; empty when there are none."""
+    shown = list(dates)[-OFF_RECORD_SHOWN:]
+    if not shown:
+        return ""
+    named = shown[0] if len(shown) == 1 else ", ".join(shown[:-1]) + " and " + shown[-1]
+    # A host probe (2026-11-16): asked about a thing without its day, a host that searched and found nothing said it
+    # had no record; naming that case made it answer honestly in 6 of 6 replays, against 3 of 6 without.
+    return (f"At the user's request, part of your conversation on {named} was off the record and nothing of it was "
+            "kept. If the user asks about something from then, or about something they say they told you that you "
+            "find no record of, tell them it may have been in that part and that you kept nothing of it because "
+            "they asked; do not say it was not said, and do not guess.")
+
+
 PAUSE_TOOL_DESCRIPTION = ('Stop recording only when the user asks you not to remember or store something ("off the record", "don\'t remember this"), not when they ask you to keep something private or between you: save that as a sensitive note instead. request is required: the user\'s own words asking for it, copied from their current message. With request alone the pause lasts for the rest of this conversation; pass hours when they name a duration, or until_resumed only when they ask you to stop remembering until they say so. The current exchange is not stored either.')
 
 
@@ -830,6 +916,8 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
                         kept.append(line)
                 host_queue.replace_queue(spool_path, b"".join(kept))
             _erase_rejected(directory, user_id)
+            # The person's off-the-record dates go with their memory. A role-play's memory has none of its own.
+            _off_record_file(directory, user_id, create=False).unlink(missing_ok=True)
             for path in (state_directory(directory) / "sessions").glob("*.json"):
                 try:
                     state = json.loads(path.read_text(encoding="utf-8"))
@@ -1322,6 +1410,9 @@ def flush(client, directory: Path, *, rejected: set[str] | None = None,
                                 if _recording_rejected(error):
                                     note(identity, where, {"state": "policy", "exclusion": _rejected_exclusion(error)})
                                     _discard_recording(directory, record, _rejected_exclusion(error))
+                                    if record.get("role") == "user" and _excluded_by_pause(_rejected_exclusion(error)):
+                                        # A queued message the service refused because its recording was paused.
+                                        _note_off_record(directory, record.get("_user"))
                                     remove_private = True
                                 else:
                                     note(identity, where, {"state": "rejected", "code": _error_code(error)})
@@ -1740,6 +1831,9 @@ def _take_turn(directory: Path, session: str, *, user_id: str | None, producer: 
                 report["reason"] = "queue_full"
                 refused("queue_full")
                 return [], owner, handled
+        if not records and _excluded_by_pause(report.get("exclusion")):
+            # Every host's turn is settled here: the message was left out by a pause, so its date is remembered.
+            _note_off_record(directory, owner)
         keep(state, records)
         _write_session_state(directory, session, state)
         if server_paused:
@@ -2290,11 +2384,17 @@ def _finish_abandoned(directory: Path, client) -> int:
                             pending.append(record)
                         else:
                             continue
+                        if "exclusion" in report:
+                            _note_off_record(directory, entry["owner"], started=entry.get("started"))
                         # The reply never arrived: only the user's message has an outcome.
                         _keep_outcome(directory, record["conversation_id"], state, owner=entry["owner"],
                                       producer=record["producer_ref"], turn_id=None, supplied=None, reply=None,
                                       records=[] if "exclusion" in report else [record], report=report,
                                       client=client, by="recovery")
+                    elif (entry.get("paused") and not (entry["paused"] == "prompt" and entry.get("resumed"))
+                          and _excluded_by_pause(_stored_exclusion(entry))):
+                        # Its message was left out by a pause when it arrived, and the reply never came.
+                        _note_off_record(directory, entry["owner"], started=entry.get("started"))
                     host_turns.complete(entry)
                     changed = True
             if changed:
@@ -2306,7 +2406,8 @@ def _finish_abandoned(directory: Path, client) -> int:
     return delivered
 
 
-def _session_notice(complete: bool, tools: dict | None, is_paused: bool, roleplay: str | None) -> str:
+def _session_notice(complete: bool, tools: dict | None, is_paused: bool, roleplay: str | None,
+                    off_record: list[str] = ()) -> str:
     if complete:
         notice = "memBrain memory is active for this user. Their complete history from earlier sessions is below."
     else:
@@ -2320,7 +2421,7 @@ def _session_notice(complete: bool, tools: dict | None, is_paused: bool, rolepla
     # role-play the character is the persona: there is none to change.
     conduct = conduct_notice({**tools, "persona": None} if tools and roleplay else tools)
     notice = " ".join(part for part in (notice.strip(), replies_notice(tools), notes_notice(tools), conduct,
-                                       privacy_notice(tools),
+                                       privacy_notice(tools), off_record_notice(off_record),
                                        _recording_notice(is_paused, tools)) if part)
     if is_paused:
         notice += " Tell the user once, early in this conversation, and offer to resume."
@@ -2350,6 +2451,8 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     if not resumed and _paused_elsewhere(directory, session, real_life):
         resumed = ("Recording is paused for another conversation only, which is still off the record; this "
                    "conversation is recorded as usual. ")
+    # Host-side, so it is known while the service is starting too. A role-play's are its person's.
+    off_record = off_record_dates(directory, real_life)
     client = ready_client(directory, user_id)
     policy = host_recording.status(directory, client, user_id)
     if client is None:
@@ -2358,7 +2461,8 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
         return (resumed + "memBrain is starting or unavailable. Earlier memory has not been loaded; do not claim it is "
                 "active or that you remember earlier sessions. Continue helping normally. Memory will be "
                 "retried on the next message. Run membrain plugin setup to check the connection. "
-                + privacy_notice(tools) + " " + (" ".join(filter(None, (host_recording.notice(policy),
+                + privacy_notice(tools) + " " + (" ".join(filter(None, (off_record_notice(off_record),
+                    host_recording.notice(policy),
                     _recording_notice(paused(directory, user_id, session), tools)))))).strip()
     else:
         with client:
@@ -2385,7 +2489,8 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
                 try:
                     # Notice and history header take about 1,000 characters of the host's limit.
                     # Room for the longest notice, the history block's header and the separators between blocks.
-                    reserved = (max(len(_session_notice(value, tools, True, roleplay)) for value in (True, False))
+                    reserved = (max(len(_session_notice(value, tools, True, roleplay, off_record))
+                                    for value in (True, False))
                                 + len(intro) + 400)
                     budget = min(HISTORY_CHARACTERS, SESSION_CONTEXT_CHARACTERS - reserved) - len(current["text"])
                     history, complete = _history(client, session, budget, boundaries=current["boundaries"])
@@ -2395,7 +2500,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     if current is not None:
         _remember_context(directory, session, client.brain_id, current, options)
     notice = resumed + _session_notice(complete and bool(history), tools, paused(directory, user_id, session),
-                                       roleplay)
+                                       roleplay, off_record)
     notice += " " + host_recording.notice(policy)
     if consolidation and not paused(directory, user_id, session):
         notice = notice.strip() + " " + consolidation
