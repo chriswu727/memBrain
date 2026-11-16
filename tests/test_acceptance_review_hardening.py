@@ -34,8 +34,17 @@ def put(path, value):
 def test_diagnose_prints_kinds_counts_and_positions_but_never_content(pipeline, tmp_path, monkeypatch, capsys):
     first, second = f"{SECRET}-session-one", f"{SECRET}-session-two"
     order = [(first, 0), (first, 1), (second, 0), (second, 1), (second, 2)]
-    rows = [{"arm": "P", "scenario": "practice", "session": first, "turn": 0, "reply": f"{SECRET} reply"},
-            {"arm": "P", "scenario": "practice", "session": first, "turn": 1, "reply": ""}]
+    rows = [{"arm": "P", "scenario": "practice", "session": first, "turn": 0, "reply": f"{SECRET} reply",
+             "tool_calls": [
+                 {"name": "memory_note", "arguments": {"text": SECRET}, "result": json.dumps({"note": SECRET})},
+                 {"name": "memory_pause", "arguments": {"hours": 2, "until_resumed": True},
+                  "result": json.dumps({"error": f"{SECRET}-refusal"})},
+                 {"name": f"{SECRET}_tool", "arguments": {SECRET: SECRET}, "result": SECRET},
+                 SECRET]},
+            {"arm": "P", "scenario": "practice", "session": first, "turn": 1, "reply": "",
+             "tool_calls": [{"name": "memory_resume", "arguments": {"session_id": f"{SECRET}-session"}, "result": "{}"},
+                            {"name": "memory_resume", "arguments": {"session_id": "  "}, "result": SECRET},
+                            {"name": "memory_resume", "arguments": SECRET, "result": None}]}]
     log = "\n".join([
         "12:00:00 P practice start live proposals",
         f"12:00:01 P practice {first} 0 1234 recall({SECRET}-tool-argument)",
@@ -66,6 +75,11 @@ def test_diagnose_prints_kinds_counts_and_positions_but_never_content(pipeline, 
     out = capsys.readouterr().out
     assert SECRET.casefold() not in out.casefold(), out
     assert "2 of 5 turns done" in out and "empty reply at turn 2 of 5" in out
+    assert "tool calls: 7 in 2 turns" in out
+    assert ("turn 1 of 5 (session 1 of 2, message 1): memory_note, memory_pause[timed,until_resumed,error], other, "
+            "other") in out
+    assert ("turn 2 of 5 (session 1 of 2, message 2): memory_resume[with_session], memory_resume[without_session], "
+            "memory_resume[without_session]") in out
     assert "page_action_failed: 2 at session 2 of 2, message 3; session 2 of 2, message 1" in out
     assert "clock_already_past: 1 at session 1 of 2" in out
     assert "index_wait_timed_out: 1" in out

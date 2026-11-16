@@ -1012,12 +1012,42 @@ def _event_position(event: dict, sessions: list) -> str | None:
     return where + (f", message {turn + 1}" if type(turn) is int and turn >= 0 else "")
 
 
+# The tools the plugin's server lists. A name outside this list could be a model's invention carrying text, so the
+# diagnosis prints it as "other".
+_TOOL_NAMES = frozenset({
+    "memory_capabilities", "memory_recall", "memory_inspect", "memory_observe", "memory_note", "memory_consolidate",
+    "memory_boundary", "memory_pause", "memory_resume", "memory_manner_feedback", "memory_persona", "memory_prepare",
+    "memory_checkpoint", "memory_forget"})
+
+
+def _tool_code(call) -> str:
+    """One tool call as a fixed code: the tool's name when the plugin lists it, then only yes/no facts about its
+    arguments that decide what is recorded (a timed or until-resumed pause; a resume that names the session and so
+    includes the current turn) and whether the tool answered with an error. Never an argument's or a result's text."""
+    if not isinstance(call, dict):
+        return "other"
+    name = call.get("name") if call.get("name") in _TOOL_NAMES else "other"
+    arguments = call.get("arguments") if isinstance(call.get("arguments"), dict) else {}
+    flags = []
+    if name == "memory_pause":
+        flags += ["timed"] if arguments.get("hours") is not None else []
+        flags += ["until_resumed"] if arguments.get("until_resumed") is True else []
+    if name == "memory_resume":
+        named = isinstance(arguments.get("session_id"), str) and bool(arguments["session_id"].strip())
+        flags.append("with_session" if named else "without_session")
+    result = call.get("result")
+    if isinstance(result, str) and result.lstrip().startswith('{"error"'):
+        flags.append("error")
+    return name + (f"[{','.join(flags)}]" if flags else "")
+
+
 def diagnose(run_dirs: list[Path], scenario_path: Path | None = None) -> None:
     """What an invalid run's diagnosis may read, per run directory: how far each arm got and its empty replies, by
-    position; each harness event's kind, with a count per kind and positions (session index, message) where the event
-    has them; and counts of the log's error lines by kind and exception class name. It never prints a payload string,
-    a session id, an exception message, a log line or any input, reply, context or transcript: those can carry
-    held-out content (attempt 3 lost a scenario that way)."""
+    position; the tools the host called in each turn, as fixed codes (``_tool_code``); each harness event's kind,
+    with a count per kind and positions (session index, message) where the event has them; and counts of the log's
+    error lines by kind and exception class name. It never prints a payload string, a session id, an exception
+    message, a log line or any input, reply, context or transcript: those can carry held-out content (attempt 3
+    lost a scenario that way)."""
     for run in run_dirs:
         try:
             rows, order, log = _run(run, scenario_path) if scenario_path is not None else _run(run)
@@ -1030,6 +1060,14 @@ def diagnose(run_dirs: list[Path], scenario_path: Path | None = None) -> None:
         for row in rows:
             if not str(row.get("reply") or "").strip():
                 print(f"   empty reply at {_position(order, row)}")
+        called = [(row, row["tool_calls"]) for row in rows if isinstance(row.get("tool_calls"), list) and row["tool_calls"]]
+        if called:
+            print(f"   tool calls: {sum(len(calls) for _, calls in called)} in {len(called)} turns")
+        for row, calls in called:
+            session = row.get("session")
+            where = (f" (session {sessions.index(session) + 1} of {len(sessions)}, message {row['turn'] + 1})"
+                     if session in sessions and type(row.get("turn")) is int else "")
+            print(f"     {_position(order, row)}{where}: {', '.join(_tool_code(call) for call in calls)}")
         kinds: dict[str, list] = {}
         malformed = 0
         events = run / "harness-events.jsonl"
