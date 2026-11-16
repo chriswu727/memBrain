@@ -285,6 +285,17 @@ def test_nothing_shared_with_hosts_still_asks_for_the_answer_before_indexing(tmp
     assert len(host.server_instructions()) <= 1400
 
 
+def test_the_standing_instructions_ask_for_memory_tools_before_the_reply():
+    # Seventh maturity attempt: 2 of 11 doubled answers were a reply written beside a memory_note call, then written
+    # again after the tool answered. Text written before a tool call is shown to the user.
+    text = host.server_instructions()
+    sentence = "Use memory tools before your reply, not after it."
+    assert text.count(sentence) == 1
+    assert text.index(sentence) > text.index("when the session notice asks.")
+    assert text.endswith(sentence + " Mention memory use in a few words at most.")
+    assert len(text) <= 1400
+
+
 class _Batch(_Cues):
     def pending_message_cues(self, limit, **options):
         if limit == 1:

@@ -281,6 +281,9 @@ def server_instructions(tools: dict = TOOL_NAMES) -> str:
         "\"walk me through things step by step\"). Do not just save a preference note: describe the change and ask, "
         "call confirm only after their yes in a later message, and decline after a no. "
         f"Call {tools['consolidate']} when the session notice asks. "
+        # Seventh maturity attempt: 2 of 11 doubled answers came from a reply written beside a memory_note call and
+        # written again after the tool answered. Text written before a tool call is shown to the user.
+        "Use memory tools before your reply, not after it. "
         "Mention memory use in a few words at most.")
 
 
