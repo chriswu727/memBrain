@@ -60,6 +60,15 @@ It still asks for the reply itself: on 2026-11-13 a host ended a turn with only 
 
 The implementing sub-session's own commits were refused by the session's permission layer; it handed back patches, which the lead read line by line and committed on the integration branch.
 
+## Two gaps closed the same day (runtime `55a88f1f`, pin `99ee0356`)
+
+Added later on 2026-11-16, at the owner's request to close the gaps this record listed.
+
+- **Erasing everything now removes the dates.** When the local service of an installation completes an erase-everything (the memory page's button, or the same request through the API: a `forget` of the whole scope with content erasure), it removes that person's off-the-record dates from the same installation's host state. Only a completed erasure does: a single-message erasure, a conflict, a rejection or a failure leaves them, and a date recorded after the erasure is kept. What remains: a memory service that is not the installation's own cannot reach host files; an identical request resent with the same idempotency key removes the dates again; an erasure finished later by the recovery authority, or made through a route other than the action route, leaves them until the person's memory is erased through the host.
+- **Memory tools before the reply, as a standing instruction.** The tool server's instructions now say "Use memory tools before your reply, not after it." (1,382 characters of a budget of 1,400; 1,392 with OpenClaw's tool names). It addresses the two doubled turns that followed a note written beside the answer. Not tried on a host: at 2 of about 60 note turns the rate is too low to measure with a few replays.
+
+Checks: 31 new tests for the erasure hook (the removal function, the service's filter, the route, and the real local application with the exact request the page sends), which fail as expected with the hook disabled; a focused run of 72 files, 1,861 passed and 1 Docker skip; **full local suite on the pinned source `99ee0356`: 4,216 passed, none failed, 3 skipped** (the desktop end-to-end tests that need Docker), 36 min 12 s. GitHub Verify and the native platforms were not rerun. A sub-session implemented and tested both; its own commits were refused by the session's permission layer, and the lead read the patches and committed them, shortening the new sentence so that it fits the budget with OpenClaw's tool names too.
+
 ## Cost of the probes
 
 Three replays on `deepseek-v4-pro`, under the owner's standing leave for small diagnostic probes: 4.62, 1.50 and 1.38 CNY on the conservative count (every prompt token at the uncached peak price); the account's balance fell by 0.33 CNY across the three.

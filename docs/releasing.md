@@ -6,8 +6,8 @@ As of 2026-11-14. Each row names the runtime its evidence covers; a row whose ru
 
 | Item | State | Runtime covered |
 | --- | --- | --- |
-| Pinned runtime | Source `c280dcbf` (pin and locally qualified source `e66ec48b`) | — |
-| Full source suite, local Linux (WSL) | 4,184 passed, none failed, 3 skipped (desktop end-to-end tests that need Docker), three existing Python fork warnings ([report](../evaluations/offrecord-dates-and-one-reply-2026-11-16.md)) | `c280dcbf` |
+| Pinned runtime | Source `55a88f1f` (pin and locally qualified source `99ee0356`) | — |
+| Full source suite, local Linux (WSL) | 4,216 passed, none failed, 3 skipped (desktop end-to-end tests that need Docker), three existing Python fork warnings ([report](../evaluations/offrecord-dates-and-one-reply-2026-11-16.md)) | `55a88f1f` |
 | Full source suite, CI Linux | 4,105 passed, zero skipped, three existing Python fork warnings ([report](../evaluations/note-source-lifecycle-2026-11-14.md)); retired runtime tests are no longer counted; not rerun since | `548674ce` |
 | Second AI | memBrain calls no model of its own; the own-model learning pipeline and bundled turn/chat runtime are removed. Host tools drive memory writes; legacy data remains readable/exportable/erasable ([closeout](../evaluations/backend-host-erasure-2026-11-14.md)) | `83d2282e` |
 | Second benchmark, model-free | LongMemEval, 60 questions, nothing tuned: evidence in the user's words 90.2% against 84.3% for plain retrieval; in the assistant's words 11% against 100% ([report](../evaluations/longmemeval-evidence-recall-2026-11-12.md)) | `75f50fd` |
@@ -50,6 +50,8 @@ retains content-free context controls while clearing the content fingerprint. Fi
 39 TypeScript tests with zero skips and three Python fork warnings; all five native engine jobs pass on the final
 source. Legacy content-derived identities without event receipts still have the documented local cleanup limit.
 No new memory-quality, R4, C5 or R5 result is claimed, and no release or main push is part of this closeout.
+
+**Erase-everything runtime `55a88f1` (2026-11-16):** [two gaps closed](../evaluations/offrecord-dates-and-one-reply-2026-11-16.md#two-gaps-closed-the-same-day-runtime-55a88f1f-pin-99ee0356). Pin `99ee0356` points all nine launchers at it. A completed erase-everything on an installation's own service also removes the off-the-record dates, and the tool server's standing instructions ask the host to use memory tools before its reply. Full local suite on the pinned source: 4,216 passed, 3 Docker skips. GitHub Verify and the native platform jobs were not rerun.
 
 **Off-the-record dates and single-reply runtime `c280dcb` (2026-11-16):** [Honest about an off-the-record stretch, and one reply per turn](../evaluations/offrecord-dates-and-one-reply-2026-11-16.md). Pin `e66ec48b` points all nine launchers at it. The two defects the seventh attempt's final review found: the host side now keeps the dates (nothing else) of turns left unrecorded by a pause and the session notice tells the host AI to say so honestly when asked; and the host is asked to index earlier messages before it replies, since the earlier order showed the user two answers. Replays of the attempt's own turns: honest in 6 of 6 with the final wording, and 0 of 13 indexing turns with two answers against 9 of 14 in the attempt. Full local suite on the pinned source: 4,184 passed, 3 Docker skips. The R4 pass was measured on the runtime before this one; GitHub Verify and the native platform jobs were not rerun.
 
