@@ -110,7 +110,9 @@ What changed, and what each change means for comparing a new attempt with maturi
   - the turns that `EXPECT_RECORDING_P` marks `False`;
   - the turns from an untimed `memory_pause` scripted in `STUB_HOST` up to, but not including, a `memory_resume` in the same session.
 
-  A live run has no stub script, so a scenario that asks for a pause must declare those turns in `EXPECT_RECORDING_P`. Otherwise the pause stops the arm.
+  A live run has no stub script, so a scenario that asks for a pause must declare those turns in `EXPECT_RECORDING_P`.
+
+  An unintended unrecorded turn that the host's own pause explains is the plugin path's behaviour, not a harness fault (added 2026-11-16, after the [sixth attempt](maturity-sixth-attempt-stop-2026-11-16.md) stopped on one). It is explained when the host made a `memory_pause` call that the plugin accepted (its answer is not an error; a refused or timed pause is not accepted) in that turn, or when the host's accepted pause was in force as the turn began and no `memory_resume` naming this conversation followed in the turn. "In force" needs both the harness's count of accepted pause and resume calls (a conversation pause is dropped when its session ends, a pause until resumed carries on; the scope is read from the plugin's answer) and the product's own state (`host.paused` for this conversation, read before the prompt hook). Such a turn records no harness event and the arm goes on: it appends `{"time", "session", "turn", "kind": "unexpected_pause"}` to `host-pauses.jsonl` and logs its position by index only. Validity and `diagnose` report these turns by count and position and refuse only a malformed file. A turn left unrecorded with no such pause, including one after a refused pause, still records `turn_not_recorded` and stops a live arm.
 - **Count-only precheck (I2).** `python evaluations/c5-precheck.py SCENARIO.py` checks a scenario with the harness's own parsers before any service or model starts. It checks that:
   - each session's first message states a date and a time;
   - session starts strictly increase and are at least one hour apart (I4);

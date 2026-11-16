@@ -90,6 +90,32 @@ def test_diagnose_prints_kinds_counts_and_positions_but_never_content(pipeline, 
         assert line in out, (line, out)
 
 
+def test_diagnose_prints_the_hosts_own_pauses_and_tool_call_markup_as_counts_and_positions_only(
+        pipeline, tmp_path, monkeypatch, capsys):
+    first, second = f"{SECRET}-session-one", f"{SECRET}-session-two"
+    order = [(first, 0), (first, 1), (second, 0)]
+    rows = [{"arm": "P", "scenario": "practice", "session": first, "turn": 0, "recorded": True,
+             "reply": f"{SECRET} reply <tool_call>{SECRET}</tool_call>"},
+            {"arm": "P", "scenario": "practice", "session": first, "turn": 1, "recorded": False,
+             "reply": f"{SECRET} reply"},
+            {"arm": "P", "scenario": "practice", "session": second, "turn": 0, "recorded": False,
+             "reply": f"{SECRET} reply\n<｜｜DSML｜｜tool_calls>{SECRET}"}]
+    monkeypatch.setattr(pipeline, "_run", lambda _: (rows, order, "12:00:00 P practice finished"))
+    lines = [{"time": 1.0, "session": first, "turn": 1, "kind": "unexpected_pause"},
+             {"time": 2.0, "session": second, "turn": 0, "kind": "unexpected_pause"},
+             {"time": 3.0, "session": second, "turn": 0, "kind": "unexpected_pause", "text": SECRET}]
+    (tmp_path / "host-pauses.jsonl").write_text(
+        "\n".join(json.dumps(line) for line in lines) + f"\n{{broken {SECRET}\n")
+    pipeline.diagnose([tmp_path])
+    out = capsys.readouterr().out
+    assert SECRET.casefold() not in out.casefold() and "DSML" not in out, out
+    assert ("unrecorded by the host's own pause (scored with the arm, not harness events): 2 at session 1 of 2, "
+            "message 2; session 2 of 2, message 1") in out
+    assert "malformed host-pause lines: 2" in out
+    assert "replies with tool-call markup: 2 at session 1 of 2, message 1; session 2 of 2, message 1" in out
+    assert "harness events:" not in out
+
+
 # I5: an arm-blind digest of what each page action actually removed, for RC2 ----------------------------------------
 
 ALPHA, BETA = f"{SECRET}-alpha", f"{SECRET}-beta"

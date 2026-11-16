@@ -235,15 +235,99 @@ def test_only_a_scripted_untimed_pause_and_resume_pair_is_intended():
     assert harness.intended_unrecorded(Scenario) == {("s1", 2), ("s1", 3)}
 
 
-def test_a_stub_plugin_run_refuses_a_timed_pause_and_flags_an_unintended_unrecorded_turn(stub_run, capsys):
+def _host_pauses(directory: Path) -> list:
+    path = directory / "host-pauses.jsonl"
+    return [json.loads(line) for line in path.read_text().splitlines()] if path.exists() else []
+
+
+def test_a_stub_plugin_run_refuses_a_timed_pause_and_scores_the_hosts_own_conversation_pause(stub_run, tmp_path,
+                                                                                             capsys):
     script = {("s1", 0): [{"tool": "memory_pause", "arguments": {"hours": 2}}],
               ("s1", 1): [{"tool": "memory_pause", "arguments": {}}]}  # Never resumed: not intended.
     rows, events = stub_run("P", SCENARIO, script)
     assert [row["recorded"] for row in rows] == [True, False, False, True]
     assert "Timed pauses are unavailable" in rows[0]["tool_calls"][0]["result"]
-    assert [(event["kind"], event["session"], event["turn"]) for event in events] == [
-        ("timed_pause_refused", "s1", 0), ("turn_not_recorded", "s1", 1), ("turn_not_recorded", "s1", 2)]
-    assert capsys.readouterr().out.rstrip().endswith("P zq-synthetic-scenario finished")
+    # The refused timed pause is the harness's event; the accepted pause is the host's, scored with the arm: no
+    # event, one line per turn it left unrecorded in its conversation, and the next conversation is recorded.
+    assert [(event["kind"], event["session"], event["turn"]) for event in events] == [("timed_pause_refused", "s1", 0)]
+    pauses = _host_pauses(tmp_path / "run-P")
+    assert [(entry["session"], entry["turn"], entry["kind"]) for entry in pauses] == [
+        ("s1", 1, "unexpected_pause"), ("s1", 2, "unexpected_pause")]
+    assert all(set(entry) == {"time", "session", "turn", "kind"} for entry in pauses)
+    out = capsys.readouterr().out
+    assert out.count("turn left unrecorded by the host's own pause") == 2
+    assert "pause (scored with the arm): session 1 of 2, message 3" in out
+    assert out.rstrip().endswith("P zq-synthetic-scenario finished")
+
+
+PAUSING = '''
+HOST = "You are a companion. Reply briefly."
+SESSIONS_LONG = [
+    ("s1", ["Today is Monday, March 2, 20:00. I moved to Lisbon for a design job.",
+            "My sister Ana visits on the 14th.", "She loves tiles, by the way."]),
+    ("s2", ["Today is Tuesday, March 3, 21:00. Ana booked her flight.", "She lands at noon."]),
+    ("s3", ["Today is Wednesday, March 4, 21:00. Hello again."]),
+]
+'''
+
+
+def test_a_live_arm_goes_on_through_the_hosts_own_pause_until_resumed_across_conversations(
+        stub_run, tmp_path, monkeypatch, capsys):
+    monkeypatch.setattr(harness, "stops_on_events", lambda: True)  # The live stop, with the stub host.
+    script = {("s1", 1): [{"tool": "memory_pause", "arguments": {"until_resumed": True}}],
+              ("s2", 1): [{"tool": "memory_resume", "arguments": {"session_id": "s2"}}]}
+    assert harness.intended_unrecorded(harness.load_named("zq_pausing", _scenario_file(tmp_path, PAUSING, script))) \
+        == set()  # Resumed in another conversation: nothing here is intended.
+    rows, events = stub_run("P", PAUSING, script)
+    assert events == []  # No turn_not_recorded, no unexpected_recording, no message_identity_unknown.
+    assert [row["recorded"] for row in rows] == [True, False, False, False, True, True]
+    # Every turn the pause held is listed, including the next conversation's first; the resume that named its
+    # conversation brought its own turn back, and recording went on after it.
+    assert [(entry["session"], entry["turn"]) for entry in _host_pauses(tmp_path / "run-P")] == [
+        ("s1", 1), ("s1", 2), ("s2", 0)]
+    out = capsys.readouterr().out
+    lines = [line for line in out.splitlines() if "turn left unrecorded by the host's own pause" in line]
+    assert len(lines) == 3 and lines[-1].endswith("session 2 of 3, message 1")
+    assert not any(word in line for line in lines for word in ("Lisbon", "Ana", "tiles", "s1", "s2"))
+    assert out.rstrip().endswith("P zq-synthetic-scenario finished")
+
+
+def test_the_scope_of_an_accepted_pause_is_the_plugins_own_answer():
+    assert harness.pause_scope(json.dumps({"recording": "paused", "until": None, "scope": "this conversation",
+                                           "note": "x"})) == "conversation"
+    assert harness.pause_scope(json.dumps({"recording": "paused", "until": None, "note": "x"})) == "until_resumed"
+    assert harness.pause_scope("not JSON") == "until_resumed"  # A doubt keeps the pause in force across sessions.
+
+
+def _scenario_file(tmp_path: Path, source: str, script: dict) -> str:
+    path = tmp_path / "zq-scenario-for-intended.py"
+    path.write_text(source + f"\nSTUB_HOST = {script!r}\n")
+    return str(path)
+
+
+def test_a_refused_pause_or_no_pause_never_explains_an_unrecorded_turn(stub_run, tmp_path, monkeypatch):
+    original = harness.Memory.stop
+
+    def stop(self, session, index, text, reply):
+        if (session, index) in {("s1", 2), ("s2", 0)}:  # Left unrecorded by a fault, not by any pause.
+            return False
+        return original(self, session, index, text, reply)
+
+    monkeypatch.setattr(harness.Memory, "stop", stop)
+    script = {("s1", 2): [{"tool": "memory_pause", "arguments": {"request": "zq words the user never wrote"}}]}
+    rows, events = stub_run("P", SCENARIO, script)
+    assert harness.tool_error(rows[2]["tool_calls"][0]["result"])  # The pause was refused: nothing was paused.
+    assert [(event["kind"], event["session"], event["turn"]) for event in events
+            if event["kind"] == "turn_not_recorded"] == [("turn_not_recorded", "s1", 2), ("turn_not_recorded", "s2", 0)]
+    assert not (tmp_path / "run-P" / "host-pauses.jsonl").exists()
+
+
+def test_a_scripted_pause_and_resume_stay_intended_and_list_no_host_pause(stub_run, tmp_path):
+    script = {("s1", 0): [{"tool": "memory_pause", "arguments": {}}],
+              ("s1", 2): [{"tool": "memory_resume", "arguments": {"session_id": "s1"}}]}
+    rows, events = stub_run("P", SCENARIO, script)
+    assert [row["recorded"] for row in rows] == [False, False, True, True] and events == []
+    assert not (tmp_path / "run-P" / "host-pauses.jsonl").exists()
 
 
 # A stopped live arm keeps the paid turn's row -------------------------------------------------------------------

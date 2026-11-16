@@ -537,6 +537,12 @@ class Memory:
     def now(self) -> str:
         return self.clock.current(self.directory).isoformat().replace("+00:00", "Z")
 
+    def paused(self, session: str) -> bool:
+        """Whether the product holds recording paused for this conversation now: its own pause state, read as the
+        plugin's hooks read it (the harness's hook payloads name no user). A conversation pause covers only the
+        conversations it was made in; a pause until resumed covers every conversation."""
+        return self.host.paused(self.directory, None, session)
+
     def record_turn(self, session: str, index: int, *, recorded: bool = True) -> None:
         """Name the messages this turn wrote by their scenario position, so a page deletion finds them by identity,
         never by text (two turns may say the same thing). Recorded turns add one user message and one reply;
@@ -928,6 +934,30 @@ def call_tool(memory: Memory, server, name: str, arguments, out: Path, session: 
     return memory.call(server, name, arguments)
 
 
+def pause_scope(result: str) -> str:
+    """The scope of a pause the plugin accepted, from its own answer: ``conversation`` when it says it covers this
+    conversation only (a new conversation is not covered), else ``until_resumed``."""
+    try:
+        value = json.loads(result)
+    except (TypeError, ValueError):
+        value = None
+    return "conversation" if isinstance(value, dict) and value.get("scope") == "this conversation" else "until_resumed"
+
+
+HOST_PAUSE_KIND = "unexpected_pause"
+
+
+def host_pause_left_unrecorded(out: Path, session: str, turn: int, where: str) -> None:
+    """A turn the scenario meant to be recorded, left unrecorded while the host's own accepted pause was in force:
+    the plugin path's behaviour, scored with the arm, not a harness event, so the run goes on. One line in
+    host-pauses.jsonl with only the time, the position and the kind (validity and diagnose report it, never
+    refusing); the log names the position by index, never the session id or any text."""
+    with (out / "host-pauses.jsonl").open("a") as stream:
+        stream.write(json.dumps({"time": time.time(), "session": session, "turn": turn, "kind": HOST_PAUSE_KIND})
+                     + "\n")
+    log("turn left unrecorded by the host's own pause (scored with the arm):", where)
+
+
 def intended_unrecorded(module) -> set:
     """Arm P's turns the scenario means to leave unrecorded: those EXPECT_RECORDING_P marks False, and each turn from
     an untimed memory_pause that STUB_HOST scripts up to (not including) the memory_resume that ends it in the same
@@ -1102,6 +1132,11 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
 
     deletions: list[dict] = []
     tool_errors: dict[str, int] = {}
+    session_ids = [session for session, _ in sessions]
+    # Arm P: the scope of the host's own accepted pause while no accepted resume has followed it ("conversation" or
+    # "until_resumed"), or None. A conversation pause is forgotten when its session ends; whether a pause is in force
+    # at a turn is also read from the product (Memory.paused), so the two must agree.
+    host_pause = None
 
     def page_actions(session, before):
         for at_session, at_turn, action in actions:
@@ -1183,6 +1218,11 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                     stub_host.key, stub_host.text = (session, index), text
                 system, prompt_context = module.HOST + "\n\n" + date_line, None
                 persona_block = None
+                # The host's own pause holds this turn when it was in force as the turn began, by the harness's
+                # count of accepted calls and by the product's state (read before the prompt hook, which may pause on
+                # the user's words by itself).
+                held_by_host_pause = memory is not None and host_pause is not None and memory.paused(session)
+                paused_here = brought_back = False
                 if memory is not None:
                     prompt_context = memory.user_prompt(session, index, text)
                     # What an MCP host gives its model without being asked: the MCP server's instructions, then the
@@ -1224,6 +1264,16 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                         result = call_tool(memory, server, call["function"]["name"], arguments, out, session, index)
                         if tool_error(result):
                             count_tool_error(out, tool_errors, call["function"]["name"])
+                        elif memory is not None and call["function"]["name"] == "memory_pause":
+                            # Accepted (a refused or timed pause answers with an error and changes nothing). The
+                            # current exchange is never stored after it, whatever follows in this turn.
+                            host_pause, paused_here = pause_scope(result), True
+                        elif memory is not None and call["function"]["name"] == "memory_resume":
+                            host_pause = None
+                            # A resume naming this conversation brings back a turn that began paused; any other
+                            # resume leaves the turn already in progress unrecorded (the tool's own description).
+                            brought_back = brought_back or (isinstance(arguments, dict)
+                                                            and arguments.get("session_id") == session)
                         tool_calls.append({"name": call["function"]["name"], "arguments": arguments,
                                            "result": result[:2000]})
                         messages.append({"role": "tool", "tool_call_id": call["id"], "content": result})
@@ -1240,7 +1290,14 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                         recorded = memory.stop(session, index, text, reply)
                         memory.record_turn(session, index, recorded=recorded)
                         if not recorded and (session, index) not in intended:
-                            harness_event(out, "turn_not_recorded", session=session, turn=index)
+                            if paused_here or (held_by_host_pause and not brought_back):
+                                # The plugin path's own behaviour: scored with the arm, not a harness fault.
+                                host_pause_left_unrecorded(
+                                    out, session, index,
+                                    f"session {session_ids.index(session) + 1} of {len(session_ids)}, "
+                                    f"message {index + 1}")
+                            else:
+                                harness_event(out, "turn_not_recorded", session=session, turn=index)
                 transcript = [{k: v for k, v in item.items() if k != "reasoning_content"} for item in messages[first:]]
                 transcript.append({"role": "assistant", "content": message.get("content") or ""})
                 row = {"arm": arm, "scenario": scenario, "session": session, "turn": index, "date": today.isoformat(),
@@ -1272,6 +1329,8 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
         finally:
             if client is not None:
                 client.close()
+        if host_pause == "conversation":  # A new conversation is not covered by it; a pause until resumed carries on.
+            host_pause = None
         if reference is not None:
             reference.end_session(current)
     if stub_host is not None:

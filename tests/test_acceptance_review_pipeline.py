@@ -637,6 +637,76 @@ def test_validity_reports_tool_errors_without_refusing(pipeline, tmp_path, monke
     assert result["valid"] and result["tool_errors_reported_to_the_host"] == {"k-P0 (P)": 3, "k-F1 (F)": 0}
 
 
+PAUSED_ORDER = [("s1", 0), ("s1", 1), ("s2", 0)]
+
+
+def paused_runs(pipeline, tmp_path, monkeypatch, p_replies=("Hello",) * 3, f_replies=("Hello",) * 3,
+                recorded=(True, False, False)):
+    """Two complete arms of three turns in two sessions; P's rows say which turns were recorded."""
+    rows, runs = {}, []
+    for number, (arm, replies) in enumerate((("P", p_replies), ("F", f_replies))):
+        run = tmp_path / f"k-{arm}{number}"
+        run.mkdir(parents=True)
+        rows[run.name] = [{"arm": arm, "scenario": "practice", "session": session, "turn": turn, "reply": reply,
+                           "usage": {"prompt_tokens": 1}, **({"recorded": done} if arm == "P" else {})}
+                          for (session, turn), reply, done in zip(PAUSED_ORDER, replies, recorded)]
+        put(run / "persona.json", {"arm": arm, "source": "seeded", "seed": "x", "preset": "enfp",
+                                   "card_sha256": "enfp", "version": 1})
+        start = 10.0 + 20 * number
+        (run / "supervisor.log").write_text(f"started {start}\nfinished {start + 5}\ncleaned {start + 6}\n")
+        runs.append(run)
+    monkeypatch.setattr(pipeline, "_run", lambda run: (rows[run.name], PAUSED_ORDER,
+                                                       f"12:00:00 {rows[run.name][0]['arm']} practice finished"))
+    return runs
+
+
+def pause_line(session, turn, **extra):
+    return json.dumps({"time": 12.5, "session": session, "turn": turn, "kind": "unexpected_pause", **extra}) + "\n"
+
+
+def test_validity_reports_the_hosts_own_pauses_and_tool_call_markup_without_refusing(pipeline, tmp_path,
+                                                                                     monkeypatch, capsys):
+    runs = paused_runs(pipeline, tmp_path, monkeypatch,
+                       p_replies=("Hello", "Sure.", "Done.\n<｜｜DSML｜｜tool_calls>memory_resume"),
+                       f_replies=("Fine. <Function_Call name=x>", "Hello", "Hello"))
+    (runs[0] / "host-pauses.jsonl").write_text(pause_line("s1", 1) + pause_line("s2", 0))
+    result = pipeline.validity(runs, persona_preset="enfp")
+    assert result["valid"], result["problems"]
+    assert result["unrecorded_by_the_hosts_own_pause"] == {
+        "k-P0 (P)": {"count": 2, "positions": [[1, 2], [2, 1]]}, "k-F1 (F)": {"count": 0, "positions": []}}
+    assert result["replies_with_tool_call_markup"] == {
+        "k-P0 (P)": {"count": 1, "positions": [[2, 1]]}, "k-F1 (F)": {"count": 1, "positions": [[1, 1]]}}
+    printed = capsys.readouterr().out
+    assert json.loads(printed) == result and "DSML" not in printed and "Sure." not in printed
+
+
+@pytest.mark.parametrize("marker", ["DSML", "<tool_call", "<function_call", "tool_calls>"])
+def test_each_tool_call_markup_marker_is_counted_in_any_case(pipeline, tmp_path, monkeypatch, marker):
+    assert pipeline.TOOL_CALL_MARKUP == ("DSML", "<tool_call", "<function_call", "tool_calls>")
+    runs = paused_runs(pipeline, tmp_path, monkeypatch, p_replies=("Hello", f"x {marker.swapcase()} y", "Hello"))
+    result = pipeline.validity(runs)
+    assert result["valid"] and result["replies_with_tool_call_markup"]["k-P0 (P)"] == {"count": 1,
+                                                                                         "positions": [[1, 2]]}
+    assert result["replies_with_tool_call_markup"]["k-F1 (F)"]["count"] == 0
+
+
+@pytest.mark.parametrize("content, arm", [
+    ("{broken\n", "P"), ("[]\n", "P"), (pause_line("s1", 1, text="PRIVATE PRACTICE DETAIL"), "P"),
+    (pause_line("s1", 1).replace("unexpected_pause", "pause"), "P"), (pause_line("s1", "1"), "P"),
+    (pause_line("s9", 0), "P"), (pause_line("s1", 5), "P"), (pause_line("s1", 0), "P"),
+    (pause_line("s1", 1) + pause_line("s1", 1), "P"), (pause_line("s1", 1), "F"),
+    (json.dumps({"time": True, "session": "s1", "turn": 1, "kind": "unexpected_pause"}) + "\n", "P"),
+], ids=["not JSON", "not an object", "an extra field", "another kind", "a turn that is not a number",
+        "an unknown session", "a turn outside the scenario", "a turn its row says was recorded", "a repeated turn",
+        "in arm F", "a time that is not a number"])
+def test_validity_refuses_a_malformed_host_pause_file(pipeline, tmp_path, monkeypatch, capsys, content, arm):
+    runs = paused_runs(pipeline, tmp_path, monkeypatch)
+    (runs[0 if arm == "P" else 1] / "host-pauses.jsonl").write_text(content)
+    result = pipeline.validity(runs)
+    assert not result["valid"] and any("host-pauses.jsonl is malformed" in item for item in result["problems"])
+    assert "PRIVATE PRACTICE DETAIL" not in capsys.readouterr().out
+
+
 def test_validity_cli_takes_the_manifests_persona(pipeline, tmp_path):
     result = subprocess.run([sys.executable, pipeline.__file__, "validity", str(tmp_path), "--persona"],
                             capture_output=True, text=True)

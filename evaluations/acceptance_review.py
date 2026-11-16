@@ -5,7 +5,9 @@
   tally   REVIEW_DIR BLIND_DIR SCENARIO KEY           final scores per arm, literal and with written resolutions
   attribution-inputs REVIEW_DIR BLIND_DIR SCENARIO KEY OUT_DIR   one arm-blind file per gated reply with a standing
                                                       critical error, for attribute.md
-  validity RUN_DIR...                                 refuse an attempt whose runs degraded
+  validity RUN_DIR...                                 refuse an attempt whose runs degraded; report, without
+                                                      refusing, turns the host's own pause left unrecorded and
+                                                      replies with tool-call markup (counts and positions)
   r5-inputs REVIEW_DIR BLIND_DIR SCENARIO KEY OUT_DIR   after the re-checks: one arm-blind file per reply with a
                                                       candidate type 4 mark, with that reply's own earlier
                                                       assistant replies, for rule R5 (assistant-claims.md)
@@ -17,8 +19,10 @@
   verdicts VERDICTS SCENARIO                          check a first review before the split; rename prefix keys
                                                       ("L01") to case ids, keeping the original as .raw.json
   diagnose RUN_DIR...                                 for an invalid attempt: where each arm stopped, harness
-                                                      event kinds with counts and positions, and error counts by
-                                                      exception class; never a message, payload or log line
+                                                      event kinds with counts and positions, turns left unrecorded
+                                                      by the host's own pause, replies with tool-call markup, and
+                                                      error counts by exception class; never a message, payload
+                                                      or log line
   remarks BLIND_DIR SCENARIO                          after unsealing: per arm, the count and share of replies with
                                                       a memory remark ("Saved.") that could unblind them
   gate REVIEW_DIR KEY...                              the attempt-3 pass rule from tallies and attributions
@@ -887,6 +891,58 @@ def _supervision(run: Path) -> dict:
     return stamps
 
 
+HOST_PAUSES = "host-pauses.jsonl"
+HOST_PAUSE_KIND = "unexpected_pause"  # The harness's kind (c5-harness.py HOST_PAUSE_KIND).
+# Markers of a tool call that a host wrote into its reply as text (the harness's last round offers no tools; seen in
+# the sixth attempt: a reply ending in "<｜｜DSML｜｜tool_calls>..."). Matched case-insensitively as substrings;
+# counted only, never stripped, and never a reason to refuse a run.
+TOOL_CALL_MARKUP = ("DSML", "<tool_call", "<function_call", "tool_calls>")
+
+
+def _message_position(sessions: list, session, turn) -> list | None:
+    """[session index, message number], both from 1; None when the row's session is not the scenario's."""
+    if session not in sessions or type(turn) is not int or turn < 0:
+        return None
+    return [sessions.index(session) + 1, turn + 1]
+
+
+def _host_pauses(run: Path, order: list, rows: list, arm: str) -> tuple[list, list]:
+    """The turns the host's own pause left unrecorded (host-pauses.jsonl: the harness writes one line per such turn
+    of arm P), as positions, and the numbers of malformed lines. A line is malformed unless it holds exactly the
+    time, a session and turn of the scenario, and the kind; names a turn whose row says it was recorded; repeats a
+    turn; or is in arm F, which has no pause."""
+    path = run / HOST_PAUSES
+    if not path.exists():
+        return [], []
+    sessions = list(dict.fromkeys(session for session, _ in order))
+    recorded = {(row.get("session"), row.get("turn")): row.get("recorded") for row in rows}
+    positions, malformed, seen = [], [], set()
+    for number, line in enumerate(path.read_text(errors="replace").splitlines(), 1):
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            entry = None
+        key = (entry.get("session"), entry.get("turn")) if isinstance(entry, dict) else None
+        if (arm != "P" or not isinstance(entry, dict) or set(entry) != {"time", "session", "turn", "kind"}
+                or entry["kind"] != HOST_PAUSE_KIND or type(entry["time"]) not in (int, float)
+                or not isinstance(entry["session"], str) or type(entry["turn"]) is not int or key not in order
+                or key in seen or recorded.get(key, False) is not False):
+            malformed.append(number)
+            continue
+        seen.add(key)
+        positions.append(_message_position(sessions, *key))
+    return positions, malformed
+
+
+def _markup_replies(rows: list, order: list) -> list:
+    """The positions of the replies that contain tool-call markup (TOOL_CALL_MARKUP); None for a row outside the
+    scenario's sessions."""
+    sessions = list(dict.fromkeys(session for session, _ in order))
+    markers = [marker.casefold() for marker in TOOL_CALL_MARKUP]
+    return [_message_position(sessions, row.get("session"), row.get("turn")) for row in rows
+            if isinstance(row.get("reply"), str) and any(marker in row["reply"].casefold() for marker in markers)]
+
+
 def validity(run_dirs: list[Path], scenario_path: Path | None = None, persona_preset: str | None = None) -> dict:
     """Refuse an attempt whose runs degraded: a missing or unfinished log, missing or empty replies, a call cap, a
     harness error or an index timeout in any arm; run directories that are not exactly the frozen arms, once each; an
@@ -894,8 +950,12 @@ def validity(run_dirs: list[Path], scenario_path: Path | None = None, persona_pr
     draw, which the driver passes) an arm whose persona is not that seeded type; an arm without complete supervisor
     stamps, or arms that overlapped in time. Names turns by position only. Prints the reference arm's largest
     prompt, each arm's count of retried empty replies, and each arm's count of tool errors its host was shown
-    (reported, never refused: they are the host's or the service's, and are part of what is measured)."""
+    (reported, never refused: they are the host's or the service's, and are part of what is measured). Also reported
+    without refusing, per run directory: the turns the host's own pause left unrecorded (host-pauses.jsonl; a
+    malformed file is refused as damaged evidence) and the replies with tool-call markup (TOOL_CALL_MARKUP), each as
+    a count and positions [session index, message number]."""
     problems, largest, retried, tool_errors = [], 0, {}, {}
+    host_pauses, markup = {}, {}
     arms_seen, personas, supervision = set(), {}, {}
     if not run_dirs:
         problems.append("No run directories supplied")
@@ -946,6 +1006,12 @@ def validity(run_dirs: list[Path], scenario_path: Path | None = None, persona_pr
                     problems.append(f"{run}: malformed harness event at line {number}")
                     continue
                 problems.append(f"{run}: harness degradation {event['kind']}")
+        paused, malformed = _host_pauses(run, order, rows, arm)
+        if malformed:
+            problems.append(f"{run}: {HOST_PAUSES} is malformed at line {malformed[0]}")
+        host_pauses[f"{run.name} ({arm})"] = {"count": len(paused), "positions": paused}
+        marked = _markup_replies(rows, order)
+        markup[f"{run.name} ({arm})"] = {"count": len(marked), "positions": marked}
         if arm == "F":
             largest = max(largest, max(row["usage"].get("prompt_tokens", 0) for row in rows))
         errors = run / "tool-errors.json"
@@ -977,7 +1043,8 @@ def validity(run_dirs: list[Path], scenario_path: Path | None = None, persona_pr
         if any(later[0] < earlier[1] for earlier, later in zip(spans, spans[1:])):
             problems.append("the arms overlapped in time")
     result = {"valid": not problems, "problems": problems, "reference_largest_prompt_tokens": largest,
-              "empty_replies_retried": retried, "tool_errors_reported_to_the_host": tool_errors}
+              "empty_replies_retried": retried, "tool_errors_reported_to_the_host": tool_errors,
+              "unrecorded_by_the_hosts_own_pause": host_pauses, "replies_with_tool_call_markup": markup}
     print(json.dumps(result))
     return result
 
@@ -1041,11 +1108,17 @@ def _tool_code(call) -> str:
     return name + (f"[{','.join(flags)}]" if flags else "")
 
 
+def _where(position: list, sessions: list) -> str:
+    """A [session index, message number] position in the diagnosis's words."""
+    return f"session {position[0]} of {len(sessions)}, message {position[1]}"
+
+
 def diagnose(run_dirs: list[Path], scenario_path: Path | None = None) -> None:
     """What an invalid run's diagnosis may read, per run directory: how far each arm got and its empty replies, by
     position; the tools the host called in each turn, as fixed codes (``_tool_code``); each harness event's kind,
-    with a count per kind and positions (session index, message) where the event has them; and counts of the log's
-    error lines by kind and exception class name. It never prints a payload string, a session id, an exception
+    with a count per kind and positions (session index, message) where the event has them; the turns the host's own
+    pause left unrecorded (host-pauses.jsonl) and the replies with tool-call markup, as counts and positions; and
+    counts of the log's error lines by kind and exception class name. It never prints a payload string, a session id, an exception
     message, a log line or any input, reply, context or transcript: those can carry held-out content (attempt 3
     lost a scenario that way)."""
     for run in run_dirs:
@@ -1090,6 +1163,18 @@ def diagnose(run_dirs: list[Path], scenario_path: Path | None = None) -> None:
                      else ""))
         if malformed:
             print(f"     malformed event lines: {malformed}")
+        arm = rows[0].get("arm") if rows else None
+        paused, broken = _host_pauses(run, order, rows, arm)
+        if paused or broken:
+            print(f"   unrecorded by the host's own pause (scored with the arm, not harness events): {len(paused)}"
+                  + (f" at {'; '.join(_where(position, sessions) for position in paused)}" if paused else ""))
+        if broken:
+            print(f"     malformed host-pause lines: {len(broken)}")
+        marked = _markup_replies(rows, order)
+        if marked:
+            known = [position for position in marked if position]
+            print(f"   replies with tool-call markup: {len(marked)}"
+                  + (f" at {'; '.join(_where(position, sessions) for position in known)}" if known else ""))
         counts: dict[str, int] = {}
         for line in log.splitlines():
             text = line.split(" ", 1)[1] if re.match(r"\d\d:\d\d:\d\d ", line) else line

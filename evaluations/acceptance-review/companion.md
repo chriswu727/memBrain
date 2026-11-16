@@ -179,6 +179,11 @@ any action failed. Only the resolution reviewer receives it; only `tally` reads 
 Validity rejects any reported harness degradation, malformed event evidence, missing or repeated turns, mixed
 run identities, an arm other than P and F or the same arm twice, arms that carried different personas, arms that
 overlapped in time, and empty run sets. It writes its JSON report and exits nonzero on an invalid run; do not score it.
+A turn that the host's own accepted pause left unrecorded is not a harness degradation: the harness lists it in
+`host-pauses.jsonl` and the arm goes on, so it is scored with the arm. Validity reports, per run directory, the
+count and positions (session index, message number) of those turns and of replies that contain tool-call markup
+(`TOOL_CALL_MARKUP`: a host writing a tool call as text in the last round, which offers no tools). Neither makes a
+run invalid; a malformed `host-pauses.jsonl` does. `diagnose` prints the same counts and positions.
 
 Companion tallies carry `gate: C5`. Mixing them with R4 tallies is refused. The last command writes
 `gate-c5.json`, exits nonzero when C5 fails, and never overwrites R4's `gate.json`. The R4 gate likewise writes
