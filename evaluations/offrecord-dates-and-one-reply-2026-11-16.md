@@ -29,6 +29,7 @@ The first wording failed when the user did not name the day, so the sentence now
 
 - The dates are a host-side file: they are not exported, not in a desktop backup, and not shared between devices. On a new device the agent is as it was before this change.
 - **Erasing everything from the memory page or through the API does not remove the dates.** The host side learns of erasures message by message and cannot tell that the whole memory was erased. A date with no content stays until the person's memory is erased through the host. This is a known gap.
+  - *Note added 2026-11-16 (later the same day):* closed for a local installation. When the installation's own service completes an erase-everything of a brain (`forget` with `all_authorized_scope` and `erase_content`, as the memory page sends it), it now removes that brain's dates file from the same installation ([reference](../docs/reference.md#off-the-record-dates)). A service that is not the installation's own, such as a remote deployment, still cannot reach the host's files, so this limit remains there.
 - The date of a queued message refused as paused is the date of the refusal, which can be later than the message if the service was down.
 - On a bot with many users, a pause of the whole installation marks every user whose turn it left out, since their words were dropped too.
 - The sentence makes the session notice up to about 420 characters longer, and the history shown at the start of a session shorter by as much. Chat-bot hosts repeat the notice before every message.

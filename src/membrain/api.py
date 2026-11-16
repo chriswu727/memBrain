@@ -225,7 +225,12 @@ def _unmodified_service(service) -> bool:
             and not {"handle", "respond", "_respond"}.intersection(own))
 
 
-def create_app(settings: Settings | None = None, service=None, jobs=None) -> FastAPI:
+def create_app(settings: Settings | None = None, service=None, jobs=None, *, after_action=None) -> FastAPI:
+    """The memory service's HTTP application.
+
+    ``after_action(principal, request, response)``, when given, runs after an action posted to ``/v1/actions`` has
+    completed (its response is final, valid and has outcome ``completed``), before the response is sent. It is for
+    the host-side bookkeeping of a local installation; a failure in it is ignored and never changes the response."""
     settings = settings or Settings.from_env()
     resources = ExitStack()
     recall_runner = None
@@ -784,6 +789,11 @@ def create_app(settings: Settings | None = None, service=None, jobs=None) -> Fas
             result, validated = await run_in_threadpool(service.handle, principal, body), False
         if not validated:  # A completed response was already validated, as this same unchanged object.
             validate("ActionResponse", result)
+        if after_action is not None and result.get("outcome") == "completed":
+            try:
+                await run_in_threadpool(after_action, principal, body, result)
+            except Exception:
+                pass  # Bookkeeping beside a completed action never turns it into a failure.
         try:
             # The bytes the default encoding produces for plain JSON data, without first rebuilding every value
             # of the response with jsonable_encoder. Anything json cannot encode takes the default path.

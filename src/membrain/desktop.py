@@ -531,12 +531,33 @@ class LocalSupervisor:
                 "database": database, "worker": worker,
                 "instance_id": self.instance_id, "configuration": self.configuration}
 
+    def after_action(self, principal, request, response):
+        """Host-side bookkeeping once an action of this installation's own service has completed.
+
+        Erasing everything in a brain (the memory page's "Erase everything", or the same request through the API)
+        also removes that person's off-the-record dates, which the host side keeps beside the pause state. Only a
+        completed ``forget`` of the whole scope with content erasure does; a conflict, a rejection or a failure never
+        reaches here, and no other forget removes them."""
+        payload = request.get("payload") if isinstance(request, dict) else None
+        if (not isinstance(payload, dict) or request.get("action") != "forget"
+                or response.get("outcome") != "completed" or payload.get("mode") != "erase_content"
+                or not isinstance(payload.get("selector"), dict)
+                or payload["selector"].get("kind") != "all_authorized_scope"
+                or (principal.tenant_id, principal.principal_id) != (self.profile.tenant_id,
+                                                                     self.profile.principal_id)):
+            return
+        from . import host
+
+        brain = (response.get("server_scope") or {}).get("brain_id")
+        if isinstance(brain, str):
+            host.erase_off_record_dates(self.profile.directory, brain)
+
     def app(self):
         from fastapi import Body, Header, HTTPException
 
         from .api import create_app
 
-        app = create_app(self.settings)
+        app = create_app(self.settings, after_action=self.after_action)
 
         def authenticate(authorization):
             expected = "Bearer " + self.profile.api_key

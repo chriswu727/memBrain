@@ -668,6 +668,43 @@ def _note_off_record(directory: Path, user_id: str | None, *, started: float | N
         log(directory, f"off-record date not kept: {type(error).__name__}")
 
 
+_USER_BRAIN = re.compile(r"user-[0-9a-f]{32}")
+
+
+def erase_off_record_dates(directory: Path, brain_id: str) -> bool:
+    """Remove the off-the-record dates of the person whose whole memory, brain ``brain_id``, was just erased.
+
+    The installation's own brain has ``off-record.json``; a user's brain (``user_brain_id``) has the file named by
+    that brain id. Any other brain, a role-play's among them, has no dates of its own, so nothing is removed. Called
+    by the installation's own service after an erase-everything has completed; ``erase_user`` removes the file
+    itself. Bookkeeping: it never fails the erasure and creates nothing. Returns whether a file was removed."""
+    try:
+        root = Path(directory) / "plugin"
+        if not isinstance(brain_id, str) or not root.is_dir():
+            return False
+        if _USER_BRAIN.fullmatch(brain_id):
+            path = root / "off-record-users" / (brain_id + ".json")
+        else:
+            try:
+                own = json.loads((Path(directory) / "profile.json").read_text(encoding="utf-8")).get("brain_id")
+            except (OSError, ValueError, AttributeError):
+                return False
+            if not isinstance(own, str) or brain_id != own:
+                return False
+            path = root / "off-record.json"
+        if not path.exists():
+            return False
+        with profile_lock(root / "session-state-lock", timeout=5):
+            try:
+                path.unlink()
+            except FileNotFoundError:
+                return False
+            return True
+    except Exception as error:
+        log(directory, f"off-record dates not erased: {type(error).__name__}")
+        return False
+
+
 def _excluded_by_pause(exclusion: object) -> bool:
     return isinstance(exclusion, dict) and exclusion.get("reason") in OFF_RECORD_REASONS
 
