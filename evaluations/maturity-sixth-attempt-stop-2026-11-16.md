@@ -23,11 +23,26 @@ In turn 8 the host AI called `memory_pause` with no duration and not "until resu
 
 So the stop is the harness working as bound, on a real behaviour of the plugin path: **a host AI, given what the shipped plugin gives it, stopped recording when the scenario's author did not expect it to.** The session notice tells the host to call the pause tool "if the user asks you not to remember something", and the tool's description says to pause only when the user asks not to be remembered or stored, and not when they ask for something to be kept private. The server's standing instructions do not mention pausing.
 
-## What is not known
+## Why the host paused: found after unsealing the turn
 
-**Why the host paused.** That needs the user's message of turn 8, and perhaps what the consolidation batch returned. Three explanations are open and cannot be told apart from codes: the message asks for privacy and the host took that for a request not to remember; the message quotes or mentions such a request without making one; or nothing in the message relates to it. The lead tried twice to learn more without seeing the text (reading the harness's own event file, and having isolated sessions classify the message by a single letter); the session's permission layer refused both as access to sealed evidence, and the lead did not work around it. Whether S1 is unsealed for diagnosis is the owner's decision.
+Added later on 2026-11-16. The owner allowed the first scenario to be unsealed for diagnosis; the second stays sealed. Before that the lead had tried twice to learn more without seeing the text (reading the harness's own event file, and having isolated sessions classify the message by a single letter); the session's permission layer refused both as access to sealed evidence, and the lead did not work around it.
 
-Also not known: whether the same host pauses this way often, whether a Claude Code host does (it did not in the 86 turns of the [2026-11-13 trial](host-trial-2026-11-13.md)), and how the plugin path would have scored. Eight turns of one scenario are not a measurement of anything but this one event.
+**The user asked for nothing of the kind.** The message of turn 8 says that the kitchen tap drips all night and that they will email the landlord tomorrow. What the host did ([the turn](evidence/maturity-sixth-attempt-2026-11-16/turn-8.json)):
+
+| Round | The host | Reasoning tokens |
+| --- | --- | --- |
+| 1 | wrote its whole answer, saved a note, asked for the consolidation batch | 277 |
+| 2 | handed back cues for seven earlier messages; the tool answered "Done. If your answer to the user's message is not yet written in this turn, write it now in full; this is not the reply." | 142 |
+| 3 | called `memory_pause` with no arguments | **0** |
+| 4 (no tools offered, as the harness's fourth round always is) | reasoned at length and wrote a `memory_resume` call as raw markup, which became part of its reply | 634 |
+
+So the answer was already written, the housekeeping was done, the host had nothing left to say, and it called a tool that takes no arguments, without reasoning. One round later it tried to undo that and could not, because the harness offers no tools in the last round. The pause was a slip of the host's, not a misreading of the user.
+
+**How often.** The turn was replayed twelve times against the same host with the same prompt, tools and recorded tool answers ([script](evidence/maturity-sixth-attempt-2026-11-16/replay.py), [results](evidence/maturity-sixth-attempt-2026-11-16/replay-results.json)): the host consolidated every time and paused in none. Its closing line after consolidation was "Done.", "All noted." or "Sorted" in six of twelve, a second answer in the others. One slip in the attempt's one consolidation turn and none in twelve replays: rare, and not a rate. The probe's conservative count is 3.08 CNY (every prompt token at the uncached peak price), approved by the owner as a diagnosis of up to 5 CNY; the account's balance had not moved when read half a minute after it.
+
+**What it means for the product.** A rare slip of the host silently ends recording for the rest of a conversation: the pause tool accepts a call with no arguments, its answer does not ask the host to tell the user, and after consolidation the host is told what to do only if its answer is not yet written. Those three are being changed; the changes and their checks are recorded separately.
+
+Still not known: whether a Claude Code host ever slips this way (it did not in the 86 turns of the [2026-11-13 trial](host-trial-2026-11-13.md)), and how the plugin path would have scored. Eight turns of one scenario are not a measurement of anything but this one event.
 
 ## Two things the eight turns do show
 
@@ -50,7 +65,8 @@ The execution clone, the manifest, the blocked ledger, the driver's state, the r
 
 ## What this means for the next attempt
 
-- The cause has to be known before another paid run: the same host would meet the same turn.
+- The cause is known (above) and the product is being changed for it before another paid run.
+- The harness's last round offers no tools, so a host that wants to call one there writes the call as text into its reply. A real host always has its tools. That is a property of the frozen call shape, to be looked at in the next binding.
 - **A question for the next binding, not changed here:** an unexpected pause by the host is treated as an invalid run and stops it. It may be better scored as a recording failure of the plugin path, since it is the path's behaviour and not a fault of the harness; but then every later turn of that conversation is unrecorded too, and the cases that depend on them fail with it. The rule was fixed before this run and is left as it was.
-- A pause that the host starts on its own costs the user every later message of that conversation. Whether the product should ask more of a host before it pauses (for instance the user's words that asked for it) is a design question to settle once the cause is known.
+- A pause that the host starts on its own costs the user every later message of that conversation. Whether the product should ask more of a host before it pauses (for instance the user's words that asked for it) was a design question when this was written; see the section on the cause above.
 - A new attempt needs its own approval and ceiling.

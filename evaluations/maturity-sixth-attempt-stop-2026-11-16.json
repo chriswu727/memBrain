@@ -131,8 +131,16 @@
   "scenario_and_probe_sonnet": 17,
   "scoring": 0
  },
- "cause_of_pause": "unknown: the lead does not read sealed content; two content-free routes were refused by the session's permission layer",
+ "cause_of_pause": "a slip of the host: the user's message asked for nothing of the kind; after consolidation, with its answer already written, the host called memory_pause with no arguments and no reasoning tokens, then tried to resume in the round without tools",
  "r4": "not passed",
  "c5": "invalid, unscored",
- "release_allowed": false
+ "release_allowed": false,
+ "replay_probe": {
+  "trials": 12,
+  "consolidated": 12,
+  "paused": 0,
+  "conservative_cny": "3.0777",
+  "approved_ceiling_cny": "5"
+ },
+ "unsealed": "scenario s1, by the owner's leave on 2026-11-16; s2b stays sealed"
 }

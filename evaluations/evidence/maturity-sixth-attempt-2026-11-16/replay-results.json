@@ -1,0 +1,297 @@
+{
+ "variants": [
+  "base"
+ ],
+ "trials": 12,
+ "conservative_cny": 3.0777,
+ "results": [
+  {
+   "variant": "base",
+   "trial": 0,
+   "rounds": 3,
+   "calls": [
+    [
+     0,
+     "memory_note"
+    ],
+    [
+     0,
+     "memory_consolidate"
+    ],
+    [
+     1,
+     "memory_consolidate"
+    ]
+   ],
+   "pause_reasoning": [],
+   "final_chars": 10,
+   "final_has_markup": false,
+   "final_mentions_resume": false,
+   "final": "All noted."
+  },
+  {
+   "variant": "base",
+   "trial": 1,
+   "rounds": 4,
+   "calls": [
+    [
+     0,
+     "memory_note"
+    ],
+    [
+     1,
+     "memory_consolidate"
+    ],
+    [
+     2,
+     "memory_consolidate"
+    ]
+   ],
+   "pause_reasoning": [],
+   "final_chars": 5,
+   "final_has_markup": false,
+   "final_mentions_resume": false,
+   "final": "Done."
+  },
+  {
+   "variant": "base",
+   "trial": 2,
+   "rounds": 4,
+   "calls": [
+    [
+     0,
+     "memory_note"
+    ],
+    [
+     1,
+     "memory_consolidate"
+    ],
+    [
+     2,
+     "memory_consolidate"
+    ]
+   ],
+   "pause_reasoning": [],
+   "final_chars": 83,
+   "final_has_markup": false,
+   "final_mentions_resume": false,
+   "final": "That's a good idea to get ahead of it. I'll check back tomorrow to see how it went."
+  },
+  {
+   "variant": "base",
+   "trial": 3,
+   "rounds": 3,
+   "calls": [
+    [
+     0,
+     "memory_note"
+    ],
+    [
+     0,
+     "memory_consolidate"
+    ],
+    [
+     1,
+     "memory_consolidate"
+    ]
+   ],
+   "pause_reasoning": [],
+   "final_chars": 54,
+   "final_has_markup": false,
+   "final_mentions_resume": false,
+   "final": "Done. I'll check in with you tomorrow about the email."
+  },
+  {
+   "variant": "base",
+   "trial": 4,
+   "rounds": 4,
+   "calls": [
+    [
+     0,
+     "memory_note"
+    ],
+    [
+     1,
+     "memory_consolidate"
+    ],
+    [
+     2,
+     "memory_consolidate"
+    ]
+   ],
+   "pause_reasoning": [],
+   "final_chars": 34,
+   "final_has_markup": false,
+   "final_mentions_resume": false,
+   "final": "Sorted — I'll remind you tomorrow."
+  },
+  {
+   "variant": "base",
+   "trial": 5,
+   "rounds": 4,
+   "calls": [
+    [
+     0,
+     "memory_note"
+    ],
+    [
+     1,
+     "memory_consolidate"
+    ],
+    [
+     2,
+     "memory_consolidate"
+    ]
+   ],
+   "pause_reasoning": [],
+   "final_chars": 30,
+   "final_has_markup": false,
+   "final_mentions_resume": false,
+   "final": "Sorted — I'll leave you to it."
+  },
+  {
+   "variant": "base",
+   "trial": 6,
+   "rounds": 3,
+   "calls": [
+    [
+     0,
+     "memory_note"
+    ],
+    [
+     0,
+     "memory_consolidate"
+    ],
+    [
+     1,
+     "memory_consolidate"
+    ]
+   ],
+   "pause_reasoning": [],
+   "final_chars": 88,
+   "final_has_markup": false,
+   "final_mentions_resume": false,
+   "final": "Good idea — a dripping tap's worth getting sorted. I'll remind you tomorrow if you like."
+  },
+  {
+   "variant": "base",
+   "trial": 7,
+   "rounds": 3,
+   "calls": [
+    [
+     0,
+     "memory_note"
+    ],
+    [
+     0,
+     "memory_consolidate"
+    ],
+    [
+     1,
+     "memory_consolidate"
+    ]
+   ],
+   "pause_reasoning": [],
+   "final_chars": 105,
+   "final_has_markup": false,
+   "final_mentions_resume": false,
+   "final": "Good call to get it sorted. Maybe wedge a cloth or a bowl under it tonight so it's not keeping you awake."
+  },
+  {
+   "variant": "base",
+   "trial": 8,
+   "rounds": 3,
+   "calls": [
+    [
+     0,
+     "memory_note"
+    ],
+    [
+     0,
+     "memory_consolidate"
+    ],
+    [
+     1,
+     "memory_consolidate"
+    ]
+   ],
+   "pause_reasoning": [],
+   "final_chars": 5,
+   "final_has_markup": false,
+   "final_mentions_resume": false,
+   "final": "Done."
+  },
+  {
+   "variant": "base",
+   "trial": 9,
+   "rounds": 3,
+   "calls": [
+    [
+     0,
+     "memory_note"
+    ],
+    [
+     0,
+     "memory_consolidate"
+    ],
+    [
+     1,
+     "memory_consolidate"
+    ]
+   ],
+   "pause_reasoning": [],
+   "final_chars": 59,
+   "final_has_markup": false,
+   "final_mentions_resume": false,
+   "final": "Done. Hope he gets back to you quickly once you've emailed."
+  },
+  {
+   "variant": "base",
+   "trial": 10,
+   "rounds": 3,
+   "calls": [
+    [
+     0,
+     "memory_note"
+    ],
+    [
+     0,
+     "memory_consolidate"
+    ],
+    [
+     1,
+     "memory_consolidate"
+    ]
+   ],
+   "pause_reasoning": [],
+   "final_chars": 83,
+   "final_has_markup": false,
+   "final_mentions_resume": false,
+   "final": "That dripping would drive me mad. Good call to put it in writing — tomorrow's fine."
+  },
+  {
+   "variant": "base",
+   "trial": 11,
+   "rounds": 3,
+   "calls": [
+    [
+     0,
+     "memory_note"
+    ],
+    [
+     0,
+     "memory_consolidate"
+    ],
+    [
+     1,
+     "memory_consolidate"
+    ]
+   ],
+   "pause_reasoning": [],
+   "final_chars": 171,
+   "final_has_markup": false,
+   "final_mentions_resume": false,
+   "final": "That's annoying — a dripping tap all night would drive anyone mad. Good that you're emailing him; landlords usually act quicker in writing. Want me to remind you tomorrow?"
+  }
+ ]
+}
