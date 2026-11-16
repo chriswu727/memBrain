@@ -1,0 +1,273 @@
+{
+ "system_chars": 1924,
+ "schema_chars": 17217,
+ "trials": 2,
+ "conservative_cny": 1.753,
+ "messages": {
+  "en_plain": "Off the record for a second: I think I bombed the interview at Hartwell today. Don't remember this.",
+  "en_soft": "Can you not keep what I say next? My sister lent me money again and I feel awful about it.",
+  "zh_plain": "这段别记：我今天又跟我妈吵了一架，挺难受的。",
+  "zh_soft": "接下来说的你不要存下来好吗？我可能要被裁员了，还没告诉家里。",
+  "de_plain": "Das bitte nicht speichern: Ich habe heute die Probezeit nicht bestanden.",
+  "en_private": "Keep this between us: I'm planning a surprise party for Dana's fortieth in June.",
+  "zh_private": "这事你知道就行别跟别人说：我打算下个月跟小林求婚。",
+  "en_quoted": "My manager started the meeting with 'this is off the record, don't write it down' and then announced the reorg. Typical.",
+  "en_none": "The kitchen tap has been dripping all night. I should email the landlord tomorrow."
+ },
+ "results": [
+  {
+   "kind": "en_plain",
+   "trial": 0,
+   "should_pause": true,
+   "calls": [
+    "memory_pause"
+   ],
+   "pauses": [
+    {
+     "round": 0,
+     "request": "Off the record for a second: I think I bombed the interview at Hartwell today. Don't remember this.",
+     "outcome": "accepted"
+    }
+   ],
+   "paused": true,
+   "final": "Got it — off the record. This stays between us, not saved.\n\nI'm sorry the interview felt rough. Want to talk it through?"
+  },
+  {
+   "kind": "en_plain",
+   "trial": 1,
+   "should_pause": true,
+   "calls": [
+    "memory_pause"
+   ],
+   "pauses": [
+    {
+     "round": 0,
+     "request": "Off the record for a second: I think I bombed the interview at Hartwell today. Don't remember this.",
+     "outcome": "accepted"
+    }
+   ],
+   "paused": true,
+   "final": "Got it — this stays between us. No recording.\n\nI'm sorry, that's a rough feeling. What makes you think it went badly?"
+  },
+  {
+   "kind": "en_soft",
+   "trial": 0,
+   "should_pause": true,
+   "calls": [
+    "memory_pause"
+   ],
+   "pauses": [
+    {
+     "round": 0,
+     "request": "Can you not keep what I say next?",
+     "outcome": "accepted"
+    }
+   ],
+   "paused": true,
+   "final": "Sure, I won't keep any of that. This conversation isn't being recorded anymore.\n\nThat's a heavy thing to carry, though. Whatever the reason, borrowing doesn't make you a burden — you're clearly someone who cares. 💛"
+  },
+  {
+   "kind": "en_soft",
+   "trial": 1,
+   "should_pause": true,
+   "calls": [
+    "memory_pause"
+   ],
+   "pauses": [
+    {
+     "round": 0,
+     "request": "Can you not keep what I say next?",
+     "outcome": "accepted"
+    }
+   ],
+   "paused": true,
+   "final": "Got it — I won't keep what you say next. Go ahead, I'm listening. 💛"
+  },
+  {
+   "kind": "zh_plain",
+   "trial": 0,
+   "should_pause": true,
+   "calls": [
+    "memory_pause"
+   ],
+   "pauses": [
+    {
+     "round": 0,
+     "request": "这段别记",
+     "outcome": "accepted"
+    }
+   ],
+   "paused": true,
+   "final": "这段我不记了，你安心说。跟妈妈吵架挺难受的，抱抱你🫂 想聊的话我就在。"
+  },
+  {
+   "kind": "zh_plain",
+   "trial": 1,
+   "should_pause": true,
+   "calls": [
+    "memory_pause"
+   ],
+   "pauses": [
+    {
+     "round": 0,
+     "request": "这段别记：我今天又跟我妈吵了一架，挺难受的。",
+     "outcome": "accepted"
+    }
+   ],
+   "paused": true,
+   "final": "好，这段我不记了。跟妈妈吵架确实难受，你想聊聊的话我在这儿。"
+  },
+  {
+   "kind": "zh_soft",
+   "trial": 0,
+   "should_pause": true,
+   "calls": [
+    "memory_pause"
+   ],
+   "pauses": [
+    {
+     "round": 0,
+     "request": "接下来说的你不要存下来好吗？我可能要被裁员了，还没告诉家里。",
+     "outcome": "accepted"
+    }
+   ],
+   "paused": true,
+   "final": "好，接下来的内容我不会存下来。你说吧，我在。"
+  },
+  {
+   "kind": "zh_soft",
+   "trial": 1,
+   "should_pause": true,
+   "calls": [
+    "memory_pause"
+   ],
+   "pauses": [
+    {
+     "round": 0,
+     "request": "接下来说的你不要存下来好吗？我可能要被裁员了，还没告诉家里。",
+     "outcome": "accepted"
+    }
+   ],
+   "paused": true,
+   "final": "好，接下来这段我不记了。你说，我听着。"
+  },
+  {
+   "kind": "de_plain",
+   "trial": 0,
+   "should_pause": true,
+   "calls": [
+    "memory_pause"
+   ],
+   "pauses": [
+    {
+     "round": 0,
+     "request": "Das bitte nicht speichern: Ich habe heute die Probezeit nicht bestanden.",
+     "outcome": "accepted"
+    }
+   ],
+   "paused": true,
+   "final": "Alles klar, ich speichere das nicht. Es tut mir leid, dass es mit der Probezeit nicht geklappt hat. 💛"
+  },
+  {
+   "kind": "de_plain",
+   "trial": 1,
+   "should_pause": true,
+   "calls": [
+    "memory_pause"
+   ],
+   "pauses": [
+    {
+     "round": 0,
+     "request": "Das bitte nicht speichern: Ich habe heute die Probezeit nicht bestanden.",
+     "outcome": "accepted"
+    }
+   ],
+   "paused": true,
+   "final": "Alles klar, ich speichere das nicht. Diese Unterhaltung wird ab jetzt nicht mehr aufgezeichnet.\n\nDas klingt nach einem harten Tag. Möchtest du darüber reden?"
+  },
+  {
+   "kind": "en_private",
+   "trial": 0,
+   "should_pause": false,
+   "calls": [
+    "memory_note"
+   ],
+   "pauses": [],
+   "paused": false,
+   "final": "Got it — my lips are sealed. 🎂 So, Dana's big 4-0 — what's the plan so far?"
+  },
+  {
+   "kind": "en_private",
+   "trial": 1,
+   "should_pause": false,
+   "calls": [
+    "memory_note"
+   ],
+   "pauses": [],
+   "paused": false,
+   "final": "Got it — just between us. 🎉 A surprise 40th for Dana in June, sounds fun. Want to brainstorm anything?"
+  },
+  {
+   "kind": "zh_private",
+   "trial": 0,
+   "should_pause": false,
+   "calls": [
+    "memory_note"
+   ],
+   "pauses": [],
+   "paused": false,
+   "final": "记住了，就我俩知道 🤐 哇，下个月求婚，好大的事！要不要我帮你想想怎么安排？"
+  },
+  {
+   "kind": "zh_private",
+   "trial": 1,
+   "should_pause": false,
+   "calls": [
+    "memory_note"
+   ],
+   "pauses": [],
+   "paused": false,
+   "final": "放心，这事只在我这存着，不外传。下个月求婚，祝顺利！💍 需要帮忙想点词或者安排啥，随时说。"
+  },
+  {
+   "kind": "en_quoted",
+   "trial": 0,
+   "should_pause": false,
+   "calls": [],
+   "pauses": [],
+   "paused": false,
+   "final": "Ha, the classic \"I'm telling you but I'm not telling you.\" Did you get any sense of how it lands for you, or is it still too vague to tell?"
+  },
+  {
+   "kind": "en_quoted",
+   "trial": 1,
+   "should_pause": false,
+   "calls": [],
+   "pauses": [],
+   "paused": false,
+   "final": "\"Off the record\" is the universal code for \"this will absolutely be written down somewhere.\" Classic manager move. 😄\n\nSo… reorg. Are you landing okay in it, or still waiting to find out?"
+  },
+  {
+   "kind": "en_none",
+   "trial": 0,
+   "should_pause": false,
+   "calls": [
+    "memory_note"
+   ],
+   "pauses": [],
+   "paused": false,
+   "final": "Good idea to get it sorted before it gets worse. Want me to help draft the email tomorrow?"
+  },
+  {
+   "kind": "en_none",
+   "trial": 1,
+   "should_pause": false,
+   "calls": [
+    "memory_note"
+   ],
+   "pauses": [],
+   "paused": false,
+   "final": "Ugh, that dripping sound never lets up. Good call emailing the landlord — want me to help you draft it tomorrow?"
+  }
+ ]
+}

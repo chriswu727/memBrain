@@ -28,9 +28,25 @@ The words alone are trusted, with no comparison, when no unfinished turn of the 
 - An OpenClaw or AstrBot plugin older than this runtime has no `request` in its tool schema, so its AI's pause would be refused. The launchers pin plugin and runtime together, and nothing has been released.
 - The listed MCP schema marks `request` as required through a private attribute of the MCP library, while the function accepts a missing one so that the refusal is memBrain's own; a test pins both.
 
-## Not tried
+## Tried on one host model, with public messages
 
-No host has been run on this change: whether a host passes the user's words at the first call, how often it retries after a refusal, and whether it tells the user, are untested. The frequency of the original slip is unknown beyond one in the attempt's one consolidation turn and none in twelve replays.
+Added later on 2026-11-16, before the seventh maturity attempt. `deepseek-v4-pro` was given the plugin path's standing prompt on this source (the tool server's instructions, the recording and privacy notices, all fourteen tools) and nine messages written for the probe, twice each ([script](evidence/pause-request-2026-11-16/host-probe.py), [results](evidence/pause-request-2026-11-16/host-probe-results.json)); the tool's answer was computed with the runtime's own comparison.
+
+| Message | Should pause | Paused | What the host passed |
+| --- | --- | --- | --- |
+| English, plain ("Off the record … Don't remember this.") | yes | 2 of 2 | the whole message, both times |
+| English, softer ("Can you not keep what I say next? …") | yes | 2 of 2 | the sentence that asks, both times |
+| Chinese, plain ("这段别记：…") | yes | 2 of 2 | the asking words once, the whole message once |
+| Chinese, softer ("接下来说的你不要存下来好吗？…") | yes | 2 of 2 | the whole message, both times |
+| German ("Das bitte nicht speichern: …") | yes | 2 of 2 | the whole message, both times |
+| English, a request for privacy ("Keep this between us: …") | no | 0 of 2 | (no pause; a note was saved) |
+| Chinese, a request for privacy | no | 0 of 2 | (no pause; a note was saved) |
+| English, someone else's "off the record" quoted | no | 0 of 2 | (no pause, no note) |
+| English, nothing of the kind | no | 0 of 2 | (no pause; a note was saved) |
+
+All ten pauses were accepted at the first call, with the user's words copied exactly; no call was refused, so what a host does after a refusal was not seen. In every one of the ten the host then told the user in a few words that it was not keeping this. The conservative count of the probe is 1.75 CNY, run under the owner's standing leave for small diagnostic probes.
+
+**Still not tried:** a real plugin host (Claude Code, Codex, OpenClaw, AstrBot, Hermes); a request the host would have to find in a long message; what a host does after a refusal; and the frequency of the original slip, which is unknown beyond one in the sixth attempt's one consolidation turn and none in twelve replays. Eighteen trials of nine messages are a check that the tool can be used as described, not a rate.
 
 ## Verification
 
