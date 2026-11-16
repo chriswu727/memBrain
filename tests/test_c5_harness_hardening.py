@@ -252,7 +252,7 @@ def test_a_stub_plugin_run_refuses_a_timed_pause_and_scores_the_hosts_own_conver
     assert [(event["kind"], event["session"], event["turn"]) for event in events] == [("timed_pause_refused", "s1", 0)]
     pauses = _host_pauses(tmp_path / "run-P")
     assert [(entry["session"], entry["turn"], entry["kind"]) for entry in pauses] == [
-        ("s1", 1, "unexpected_pause"), ("s1", 2, "unexpected_pause")]
+        ("s1", 1, "unrecorded_by_host_pause"), ("s1", 2, "unrecorded_by_host_pause")]
     assert all(set(entry) == {"time", "session", "turn", "kind"} for entry in pauses)
     out = capsys.readouterr().out
     assert out.count("turn left unrecorded by the host's own pause") == 2

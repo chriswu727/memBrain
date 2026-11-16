@@ -101,9 +101,9 @@ def test_diagnose_prints_the_hosts_own_pauses_and_tool_call_markup_as_counts_and
             {"arm": "P", "scenario": "practice", "session": second, "turn": 0, "recorded": False,
              "reply": f"{SECRET} reply\n<｜｜DSML｜｜tool_calls>{SECRET}"}]
     monkeypatch.setattr(pipeline, "_run", lambda _: (rows, order, "12:00:00 P practice finished"))
-    lines = [{"time": 1.0, "session": first, "turn": 1, "kind": "unexpected_pause"},
-             {"time": 2.0, "session": second, "turn": 0, "kind": "unexpected_pause"},
-             {"time": 3.0, "session": second, "turn": 0, "kind": "unexpected_pause", "text": SECRET}]
+    lines = [{"time": 1.0, "session": first, "turn": 1, "kind": "unrecorded_by_host_pause"},
+             {"time": 2.0, "session": second, "turn": 0, "kind": "unrecorded_by_host_pause"},
+             {"time": 3.0, "session": second, "turn": 0, "kind": "unrecorded_by_host_pause", "text": SECRET}]
     (tmp_path / "host-pauses.jsonl").write_text(
         "\n".join(json.dumps(line) for line in lines) + f"\n{{broken {SECRET}\n")
     pipeline.diagnose([tmp_path])

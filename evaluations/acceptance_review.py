@@ -892,7 +892,7 @@ def _supervision(run: Path) -> dict:
 
 
 HOST_PAUSES = "host-pauses.jsonl"
-HOST_PAUSE_KIND = "unexpected_pause"  # The harness's kind (c5-harness.py HOST_PAUSE_KIND).
+HOST_PAUSE_KIND = "unrecorded_by_host_pause"  # The harness's kind (c5-harness.py HOST_PAUSE_KIND).
 # Markers of a tool call that a host wrote into its reply as text (the harness's last round offers no tools; seen in
 # the sixth attempt: a reply ending in "<｜｜DSML｜｜tool_calls>..."). Matched case-insensitively as substrings;
 # counted only, never stripped, and never a reason to refuse a run.

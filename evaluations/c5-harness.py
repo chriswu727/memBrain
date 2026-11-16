@@ -944,7 +944,7 @@ def pause_scope(result: str) -> str:
     return "conversation" if isinstance(value, dict) and value.get("scope") == "this conversation" else "until_resumed"
 
 
-HOST_PAUSE_KIND = "unexpected_pause"
+HOST_PAUSE_KIND = "unrecorded_by_host_pause"
 
 
 def host_pause_left_unrecorded(out: Path, session: str, turn: int, where: str) -> None:

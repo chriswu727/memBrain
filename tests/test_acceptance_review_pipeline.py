@@ -661,7 +661,7 @@ def paused_runs(pipeline, tmp_path, monkeypatch, p_replies=("Hello",) * 3, f_rep
 
 
 def pause_line(session, turn, **extra):
-    return json.dumps({"time": 12.5, "session": session, "turn": turn, "kind": "unexpected_pause", **extra}) + "\n"
+    return json.dumps({"time": 12.5, "session": session, "turn": turn, "kind": "unrecorded_by_host_pause", **extra}) + "\n"
 
 
 def test_validity_reports_the_hosts_own_pauses_and_tool_call_markup_without_refusing(pipeline, tmp_path,
@@ -692,10 +692,10 @@ def test_each_tool_call_markup_marker_is_counted_in_any_case(pipeline, tmp_path,
 
 @pytest.mark.parametrize("content, arm", [
     ("{broken\n", "P"), ("[]\n", "P"), (pause_line("s1", 1, text="PRIVATE PRACTICE DETAIL"), "P"),
-    (pause_line("s1", 1).replace("unexpected_pause", "pause"), "P"), (pause_line("s1", "1"), "P"),
+    (pause_line("s1", 1).replace("unrecorded_by_host_pause", "pause"), "P"), (pause_line("s1", "1"), "P"),
     (pause_line("s9", 0), "P"), (pause_line("s1", 5), "P"), (pause_line("s1", 0), "P"),
     (pause_line("s1", 1) + pause_line("s1", 1), "P"), (pause_line("s1", 1), "F"),
-    (json.dumps({"time": True, "session": "s1", "turn": 1, "kind": "unexpected_pause"}) + "\n", "P"),
+    (json.dumps({"time": True, "session": "s1", "turn": 1, "kind": "unrecorded_by_host_pause"}) + "\n", "P"),
 ], ids=["not JSON", "not an object", "an extra field", "another kind", "a turn that is not a number",
         "an unknown session", "a turn outside the scenario", "a turn its row says was recorded", "a repeated turn",
         "in arm F", "a time that is not a number"])
