@@ -348,7 +348,18 @@ review remain open. Any source change requires review and qualification; this ap
 
 ## Filled in by the run
 
-- Owner's approval of the paid run (words, date): `<filled in after approval>`.
-- Provider revalidation: `<control/provider-revalidation.json>`; balances: `<initial / after S1 / after S2>`.
-- Ledger: `<initial sha256, policy sha256>`.
-- Execution summary, validity, scoring, `gate.json`, memory-remark counts, final review: `<filled in by the run>`.
+Filled in on 2026-11-16, after the attempt had stopped and could no longer be scored; nothing above this section was
+changed after freezing. The frozen copy in the execution clone keeps its placeholders.
+
+- Owner's approval of the paid run (words, date): "确认" (translation: "confirmed") on 2026-11-14 to a new R4
+  attempt with a ceiling of 80 CNY, and on the same day the delegation of the attempt's scope decisions to the lead;
+  "先继续" (translation: "carry on") on 2026-11-15.
+- Provider revalidation: re-read on 2026-11-16 04:20 UTC, matching the policy (9 and 27 CNY per million at peak
+  hours); balances: 126.51 CNY before S1, 126.25 CNY three minutes after the stop; none after S1 or S2, which did
+  not complete.
+- Ledger: initial sha256 `cd817505de753a2cd1cb2f52978240a0fd33a97246d0f6e2f684f0b1752c65fa`, policy sha256
+  `13e316ccb3b706ea728a3d71ac130f71e341e723ec36fbfaadf0c1dd5dfdcbaf`.
+- Execution summary: stopped at `s1`, arm `P`, after 8 of 61 turns (`runner_failed`; harness event
+  `turn_not_recorded`; ledger blocked with `harness_degraded`); `s2b` not run. No validity run, no scoring, no
+  `gate.json`, no memory-remark counts and no final review exist. The attempt is **invalid and unscored**:
+  [record](maturity-sixth-attempt-stop-2026-11-16.md).

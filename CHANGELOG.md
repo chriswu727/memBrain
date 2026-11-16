@@ -125,6 +125,8 @@ memBrain is a human-inspired memory engine for AI agents. It keeps persistent me
 
 Real-model observations still include historical information presented as current, irrelevant retrieved material and rejected valid semantic proposals. Earlier failed campaigns remain failed. See the [acceptance contract](architecture/v1-acceptance.md) and [closeout checklist](docs/releasing.md) for the remaining work and evidence boundaries.
 
+The [sixth behavioural attempt](evaluations/maturity-sixth-attempt-stop-2026-11-16.md), the first on the plugin path alone, stopped as invalid after eight turns: the host AI paused recording in a turn the scenario meant to be recorded. Nothing was scored, and why the host paused is not yet known.
+
 The [completed varied diagnostic](evaluations/v1-2026-10-26-longitudinal-round.md) attempted all 33 inputs on one brain, with 32 replies and one preserved timeout. Meaningful recall and source-faithful recollection still fail in some cases. Access-age tier changes did not demonstrate the intended gist-first forgetting behavior. These remain release blockers, not validated human-memory equivalence.
 
 After a large import, meaning-based recall covers new records only gradually. Before local embedding was batched, about 500 messages took twelve to thirteen minutes to store and embed on a four-core machine that was also running other benchmarks; batching shortened inference but not the time until all indexing settled in the [workflow measurements](evaluations/v1-2026-10-30-workflow-acceptance.md). Keyword recall works at once. Only 30 LongMemEval questions (each a history of about 500 messages) have been run.
