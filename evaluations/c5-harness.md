@@ -1,177 +1,185 @@
-# C5 harness: scenario clock, page actions and the zero-network dry run
+# C5 harness: two arms, scenario clock, persona mirroring, page actions and the zero-network dry run
 
-Free prerequisites 4 and 5 of the [paid acceptance plan draft](maturity-paid-acceptance-plan-draft.md). Nothing here makes a model call; no held-out scenario has been run with it.
+The behavioural acceptance harness for R4 and for the C5 companion scenarios. Nothing here makes a model call; no held-out C5 scenario has been run with the harness as described here.
 
 | File | What it is |
 | --- | --- |
 | [`c5-harness.py`](c5-harness.py) | Arms `P` (plugin path) and `F` (whole history), built on the Phase B harness |
 | [`c5-run-scenario.sh`](c5-run-scenario.sh) | Runs `P`, cleans it up, then runs `F`: one arm at a time |
-| [`c5-practice-scenario.py`](c5-practice-scenario.py) | A **public practice** C5 scenario with stub scripts. Never a held-out scenario |
-| [`r4-practice-scenario.py`](r4-practice-scenario.py) | A **public practice** R4 scenario (no persona card, no page actions) with stub scripts |
-| [`r4-stub-rehearsal.py`](r4-stub-rehearsal.py) | The free two-arm rehearsal: freeze, driver, run script, dry-run check, review pipeline and gate |
-| [`acceptance_persona.py`](acceptance_persona.py) | The seeded draw of the attempt's fixed personality type |
+| [`c5-practice-scenario.py`](c5-practice-scenario.py) | A **public practice** C5 scenario (literal assignments only) with stub scripts. Never a held-out scenario |
+| [`r4-practice-scenario.py`](r4-practice-scenario.py) | A **public practice** R4 scenario (no page actions) with stub scripts |
+| [`c5-stub-rehearsal.py`](c5-stub-rehearsal.py) | The free two-arm C5 rehearsal: freeze, driver with the C5 pair, run script, validity, dry-run check, companion review pipeline and gate |
+| [`r4-stub-rehearsal.py`](r4-stub-rehearsal.py) | The same for R4 |
+| [`acceptance_persona.py`](acceptance_persona.py) | The seeded draw of the attempt's starting personality type |
 | [`c5-dry-run-check.py`](c5-dry-run-check.py) | Checks a dry run, layer by layer |
 | [`c5-precheck.py`](c5-precheck.py) | Checks a scenario file before a run, printing counts and positions only (`--r4` for R4 scenarios) |
 | [`../src/membrain/evaluation_clock.py`](../src/membrain/evaluation_clock.py) | The evaluation-only scenario clock |
 
-## Two arms, from the sixth maturity attempt on (2026-11-14)
+## Arms
 
-What changed, and what each change means for comparing a new attempt with maturity attempts 1 to 5:
-- **Arms `P` and `F` only.** The proxy-with-extraction arm `E` and its code (the `E` branch, the extraction watch, the stub extractor, the extraction events, the older-source date shim) are removed: its note-extraction model was removed from the product. `run` refuses `E`. Earlier attempts' `E` results are not comparable with anything new.
-- **One arm at a time.** The run script runs `P` to the end, stops `P`'s installation (`c5-harness.py --cleanup RUN_DIR`, which stops only profiles carrying the harness's disposable marker and checks their ports), checks the ports free, then runs `F`. Attempts 1 to 5 ran the arms in parallel; the arms never shared state, so scores are unaffected, but wall time roughly doubles and only one request is ever open against the billing ledger. Each run directory gets `supervisor.log` (started, finished, cleaned) and `cleanup.log`; validity refuses arms that overlapped.
-- **One fixed persona in both arms.** Without a scenario `PERSONA` (every R4 scenario), the harness draws a personality type from the seed (the attempt id) and saves it in `P` before the first session as the product saves a chosen type, so the product's random first type and its one-time announcement never happen; `F` gets the same product-rendered block. Attempts 1 to 5 ran R4 with no persona in either arm: every prompt of both arms is now about 250 tokens longer and carries a personality, which can change tone and length of replies in both arms alike.
-- **What a plugin host gives its model unasked.** `P` calls the plugin's own hook functions (`membrain.plugin.session_start`, `user_prompt`, `stop`, with Claude Code's tool names), offers every tool the plugin's MCP server lists (attempt 5 offered five; now also consolidation, persona, manner feedback, forget and the low-level tools), keeps one server per session, and puts the server's instructions and the session context into the system prompt. It no longer gets the skill body: a host loads the skill only when its model opens it, which the 2026-11-13 trial never saw in 86 turns; attempts 1 to 5 gave the whole skill text in every call. Claude Code can also defer tool descriptions, while `P` gets them all up front. `P` may consolidate (two more tool calls in a turn) when the session notice asks, which attempts 1 to 5 never did. `F` is unchanged apart from the persona block.
-- **Hardening after the independent review (2026-11-14).** A scenario `PERSONA` is refused in a live run and whenever the driver passes the manifest's draw; validity requires both arms, each with `persona.json` (the seeded type when the driver passes `--persona`) and complete supervisor stamps. A live run reads its scenario with `scenario_literals.py` (literal assignments only), so no scenario code runs in the paid process. `HOST_MODEL` and `MEMBRAIN_SRC` are refused in a live arm, and `PYTHONPATH`, `MEMBRAIN_SEMANTIC` and `MEMBRAIN_EVALUATION_CLOCK` by the preflight. A session start that reports memory "starting or unavailable" is the harness event `memory_unavailable`; tool errors the host was shown are counted by tool name in `tool-errors.json`, which validity reports without refusing. `--cleanup` refuses symlinked profiles and stops only a profile whose marker names its own installation id.
-- **Stub host.** It answers a consolidation batch with a cue and reports whether the server's instructions were in the system prompt, so the dry run checks both.
-- The host model, the call shape, the round and tool-call limits, the billing guard, validity's other rules, the review criteria and the pass rule are unchanged.
-- Earlier sections of this file describe the three-arm harness as it was when those runs were made; they are kept as records.
+- **`P`, the plugin path.** A disposable evaluation installation on the scenario clock. `P` calls the plugin's own hook functions (`membrain.plugin.session_start`, `user_prompt`, `stop`, with Claude Code's tool names), offers every tool the plugin's MCP server lists with its own schemas and descriptions, keeps one server per session (as a host keeps one MCP connection), and puts the server's instructions and the session context into the system prompt. It does not get the skill body: a host loads it only when its model opens the skill, which the 2026-11-13 trial never saw in 86 turns. Two differences from a real host remain: Claude Code may defer tool descriptions, while `P` gets them all up front; and the host model runs through this emulation, not inside Claude Code.
+- **`F`, the whole-history reference.** No memory service. Its host gets the scenario's `HOST` text, the date, `P`'s persona block for the same turn (below), one line of page-only settings (below), and the whole earlier conversation of the scenario, minus the messages a page action deleted.
+- **One arm at a time.** The run script runs `P` to the end, stops its installation (`c5-harness.py --cleanup RUN_DIR`, which stops only profiles carrying the harness's disposable marker and checks their ports), checks the ports free, then runs `F`. Each run directory gets `supervisor.log` (started, finished, cleaned) and `cleanup.log`; validity refuses arms that overlapped. `F` reads `P`'s finished run (results, `persona.json`, `page-actions.jsonl`).
+- `run` refuses any other arm. The proxy-with-extraction arm of attempts 1 to 5 and its note-extraction model are gone from the product and from this harness.
+
+## Persona
+
+- **The start: the seeded type, in every run.** Both arms start from one personality type drawn from a recorded seed (`acceptance_persona.py`: the attempt id in a live run; `C5_PERSONA_SEED`, the attempt id or the fixed practice seed in a dry run). `P` saves it before the first session as the product saves a type (made by the host, action `preset`), so the product's random first type and its one-time announcement never happen. A scenario `PERSONA` card is refused in every run, dry runs included. Each arm writes `persona.json` (seed, type, card hash, starting version); `F` refuses to start unless `P`'s matches its own draw, and validity compares them.
+- **Changes: as a user makes them.** In conversation, through the host's `memory_persona` tool (a switch on request; a proposal the user confirms in a later message; a decline) and `memory_manner_feedback` (three comments of one kind make a suggestion), or on the page (`switch_persona`, `set_persona`, `accept_proposal`, `reject_proposal`, `delete_persona_history`).
+- **`F` mirrors `P` turn by turn.** After the prompt hook of each turn, `P` reads the persona in effect from the product (`client.persona()`, the block the hook renders) and records it in the turn's row:
+  - `persona_block`: the product-rendered `<membrain-persona>` block, `""` for none;
+  - `persona_turn`: `{"format": 1, "version": V, "sha256": H}`, the version (0 for none) and the sha256 of the block's UTF-8 (`null` for none);
+  - `persona_shown_to_host`: whether that block was anywhere in what `P`'s host was sent this turn (`null` for none).
+
+  `F` gives its host exactly `P`'s block for the same turn and records `reference_persona` (the block) and the same `persona_turn`. So a change made by the host's tool, by an accepted suggestion or by a random pick reaches `F` at the turn it reaches `P`, and no scenario has to state the card a change leads to. `F` refuses a `P` row whose block does not match its identity.
+
+## Page actions
+
+`PAGE_ACTIONS = [(session, before_turn, action), ...]` are the user's actions on the memory page. Each runs before that turn of that session through the public `MemoryClient` SDK, on the routes the page uses, in `P`; `F` applies `P`'s outcome. Actions are applied by position (session order, then `before_turn`, then their order in the list), which is also the order validity and `actions-digest` read them in.
+
+**A target is never chosen by text the host wrote.** It is known from the scenario itself (a message by its scenario position; a boundary topic the scenario added on the page) or from the product's state by kind (the open suggestion, by origin and order). `check_actions` refuses anything else before any model call.
+
+| `do` | Arguments | Target, and when it is not applicable |
+| --- | --- | --- |
+| `delete_message` | `session`, `turn`, optional `role` (`user`, default, or `assistant`) | The message recorded at that scenario position, by event identity; the product's cascade (notes and feelings drawn from it) follows. `message_not_recorded` when that turn ended unrecorded (the host's own pause, or a turn the scenario leaves unrecorded); `message_already_removed` when an earlier deletion's cascade removed it |
+| `delete_note_from` | `session`, `turn`, optional `role` | Every note whose source messages include that message. `message_not_recorded`; `no_note_from_message` |
+| `delete_feeling_from` | `session`, `turn`, optional `role` | Every feeling whose source messages include that message. `message_not_recorded`; `no_feeling_from_message` |
+| `clear_feelings` | none | Every feeling (notes and messages stay) |
+| `reset_relationship` | none | Shared moments, support style, boundaries, cap, acknowledgements |
+| `reset_mood` | none | The mood, back at baseline |
+| `pin_mood` | optional `pinned` (default `true`) | The mood pin |
+| `add_boundary` | `topic`, optional `aliases` (list of strings) | A boundary in the scenario's own words |
+| `remove_boundary` | `topic` | The boundary with that topic (compared as the product compares topics, case and spacing ignored); the topic must be one an earlier `add_boundary` page action added. `boundary_not_present` when it is gone (a relationship reset erased it) |
+| `set_support_style` | `text` (empty removes it) | The support style |
+| `cap_familiarity` | `level`: `new`, `getting_to_know`, `familiar` or `null` (no cap) | The familiarity cap |
+| `switch_persona` | `preset`: a type id (`persona_presets.IDS`) or `random` | A new persona version of that type. `random` is picked by the harness: see below |
+| `set_persona` | `card` (a card object) | The user's own card, saved as a new version made by the user |
+| `delete_persona_history` | none | Every persona version |
+| `accept_proposal`, `reject_proposal` | optional `origin` (`any`, default; `feedback`; `host`) and `position` (from 1, default 1) | The `position`-th open suggestion of that origin in the page's order (open first, newest first). `no_open_proposal` when there are fewer |
+
+Every action may also carry `"arms": ["P"]` (only `P` may be named; `F` follows `P`). Any other argument, or a message position at or after the action's own, is refused.
+
+**The random pick.** The page's "pick another type at random" asks the product for `random`, which picks uniformly among the types other than the current one. The harness makes the same kind of pick reproducible without changing the product: `others = [type for type in persona_presets.IDS if type != current]` (the product's order; `current` is `None` for a card that is not a type), and the chosen type is `others[int(sha256(json.dumps(["switch_persona", seed, index], separators=(",", ":"))), 16) % len(others)]`, where `seed` is the attempt's persona seed and `index` the action's index in `PAGE_ACTIONS`. It then asks the product for that type by name. A rerun with the same attempt id makes the same pick; `F` mirrors `P` anyway. A random switch the **host** makes with its tool is the product's own pick and is not reproducible; `F` mirrors it all the same.
+
+**Outcomes.** Each action is `done`, `not_applicable` (its target did not exist because of what the host did or did not do: no open suggestion, no note from that message, a turn its pause left unrecorded) or `failed`.
+- `not_applicable` is the plugin path's behaviour and is scored with the arm. The run goes on; no harness event is recorded; validity reports the count and positions.
+- `failed` is a real fault: the service refusing a well-formed action on an existing target (`service_refused`), an exception (`exception`), a deletion that removed messages the harness cannot mirror (`unknown_removed`), a recorded turn whose message was never identified (`not_found`). It records the harness event `page_action_failed` with that reason code, which makes the run invalid and stops a live arm.
+- A dry run on a runtime without persona suggestions skips proposal actions in both arms and records `page_action_unsupported`; a live run refuses such a scenario.
+
+### `page-actions.jsonl` (format 2)
+
+One JSON object per action applied, in application order, in each arm:
+
+```json
+{"format": 2, "index": 3, "session": "<session id>", "before_turn": 0, "action": "add_boundary",
+ "detail": {"topic": "...", "aliases": ["..."]},
+ "status": "done" | "not_applicable" | "failed", "reason": "<code, absent when done>",
+ "before": {...}, "after": {...}, "time": "<scenario time, P only>",
+ "result": {"...": "...", "removed_records": [...], "removed_records_complete": true}}
+```
+
+- `index` is the action's index in `PAGE_ACTIONS`; `detail` is the action's arguments without `do` (a `set_persona` card is replaced by its `card_sha256`).
+- `reason` is one of `NOT_APPLICABLE` (`message_not_recorded`, `message_already_removed`, `no_note_from_message`, `no_feeling_from_message`, `boundary_not_present`, `no_open_proposal`) for `not_applicable`, one of `FAILURE_CODES` (`not_found`, `unknown_removed`, `service_refused`, `exception`; `card_differs` and `ambiguous_proposal` only in older runs) for `failed`.
+- `before` and `after` are, in `P`, the page counts (`world()`): messages, notes, feelings, boundaries (topics), shared moments, familiarity level, days and cap, support style (set or not), mood (label or `baseline`), mood pinned, persona version; in `F`, `{"history_items"}`, plus `removed_still_in_history` after a deletion.
+- `result` holds what the action did (`deleted` and `removed` positions for a deletion; `preset`, `seeded_random`, `version`, `unchanged` for a switch; `proposal`, `kind`, `version` for a decision; `not_applicable` with its code; `failed` with `code`), and the records it removed:
+  - **`removed_records`** lists every record present before and gone after, by its own id, through the same SDK calls `world()` uses: `{"kind", "ref", "sources", "established": true}`, or `{"kind", "established": false}` for a drop in a count that no id diff explains. `kind` is `message`, `note`, `shared_moment`, `commitment`, `feeling`, `boundary`, `support_style`, `familiarity_cap` or `persona_version`; `sources` are `[session_id, turn_index, role]` triples.
+  - **`ref`** is `record_ref`, the formula the review side recomputes: with sources `"src:" + sha256(json.dumps([kind, sorted(sources)], separators=(",", ":"), ensure_ascii=False))`; without, `"content:" + sha256(json.dumps([kind, content], separators=(",", ":"), ensure_ascii=False, sort_keys=True))` over the record's normalized content. It never contains a database id or content.
+  - `removed_records_complete` is true only when every entry is established. A `not_applicable` action removes nothing: its list is empty and complete, and validity and `actions-digest` refuse one that is not.
+  - In `F` the list holds only the messages a deletion removed, with `P`'s refs, and is always complete.
+
+### The line `F` is given (format 1)
+
+Before each turn `F`'s system prompt gets, after the persona block, one line of what the page has done so far that the conversation does not show, from `P`'s outcomes and the scenario's own words, or nothing when there is none:
+
+```
+Memory page settings the user chose (not part of the conversation above): <item>; <item>; ....
+```
+
+Items, in this order, each only when present:
+1. `topics not to bring up: "<topic>" (also "<alias>", ...), ...`: boundaries the page added and still in force (a relationship reset removes them; boundaries the host set by tool are in the conversation and are not listed);
+2. `relationship reset on YYYY-MM-DD` (the latest);
+3. `feelings cleared on YYYY-MM-DD` (the latest);
+4. `support style: "<text>"`;
+5. `familiarity limited to <new | getting to know | familiar>`;
+6. `simulated mood held at its baseline` (the mood pin).
+
+Dates are the scenario date of the session the action came before. Topics, aliases and the support style are the scenario's literals, JSON-quoted; nothing else is free text. Each `F` row records it as `reference_page_line` (`""` for none). Message deletions are not listed: they change `F`'s history instead.
+
+## Reference world
+
+`F`'s earlier history drops a message only when `delete_message` deletes it in `P` (the product erases it), exactly the positions `P`'s deletion removed, cascades included. Resets, cleared feelings, deleted notes and feelings, and mood and persona actions keep the conversation. Within the session in progress every arm keeps its own transcript, as a host app does; a message deleted during that session stays in its running transcript but is left out when the session is added to `F`'s history.
+
+## Recording
+
+- **Message identity.** After each turn `P` records which new user message and reply the turn wrote, by event id, under its scenario position, and which turns ended unrecorded. A recorded turn that did not write exactly one of each is the harness event `message_identity_unknown`.
+- **Timed pauses are refused.** `memory_pause(hours=...)` ends on the wall clock, so on the scenario clock it would span scenario days or nothing. The harness answers it with a tool error and records `timed_pause_refused`.
+- **Unrecorded turns.** A turn that ends unrecorded records `turn_not_recorded` unless the scenario intended it (`EXPECT_RECORDING_P` marks it `False`, or `STUB_HOST` scripts an untimed pause up to a resume in the same session) or the host's own accepted pause explains it. Such a turn is the plugin path's behaviour: it appends `{"time", "session", "turn", "kind": "unrecorded_by_host_pause"}` to `host-pauses.jsonl`, records no harness event, and the arm goes on. The pause tool requires `request`, the user's own words.
+- **Index wait.** The harness waits on the dashboard's `status.pending_jobs` and `index_lag` before each session.
 
 ## Scenario clock
 
-**Problem.** The Phase B harness only patched the date seen by the harness's own process. The local service is a separate process, so it recorded events on the wall clock: the mood never decayed on the scenario's timeline, familiarity counted one real day, and a 30-day proposal pause could never pass.
-
-**Design.** `helpers.now()` and `helpers.today()` read an optional scenario clock. Every Phase C time read goes through them: event `recorded_at` (stamped by the service), mood decay and the 48-hour cutoff, familiarity days (from `recorded_at`), proposal pauses (P2 uses `helpers.now`), the default `felt_at` of a feeling, plan dates in the coming-up block, and extraction's "today".
-- The clock is a JSON file, `evaluation-clock.json` in the profile directory: `{"time": T, "set_at": wall seconds}`. A reading is `T` plus the wall seconds since `set_at`, so events within a turn keep their real spacing. Both processes compute the same value.
-- The harness sets `T` to each session's stated date and time before the session starts. Sessions must state a time ("Today is Tuesday, March 3, 21:00"). The clock runs in UTC: the harness sets `TZ=UTC` for itself and the service.
+`P` runs on a disposable profile whose service reads the scenario clock (`helpers.now()`, `helpers.today()`). Every session's first message states its date and time ("Today is Tuesday, March 3, 21:00"; Spanish, German and Chinese forms too), and the clock is set to it before the session starts, in UTC. Recorded times, mood decay and the 48-hour cutoff, familiarity days and the proposal pause follow it.
 
 **Safety guards.**
 1. **Off unless asked.** Only `MEMBRAIN_EVALUATION_CLOCK` turns it on. No launcher, plugin, adapter or SDK sets it; a test fails if any file under `integrations/`, `plugins/`, `sdk/`, `scripts/` or `src/` names it (besides the clock module). The run script refuses to start if it is already set.
-2. **Disposable profiles only.** With the variable set, the service starts only if all of these hold:
-   - the profile has the harness's marker file, written for that installation's id;
-   - the variable names the clock file inside that profile;
-   - the profile is not the default installation directory.
-   Otherwise the service refuses to start, before it opens the database. The refusal goes to `service.log` (`evaluation_clock_refused`), and `desktop start` fails.
-3. **Loud.** A service on the clock logs `evaluation_clock_enabled_time_is_simulated` in `service.log` and prints a warning on standard error. The harness stops if the service log lacks that line.
-4. **Never backwards.**
-   - The writer refuses a time earlier than the last one set.
-   - A time the running clock has already passed leaves the clock as it is; the harness records this as `clock_already_past`.
-   - Each reading process holds its last time if the file is ever moved back. Recorded times therefore follow the order of sequence numbers.
+2. **Disposable profiles only.** With the variable set, the service starts only on a profile with the harness's marker for that installation's id, with the clock file inside it, and not the default installation directory; otherwise it refuses before opening the database (`evaluation_clock_refused` in `service.log`).
+3. **Loud.** A service on the clock logs `evaluation_clock_enabled_time_is_simulated`; the harness stops if that line is missing.
+4. **Never backwards.** The writer refuses an earlier time; a time the clock has already passed leaves it as it is (`clock_already_past`); each reading process holds its last time.
 
-**Not on the clock.** These stay on the wall clock or the database clock, because they are not scenario time: job leases and retries; plugin session markers; `memory_pause` durations; the orientation expiry in `learning.py`, which needs a cognition model that the harness does not configure.
+**Not on the clock:** job leases and retries, plugin session markers, `memory_pause` durations, and the orientation expiry in `learning.py`. Whether hard-moment mellowing follows the clock end to end is not covered by a test.
 
-**Tests** (`tests/test_evaluation_clock.py`):
-- A real local service in a temporary directory records `recorded_at` at the scenario time.
-- On that service, a glad mood eases the next morning and is exactly the baseline once the clock passes 48 hours.
-- Familiarity counts two scenario days.
-- After a restart without the variable, the same installation records on the wall clock again.
-- Each refusal case is covered.
-- Time never goes backwards.
+Tests: `tests/test_evaluation_clock.py`.
 
-## Harness changes
+## Harness events, stops and the log
 
-- **Tools.** Arm `P` offers `memory_recall`, `memory_note`, `memory_boundary`, `memory_pause` and `memory_resume`. Each uses the plugin's own MCP schema, so `memory_note` carries `affect` and `shared`. `P` also passes `include_source=True` to the prompt hook, as the plugin does; this gives the note tool its source hint. The proxy (`E`) has no tools. P2 proposals are page actions, not tools.
-- **Persona.** The scenario's `PERSONA` is set by the host at the start of `P` and `E`, as the host default. `F` gets the same card as the product-rendered `<membrain-persona>` block in its system prompt. Each persona page action changes `F`'s card the same way, with the same version numbers. An accepted proposal must state its resulting card in the scenario, because `F` has no feedback layer. The dry-run check compares `F`'s block with `P`'s at every turn.
-- **Page actions.** `PAGE_ACTIONS = [(session, before_turn, action)]`. Each action runs before that turn through the `MemoryClient` SDK, on the routes and with the arguments the memory page uses.
-  - Actions: `set_persona`, `restore_persona`, `reset_persona`, `delete_persona_history`, `accept_persona_proposal`, `reject_persona_proposal`, `add_boundary`, `remove_boundary`, `clear_feelings`, `delete_feeling`, `delete_note`, `delete_message`, `reset_relationship`, `reset_mood`, `pin_mood`.
-  - `"arms": "E"` limits an action to some arms. For example, the proxy user sets a boundary on the page while `P` sets it by tool. `F` follows `P`.
-  - In `E`, page actions apply to the proxy user's own brain (`api:person`), and the proxy's block cache is cleared so the next message sees the change.
-  - Each action is logged in `run.log`. It is also logged in `page-actions.jsonl` with page counts before and after: messages, notes, feelings, boundaries, shared moments, familiarity, mood and persona version.
-  - A failed action is recorded as `page_action_failed`.
-  - Proposal actions match an exact proposal ID or kind first, otherwise a case-insensitive substring of the kind or displayed label. Inherited persona fields and quoted feedback are not selectors. A selector matching more than one open proposal fails before any decision, with diagnostic code `ambiguous_proposal`; it never chooses by list order.
-  - After `accept_persona_proposal`, the harness reads `P`'s current card and compares it, in the stored form (`persona.normalize_card`), with the card the scenario gives `F`. If they differ, the action fails with the differing fields, and `page_action_failed` makes the run invalid instead of letting `F` silently follow a different card. The dry-run check's block comparison remains as a second check.
-  - A live run refuses a scenario with proposal actions on a runtime without P2.
-- **Message identity.** After each turn the harness records which new user message and reply that turn wrote, by event id, under its scenario position. `delete_message` deletes the message recorded at the named position, never by matching text, so two turns that say the same thing ("Thanks.") are told apart. A turn that did not write exactly one of each is recorded as `message_identity_unknown`; deleting it, or a deletion that removes a message with no recorded position, fails the action.
-- **Reference world.** `F`'s earlier history drops a message only when `delete_message` deletes it. The product erases a deleted message; resets, cleared feelings, deleted feelings and notes, and mood and persona actions keep the conversation. So those never change `F`'s history, and the dry run checks this for every action. Within the session in progress, every arm keeps its own transcript, as a host app does. A message deleted during the session in progress stays in that session's running transcript, but it is left out when the session is added to `F`'s history, so later sessions never see it.
-- **Index wait.** The harness waits on the dashboard's `status.pending_jobs` and `index_lag`. `pending_jobs` must count every job of the brain that can still run (queued, running or failed) and no superseded or cancelled job, which never finish. Older runtimes counted only the latest 100 listed jobs and included superseded ones, so after a page deletion the wait timed out; the dashboard fix that the integration candidate carries corrects this, and the harness relies on it rather than counting the listed jobs itself.
-- **No resume.** An existing results file or installation is refused.
-- **Returned host rounds.** `host-rounds.jsonl` durably records each returned host round's position, message and usage before tool execution, omitting `reasoning_content`. If another arm stops the shared ledger between tool rounds, these partial replies remain available without inventing a completed results row. The ledger is checked before tool execution. An existing round journal also prevents resuming a partial run. The journal contains scenario/reply content and stays sealed with the run; it is not diagnostic console output or a scored answer.
+- **Every harness event makes the run invalid** (`acceptance_review.py validity`). In a live run `harness_event` records the event, blocks the shared billing ledger (`harness_degraded`) and raises `DegradedRun` (a `SystemExit`, exit 3). An event raised while a paid turn is being recorded waits until that turn's row is written (`"stopped_after": "<kind>"`). A dry run records every event and goes on.
+- **Event payloads hold only kinds, positions and counts** (`session`, `turn`, `role`, `action`, `reason` as a fixed code, `new_messages`, `behind_seconds`).
+- **The harness's own log** (`run.log`) names positions by index ("session 2 of 8, message 1"), page actions by number, kind, status and reason code, and tool calls by the names the server offered ("other" for anything else); never a session id, scenario words, tool arguments or replies.
+- **Host rounds.** `host-rounds.jsonl` records each returned host round (without `reasoning_content`) before tool execution, so a stopped turn keeps its paid rounds. It holds content and stays sealed with the run.
+- **Tool errors** the host was shown are counted by tool name in `tool-errors.json`; validity reports them without refusing.
+- **No resume.** An existing results file, round journal, `persona.json` or installation is refused.
 
-## Hardening after the independent plan review
+## Validity in companion mode
 
-- **A degraded live arm stops (U2).** `harness_event` is the single choke point. Every recorded event makes the run invalid (`acceptance_review.py validity`), so in a live run it records the event, blocks the shared billing ledger (`harness_degraded`, as an interrupted arm does), and raises `DegradedRun`. `DegradedRun` is a `SystemExit` with exit code 3: no `except Exception` swallows it, and the main block's cleanup (`stop_started`) still runs. The run script then sees a failed arm and stops the others. A dry run (`C5_STUB=1`) records the event and goes on, so its checks still see every event.
-  - **The paid turn's row is kept.** An event raised while a turn's paid reply is being recorded (`record_turn`, the extraction checks, `turn_not_recorded`) blocks the ledger at once. The stop itself waits until that turn's results row is written, in the usual format, with `"stopped_after": "<event kind>"`. The run stays invalid: the event is in `harness-events.jsonl`, the later turns are missing, and `run.log` has no finished line.
-  - **The same holds when another arm stopped the shared ledger during this turn's host call.** The billing checks in a turn's bookkeeping run first, before recording, and again after the extraction wait. A stop found there writes the turn's row with `"stopped_after": "billing_stop"`, then raises the billing stop. Once stopped, the turn is not recorded in memory and nothing is extracted, so no further billed request is made.
-- **The dry-run check fails on any harness event.** Its "run" verdict used to fail only on `page_action_failed`, `index_wait_timed_out` and `extraction_unfinished`. It now fails on every event kind, as `acceptance_review.py validity` does, and still reads kinds only. This includes `page_action_unsupported`, so a dry run on a runtime without P2 no longer passes the check.
-- **Event payloads hold only kinds, positions and counts.**
-  - `page_action_failed` now has `reason` as a code (`not_found`, `card_differs`, `unknown_removed`). Before, it held the result's message, which named the topic, label, note text or proposal match.
-  - `clock_already_past` now has `behind_seconds` instead of the requested and current times.
-  - `network_refused` no longer names the host.
-  - `index_wait_timed_out` no longer names the brain.
-  - The full detail of a page action is still in `page-actions.jsonl`.
-- **Which records a page action removed.** Each action's `result` in `page-actions.jsonl` now has `removed_records` and `removed_records_complete`. Kinds and counts alone cannot tell two feelings with the same label apart.
-  - **How they are found.** The harness lists every layer's records by their own ids before and after the action, through the same SDK calls `world()` uses: messages, `list_notes`, `affect_records`, `relationship()` and `persona_versions`. A record is removed when its id is present before and gone after.
-  - **Entry format.** Each removed record is `{"kind", "ref", "sources", "established": true}`.
-    - `kind` is one of `message`, `note`, `shared_moment`, `commitment`, `feeling`, `boundary`, `support_style`, `familiarity_cap` or `persona_version`.
-    - `sources` are the record's source messages as `[session_id, turn_index, role]` triples, mapped through the positions `record_turn` recorded.
-  - **`ref`** is computed by `record_ref`, the formula the review side recomputes. It never contains a database id or content.
-    - With sources: `"src:" + sha256(json.dumps([kind, sorted(sources)], separators=(",", ":"), ensure_ascii=False))`.
-    - Without sources: `"content:" + sha256(json.dumps([kind, content], separators=(",", ":"), ensure_ascii=False, sort_keys=True))`, over the record's normalized content fields.
-  - **Unestablished drops.** A drop in a `world()` count that no id diff explains is written as `{"kind", "established": false}`, with no ref. `removed_records_complete` is true only when there is no such entry.
-  - **Arm `F`** lists only the messages a deletion removed. It uses the same refs as `P`, and its `removed_records_complete` is always true. The `removed` field is unchanged.
-- **Failed extraction is reported (B3).** The extractor's worker catches every error and only logs it. Arm `E` therefore watches two signals from the extractor itself, without changing `src/`:
-  - the extraction status in the installation's state, `extraction.json` (`turns_failed` and `turns_skipped`);
-  - the extractor's own failure warnings (`note extraction failed`, `queue full`, `note not saved`), counted by message template and never by text.
+`acceptance_review.py validity RUN_P RUN_F [--scenario PATH] [--persona PRESET] [--companion]` keeps every R4 rule and adds, for a scenario with `PAGE_ACTIONS` (every C5 scenario) or with `--companion`:
+- every arm's `page-actions.jsonl` holds exactly the scenario's `PAGE_ACTIONS` in application order (format 2, `index`, session, `before_turn`, kind); each is `done`, or `not_applicable` with an allowed reason and no removal; none `failed`; `F`'s outcome of each is `P`'s;
+- every `P` row records a valid `persona_turn` for its `persona_block`, and every `F` row the same `persona_turn` with that block as `reference_persona`.
 
-  After each turn's extraction wait, any new failure records `extraction_failed` with the session and turn only.
-- **Timed pauses are refused (I3).** `memory_pause(hours=...)` ends on the wall clock (`host.pause`), so on the scenario clock it would span scenario days, or nothing.
-  - When the host model passes `hours`, the harness does not call the tool. It returns a tool error ("Timed pauses are unavailable in this evaluation...") and records `timed_pause_refused`. A live arm stops on that event.
-  - An untimed pause, with or without `until_resumed`, reaches the plugin's tool as before.
-- **Unintended unrecorded turns are flagged.** A turn that ends unrecorded records `turn_not_recorded` (session and turn), unless the scenario intended it. In arm `P`, intended turns are:
-  - the turns that `EXPECT_RECORDING_P` marks `False`;
-  - the turns from an untimed `memory_pause` scripted in `STUB_HOST` up to, but not including, a `memory_resume` in the same session.
+New report fields:
+- `page_actions`: per run directory, `{"count", "done", "not_applicable": {"count", "at": [{"action": n (from 1), "session": i, "before_message": m, "kind", "reason"}]}}`;
+- `persona_mirroring`: `{"checked_turns", "not_shown_to_p_host": {"count", "positions": [[session, message], ...]}}` (reported, never refused), or `null` when no run was read.
 
-  A live run has no stub script, so a scenario that asks for a pause must declare those turns in `EXPECT_RECORDING_P`.
-
-  An unintended unrecorded turn that the host's own pause explains is the plugin path's behaviour, not a harness fault (added 2026-11-16, after the [sixth attempt](maturity-sixth-attempt-stop-2026-11-16.md) stopped on one). It is explained when the host made a `memory_pause` call that the plugin accepted (its answer is not an error; a refused or timed pause is not accepted) in that turn, or when the host's accepted pause was in force as the turn began and no `memory_resume` naming this conversation followed in the turn. "In force" needs both the harness's count of accepted pause and resume calls (a conversation pause is dropped when its session ends, a pause until resumed carries on; the scope is read from the plugin's answer) and the product's own state (`host.paused` for this conversation, read before the prompt hook). Such a turn records no harness event and the arm goes on: it appends `{"time", "session", "turn", "kind": "unrecorded_by_host_pause"}` to `host-pauses.jsonl` and logs its position by index only. Validity and `diagnose` report these turns by count and position and refuse only a malformed file. A turn left unrecorded with no such pause, including one after a refused pause, still records `turn_not_recorded` and stops a live arm.
-- **Count-only precheck (I2).** `python evaluations/c5-precheck.py SCENARIO.py` checks a scenario with the harness's own parsers before any service or model starts. It checks that:
-  - each session's first message states a date and a time;
-  - session starts strictly increase and are at least one hour apart (I4);
-  - every page action passes `check_actions`;
-  - no timed pause is scripted, either in `STUB_HOST` or as a page action with `hours`.
-
-  It prints only counts (sessions, turns, actions, intended unrecorded turns) and, for each failure, a code with a session index, an action index or a `session:turn` position. It never prints a message, a session id, a topic, a label or an exception's text. Output from loading the scenario is discarded. The last line is a JSON summary. It exits 0 when the scenario is fit and 1 when it is not.
+The persona check also runs on any run whose `P` rows carry the records (every run of this harness, R4 included); an older run without them is checked as before. Page actions recorded for a scenario without `PAGE_ACTIONS` are refused. The driver passes `--scenario` and `--persona`; companion mode follows from the scenario.
 
 ## Zero-network dry run
 
-`C5_STUB=1` swaps in deterministic stubs for the host model and the extraction model. Both are `httpx.MockTransport` handlers that answer from the scenario's `STUB_HOST` and `STUB_EXTRACT` scripts. `STUB_HOST` can make scripted tool calls, with the current message's source when asked. The harness also refuses every non-loopback socket connection and records it as `network_refused`. The run script accepts `C5_STUB=1` only with a scenario whose file name contains "practice".
+`C5_STUB=1` swaps the host model for a deterministic stub, an `httpx.MockTransport` that answers from the scenario's `STUB_HOST` script:
+- In each round of a turn it makes the steps scripted for that round (`"round": N`, default 0), then a fixed reply naming the memory blocks it was given and whether the server's instructions were in the system prompt.
+- `"source": "current"` passes the current message's `source_messages`; a recording capture is passed where the tool takes one; a pause without `request` quotes the user's words.
+- `{"$result": [session, turn, index, field]}` as an argument passes on a field of an earlier scripted call's result (the stub keeps every result it is shown), so a proposal made in one turn can be confirmed in a later one; with no such result the argument is left out and the tool answers with an error.
+- It answers a consolidation batch with a cue.
+
+The harness also refuses every non-loopback socket connection and records it as `network_refused`. The run script accepts `C5_STUB=1` only with a scenario whose file name contains "practice".
 
 ```sh
 C5_STUB=1 C5_PYTHON=/path/to/python MEMBRAIN_MODEL_CACHE=/path/with/the/embedding/model \
   evaluations/c5-run-scenario.sh evaluations/c5-practice-scenario.py OUT_ROOT dry
 python evaluations/c5-dry-run-check.py evaluations/c5-practice-scenario.py OUT_ROOT dry
-python evaluations/acceptance_review.py validity OUT_ROOT/dry-P OUT_ROOT/dry-E OUT_ROOT/dry-F
+python evaluations/acceptance_review.py validity --scenario evaluations/c5-practice-scenario.py OUT_ROOT/dry-P OUT_ROOT/dry-F
+python evaluations/c5-stub-rehearsal.py NEW_OUT_ROOT_OUTSIDE_THE_REPOSITORY
 ```
 
-The run produces the artifacts a real run produces: per-arm results, `run.log`, `harness-events.jsonl` and `page-actions.jsonl`. Blinded sheets come from `v1-2026-10-29-phase-b-blind.py OUT practice PEF` over a directory holding the three results files.
+**The practice scenario** (`c5-practice-scenario.py`, eight sessions, 22 turns, 14 page actions) covers: three "too formal" comments reported by tool and the suggestion accepted on the page; a host proposal confirmed after the user's yes in a later turn of the same conversation (the product applies a confirmation only to an answer given in the conversation where the companion asked; a yes in a later conversation is answered "Confirmed" by the tool but never saved, which the first rehearsal of this practice showed); a second proposal declined after a no; a host switch on request (random) and a page random switch; a note with a shared moment of kind `play` and one of kind `hard`; a feeling said and one inferred; a boundary by tool and one on the page; a message deleted on the page with its note and feeling, a feeling and a note deleted by their source message; clear feelings, mood reset and pin, support style, familiarity cap, relationship reset; an off-the-record stretch; and two actions meant to find no target (`EXPECT_NOT_APPLICABLE`: a removed page boundary after the reset, and a deletion of an off-the-record message). `c5-dry-run-check.py` checks every layer in both arms' contexts, the persona version at chosen turns, the `memory_persona` actions in order, each page action's outcome and scope, `F`'s persona and page line, and the sequence, cleanup and network.
 
-## Dry run results
+## History
 
-**Runs.** Two dry runs on 2026-11-03, with the local embedding model, the stub host and the stub extractor, and no network: `main` + this harness (`b9c5ce9`), and a temporary merge of that commit with `origin/claude/p2-persona-growth` (not kept). Each arm took one to two minutes. Both runs were `valid` under `acceptance_review.py validity`. For the run on `main`, blinded sheets and sealed mappings were produced with `v1-2026-10-29-phase-b-blind.py` (four practice cases, labels A to C). The outputs were deleted after this summary.
+The three-arm harness of maturity attempts 1 to 5 (2026-11-03 dry runs on `b9c5ce9`; C5 units of attempts 3 and 5, both stopped on `page_action_failed`) is described in this file's git history and in the attempt records. Those runs are not evidence for this harness. The two-arm form came on 2026-11-14 (`no-learning-pipeline-2026-11-14.md`); the host's own pause is scored since 2026-11-16 (`maturity-sixth-attempt-stop-2026-11-16.md`); persona mirroring, the format-2 page actions, `not_applicable` outcomes and `F`'s page line since 2026-11-17 (this change). Since the sixth attempt every prompt of both arms carries a persona, which can change tone and length of replies in both arms alike.
 
-**Every check in `c5-dry-run-check.py` passed in both runs:**
-- **Persona.**
-  - `<membrain-persona version="1">` with the host card reached `P`, `E` and `F`.
-  - On the P2 merge, three feedback messages in two sessions produced a "casual" proposal. Accepting it on the page gave version 2 with `register casual` in all three arms, and `F`'s block was identical to `P`'s at every turn.
-  - On `main` the proposal action was skipped in every arm alike, and reported.
-- **Feelings.**
-  - The next session's plan note carried "(the user said they felt nervous, 2 Mar)".
-  - Deleting that message on the page removed the note and its feeling in `P` and `E`. Neither came back.
-  - "Clear feelings" removed the promotion feeling and kept the note.
-- **Mood.**
-  - "I got promoted, I'm so happy" (21:00) gave the glad mood line on the next message.
-  - The next morning at 09:00 it read "glad, easing".
-  - Sixty-nine scenario hours later there was no mood line.
-- **Relationship.**
-  - The boundary (by tool in `P`, on the page in `E`) was listed, and the message about the bounded topic stayed out of later context.
-  - The shared moment (`P` only; the proxy has no note tool) appeared in the relationship block.
-  - Removing the boundary, then resetting, left no boundary and no shared moment, and familiarity went from "getting to know" to "new".
-- **Page action scope.**
-  - Each action changed only what it names. For example, a mood reset changed no message, note, feeling or boundary count, and a relationship reset removed only the shared-moment note.
-  - In `F`, only the message deletion changed the history.
-- **Message deletion.** In this runtime, deleting the user message removed that message only. The assistant reply recorded with it stayed, in `P` and in `E`, so `F` dropped that one message too. `F` mirrors whatever `P`'s deletion removes, so a runtime that also erased the reply would be mirrored as well.
-- **Clock, tools and network.**
-  - Every turn's scenario time was its session's stated time plus the run's minutes.
-  - `P` called `memory_boundary` and `memory_note` with `affect` and with `shared`, with no tool error.
-  - No connection left the machine.
+## What a live C5 attempt still needs
 
-## What a real C5 run still needs
-
-- P2 merged. Without it, proposal actions are skipped in every arm in a dry run and refused in a live run.
-- Companion scoring (critical types 6 to 9, rules RC1 and RC2) in the review pipeline. This is being added separately. It will need, per case, the page actions before the case's message, with what each removed: `page-actions.jsonl` has this. It will also need whether a feeling was said or inferred, which comes from the scenario's `FACTS`.
-- The owner's decisions in the plan draft, held-out scenarios written to this format (each session with a time, `PAGE_ACTIONS` by position), and the independent reviews.
+- The kit for C5 (another task, building on the formats above): C5 author, reviewer and fixer briefs; `freeze.py` and `launch.py` with a C5 gate (today `c5-stub-rehearsal.py` rewrites the frozen pair's gate itself); a literal-reading `--c5` precheck with shape and coverage codes that also refuses `PERSONA`; the blind sheet's display of the persona in effect and the page actions before each case; the rule text (`v1-acceptance.md`, `phase-c-design.md`, `companion.md`).
+- A C5 execution binding (arms, persona, ceiling, stop rules, coverage, cost) replacing the three-arm plan draft, the owner's approval of the spend, held-out scenarios written to this format, and the independent reviews.
 
 ## Prospective live billing guard
 
-`c5-harness.py --stop` blocks the shared ledger. It takes an optional `--reason CODE`, where CODE matches `[a-z][a-z0-9_]{0,39}`, and the ledger keeps the first reason it is given. Without `--reason` the reason is `arm_failed`, as before. A malformed reason is refused before the ledger is opened.
-
-Live runs require the approved attempt's shared `C5_BILLING_LEDGER`; host, extraction and retries all reserve against it before HTTP. See [billing control](evaluation-billing.md) for conservative rates, crash reservations and stop rules. The guard is offline-tested and awaiting independent review. It grants no model-use approval. Stub practice still requires no ledger and makes no external request.
+`c5-harness.py --stop` blocks the shared ledger. It takes an optional `--reason CODE`, where CODE matches `[a-z][a-z0-9_]{0,39}`, and the ledger keeps the first reason it is given; without `--reason` the reason is `arm_failed`. Live runs require the approved attempt's shared `C5_BILLING_LEDGER`; every host call and retry reserves against it before HTTP. See [billing control](evaluation-billing.md). The guard grants no model-use approval. Stub practice needs no ledger and makes no external request.

@@ -5,8 +5,9 @@ Usage: python c5-precheck.py [--r4] SCENARIO.py
 Checks, with the harness's own parsers:
 - every session's first message states a date and a time (`session_start`);
 - session starts are strictly increasing, and at least one hour apart;
-- every PAGE_ACTIONS entry passes `check_actions` (a known kind at a real position; an accepted proposal states its
-  card);
+- every PAGE_ACTIONS entry passes `check_actions` (a known kind of the harness's vocabulary at a real position, with
+  exactly its kind's arguments; a message named by position comes before the action; a removed boundary is a topic
+  an earlier page action added), checked one at a time with the others as context;
 - no timed pause is scripted (a `memory_pause` with `hours` in STUB_HOST, or a page action with `hours`): the pause
   would run on the wall clock while the scenario clock moves by days.
 
@@ -212,12 +213,13 @@ def check(module, harness, *, r4: bool = False) -> dict:
         if weekday is not None and weekday != start.date().weekday():
             failures.append({"code": "weekday_mismatch", "session": number})
 
-    # Page actions, one at a time so that each failure has its own position.
+    # Page actions, one at a time so that each failure has its own position; the earlier ones are read as context
+    # (a removed boundary must be one an earlier action added).
     actions = list(getattr(module, "PAGE_ACTIONS", None) or [])
     for number, entry in enumerate(actions):
-        single = SimpleNamespace(SESSIONS_LONG=sessions, PAGE_ACTIONS=[entry])
+        single = SimpleNamespace(SESSIONS_LONG=sessions, PAGE_ACTIONS=actions)
         try:
-            harness.check_actions(single)
+            harness.check_actions(single, only=number)
         except BaseException as error:  # noqa: BLE001 - SystemExit included: it carries the session id.
             if isinstance(error, KeyboardInterrupt):
                 raise

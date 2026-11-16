@@ -1,8 +1,9 @@
-"""Check a two-arm dry run (practice scenario, stub host): each layer reached each arm's context, both arms carried the
-same persona, P was offered the plugin's tools and the server's instructions, scripted tool calls (consolidation
-included) succeeded, the scenario clock and the page actions took effect, every action removed only what its scope
-names, F's history changed only for deleted messages, the arms ran one after the other with P's installation stopped
-and its ports closed before F started, and nothing touched the network.
+"""Check a two-arm dry run (practice scenario, stub host): each layer reached each arm's context, both arms started
+from the same seeded persona and F carried P's persona block at every turn, P was offered the plugin's tools and the
+server's instructions, scripted tool calls (consolidation included) succeeded, the scenario clock and the page
+actions took effect (each done, or not applicable where the scenario says so, F's outcome always P's), every action
+removed only what its scope names, F's history changed only for deleted messages, the arms ran one after the other
+with P's installation stopped and its ports closed before F started, and nothing touched the network.
 
 Usage: python c5-dry-run-check.py SCENARIO_FILE OUT_ROOT KEY
 Prints one JSON summary (per layer: checks passed and failures) and exits 1 on any failure. Practice scenarios only:
@@ -10,8 +11,11 @@ it prints context excerpts in failure messages.
 
 Arms are P and F (the proxy-with-extraction arm E of attempts 1 to 5 no longer exists). A scenario may name what the
 check requires of P: EXPECT_TOOLS_P (tools that must be called, each without an error; default memory_boundary),
-EXPECT_NOTE_FIELDS_P (note fields some note call must use; default shared and affect) and EXPECT_CONSOLIDATION_P
-((session, turn) where P must take a consolidation batch and answer it).
+EXPECT_NOTE_FIELDS_P (note fields some note call must use; default shared and affect), EXPECT_CONSOLIDATION_P
+((session, turn) where P must take a consolidation batch and answer it), EXPECT_NOT_APPLICABLE ((index in
+PAGE_ACTIONS, reason) of the actions meant to find no target; every other action must be done),
+EXPECT_PERSONA_VERSIONS_P ((session, turn, version) P's persona must be in as the turn starts) and
+EXPECT_PERSONA_ACTIONS_P (the memory_persona actions P's host makes, in order).
 """
 import importlib.util
 import json
@@ -24,29 +28,33 @@ ARMS = ("P", "F")
 P_PORTS = (8893, 55533)  # The run script's ports for arm P.
 SERVER_TOOLS = {"memory_recall", "memory_note", "memory_boundary", "memory_pause", "memory_resume",
                 "memory_consolidate", "memory_persona", "memory_manner_feedback"}
-UNCHANGED = {  # Page fields each action must leave as they were (P).
+_OTHER_LAYERS = ("messages", "notes", "feelings", "persona_version", "boundaries", "shared_moments")
+UNCHANGED = {  # Page fields each action that was done must leave as they were (P).
     "delete_message": ("persona_version", "boundaries"),
-    "delete_feeling": ("messages", "notes", "persona_version", "boundaries", "shared_moments"),
-    "delete_note": ("messages", "persona_version", "boundaries"),
+    "delete_note_from": ("messages", "persona_version", "boundaries"),
+    "delete_feeling_from": ("messages", "notes", "persona_version", "boundaries", "shared_moments"),
     "clear_feelings": ("messages", "notes", "persona_version", "boundaries", "shared_moments", "mood_pinned"),
     "reset_mood": ("messages", "notes", "feelings", "persona_version", "boundaries", "shared_moments"),
     "pin_mood": ("messages", "notes", "feelings", "persona_version", "boundaries", "shared_moments"),
     "add_boundary": ("messages", "notes", "feelings", "persona_version", "shared_moments"),
     "remove_boundary": ("messages", "notes", "feelings", "persona_version", "shared_moments"),
+    "set_support_style": _OTHER_LAYERS + ("familiarity_cap", "mood_pinned"),
+    "cap_familiarity": _OTHER_LAYERS + ("support_style", "mood_pinned"),
     "reset_relationship": ("messages", "feelings", "persona_version", "mood_pinned"),
     "set_persona": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood"),
-    "restore_persona": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood"),
-    "reset_persona": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood"),
-    "delete_persona_history": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood"),
-    "accept_persona_proposal": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood"),
-    "reject_persona_proposal": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood",
-                                "persona_version"),
+    # A personality type brings its own baseline mood, so the mood's label may read differently after a switch.
+    "switch_persona": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood_pinned"),
+    "delete_persona_history": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood_pinned"),
+    "accept_proposal": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood"),
+    "reject_proposal": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood", "persona_version"),
 }
-LAYER = {"set_persona": "persona", "restore_persona": "persona", "reset_persona": "persona",
-         "delete_persona_history": "persona", "accept_persona_proposal": "persona",
-         "reject_persona_proposal": "persona", "clear_feelings": "affect", "delete_feeling": "affect",
-         "delete_message": "affect", "delete_note": "affect", "reset_mood": "mood", "pin_mood": "mood",
-         "add_boundary": "relationship", "remove_boundary": "relationship", "reset_relationship": "relationship"}
+LAYER = {"set_persona": "persona", "switch_persona": "persona", "delete_persona_history": "persona",
+         "accept_proposal": "persona", "reject_proposal": "persona", "clear_feelings": "affect",
+         "delete_feeling_from": "affect", "delete_message": "affect", "delete_note_from": "affect",
+         "reset_mood": "mood", "pin_mood": "mood", "add_boundary": "relationship", "remove_boundary": "relationship",
+         "set_support_style": "relationship", "cap_familiarity": "relationship", "reset_relationship": "relationship"}
+PAGE_LINE_ITEMS = ("topics not to bring up", "relationship reset on", "feelings cleared on", "support style:",
+                   "familiarity limited to", "simulated mood held")
 
 
 def load(path, name="scenario"):
@@ -63,7 +71,8 @@ def jsonl(path: Path) -> list:
 def context(arm: str, row: dict) -> str:
     """What memory gave the host for this message. A refreshed snapshot replaces the session start's blocks."""
     if arm == "F":
-        return row.get("reference_persona", "") + "\n" + row["host_user_content"]
+        return "\n".join((row.get("reference_persona", ""), row.get("reference_page_line", ""),
+                          row["host_user_content"]))
     if "<membrain-updates>" in row["host_user_content"]:
         return row["host_user_content"]
     return row["session_context"] + "\n" + row["host_user_content"]
@@ -159,13 +168,54 @@ def check(scenario_path: str, root: Path, key: str) -> dict:
                 verdict(_layer(needle), needle not in outside_relationship(text),
                         f"{arm} {session} t{turn}: should not contain {needle!r}")
 
-    # F is given the same persona block as P whenever P's context carries one.
+    # F is given P's persona block at every turn, with P's identity of it, and P's host was shown that block.
+    import hashlib
+
+    def identity(block: str, turn: dict) -> bool:
+        digest = hashlib.sha256(block.encode("utf-8")).hexdigest() if block else None
+        if not isinstance(turn, dict) or turn.get("format") != 1 or turn.get("sha256") != digest:
+            return False
+        version = turn.get("version")
+        return type(version) is int and (version > 0 if block else version == 0)
+
+    for position, row in rows["P"].items():
+        verdict("persona", identity(row.get("persona_block") or "", row.get("persona_turn")),
+                f"P {position}: no persona record matching its block")
+        verdict("persona", row.get("persona_shown_to_host") is not False,
+                f"P {position}: the persona in effect was not in the host's context")
+    # The last persona block P's host had been sent by each turn: the session start's, then any refresh in this or an
+    # earlier user message of the same session (the session's transcript keeps them).
+    pattern = re.compile(r'<membrain-persona version="\d+">.*?</membrain-persona>', flags=re.S)
+    latest = {}
+    for session, messages in module.SESSIONS_LONG:
+        seen = None
+        for turn in range(len(messages)):
+            row = rows["P"].get((session, turn))
+            if row is None:
+                continue
+            if seen is None:  # The session start's context, the same for every turn of the session.
+                found = pattern.findall(row.get("session_context") or "")
+                seen = found[-1] if found else seen
+            found = pattern.findall(row.get("host_user_content") or "")
+            seen = found[-1] if found else seen
+            latest[(session, turn)] = seen
     for position, row in rows["F"].items():
-        block = row.get("reference_persona") or ""
-        found = re.findall(r'<membrain-persona version="\d+">.*?</membrain-persona>', context("P", rows["P"][position]),
-                           flags=re.S) if position in rows["P"] else []
-        if found:
-            verdict("reference", found[-1] == block, f"F {position}: persona block differs from P's")
+        mine = rows["P"].get(position, {})
+        verdict("reference", row.get("persona_turn") == mine.get("persona_turn")
+                and row.get("reference_persona") == mine.get("persona_block"),
+                f"F {position}: persona block differs from P's")
+        if latest.get(position):
+            verdict("reference", latest[position] == (row.get("reference_persona") or ""),
+                    f"F {position}: persona block differs from the last one P's host was sent")
+    for session, turn, version in getattr(module, "EXPECT_PERSONA_VERSIONS_P", []):
+        got = (rows["P"].get((session, turn), {}).get("persona_turn") or {}).get("version")
+        verdict("persona", got == version, f"P {session} t{turn}: persona version {got}, expected {version}")
+    persona_calls = [call["arguments"].get("action") for (session, turn), row in sorted(
+        rows["P"].items(), key=lambda item: turns.index(item[0]) if item[0] in turns else 0)
+        for call in row["tool_calls"] if call["name"] == "memory_persona"]
+    if hasattr(module, "EXPECT_PERSONA_ACTIONS_P"):
+        verdict("persona", persona_calls == list(module.EXPECT_PERSONA_ACTIONS_P),
+                f"P: memory_persona actions {persona_calls}")
 
     # The server's instructions reach P's system prompt and never F's (the stub host reports what it saw).
     for arm in ARMS:
@@ -243,23 +293,41 @@ def check(scenario_path: str, root: Path, key: str) -> dict:
             f"P cleanup: {cleaned or 'no report'}")
     verdict("cleanup", not any(_port_open(port) for port in P_PORTS), f"ports {P_PORTS} still open after the run")
 
-    # Page actions: each removed only what its scope names; F's history changed only for deleted messages.
+    # Page actions: applied in order, each done or (where the scenario says so) not applicable, F's outcome always
+    # P's; each removed only what its scope names; F's history changed only for deleted messages.
     scripted = list(getattr(module, "PAGE_ACTIONS", []))
+    order = harness.application_order(scripted, module.SESSIONS_LONG)
+    meant = {index: reason for index, reason in getattr(module, "EXPECT_NOT_APPLICABLE", [])}
+    outcomes = {arm: {entry.get("index"): (entry.get("status"), entry.get("reason")) for entry in actions[arm]}
+                for arm in ARMS}
+    verdict("page_actions", outcomes["P"] == outcomes["F"], "F's page-action outcomes are not P's")
     for arm in ARMS:
-        expected = [action for _, _, action in scripted
-                    if (not action.get("arms") or "P" in action["arms"])
-                    and (p2 or not action["do"].endswith("_proposal"))]
-        verdict("page_actions", [entry["action"] for entry in actions[arm]] == [a["do"] for a in expected],
+        expected = [index for index in order if (p2 or not scripted[index][2]["do"].endswith("_proposal"))]
+        verdict("page_actions", [entry.get("index") for entry in actions[arm]] == expected
+                and [entry["action"] for entry in actions[arm]] == [scripted[index][2]["do"] for index in expected],
                 f"{arm}: page actions applied {[entry['action'] for entry in actions[arm]]}")
         for entry in actions[arm]:
             kind, before, after, result = entry["action"], entry["before"], entry["after"], entry["result"]
             layer = LAYER[kind]
-            verdict(layer, not result.get("failed"), f"{arm} {kind}: {result.get('failed')}")
+            wanted = ("not_applicable", meant[entry.get("index")]) if entry.get("index") in meant else ("done", None)
+            verdict(layer, (entry.get("status"), entry.get("reason")) == wanted,
+                    f"{arm} {kind} (action {entry.get('index')}): {entry.get('status')} {entry.get('reason')}, "
+                    f"expected {wanted}")
+            if entry.get("status") == "not_applicable":
+                # Nothing happened: no record removed, and in P no page field changed.
+                verdict(layer, result.get("removed_records") == [] and result.get("removed_records_complete") is True,
+                        f"{arm} {kind}: a not-applicable action recorded removals")
+                if arm == "P":
+                    verdict(layer, {k: v for k, v in before.items() if k != "mood"}
+                            == {k: v for k, v in after.items() if k != "mood"}, f"P {kind}: not applicable but changed")
+                else:
+                    verdict("reference", before == after, f"F {kind}: not applicable but changed")
+                continue
             if arm == "F":
                 deleted = result.get("deleted", 0)
                 if kind == "delete_message":
                     in_p = next((other["result"].get("removed") for other in actions["P"]
-                                 if other["action"] == kind and other["detail"] == entry["detail"]), None)
+                                 if other.get("index") == entry.get("index")), None)
                     target = [entry["detail"]["session"], entry["detail"]["turn"], entry["detail"].get("role", "user")]
                     report["deletion_cascade"] = in_p
                     verdict("reference", result.get("removed") == in_p and target in (in_p or []),
@@ -297,7 +365,17 @@ def check(scenario_path: str, root: Path, key: str) -> dict:
                 verdict(layer, after["notes"] == before["notes"] - before["shared_moments"],
                         f"{arm} {kind}: notes {before['notes']} -> {after['notes']} with "
                         f"{before['shared_moments']} shared moments")
-            elif kind in ("accept_persona_proposal", "set_persona", "restore_persona", "reset_persona"):
+            elif kind in ("delete_note_from", "delete_feeling_from"):
+                field = "notes" if kind == "delete_note_from" else "feelings"
+                verdict(layer, after[field] == before[field] - result.get("deleted", 0) and result.get("deleted"),
+                        f"{arm} {kind}: {field} {before[field]} -> {after[field]}")
+            elif kind == "set_support_style":
+                verdict(layer, after["support_style"] is bool(entry["detail"]["text"].strip()), f"{arm} {kind}")
+            elif kind == "cap_familiarity":
+                verdict(layer, after["familiarity_cap"] == entry["detail"]["level"], f"{arm} {kind}: {after}")
+            elif kind == "pin_mood":
+                verdict(layer, after["mood_pinned"] is entry["detail"].get("pinned", True), f"{arm} {kind}")
+            elif kind in ("accept_proposal", "set_persona", "switch_persona"):
                 verdict(layer, after["persona_version"] == before["persona_version"] + 1, f"{arm} {kind}")
 
     failures = sum(len(value["failures"]) for value in report.values() if isinstance(value, dict))
@@ -308,6 +386,8 @@ def check(scenario_path: str, root: Path, key: str) -> dict:
 
 
 def _layer(needle: str) -> str:
+    if needle.startswith(PAGE_LINE_ITEMS):
+        return "reference"
     if needle.startswith("[20"):
         return "dates"
     if "indexed" in needle:

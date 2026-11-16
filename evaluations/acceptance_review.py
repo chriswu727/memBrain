@@ -34,7 +34,8 @@ file in its gate's pair with the manifest's hash, and gate R4 (or C5) needs exac
 with that manifest. Every tally records its scenario's key, file stem and sha256.
 A failed gate, R4 or C5, writes its report (gate.json or gate-c5.json) and then exits nonzero.
 validity also accepts --persona PRESET, the manifest's persona draw (the driver passes it), and then requires every
-arm to have carried that seeded type.
+arm to have carried that seeded type; and --companion, which requires the C5 records (page actions and F's persona
+turn by turn) even for a scenario without PAGE_ACTIONS (a scenario with PAGE_ACTIONS is checked so without it).
 validity and diagnose accept --scenario PATH for scenarios outside this script's directory. The driver supplies
 the manifest-bound path; without it, historical runs retain their evaluations/<scenario>.py lookup.
 
@@ -417,6 +418,15 @@ def _digest_outcome(record: dict, arm: str, sessions: list) -> tuple[list[dict],
     result = record.get("result")
     if not isinstance(result, dict) or result.get("failed"):
         raise SystemExit("a page action failed or has no result: the run is invalid and is not scored")
+    # A current harness's record says whether the action was done or found no target (not applicable, for a fixed
+    # reason): an action that found no target removed nothing and is never shown as having removed something.
+    if "status" in record:
+        if record["status"] == "not_applicable":
+            if record.get("reason") not in NOT_APPLICABLE or result.get("removed_records") != [] \
+                    or result.get("removed") or result.get("removed_records_complete") is not True:
+                raise SystemExit("a not-applicable page action records a removal or no allowed reason")
+        elif record["status"] != "done":
+            raise SystemExit("a page action failed or has no valid status: the run is invalid and is not scored")
     raw_removed = result.get("removed", [])
     removed = sorted(_removed_position(entry, sessions) for entry in raw_removed)
     before, after = record.get("before"), record.get("after")
@@ -476,7 +486,8 @@ def actions_digest(review: Path, blind_dir: Path, scenario_path: str, key: str, 
     established it: no counts, state, or message, note, feeling, topic or session text.
 
     Every arm's page-actions.jsonl must hold exactly the scenario's PAGE_ACTIONS that apply to it, in order, and none
-    may have failed. An action that does not apply in a reply's arm removed nothing there."""
+    may have failed. An action that does not apply in a reply's arm removed nothing there; nor did one the harness
+    recorded as not applicable (its target did not exist), which must list no removal, so it adds no entry."""
     verdicts(review / f"verdicts-{key}.json", scenario_path, companion=True)
     module = load(scenario_path)
     scenario = Path(scenario_path).stem
@@ -943,7 +954,134 @@ def _markup_replies(rows: list, order: list) -> list:
             if isinstance(row.get("reply"), str) and any(marker in row["reply"].casefold() for marker in markers)]
 
 
-def validity(run_dirs: list[Path], scenario_path: Path | None = None, persona_preset: str | None = None) -> dict:
+# The C5 harness's page-action and persona records (c5-harness.py PAGE_RECORD_FORMAT, NOT_APPLICABLE,
+# PERSONA_TURN_FORMAT). A page action is done, or not applicable for one of these reasons (its target did not exist
+# because of what the host did or did not do: scored with the arm), or failed (a fault: invalid).
+PAGE_RECORD_FORMAT = 2
+NOT_APPLICABLE = ("message_not_recorded", "message_already_removed", "no_note_from_message",
+                  "no_feeling_from_message", "boundary_not_present", "no_open_proposal")
+PERSONA_TURN_FORMAT = 1
+
+
+def _application_order(actions: list, sessions: list) -> list:
+    """The indexes of PAGE_ACTIONS in the order the harness applies them (c5-harness.py application_order)."""
+    return sorted(range(len(actions)), key=lambda index: (sessions.index(actions[index][0]), actions[index][1], index))
+
+
+def _scenario_module(rows: list, scenario_path: Path | None):
+    """The scenario of a run for the companion checks, or None when it cannot be read (then no PAGE_ACTIONS are
+    known: a run with page-actions.jsonl is refused)."""
+    try:
+        source = scenario_path if scenario_path is not None else Path(__file__).parent / (rows[0]["scenario"] + ".py")
+        return load(str(source))
+    except (Exception, SystemExit):
+        return None
+
+
+def _persona_identity_ok(block, turn) -> bool:
+    """A row's persona record: {"format": 1, "version", "sha256"}, the sha256 of the block it gives (None and
+    version 0 for none)."""
+    if not isinstance(block, str) or not isinstance(turn, dict) or set(turn) != {"format", "version", "sha256"} \
+            or turn["format"] != PERSONA_TURN_FORMAT or type(turn["version"]) is not int:
+        return False
+    digest = hashlib.sha256(block.encode("utf-8")).hexdigest() if block else None
+    return turn["sha256"] == digest and (turn["version"] > 0 if block else turn["version"] == 0)
+
+
+def _persona_mirroring(arms: dict, required: bool) -> tuple[list, dict]:
+    """F carried exactly P's persona block at every turn: every P row records the persona in effect as its turn
+    began (persona_block and persona_turn), every F row the same persona_turn with that block as reference_persona.
+    Checked whenever P's rows carry the records (every run of the current harness), required in companion mode.
+    Returns problems and a report: the turns checked, and the turns whose persona P's host was not shown."""
+    problems, report = [], {"checked_turns": 0, "not_shown_to_p_host": {"count": 0, "positions": []}}
+    if "P" not in arms or "F" not in arms:
+        return problems, report
+    (_, p_rows, order), (_, f_rows, _) = arms["P"], arms["F"]
+    if not any("persona_turn" in row for row in p_rows) and not required:
+        return problems, report
+    sessions = list(dict.fromkeys(session for session, _ in order))
+    by_turn = {(row.get("session"), row.get("turn")): row for row in p_rows}
+    for row in p_rows:
+        if not _persona_identity_ok(row.get("persona_block"), row.get("persona_turn")):
+            problems.append(f"P has no valid persona record at {_position(order, row)}")
+        elif row.get("persona_shown_to_host") is False:
+            report["not_shown_to_p_host"]["count"] += 1
+            report["not_shown_to_p_host"]["positions"].append(
+                _message_position(sessions, row.get("session"), row.get("turn")))
+    for row in f_rows:
+        mine = by_turn.get((row.get("session"), row.get("turn")))
+        if (mine is None or not _persona_identity_ok(row.get("reference_persona"), row.get("persona_turn"))
+                or row.get("persona_turn") != mine.get("persona_turn")
+                or row.get("reference_persona") != mine.get("persona_block")):
+            problems.append(f"F did not carry P's persona at {_position(order, row)}")
+        else:
+            report["checked_turns"] += 1
+    return problems, report
+
+
+def _page_actions(arms: dict, module, companion: bool) -> tuple[list, dict]:
+    """Every arm's page-actions.jsonl holds exactly the scenario's PAGE_ACTIONS, in the order the harness applies
+    them, each done or not applicable for an allowed reason (never failed), a not-applicable one having removed
+    nothing; F's outcome of each is P's. Returns problems and, per run directory, the count of actions, of those
+    done, and the not-applicable ones by action number, session index, message number, kind and reason."""
+    problems, report = [], {}
+    actions = list(getattr(module, "PAGE_ACTIONS", None) or []) if module is not None else []
+    recorded = {arm: (run / "page-actions.jsonl").exists() for arm, (run, _, _) in arms.items()}
+    if module is None and (companion or any(recorded.values())):
+        return ["the scenario could not be read for the page-action and persona checks"], report
+    if not actions and not companion:
+        if any(recorded.values()):
+            problems.append("page actions were recorded but the scenario's PAGE_ACTIONS could not be read or are "
+                            "empty")
+        return problems, report
+    sessions = [session for session, _ in module.SESSIONS_LONG]
+    try:
+        order = _application_order(actions, sessions)
+    except (ValueError, TypeError, IndexError):
+        return ["the scenario's PAGE_ACTIONS are malformed"], report
+    outcomes = {}
+    for arm, (run, _, _) in sorted(arms.items()):
+        label = f"{run.name} ({arm})"
+        path = run / "page-actions.jsonl"
+        try:
+            records = [json.loads(line) for line in path.read_text().splitlines() if line.strip()] \
+                if path.exists() else []
+        except ValueError:
+            problems.append(f"{run}: page-actions.jsonl is not JSON lines")
+            continue
+        summary = {"count": len(records), "done": 0, "not_applicable": {"count": 0, "at": []}}
+        report[label] = summary
+        if len(records) != len(order) or any(
+                not isinstance(record, dict) or record.get("format") != PAGE_RECORD_FORMAT
+                or record.get("index") != index or record.get("session") != actions[index][0]
+                or record.get("before_turn") != actions[index][1] or record.get("action") != actions[index][2].get("do")
+                for record, index in zip(records, order)):
+            problems.append(f"{run}: page-actions.jsonl does not hold exactly the scenario's PAGE_ACTIONS in order")
+            continue
+        outcomes[arm] = []
+        for record, index in zip(records, order):
+            status, reason, result = record.get("status"), record.get("reason"), record.get("result")
+            at = {"action": index + 1, "session": sessions.index(actions[index][0]) + 1,
+                  "before_message": actions[index][1] + 1, "kind": actions[index][2].get("do")}
+            outcomes[arm].append((status, reason))
+            if not isinstance(result, dict) or result.get("failed") or status == "failed":
+                problems.append(f"{run}: page action {index + 1} failed")
+            elif status == "done" and reason is None:
+                summary["done"] += 1
+            elif status == "not_applicable" and reason in NOT_APPLICABLE:
+                if result.get("removed_records") != [] or result.get("removed_records_complete") is not True:
+                    problems.append(f"{run}: page action {index + 1} was not applicable but records removals")
+                summary["not_applicable"]["count"] += 1
+                summary["not_applicable"]["at"].append({**at, "reason": reason})
+            else:
+                problems.append(f"{run}: page action {index + 1} has no valid status")
+    if "P" in outcomes and "F" in outcomes and outcomes["P"] != outcomes["F"]:
+        problems.append("F's page-action outcomes are not P's")
+    return problems, report
+
+
+def validity(run_dirs: list[Path], scenario_path: Path | None = None, persona_preset: str | None = None,
+             companion: bool = False) -> dict:
     """Refuse an attempt whose runs degraded: a missing or unfinished log, missing or empty replies, a call cap, a
     harness error or an index timeout in any arm; run directories that are not exactly the frozen arms, once each; an
     arm without persona.json, arms that carried different personas, or (with ``persona_preset``, the manifest's
@@ -953,10 +1091,18 @@ def validity(run_dirs: list[Path], scenario_path: Path | None = None, persona_pr
     (reported, never refused: they are the host's or the service's, and are part of what is measured). Also reported
     without refusing, per run directory: the turns the host's own pause left unrecorded (host-pauses.jsonl; a
     malformed file is refused as damaged evidence) and the replies with tool-call markup (TOOL_CALL_MARKUP), each as
-    a count and positions [session index, message number]."""
+    a count and positions [session index, message number].
+
+    Companion mode (``companion``, or a scenario with PAGE_ACTIONS: every C5 scenario) adds two checks, which also run
+    whenever their records exist: every arm's page-actions.jsonl holds exactly the scenario's PAGE_ACTIONS in the
+    order they are applied, each done or not applicable for an allowed reason, never failed, F's outcome of each
+    being P's (reported per run directory with the not-applicable actions' positions and reasons, never refusing
+    them); and F carried P's persona block at every turn (persona_turn and the block in each row). An R4 scenario
+    has no page actions, so its validity is unchanged apart from the persona check of a current harness's runs."""
     problems, largest, retried, tool_errors = [], 0, {}, {}
     host_pauses, markup = {}, {}
     arms_seen, personas, supervision = set(), {}, {}
+    collected: dict = {}  # arm -> (run directory, rows, scenario order), for the companion checks
     if not run_dirs:
         problems.append("No run directories supplied")
     for run in run_dirs:
@@ -973,6 +1119,8 @@ def validity(run_dirs: list[Path], scenario_path: Path | None = None, persona_pr
             problems.append(f"{run}: arm {arm!r} is not one of the frozen arms {', '.join(ARMS)}")
         elif arm in arms_seen:
             problems.append(f"{run}: a second run directory of arm {arm}")
+        else:
+            collected[arm] = (run, rows, order)
         arms_seen.add(arm)
         persona = run / "persona.json"
         try:
@@ -1042,9 +1190,21 @@ def validity(run_dirs: list[Path], scenario_path: Path | None = None, persona_pr
         spans = sorted((value["started"], value["cleaned"]) for value in stamps)
         if any(later[0] < earlier[1] for earlier, later in zip(spans, spans[1:])):
             problems.append("the arms overlapped in time")
+    # Companion mode: the page actions each arm applied, and F's persona turn by turn.
+    page_report, mirroring = {}, None
+    if collected:
+        first_rows = next(iter(collected.values()))[1]
+        recorded = any((run / "page-actions.jsonl").exists() for run, _, _ in collected.values())
+        module = _scenario_module(first_rows, scenario_path) if (companion or recorded or scenario_path) else None
+        mode = companion or bool(list(getattr(module, "PAGE_ACTIONS", None) or []))
+        found, page_report = _page_actions(collected, module, mode)
+        problems += found
+        found, mirroring = _persona_mirroring(collected, mode)
+        problems += found
     result = {"valid": not problems, "problems": problems, "reference_largest_prompt_tokens": largest,
               "empty_replies_retried": retried, "tool_errors_reported_to_the_host": tool_errors,
-              "unrecorded_by_the_hosts_own_pause": host_pauses, "replies_with_tool_call_markup": markup}
+              "unrecorded_by_the_hosts_own_pause": host_pauses, "replies_with_tool_call_markup": markup,
+              "page_actions": page_report, "persona_mirroring": mirroring}
     print(json.dumps(result))
     return result
 
@@ -1416,8 +1576,8 @@ if __name__ == "__main__":
         del args[at:at + 2]
     companion = "--companion" in args
     if companion:
-        if command not in ("verdicts", "tally", "gate") or args.count("--companion") != 1:
-            raise SystemExit("--companion is valid once for verdicts, tally or gate")
+        if command not in ("verdicts", "tally", "gate", "validity") or args.count("--companion") != 1:
+            raise SystemExit("--companion is valid once for verdicts, tally, gate or validity")
         args.remove("--companion")
     manifest = None
     if "--manifest" in args:
@@ -1433,7 +1593,7 @@ if __name__ == "__main__":
     elif command == "attribution-inputs":
         attribution_inputs(Path(args[0]), Path(args[1]), args[2], args[3], Path(args[4]))
     elif command == "validity":
-        if not validity([Path(arg) for arg in args], scenario_path, persona_preset)["valid"]:
+        if not validity([Path(arg) for arg in args], scenario_path, persona_preset, companion)["valid"]:
             raise SystemExit(1)
     elif command == "remarks":
         remarks(Path(args[0]), args[1])

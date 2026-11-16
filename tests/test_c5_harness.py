@@ -2,6 +2,7 @@
 arm's world, and the stubs used by the zero-network dry run."""
 import asyncio
 import datetime
+import hashlib
 import importlib.util
 import json
 import socket
@@ -139,15 +140,37 @@ def test_the_practice_scenario_is_valid_and_public(monkeypatch):
 
 def test_page_actions_are_checked_before_any_model_call(monkeypatch):
     class Scenario:
-        SESSIONS_LONG = [("s1", ["Today is Monday, March 2, 20:00. Hi"])]
+        SESSIONS_LONG = [("s1", ["Today is Monday, March 2, 20:00. Hi", "Two"]),
+                         ("s2", ["Today is Tuesday, March 3, 20:00. Hi", "Four"])]
         PAGE_ACTIONS = [("s1", 0, {"do": "rename_everything"})]
 
+    monkeypatch.setattr(harness, "STUB", True)
     with pytest.raises(SystemExit, match="bad page action"):
         harness.check_actions(Scenario)
-    Scenario.PAGE_ACTIONS = [("s1", 0, {"do": "accept_persona_proposal", "match": "casual"})]
-    with pytest.raises(SystemExit, match="states the card"):
-        harness.check_actions(Scenario)
-    Scenario.PAGE_ACTIONS = [("s1", 0, {"do": "accept_persona_proposal", "match": "casual", "card": {}})]
+    # Selecting a record by text the host wrote is not in the vocabulary; nor is the old proposal match by text.
+    for action in ({"do": "accept_persona_proposal", "match": "casual"}, {"do": "delete_note", "contains": "x"},
+                   {"do": "delete_feeling", "label": "x"}, {"do": "reset_persona"}, {"do": "restore_persona",
+                                                                                     "version": 1}):
+        Scenario.PAGE_ACTIONS = [("s2", 0, action)]
+        with pytest.raises(SystemExit, match="bad page action"):
+            harness.check_actions(Scenario)
+    for action in ({"do": "clear_feelings", "label": "x"}, {"do": "accept_proposal", "match": "casual"},
+                   {"do": "accept_proposal", "origin": "the agent"}, {"do": "accept_proposal", "position": 0},
+                   {"do": "delete_message", "session": "s2", "turn": 0},  # At the action's own position.
+                   {"do": "delete_note_from", "session": "s9", "turn": 0},
+                   {"do": "cap_familiarity", "level": "close"}, {"do": "switch_persona", "preset": "ENFP-ish"},
+                   {"do": "remove_boundary", "topic": "work"}):  # No earlier page action added it.
+        Scenario.PAGE_ACTIONS = [("s2", 0, action)]
+        with pytest.raises(SystemExit, match="bad page action"):
+            harness.check_actions(Scenario)
+    Scenario.PAGE_ACTIONS = [("s2", 1, {"do": "remove_boundary", "topic": "Work "}),
+                             ("s2", 0, {"do": "add_boundary", "topic": "work", "aliases": ["deadlines"]}),
+                             ("s2", 0, {"do": "delete_feeling_from", "session": "s1", "turn": 1}),
+                             ("s2", 1, {"do": "accept_proposal", "origin": "host", "position": 2}),
+                             ("s2", 1, {"do": "switch_persona", "preset": "random"})]
+    assert harness.check_actions(Scenario) == Scenario.PAGE_ACTIONS  # Applied in position order: add, then remove.
+    assert harness.application_order(Scenario.PAGE_ACTIONS, Scenario.SESSIONS_LONG) == [1, 2, 0, 3, 4]
+    Scenario.PAGE_ACTIONS = [("s2", 0, {"do": "accept_proposal"})]
     monkeypatch.setattr(harness, "STUB", False)
     monkeypatch.setattr(harness, "proposals_supported", lambda: False)
     with pytest.raises(SystemExit, match="no persona proposals"):  # A live run never silently skips an action.
@@ -178,31 +201,83 @@ def test_arm_p_offers_every_tool_the_plugins_server_lists_with_its_instructions(
 
 # The reference arm ----------------------------------------------------------------------------------------------
 
-def test_f_gets_the_persona_block_the_product_renders_and_follows_card_changes():
+def _p_rows(tmp_path, rows, scenario="zq"):
+    run = tmp_path / "k-P"
+    run.mkdir(parents=True, exist_ok=True)
+    (run / f"results_{scenario}_P.jsonl").write_text("".join(json.dumps(row) + "\n" for row in rows))
+    return tmp_path / "k-F"
+
+
+def test_f_is_given_ps_persona_block_of_the_same_turn_whatever_changed_it(tmp_path, monkeypatch):
+    from membrain import persona_presets
     from membrain.persona import render_persona
 
-    reference = harness.Reference(practice.PERSONA)
-    assert reference.block() == render_persona({"version": 1, "card": practice.PERSONA})
-    reference.apply({"do": "accept_persona_proposal", "card": practice.ACCEPTED_CARD})
-    assert reference.block().startswith('<membrain-persona version="2">') and "register casual" in reference.block()
-    reference.apply({"do": "restore_persona", "version": 1})
-    assert reference.block().startswith('<membrain-persona version="3">') and "register formal" in reference.block()
-    reference.apply({"do": "set_persona", "card": practice.ACCEPTED_CARD})
-    reference.apply({"do": "reset_persona"})  # Back to the host's default card, as a new version.
-    assert reference.block().startswith('<membrain-persona version="5">') and "register formal" in reference.block()
-    reference.apply({"do": "delete_persona_history"})
-    assert reference.block() is None
+    monkeypatch.setattr(harness, "BILLING", None)
+    first = render_persona({"version": 1, "card": persona_presets.card("istp")})
+    switched = render_persona({"version": 2, "card": persona_presets.card("enfp")})  # e.g. the host's own switch
+    out = _p_rows(tmp_path, [
+        {"session": "s1", "turn": 0, "persona_block": first, "persona_turn": harness.persona_turn(1, first)},
+        {"session": "s1", "turn": 1, "persona_block": switched, "persona_turn": harness.persona_turn(2, switched)},
+        {"session": "s2", "turn": 0, "persona_block": "", "persona_turn": harness.persona_turn(0, "")}])
+    cache = {}
+    assert harness.p_persona(out, "zq", "s1", 0, cache) == (first, harness.persona_turn(1, first))
+    block, turn = harness.p_persona(out, "zq", "s1", 1, cache)
+    assert block == switched and turn == {"format": 1, "version": 2,
+                                          "sha256": hashlib.sha256(switched.encode()).hexdigest()}
+    assert harness.p_persona(out, "zq", "s2", 0, cache) == ("", {"format": 1, "version": 0, "sha256": None})
+    with pytest.raises(SystemExit, match="never recorded the persona of a turn"):
+        harness.p_persona(out, "zq", "s2", 1, cache, timeout=0.05)
+    # A block that is not the one its identity names is refused, never passed on to F.
+    out = _p_rows(tmp_path / "other", [{"session": "s1", "turn": 0, "persona_block": switched,
+                                        "persona_turn": harness.persona_turn(1, first)}])
+    with pytest.raises(SystemExit, match="does not match its identity"):
+        harness.p_persona(out, "zq", "s1", 0, {})
+    assert not hasattr(harness.Reference(), "block")  # F has no persona of its own.
 
 
-@pytest.mark.parametrize("kind", ["clear_feelings", "delete_feeling", "delete_note", "reset_mood", "pin_mood",
-                                  "reset_relationship", "add_boundary", "remove_boundary", "reset_persona",
-                                  "delete_persona_history", "reject_persona_proposal"])
+def test_fs_page_line_lists_only_page_settings_in_a_fixed_format():
+    import datetime as dt
+
+    reference = harness.Reference()
+    assert reference.page_line() is None
+    tenth, eleventh = dt.date(2026, 3, 10), dt.date(2026, 3, 11)
+    done = {"status": "done"}
+    reference.apply({"do": "add_boundary", "topic": "work  deadlines", "aliases": ["deadlines"]}, done, tenth)
+    reference.apply({"do": "add_boundary", "topic": "Tom"}, done, tenth)
+    reference.apply({"do": "clear_feelings"}, done, tenth)
+    reference.apply({"do": "set_support_style", "text": "Listen first."}, done, tenth)
+    reference.apply({"do": "cap_familiarity", "level": "getting_to_know"}, done, tenth)
+    reference.apply({"do": "pin_mood", "pinned": True}, done, tenth)
+    reference.apply({"do": "reset_mood"}, done, tenth)  # Not a setting the line names.
+    assert reference.page_line() == (
+        'Memory page settings the user chose (not part of the conversation above): topics not to bring up: '
+        '"work deadlines" (also "deadlines"), "Tom"; feelings cleared on 2026-03-10; support style: "Listen first."; '
+        'familiarity limited to getting to know; simulated mood held at its baseline.')
+    reference.apply({"do": "remove_boundary", "topic": "tom"}, done, tenth)
+    reference.apply({"do": "reset_relationship"}, done, eleventh)  # Erases boundaries, support style and cap.
+    assert reference.page_line() == (
+        "Memory page settings the user chose (not part of the conversation above): relationship reset on 2026-03-11; "
+        "feelings cleared on 2026-03-10; simulated mood held at its baseline.")
+    # An action P found no target for changes nothing in F either.
+    assert reference.apply({"do": "remove_boundary", "topic": "x"}, {"status": "not_applicable",
+                                                                       "reason": "boundary_not_present"}) == {
+        "not_applicable": "boundary_not_present"}
+    reference.apply({"do": "pin_mood", "pinned": False}, done, eleventh)
+    reference.apply({"do": "set_support_style", "text": ""}, done, eleventh)
+    assert reference.page_line().endswith("relationship reset on 2026-03-11; feelings cleared on 2026-03-10.")
+
+
+@pytest.mark.parametrize("kind", ["clear_feelings", "delete_feeling_from", "delete_note_from", "reset_mood",
+                                  "pin_mood", "reset_relationship", "add_boundary", "remove_boundary",
+                                  "set_support_style", "cap_familiarity", "switch_persona", "set_persona",
+                                  "delete_persona_history", "accept_proposal", "reject_proposal"])
 def test_only_a_deleted_message_leaves_fs_history(kind):
-    reference = harness.Reference(practice.PERSONA)
+    reference = harness.Reference()
     reference.history = [(("s1", 0, "user"), {"role": "user", "content": "a"}),
                          (("s1", 0, "assistant"), {"role": "assistant", "content": "b"}),
                          (("s1", 1, "user"), {"role": "user", "content": "c"})]
-    reference.apply({"do": kind, "label": "x", "contains": "x", "topic": "x"})
+    reference.apply({"do": kind, "session": "s1", "turn": 0, "topic": "x", "text": "x", "level": "new",
+                     "preset": "random", "card": {}}, {"status": "done"})
     assert len(reference.history) == 3
     # F drops exactly what the product removed in P: here the message and the reply that answered it.
     removed = [["s1", 0, "assistant"], ["s1", 0, "user"]]
@@ -213,7 +288,7 @@ def test_only_a_deleted_message_leaves_fs_history(kind):
 
 
 def test_a_deletion_during_the_session_in_progress_never_reaches_fs_later_history():
-    reference = harness.Reference(practice.PERSONA)
+    reference = harness.Reference()
     current = [(("s2", 0, "user"), {"role": "user", "content": "keep"}),
                (("s2", 0, "assistant"), {"role": "assistant", "content": "kept reply"}),
                (("s2", 1, "user"), {"role": "user", "content": "erased later in s2"})]
@@ -225,15 +300,37 @@ def test_a_deletion_during_the_session_in_progress_never_reaches_fs_later_histor
     assert reference.contains([["s2", 1, "user"]]) == 0
 
 
-def test_f_waits_for_and_mirrors_ps_recorded_deletion(tmp_path):
+def test_f_waits_for_and_mirrors_ps_recorded_outcome_of_each_action(tmp_path, monkeypatch):
+    monkeypatch.setattr(harness, "BILLING", None)
     action = {"do": "delete_message", "session": "s1", "turn": 0, "role": "user"}
+    unrecorded = {"do": "delete_message", "session": "s1", "turn": 1, "role": "user"}
     (tmp_path / "k-P").mkdir()
-    (tmp_path / "k-P" / "page-actions.jsonl").write_text(json.dumps({
-        "action": "delete_message", "detail": {"session": "s1", "turn": 0, "role": "user"},
-        "result": {"deleted": 1, "removed": [["s1", 0, "user"]]}}) + "\n")
-    assert harness.removed_in_p(tmp_path / "k-F", action, []) == [["s1", 0, "user"]]
+
+    def record(index, entry, status, **extra):
+        return {"format": 2, "index": index, "action": entry["do"], "detail": harness.action_detail(entry),
+                "status": status, **extra}
+
+    (tmp_path / "k-P" / "page-actions.jsonl").write_text("".join(json.dumps(entry) + "\n" for entry in (
+        record(0, action, "done", result={"deleted": 1, "removed": [["s1", 0, "user"]]}),
+        record(1, unrecorded, "not_applicable", reason="message_not_recorded", result={}))))
+    out = tmp_path / "k-F"
+    assert harness.p_page_action(out, 0, action)["result"]["removed"] == [["s1", 0, "user"]]
+    assert harness.p_page_action(out, 1, unrecorded)["reason"] == "message_not_recorded"
+    with pytest.raises(SystemExit, match="not this scenario's"):  # Another action at that index.
+        harness.p_page_action(out, 1, action)
     with pytest.raises(SystemExit, match="never recorded"):
-        harness.removed_in_p(tmp_path / "k-F", action, [action], timeout=0.1)
+        harness.p_page_action(out, 2, action, timeout=0.1)
+    (tmp_path / "k-P" / "page-actions.jsonl").write_text(json.dumps(record(0, action, "failed", result={
+        "failed": "x"})) + "\n")
+    with pytest.raises(SystemExit, match="could not apply"):
+        harness.p_page_action(out, 0, action)
+    # F's world: the deletion P made, and nothing for the one that found no message.
+    reference = harness.Reference()
+    reference.history = [(("s1", 0, "user"), {"role": "user", "content": "a"})]
+    assert reference.apply({**unrecorded, "removed": []}, {"status": "not_applicable",
+                                                           "reason": "message_not_recorded"}) == {
+        "not_applicable": "message_not_recorded"}
+    assert reference.apply({**action, "removed": [["s1", 0, "user"]]}, {"status": "done"})["deleted"] == 1
 
 
 # Stubs ----------------------------------------------------------------------------------------------------------
@@ -255,6 +352,43 @@ def test_the_stub_host_calls_scripted_tools_with_the_current_source_then_replies
                                     {"role": "user", "content": "hi"}, message,
                                     {"role": "tool", "tool_call_id": "call-0", "content": "{}"}])
     assert "membrain-persona" in reply["content"] and usage["total_tokens"] > 0
+
+
+def test_the_stub_host_chains_calls_within_a_turn_and_across_turns(monkeypatch):
+    monkeypatch.setattr(harness, "STUB", True)
+    script = {("s1", 0): [{"tool": "memory_persona", "arguments": {"action": "list"}},
+                          {"tool": "memory_persona", "round": 1, "arguments": {
+                              "action": "switch", "preset": {"$result": ["s1", 0, 0, "first"]}}}],
+              ("s2", 0): [{"tool": "memory_persona", "arguments": {
+                  "action": "confirm", "proposal_id": {"$result": ["s1", 1, 0, "proposal_id"]}}}],
+              ("s1", 1): [{"tool": "memory_persona", "arguments": {"action": "propose", "changes": {}}}],
+              ("s3", 0): [{"tool": "memory_persona", "arguments": {
+                  "action": "decline", "proposal_id": {"$result": ["s9", 0, 0, "proposal_id"]}}}]}
+    stub = harness.StubHost(script)
+    model = harness.Host(cap=20, transport=httpx.MockTransport(stub))
+    tools = [{"type": "function", "function": {"name": "memory_persona", "parameters": {"properties": {}}}}]
+    answers = {"list": {"first": "intj"}, "propose": {"proposal_id": "zq-proposal-1"}}
+
+    def turn(key):
+        stub.key = key
+        messages = [{"role": "system", "content": "x"}, {"role": "user", "content": "hi"}]
+        made = []
+        while True:
+            message, _ = model.call(messages, tools)
+            if not message.get("tool_calls"):
+                return made
+            messages.append(message)
+            for call in message["tool_calls"]:
+                arguments = json.loads(call["function"]["arguments"])
+                made.append(arguments)
+                messages.append({"role": "tool", "tool_call_id": call["id"],
+                                 "content": json.dumps(answers.get(arguments["action"], {}))})
+
+    # Round 1 of the same turn uses round 0's result; a later turn (another session) uses an earlier turn's.
+    assert turn(("s1", 0)) == [{"action": "list"}, {"action": "switch", "preset": "intj"}]
+    assert turn(("s1", 1)) == [{"action": "propose", "changes": {}}]
+    assert turn(("s2", 0)) == [{"action": "confirm", "proposal_id": "zq-proposal-1"}]
+    assert turn(("s3", 0)) == [{"action": "decline"}]  # No such result: the argument is left out.
 
 
 def test_the_dry_run_refuses_any_connection_off_this_machine(tmp_path, monkeypatch):
@@ -324,15 +458,76 @@ def test_page_actions_go_through_the_api_and_remove_only_what_they_name(memory):
     assert result["deleted"] == 1 and ["s1", 0, "user"] in result["removed"]
     assert after["messages"] == ahead["messages"] - len(result["removed"])
     assert after["feelings"] == 0 and after["notes"] == ahead["notes"] - 1  # The note and feeling drawn from it.
-    ahead, result, after = act({"do": "remove_boundary", "topic": "Tom"})
-    assert result == {"failed": "no boundary 'Tom'"} and after == ahead
+    # The relationship reset erased the boundary: removing it finds nothing, which is not a fault.
+    ahead, result, after = act({"do": "remove_boundary", "topic": "tom"})
+    assert result == {"not_applicable": "boundary_not_present"} and after == ahead
+    assert harness.page_status(result) == ("not_applicable", "boundary_not_present")
 
 
-class _ProposalClient:
-    """A client whose accepted proposal leads to ``stored`` (no database or model)."""
+def test_page_actions_select_records_by_source_position_and_find_no_target_without_failing(memory):
+    """Notes and feelings by the scenario position of their source message, never by their text; settings by the
+    scenario's own words; a missing target is not applicable, with its reason code."""
+    directory = memory.directory
+    for turn, (text, reply) in enumerate((("I feel lost in this new city.", "That sounds hard."),
+                                          ("My sister Ana visits on the 14th.", "Lovely!"))):
+        host.prompt_context(directory, "s1", text, turn_id=f"t{turn}", include_source=True)
+        host.finish_turn(directory, "s1", reply, turn_id=f"t{turn}")
+        memory.record_turn("s1", turn)
+    memory.record_turn("s1", 2, recorded=False)  # A turn the host's pause left unrecorded.
+    first, second = (next(event for event, at in memory.positions.items() if at == ("s1", turn, "user"))
+                     for turn in (0, 1))
+    with memory.client() as client:
+        save_note(client, "zq-planted note about the move.", kind="milestone", source_event_ids=[first],
+                  affect={"label": "zq-planted-label", "valence": -1, "intensity": 1, "basis": "inferred"})
+        save_note(client, "Ana visits on 2026-03-14.", kind="plan", source_event_ids=[second])
+    source = {"session": "s1", "turn": 0}
 
-    def __init__(self, stored):
-        self.stored = stored
+    def act(action, **page):
+        with memory.client() as client:
+            ahead = harness.world(client)
+        result = harness.apply_page_action(memory, action, page)
+        with memory.client() as client:
+            return ahead, result, harness.world(client)
+
+    ahead, result, after = act({"do": "delete_feeling_from", **source})
+    assert result == {"deleted": 1} and (after["feelings"], after["notes"]) == (0, ahead["notes"])
+    assert act({"do": "delete_feeling_from", **source})[1] == {"not_applicable": "no_feeling_from_message"}
+    ahead, result, after = act({"do": "delete_note_from", **source})
+    assert result == {"deleted": 1} and after["notes"] == ahead["notes"] - 1 and after["messages"] == ahead["messages"]
+    assert act({"do": "delete_note_from", **source})[1] == {"not_applicable": "no_note_from_message"}
+    assert act({"do": "delete_note_from", "session": "s1", "turn": 2})[1] == {
+        "not_applicable": "message_not_recorded"}
+    assert act({"do": "delete_message", "session": "s1", "turn": 2})[1] == {"not_applicable": "message_not_recorded"}
+    ahead, result, after = act({"do": "delete_message", "session": "s1", "turn": 1})
+    assert result["deleted"] == 1 and ["s1", 1, "user"] in result["removed"] and after["notes"] == ahead["notes"] - 1
+    assert act({"do": "delete_message", "session": "s1", "turn": 1})[1] == {"not_applicable": "message_already_removed"}
+    ahead, result, after = act({"do": "set_support_style", "text": "Listen first."})
+    assert after["support_style"] is True and harness.page_status(result) == ("done", None)
+    ahead, result, after = act({"do": "cap_familiarity", "level": "new"})
+    assert after["familiarity_cap"] == "new"
+    ahead, result, after = act({"do": "pin_mood", "pinned": True})
+    assert after["mood_pinned"] is True and after["mood"] == "baseline"
+    assert act({"do": "accept_proposal"})[1] == {"not_applicable": "no_open_proposal", "open": 0}
+    # A page "pick another type at random": the harness's seeded pick, the same for the same seed and index.
+    with memory.client() as client:
+        before = client.persona_presets()["current"]
+    now = before["preset"]["id"] if before["kind"] == "preset" else None
+    ahead, result, after = act({"do": "switch_persona", "preset": "random"}, seed="zq-seed", index=4)
+    assert result["seeded_random"] is True and result["preset"] == harness.seeded_random_preset("zq-seed", 4, now)
+    assert result["preset"] != now and after["persona_version"] == ahead["persona_version"] + 1
+    ahead, result, after = act({"do": "switch_persona", "preset": "istj"})
+    assert (result["preset"], result["seeded_random"]) == ("istj", False)
+    ahead, result, after = act({"do": "set_persona", "card": {"name": "Juniper", "traits": ["warm"]}})
+    assert after["persona_version"] == ahead["persona_version"] + 1
+    with memory.client() as client:
+        assert client.persona()["card"]["name"] == "Juniper" and client.persona()["made_by"] == "user"
+
+
+class _Proposals:
+    """A client listing open suggestions in the page's order (open first, newest first)."""
+
+    def __init__(self, entries):
+        self.entries, self.decisions = entries, []
 
     def __enter__(self):
         return self
@@ -341,28 +536,63 @@ class _ProposalClient:
         return False
 
     def persona_proposals(self):
-        return {"proposals": [{"id": "p1", "status": "open", "kind": "less_formal"}]}
+        return {"proposals": self.entries}
 
-    def accept_persona_proposal(self, proposal_id):
-        return {"persona": {"version": 2, "card": self.stored}}
+    def accept_persona_proposal(self, ident):
+        self.decisions.append(("accept", ident))
+        return {"persona": {"version": 3}}
 
-    def persona(self):
-        return {"version": 2, "card": self.stored}
+    def reject_persona_proposal(self, ident):
+        self.decisions.append(("reject", ident))
+        return {"version": None}
 
 
-@pytest.mark.parametrize("same", [True, False])
-def test_an_accepted_proposal_fails_unless_ps_card_is_the_card_f_gets(same):
-    stored = practice.ACCEPTED_CARD if same else practice.PERSONA
-    # The stored form may differ in whitespace only; that is the same card.
-    stored = {**stored, "name": f"  {stored['name']} "}
-    memory = SimpleNamespace(client=lambda: _ProposalClient(stored))
-    action = {"do": "accept_persona_proposal", "match": "formal", "card": practice.ACCEPTED_CARD}
-    result = harness.apply_page_action(memory, action, {})
-    if same:
-        assert result == {"proposal": "p1", "version": 2}
-    else:
-        assert result["failed"] == "the accepted card differs from the scenario's card"
-        assert result["differing_fields"] == ["voice"]
+@pytest.mark.parametrize("decision", ["accept", "reject"])
+def test_a_suggestion_is_decided_by_origin_and_order_never_by_text(decision):
+    entries = [{"id": "p-host", "kind": "host", "status": "open", "label": "zq casual words"},
+               {"id": "p-new", "kind": "more_playful", "status": "open", "label": "more casual"},
+               {"id": "p-old", "kind": "less_formal", "status": "open", "label": "more casual"},
+               {"id": "p-done", "kind": "shorter", "status": "rejected"}]
+    for action, chosen in (({}, "p-host"), ({"origin": "feedback"}, "p-new"),
+                           ({"origin": "feedback", "position": 2}, "p-old"), ({"origin": "host"}, "p-host")):
+        client = _Proposals(entries)
+        result = harness.apply_page_action(SimpleNamespace(client=lambda: client),
+                                           {"do": f"{decision}_proposal", **action})
+        assert client.decisions == [(decision, chosen)] and result["proposal"] == chosen
+    for action in ({"origin": "feedback", "position": 3}, {"origin": "host", "position": 2}):
+        client = _Proposals(entries)
+        result = harness.apply_page_action(SimpleNamespace(client=lambda: client),
+                                           {"do": f"{decision}_proposal", **action})
+        assert result["not_applicable"] == "no_open_proposal" and client.decisions == []  # A closed one never.
+
+
+def test_a_service_refusal_or_an_exception_is_a_failure_with_a_code():
+    request = httpx.Request("POST", "http://127.0.0.1/x")
+
+    class Refusing(_Proposals):
+        def persona_proposals(self):
+            raise httpx.HTTPStatusError("no", request=request, response=httpx.Response(409, request=request))
+
+    result = harness.apply_page_action(SimpleNamespace(client=lambda: Refusing([])), {"do": "accept_proposal"})
+    assert harness.page_status(result) == ("failed", "service_refused") and result["status"] == 409
+
+    class Raising(_Proposals):
+        def persona_proposals(self):
+            raise KeyError("zq-planted")
+
+    result = harness.apply_page_action(SimpleNamespace(client=lambda: Raising([])), {"do": "accept_proposal"})
+    assert harness.page_status(result) == ("failed", "exception") and "zq-planted" not in json.dumps(result)
+    assert harness.page_status({"not_applicable": "zq-not-a-code"}) == ("failed", "not_found")
+
+
+def test_the_seeded_random_pick_is_reproducible_uniform_in_kind_and_never_the_current_type():
+    from membrain import persona_presets
+
+    picks = {harness.seeded_random_preset("zq-attempt", index, "enfp") for index in range(200)}
+    assert picks == set(persona_presets.IDS) - {"enfp"}  # Every other type can come, never the current one.
+    assert harness.seeded_random_preset("zq-attempt", 3, None) == harness.seeded_random_preset("zq-attempt", 3, None)
+    digest = hashlib.sha256(json.dumps(["switch_persona", "zq-attempt", 3], separators=(",", ":")).encode()).hexdigest()
+    assert harness.seeded_random_preset("zq-attempt", 3, None) == persona_presets.IDS[int(digest, 16) % 16]
 
 
 def test_the_index_wait_uses_the_runtimes_count_of_jobs_that_can_still_run(tmp_path, monkeypatch):

@@ -9,12 +9,19 @@ module. Built on the Phase B harness (v1-2026-10-29-phase-b-harness.py), with:
   and the clock is set to it before the session starts, so events are recorded, the mood decays and familiarity
   counts days on the scenario's timeline. The clock runs in UTC (TZ=UTC for the harness and the service) and never
   moves backwards. F has no service and needs no clock.
-- **Persona.** The companion layer is always on, so both arms carry a persona. A scenario without PERSONA (every
-  R4 scenario) gets one fixed personality type drawn from a recorded seed (acceptance_persona.py: the attempt id in
-  a live run): P saves it before the first session as the product saves a type (made_by "host", action "preset"),
-  so the product never assigns a random first type and never shows its one-time announcement; F gets the same card
-  as the product-rendered `<membrain-persona>` block. A C5 scenario's own PERSONA card is set instead, as before.
-  Each arm writes persona.json (seed, type, card hash) into its run directory; validity compares them.
+- **Persona.** The companion layer is always on, so both arms carry a persona. Every run, R4 and C5 alike, starts
+  from one fixed personality type drawn from a recorded seed (acceptance_persona.py: the attempt id in a live run);
+  a scenario PERSONA card is refused in every run. P saves the type before the first session as the product saves a
+  type (made_by "host", action "preset"), so the product never assigns a random first type and never shows its
+  one-time announcement. Each arm writes persona.json (seed, type, card hash) into its run directory; validity
+  compares them. After that the persona changes only as a user changes it: in conversation (the host's
+  memory_persona tool) or by a page action.
+- **F mirrors P's persona turn by turn.** Each P row records the persona in effect at the start of the turn, read
+  from the product after the prompt hook: ``persona_block`` (the product-rendered `<membrain-persona>` block, "" for
+  none) and ``persona_turn`` ({"format": 1, "version", "sha256"}: the version and the sha256 of the block's UTF-8,
+  None for none). F, which runs after P, gives its host exactly P's block for the same turn and records the same
+  ``persona_turn`` beside it (``reference_persona``), so a change made by the host's tool, by an accepted
+  suggestion or by a random pick reaches F as it reached P. Validity checks every F turn against P's.
 - **What a plugin host gives its model unasked.** P drives the plugin's own hook functions
   (membrain.plugin.session_start, user_prompt and stop, with Claude Code's tool names) and offers every tool the
   plugin's MCP server lists, with its own schemas and descriptions. One server per session, as a host keeps one MCP
@@ -26,15 +33,29 @@ module. Built on the Phase B harness (v1-2026-10-29-phase-b-harness.py), with:
   no Claude Code system prompt).
 - **Page actions.** PAGE_ACTIONS = [(session, before_turn, action), ...] are the user's actions on the memory page,
   applied before that turn through the public API (the MemoryClient SDK, the same routes the page calls) in P, and
-  mirrored in F's world, logged to run.log and page-actions.jsonl with what each one removed. R4 scenarios have none
-  (c5-precheck.py --r4 refuses them).
+  mirrored in F's world, logged to page-actions.jsonl (format 2) with what each one removed. R4 scenarios have none
+  (c5-precheck.py --r4 refuses them). An action's target is known from the scenario itself (a message by its
+  scenario position, a boundary topic the scenario added on the page) or from the product's state by kind (the open
+  suggestion, by origin and order); never from text the host model wrote. An action whose target does not exist
+  because of what the host did or did not do (no open suggestion, no note from that message, a turn its pause left
+  unrecorded) is recorded as ``not_applicable`` with a fixed reason code and the run goes on: that is the plugin
+  path's behaviour and is scored. Only a real fault (the service refusing a well-formed action on an existing
+  target, an exception, a deletion the harness cannot mirror) is ``failed``, the harness event page_action_failed.
+  A ``random`` personality switch is picked by the harness from the attempt's seed (``seeded_random_preset``), so a
+  rerun agrees. F applies P's outcome of each action, read from P's page-actions.jsonl.
 - **Reference world.** F's earlier history drops a message only when a page action deletes that message (the product
   erases it); resets, cleared feelings, deleted feelings and notes, and mood or persona actions never delete the
   conversation, so they never change F's history. Within the session in progress every arm keeps its own
-  transcript, as a host app does.
+  transcript, as a host app does. What the page did that the conversation does not show (boundaries the scenario
+  added on the page, a relationship reset, cleared feelings, the support style, the familiarity cap, the mood pin)
+  reaches F as one fixed-format line in its system prompt (``Reference.page_line``, PAGE_LINE_FORMAT).
 - **Dry run.** `C5_STUB=1` replaces the host model with a deterministic local stub (an httpx MockTransport answering
-  from the scenario's STUB_HOST script, which can also answer a consolidation batch) and refuses every non-loopback
-  connection, so the whole run makes no network call. Only practice scenarios carry stub scripts.
+  from the scenario's STUB_HOST script, which can also answer a consolidation batch, make calls in later rounds of a
+  turn and pass a field of an earlier call's result on) and refuses every non-loopback connection, so the whole run
+  makes no network call. Only practice scenarios carry stub scripts.
+
+The harness's own log and events name positions by index and carry kinds, codes and counts only: never a session
+id, a scenario's words, a tool argument or a reply.
 
 Usage: MEMBRAIN_MODEL_CACHE=... MEMBRAIN_PORTS=api,db python c5-harness.py ARM SCENARIO_FILE OUT_DIR
        python c5-harness.py --cleanup RUN_DIR      stop every profile this harness made under RUN_DIR, check its ports
@@ -75,14 +96,44 @@ MESES = {name: number for number, name in enumerate(
 MONATE = {name: number for number, name in enumerate(
     ["januar", "februar", "märz", "april", "mai", "juni", "juli", "august", "september", "oktober", "november",
      "dezember"], 1)}
-# What each page action is allowed to remove. Only these delete conversation messages, so only these change F.
+# The page-action vocabulary (PAGE_ACTIONS_FORMAT 2): kind -> (required arguments, optional arguments). Every action
+# may also carry "arms" naming only P (F follows P). Only delete_message deletes conversation messages, so only it
+# changes F's history.
+PAGE_ACTIONS_FORMAT = 2
+ACTION_ARGUMENTS = {
+    "delete_message": ({"session", "turn"}, {"role"}),
+    "delete_note_from": ({"session", "turn"}, {"role"}),
+    "delete_feeling_from": ({"session", "turn"}, {"role"}),
+    "clear_feelings": (set(), set()),
+    "reset_relationship": (set(), set()),
+    "reset_mood": (set(), set()),
+    "pin_mood": (set(), {"pinned"}),
+    "add_boundary": ({"topic"}, {"aliases"}),
+    "remove_boundary": ({"topic"}, set()),
+    "set_support_style": ({"text"}, set()),
+    "cap_familiarity": ({"level"}, set()),
+    "switch_persona": ({"preset"}, set()),
+    "set_persona": ({"card"}, set()),
+    "delete_persona_history": (set(), set()),
+    "accept_proposal": (set(), {"origin", "position"}),
+    "reject_proposal": (set(), {"origin", "position"}),
+}
+ACTIONS = set(ACTION_ARGUMENTS)
 DELETES_MESSAGES = {"delete_message"}
-PERSONA_ACTIONS = {"set_persona", "restore_persona", "reset_persona", "delete_persona_history",
-                   "accept_persona_proposal"}
-ACTIONS = PERSONA_ACTIONS | DELETES_MESSAGES | {
-    "reject_persona_proposal", "add_boundary", "remove_boundary", "clear_feelings", "delete_feeling", "delete_note",
-    "reset_relationship", "reset_mood", "pin_mood"}
-PROPOSAL_ACTIONS = {"accept_persona_proposal", "reject_persona_proposal"}
+BY_SOURCE = {"delete_message", "delete_note_from", "delete_feeling_from"}  # Target: a message by scenario position.
+PROPOSAL_ACTIONS = {"accept_proposal", "reject_proposal"}
+PROPOSAL_ORIGINS = ("any", "feedback", "host")  # feedback: made from repeated manner feedback; host: the host AI's.
+CAP_LEVELS = ("new", "getting_to_know", "familiar", None)
+# The page-actions.jsonl record (PAGE_RECORD_FORMAT 2): every record has "status" done, not_applicable or failed.
+PAGE_RECORD_FORMAT = 2
+# Why an action had no target, because of what the host did or did not do: scored with the arm, never a fault.
+NOT_APPLICABLE = ("message_not_recorded", "message_already_removed", "no_note_from_message",
+                  "no_feeling_from_message", "boundary_not_present", "no_open_proposal")
+# Why an action failed (a real fault: the run is invalid): page_action_failed carries one of these as its reason.
+FAILURE_CODES = ("not_found", "unknown_removed", "service_refused", "exception", "card_differs",
+                 "ambiguous_proposal")
+PERSONA_TURN_FORMAT = 1  # {"format", "version", "sha256"} in each row: the persona in effect at the turn's start.
+PAGE_LINE_FORMAT = 1  # The line F is given about page-only settings (Reference.page_line).
 STARTED: list[Path] = []  # Installations this process started, stopped on the way out even after an error.
 BILLING = None
 logging.getLogger("httpx").setLevel(logging.WARNING)  # Per-request lines would bury the run log.
@@ -237,7 +288,10 @@ def harness_event(out: Path, kind: str, **data) -> None:
 
 
 def failure_code(result: dict) -> str:
-    """A failed page action's reason as a fixed code: its message names the scenario's topic, label or text."""
+    """A failed page action's reason as a fixed code (FAILURE_CODES): its message may name the scenario's topic,
+    label or text, so it is never the reason."""
+    if result.get("code") in FAILURE_CODES:
+        return result["code"]
     if "differing_fields" in result:
         return "card_differs"
     if "unknown_removed" in result:
@@ -288,8 +342,15 @@ STUB_CUE = "user practice facts"  # The cue the stub host writes when it answers
 
 
 class StubHost:
-    """A deterministic host model. On the first call of a turn it makes the scenario's scripted tool calls (when tools
-    are offered); then it replies with a fixed template naming the memory blocks it was given.
+    """A deterministic host model. In each round of a turn it makes the scenario's scripted tool calls for that round
+    (when tools are offered): a step with ``"round": N`` (default 0) is made in the turn's round N, after the results
+    of the earlier rounds; then it replies with a fixed template naming the memory blocks it was given.
+
+    A step's argument may take a field of an earlier call's result, in this turn or an earlier one:
+    ``{"$result": [session, turn, index, field]}`` is replaced by ``field`` of the JSON result of the ``index``-th
+    scripted call (counting from 0 over the turn's steps) made at that (session, turn), and the argument is left out
+    when there is no such result (the tool then answers with an error, as it would to a host). The stub keeps every
+    result it is shown, so a propose in one turn can be confirmed in a later one.
 
     A consolidation batch is answered as a host is asked to: when the last tool result is a batch that
     memory_consolidate handed out (it carries instructions and messages), the stub calls memory_consolidate once more
@@ -299,6 +360,31 @@ class StubHost:
         self.script, self.key, self.consolidations = script, None, 0
         self.text = None  # The user's own words in this turn: a scripted pause without request quotes them.
         self.instructions = None  # The server instructions whose presence in the system prompt the reply reports.
+        self.issued: dict[str, tuple] = {}  # call id -> (session, turn, index) of the scripted call it made
+        self.results: dict[tuple, object] = {}  # (session, turn, index) -> the call's result, as JSON when it is
+        self.counter = 0
+
+    def _observe(self, messages) -> None:
+        """Keep the result of every scripted call this stub made that the conversation now shows."""
+        for item in messages:
+            where = self.issued.get(item.get("tool_call_id")) if item.get("role") == "tool" else None
+            if where is not None:
+                try:
+                    self.results[where] = json.loads(item.get("content") or "")
+                except ValueError:
+                    self.results[where] = item.get("content")
+
+    def _resolve(self, arguments: dict) -> dict:
+        resolved = {}
+        for name, value in arguments.items():
+            if isinstance(value, dict) and set(value) == {"$result"}:
+                session, turn, index, field = value["$result"]
+                found = self.results.get((session, turn, index))
+                if not isinstance(found, dict) or found.get(field) is None:
+                    continue
+                value = found[field]
+            resolved[name] = value
+        return resolved
 
     def _batch(self, messages) -> dict | None:
         """The consolidation batch in the last tool result, when the call that produced it handed one out."""
@@ -320,18 +406,24 @@ class StubHost:
         messages = body["messages"]
         schemas = {tool["function"]["name"]: tool["function"] for tool in body.get("tools") or ()}
         offered = set(schemas)
-        planned = self.script.get(self.key, []) if messages[-1]["role"] == "user" else []
+        self._observe(messages)
+        last_user = max(index for index, item in enumerate(messages) if item["role"] == "user")
+        round_ = sum(1 for item in messages[last_user + 1:] if item.get("role") == "assistant" and item.get("tool_calls"))
+        steps = list(enumerate(self.script.get(self.key, [])))
+        planned = [(index, step) for index, step in steps if int(step.get("round", 0)) == round_]
+        if round_ and messages[-1]["role"] != "tool":
+            planned = []
         batch = self._batch(messages) if "memory_consolidate" in offered else None
         if batch is not None:
             self.consolidations += 1
-            planned = [{"tool": "memory_consolidate",
-                        "arguments": {"cues": [{"id": batch["messages"][0]["id"], "cues": [STUB_CUE]}]}}]
+            planned = [(None, {"tool": "memory_consolidate",
+                               "arguments": {"cues": [{"id": batch["messages"][0]["id"], "cues": [STUB_CUE]}]}})]
         calls = []
-        user = next(item["content"] for item in reversed(messages) if item["role"] == "user")
-        for index, step in enumerate(planned):
+        user = messages[last_user]["content"]
+        for index, step in planned:
             if step["tool"] not in offered:
                 continue
-            arguments = dict(step.get("arguments") or {})
+            arguments = self._resolve(dict(step.get("arguments") or {}))
             accepts = (schemas[step["tool"]].get("parameters") or {}).get("properties") or {}
             if (step["tool"] in ("memory_note", "memory_observe") or "recording_capture" in accepts) \
                     and "recording_capture" not in arguments:
@@ -345,7 +437,11 @@ class StubHost:
             if step["tool"] == "memory_pause" and "request" not in arguments and self.text is not None:
                 # The pause tool requires the user's words; scripts written before it (one of them sealed) pass none.
                 arguments["request"] = self.text
-            calls.append({"id": f"call-{len(messages)}-{index}", "type": "function",
+            self.counter += 1
+            ident = f"call-{self.counter}"
+            if index is not None and self.key is not None:
+                self.issued[ident] = (self.key[0], self.key[1], index)
+            calls.append({"id": ident, "type": "function",
                           "function": {"name": step["tool"], "arguments": json.dumps(arguments)}})
         if calls:
             message = {"role": "assistant", "content": "", "tool_calls": calls}
@@ -400,7 +496,7 @@ def add_usage(total, usage):
         total[key] = total.get(key, 0) + int(usage.get(key, 0) or 0)
 
 
-# Memory (P and E) ---------------------------------------------------------------------------------------------------
+# Memory (arm P) ------------------------------------------------------------------------------------------------------
 
 class Memory:
     """One disposable evaluation installation on the scenario clock, with the plugin's hooks and MCP tools."""
@@ -419,6 +515,7 @@ class Memory:
             raise SystemExit(f"{directory} exists: an installation is never reused")
         self.host, self.directory, self.user, self.clock = host, directory, user, evaluation_clock
         self.positions: dict[str, tuple] = {}  # event id -> (session, turn, role), recorded as each turn is written
+        self.unrecorded: set[tuple] = set()  # (session, turn) of every turn that ended unrecorded
         ensure_profile(directory, **({"api_port": ports[0], "database_port": ports[1]} if ports else {}),
                        database_engine=default_engine())
         evaluation_clock.mark_disposable(directory)
@@ -537,6 +634,14 @@ class Memory:
     def now(self) -> str:
         return self.clock.current(self.directory).isoformat().replace("+00:00", "Z")
 
+    def persona_in_effect(self) -> tuple[str, dict]:
+        """The persona in effect now, as the product renders it for the host: its block ("" for none) and its
+        content-free identity (persona_turn)."""
+        with self.client() as client:
+            current = client.persona()
+        block = current.get("block") or ""
+        return block, persona_turn((current.get("version") or 0) if block else 0, block)
+
     def paused(self, session: str) -> bool:
         """Whether the product holds recording paused for this conversation now: its own pause state, read as the
         plugin's hooks read it (the harness's hook payloads name no user). A conversation pause covers only the
@@ -550,6 +655,7 @@ class Memory:
         with self.client() as client:
             fresh = [item for item in _messages(client).values() if item["event_id"] not in self.positions]
         if not recorded:
+            self.unrecorded.add((session, index))
             if fresh:
                 harness_event(self.directory.parent, "unexpected_recording", session=session, turn=index,
                               new_messages=len(fresh))
@@ -571,19 +677,91 @@ def proposals_supported() -> bool:
     return callable(getattr(MemoryClient, "persona_proposals", None))
 
 
-def check_actions(module) -> list:
-    """The scenario's page actions, checked before any model call."""
+def application_order(actions: list, sessions: list) -> list:
+    """The indexes of PAGE_ACTIONS in the order the harness applies them: by session, then before_turn, then their
+    order in the list (the order actions_digest and validity read them in)."""
+    order = [session for session, _ in sessions]
+    return sorted(range(len(actions)), key=lambda index: (order.index(actions[index][0]), actions[index][1], index))
+
+
+def _topic(text) -> str:
+    """A boundary topic as the product compares topics: whitespace collapsed, case ignored."""
+    return " ".join(str(text or "").split()).casefold()
+
+
+def _argument_problem(kind: str, action: dict, sessions: list, at: tuple) -> str | None:
+    """Why one action's arguments are not of its kind's shape, or None (never the scenario's words)."""
+    required, optional = ACTION_ARGUMENTS[kind]
+    given = set(action) - {"do", "arms"}
+    if required - given or given - required - optional:
+        return f"{kind} takes {sorted(required)} and optionally {sorted(optional)}"
+    if kind in BY_SOURCE:
+        order = [session for session, _ in sessions]
+        turns = dict(sessions)
+        session, turn, role = action["session"], action["turn"], action.get("role", "user")
+        if session not in turns or type(turn) is not int or not 0 <= turn < len(turns[session]) \
+                or role not in ("user", "assistant"):
+            return "its message is not a message of the scenario"
+        if (order.index(session), turn) >= (order.index(at[0]), at[1]):
+            return "its message comes at or after the action"
+    if kind == "pin_mood" and type(action.get("pinned", True)) is not bool:
+        return "pinned is true or false"
+    if kind in ("add_boundary", "remove_boundary") and not (isinstance(action["topic"], str) and _topic(
+            action["topic"])):
+        return "a boundary topic is a non-empty string"
+    if kind == "add_boundary" and not (isinstance(action.get("aliases", []), list)
+                                       and all(isinstance(alias, str) for alias in action.get("aliases", []))):
+        return "aliases is a list of strings"
+    if kind == "set_support_style" and not isinstance(action["text"], str):
+        return "the support style is a string (empty removes it)"
+    if kind == "cap_familiarity" and action["level"] not in CAP_LEVELS:
+        return f"the level is one of {CAP_LEVELS}"
+    if kind == "switch_persona":
+        from membrain import persona_presets
+
+        if not isinstance(action["preset"], str) or action["preset"] not in (*persona_presets.IDS,
+                                                                              persona_presets.RANDOM):
+            return "the preset is a personality type id or random"
+    if kind == "set_persona" and not isinstance(action["card"], dict):
+        return "the card is an object"
+    if kind in PROPOSAL_ACTIONS and (action.get("origin", "any") not in PROPOSAL_ORIGINS
+                                     or type(action.get("position", 1)) is not int or action.get("position", 1) < 1):
+        return f"origin is one of {PROPOSAL_ORIGINS} and position a whole number from 1"
+    return None
+
+
+def check_actions(module, only: int | None = None) -> list:
+    """The scenario's page actions, checked before any model call: each a known kind (ACTION_ARGUMENTS) at a real
+    position, with exactly its kind's arguments; a message named by position comes before the action; a removed
+    boundary is a topic an earlier page action added (the scenario's own words, never the host's). With ``only``,
+    just the action at that index is checked, the others read as context (the precheck checks one at a time)."""
     actions = list(getattr(module, "PAGE_ACTIONS", []))
-    positions = {(session, index) for session, turns in module.SESSIONS_LONG for index in range(len(turns))}
-    for session, before, action in actions:
-        if (session, before) not in positions or action.get("do") not in ACTIONS:
-            raise SystemExit(f"bad page action at {session} {before}: {action.get('do')}")
+    sessions = [(session, list(turns)) for session, turns in module.SESSIONS_LONG]
+    positions = {(session, index) for session, turns in sessions for index in range(len(turns))}
+    for number, entry in enumerate(actions):
+        if only is not None and number != only:
+            continue
+        session, before, action = entry
+        if (session, before) not in positions or not isinstance(action, dict) or action.get("do") not in ACTIONS:
+            raise SystemExit(f"bad page action at {session} {before}: "
+                             f"{action.get('do') if isinstance(action, dict) else 'not an object'}")
         if action.get("arms") is not None and (not action["arms"] or set(action["arms"]) - {"P"}):
             raise SystemExit(f"bad page action at {session} {before}: arms may name only P (F follows P)")
-        if action["do"] == "accept_persona_proposal" and "card" not in action:
-            raise SystemExit("an accepted proposal states the card it leads to, for the reference arm")
+        if problem := _argument_problem(action["do"], action, sessions, (session, before)):
+            raise SystemExit(f"bad page action at {session} {before}: {problem}")
         if action["do"] in PROPOSAL_ACTIONS and not proposals_supported() and not STUB:
             raise SystemExit("this runtime has no persona proposals (P2): the scenario cannot run on it")
+    added = set()
+    formed = [entry if isinstance(entry, tuple | list) and len(entry) == 3 and (entry[0], entry[1]) in positions
+              and isinstance(entry[2], dict) else (sessions[0][0], -1, {}) for entry in actions]
+    for index in application_order(formed, sessions):
+        action = formed[index][2]
+        if action.get("do") == "add_boundary" and isinstance(action.get("topic"), str):
+            added.add(_topic(action["topic"]))
+        elif (action.get("do") == "remove_boundary" and only in (None, index)
+              and _topic(action.get("topic")) not in added):
+            raise SystemExit(f"bad page action at {actions[index][0]} {actions[index][1]}: remove_boundary takes a "
+                             "topic an earlier add_boundary added on the page")
     return actions
 
 
@@ -601,6 +779,8 @@ def world(client) -> dict:
             "shared_moments": len(relationship["shared_moments"]),
             "familiarity": relationship["familiarity"]["level"],
             "familiarity_days": relationship["familiarity"]["days"],
+            "familiarity_cap": (relationship.get("familiarity") or {}).get("cap"),
+            "support_style": bool(relationship.get("support_style")),
             "mood": "baseline" if mood.get("at_baseline") else mood.get("label"), "mood_pinned": bool(mood.get("pinned")),
             "persona_version": persona.get("version", 0)}
 
@@ -617,16 +797,6 @@ def _forget(client, ids, conversation):
     generation = client.dashboard()["brain"]["scope_generation"]
     client.forget(list(ids), kind="events", mode="erase_content", expected_scope_generation=generation,
                   conversation_id=conversation)
-
-
-def _card_differs(actual, expected) -> list:
-    """The top-level card fields where the stored card differs from the scenario's, both in the stored form."""
-    from membrain.persona import normalize_card
-
-    if not isinstance(actual, dict):
-        return ["card"]
-    actual, expected = normalize_card(actual), normalize_card(expected)
-    return sorted(key for key in {*actual, *expected} if actual.get(key) != expected.get(key))
 
 
 # Which records a page action removed: by their own ids, named by scenario position or a content hash, never by
@@ -728,140 +898,262 @@ def message_records(removed: list) -> list:
                   key=lambda entry: entry["ref"])
 
 
-def apply_page_action(memory: Memory, action: dict, turns: dict) -> dict:
-    """One page action through the API, as the memory page performs it. Returns what it did."""
+def seeded_random_preset(seed: str, index: int, current: str | None) -> str:
+    """The type a page "pick another type at random" switch gets in this harness: the product picks uniformly among
+    the types other than the current one (persona_presets._switch_in, random.choice); the harness makes the same
+    kind of pick reproducible from the attempt's persona seed and the action's index in PAGE_ACTIONS:
 
-    kind, done = action["do"], {}
-    with memory.client() as client:
-        if kind == "set_persona":
-            done = {"version": client.set_persona(action["card"], made_by="user")["version"]}
-        elif kind == "restore_persona":
-            done = {"version": client.restore_persona(action["version"], made_by="user")["version"]}
-        elif kind == "reset_persona":
-            done = {"version": client.reset_persona(made_by="user")["version"]}
-        elif kind == "delete_persona_history":
-            done = {"deleted_versions": client.delete_persona_history()["deleted_versions"]}
-        elif kind in PROPOSAL_ACTIONS:
-            listed = client.persona_proposals().get("proposals", [])
-            match = action["match"].strip().casefold()
-            available = [item for item in listed if item.get("status") == "open"]
-            exact = [item for item in available if match and match in
-                     (item.get("id", "").casefold(), item.get("kind", "").casefold())]
-            open_ = exact or [item for item in available if match and any(
-                match in item.get(field, "").casefold() for field in ("kind", "label"))]
-            if not open_:
-                return {"failed": f"no open proposal matching {action['match']!r}", "listed": len(listed)}
-            if len(open_) != 1:
-                return {"failed": "multiple open proposals match", "ambiguous": True, "matched": len(open_)}
-            decide = client.accept_persona_proposal if kind == "accept_persona_proposal" else \
-                client.reject_persona_proposal
-            result = decide(open_[0]["id"])
-            done = {"proposal": open_[0]["id"], "version": (result.get("persona") or result).get("version")}
-            if kind == "accept_persona_proposal":
-                # F is given the scenario's card; the run is only valid if P's accepted card is that same card.
-                differs = _card_differs(client.persona().get("card"), action["card"])
-                if differs:
-                    return {**done, "failed": "the accepted card differs from the scenario's card",
-                            "differing_fields": differs}
-        elif kind == "add_boundary":
-            client.add_boundary(action["topic"], action.get("aliases", ()))
-        elif kind == "remove_boundary":
-            found = [entry for entry in client.relationship()["boundaries"] if entry["topic"] == action["topic"]]
-            if not found:
-                return {"failed": f"no boundary {action['topic']!r}"}
-            client.remove_boundary(found[0]["id"])
-        elif kind == "clear_feelings":
-            client.clear_affect()
-        elif kind == "delete_feeling":
-            found = [entry for entry in client.affect_records()["records"] if entry["label"] == action["label"]]
-            if not found:
-                return {"failed": f"no feeling {action['label']!r}"}
-            _forget(client, [entry["id"] for entry in found], "membrain-affect")
-            done = {"deleted": len(found)}
-        elif kind == "delete_note":
+        others = [type for type in persona_presets.IDS if type != current]   (the product's order)
+        others[int(sha256(json.dumps(["switch_persona", seed, index], separators=(",", ":"))), 16) % len(others)]
+
+    and asks the product for that type by name, so a rerun of the attempt, and both arms, agree. ``current`` is the
+    current type's id, or None for a card that is not a type."""
+    from membrain import persona_presets
+
+    others = [ident for ident in persona_presets.IDS if ident != current]
+    digest = hashlib.sha256(json.dumps(["switch_persona", seed, index], separators=(",", ":"),
+                                       ensure_ascii=False).encode("utf-8")).hexdigest()
+    return others[int(digest, 16) % len(others)]
+
+
+def _source_ids(memory: Memory, action: dict) -> tuple[list, dict | None]:
+    """The event ids recorded for the message an action names by scenario position, or (ids, outcome) when there
+    are none: not_applicable when its turn ended unrecorded (the host's own pause, or a turn the scenario leaves
+    unrecorded), else a failure (a recorded turn whose message was never identified: a harness fault)."""
+    position = (action["session"], action["turn"], action.get("role", "user"))
+    ids = [event for event, at in memory.positions.items() if at == position]
+    if ids:
+        return ids, None
+    if (action["session"], action["turn"]) in memory.unrecorded:
+        return [], {"not_applicable": "message_not_recorded"}
+    return [], {"failed": "message not found"}
+
+
+def _apply(memory: Memory, client, action: dict, page: dict) -> dict:
+    kind = action["do"]
+    if kind == "set_persona":
+        return {"version": client.set_persona(action["card"], made_by="user")["version"]}
+    if kind == "switch_persona":
+        from membrain import persona_presets
+
+        preset, picked = action["preset"], False
+        if preset == persona_presets.RANDOM:
+            current = (client.persona_presets().get("current") or {})
+            now = (current.get("preset") or {}).get("id") if current.get("kind") == "preset" else None
+            preset, picked = seeded_random_preset(page.get("seed") or "", page.get("index", 0), now), True
+        saved = client.switch_persona_preset(preset, made_by="user")
+        return {"preset": preset, "seeded_random": picked, "version": saved.get("version"),
+                "unchanged": bool(saved.get("unchanged"))}
+    if kind == "delete_persona_history":
+        return {"deleted_versions": client.delete_persona_history()["deleted_versions"]}
+    if kind in PROPOSAL_ACTIONS:
+        # The page lists open suggestions first, newest first; the action takes the position-th open one of its
+        # origin, by the product's own order and kind, never by any text.
+        origin, position = action.get("origin", "any"), action.get("position", 1)
+        listed = [item for item in client.persona_proposals().get("proposals", []) if item.get("status") == "open"
+                  and (origin == "any" or (item.get("kind") == "host") == (origin == "host"))]
+        if len(listed) < position:
+            return {"not_applicable": "no_open_proposal", "open": len(listed)}
+        chosen = listed[position - 1]
+        decide = client.accept_persona_proposal if kind == "accept_proposal" else client.reject_persona_proposal
+        result = decide(chosen["id"])
+        return {"proposal": chosen["id"], "kind": chosen.get("kind"),
+                "version": (result.get("persona") or result).get("version")}
+    if kind == "add_boundary":
+        client.add_boundary(action["topic"], action.get("aliases", ()))
+        return {}
+    if kind == "remove_boundary":
+        # The boundary the scenario added on the page, by the scenario's own topic (the product keeps one boundary
+        # per topic, compared without case); gone when a relationship reset erased it.
+        found = [entry for entry in client.relationship()["boundaries"] if _topic(entry["topic"]) == _topic(
+            action["topic"])]
+        if not found:
+            return {"not_applicable": "boundary_not_present"}
+        client.remove_boundary(found[0]["id"])
+        return {}
+    if kind == "clear_feelings":
+        client.clear_affect()
+        return {}
+    if kind == "reset_relationship":
+        client.reset_relationship()
+        return {}
+    if kind == "reset_mood":
+        client.reset_mood()
+        return {}
+    if kind == "pin_mood":
+        client.pin_mood(action.get("pinned", True))
+        return {}
+    if kind == "set_support_style":
+        client.set_support_style(action["text"])
+        return {}
+    if kind == "cap_familiarity":
+        client.cap_familiarity(action["level"])
+        return {}
+    if kind in ("delete_note_from", "delete_feeling_from"):
+        ids, outcome = _source_ids(memory, action)
+        if outcome:
+            return outcome
+        if kind == "delete_note_from":
             from membrain.notes import NOTES_CONVERSATION, list_notes
 
-            found = [item for item in list_notes(client)["items"] if action["contains"] in item["text"]]
+            found = [item["event_id"] for item in list_notes(client)["items"]
+                     if set(item.get("source_event_ids") or ()) & set(ids)]
             if not found:
-                return {"failed": f"no note containing {action['contains']!r}"}
-            _forget(client, [item["event_id"] for item in found], NOTES_CONVERSATION)
-            done = {"deleted": len(found)}
-        elif kind == "delete_message":
-            # The message at this scenario position, by the identity recorded when its turn was written.
-            position = (action["session"], action["turn"], action.get("role", "user"))
-            before = _messages(client)
-            found = [before[event] for event, at in memory.positions.items() if at == position and event in before]
+                return {"not_applicable": "no_note_from_message"}
+            _forget(client, found, NOTES_CONVERSATION)
+        else:
+            found = [item["id"] for item in client.affect_records()["records"]
+                     if set(item.get("source_event_ids") or ()) & set(ids)]
             if not found:
-                return {"failed": "message not found"}
-            for item in found:
-                _forget(client, [item["event_id"]], item["conversation_id"])
-            # What the API actually removed, cascades included, named by scenario position so that F drops exactly
-            # the same messages. A removed message without a recorded position cannot be mirrored: that fails.
-            after = _messages(client)
-            gone = [item for key, item in before.items() if key not in after]
-            unknown = [item["event_id"] for item in gone if item["event_id"] not in memory.positions]
-            done = {"deleted": len(found), "removed": sorted(
-                list(memory.positions[item["event_id"]]) for item in gone if item["event_id"] in memory.positions)}
-            if unknown:
-                return {**done, "failed": "the deletion removed messages with no recorded position",
-                        "unknown_removed": len(unknown)}
-        elif kind == "reset_relationship":
-            client.reset_relationship()
-        elif kind == "reset_mood":
-            client.reset_mood()
-        elif kind == "pin_mood":
-            client.pin_mood(action.get("pinned", True))
+                return {"not_applicable": "no_feeling_from_message"}
+            _forget(client, found, "membrain-affect")
+        return {"deleted": len(found)}
+    # delete_message: the message at this scenario position, by the identity recorded when its turn was written.
+    position = (action["session"], action["turn"], action.get("role", "user"))
+    before = _messages(client)
+    known = [event for event, at in memory.positions.items() if at == position]
+    found = [before[event] for event in known if event in before]
+    if not found:
+        if known:  # Recorded, and already gone: an earlier deletion's cascade removed it.
+            return {"not_applicable": "message_already_removed"}
+        return _source_ids(memory, action)[1]
+    for item in found:
+        _forget(client, [item["event_id"]], item["conversation_id"])
+    # What the API actually removed, cascades included, named by scenario position so that F drops exactly the same
+    # messages. A removed message without a recorded position cannot be mirrored: that fails.
+    after = _messages(client)
+    gone = [item for key, item in before.items() if key not in after]
+    unknown = [item["event_id"] for item in gone if item["event_id"] not in memory.positions]
+    done = {"deleted": len(found), "removed": sorted(
+        list(memory.positions[item["event_id"]]) for item in gone if item["event_id"] in memory.positions)}
+    if unknown:
+        return {**done, "failed": "the deletion removed messages with no recorded position",
+                "unknown_removed": len(unknown)}
     return done
 
 
+def apply_page_action(memory: Memory, action: dict, page: dict | None = None) -> dict:
+    """One page action through the API, as the memory page performs it, in arm P. Returns what it did: a result with
+    ``not_applicable`` (a NOT_APPLICABLE code) when its target does not exist, with ``failed`` on a real fault (the
+    service refused it, or it raised: ``code`` service_refused or exception), else what it changed. ``page`` gives
+    the attempt's persona ``seed`` and the action's ``index`` in PAGE_ACTIONS (a seeded random switch)."""
+    import httpx
+
+    page = page if isinstance(page, dict) else {}
+    with memory.client() as client:
+        try:
+            return _apply(memory, client, action, page)
+        except httpx.HTTPStatusError as error:
+            return {"failed": "the service refused the action", "code": "service_refused",
+                    "status": error.response.status_code}
+        except Exception as error:  # noqa: BLE001 - recorded by class as a fault; the run is invalid.
+            return {"failed": "the action raised", "code": "exception", "error": type(error).__name__}
+
+
+def page_status(result: dict) -> tuple[str, str | None]:
+    """A page action's status and reason code from its result: done, not_applicable (a NOT_APPLICABLE code) or
+    failed (a FAILURE_CODES code)."""
+    if result.get("failed"):
+        return "failed", failure_code(result)
+    if result.get("not_applicable"):
+        reason = result["not_applicable"]
+        return ("not_applicable", reason) if reason in NOT_APPLICABLE else ("failed", "not_found")
+    return "done", None
+
+
+def action_detail(action: dict) -> dict:
+    """What page-actions.jsonl keeps of an action: its arguments, except a set_persona card (its hash instead)."""
+    detail = {key: value for key, value in action.items() if key not in ("do", "card")}
+    if "card" in action:
+        detail["card_sha256"] = hashlib.sha256(json.dumps(action["card"], sort_keys=True, ensure_ascii=False,
+                                                          separators=(",", ":")).encode("utf-8")).hexdigest()
+    return detail
+
+
+def persona_turn(version: int, block: str) -> dict:
+    """The content-free identity of the persona in effect at a turn (PERSONA_TURN_FORMAT): its version (0 for none)
+    and the sha256 of its rendered block's UTF-8 (None for none)."""
+    return {"format": PERSONA_TURN_FORMAT, "version": int(version or 0) if block else 0,
+            "sha256": hashlib.sha256(block.encode("utf-8")).hexdigest() if block else None}
+
+
+LEVEL_WORDS = {"new": "new", "getting_to_know": "getting to know", "familiar": "familiar"}
+PAGE_LINE_PREFIX = "Memory page settings the user chose (not part of the conversation above): "
+
+
 class Reference:
-    """Arm F's view of the same world: the persona block it is given and its earlier history."""
+    """Arm F's view of the same world: its earlier history and the page-only settings it is told about. Its persona
+    is P's, turn by turn (p_persona), never a card of its own."""
 
-    def __init__(self, card):
-        from membrain.persona import EMPTY_CARD, normalize_card
-
-        self.normalize, self.empty = normalize_card, dict(EMPTY_CARD)
-        self.versions: list[dict] = []  # {"version", "card", "host_default"}
+    def __init__(self):
         self.history: list[tuple[tuple, dict]] = []  # ((session, turn, role), message)
         self.deleted: set[tuple] = set()  # Every position a page deletion removed, in any session.
-        if card:
-            self._save(card, host_default=True)
+        # Page-only settings, from the scenario's own words: boundaries the page added, by topic (in order added).
+        self.boundaries: dict[str, tuple[str, list]] = {}
+        self.reset_on = self.cleared_on = self.support = self.cap = None
+        self.pinned = False
 
-    def _save(self, card, host_default=False):
-        card = self.normalize(card)
-        current = self.versions[-1] if self.versions else None
-        if current and current["card"] == card and current["host_default"] == host_default:
-            return
-        number = (current["version"] if current else 0) + 1
-        self.versions.append({"version": number, "card": card, "host_default": host_default})
-
-    def block(self) -> str | None:
-        from membrain.persona import render_persona
-
-        return render_persona(self.versions[-1]) if self.versions else None
-
-    def apply(self, action: dict) -> dict:
+    def apply(self, action: dict, outcome: dict | None = None, today: datetime.date | None = None) -> dict:
+        """One page action as P's outcome says it went (its page-actions.jsonl record): a not-applicable action
+        changes nothing here either."""
         kind = action["do"]
-        if kind in ("set_persona", "accept_persona_proposal"):
-            self._save(action["card"])
-        elif kind == "restore_persona":
-            kept = next((entry for entry in self.versions if entry["version"] == action["version"]), None)
-            if kept is None:
-                return {"failed": f"no persona version {action['version']}"}
-            self._save(kept["card"])
-        elif kind == "reset_persona":
-            default = next((entry for entry in reversed(self.versions) if entry["host_default"]), None)
-            self._save(default["card"] if default else self.empty)
-        elif kind == "delete_persona_history":
-            self.versions = []
-        elif kind == "delete_message":
+        if outcome is not None and outcome.get("status") == "not_applicable":
+            return {"not_applicable": outcome.get("reason")}
+        day = today.isoformat() if today else None
+        if kind == "delete_message":
             # Exactly the messages the product removed in P (``removed``: [session, turn, role] each).
             removed = {tuple(entry) for entry in action["removed"]}
             self.deleted |= removed  # Also kept out when the session in progress is added to the history.
             before = len(self.history)
             self.history = [(entry, message) for entry, message in self.history if entry not in removed]
             return {"deleted": before - len(self.history), "removed": sorted(map(list, removed))}
+        if kind == "add_boundary":
+            self.boundaries[_topic(action["topic"])] = (" ".join(action["topic"].split()),
+                                                        list(action.get("aliases", [])))
+        elif kind == "remove_boundary":
+            self.boundaries.pop(_topic(action["topic"]), None)
+        elif kind == "reset_relationship":  # It erases boundaries, support style and cap (relationship.py).
+            self.boundaries, self.support, self.cap, self.reset_on = {}, None, None, day
+        elif kind == "clear_feelings":
+            self.cleared_on = day
+        elif kind == "set_support_style":
+            self.support = " ".join(action["text"].split()) or None
+        elif kind == "cap_familiarity":
+            self.cap = action["level"]
+        elif kind == "pin_mood":
+            self.pinned = action.get("pinned", True)
         return {}
+
+    def page_line(self) -> str | None:
+        """What the page has done so far that the conversation history does not show, as one line of fixed format
+        (PAGE_LINE_FORMAT 1), or None when there is nothing: PAGE_LINE_PREFIX, then the items present, in this order,
+        joined by "; " and ended with ".":
+          topics not to bring up: "<topic>" (also "<alias>", ...), ...   boundaries the page added and still in force
+          relationship reset on YYYY-MM-DD                                 the latest reset
+          feelings cleared on YYYY-MM-DD                                   the latest "clear feelings"
+          support style: "<text>"
+          familiarity limited to <new | getting to know | familiar>
+          simulated mood held at its baseline                              the mood pin
+        Topics, aliases and the support style are the scenario's own words, JSON-quoted; nothing else is free text."""
+        def quoted(text) -> str:
+            return json.dumps(text, ensure_ascii=False)
+
+        items = []
+        if self.boundaries:
+            items.append("topics not to bring up: " + ", ".join(
+                quoted(topic) + (f" (also {', '.join(map(quoted, aliases))})" if aliases else "")
+                for topic, aliases in self.boundaries.values()))
+        if self.reset_on:
+            items.append(f"relationship reset on {self.reset_on}")
+        if self.cleared_on:
+            items.append(f"feelings cleared on {self.cleared_on}")
+        if self.support:
+            items.append(f"support style: {quoted(self.support)}")
+        if self.cap:
+            items.append(f"familiarity limited to {LEVEL_WORDS[self.cap]}")
+        if self.pinned:
+            items.append("simulated mood held at its baseline")
+        return PAGE_LINE_PREFIX + "; ".join(items) + "." if items else None
 
     def end_session(self, current: list) -> None:
         """Add the finished session to the history, without the messages a page deletion removed during it. Within
@@ -873,30 +1165,76 @@ class Reference:
         return sum(entry in keys for entry, _ in self.history)
 
     def summary(self) -> dict:
-        return {"history_items": len(self.history),
-                "persona_version": self.versions[-1]["version"] if self.versions else 0}
+        return {"history_items": len(self.history)}
 
 
-def removed_in_p(out: Path, action: dict, earlier: list, timeout: float = 3600) -> list:
-    """For F: the messages P's page action actually removed, read from P's page-action log (the run script runs P
-    to the end before F starts; the wait remains for a log still being written). F mirrors exactly that, so
-    cascades match the product."""
-    run = out.parent / (out.name[:-1] + "P") if out.name.endswith("F") else None
+def _p_run(out: Path) -> Path | None:
+    """Arm P's run directory beside F's (KEY-P beside KEY-F)."""
+    return out.parent / (out.name[:-1] + "P") if out.name.endswith("F") else None
+
+
+def _wait_for(out: Path, read, what: str, timeout: float):
+    """Read something of P's run for F, waiting while P's files are still being written (the run script runs P to the
+    end before F starts, so the wait is normally none)."""
     deadline = time.monotonic() + timeout
-    while run is not None and time.monotonic() < deadline:
+    while True:
         check_billing()
-        log_path = run / "page-actions.jsonl"
-        entries = [json.loads(line) for line in log_path.read_text().splitlines()] if log_path.exists() else []
-        done = [entry for entry in entries if entry["action"] in DELETES_MESSAGES]
-        if len(done) > len(earlier):
-            entry = done[len(earlier)]
-            if entry["detail"] != {key: value for key, value in action.items() if key not in ("do", "card")}:
-                raise SystemExit("P's page actions are not this scenario's")
-            if entry["result"].get("failed") or "removed" not in entry["result"]:
-                raise SystemExit("P could not apply the deletion F must mirror")
-            return entry["result"]["removed"]
-        time.sleep(2)
-    raise SystemExit("P never recorded the deletion F must mirror")
+        found = read(_p_run(out)) if _p_run(out) is not None else None
+        if found is not None:
+            return found
+        if time.monotonic() >= deadline:
+            raise SystemExit(f"P never recorded {what} F must mirror")
+        time.sleep(min(2, max(0.0, deadline - time.monotonic())))
+
+
+def _jsonl(path: Path) -> list:
+    return [json.loads(line) for line in path.read_text().splitlines() if line.strip()] if path.exists() else []
+
+
+def p_page_action(out: Path, index: int, action: dict, timeout: float = 3600) -> dict:
+    """For F: P's page-actions.jsonl record of PAGE_ACTIONS[index]. It must be this scenario's action, and not a
+    failed one (P's run would then be invalid and F is never run after it)."""
+    def read(run):
+        return next((entry for entry in _jsonl(run / "page-actions.jsonl") if entry.get("index") == index), None)
+
+    entry = _wait_for(out, read, "the page action", timeout)
+    if (entry.get("action") != action["do"] or entry.get("detail") != action_detail(action)
+            or entry.get("format") != PAGE_RECORD_FORMAT):
+        raise SystemExit("P's page actions are not this scenario's")
+    if entry.get("status") not in ("done", "not_applicable"):
+        raise SystemExit("P could not apply a page action F must mirror")
+    if action["do"] in DELETES_MESSAGES and entry["status"] == "done" and "removed" not in entry.get("result", {}):
+        raise SystemExit("P could not apply the deletion F must mirror")
+    return entry
+
+
+def p_persona(out: Path, scenario: str, session: str, turn: int, cache: dict, timeout: float = 3600) -> tuple:
+    """For F: the persona block P's host was given at the start of this turn, and its persona_turn identity, from
+    P's own results."""
+    def read(run):
+        if (session, turn) not in cache:
+            for row in _jsonl(run / f"results_{scenario}_P.jsonl"):
+                cache[(row.get("session"), row.get("turn"))] = row
+        return cache.get((session, turn))
+
+    row = _wait_for(out, read, "the persona of a turn", timeout)
+    if not isinstance(row.get("persona_turn"), dict) or not isinstance(row.get("persona_block"), str):
+        raise SystemExit("P's results record no persona for a turn F must mirror")
+    if persona_turn(row["persona_turn"].get("version"), row["persona_block"]) != row["persona_turn"]:
+        raise SystemExit("P's recorded persona block does not match its identity")
+    return row["persona_block"], row["persona_turn"]
+
+
+def p_persona_record(out: Path, timeout: float = 3600) -> dict:
+    """For F: P's persona.json (the attempt's seeded starting type, which F's own draw must equal)."""
+    def read(run):
+        path = run / "persona.json"
+        try:
+            return json.loads(path.read_text()) if path.exists() else None
+        except ValueError:
+            return None
+
+    return _wait_for(out, read, "its starting persona", timeout)
 
 
 # Recording ----------------------------------------------------------------------------------------------------------
@@ -1003,9 +1341,10 @@ def persona_seed() -> tuple[str, str]:
 
 
 def fixed_persona(module) -> dict:
-    """The persona both arms carry: the scenario's own PERSONA card (C5 scenarios), else the seeded type. Refuses a
-    copy of the type table that differs from the product's, and a C5_PERSONA_PRESET (the manifest's draw, passed by
-    the driver) that is not the draw of the seed."""
+    """The persona both arms start from: the seeded type, in every run (R4 and C5, live or dry). Refuses a scenario
+    PERSONA card (a scenario changes the persona as a user does: in conversation or with a page action), a copy of
+    the type table that differs from the product's, and a C5_PERSONA_PRESET (the manifest's draw, passed by the
+    driver) that is not the draw of the seed."""
     from membrain import persona_presets
     from membrain.persona import normalize_card
 
@@ -1014,14 +1353,8 @@ def fixed_persona(module) -> dict:
                                          separators=(",", ":")).encode("utf-8")).hexdigest()
 
     if getattr(module, "PERSONA", None):
-        # An attempt's persona is its seeded draw: a live run, or any run given the manifest's draw, refuses a
-        # scenario's own card rather than let it replace the type both arms must carry. (A live C5 attempt, whose
-        # scenarios set PERSONA on purpose, would need its own decision and a change here.)
-        if not STUB or os.environ.get("C5_PERSONA_PRESET"):
-            raise SystemExit("this attempt's persona is the seeded draw: a scenario PERSONA card is refused")
-        card = module.PERSONA
-        return {"source": "scenario", "seed": None, "seed_source": None, "preset": None, "card": card,
-                "card_sha256": digest(card), "rule": None}
+        raise SystemExit("every run starts from the attempt's seeded type: a scenario PERSONA card is refused "
+                         "(change the persona in conversation or with a page action)")
     drawing = persona_module()
     if tuple(drawing.IDS) != tuple(persona_presets.IDS):
         raise SystemExit("acceptance_persona.IDS differs from the product's personality types")
@@ -1042,10 +1375,7 @@ def set_fixed_persona(memory: "Memory", persona: dict) -> dict:
     from membrain.persona import normalize_card
 
     with memory.client() as client:
-        if persona["source"] == "scenario":
-            saved = client.set_persona(persona["card"], made_by="host", host_default=True)
-        else:
-            saved = client.reset_persona(made_by="host", preset=persona["preset"])
+        saved = client.reset_persona(made_by="host", preset=persona["preset"])
         current = client.persona()
     if normalize_card(current.get("card") or {}) != normalize_card(persona["card"]):
         raise SystemExit("the persona saved in P is not the attempt's persona")
@@ -1096,7 +1426,6 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
         raise SystemExit("sessions must be in time order")
     actions = check_actions(module)
     intended = intended_unrecorded(module) if arm == "P" else set()
-    turns_text = {(session, index, "user"): text for session, turns in sessions for index, text in enumerate(turns)}
     os.environ["TZ"] = "UTC"
     time.tzset()
     for name in ("CLAUDE_PLUGIN_DATA", "PLUGIN_DATA"):  # The plugin hooks would import a real host's queue.
@@ -1120,26 +1449,31 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
         memory = Memory(out / f"brain-{scenario}-{arm}", Path(cache) if cache else None, ports, starts[0])
         saved = set_fixed_persona(memory, persona)
     else:
-        reference = Reference(persona["card"])
-        saved = {"version": reference.versions[-1]["version"]}
+        reference = Reference()
+        started = p_persona_record(out)  # F starts from the type P saved, which must be the same draw.
+        if any(started.get(key) != persona.get(key) for key in ("source", "seed", "preset", "card_sha256")):
+            raise SystemExit("P's starting persona is not the attempt's seeded type F draws")
+        saved = {"version": started.get("version")}
     (out / "persona.json").write_text(json.dumps(
         {"arm": arm, **{key: persona.get(key) for key in ("source", "seed", "seed_source", "preset", "card_sha256",
                                                           "rule")}, "version": saved["version"]}, sort_keys=True))
     proposals = proposals_supported()
     log(arm, scenario, "start", "stub" if STUB else "live", "proposals" if proposals else "no proposals (P2 absent)")
-    log(arm, scenario, "persona", persona["source"], persona.get("preset") or "scenario card",
-        "seed from", persona.get("seed_source") or "scenario")
+    log(arm, scenario, "persona", persona["source"], persona.get("preset"), "seed from", persona.get("seed_source"))
 
-    deletions: list[dict] = []
     tool_errors: dict[str, int] = {}
     session_ids = [session for session, _ in sessions]
+    p_rows: dict = {}  # Arm F: P's result rows, read as F reaches each turn (p_persona).
     # Arm P: the scope of the host's own accepted pause while no accepted resume has followed it ("conversation" or
     # "until_resumed"), or None. A conversation pause is forgotten when its session ends; whether a pause is in force
     # at a turn is also read from the product (Memory.paused), so the two must agree.
     host_pause = None
 
-    def page_actions(session, before):
-        for at_session, at_turn, action in actions:
+    def where(session, turn) -> str:
+        return f"session {session_ids.index(session) + 1} of {len(session_ids)}, message {turn + 1}"
+
+    def page_actions(session, before, today):
+        for index, (at_session, at_turn, action) in enumerate(actions):
             if (at_session, at_turn) != (session, before):
                 continue
             if action["do"] in PROPOSAL_ACTIONS and not proposals:
@@ -1149,35 +1483,41 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             # An action limited to some arms applies to F when it applies to P, the arm F is the reference for.
             if action.get("arms") and "P" not in action["arms"]:
                 continue
-            record = {"session": session, "before_turn": before, "action": action["do"],
-                      "detail": {key: value for key, value in action.items() if key not in ("do", "card")}}
+            record = {"format": PAGE_RECORD_FORMAT, "index": index, "session": session, "before_turn": before,
+                      "action": action["do"], "detail": action_detail(action)}
             if memory is not None:
                 with memory.client() as client:
                     record["before"], held = world(client), layer_records(client, memory.positions)
-                record["result"] = apply_page_action(memory, action, turns_text)
+                result = apply_page_action(memory, action, {"seed": persona["seed"], "index": index})
                 with memory.client() as client:
                     record["after"], kept = world(client), layer_records(client, memory.positions)
                 removed = removed_records(held, kept, record["before"], record["after"])
-                record["result"]["removed_records"] = removed
-                record["result"]["removed_records_complete"] = all(entry["established"] for entry in removed)
+                result["removed_records"] = removed
+                result["removed_records_complete"] = all(entry["established"] for entry in removed)
                 record["time"] = memory.now()
             else:
-                if action["do"] in DELETES_MESSAGES:
-                    action = {**action, "removed": removed_in_p(out, action, deletions)}
-                    deletions.append(action)
+                outcome = p_page_action(out, index, action)
+                mirrored = action["do"] in DELETES_MESSAGES and outcome["status"] == "done"
+                if mirrored:
+                    action = {**action, "removed": outcome["result"]["removed"]}
                 record["before"] = reference.summary()
-                record["result"] = reference.apply(action)
-                record["result"]["removed_records"] = message_records(record["result"].get("removed", []))
-                record["result"]["removed_records_complete"] = True  # F's only records are its messages.
+                result = reference.apply(action, outcome, today)
+                result["removed_records"] = message_records(result.get("removed", []))
+                result["removed_records_complete"] = True  # F's only records are its messages.
                 record["after"] = reference.summary()
-                if action["do"] in DELETES_MESSAGES:
+                if mirrored:
                     record["after"]["removed_still_in_history"] = reference.contains(action["removed"])
+            record["status"], reason = page_status(result)
+            if reason is not None:
+                record["reason"] = reason
+            record["result"] = result
             with (out / "page-actions.jsonl").open("a") as stream:
                 stream.write(json.dumps(record, ensure_ascii=False) + "\n")
-            log("page action", action["do"], "before", session, "turn", before, "result:", record["result"])
-            if record["result"].get("failed"):
+            log("page action", index + 1, "of", len(actions), action["do"], "before", where(session, before) + ":",
+                record["status"], reason or "")
+            if record["status"] == "failed":
                 harness_event(out, "page_action_failed", action=action["do"], session=session, turn=before,
-                              reason=failure_code(record["result"]))
+                              reason=failure_code(result))
 
     for (session, turns), start in zip(sessions, starts):
         today = start.date()
@@ -1187,7 +1527,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 harness_event(out, "clock_already_past", session=session,
                               behind_seconds=int((effective - start).total_seconds()))
         date_line = f"Today's date: {today.isoformat()} ({today.strftime('%A')})."
-        page_actions(session, 0)
+        page_actions(session, 0, today)
         session_context, client, server, schemas, instructions = None, None, None, None, None
         if memory is not None:
             memory.wait_until_indexed()
@@ -1208,16 +1548,17 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
             from membrain import host as product_host
 
             stub_host.instructions = instructions or product_host.server_instructions()
+        offered_names = {schema["function"]["name"] for schema in schemas or ()}  # A log names only these tools.
         current: list[tuple[tuple, dict]] = []
         try:
             for index, text in enumerate(turns):
                 check_billing()
                 if index:
-                    page_actions(session, index)
+                    page_actions(session, index, today)
                 if stub_host:
                     stub_host.key, stub_host.text = (session, index), text
                 system, prompt_context = module.HOST + "\n\n" + date_line, None
-                persona_block = None
+                page_line = None
                 # The host's own pause holds this turn when it was in force as the turn began, by the harness's
                 # count of accepted calls and by the product's state (read before the prompt hook, which may pause on
                 # the user's words by itself).
@@ -1229,13 +1570,20 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                     # session's context (the hook's notice and memory). The skill body is not given: a host loads it
                     # only when the model opens the skill, which the 2026-11-13 trial never saw in 86 turns.
                     system += "\n\n" + instructions + ("\n\n" + session_context if session_context else "")
+                    # The persona in effect as this turn starts, as the product renders it (after the prompt hook,
+                    # which refreshes the host's snapshot when it changed): F is given exactly this block.
+                    persona_block, identity = memory.persona_in_effect()
                 else:
-                    persona_block = reference.block()
-                    system += "\n\n" + persona_block if persona_block else ""
+                    # P's persona at the start of the same turn, then what the page did that the history cannot show.
+                    persona_block, identity = p_persona(out, scenario, session, index, p_rows)
+                    page_line = reference.page_line()
+                    system += "".join("\n\n" + part for part in (persona_block, page_line) if part)
                 user_content = (prompt_context + "\n\n" if prompt_context else "") + text
                 prior = [message for _, message in reference.history] if reference is not None else []
                 messages = [{"role": "system", "content": system}, *prior, *(message for _, message in current),
                             {"role": "user", "content": user_content}]
+                shown = bool(persona_block) and any(persona_block in str(item.get("content") or "")
+                                                    for item in messages)
                 first = len(messages) - 1
                 usage, started, tool_calls = {}, time.monotonic(), []
                 scenario_time = memory.now() if memory is not None else start.isoformat().replace("+00:00", "Z")
@@ -1292,10 +1640,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                         if not recorded and (session, index) not in intended:
                             if paused_here or (held_by_host_pause and not brought_back):
                                 # The plugin path's own behaviour: scored with the arm, not a harness fault.
-                                host_pause_left_unrecorded(
-                                    out, session, index,
-                                    f"session {session_ids.index(session) + 1} of {len(session_ids)}, "
-                                    f"message {index + 1}")
+                                host_pause_left_unrecorded(out, session, index, where(session, index))
                             else:
                                 harness_event(out, "turn_not_recorded", session=session, turn=index)
                 transcript = [{k: v for k, v in item.items() if k != "reasoning_content"} for item in messages[first:]]
@@ -1304,18 +1649,21 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                        "scenario_time": scenario_time, "input": text, "reply": reply, "usage": usage,
                        "seconds": round(time.monotonic() - started, 1), "host_user_content": user_content,
                        "session_context": session_context or "", "prompt_context_chars": len(prompt_context or ""),
-                       "tool_calls": tool_calls, "transcript": transcript}
+                       "tool_calls": tool_calls, "transcript": transcript, "persona_turn": identity}
                 if reference is not None:
                     row["reference_persona"] = persona_block or ""
+                    row["reference_page_line"] = page_line or ""
                     row["reference_history_items"] = len(prior)
                 if memory is not None:
+                    row["persona_block"] = persona_block or ""
+                    row["persona_shown_to_host"] = shown if persona_block else None
                     row["recorded"] = None if errors else recorded
                 if stopping:
                     row["stopped_after"] = stopping[0]
                 with path.open("a") as stream:
                     stream.write(json.dumps(row, ensure_ascii=False) + "\n")
-                log(arm, scenario, session, index, usage.get("total_tokens"),
-                    "tools:", [(call["name"], str(call["arguments"])[:80]) for call in tool_calls])
+                log(arm, scenario, where(session, index), usage.get("total_tokens"),
+                    "tools:", [call["name"] if call["name"] in offered_names else "other" for call in tool_calls])
                 if errors or halted is not None:
                     raise errors[0] if errors else halted
                 if stopping:
@@ -1325,7 +1673,6 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                                 ((session, index, "assistant"), {"role": "assistant", "content": reply})]
                 else:
                     current += [((session, index, "turn"), item) for item in transcript]
-                turns_text[(session, index, "assistant")] = reply
         finally:
             if client is not None:
                 client.close()

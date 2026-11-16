@@ -437,11 +437,29 @@ class SimpleLedger:
         return json.loads(self.path.read_text())
 
 
+def _p_side_for_f(tmp_path: Path, source: str, stem: str = "zq-synthetic-scenario") -> None:
+    """What F reads of P's finished run: P's persona.json and, per turn, the persona block in effect (here the
+    seeded type's first version at every turn), as the harness writes them."""
+    from membrain.persona import render_persona
+
+    module = harness.load_named("zq_p_side", _scenario_file(tmp_path, source, {}))
+    persona = harness.fixed_persona(module)
+    block = render_persona({"version": 1, "card": persona["card"]})
+    run = tmp_path / "run-P"
+    run.mkdir()
+    (run / "persona.json").write_text(json.dumps({"arm": "P", **{key: persona.get(key) for key in (
+        "source", "seed", "seed_source", "preset", "card_sha256", "rule")}, "version": 1}))
+    (run / f"results_{stem}_P.jsonl").write_text("".join(json.dumps(
+        {"session": session, "turn": turn, "persona_block": block, "persona_turn": harness.persona_turn(1, block)})
+        + "\n" for session, turns in module.SESSIONS_LONG for turn in range(len(turns))))
+
+
 def test_an_arm_writes_its_paid_row_before_a_stop_another_arm_made_during_its_call(
         stub_run, shared_ledger, tmp_path, monkeypatch):
     arm = "F"
     monkeypatch.setattr(harness, "STUB", False)  # Live, with the fake provider behind the real guard.
     monkeypatch.setattr(harness, "BILLING", None)
+    _p_side_for_f(tmp_path, SCENARIO)  # F mirrors P's persona turn by turn, so it runs after P.
     budget = harness.billing_module()
     # Arm A stops the shared ledger once arm B's first host call has been billed, before B's bookkeeping.
     shared_ledger.provider.after[1] = lambda: shared_ledger.other_arm.stop("arm_failed")
@@ -577,6 +595,7 @@ SESSIONS_LONG = [
 ]
 PAGE_ACTIONS = [
     ("s2", 0, {"do": "delete_message", "session": "s1", "turn": 1, "role": "user"}),
+    ("s2", 0, {"do": "add_boundary", "topic": "Tom"}),
     ("s2", 0, {"do": "remove_boundary", "topic": "Tom"}),
 ]
 '''
@@ -594,8 +613,11 @@ REMOVAL_SCRIPT = {
 def test_removed_records_name_exactly_the_removed_one_of_two_alike_records(stub_run, tmp_path):
     rows, events = stub_run("P", REMOVAL_SCENARIO, REMOVAL_SCRIPT)
     assert len(rows) == 3 and events == []
-    deletion, removal = [json.loads(line) for line in (tmp_path / "run-P" / "page-actions.jsonl").read_text()
-                         .splitlines()]
+    deletion, added, removal = [json.loads(line) for line in (tmp_path / "run-P" / "page-actions.jsonl").read_text()
+                                .splitlines()]
+    # The page adds the topic the host already set (the product keeps one boundary per topic): nothing removed.
+    assert added["status"] == "done" and added["result"]["removed_records"] == []
+    assert (deletion["status"], removal["status"]) == ("done", "done")
     turn, reply = [["s1", 1, "user"]], [["s1", 1, "assistant"]]
     removed = deletion["result"]["removed_records"]
     assert all(entry["established"] for entry in removed) and deletion["result"]["removed_records_complete"] is True
@@ -667,7 +689,7 @@ def _precheck(path: Path):
 def test_the_precheck_passes_the_public_practice_scenario_printing_counts_only():
     code, out, err, summary = _precheck(ROOT / "evaluations" / "c5-practice-scenario.py")
     assert code == 0 and err == ""
-    assert summary == {"ok": True, "sessions": 7, "turns": 18, "actions": 6, "failures": 0, "codes": []}
+    assert summary == {"ok": True, "sessions": 8, "turns": 22, "actions": 14, "failures": 0, "codes": []}
     assert "intended unrecorded turns 2" in out
     for text in ("s1-arrival", "Lisbon", "Tom", "casual", "Juniper", "Today"):
         assert text not in out
@@ -688,8 +710,11 @@ GOOD = [(f"{PLANT}-s1", [f"Today is Monday, March 2, 20:00. {PLANT} one.", f"{PL
     ({"SESSIONS_LONG": [(f"{PLANT}-s1", [])]}, ["malformed_session"]),
     ({"PAGE_ACTIONS": [(f"{PLANT}-s9", 0, {"do": "add_boundary", "topic": PLANT})]}, ["bad_action"]),
     ({"PAGE_ACTIONS": [(f"{PLANT}-s1", 1, {"do": f"{PLANT}"})]}, ["bad_action"]),
-    ({"PAGE_ACTIONS": [(f"{PLANT}-s1", 1, {"do": "accept_persona_proposal", "match": PLANT})]},
-     ["proposal_without_card"]),
+    ({"PAGE_ACTIONS": [(f"{PLANT}-s1", 1, {"do": "accept_persona_proposal", "match": PLANT})]}, ["bad_action"]),
+    ({"PAGE_ACTIONS": [(f"{PLANT}-s1", 1, {"do": "accept_proposal", "match": PLANT})]}, ["bad_action"]),
+    ({"PAGE_ACTIONS": [(f"{PLANT}-s2", 0, {"do": "remove_boundary", "topic": PLANT})]}, ["bad_action"]),
+    ({"PAGE_ACTIONS": [(f"{PLANT}-s1", 1, {"do": "delete_message", "session": f"{PLANT}-s2", "turn": 0})]},
+     ["bad_action"]),
     ({"PAGE_ACTIONS": [(f"{PLANT}-s1", 1, {"do": "pause_recording", "hours": 2, "note": PLANT})]},
      ["bad_action", "timed_pause"]),
     ({"STUB_HOST": {(f"{PLANT}-s1", 1): [{"tool": "memory_pause", "arguments": {"hours": 3}}]}}, ["timed_pause"]),
@@ -836,20 +861,27 @@ def test_a_live_persona_is_the_draw_of_the_attempt_id(monkeypatch):
         harness.fixed_persona(_NoPersona)
 
 
-def test_a_c5_dry_run_keeps_its_own_persona_card_but_an_attempt_never_does(monkeypatch):
-    monkeypatch.delenv("C5_PERSONA_PRESET", raising=False)
+def test_a_scenario_persona_card_is_refused_in_every_run_dry_runs_included(monkeypatch):
+    class WithCard:
+        SESSIONS_LONG = []
+        PERSONA = {"name": "Juniper", "traits": ["warm"]}
+
+    for name in ("C5_PERSONA_SEED", "C5_PERSONA_PRESET", "C5_ATTEMPT_ID"):
+        monkeypatch.delenv(name, raising=False)
     monkeypatch.setattr(harness, "STUB", True)
-    chosen = harness.fixed_persona(practice)
-    assert chosen["source"] == "scenario" and chosen["card"] == practice.PERSONA and chosen["preset"] is None
-    # Given the manifest's draw (the driver passes it), or live, a scenario's card cannot replace the seeded type.
+    assert not hasattr(practice, "PERSONA")  # The C5 practice starts from the seeded type too.
+    with pytest.raises(SystemExit, match="scenario PERSONA card is refused"):
+        harness.fixed_persona(WithCard)
+    # Given the manifest's draw (the driver passes it), or live, likewise.
     monkeypatch.setenv("C5_PERSONA_PRESET", persona_draw.draw("stub-practice"))
     with pytest.raises(SystemExit, match="scenario PERSONA card is refused"):
-        harness.fixed_persona(practice)
+        harness.fixed_persona(WithCard)
     monkeypatch.delenv("C5_PERSONA_PRESET")
     monkeypatch.setattr(harness, "STUB", False)
     monkeypatch.setenv("C5_ATTEMPT_ID", "zq-attempt")
     with pytest.raises(SystemExit, match="scenario PERSONA card is refused"):
-        harness.fixed_persona(practice)
+        harness.fixed_persona(WithCard)
+    assert harness.fixed_persona(practice)["source"] == "seeded"
 
 
 def test_a_live_run_reads_its_scenario_without_running_it(tmp_path, monkeypatch):
@@ -864,7 +896,11 @@ def test_a_live_run_reads_its_scenario_without_running_it(tmp_path, monkeypatch)
     loaded = harness.load_scenario(str(path))
     assert loaded.SESSIONS_LONG[0][0] == "s1" and not marker.exists()
     monkeypatch.setattr(harness, "STUB", True)  # A dry run's public practice scenario is loaded as a module.
-    assert harness.load_scenario(str(ROOT / "evaluations" / "c5-practice-scenario.py")).PERSONA == practice.PERSONA
+    assert harness.load_scenario(str(ROOT / "evaluations" / "c5-practice-scenario.py")).SESSIONS_LONG \
+        == practice.SESSIONS_LONG
+    monkeypatch.setattr(harness, "STUB", False)  # The C5 practice is literal-only, as a held-out scenario must be.
+    assert harness.load_scenario(str(ROOT / "evaluations" / "c5-practice-scenario.py")).PAGE_ACTIONS \
+        == practice.PAGE_ACTIONS
 
 
 def _clean_live_environment(monkeypatch):
@@ -979,6 +1015,86 @@ def test_both_arms_carry_the_seeded_persona_and_p_gets_the_shipped_tools_and_ins
     assert offered["skill_in_prompt"] is False
     assert all("server instructions: given" in row["reply"] for row in p_rows)
     assert all("server instructions: none" in row["reply"] for row in f_rows)
+
+
+COMPANION = '''
+HOST = "You are a companion. Reply briefly."
+SESSIONS_LONG = [
+    ("s1", ["Today is Monday, March 2, 20:00. I moved to Lisbon for a design job.",
+            "From now on, please check in with me before my design reviews.", "Yes please, do that from now on.",
+            "Please stop recording for the rest of this conversation."]),
+    ("s2", ["Today is Tuesday, March 3, 21:00. Could you switch to a different personality type? Surprise me.",
+            "Thanks."]),
+]
+PAGE_ACTIONS = [
+    ("s2", 0, {"do": "add_boundary", "topic": "work deadlines"}),
+    ("s2", 0, {"do": "delete_message", "session": "s1", "turn": 3}),
+    ("s2", 0, {"do": "accept_proposal"}),
+    ("s2", 1, {"do": "switch_persona", "preset": "random"}),
+]
+'''
+COMPANION_SCRIPT = {
+    ("s1", 1): [{"tool": "memory_persona", "source": "current", "arguments": {
+        "action": "propose", "changes": {"values": ["Checks in before design reviews"]}, "reason": "asked"}}],
+    # The yes in the same conversation as the question (the product confirms only an answer to it there).
+    ("s1", 2): [{"tool": "memory_persona", "source": "current", "arguments": {
+        "action": "confirm", "proposal_id": {"$result": ["s1", 1, 0, "proposal_id"]}}}],
+    ("s1", 3): [{"tool": "memory_pause", "arguments": {}}],  # The host's own pause, never resumed: scored.
+    ("s2", 0): [{"tool": "memory_persona", "source": "current", "arguments": {"action": "switch", "preset": "random"}}],
+}
+
+
+def test_f_mirrors_every_persona_change_of_p_and_both_arms_record_the_same_page_outcomes(stub_run, tmp_path,
+                                                                                          monkeypatch, capsys):
+    """The host's proposal confirmed after the user's yes, the product's own random switch by the host's tool and
+    the page's seeded random switch all reach F at the turn they reach P; a deletion of a turn the host's pause left
+    unrecorded and a decision with no open suggestion are not applicable in both arms, and the run stays valid."""
+    review = _load("c5_acceptance_review_companion", ROOT / "evaluations" / "acceptance_review.py")
+    monkeypatch.setenv("C5_PERSONA_SEED", "zq-seed-2")
+    p_rows, p_events = stub_run("P", COMPANION, COMPANION_SCRIPT)
+    (tmp_path / "run-P" / "run.log").write_text(capsys.readouterr().out)
+    f_rows, f_events = stub_run("F", COMPANION, COMPANION_SCRIPT)
+    (tmp_path / "run-F" / "run.log").write_text(capsys.readouterr().out)
+    assert p_events == [] and f_events == []
+    versions = [row["persona_turn"]["version"] for row in p_rows]
+    assert versions == [1, 1, 1, 2, 2, 4]  # Confirmed (saved with the yes), host switch, then page switch.
+    assert [row["persona_turn"] for row in f_rows] == [row["persona_turn"] for row in p_rows]
+    assert [row["reference_persona"] for row in f_rows] == [row["persona_block"] for row in p_rows]
+    assert all(row["persona_shown_to_host"] for row in p_rows)
+    assert "Checks in before design reviews" in f_rows[3]["reference_persona"]
+    outcomes = {arm: [(entry["index"], entry["status"], entry.get("reason")) for entry in
+                      map(json.loads, (tmp_path / f"run-{arm}" / "page-actions.jsonl").read_text().splitlines())]
+                for arm in "PF"}
+    assert outcomes["P"] == outcomes["F"] == [(0, "done", None), (1, "not_applicable", "message_not_recorded"),
+                                              (2, "not_applicable", "no_open_proposal"), (3, "done", None)]
+    assert [row["reference_page_line"] for row in f_rows] == [""] * 4 + [
+        'Memory page settings the user chose (not part of the conversation above): topics not to bring up: '
+        '"work deadlines".'] * 2
+    log = (tmp_path / "run-P" / "run.log").read_text() + (tmp_path / "run-F" / "run.log").read_text()
+    assert "page action 2 of 4 delete_message before session 2 of 2, message 1: not_applicable" in log
+    for text in ("Lisbon", "design", "work deadlines", "Checks in", "s1", "s2"):
+        assert text not in log  # Positions by index, kinds and codes only.
+    for number, arm in enumerate("PF"):
+        (tmp_path / f"run-{arm}" / "supervisor.log").write_text(
+            f"started {10 + 20 * number}\nfinished {15 + 20 * number}\ncleaned {16 + 20 * number}\n")
+    scenario = tmp_path / "zq-synthetic-scenario.py"
+    result = review.validity([tmp_path / "run-P", tmp_path / "run-F"], scenario)
+    assert result["valid"], result["problems"]
+    assert result["persona_mirroring"] == {"checked_turns": 6, "not_shown_to_p_host": {"count": 0, "positions": []}}
+    assert result["page_actions"]["run-P (P)"] == result["page_actions"]["run-F (F)"] == {
+        "count": 4, "done": 2, "not_applicable": {"count": 2, "at": [
+            {"action": 2, "session": 2, "before_message": 1, "kind": "delete_message",
+             "reason": "message_not_recorded"},
+            {"action": 3, "session": 2, "before_message": 1, "kind": "accept_proposal",
+             "reason": "no_open_proposal"}]}}
+    # F given another block at one turn is no longer valid.
+    rows = [json.loads(line) for line in (tmp_path / "run-F" / "results_zq-synthetic-scenario_F.jsonl")
+            .read_text().splitlines()]
+    rows[2]["reference_persona"] = rows[5]["reference_persona"]
+    (tmp_path / "run-F" / "results_zq-synthetic-scenario_F.jsonl").write_text(
+        "".join(json.dumps(row) + "\n" for row in rows))
+    result = review.validity([tmp_path / "run-P", tmp_path / "run-F"], scenario)
+    assert not result["valid"] and "F did not carry P's persona at turn 3 of 6" in " ".join(result["problems"])
 
 
 CONSOLIDATING = '''
