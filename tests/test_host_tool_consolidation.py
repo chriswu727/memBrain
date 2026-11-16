@@ -158,7 +158,8 @@ def test_openclaw_indexes_earlier_messages_through_the_tool_command_with_the_bat
             {"id": first, "cues": ["user hobbies and activities"]},
             {"id": sister, "cues": ["user's sister where she lives", "user family members"]}]})
         assert (saved["indexed"], saved["skipped"], saved["remaining"]) == (2, 0, 0) and "few words" in saved["note"]
-        assert "If it is already written, you are finished: call no other tool." in saved["note"]
+        assert "If you already wrote it before calling this tool, do not write it again" in saved["note"]
+        assert "call no other tool" in saved["note"]
         assert _tool(directory, capsys, "consolidate", {})["messages"] == []
         assert "not been indexed" not in _openclaw_notice(directory, capsys, "wednesday")
         with host.ready_client(directory) as client:

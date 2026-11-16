@@ -136,9 +136,13 @@ def consolidation_notice(client, tools: dict | None = TOOL_NAMES) -> str:
         return ""  # An older service, or one that is busy: indexing can wait for another session.
     if remaining < CONSOLIDATION_MINIMUM:
         return ""
-    return (f"{remaining} earlier messages have not been indexed by memory yet. Once in this conversation, after you "
-            f"have answered the user's first message, call the {tools['consolidate']} tool without arguments and do "
-            "what it returns; do not describe it to the user beyond a few words.")
+    # Before the reply, not after it: in a tool-calling host, text written before a tool call is shown to the user and
+    # the AI writes again after the last tool answer, so "answer first, then index" showed the user two answers in 11
+    # of 124 turns (seventh maturity attempt, finding 7).
+    return (f"{remaining} earlier messages have not been indexed by memory yet. Once in this conversation, before you "
+            f"write your reply to the user's first message, call the {tools['consolidate']} tool without arguments "
+            "and do what it returns; then write your reply. Do not describe the indexing to the user beyond a few "
+            "words.")
 
 
 CONSOLIDATION_PAUSED = "Recording is paused. Resume before consolidating memory."
@@ -200,12 +204,13 @@ def consolidate(client, cues=None, reviewed_through=None, *, handed_out: dict | 
             handed_out.clear()
         left = client.pending_message_cues(limit=1)
         return {"indexed": result["written"], "skipped": result["skipped"], "remaining": left["remaining"],
-                # A host ended a turn with only "Memory's updated.": its answer to the user had stayed unwritten.
-                # A host that had written its answer then paused recording on its own (2026-11-16): nothing told it
-                # that it was finished.
-                "note": ("Done. If your answer to the user's message is not yet written in this turn, write it now "
-                         "in full; this is not the reply. If it is already written, you are finished: call no other "
-                         "tool. Do not describe the indexing beyond a few words.")}
+                # A host ended a turn with only "Memory's updated.": its answer to the user had stayed unwritten, so
+                # this asks for the reply first. A host that had written its answer then paused recording on its own
+                # (2026-11-16): nothing told it that it was finished. A host that had answered before calling wrote
+                # a second answer after it (seventh maturity attempt): it is told not to write it again.
+                "note": ("Done. Now write your reply to the user's message, once. If you already wrote it before "
+                         "calling this tool, do not write it again: end your turn with no more than a word and call "
+                         "no other tool. Do not describe the indexing beyond a few words.")}
     except httpx.HTTPStatusError as error:
         try:
             detail = error.response.json().get("error", {})

@@ -245,10 +245,55 @@ class _Cues:
 
 
 def test_consolidations_answer_says_the_host_is_finished_when_its_answer_is_written():
+    # Changed after the seventh maturity attempt: the host now indexes before it replies, so the last answer asks
+    # for the reply once, and a reply written before the call is not written again (a doubled answer).
     note = host.consolidate(_Cues(), [{"id": 1, "cues": ["Leeds"]}], 1)["note"]
-    assert note == ("Done. If your answer to the user's message is not yet written in this turn, write it now in full; "
-                    "this is not the reply. If it is already written, you are finished: call no other tool. Do not "
-                    "describe the indexing beyond a few words.")
+    assert note == ("Done. Now write your reply to the user's message, once. If you already wrote it before calling "
+                    "this tool, do not write it again: end your turn with no more than a word and call no other tool. "
+                    "Do not describe the indexing beyond a few words.")
+    # A host once ended its turn with only "Memory's updated.": the note still asks for the reply itself.
+    assert note.startswith("Done. Now write your reply") and "call no other tool" in note
+
+
+class _Pending:
+    def pending_message_cues(self, limit):
+        return {"remaining": 7}
+
+
+@pytest.mark.parametrize("tools,name", [(host.TOOL_NAMES, "memory_consolidate"),
+                                        (plugin.HOST_TOOLS["openclaw"], "membrain_consolidate")])
+def test_the_notice_asks_for_indexing_before_the_reply_on_every_host(tools, name):
+    # Seventh maturity attempt: answering first and indexing after showed the user two answers in 11 of 124 turns.
+    assert host.consolidation_notice(_Pending(), tools) == (
+        f"7 earlier messages have not been indexed by memory yet. Once in this conversation, before you write your "
+        f"reply to the user's first message, call the {name} tool without arguments and do what it returns; then "
+        "write your reply. Do not describe the indexing to the user beyond a few words.")
+
+
+def test_nothing_shared_with_hosts_still_asks_for_the_answer_before_indexing(tmp_path):
+    from membrain.adapters.chatbot import TOOLS as CHAT_TOOLS
+
+    batch = host.consolidate(_Batch(), handed_out={})
+    texts = [host.consolidation_notice(_Pending(), {**CHAT_TOOLS, "consolidate": "membrain_consolidate"}),
+             host.consolidation_notice(_Pending()), host.server_instructions(), host.CONSOLIDATION_INSTRUCTIONS,
+             batch["instructions"], host.consolidate(_Batch(), [], 3)["note"],
+             (ROOT / "plugins" / "membrain" / "skills" / "membrain" / "SKILL.md").read_text(encoding="utf-8")]
+    for text in texts:
+        lowered = text.lower()
+        assert "after you have answered" not in lowered and "answered the user" not in lowered
+        assert "answer first" not in lowered
+    assert len(host.server_instructions()) <= 1400
+
+
+class _Batch(_Cues):
+    def pending_message_cues(self, limit, **options):
+        if limit == 1:
+            return {"remaining": 0}
+        return {"items": [{"sequence": 3, "text": "My sister moved to Leeds.", "recorded_at": "2026-09-12T10:00:00Z"}],
+                "through_sequence": 3, "remaining": 0}
+
+    def relationship_boundaries(self):
+        return {"boundaries": []}
 
 
 # The evaluation harness ------------------------------------------------------------------------------------------

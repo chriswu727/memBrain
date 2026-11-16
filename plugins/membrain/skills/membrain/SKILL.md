@@ -33,13 +33,14 @@ Raw messages pile up and only part of them fits in a session, so durable facts m
 
 ## Indexing earlier messages
 
-memBrain has no model of its own: you do the part of remembering that needs understanding. When the session notice says earlier messages have not been indexed, then once in the conversation, after you have answered the user's first message:
+memBrain has no model of its own: you do the part of remembering that needs understanding. When the session notice says earlier messages have not been indexed, then once in the conversation, before you write your reply to the user's first message:
 
 1. Call `memory_consolidate` without arguments. It returns a batch of the user's earlier messages, each with an `id`, and instructions.
 2. For each message that states a lasting fact about a person, think of one to four short cue phrases naming whom the fact is about and what kind of fact it is ("Sam hobbies and activities", "Sam's sister's job"), in the words someone would use to ask about it later. Name the category; do not restate the detail. Skip greetings, requests and reactions.
 3. Call `memory_consolidate` once more with `cues`: a list of `{"id", "cues"}` for the messages that got cues, or an empty list when none did.
+4. Then write your reply to the user's message, once. If you had already written it before calling the tool, do not write it again.
 
-The cues are an index: they help later recall find those messages and are never shown to the user. Do not interrupt the user's task for this, do not ask their permission each time, and do not report on it: no list of what was indexed, at most a few words ("Memory updated."). If the result says more remain, leave them for a later session unless the user is not waiting on you.
+The cues are an index: they help later recall find those messages and are never shown to the user. Do not interrupt the user's task for this, do not ask their permission each time, and do not report on it: no list of what was indexed, at most a few words within your reply, never in place of it. If the result says more remain, leave them for a later session unless the user is not waiting on you.
 
 ## Reading memory
 

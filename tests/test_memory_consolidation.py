@@ -71,7 +71,8 @@ def test_the_host_ai_is_asked_once_to_index_earlier_messages_and_recall_then_fin
                 {"id": sister, "cues": ["user's sister where she lives", "user family members"]}]})
             assert (saved["indexed"], saved["skipped"], saved["remaining"]) == (2, 0, 0)
             assert "few words" in saved["note"]
-            assert "If it is already written, you are finished: call no other tool." in saved["note"]
+            assert "If you already wrote it before calling this tool, do not write it again" in saved["note"]
+            assert "call no other tool" in saved["note"]
             assert _call(server, "memory_consolidate", {})["messages"] == []
             assert "not been indexed" not in host.session_context(directory, "wednesday")
 
