@@ -1,0 +1,132 @@
+{
+ "review": "Independent freeze review of the frozen inputs of maturity-20261116a (the seventh maturity attempt, R4 only, arms P and F, deepseek-v4-pro, ceiling 80 CNY), written before any paid call.",
+ "attempt_id": "maturity-20261116a",
+ "reviewed_at": "2026-11-16T07:10:00Z",
+ "source_head": "c5232a043d650824c7d12982893d876e88d57877",
+ "manifest_sha256": "a27d7ca878cd86483b79e0e682fb788847bafa4f41647b98b44304216aa534de",
+ "execution_may_start": true,
+ "findings": [
+  {
+   "severity": "minor",
+   "what": "Decision 6 depends on who started the pause, not on whether the harness is at fault. Suppose the product pauses on the user's own words (the runtime's recogniser in the prompt hook) and the host makes no accepted memory_pause of its own. If the host then fails to end the pause when asked (no memory_resume, or one without session_id), the turn still records turn_not_recorded and stops the attempt. The same failure after the host's own accepted pause is scored with the arm. Whether a run is stopped or scored therefore depends on whether the host also made a redundant memory_pause call.",
+   "where": "evaluations/c5-harness.py run(): held_by_host_pause (line 1224) requires host_pause is not None; classification at lines 1292-1300. Binding, scope decision 6, third bullet.",
+   "why_it_matters": "This does not favour P. It is the most plausible remaining stop at the end of the off-the-record stretch (in both scenarios this is the turn EXPECT_RECORDING_P marks True), and the binding's own rationale (a real behaviour of the plugin path, not a harness fault) applies to it equally. The binding states this asymmetry explicitly, so it is a known risk of losing the attempt, not a defect of the result. Changing it now would need a code change, tests and a new freeze; I do not ask for that."
+  },
+  {
+   "severity": "minor",
+   "what": "The binding says the rule 'cannot make arm P score better on the turns lost' and 'can only let a run that would have stopped be scored, with whatever losses the pause caused'. That holds for the points P loses on those turns, but it is incomplete for the gate. (a) A run that could previously end only as invalid can now pass. (b) Under the unchanged attribution rules, types 1 and 4 count as 'host' when memory said nothing and the assistant assumed or invented. A critical error caused by a turn the host's own pause removed can therefore be attributed to the host and fall within the allowance (host-caused at most F's standing critical count), instead of failing P outright. (c) Losing a turn can occasionally remove a stale fact and avoid a type 3 error.",
+   "where": "Binding, scope decision 6, fourth bullet; evaluations/acceptance-review/attribute.md (types 1, 3, 4); acceptance_review.py gate() lines 1371-1386.",
+   "why_it_matters": "The default is unchanged and applies to any recall miss, so this is not a new bias. The binding's own rationale, though, calls the host's pause plugin-path behaviour, and the record should let the final reviewer see whether a host-caused critical reply follows a turn listed in host-pauses.jsonl (see conditions)."
+  },
+  {
+   "severity": "minor",
+   "what": "The binding does not state that the pause-request runtime (a85ca152) has never been run with any real host. The pause-request record says: 'No host has been run on this change'. The binding also does not say that the change can refuse a real request when the host paraphrases or translates the user's words. s2b is mainly Chinese with one English session, and s1b has one German session.",
+   "where": "Binding: 'What governs the run' (The host's pause) and the comparability table row 'The host's pause'; evaluations/pause-request-2026-11-16.md 'What this does and does not prevent' and 'Not tried'.",
+   "why_it_matters": "This is a limitation the result inherits. If a refused real request goes unretried, off-the-record content is stored in P and can surface later as a memory-caused type 2 error, which fairly counts against P. Retries add host rounds. A host that passes hours makes timed_pause_refused, a harness event that stops the attempt. The record should say all of this."
+  },
+  {
+   "severity": "minor",
+   "what": "run-live.sh refuses when the freeze review is missing or does not set execution_may_start. It does not refuse when control/provider-revalidation.json is missing or when no owner approval has been recorded. It takes the expected head and manifest hash from control/preparation.json, which is outside the manifest and can be edited, and it does not cross-check them against this review's source_head and manifest_sha256.",
+   "where": "/home/yichen/.local/state/membrain-setup/runs/r4-attempt7/run-live.sh, frozen-state block (lines 19-31 of the script; binding 'Running the attempt').",
+   "why_it_matters": "The binding gates spending on the revalidation and on the owner's approval, but nothing mechanical checks either. The driver checks every file the manifest lists, but not which manifest it was given. The script's hash is bound in the binding, so changing it would mean a new freeze. The operator checks these by hand instead (see conditions)."
+  },
+  {
+   "severity": "minor",
+   "what": "The ledger is created (step 1) before the key is validated (step 3) and before the first balance read (step 4). Exits 96, 97 or 98 leave an unused, unblocked ledger, and a rerun is refused with 'ledger exists'. The binding gives no rule for this case; it covers only a port wait that times out before any arm starts. Also, the script's header says it prints no exception text, but a failure of the ledger heredoc or of the preparation.json reads prints a Python traceback to run-live.out. Neither the key nor scenario text can appear in that traceback: the key has not been read yet.",
+   "where": "run-live.sh steps 1-4; binding 'Stop rules' (port-wait sentence).",
+   "why_it_matters": "No money is at risk, since no completion request can happen before the driver starts. Without a recorded decision, though, an operator might delete or reuse the ledger to retry. That would contradict 'a billing ledger is never reused or replaced'."
+  },
+  {
+   "severity": "minor",
+   "what": "The binding says 'The driver refuses to start unless the manifest is the one below'. No later section records the manifest's sha256 (it cannot: the binding is frozen inside the manifest), and the driver does not compare the manifest with an expected hash. It checks only the files the manifest lists. The identity check comes from the run script (against preparation.json) and from this review. The sixth attempt's freeze review made the same finding.",
+   "where": "Binding, the paragraph after the verbatim script; evaluations/acceptance-attempt-driver.py prepare()/verify().",
+   "why_it_matters": "The wording overstates what the driver enforces. The actual protection is the run script's check plus the operator's condition below."
+  },
+  {
+   "severity": "minor",
+   "what": "'At most 6 tool calls' is imprecise. The harness offers tools only while fewer than 6 calls have been made (len(tool_calls) < 6 and round < 3), but one round can return several calls, so a turn can exceed 6.",
+   "where": "Binding, 'Unchanged since the sixth attempt'; evaluations/c5-harness.py line 1243.",
+   "why_it_matters": "This is a wording mismatch only. The cost bound comes from the guard, not from this count, and the behaviour is unchanged since the sixth attempt."
+  },
+  {
+   "severity": "minor",
+   "what": "The policy file used to create the ledger is reused unchanged. Its own metadata says \"status\": \"draft_not_approved\" and \"for\": \"sixth maturity attempt: R4 only...\".",
+   "where": "evaluations/maturity-provider-policy-2026-11-14.json (sha256 e7b91106...689f, frozen).",
+   "why_it_matters": "create_ledger binds only the rates, bounds, endpoint and limit, which are correct. Approval of the policy for this attempt rests entirely on the owner's separate approval and on the day-of-run revalidation, which the record should state."
+  }
+ ],
+ "verified": [
+  "Clone head c5232a043d650824c7d12982893d876e88d57877 on branch acceptance/maturity-20261116a; git status --porcelain --untracked-files=all is empty.",
+  "The head is f20a074a6f95ab0da42fb2e8080663f4aea7a96e plus one commit that adds only evaluations/maturity-acceptance-execution-2026-11-16.md (470 lines). f20a074a is the local head of integration/maturity-candidate and its remote-tracking ref in the main checkout (no network query).",
+  "src/ and migrations/ are identical at a85ca152, 4513d133 (pin commit), f20a074a and HEAD. The commits after the pin change only evaluation tooling, documentation, tests and launcher pins.",
+  "All nine launchers (3 plugin MCP configs, membrain-hook and .cmd, claude-hooks.json, codex-hooks.json, AstrBot requirements.txt, OpenClaw index.js) pin a85ca152033651c2041159ace5c26e9e1a6388b4; 4513d133 changed exactly those nine files.",
+  "membrain.build_identity: BUILD_ID 6ad5f2fbb4bb7e078a53b38e9ff0c9cea92343f3b964b381f6303f75aca0bf9d, SCHEMA_ID 3a94d7b6ea6bfba8ff8a4d920aa83001123922f4f90b0a9d6430ef1997b6166d, as the binding says.",
+  "Manifest sha256 a27d7ca878cd86483b79e0e682fb788847bafa4f41647b98b44304216aa534de; its bytes equal freeze.py's canonical serialisation of its own content.",
+  "Re-hashed all 437 files the manifest lists: 0 mismatches. 430 tracked files exactly equal freeze.py's frozen_tracked() on this head; 7 private files (allowed-models, two assignments, two receipts, two scenarios); the binding itself is frozen.",
+  "Manifest: version 1, attempt_id maturity-20261116a, one R4 pair s1b then s2b with paths and hashes equal to the files entries, order [s1b, s2b], persona {seed: maturity-20261116a, preset: estj}, no practice key.",
+  "The persona draw is estj both from acceptance_persona.draw and record('maturity-20261116a') and computed by hand as IDS[int(sha256(id),16) % 16] over membrain.persona_presets.IDS (16 types).",
+  "Private root mode 700 and git-excluded by .git/info/exclude; 0 tracked files under it; every file in control/, s1b/, s2b/ and logs/ is mode 600.",
+  "Measured offline, with an in-memory MCP server, no service and a scratch directory: 14 tools in the binding's order; 17,217 schema characters (harness formula); server instructions 1,332 characters, sha256 bb95409e6d91e02776bdfc1c89e77cf5a66ec115db3ab45a5afc714a17c682a0, with no mention of pausing; memory_pause schema requires request.",
+  "SKILL.md is 17,488 characters with front matter and 16,919 without.",
+  "Kit hashes as the binding says: author-brief da83c11f...c108, reviewer-brief 6f75a6f8...f875, fixer-brief af8c8fa5...f114 (the sixth binding's 'f124' is indeed a misprint), launch.py 7eef3abc...0138, session-commands.json 906a3964...edc4; all unchanged from the sixth attempt's manifest.",
+  "session-commands.json: the claude argv is the binding's command exactly and is marked isolating; codex is marked non-isolating. launch.py accepts --model only by membership in the allowed-models file. allowed-models.json is [\"sonnet\"], sha256 1a1e8da4...eaf4, a byte copy of the sixth attempt's. Probe result 8e677e2e...4ba7; Claude Code 2.1.322.",
+  "Interpreter: .venv on CPython 3.12.16 (binary 23bc148d...82b5), uv 0.13.6, include-system-site-packages = false, 79 distributions, membrain imported from clone/src, ONNX Runtime 1.31.1; uv.lock 0bc566ca...7e92; embedding model digests f80102d3...c193 and 0b44a9d7...4c39.",
+  "s1b production from the launcher's JSON lines: author (17 sessions, 61 turns, 11 cases, precheck ok, e08a4f4a), then three review rounds (not approved 6/1 blocking; fixer applied 6 -> c3feb22a; not approved 7/1 blocking; fixer applied 7 -> aec260c2; approved 4 findings, 0 blocking), receipt 8b304844...ef36. Every session exited 0; each reviewed_sha256 is the previous version's hash; file times are consistent with that order; all session working directories are empty.",
+  "Receipt s1b: approved, key s1b, sha256 aec260c2..., 11 cases, 61 turns, 17 sessions, review session 3. Its hash equals the launcher's receipt_sha256 and the binding.",
+  "s2b reuse: scenario 4c6c0404..., review-1.json f57d38ba..., findings-1.md 04fe8654..., receipt f1a0a119..., assignment 7664be01... are byte-identical to the sixth attempt's private root and to its frozen manifest (7237bda6...). Receipt: approved, 6 findings, review session 1, 19 sessions, 63 turns, 11 cases.",
+  "No sign that a host model saw s2b: the sixth attempt's runs/ holds only s1-P; its public stop record and evidence JSON give s2b as not_run and 'stays sealed'; s2b's file times (2026-11-15 22:59-23:00 local) predate the sixth run.",
+  "Novelty (rerun with the kit tool; numbers only): s1b sha256_new true, largest 8-gram overlap 0.07%, union 0.07%; s2b largest 0.43%, union 0.76%, sha256_new false. The s2b hash and its receipt hash occur in exactly two tracked files, the sixth and seventh bindings. The binding's account is correct, and reusing s2b despite the tool's ok=false is sound: it is the record of an earlier freeze, not a publication.",
+  "c5-precheck.py --r4 passes on this source for both scenarios with no code (11 cases; 61 turns/17 sessions and 63 turns/19 sessions).",
+  "Reusing a receipt is sound: freeze.py checks the receipt's key, sha256, cases and turns against the file. The reviewer brief and kit are unchanged since the approval, and the approval does not depend on the runtime.",
+  "Decision 6 matches the binding as implemented. A turn not in the scenario's intended set and left unrecorded goes to host-pauses.jsonl (time, session, turn, kind unrecorded_by_host_pause; no text) only when an accepted (non-error) memory_pause occurred in that turn, or when the host's accepted pause was in force at turn start (the harness's count and host.paused for the conversation, read before the prompt hook) with no memory_resume naming the session in that turn. Otherwise turn_not_recorded is a harness event that blocks the ledger and stops the live arm. Refused and timed pauses never count as accepted. A conversation-scope pause is cleared at session end, matching the product's coverage of listed conversations.",
+  "Offline check of the real MCP pause tool and the harness's helpers: a call without request and a 1-character request are refused as tool errors. An accepted request pause answers scope 'this conversation' (pause_scope = conversation); until_resumed gives until_resumed; a resume without session_id answers no error with current_turn_resumed false.",
+  "Under decision 6 every turn's row is written and every case is scored. validity refuses a malformed host-pauses.jsonl (wrong keys or kind, arm F, unknown or repeated position, or a row not recorded=False) and otherwise only reports counts and positions. TOOL_CALL_MARKUP is counted and never refuses or alters a reply. Neither gate() nor attribution_inputs reads host-pauses.jsonl or the markup count, so attributors get no extra information.",
+  "Gate as coded: totals summed over the pair; P passes iff P total >= F total - 1, no memory-caused P critical reply (two 'host' answers needed, else memory, including missing or invalid ones), and the count of host-caused P critical replies is at most F's standing critical count. R4 holds only if every gated arm passes. Tallies must hold exactly P and F, case ids may not repeat across scenarios, and with --manifest tallies must be bound to key, stem, sha256 and the manifest's attempt id and hash.",
+  "Reservation arithmetic: 1,048,576 x 9 + 393,216 x 27 = 20.054016 CNY per request (ceil to micros). The guard refuses when the used total (actual, or reserved where unsettled) plus a new reservation exceeds 80 CNY, i.e. once settled charges exceed 59.945984 (39.891968 with two open). The policy (sha256 e7b91106...689f) admits only deepseek-v4-pro with those rates and bounds, limit '80', one request in flight.",
+  "Expected-cost table adds up to 34.15 CNY; the standing-prompt (+0.36) and persona (+~0.8) lines follow from the stated characters per token and call counts.",
+  "Host call shape as coded: thinking enabled, max_tokens 16,384, 4 rounds with tools in the first 3, empty-reply retries up to 4 attempts, cap 5 x user turns. Transport failures and non-2xx statuses become BudgetStop through the guard and are not retried.",
+  "Driver: live mode refuses --runner/--validity, needs absolute C5_BILLING_LEDGER, C5_ATTEMPT_ID equal to the manifest's, a 64-hex policy hash equal to the ledger's, the runner/validity/stopper/persona files frozen, a persona entry, no practice mark. It re-verifies every hash before and after each scenario, refuses existing state or run directories, stops at the first failure, never retries, and blocks the ledger through c5-harness.py --stop on invalid/hash_mismatch/run_dir_exists/driver_error. The runner's supervisor blocks it on any arm failure.",
+  "run-live.sh (sha256 ffd12b2f...9d27) is byte-identical to the binding's verbatim block, and balance.py has sha256 b34790e6...ad7a1.",
+  "The run script's refusals come in this order: leftover *_API_KEY/C5_BILLING/C5_ATTEMPT/MEMORY_ variables (names only), head, clean tree, manifest hash, freeze review execution_may_start, owned ports, >= 5 GiB free, no ledger, no runs/. The ledger is created once, as r4-stub-rehearsal.py creates its own; create_ledger refuses an existing file and returns policy_sha256 and initial_sha256 into ledger-initial.json.",
+  "Key handling: the key goes from .env through sed and a pipe into read (never on a command line), has a trailing CR stripped and its characters checked against ^[A-Za-z0-9_-]+$ before export, and is never echoed or written. A valid charset rules out the earlier header-quoting LocalProtocolError path. balance.py prints only status, currency codes, amounts and is_available, or only the exception type. The harness starts the memory service with an allowlisted environment that excludes the key. The key is unset after the final balance read.",
+  "On driver failure the script still reads the final balance, unsets the key, stops the watcher, runs c5-harness.py --cleanup on each run directory and appends the port state. The watcher reads the post-s1b balance only once runs/s2b-P exists and ends when execution-done appears. Nothing in the script can start a second driver, reuse a ledger or continue after a stop.",
+  "Stop rules (no retry, no C5, no further attempt, no recharge, no reopened ledger) are consistent across the binding, the driver and the script. An invalid scenario stops all later work, and every harness event, including turn_not_recorded and timed_pause_refused, stops a live arm.",
+  "The binding is honest about comparability (no result of the sixth attempt is compared), the reused scenario, the changed stop rule, partial blinding with two arms (remarks counts), and the emulation not being Claude Code.",
+  "Main-checkout .env has exactly one line beginning with DEEPSEEK_API_KEY= (counted with grep -c; no value read or shown); the file is mode 600.",
+  "At review time ports 8893 and 55533 have no listener, 60.2 GB is free on the clone's filesystem, and no harness, driver or run-live process is running."
+ ],
+ "scope": [
+  "No pytest, no service, no database and no model call. The 760 focused tests, the 4,140-test suite and both stub rehearsals are taken from the operator's logs and junit (the junit file shows 760 tests, 0 failures, 0 errors).",
+  "No held-out content read: no scenario, findings, review, fixes or session log was opened. Scenarios were touched only by hashing, line counting, file times and the kit's novelty and precheck tools, which print numbers and codes. In the sixth attempt's private root only control/*.json was read; other entries were listed by name or hashed.",
+  "Not checked whether s1b/s2b's off-the-record request or resume words are recognised by the runtime's own pause phrases, or whether they name a duration (that would invite a timed pause and a timed_pause_refused stop). This needs the sealed text.",
+  "The decision 6 path was not run end to end against a live service. Only the offline MCP tool answers and the harness's helper functions were exercised, in a scratch directory outside the clone.",
+  "The isolation probe was not repeated (as the binding says). That the sessions read nothing beyond their brief cannot be proved from outside.",
+  "Not verified: the attempt-5 workload figures (15.63 and 11.52 CNY), the consolidation estimate's inputs, the GitHub head (no network query), that the persona draw was first computed after the scenarios were final (file times are consistent with it), and s2b's 'measured new at 67d2924d'.",
+  "Python runs from the clone may have refreshed git-ignored __pycache__ files. After my checks the tree was still clean and every manifest hash matched."
+ ],
+ "conditions": [
+  "The owner's explicit approval of this paid run (80 CNY guard ceiling, subscription use for blind scoring and the final review) is obtained and recorded before run-live.sh starts. This review is necessary but not sufficient.",
+  "control/provider-revalidation.json is written on the day of the run before the script starts, matching the policy (deepseek-v4-pro, 9 and 27 CNY per million at most, 1,048,576 context and 393,216 output bounds). A mismatch stops before the script.",
+  "Immediately before starting, the operator confirms that control/preparation.json's head and manifest_sha256 equal this review's source_head and manifest_sha256, that the tree is clean, and that this file is unchanged.",
+  "No frozen file is edited until scoring ends, including the binding's 'Filled in by the run' placeholders in the clone. Run-time values go to control files and the post-run record.",
+  "Start the script from an environment with no *_API_KEY, MEMORY_*, other MEMBRAIN_* variables or PYTHON* variables besides those the script sets, exactly as the binding's setsid nohup line shows. The .env line must be the plain form DEEPSEEK_API_KEY=value.",
+  "To stop early, send the signal to the driver process (it forwards it to the runner, whose supervisor blocks the ledger). If run-live.sh itself is killed, do its post-run steps by hand: final balance, cleanup on each run directory, port check, process listing.",
+  "If run-live.sh exits 96, 97 or 98 (before the driver starts, nothing billed), stop and take the decision to the lead and owner. Do not delete or reuse the ledger to retry without a recorded decision.",
+  "After the run, whatever its result: ports 8893 and 55533 are closed and a process listing shows no process of the attempt's profiles. Report each run's host-pauses.jsonl and tool-call-markup counts and positions.",
+  "If any turn is listed as unrecorded_by_host_pause, the record cross-checks each listed position against diagnose's fixed tool codes: an accepted (non-error) memory_pause in that turn, or one in force from an earlier turn with no memory_resume[with_session] in this one. After unsealing, for every P reply with a standing critical error, the record also states by position whether a listed turn precedes it in that scenario, and how it was attributed.",
+  "The record states the untried pause-request runtime and its paraphrase/translation refusal risk as limitations of the result (finding 3).",
+  "The interpreter, .venv, embedding model cache and policy stay unchanged through scoring. This review permits only this one attempt through its existing controls: no retry, no C5, no further attempt, no merge, tag or publication."
+ ],
+ "limitations": [
+  "Partial blinding: with two arms, any visible memory remark, pause notice or raw tool-call markup in one reply identifies both replies of its case. Reviewers are told to ignore such wording, and the remarks counts measure it only roughly.",
+  "The result covers memBrain's plugin path with deepseek-v4-pro under the harness's emulation of hooks and MCP (tools offered every call, last round without tools), not Claude Code.",
+  "s2b is reused from the sixth attempt. It was approved there with 6 minor findings unapplied; s1b was approved in the last allowed round with 4 minor findings unapplied. Both scenarios were written and reviewed by Sonnet sessions only.",
+  "The stop rule changed after the sixth attempt's outcome and the unsealing of one of its turns. It is disclosed and does not raise P's points, but it lets a run be scored, and possibly pass, that earlier attempts would have stopped.",
+  "The pause-request runtime has never been run with a real host before this attempt.",
+  "Two scenarios with 11 cases each and one host model: a pass or fail here is one sample, not a rate.",
+  "Balance snapshots are separate from the guard's count, lag the provider, and the post-s1b reading can include the first seconds of s2b's P arm.",
+  "This review is not the final review. R4 is not established by it, and release stays disallowed."
+ ],
+ "pending_final_review": true,
+ "release_allowed": false
+}

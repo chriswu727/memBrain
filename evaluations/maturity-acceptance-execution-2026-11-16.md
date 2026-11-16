@@ -460,11 +460,21 @@ attempt.
 
 ## Filled in by the run
 
-Nothing above this section changes after freezing. The frozen copy in the execution clone keeps these placeholders.
+Nothing above this section changed after freezing. The frozen copy in the execution clone keeps its placeholders;
+this copy was filled in on 2026-11-16 after scoring and the final review had ended.
 
-- Owner's approval of the paid run (words, date): `<filled in by the run>`
-- Provider revalidation and balances (before S1, after S1, after S2): `<filled in by the run>`
-- Ledger: initial sha256 and policy sha256 (`control/ledger-initial.json`): `<filled in by the run>`
-- Execution summary, validity per scenario, turns listed in `host-pauses.jsonl` and replies with tool-call markup
-  (counts and positions): `<filled in by the run>`
-- Scores, attribution, memory-remark counts, `gate.json` and the final review: `<filled in by the run>`
+- Owner's approval of the paid run (words, date): "可以 那就跑吧 只要保证每次验收都有成果 不是转牛角尖的死循环就行"
+  (translation: "Yes, run it then; just make sure every acceptance attempt yields something and this is not a dead
+  loop of hair-splitting"), 2026-11-16, to the lead's question whether this attempt may start under a ceiling of 80
+  CNY. An earlier start the same day was refused by the session's permission layer for lack of this approval;
+  nothing ran.
+- Provider revalidation and balances: prices re-read at 07:10 and 17:24 UTC, matching the policy; 125.34 CNY before
+  the first scenario, 123.41 after it, 120.58 after the second.
+- Ledger: initial sha256 `44d8632356ad…` and policy sha256 `5f1f913d3ebe…` as `control/ledger-initial.json` records
+  them in the evidence archive; 327 requests, all settled, 28.785141 CNY on the guard's count.
+- Execution summary: complete; `s1b` and `s2b` valid; no turn listed in `host-pauses.jsonl` and no reply with
+  tool-call markup in any run.
+- Scores, attribution, memory-remark counts, `gate.json` and the final review: `P` 16.5, `F` 16.0; one critical
+  error of `P`, attributed to the host by both attributors; none caused by memory; remark counts 0 of 22 case
+  replies in each arm (an undercount, as the final review found); `R4: true`; the final review says the pass stands
+  and is thin. [Record](maturity-seventh-attempt-2026-11-16.md).

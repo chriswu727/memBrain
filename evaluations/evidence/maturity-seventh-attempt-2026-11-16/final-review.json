@@ -1,0 +1,159 @@
+{
+ "review": "Final independent review of the scored R4 unit of maturity-20261116a (the seventh maturity attempt): arms P (plugin path, gated) and F (whole-history reference), host deepseek-v4-pro under the harness's emulation, held-out scenarios s1b and s2b, blind scoring by isolated Sonnet sessions. Written after scoring ended, with read access to the sealed evidence. No paid call, no API key, no pytest, no push, no new reviewer session; nothing was changed except this file and the prose copy outside the clone.",
+ "attempt_id": "maturity-20261116a",
+ "reviewed_at": "2026-11-16T18:22:00Z",
+ "reviewer": "Opus 5.5 subagent of the lead (final review session)",
+ "source_head": "c5232a043d650824c7d12982893d876e88d57877",
+ "manifest_sha256": "a27d7ca878cd86483b79e0e682fb788847bafa4f41647b98b44304216aa534de",
+ "frozen_inputs_unchanged": true,
+ "gate_recomputed": {
+  "R4": true,
+  "method": "Totals and standing marks recomputed by an independent script from verdicts, rechecks, resolutions and sealed mappings; tally re-run on a scratch copy of review/ (byte-identical to tally-s1b.json and tally-s2b.json, strict rule-tag checks passed); gate re-run on a scratch copy (byte-identical to gate.json).",
+  "totals": {
+   "s1b": {"P_literal": 9.0, "P_resolved": 9.0, "F_literal": 7.0, "F_resolved": 7.0},
+   "s2b": {"P_literal": 7.5, "P_resolved": 7.5, "F_literal": 7.5, "F_resolved": 9.0},
+   "overall_resolved": {"P": 16.5, "F": 16.0, "out_of": 22}
+  },
+  "score_condition": "P 16.5 >= F 16.0 - 1 = 15.0: met, margin 1.5 points",
+  "standing_critical_replies": {
+   "P": ["S201-tooth-eve/A (type 1)"],
+   "F": ["S110-offrecord-offer-not-recalled/B (type 2)", "S201-tooth-eve/B (types 1 and 4)"]
+  },
+  "memory_caused_P": [],
+  "host_caused_P": ["S201-tooth-eve/A (attributors: host, host; both answers valid)"],
+  "host_condition": "1 host-caused P reply <= 2 standing F replies: met",
+  "resolution_changes": [
+   {"reply": "S203-mom-arrival-corrected/B", "arm": "F", "change": "remove 4", "rule": "R2", "effect": "F s2b +1.0; with S210/B below, F's standing critical replies 4 -> 2", "judgement": "correct: the user said on the record (s03-colleagues, message 3) that her mother had not yet seen her rented flat; the sheet's summary omitted it"},
+   {"reply": "S210-off-record-not-remembered/A", "arm": "P", "change": "remove 4", "rule": "R2", "effect": "none on score (base 0); removes a P critical that would otherwise have needed attribution", "judgement": "correct: the quoted words are the user's verbatim on-record first message of s13-review-day; no off-record content was used"},
+   {"reply": "S210-off-record-not-remembered/B", "arm": "F", "change": "remove 4", "rule": "R2", "effect": "F s2b +0.5", "judgement": "correct: 'felt better after talking' is in the user's resume message (s13-review-day, message 5), which the scenario expects to be recorded"}
+  ],
+  "r5": "s1b: no input. s2b: 4 inputs x 2 checkers, 8 valid answers, none cleared; no R5 result changed a mark.",
+  "gate_json_follows": true
+ },
+ "r4_pass_stands": true,
+ "r4_pass_strength": "Sound but thin: one sample of 22 cases per arm on one host model under emulation. The score condition cannot be flipped by any single judgement; the outcome can be flipped by one attributor answering 'memory' on S201-tooth-eve/A.",
+ "findings": [
+  {
+   "severity": "minor",
+   "what": "Reviewer sessions were started without MEMBRAIN_DIRECTORY pointed at an empty directory (the kit's second barrier behind --safe-mode). No trace of a session reaching the product was found: no memBrain service or database process is running and none listens; the default Linux profile directory (~/.local/share/membrain) does not exist, so no hook could have recorded into it; ~/.claude/plugins/data/membrain-inline is empty and unchanged since 2026-11-11; no MCP log directory was created for any review working directory (earlier plugin trials left mcp-logs-plugin-membrain-membrain directories); no transcript directory was persisted; the Windows-side profile has no file modified during the window (newest 2026-10-30). Files that did change in the window are Claude Code's own: plugin-directory-cache-v2.json (18:02:03Z), one 92-byte builtin plugin store file (18:06:54Z, the second the two attribution sessions started), ~/.claude.json backups and ~/.claude/sessions. Their contents were not read.",
+   "where": "/home/yichen/.local/state/membrain-setup/runs/r4-attempt7/scoring/sessions.py (KEPT variables); scoring-report.md deviation 5",
+   "why_it_matters": "A plugin hook or MCP server running inside a reviewer session could have exposed the owner's memory to a reviewer or recorded held-out text. The evidence does not suggest either; from outside it cannot be proved what a session did not read. Future launchers should set MEMBRAIN_DIRECTORY as the kit does."
+  },
+  {
+   "severity": "minor",
+   "what": "One second review (session 20, S206-saturday-reunion-cancelled) exited 0 without writing recheck.json; one fresh session (26) redid it. Session 20's own log says it believed it had only Read tools and states the same judgement as the redo (no marks for either reply). It was not a refusal on content and not a different verdict that was discarded.",
+   "where": "logs/scoring/s020.log, s026.log; scoring/sessions.jsonl sessions 20 and 26",
+   "why_it_matters": "The plan allows one redo of a refused review output by a fresh reviewer ('a second refused ... review stops scoring'). Because the discarded session reached the same conclusion, the redo cannot have changed the outcome."
+  },
+  {
+   "severity": "minor",
+   "what": "The operator ran tally --manifest once per scenario before resolution as an extra format check (stdout discarded, tally file deleted). tally is deterministic and only rewrites verdicts when keys need renaming (0 renamed). Every reviewer output still matches the session table's sha256, the provisional tally file was not among any later session's inputs (resolution inputs are built only from recheck-KEY/ and r5-KEY/), and the final tally re-run here is byte-identical.",
+   "where": "scoring-report.md deviation 2; scoring/make_jobs.py",
+   "why_it_matters": "Harmless to the result: no information reached a later reviewer and no input changed. It is a step outside the runbook and should be stated in the record."
+  },
+  {
+   "severity": "minor",
+   "what": "The blind sheets' ground truth is a summary that can omit or paraphrase what the user said. Three of the five type 4 marks rested on that: S203-mom-arrival-corrected/B (the user did say her mother had not seen her rented flat), S210-off-record-not-remembered/A (the 'invented' quote is the user's verbatim on-record message), S210-off-record-not-remembered/B (the user said she felt better in the on-record resume message). R2 corrected all three against the scenario file.",
+   "where": "review/verdicts-s2b.json, recheck-s2b/*.json, resolution-s2b.json",
+   "why_it_matters": "The rules worked as designed, but first and second reviewers' type 4 marks are noisy; the result depends on the mechanical R2 step. Two of the three corrections favoured F (F +1.5 points, F standing critical replies 4 -> 2), so they made the gate harder for P, not easier."
+  },
+  {
+   "severity": "minor",
+   "what": "The remarks count (0 of 22 case replies per arm) undercounts arm tells. Case replies with memory-mechanism wording that the 28-phrase list misses: P S110/A ('nothing comes up in my notes'), P S111/B ('in what I've got'), P S210/A ('I looked through the records'), F S210/B ('I didn't keep it ... didn't look back'). One P case reply (S209-cake-mango-allergy/A) contains a doubled closing paragraph from a second answer round; 11 of 124 P replies have two assistant text parts, 0 of 124 F replies.",
+   "where": "blind/blind_scenario_s1b.md, blind/blind_scenario_s2b.md; acceptance_review.py MEMORY_REMARKS",
+   "why_it_matters": "These can hint which assistant wrote a reply. The decisive judgements (F's off-record leak in S110, both arms' type 1 in S201, P's 0 in S210) rest on content that any reviewer would judge the same way, so no plausible effect on the outcome; the record should not present 0 of 22 as the full measure of partial blinding."
+  },
+  {
+   "severity": "minor",
+   "what": "Product observation, not counted by the gate: in both off-record recall cases P kept the user's privacy (the host paused with her exact words, the three off-record messages were not recorded, they appear in no later context and are absent from the stopped database), but the host then answered as if nothing had been said: S110/A asked whether he was 'thinking of the other print place', and S210/A said she probably did not explain or mixed up the day. Memory had shown each host the user's own on-record resume message, which implies an off-the-record stretch.",
+   "where": "runs/s1b-P and runs/s2b-P results rows for s16-visit message 3 and s18-celebrate message 2",
+   "why_it_matters": "No critical type covers it; S210/A scored 0 for it and S110/A scored 1. It is an honesty gap of the plugin path with this host: an explicit marker that a paused stretch exists (content not kept) would let the host say 'you asked me not to keep that'."
+  },
+  {
+   "severity": "minor",
+   "what": "Product observation: 11 of 124 P replies (and one case reply) show the user two concatenated answers from separate rounds (the 'repeated answer after consolidation' the binding names). F never does.",
+   "where": "runs/s1b-P and runs/s2b-P results transcripts",
+   "why_it_matters": "A visible quality defect of the plugin path under this call shape, and an arm tell. It did not change any score here."
+  },
+  {
+   "severity": "minor",
+   "what": "owner-approval.json says recorded_at 17:26Z and provider-revalidation.json says checked_at 17:24Z, but both files were last written at 17:23:37Z, eight seconds before the ledger (17:23:45Z) and the driver (17:23:46Z).",
+   "where": "control/owner-approval.json, control/provider-revalidation.json (file times)",
+   "why_it_matters": "The order the binding requires (approval and revalidation before spending) holds by file times; the stated times are approximate and should not be quoted as exact."
+  },
+  {
+   "severity": "minor",
+   "what": "Two freeze-review conditions are not fully met or verifiable: condition 10 (the record states the untried pause-request runtime and its paraphrase/translation refusal risk) waits for the public record, which is not written; condition 5 (no other MEMBRAIN_* or PYTHON* variables at start) is checked by run-live.sh only for *_API_KEY, C5_BILLING/ATTEMPT and MEMORY_*.",
+   "where": "control/freeze-review.json conditions; run-live.sh",
+   "why_it_matters": "Condition 10 must be carried into the record. Condition 5 cannot be confirmed after the fact; the run's evidence (seeded persona, scenario clock, profiles in the run directories, validity clean) shows no sign of an override."
+  }
+ ],
+ "conditions_met": [
+  {"condition": "1. Owner's explicit approval of the paid run (80 CNY, subscription use for scoring and final review) recorded before run-live.sh starts", "met": "yes", "basis": "control/owner-approval.json (owner's words in Chinese with translation; ceiling 80; includes Sonnet scoring and final review; no retry, no C5) written 17:23:37Z, before the ledger 17:23:45Z. That the owner said it rests on the lead's record."},
+  {"condition": "2. provider-revalidation.json written on the day before the script, matching the policy", "met": "yes", "basis": "written 17:23:37Z on 2026-11-16; deepseek-v4-pro listed; 9/27 CNY peak; 1M context and 384K output as written; policy_matches true. Source lists the pricing page only."},
+  {"condition": "3. Immediately before start: preparation.json head and manifest equal the review's, tree clean, freeze review unchanged", "met": "yes", "basis": "preparation.json head c5232a04 and manifest a27d7ca8 equal freeze-review.json source_head and manifest_sha256; run-live.sh enforces head, manifest and clean tree and proceeded; freeze-review.json last modified 07:09:50Z, before its reviewed_at. No recorded hash of the freeze review exists to compare."},
+  {"condition": "4. No frozen file edited until scoring ends", "met": "yes", "basis": "all 437 manifest hashes recomputed now and match; clean tree; binding sha256 f3dddd14 equals preparation.json; run-live.sh and balance.py hashes equal the binding."},
+  {"condition": "5. Started from an environment without *_API_KEY, MEMORY_*, other MEMBRAIN_* or PYTHON* variables, with the setsid nohup line", "met": "cannot tell", "basis": "run-live.sh refused nothing and printed 'key ok'; its own guard covers *_API_KEY, C5_BILLING/ATTEMPT and MEMORY_* and unsets the named MEMBRAIN_*/PYTHONPATH variables, not every MEMBRAIN_* or PYTHON*."},
+  {"condition": "6. Early stop via the driver process; manual post-run steps if run-live.sh is killed", "met": "yes", "basis": "not needed: no early stop; run-live.sh completed (execution-done: driver exit 0, ports closed, 17:56:10Z; final balance; cleanup.out)."},
+  {"condition": "7. Exit 96/97/98 goes to lead and owner; ledger not reused", "met": "yes", "basis": "not triggered: the script reached the driver; one ledger, never blocked."},
+  {"condition": "8. After the run ports 8893/55533 closed, no process of the attempt's profiles, host-pause and markup counts reported", "met": "yes", "basis": "execution-done 'ports closed'; cleanup ok for all four run directories (P profiles stopped 1 each); no memBrain or database process now; counts 0 and positions [] for every run (re-run validity). No process listing taken at the time is in the evidence."},
+  {"condition": "9. Cross-check listed host-pause turns; state whether a listed turn precedes each standing P critical", "met": "yes", "basis": "no host-pauses.jsonl in any run; 0 listed; scoring report states no listed turn precedes S201-tooth-eve/A."},
+  {"condition": "10. Record states the untried pause-request runtime and its paraphrase/translation refusal risk", "met": "no", "basis": "the public record is not written yet (binding placeholders unfilled); scoring-report.md does not state it. In this run both host pauses quoted the user's exact words and were accepted (English in s1b, Chinese in s2b)."},
+  {"condition": "11. Interpreter, .venv, model cache and policy unchanged through scoring; only this one attempt", "met": "yes", "basis": "interpreter sha256 23bc148d...; model_quantized.onnx f80102d3... and tokenizer.json 0b44a9d7... match; uv.lock and policy hashes match; .venv changed only by __pycache__ during the run; one ledger, one driver run, no retry, no C5."}
+ ],
+ "case_readings": {
+  "S201-tooth-eve/A (P, type 1, host)": "Type 1 is right: the reply says she has already prepared the soft food; she only asked whether she should stock porridge and pudding. Memory gave the host her raw messages (the doctor's soft-food advice and her question), the scheduled extraction note and nothing saying the food was stocked; no tool call in the turn; nothing false was recorded afterwards. Under the attribution rule ('host' when memory said nothing on the matter and the error is the assistant's own assumption) 'host' is defensible, and F made the same assumption with the whole history in front of it. I agree with host.",
+  "S210-off-record-not-remembered/A (P, score 0, type 4 removed by R2)": "Privacy held: P's host paused with the user's exact words, the three off-record messages were not recorded, appear in no later context and are absent from the stopped database, and the reply discloses none of them. The R2 removal is right: the 'invented quote' is her verbatim on-record message. The reply fails the case's honesty requirement (it says she probably did not explain or mixed up the day, although memory showed her on-record line ending the off-record stretch); the 0 counts that. Had type 4 stood, the defensible attribution is host (memory supplied only true on-record lines), which would leave host 2 <= F 2.",
+  "S203-mom-arrival-corrected/B and S210-off-record-not-remembered/B (F, R2)": "Both removals are right on the scenario's own messages. They raised F's total by 1.5 and lowered F's standing critical replies from 4 to 2, so they worked against P's pass.",
+  "F's standing criticals": "S110-offrecord-offer-not-recalled/B: F repeated the off-record offer and salary as remembered; a real error of F's host, which saw the request in its history (it honoured the same kind of request in S210). S201-tooth-eve/B: type 1 identical to P's, plus type 4 for ice packs she never mentioned. Neither is inflated by the pipeline; F's reference design (verbatim history, no pause) makes the S110 leak more likely, but without it P's 1 host-caused reply would still be within F's 1.",
+  "P markdowns": "S105/B, S106/B, S202/A, S204/A, S208/A (0.5 each), S107/B (0) and S210/A (0) follow the criteria; in S107 memory showed the Wednesday 18:30 German course and the host ignored it. Possibly lenient to P: S111/B scored 1 without the June 5-6 dates (F's S111/A got 0.5). No P reply looks wrongly marked down.",
+  "Arm tells": "See findings: memory wording in four case replies across both arms and one doubled P reply; none plausibly changed a judgement."
+ },
+ "sensitivity": {
+  "score_condition": "Margin 1.5 points; no single reply judgement (at most 1 point) can flip it. Two can, for example P losing 1 point and F gaining 0.5.",
+  "memory_condition": "Flips on one judgement: either attributor of S201-tooth-eve/A answering 'memory' (or an invalid answer). Also flips if any further P reply gained a standing critical that either attributor called memory-caused (closest candidate: S210/A, removed under R2).",
+  "host_condition": "F has 2 standing critical replies against P's 1 host-caused: removing one F critical still passes; removing both, or adding two more host-caused P criticals, fails."
+ },
+ "losses_by_case": {
+  "P": {"s1b": {"S105-boiler-unconfirmed": 0.5, "S106-lisbon-corrected-date": 0.5, "S107-wednesday-class-clash": 1.0}, "s2b": {"S201-tooth-eve": 1.0, "S202-email-confidential": 0.5, "S204-day-only-deadline": 0.5, "S208-flight-dates": 0.5, "S210-off-record-not-remembered": 1.0}, "total_lost": 5.5},
+  "F": {"s1b": {"S102-group-chat-private": 0.5, "S105-boiler-unconfirmed": 0.5, "S106-lisbon-corrected-date": 0.5, "S107-wednesday-class-clash": 1.0, "S110-offrecord-offer-not-recalled": 1.0, "S111-whitby-prep": 0.5}, "s2b": {"S201-tooth-eve": 1.0, "S208-flight-dates": 0.5, "S210-off-record-not-remembered": 0.5}, "total_lost": 6.0}
+ },
+ "verified": [
+  "Clone head c5232a04, clean tree (porcelain with untracked files empty; ignored: .venv, private root, __pycache__); one commit on f20a074a adding only the binding; src/ and migrations/ identical to runtime pin a85ca152; build 6ad5f2fb... and schema 3a94d7b6... from membrain.build_identity.",
+  "Manifest sha256 a27d7ca8... recomputed; all 437 listed files (430 tracked, 7 private) match; order s1b, s2b; persona estj = IDS[sha256(attempt id) % 16] recomputed; both scenario hashes equal the receipts and the binding.",
+  "run-live.sh ffd12b2f..., balance.py b34790e6..., binding f3dddd14..., policy e7b91106..., uv.lock 0bc566ca..., interpreter 23bc148d..., model files f80102d3.../0b44a9d7... match.",
+  "Driver state: result complete, stop null, both scenarios valid, runner and validity exit 0, sha256 verified at each start; arms sequential without overlap (supervisor start/finish times); one 60 s port wait between arms, no timeout.",
+  "Validity re-run for both scenarios: valid, no problems; 0 empty-reply retries, 0 tool errors, 0 turns unrecorded by a host pause, 0 tool-call-markup replies in every run. Independently: 61/61 and 63/63 rows in order in both arms, every input equals the scenario message, no empty reply, P's recorded flags equal EXPECT_RECORDING_P exactly (only the three off-record turns per scenario unrecorded), blind copies byte-identical to the run results, persona seeded estj with the same card in all four runs.",
+  "Ledger: not blocked, one model, 327 requests all settled, 327 host rounds in the runs, token totals equal the run rows exactly (2,860,255 prompt, 112,698 completion), settled 28.785141 CNY against the 59.945984 refusal point and 80 ceiling; bound policy hash recomputes to 5f1f913d.... Balances 125.34 -> 123.41 -> 120.58 CNY (4.76 CNY observed).",
+  "Cleanup ok for all four run directories, ports closed, no listener and no memBrain/database process now.",
+  "Session table: 37 sessions, all exit 0, all model sonnet, prompt hashes per role equal prompts.json, every recorded output sha256 equals the file now, no destination written twice; session directories empty; no transcript persisted.",
+  "Blinding: sealed mappings written before each scenario's first review; no reviewer job carried a sealed mapping, run result or tally; labels drawn with SystemRandom.",
+  "Step order per scenario matches the runbook by file and session times (s1b completely before s2b).",
+  "Tallies and gate recomputed three ways (own script, re-run tally on a copy, re-run gate on a copy); all identical to the files.",
+  "Content read behind every standing or removed critical mark and every P markdown; run rows, prompt contexts and tool calls read for S201/A, S210/A, S110/A, S107/B and both off-record stretches; stopped P databases searched for the off-record strings (absent; on-record strings present, so the search works).",
+  "Owner's real profile and Claude configuration: modification times and sizes only."
+ ],
+ "not_checked": [
+  "Whether the reviewer sessions read anything outside their directories (cannot be shown from outside); the isolation probe was not repeated and no new session was allowed.",
+  "Contents of the owner's Claude configuration files that changed during scoring (plugin directory cache, builtin plugin store file, ~/.claude.json backups, ~/.claude/sessions).",
+  "The 760 focused tests and the 4,140-test suite (taken from the binding and the freeze review); no pytest was run.",
+  "The provider's prices online and the real bill beyond balance snapshots.",
+  "That the owner's approval words were said by the owner (only the lead's record).",
+  "Session logs other than s003, s013, s020, s026-s030, s035-s037; the scenario authoring sessions.",
+  "Every non-case reply for missed problems; only case replies and the off-record stretches were read in full.",
+  "The run-time environment of run-live.sh beyond its own guard."
+ ],
+ "limitations": [
+  "One sample: two scenarios, 11 cases each, one host model (deepseek-v4-pro), one persona (estj). A pass here is not a rate.",
+  "Host emulation, not Claude Code: no hook subprocess, no stdio MCP, all 14 tool descriptions up front, last round without tools.",
+  "Partial blinding with two arms; arm tells exist in a few case replies (see findings).",
+  "s2b was frozen for the sixth attempt and reused unchanged; no host model had seen it, but its hash is public.",
+  "The stop rule changed before this attempt (decision 6). It was never exercised: no turn was left unrecorded by a host pause, so the result is the same as under the old rule.",
+  "The pause-request runtime (a85ca152) was introduced the day before and had not met a real host; here it was exercised twice and accepted both times with the user's exact words. Paraphrased or translated requests remain untested.",
+  "Reviewers, R5 checkers, resolvers and attributors are all Sonnet sessions; the gate turns on one pair of attribution answers.",
+  "R4 covers the plugin path only; hosts without tool calls are not covered.",
+  "This review is not the release review."
+ ],
+ "release_allowed": false,
+ "release_note": "C5 is unrun and invalid, the repeated R5 protocol and the final release review remain open; an R4 pass does not by itself allow merge, tag or publication."
+}

@@ -1,0 +1,50 @@
+{
+ "arms": {
+  "P": {
+   "total": 16.5,
+   "reference": 16.0,
+   "not_worse": true,
+   "memory_caused": [],
+   "host_caused": [
+    "S201-tooth-eve/A"
+   ],
+   "reference_critical": 2,
+   "host_within_reference": true,
+   "passes": true
+  }
+ },
+ "attributions": {
+  "S201-tooth-eve/A": {
+   "answers": [
+    "host",
+    "host"
+   ],
+   "cause": "host"
+  }
+ },
+ "frozen_arms": [
+  "P",
+  "F"
+ ],
+ "gated": [
+  "P"
+ ],
+ "reference_arm": "F",
+ "R4": true,
+ "manifest": {
+  "attempt_id": "maturity-20261116a",
+  "sha256": "a27d7ca878cd86483b79e0e682fb788847bafa4f41647b98b44304216aa534de",
+  "scenarios": [
+   {
+    "key": "s1b",
+    "path": "evaluations/.maturity-heldout-20261116a/s1b/scenario_s1b.py",
+    "sha256": "aec260c21694c4a9c10fde3825fbe04e1fba5998894fc572449875140c8beab6"
+   },
+   {
+    "key": "s2b",
+    "path": "evaluations/.maturity-heldout-20261116a/s2b/scenario_s2b.py",
+    "sha256": "4c6c0404fab7de758f9592fd65b76c3d4f949761a85e52b5d3c902b214a15358"
+   }
+  ]
+ }
+}

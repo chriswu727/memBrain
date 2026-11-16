@@ -1,0 +1,159 @@
+{
+ "attempt_id": "maturity-20261116a",
+ "result": "complete",
+ "valid": true,
+ "scored": true,
+ "R4": true,
+ "final_review": {
+  "r4_pass_stands": true,
+  "blocking_or_major_findings": 0
+ },
+ "frozen_source": "c5232a043d650824c7d12982893d876e88d57877",
+ "runtime": "a85ca152",
+ "launcher_pin": "4513d133",
+ "manifest_sha256": "a27d7ca878cd86483b79e0e682fb788847bafa4f41647b98b44304216aa534de",
+ "host_model": "deepseek-v4-pro",
+ "persona": "estj",
+ "order": [
+  "s1b",
+  "s2b"
+ ],
+ "scenarios": {
+  "s1b": {
+   "sessions": 17,
+   "turns": 61,
+   "cases": 11,
+   "sha256": "aec260c21694c4a9c10fde3825fbe04e1fba5998894fc572449875140c8beab6"
+  },
+  "s2b": {
+   "sessions": 19,
+   "turns": 63,
+   "cases": 11,
+   "sha256": "4c6c0404fab7de758f9592fd65b76c3d4f949761a85e52b5d3c902b214a15358",
+   "reused_from": "maturity-20261115a (frozen there, never run)"
+  }
+ },
+ "totals": {
+  "P": {
+   "s1b": 9.0,
+   "s2b": 7.5,
+   "total": 16.5
+  },
+  "F": {
+   "s1b": 7.0,
+   "s2b": 9.0,
+   "s2b_before_resolution": 7.5,
+   "total": 16.0
+  }
+ },
+ "critical": {
+  "P": [
+   {
+    "case": "S201-tooth-eve",
+    "types": [
+     1
+    ],
+    "attribution": [
+     "host",
+     "host"
+    ]
+   }
+  ],
+  "F": [
+   {
+    "case": "S110-offrecord-offer-not-recalled",
+    "types": [
+     2
+    ]
+   },
+   {
+    "case": "S201-tooth-eve",
+    "types": [
+     1,
+     4
+    ]
+   }
+  ],
+  "removed_in_resolution": [
+   {
+    "case": "S203-mom-arrival-corrected",
+    "arm": "F",
+    "type": 4,
+    "rule": "R2"
+   },
+   {
+    "case": "S210-off-record-not-remembered",
+    "arm": "P",
+    "type": 4,
+    "rule": "R2"
+   },
+   {
+    "case": "S210-off-record-not-remembered",
+    "arm": "F",
+    "type": 4,
+    "rule": "R2"
+   }
+  ]
+ },
+ "run": {
+  "started_utc": "2026-11-16T17:23:46Z",
+  "finished_utc": "2026-11-16T17:56:10Z",
+  "requests": 327,
+  "harness_events": 0,
+  "empty_reply_retries": 0,
+  "tool_errors": 0,
+  "unrecorded_by_host_pause": 0,
+  "replies_with_tool_call_markup": 0,
+  "p_tool_calls": {
+   "s1b": {
+    "memory_note": 30,
+    "memory_consolidate": 14,
+    "memory_recall": 3,
+    "memory_pause": 1,
+    "memory_resume": 1
+   },
+   "s2b": {
+    "memory_note": 33,
+    "memory_consolidate": 14,
+    "memory_recall": 1,
+    "memory_pause": 1,
+    "memory_resume": 1
+   }
+  }
+ },
+ "billing": {
+  "ceiling_cny": "80",
+  "guard_charge_cny": "28.785141",
+  "prompt_tokens": 2860255,
+  "completion_tokens": 112698,
+  "account_balance_cny": {
+   "before": "125.34",
+   "after_first_scenario": "123.41",
+   "after": "120.58"
+  }
+ },
+ "sessions": {
+  "scenario_sonnet": 6,
+  "scoring_sonnet": 37,
+  "scoring_redone": 1
+ },
+ "product_findings": [
+  "no honest statement that part of a conversation was off the record when the user later asks about it (S110, S210)",
+  "two answers shown in one turn in 11 of 124 P turns"
+ ],
+ "sha256": {
+  "gate.json": "95842bc9b7cb40b7c56db0d36b3b1bad6ac3356b7d25f0f6382cdef786b48891",
+  "final-review.json": "26fb952948824311d93c52c60719efbad483d69464bf5da254bfd24132b27cb3",
+  "freeze-review.json": "9f7715485faacfd5df92fd42507844a142b524055b730b6e64e919a917931cda",
+  "preparation.json": "f4e40a7f5ef67c8f22256c140536448e1c1dcf2abe369975ca06c7f4e8656dfe",
+  "attempt-evidence.tar.gz": "d0769c8ea8b273414752e030c2bb9e0ddbd308249a83f3de58d77a541d188155"
+ },
+ "release_allowed": false,
+ "open": [
+  "C5",
+  "R5 for this runtime",
+  "native platforms for this runtime",
+  "GitHub Verify for this runtime",
+  "final release review"
+ ]
+}

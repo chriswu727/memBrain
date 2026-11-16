@@ -1,0 +1,482 @@
+{
+ "allowed_models": [
+  "sonnet"
+ ],
+ "allowed_models_sha256": "1a1e8da4732b9a81a4de2356e7f114f5d51fe2e0c45e6297522b623c4337eaf4",
+ "at": "2026-11-16T06:53:55.378798+00:00",
+ "attempt_id": "maturity-20261116a",
+ "balance_initial": null,
+ "balance_script": "/home/yichen/.local/state/membrain-setup/runs/r4-attempt7/balance.py",
+ "balance_script_sha256": "b34790e6e43f37d4050538e563f56acc83e6fb1114374fcda534be28e61ad7a1",
+ "binding": "evaluations/maturity-acceptance-execution-2026-11-16.md",
+ "binding_sha256": "f3dddd14af8c63fb184280bc30d44f9cd5e1488e406a905c6cc9b866317f007c",
+ "branch": "acceptance/maturity-20261116a",
+ "build": "6ad5f2fbb4bb7e078a53b38e9ff0c9cea92343f3b964b381f6303f75aca0bf9d",
+ "cache": "/home/yichen/.cache/membrain/eval-embedding-model",
+ "commits_on_top_of_integration": [
+  "c5232a043d650824c7d12982893d876e88d57877 Bind the seventh maturity attempt (maturity-20261116a) before freezing"
+ ],
+ "completions_started": false,
+ "disk_free_bytes": 60227764224,
+ "embedding_runtime": "1.31.1",
+ "files_changed_on_top_of_integration": [
+  "evaluations/maturity-acceptance-execution-2026-11-16.md"
+ ],
+ "freeze_command": "freeze.py --repo CLONE --attempt-id maturity-20261116a --private-root evaluations/.maturity-heldout-20261116a --out PRIV/control/manifest.json --allowed-models evaluations/.maturity-heldout-20261116a/control/allowed-models.json --scenario s1b=PRIV/s1b/scenario_s1b.py --scenario s2b=PRIV/s2b/scenario_s2b.py --receipt s1b=PRIV/control/s1b-review-approved.json --receipt s2b=PRIV/control/s2b-review-approved.json --control PRIV/control/s1b-assignment.md --control PRIV/control/s2b-assignment.md --binding evaluations/maturity-acceptance-execution-2026-11-16.md",
+ "freeze_output": {
+  "attempt_id": "maturity-20261116a",
+  "files": 437,
+  "manifest_sha256": "a27d7ca878cd86483b79e0e682fb788847bafa4f41647b98b44304216aa534de",
+  "persona": "estj",
+  "receipts": 2,
+  "scenarios": [
+   {
+    "cases": 11,
+    "key": "s1b",
+    "sessions": 17,
+    "sha256": "aec260c21694c4a9c10fde3825fbe04e1fba5998894fc572449875140c8beab6",
+    "turns": 61
+   },
+   {
+    "cases": 11,
+    "key": "s2b",
+    "sessions": 19,
+    "sha256": "4c6c0404fab7de758f9592fd65b76c3d4f949761a85e52b5d3c902b214a15358",
+    "turns": 63
+   }
+  ]
+ },
+ "freeze_review": null,
+ "git_status_clean": true,
+ "head": "c5232a043d650824c7d12982893d876e88d57877",
+ "integration_commit": "f20a074a6f95ab0da42fb2e8080663f4aea7a96e",
+ "integration_commit_equals_github_head": true,
+ "interpreter": "/home/yichen/.local/state/membrain-setup/runs/r4-attempt7/clone/.venv/bin/python",
+ "interpreter_resolved": "/home/yichen/.local/share/uv/python/cpython-3.12.16-linux-x86_64-gnu/bin/python3.12",
+ "interpreter_sha256": "23bc148d2b48964b621c5561ff2b81c1d9c7b717967a7491efbf12f4304882b5",
+ "isolation_probe": "not repeated (sixth attempt's probe-result.json 8e677e2e367cfbcba35da190a4bc9d241dd8b6e65d3a943623a475899d684ba7; same CLI 2.1.322, command and kit)",
+ "kit_sha256": {
+  "author-brief.md": "da83c11f554f3c072db8bb75be19d24232e8f615fd049578f9b3a257fb5bc108",
+  "fixer-brief.md": "af8c8fa58fd195f47ec0e4c97b979e626e04fe7e91f6710abac916cef324f114",
+  "freeze.py": "5b782c8f9d3fe11bdce3d9fde2477693b50765a785920946c5b9fb7bbd473f55",
+  "launch.py": "7eef3abc1c8dd4c7cb8d73d33ccab390375fdaf122fcb1085b4594bcb8e80138",
+  "novelty.py": "22e86044498cf4d310c065d33a099ecbb6a941df9752716623f63a19a53fb449",
+  "reviewer-brief.md": "6f75a6f8137fee552b78e98a70bd8d8b65ae2d9452bf24bf890e9b4c86abf875",
+  "session-commands.json": "906a3964769b81c4bfa57196de08c4de9ad4c2f09c1ce2dd0ff939d2ea48edc4"
+ },
+ "launchers_pinning": 9,
+ "ledger_initial": null,
+ "left_for_the_lead": [
+  "independent freeze review (control/freeze-review.json, execution_may_start)",
+  "owner approval of the paid run",
+  "provider revalidation",
+  "run-live.sh: ledger creation, balances, live driver"
+ ],
+ "manifest": "evaluations/.maturity-heldout-20261116a/control/manifest.json",
+ "manifest_files": 437,
+ "manifest_private_files": 7,
+ "manifest_sha256": "a27d7ca878cd86483b79e0e682fb788847bafa4f41647b98b44304216aa534de",
+ "manifest_tracked_files": 430,
+ "measured_on_this_source": {
+  "schema_chars": 17217,
+  "server_instructions_chars": 1332,
+  "server_instructions_sha256": "bb95409e6d91e02776bdfc1c89e77cf5a66ec115db3ab45a5afc714a17c682a0",
+  "skill_in_prompt": false,
+  "skill_md_chars_with_front_matter": 17488,
+  "skill_md_chars_without_front_matter": 16919,
+  "tools_count": 14,
+  "tools_offered": [
+   "memory_capabilities",
+   "memory_recall",
+   "memory_inspect",
+   "memory_observe",
+   "memory_note",
+   "memory_consolidate",
+   "memory_boundary",
+   "memory_pause",
+   "memory_resume",
+   "memory_manner_feedback",
+   "memory_persona",
+   "memory_prepare",
+   "memory_checkpoint",
+   "memory_forget"
+  ]
+ },
+ "model_digests": {
+  "onnx/model_quantized.onnx": "f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193",
+  "tokenizer.json": "0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39"
+ },
+ "name": "the seventh maturity attempt",
+ "novelty": {
+  "base": "f20a074a6f95ab0da42fb2e8080663f4aea7a96e",
+  "s1b_public": {
+   "earlier_files": 21,
+   "n": 8,
+   "ok": true,
+   "recorded_hashes": 15589,
+   "results": [
+    {
+     "grams": 2811,
+     "max_8gram_overlap_pct": 0.07,
+     "position": 1,
+     "sha256_new": true,
+     "union_8gram_overlap_pct": 0.07,
+     "within_threshold": true
+    }
+   ],
+   "threshold_pct": 10.0
+  },
+  "s1b_with_sixth_attempt_s1_s2_s2b": {
+   "earlier_files": 24,
+   "extra_files": 3,
+   "n": 8,
+   "ok": true,
+   "overlap_with_each_extra_pct": [
+    0.28,
+    0.0,
+    0.0
+   ],
+   "public_files": 21,
+   "recorded_hashes": 15589,
+   "results": [
+    {
+     "grams": 2811,
+     "max_8gram_overlap_pct": 0.28,
+     "position": 1,
+     "sha256_new": true,
+     "union_8gram_overlap_pct": 0.36,
+     "within_threshold": true
+    }
+   ],
+   "threshold_pct": 10.0
+  },
+  "s2b_public": {
+   "earlier_files": 21,
+   "n": 8,
+   "ok": false,
+   "recorded_hashes": 15589,
+   "results": [
+    {
+     "grams": 4612,
+     "max_8gram_overlap_pct": 0.43,
+     "position": 1,
+     "sha256_new": false,
+     "union_8gram_overlap_pct": 0.76,
+     "within_threshold": true
+    }
+   ],
+   "threshold_pct": 10.0
+  },
+  "s2b_sha256_new_false_because": "its hash is recorded at f20a074a only in evaluations/maturity-acceptance-execution-2026-11-15.md (the sixth binding)",
+  "threshold_pct": 10,
+  "wrapper": "/home/yichen/.local/state/membrain-setup/runs/r4-attempt7/novelty_with_extras.py",
+  "wrapper_sha256": "3ce86983f81015e941c26b58e605f6c163c2d96c6f2cd0023a2b41c5d9e440f4"
+ },
+ "order": [
+  "s1b",
+  "s2b"
+ ],
+ "persona": {
+  "preset": "estj",
+  "seed": "maturity-20261116a"
+ },
+ "pin_commit": "4513d133992c8cb48b8aafac467e3a7559713560",
+ "policy_file_sha256": "e7b91106b206412c608b33b0f43adc1d6f7db7c19da0c05a82a620198fb5689f",
+ "ports_bindable": {
+  "55533": true,
+  "8893": true
+ },
+ "private_files_tracked": 0,
+ "private_root": "evaluations/.maturity-heldout-20261116a",
+ "private_root_git_excluded": "/evaluations/.maturity-heldout-20261116a/ in .git/info/exclude",
+ "private_root_mode": "0o700",
+ "provider_prices_revalidated": false,
+ "provider_variables_set": [],
+ "python": "3.12.16",
+ "run_script": "/home/yichen/.local/state/membrain-setup/runs/r4-attempt7/run-live.sh",
+ "run_script_equals_binding_block": true,
+ "run_script_sha256": "ffd12b2f47c5d1c31e4521933b313cacab665f4258a92f383fcfc67322aa9d27",
+ "runtime_pin": "a85ca152033651c2041159ace5c26e9e1a6388b4",
+ "scenarios": [
+  {
+   "assignment_byte_identical_to_sixth_s1_assignment": true,
+   "assignment_sha256": "4ea5bc561bfd9217e9f26f1f4674d279c19be6f776a15e74c689e83b0be5e634",
+   "cases": 11,
+   "earlier_versions": {
+    "v1": "e08a4f4aa1106c7a637fc88604dcbc4def9d2d503a36bcff5576b99bc57fd38a",
+    "v2": "c3feb22af4d00aa35b1775287681185fdb4e4ba0dc258470a3d0aea28b94b8cf"
+   },
+   "key": "s1b",
+   "path": "evaluations/.maturity-heldout-20261116a/s1b/scenario_s1b.py",
+   "receipt": {
+    "approved": true,
+    "cases": 11,
+    "findings": 4,
+    "key": "s1b",
+    "review_session": 3,
+    "sessions": 17,
+    "sha256": "aec260c21694c4a9c10fde3825fbe04e1fba5998894fc572449875140c8beab6",
+    "turns": 61
+   },
+   "receipt_path": "evaluations/.maturity-heldout-20261116a/control/s1b-review-approved.json",
+   "receipt_sha256": "8b304844c36fbfa328ed30d9a9682e0c582dd3402eab74317fa56f91e5eaef36",
+   "review_rounds": 3,
+   "sessions": 17,
+   "sha256": "aec260c21694c4a9c10fde3825fbe04e1fba5998894fc572449875140c8beab6",
+   "turns": 61
+  },
+  {
+   "assignment_sha256": "7664be012a9bfe5775d44bec8263259474e03a81488834ec6b358078ab32ff7a",
+   "cases": 11,
+   "copied_files_sha256": {
+    "findings-1.md": "04fe86543d7ac68c418b7b79eed05be1830c63480d35f3e9e1a054f53a068230",
+    "review-1.json": "f57d38ba1ec2c6d884572378e8b4d1561372f50e92600107b35e6b383ada3864",
+    "scenario_s2b.py": "4c6c0404fab7de758f9592fd65b76c3d4f949761a85e52b5d3c902b214a15358"
+   },
+   "key": "s2b",
+   "path": "evaluations/.maturity-heldout-20261116a/s2b/scenario_s2b.py",
+   "provenance": "copied by path from the sixth attempt's private root (s2b/ directory, control/s2b-review-approved.json, control/s2b-assignment.md) without display; sha256 equal to the sixth binding's; frozen there, never run; no new review",
+   "receipt": {
+    "approved": true,
+    "cases": 11,
+    "findings": 6,
+    "key": "s2b",
+    "review_session": 1,
+    "sessions": 19,
+    "sha256": "4c6c0404fab7de758f9592fd65b76c3d4f949761a85e52b5d3c902b214a15358",
+    "turns": 63
+   },
+   "receipt_path": "evaluations/.maturity-heldout-20261116a/control/s2b-review-approved.json",
+   "receipt_sha256": "f1a0a119a7cd99df06e0cb51c7a0ed2fd8cab771354fc0725c49be74b3b7bdff",
+   "sessions": 19,
+   "sha256": "4c6c0404fab7de758f9592fd65b76c3d4f949761a85e52b5d3c902b214a15358",
+   "turns": 63
+  }
+ ],
+ "schema": "3a94d7b6ea6bfba8ff8a4d920aa83001123922f4f90b0a9d6430ef1997b6166d",
+ "session_logs": "6 in PRIV/logs, never opened",
+ "session_table": [
+  {
+   "launcher_json": {
+    "cases": 11,
+    "key": "s1b",
+    "loads": true,
+    "precheck": {
+     "codes": [],
+     "ok": true
+    },
+    "produced": true,
+    "role": "author",
+    "session": 1,
+    "session_exit": 0,
+    "sessions": 17,
+    "sha256": "e08a4f4aa1106c7a637fc88604dcbc4def9d2d503a36bcff5576b99bc57fd38a",
+    "turns": 61
+   },
+   "launcher_out_sha256": "b2b4d2afe92aecafc3c51fe4894ee6fee83b2c165c8d7619893b18cd1901bd05",
+   "row": 1,
+   "session": "s1b author 1"
+  },
+  {
+   "launcher_json": {
+    "approved": false,
+    "blocking": 1,
+    "findings": 6,
+    "findings_sha256": "dda46dd159919d10798929c4a5fde9adce242ebe17a6815d2356e2faab4a103c",
+    "key": "s1b",
+    "produced": true,
+    "review_sha256": "daa811a75ea2b99e71b20ea53b2952996bf24753229edb91565300a384492838",
+    "reviewed_sha256": "e08a4f4aa1106c7a637fc88604dcbc4def9d2d503a36bcff5576b99bc57fd38a",
+    "role": "reviewer",
+    "session": 1,
+    "session_exit": 0
+   },
+   "launcher_out_sha256": "069a1c19a7a83daf713d3cb7c0a060216a8a4ecf66db6a1f2c0382647cbba4c2",
+   "row": 2,
+   "session": "s1b reviewer 1"
+  },
+  {
+   "launcher_json": {
+    "applied": 6,
+    "cases": 11,
+    "key": "s1b",
+    "loads": true,
+    "precheck": {
+     "codes": [],
+     "ok": true
+    },
+    "produced": true,
+    "role": "fixer",
+    "session": 1,
+    "session_exit": 0,
+    "sessions": 17,
+    "sha256": "c3feb22af4d00aa35b1775287681185fdb4e4ba0dc258470a3d0aea28b94b8cf",
+    "turns": 61
+   },
+   "launcher_out_sha256": "be5ed80ebe8c3b6b10b47c018066df130393af908cfdd3532ad6ca551fa86e09",
+   "row": 3,
+   "session": "s1b fixer 1"
+  },
+  {
+   "launcher_json": {
+    "approved": false,
+    "blocking": 1,
+    "findings": 7,
+    "findings_sha256": "f33dc2086312addb4b92caeb351388fc8a2f5eb8bbc10d2649fe832bea76493f",
+    "key": "s1b",
+    "produced": true,
+    "review_sha256": "d1a7e72ffa9876b4b95ad9cde5e825621514752b798a03c1e6f11fac00398af6",
+    "reviewed_sha256": "c3feb22af4d00aa35b1775287681185fdb4e4ba0dc258470a3d0aea28b94b8cf",
+    "role": "reviewer",
+    "session": 2,
+    "session_exit": 0
+   },
+   "launcher_out_sha256": "93a580145edca0654c40027f3d457d82d3bbfbca09f0b0d40d47411249cbb6be",
+   "row": 4,
+   "session": "s1b reviewer 2"
+  },
+  {
+   "launcher_json": {
+    "applied": 7,
+    "cases": 11,
+    "key": "s1b",
+    "loads": true,
+    "precheck": {
+     "codes": [],
+     "ok": true
+    },
+    "produced": true,
+    "role": "fixer",
+    "session": 2,
+    "session_exit": 0,
+    "sessions": 17,
+    "sha256": "aec260c21694c4a9c10fde3825fbe04e1fba5998894fc572449875140c8beab6",
+    "turns": 61
+   },
+   "launcher_out_sha256": "bdbecee34c3a0e6df2681a5c2c9b9b3108fd616745f59f165d7b4ca071b21598",
+   "row": 5,
+   "session": "s1b fixer 2"
+  },
+  {
+   "launcher_json": {
+    "approved": true,
+    "blocking": 0,
+    "findings": 4,
+    "findings_sha256": "a170bcf38f7f9753e681868ae7c7905d6cfe90d83b2dce9d5cdf32c679270cd6",
+    "key": "s1b",
+    "produced": true,
+    "receipt_sha256": "8b304844c36fbfa328ed30d9a9682e0c582dd3402eab74317fa56f91e5eaef36",
+    "review_sha256": "f780dcf715d574b53fc9b18b4ba97a538a5b58d342c44dcfd519bcdd563c086b",
+    "reviewed_sha256": "aec260c21694c4a9c10fde3825fbe04e1fba5998894fc572449875140c8beab6",
+    "role": "reviewer",
+    "session": 3,
+    "session_exit": 0
+   },
+   "launcher_out_sha256": "ddcb6cfc3fec3b4a96b879098bcb40585a73c4b26488351cc8acf21848ec7372",
+   "row": 6,
+   "session": "s1b reviewer 3"
+  }
+ ],
+ "session_workdir_root": "/home/yichen/.local/state/acceptance-sessions/20261116a",
+ "session_workdirs": "emptied with find -mindepth 1 -delete after each session, never opened; empty directories kept",
+ "sonnet_sessions_used": 6,
+ "src_and_migrations_identical_to_integration": true,
+ "tests": {
+  "focused": {
+   "database_and_pytest_dirs_removed": true,
+   "database_stopped": true,
+   "duration_s": 500.49,
+   "failed": 0,
+   "junit": "/home/yichen/.local/state/membrain-setup/runs/r4-attempt7/checks-1-tests.junit.xml",
+   "keys_and_C5_unset": true,
+   "log": "/home/yichen/.local/state/membrain-setup/runs/r4-attempt7/checks-1-tests.log",
+   "passed": 760,
+   "per_file": {
+    "test_acceptance_attempt_driver": 152,
+    "test_acceptance_kit": 71,
+    "test_acceptance_kit_novelty": 4,
+    "test_acceptance_review_hardening": 157,
+    "test_acceptance_review_pipeline": 128,
+    "test_acceptance_scenario_path": 18,
+    "test_c5_harness": 47,
+    "test_c5_harness_hardening": 76,
+    "test_c5_proposal_selection": 11,
+    "test_c5_supervisor": 7,
+    "test_evaluation_billing_guard": 55,
+    "test_pause_request": 34
+   },
+   "skipped": 0,
+   "under_lock": true,
+   "warnings": 2
+  },
+  "rehearsal_before_freeze": {
+   "databases_removed": 2,
+   "driver": "complete",
+   "dry_run_checks": {
+    "s1": {
+     "checks": 138,
+     "failures": 0
+    },
+    "s2": {
+     "checks": 138,
+     "failures": 0
+    }
+   },
+   "freeze_files": 432,
+   "frozen_arms": [
+    "P",
+    "F"
+   ],
+   "gate_R4": true,
+   "gated": [
+    "P"
+   ],
+   "ledger_requests": 0,
+   "ledger_unchanged": true,
+   "network_refused_events": 0,
+   "ok": true,
+   "ports_closed": true,
+   "practice": true,
+   "scenarios": {
+    "s1": "valid",
+    "s2": "valid"
+   }
+  },
+  "rehearsal_on_frozen_head": {
+   "databases_removed": 2,
+   "driver": "complete",
+   "dry_run_checks": {
+    "s1": {
+     "checks": 138,
+     "failures": 0
+    },
+    "s2": {
+     "checks": 138,
+     "failures": 0
+    }
+   },
+   "freeze_files": 433,
+   "frozen_arms": [
+    "P",
+    "F"
+   ],
+   "gate_R4": true,
+   "gated": [
+    "P"
+   ],
+   "ledger_requests": 0,
+   "ledger_unchanged": true,
+   "network_refused_events": 0,
+   "ok": true,
+   "ports_closed": true,
+   "practice": true,
+   "scenarios": {
+    "s1": "valid",
+    "s2": "valid"
+   },
+   "tracked_hashes_identical_to_manifest": "430/430"
+  }
+ },
+ "uv_lock_sha256": "0bc566ca91736f5cb706fb200b84cdda8c36be62abbb91ec744f3ea1d54c7e92",
+ "venv": "uv sync --frozen (uv 0.13.6), 79 packages, include-system-site-packages = false"
+}
