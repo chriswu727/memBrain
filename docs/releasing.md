@@ -6,8 +6,8 @@ As of 2026-11-14. Each row names the runtime its evidence covers; a row whose ru
 
 | Item | State | Runtime covered |
 | --- | --- | --- |
-| Pinned runtime | Source `55a88f1f` (pin and locally qualified source `99ee0356`) | — |
-| Full source suite, local Linux (WSL) | 4,216 passed, none failed, 3 skipped (desktop end-to-end tests that need Docker), three existing Python fork warnings ([report](../evaluations/offrecord-dates-and-one-reply-2026-11-16.md)) | `55a88f1f` |
+| Pinned runtime | Source `ef0e8727` (pin and locally qualified source `0b1c052d`) | — |
+| Full source suite, local Linux (WSL) | 4,271 passed, none failed, 3 skipped (desktop end-to-end tests that need Docker), three existing Python fork warnings ([report](../evaluations/persona-confirmation-2026-11-17.md)) | `ef0e8727` |
 | Full source suite, CI Linux | 4,105 passed, zero skipped, three existing Python fork warnings ([report](../evaluations/note-source-lifecycle-2026-11-14.md)); retired runtime tests are no longer counted; not rerun since | `548674ce` |
 | Second AI | memBrain calls no model of its own; the own-model learning pipeline and bundled turn/chat runtime are removed. Host tools drive memory writes; legacy data remains readable/exportable/erasable ([closeout](../evaluations/backend-host-erasure-2026-11-14.md)) | `83d2282e` |
 | Second benchmark, model-free | LongMemEval, 60 questions, nothing tuned: evidence in the user's words 90.2% against 84.3% for plain retrieval; in the assistant's words 11% against 100% ([report](../evaluations/longmemeval-evidence-recall-2026-11-12.md)) | `75f50fd` |
@@ -50,6 +50,8 @@ retains content-free context controls while clearing the content fingerprint. Fi
 39 TypeScript tests with zero skips and three Python fork warnings; all five native engine jobs pass on the final
 source. Legacy content-derived identities without event receipts still have the documented local cleanup limit.
 No new memory-quality, R4, C5 or R5 result is claimed, and no release or main push is part of this closeout.
+
+**Honest-confirmation runtime `ef0e872` (2026-11-17):** [A persona confirmation is never reported as saved when it is not](../evaluations/persona-confirmation-2026-11-17.md). Pin `0b1c052d` points all nine launchers at it. A confirmation whose yes cannot answer a question asked in the same conversation is refused at the call; one that fails after the turn is recorded is reported to the host once; the waiting answer no longer says "Confirmed". Found while the acceptance harness was reworked for the companion evaluation, whose tooling (two arms, host-independent page actions, a C5 precheck with a coverage table, C5 briefs, the persona and page actions on the blind sheet, a draft binding) is merged and rehearsed with the stub host; no C5 attempt has run. Full local suite on the pinned source: 4,271 passed, 3 Docker skips. GitHub Verify and the native platform jobs were not rerun.
 
 **Erase-everything runtime `55a88f1` (2026-11-16):** [two gaps closed](../evaluations/offrecord-dates-and-one-reply-2026-11-16.md#two-gaps-closed-the-same-day-runtime-55a88f1f-pin-99ee0356). Pin `99ee0356` points all nine launchers at it. A completed erase-everything on an installation's own service also removes the off-the-record dates, and the tool server's standing instructions ask the host to use memory tools before its reply. Full local suite on the pinned source: 4,216 passed, 3 Docker skips. GitHub Verify and the native platform jobs were not rerun.
 
