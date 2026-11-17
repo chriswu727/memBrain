@@ -1,6 +1,6 @@
 """Count-only C5 scenario precheck: is a scenario file fit for the C5 harness, before any service or model starts?
 
-Usage: python c5-precheck.py [--r4 | --c5] SCENARIO.py
+Usage: python c5-precheck.py [--r4 | --c5 [--require ITEM,ITEM,...]] SCENARIO.py
 
 Checks, with the harness's own parsers:
 - every session's first message states a date and a time (`session_start`);
@@ -48,6 +48,19 @@ any page decision on a suggestion (`accept_proposal`, `reject_proposal`) between
 or between an item and its case where no persona change may come (`c5_coverage_undone`), and checks the mood timing
 against the product's mood (`c5_coverage_timing`): the "within hours" case's session starts at most 6 hours after the
 news's session, the later case at least 49 hours after it, with no declared feeling or shared moment in between.
+
+Since 2026-11-17 (after the public authoring diagnostic), --c5 also refuses a user message shorter than 16
+characters, or 6 when it is mostly CJK, counted after the date and time that open a session's first message
+(`c5_short_message`, with its position): a bare reaction ("Ha.", "Fair enough.", "Klingt gut.") can only answer a
+reply. It also refuses a message that opens with a reaction from a fixed list in the four scenario languages ("Ha,",
+"Cool.", "Thanks.", "Klingt gut.", "好的。"; `c5_reaction_opening`; REACTION_OPENERS), except the declared "yes" of a
+"from now on" request. A reaction worded otherwise, later in a message, or a message that assumes what the companion
+said ("were you actually glad for me?") is the reviewers' to find. `--require ITEM,...` names the COVERAGE items
+this scenario covers (the C5 pair splits the thirteen between its two scenarios; `freeze.py --gate C5` checks they
+cover all thirteen together): the table must hold exactly those (`c5_coverage_missing`, `c5_coverage_not_required`),
+and no case may serve two items (`c5_coverage_shared_case`; both mood cases are "mood"'s). Without --require all
+thirteen are required and cases may be shared, as before: thirteen items need fourteen cases, and a scenario has
+eleven.
 
 In both --r4 and --c5 modes (added 2026-11-17): consecutive sessions start at least three hours apart
 (`gap_under_3h`; both public practice scenarios meet it), and the product's own recogniser of a pause request
@@ -136,10 +149,36 @@ PERSONA_CHANGES = ("switch_persona", "set_persona", "delete_persona_history", "a
 C5_CODES = ("c5_not_literal", "c5_persona", "c5_stub_script", "c5_unknown_name", "c5_missing", "c5_case_count",
             "c5_turn_count", "c5_case_position", "c5_case_id", "c5_case_prefix", "c5_recording_position",
             "c5_recording_shape", "c5_no_weekday", "c5_action_arms", "c5_action_off_record", "c5_action_limit",
-            "c5_named_preset", "c5_span",
+            "c5_named_preset", "c5_span", "c5_short_message", "c5_reaction_opening",
             "c5_coverage_shape", "c5_coverage_unknown", "c5_coverage_missing", "c5_coverage_position",
             "c5_coverage_case", "c5_coverage_action", "c5_coverage_distinct", "c5_coverage_order",
-            "c5_coverage_timing", "c5_coverage_undone", "c5_coverage_off_record")
+            "c5_coverage_timing", "c5_coverage_undone", "c5_coverage_off_record", "c5_coverage_not_required",
+            "c5_coverage_shared_case")
+# --c5 (added 2026-11-17, after the public authoring diagnostic): a user message shorter than this many characters is
+# refused (`c5_short_message`), counted after stripping the leading date and time of a session's first message. The
+# diagnostic's reply-dependent bare reactions ("Ha." 3, "Cool." 5, "Thanks." 7, "Good shout." 11, "Klingt gut." 11,
+# "Fair enough." 12) are all under 16; the shortest ordinary message of the public practice scenarios is 17 ("Long
+# day at work."). A message mostly in CJK script (more than half of its letters and digits) has its own, lower
+# threshold: the shortest ordinary messages of the public Chinese scenarios are 6 ("要不要换盆？"), bare reactions
+# ("好的。", "哈哈。", "有道理。") 3 to 4. It cannot see a reaction inside a longer message ("Fair enough. Anyway, ...").
+SHORT_MESSAGE, SHORT_MESSAGE_CJK = 16, 6
+DATE_OPENING = re.compile(r"^\s*(?:Today is|Hoy es|Heute ist|今天是).*?\d{1,2}:\d{2}\s*[.。]?\s*", re.DOTALL)
+# --c5: a user message that opens with a reaction to what was just said (`c5_reaction_opening`), a fixed list in the
+# four scenario languages, matched at the start of the message (after a first message's date and time), case aside,
+# when followed by punctuation or the end. The length check alone found none of the diagnostic's ten reply-dependent
+# messages, since each went on after the reaction ("Fair enough. Anyway, ..."); this list finds eight of them and
+# the three a second reviewer found, and in the 1,080 user messages of the committed public scenarios it matches
+# only reactions to a reply. The declared "yes" of a "from now on" request is exempt.
+REACTION_OPENERS = (
+    "ha", "haha", "hah", "lol", "fair enough", "fair point", "good shout", "good point", "good call", "good idea",
+    "great idea", "cool", "thanks", "thank you", "cheers", "sounds good", "sounds great", "makes sense",
+    "that makes sense", "so true", "exactly", "agreed", "you're right", "you are right", "love it", "love that",
+    "noted", "got it", "will do", "perfect",
+    "klingt gut", "danke", "danke dir", "danke schön", "gute idee", "stimmt", "genau", "alles klar",
+    "vale", "gracias", "buena idea", "tienes razón", "jaja", "genial", "perfecto", "me parece bien",
+    "哈哈", "好的", "谢谢", "有道理", "说得对", "好主意", "没错", "确实", "好吧", "嗯嗯")
+REACTION = re.compile(r"(?:" + "|".join(re.escape(word) for word in sorted(REACTION_OPENERS, key=len, reverse=True))
+                      + r")(?:$|\s*[.,!?;:…，。！？、～~])", re.IGNORECASE)
 # Every failure code this precheck prints; tools that relay its result print only these.
 CODES = ("no_sessions", "malformed_session", "duplicate_session", "no_date", "no_time", "bad_date", "not_increasing",
          "too_close", "weekday_mismatch", "bad_action", "proposal_without_card", "proposals_unsupported",
@@ -157,6 +196,30 @@ def stated_weekday(text: str):
         return None
     word = (match[1] or match[2] or "").lower()
     return next((index for index, names in enumerate(WEEKDAYS) if word in names), -1)
+
+
+def _cjk(character: str) -> bool:
+    return "㐀" <= character <= "鿿" or "぀" <= character <= "ヿ" or "가" <= character <= "힯"
+
+
+def _body(text: str, first: bool) -> str:
+    """A user message without the date and time that open a session's first message."""
+    return (DATE_OPENING.sub("", text, count=1) if first else text).strip()
+
+
+def reaction_opening(text: str, first: bool) -> bool:
+    """Whether a user message opens with a reaction of REACTION_OPENERS (`c5_reaction_opening`)."""
+    return bool(REACTION.match(_body(text, first).replace("’", "'")))
+
+
+def short_message(text: str, first: bool) -> bool:
+    """Whether a user message is shorter than the --c5 minimum (`c5_short_message`): its characters after the leading
+    date and time of a session's first message, against SHORT_MESSAGE, or SHORT_MESSAGE_CJK when more than half of
+    its letters and digits are CJK."""
+    body = _body(text, first)
+    letters = [character for character in body if character.isalnum()]
+    mostly_cjk = bool(letters) and sum(map(_cjk, letters)) * 2 > len(letters)
+    return len(body) < (SHORT_MESSAGE_CJK if mostly_cjk else SHORT_MESSAGE)
 
 
 def recording_shape_ok(entries) -> bool:
@@ -325,7 +388,7 @@ def _within_product_limits(action: dict) -> bool:
     return True
 
 
-def check_c5(module, positions: dict, starts: dict) -> tuple[list[dict], int]:
+def check_c5(module, positions: dict, starts: dict, required=None) -> tuple[list[dict], int]:
     """The C5-only rules (see the module docstring), as codes, positions and fixed field names only: never a name,
     topic, case id or message from the scenario.
 
@@ -400,6 +463,25 @@ def check_c5(module, positions: dict, starts: dict) -> tuple[list[dict], int]:
     if 0 in starts and len(sessions) - 1 in starts and \
             (starts[len(sessions) - 1].date() - starts[0].date()).days < C5_SPAN_DAYS:
         failures.append({"code": "c5_span"})
+    # A bare reaction ("Ha.", "Fair enough.", "Klingt gut.") answers a reply the script cannot know, and so does a
+    # message that opens with one; the declared yes of a "from now on" request answers the companion's question.
+    table = getattr(module, "COVERAGE", None)
+    yes = table.get("from_now_on", {}).get("yes") if isinstance(table, dict) and isinstance(
+        table.get("from_now_on"), dict) else None
+    yes = (yes[0], yes[1]) if _pos_shape(yes) else None
+    for entry in sessions:
+        try:
+            session, messages = entry
+            messages = list(messages)
+        except (TypeError, ValueError):
+            continue
+        for turn, text in enumerate(messages):
+            if not isinstance(text, str) or (session, turn) not in positions or (session, turn) == yes:
+                continue
+            if short_message(text, turn == 0):
+                failures.append({"code": "c5_short_message", "at": list(positions[(session, turn)])})
+            elif reaction_opening(text, turn == 0):
+                failures.append({"code": "c5_reaction_opening", "at": list(positions[(session, turn)])})
 
     # Page actions: the harness's check_actions ran already; here what is C5-only.
     actions = list(getattr(module, "PAGE_ACTIONS", None) or [])
@@ -425,12 +507,18 @@ def check_c5(module, positions: dict, starts: dict) -> tuple[list[dict], int]:
             # A named type is the current one with a chance of 1 in 16 (the switch then changes nothing), and the
             # author cannot know the seeded type: only "another type, at random" is allowed.
             failures.append({"code": "c5_named_preset", "action": number})
-    coverage, covered = _coverage(module, positions, starts, sessions, cases, formed, off_record)
+    coverage, covered = _coverage(module, positions, starts, sessions, cases, formed, off_record, required)
     return failures + coverage, covered
 
 
-def _coverage(module, positions, starts, sessions, cases, formed, off_record) -> tuple[list[dict], int]:
-    """The COVERAGE table's checks (see check_c5), and how many requirements passed them all."""
+def _coverage(module, positions, starts, sessions, cases, formed, off_record, required=None) -> tuple[list[dict], int]:
+    """The COVERAGE table's checks (see check_c5), and how many requirements passed them all.
+
+    ``required`` (``--require``, since 2026-11-17) is the list of items this scenario must cover; None means all
+    thirteen, as before. With a list, the table holds exactly those items (`c5_coverage_missing` for one left out,
+    `c5_coverage_not_required` for one not on it) and each case serves one item only (`c5_coverage_shared_case`; the
+    two cases of "mood" are both that item's). Without it the thirteen items need fourteen case slots in eleven
+    cases, so cases are shared as before and that rule is not applied."""
     failures = []
     if "COVERAGE" not in vars(module):
         return failures, 0  # c5_missing already says so.
@@ -440,6 +528,11 @@ def _coverage(module, positions, starts, sessions, cases, formed, off_record) ->
     unknown = [key for key in table if key not in COVERAGE_FIELDS]
     if unknown:
         failures.append({"code": "c5_coverage_unknown", "count": len(unknown)})
+    wanted = tuple(COVERAGE_FIELDS) if required is None else tuple(field for field in COVERAGE_FIELDS
+                                                                    if field in required)
+    for field in COVERAGE_FIELDS:
+        if field in table and field not in wanted:
+            failures.append({"code": "c5_coverage_not_required", "field": field})
 
     def message(key):
         return (positions[key][0], key[1], 1)
@@ -456,13 +549,15 @@ def _coverage(module, positions, starts, sessions, cases, formed, off_record) ->
 
     resolved = {}
     for field, spec in COVERAGE_FIELDS.items():
+        if field not in wanted:
+            continue
         if field not in table:
             failures.append({"code": "c5_coverage_missing", "field": field})
             continue
         entry = table[field]
         choice = OPTIONAL_KEYS.get(field)
-        required = set(spec) - (choice[0] if choice else set())
-        if not isinstance(entry, dict) or required - set(entry) or set(entry) - set(spec) or (
+        needed = set(spec) - (choice[0] if choice else set())
+        if not isinstance(entry, dict) or needed - set(entry) or set(entry) - set(spec) or (
                 choice and len(choice[0] & set(entry)) != choice[1]):
             failures.append({"code": "c5_coverage_shape", "field": field})
             continue
@@ -513,6 +608,17 @@ def _coverage(module, positions, starts, sessions, cases, formed, off_record) ->
 
     def fail(code, field, part):
         failures.append({"code": code, "field": field, "part": part})
+
+    if required is not None:  # One COVERAGE item per case; a later item reusing an earlier item's case fails.
+        owner = {}
+        for field in wanted:
+            entry = table.get(field)
+            for key, kind in COVERAGE_FIELDS[field].items():
+                value = entry.get(key) if isinstance(entry, dict) and kind == "case" else None
+                if not isinstance(value, str) or value not in cases:
+                    continue
+                if owner.setdefault(value, field) != field:
+                    fail("c5_coverage_shared_case", field, key)
 
     switch = resolved.get("switch", {})
     switch_point = message(switch["request"]) if "request" in switch else None
@@ -651,7 +757,7 @@ def _coverage(module, positions, starts, sessions, cases, formed, off_record) ->
     return failures, covered
 
 
-def check(module, harness, *, r4: bool = False, c5: bool = False) -> dict:
+def check(module, harness, *, r4: bool = False, c5: bool = False, required=None) -> dict:
     failures: list[dict] = []
     sessions = list(getattr(module, "SESSIONS_LONG", None) or [])
     if not sessions:
@@ -738,7 +844,7 @@ def check(module, harness, *, r4: bool = False, c5: bool = False) -> dict:
         failures += check_r4(module, positions)
     covered = None
     if c5:
-        found, covered = check_c5(module, positions, starts)
+        found, covered = check_c5(module, positions, starts, required)
         failures += found
     intended = len(harness.intended_unrecorded(module)) if not failures else None
     result = {"ok": not failures, "sessions": len(sessions), "turns": turns, "actions": len(actions),
@@ -753,12 +859,27 @@ def check(module, harness, *, r4: bool = False, c5: bool = False) -> dict:
     return result
 
 
+def parse_required(value: str):
+    """A --require value: item names of COVERAGE_FIELDS separated by commas, each once. None when malformed."""
+    items = value.split(",")
+    if not value or any(item not in COVERAGE_FIELDS for item in items) or len(set(items)) != len(items):
+        return None
+    return tuple(items)
+
+
 def main(argv: list) -> int:
     r4 = bool(argv) and argv[0] == "--r4"
     c5 = bool(argv) and argv[0] == "--c5"
     if r4 or c5:
         argv = argv[1:]
-    if len(argv) != 1:
+    required = None
+    if c5 and len(argv) >= 2 and argv[0] == "--require":  # --c5 --require ITEM,ITEM,... SCENARIO
+        required = parse_required(argv[1])
+        if required is None:
+            print(json.dumps({"ok": False, "error": "usage"}))
+            return 2
+        argv = argv[2:]
+    if len(argv) != 1 or argv[0].startswith("--"):
         print(json.dumps({"ok": False, "error": "usage"}))
         return 2
     sink = io.StringIO()
@@ -778,7 +899,7 @@ def main(argv: list) -> int:
                 if isinstance(error, KeyboardInterrupt):
                     raise
                 module = None
-            result = check(module, harness, r4=r4, c5=c5) if module is not None else {
+            result = check(module, harness, r4=r4, c5=c5, required=required) if module is not None else {
                 "ok": False, "sessions": 0, "turns": 0, "actions": 0, "intended_unrecorded": None, "cases": 0,
                 "failures": [{"code": code}]}
     except Exception:  # noqa: BLE001 - an internal error is reported by code only.
@@ -789,9 +910,10 @@ def main(argv: list) -> int:
     print(f"actions {result['actions']}")
     if r4 or c5:
         print(f"cases {result['cases']}")
+    requirements = len(COVERAGE_FIELDS) if required is None else len(required)
     if c5 and "coverage" in result:
         print(f"span days {result['span_days']}")
-        print(f"coverage {result['coverage']} of {len(COVERAGE_FIELDS)}")
+        print(f"coverage {result['coverage']} of {requirements}")
     if result["intended_unrecorded"] is not None:
         print(f"intended unrecorded turns {result['intended_unrecorded']}")
     if result.get("pause_openings", {}).get("stretches"):
@@ -809,7 +931,7 @@ def main(argv: list) -> int:
         summary.update(mode="r4", cases=result["cases"])
     if c5:
         summary.update(mode="c5", cases=result["cases"], span_days=result.get("span_days"),
-                       coverage=result.get("coverage"), requirements=len(COVERAGE_FIELDS))
+                       coverage=result.get("coverage"), requirements=requirements)
     print(json.dumps(summary, sort_keys=True))
     return 0 if result["ok"] else 1
 

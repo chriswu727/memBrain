@@ -89,6 +89,27 @@ def c5_values(prefix="C1", plant=PLANT, dates=DATES):
     }
 
 
+# The pair's split of the thirteen COVERAGE items (2026-11-17): each scenario covers its own items, one case each.
+SCENARIO_ONE = ("stated_feeling", "inferred_feeling", "mood", "feelings_question", "boundary_in_conversation",
+                "page_deletion", "absence")
+SCENARIO_TWO = ("boundary_on_page", "reset", "manner_feedback", "from_now_on", "switch", "shared_moments")
+
+
+def split_values(part=1, prefix="C1"):
+    """c5_values with COVERAGE cut to one scenario's items of the split, each item with its own case."""
+    values = c5_values(prefix)
+    table, cases = values["COVERAGE"], values["CASES"]
+    if part == 1:  # c5_values shares cases 2 and 5 between two items each; scenario one gives each item its own.
+        table["feelings_question"] = {"case": cases[2][2]}
+        table["boundary_in_conversation"] = {"asked": ("s01", 2), "case": cases[5][2]}
+    values["COVERAGE"] = {item: table[item] for item in (SCENARIO_ONE if part == 1 else SCENARIO_TWO)}
+    return values
+
+
+def coverage_line(items) -> str:
+    return "- Coverage items: " + ", ".join(items) + "\n"
+
+
 def c5_scenario(extra="", values=None, **changes):
     values = {**(values or c5_values()), **changes}
     return "".join(f"{name} = {value!r}\n" for name, value in values.items() if value is not None) + extra
@@ -105,11 +126,12 @@ def covered(**entries):
     return table
 
 
-def run_precheck(tmp_path, source, mode="--c5"):
+def run_precheck(tmp_path, source, mode="--c5", require=None):
     path = tmp_path / "scenario.py"
     path.write_text(source)
-    done = subprocess.run([sys.executable, str(EVALUATIONS / "c5-precheck.py"), *([mode] if mode else []), str(path)],
-                          capture_output=True, text=True, timeout=60)
+    extra = ["--require", ",".join(require)] if require else []
+    done = subprocess.run([sys.executable, str(EVALUATIONS / "c5-precheck.py"), *([mode] if mode else []), *extra,
+                           str(path)], capture_output=True, text=True, timeout=60)
     assert PLANT not in done.stdout + done.stderr
     return done.returncode, json.loads(done.stdout.strip().splitlines()[-1]), done.stdout
 
@@ -256,7 +278,15 @@ UNFIT = {
                                                                            "c"])}, "", "c5_coverage_timing"),
     "a declared feeling between the news and the later mood case (M6)": ({"COVERAGE": covered(
         inferred_feeling={"message": ("s01", 1), "case": CASE[5]})}, "", "c5_coverage_timing"),
+    # 2026-11-17 authoring diagnostic: reply-independent messages.
+    "a bare reaction": ({"SESSIONS_LONG": _sessions_with(15, c5_values()["SESSIONS_LONG"][15][1][:3] + ["Fair enough."])},
+                        "", "c5_short_message"),
+    "a reaction opening a longer message": ({"SESSIONS_LONG": _sessions_with(
+        15, c5_values()["SESSIONS_LONG"][15][1][:3] + ["Cool. Anyway, off to make a massive breakfast."])}, "",
+        "c5_reaction_opening"),
 }
+# Codes that only a --require list can give (one scenario of the pair): tested in UNFIT_REQUIRED.
+REQUIRED_ONLY = {"c5_coverage_not_required", "c5_coverage_shared_case"}
 
 
 @pytest.mark.parametrize("changes, extra, expected", list(UNFIT.values()), ids=list(UNFIT))
@@ -266,7 +296,7 @@ def test_the_c5_precheck_refuses_each_unfit_scenario_with_its_code(tmp_path, cha
 
 
 def test_every_c5_code_is_tested_and_known_and_the_briefs_document_them():
-    tested = {expected for _, _, expected in UNFIT.values()} | {"c5_not_literal"}
+    tested = {expected for _, _, expected in UNFIT.values()} | {"c5_not_literal"} | REQUIRED_ONLY
     assert set(precheck_module.C5_CODES) == tested - {"weekday_mismatch", "bad_action"}
     assert set(precheck_module.C5_CODES) <= set(precheck_module.CODES)
     author, reviewer = (KIT / "c5-author-brief.md").read_text(), (KIT / "c5-reviewer-brief.md").read_text()
@@ -331,10 +361,12 @@ def repo(tmp_path):
     git(root, "add", "-A")
     git(root, "commit", "-q", "-m", "fixture")
     private = root / PRIVATE
-    for key, prefix in (("c1", "C1"), ("c2", "C2")):
+    (private / "control").mkdir(parents=True)
+    # The pair splits the thirteen items: c1 covers scenario one's, c2 scenario two's (2026-11-17).
+    for key, prefix, part, items in (("c1", "C1", 1, SCENARIO_ONE), ("c2", "C2", 2, SCENARIO_TWO)):
         (private / key).mkdir(parents=True)
-        (private / key / f"scenario_{key}.py").write_text(c5_scenario(values=c5_values(prefix)))
-    (private / "control").mkdir()
+        (private / key / f"scenario_{key}.py").write_text(c5_scenario(values=split_values(part, prefix)))
+        (private / "control" / f"{key}-assignment.md").write_text(f"- Case prefix: `{prefix}`.\n" + coverage_line(items))
     (private / "control" / "allowed-models.json").write_text(json.dumps(["fixture-model-small"]))
     return root
 
@@ -355,6 +387,8 @@ def freeze(repo, out, *extra, gate="C5", receipt_changes=None):
     for key in ("c1", "c2"):
         arguments += ["--scenario", f"{key}={PRIVATE}/{key}/scenario_{key}.py",
                       "--receipt", f"{key}={receipt(repo, key, **((receipt_changes or {}).get(key, {})))}"]
+        if gate == "C5":  # A C5 held-out scenario is frozen with its assignment (its coverage items).
+            arguments += ["--assignment", f"{key}={PRIVATE}/control/{key}-assignment.md"]
     done = subprocess.run([*arguments, *extra], capture_output=True, text=True, timeout=120)
     return done, json.loads(done.stdout.strip().splitlines()[-1])
 
@@ -376,7 +410,7 @@ def test_freeze_gate_c5_writes_the_c5_pair_both_validators_accept(repo, tmp_path
 
 
 def test_freeze_gate_c5_runs_the_c5_precheck(repo, tmp_path):
-    (repo / PRIVATE / "c2" / "scenario_c2.py").write_text(c5_scenario(values=c5_values("C2"), PERSONA={"x": 1}))
+    (repo / PRIVATE / "c2" / "scenario_c2.py").write_text(c5_scenario(values=split_values(2, "C2"), PERSONA={"x": 1}))
     done, result = freeze(repo, tmp_path / "manifest.json")
     assert done.returncode == 2 and result["refused"] == "scenario c2 fails the C5 precheck: c5_persona"
 
@@ -416,8 +450,10 @@ def kit(tmp_path):
     (private / "control").mkdir(parents=True, mode=0o700)
     (private / "control" / "allowed-models.json").write_text(json.dumps(["fixture-model-small"]))
     (tmp_path / "fake_session.py").write_text(FAKE_SESSION)
-    (tmp_path / "authored.py").write_text(c5_scenario())
-    (tmp_path / "assignment.md").write_text("Case prefix C1. Mainly English, one session in German.\n")
+    # A C5 scenario covers its assignment's items (2026-11-17): scenario one's split, with its coverage line.
+    (tmp_path / "authored.py").write_text(c5_scenario(values=split_values(1)))
+    (tmp_path / "assignment.md").write_text("Case prefix C1. Mainly English, one session in German.\n"
+                                            + coverage_line(SCENARIO_ONE))
     return tmp_path
 
 

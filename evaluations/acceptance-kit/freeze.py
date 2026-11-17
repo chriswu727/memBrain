@@ -4,13 +4,20 @@ scenarios into the manifest the attempt driver validates (acceptance-attempt-dri
 
   freeze.py --repo REPO --attempt-id ID --private-root REL --out MANIFEST --allowed-models REL
             --scenario KEY=REL_PATH [--scenario KEY=REL_PATH ...] [--gate R4|C5]
-            [--receipt KEY=REL_PATH ...] [--control REL_PATH ...] [--binding REL] [--python PATH] [--no-receipts]
+            [--receipt KEY=REL_PATH ...] [--assignment KEY=REL_PATH ...] [--control REL_PATH ...] [--binding REL]
+            [--python PATH] [--no-receipts]
 
 - --gate (default R4) is the gate of the manifest's one pair: R4 for the core scenarios, C5 for the companion
   scenarios. The manifest holds that one pair.
 - Every scenario is read without running it (scenario_literals.py); every held-out scenario must pass the precheck of
   its gate, `c5-precheck.py --r4` or `c5-precheck.py --c5`, run in a subprocess with the repository's interpreter
   (REPO/.venv/bin/python unless --python), and only the precheck's own codes are relayed.
+- C5 (since 2026-11-17): the pair splits the thirteen COVERAGE items between its two scenarios. Each held-out
+  scenario needs `--assignment KEY=REL_PATH`, the assignment its author was given, whose "Coverage items:" line
+  (acceptance-kit/assignment.py, parsed strictly) names its items: the scenario is prechecked with `--c5 --require`
+  those items, the file is frozen (it is the record of the scenario's items) and the summary prints them; and the
+  union of the scenarios' `COVERAGE` keys, read with the literal reader, must be all thirteen. --assignment is
+  refused for R4 and for the practice copies of the stub rehearsal (which are not prechecked).
 - The lead's allowed-models file (the session models launch.py accepted) is required and frozen.
 - With --binding (the committed execution binding), the binding must name the attempt id in backquotes: the persona
   seed is the attempt id fixed there before the draw is computed.
@@ -131,15 +138,27 @@ def scenario_counts(path: Path, evaluations: Path) -> dict:
         raise Refused("a scenario's sessions are malformed") from None
 
 
+def coverage_keys(path: Path, evaluations: Path) -> set:
+    """The keys of a C5 scenario's COVERAGE table, read without running it (literal assignments only)."""
+    literals = _module("scenario_literals_for_freeze_coverage", evaluations / "scenario_literals.py")
+    try:
+        table = getattr(literals.read(path), "COVERAGE", None)
+    except literals.NotLiteral as error:
+        raise Refused(f"a scenario is not literal assignments only ({error.code})") from None
+    return {key for key in table if isinstance(key, str)} if isinstance(table, dict) else set()
+
+
 GATES = ("R4", "C5")
 PRECHECK_MODE = {"R4": "--r4", "C5": "--c5"}  # The precheck mode of each gate's held-out scenarios.
 
 
-def precheck(python: Path, evaluations: Path, path: Path, gate: str = "R4") -> list[str]:
-    """`c5-precheck.py --r4` (R4) or `--c5` (C5) in a subprocess with the repository's interpreter: [] when ok, else
-    its codes (only codes the precheck itself defines are relayed)."""
+def precheck(python: Path, evaluations: Path, path: Path, gate: str = "R4", required=None) -> list[str]:
+    """`c5-precheck.py --r4` (R4) or `--c5` (C5; with `--require` the assignment's coverage items) in a subprocess
+    with the repository's interpreter: [] when ok, else its codes (only codes the precheck itself defines are
+    relayed)."""
     known = set(_module("c5_precheck_codes_for_freeze", evaluations / "c5-precheck.py").CODES)
-    done = subprocess.run([str(python), str(evaluations / "c5-precheck.py"), PRECHECK_MODE[gate], str(path)],
+    extra = ["--require", ",".join(required)] if gate == "C5" and required else []
+    done = subprocess.run([str(python), str(evaluations / "c5-precheck.py"), PRECHECK_MODE[gate], *extra, str(path)],
                           capture_output=True, text=True, timeout=300)
     try:
         summary = json.loads(done.stdout.strip().splitlines()[-1])
@@ -180,8 +199,13 @@ def freeze(args) -> dict:
         raise Refused("--private-root must be a repo-relative directory")
     scenarios = _pairs(args.scenario, "--scenario")
     receipts = dict(_pairs(args.receipt, "--receipt"))
+    assignments = dict(_pairs(getattr(args, "assignment", None) or [], "--assignment"))
     if not scenarios:
         raise Refused("at least one --scenario is required")
+    if assignments and (gate != "C5" or args.no_receipts):
+        raise Refused("--assignment is for the held-out scenarios of the C5 gate")
+    if gate == "C5" and not args.no_receipts and set(assignments) != {key for key, _ in scenarios}:
+        raise Refused("every C5 scenario needs exactly one --assignment (its coverage items)")
     if args.no_receipts and receipts:
         raise Refused("--no-receipts and --receipt exclude each other")
     if args.no_receipts and not all(is_practice(path) for _, path in scenarios):
@@ -196,6 +220,7 @@ def freeze(args) -> dict:
     tracked = set(_git(repo, "ls-files", "-z"))
     for what, path in [*((f"scenario {key}", path) for key, path in scenarios),
                        *((f"receipt {key}", path) for key, path in receipts.items()),
+                       *((f"assignment {key}", path) for key, path in assignments.items()),
                        *(("control file", path) for path in args.control),
                        ("the allowed-models file", args.allowed_models)]:
         _relative(repo, path, what)
@@ -218,17 +243,30 @@ def freeze(args) -> dict:
             raise Refused("the binding does not name this attempt id: the persona seed is fixed by the binding")
 
     evaluations = repo / "evaluations"
+    # C5: each held-out scenario covers the items its assignment names (the frozen assignment file is the record of
+    # them), and the pair covers all thirteen together.
+    required = {}
+    if assignments:
+        parser = _module("c5_assignment_for_freeze", Path(__file__).resolve().with_name("assignment.py"))
+        for key, path in assignments.items():
+            try:
+                required[key] = parser.read(repo / path)
+            except parser.AssignmentError as error:
+                raise Refused(f"the assignment for {key}: {error}") from None
     files = {path: sha256(repo / path) for path in frozen_tracked(repo)}
-    for path in [*args.control, *receipts.values(), args.allowed_models]:
+    for path in [*args.control, *receipts.values(), *assignments.values(), args.allowed_models]:
         files[path] = sha256(repo / path)
-    entries, printed = [], []
+    entries, printed, covered = [], [], set()
     for key, path in scenarios:
         digest = sha256(repo / path)
         counts = scenario_counts(repo / path, evaluations)
         if not is_practice(path):
-            codes = precheck(python, evaluations, repo / path, gate)
+            codes = precheck(python, evaluations, repo / path, gate, required.get(key))
             if codes:
                 raise Refused(f"scenario {key} fails the {gate} precheck: {', '.join(codes)}")
+        if key in required:
+            counts["coverage_items"] = list(required[key])
+            covered |= coverage_keys(repo / path, evaluations)
         if key in receipts:
             receipt = json.loads((repo / receipts[key]).read_text())
             if not isinstance(receipt, dict) or receipt.get("approved") is not True or receipt.get("key") != key:
@@ -242,6 +280,11 @@ def freeze(args) -> dict:
         files[path] = digest
         entries.append({"key": key, "path": path, "sha256": digest})
         printed.append({"key": key, "sha256": digest, **counts})
+    if required:
+        everything = _module("c5_precheck_items_for_freeze", evaluations / "c5-precheck.py").COVERAGE_FIELDS
+        missing = [item for item in everything if item not in covered]
+        if missing:
+            raise Refused(f"the pair's scenarios do not cover every C5 item together: {', '.join(missing)} missing")
     drawing = _module("acceptance_persona_for_freeze", evaluations / "acceptance_persona.py")
     manifest = {"version": 1, "attempt_id": args.attempt_id, "files": dict(sorted(files.items())),
                 "pairs": [{"gate": gate, "scenarios": entries}], "order": [key for key, _ in scenarios],
@@ -276,6 +319,9 @@ def main(argv=None) -> int:
     parser.add_argument("--scenario", action="append", default=[])
     parser.add_argument("--gate", default="R4", choices=GATES, help="the gate of the manifest's pair (default R4)")
     parser.add_argument("--receipt", action="append", default=[])
+    parser.add_argument("--assignment", action="append", default=[],
+                        help="C5 held-out scenarios: KEY=path of the assignment whose 'Coverage items:' line names "
+                             "the scenario's items (frozen); the pair must cover all thirteen together")
     parser.add_argument("--control", action="append", default=[])
     parser.add_argument("--no-receipts", action="store_true", help="the public stub rehearsal only")
     parser.add_argument("--allowed-models", required=True,

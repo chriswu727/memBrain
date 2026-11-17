@@ -27,6 +27,7 @@ from test_c5_kit import (
     c5_values,
     launch,
     run_precheck,
+    split_values,
 )
 from test_c5_kit import kit as _kit
 
@@ -525,7 +526,7 @@ def test_the_coverage_report_needs_arm_p(tmp_path):
 # M5: a scenario that fails the precheck can be repaired without a reviewer round ----------------------------------
 
 def test_a_failing_c5_version_gets_precheck_findings_and_a_fixer_applies_them(kit):
-    values = c5_values()
+    values = split_values(1)  # The kit's assignment names scenario one's items (2026-11-17).
     values["COVERAGE"]["stated_feeling"] = {"message": ("s00", 9), "case": CASE[4]}
     (kit / "authored.py").write_text(c5_scenario(values=values))
     done, result = launch(kit, "author", "--gate", "C5")
