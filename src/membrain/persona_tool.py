@@ -25,8 +25,8 @@ ACTIONS = ("list", "switch", "propose", "confirm", "decline")
 WRITES = ("switch", "propose", "confirm", "decline")
 TOOL_DESCRIPTION = (
     "The companion persona: how you present yourself to this user. One persona, one relationship: switching or "
-    "changing it never resets the mood or familiarity. action list: the sixteen personality types (id such as intj, "
-    "label, summary) and which one is current. action switch with preset (a type, in any case, or random for a "
+    "changing it never resets the mood or familiarity, and keeps the changes the user agreed to. action list: the "
+    "sixteen personality types (id such as intj, label, summary) and which one is current. action switch with preset (a type, in any case, or random for a "
     "different one): only when the user asked in this conversation to switch; that request is enough, do not ask "
     "again. When the user asks to reset their persona, that means switch with random, or with the type they name. "
     "action propose with "
@@ -44,7 +44,7 @@ TOOL_DESCRIPTION = (
 NOTES = {
     "list": "Tell the user the choices in a sentence or two, in their language, and which one is current.",
     "switch": ("Switched. Tell the user in a sentence, in their language, and present yourself this way from now on. "
-               "The mood and familiarity carried over unchanged."),
+               "The mood, familiarity and the changes the user agreed to earlier carried over unchanged."),
     "unchanged": "That persona is already the current one; nothing changed.",
     "propose": ("Nothing has changed yet. Describe this change to the user in one sentence, in their language, and ask "
                 "whether they want it. When they clearly say yes in their next message, call this tool with action "

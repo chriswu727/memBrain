@@ -852,7 +852,9 @@ def test_companion_graph_matches_saved_personality_mood_and_relationship_evidenc
     boundary = next(node for node in graph["nodes"] if node["kind"] == "boundary")
     page.locator(f'#observatory-list button[data-id="{boundary["id"]}"]').click()
     before_reset = snapshot(page)
-    client.reset_relationship()
+    client.reset_relationship()  # It keeps the boundary (since 2026-11-18); the user then removes it on its own.
+    assert [item["topic"] for item in client.relationship()["boundaries"]] == ["old workplace"]
+    client.remove_boundary(boundary["id"].split(":", 1)[1])
     page.locator('#tabs button[data-view="notes"]').click()
     open_brain(page)
     reset = settled(page, before_reset["generation"] + 1)

@@ -4,7 +4,9 @@ Each saved card is one event in a reserved conversation, so audited deletion, ex
 other record and no table is needed. Versions are stored with the ``system`` role: they are configuration set by the
 host or the user, not something anyone said, so they are never extracted into recalled memories, shown as history or
 counted as messages. The current card is the newest version that has not been deleted. Restoring and resetting save
-a new version, so history is kept until the user deletes it.
+a new version, so history is kept until the user deletes it. What the user agreed with the agent (an accepted
+suggestion, a confirmed change) is read from that history and kept across a change of personality type (see
+"Agreements" below).
 
 Style learned from the user (length, humour, formality, language) stays in ``preference`` notes; nothing here copies
 it into the card.
@@ -256,6 +258,144 @@ def _rows(service, conn, principal, brain_id, limit=MAX_VERSIONS + 1):
     return _entries(service, conn, principal, brain_id, limit)[0]
 
 
+# Agreements ---------------------------------------------------------------------------------------------------------
+# What the user agreed with the agent is memory, so it survives a change of personality type (owner, 2026-11-18): a
+# manner suggestion the user accepted (a version ``made_by`` "feedback") and a "from now on" change the agent proposed
+# and the user confirmed (``action`` "proposal"). Nothing new is stored; the agreements in force are read from the
+# version history. An agreement is what its accepted version changed in the card before it: the voice fields it set,
+# the traits, values or boundaries it added, and a name or baseline mood it replaced. Each later version keeps the
+# agreements in force before it, each with the part of it the new card still has; restoring a version takes the
+# agreements in force at that version. A switch of type and a reset (``persona_presets``) apply the agreements in
+# force on top of the new card, in the order they were made, so a switch never ends one. An agreement ends when the
+# card no longer has it through the user's own act: an accepted change of the opposite kind or a confirmed change that
+# replaces it, an edit on the memory page that removes it, restoring a version from before it, deleting the
+# personality history (every version goes) or erasing memory.
+
+AGREEMENT_LISTS = ("traits", "values", "boundaries")
+AGREEMENTS_DO_NOT_FIT = ("This card and the changes you agreed with your agent do not fit on one card together. "
+                         "Nothing was saved.")
+
+
+def _agreed(entry: dict) -> str | None:
+    """The kind of agreement a version records: "feedback" (an accepted suggestion), "proposal" (a confirmed or
+    accepted change the agent proposed), or None for any other version."""
+    if entry.get("made_by") == "feedback" and entry.get("feedback"):
+        return "feedback"
+    if entry.get("action") == "proposal" and entry.get("host_proposal"):
+        return "proposal"
+    return None
+
+
+def _effect(before: dict, after: dict) -> dict:
+    """What a version changed in the card before it: voice fields set, list entries added, name or mood replaced."""
+    before, after = {**EMPTY_CARD, **before}, {**EMPTY_CARD, **after}
+    effect = {}
+    voice = {name: after["voice"].get(name) or "" for name, _ in VOICE_FIELDS
+             if (before["voice"].get(name) or "") != (after["voice"].get(name) or "")}
+    if voice:
+        effect["voice"] = voice
+    for field in AGREEMENT_LISTS:
+        added = [value for value in after[field] if value not in before[field]]
+        if added:
+            effect[field] = added
+    for field in ("name", "baseline_mood"):
+        if before[field] != after[field]:
+            effect[field] = after[field]
+    return effect
+
+
+def _kept(changes: dict, card: dict) -> dict:
+    """The part of an agreement's changes the card still has."""
+    card = {**EMPTY_CARD, **card}
+    kept = {}
+    voice = {name: value for name, value in (changes.get("voice") or {}).items()
+             if (card["voice"].get(name) or "") == value}
+    if voice:
+        kept["voice"] = voice
+    for field in AGREEMENT_LISTS:
+        values = [value for value in changes.get(field) or () if value in card[field]]
+        if values:
+            kept[field] = values
+    for field in ("name", "baseline_mood"):
+        if field in changes and card[field] == changes[field]:
+            kept[field] = changes[field]
+    return kept
+
+
+def agreements_by_version(versions) -> dict[int, list[dict]]:
+    """The agreements in force at each version, oldest first within each list; ``versions`` oldest first."""
+    found: dict[int, list[dict]] = {}
+    state: list[dict] = []
+    previous = EMPTY_CARD
+    for entry in versions:
+        card = entry["card"]
+        base = found.get(entry.get("restored_from")) if entry.get("action") == "restore" else None
+        state = [{**agreement, "changes": kept} for agreement in (state if base is None else base)
+                 if (kept := _kept(agreement["changes"], card))]
+        source = _agreed(entry)
+        effect = _effect(previous, card) if source else {}
+        if effect:
+            state.append({"version": entry["version"], "made_at": entry["recorded_at"], "source": source,
+                          "kind": (entry["feedback"] or {}).get("kind") if source == "feedback" else None,
+                          "reason": entry.get("reason"), "changes": effect})
+        found[entry["version"]] = state
+        previous = card
+    return found
+
+
+def _ascending(service, conn, principal, brain_id) -> list[dict]:
+    """Every kept version, oldest first, read in pages."""
+    cursor = conn.execute(
+        "SELECT producer_ref,document FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+        "AND conversation_id=%s AND is_current AND NOT deleted AND NOT suppressed AND NOT retired "
+        "AND document IS NOT NULL ORDER BY sequence",
+        (*service._params(principal, brain_id), PERSONA_CONVERSATION))
+    versions = []
+    while rows := cursor.fetchmany(200):
+        versions += [entry for entry in map(_entry, rows) if entry is not None and "marker" not in entry]
+    return versions
+
+
+def agreements_in_force(service, conn, principal, brain_id) -> list[dict]:
+    """The agreements in force at the current version, in the order they were made."""
+    versions = _ascending(service, conn, principal, brain_id)
+    return agreements_by_version(versions).get(versions[-1]["version"], []) if versions else []
+
+
+def with_agreements(card: dict, agreements) -> dict:
+    """``card`` with each agreement applied on top, in order: voice fields set, list entries added, name and mood
+    replaced. Raises ``DomainError`` when the result does not pass ``normalize_card``."""
+    merged = json.loads(json.dumps({**EMPTY_CARD, **card}))
+    for agreement in agreements:
+        for field, value in agreement["changes"].items():
+            if field == "voice":
+                merged["voice"] = {**merged["voice"], **value}
+            elif field in AGREEMENT_LISTS:
+                merged[field] = merged[field] + [entry for entry in value if entry not in merged[field]]
+            else:
+                merged[field] = value
+    try:
+        return normalize_card(merged)
+    except DomainError:
+        raise DomainError("validation_failed", AGREEMENTS_DO_NOT_FIT) from None
+
+
+def base_card(card: dict, agreements) -> dict:
+    """``card`` without the parts the agreements in force put there: what the page shows as the card itself."""
+    result = json.loads(json.dumps({**EMPTY_CARD, **card}))
+    for agreement in agreements:
+        changes = agreement["changes"]
+        for name in changes.get("voice") or {}:
+            result["voice"][name] = ""
+        for field in AGREEMENT_LISTS:
+            result[field] = [value for value in result[field] if value not in (changes.get(field) or ())]
+        if "name" in changes:
+            result["name"] = ""
+        if "baseline_mood" in changes:
+            result["baseline_mood"] = None
+    return result
+
+
 def _find(service, conn, principal, brain_id, wanted):
     """The newest kept version for which ``wanted`` is true, searching every version rather than the bounded
     listing, so an old host default or an old version can still be reset to or restored."""
@@ -291,15 +431,22 @@ def current_persona(service, principal, brain_id: str) -> dict:
 def persona_versions(service, principal, brain_id: str) -> dict:
     """Every kept version, newest first, and the "history deleted" marker if the history was deleted.
 
-    ``complete`` is false when more than ``MAX_VERSIONS`` exist.
+    ``complete`` is false when more than ``MAX_VERSIONS`` exist. Each version carries the agreements in force at it
+    (``agreements``, oldest first) and its card without them (``base_card``), so the page can show an agreement
+    carried over apart from the personality type.
     """
     with service.database.transaction(principal) as conn:
         service._brain(conn, principal, brain_id)
         versions, markers = _entries(service, conn, principal, brain_id)
         versions = versions[:MAX_VERSIONS + 1]
         _quote_feedback(service, conn, principal, brain_id, versions[:MAX_VERSIONS])
+        agreed = agreements_by_version(_ascending(service, conn, principal, brain_id)) if versions else {}
+    for version in versions:
+        version["agreements"] = agreed.get(version["version"], [])
+        version["base_card"] = base_card(version["card"], version["agreements"])
     return {"versions": versions[:MAX_VERSIONS], "complete": len(versions) <= MAX_VERSIONS,
             "current_version": versions[0]["version"] if versions else 0,
+            "agreements": versions[0]["agreements"] if versions else [],
             "markers": markers}
 
 

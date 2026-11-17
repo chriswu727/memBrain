@@ -23,6 +23,7 @@ from membrain.notes import format_note, parse_note, store_note
 from membrain.relationship import (
     RELATIONSHIP_CHARACTERS,
     RELATIONSHIP_CONVERSATION,
+    SHARED_MOMENT_CUE,
     THRESHOLDS,
     acknowledge,
     add_boundary,
@@ -105,7 +106,8 @@ def test_the_block_lists_familiarity_style_boundaries_three_recent_moments_and_a
     assert "Familiarity: new: 1 day of conversation since 2 Mar, 0 shared moments." in block
     assert "How they like to be supported: listen first, advice only when asked" in block
     assert "Do not raise them, or anything recalled about them, unless the user does: my ex (also: 前任, Jordan)." in block
-    assert "Shared moments, oldest first:\n- 3 Mar: Moment 3 (id: m3)\n- 4 Mar: Moment 4 (id: m4)\n- 5 Mar: Moment 5" in block
+    assert ("Shared moments, oldest first. " + SHARED_MOMENT_CUE + "\n- 3 Mar: Moment 3 (id: m3)\n- 4 Mar: Moment 4 "
+            "(id: m4)\n- 5 Mar: Moment 5") in block
     assert "Moment 2" not in block and "Private moment" not in block  # Three at most; sensitive ones never.
     assert "Send the recipe (due 2027-03-10, id: c1)" in block and "id: c0" not in block
     assert context["once"] == ["c1"] and len(block) <= RELATIONSHIP_CHARACTERS
@@ -571,6 +573,73 @@ def test_mcp_recall_honors_boundaries_with_and_without_an_installation(brain, tm
             assert "every Sunday" in json.dumps(raised, ensure_ascii=False), directory
 
 
+
+@pytest.mark.parametrize("boundary_route", [True, False])
+def test_a_reset_keeps_every_boundary_in_force_until_the_user_removes_it(brain, tmp_path, boundary_route):
+    """Owner's decision (2026-11-18): a boundary is something the user told the companion, so a relationship reset
+    keeps it. Recall still leaves the topic out after the reset, on the MCP path and with an installation, and the
+    user removes boundaries one by one."""
+    import asyncio
+
+    import httpx
+
+    from membrain.client import MemoryClient
+    from membrain.mcp_server import create_server
+    from membrain.relationship import relationship_boundaries
+
+    service, principal, ident = brain
+    say(brain, "My ex Jordan and I hiked Mount Tam every Sunday.")
+    say(brain, "Mount Tam trails are best in spring.")
+    say(brain, "Work deadlines at Initech keep me up at night.")
+    add_boundary(service, principal, ident, "my ex", ["前任", "Jordan"])
+    add_boundary(service, principal, ident, "work deadlines", ["Initech"])
+    note(brain, "Our first conversation.", kind="milestone", shared=True)
+    set_support_style(service, principal, ident, "listen first")
+    before = relationship(service, principal, ident)["boundaries"]
+    reset = reset_relationship(service, principal, ident)
+    assert reset["removed"]["boundaries"] == 0 and reset["removed"]["shared_moments"] == 1
+    assert reset["boundaries"] == before and relationship_boundaries(service, principal, ident)["boundaries"] == before
+    assert "my ex (also: 前任, Jordan); work deadlines (also: Initech)" in reset["block"]
+    assert reset["support_style"] is None and reset["shared_moments"] == []
+    service.work_once(principal, ident)
+
+    def handle(request):
+        path, query = request.url.path, request.url.params
+        if path == "/v1/actions":
+            return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
+        if path.endswith("/relationship"):
+            return httpx.Response(200, json=relationship(service, principal, ident))
+        if path.endswith("/relationship/boundaries"):
+            return (httpx.Response(200, json=relationship_boundaries(service, principal, ident))
+                    if boundary_route else httpx.Response(404))
+        if path.endswith("/timeline/following"):
+            return httpx.Response(200, json=service.following(principal, ident, query.get_list("event_id")))
+        if path.endswith("/timeline"):
+            return httpx.Response(200, json=service.timeline(
+                principal, ident, roles=query.get_list("role"), event_ids=query.get_list("event_id") or None,
+                max_characters=int(query["max_characters"]), max_item_characters=int(query["max_item_characters"]),
+                limit=int(query["limit"])))
+        return httpx.Response(200, json={"recorded": 0})
+
+    with MemoryClient("http://memory.test", "k", ident, transport=httpx.MockTransport(handle)) as client:
+        for directory in (None, tmp_path):
+            server = create_server(client, directory=directory)
+            _, quiet = asyncio.run(server.call_tool("memory_recall", {"query": "Mount Tam"}))
+            quiet = json.dumps(quiet, ensure_ascii=False)
+            assert "best in spring" in quiet and "every Sunday" not in quiet, directory
+            _, raised = asyncio.run(server.call_tool("memory_recall", {"query": "Jordan at Mount Tam"}))
+            assert "every Sunday" in json.dumps(raised, ensure_ascii=False), directory
+    # A second reset keeps them too; the user removes them one at a time.
+    reset_relationship(service, principal, ident)
+    ex = next(item for item in relationship(service, principal, ident)["boundaries"] if item["topic"] == "my ex")
+    left = remove_boundary(service, principal, ident, ex["id"])
+    assert [item["topic"] for item in left["boundaries"]] == ["work deadlines"]
+    assert [item["topic"] for item in reset_relationship(service, principal, ident)["boundaries"]] == [
+        "work deadlines"]
+    # Adding the same topic again after a reset changes nothing: it is still the one boundary.
+    again = add_boundary(service, principal, ident, "Work Deadlines", ["Initech"])
+    assert len(again["boundaries"]) == 1
+
 def test_reset_removes_old_promises_from_host_context_and_survives_restore(brain):
     service, principal, ident = brain
     say(brain, "We discussed sending the old recipe.")
@@ -620,7 +689,8 @@ def test_reset_starts_familiarity_again_and_nothing_from_before_the_marker_retur
     messages = service.timeline(principal, ident, roles=("user",), limit=1000)["items"]
 
     reset = reset_relationship(service, principal, ident, today=TODAY)
-    assert reset["removed"] == {"shared_moments": 2, "boundaries": 1, "support_style": 1, "cap": 1,
+    # The boundary stays in force (owner's decision, 2026-11-18): the key is kept, always 0.
+    assert reset["removed"] == {"shared_moments": 2, "boundaries": 0, "support_style": 1, "cap": 1,
                                 "acknowledgements": 1}
     marker = reset["marker"]
     assert marker["marker"] == "reset" and marker["recorded_at"] and marker["applies_from_sequence"]
@@ -630,10 +700,13 @@ def test_reset_starts_familiarity_again_and_nothing_from_before_the_marker_retur
     after = relationship(service, principal, ident, today=datetime.date(2027, 3, 31))
     assert after["familiarity"]["level"] == "new"
     assert after["familiarity"]["reason"] == "new: 1 day of conversation since 31 Mar, 0 shared moments"
-    assert (after["shared_moments"], after["boundaries"], after["support_style"]) == ([], [], None)
+    assert (after["shared_moments"], after["support_style"]) == ([], None)
+    assert [(item["topic"], item["aliases"]) for item in after["boundaries"]] == [("my ex", ["前任"])]
     assert after["familiarity"]["cap"] is None
     assert after["commitments"] == {"kept": [], "missed": [], "cancelled": [], "open": []}
-    assert after["markers"] == [marker] and after["block"] is None
+    # The block now holds only the boundary that stays.
+    assert after["markers"] == [marker] and after["block"].count("my ex (also: 前任)") == 1
+    assert "Familiarity: new:" in after["block"] and "Shared moments" not in after["block"]
     # A moment read from a message before the marker is never recreated; a new one is kept.
     again = note(brain, "Named the cat Biscuit together.", kind="milestone", shared=True, source_event_ids=[source])
     assert "never recreated" in again["shared_refused"]
@@ -656,7 +729,7 @@ def test_reset_starts_familiarity_again_and_nothing_from_before_the_marker_retur
             "AND e.owner_id=t.owner_id AND e.brain_id=t.brain_id AND e.id=t.object_id WHERE t.brain_id=%s "
             "AND e.conversation_id=ANY(%s) AND t.mode='erase_content'",
             (ident, [RELATIONSHIP_CONVERSATION, "membrain-notes"])).fetchone()
-    assert tombstones["value"] >= 6  # Audited deletion, so it holds if a backup is restored.
+    assert tombstones["value"] >= 5  # Audited deletion, so it holds if a backup is restored.
     # Erasing all memory removes the marker too.
     generation = service.dashboard(principal, ident)["brain"]["scope_generation"]
     service.handle(principal, {
@@ -812,8 +885,8 @@ def test_boundary_projection_matches_reset_and_avoids_history_aggregation(brain,
             patcher.setattr(module, name, unexpected)
         response = client.get(path + "/boundaries")
         assert response.status_code == 200 and response.json() == {"boundaries": expected}
-    reset_relationship(service, principal, ident)
-    assert client.get(path + "/boundaries").json() == {"boundaries": []}
+    reset_relationship(service, principal, ident)  # A reset keeps the boundaries (since 2026-11-18).
+    assert client.get(path + "/boundaries").json() == {"boundaries": expected}
     add_boundary(service, principal, ident, "work", ["工作"])
     assert client.get(path + "/boundaries").json() == {
         "boundaries": relationship(service, principal, ident)["boundaries"]}

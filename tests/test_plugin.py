@@ -270,7 +270,9 @@ def test_complete_history_is_injected_once_and_replaces_per_message_recall(tmp_p
     monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: client)
     context = plugin.session_start({"session_id": "s2"}, tmp_path)
     assert "complete history from earlier sessions" in context and "- [2026-10-03] I'm vegetarian." in context
-    assert len(client.timeline_calls) == 1
+    # One history read; since 2026-11-18 session start also reads when the last earlier message was (one small call).
+    assert len([call for call in client.timeline_calls if call["limit"] == 1000]) == 1
+    assert len(client.timeline_calls) == 2
     assert "<membrain-source>" in plugin.user_prompt({"session_id": "s2", "prompt_id": "p", "prompt": "Plan dinner"}, tmp_path)
     assert client.recalls == 0 and client.observed == []
     plugin.stop({"session_id": "s2", "prompt_id": "p", "last_assistant_message": "Pasta?"}, tmp_path)

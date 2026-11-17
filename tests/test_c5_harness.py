@@ -254,7 +254,13 @@ def test_fs_page_line_lists_only_page_settings_in_a_fixed_format():
         '"work deadlines" (also "deadlines"), "Tom"; feelings cleared on 2026-03-10; support style: "Listen first."; '
         'familiarity limited to getting to know; simulated mood held at its baseline.')
     reference.apply({"do": "remove_boundary", "topic": "tom"}, done, tenth)
-    reference.apply({"do": "reset_relationship"}, done, eleventh)  # Erases boundaries, support style and cap.
+    # Erases the support style and cap; the boundaries stay in force (since 2026-11-18).
+    reference.apply({"do": "reset_relationship"}, done, eleventh)
+    assert reference.page_line() == (
+        'Memory page settings the user chose (not part of the conversation above): topics not to bring up: '
+        '"work deadlines" (also "deadlines"); relationship reset on 2026-03-11; feelings cleared on 2026-03-10; '
+        "simulated mood held at its baseline.")
+    reference.apply({"do": "remove_boundary", "topic": "WORK deadlines"}, done, eleventh)
     assert reference.page_line() == (
         "Memory page settings the user chose (not part of the conversation above): relationship reset on 2026-03-11; "
         "feelings cleared on 2026-03-10; simulated mood held at its baseline.")
@@ -452,14 +458,18 @@ def test_page_actions_go_through_the_api_and_remove_only_what_they_name(memory):
     ahead, result, after = act({"do": "reset_mood"})
     assert after["mood"] == "baseline" and {k: v for k, v in after.items() if k != "mood"} == {
         k: v for k, v in ahead.items() if k != "mood"}
-    ahead, result, after = act({"do": "reset_relationship"})
-    assert after["boundaries"] == [] and after["shared_moments"] == 0 and after["notes"] == ahead["notes"] - 1
+    ahead, result, after = act({"do": "reset_relationship"})  # The boundary stays (since 2026-11-18).
+    assert after["boundaries"] == ["Tom"] and after["shared_moments"] == 0 and after["notes"] == ahead["notes"] - 1
     assert (after["messages"], after["feelings"]) == (ahead["messages"], ahead["feelings"])
     ahead, result, after = act({"do": "delete_message", "session": "s1", "turn": 0})
     assert result["deleted"] == 1 and ["s1", 0, "user"] in result["removed"]
     assert after["messages"] == ahead["messages"] - len(result["removed"])
     assert after["feelings"] == 0 and after["notes"] == ahead["notes"] - 1  # The note and feeling drawn from it.
-    # The relationship reset erased the boundary: removing it finds nothing, which is not a fault.
+    # The relationship reset kept the boundary: removing it removes it; removing it again finds nothing, which is
+    # not a fault.
+    ahead, result, after = act({"do": "remove_boundary", "topic": "tom"})
+    assert result == {} and after["boundaries"] == [] and {k: v for k, v in after.items() if k != "boundaries"} == {
+        k: v for k, v in ahead.items() if k != "boundaries"}
     ahead, result, after = act({"do": "remove_boundary", "topic": "tom"})
     assert result == {"not_applicable": "boundary_not_present"} and after == ahead
     assert harness.page_status(result) == ("not_applicable", "boundary_not_present")

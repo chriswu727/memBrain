@@ -244,7 +244,8 @@ def test_an_older_archive_cannot_undo_later_companion_deletions_and_resets(brain
     assert affect_records(*brain)["markers"] == affect_markers
     assert persona_versions(*brain)["markers"] == persona_markers
     restored = bond(brain)
-    assert restored["boundaries"] == restored["shared_moments"] == []
+    # A relationship reset keeps the boundaries (since 2026-11-18); everything else it erased stays erased.
+    assert restored["shared_moments"] == [] and [item["topic"] for item in restored["boundaries"]] == ["my ex"]
     assert restored["markers"] == relationship_markers
     assert restored["familiarity"]["level"] == "new"
 
@@ -298,8 +299,11 @@ def test_empty_brain_map_contains_no_fabricated_nodes_or_edges(brain):
 def test_relationship_reset_confirmation_names_every_kind_of_state_it_removes():
     script = (WEB / "memory.js").read_text()
     message = re.search(r'confirm\("(Reset the relationship\?[^"\n]+)"\)', script).group(1)
-    for phrase in ("shared moment", "support style", "boundary", "familiarity limit", "promises"):
-        assert phrase in message
+    removed, kept = message.split("The boundaries stay in force")
+    for phrase in ("shared moment", "support style", "familiarity limit", "promises"):
+        assert phrase in removed
+    # Since 2026-11-18 a reset keeps the boundaries, and the text says so instead of listing them as deleted.
+    assert "boundar" not in removed and "remove a boundary on its own" in kept
     assert json.dumps(message, ensure_ascii=False) + ":" in (WEB / "i18n.js").read_text()
 
 

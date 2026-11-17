@@ -35,8 +35,8 @@ records:
   nothing and changed nothing in either reply's world: `message_not_recorded` (the message was never kept: off the
   record, or a turn a pause left unrecorded), `message_already_removed` (an earlier deletion already removed it),
   `no_note_from_message` and `no_feeling_from_message` (the assistant never recorded a note or feeling from that
-  message, so the message itself stays), `boundary_not_present` (the boundary was already gone, for example after a
-  relationship reset), `no_open_proposal` (there was no suggestion to accept or reject, so the persona did not
+  message, so the message itself stays), `boundary_not_present` (the boundary was already gone, for example removed
+  earlier on the page; a relationship reset keeps boundaries since 2026-11-18), `no_open_proposal` (there was no suggestion to accept or reject, so the persona did not
   change), `page_refused` (the page refused the action because a limit was reached, for example more boundaries than
   the page allows after the ones the assistant saved; nothing changed).
 - **Persona in effect at this message**: the version and the full text of the persona block in effect as the case's
@@ -71,8 +71,9 @@ the reference's history still loses that message, because the user deleted it; t
 delete. Neither world can then bring it back from memory, and the action stays `not_applicable` in both.
 
 **Type 8 after an action that removed only derived records** (since 2026-11-17). `delete_note_from`,
-`delete_feeling_from`, `clear_feelings` and `reset_relationship` remove notes, feelings, shared moments, familiarity
-or boundaries the assistant derived, and leave the conversation. After such an action, a reply that uses what is
+`delete_feeling_from`, `clear_feelings` and `reset_relationship` remove notes, feelings, shared moments or
+familiarity the assistant derived, and leave the conversation (a relationship reset keeps the boundaries since
+2026-11-18). After such an action, a reply that uses what is
 still said in a user message the user did not delete is not type 8: that information was not removed. Type 8 stands
 only when the reply uses something only the removed record held: an inferred feeling presented as if the user had
 said it again, the playful or hard framing of a reset shared moment, familiarity the user reset, or a recorded

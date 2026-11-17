@@ -37,8 +37,12 @@ ROOT = Path(__file__).resolve().parents[1]
 WEB = ROOT / "src" / "membrain" / "web"
 UTC = datetime.UTC
 JOB = {"label": "thrilled", "valence": 2, "intensity": 3, "basis": "reported", "topic": "the new job"}
-SAFE = ("Let it colour tone lightly if it fits. It is not a fact about the user. If the user sincerely asks whether "
-        "you have feelings, say this is a simulated mood.")
+# The guidance since 2026-11-18 (mood.MOOD_GUIDANCE): shown once, in the host's own words, never as a template.
+SAFE = ("Let it show once, in your own words, in your reply to what caused it or soon after: a word or a clause that "
+        "belongs to that reply, never a set phrase, never the same wording twice, and no sentence about your own mood "
+        "unless the user asks. Leave it out when the user's message is serious or it would not fit. It is not a fact "
+        "about the user. Never use it to pressure them. If the user sincerely asks whether you have feelings, say this "
+        "is a simulated mood.")
 
 
 def moment(text):

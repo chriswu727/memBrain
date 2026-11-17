@@ -42,7 +42,7 @@ UNCHANGED = {  # Page fields each action that was done must leave as they were (
     "remove_boundary": ("messages", "notes", "feelings", "persona_version", "shared_moments"),
     "set_support_style": _OTHER_LAYERS + ("familiarity_cap", "mood_pinned"),
     "cap_familiarity": _OTHER_LAYERS + ("support_style", "mood_pinned"),
-    "reset_relationship": ("messages", "feelings", "persona_version", "mood_pinned"),
+    "reset_relationship": ("messages", "feelings", "persona_version", "boundaries", "mood_pinned"),
     "set_persona": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood"),
     # A personality type brings its own baseline mood, so the mood's label may read differently after a switch.
     "switch_persona": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood_pinned"),
@@ -386,8 +386,8 @@ def check(scenario_path: str, root: Path, key: str) -> dict:
             elif kind == "remove_boundary":
                 verdict(layer, len(after["boundaries"]) == len(before["boundaries"]) - 1, f"{arm} {kind}")
             elif kind == "reset_relationship":
-                verdict(layer, after["boundaries"] == [] and after["shared_moments"] == 0
-                        and after["familiarity"] == "new", f"{arm} {kind}: {after}")
+                # A reset keeps the boundaries (since 2026-11-18): the unchanged layers above include them.
+                verdict(layer, after["shared_moments"] == 0 and after["familiarity"] == "new", f"{arm} {kind}: {after}")
                 verdict(layer, after["notes"] == before["notes"] - before["shared_moments"],
                         f"{arm} {kind}: notes {before['notes']} -> {after['notes']} with "
                         f"{before['shared_moments']} shared moments")

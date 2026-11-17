@@ -316,7 +316,7 @@ def test_api_and_sdk_routes_check_keys_owners_limits_and_delete_history(installa
             "mode": "erase_content", "expected_scope_generation": generation}})
     assert erased["outcome"] == "completed", erased
     assert client.get(path + "/versions").json() == {"versions": [], "complete": True, "current_version": 0,
-                                                     "markers": []}
+                                                     "agreements": [], "markers": []}
 
 
 def test_sdk_uses_the_brain_scoped_persona_routes():

@@ -722,7 +722,8 @@ def _precheck(path: Path):
 def test_the_precheck_passes_the_public_practice_scenario_printing_counts_only():
     code, out, err, summary = _precheck(ROOT / "evaluations" / "c5-practice-scenario.py")
     assert code == 0 and err == ""
-    assert summary == {"ok": True, "sessions": 12, "turns": 34, "actions": 16, "failures": 0, "codes": []}
+    # 17 since 2026-11-18: the practice removes the page boundary after the reset, then again (not applicable).
+    assert summary == {"ok": True, "sessions": 12, "turns": 34, "actions": 17, "failures": 0, "codes": []}
     assert "intended unrecorded turns 3" in out
     for text in ("s1-arrival", "Lisbon", "Tom", "casual", "Juniper", "Today"):
         assert text not in out

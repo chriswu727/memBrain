@@ -144,7 +144,9 @@ def test_relationship_reset_removes_settings_and_moments_but_keeps_persona(brain
     assert any(node["id"] == "note:" + saved["note_id"] for node in before["nodes"])
     reset_relationship(*brain)
     after = companion_map(*brain)
-    assert not any(node["kind"] in ("boundary", "support_style") for node in after["nodes"])
+    # The boundary stays in force through a reset (since 2026-11-18); the support style goes.
+    assert not any(node["kind"] == "support_style" for node in after["nodes"])
+    assert [node["label"] for node in after["nodes"] if node["kind"] == "boundary"] == ["old workplace"]
     assert any(node["kind"] == "persona" for node in after["nodes"])
     assert "first puzzle" not in json.dumps(after)
 

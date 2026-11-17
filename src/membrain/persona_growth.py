@@ -129,7 +129,11 @@ KINDS = {
         "zh_more": "活泼|俏皮|有趣|幽默|好玩|调皮",
     },
     "shorter": {
-        "label": ("shorter replies", "回复更简短"), "field": "voice.length", "value": {"en": "short", "zh": "简短"},
+        # A limit a reader can check, not a style word; "longer" is its mirror image (second two-arm companion
+        # attempt, 2026-11-17). A card accepted before keeps its "short" or "简短" (versions are never rewritten);
+        # three more such comments then suggest replacing it with this limit.
+        "label": ("shorter replies", "回复更简短"), "field": "voice.length",
+        "value": {"en": "one to three sentences unless the user asks for detail", "zh": "一到三句话，除非用户要求详细"},
         "less": "long|long-winded|wordy|verbose|lengthy|rambly|rambling",
         "more": "concise|brief|succinct",
         "comparative": "shorter|briefer",
@@ -142,7 +146,7 @@ KINDS = {
     },
     "longer": {
         "label": ("longer, more detailed replies", "回复更详细"), "field": "voice.length",
-        "value": {"en": "detailed", "zh": "详细"},
+        "value": {"en": "four or more sentences unless the user wants a short reply", "zh": "至少四句话，除非用户要求简短"},
         "less": "short|brief|terse|curt",
         "more": "detailed|thorough|elaborate|in-depth",
         "comparative": "longer",

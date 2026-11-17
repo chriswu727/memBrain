@@ -669,17 +669,17 @@ def _coverage(module, positions, starts, sessions, cases, formed, off_record, re
     if "boundary_in_conversation" in resolved:
         asked, case = message(resolved["boundary_in_conversation"]["asked"]), resolved["boundary_in_conversation"][
             "case"]
+        # A relationship reset keeps boundaries (since 2026-11-18), so only the page can undo one: a removal,
+        # which takes only a topic the page added.
         if not asked < case:
             fail("c5_coverage_order", "boundary_in_conversation", "case")
-        elif between(asked, case, lambda action: action.get("do") == "reset_relationship"):
-            fail("c5_coverage_undone", "boundary_in_conversation", "case")
 
     if "boundary_on_page" in resolved:
         index, case = resolved["boundary_on_page"]["action"], resolved["boundary_on_page"]["case"]
         topic = _topic(formed[index][2].get("topic"))
         if not applied(index) < case:
             fail("c5_coverage_order", "boundary_on_page", "case")
-        elif between(applied(index), case, lambda action: action.get("do") == "reset_relationship" or (
+        elif between(applied(index), case, lambda action: (
                 action.get("do") == "remove_boundary" and _topic(action.get("topic")) == topic)):
             fail("c5_coverage_undone", "boundary_on_page", "case")
 

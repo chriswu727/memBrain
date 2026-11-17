@@ -17,10 +17,12 @@ What is stored here, and where:
 - **Commitments kept and missed** come from ``agent_commitment`` notes: done is kept; still open after its date is
   missed. A missed one is shown once in context and then acknowledged, so it is not repeated.
 
-Reset erases the shared-moment notes, the support style, the boundaries, the cap and the acknowledgements with the
-same audited deletion as notes, and writes a reset marker with the sequence it applies from. Nothing before the
-marker counts again: not days of conversation, not moments, not commitments, and a moment read from messages
-before it is refused its ``shared`` flag. Conversations themselves stay, so recall of what was said is unchanged.
+Reset erases the shared-moment notes, the support style, the cap and the acknowledgements with the same audited
+deletion as notes, and writes a reset marker with the sequence it applies from. Nothing before the marker counts
+again: not days of conversation, not moments, not commitments, and a moment read from messages before it is refused
+its ``shared`` flag. Conversations themselves stay, so recall of what was said is unchanged. The boundaries stay in
+force: each is something the user told the companion, so only the user removes one, one at a time (owner's decision,
+2026-11-18; before it a reset erased them too).
 
 This module has no model call and imports nothing heavy at load, so hooks can render the block.
 """
@@ -64,6 +66,11 @@ HARD_MELLOW_DAYS = 30
 HARD_MELLOW_CONVERSATION_DAYS = 5
 HARD_RECENT = "a hard time, still recent: leave it unless the user brings it up, and be gentle when they do"
 HARD_MELLOWED = "a hard time you came through together: it can be remembered without the old weight"
+# After the shared-moment heading of the block. A host with a playful and a hard moment listed referred to neither when
+# they were relevant (second two-arm companion attempt, 2026-11-17): a listing alone is not a cue to use one.
+SHARED_MOMENT_CUE = ("You may refer to one of these when what the user says makes it relevant, in your own words: "
+                     "lightly for a hard time that has mellowed, gently for a recent one. Never recite the list.")
+SHARED_MOMENTS_HEADING = "\nShared moments, oldest first. " + SHARED_MOMENT_CUE + "\n"
 _VISIBLE = ("tenant_id=%s AND owner_id=%s AND brain_id=%s AND is_current AND NOT deleted AND NOT suppressed "
             "AND NOT retired AND document IS NOT NULL")
 # Leading words dropped from a boundary topic before matching, so "my ex" matches "my ex texted" and "the ex".
@@ -209,12 +216,13 @@ def _entries(service, conn, principal, brain_id) -> Iterator[dict]:
 
 
 def _state(service, conn, principal, brain_id) -> dict:
-    """The latest marker, the markers newest first, and the records after the latest marker."""
+    """The latest marker, the markers newest first, the records after the latest marker, and every boundary: a reset
+    keeps the boundaries, so one saved before a marker is still in force after it."""
     markers, records = [], []
     for entry in _entries(service, conn, principal, brain_id):
         if "marker" in entry:
             markers.append(entry)
-            records.clear()
+            records = [record for record in records if record["kind"] == "boundary"]
         else:
             records.append(entry)
     after = markers[-1]["applies_from_sequence"] if markers else 0
@@ -521,13 +529,13 @@ def relationship_context(result: dict | None) -> dict:
         hard = ("" if moment.get("moment") != "hard"
                 else f"; {HARD_MELLOWED if moment.get('mellowed') else HARD_RECENT}")
         text = f"- {_short(when, today)}: {moment['text']} (id: {moment['id']}{hard})"
-        size = len(header) + len(body) + len(footer) + len("\nShared moments, oldest first:") + sum(
-            len(value) + 1 for value in chosen) + len(text) + 1
+        size = len(header) + len(body) + len(footer) + len(SHARED_MOMENTS_HEADING) + sum(
+            len(value) + 1 for value in chosen) + len(text)
         if size > RELATIONSHIP_CHARACTERS:
             break
         chosen.insert(0, text)
     if chosen:
-        body += "\nShared moments, oldest first:\n" + "\n".join(chosen)
+        body += SHARED_MOMENTS_HEADING + "\n".join(chosen)
         stable.append("\n".join(chosen))
     stable.append(json.dumps(sorted(item["note_id"] for item in missed)))
     if not stable[:-1] and not once_lines:
@@ -658,10 +666,11 @@ def acknowledge(service, principal, brain_id: str, note_ids, *, today=None) -> d
 
 
 def reset_relationship(service, principal, brain_id: str, *, today=None) -> dict:
-    """Erase the shared moments, support style, boundaries, cap and acknowledgements, and write a reset marker.
+    """Erase the shared moments, support style, cap and acknowledgements, and write a reset marker.
 
-    Familiarity then counts only days after the marker, and nothing before it is derived again. Conversations,
-    the user's other notes, the persona, feelings and mood are untouched.
+    Familiarity then counts only days after the marker, and nothing before it is derived again. The boundaries stay
+    in force (the user removes them one by one), and conversations, the user's other notes, the persona, feelings and
+    mood are untouched. ``removed["boundaries"]`` is therefore always 0; the key is kept for readers of the marker.
     """
     with service.database.transaction(principal) as conn:
         conn.execute("SET LOCAL lock_timeout = '5s'")
@@ -676,12 +685,12 @@ def reset_relationship(service, principal, brain_id: str, *, today=None) -> dict
             "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND conversation_id=%s AND NOT deleted "
             "AND document IS NOT NULL AND document->'observed'->'content'->>'text' LIKE '[milestone%%'",
             (*params, NOTES_CONVERSATION)) if parse_note(row["text"] or "")[0].get("shared")]
-        marker_ids = {marker["id"] for marker in state["markers"]}
+        kept = {marker["id"] for marker in state["markers"]} | {boundary["id"] for boundary in state["boundaries"]}
         records = [row["id"] for row in conn.execute(
             "SELECT DISTINCT id FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
             "AND conversation_id=%s AND NOT deleted", (*params, RELATIONSHIP_CONVERSATION))
-            if row["id"] not in marker_ids]
-        removed = {"shared_moments": moment_state["total"], "boundaries": len(state["boundaries"]),
+            if row["id"] not in kept]
+        removed = {"shared_moments": moment_state["total"], "boundaries": 0,
                    "support_style": int(bool(state["support_style"] and state["support_style"]["text"])),
                    "cap": int(bool(state["cap"] and state["cap"]["level"])),
                    "acknowledgements": len(state["acknowledged"])}

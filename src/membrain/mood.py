@@ -54,7 +54,17 @@ EASING_AFTER = _datetime.timedelta(hours=6)  # The newest active trigger is olde
 DEFAULT_BASELINE = {"label": "calm", "valence": 0, "energy": 1}
 VALENCE_RANGE, ENERGY_RANGE = (-2.0, 2.0), (0.0, 3.0)
 REASON_CHARACTERS = 160
-MOOD_CHARACTERS = 600
+# The whole block. 800 since 2026-11-18, when ``MOOD_GUIDANCE`` replaced "Let it colour tone lightly if it fits."
+MOOD_CHARACTERS = 800
+# How the host lets the mood show (owner, 2026-11-18: "心情可以明显，但是不能死板，不能为了体现心情而让agent回话的时候不停套用模版",
+# translation: "the mood may be visible, but not rigid: the agent must not keep applying a template to show it").
+# In the first two-arm attempt a host given "Let it colour tone lightly if it fits" never let it show. One named
+# constant, so the wording can be tried on a host model before it ships.
+MOOD_GUIDANCE = ("Let it show once, in your own words, in your reply to what caused it or soon after: a word or a "
+                 "clause that belongs to that reply, never a set phrase, never the same wording twice, and no sentence "
+                 "about your own mood unless the user asks. Leave it out when the user's message is serious or it "
+                 "would not fit. It is not a fact about the user. Never use it to pressure them. If the user "
+                 "sincerely asks whether you have feelings, say this is a simulated mood.")
 LISTED_TRIGGERS = 20
 PLAN_NOTES = 200
 _EPSILON = 1e-9
@@ -547,8 +557,7 @@ def render_mood(mood: dict | None, *, tz=None) -> str | None:
     if not mood or mood.get("at_baseline") or mood.get("pinned") or not mood.get("reason") or not mood.get("since"):
         return None
     text = (f"Simulated mood of the companion persona: {mood['label']}{', easing' if mood.get('easing') else ''} "
-            f"(since {_when(mood['since'], tz)}, because {_clip(mood['reason'], REASON_CHARACTERS)}). Let it "
-            "colour tone lightly if it fits. It is not a fact about the user. If the user sincerely asks whether "
-            "you have feelings, say this is a simulated mood.")
+            f"(since {_when(mood['since'], tz)}, because {_clip(mood['reason'], REASON_CHARACTERS)}). "
+            + MOOD_GUIDANCE)
     block = "<membrain-companion-mood>\n" + neutralize(text) + "\n</membrain-companion-mood>"
     return block if len(block) <= MOOD_CHARACTERS else None

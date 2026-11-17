@@ -26,13 +26,14 @@ def test_relationship_controls_and_reset_survive_more_than_5000_records(brain):
     assert relationship_boundaries(*brain)["boundaries"] == saved["boundaries"]
     assert set_cap(*brain, "new")["familiarity"]["cap"] == "new"
     result = reset_relationship(*brain)
-    assert result["removed"]["boundaries"] == 1
+    assert result["removed"]["boundaries"] == 0  # A reset keeps the boundaries (since 2026-11-18).
+    assert result["boundaries"] == saved["boundaries"]
     assert result["removed"]["cap"] == 1
     assert len(result["markers"]) == 5001
     assert result["marker"] == result["markers"][0]
     assert result["familiarity"]["days"] == 0
     assert result["familiarity"]["cap"] is None
-    assert relationship_boundaries(*brain)["boundaries"] == []
+    assert relationship_boundaries(*brain)["boundaries"] == saved["boundaries"]
     say(brain, "We can start again today.")
     assert relationship(*brain)["familiarity"]["days"] == 1
 

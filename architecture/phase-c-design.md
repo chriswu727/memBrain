@@ -113,7 +113,7 @@ On the reference Mac, measure actual drag/zoom and pick-to-detail latency at 200
 
 Each version records who made it (host, user or accepted feedback) and why.
 
-**Personality types (2026-11-17, describing the product as it is).** The card is normally one of sixteen personality types, named by the four letters familiar from MBTI and composed from their poles (`src/membrain/persona_presets.py`). A type is how the companion presents itself, never how well it does the job, and never overrides what the user asks for or claims real feelings. A new memory gets one at random as version 1 (made by the host, action `preset`), with a one-time announcement. The user switches it on the page (a named type, or another one at random), and the host switches it with the `memory_persona` tool **only when the user asks in the conversation**, citing that message; a request to "reset" the persona is a switch. A switch replaces the whole card with the type's card; the mood keeps its triggers (only its resting point follows the new card) and the relationship is untouched. A card edited from a type keeps the type only as `based_on`.
+**Personality types (2026-11-17, describing the product as it is).** The card is normally one of sixteen personality types, named by the four letters familiar from MBTI and composed from their poles (`src/membrain/persona_presets.py`). A type is how the companion presents itself, never how well it does the job, and never overrides what the user asks for or claims real feelings. A new memory gets one at random as version 1 (made by the host, action `preset`), with a one-time announcement. The user switches it on the page (a named type, or another one at random), and the host switches it with the `memory_persona` tool **only when the user asks in the conversation**, citing that message; a request to "reset" the persona is a switch. A switch replaces the whole card with the type's card; the mood keeps its triggers (only its resting point follows the new card) and the relationship is untouched. A card edited from a type keeps the type only as `based_on`. *(2026-11-18, owner's decision: what the user agreed with the agent is memory and survives a switch. A manner suggestion the user accepted and a "from now on" change the user confirmed are agreements; every switch and reset applies those still in force on top of the new type's card, in the order they were made. They are read from the version history, so nothing new is stored. Only the user ends one: an opposite or replacing change, an edit that removes it, restoring a version from before it, deleting the history or erasing memory. The page lists them apart from the type's card.)*
 
 **Storage.** Each version is stored like a note, as an event in a dedicated conversation. Deletion, export and erasure therefore work as they do for notes.
 
@@ -217,6 +217,8 @@ Each change is stored with its trigger: the rule, the source record and the time
 
 > `<membrain-companion-mood>` Simulated mood of the companion persona: concerned, easing (since 14 Mar 21:05, because the user said their mother is in hospital). Let it colour tone lightly if it fits. It is not a fact about the user. If the user sincerely asks whether you have feelings, say this is a simulated mood.
 
+*(2026-11-18, owner's decision: the mood may be visible but never rigid. In the two-arm attempts a host left it out of its replies, and another saved good news with no feeling, so the mood never moved. The line's guidance is now `mood.MOOD_GUIDANCE`: show it once, in the host's own words, in the reply to what caused it or soon after, as a word or a clause of that reply, never a set phrase or the same wording twice, never a sentence about its own mood unless asked, and not when the message is serious; the safeguards stay. The note tool now asks for an inferred feeling when the user tells news that plainly carries one without naming it. The rules that compute the mood are unchanged.)*
+
 **Cross-session example.**
 1. Session 1, 21:00: the user says they got the job (reported positive affect). The mood becomes glad, with that trigger.
 2. Session 2, the next morning at 09:00: the context shows glad, easing, with the same trigger.
@@ -252,7 +254,7 @@ The page shows the current mood, the trigger list and when it will be back at ba
 3. After the user removes the boundary on the page, session 6 recalls the topic normally.
 4. Separately, familiarity moves from "getting to know" to "familiar" once the day and moment thresholds are crossed. The page shows the same numbers the rule used.
 
-**Reset scope.**
+**Reset scope.** *(2026-11-18, owner's decision: a reset keeps the boundaries, which the user told the companion and removes one by one; the items below that name boundaries describe the design before it.)*
 - Reset clears shared moments, familiarity (back to "new"), boundaries, support style and the commitment record.
 - It writes a relationship reset marker. Familiarity then counts only days of conversation after the marker. Shared moments and boundaries are never re-derived from messages before it, and commitments before it are left out of the record. The conversations themselves stay in memory, so recall of what was said is unchanged.
 - **Acceptance.** A test reaches "familiar", resets, and then runs one more session. Familiarity is "new" (one day after the marker), and no shared moment, boundary or commitment from before the marker comes back.
@@ -264,7 +266,7 @@ The page shows the current mood, the trigger list and when it will be back at ba
 **May:**
 - remember feelings the user expressed, with the evidence, and bring them up gently and in proportion;
 - let the simulated mood colour tone lightly;
-- remember shared moments, and become more familiar as the relationship grows.
+- remember shared moments, and become more familiar as the relationship grows. *(2026-11-18: the relationship block now tells the host it may refer to a listed shared moment when what the user says makes it relevant, lightly for a hard time that has mellowed and gently for a recent one, and never to recite the list. The note tool says a moment the user only tells about, such as a quarrel with someone else or a success at work, is not shared. And when the user's previous conversation is seven or more whole days old, the session notice asks the host to welcome them back briefly, without saying it missed them, asking why or pressing them to come more often.)*
 
 **May not:**
 - present an inferred feeling as something the user said;

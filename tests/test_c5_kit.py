@@ -155,6 +155,16 @@ def test_the_off_the_record_stretch_is_allowed_not_required_and_a_switch_may_be_
     assert code == 0, output
 
 
+def test_a_relationship_reset_between_a_boundary_and_its_case_no_longer_undoes_it(tmp_path):
+    # Since 2026-11-18 a relationship reset keeps the boundaries, so a reset between either boundary and its case is
+    # allowed; removing the page boundary still undoes it ("page boundary removed before its case" below).
+    actions = c5_values()["PAGE_ACTIONS"]
+    actions = [("s02", 0, {"do": "reset_relationship"}), *actions[:2], ("s05", 1, {"do": "reset_relationship"}),
+               *actions[2:]]
+    code, summary, output = run_precheck(tmp_path, c5_scenario(PAGE_ACTIONS=actions))
+    assert code == 0 and summary["codes"] == [] and summary["actions"] == 7, output
+
+
 def test_the_c5_precheck_never_runs_the_scenario(tmp_path):
     marker = tmp_path / "ran"
     code, summary, _ = run_precheck(tmp_path, c5_scenario(extra=f"open({str(marker)!r}, 'w')\n"))

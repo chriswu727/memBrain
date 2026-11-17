@@ -224,6 +224,12 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .persona-voice legend { padding: 0 6px; font-size: 13px; font-weight: 600; }
 .persona-voice .hint { margin: 0; }
 .persona-version .persona-card { margin-top: 8px; font-size: 14px; }
+.relationship-more { margin: 4px 0 16px; }
+.relationship-more .hint { margin: 8px 0 4px; }
+.persona-agreements { margin-top: 12px; padding: 8px 12px; border-left: 3px solid var(--border); }
+.persona-agreements > p { margin: 0; }
+.persona-agreement .hint { margin: 8px 0 0; }
+.persona-agreement .persona-card { margin-top: 4px; }
 .persona-current-tag { background: var(--accent); color: var(--paper); }
 .persona-marker { border-style: dashed; }
 .persona-marker p { margin: 0; }

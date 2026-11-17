@@ -90,7 +90,7 @@ class MembrainPlugin(star.Star):
                             pinned: bool = False, sensitive: bool = False, source_event_ids: list | None = None,
                             source_messages: list | None = None, affect: dict | None = None, shared: bool = False,
                             moment: str | None = None, recording_capture: str | None = None):
-        """Save one short, lasting fact about the user you are talking to (health, people, dates, places, preferences, decisions, plans and their changes) so it is shown in every later conversation. One fact per note, under 300 characters. Set kind when it is clear; a plan stays intended until the user confirms it is scheduled or done, and done means everything in the note has happened (paid but not yet delivered is scheduled). When a fact changes, save the new note and pass the old note's id in replaces. When the user expresses a feeling about it, add affect: reported only if they said it, inferred (with source_event_ids or source_messages) if clearly evident but unsaid; never invent one. Never note something the user did not state. Do not save routine requests or anything the user asked you not to keep.
+        """Save one short, lasting fact about the user you are talking to (health, people, dates, places, preferences, decisions, plans and their changes) so it is shown in every later conversation. One fact per note, under 300 characters. Set kind when it is clear; a plan stays intended until the user confirms it is scheduled or done, and done means everything in the note has happened (paid but not yet delivered is scheduled). When a fact changes, save the new note and pass the old note's id in replaces. When the user expresses a feeling about it, add affect: reported only if they said it, inferred (with source_event_ids or source_messages) if clearly evident but unsaid, as for news that plainly carries a feeling they do not name; never invent one. Never note something the user did not state. Do not save routine requests or anything the user asked you not to keep.
 
         Args:
             text(string): The fact, in one sentence, with dates when they matter.
@@ -107,7 +107,7 @@ class MembrainPlugin(star.Star):
             source_messages(array[object]): Exact source references from the current membrain-source block.
             recording_capture(string): Copy recording_capture from this turn's membrain-source block; never substitute another turn's value.
             affect(object): A feeling the user expressed about this: label (their own word), valence -2 to 2, intensity 0 to 3, basis reported or inferred, optional topic and felt_at YYYY-MM-DD.
-            shared(boolean): With kind milestone: a moment you and the user shared, such as a goal reached together or a shared joke.
+            shared(boolean): With kind milestone: a moment you and the user shared, such as a goal reached together or a shared joke. Not something the user only tells you about (a quarrel with someone else, a success at work): shared means the two of you did it or went through it together in conversation.
             moment(string): With shared: play when the moment was a joke, a game or play together; hard when it was a difficult time the two of you went through (a disagreement between you, a time you let them down, a rough stretch you kept them company in); other for any other shared moment.
         """
         fields = {"kind": kind, "about": about, "aliases": aliases, "status": status, "due": due,

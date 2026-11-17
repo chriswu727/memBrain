@@ -57,15 +57,16 @@ const TOOLS = [
       "aliases, and the relation in the text; also the user's family, friends and pets), constraint (a limit on " +
       "what the user can do, eat, afford or use, not their job), preference, plan (with status intended until the user " +
       "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD), routine, milestone (shared true for a " +
-      "moment you and the user shared, with moment play for a joke or play together, otherwise other), relationship " +
+      "moment you and the user shared, not something they only tell you about such as a quarrel with someone else " +
+      "or a success at work; with moment play for a joke or play together, otherwise other), relationship " +
       "(about you and the user only), or " +
       "agent_commitment for something you promised to do. Status done means everything in the note has happened: a " +
       "purchase paid for but not yet delivered, or a booking still ahead, is scheduled, with its date. " +
       "When a fact changes, save the updated note and pass the " +
       "old note's id in replaces. For every write, copy recording_capture from this turn's membrain-source block; " +
       "never substitute another turn's capture. When the user expresses a feeling about it, add affect: basis reported only if " +
-      "they said it, inferred (with the message it was read from as a source) if clearly evident but unsaid; never " +
-      "invent one. Never note something the user did not state. Do not save routine requests or anything the user " +
+      "they said it, inferred (with the message it was read from as a source) if clearly evident but unsaid, as " +
+      "for news that plainly carries a feeling they do not name; never invent one. Never note something the user did not state. Do not save routine requests or anything the user " +
       "asked you not to keep.",
     parameters: { type: "object", properties: {
       text: { type: "string" },
@@ -85,7 +86,7 @@ const TOOLS = [
       occurs_at: { type: "string", description: "YYYY-MM-DD" },
       pinned: { type: "boolean" },
       sensitive: { type: "boolean" },
-      shared: { type: "boolean", description: "With kind milestone: a moment you and the user shared, such as a goal reached together or a shared joke." },
+      shared: { type: "boolean", description: "With kind milestone: a moment you and the user shared, such as a goal reached together or a shared joke. Not something the user only tells you about (a quarrel with someone else, a success at work): shared means the two of you did it or went through it together in conversation." },
       moment: { type: "string", enum: ["play", "hard", "other"],
         description: "With shared: play when the moment was a joke, a game or play together; hard when it was a difficult time the two of you went through (a disagreement between you, a time you let them down, a rough stretch you kept them company in); other for any other shared moment." },
       affect: { type: "object", description: "A feeling the user expressed about this; kept as evidence, never a score.",
@@ -173,8 +174,8 @@ const TOOLS = [
     name: "membrain_persona",
     // The same text as membrain.persona_tool.TOOL_DESCRIPTION, which tests/test_persona_presets_host.py checks.
     description: "The companion persona: how you present yourself to this user. One persona, one relationship: " +
-      "switching or changing it never resets the mood or familiarity. action list: the sixteen personality " +
-      "types (id such as intj, label, summary) and which one is current. action switch with preset (a type, " +
+      "switching or changing it never resets the mood or familiarity, and keeps the changes the user agreed " +
+      "to. action list: the sixteen personality types (id such as intj, label, summary) and which one is current. action switch with preset (a type, " +
       "in any case, or random for a different one): only when the user asked in this conversation to " +
       "switch; that request is enough, do not ask again. When the user asks to reset their persona, that " +
       "means switch with random, or with the type they name. action propose with changes and a short " +

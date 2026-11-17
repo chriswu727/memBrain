@@ -41,7 +41,7 @@ ACCEPT = ("Accept this suggestion? The card is saved as a new version; you can r
           "time.")
 REJECT = "Reject this suggestion? None of the same kind is offered again for 30 days."
 RESET = ("Pick another personality type at random? It is saved as a new version, and earlier versions can be "
-         "restored. The mood and familiarity carry over.")
+         "restored. The mood, familiarity and what you agreed with your agent carry over.")
 DELETE_NOTE = "Delete this note? Its content is erased."
 # English words that may stay in the Chinese page: product names, and "agent", which the Chinese text keeps.
 # The four-letter personality type codes (and the name of the scheme they come from) read the same in Chinese.
@@ -447,6 +447,40 @@ def test_the_personality_card_is_edited_restored_and_reset_on_the_page_without_r
     assert [(item["version"], item["action"]) for item in versions][:2] == [(4, "restore"), (3, "preset")]
     assert client.persona()["card"]["name"] == "Wren the Gardener"
 
+
+
+def test_the_rarely_used_relationship_reset_is_tucked_away_and_still_confirms(server, account, page):
+    # Owner, 2026-11-18: most people rarely reset the relationship, so it is in a collapsed "More" at the end of the
+    # section, a text-style button, still behind its confirmation; it keeps the boundaries.
+    key, client = account
+    client.add_boundary("old workplace")
+    client.set_support_style("Listen first.")
+    sign_in(page, server.base_url, key)
+    open_view(page, "persona")
+    more = page.locator("#relationship-more")
+    expect(more).to_have_js_property("open", False)
+    expect(page.locator("#relationship-reset")).to_be_hidden()
+    assert page.locator("#relationship .card.danger").count() == 0
+    assert "danger" in page.locator("#relationship-reset").get_attribute("class") and "link" in page.locator(
+        "#relationship-reset").get_attribute("class")
+    more.locator("summary").focus()
+    page.keyboard.press("Enter")  # Reachable by keyboard.
+    expect(page.locator("#relationship-reset")).to_be_visible()
+    seen = answer_next_dialog(page, accept=False)
+    page.locator("#relationship-reset").click()
+    expect(page.locator("#relationship-reset")).to_be_enabled()
+    assert len(seen) == 1 and seen[0][0] == "confirm" and seen[0][1].startswith("Reset the relationship?")
+    assert client.relationship()["support_style"] is not None  # Dismissed: nothing changed.
+    seen = answer_next_dialog(page, accept=True)
+    page.locator("#relationship-reset").click()
+    expect(page.locator("#relationship-marker")).to_be_visible()
+    assert client.relationship()["support_style"] is None
+    assert [item["topic"] for item in client.relationship()["boundaries"]] == ["old workplace"]
+    expect(page.locator("#boundaries")).to_contain_text("old workplace")
+    assert same_page(page)
+    switch_language(page, "zh")
+    open_view(page, "persona")
+    expect(page.locator("#relationship-more summary")).to_have_text("更多")
 
 # 3. The brain map redraws after an edit or a delete ---------------------------------------------------------------
 

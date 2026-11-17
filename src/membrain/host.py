@@ -1589,7 +1589,7 @@ def _mark_history(directory: Path, session: str, complete: bool, brain_id: str |
             key: state[key] for key in ("pending", "user_id", "paused_turn", "paused_at", "resumed_turn",
                                         "turns", "turns_managed", "turns_require_staging", "callbacks",
                                         "last_prompt", "last_prompt_key", "last_prompt_recording",
-                                        "persona_intro")
+                                        "persona_intro", "absence")
             if key in state}})
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         cutoff = time.time() - SESSION_MARKER_SECONDS
@@ -1700,6 +1700,87 @@ def _pending_intro(directory: Path, session: str, brain_id: str, preset: dict | 
             del state["persona_intro"]
             _write_session_state(directory, session, state)
     return waiting["preset"] if waiting else None
+
+
+# A return after a long absence (owner's decision, 2026-11-18) -------------------------------------------------
+# When the user's last recorded message before this conversation is this many whole days old or more, the session
+# notice says so once, so the host can welcome them back without pressure. The only place the number is kept.
+ABSENCE_NOTICE_DAYS = 7
+ABSENCE_NOTICE = ("The user's last conversation with you was {days} days ago ({date}). Welcome them back briefly in "
+                  "your own words if it fits; never say you missed them or were waiting, never ask why they were "
+                  "away, and do not make them feel they should come more often.")
+_MONTH_NAMES = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
+                "November", "December")
+
+
+def absence_notice(last_message_at, now: str | None = None) -> str:
+    """The sentence for a return after ``ABSENCE_NOTICE_DAYS`` or more, or "" (no earlier message, a shorter gap, or a
+    time that cannot be read). Days are counted between the two dates in the user's zone
+    (``helpers.display_zone()``), on the clock of recorded times (``helpers.now()``, the scenario clock in an
+    evaluation), and only when at least that many full days have passed too, so a late-night message a week ago
+    minus a few hours is not a week."""
+    import datetime as _datetime
+
+    from . import helpers
+
+    def read(value):
+        moment = _datetime.datetime.fromisoformat(str(value).replace("Z", "+00:00"))
+        return moment if moment.tzinfo else moment.replace(tzinfo=_datetime.UTC)
+
+    if not last_message_at:
+        return ""
+    try:
+        last, current = read(last_message_at), read(now or helpers.now())
+    except (TypeError, ValueError):
+        return ""
+    zone = helpers.display_zone()
+    day, today = last.astimezone(zone).date(), current.astimezone(zone).date()
+    days = (today - day).days
+    if days < ABSENCE_NOTICE_DAYS or current - last < _datetime.timedelta(days=ABSENCE_NOTICE_DAYS):
+        return ""
+    date = f"{day.day} {_MONTH_NAMES[day.month - 1]}" + (f" {day.year}" if day.year != today.year else "")
+    return ABSENCE_NOTICE.format(days=days, date=date)
+
+
+def _last_message_at(client, session: str) -> str | None:
+    """When the user's last recorded message before this conversation was recorded: the newest of their messages
+    in another conversation, leaving out notes and the other reserved conversations, messages typed on the memory
+    page and conversations imported from other assistants."""
+    response = client.timeline(roles=("user",), max_characters=200, max_item_characters=1, limit=200,
+                               exclude_conversation=session)
+    for item in response.get("items", []):
+        conversation, producer = str(item.get("conversation_id") or ""), str(item.get("producer") or "")
+        if (conversation.startswith("membrain-") or producer == "membrain-memory-page"
+                or producer.startswith("membrain-import:")):
+            continue
+        return item.get("recorded_at")
+    return None
+
+
+def _absence(directory: Path, session: str, client) -> str:
+    """The absence sentence for this session, worked out once, at the session's first context. It waits in the
+    session's state until the session's first prompt, like the persona intro, so a context rebuilt before it shows it
+    again and nothing after it does; a host that asks for the session context before every message (chat bots) gets
+    it with the first message only."""
+    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        known = session_state(directory, session).get("absence")
+    if isinstance(known, dict) and known.get("brain_id") == client.brain_id:
+        return (known.get("text") or "") if known.get("pending") else ""
+    text = absence_notice(_last_message_at(client, session))
+    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        state = session_state(directory, session)
+        state["absence"] = {"brain_id": client.brain_id, "text": text, "pending": bool(text)}
+        _write_session_state(directory, session, state)
+    return text
+
+
+def _absence_shown(directory: Path, session: str) -> None:
+    """The session's first prompt: an absence sentence was shown, or is not to be shown again."""
+    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        state = session_state(directory, session)
+        if isinstance(state.get("absence"), dict) and state["absence"].get("pending"):
+            state["absence"]["pending"] = False
+            _write_session_state(directory, session, state)
 
 
 # Relationship (R1) --------------------------------------------------------------------------------------------
@@ -2504,7 +2585,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     real_life = user_id
     user_id = roleplay_user(user_id, roleplay)
     options = {"tools": tools, "skip_imports_from": list(skip_imports_from), "share_real_life": share_real_life}
-    history, current, complete, consolidation, intro, confirmation = None, None, False, "", "", ""
+    history, current, complete, consolidation, intro, confirmation, absence = None, None, False, "", "", "", ""
     resumed = ("Recording was paused for an earlier conversation only; that local pause has ended. "
                if end_conversation_pause(directory, session, real_life) else "")
     if not resumed and _paused_elsewhere(directory, session, real_life):
@@ -2539,6 +2620,10 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
                 intro = _intro(_pending_intro(directory, session, client.brain_id, first), tools)
             except Exception as error:  # The intro is a courtesy; it never costs the session its context.
                 log(directory, f"persona intro failed: {type(error).__name__}")
+            try:  # A role-play's memory is the story's own: its gaps are not the user's absence.
+                absence = "" if roleplay else _absence(directory, session, client)
+            except Exception as error:  # A courtesy too.
+                log(directory, f"absence notice failed: {type(error).__name__}")
             try:
                 _, current = _saved_context(client, real_life, roleplay, options)
                 _acknowledge(client, current)  # This block is returned below, so its one-time lines are shown.
@@ -2551,7 +2636,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
                     # Room for the longest notice, the history block's header and the separators between blocks.
                     reserved = (max(len(_session_notice(value, tools, True, roleplay, off_record))
                                     for value in (True, False))
-                                + len(intro) + 400)
+                                + len(intro) + len(absence) + 400)
                     budget = min(HISTORY_CHARACTERS, SESSION_CONTEXT_CHARACTERS - reserved) - len(current["text"])
                     history, complete = _history(client, session, budget, boundaries=current["boundaries"])
                 except Exception as error:
@@ -2566,6 +2651,8 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
         notice = notice.strip() + " " + consolidation
     if intro and current is not None:
         notice = notice.strip() + " " + intro
+    if absence:
+        notice = notice.strip() + " " + absence
     if confirmation:
         notice = notice.strip() + " " + confirmation
     return "\n\n".join(part for part in (notice, current["text"] if current else None, history) if part)
@@ -2581,6 +2668,9 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
     user_id = roleplay_user(user_id, roleplay)
     record = message_record(session, "user", prompt, turn_id=turn_id, producer=producer, user_id=user_id)
     state = session_state(directory, session)
+    if isinstance(state.get("absence"), dict) and state["absence"].get("pending"):
+        _absence_shown(directory, session)  # The session's first prompt: never again in this session.
+        state["absence"]["pending"] = False  # This copy is written back later in the turn.
     previous = state.get("last_prompt") if state.get("user_id") == user_id else None
     valid_id = isinstance(turn_id, str) and 1 <= len(turn_id) <= 120
     client = ready_client(directory, user_id)

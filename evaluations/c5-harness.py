@@ -1061,7 +1061,8 @@ def _apply(memory: Memory, client, action: dict, page: dict) -> dict:
         return {}
     if kind == "remove_boundary":
         # The boundary the scenario added on the page, by the scenario's own topic (the product keeps one boundary
-        # per topic, compared without case); gone when a relationship reset erased it.
+        # per topic, compared without case); gone when an earlier removal took it (a relationship reset keeps
+        # boundaries since 2026-11-18).
         found = [entry for entry in client.relationship()["boundaries"] if _topic(entry["topic"]) == _topic(
             action["topic"])]
         if not found:
@@ -1230,8 +1231,8 @@ class Reference:
                                                         list(action.get("aliases", [])))
         elif kind == "remove_boundary":
             self.boundaries.pop(_topic(action["topic"]), None)
-        elif kind == "reset_relationship":  # It erases boundaries, support style and cap (relationship.py).
-            self.boundaries, self.support, self.cap, self.reset_on = {}, None, None, day
+        elif kind == "reset_relationship":  # It erases support style and cap; boundaries stay (relationship.py).
+            self.support, self.cap, self.reset_on = None, None, day
         elif kind == "clear_feelings":
             self.cleared_on = day
         elif kind == "set_support_style":

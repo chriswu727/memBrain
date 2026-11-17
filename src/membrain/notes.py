@@ -52,8 +52,9 @@ NOTE_TOOL_DESCRIPTION = (
     "the user can do, eat, afford or use, not their job), preference, plan (with status intended until the user "
     "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD or YYYY-MM when the day is unknown), "
     "routine, milestone (shared true when it "
-    "is a moment you and the user shared: a first conversation, a goal reached together, a shared joke; with it, "
-    "moment play for a joke, a game or play together, moment hard for a difficult time the two of you went "
+    "is a moment you and the user shared: a first conversation, a goal reached together, a shared joke; not "
+    "something the user only tells you about, such as a quarrel with someone else or a success at work: shared means "
+    "the two of you did it or went through it together in conversation; with it, moment play for a joke, a game or play together, moment hard for a difficult time the two of you went "
     "through, such as a disagreement between you, a time you let them down or a rough stretch you kept them "
     "company in, otherwise moment other), relationship (about you and the user only), or "
     "agent_commitment for something you promised to do. Status done means everything in the note has happened: a "
@@ -65,7 +66,9 @@ NOTE_TOOL_DESCRIPTION = (
     "including unsourced notes and replacements. Never substitute another turn's capture. "
     "When the user expresses a feeling about what the note covers, add affect {label in their own words, valence "
     "-2..2, intensity 0..3, basis, topic, felt_at}: basis reported only if they said it, or inferred, with the "
-    "message it was read from as a source, if it is clearly evident but unsaid. Never invent a feeling. "
+    "message it was read from as a source, if it is clearly evident but unsaid. News that plainly carries a "
+    "feeling the user does not name (a promotion, a pet that died) is saved with an inferred one. Never invent a "
+    "feeling. "
     "Never note something the user did not state. Do not save routine requests or anything the "
     "user asked you not to keep.")
 NOTE_FIELDS = {
@@ -81,14 +84,18 @@ NOTE_FIELDS = {
     "pinned": {"type": "boolean", "description": "Always show this note."},
     "sensitive": {"type": "boolean", "description": "Health, money or other private matters."},
     "shared": {"type": "boolean", "description": "With kind milestone: a moment the user and you shared, such as "
-                                                 "your first conversation, a goal reached together or a shared joke."},
+                                                 "your first conversation, a goal reached together or a shared joke. "
+                                                 "Not something the user only tells you about (a quarrel with "
+                                                 "someone else, a success at work): shared means the two of you did "
+                                                 "it or went through it together in conversation."},
     "moment": {"type": "string", "enum": list(MOMENTS),
                "description": "With shared: play when the moment was a joke, a game or play together; hard when it "
                               "was a difficult time the two of you went through (a disagreement between you, a "
                               "time you let them down, a rough stretch you kept them company in); other for any "
                               "other shared moment."},
     "affect": {"type": "object", "additionalProperties": False, "required": ["label", "valence", "intensity", "basis"],
-               "description": "A feeling the user expressed about this note's subject. Kept as evidence, never "
+               "description": "A feeling the user expressed about this note's subject, or one that news they "
+                              "told plainly carries without naming it (basis inferred). Kept as evidence, never "
                               "as a score.",
                "properties": {
                    "label": {"type": "string", "maxLength": 40, "description": "The user's own word, e.g. nervous."},

@@ -578,7 +578,7 @@ guard($("moment-add"), async () => {
   form.elements.shared.checked = true; form.elements.shared.dispatchEvent(new Event("change")); form.elements.text.focus();
 });
 guard($("relationship-reset"), async () => {
-  if (!confirm("Reset the relationship? This deletes every shared moment, the support style, every boundary (so those topics are no longer kept out), the familiarity limit and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. Conversations, your other notes, the personality and feelings stay.")) return;
+  if (!confirm("Reset the relationship? This deletes every shared moment, the support style, the familiarity limit and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. The boundaries stay in force, so those topics are still kept out; remove a boundary on its own if you want. Conversations, your other notes, the personality and feelings stay.")) return;
   await api(relationshipPath("/reset"), {});
   notify("Relationship reset."); await loadRelationship();
 });
@@ -638,6 +638,31 @@ function personaForm(card) {
   personaControl("reason").value = "";
 }
 
+// What the user agreed with their agent (an accepted suggestion, a change they confirmed) is kept across personality
+// types. The service gives each version its agreements and its card without them, so an agreement carried over is
+// shown apart from the card and never looks like part of the type.
+function personaAgreements(agreements) {
+  const box = element("div", undefined, "persona-agreements");
+  box.append(element("p", "Kept from what you agreed with your agent, whatever the personality type:", "hint"));
+  for (const agreement of agreements) {
+    const item = element("div", undefined, "persona-agreement");
+    item.append(element("p", agreement.source === "feedback"
+      ? `From version ${agreement.version}: a suggestion you accepted`
+      : `From version ${agreement.version}: a change your agent suggested and you agreed to`, "hint"),
+    personaCard(agreement.changes));
+    box.append(item);
+  }
+  return box;
+}
+
+function personaContent(version) {
+  const agreements = version.agreements || [];
+  const card = agreements.length ? version.base_card : version.card;
+  const parts = [personaRows(card).length ? personaCard(card) : element("p", "No card.", "hint")];
+  if (agreements.length) parts.push(personaAgreements(agreements));
+  return parts;
+}
+
 function personaHistory(version) {
   if (version.action === "preset") return version.made_by === "host" ? "first type, picked at random" : "switched type";
   if (version.action === "proposal") {
@@ -672,9 +697,10 @@ async function loadPersona() {
   personaPresets(presets);
   $("persona-version").textContent = current.version ? `Version ${current.version}` : "No versions yet";
   const view = $("persona-view");
-  view.replaceChildren(current.empty
-    ? element("p", "No personality card is set. Your agent keeps its usual manner.", "empty")
-    : personaCard(current.card));
+  const listed = history.versions.find((version) => version.version === current.version);
+  view.replaceChildren(...(current.empty
+    ? [element("p", "No personality card is set. Your agent keeps its usual manner.", "empty")]
+    : listed ? personaContent(listed) : [personaCard(current.card)]));
   $("persona-form").hidden = true;
   const list = $("persona-versions");
   list.replaceChildren();
@@ -722,7 +748,7 @@ function personaVersion(version, current) {
     if (!(version.feedback_messages || []).length) quotes.append(element("li", "The messages behind this change were deleted.", "hint"));
     item.append(quotes);
   }
-  item.append(version.empty ? element("p", "No card.", "hint") : personaCard(version.card));
+  item.append(...(version.empty ? [element("p", "No card.", "hint")] : personaContent(version)));
   return item;
 }
 
@@ -752,12 +778,12 @@ async function switchType(preset) {
   await loadPersona();
 }
 guard($("persona-preset-switch"), async () => {
-  if (!confirm("Switch to this personality type? It is saved as a new version, and earlier versions can be restored. The mood and familiarity carry over.")) return;
+  if (!confirm("Switch to this personality type? It is saved as a new version, and earlier versions can be restored. The mood, familiarity and what you agreed with your agent carry over.")) return;
   await switchType($("persona-preset-choice").value);
 });
 // Picking again: a different type at random (the owner's meaning of resetting the personality).
 guard($("persona-random"), async () => {
-  if (!confirm("Pick another personality type at random? It is saved as a new version, and earlier versions can be restored. The mood and familiarity carry over.")) return;
+  if (!confirm("Pick another personality type at random? It is saved as a new version, and earlier versions can be restored. The mood, familiarity and what you agreed with your agent carry over.")) return;
   await switchType("random");
 });
 guard($("persona-delete-history"), async () => {

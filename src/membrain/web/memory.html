@@ -250,7 +250,8 @@
       </div>
       <p class="hint">Your companion presents itself as one of sixteen personality types (the four-letter types
         familiar from MBTI). A new memory starts with one picked at random. Switching changes only how your companion
-        presents itself: its mood and how familiar you are carry over. You can also ask your agent to switch.</p>
+        presents itself: its mood, how familiar you are and what you agreed with your agent (a suggestion you accepted, a
+        change you confirmed) carry over. You can also ask your agent to switch.</p>
     </div>
     <!-- Persona suggestions from feedback (P2) -->
     <div class="card persona-proposals" id="persona-proposals-card">
@@ -391,13 +392,14 @@
         <p id="commitments-summary" class="hint"></p>
         <div id="commitments" class="list"></div>
       </div>
-      <div class="card danger">
-        <h2>Reset the relationship</h2>
-        <p class="muted">Deletes the shared moments, the support style, every boundary, the familiarity limit and the
-          record of promises. Familiarity starts again at new. Conversations, your other notes, the personality and
-          feelings stay.</p>
-        <button id="relationship-reset" class="danger">Reset relationship</button>
-      </div>
+      <!-- Rarely used (owner, 2026-11-18): tucked away at the end of the section, still with its confirmation. -->
+      <details id="relationship-more" class="relationship-more">
+        <summary>More</summary>
+        <p class="hint">Deletes the shared moments, the support style, the familiarity limit and the record of
+          promises. Familiarity starts again at new. The boundaries stay; remove them one by one. Conversations, your
+          other notes, the personality and feelings stay.</p>
+        <button id="relationship-reset" class="link danger">Reset relationship</button>
+      </details>
     </div>
   </section>
 

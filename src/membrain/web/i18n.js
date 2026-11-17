@@ -292,12 +292,15 @@ const ZH = {
   "Personality type:": "人格类型：", "Your own card": "你自己的设定", "No personality type": "没有使用人格类型",
   "based on": "基于", "first type, picked at random": "随机选用的第一个类型", "switched type": "切换了类型",
   "Personality type": "人格类型", "Pick another at random": "随机换一个",
-  "Your companion presents itself as one of sixteen personality types (the four-letter types familiar from MBTI). A new memory starts with one picked at random. Switching changes only how your companion presents itself: its mood and how familiar you are carry over. You can also ask your agent to switch.":
-    "你的伙伴会以十六种人格类型之一来表现自己（也就是 MBTI 里常见的四字母类型）。新的记忆会随机选用一种。切换只改变伙伴的表现方式：它的心情和你们的熟悉程度都会保留。你也可以直接让 agent 帮你切换。",
-  "Switch to this personality type? It is saved as a new version, and earlier versions can be restored. The mood and familiarity carry over.":
-    "切换到这个人格类型？它会保存为一个新版本，之前的版本可以恢复。心情和熟悉程度都会保留。",
-  "Pick another personality type at random? It is saved as a new version, and earlier versions can be restored. The mood and familiarity carry over.":
-    "随机换一个人格类型？它会保存为一个新版本，之前的版本可以恢复。心情和熟悉程度都会保留。",
+  "Your companion presents itself as one of sixteen personality types (the four-letter types familiar from MBTI). A new memory starts with one picked at random. Switching changes only how your companion presents itself: its mood, how familiar you are and what you agreed with your agent (a suggestion you accepted, a change you confirmed) carry over. You can also ask your agent to switch.":
+    "你的伙伴会以十六种人格类型之一来表现自己（也就是 MBTI 里常见的四字母类型）。新的记忆会随机选用一种。切换只改变伙伴的表现方式：它的心情、你们的熟悉程度，以及你和 agent 约定好的事（你接受的建议、你确认的改动）都会保留。你也可以直接让 agent 帮你切换。",
+  "Switch to this personality type? It is saved as a new version, and earlier versions can be restored. The mood, familiarity and what you agreed with your agent carry over.":
+    "切换到这个人格类型？它会保存为一个新版本，之前的版本可以恢复。心情、熟悉程度以及你和 agent 的约定都会保留。",
+  "Pick another personality type at random? It is saved as a new version, and earlier versions can be restored. The mood, familiarity and what you agreed with your agent carry over.":
+    "随机换一个人格类型？它会保存为一个新版本，之前的版本可以恢复。心情、熟悉程度以及你和 agent 的约定都会保留。",
+  "Kept from what you agreed with your agent, whatever the personality type:": "你和 agent 的约定，无论哪种人格类型都会保留：",
+  "This card and the changes you agreed with your agent do not fit on one card together. Nothing was saved.":
+    "这个设定和你与 agent 约定的改动放不进同一张设定。没有保存任何内容。",
   "your agent's suggestion, confirmed in conversation": "agent 提出的建议，你在对话中确认",
   "your agent's suggestion, accepted here": "agent 提出的建议，你在这里接受",
   // The sixteen personality types: the codes stay as they are, the summaries are translated.
@@ -361,9 +364,9 @@ const ZH = {
   "From your agent's promise notes. A missed promise is shown to your agent once, so it can acknowledge it.":
     "来自 agent 的承诺笔记。错过的承诺会给 agent 看一次，让它可以承认。",
   "Reset the relationship": "重置关系",
-  "Deletes the shared moments, the support style, every boundary, the familiarity limit and the record of promises. Familiarity starts again at new. Conversations, your other notes, the personality and feelings stay.":
-    "删除共同时刻、支持方式、所有边界、熟悉程度上限和承诺记录。熟悉程度从“初识”重新开始。对话、你的其他笔记、人格和感受都会保留。",
-  "Reset relationship": "重置关系",
+  "Deletes the shared moments, the support style, the familiarity limit and the record of promises. Familiarity starts again at new. The boundaries stay; remove them one by one. Conversations, your other notes, the personality and feelings stay.":
+    "删除共同时刻、支持方式、熟悉程度上限和承诺记录。熟悉程度从“初识”重新开始。边界会保留，可逐条删除。对话、你的其他笔记、人格和感受都会保留。",
+  "Reset relationship": "重置关系", "More": "更多",
   "No boundaries. Add a topic you don't want your companion to bring up.": "没有边界。添加一个你不希望伙伴提起的话题。",
   "No shared moments yet. When you and your companion do something together, your agent can keep it here.":
     "还没有共同时刻。当你和伙伴一起做了什么，agent 可以把它记在这里。",
@@ -382,8 +385,8 @@ const ZH = {
   "Shared moment deleted.": "共同时刻已删除。", "Familiarity limit saved.": "熟悉程度上限已保存。",
   "Familiarity limit removed.": "熟悉程度上限已取消。", "Support style saved.": "支持方式已保存。",
   "Support style removed.": "支持方式已删除。", "Relationship reset.": "关系已重置。",
-  "Reset the relationship? This deletes every shared moment, the support style, every boundary (so those topics are no longer kept out), the familiarity limit and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. Conversations, your other notes, the personality and feelings stay.":
-    "重置关系？这会删除所有共同时刻、支持方式、所有边界（这些话题将不再被略过）、熟悉程度上限，以及做到和错过的承诺记录。熟悉程度从“初识”重新开始，只计算从现在起的天数。对话、你的其他笔记、人格和感受都会保留。",
+  "Reset the relationship? This deletes every shared moment, the support style, the familiarity limit and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. The boundaries stay in force, so those topics are still kept out; remove a boundary on its own if you want. Conversations, your other notes, the personality and feelings stay.":
+    "重置关系？这会删除所有共同时刻、支持方式、熟悉程度上限，以及做到和错过的承诺记录。熟悉程度从“初识”重新开始，只计算从现在起的天数。边界仍然有效，这些话题仍会被略过；如需取消，请单独删除某条边界。对话、你的其他笔记、人格和感受都会保留。",
   "The support style is text.": "支持方式必须是文字。",
   "Keep the support style under 200 characters.": "支持方式请控制在 200 个字符以内。",
   "A boundary is a topic and an optional list of other words for it.": "边界是一个话题，加上可选的其他说法。",
@@ -526,6 +529,8 @@ const ZH_PATTERNS = [
   [/^Saved as version (\d+)\.$/, (m, n) => `已保存为版本 ${n}。`],
   [/^Personality reset as version (\d+)\.$/, (m, n) => `人格已重置，保存为版本 ${n}。`],
   [/^restored from version (\d+)$/, (m, n) => `从版本 ${n} 恢复`],
+  [/^From version (\d+): a suggestion you accepted$/, (m, n) => `来自版本 ${n}：你接受的建议`],
+  [/^From version (\d+): a change your agent suggested and you agreed to$/, (m, n) => `来自版本 ${n}：agent 提出、你同意的改动`],
   [/^Restore version (\d+)\? Its content becomes a new version\.$/, (m, n) => `恢复版本 ${n}？它的内容会成为一个新版本。`],
   [/^\(valence ([+-]?\d), energy (\d) of 3\)$/, (m, valence, energy) => `（情绪倾向 ${valence}，活力 ${energy}/3）`],
   [/^Persona version (\d+) is not available\.$/, (m, version) => `人格版本 ${version} 已不存在。`],

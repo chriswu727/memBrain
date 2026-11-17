@@ -16,14 +16,25 @@ user asks for or claims real feelings; the persona block's own header says both,
 A version saved from a type records its id (``preset``); a version edited from it keeps the id as ``based_on`` and is
 no longer that type. Mood and familiarity are not part of a card: switching changes only the card, so the simulated
 mood keeps its triggers (only its resting point follows the new card's baseline) and the relationship is untouched.
-There is one relationship, not one per persona.
+There is one relationship, not one per persona. What the user agreed with the agent (an accepted suggestion, a
+confirmed "from now on" change) is applied on top of the new type's card at every switch and reset, in the order it
+was made (``persona.agreements_in_force``): an agreement is memory, not part of a type.
 """
 from __future__ import annotations
 
 import random
 
 from .helpers import DomainError
-from .persona import PERSONA_CONVERSATION, _find, _public, _rows, _save_in, normalize_card
+from .persona import (
+    PERSONA_CONVERSATION,
+    _find,
+    _public,
+    _rows,
+    _save_in,
+    agreements_in_force,
+    normalize_card,
+    with_agreements,
+)
 
 # What each pole adds to a card: a trait, a value, and (for E/I and T/F) part of the voice. Values have no full
 # stop: the card joins them with semicolons.
@@ -188,13 +199,14 @@ def _requested_in(service, principal, brain_id, source_event_ids, source_message
 
 def _switch_in(service, conn, principal, brain, ident, *, made_by, reason, extra, choose) -> dict:
     """Inside the caller's locked transaction: save type ``ident`` (or, with "random", one other than the current
-    type) as a new version, or return the current one with ``unchanged`` when it already is that type."""
+    type) as a new version, with the agreements in force applied on top (``persona.agreements_in_force``), or return
+    the current one with ``unchanged`` when it already is that type with them."""
     versions = _rows(service, conn, principal, brain["id"], limit=1)
     current = versions[0] if versions else None
     now = current.get("preset") if current else None
     if ident == RANDOM:
         ident = (choose or random.choice)(tuple(item for item in IDS if item != now))
-    chosen = card(ident)
+    chosen = with_agreements(card(ident), agreements_in_force(service, conn, principal, brain["id"]))
     if current is not None and now == ident and current["card"] == chosen:
         return {**current, "unchanged": True}
     return _save_in(service, conn, principal, brain, lambda find: (chosen, {"preset": ident, **extra}),
@@ -206,8 +218,8 @@ def switch_preset(service, principal, brain_id: str, ident: str, *, made_by: str
     """Save a type (any case) as the new persona version (``action`` "preset"), or with ``ident`` "random" a type
     other than the current one. Asking for the type that is already current changes nothing (``unchanged``).
 
-    Only the card changes: the mood keeps its triggers and pins, and the relationship, shared moments, boundaries and
-    notes are not touched. ``source_event_ids`` / ``source_messages`` cite the user's message that asked for it (at
+    Only the card changes, and the agreements in force stay on it: the mood keeps its triggers and pins, and the
+    relationship, shared moments, boundaries and notes are not touched. ``source_event_ids`` / ``source_messages`` cite the user's message that asked for it (at
     most one); the host AI's tool always passes one, the memory page none.
     """
     ident = _ident(ident)
@@ -228,7 +240,7 @@ def pick_again(service, principal, brain_id: str, *, made_by: str, reason=None, 
 
     With ``ident``, that type. Otherwise, when the host saved a card of its own as the default (``host_default``,
     a card that is not a type), that card, as a reset always did for such hosts. Otherwise a type picked at random
-    other than the current one. Each is a new version; history is kept.
+    other than the current one. Each is a new version with the agreements in force applied on top; history is kept.
     """
     if ident is not None:
         ident = _ident(ident)
@@ -241,8 +253,10 @@ def pick_again(service, principal, brain_id: str, *, made_by: str, reason=None, 
         if default is not None:
             from .persona import _origin
 
+            chosen = with_agreements(normalize_card(default["card"]),
+                                     agreements_in_force(service, conn, principal, brain_id))
             saved = _save_in(service, conn, principal, brain,
-                             lambda find: (normalize_card(default["card"]),
+                             lambda find: (chosen,
                                            {"restored_from": default["version"], **_origin(default, edited=False)}),
                              made_by=made_by, reason=reason, action="reset")
         else:

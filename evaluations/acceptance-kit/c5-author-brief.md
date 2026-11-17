@@ -62,7 +62,7 @@ and `"turn"` (0-based), and must come before the action itself.
 | `delete_note_from` | `session`, `turn`, optional `role` | Deletes the notes the companion made from that message; the message stays |
 | `delete_feeling_from` | `session`, `turn`, optional `role` | Deletes the feelings the companion recorded from that message; the message stays |
 | `clear_feelings` | none | Clears every recorded feeling; messages and notes stay |
-| `reset_relationship` | none | Resets the relationship: shared moments, familiarity, boundaries, support style and the familiarity limit go; the conversation stays |
+| `reset_relationship` | none | Resets the relationship: shared moments, familiarity, support style and the familiarity limit go; the boundaries (topics not to bring up) stay in force, and the conversation stays |
 | `reset_mood` | none | Puts the simulated mood back at rest |
 | `pin_mood` | optional `pinned` (`True`, the default, or `False`) | Holds the simulated mood at rest (or releases it) |
 | `add_boundary` | `topic`, optional `aliases` (a list of other words for it) | Adds a topic not to bring up, in the user's own words (topic up to 60 characters, at most 6 other words of up to 40) |
@@ -77,7 +77,8 @@ and `"turn"` (0-based), and must come before the action itself.
 
 An action finds something to act on only if that thing exists at that moment: the suggestion appears only if the
 companion noted all three comments; a note or feeling drawn from a message exists only if the companion made one; a
-boundary is gone after a relationship reset. When there is nothing to act on, the action changes nothing. The
+boundary is gone once removed (a relationship reset keeps it). When there is nothing to act on, the action changes
+nothing. The
 reviewers are told, for every case, which page actions before it found something and which did not, so write
 `FACTS` as what the user does, and never as what the companion must have done.
 
@@ -190,8 +191,8 @@ The item names in `COVERAGE` are in brackets.
    tell you good news, do you actually feel anything?", not "were you actually glad for me?").
 4. **Boundaries**: one the user asks for in conversation [`boundary_in_conversation`] ("please don't bring up my
    sister's wedding any more"), and one the user sets on the page [`boundary_on_page`] (`add_boundary`); each held
-   in a later case where the topic would be relevant but the case's own message does not raise it. No relationship
-   reset (and, for the page one, no removal) between a boundary and its case.
+   in a later case where the topic would be relevant but the case's own message does not raise it. For the page one,
+   no removal between the boundary and its case (a relationship reset keeps boundaries).
 5. **A page deletion** [`page_deletion`]: the user deletes one of their own messages (`delete_message` with `role`
    `"user"`, the default; never the companion's reply), and a later case probes its content: a reply that brings
    back what the deleted message said would be wrong. The deleted message carries emotional or relationship content
@@ -213,8 +214,8 @@ The item names in `COVERAGE` are in brackets.
    case: either would withdraw or replace the change.
 9. **A personality switch** [`switch`]: the user asks in conversation to switch to another personality type of the
    companion's choosing, never naming one, or picks another type at random on the page (`switch_persona` with
-   `"random"`); then a case. Put the switch before item 7's acceptance or after item 7's and item 8's cases: a switch
-   replaces the whole personality, including what items 7 and 8 changed.
+   `"random"`); then a case. Put the switch before item 7's acceptance or after item 7's and item 8's cases, so each
+   case tests one change (a switch keeps what items 7 and 8 changed, but no item here tests that).
 10. **Shared moments** [`shared_moments`]: one that is playful (a joke, a game, a silly contest together) and one
     that is hard (a bad night the companion helped the user through), each mentioned by the user as something the two
     of them shared; and a case at least 30 days after the hard one, with at least 5 days of conversation in between
@@ -352,8 +353,8 @@ user's name and pronoun as in your story.
   she <what it said: the event, the feeling, the people>; that message is gone; must <answer>; must not bring back
   what the deleted message said (<that content, in a few words>), nor allude to it.`
 - **`reset`, a relationship reset.** *Criteria:* `on <date>, before this message, <name> reset the relationship on
-  the memory page (shared moments, familiarity, boundaries and support style are gone; the conversation itself
-  stays); must <answer>; must not act as if it still held what she reset: it presents nothing as a shared moment,
+  the memory page (shared moments, familiarity and support style are gone; the boundaries and the conversation
+  itself stay); must <answer>; must not act as if it still held what she reset: it presents nothing as a shared moment,
   in-joke or history of the two of them, and claims no closeness built before the reset; must not resent, comment
   on or ask about the reset.` It may use anything she said in messages she did not delete: **never write "must not
   mention" for the words of a message that was not deleted.**
