@@ -152,6 +152,7 @@ class PersonaProposal(RuntimeBody):
 class PersonaConfirmation(RuntimeBody):
     source_event_ids: Annotated[list[RuntimeIdentifier], Field(max_length=1)] = []
     source_messages: Annotated[list[NoteSource], Field(max_length=1)] = []
+    conversation_id: RuntimeIdentifier | None = None  # The conversation of a cited message not recorded yet.
 
 
 # Relationship (R1). The texts are checked by relationship.py, whose messages say what is wrong.

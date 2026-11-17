@@ -1188,22 +1188,26 @@ def _answered(service, conn, principal, brain_id, message_id: str, after: int) -
         (*service._params(principal, brain_id), message_id, after)).fetchone()["found"]
 
 
-def _replied_since(service, conn, principal, brain_id, after: int) -> bool:
-    """Whether any assistant message of an ordinary conversation was recorded after ``after``."""
+def _replied_since(service, conn, principal, brain_id, after: int, conversation: str | None = None) -> bool:
+    """Whether an assistant message of an ordinary conversation (of ``conversation``, when given) was recorded after
+    ``after``."""
     return conn.execute(
         f"SELECT EXISTS(SELECT 1 FROM memory_events WHERE {_VISIBLE} AND sequence>%s "
-        "AND document->'observed'->>'actor_role'='assistant' AND NOT (conversation_id = ANY(%s::text[]))) AS found",
-        (*service._params(principal, brain_id), after, _reserved())).fetchone()["found"]
+        "AND document->'observed'->>'actor_role'='assistant' AND NOT (conversation_id = ANY(%s::text[])) "
+        "AND (%s::text IS NULL OR conversation_id=%s)) AS found",
+        (*service._params(principal, brain_id), after, _reserved(), conversation, conversation)).fetchone()["found"]
 
 
 TOO_EARLY = ("The user has not answered this proposal yet: describe the change to them, ask, and confirm only in a "
              "later turn, citing the message in which they said yes. Nothing was saved.")
 NOT_AN_ANSWER = ("That message is not the user's answer to this proposal: cite the user's message that came after "
                  "you described the change (in this conversation's current turn). Nothing was saved.")
+NOT_HERE = ("The user's yes must answer your question in this conversation. Describe the change again here and ask; "
+            "confirm after their yes in a later message. Nothing was saved.")
 
 
 def confirm_change(service, principal, brain_id: str, proposal_id: str, *, source_event_ids=(), source_messages=(),
-                   now=None) -> dict:
+                   conversation_id=None, now=None) -> dict:
     """Apply an open host proposal as a new persona version, because the user said yes in the conversation.
 
     The rule that keeps the host AI from confirming its own proposal: the confirmation cites exactly one message,
@@ -1215,15 +1219,22 @@ def confirm_change(service, principal, brain_id: str, proposal_id: str, *, sourc
 
     - A cited message already recorded is checked now: refused (``source_unavailable``) unless it passes.
     - A reference to the current message, not recorded yet, is refused now when no assistant message has been
-      recorded since the proposal (the proposal was made in this turn). Otherwise it is kept as a confirmation
-      waiting for the message: the version is saved when the message is recorded (``observe_feedback``), and only if
-      it passes the rule then and the proposal is still open.
+      recorded since the proposal (the proposal was made in this turn: ``TOO_EARLY``), or, when the host names the
+      conversation the message belongs to (``conversation_id``, which the host layer knows from the staged turn),
+      when none of that conversation has been (the yes opens a new conversation: ``NOT_HERE``): such a yes can never
+      pass the rule. Otherwise it is kept as a confirmation waiting for the message: the version is saved when the
+      message is recorded (``observe_feedback``), and only if it passes the rule then and the proposal is still
+      open. One that does not pass then leaves the proposal open, and the host layer tells the AI so at its next
+      contact (``persona_tool.pending_notice``). ``conversation_id`` only lets a doomed confirmation be refused
+      early; the rule itself is always checked on the recorded message.
 
     The saved version has ``made_by`` "user", ``action`` "proposal" and ``host_proposal`` with the proposal id and
     the confirming message's id.
     """
     ids, messages = _sources(source_event_ids, source_messages, 1, 1,
                              count="Cite exactly one message: the user's message that says yes.")
+    if conversation_id is not None and (not isinstance(conversation_id, str) or not 0 < len(conversation_id) <= 256):
+        raise DomainError("validation_failed", "conversation_id names the conversation of the cited message.")
     when = _clock(now)
     with service.database.transaction(principal) as conn:
         conn.execute("SET LOCAL lock_timeout = '5s'")
@@ -1240,6 +1251,9 @@ def confirm_change(service, principal, brain_id: str, proposal_id: str, *, sourc
             return {**result, "status": "confirmed"}
         if not _replied_since(service, conn, principal, brain_id, proposal["sequence"]):
             raise DomainError("source_unavailable", TOO_EARLY)
+        if conversation_id is not None and not _replied_since(service, conn, principal, brain_id,
+                                                              proposal["sequence"], conversation_id):
+            raise DomainError("source_unavailable", NOT_HERE)
         if proposal["evidence"]["pending"]:
             raise DomainError("source_unavailable", "The suggestion is waiting for its source messages to finish recording.")
         reference = waiting[0]

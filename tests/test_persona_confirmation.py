@@ -13,6 +13,8 @@ from test_persona_growth import installation as installation
 from membrain.helpers import DomainError, uid
 from membrain.persona import current_persona, persona_versions, set_persona
 from membrain.persona_growth import (
+    NOT_HERE,
+    TOO_EARLY,
     accept_proposal,
     confirm_change,
     decline_change,
@@ -33,10 +35,10 @@ def propose(brain, changes=PATIENT, reason="The user asked twice for more patien
     return propose_change(service, principal, ident, changes, reason=reason, **sources)["proposal"]
 
 
-def confirm(brain, proposal_id, *ids, messages=()):
+def confirm(brain, proposal_id, *ids, messages=(), conversation=None):
     service, principal, ident = brain
     return confirm_change(service, principal, ident, proposal_id, source_event_ids=list(ids),
-                          source_messages=list(messages))
+                          source_messages=list(messages), conversation_id=conversation)
 
 
 def turn(brain, text, reply="Okay.", key=None):
@@ -163,6 +165,60 @@ def test_a_reply_in_another_conversation_does_not_count_as_the_question(brain):
     said(brain, "Elsewhere.", role="assistant", conversation="another-chat")
     yes = said(brain, "Yes.")
     refused("source_unavailable", confirm, brain, proposal["id"], yes)
+
+
+def test_a_yes_in_a_conversation_where_nothing_was_asked_is_refused_before_it_waits(brain):
+    # The host names the conversation of the current message (from its staged turn): a yes there that cannot follow
+    # a question asked there is refused at once, instead of being kept and dropped when the message is recorded.
+    service, principal, ident = brain
+    set_persona(service, principal, ident, CARD, made_by="host")
+    proposal = propose(brain)
+    turn(brain, "Be more patient from now on.", "Shall I add 'patient' to my persona?")  # In "chat".
+    yes = "turn-" + uid()
+    message = refused("source_unavailable", confirm, brain, proposal["id"], messages=[reference(yes)],
+                      conversation="a-new-chat")
+    assert message == NOT_HERE and "Nothing was saved" in message
+    assert not next(item for item in listing(brain)["proposals"] if item["id"] == proposal["id"])[
+        "waiting_for_confirmation"]
+    for bad in ("", "x" * 257, 7):
+        refused("validation_failed", confirm, brain, proposal["id"], messages=[reference(yes)], conversation=bad)
+    # Nothing said since the proposal anywhere is still "not answered yet", whatever the conversation.
+    early = propose(brain, {"traits": ["warm", "calm"]})
+    assert refused("source_unavailable", confirm, brain, early["id"], messages=[reference(yes)],
+                   conversation="chat") == TOO_EARLY
+    turn(brain, "Calm rather than patient, actually.", "Shall I add 'calm' instead?")
+    assert confirm(brain, early["id"], messages=[reference(yes)], conversation="chat")["status"] == (
+        "waiting_for_message")
+    turn(brain, "Yes.", key=yes)
+    assert version(brain)["version"] == 2 and version(brain)["card"]["traits"] == ["warm", "calm"]
+    # A recorded message is checked by the rule itself; the conversation named changes nothing.
+    later = propose(brain, {"traits": ["warm", "calm", "patient"]})
+    said(brain, "Patient as well?", role="assistant")
+    assert confirm(brain, later["id"], said(brain, "Yes."), conversation="elsewhere")["status"] == "confirmed"
+
+
+def test_the_confirm_route_takes_the_conversation_and_keeps_its_strict_body(installation, brain):
+    import hashlib
+    from dataclasses import replace
+
+    from fastapi.testclient import TestClient
+
+    from membrain.api import create_app
+
+    service, principal, ident = brain
+    settings = replace(installation[2], api_keys={hashlib.sha256(b"confirm-test-key").hexdigest(): principal})
+    proposal = propose(brain)
+    turn(brain, "Be more patient from now on.", "Shall I?")
+    path = f"/v1/brains/{ident}/persona/proposals/{proposal['id']}/confirm"
+    body = {"source_messages": [reference("turn-" + uid())]}
+    with TestClient(create_app(settings, service), base_url="http://127.0.0.1",
+                    headers={"Authorization": "Bearer confirm-test-key"}) as api:
+        assert api.post(path, json={**body, "conversation": "chat"}).status_code == 422
+        assert api.post(path, json={**body, "conversation_id": ""}).status_code == 422
+        elsewhere = api.post(path, json={**body, "conversation_id": "a-new-chat"})
+        assert elsewhere.status_code == 409 and elsewhere.json()["error"]["message"] == NOT_HERE
+        assert api.post(path, json={**body, "conversation_id": "chat"}).json()["status"] == "waiting_for_message"
+        assert api.post(path, json=body).json()["status"] == "waiting_for_message"  # Optional, as before.
 
 
 def test_a_waiting_confirmation_applies_only_to_a_user_message_while_the_proposal_is_open(brain):

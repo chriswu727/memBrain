@@ -442,12 +442,17 @@ class MemoryClient:
                                    "source_messages": [dict(reference) for reference in source_messages]})
 
     def confirm_persona_change(self, proposal_id: str, *, source_event_ids: Sequence[str] = (),
-                               source_messages: Sequence[Mapping[str, Any]] = (),
+                               source_messages: Sequence[Mapping[str, Any]] = (), conversation_id: str | None = None,
                                brain_id: str | None = None) -> JsonObject:
-        """Apply the host AI's open proposal because the user said yes, citing that message (one)."""
+        """Apply the host AI's open proposal because the user said yes, citing that message (one). For a message not
+        recorded yet, ``conversation_id`` names its conversation, so a yes that cannot answer the question asked there
+        is refused at once instead of being kept waiting."""
+        body = {"source_event_ids": list(source_event_ids),
+                "source_messages": [dict(reference) for reference in source_messages]}
+        if conversation_id is not None:
+            body["conversation_id"] = conversation_id
         return self._request("POST", self._persona_path(brain_id, f"/proposals/{quote(proposal_id, safe='')}/confirm"),
-                             json={"source_event_ids": list(source_event_ids),
-                                   "source_messages": [dict(reference) for reference in source_messages]})
+                             json=body)
 
     def decline_persona_change(self, proposal_id: str, *, brain_id: str | None = None) -> JsonObject:
         """The user said no to the host AI's open proposal."""

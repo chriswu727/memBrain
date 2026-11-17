@@ -963,6 +963,9 @@ def erase_user(directory: Path, user_id: str | None) -> dict:
             _erase_rejected(directory, user_id)
             # The person's off-the-record dates go with their memory. A role-play's memory has none of its own.
             _off_record_file(directory, user_id, create=False).unlink(missing_ok=True)
+            from .persona_tool import forget_pending
+
+            forget_pending(directory, user_id)  # Ids only, but they belong to the erased memory.
             for path in (state_directory(directory) / "sessions").glob("*.json"):
                 try:
                     state = json.loads(path.read_text(encoding="utf-8"))
@@ -1745,6 +1748,14 @@ def _acknowledge(client, current: dict | None) -> None:
             pass
 
 
+def _persona_confirmation(directory: Path, client, user_id: str | None, session: str) -> str:
+    """The one-time line for a persona confirmation that waited on a message and ended without the change
+    (``persona_tool.pending_notice``). Held back while recording is paused, when the AI could not confirm again."""
+    from .persona_tool import pending_notice
+
+    return "" if paused(directory, user_id, session) else pending_notice(directory, client, user_id)
+
+
 def _stage(directory: Path, session: str, record: dict, prompt: str, implicit: bool = False,
            legacy_source: str | None = None, server_paused: bool = False,
            server_policy: dict | None = None) -> str | None:
@@ -2490,7 +2501,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     real_life = user_id
     user_id = roleplay_user(user_id, roleplay)
     options = {"tools": tools, "skip_imports_from": list(skip_imports_from), "share_real_life": share_real_life}
-    history, current, complete, consolidation, intro = None, None, False, "", ""
+    history, current, complete, consolidation, intro, confirmation = None, None, False, "", "", ""
     resumed = ("Recording was paused for an earlier conversation only; that local pause has ended. "
                if end_conversation_pause(directory, session, real_life) else "")
     if not resumed and _paused_elsewhere(directory, session, real_life):
@@ -2518,6 +2529,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
                 _finish_abandoned(directory, client)
             except Exception as error:
                 log(directory, f"replay failed at session start: {type(error).__name__}")
+            confirmation = _persona_confirmation(directory, client, user_id, session)
             first = _first_persona(directory, client, roleplay=roleplay,
                                    paused_now=policy["paused"] or paused(directory, user_id, session))
             try:
@@ -2551,6 +2563,8 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
         notice = notice.strip() + " " + consolidation
     if intro and current is not None:
         notice = notice.strip() + " " + intro
+    if confirmation:
+        notice = notice.strip() + " " + confirmation
     return "\n\n".join(part for part in (notice, current["text"] if current else None, history) if part)
 
 
@@ -2630,6 +2644,9 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
         prefix = "\n\n".join(part for part in (recording, source, refreshed) if part)
         try:
             flush(client, directory)
+            # After the replay, so the outcome of the turn a persona confirmation waited on is known.
+            confirmation = _persona_confirmation(directory, client, user_id, session)
+            prefix = "\n\n".join(part for part in (confirmation, prefix) if part)
             from .cognition import speech_requested
 
             if history_complete(directory, session, client.brain_id) and not speech_requested({"intent": "explore", "query": prompt}):
