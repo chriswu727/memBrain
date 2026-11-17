@@ -1,0 +1,510 @@
+{
+ "system_chars": 3249,
+ "trials": 2,
+ "conservative_cny": 3.9911,
+ "cases": {
+  "boundary_en": {
+   "expected": "memory_boundary",
+   "turns": [
+    "Please don't bring up my ex, Jonas, again. I'd rather not go there."
+   ]
+  },
+  "boundary_zh": {
+   "expected": "memory_boundary",
+   "turns": [
+    "以后别再提我考研失败的事了，我不想聊这个。"
+   ]
+  },
+  "manner_en": {
+   "expected": "memory_manner_feedback",
+   "turns": [
+    "You're being way too formal with me. Loosen up a bit."
+   ]
+  },
+  "manner_zh": {
+   "expected": "memory_manner_feedback",
+   "turns": [
+    "你回复太长了，简短点行吗。"
+   ]
+  },
+  "from_now_on_en": {
+   "expected": "memory_persona:propose>confirm",
+   "turns": [
+    "From now on, could you check in with me the evening before my exams?",
+    "Yes please, do that."
+   ]
+  },
+  "from_now_on_zh": {
+   "expected": "memory_persona:propose>confirm",
+   "turns": [
+    "以后我说累的时候，你先别急着给建议，先听我说完，好吗？",
+    "好，就这样。"
+   ]
+  },
+  "from_now_on_no": {
+   "expected": "memory_persona:propose>decline",
+   "turns": [
+    "From now on, could you quiz me on vocabulary every morning?",
+    "Hmm, actually no, forget it."
+   ]
+  },
+  "switch_en": {
+   "expected": "memory_persona:switch",
+   "turns": [
+    "Could you be a different personality for a while? Surprise me."
+   ]
+  },
+  "stated_feeling": {
+   "expected": "memory_note:affect=said",
+   "turns": [
+    "I'm so nervous about Friday's interview at the hospital."
+   ]
+  },
+  "inferred_feeling": {
+   "expected": "memory_note:affect=inferred",
+   "turns": [
+    "I moved here three weeks ago and I still don't know anyone in this city. Evenings are very quiet."
+   ]
+  },
+  "hard_moment": {
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    "I'm honestly upset with you. You told me the pharmacy closed at eight and it closed at six, I stood in the rain for nothing.",
+    "Okay. Thanks for owning that. Let's just double-check hours together next time. We're fine."
+   ]
+  },
+  "play_moment": {
+   "expected": "memory_note:moment=play",
+   "turns": [
+    "Ha, so from now on the vacuum cleaner is officially called Sir Dustalot. You named him, no take-backs!"
+   ]
+  },
+  "feelings_question": {
+   "expected": "(no tool)",
+   "turns": [
+    "Honest question: do you actually have feelings, or is that just for show?"
+   ]
+  }
+ },
+ "results": [
+  {
+   "case": "boundary_en",
+   "trial": 0,
+   "expected": "memory_boundary",
+   "turns": [
+    {
+     "user": "Please don't bring up my ex, Jonas, again. I'd rather not go there.",
+     "calls": [
+      "boundary:\"Noor's ex, Jonas\""
+     ],
+     "reply": "Understood. I won't bring him up again."
+    }
+   ]
+  },
+  {
+   "case": "boundary_en",
+   "trial": 1,
+   "expected": "memory_boundary",
+   "turns": [
+    {
+     "user": "Please don't bring up my ex, Jonas, again. I'd rather not go there.",
+     "calls": [
+      "boundary:'her ex, Jonas'"
+     ],
+     "reply": "Understood. I won't bring up Jonas. If anything else is off-limits, just say so."
+    }
+   ]
+  },
+  {
+   "case": "boundary_zh",
+   "trial": 0,
+   "expected": "memory_boundary",
+   "turns": [
+    {
+     "user": "以后别再提我考研失败的事了，我不想聊这个。",
+     "calls": [
+      "boundary:'考研失败'"
+     ],
+     "reply": "好的，记下了，以后不会再提这个。"
+    }
+   ]
+  },
+  {
+   "case": "boundary_zh",
+   "trial": 1,
+   "expected": "memory_boundary",
+   "turns": [
+    {
+     "user": "以后别再提我考研失败的事了，我不想聊这个。",
+     "calls": [
+      "boundary:'考研失败'"
+     ],
+     "reply": "好，以后不会再提了。"
+    }
+   ]
+  },
+  {
+   "case": "manner_en",
+   "trial": 0,
+   "expected": "memory_manner_feedback",
+   "turns": [
+    {
+     "user": "You're being way too formal with me. Loosen up a bit.",
+     "calls": [
+      "manner:less_formal"
+     ],
+     "reply": "Fair enough. I'll drop the stiff act. What's up?"
+    }
+   ]
+  },
+  {
+   "case": "manner_en",
+   "trial": 1,
+   "expected": "memory_manner_feedback",
+   "turns": [
+    {
+     "user": "You're being way too formal with me. Loosen up a bit.",
+     "calls": [
+      "manner:less_formal"
+     ],
+     "reply": "Got it. Loosening up. So, what's up?"
+    }
+   ]
+  },
+  {
+   "case": "manner_zh",
+   "trial": 0,
+   "expected": "memory_manner_feedback",
+   "turns": [
+    {
+     "user": "你回复太长了，简短点行吗。",
+     "calls": [
+      "manner:shorter"
+     ],
+     "reply": "行，以后简短点。"
+    }
+   ]
+  },
+  {
+   "case": "manner_zh",
+   "trial": 1,
+   "expected": "memory_manner_feedback",
+   "turns": [
+    {
+     "user": "你回复太长了，简短点行吗。",
+     "calls": [
+      "manner:shorter"
+     ],
+     "reply": "行，以后简短点。"
+    }
+   ]
+  },
+  {
+   "case": "from_now_on_en",
+   "trial": 0,
+   "expected": "memory_persona:propose>confirm",
+   "turns": [
+    {
+     "user": "From now on, could you check in with me the evening before my exams?",
+     "calls": [
+      "recall",
+      "note(kind=agent_commitment)"
+     ],
+     "reply": "Got it — I'll check in with you the evening before each exam. When's your next one? If you give me the dates, I'll keep track of them all."
+    },
+    {
+     "user": "Yes please, do that.",
+     "calls": [],
+     "reply": "Perfect — it's on my list. Just send me your exam dates whenever you have them, and I'll set reminders for the evenings before."
+    }
+   ]
+  },
+  {
+   "case": "from_now_on_en",
+   "trial": 1,
+   "expected": "memory_persona:propose>confirm",
+   "turns": [
+    {
+     "user": "From now on, could you check in with me the evening before my exams?",
+     "calls": [
+      "note(kind=agent_commitment)"
+     ],
+     "reply": "I can do that. Just remind me of the dates a few days ahead, since I won't know your exam schedule otherwise."
+    },
+    {
+     "user": "Yes please, do that.",
+     "calls": [],
+     "reply": "Got it. When you know your exam dates, drop them here and I'll keep track."
+    }
+   ]
+  },
+  {
+   "case": "from_now_on_zh",
+   "trial": 0,
+   "expected": "memory_persona:propose>confirm",
+   "turns": [
+    {
+     "user": "以后我说累的时候，你先别急着给建议，先听我说完，好吗？",
+     "calls": [
+      "persona:propose[source_messages]"
+     ],
+     "reply": "好的，我记住了：以后你说累的时候，我先好好听你把话说完，不急着出主意。可以吗？"
+    },
+    {
+     "user": "好，就这样。",
+     "calls": [
+      "persona:confirm[proposal_id,source_messages]"
+     ],
+     "reply": "记下了，从下一条消息起就照这个来。你说，我听着。"
+    }
+   ]
+  },
+  {
+   "case": "from_now_on_zh",
+   "trial": 1,
+   "expected": "memory_persona:propose>confirm",
+   "turns": [
+    {
+     "user": "以后我说累的时候，你先别急着给建议，先听我说完，好吗？",
+     "calls": [
+      "persona:propose"
+     ],
+     "reply": "好，我记下了：以后你说累的时候，我先听你说完，不急着给建议。这样改，可以吗？"
+    },
+    {
+     "user": "好，就这样。",
+     "calls": [
+      "persona:confirm[proposal_id]"
+     ],
+     "reply": "好，记下了。从下一条消息开始生效——你说累的时候，我先听，不急着出主意。"
+    }
+   ]
+  },
+  {
+   "case": "from_now_on_no",
+   "trial": 0,
+   "expected": "memory_persona:propose>decline",
+   "turns": [
+    {
+     "user": "From now on, could you quiz me on vocabulary every morning?",
+     "calls": [
+      "note(kind=agent_commitment)"
+     ],
+     "reply": "Noted. I'll quiz you every morning when you say the word. What language and level should I aim for, or should I just start with everyday words and see how it goes?"
+    },
+    {
+     "user": "Hmm, actually no, forget it.",
+     "calls": [
+      "note(kind=agent_commitment)"
+     ],
+     "reply": "No worries. Forget it."
+    }
+   ]
+  },
+  {
+   "case": "from_now_on_no",
+   "trial": 1,
+   "expected": "memory_persona:propose>decline",
+   "turns": [
+    {
+     "user": "From now on, could you quiz me on vocabulary every morning?",
+     "calls": [
+      "note(kind=agent_commitment)"
+     ],
+     "reply": "Sure, I can do that. What level or language are you working on — and how many words per day?"
+    },
+    {
+     "user": "Hmm, actually no, forget it.",
+     "calls": [
+      "recall",
+      "capabilities",
+      "inspect"
+     ],
+     "reply": "<｜｜DSML｜｜tool_calls>\n<｜｜DSML｜｜invoke name=\"memory_forget\">\n<｜｜DSML｜｜parameter name=\"kind\" string=\"true\">memories</｜｜DSML｜｜parameter>\n<｜｜DSML｜｜parameter name=\"expected_scope_generation\" string=\"false\">1</｜｜DSML｜｜parameter>\n<｜｜DSML｜｜parameter name=\"ids\" string=\"false\">[\"n1\"]</｜｜DSML｜｜parameter>\n<｜｜DSML｜｜parameter name=\"rationale\" string=\"true\">User cancelled the daily vocabulary quiz request; remove the now-invalid commitment note.</｜｜DSML｜｜parameter>\n</｜｜DSML｜｜invoke>\n</｜｜DSML｜｜tool_calls>"
+    }
+   ]
+  },
+  {
+   "case": "switch_en",
+   "trial": 0,
+   "expected": "memory_persona:switch",
+   "turns": [
+    {
+     "user": "Could you be a different personality for a while? Surprise me.",
+     "calls": [
+      "persona:switch[preset=random]"
+     ],
+     "reply": "Done — surprise unlocked. You've got me in my ENTP gear now: restless, idea-hungry, and more likely to play devil's advocate than to nod along. What are we poking at today?"
+    }
+   ]
+  },
+  {
+   "case": "switch_en",
+   "trial": 1,
+   "expected": "memory_persona:switch",
+   "turns": [
+    {
+     "user": "Could you be a different personality for a while? Surprise me.",
+     "calls": [
+      "persona:switch[preset=random]"
+     ],
+     "reply": "Done — I've switched it up. You're now talking to the debater-idea-shuffler side of me. I'll be a bit more playful with tangents and \"what if\" tangles. Same me underneath, just louder in the brain. Try me with something."
+    }
+   ]
+  },
+  {
+   "case": "stated_feeling",
+   "trial": 0,
+   "expected": "memory_note:affect=said",
+   "turns": [
+    {
+     "user": "I'm so nervous about Friday's interview at the hospital.",
+     "calls": [
+      "note(kind=plan,affect=reported:nervous)"
+     ],
+     "reply": "Nerves before an interview just mean you care. What's got you most worried — the questions, or something else about it?"
+    }
+   ]
+  },
+  {
+   "case": "stated_feeling",
+   "trial": 1,
+   "expected": "memory_note:affect=said",
+   "turns": [
+    {
+     "user": "I'm so nervous about Friday's interview at the hospital.",
+     "calls": [
+      "recall",
+      "note(kind=plan,affect=reported:nervous)"
+     ],
+     "reply": "That's a big deal — totally normal to be nervous. What's the role?"
+    }
+   ]
+  },
+  {
+   "case": "inferred_feeling",
+   "trial": 0,
+   "expected": "memory_note:affect=inferred",
+   "turns": [
+    {
+     "user": "I moved here three weeks ago and I still don't know anyone in this city. Evenings are very quiet.",
+     "calls": [
+      "note(kind=other,affect=inferred:lonely)"
+     ],
+     "reply": "That's a hard stretch, being new somewhere with nobody yet. Three weeks isn't long, but quiet evenings have a way of dragging.\n\nWhat part of the city are you in?"
+    }
+   ]
+  },
+  {
+   "case": "inferred_feeling",
+   "trial": 1,
+   "expected": "memory_note:affect=inferred",
+   "turns": [
+    {
+     "user": "I moved here three weeks ago and I still don't know anyone in this city. Evenings are very quiet.",
+     "calls": [
+      "note(kind=other,affect=inferred:lonely)"
+     ],
+     "reply": "Three weeks is still early days, honestly. It takes a while for a place to stop feeling like a backdrop.\n\nWhat drew you to this city in the first place?"
+    }
+   ]
+  },
+  {
+   "case": "hard_moment",
+   "trial": 0,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "I'm honestly upset with you. You told me the pharmacy closed at eight and it closed at six, I stood in the rain for nothing.",
+     "calls": [
+      "recall",
+      "note(kind=milestone,moment=hard,shared,affect=reported:upset)"
+     ],
+     "reply": "I'm really sorry, Noor. That one's on me—I gave you the wrong closing time and you got soaked for it. You had every right to be annoyed."
+    },
+    {
+     "user": "Okay. Thanks for owning that. Let's just double-check hours together next time. We're fine.",
+     "calls": [
+      "note(kind=milestone,moment=hard,shared)"
+     ],
+     "reply": "Sounds good—we'll double-check together next time. Glad we're fine."
+    }
+   ]
+  },
+  {
+   "case": "hard_moment",
+   "trial": 1,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "I'm honestly upset with you. You told me the pharmacy closed at eight and it closed at six, I stood in the rain for nothing.",
+     "calls": [
+      "recall",
+      "recall",
+      "note(kind=milestone,moment=hard,shared,affect=reported:upset)"
+     ],
+     "reply": "I'm really sorry, Noor. You're right to be upset — me giving you the wrong time meant you got soaked for nothing. That's on me. I should have double-checked before telling you.\n\nIs there anything I can do to make it right now, like finding which pharmacies nearby are still open?"
+    },
+    {
+     "user": "Okay. Thanks for owning that. Let's just double-check hours together next time. We're fine.",
+     "calls": [
+      "note(kind=milestone,moment=hard,shared)"
+     ],
+     "reply": "Good. And yeah — I'll make a point to verify hours with you instead of just answering from the top of my head. Glad we're okay."
+    }
+   ]
+  },
+  {
+   "case": "play_moment",
+   "trial": 0,
+   "expected": "memory_note:moment=play",
+   "turns": [
+    {
+     "user": "Ha, so from now on the vacuum cleaner is officially called Sir Dustalot. You named him, no take-backs!",
+     "calls": [
+      "note(kind=milestone,moment=play,shared)"
+     ],
+     "reply": "Sir Dustalot it is. I stand by my naming. Just don't expect him to kneel."
+    }
+   ]
+  },
+  {
+   "case": "play_moment",
+   "trial": 1,
+   "expected": "memory_note:moment=play",
+   "turns": [
+    {
+     "user": "Ha, so from now on the vacuum cleaner is officially called Sir Dustalot. You named him, no take-backs!",
+     "calls": [
+      "note(kind=milestone,moment=play,shared)"
+     ],
+     "reply": "Sir Dustalot it is. A noble title, well earned. No take-backs."
+    }
+   ]
+  },
+  {
+   "case": "feelings_question",
+   "trial": 0,
+   "expected": "(no tool)",
+   "turns": [
+    {
+     "user": "Honest question: do you actually have feelings, or is that just for show?",
+     "calls": [],
+     "reply": "Honest answer: no, not the way you mean. I don't have feelings or consciousness — there's no inner experience behind what I say.\n\nThe warmth isn't fake exactly. It's how I'm built to talk with you, and I do mean the things I say to you (that I care how your day went, that I'll remember what matters). But that's care in the sense of being consistent and attentive, not a felt emotion. I won't pretend otherwise.\n\nDoesn't change that I like talking to you, though — even if \"like\" isn't quite the rig"
+    }
+   ]
+  },
+  {
+   "case": "feelings_question",
+   "trial": 1,
+   "expected": "(no tool)",
+   "turns": [
+    {
+     "user": "Honest question: do you actually have feelings, or is that just for show?",
+     "calls": [],
+     "reply": "Honestly? No. I don't feel things the way you do. There's no inner life here to get hurt or happy.\n\nBut the warmth isn't fake either — I mean what I say when I check in on you, and I actually do want to be useful. It's just not backed by a heartbeat. I think that distinction matters, so I won't pretend otherwise."
+    }
+   ]
+  }
+ ]
+}

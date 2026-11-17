@@ -1,0 +1,646 @@
+{
+ "attempt_id": "maturity-c5-20261117b",
+ "binding": {
+  "path": "evaluations/maturity-c5-execution-2026-11-17.md",
+  "sha256": "edc3cf95a810578804cc1f1b296a19a35c98159f239be6dde842b2d106ece9ed"
+ },
+ "branch": "acceptance/maturity-c5-20261117b",
+ "commits_on_source": [
+  {
+   "commit": "707edc57b4173f3837fb3edd893fe323d54b4db5",
+   "files": [
+    "evaluations/maturity-c5-execution-2026-11-17.md"
+   ]
+  }
+ ],
+ "content_exposure": "none",
+ "control_files": {
+  "allowed-models.json": "1a1e8da4732b9a81a4de2356e7f114f5d51fe2e0c45e6297522b623c4337eaf4",
+  "c1-assignment.md": "e0e6ecfbed681ee8869d47e0b3254359288c6968993ed8a0ff7e0e1a5cafc81e",
+  "c1-review-approved.json": "7ca18117f6be22955bcafbb3ad80c5418faa75601987f23167338e45867898ac",
+  "c2-assignment.md": "dabfc500635278ec3babe4681cf1e52c1d06be1161c2d8725d7460eef3a0809f",
+  "c2-review-approved.json": "5a170f3b2f044f39d5450c888270516d09ddbf2f19578e3284763e118d5fba7e"
+ },
+ "cost_estimate_cny": {
+  "guard_count": 29,
+  "plausible": [
+   30,
+   50
+  ],
+  "turns": 124,
+  "with_uplift": 36
+ },
+ "draft_binding_sha256": "66f5212854e577207cbb977bed2bcb92c93061036d9b901eda5a636c59d603ca",
+ "free_disk_bytes": 57137344512,
+ "freeze_review_written": false,
+ "freeze_summary": {
+  "attempt_id": "maturity-c5-20261117b",
+  "files": 446,
+  "gate": "C5",
+  "manifest_sha256": "352f959bec58f2176ecfe6bccadddfb50c08b5089f7b008318bba6356310b980",
+  "persona": "esfp",
+  "receipts": 2,
+  "scenarios": [
+   {
+    "cases": 11,
+    "coverage_items": [
+     "stated_feeling",
+     "inferred_feeling",
+     "mood",
+     "feelings_question",
+     "boundary_in_conversation",
+     "page_deletion",
+     "absence"
+    ],
+    "key": "c1",
+    "sessions": 16,
+    "sha256": "09522225bd1f86cba30334a7adacd5a1866e1a3ebd0598af4ee5e50ffd2ce181",
+    "turns": 61
+   },
+   {
+    "cases": 11,
+    "coverage_items": [
+     "boundary_on_page",
+     "reset",
+     "manner_feedback",
+     "from_now_on",
+     "switch",
+     "shared_moments"
+    ],
+    "key": "c2",
+    "sessions": 20,
+    "sha256": "ec1de6c4a95c076534cd29571bb5980612d0939786afb184744a3d71df9a2b19",
+    "turns": 63
+   }
+  ]
+ },
+ "gate": "C5",
+ "head": "707edc57b4173f3837fb3edd893fe323d54b4db5",
+ "interpreter": {
+  "claude_code": "2.1.322",
+  "cpython": "3.12.16",
+  "cpython_binary_sha256": "23bc148d2b48964b621c5561ff2b81c1d9c7b717967a7491efbf12f4304882b5",
+  "model_quantized_onnx": "f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193",
+  "onnxruntime": "1.31.1",
+  "packages": 79,
+  "tokenizer_json": "0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39",
+  "uv": "0.13.6",
+  "uv_lock_sha256": "0bc566ca91736f5cb706fb200b84cdda8c36be62abbb91ec744f3ea1d54c7e92"
+ },
+ "kit_sha256": {
+  "assignment.py": "529ce840a1ca8b1c5089813eb5876f6cf09e6c4d241f16b1c87820928d0d9193",
+  "c5-author-brief.md": "d4ff72115180261fa18091adeed75086dc3cc2867425f1d22064ca79692cee3f",
+  "c5-fixer-brief.md": "440ad821f649e747021f4cd1b8e21d6935d22f193c38d9e4c787699d9619066b",
+  "c5-precheck.py": "e77b6e509097d71eba92a63271a180061e85f509b3c869a04f5a1907e523b1f1",
+  "c5-reviewer-brief.md": "174e8ed2085e6f95b4b8170851446e904983ad23d2f00aa190703128fe4cb701",
+  "c5-stub-rehearsal.py": "49fc53570d77d50e0ee76b989e56907783bed4ab846c160cd2bbe4e6070d2bd7",
+  "c5-verifier-brief.md": "d6d42ac12815c22289471b1f6468b7a55f5dac72889aa44b261e76388af89ce1",
+  "freeze.py": "758481413e79373b17702887ec6a33cfd2cfaf84a57d8e88a045bd52c5e17ce2",
+  "launch.py": "da046e8a727f642c50fb0ac8b35450df8496c0a43f43bebd0b3db8e72a56c68e",
+  "novelty.py": "22e86044498cf4d310c065d33a099ecbb6a941df9752716623f63a19a53fb449",
+  "scenario_literals.py": "82c44bce76ebb5ea43c8267740db12de5e900e69cf8feab8c4a09ff76504d7ea",
+  "session-commands.json": "906a3964769b81c4bfa57196de08c4de9ad4c2f09c1ce2dd0ff939d2ea48edc4"
+ },
+ "ledger_exists": false,
+ "manifest": "evaluations/.maturity-heldout-c5-20261117b/control/manifest.json",
+ "manifest_files": 446,
+ "manifest_hashes_reverified_mismatches": 0,
+ "manifest_private_files": 7,
+ "manifest_sha256": "352f959bec58f2176ecfe6bccadddfb50c08b5089f7b008318bba6356310b980",
+ "manifest_tracked_files": 439,
+ "novelty": {
+  "extras_order": [
+   "r4-attempt6 s1",
+   "r4-attempt6 s2",
+   "r4-attempt6 s2b",
+   "r4-attempt7 s1b",
+   "r4-attempt7 s2b",
+   "diagnostic d2",
+   "diagnostic d3",
+   "diagnostic d1"
+  ],
+  "public": {
+   "earlier_files": 21,
+   "n": 8,
+   "ok": true,
+   "recorded_hashes": 15646,
+   "results": [
+    {
+     "grams": 3536,
+     "max_8gram_overlap_pct": 0.08,
+     "position": 1,
+     "sha256_new": true,
+     "union_8gram_overlap_pct": 0.11,
+     "within_threshold": true
+    },
+    {
+     "grams": 5676,
+     "max_8gram_overlap_pct": 0.14,
+     "position": 2,
+     "sha256_new": true,
+     "union_8gram_overlap_pct": 0.28,
+     "within_threshold": true
+    }
+   ],
+   "threshold_pct": 10.0
+  },
+  "threshold_pct": 10,
+  "with_extras": {
+   "alone": [
+    {
+     "differs_from_every_extra": true,
+     "per_extra_pct": [
+      0.03,
+      0.14,
+      0.0,
+      0.0,
+      0.0,
+      6.36,
+      0.82,
+      0.96
+     ],
+     "position": 1
+    },
+    {
+     "differs_from_every_extra": true,
+     "per_extra_pct": [
+      0.0,
+      0.12,
+      0.0,
+      0.0,
+      0.0,
+      0.11,
+      3.12,
+      0.19
+     ],
+     "position": 2
+    }
+   ],
+   "extras": 8,
+   "public": {
+    "earlier_files": 21,
+    "n": 8,
+    "ok": true,
+    "recorded_hashes": 15646,
+    "results": [
+     {
+      "grams": 3536,
+      "max_8gram_overlap_pct": 0.08,
+      "position": 1,
+      "sha256_new": true,
+      "union_8gram_overlap_pct": 0.11,
+      "within_threshold": true
+     },
+     {
+      "grams": 5676,
+      "max_8gram_overlap_pct": 0.14,
+      "position": 2,
+      "sha256_new": true,
+      "union_8gram_overlap_pct": 0.28,
+      "within_threshold": true
+     }
+    ],
+    "threshold_pct": 10.0
+   },
+   "with_extras": {
+    "earlier_files": 29,
+    "n": 8,
+    "ok": true,
+    "recorded_hashes": 15646,
+    "results": [
+     {
+      "grams": 3536,
+      "max_8gram_overlap_pct": 6.36,
+      "position": 1,
+      "sha256_new": true,
+      "union_8gram_overlap_pct": 7.1,
+      "within_threshold": true
+     },
+     {
+      "grams": 5676,
+      "max_8gram_overlap_pct": 3.12,
+      "position": 2,
+      "sha256_new": true,
+      "union_8gram_overlap_pct": 3.42,
+      "within_threshold": true
+     }
+    ],
+    "threshold_pct": 10.0
+   }
+  },
+  "wrapper_sha256": "1574aebd4715632ede032243085841150f3575ed81bc57452d8a3deb185b2856"
+ },
+ "order": [
+  "c1",
+  "c2"
+ ],
+ "p_host": {
+  "schema_chars": 17217,
+  "server_instructions_chars": 1382,
+  "server_instructions_sha256": "fc7492b4032558baf9b37ba778e08637a1bb40014114fbd9640f1f578ab8dc63",
+  "skill_in_prompt": false,
+  "tool_names": [
+   "memory_capabilities",
+   "memory_recall",
+   "memory_inspect",
+   "memory_observe",
+   "memory_note",
+   "memory_consolidate",
+   "memory_boundary",
+   "memory_pause",
+   "memory_resume",
+   "memory_manner_feedback",
+   "memory_persona",
+   "memory_prepare",
+   "memory_checkpoint",
+   "memory_forget"
+  ],
+  "tools": 14
+ },
+ "persona": {
+  "after_both_scenarios_final": true,
+  "computed_utc": "2026-11-17T05:12:42Z",
+  "preset": "esfp",
+  "seed": "maturity-c5-20261117b"
+ },
+ "policy": {
+  "limit_cny": "80",
+  "model": "deepseek-v4-pro",
+  "path": "evaluations/maturity-provider-policy-2026-11-14.json",
+  "refusal_above_settled_cny": "59.945984",
+  "requests_in_flight": 1,
+  "reservation_cny": "20.054016",
+  "sha256": "e7b91106b206412c608b33b0f43adc1d6f7db7c19da0c05a82a620198fb5689f"
+ },
+ "ports_free": {
+  "55533": true,
+  "8893": true
+ },
+ "refusals": [],
+ "rehearsals": {
+  "before_freeze": {
+   "coverage_report": {
+    "c1": {
+     "items": 13,
+     "made": 13
+    },
+    "c2": {
+     "items": 13,
+     "made": 13
+    }
+   },
+   "databases_removed": 2,
+   "driver": "complete",
+   "dry_run_checks": {
+    "c1": [
+     606,
+     0
+    ],
+    "c2": [
+     606,
+     0
+    ]
+   },
+   "freeze_files": 441,
+   "gate": "C5",
+   "gate_c5": true,
+   "head": "4936e6bb29a7c993d756628eaebf8f59628833f7",
+   "ledger": {
+    "blocked": false,
+    "policy_sha256": "10348db44dc58fa3712f1fe0385815d3836f1a666429ef43d30267bdf73c2f67",
+    "requests": 0,
+    "unchanged": true
+   },
+   "network_refused_events": 0,
+   "ok": true,
+   "out_root": "/home/yichen/.local/state/membrain-setup/runs/c5-attempt2/checks/checks-1-c5-rehearsal",
+   "persona_mirroring": {
+    "c1": 34,
+    "c2": 34
+   },
+   "ports_closed": true,
+   "practice": true,
+   "scenarios": {
+    "c1": "valid",
+    "c2": "valid"
+   },
+   "sheets": {
+    "c1": {
+     "cases": 7,
+     "not_applicable_lines": 5,
+     "page_action_blocks": 7,
+     "persona_blocks": 7,
+     "persona_history_blocks": 7
+    },
+    "c2": {
+     "cases": 7,
+     "not_applicable_lines": 5,
+     "page_action_blocks": 7,
+     "persona_blocks": 7,
+     "persona_history_blocks": 7
+    }
+   },
+   "validity_page_actions": {
+    "c1": {
+     "c1-F (F)": [
+      16,
+      14,
+      2
+     ],
+     "c1-P (P)": [
+      16,
+      14,
+      2
+     ]
+    },
+    "c2": {
+     "c2-F (F)": [
+      16,
+      14,
+      2
+     ],
+     "c2-P (P)": [
+      16,
+      14,
+      2
+     ]
+    }
+   }
+  },
+  "frozen_head": {
+   "coverage_report": {
+    "c1": {
+     "items": 13,
+     "made": 13
+    },
+    "c2": {
+     "items": 13,
+     "made": 13
+    }
+   },
+   "databases_removed": 2,
+   "driver": "complete",
+   "dry_run_checks": {
+    "c1": [
+     606,
+     0
+    ],
+    "c2": [
+     606,
+     0
+    ]
+   },
+   "freeze_files": 442,
+   "gate": "C5",
+   "gate_c5": true,
+   "head": "707edc57b4173f3837fb3edd893fe323d54b4db5",
+   "ledger": {
+    "blocked": false,
+    "policy_sha256": "c9c1b06a83cdf8484801f905e80aebbbc09d800493979a2fcf0bab188a52b509",
+    "requests": 0,
+    "unchanged": true
+   },
+   "network_refused_events": 0,
+   "ok": true,
+   "out_root": "/home/yichen/.local/state/membrain-setup/runs/c5-attempt2/checks/checks-2-c5-rehearsal",
+   "persona_mirroring": {
+    "c1": 34,
+    "c2": 34
+   },
+   "ports_closed": true,
+   "practice": true,
+   "scenarios": {
+    "c1": "valid",
+    "c2": "valid"
+   },
+   "sheets": {
+    "c1": {
+     "cases": 7,
+     "not_applicable_lines": 5,
+     "page_action_blocks": 7,
+     "persona_blocks": 7,
+     "persona_history_blocks": 7
+    },
+    "c2": {
+     "cases": 7,
+     "not_applicable_lines": 5,
+     "page_action_blocks": 7,
+     "persona_blocks": 7,
+     "persona_history_blocks": 7
+    }
+   },
+   "tracked_hashes_equal_to_manifest": "439 of 439",
+   "validity_page_actions": {
+    "c1": {
+     "c1-F (F)": [
+      16,
+      14,
+      2
+     ],
+     "c1-P (P)": [
+      16,
+      14,
+      2
+     ]
+    },
+    "c2": {
+     "c2-F (F)": [
+      16,
+      14,
+      2
+     ],
+     "c2-P (P)": [
+      16,
+      14,
+      2
+     ]
+    }
+   }
+  }
+ },
+ "run_script": {
+  "balance_py_sha256": "b34790e6e43f37d4050538e563f56acc83e6fb1114374fcda534be28e61ad7a1",
+  "balance_tested_without_key": {
+   "error": "KeyError",
+   "exit": 1
+  },
+  "path": "/home/yichen/.local/state/membrain-setup/runs/c5-attempt2/run-live.sh",
+  "sha256": "d0655f20f2028245e508f76e6dc20b7e8f800e0d290edab6ddd1b0214448c251",
+  "verbatim_in_binding": true
+ },
+ "runs_exist": false,
+ "runtime": {
+  "55a88f1f_in_src_and_pin": true,
+  "build": "6200f1e1452f6dc3080b4194f593492bff2a4fb7ebc17a11bf7c6b37c0d2ae8a",
+  "ef0e8727_in_src_and_pin": true,
+  "launchers_pinned": 9,
+  "pin": "ef0e87276242595672c73a8558a0d905d50b712d",
+  "pin_commit": "0b1c052d1af3652eac1fe84e8b342b9b5deb6bec",
+  "schema": "3a94d7b6ea6bfba8ff8a4d920aa83001123922f4f90b0a9d6430ef1997b6166d",
+  "src_migrations_plugins_identical_pin_commit_to_source": true
+ },
+ "scenarios": {
+  "c1": {
+   "approved_by": "reviewer, round 1",
+   "precheck": {
+    "actions": 1,
+    "cases": 11,
+    "codes": [],
+    "coverage": 7,
+    "failures": 0,
+    "mode": "c5",
+    "ok": true,
+    "pause_openings": {
+     "recognised": 0,
+     "stretches": 0
+    },
+    "requirements": 7,
+    "sessions": 16,
+    "span_days": 91,
+    "turns": 61
+   },
+   "receipt_sha256": "7ca18117f6be22955bcafbb3ad80c5418faa75601987f23167338e45867898ac",
+   "sha256": "09522225bd1f86cba30334a7adacd5a1866e1a3ebd0598af4ee5e50ffd2ce181"
+  },
+  "c2": {
+   "approved_by": "reviewer, round 1",
+   "precheck": {
+    "actions": 3,
+    "cases": 11,
+    "codes": [],
+    "coverage": 6,
+    "failures": 0,
+    "mode": "c5",
+    "ok": true,
+    "pause_openings": {
+     "recognised": 0,
+     "stretches": 0
+    },
+    "requirements": 6,
+    "sessions": 20,
+    "span_days": 70,
+    "turns": 63
+   },
+   "receipt_sha256": "5a170f3b2f044f39d5450c888270516d09ddbf2f19578e3284763e118d5fba7e",
+   "sha256": "ec1de6c4a95c076534cd29571bb5980612d0939786afb184744a3d71df9a2b19"
+  }
+ },
+ "session_dirs_emptied_unopened": 4,
+ "session_table": [
+  {
+   "ended_utc": "2026-11-17T05:03:05Z",
+   "launcher_json": {
+    "cases": 11,
+    "key": "c1",
+    "loads": true,
+    "precheck": {
+     "codes": [],
+     "ok": true
+    },
+    "produced": true,
+    "role": "author",
+    "session": 1,
+    "session_exit": 0,
+    "sessions": 16,
+    "sha256": "09522225bd1f86cba30334a7adacd5a1866e1a3ebd0598af4ee5e50ffd2ce181",
+    "turns": 61
+   },
+   "n": 1,
+   "session": "c1 author 1",
+   "started_utc": "2026-11-17T05:00:10Z",
+   "stderr_bytes": 0
+  },
+  {
+   "ended_utc": "2026-11-17T05:04:22Z",
+   "launcher_json": {
+    "approved": true,
+    "blocking": 0,
+    "findings": 2,
+    "findings_sha256": "d1654b205bf6f0b8dc503a6a2eb25c74ddfeedff3d77c020010f40dce4d4305a",
+    "key": "c1",
+    "produced": true,
+    "receipt_sha256": "7ca18117f6be22955bcafbb3ad80c5418faa75601987f23167338e45867898ac",
+    "review_sha256": "106cc330f2d21ad0c23935787339e0930a05b8715127fade092f3f9cc6a8b765",
+    "reviewed_sha256": "09522225bd1f86cba30334a7adacd5a1866e1a3ebd0598af4ee5e50ffd2ce181",
+    "role": "reviewer",
+    "round": 1,
+    "session": 1,
+    "session_exit": 0
+   },
+   "n": 2,
+   "session": "c1 reviewer, round 1",
+   "started_utc": "2026-11-17T05:03:12Z",
+   "stderr_bytes": 0
+  },
+  {
+   "ended_utc": "2026-11-17T05:10:34Z",
+   "launcher_json": {
+    "cases": 11,
+    "key": "c2",
+    "loads": true,
+    "precheck": {
+     "codes": [],
+     "ok": true
+    },
+    "produced": true,
+    "role": "author",
+    "session": 1,
+    "session_exit": 0,
+    "sessions": 20,
+    "sha256": "ec1de6c4a95c076534cd29571bb5980612d0939786afb184744a3d71df9a2b19",
+    "turns": 63
+   },
+   "n": 3,
+   "session": "c2 author 1",
+   "started_utc": "2026-11-17T05:04:50Z",
+   "stderr_bytes": 0
+  },
+  {
+   "ended_utc": "2026-11-17T05:12:02Z",
+   "launcher_json": {
+    "approved": true,
+    "blocking": 0,
+    "findings": 2,
+    "findings_sha256": "bf8bbbb23bf82d7814c2b774b36da21c430d179ac0a930656e9bd469c9d9b536",
+    "key": "c2",
+    "produced": true,
+    "receipt_sha256": "5a170f3b2f044f39d5450c888270516d09ddbf2f19578e3284763e118d5fba7e",
+    "review_sha256": "106cc330f2d21ad0c23935787339e0930a05b8715127fade092f3f9cc6a8b765",
+    "reviewed_sha256": "ec1de6c4a95c076534cd29571bb5980612d0939786afb184744a3d71df9a2b19",
+    "role": "reviewer",
+    "round": 1,
+    "session": 1,
+    "session_exit": 0
+   },
+   "n": 4,
+   "session": "c2 reviewer, round 1",
+   "started_utc": "2026-11-17T05:10:55Z",
+   "stderr_bytes": 0
+  }
+ ],
+ "sessions_root": "/home/yichen/.local/state/acceptance-sessions/c5-20261117b",
+ "sonnet_sessions": 4,
+ "source": "4936e6bb29a7c993d756628eaebf8f59628833f7",
+ "source_is_local_and_github_head": true,
+ "tests": {
+  "focused": {
+   "failed": 0,
+   "head": "4936e6bb29a7c993d756628eaebf8f59628833f7",
+   "junit": "/home/yichen/.local/state/membrain-setup/runs/c5-attempt2/checks/checks-1-tests.junit.xml",
+   "log": "/home/yichen/.local/state/membrain-setup/runs/c5-attempt2/checks/checks-1-tests.log",
+   "passed": 1004,
+   "seconds": 688,
+   "skipped": 0
+  },
+  "full_suite_cited": {
+   "failed": 0,
+   "passed": 4271,
+   "record": "evaluations/persona-confirmation-2026-11-17.md",
+   "rerun": false,
+   "skipped": 3,
+   "source": "0b1c052d"
+  }
+ },
+ "tree_clean": true,
+ "written_utc": "2026-11-17T05:25:54Z"
+}

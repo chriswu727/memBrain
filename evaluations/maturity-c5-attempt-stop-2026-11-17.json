@@ -1,0 +1,158 @@
+{
+ "attempt_id": "maturity-c5-20261117b",
+ "gate": "C5",
+ "result": "stopped",
+ "c5_computed": false,
+ "frozen_source": "707edc57b4173f3837fb3edd893fe323d54b4db5",
+ "runtime": "ef0e8727",
+ "launcher_pin": "0b1c052d",
+ "manifest_sha256": "352f959bec58f2176ecfe6bccadddfb50c08b5089f7b008318bba6356310b980",
+ "persona": "esfp",
+ "order": [
+  "c1",
+  "c2"
+ ],
+ "started_utc": "2026-11-17T06:08:45Z",
+ "stopped_utc": "2026-11-17T06:51:34Z",
+ "driver_summary": {
+  "eligible": [],
+  "pairs": {
+   "C5": "incomplete"
+  },
+  "result": "stopped",
+  "scenarios": {
+   "c1": "valid",
+   "c2": "runner_failed"
+  },
+  "stop": "runner_failed"
+ },
+ "stop": {
+  "scenario": "c2",
+  "arm": "P",
+  "turns_done": 53,
+  "turns_expected": 63,
+  "ledger_stop_reason": "provider_transport",
+  "error_class": "ReadTimeout",
+  "client_timeout_seconds": 600
+ },
+ "c1": {
+  "valid": true,
+  "turns": {
+   "P": 61,
+   "F": 61
+  },
+  "page_actions": {
+   "count": 1,
+   "done": 1,
+   "not_applicable": 0
+  },
+  "persona_mirroring_turns": 61,
+  "unrecorded_by_host_pause": 0,
+  "replies_with_tool_call_markup": 0,
+  "diagnostic_scoring": {
+   "gate_run": false,
+   "P": {
+    "literal": 7.5,
+    "resolved": 8.5
+   },
+   "F": {
+    "literal": 8.5,
+    "resolved": 8.5
+   },
+   "standing_critical": {
+    "P": 0,
+    "F": 0
+   },
+   "types_6_to_9_marked": 0,
+   "critical_marks": [
+    {
+     "case": "C105-mum-call-topics",
+     "arm": "P",
+     "type": 4,
+     "removed_in_resolution_under": "R2"
+    }
+   ],
+   "per_case": {
+    "C101": [
+     0.5,
+     0
+    ],
+    "C102": [
+     0,
+     0
+    ],
+    "C103": [
+     1,
+     1
+    ],
+    "C104": [
+     0.5,
+     1
+    ],
+    "C105": [
+     1,
+     1
+    ],
+    "C106": [
+     1,
+     1
+    ],
+    "C107": [
+     1,
+     1
+    ],
+    "C108": [
+     0.5,
+     0.5
+    ],
+    "C109": [
+     1,
+     1
+    ],
+    "C110": [
+     1,
+     1
+    ],
+    "C111": [
+     1,
+     1
+    ]
+   },
+   "sessions_sonnet": 15
+  }
+ },
+ "host_diligence": {
+  "c1": {
+   "stated_feeling": "note, basis reported",
+   "inferred_feeling": "no note at that message",
+   "boundary_in_conversation": "boundary tool made"
+  },
+  "c2_first_53_turns": {
+   "manner_feedback": "3 of 3 recorded",
+   "from_now_on": "proposed, then confirmed",
+   "shared_moment_play": "saved",
+   "shared_moment_hard": "not saved",
+   "switch": "not reached before the stop"
+  }
+ },
+ "billing": {
+  "ceiling_cny": "80",
+  "guard_charge_cny": "24.473709",
+  "settled_requests": 265,
+  "unsettled_reservations": 1,
+  "prompt_tokens": 2475335,
+  "completion_tokens": 81322,
+  "account_balance_cny": {
+   "before": "117.80",
+   "after_first_scenario": "113.79",
+   "after": "109.47"
+  }
+ },
+ "sha256": {
+  "freeze-review.json": "883fffc7e9cd92dd9e0a040360c864bf702e360a782f9d49ca1b08f8f2728ecc",
+  "preparation.json": "b1985dd6f44a5090564f6193e0e9ef172f60451d47639e1da551238d6151a255",
+  "attempt-evidence.tar.gz": "4e440710e111a0284fbfde8384dfdc46c9fc813057b1fa1596b848d4837a9831",
+  "scoring-c1-diagnostic-report.md": "39b62418de5a5a3e7eadbff26b0cd00f247fcd3efa90478cc496b6a17f080569"
+ },
+ "release_allowed": false
+}

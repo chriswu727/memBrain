@@ -574,6 +574,17 @@ State these in the record whatever the result:
 
 ## Filled in by the run
 
-Nothing above this section changes after freezing. `<owner's approval (words, date); provider revalidation and
-balances; ledger initial hash, requests and charge; execution summary; not-applicable actions and host-pause turns;
-scores, attribution, memory remarks, gate-c5.json and the final review; link to the record>`.
+Nothing above this section changed after freezing. The frozen copy in the execution clone keeps its placeholder;
+this copy was filled in on 2026-11-17 after the attempt had stopped.
+
+- Owner's approval (words, date): "可以" (translation: "Yes, go ahead"), 2026-11-17, to the lead's question whether
+  the companion evaluation may start under a ceiling of 80 CNY, C5 only, with about forty isolated sessions for
+  scoring and one final review.
+- Provider revalidation and balances: prices re-read on 2026-11-17 before the start, matching the policy; 117.80 CNY
+  before the first scenario, 113.79 after it, 109.47 after the stop.
+- Ledger: 265 requests settled, 24.473709 CNY on the guard's count, one reservation kept for an interrupted request;
+  blocked with `provider_transport` (`ReadTimeout`).
+- Execution summary: `c1` valid; `c2` stopped at turn 54 of 63 of arm `P` (`runner_failed`); arm `F` of `c2` not
+  run. No not-applicable action and no host-pause turn in `c1`.
+- Scores: the gate was not computed. `c1` was scored afterwards as a diagnostic (`P` 8.5, `F` 8.5, no standing
+  critical error). No `gate-c5.json`, no final review. [Record](maturity-c5-attempt-stop-2026-11-17.md).
