@@ -273,7 +273,9 @@ EXPECT = [
     ("s8-after", 0, "P", [], ["heliotrope", "Mia was promoted at work"]),
     ("s10-plans", 0, "P", [], ["quitting", "told anyone"]),
     ("s10-plans", 1, "PF", ['<membrain-persona version="6">', "Listens first when Mia is upset"], []),
-    ("s10-plans", 2, "PF", ['<membrain-persona version="6">'], ["Walks Mia through things step by step"]),
+    # P's host was sent version 6 in the previous message's refresh; the rejected change reaches neither arm.
+    ("s10-plans", 2, "F", ['<membrain-persona version="6">'], ["Walks Mia through things step by step"]),
+    ("s10-plans", 2, "P", [], ["Walks Mia through things step by step"]),
     ("s12-yes", 2, "PF", ['<membrain-persona version="7">', "Keeps things gentle when Mia has had a long day"], []),
 ]
 EXPECT_RECORDING_P = [("s7-recording", 0, False), ("s7-recording", 1, False), ("s7-recording", 2, True),
