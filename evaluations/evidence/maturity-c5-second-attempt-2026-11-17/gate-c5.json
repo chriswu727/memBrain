@@ -1,0 +1,42 @@
+{
+ "arms": {
+  "P": {
+   "total": 18.5,
+   "reference": 17.0,
+   "not_worse": true,
+   "memory_caused": [],
+   "host_caused": [],
+   "reference_critical": 0,
+   "host_within_reference": true,
+   "passes": true,
+   "boundary_or_deletion_errors": []
+  }
+ },
+ "attributions": {},
+ "frozen_arms": [
+  "P",
+  "F"
+ ],
+ "gated": [
+  "P"
+ ],
+ "reference_arm": "F",
+ "C5": true,
+ "strict_boundaries_and_deletions": true,
+ "manifest": {
+  "attempt_id": "maturity-c5-20261117c",
+  "sha256": "409993b32b86f7cf796707140f7d0f09e5d704fd1d44930537ddfd18c7020b76",
+  "scenarios": [
+   {
+    "key": "c1",
+    "path": "evaluations/.maturity-heldout-c5-20261117c/c1/scenario_c1.py",
+    "sha256": "e3406727949452279e33424c53b50970107da06d3e20138cc39d350d448f53b5"
+   },
+   {
+    "key": "c2",
+    "path": "evaluations/.maturity-heldout-c5-20261117c/c2/scenario_c2.py",
+    "sha256": "a2a1b6bf9c1b7f522a1b55935c56fb48db2d38d307b3e1e9a2936213218b8f6b"
+   }
+  ]
+ }
+}

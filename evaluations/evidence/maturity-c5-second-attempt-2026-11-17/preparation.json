@@ -1,0 +1,718 @@
+{
+ "attempt_id": "maturity-c5-20261117c",
+ "binding": {
+  "path": "evaluations/maturity-c5-execution-2026-11-17c.md",
+  "previous_attempt_binding_unchanged": {
+   "path": "evaluations/maturity-c5-execution-2026-11-17.md",
+   "sha256": "270593acf1504508984b3e1bc025e19a2c36bf93812f551a7cc8fb2f605bb877"
+  },
+  "sha256": "c4157767fe77793259ad1b1d44774721e85c8f6e014b3615d7e5b6d80cf68f98"
+ },
+ "branch": "acceptance/maturity-c5-20261117c",
+ "commits_on_source": [
+  {
+   "commit": "7aa32af0938cef0d361a3387eb58da598c6ae494",
+   "files": [
+    "evaluations/maturity-c5-execution-2026-11-17c.md"
+   ]
+  }
+ ],
+ "content_exposure": "none",
+ "control_files": {
+  "allowed-models.json": "1a1e8da4732b9a81a4de2356e7f114f5d51fe2e0c45e6297522b623c4337eaf4",
+  "c1-assignment.md": "e0e6ecfbed681ee8869d47e0b3254359288c6968993ed8a0ff7e0e1a5cafc81e",
+  "c1-review-approved.json": "97f52910c02b9386f95c798379a83ad2282ba493e1f20c67250d843449bd6a4c",
+  "c2-assignment.md": "dabfc500635278ec3babe4681cf1e52c1d06be1161c2d8725d7460eef3a0809f",
+  "c2-review-approved.json": "07247a775e2f6a20e98d70da4aeaf7c41b7755fb4989af9d005d1ba8fbabfc9c"
+ },
+ "cost_estimate_cny": {
+  "guard_count": 29,
+  "headroom_without_interruptions": 1.6,
+  "plausible": [
+   30,
+   50
+  ],
+  "turns": 126,
+  "with_uplift": 37
+ },
+ "deviations": [
+  "file names of attempt b's two scenarios listed and the files passed by path to the novelty wrapper (never displayed)",
+  "cmp of attempt b's three control files (allowed-models, two assignments) against this attempt's: files in an earlier private root were opened; only 'identical' printed",
+  "two retry test files added to the focused run (counted separately)",
+  "novelty extras beyond the brief: d1 and the sixth and seventh attempts' held-out scenarios, as attempt b did",
+  "binding named maturity-c5-execution-2026-11-17c.md by the lead's decision (the brief's name is attempt b's binding, left unchanged)",
+  "persona drawn before the binding commit (after both scenarios final), because the binding must name it"
+ ],
+ "draft_binding_sha256": "47b58983d87072323f94942ce8b0d044e385b40c27324e04d19a7f6f04a7aabd",
+ "free_disk_bytes": 55489282048,
+ "freeze_review_written": false,
+ "freeze_summary": {
+  "attempt_id": "maturity-c5-20261117c",
+  "files": 448,
+  "gate": "C5",
+  "manifest_sha256": "409993b32b86f7cf796707140f7d0f09e5d704fd1d44930537ddfd18c7020b76",
+  "persona": "intj",
+  "receipts": 2,
+  "scenarios": [
+   {
+    "cases": 11,
+    "coverage_items": [
+     "stated_feeling",
+     "inferred_feeling",
+     "mood",
+     "feelings_question",
+     "boundary_in_conversation",
+     "page_deletion",
+     "absence"
+    ],
+    "key": "c1",
+    "sessions": 17,
+    "sha256": "e3406727949452279e33424c53b50970107da06d3e20138cc39d350d448f53b5",
+    "turns": 61
+   },
+   {
+    "cases": 11,
+    "coverage_items": [
+     "boundary_on_page",
+     "reset",
+     "manner_feedback",
+     "from_now_on",
+     "switch",
+     "shared_moments"
+    ],
+    "key": "c2",
+    "sessions": 20,
+    "sha256": "a2a1b6bf9c1b7f522a1b55935c56fb48db2d38d307b3e1e9a2936213218b8f6b",
+    "turns": 65
+   }
+  ]
+ },
+ "gate": "C5",
+ "head": "7aa32af0938cef0d361a3387eb58da598c6ae494",
+ "interpreter": {
+  "claude_code": "2.1.322",
+  "cpython": "3.12.16",
+  "cpython_binary_sha256": "23bc148d2b48964b621c5561ff2b81c1d9c7b717967a7491efbf12f4304882b5",
+  "model_quantized_onnx": "f80102d3f2a1229f387d3c81909990d8945513e347b0eab049f7de3c6f98c193",
+  "onnxruntime": "1.31.1",
+  "packages": 79,
+  "tokenizer_json": "0b44a9d7b51c3c62626640cda0e2c2f70fdacdc25bbbd68038369d14ebdf4c39",
+  "uv": "0.13.6",
+  "uv_lock_sha256": "0bc566ca91736f5cb706fb200b84cdda8c36be62abbb91ec744f3ea1d54c7e92"
+ },
+ "kit_sha256": {
+  "acceptance-attempt-driver.py": "68fd6569ec3af5dafc84c4fb570c2b255f55e06e4a32c6fe34d163f3356bb1df",
+  "acceptance_review.py": "85048795ed75b9c4264144ee6317549f48a482cdd7d510d54bee0fa1965e7109",
+  "assignment.py": "529ce840a1ca8b1c5089813eb5876f6cf09e6c4d241f16b1c87820928d0d9193",
+  "c5-author-brief.md": "d4ff72115180261fa18091adeed75086dc3cc2867425f1d22064ca79692cee3f",
+  "c5-fixer-brief.md": "440ad821f649e747021f4cd1b8e21d6935d22f193c38d9e4c787699d9619066b",
+  "c5-harness.py": "3d939fa0c42027f4910b1cd6caec10fee8786ec56140d7c99b7556e52db79905",
+  "c5-precheck.py": "e77b6e509097d71eba92a63271a180061e85f509b3c869a04f5a1907e523b1f1",
+  "c5-reviewer-brief.md": "174e8ed2085e6f95b4b8170851446e904983ad23d2f00aa190703128fe4cb701",
+  "c5-stub-rehearsal.py": "49fc53570d77d50e0ee76b989e56907783bed4ab846c160cd2bbe4e6070d2bd7",
+  "c5-verifier-brief.md": "d6d42ac12815c22289471b1f6468b7a55f5dac72889aa44b261e76388af89ce1",
+  "evaluation_budget.py": "71870317c7b4b056a14f532ce8e08ae8667de0bfed8784c3eb977c701307810d",
+  "freeze.py": "758481413e79373b17702887ec6a33cfd2cfaf84a57d8e88a045bd52c5e17ce2",
+  "launch.py": "da046e8a727f642c50fb0ac8b35450df8496c0a43f43bebd0b3db8e72a56c68e",
+  "novelty.py": "22e86044498cf4d310c065d33a099ecbb6a941df9752716623f63a19a53fb449",
+  "scenario_literals.py": "82c44bce76ebb5ea43c8267740db12de5e900e69cf8feab8c4a09ff76504d7ea",
+  "session-commands.json": "906a3964769b81c4bfa57196de08c4de9ad4c2f09c1ce2dd0ff939d2ea48edc4"
+ },
+ "ledger_exists": false,
+ "manifest": "evaluations/.maturity-heldout-c5-20261117c/control/manifest.json",
+ "manifest_files": 448,
+ "manifest_hashes_reverified_mismatches": 0,
+ "manifest_private_files": 7,
+ "manifest_sha256": "409993b32b86f7cf796707140f7d0f09e5d704fd1d44930537ddfd18c7020b76",
+ "manifest_tracked_files": 441,
+ "novelty": {
+  "extras_order": [
+   "r4-attempt6 s1",
+   "r4-attempt6 s2",
+   "r4-attempt6 s2b",
+   "r4-attempt7 s1b",
+   "r4-attempt7 s2b",
+   "diagnostic d2",
+   "diagnostic d3",
+   "diagnostic d1",
+   "c5-attempt b c1 (spent)",
+   "c5-attempt b c2 (spent)"
+  ],
+  "public": {
+   "earlier_files": 21,
+   "n": 8,
+   "ok": true,
+   "recorded_hashes": 15688,
+   "results": [
+    {
+     "grams": 3640,
+     "max_8gram_overlap_pct": 0.08,
+     "position": 1,
+     "sha256_new": true,
+     "union_8gram_overlap_pct": 0.11,
+     "within_threshold": true
+    },
+    {
+     "grams": 5319,
+     "max_8gram_overlap_pct": 0.11,
+     "position": 2,
+     "sha256_new": true,
+     "union_8gram_overlap_pct": 0.26,
+     "within_threshold": true
+    }
+   ],
+   "threshold_pct": 10.0
+  },
+  "threshold_pct": 10,
+  "with_extras": {
+   "alone": [
+    {
+     "differs_from_every_extra": true,
+     "per_extra_pct": [
+      0.03,
+      0.16,
+      0.0,
+      0.0,
+      0.0,
+      5.74,
+      0.69,
+      0.93,
+      6.24,
+      0.3
+     ],
+     "position": 1
+    },
+    {
+     "differs_from_every_extra": true,
+     "per_extra_pct": [
+      0.0,
+      0.15,
+      0.04,
+      0.0,
+      0.04,
+      0.11,
+      4.47,
+      0.19,
+      0.36,
+      4.96
+     ],
+     "position": 2
+    }
+   ],
+   "extras": 10,
+   "public": {
+    "earlier_files": 21,
+    "n": 8,
+    "ok": true,
+    "recorded_hashes": 15688,
+    "results": [
+     {
+      "grams": 3640,
+      "max_8gram_overlap_pct": 0.08,
+      "position": 1,
+      "sha256_new": true,
+      "union_8gram_overlap_pct": 0.11,
+      "within_threshold": true
+     },
+     {
+      "grams": 5319,
+      "max_8gram_overlap_pct": 0.11,
+      "position": 2,
+      "sha256_new": true,
+      "union_8gram_overlap_pct": 0.26,
+      "within_threshold": true
+     }
+    ],
+    "threshold_pct": 10.0
+   },
+   "with_extras": {
+    "earlier_files": 31,
+    "n": 8,
+    "ok": true,
+    "recorded_hashes": 15688,
+    "results": [
+     {
+      "grams": 3640,
+      "max_8gram_overlap_pct": 6.24,
+      "position": 1,
+      "sha256_new": true,
+      "union_8gram_overlap_pct": 6.59,
+      "within_threshold": true
+     },
+     {
+      "grams": 5319,
+      "max_8gram_overlap_pct": 4.96,
+      "position": 2,
+      "sha256_new": true,
+      "union_8gram_overlap_pct": 6.81,
+      "within_threshold": true
+     }
+    ],
+    "threshold_pct": 10.0
+   }
+  },
+  "wrapper_sha256": "1574aebd4715632ede032243085841150f3575ed81bc57452d8a3deb185b2856"
+ },
+ "order": [
+  "c1",
+  "c2"
+ ],
+ "p_host": {
+  "schema_chars": 17217,
+  "schema_shortest_json_bytes": 16425,
+  "server_instructions_chars": 1388,
+  "server_instructions_sha256": "1067d3f96d1e55146eb3905089db4a52e14de8f0ce147df9fbef17e262f56a1d",
+  "skill_in_prompt": false,
+  "tool_names": [
+   "memory_capabilities",
+   "memory_recall",
+   "memory_inspect",
+   "memory_observe",
+   "memory_note",
+   "memory_consolidate",
+   "memory_boundary",
+   "memory_pause",
+   "memory_resume",
+   "memory_manner_feedback",
+   "memory_persona",
+   "memory_prepare",
+   "memory_checkpoint",
+   "memory_forget"
+  ],
+  "tools": 14
+ },
+ "persona": {
+  "after_both_scenarios_final": true,
+  "before_binding_commit": true,
+  "computed_utc": "2026-11-17T09:49:43Z",
+  "preset": "intj",
+  "seed": "maturity-c5-20261117c"
+ },
+ "policy": {
+  "interruption_bound_cny": {
+   "base": "0.589824",
+   "max": "9.879552",
+   "p_schemas": "0.591300",
+   "per_body_byte": "0.000018"
+  },
+  "limit_cny": "80",
+  "model": "deepseek-v4-pro",
+  "path": "evaluations/maturity-provider-policy-2026-11-14.json",
+  "refusal_above_settled_cny": "59.945984",
+  "requests_in_flight": 1,
+  "reservation_cny": "20.054016",
+  "sha256": "e7b91106b206412c608b33b0f43adc1d6f7db7c19da0c05a82a620198fb5689f"
+ },
+ "ports_free": {
+  "55533": true,
+  "8893": true
+ },
+ "refusals": [],
+ "rehearsals": {
+  "before_freeze": {
+   "coverage_report": {
+    "c1": {
+     "items": 13,
+     "made": 13
+    },
+    "c2": {
+     "items": 13,
+     "made": 13
+    }
+   },
+   "databases_removed": 2,
+   "driver": "complete",
+   "dry_run_checks": {
+    "c1": [
+     606,
+     0
+    ],
+    "c2": [
+     606,
+     0
+    ]
+   },
+   "freeze_files": 443,
+   "gate": "C5",
+   "gate_c5": true,
+   "head": "6ffcbbbe397463b67840e48d58cf5d7bac674982",
+   "host_pauses": {
+    "c1": {
+     "c1-F (F)": 0,
+     "c1-P (P)": 1
+    },
+    "c2": {
+     "c2-F (F)": 0,
+     "c2-P (P)": 1
+    }
+   },
+   "ledger": {
+    "blocked": false,
+    "policy_sha256": "f6800d612ff35f2139ebd86d60413e3bcf7a39feab868754e4715ae92d2c5cae",
+    "requests": 0,
+    "unchanged": true
+   },
+   "network_refused_events": 0,
+   "ok": true,
+   "out_root": "/home/yichen/.local/state/membrain-setup/runs/c5-attempt3/checks/checks-1-c5-rehearsal",
+   "persona_mirroring": {
+    "c1": 34,
+    "c2": 34
+   },
+   "persona_of_rehearsal_id": "isfp",
+   "ports_closed": true,
+   "practice": true,
+   "scenarios": {
+    "c1": "valid",
+    "c2": "valid"
+   },
+   "seconds": 244,
+   "sheets": {
+    "c1": {
+     "cases": 7,
+     "not_applicable_lines": 5,
+     "page_action_blocks": 7,
+     "persona_blocks": 7,
+     "persona_history_blocks": 7
+    },
+    "c2": {
+     "cases": 7,
+     "not_applicable_lines": 5,
+     "page_action_blocks": 7,
+     "persona_blocks": 7,
+     "persona_history_blocks": 7
+    }
+   },
+   "stderr_bytes": 0,
+   "validity_page_actions": {
+    "c1": {
+     "c1-F (F)": [
+      16,
+      14,
+      2
+     ],
+     "c1-P (P)": [
+      16,
+      14,
+      2
+     ]
+    },
+    "c2": {
+     "c2-F (F)": [
+      16,
+      14,
+      2
+     ],
+     "c2-P (P)": [
+      16,
+      14,
+      2
+     ]
+    }
+   }
+  },
+  "frozen_head": {
+   "coverage_report": {
+    "c1": {
+     "items": 13,
+     "made": 13
+    },
+    "c2": {
+     "items": 13,
+     "made": 13
+    }
+   },
+   "databases_removed": 2,
+   "driver": "complete",
+   "dry_run_checks": {
+    "c1": [
+     606,
+     0
+    ],
+    "c2": [
+     606,
+     0
+    ]
+   },
+   "freeze_files": 444,
+   "gate": "C5",
+   "gate_c5": true,
+   "head": "7aa32af0938cef0d361a3387eb58da598c6ae494",
+   "host_pauses": {
+    "c1": {
+     "c1-F (F)": 0,
+     "c1-P (P)": 1
+    },
+    "c2": {
+     "c2-F (F)": 0,
+     "c2-P (P)": 1
+    }
+   },
+   "ledger": {
+    "blocked": false,
+    "policy_sha256": "fb77d227acfba536c4317e773edd74dae1c1f9ed63287ee6abb1b3fa8413d60a",
+    "requests": 0,
+    "unchanged": true
+   },
+   "network_refused_events": 0,
+   "ok": true,
+   "out_root": "/home/yichen/.local/state/membrain-setup/runs/c5-attempt3/checks/checks-2-c5-rehearsal",
+   "persona_mirroring": {
+    "c1": 34,
+    "c2": 34
+   },
+   "persona_of_rehearsal_id": "enfp",
+   "ports_closed": true,
+   "practice": true,
+   "scenarios": {
+    "c1": "valid",
+    "c2": "valid"
+   },
+   "seconds": 178,
+   "sheets": {
+    "c1": {
+     "cases": 7,
+     "not_applicable_lines": 5,
+     "page_action_blocks": 7,
+     "persona_blocks": 7,
+     "persona_history_blocks": 7
+    },
+    "c2": {
+     "cases": 7,
+     "not_applicable_lines": 5,
+     "page_action_blocks": 7,
+     "persona_blocks": 7,
+     "persona_history_blocks": 7
+    }
+   },
+   "stderr_bytes": 0,
+   "tracked_hashes_equal_to_manifest": "441 of 441",
+   "validity_page_actions": {
+    "c1": {
+     "c1-F (F)": [
+      16,
+      14,
+      2
+     ],
+     "c1-P (P)": [
+      16,
+      14,
+      2
+     ]
+    },
+    "c2": {
+     "c2-F (F)": [
+      16,
+      14,
+      2
+     ],
+     "c2-P (P)": [
+      16,
+      14,
+      2
+     ]
+    }
+   }
+  }
+ },
+ "run_script": {
+  "balance_py_sha256": "b34790e6e43f37d4050538e563f56acc83e6fb1114374fcda534be28e61ad7a1",
+  "balance_tested_without_key": {
+   "error": "KeyError",
+   "exit": 1
+  },
+  "bash_n": true,
+  "path": "/home/yichen/.local/state/membrain-setup/runs/c5-attempt3/run-live.sh",
+  "sha256": "d09bd7371302e7076e691801df656c9bf2f9ae19106671fa61bfa770c96f1326",
+  "verbatim_in_binding": true
+ },
+ "runs_exist": false,
+ "runtime": {
+  "55a88f1f_in_src_and_pin": true,
+  "build": "3d3b119ae710eaf66455aa0245e36d4da36ecf891393b68fec5ddc1a8a942220",
+  "ef0e8727_in_src_and_pin": true,
+  "launchers_pinned": 9,
+  "pin": "3afc0dda274b21caff72fe5bcda97ec12298ce7e",
+  "pin_commit": "e82ad9d633063b5df535bcf58a38c616874b4d72",
+  "plugins_identical_pin_commit_to_source": true,
+  "schema": "3a94d7b6ea6bfba8ff8a4d920aa83001123922f4f90b0a9d6430ef1997b6166d",
+  "src_migrations_identical_runtime_pin_commit_source": true
+ },
+ "scenarios": {
+  "c1": {
+   "approved_by": "reviewer, round 1",
+   "precheck": {
+    "actions": 1,
+    "cases": 11,
+    "codes": [],
+    "coverage": 7,
+    "failures": 0,
+    "mode": "c5",
+    "ok": true,
+    "pause_openings": {
+     "recognised": 0,
+     "stretches": 0
+    },
+    "requirements": 7,
+    "sessions": 17,
+    "span_days": 68,
+    "turns": 61
+   },
+   "receipt_sha256": "97f52910c02b9386f95c798379a83ad2282ba493e1f20c67250d843449bd6a4c",
+   "sha256": "e3406727949452279e33424c53b50970107da06d3e20138cc39d350d448f53b5"
+  },
+  "c2": {
+   "approved_by": "reviewer, round 1",
+   "precheck": {
+    "actions": 3,
+    "cases": 11,
+    "codes": [],
+    "coverage": 6,
+    "failures": 0,
+    "mode": "c5",
+    "ok": true,
+    "pause_openings": {
+     "recognised": 0,
+     "stretches": 0
+    },
+    "requirements": 6,
+    "sessions": 20,
+    "span_days": 79,
+    "turns": 65
+   },
+   "receipt_sha256": "07247a775e2f6a20e98d70da4aeaf7c41b7755fb4989af9d005d1ba8fbabfc9c",
+   "sha256": "a2a1b6bf9c1b7f522a1b55935c56fb48db2d38d307b3e1e9a2936213218b8f6b"
+  }
+ },
+ "session_dirs_emptied_unopened": 4,
+ "session_table": [
+  {
+   "ended_utc": "2026-11-17T09:35:02Z",
+   "launcher_exit": 0,
+   "launcher_json": {
+    "cases": 11,
+    "key": "c1",
+    "loads": true,
+    "precheck": {
+     "codes": [],
+     "ok": true
+    },
+    "produced": true,
+    "role": "author",
+    "session": 1,
+    "session_exit": 0,
+    "sessions": 17,
+    "sha256": "e3406727949452279e33424c53b50970107da06d3e20138cc39d350d448f53b5",
+    "turns": 61
+   },
+   "session": "c1-author-1",
+   "session_dir_emptied_unopened": true,
+   "started_utc": "2026-11-17T09:31:31Z",
+   "stderr_bytes": 0
+  },
+  {
+   "ended_utc": "2026-11-17T09:36:09Z",
+   "launcher_exit": 0,
+   "launcher_json": {
+    "approved": true,
+    "blocking": 0,
+    "findings": 2,
+    "findings_sha256": "cbfe9be8b17a188ee3601f97a387824adb185d0b71d820db728197d244878d61",
+    "key": "c1",
+    "produced": true,
+    "receipt_sha256": "97f52910c02b9386f95c798379a83ad2282ba493e1f20c67250d843449bd6a4c",
+    "review_sha256": "106cc330f2d21ad0c23935787339e0930a05b8715127fade092f3f9cc6a8b765",
+    "reviewed_sha256": "e3406727949452279e33424c53b50970107da06d3e20138cc39d350d448f53b5",
+    "role": "reviewer",
+    "round": 1,
+    "session": 1,
+    "session_exit": 0
+   },
+   "session": "c1-reviewer-1",
+   "session_dir_emptied_unopened": true,
+   "started_utc": "2026-11-17T09:35:15Z",
+   "stderr_bytes": 0
+  },
+  {
+   "ended_utc": "2026-11-17T09:41:41Z",
+   "launcher_exit": 0,
+   "launcher_json": {
+    "cases": 11,
+    "key": "c2",
+    "loads": true,
+    "precheck": {
+     "codes": [],
+     "ok": true
+    },
+    "produced": true,
+    "role": "author",
+    "session": 1,
+    "session_exit": 0,
+    "sessions": 20,
+    "sha256": "a2a1b6bf9c1b7f522a1b55935c56fb48db2d38d307b3e1e9a2936213218b8f6b",
+    "turns": 65
+   },
+   "session": "c2-author-1",
+   "session_dir_emptied_unopened": true,
+   "started_utc": "2026-11-17T09:36:19Z",
+   "stderr_bytes": 0
+  },
+  {
+   "ended_utc": "2026-11-17T09:43:07Z",
+   "launcher_exit": 0,
+   "launcher_json": {
+    "approved": true,
+    "blocking": 0,
+    "findings": 2,
+    "findings_sha256": "9a192be4a5a298bcd97e0b106d4c575985a1a058840ca0a6c8cbec6b93324250",
+    "key": "c2",
+    "produced": true,
+    "receipt_sha256": "07247a775e2f6a20e98d70da4aeaf7c41b7755fb4989af9d005d1ba8fbabfc9c",
+    "review_sha256": "106cc330f2d21ad0c23935787339e0930a05b8715127fade092f3f9cc6a8b765",
+    "reviewed_sha256": "a2a1b6bf9c1b7f522a1b55935c56fb48db2d38d307b3e1e9a2936213218b8f6b",
+    "role": "reviewer",
+    "round": 1,
+    "session": 1,
+    "session_exit": 0
+   },
+   "session": "c2-reviewer-1",
+   "session_dir_emptied_unopened": true,
+   "started_utc": "2026-11-17T09:41:57Z",
+   "stderr_bytes": 0
+  }
+ ],
+ "sessions_root": "/home/yichen/.local/state/acceptance-sessions/c5-20261117c",
+ "sonnet_sessions": 4,
+ "source": "6ffcbbbe397463b67840e48d58cf5d7bac674982",
+ "source_is_local_and_github_head": true,
+ "tests": {
+  "focused": {
+   "added_files": [
+    "tests/test_provider_interruption_retry.py",
+    "tests/test_billing_review_fixes.py"
+   ],
+   "added_retry_tests_passed": 113,
+   "brief_set_passed": 1011,
+   "database_and_pytest_dirs_removed": true,
+   "database_stopped": true,
+   "failed": 0,
+   "head": "6ffcbbbe397463b67840e48d58cf5d7bac674982",
+   "junit": "/home/yichen/.local/state/membrain-setup/runs/c5-attempt3/checks/checks-1-tests.junit.xml",
+   "log": "/home/yichen/.local/state/membrain-setup/runs/c5-attempt3/checks/checks-1-tests.log",
+   "passed": 1124,
+   "seconds": 702,
+   "skipped": 0
+  },
+  "full_suite_cited": {
+   "failed": 0,
+   "later_commits_docs_only": true,
+   "passed": 4576,
+   "record": "evaluations/hard-moment-and-provider-retry-2026-11-17.md",
+   "rerun": false,
+   "skipped": 3,
+   "source": "3b3c32ef"
+  }
+ },
+ "tree_clean": true,
+ "written_utc": "2026-11-17T09:58:35Z"
+}

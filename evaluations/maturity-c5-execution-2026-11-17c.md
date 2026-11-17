@@ -907,7 +907,19 @@ State these in the record whatever the result:
 
 ## Filled in by the run
 
-Nothing above this section changes after freezing. `<owner's approval (words, date, the ceiling and the policy hash
-it names); provider revalidation and balances; ledger initial hash, requests and charge; retried interruptions and
-the ledger check; execution summary; not-applicable actions and host-pause turns; scores, attribution, memory
-remarks, host-diligence table, gate-c5.json and the final review; link to the record>`.
+Nothing above this section changed after freezing. The frozen copy in the execution clone keeps its placeholder;
+this copy was filled in on 2026-11-17 after scoring and the final review had ended.
+
+- Owner's approval (words, date): "可以" (translation: "Yes, go ahead"), 2026-11-17, to the lead's question naming
+  the 80 CNY ceiling, the C5-only scope, the retry rule and the sessions for scoring and the final review. The
+  question did not name the policy's hash (`e7b91106…689f`); the lead's record does.
+- Provider revalidation and balances: prices re-read before the start, matching the policy; 108.87 CNY before the
+  first scenario, 107.24 after it, 104.38 after the second.
+- Ledger: 353 requests, all settled, 28.324206 CNY on the guard's count; no interrupted request; the driver's
+  ledger check valid for both scenarios.
+- Execution summary: complete; `c1` and `c2` valid; four page actions done, none not applicable; no host-pause
+  turn; persona mirrored on every turn.
+- Scores: `P` 18.5, `F` 17.0; no standing critical error in either arm; one type 4 mark on `P` removed in
+  resolution under R2; remark counts 0 of 22 case replies for `P` and 1 of 22 for `F` (a false positive, by the
+  final review); host diligence 11 of 11; `C5: true`; the final review says the pass stands with reservations.
+  [Record](maturity-c5-second-attempt-2026-11-17.md).

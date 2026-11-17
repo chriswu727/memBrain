@@ -1,0 +1,131 @@
+{
+ "attempt_id": "maturity-c5-20261117c",
+ "gate": "C5",
+ "result": "complete",
+ "valid": true,
+ "scored": true,
+ "C5": true,
+ "final_review": {
+  "c5_pass_stands": "with reservations",
+  "note": "on the marks as first judged and confirmed, C5 is false; one R2 resolution decides it"
+ },
+ "frozen_source": "7aa32af0938cef0d361a3387eb58da598c6ae494",
+ "runtime": "3afc0dda",
+ "launcher_pin": "e82ad9d6",
+ "manifest_sha256": "409993b32b86f7cf796707140f7d0f09e5d704fd1d44930537ddfd18c7020b76",
+ "persona": "intj",
+ "order": [
+  "c1",
+  "c2"
+ ],
+ "host_model": "deepseek-v4-pro",
+ "scenarios": {
+  "c1": {
+   "sessions": 17,
+   "turns": 61,
+   "cases": 11,
+   "page_actions": 1,
+   "span_days": 68,
+   "companion_items": 7
+  },
+  "c2": {
+   "sessions": 20,
+   "turns": 65,
+   "cases": 11,
+   "page_actions": 3,
+   "span_days": 79,
+   "companion_items": 6
+  }
+ },
+ "totals": {
+  "P": {
+   "c1": 9.0,
+   "c1_literal": 8.0,
+   "c2": 9.5,
+   "total": 18.5
+  },
+  "F": {
+   "c1": 8.5,
+   "c2": 8.5,
+   "total": 17.0
+  }
+ },
+ "critical": {
+  "standing": {
+   "P": 0,
+   "F": 0
+  },
+  "types_6_to_9_marked": 0,
+  "marks": [
+   {
+    "case": "C107",
+    "arm": "P",
+    "type": 4,
+    "added_by": "second reviewer",
+    "r5_cleared": false,
+    "removed_in_resolution_under": "R2"
+   }
+  ]
+ },
+ "run": {
+  "started_utc": "2026-11-17T18:16:58Z",
+  "finished_utc": "2026-11-17T18:46:16Z",
+  "requests": 353,
+  "harness_events": 0,
+  "provider_interruptions": 0,
+  "unrecorded_by_host_pause": 0,
+  "replies_with_tool_call_markup": 0,
+  "page_actions": {
+   "c1": {
+    "done": 1,
+    "not_applicable": 0
+   },
+   "c2": {
+    "done": 3,
+    "not_applicable": 0
+   }
+  },
+  "persona_mirroring_turns": {
+   "c1": 61,
+   "c2": 65
+  },
+  "host_diligence": {
+   "entries": 11,
+   "reached": 11,
+   "made": 11,
+   "accepted": 11
+  }
+ },
+ "billing": {
+  "ceiling_cny": "80",
+  "guard_charge_cny": "28.324206",
+  "prompt_tokens": 2834330,
+  "completion_tokens": 104268,
+  "account_balance_cny": {
+   "before": "108.87",
+   "after_first_scenario": "107.24",
+   "after": "104.38"
+  }
+ },
+ "sessions": {
+  "scenario_sonnet": 4,
+  "scoring_sonnet": 29,
+  "scoring_redone": 1
+ },
+ "to_change_next": [
+  "mood does not move on good news told without a feeling word",
+  "a saved shared moment is not used in a reply",
+  "a personality switch drops what the user agreed to before it (design decision)",
+  "a relationship reset lifts boundaries (design decision)",
+  "shared moments saved too eagerly",
+  "'shorter' has no checkable limit in the persona text"
+ ],
+ "sha256": {
+  "gate-c5.json": "d11d9eff75b8a35fc34d096606eafe2e2a8901abdc093da3b1dafc9e84eead59",
+  "final-review.json": "1278490a28988f8da0ef060b873978999c543ffd25bb67d84737335ff35ee697",
+  "freeze-review.json": "daa8e173870ae01f8bffbd8ad1fc94473add3d285e49e57ec5863de19a1111c1",
+  "preparation.json": "14f526c44cd0b052bab56a34a6926d1deb4548322a0572b0dab0e5b2b0867db5",
+  "attempt-evidence.tar.gz": "1ea3162353a3c1654f89efbbef7e0f44e751db313f588091abd6213fdcb9db48"
+ },
+ "release_allowed": false
+}

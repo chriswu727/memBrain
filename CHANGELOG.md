@@ -130,6 +130,8 @@ memBrain is a human-inspired memory engine for AI agents. It keeps persistent me
 
 ### Known limits
 
+The companion evaluation C5 passed on 2026-11-17 [with reservations](evaluations/maturity-c5-second-attempt-2026-11-17.md): one resolution judgement decides the result, the simulated mood did not move on good news told without a feeling word, saved shared moments were not used in replies, a personality switch drops preferences the user agreed to before it, and a relationship reset lifts boundaries. R4 and C5 were measured on different runtimes.
+
 Real-model observations still include historical information presented as current, irrelevant retrieved material and rejected valid semantic proposals. Earlier failed campaigns remain failed. See the [acceptance contract](architecture/v1-acceptance.md) and [closeout checklist](docs/releasing.md) for the remaining work and evidence boundaries.
 
 The [sixth behavioural attempt](evaluations/maturity-sixth-attempt-stop-2026-11-16.md), the first on the plugin path alone, stopped as invalid after eight turns: the host AI paused recording in a turn the scenario meant to be recorded. Nothing was scored. It was a slip of the host after consolidation, with no request from the user; the pause tool now needs the user's words.
