@@ -1706,9 +1706,12 @@ def _pending_intro(directory: Path, session: str, brain_id: str, preset: dict | 
 # When the user's last recorded message before this conversation is this many whole days old or more, the session
 # notice says so once, so the host can welcome them back without pressure. The only place the number is kept.
 ABSENCE_NOTICE_DAYS = 7
-ABSENCE_NOTICE = ("The user's last conversation with you was {days} days ago ({date}). Welcome them back briefly in "
-                  "your own words if it fits; never say you missed them or were waiting, never ask why they were "
-                  "away, and do not make them feel they should come more often.")
+ABSENCE_NOTICE = (
+    # "Welcome them back briefly … if it fits" was followed in 1 of 6 replies on a host model; this form in 5 of 6,
+    # each in different words (2026-11-18). The owner wants the return acknowledged.
+    "The user's last conversation with you was {days} days ago ({date}). Open your first reply with a few words of "
+    "your own that welcome them back (no set phrase), then answer; never say you missed them or were waiting, never "
+    "ask why they were away, and do not make them feel they should come more often.")
 _MONTH_NAMES = ("January", "February", "March", "April", "May", "June", "July", "August", "September", "October",
                 "November", "December")
 

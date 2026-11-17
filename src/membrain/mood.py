@@ -60,11 +60,16 @@ MOOD_CHARACTERS = 800
 # translation: "the mood may be visible, but not rigid: the agent must not keep applying a template to show it").
 # In the first two-arm attempt a host given "Let it colour tone lightly if it fits" never let it show. One named
 # constant, so the wording can be tried on a host model before it ships.
-MOOD_GUIDANCE = ("Let it show once, in your own words, in your reply to what caused it or soon after: a word or a "
-                 "clause that belongs to that reply, never a set phrase, never the same wording twice, and no sentence "
-                 "about your own mood unless the user asks. Leave it out when the user's message is serious or it "
-                 "would not fit. It is not a fact about the user. Never use it to pressure them. If the user "
-                 "sincerely asks whether you have feelings, say this is a simulated mood.")
+MOOD_GUIDANCE = (
+    # Wording chosen on a host model (2026-11-18): "if it fits" left the mood invisible in 13 of 13 replies; allowing
+    # "a brief nod to what caused it" produced stock sentences about the agent's own mood ("…has me in a good mood");
+    # this form showed as a light touch in about a third of replies on another topic and never when the message was
+    # serious. The owner's rule: the mood may be visible, never rigid, never a template.
+    "Let it show once in this reply, in your own words: one small touch that belongs to this reply (the way you open, "
+    "a turn of phrase, a brief aside), never a set phrase, never wording you used before, and no sentence about your "
+    "own mood unless the user asks. Leave it out only when the user's message is serious. It is not a fact about the "
+    "user. Never use it to pressure them. If the user sincerely asks whether you have feelings, say this is a "
+    "simulated mood.")
 LISTED_TRIGGERS = 20
 PLAN_NOTES = 200
 _EPSILON = 1e-9

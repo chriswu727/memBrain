@@ -51,16 +51,16 @@ def test_news_that_carries_a_feeling_is_saved_with_an_inferred_one_on_every_note
 
 
 def test_the_mood_shows_once_in_the_hosts_own_words_and_keeps_its_safeguards():
-    for phrase in ("Let it show once, in your own words", "never a set phrase, never the same wording twice",
+    for phrase in ("Let it show once in this reply, in your own words", "never a set phrase, never wording you used before",
                    "no sentence about your own mood unless the user asks",
-                   "Leave it out when the user's message is serious or it would not fit",
+                   "Leave it out only when the user's message is serious.",
                    "It is not a fact about the user.", "Never use it to pressure them.",
                    "If the user sincerely asks whether you have feelings, say this is a simulated mood."):
         assert phrase in MOOD_GUIDANCE, phrase
     longest = render_mood({"label": "concerned", "easing": True, "since": "2026-09-12T14:05:00Z",
                            "reason": "x" * 400}, tz=datetime.UTC)
     assert longest.endswith(MOOD_GUIDANCE + "\n</membrain-companion-mood>") and len(longest) <= MOOD_CHARACTERS
-    assert "Let it show once, in your own words, in your reply to what caused it or soon after" in SKILL
+    assert "Let it show once in this reply, in your own words: one small touch that belongs to this reply" in SKILL
     assert "colour tone lightly" not in longest  # The guidance a host ignored (first two-arm attempt).
 
 
@@ -90,9 +90,10 @@ def test_the_absence_sentence_counts_whole_days(last, expected):
     if expected is None:
         assert text == ""
     else:
-        assert text == (f"The user's last conversation with you was {expected}. Welcome them back briefly in your own "
-                        "words if it fits; never say you missed them or were waiting, never ask why they were away, "
-                        "and do not make them feel they should come more often.")
+        assert text == (f"The user's last conversation with you was {expected}. Open your first reply with a few "
+                        "words of your own that welcome them back (no set phrase), then answer; never say you missed "
+                        "them or were waiting, never ask why they were away, and do not make them feel they should "
+                        "come more often.")
     assert host.ABSENCE_NOTICE_DAYS == 7
 
 

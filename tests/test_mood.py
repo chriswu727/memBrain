@@ -38,11 +38,11 @@ WEB = ROOT / "src" / "membrain" / "web"
 UTC = datetime.UTC
 JOB = {"label": "thrilled", "valence": 2, "intensity": 3, "basis": "reported", "topic": "the new job"}
 # The guidance since 2026-11-18 (mood.MOOD_GUIDANCE): shown once, in the host's own words, never as a template.
-SAFE = ("Let it show once, in your own words, in your reply to what caused it or soon after: a word or a clause that "
-        "belongs to that reply, never a set phrase, never the same wording twice, and no sentence about your own mood "
-        "unless the user asks. Leave it out when the user's message is serious or it would not fit. It is not a fact "
-        "about the user. Never use it to pressure them. If the user sincerely asks whether you have feelings, say this "
-        "is a simulated mood.")
+SAFE = ("Let it show once in this reply, in your own words: one small touch that belongs to this reply (the way you open, "
+        "a turn of phrase, a brief aside), never a set phrase, never wording you used before, and no sentence about your "
+        "own mood unless the user asks. Leave it out only when the user's message is serious. It is not a fact about the "
+        "user. Never use it to pressure them. If the user sincerely asks whether you have feelings, say this is a "
+        "simulated mood.")
 
 
 def moment(text):
