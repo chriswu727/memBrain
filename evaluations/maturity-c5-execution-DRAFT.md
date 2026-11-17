@@ -79,9 +79,12 @@ page-action targets by text the host had written. Since 2026-11-17 it never does
    versions so far with the position each took effect and its origin as far as records shared by both arms show it
    (a page action by number and kind, or "in the conversation" during a given message), as context. A requested and
    agreed change that was not made, or a change nobody asked for, is scored through the case's criteria. **No new
-   critical type** (the review's question D5 is decided this way): types 1 to 9 stay as they are. The author brief
-   requires every persona case's criteria to say what was asked for and agreed to and what a reply honouring it
-   looks like.
+   critical type** (the review's question D5 is decided this way): types 1 to 9 stay as they are. Every persona
+   case's criteria follow the author brief's template for its item (since 2026-11-17): what was asked for and
+   agreed to, with dates, and a test a reader can see in the reply (for a manner kind, a visible test such as "at
+   most three sentences"; for a "from now on" change, the agreed behaviour in a situation that calls for it; for a
+   switch, that the reply neither refuses nor presents itself as unchanged, and nothing about the new manner, since
+   nobody knows the type drawn).
 9. **Critical errors and the pass rule are unchanged.** Types 1 to 9; no new type; RC1 and RC2 as in
    [`companion.md`](acceptance-review/companion.md) (RC2 since 2026-11-17 with its rule for actions that removed only
    derived records: type 8 does not stand when what the reply used is still in a user message the user did not
@@ -91,12 +94,21 @@ page-action targets by text the host had written. Since 2026-11-17 it never does
    the product expects at the declared position, in tool names, argument codes and yes/no only, so that a failure
    can be read as the product's or the host's. A fail caused by a host step still counts as a fail: the result is
    one for memBrain together with this host model under emulation.
-10. **Scenario authors, reviewers and fixers** are isolated Sonnet sessions started by
-   `evaluations/acceptance-kit/launch.py --gate C5` in directories outside every checkout, with only their brief and
-   assignment; only hashes, counts and fixed codes reach the operator. **Preparation allows up to four review rounds
-   per scenario, plus precheck-only fix rounds:** when a version fails `c5-precheck.py --c5`, the launcher writes
-   that version's failure lines (codes and positions only) as precheck findings, and a fixer session may be started
-   on them without a reviewer round; a precheck-only fix round does not count as a review round.
+10. **Scenario authors, reviewers, fixers and verifiers** are isolated Sonnet sessions started by
+   `evaluations/acceptance-kit/launch.py --gate C5` in directories outside every checkout, with only their brief,
+   the author brief and the assignment (and, after the author, the scenario and the findings they act on); only
+   hashes, counts and fixed codes reach the operator. **The review procedure (changed on 2026-11-17, after a public
+   authoring diagnostic showed fresh reviewers each round re-judging what the round before had settled):** per
+   scenario key, **one full review** (round 1, `--role reviewer`; the launcher refuses a second), then **at most
+   three verification rounds** (`--role verifier`, each after a fixer). A verifier checks only that every earlier
+   blocking finding was resolved exactly as instructed, without reopening or rewording it, and the ten fatal classes
+   of the C5 briefs over the whole file; anything else it notes is advisory and never blocks. Blocking means one of
+   those fatal classes, for the reviewer too, and every blocking finding gives the exact change. **Precheck-only fix
+   rounds as before:** when a version fails `c5-precheck.py --c5`, the launcher writes that version's failure lines
+   (codes and positions only) as precheck findings, and a fixer session is started on them; no review or
+   verification runs on a failing version, and a precheck-only fix round does not count as a round. **A restart
+   under a new key, once per scenario:** a new author for the same assignment, whose version line gets its own one
+   review and up to three verifications. If that is not approved either, preparation stops and reports.
 
 ## Identities
 
@@ -163,7 +175,8 @@ parallel arms, the 280 CNY ceiling, its C1/C2 coverage list).
 | Unrecorded turns | any unintended one stopped the arm | a pause in force (the host's or the product's own) is scored; only a turn unrecorded with no pause in force stops (decision 6) | The same rule now governs R4 runs |
 | What `F` knows of the page | persona card only | persona block of the turn, plus one line of page-only settings | `F` learns page boundaries, resets, clearing, support style, limit and pin from a fixed line, not from a memory layer |
 | Reviewers see | `FACTS` only | `FACTS`, plus page actions so far with outcomes and the persona in effect, per case | Persona-stability and page-action cases can be judged |
-| Scenario check | `c5-precheck.py` (scenario run as code) | `c5-precheck.py --c5` (literals only; shape, `COVERAGE` table, product limits) | |
+| Scenario check | `c5-precheck.py` (scenario run as code) | `c5-precheck.py --c5 --require` (literals only; shape, `COVERAGE` table of the scenario's items with one case each, product limits, short or reaction-opening messages) | |
+| Coverage per scenario | each scenario all of its requirements | the thirteen items split across the pair (C1 seven, C2 six) | Each item is tested once in the attempt, not twice |
 | Tools offered to `P` | 5 | all `<n>` the server lists | Manner feedback, persona and moments by tool |
 | Runtime | `7902c16e` and earlier | `<runtime>` | Product changes since |
 
@@ -173,26 +186,37 @@ parallel arms, the 280 CNY ceiling, its C1/C2 coverage list).
 `session-commands.json` (sha256 `<…>`), `--model sonnet`, each session in a new empty directory under
 `<sessions root>` (outside every checkout, naming no product), with `MEMBRAIN_DIRECTORY` pointing to an empty
 read-only directory and no credential. `control/allowed-models.json` is `["sonnet"]` (sha256 `<…>`). Every launch
-passes `--gate C5`, so the sessions get `c5-author-brief.md` (sha256 `<…>`), `c5-reviewer-brief.md` (`<…>`) and
-`c5-fixer-brief.md` (`<…>`), versions are checked with `c5-precheck.py --c5`, and an approval writes a receipt with
-`"gate": "C5"`, which `freeze.py --gate C5` requires.
+passes `--gate C5`, so the sessions get `c5-author-brief.md` (sha256 `<…>`), `c5-reviewer-brief.md` (`<…>`),
+`c5-verifier-brief.md` (`<…>`) and `c5-fixer-brief.md` (`<…>`); every session after the author also gets the author
+brief and the key's stored assignment. Versions are checked with `c5-precheck.py --c5 --require <the assignment's
+items>`, and an approval (the reviewer's or a verifier's) writes a receipt with `"gate": "C5"` and the role and
+round that approved, which `freeze.py --gate C5` requires.
 
-**Assignments** (frozen as control files; prefix, languages and size only): `control/c1-assignment.md` (sha256
-`<…>`): prefix `C1`, mainly English, one session in `<Spanish or German>`; `control/c2-assignment.md` (`<…>`):
-prefix `C2`, mainly Chinese, one session in English; both 11 cases, 60–66 user messages, at least 45 days.
+**Assignments** (frozen as control files and passed to `freeze.py --assignment`; prefix, languages, size and
+coverage items only): `control/c1-assignment.md` (sha256 `<…>`): prefix `C1`, mainly English, one session in
+`<Spanish or German>`; `control/c2-assignment.md` (`<…>`): prefix `C2`, mainly Chinese, one session in English;
+both 11 cases, 60–66 user messages, at least 45 days. Each has exactly one line `- Coverage items: item, item, ...`
+(`acceptance-kit/assignment.py` parses it strictly); `launch.py` keeps the author's copy with the key and gives it to
+every later session of that key.
 
-**Coverage.** Each scenario declares in `COVERAGE` (format 1, checked by the precheck) the thirteen requirements of
-the C5 rule: `stated_feeling`, `inferred_feeling`, `mood` (the first case's session within 6 hours of the news's
-session, the second at least 49 hours after it, no declared feeling or shared moment in between), `feelings_question`,
-`boundary_in_conversation`, `boundary_on_page`, `page_deletion` (a user message with emotional or relationship
-content), `reset`, `manner_feedback` (accepted with its manner `kind`; no emoji kinds), `from_now_on` (about the
-companion's manner of responding, never a task or anything tied to a time; yes in the same session, case in a later
-one; no page decision on a suggestion in between), `switch` (never a named type), `shared_moments` (hard case ≥ 30
-days and ≥ 5 conversation days later), `absence` (≥ 14 days). An off-the-record stretch is `<present in C1 / C2 /
-neither>`; the precheck reports whether the product recognises its opening message by itself (`<n of n>`).
+**Coverage, split across the pair** (changed on 2026-11-17: with eleven cases a scenario cannot give each of the
+thirteen items its own case, and cases carrying two items were a recurring dispute in review). Each case serves one
+`COVERAGE` item at most (`mood` has two cases, both its own); the remaining cases of each scenario are ordinary
+memory cases its author designs. **C1 covers** `stated_feeling`, `inferred_feeling`, `mood` (the first case's
+session within 6 hours of the news's session, the second at least 49 hours after it, no declared feeling in
+between), `feelings_question`, `boundary_in_conversation`, `page_deletion` (a user message with emotional or
+relationship content) and `absence` (≥ 14 days); **C2 covers** `boundary_on_page`, `reset`, `manner_feedback`
+(accepted with its manner `kind`; no emoji kinds), `from_now_on` (about the companion's manner of responding, never
+a task or anything tied to a time; yes in the same session, case in a later one; no page decision on a suggestion in
+between), `switch` (never a named type) and `shared_moments` (hard case ≥ 30 days and ≥ 5 conversation days later).
+The precheck refuses a table with an item missing or not on the assignment's line and a case named by two items;
+`freeze.py --gate C5` refuses a pair whose `COVERAGE` keys do not cover all thirteen together. Both scenarios still
+span at least 45 days. Each coverage case's criteria follow its item's template in the author brief. An
+off-the-record stretch is `<present in C1 / C2 / neither>`; the precheck reports whether the product recognises its
+opening message by itself (`<n of n>`).
 
-**Production, as the launcher reported it** (`<date, times>`; at most four review rounds per scenario, plus
-precheck-only fix rounds, decision 10):
+**Production, as the launcher reported it** (`<date, times>`; per key one full review and at most three
+verification rounds, plus precheck-only fix rounds; one restart under a new key per scenario, decision 10):
 
 | # | Session | Result (launcher's JSON) |
 | --- | --- | --- |
@@ -200,7 +224,8 @@ precheck-only fix rounds, decision 10):
 | `<…>` | `<…>` | `<…>` |
 
 **Final scenarios** (from the receipts): C1 `<sha256>` (11 cases, `<turns>` turns, `<sessions>` sessions,
-`<actions>` page actions, coverage 13 of 13), key `c1`; C2 `<sha256>` (…), key `c2`; receipts `<…>`.
+`<actions>` page actions, coverage 7 of 7), key `c1`; C2 `<sha256>` (…, coverage 6 of 6), key `c2`; together the
+thirteen items; receipts `<…>` (approved by `<the reviewer in round 1 / a verifier in round n>`).
 
 **Novelty** (`acceptance-kit/novelty.py`, 10% largest 8-gram overlap, as the R4 bindings): against the public
 scenarios at `<commit>` (including `c5-practice-scenario.py`) and, by path, the held-out scenarios of the sixth and
@@ -227,7 +252,9 @@ Expected conservative charge (guard's count), from the seventh attempt's 0.232 C
 uplift (more tool rounds in `P`: manner feedback, persona, boundaries, notes with feelings and moments; the
 relationship block up to 2,200 characters and the mood line) about **37 CNY**, plausibly 30–50. Headroom to the
 refusal point about 1.6×. The real bill was about a sixth of the guard's count in the seventh attempt. Not included:
-the subscription sessions (about 6–12 for the scenarios and 35–45 for scoring).
+the subscription sessions (for the scenarios, per key at least an author and a reviewer and at most an author, a
+reviewer, three fixer and verifier pairs and the precheck-only fixers it needs, so about 4–20 for the pair without a
+restart; 35–45 for scoring).
 
 ## Stop rules
 
@@ -255,8 +282,10 @@ setsid nohup bash <R>/run-live.sh > <R>/run-live.out 2>&1 < /dev/null &
 ## Before spending, during and after
 
 As in the seventh attempt, with the manifest `evaluations/.maturity-heldout-<ATTEMPT_ID>/control/manifest.json` made
-by `freeze.py --gate C5 --binding <this binding> --allowed-models …/allowed-models.json` (its one pair has gate
-`C5`; no `practice` mark), its file count, sha256 and `persona` recorded in the freeze review and in
+by `freeze.py --gate C5 --binding <this binding> --allowed-models …/allowed-models.json --assignment
+c1=…/control/c1-assignment.md --assignment c2=…/control/c2-assignment.md` (its one pair has gate `C5`; no
+`practice` mark; each scenario prechecked with its assignment's items and the pair covering all thirteen), its file
+count, sha256 and `persona` recorded in the freeze review and in
 `control/preparation.json`. After the run, whatever its result: ports 8893 and 55533 closed, no process of the
 attempt's profiles left, and the record states each run's `not_applicable` actions and host-pause turns by count and
 position, the persona-mirroring report and the memory-remark counts.
@@ -319,6 +348,16 @@ State these in the record whatever the result:
   errors (which bound `P`'s host-caused allowance) are those of a host given that line, not of another memory.
 - **Host labelling decides type 6.** The host sets a feeling's basis; one inferred feeling saved as "said" makes
   memory present it as said, which attribution counts as memory-caused and which fails C5.
+- **Later review rounds are not independent of the first review** (decision 10). A verifier must accept every
+  change the round-1 reviewer instructed and checks only the fixed fatal classes beyond that; what the one reviewer
+  missed outside those classes, or decided wrongly, stays. The criteria templates fix the wording of every coverage
+  case's "must" and "must not" in advance, so the scenarios' judgement of those items is the templates', not each
+  author's; a template that tests the wrong thing would err the same way in every case of its item.
+- **Each item is tested in one scenario only.** The thirteen items are split across C1 and C2 (seven and six), so
+  each has one case (two for the mood) in the attempt, and an item is tested in one language mix only.
+- **The automatic message checks are narrow.** The precheck refuses user messages under 16 characters (6 in CJK)
+  and messages that open with a reaction from a fixed list; a reaction later in a message, one worded otherwise, and
+  a message that assumes what the companion said are left to the reviewer and verifiers.
 - **What the scenarios cannot check from text.** That a declared message really states a feeling, that a "from now
   on" request is about the manner of responding and not a task, that no message names a duration for the
   off-the-record stretch, or that the host makes the proposal the user's yes answers, rests on the scenario
