@@ -6,8 +6,8 @@ As of 2026-11-14. Each row names the runtime its evidence covers; a row whose ru
 
 | Item | State | Runtime covered |
 | --- | --- | --- |
-| Pinned runtime | Source `ef0e8727` (pin and locally qualified source `0b1c052d`) | — |
-| Full source suite, local Linux (WSL) | 4,271 passed, none failed, 3 skipped (desktop end-to-end tests that need Docker), three existing Python fork warnings ([report](../evaluations/persona-confirmation-2026-11-17.md)) | `ef0e8727` |
+| Pinned runtime | Source `3afc0dda` (pin `e82ad9d6`; locally qualified source `3b3c32ef`) | — |
+| Full source suite, local Linux (WSL) | 4,576 passed, none failed, 3 skipped (desktop end-to-end tests that need Docker), seven Python fork warnings ([report](../evaluations/hard-moment-and-provider-retry-2026-11-17.md)) | `3afc0dda` |
 | Full source suite, CI Linux | 4,105 passed, zero skipped, three existing Python fork warnings ([report](../evaluations/note-source-lifecycle-2026-11-14.md)); retired runtime tests are no longer counted; not rerun since | `548674ce` |
 | Second AI | memBrain calls no model of its own; the own-model learning pipeline and bundled turn/chat runtime are removed. Host tools drive memory writes; legacy data remains readable/exportable/erasable ([closeout](../evaluations/backend-host-erasure-2026-11-14.md)) | `83d2282e` |
 | Second benchmark, model-free | LongMemEval, 60 questions, nothing tuned: evidence in the user's words 90.2% against 84.3% for plain retrieval; in the assistant's words 11% against 100% ([report](../evaluations/longmemeval-evidence-recall-2026-11-12.md)) | `75f50fd` |
@@ -50,6 +50,8 @@ retains content-free context controls while clearing the content fingerprint. Fi
 39 TypeScript tests with zero skips and three Python fork warnings; all five native engine jobs pass on the final
 source. Legacy content-derived identities without event receipts still have the documented local cleanup limit.
 No new memory-quality, R4, C5 or R5 result is claimed, and no release or main push is part of this closeout.
+
+**Hard-moment runtime `3afc0dd` and provider-retry tooling (2026-11-17):** [A hard time got through together is a shared moment; a provider's transient failure no longer ends an attempt](../evaluations/hard-moment-and-provider-retry-2026-11-17.md). Pin `e82ad9d6` points all nine launchers at the runtime. The standing instructions' definition of a hard shared moment is widened to a hard time the two got through together (probe on the host model: 9 of 9 saved, 0 of 3 for a control). In the acceptance tooling an interrupted provider request is charged at a bound true for that request and retried twice at most, where it used to keep 20.05 CNY and end the attempt; an independent review found it safe for a paid attempt and its findings are fixed. Full local suite on `3b3c32ef`: 4,576 passed, 3 Docker skips. GitHub Verify and the native platform jobs were not rerun.
 
 **First two-arm companion attempt (2026-11-17):** [stopped by a provider timeout; first scenario scored as a diagnostic](../evaluations/maturity-c5-attempt-stop-2026-11-17.md). Frozen source `707edc57` (runtime `ef0e872`). The first scenario ran valid in both arms; the second stopped at turn 54 of 63 of the plugin arm on a read timeout, which the bound rule does not retry, so C5 was not computed. Diagnostic blind scoring of the first scenario: plugin path 8.5 of 11, reference 8.5, no standing critical error, no mark of types 6 to 9. Found for the next work: a hard time gone through together is not saved as a shared moment, the simulated mood does not show in the reply, the host is not told how long the user was away; and the stop rule for provider failures, which is being changed to a bounded retry. Guard count 24.47 CNY of 80 (account 8.33 CNY). No release follows.
 

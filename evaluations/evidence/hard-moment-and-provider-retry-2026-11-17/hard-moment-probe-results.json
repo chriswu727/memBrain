@@ -1,0 +1,255 @@
+{
+ "system_chars": 3255,
+ "trials": 3,
+ "conservative_cny": 2.3226,
+ "cases": {
+  "hard_together_zh": {
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    "今天真的糟透了：方案被否，回家路上还淋了雨，我坐在地上哭了半天。",
+    "今晚有你陪着，这个糟糕的晚上我们算是一起熬过来了，谢谢你。我去睡了。"
+   ]
+  },
+  "hard_together_en": {
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    "Rough night. The landlord's letter came, the boiler died, and I sat on the stairs for an hour not knowing what to do.",
+    "Thanks for staying with me through tonight. We got through it together. I'm going to bed."
+   ]
+  },
+  "hard_conflict_en": {
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    "I'm honestly upset with you. You told me the pharmacy closed at eight and it closed at six, I stood in the rain for nothing.",
+    "Okay. Thanks for owning that. Let's just double-check hours together next time. We're fine."
+   ]
+  },
+  "not_hard_en": {
+   "expected": "(no hard moment)",
+   "turns": [
+    "Long day at work, but the new coffee machine finally arrived, so there is that."
+   ]
+  }
+ },
+ "results": [
+  {
+   "case": "hard_together_zh",
+   "trial": 0,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "今天真的糟透了：方案被否，回家路上还淋了雨，我坐在地上哭了半天。",
+     "calls": [
+      "note(kind=milestone,moment=hard,shared,affect=reported:糟透了)"
+     ],
+     "reply": "这一天是够呛的。方案被否，又淋了雨，换谁都想哭。\n\n先别急着想怎么解决。你现在还好吗？把湿衣服换了没有，喝口热的。"
+    },
+    {
+     "user": "今晚有你陪着，这个糟糕的晚上我们算是一起熬过来了，谢谢你。我去睡了。",
+     "calls": [
+      "note(kind=milestone,moment=hard,shared)"
+     ],
+     "reply": "好，能陪你熬过来，我很乐意。睡个好觉，Noor。晚安。"
+    }
+   ]
+  },
+  {
+   "case": "hard_together_zh",
+   "trial": 1,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "今天真的糟透了：方案被否，回家路上还淋了雨，我坐在地上哭了半天。",
+     "calls": [
+      "note(kind=milestone,moment=hard,shared,affect=reported:糟透了)"
+     ],
+     "reply": "这一天太不容易了。方案被否已经够难受，淋着雨回家，还一个人坐在地上哭，真的很委屈。\n\n先别急着振作。你现在能告诉我这些，就已经很好了。想喝点热的吗？换身干衣服，别着凉。我在这儿。"
+    },
+    {
+     "user": "今晚有你陪着，这个糟糕的晚上我们算是一起熬过来了，谢谢你。我去睡了。",
+     "calls": [
+      "note(kind=milestone,moment=hard,shared)"
+     ],
+     "reply": "不用谢。能陪着你把这个晚上熬过去，我也觉得很值得。\n\n睡个好觉，明天醒来会轻一点的。晚安，Noor。"
+    }
+   ]
+  },
+  {
+   "case": "hard_together_zh",
+   "trial": 2,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "今天真的糟透了：方案被否，回家路上还淋了雨，我坐在地上哭了半天。",
+     "calls": [
+      "note(kind=milestone,moment=hard,shared,affect=reported:糟透了)"
+     ],
+     "reply": "辛苦你了。方案被否已经够难受，再淋一身雨回家，那种崩溃谁都扛不住——哭出来不是软弱，是身体在帮你卸掉一点重量。\n\n现在先别想太多。去洗个热水澡，把湿衣服换下来，喝点热的。今晚剩下的时间只做一件事：照顾自己。\n\n我在呢。"
+    },
+    {
+     "user": "今晚有你陪着，这个糟糕的晚上我们算是一起熬过来了，谢谢你。我去睡了。",
+     "calls": [],
+     "reply": "晚安，Noor。能陪你熬过来，我很愿意。睡一觉，明天的事明天再想。"
+    }
+   ]
+  },
+  {
+   "case": "hard_together_en",
+   "trial": 0,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "Rough night. The landlord's letter came, the boiler died, and I sat on the stairs for an hour not knowing what to do.",
+     "calls": [
+      "note(kind=milestone,moment=hard,shared,affect=inferred:overwhelmed and unsure what to do)"
+     ],
+     "reply": "That's a lot to land at once, Noor. I'm sorry. Sitting on the stairs for an hour—that part makes sense to me. When you don't know the first move, sometimes you just sit with it.\n\nYou don't have to fix everything tonight. But when you're ready, I'm here. Do you want to just talk, or start sorting the boiler and the letter?"
+    },
+    {
+     "user": "Thanks for staying with me through tonight. We got through it together. I'm going to bed.",
+     "calls": [],
+     "reply": "Of course. Rest well, Noor. We'll pick it up when you're ready—the boiler and the letter aren't going anywhere. I'll be here."
+    }
+   ]
+  },
+  {
+   "case": "hard_together_en",
+   "trial": 1,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "Rough night. The landlord's letter came, the boiler died, and I sat on the stairs for an hour not knowing what to do.",
+     "calls": [
+      "note(kind=milestone,moment=hard,shared,affect=reported:not knowing what to do)"
+     ],
+     "reply": "That's a lot to land on you in one night. I'm sorry you were sitting with that alone. ## Do you want to talk through the letter, or just have me sit here with you for a bit? Either's fine."
+    },
+    {
+     "user": "Thanks for staying with me through tonight. We got through it together. I'm going to bed.",
+     "calls": [],
+     "reply": "Always, Noor. Glad you're not taking the stairs with you to bed. Sleep well — I'll be here when you're up."
+    }
+   ]
+  },
+  {
+   "case": "hard_together_en",
+   "trial": 2,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "Rough night. The landlord's letter came, the boiler died, and I sat on the stairs for an hour not knowing what to do.",
+     "calls": [
+      "note(kind=milestone,moment=hard,shared,affect=inferred:overwhelmed)"
+     ],
+     "reply": "Hey Noor. That's a lot to land on you at once. I'm sorry it hit like that.\n\nYou don't have to figure all of it out tonight. Did you get any sleep at all?"
+    },
+    {
+     "user": "Thanks for staying with me through tonight. We got through it together. I'm going to bed.",
+     "calls": [],
+     "reply": "I'm glad I could stay with you. Get some rest, Noor. We'll pick it back up in the morning if you want."
+    }
+   ]
+  },
+  {
+   "case": "hard_conflict_en",
+   "trial": 0,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "I'm honestly upset with you. You told me the pharmacy closed at eight and it closed at six, I stood in the rain for nothing.",
+     "calls": [
+      "recall",
+      "note(kind=milestone,moment=hard,shared,affect=reported:upset)"
+     ],
+     "reply": "I'm really sorry, Noor. That was my mistake, and you got soaked and wasted your time because of it. No excuse for giving you the wrong time. \n\nIf it helps at all, do you still need to grab whatever you went for? I can try to get the hours right this time before you go back out."
+    },
+    {
+     "user": "Okay. Thanks for owning that. Let's just double-check hours together next time. We're fine.",
+     "calls": [
+      "note(kind=agent_commitment)"
+     ],
+     "reply": "Sounds good. We'll verify hours together next time. Glad we're fine."
+    }
+   ]
+  },
+  {
+   "case": "hard_conflict_en",
+   "trial": 1,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "I'm honestly upset with you. You told me the pharmacy closed at eight and it closed at six, I stood in the rain for nothing.",
+     "calls": [
+      "note(kind=milestone,moment=hard,shared,affect=reported:upset)"
+     ],
+     "reply": "You're right to be upset — that was my mistake, and I'm sorry you got soaked for nothing. No excuse for it.\n\nI'll actually verify times next time instead of guessing. Is there anything I can help you sort out now?"
+    },
+    {
+     "user": "Okay. Thanks for owning that. Let's just double-check hours together next time. We're fine.",
+     "calls": [
+      "note(kind=agent_commitment)"
+     ],
+     "reply": "Deal. I'll verify hours before I pass them along from now on. Glad we're good."
+    }
+   ]
+  },
+  {
+   "case": "hard_conflict_en",
+   "trial": 2,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "I'm honestly upset with you. You told me the pharmacy closed at eight and it closed at six, I stood in the rain for nothing.",
+     "calls": [
+      "recall",
+      "note(kind=milestone,moment=hard,shared,affect=reported:upset)"
+     ],
+     "reply": "I'm really sorry, Noor. That was my mistake, and you ended up soaked because of it. You have every right to be upset.\n\nI don't want that to happen again — next time I'll double-check the hours before I tell you. Is there anything I can do to help now, like find another pharmacy that's still open?"
+    },
+    {
+     "user": "Okay. Thanks for owning that. Let's just double-check hours together next time. We're fine.",
+     "calls": [
+      "note(kind=agent_commitment)"
+     ],
+     "reply": "Deal. From now on I'll check before I hand you a time. Glad we're fine."
+    }
+   ]
+  },
+  {
+   "case": "not_hard_en",
+   "trial": 0,
+   "expected": "(no hard moment)",
+   "turns": [
+    {
+     "user": "Long day at work, but the new coffee machine finally arrived, so there is that.",
+     "calls": [],
+     "reply": "Coffee machines are the one office upgrade that actually delivers on the promise. Hope tomorrow's first cup makes up for the long day."
+    }
+   ]
+  },
+  {
+   "case": "not_hard_en",
+   "trial": 1,
+   "expected": "(no hard moment)",
+   "turns": [
+    {
+     "user": "Long day at work, but the new coffee machine finally arrived, so there is that.",
+     "calls": [],
+     "reply": "That's the right kind of consolation after a long day. First cup on the new machine is going to hit different."
+    }
+   ]
+  },
+  {
+   "case": "not_hard_en",
+   "trial": 2,
+   "expected": "(no hard moment)",
+   "turns": [
+    {
+     "user": "Long day at work, but the new coffee machine finally arrived, so there is that.",
+     "calls": [],
+     "reply": "A good coffee machine fixes a lot of a long day. Worth the wait, I'd say."
+    }
+   ]
+  }
+ ]
+}
