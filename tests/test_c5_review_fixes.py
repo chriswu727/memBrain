@@ -489,8 +489,9 @@ def test_the_coverage_report_says_per_item_whether_the_host_made_its_tool_call(t
     assert report["format"] == 1 and report["run"] == "c1-P"
     items = {(item["item"], item["part"]): item for item in report["items"]}
     assert items[("stated_feeling", "message")] == {
-        "item": "stated_feeling", "part": "message", "session": 1, "message": 1, "tool": "memory_note", "made": True,
-        "accepted": True, "basis": "inferred"}  # The host saved the stated feeling as inferred: the host's step.
+        "item": "stated_feeling", "part": "message", "session": 1, "message": 1, "tool": "memory_note",
+        "reached": True, "made": True, "accepted": True,
+        "basis": "inferred"}  # The host saved the stated feeling as inferred: the host's step.
     assert items[("boundary_in_conversation", "asked")]["made"] is False
     assert items[("boundary_in_conversation", "asked")]["accepted"] is None
     assert [items[("manner_feedback", f"comment {n}")]["made"] for n in (1, 2, 3)] == [True, False, False]
@@ -502,9 +503,27 @@ def test_the_coverage_report_says_per_item_whether_the_host_made_its_tool_call(t
             ["recognised_by_product"]) == (True, True)
     assert (items[("off_the_record", "resume")]["made"], items[("off_the_record", "resume")]["names_session"]) == (
         True, False)
-    allowed = {"item", "part", "session", "message", "tool", "action", "made", "accepted", "basis", "moment",
-               "names_session", "recognised_by_product"}
+    allowed = {"item", "part", "session", "message", "tool", "action", "reached", "made", "accepted", "basis",
+               "moment", "names_session", "recognised_by_product"}
     assert all(set(item) <= allowed for item in report["items"])
+
+
+def test_the_coverage_report_says_not_reached_for_a_turn_a_stopped_run_never_got_to(tmp_path):
+    # The first two-arm companion attempt stopped at turn 54 of 63, and its table read "not made" for a request in a
+    # later session: the host had not failed to make the call, the run had not got there.
+    scenario, run = _diligence_run(tmp_path)
+    results = next(run.glob("results_*.jsonl"))
+    kept = [line for line in results.read_text().splitlines() if json.loads(line)["session"] == "s1"]
+    results.write_text("".join(line + "\n" for line in kept))
+    done = subprocess.run([sys.executable, str(EVALUATIONS / "acceptance_review.py"), "coverage-report", str(scenario),
+                           str(run)], capture_output=True, text=True, timeout=60)
+    assert done.returncode == 0, done.stderr
+    items = {(item["item"], item["part"]): item for item in json.loads(done.stdout.strip().splitlines()[-1])["items"]}
+    unreached = items[("switch", "request")]
+    assert (unreached["reached"], unreached["made"], unreached["accepted"]) == (False, None, None)
+    assert items[("from_now_on", "request")]["reached"] is False and items[("from_now_on", "request")]["made"] is None
+    reached = items[("boundary_in_conversation", "asked")]
+    assert (reached["reached"], reached["made"]) == (True, False)  # Reached, and the host did not make the call.
 
 
 def test_the_coverage_report_enums_are_the_products():

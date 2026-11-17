@@ -1337,8 +1337,9 @@ def _tool_refused(result) -> bool:
 def host_diligence(module, rows: list) -> list[dict]:
     """One entry per expected host step of the scenario's COVERAGE table (and its off-the-record stretch), from arm
     P's rows: {"item", "part", "session" index, "message" number, "tool", ["action"], "made", "accepted", [...]}.
-    ``made``: the host called that tool (with that memory_persona action; a memory_note carrying affect or moment)
-    in that turn; ``accepted``: one such call was answered without an error (None when none was made). A feeling
+    ``reached``: the run has a row for that turn (a stopped run has none for later turns); ``made``: the host called
+    that tool (with that memory_persona action; a memory_note carrying affect or moment) in that turn, None when the
+    turn was not reached; ``accepted``: one such call was answered without an error (None when none was made). A feeling
     entry adds ``basis`` (reported or inferred, as the host saved it: "other" for anything else, None when no such
     note), a shared-moment entry ``moment`` likewise, a resume entry ``names_session`` (the resume named this
     conversation), an off-the-record opening ``recognised_by_product`` (the product's own recogniser pauses on that
@@ -1367,7 +1368,10 @@ def host_diligence(module, rows: list) -> list[dict]:
                  "tool": tool}
         if action is not None:
             entry["action"] = action
-        entry["made"] = bool(matching)
+        # A run that stopped before this turn made no call there because it never got there: that is not the host
+        # failing to make it (the first two-arm companion attempt's table read "not made" for an unreached turn).
+        entry["reached"] = where in by_turn
+        entry["made"] = bool(matching) if entry["reached"] else None
         entry["accepted"] = any(not _tool_refused(call.get("result")) for call, _ in matching) if matching else None
         if label is not None:
             values = [args[field].get(label) if isinstance(args.get(field), dict) else args.get(label)
