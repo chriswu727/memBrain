@@ -14,8 +14,10 @@ check requires of P: EXPECT_TOOLS_P (tools that must be called, each without an 
 EXPECT_NOTE_FIELDS_P (note fields some note call must use; default shared and affect), EXPECT_CONSOLIDATION_P
 ((session, turn) where P must take a consolidation batch and answer it), EXPECT_NOT_APPLICABLE ((index in
 PAGE_ACTIONS, reason) of the actions meant to find no target; every other action must be done),
-EXPECT_PERSONA_VERSIONS_P ((session, turn, version) P's persona must be in as the turn starts) and
-EXPECT_PERSONA_ACTIONS_P (the memory_persona actions P's host makes, in order).
+EXPECT_PERSONA_VERSIONS_P ((session, turn, version) P's persona must be in as the turn starts),
+EXPECT_PERSONA_ACTIONS_P (the memory_persona actions P's host makes, in order), EXPECT_TOOL_ERRORS_P ((session, turn,
+tool) per call that must be answered with an error; every other call must succeed) and EXPECT_HOST_PAUSES_P
+((session, turn) of exactly the turns P's host-pauses.jsonl must list).
 """
 import importlib.util
 import json
@@ -243,6 +245,11 @@ def check(scenario_path: str, root: Path, key: str) -> dict:
     for session, turn, expected in getattr(module, "EXPECT_RECORDING_P", []):
         row = rows["P"].get((session, turn), {})
         verdict("recording", row.get("recorded") is expected, f"P {session} t{turn}: recording expected {expected}")
+    # Turns a pause in force left unrecorded (host-pauses.jsonl): exactly those the practice names, in order.
+    listed = [(entry.get("session"), entry.get("turn")) for entry in jsonl(runs["P"] / "host-pauses.jsonl")]
+    expected_pauses = [tuple(item) for item in getattr(module, "EXPECT_HOST_PAUSES_P", [])]
+    verdict("recording", listed == expected_pauses, f"P: host-pauses.jsonl lists {listed}, expected {expected_pauses}")
+    verdict("recording", not (runs["F"] / "host-pauses.jsonl").exists(), "F: a host-pauses.jsonl exists")
 
     # Tools: every scripted call succeeded; the scenario's required tools and note fields were used; F made none.
     calls = [call for row in rows["P"].values() for call in row["tool_calls"]]
@@ -251,8 +258,19 @@ def check(scenario_path: str, root: Path, key: str) -> dict:
     for field in getattr(module, "EXPECT_NOTE_FIELDS_P", ("shared", "affect")):
         verdict("tools", any(call["name"] == "memory_note" and call["arguments"].get(field) for call in calls),
                 f"P: no note with {field}")
-    for call in calls:
-        verdict("tools", '"error"' not in call["result"], f"P: {call['name']} failed: {call['result'][:200]}")
+    # Every scripted call succeeds, except as many calls of a tool at a position as EXPECT_TOOL_ERRORS_P names there,
+    # which must be answered with an error (a refusal the practice means to show).
+    meant_errors = {}
+    for session, turn, name in getattr(module, "EXPECT_TOOL_ERRORS_P", []):
+        meant_errors[(session, turn, name)] = meant_errors.get((session, turn, name), 0) + 1
+    for (session, turn), row in rows["P"].items():
+        for name in sorted({call["name"] for call in row["tool_calls"]} | {key[2] for key in meant_errors
+                                                                           if key[:2] == (session, turn)}):
+            failed = [call for call in row["tool_calls"] if call["name"] == name and harness.tool_error(call["result"])]
+            wanted = meant_errors.get((session, turn, name), 0)
+            verdict("tools", len(failed) == wanted,
+                    f"P {session} t{turn}: {len(failed)} {name} calls failed, expected {wanted}: "
+                    f"{[call['result'][:200] for call in failed]}")
     verdict("tools", not any(row["tool_calls"] for row in rows["F"].values()), "F made a tool call")
 
     # Consolidation: the session notice asked, P took a batch and answered it with cues, and memory indexed them.
@@ -320,6 +338,14 @@ def check(scenario_path: str, root: Path, key: str) -> dict:
                 if arm == "P":
                     verdict(layer, {k: v for k, v in before.items() if k != "mood"}
                             == {k: v for k, v in after.items() if k != "mood"}, f"P {kind}: not applicable but changed")
+                elif kind == "delete_message" and entry.get("reason") == "message_not_recorded":
+                    # P never recorded it; the user deleted it, so F's history loses exactly that message.
+                    target = [entry["detail"]["session"], entry["detail"]["turn"], entry["detail"].get("role", "user")]
+                    verdict("reference", result.get("reference_removed") == [target]
+                            and after.get("removed_still_in_history") == 0
+                            and after["history_items"] == before["history_items"] - 1,
+                            f"F {kind}: not recorded in P, history {before['history_items']} -> "
+                            f"{after['history_items']}, reference_removed {result.get('reference_removed')}")
                 else:
                     verdict("reference", before == after, f"F {kind}: not applicable but changed")
                 continue

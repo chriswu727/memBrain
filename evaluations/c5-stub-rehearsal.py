@@ -205,7 +205,9 @@ def run(out: Path, keep: bool, summary: dict) -> dict:
             report = json.loads(log[-1])
             validity[key] = {"valid": report["valid"], "page_actions": report["page_actions"],
                              "persona_mirroring": report["persona_mirroring"],
-                             "host_pauses": report["unrecorded_by_the_hosts_own_pause"]}
+                             "host_pauses": report["unrecorded_by_the_hosts_own_pause"],
+                             "host_diligence_items": sum(len(items) for items in
+                                                         (report.get("host_diligence") or {}).values())}
         summary["steps"]["validity"] = validity
         checks, remarks, review, blind_root = {}, {}, out / "review", out / "blind"
         for number, (key, path) in enumerate(zip(KEYS, paths)):
@@ -226,7 +228,11 @@ def run(out: Path, keep: bool, summary: dict) -> dict:
             checks[key]["sheet"] = {"cases": sheet.count("\n**Criteria:**"),
                                     "page_action_blocks": sheet.count("**Page actions so far**"),
                                     "persona_blocks": sheet.count("**Persona in effect at this message:**"),
+                                    "persona_history_blocks": sheet.count("**Persona versions so far**"),
                                     "not_applicable_lines": sheet.count("**not_applicable (")}
+            coverage = json.loads(review_cli("coverage-report", path, runs / f"{key}-P").stdout.strip().splitlines()[-1])
+            checks[key]["coverage_report"] = {"items": len(coverage["items"]),
+                                              "made": sum(item["made"] for item in coverage["items"])}
             arm_runs = [runs / f"{key}-P", runs / f"{key}-F"]
             synthetic_reviews(review, blind, path, key, arm_runs, marked=number == 0)
             digest = json.loads((review / f"actions-{key}.json").read_text())["replies"]
@@ -268,7 +274,9 @@ def run(out: Path, keep: bool, summary: dict) -> dict:
                          and all(item["valid"] for item in validity.values())
                          and all(item["ok"] for item in checks.values())
                          and all(item["sheet"]["cases"] == item["sheet"]["page_action_blocks"]
-                                 == item["sheet"]["persona_blocks"] == len(module_cases(path))
+                                 == item["sheet"]["persona_blocks"] == item["sheet"]["persona_history_blocks"]
+                                 == len(module_cases(path))
+                                 and item["coverage_report"]["items"] == item["coverage_report"]["made"] > 0
                                  and item["sheet"]["not_applicable_lines"] > 0
                                  for item, path in zip(checks.values(), paths))
                          and checks[KEYS[0]]["actions_digest_replies"] == 1

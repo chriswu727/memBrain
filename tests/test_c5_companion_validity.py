@@ -94,7 +94,11 @@ def test_a_companion_run_is_valid_and_reports_its_page_actions_and_persona_mirro
 
 def test_a_not_applicable_action_is_reported_with_its_position_and_reason_never_refused(pipeline, tmp_path):
     entries = [record(1, "not_applicable", "message_not_recorded"), record(2), record(0)]
-    scenario, runs = world(tmp_path, p_actions=entries, f_actions=entries)
+    # Since 2026-11-17 F still drops the message the user deleted, which P never recorded: the one asymmetry.
+    f_entries = json.loads(json.dumps(entries))
+    f_entries[0]["result"]["reference_removed"] = [[f"{PLANT}-a", 1, "user"]]
+    f_entries[0]["after"] = {"removed_still_in_history": 0}
+    scenario, runs = world(tmp_path, p_actions=entries, f_actions=f_entries)
     result = pipeline.validity(runs, scenario)
     assert result["valid"], result["problems"]
     assert result["page_actions"]["k-P (P)"] == {"count": 3, "done": 2, "not_applicable": {"count": 1, "at": [

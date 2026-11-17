@@ -39,8 +39,10 @@ module. Built on the Phase B harness (v1-2026-10-29-phase-b-harness.py), with:
   suggestion, by origin and order); never from text the host model wrote. An action whose target does not exist
   because of what the host did or did not do (no open suggestion, no note from that message, a turn its pause left
   unrecorded) is recorded as ``not_applicable`` with a fixed reason code and the run goes on: that is the plugin
-  path's behaviour and is scored. Only a real fault (the service refusing a well-formed action on an existing
-  target, an exception, a deletion the harness cannot mirror) is ``failed``, the harness event page_action_failed.
+  path's behaviour and is scored. So is an action of LIMITED the service refuses with a validation error (4xx)
+  after the precheck checked the scenario's own words (``page_refused``: for example a page boundary past the page's
+  limits because of boundaries the host saved). Only a real fault (any other refusal, a server error, an exception,
+  a deletion the harness cannot mirror) is ``failed``, the harness event page_action_failed.
   A ``random`` personality switch is picked by the harness from the attempt's seed (``seeded_random_preset``), so a
   rerun agrees. F applies P's outcome of each action, read from P's page-actions.jsonl.
 - **Reference world.** F's earlier history drops a message only when a page action deletes that message (the product
@@ -115,20 +117,26 @@ ACTION_ARGUMENTS = {
     "switch_persona": ({"preset"}, set()),
     "set_persona": ({"card"}, set()),
     "delete_persona_history": (set(), set()),
-    "accept_proposal": (set(), {"origin", "position"}),
-    "reject_proposal": (set(), {"origin", "position"}),
+    "accept_proposal": (set(), {"origin", "position", "kind"}),
+    "reject_proposal": (set(), {"origin", "position", "kind"}),
 }
 ACTIONS = set(ACTION_ARGUMENTS)
 DELETES_MESSAGES = {"delete_message"}
 BY_SOURCE = {"delete_message", "delete_note_from", "delete_feeling_from"}  # Target: a message by scenario position.
 PROPOSAL_ACTIONS = {"accept_proposal", "reject_proposal"}
 PROPOSAL_ORIGINS = ("any", "feedback", "host")  # feedback: made from repeated manner feedback; host: the host AI's.
+# A proposal decision may also name a manner kind (an id of the product's persona_growth.KINDS table, never host
+# text): it then takes the open feedback suggestion of that kind.
+# Actions whose own words the precheck checks with the product's validators: a 4xx validation refusal of one is caused
+# by what the host saved before it (more boundaries than the page allows, a line too long), so it is not_applicable
+# ("page_refused") and scored, not a fault.
+LIMITED = {"add_boundary", "set_support_style", "cap_familiarity", "switch_persona", "set_persona"}
 CAP_LEVELS = ("new", "getting_to_know", "familiar", None)
 # The page-actions.jsonl record (PAGE_RECORD_FORMAT 2): every record has "status" done, not_applicable or failed.
 PAGE_RECORD_FORMAT = 2
 # Why an action had no target, because of what the host did or did not do: scored with the arm, never a fault.
 NOT_APPLICABLE = ("message_not_recorded", "message_already_removed", "no_note_from_message",
-                  "no_feeling_from_message", "boundary_not_present", "no_open_proposal")
+                  "no_feeling_from_message", "boundary_not_present", "no_open_proposal", "page_refused")
 # Why an action failed (a real fault: the run is invalid): page_action_failed carries one of these as its reason.
 FAILURE_CODES = ("not_found", "unknown_removed", "service_refused", "exception", "card_differs",
                  "ambiguous_proposal")
@@ -727,6 +735,11 @@ def _argument_problem(kind: str, action: dict, sessions: list, at: tuple) -> str
     if kind in PROPOSAL_ACTIONS and (action.get("origin", "any") not in PROPOSAL_ORIGINS
                                      or type(action.get("position", 1)) is not int or action.get("position", 1) < 1):
         return f"origin is one of {PROPOSAL_ORIGINS} and position a whole number from 1"
+    if kind in PROPOSAL_ACTIONS and "kind" in action:
+        from membrain import persona_growth
+
+        if action["kind"] not in persona_growth.KINDS or action.get("origin", "any") == "host":
+            return "kind is a manner kind of the product's table, naming a feedback suggestion"
     return None
 
 
@@ -948,10 +961,12 @@ def _apply(memory: Memory, client, action: dict, page: dict) -> dict:
         return {"deleted_versions": client.delete_persona_history()["deleted_versions"]}
     if kind in PROPOSAL_ACTIONS:
         # The page lists open suggestions first, newest first; the action takes the position-th open one of its
-        # origin, by the product's own order and kind, never by any text.
+        # origin (and, when the action names one, of its manner kind), by the product's own order and kind, never by
+        # any text.
         origin, position = action.get("origin", "any"), action.get("position", 1)
         listed = [item for item in client.persona_proposals().get("proposals", []) if item.get("status") == "open"
-                  and (origin == "any" or (item.get("kind") == "host") == (origin == "host"))]
+                  and (origin == "any" or (item.get("kind") == "host") == (origin == "host"))
+                  and ("kind" not in action or item.get("kind") == action["kind"])]
         if len(listed) < position:
             return {"not_applicable": "no_open_proposal", "open": len(listed)}
         chosen = listed[position - 1]
@@ -1044,10 +1059,23 @@ def apply_page_action(memory: Memory, action: dict, page: dict | None = None) ->
         try:
             return _apply(memory, client, action, page)
         except httpx.HTTPStatusError as error:
-            return {"failed": "the service refused the action", "code": "service_refused",
-                    "status": error.response.status_code}
+            status = error.response.status_code
+            if action["do"] in LIMITED and 400 <= status < 500 and _error_code(error.response) == "validation_failed":
+                # The scenario's own words passed the product's validators in the precheck, so the page's limits were
+                # reached through what the host saved: the plugin path's behaviour, scored.
+                return {"not_applicable": "page_refused", "status": status}
+            return {"failed": "the service refused the action", "code": "service_refused", "status": status}
         except Exception as error:  # noqa: BLE001 - recorded by class as a fault; the run is invalid.
             return {"failed": "the action raised", "code": "exception", "error": type(error).__name__}
+
+
+def _error_code(response) -> str | None:
+    """The service's error code of a refused request ({"error": {"code": ...}}), or None; never its message."""
+    try:
+        error = response.json().get("error")
+    except (ValueError, AttributeError):
+        return None
+    return error.get("code") if isinstance(error, dict) and isinstance(error.get("code"), str) else None
 
 
 def page_status(result: dict) -> tuple[str, str | None]:
@@ -1098,6 +1126,14 @@ class Reference:
         changes nothing here either."""
         kind = action["do"]
         if outcome is not None and outcome.get("status") == "not_applicable":
+            if kind == "delete_message" and outcome.get("reason") == "message_not_recorded":
+                # P never recorded the message (off the record, or a turn a pause left unrecorded), so P had nothing
+                # to delete; the user still deleted it, so F's history loses it too. The one asymmetry validity
+                # accepts: F's record names it in reference_removed, and its removed_records stay empty.
+                position = (action["session"], action["turn"], action.get("role", "user"))
+                self.deleted.add(position)
+                self.history = [(entry, message) for entry, message in self.history if entry != position]
+                return {"not_applicable": outcome.get("reason"), "reference_removed": [list(position)]}
             return {"not_applicable": outcome.get("reason")}
         day = today.isoformat() if today else None
         if kind == "delete_message":
@@ -1265,35 +1301,29 @@ def count_tool_error(out: Path, counts: dict, name: str) -> None:
 
 def call_tool(memory: Memory, server, name: str, arguments, out: Path, session: str, index: int) -> str:
     """One tool call of the host model. A timed pause is refused: its end is wall-clock time (host.pause), so on the
-    scenario clock it would span scenario days, or nothing, depending on how fast the run goes."""
+    scenario clock it would span scenario days, or nothing, depending on how fast the run goes. The refusal is the
+    tool's answer to the host, as any tool error is, and the run counts it with the other tool errors
+    (tool-errors.json); it is not a harness event and never stops the run (since 2026-11-17). Nothing was paused, so
+    the turn is recorded as usual."""
     if name == "memory_pause" and isinstance(arguments, dict) and arguments.get("hours") is not None:
-        harness_event(out, "timed_pause_refused", session=session, turn=index)
         return json.dumps({"error": TIMED_PAUSE_REFUSED})
     return memory.call(server, name, arguments)
 
 
-def pause_scope(result: str) -> str:
-    """The scope of a pause the plugin accepted, from its own answer: ``conversation`` when it says it covers this
-    conversation only (a new conversation is not covered), else ``until_resumed``."""
-    try:
-        value = json.loads(result)
-    except (TypeError, ValueError):
-        value = None
-    return "conversation" if isinstance(value, dict) and value.get("scope") == "this conversation" else "until_resumed"
-
-
-HOST_PAUSE_KIND = "unrecorded_by_host_pause"
+HOST_PAUSE_KIND = "unrecorded_by_host_pause"  # The name dates from when only the host's own pause counted.
 
 
 def host_pause_left_unrecorded(out: Path, session: str, turn: int, where: str) -> None:
-    """A turn the scenario meant to be recorded, left unrecorded while the host's own accepted pause was in force:
-    the plugin path's behaviour, scored with the arm, not a harness event, so the run goes on. One line in
-    host-pauses.jsonl with only the time, the position and the kind (validity and diagnose report it, never
-    refusing); the log names the position by index, never the session id or any text."""
+    """A turn the scenario meant to be recorded, left unrecorded while a pause was in force: the host's own accepted
+    pause made in that turn, or a pause the product held for this conversation as the turn began, whoever made it (the
+    host's tool, or the product's own prompt hook on the user's words). That is the plugin path's behaviour, scored
+    with the arm, not a harness event, so the run goes on. One line in host-pauses.jsonl with only the time, the
+    position and the kind (validity and diagnose report it, never refusing); the log names the position by index,
+    never the session id or any text."""
     with (out / "host-pauses.jsonl").open("a") as stream:
         stream.write(json.dumps({"time": time.time(), "session": session, "turn": turn, "kind": HOST_PAUSE_KIND})
                      + "\n")
-    log("turn left unrecorded by the host's own pause (scored with the arm):", where)
+    log("turn left unrecorded while recording was paused (scored with the arm):", where)
 
 
 def intended_unrecorded(module) -> set:
@@ -1464,10 +1494,6 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
     tool_errors: dict[str, int] = {}
     session_ids = [session for session, _ in sessions]
     p_rows: dict = {}  # Arm F: P's result rows, read as F reaches each turn (p_persona).
-    # Arm P: the scope of the host's own accepted pause while no accepted resume has followed it ("conversation" or
-    # "until_resumed"), or None. A conversation pause is forgotten when its session ends; whether a pause is in force
-    # at a turn is also read from the product (Memory.paused), so the two must agree.
-    host_pause = None
 
     def where(session, turn) -> str:
         return f"session {session_ids.index(session) + 1} of {len(session_ids)}, message {turn + 1}"
@@ -1505,8 +1531,9 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 result["removed_records"] = message_records(result.get("removed", []))
                 result["removed_records_complete"] = True  # F's only records are its messages.
                 record["after"] = reference.summary()
-                if mirrored:
-                    record["after"]["removed_still_in_history"] = reference.contains(action["removed"])
+                if mirrored or result.get("reference_removed"):
+                    record["after"]["removed_still_in_history"] = reference.contains(
+                        action["removed"] if mirrored else result["reference_removed"])
             record["status"], reason = page_status(result)
             if reason is not None:
                 record["reason"] = reason
@@ -1559,10 +1586,10 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                     stub_host.key, stub_host.text = (session, index), text
                 system, prompt_context = module.HOST + "\n\n" + date_line, None
                 page_line = None
-                # The host's own pause holds this turn when it was in force as the turn began, by the harness's
-                # count of accepted calls and by the product's state (read before the prompt hook, which may pause on
-                # the user's words by itself).
-                held_by_host_pause = memory is not None and host_pause is not None and memory.paused(session)
+                # A pause holds this turn when the product's own pause state says recording is paused for this
+                # conversation as the turn begins (read before the prompt hook), whoever made it: the host's tool, or
+                # the product's hook on the user's words in an earlier turn (since 2026-11-17, for R4 and C5 alike).
+                paused_at_start = memory is not None and memory.paused(session)
                 paused_here = brought_back = False
                 if memory is not None:
                     prompt_context = memory.user_prompt(session, index, text)
@@ -1615,9 +1642,8 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                         elif memory is not None and call["function"]["name"] == "memory_pause":
                             # Accepted (a refused or timed pause answers with an error and changes nothing). The
                             # current exchange is never stored after it, whatever follows in this turn.
-                            host_pause, paused_here = pause_scope(result), True
+                            paused_here = True
                         elif memory is not None and call["function"]["name"] == "memory_resume":
-                            host_pause = None
                             # A resume naming this conversation brings back a turn that began paused; any other
                             # resume leaves the turn already in progress unrecorded (the tool's own description).
                             brought_back = brought_back or (isinstance(arguments, dict)
@@ -1638,8 +1664,9 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                         recorded = memory.stop(session, index, text, reply)
                         memory.record_turn(session, index, recorded=recorded)
                         if not recorded and (session, index) not in intended:
-                            if paused_here or (held_by_host_pause and not brought_back):
-                                # The plugin path's own behaviour: scored with the arm, not a harness fault.
+                            if paused_here or (paused_at_start and not brought_back):
+                                # The plugin path's own behaviour: scored with the arm, not a harness fault. Only a
+                                # turn left unrecorded with no pause in force is turn_not_recorded.
                                 host_pause_left_unrecorded(out, session, index, where(session, index))
                             else:
                                 harness_event(out, "turn_not_recorded", session=session, turn=index)
@@ -1676,8 +1703,6 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
         finally:
             if client is not None:
                 client.close()
-        if host_pause == "conversation":  # A new conversation is not covered by it; a pause until resumed carries on.
-            host_pause = None
         if reference is not None:
             reference.end_session(current)
     if stub_host is not None:

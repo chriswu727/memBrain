@@ -109,8 +109,8 @@ def test_diagnose_prints_the_hosts_own_pauses_and_tool_call_markup_as_counts_and
     pipeline.diagnose([tmp_path])
     out = capsys.readouterr().out
     assert SECRET.casefold() not in out.casefold() and "DSML" not in out, out
-    assert ("unrecorded by the host's own pause (scored with the arm, not harness events): 2 at session 1 of 2, "
-            "message 2; session 2 of 2, message 1") in out
+    assert ("unrecorded while recording was paused (the host's or the product's own pause; scored with the arm, not "
+            "harness events): 2 at session 1 of 2, message 2; session 2 of 2, message 1") in out
     assert "malformed host-pause lines: 2" in out
     assert "replies with tool-call markup: 2 at session 1 of 2, message 1; session 2 of 2, message 1" in out
     assert "harness events:" not in out

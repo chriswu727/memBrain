@@ -42,6 +42,14 @@ so that only hashes and counts reach the lead):
   anything else is the code `not_literal`), and `c5-precheck.py --r4` (or `--c5` for the C5 gate) runs in a
   subprocess with the repository's interpreter (REPO/.venv/bin/python unless --python). Only the precheck's own codes
   are relayed.
+- **A version that fails the precheck (C5 only, since 2026-11-17).** After an author or fixer session whose
+  scenario fails `c5-precheck.py --c5`, the JSON says so with the codes (as before) and the launcher writes
+  PRIVATE_ROOT/KEY/precheck-findings-<sha256 of that version>.md (mode 600): a fixed header, then the precheck's own
+  failure lines (a known code, then fixed field names, indexes and positions; any other line is dropped), and
+  reports `precheck_findings` (the count) and its sha256. A fixer started next for that key, while the current
+  version is the failing one, gets that file as its findings.md (`findings_from` "precheck") instead of the latest
+  reviewer findings; no reviewer round is needed in between. Otherwise a fixer gets the latest reviewer findings
+  (`findings_from` "reviewer"), as before. R4 launches are unchanged.
 - **What is printed.** One JSON line: role, key, the output files' sha256, counts (sessions, turns, cases; a
   reviewer's findings and approval; a fixer's applied count) and fixed codes. Never a message, a criterion, a fact,
   a name, an exception's text or the session's output.
@@ -57,6 +65,7 @@ import hashlib
 import importlib.util
 import json
 import os
+import re
 import shlex
 import shutil
 import subprocess
@@ -120,9 +129,37 @@ def counts(scenario: Path, python: Path, gate: str = "R4") -> dict:
         codes = summary.get("codes") if isinstance(summary.get("codes"), list) else ["precheck_unreadable"]
         result["precheck"] = {"ok": summary.get("ok") is True and done.returncode == 0,
                               "codes": sorted({code if code in known else "unknown_code" for code in codes})}
+        result["failure_lines"] = [line for line in done.stdout.splitlines() if _failure_line(line, known)]
     except (OSError, ValueError, IndexError, AttributeError, subprocess.TimeoutExpired):
         result["precheck"] = {"ok": False, "codes": ["precheck_unreadable"]}
     return result
+
+
+# A precheck failure line as c5-precheck.py prints it: a known code, then fixed field names with indexes, fixed
+# requirement and part names or "index:index" positions. Anything else is never relayed to a fixer.
+_FAILURE_LINE = re.compile(r"FAIL code=([a-z0-9_]+)((?: [a-z]+=[A-Za-z0-9_]+(?::[0-9]+)?)*)")
+
+
+def _failure_line(line: str, known: set) -> bool:
+    match = _FAILURE_LINE.fullmatch(line)
+    return bool(match) and match[1] in known
+
+
+PRECHECK_FINDINGS_HEADER = """# Findings of the automatic check (not of a reviewer)
+
+The automatic check refused this version of `scenario.py`. Each line below is one failure, as the check prints it:
+a fixed code (see the table of codes in your brief), then where it is: `session=N` and `turn=N` count from 0 in
+`SESSIONS_LONG` order, `case=N` and `action=N` and `entry=N` are 0-based positions in `CASES`, `PAGE_ACTIONS` and
+`EXPECT_RECORDING_P`, `at=S:T` is a session index and turn index, `field=` and `part=` name a `COVERAGE` requirement
+and its key (or a missing name). Nothing else about the scenario is given here. Resolve every line with the smallest
+change that removes it and keeps every rule of your brief.
+
+"""
+
+
+def precheck_findings_path(folder: Path, sha: str) -> Path:
+    """The precheck findings written for the scenario version with this sha256 (C5 only)."""
+    return folder / f"precheck-findings-{sha}.md"
 
 
 def session_command(args, workdir: Path) -> list[str]:
@@ -179,7 +216,13 @@ def launch(args) -> dict:
         raise Refused("there is no scenario for this key yet")
     if args.role == "author" and not (args.assignment and Path(args.assignment).is_file()):
         raise Refused("an author needs --assignment (case prefix and languages)")
-    if args.role == "fixer" and not sorted(folder.glob("findings-*.md")):
+    # C5: a version that failed the precheck has its own findings (written below, after its session); a fixer then
+    # applies those, without a reviewer round. Otherwise a fixer applies the latest reviewer findings, as before.
+    precheck_findings = precheck_findings_path(folder, sha256(scenario)) \
+        if gate == "C5" and args.role == "fixer" and scenario.exists() else None
+    if precheck_findings is not None and not precheck_findings.exists():
+        precheck_findings = None
+    if args.role == "fixer" and precheck_findings is None and not sorted(folder.glob("findings-*.md")):
         raise Refused("there are no findings to apply")
     number = 1 + len(list(root.glob(f"{args.key}-{args.role}-*")))
     workdir = root / f"{args.key}-{args.role}-{number}"
@@ -191,7 +234,7 @@ def launch(args) -> dict:
     if args.role in ("reviewer", "fixer"):
         shutil.copyfile(scenario, workdir / "scenario.py")
     if args.role == "fixer":
-        findings = sorted(folder.glob("findings-*.md"))
+        findings = [precheck_findings] if precheck_findings is not None else sorted(folder.glob("findings-*.md"))
         if not findings:
             raise Refused("there are no findings to apply")
         shutil.copyfile(findings[-1], workdir / "findings.md")
@@ -216,6 +259,8 @@ def launch(args) -> dict:
             code = "not_started"
     log.chmod(0o600)
     result = {"role": args.role, "key": args.key, "session": number, "session_exit": code}
+    if args.role == "fixer" and gate == "C5":
+        result["findings_from"] = "precheck" if precheck_findings is not None else "reviewer"
 
     def keep(source: Path, target: Path) -> str:
         shutil.copyfile(source, target)
@@ -238,7 +283,18 @@ def launch(args) -> dict:
             if fixes.exists():
                 keep(fixes, folder / f"fixes-{number}.json")
         result["sha256"] = keep(written, scenario)
-        result.update(counts(scenario, python, gate))
+        checked = counts(scenario, python, gate)
+        lines = checked.pop("failure_lines", [])
+        result.update(checked)
+        if gate == "C5" and not checked["precheck"]["ok"]:
+            # The precheck findings for this version: codes and positions only, as the precheck prints them, for a
+            # fixer session started next (launch.py --role fixer), without a reviewer round.
+            # A file that could not be read (not literal) has no positions: its code alone.
+            lines = lines or [f"FAIL code={code}" for code in checked["precheck"]["codes"]]
+            target = precheck_findings_path(folder, result["sha256"])
+            target.write_text(PRECHECK_FINDINGS_HEADER + "".join(f"- `{line}`\n" for line in lines))
+            target.chmod(0o600)
+            result.update(precheck_findings=len(lines), precheck_findings_sha256=sha256(target))
         result["produced"] = True
     else:
         verdict, findings = workdir / "review.json", workdir / "findings.md"
@@ -260,6 +316,7 @@ def launch(args) -> dict:
             control.mkdir(mode=0o700, exist_ok=True)
             receipt = control / f"{args.key}-review-approved.json"
             stats = counts(scenario, python, gate)
+            stats.pop("failure_lines", None)
             approval = {"key": args.key, "sha256": result["reviewed_sha256"], "sessions": stats["sessions"],
                         "turns": stats["turns"], "cases": stats["cases"], "approved": True, "findings": found,
                         "review_session": number}

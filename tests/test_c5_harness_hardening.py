@@ -199,29 +199,27 @@ class _NoToolCalls:
         return json.dumps({"recording": "paused", "until": None})
 
 
-def test_a_timed_pause_is_refused_with_a_tool_error_and_an_event(tmp_path, monkeypatch):
+def test_a_timed_pause_is_refused_with_a_tool_error_and_no_event(tmp_path, monkeypatch):
     monkeypatch.setattr(harness, "STUB", True)
     memory = _NoToolCalls()
-    result = json.loads(harness.call_tool(memory, None, "memory_pause", {"hours": 2}, tmp_path, "s1", 3))
-    assert "Timed pauses are unavailable in this evaluation" in result["error"] and memory.calls == []
-    (event,) = _events(tmp_path)
-    assert (event["kind"], event["session"], event["turn"]) == ("timed_pause_refused", "s1", 3)
-    assert set(event) == {"time", "kind", "session", "turn"}
+    result = harness.call_tool(memory, None, "memory_pause", {"hours": 2}, tmp_path, "s1", 3)
+    assert "Timed pauses are unavailable in this evaluation" in json.loads(result)["error"] and memory.calls == []
+    assert harness.tool_error(result) and _events(tmp_path) == []  # A tool error the run counts, not an event.
     # An untimed pause, and any other tool, reaches the plugin's tool as before.
     harness.call_tool(memory, None, "memory_pause", {}, tmp_path, "s1", 4)
     harness.call_tool(memory, None, "memory_pause", {"until_resumed": True, "hours": None}, tmp_path, "s1", 5)
-    assert [name for name, _ in memory.calls] == ["memory_pause", "memory_pause"] and len(_events(tmp_path)) == 1
+    assert [name for name, _ in memory.calls] == ["memory_pause", "memory_pause"] and _events(tmp_path) == []
 
 
-def test_a_live_timed_pause_stops_the_arm(tmp_path, monkeypatch):
+def test_a_live_timed_pause_is_answered_to_the_host_and_never_stops_the_arm(tmp_path, monkeypatch):
     monkeypatch.setattr(harness, "STUB", False)
     monkeypatch.setattr(harness, "BILLING", None)
-    with pytest.raises(harness.DegradedRun):
-        harness.call_tool(_NoToolCalls(), None, "memory_pause", {"hours": 1}, tmp_path, "s1", 0)
+    result = harness.call_tool(_NoToolCalls(), None, "memory_pause", {"hours": 1}, tmp_path, "s1", 0)
+    assert harness.tool_error(result) and not (tmp_path / "harness-events.jsonl").exists()
 
 
 def test_only_a_scripted_untimed_pause_and_resume_pair_is_intended():
-    assert harness.intended_unrecorded(practice) == {("s7-recording", 0), ("s7-recording", 1)}
+    assert harness.intended_unrecorded(practice) == {("s7-recording", 0), ("s7-recording", 1), ("s9-quiet", 1)}
 
     class Scenario:
         SESSIONS_LONG = [("s1", ["a", "b", "c", "d"]), ("s2", ["e", "f"])]
@@ -247,16 +245,18 @@ def test_a_stub_plugin_run_refuses_a_timed_pause_and_scores_the_hosts_own_conver
     rows, events = stub_run("P", SCENARIO, script)
     assert [row["recorded"] for row in rows] == [True, False, False, True]
     assert "Timed pauses are unavailable" in rows[0]["tool_calls"][0]["result"]
-    # The refused timed pause is the harness's event; the accepted pause is the host's, scored with the arm: no
-    # event, one line per turn it left unrecorded in its conversation, and the next conversation is recorded.
-    assert [(event["kind"], event["session"], event["turn"]) for event in events] == [("timed_pause_refused", "s1", 0)]
+    # The refused timed pause is a tool error the host was shown, counted with the others (no event since
+    # 2026-11-17); the accepted pause is the host's, scored with the arm: no event, one line per turn it left
+    # unrecorded in its conversation, and the next conversation is recorded.
+    assert events == []
+    assert json.loads((tmp_path / "run-P" / "tool-errors.json").read_text()) == {"memory_pause": 1}
     pauses = _host_pauses(tmp_path / "run-P")
     assert [(entry["session"], entry["turn"], entry["kind"]) for entry in pauses] == [
         ("s1", 1, "unrecorded_by_host_pause"), ("s1", 2, "unrecorded_by_host_pause")]
     assert all(set(entry) == {"time", "session", "turn", "kind"} for entry in pauses)
     out = capsys.readouterr().out
-    assert out.count("turn left unrecorded by the host's own pause") == 2
-    assert "pause (scored with the arm): session 1 of 2, message 3" in out
+    assert out.count("turn left unrecorded while recording was paused") == 2
+    assert "paused (scored with the arm): session 1 of 2, message 3" in out
     assert out.rstrip().endswith("P zq-synthetic-scenario finished")
 
 
@@ -286,17 +286,10 @@ def test_a_live_arm_goes_on_through_the_hosts_own_pause_until_resumed_across_con
     assert [(entry["session"], entry["turn"]) for entry in _host_pauses(tmp_path / "run-P")] == [
         ("s1", 1), ("s1", 2), ("s2", 0)]
     out = capsys.readouterr().out
-    lines = [line for line in out.splitlines() if "turn left unrecorded by the host's own pause" in line]
+    lines = [line for line in out.splitlines() if "turn left unrecorded while recording was paused" in line]
     assert len(lines) == 3 and lines[-1].endswith("session 2 of 3, message 1")
     assert not any(word in line for line in lines for word in ("Lisbon", "Ana", "tiles", "s1", "s2"))
     assert out.rstrip().endswith("P zq-synthetic-scenario finished")
-
-
-def test_the_scope_of_an_accepted_pause_is_the_plugins_own_answer():
-    assert harness.pause_scope(json.dumps({"recording": "paused", "until": None, "scope": "this conversation",
-                                           "note": "x"})) == "conversation"
-    assert harness.pause_scope(json.dumps({"recording": "paused", "until": None, "note": "x"})) == "until_resumed"
-    assert harness.pause_scope("not JSON") == "until_resumed"  # A doubt keeps the pause in force across sessions.
 
 
 def _scenario_file(tmp_path: Path, source: str, script: dict) -> str:
@@ -689,8 +682,8 @@ def _precheck(path: Path):
 def test_the_precheck_passes_the_public_practice_scenario_printing_counts_only():
     code, out, err, summary = _precheck(ROOT / "evaluations" / "c5-practice-scenario.py")
     assert code == 0 and err == ""
-    assert summary == {"ok": True, "sessions": 8, "turns": 22, "actions": 14, "failures": 0, "codes": []}
-    assert "intended unrecorded turns 2" in out
+    assert summary == {"ok": True, "sessions": 12, "turns": 34, "actions": 16, "failures": 0, "codes": []}
+    assert "intended unrecorded turns 3" in out
     for text in ("s1-arrival", "Lisbon", "Tom", "casual", "Juniper", "Today"):
         assert text not in out
 

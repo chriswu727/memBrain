@@ -41,6 +41,22 @@ requirement present, of its shape, at real positions, cases and page actions, in
 undone by a page action before its case, and not off the record. What cannot be read from text (that a message
 really states a feeling, that the host makes a proposal the user's yes answers) is the reviewers' to check.
 
+--c5 also refuses a `switch_persona` page action with a named type (`c5_named_preset`: only "random" is allowed,
+since the author cannot know the seeded type and a named one is the current type 1 time in 16), an item-7
+acceptance without the manner `kind` it accepts or an item-5 deletion of a companion's reply (`c5_coverage_action`),
+any page decision on a suggestion (`accept_proposal`, `reject_proposal`) between a "from now on" request and its yes
+or between an item and its case where no persona change may come (`c5_coverage_undone`), and checks the mood timing
+against the product's mood (`c5_coverage_timing`): the "within hours" case's session starts at most 6 hours after the
+news's session, the later case at least 49 hours after it, with no declared feeling or shared moment in between.
+
+In both --r4 and --c5 modes (added 2026-11-17): consecutive sessions start at least three hours apart
+(`gap_under_3h`; both public practice scenarios meet it), and the product's own recogniser of a pause request
+(`membrain.recording_policy.requests_pause`, the pure function the prompt hook applies) is run on every user message:
+a message it recognises outside a declared off-the-record stretch would pause the rest of that conversation by
+itself (`pause_outside_stretch`). For a declared stretch it prints how many openings the product recognises
+("off-the-record openings the product recognises N of M"; summary `pause_openings`), a count only. The wording of a
+message beyond that (a named duration, for example) is the reviewers' to check.
+
 In every mode a stated weekday must be that date's weekday in the scenario's YEAR (`weekday_mismatch`): English
 "Today is Tuesday, March 3", Spanish "Hoy es martes, 3 de marzo", German "Heute ist Dienstag, der 3. März", Chinese
 "今天是3月3日，星期二" or "周二". Both arms are told "Today's date: … (weekday)" from the parsed date, so a wrong weekday
@@ -63,6 +79,10 @@ from pathlib import Path
 from types import SimpleNamespace
 
 MIN_GAP = datetime.timedelta(hours=1)
+# --r4 and --c5: consecutive sessions start at least three hours apart (`gap_under_3h`), so that a session of arm P
+# that takes longer in real time than the gap to the next session's scenario time (the harness event
+# clock_already_past, which ends a live run as invalid) needs hours of host calls, not minutes.
+GATE_GAP = datetime.timedelta(hours=3)
 R4_CASES, R4_TURNS = 11, (60, 66)  # An R4 scenario: eleven cases, 60 to 66 user messages.
 # Weekday names by Python weekday (Monday = 0), as scenarios state them.
 WEEKDAYS = [("monday", "lunes", "montag", "一"), ("tuesday", "martes", "dienstag", "二"),
@@ -76,8 +96,14 @@ C5_CASES, C5_TURNS = 11, (60, 66)
 C5_SPAN_DAYS = 45
 C5_NAMES = ("YEAR", "HOST", "SESSIONS_LONG", "FACTS", "CASES", "PAGE_ACTIONS", "COVERAGE", "EXPECT_RECORDING_P")
 C5_REQUIRED = ("HOST", "FACTS", "CASES", "PAGE_ACTIONS", "COVERAGE")
-MOOD_WITHIN = datetime.timedelta(hours=12)  # A mood case "within hours": its session starts at most 12 hours later.
-MOOD_AFTER = datetime.timedelta(hours=48)  # The product's cutoff: the mood is exactly the baseline 48 hours after.
+# A mood case "within hours": its session starts at most 6 hours after the news's session started (the product's
+# mood.EASING_AFTER; the 12-hour half-life is not how long a weak push stays visible).
+MOOD_WITHIN = datetime.timedelta(hours=6)
+# The later mood case: at least 49 hours after the news's session started. The product's 48-hour cutoff counts from
+# the trigger's recorded time on a clock that runs with wall time, so an hour of margin; and no other feeling-bearing
+# COVERAGE position (a declared feeling or shared moment) between the news and that case, since a later trigger
+# restarts the cutoff.
+MOOD_AFTER = datetime.timedelta(hours=49)
 HARD_DAYS, HARD_CONVERSATION_DAYS = 30, 5  # The product's relationship.HARD_MELLOW_DAYS / _CONVERSATION_DAYS.
 ABSENCE_DAYS = 14  # A long absence: the return session's date at least 14 days after the session before it.
 CASE_ID = re.compile(r"([A-Z][A-Z0-9]*?)(\d{2})-[a-z0-9]+(?:-[a-z0-9]+)*")
@@ -104,11 +130,13 @@ OPTIONAL_KEYS = {"switch": ({"request", "action"}, 1)}  # Exactly one of these k
 ACTION_KINDS = {("boundary_on_page", "action"): ("add_boundary",), ("page_deletion", "action"): ("delete_message",),
                 ("reset", "action"): ("reset_relationship", "clear_feelings"),
                 ("manner_feedback", "accept"): ("accept_proposal",), ("switch", "action"): ("switch_persona",)}
-PERSONA_CHANGES = ("switch_persona", "set_persona", "delete_persona_history")
+# Page actions that change the persona, or decide a suggestion (an accepted or rejected decision changes the persona's
+# version or the open suggestions, which withdraws an open host proposal): none may come between an item and its case.
+PERSONA_CHANGES = ("switch_persona", "set_persona", "delete_persona_history", "accept_proposal", "reject_proposal")
 C5_CODES = ("c5_not_literal", "c5_persona", "c5_stub_script", "c5_unknown_name", "c5_missing", "c5_case_count",
             "c5_turn_count", "c5_case_position", "c5_case_id", "c5_case_prefix", "c5_recording_position",
             "c5_recording_shape", "c5_no_weekday", "c5_action_arms", "c5_action_off_record", "c5_action_limit",
-            "c5_span",
+            "c5_named_preset", "c5_span",
             "c5_coverage_shape", "c5_coverage_unknown", "c5_coverage_missing", "c5_coverage_position",
             "c5_coverage_case", "c5_coverage_action", "c5_coverage_distinct", "c5_coverage_order",
             "c5_coverage_timing", "c5_coverage_undone", "c5_coverage_off_record")
@@ -118,7 +146,7 @@ CODES = ("no_sessions", "malformed_session", "duplicate_session", "no_date", "no
          "malformed_action", "timed_pause", "load_failed", "r4_not_literal", "r4_page_actions", "r4_persona",
          "r4_missing", "r4_stub_script", "r4_case_count", "r4_turn_count", "r4_case_position", "r4_case_id",
          "r4_recording_position", "r4_recording_missing", "r4_recording_shape", "r4_no_weekday",
-         *C5_CODES)
+         "gap_under_3h", "pause_outside_stretch", *C5_CODES)
 
 
 def stated_weekday(text: str):
@@ -226,6 +254,45 @@ def check_r4(module, positions: dict) -> list[dict]:
         if isinstance(first, str) and stated_weekday(first) is None:
             failures.append({"code": "r4_no_weekday", "session": number})
     return failures
+
+
+def check_pause_words(module, sessions: list, positions: dict) -> tuple[list[dict], dict]:
+    """--r4 and --c5: the product's own recogniser of a pause request (recording_policy.requests_pause, the pure
+    function the prompt hook applies to every user message) run on every user message. A message it recognises
+    pauses recording for the rest of that conversation by itself, so outside a declared off-the-record stretch (an
+    EXPECT_RECORDING_P entry marked False) it would leave messages unrecorded that the scenario means to be
+    recorded: `pause_outside_stretch`, with the message's position only. For each declared stretch, counts whether
+    its opening message (its first False entry) is recognised (then the product pauses by itself; otherwise only the
+    host's pause tool does). Returns the failures and {"recognised": N, "stretches": M}."""
+    from membrain.recording_policy import requests_pause
+
+    declared = []
+    for entry in list(getattr(module, "EXPECT_RECORDING_P", None) or []):
+        try:
+            session, turn, expected = entry
+        except (TypeError, ValueError):
+            continue
+        if expected is False and (session, turn) in positions:
+            declared.append((session, turn))
+    off = set(declared)
+    failures, recognised, stretches = [], 0, 0
+    for entry in sessions:
+        try:
+            session, messages = entry
+            messages = list(messages)
+        except (TypeError, ValueError):
+            continue
+        for turn, text in enumerate(messages):
+            if not isinstance(text, str) or (session, turn) not in positions:
+                continue
+            opening = (session, turn) in off and (session, turn - 1) not in off
+            stretches += opening
+            if requests_pause(text):
+                if (session, turn) not in off:
+                    failures.append({"code": "pause_outside_stretch", "at": list(positions[(session, turn)])})
+                elif opening:
+                    recognised += 1
+    return failures, {"recognised": recognised, "stretches": stretches}
 
 
 def _pos_shape(value) -> bool:
@@ -354,6 +421,10 @@ def check_c5(module, positions: dict, starts: dict) -> tuple[list[dict], int]:
             failures.append({"code": "c5_action_off_record", "action": number})
         if not _within_product_limits(action):
             failures.append({"code": "c5_action_limit", "action": number})
+        if action.get("do") == "switch_persona" and action.get("preset") != "random":
+            # A named type is the current one with a chance of 1 in 16 (the switch then changes nothing), and the
+            # author cannot know the seeded type: only "another type, at random" is allowed.
+            failures.append({"code": "c5_named_preset", "action": number})
     coverage, covered = _coverage(module, positions, starts, sessions, cases, formed, off_record)
     return failures + coverage, covered
 
@@ -426,8 +497,12 @@ def _coverage(module, positions, starts, sessions, cases, formed, off_record) ->
                            and module.PAGE_ACTIONS[index][0] == value[0] and item[1] == value[1]
                            and item[2].get("do") == value[2]]
                 kinds = ACTION_KINDS.get((field, key), ())
+                chosen = formed[matches[0]][2] if len(matches) == 1 else {}
+                # Item 7 accepts the feedback suggestion of a named manner kind; item 5 deletes a user message (a
+                # companion's reply differs between the arms).
                 if len(matches) != 1 or value[2] not in kinds or (
-                        field == "manner_feedback" and formed[matches[0]][2].get("origin") != "feedback"):
+                        field == "manner_feedback" and (chosen.get("origin") != "feedback" or "kind" not in chosen)) \
+                        or (field == "page_deletion" and chosen.get("role", "user") != "user"):
                     problems.append(("c5_coverage_action", key))
                 else:
                     values[key] = matches[0]
@@ -477,6 +552,13 @@ def _coverage(module, positions, starts, sessions, cases, formed, off_record) ->
             fail("c5_coverage_order", "mood", "after_48_hours")
         elif event[0] in starts and later[0] in starts and starts[later[0]] - starts[event[0]] < MOOD_AFTER:
             fail("c5_coverage_timing", "mood", "after_48_hours")
+        else:
+            # Another declared feeling or shared moment between the news and the later case would be a newer trigger.
+            bearing = [resolved[field][key] for field, key in (
+                ("stated_feeling", "message"), ("inferred_feeling", "message"), ("shared_moments", "play"),
+                ("shared_moments", "hard")) if field in resolved]
+            if any(event < message(point) < later for point in bearing):
+                fail("c5_coverage_timing", "mood", "after_48_hours")
 
     if "boundary_in_conversation" in resolved:
         asked, case = message(resolved["boundary_in_conversation"]["asked"]), resolved["boundary_in_conversation"][
@@ -609,6 +691,8 @@ def check(module, harness, *, r4: bool = False, c5: bool = False) -> dict:
                 failures.append({"code": "not_increasing", "session": number})
             elif start - previous < MIN_GAP:
                 failures.append({"code": "too_close", "session": number})
+            elif (r4 or c5) and start - previous < GATE_GAP:
+                failures.append({"code": "gap_under_3h", "session": number})
         previous = start
         weekday = stated_weekday(entry[1][0])
         if weekday is not None and weekday != start.date().weekday():
@@ -646,6 +730,10 @@ def check(module, harness, *, r4: bool = False, c5: bool = False) -> dict:
                     failure["at"] = list(positions[key])
                 failures.append(failure)
 
+    openings = None
+    if r4 or c5:
+        found, openings = check_pause_words(module, sessions, positions)
+        failures += found
     if r4:
         failures += check_r4(module, positions)
     covered = None
@@ -656,6 +744,8 @@ def check(module, harness, *, r4: bool = False, c5: bool = False) -> dict:
     result = {"ok": not failures, "sessions": len(sessions), "turns": turns, "actions": len(actions),
               "intended_unrecorded": intended, "cases": len(list(getattr(module, "CASES", None) or [])),
               "failures": failures}
+    if openings is not None:
+        result["pause_openings"] = openings
     if c5:
         span = (starts[len(sessions) - 1].date() - starts[0].date()).days \
             if sessions and 0 in starts and len(sessions) - 1 in starts else None
@@ -704,12 +794,17 @@ def main(argv: list) -> int:
         print(f"coverage {result['coverage']} of {len(COVERAGE_FIELDS)}")
     if result["intended_unrecorded"] is not None:
         print(f"intended unrecorded turns {result['intended_unrecorded']}")
+    if result.get("pause_openings", {}).get("stretches"):
+        openings = result["pause_openings"]
+        print(f"off-the-record openings the product recognises {openings['recognised']} of {openings['stretches']}")
     for failure in result["failures"]:
         print("FAIL " + " ".join(f"{key}={value}" if not isinstance(value, list) else f"{key}={value[0]}:{value[1]}"
                                  for key, value in failure.items()))
     summary = {"ok": result["ok"], "sessions": result["sessions"], "turns": result["turns"],
                "actions": result["actions"], "failures": len(result["failures"]),
                "codes": sorted({failure["code"] for failure in result["failures"]})}
+    if "pause_openings" in result:
+        summary["pause_openings"] = result["pause_openings"]
     if r4:
         summary.update(mode="r4", cases=result["cases"])
     if c5:

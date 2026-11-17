@@ -34,8 +34,9 @@ def _load(name, path):
 
 precheck_module = _load("c5_precheck_for_kit_tests", EVALUATIONS / "c5-precheck.py")
 
-# Sixteen sessions of four messages over 53 days, with a 19-day absence before the thirteenth.
-DATES = [(3, 2, 20), (3, 3, 8), (3, 5, 20), (3, 7, 10), (3, 9, 19), (3, 11, 20), (3, 13, 20), (3, 15, 18),
+# Sixteen sessions of four messages over 53 days, with a 19-day absence before the thirteenth. The second session
+# starts three hours after the first (the "within hours" mood case: at most 6 hours, sessions at least 3 apart).
+DATES = [(3, 2, 20), (3, 2, 23), (3, 5, 20), (3, 7, 10), (3, 9, 19), (3, 11, 20), (3, 13, 20), (3, 15, 18),
          (3, 18, 20), (3, 21, 11), (3, 24, 20), (3, 27, 20), (4, 15, 20), (4, 18, 20), (4, 21, 20), (4, 24, 20)]
 
 
@@ -62,14 +63,15 @@ def c5_values(prefix="C1", plant=PLANT, dates=DATES):
         "YEAR": 2026,
         "HOST": f"You are a friendly companion chatting with {plant} in a messaging app. Reply briefly and naturally.",
         "SESSIONS_LONG": sessions, "FACTS": f"- {plant}", "CASES": cases,
-        "PAGE_ACTIONS": [("s03", 0, {"do": "accept_proposal", "origin": "feedback"}),
+        "PAGE_ACTIONS": [("s03", 0, {"do": "accept_proposal", "origin": "feedback", "kind": "less_formal"}),
                          ("s05", 0, {"do": "add_boundary", "topic": f"{plant} topic", "aliases": [plant]}),
                          ("s06", 1, {"do": "delete_message", "session": "s00", "turn": 1}),
                          ("s07", 0, {"do": "switch_persona", "preset": "random"}),
                          ("s13", 0, {"do": "reset_relationship"})],
         "COVERAGE": {
             "stated_feeling": {"message": ("s00", 1), "case": case(4)},
-            "inferred_feeling": {"message": ("s01", 1), "case": case(5)},
+            # Before the mood news: no declared feeling between the news and the later mood case.
+            "inferred_feeling": {"message": ("s00", 0), "case": case(5)},
             "mood": {"event": ("s00", 2), "within_hours": case(1), "after_48_hours": case(2)},
             "feelings_question": {"case": case(2)},
             "boundary_in_conversation": {"asked": ("s01", 2), "case": case(5)},
@@ -118,7 +120,8 @@ def test_the_c5_precheck_passes_a_fit_scenario_and_prints_counts_only(tmp_path):
     code, summary, output = run_precheck(tmp_path, c5_scenario())
     assert code == 0, output
     assert summary == {"ok": True, "mode": "c5", "sessions": 16, "turns": 64, "actions": 5, "cases": 11,
-                       "failures": 0, "codes": [], "span_days": 53, "coverage": 13, "requirements": 13}
+                       "failures": 0, "codes": [], "span_days": 53, "coverage": 13, "requirements": 13,
+                       "pause_openings": {"recognised": 0, "stretches": 1}}
     assert "coverage 13 of 13" in output and "span days 53" in output
 
 
@@ -234,6 +237,25 @@ UNFIT = {
     "coverage off the record": ({"COVERAGE": covered(boundary_in_conversation={"asked": ("s14", 1),
                                                                                "case": CASE[5]})}, "",
                                 "c5_coverage_off_record"),
+    # 2026-11-17 review fixes.
+    "named preset (M7)": ({"PAGE_ACTIONS": _actions_plus(("s15", 0, {"do": "switch_persona", "preset": "enfp"}))}, "",
+                          "c5_named_preset"),
+    "page decision between the request and the yes (M9)": ({"PAGE_ACTIONS": _actions_plus(
+        ("s03", 2, {"do": "reject_proposal", "origin": "host"}))}, "", "c5_coverage_undone"),
+    "accepted suggestion between the yes and its case (M9)": ({"PAGE_ACTIONS": _actions_plus(
+        ("s04", 0, {"do": "accept_proposal", "origin": "feedback", "kind": "shorter"}))}, "", "c5_coverage_undone"),
+    "deletion of a reply (m1)": ({"PAGE_ACTIONS": c5_values()["PAGE_ACTIONS"][:2] + [
+        ("s06", 1, {"do": "delete_message", "session": "s00", "turn": 1, "role": "assistant"})]
+        + c5_values()["PAGE_ACTIONS"][3:]}, "", "c5_coverage_action"),
+    "acceptance without its manner kind (m2)": ({"PAGE_ACTIONS": [("s03", 0, {"do": "accept_proposal",
+                                                                               "origin": "feedback"})]
+                                                 + c5_values()["PAGE_ACTIONS"][1:]}, "", "c5_coverage_action"),
+    "mood case 7 hours later (M6)": ({"SESSIONS_LONG": _sessions_with(1, [first_message(3, 3, 3, "x"), "a", "b",
+                                                                          "c"])}, "", "c5_coverage_timing"),
+    "mood case 48 hours later (M6)": ({"SESSIONS_LONG": _sessions_with(2, [first_message(3, 4, 20, "x"), "a", "b",
+                                                                           "c"])}, "", "c5_coverage_timing"),
+    "a declared feeling between the news and the later mood case (M6)": ({"COVERAGE": covered(
+        inferred_feeling={"message": ("s01", 1), "case": CASE[5]})}, "", "c5_coverage_timing"),
 }
 
 
@@ -270,7 +292,12 @@ def test_the_precheck_time_rules_are_the_products():
     assert (precheck_module.HARD_DAYS, precheck_module.HARD_CONVERSATION_DAYS) == (
         relationship.HARD_MELLOW_DAYS, relationship.HARD_MELLOW_CONVERSATION_DAYS)
     assert persona_growth.THRESHOLD == 3  # The brief asks for three comments of one kind.
-    assert precheck_module.MOOD_AFTER == datetime.timedelta(hours=48)
+    from membrain import mood
+
+    # The later mood case: an hour past the product's cutoff (it counts from the trigger's recorded time on a clock
+    # that runs with wall time); the "within hours" case: no later than the product's easing point.
+    assert precheck_module.MOOD_AFTER == mood.CUTOFF + datetime.timedelta(hours=1)
+    assert precheck_module.MOOD_WITHIN == mood.EASING_AFTER
 
 
 def test_the_r4_mode_and_the_default_mode_are_unchanged_by_c5(tmp_path):

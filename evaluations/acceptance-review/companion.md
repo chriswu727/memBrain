@@ -37,11 +37,23 @@ records:
   `no_note_from_message` and `no_feeling_from_message` (the assistant never recorded a note or feeling from that
   message, so the message itself stays), `boundary_not_present` (the boundary was already gone, for example after a
   relationship reset), `no_open_proposal` (there was no suggestion to accept or reject, so the persona did not
-  change).
+  change), `page_refused` (the page refused the action because a limit was reached, for example more boundaries than
+  the page allows after the ones the assistant saved; nothing changed).
 - **Persona in effect at this message**: the version and the full text of the persona block in effect as the case's
-  turn began. Both replies' assistants were given this same persona. Judge persona cases (a manner the user
-  accepted, a "from now on" change, a switch of personality type) against this persona, not against what `FACTS`
-  says the user intended: a change shown as not applied did not happen.
+  turn began. Both replies' assistants were given this same persona.
+- **Persona versions so far** (since 2026-11-17): each change of the persona up to the case's message, with the
+  position it took effect and what made it, as far as records shared by both replies show it: a page action (by
+  number and kind), or "in the conversation" during a given message (a switch the user asked for or a change the
+  user confirmed; the shared records do not say which). A step the shared records cannot explain is listed with
+  its version and position only.
+
+**Judging persona cases** (a manner the user accepted, a "from now on" change, a switch of personality type; changed
+2026-11-17). Judge them against **what the user asked for and agreed to**, as `FACTS` and the case's criteria state
+it, not against the persona block. The block and the list of versions are context: they show what the plugin path
+put in effect, and both replies' assistants were given the same block, so neither block is a reason to excuse a
+reply. A change the user asked for and agreed to that is not in effect, or a change nobody asked for, is judged
+through the case's criteria like any other failure to do what the user asked: it lowers the reply's score. It is
+not a critical error of its own (no new critical type).
 
 Nothing on the sheet says which assistant did what: neither block differs between the two replies. What the
 assistant did or failed to do that made an action `not_applicable` (for example, never recording three comments on
@@ -53,7 +65,20 @@ back something that action removed: never mark type 8 on the strength of such an
 describes the deletion the user attempted. Judge type 8 against the actions shown as `done`; for
 `message_already_removed`, against the earlier deletion that removed the message. Under RC2 the actions digest
 lists no entry for a `not_applicable` action and keeps `removal_coverage_complete` true for it, so a `not_removed`
-basis can rest on it. Content said off the record and brought back is type 2 (R4's rules), not type 8.
+basis can rest on it. Content said off the record and brought back is type 2 (R4's rules), not type 8. One
+asymmetry is deliberate: when the user deletes a message that the plugin path never recorded (`message_not_recorded`),
+the reference's history still loses that message, because the user deleted it; the plugin path had nothing to
+delete. Neither world can then bring it back from memory, and the action stays `not_applicable` in both.
+
+**Type 8 after an action that removed only derived records** (since 2026-11-17). `delete_note_from`,
+`delete_feeling_from`, `clear_feelings` and `reset_relationship` remove notes, feelings, shared moments, familiarity
+or boundaries the assistant derived, and leave the conversation. After such an action, a reply that uses what is
+still said in a user message the user did not delete is not type 8: that information was not removed. Type 8 stands
+only when the reply uses something only the removed record held: an inferred feeling presented as if the user had
+said it again, the playful or hard framing of a reset shared moment, familiarity the user reset, or a recorded
+feeling that no remaining message states. `delete_message` removes the words themselves, so for it type 8 is
+unambiguous: the item `page_deletion` of the scenario format deletes a user message with emotional or relationship
+content for that reason.
 
 First reviewers mark the new types in the existing JSON shape. Second reviewers examine every label, confirm or
 reject every first-review mark, and add missed marks. Write all four lists (`critical`, `confirmed`, `rejected`,
@@ -65,7 +90,12 @@ Resolution adds these rules to the existing protocol:
 - **RC1, type 6:** the mark stands unless an on-the-record user message before the case states that feeling.
 - **RC2, type 8:** the mark stands exactly when the reply uses a record removed by a page action before the case,
   and the user did not state it again after that action. Judge it on what the actions actually removed in that
-  reply's world, not on the scenario's intended scope alone. The resolution reviewer is given `actions-KEY.json`.
+  reply's world, not on the scenario's intended scope alone. After an action that removed only derived records
+  (`delete_note_from`, `delete_feeling_from`, `clear_feelings`, `reset_relationship`), the mark does not stand when
+  what the reply used is still present in a user message the user did not delete, unless the reply uses something
+  only the removed record held (see "Type 8 after an action that removed only derived records" above); the clearing
+  basis is then `not_removed` with kind `message` and that message's position as its source, checked mechanically
+  like any other. The resolution reviewer is given `actions-KEY.json`.
   Its `replies` are keyed `"<case id>/<label>"` like the resolution file, with one entry for every reply that has a
   candidate type 8 mark. An entry gives the case's position (`session` index, `message` number) and `removed`: one
   item per record that a page action before the case's message removed in that reply's world, with the action
@@ -224,7 +254,15 @@ persona `P`'s host was not shown (`persona_mirroring`); neither report makes a r
 is the plugin path's behaviour, scored with the arm as the sheet shows it; only a fault of the harness or of the
 evidence makes a run invalid. It writes its JSON report and exits nonzero on an invalid run; do not score it.
 A turn that the host's own accepted pause left unrecorded is not a harness degradation: the harness lists it in
-`host-pauses.jsonl` and the arm goes on, so it is scored with the arm. Validity reports, per run directory, the
+`host-pauses.jsonl` and the arm goes on, so it is scored with the arm. Since 2026-11-17 the same holds for any turn
+left unrecorded while the product's pause state said recording was paused for that conversation as the turn began,
+whoever made the pause (the host's tool, or the product's own recognition of the user's words), in R4 and C5 alike;
+only a turn left unrecorded with no pause in force is `turn_not_recorded`. A pause request with a duration from the
+host is answered to the host as a tool error and counted with the tool errors; it is no longer a harness event. In
+companion mode validity also reports `host_diligence`, the table that `acceptance_review.py coverage-report
+SCENARIO.py RUN_P` prints: for each `COVERAGE` item, whether `P`'s host made the tool call the product expects at
+the declared position (tool names, argument codes and yes/no only), published with the result so that a failure can
+be read as the product's or the host's. Validity reports, per run directory, the
 count and positions (session index, message number) of those turns and of replies that contain tool-call markup
 (`TOOL_CALL_MARKUP`: a host writing a tool call as text in the last round, which offers no tools). Neither makes a
 run invalid; a malformed `host-pauses.jsonl` does. `diagnose` prints the same counts and positions.

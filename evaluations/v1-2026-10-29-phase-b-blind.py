@@ -12,7 +12,13 @@ persona and page-action cases:
   outcome must be the same in every arm, or the sheet is refused;
 - the persona in effect as the case's turn began: the version and the product-rendered block from the per-turn
   persona record (arm P's persona_block, arm F's reference_persona, with the same persona_turn); it must be the same
-  in every arm, or the sheet is refused.
+  in every arm, or the sheet is refused;
+- since 2026-11-17, the persona versions so far: each change of the persona version up to the case's message, with
+  the position it took effect and its origin as far as records shared by both arms show it (a page action by
+  number and kind, or "in the conversation" during the message before, without saying whether a switch or a
+  confirmed change, which only P's tool calls would show). Reviewers judge persona cases against what the user asked
+  for and agreed to (FACTS and the criteria); the persona block and this list are context.
+The scenario is read as a live run reads it (scenario_literals.py), never by running it.
 Nothing that differs between arms (counts before and after an action, times, what the host was shown) is printed.
 An R4 scenario (no PAGE_ACTIONS, no --companion) gets exactly the sheet it got before companion mode existed.
 """
@@ -26,7 +32,9 @@ from pathlib import Path
 PAGE_RECORD_FORMAT = 2  # c5-harness.py PAGE_RECORD_FORMAT
 PERSONA_TURN_FORMAT = 1  # c5-harness.py PERSONA_TURN_FORMAT
 NOT_APPLICABLE = ("message_not_recorded", "message_already_removed", "no_note_from_message",
-                  "no_feeling_from_message", "boundary_not_present", "no_open_proposal")
+                  "no_feeling_from_message", "boundary_not_present", "no_open_proposal", "page_refused")
+# Page actions that make a new persona version when done (a decision only when it accepts).
+VERSION_ACTIONS = ("switch_persona", "set_persona", "accept_proposal")
 
 
 def refuse(text: str):
@@ -88,6 +96,53 @@ def describe(number: int, action: dict, at: tuple, names: list, outcome: tuple) 
             f"{' (' + shown + ')' if shown else ''}: **{result}**")
 
 
+def persona_history(turns: list, records: dict, actions: list, order: list, outcomes: list, names: list) -> list:
+    """Each persona version change up to and including each turn, from records that are the same in every arm: the
+    per-turn persona version (persona_turn, checked equal across arms) and the page actions' outcomes. Returns, per
+    position in ``turns`` (the scenario's turns in order), the list of lines so far.
+
+    Between the start of one turn and the start of the next, the persona can change in two ways: during the earlier
+    turn, in the conversation (the companion's tool: a switch the user asked for, or a change the user confirmed), or
+    by a page action applied before the later turn. A done page action of VERSION_ACTIONS makes one version; the
+    rest of the step in the version number happened in the conversation. The records both replies share do not say
+    which conversational change it was, so that origin is given as "in the conversation" only. When the step does
+    not fit (fewer versions than done page actions, or a version going back), the lines give the version and
+    position only and say that the origin cannot be read from the shared records."""
+    done_before = {}
+    for index, (status, _) in zip(order, outcomes):
+        at = (actions[index][0], actions[index][1])
+        if status == "done" and actions[index][2]["do"] in VERSION_ACTIONS:
+            done_before.setdefault(at, []).append(index)
+    history, lines, previous = [], [], None
+    for number, (session, turn) in enumerate(turns):
+        version = records[(session, turn)]
+        where = f"message {turn + 1} of session {names.index(session) + 1}"
+        page = done_before.get((session, turn), [])
+        if previous is None:
+            lines.append(f"Version {version}, in effect at {where} (the first message): the starting personality"
+                         + (", with the page actions before that message" if page else ""))
+        elif version != previous:
+            before = turns[number - 1]
+            spoken = f"message {before[1] + 1} of session {names.index(before[0]) + 1}"
+            talk = version - previous - len(page)
+            if version < previous or talk < 0:
+                lines.append(f"Version {version}, in effect from {where} (after version {previous}): the shared "
+                             "records do not show how it changed")
+            else:
+                for step in range(talk):
+                    lines.append(f"Version {previous + step + 1}, made in the conversation during {spoken} (not a "
+                                 "page action; the records both replies share do not say whether it was a switch "
+                                 "or a change the user confirmed), in effect from the next message")
+                for step, index in enumerate(page):
+                    detail = actions[index][2]
+                    origin = (f" (origin {json.dumps(detail['origin'])})" if "origin" in detail else "")
+                    lines.append(f"Version {previous + talk + step + 1}, made by page action {index + 1} "
+                                 f"({detail['do']}{origin}) before {where}")
+        previous = version
+        history.append(list(lines))
+    return history
+
+
 def fence(text: str) -> str:
     longest, run = 0, 0
     for character in text:
@@ -102,9 +157,15 @@ def main(argv: list) -> None:
     companion_flag = argv[3:] == ["--companion"]
     if argv[3:] and not companion_flag:
         raise SystemExit("usage: v1-2026-10-29-phase-b-blind.py OUT_DIR SCENARIO_FILE PONF [--companion]")
-    spec = importlib.util.spec_from_file_location("scenario", scenario_path)
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
+    # Read as a live run reads it, never by running it (scenario_literals.py: literal assignments only).
+    spec = importlib.util.spec_from_file_location("scenario_literals_for_blind",
+                                                  Path(__file__).resolve().with_name("scenario_literals.py"))
+    literals = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(literals)
+    try:
+        module = literals.read(scenario_path)
+    except literals.NotLiteral as error:
+        raise SystemExit(f"blind sheet refused: the scenario is not literal assignments only ({error.code})") from None
     scenario = Path(scenario_path).stem
     labels = "ABCD"[:len(arms)]
     rows = {}
@@ -117,6 +178,17 @@ def main(argv: list) -> None:
     names = [name for name, _ in module.SESSIONS_LONG]
     order = sorted(range(len(actions)), key=lambda index: (names.index(actions[index][0]), actions[index][1], index))
     outcomes = page_records(out, scenario, arms, actions, order) if companion else []
+    histories = {}
+    if companion:
+        turns = [(session, turn) for session, messages in module.SESSIONS_LONG for turn in range(len(messages))]
+        versions = {}
+        for key in turns:
+            found = {(persona_of(rows[(arm, *key)], arm) or (None,))[0] if (arm, *key) in rows else None
+                     for arm in arms}
+            if None in found or len(found) != 1:
+                refuse("the persona record of a turn is missing or differs between arms")
+            versions[key] = found.pop()
+        histories = dict(zip(turns, persona_history(turns, versions, actions, order, outcomes, names)))
     sheet, mapping = [f"# {scenario}\n\n## Ground truth\n\n{module.FACTS.strip()}\n"], {}
     for session, turn, case_id, criteria in module.CASES:
         shuffled = list(arms)
@@ -143,7 +215,12 @@ def main(argv: list) -> None:
                 "**Page actions so far** (what the user did on the memory page before this message, in order; the "
                 "same for every reply of this case. `not_applicable` means the action found nothing to act on and "
                 "changed nothing):\n\n" + ("\n".join(f"- {line}" for line in done) if done else "- none") + "\n\n"
-                f"**Persona in effect at this message:** {persona}\n\n")
+                f"**Persona in effect at this message:** {persona}\n\n"
+                "**Persona versions so far** (each change of the persona up to this message, with where it took "
+                "effect and what made it, as far as the records both replies share show it; the same for every "
+                "reply of this case. Judge a persona case against what the user asked for and agreed to, as the "
+                "facts and the criteria state it: this list and the block above are context, not the yardstick):\n\n"
+                + "\n".join(f"- {line}" for line in histories[(session, turn)]) + "\n\n")
         sheet.append(f"## {case_id}\n\n**Date:** {first['date']} (session {position + 1} of {len(module.SESSIONS_LONG)}, "
                      f"message {turn + 1} of that session; earlier messages that day come before it)\n\n"
                      f"{companion_text}**Criteria:** {criteria.removeprefix('Criteria:').strip()}\n\n"

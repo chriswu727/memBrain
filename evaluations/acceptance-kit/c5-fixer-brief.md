@@ -1,7 +1,13 @@
 # Companion scenario fixer brief
 
-You apply a reviewer's findings to one test scenario for an evaluation of AI companions. `scenario.py` is the
-scenario, `findings.md` the reviewer's numbered findings, and `brief.md` this file.
+You apply findings to one test scenario for an evaluation of AI companions. `scenario.py` is the scenario,
+`findings.md` the findings, and `brief.md` this file. The findings are of one of two kinds:
+- **A reviewer's findings**: a numbered list, each naming a place, what is wrong and what to change.
+- **Findings of the automatic check** (the file is headed "Findings of the automatic check (not of a reviewer)"):
+  one line per failure, a fixed code and where it is (`session=N`, `turn=N`, `case=N`, `action=N`, `entry=N` count
+  from 0 in `SESSIONS_LONG`, `CASES`, `PAGE_ACTIONS` and `EXPECT_RECORDING_P`; `at=S:T` is a session index and
+  turn index; `field=` and `part=` name a `COVERAGE` requirement and its key). What each code means is below.
+  Change the smallest thing that removes each failure while keeping every rule below and the story as it is.
 
 Work only in this directory. Read only these three files. Do not open, list or search anything else on this machine,
 do not use the web, and do not run the scenario file.
@@ -19,6 +25,33 @@ cases by id, and page actions as `(session_id, before_turn, kind)`. When you add
 every case, page action, `COVERAGE` entry and `EXPECT_RECORDING_P` entry whose turn index it shifts, and keep
 `FACTS` in agreement. Keep a "from now on" request and the user's yes in the same session, and keep each session's
 first message stating its weekday, date and time in the form it already uses.
+
+Rules a change must keep. Sessions start at least three hours apart, in time order, and the story spans at least
+45 days. A "from now on" request asks the companion to behave or respond differently in general, in its manner of
+responding ("From now on, when I'm upset, could you just listen first instead of jumping to advice?"); it is never a
+task, a reminder, a check-in or anything tied to a time or an event, and never one of the manner-comment kinds
+(length, formality, jokes). Manner comments are about formality, jokes or length, never emoji; the page acceptance
+of their suggestion is `{"do": "accept_proposal", "origin": "feedback", "kind": ...}` with their kind
+(`"less_formal"`, `"more_formal"`, `"more_playful"`, `"shorter"` or `"longer"`). The user never names a personality
+type, and a page switch is `{"do": "switch_persona", "preset": "random"}`. No page decision on a suggestion and no
+switch comes between the "from now on" request and its yes, or between an item and its case. The deleted message of
+`"page_deletion"` is a user message carrying emotional or relationship content. The two mood cases' sessions start
+at most 6 hours, and at least 49 hours, after the news's session, with no other declared feeling or shared moment
+in between. Outside the off-the-record stretch no message begins with a request not to be remembered or recorded,
+and the stretch names no duration.
+
+The codes of the automatic check: `c5_not_literal` (only literal assignments), `c5_persona`, `c5_stub_script`,
+`c5_unknown_name` (a name outside the format), `c5_missing` (`field=` names it), `c5_case_count` (11),
+`c5_turn_count` (60 to 66), `c5_case_position`, `c5_case_id`, `c5_case_prefix`, `c5_recording_position`,
+`c5_recording_shape`, `c5_no_weekday`, `c5_action_arms`, `c5_action_off_record`, `c5_action_limit` (a boundary
+topic up to 60 characters with at most 6 other words of up to 40, a support style up to 200), `c5_named_preset`,
+`c5_span`, and for `COVERAGE` (`field=`, `part=`): `c5_coverage_shape`, `c5_coverage_unknown`,
+`c5_coverage_missing`, `c5_coverage_position`, `c5_coverage_case`, `c5_coverage_action` (no or several matching page
+actions, or the wrong kind, origin, manner kind or role), `c5_coverage_distinct`, `c5_coverage_order`,
+`c5_coverage_timing`, `c5_coverage_undone` (something in between undoes the item), `c5_coverage_off_record`; and
+`no_date`, `no_time`, `bad_date`, `not_increasing`, `too_close`, `gap_under_3h`, `weekday_mismatch`,
+`malformed_session`, `duplicate_session`, `bad_action`, `malformed_action`, `pause_outside_stretch` (a message
+outside the stretch would pause recording by itself), `timed_pause`.
 
 Write the corrected file as `scenario.py` in this directory (replacing it), and `fixes.json` as
 `{"applied": <number of findings applied>}`. Your final message should say only that both are written. Do not repeat

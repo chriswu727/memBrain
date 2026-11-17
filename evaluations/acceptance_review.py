@@ -6,7 +6,7 @@
   attribution-inputs REVIEW_DIR BLIND_DIR SCENARIO KEY OUT_DIR   one arm-blind file per gated reply with a standing
                                                       critical error, for attribute.md
   validity RUN_DIR...                                 refuse an attempt whose runs degraded; report, without
-                                                      refusing, turns the host's own pause left unrecorded and
+                                                      refusing, turns a pause left unrecorded and
                                                       replies with tool-call markup (counts and positions)
   r5-inputs REVIEW_DIR BLIND_DIR SCENARIO KEY OUT_DIR   after the re-checks: one arm-blind file per reply with a
                                                       candidate type 4 mark, with that reply's own earlier
@@ -20,9 +20,14 @@
                                                       ("L01") to case ids, keeping the original as .raw.json
   diagnose RUN_DIR...                                 for an invalid attempt: where each arm stopped, harness
                                                       event kinds with counts and positions, turns left unrecorded
-                                                      by the host's own pause, replies with tool-call markup, and
+                                                      by a pause (the host's or the product's own), replies with
+                                                      tool-call markup, and
                                                       error counts by exception class; never a message, payload
                                                       or log line
+  coverage-report SCENARIO RUN_P                      C5: per COVERAGE item, whether arm P's host made the tool call
+                                                      the product expects at the declared position (tool names,
+                                                      argument enum values and yes/no only; validity's companion
+                                                      report carries the same table as host_diligence)
   remarks BLIND_DIR SCENARIO                          after unsealing: per arm, the count and share of replies with
                                                       a memory remark ("Saved.") that could unblind them
   gate REVIEW_DIR KEY...                              the attempt-3 pass rule from tallies and attributions
@@ -37,7 +42,9 @@ validity also accepts --persona PRESET, the manifest's persona draw (the driver 
 arm to have carried that seeded type; and --companion, which requires the C5 records (page actions and F's persona
 turn by turn) even for a scenario without PAGE_ACTIONS (a scenario with PAGE_ACTIONS is checked so without it).
 validity and diagnose accept --scenario PATH for scenarios outside this script's directory. The driver supplies
-the manifest-bound path; without it, historical runs retain their evaluations/<scenario>.py lookup.
+the manifest-bound path; without it, historical runs retain their evaluations/<scenario>.py lookup. Since 2026-11-17
+validity, diagnose and coverage-report read the scenario as a live run does (scenario_literals.py), never by running
+it; a scenario that is not literal assignments only is refused.
 
 Arms are frozen: ARMS = ("P", "F") (the plugin path and the full-history reference), GATED = ("P",), labels A and B.
 Every sealed mapping, first review, second review and tally must have exactly those labels and arms; one that does
@@ -65,6 +72,19 @@ def load(path: str):
     module = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(module)
     return module
+
+
+def read_scenario(path: str):
+    """A scenario read the way a live run reads it, never by running it (scenario_literals.py: literal assignments
+    only). validity and diagnose read their scenario this way; a scenario that is not literal-only is refused."""
+    spec = importlib.util.spec_from_file_location("scenario_literals_for_review",
+                                                  Path(__file__).resolve().with_name("scenario_literals.py"))
+    literals = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(literals)
+    try:
+        return literals.read(path)
+    except literals.NotLiteral as error:
+        raise SystemExit(f"the scenario is not literal assignments only ({error.code})") from None
 
 
 def _valid_marks(value, maximum):
@@ -876,8 +896,8 @@ def _run(run: Path, scenario_path: Path | None = None) -> tuple[list[dict], list
         if scenario_path is not None and rows and rows[0]["scenario"] != scenario_path.stem:
             raise ValueError("scenario identity mismatch")
         source = scenario_path if scenario_path is not None else Path(__file__).parent / (rows[0]["scenario"] + ".py")
-        scenario = load(str(source))
-        order = [(session, index) for session, turns in scenario.SESSIONS_LONG for index in range(len(turns))]
+        scenario = read_scenario(str(source))
+        order =[(session, index) for session, turns in scenario.SESSIONS_LONG for index in range(len(turns))]
     log = (run / "run.log").read_text(errors="replace") if (run / "run.log").exists() else ""
     return rows, order, log
 
@@ -918,7 +938,9 @@ def _message_position(sessions: list, session, turn) -> list | None:
 
 
 def _host_pauses(run: Path, order: list, rows: list, arm: str) -> tuple[list, list]:
-    """The turns the host's own pause left unrecorded (host-pauses.jsonl: the harness writes one line per such turn
+    """The turns a pause left unrecorded: the host's own, or since 2026-11-17 any pause the product held for the
+    conversation as the turn began, the product's own on the user's words included (host-pauses.jsonl, whose kind
+    keeps its earlier name; the harness writes one line per such turn
     of arm P), as positions, and the numbers of malformed lines. A line is malformed unless it holds exactly the
     time, a session and turn of the scenario, and the kind; names a turn whose row says it was recorded; repeats a
     turn; or is in arm F, which has no pause."""
@@ -959,7 +981,7 @@ def _markup_replies(rows: list, order: list) -> list:
 # because of what the host did or did not do: scored with the arm), or failed (a fault: invalid).
 PAGE_RECORD_FORMAT = 2
 NOT_APPLICABLE = ("message_not_recorded", "message_already_removed", "no_note_from_message",
-                  "no_feeling_from_message", "boundary_not_present", "no_open_proposal")
+                  "no_feeling_from_message", "boundary_not_present", "no_open_proposal", "page_refused")
 PERSONA_TURN_FORMAT = 1
 
 
@@ -973,7 +995,7 @@ def _scenario_module(rows: list, scenario_path: Path | None):
     known: a run with page-actions.jsonl is refused)."""
     try:
         source = scenario_path if scenario_path is not None else Path(__file__).parent / (rows[0]["scenario"] + ".py")
-        return load(str(source))
+        return read_scenario(str(source))
     except (Exception, SystemExit):
         return None
 
@@ -1071,6 +1093,18 @@ def _page_actions(arms: dict, module, companion: bool) -> tuple[list, dict]:
             elif status == "not_applicable" and reason in NOT_APPLICABLE:
                 if result.get("removed_records") != [] or result.get("removed_records_complete") is not True:
                     problems.append(f"{run}: page action {index + 1} was not applicable but records removals")
+                # The one accepted asymmetry: a deletion of a message P never recorded removes nothing in P, and F
+                # still drops that message from its history (the user deleted it): exactly the action's target,
+                # listed as reference_removed in F's record and no longer in F's history.
+                action = actions[index][2]
+                target = [action.get("session"), action.get("turn"), action.get("role", "user")]
+                reference_only = arm == "F" and action.get("do") == "delete_message" \
+                    and reason == "message_not_recorded"
+                if ("reference_removed" in result or reference_only) and (
+                        not reference_only or result.get("reference_removed") != [target]
+                        or (record.get("after") or {}).get("removed_still_in_history") != 0):
+                    problems.append(f"{run}: page action {index + 1} was not applicable but its reference removal is "
+                                    "not exactly the deleted message")
                 summary["not_applicable"]["count"] += 1
                 summary["not_applicable"]["at"].append({**at, "reason": reason})
             else:
@@ -1205,8 +1239,122 @@ def validity(run_dirs: list[Path], scenario_path: Path | None = None, persona_pr
               "empty_replies_retried": retried, "tool_errors_reported_to_the_host": tool_errors,
               "unrecorded_by_the_hosts_own_pause": host_pauses, "replies_with_tool_call_markup": markup,
               "page_actions": page_report, "persona_mirroring": mirroring}
+    if collected and mode and "P" in collected and module is not None:
+        # Companion mode only (an R4 report is unchanged): the host-diligence table of coverage-report, never refusing.
+        run, rows, _ = collected["P"]
+        result["host_diligence"] = {f"{run.name} (P)": host_diligence(module, rows)}
     print(json.dumps(result))
     return result
+
+
+# Host diligence (C5): did arm P's host make the tool call the product expects at each declared COVERAGE position?
+# Tool names, argument enum values and yes/no only, never text. Published with the result, so that a failure can be
+# read as the product's or the host's.
+COVERAGE_REPORT_FORMAT = 1
+AFFECT_BASES = ("reported", "inferred")  # membrain.notes.AFFECT_BASES ("reported" is the basis "said").
+MOMENT_KINDS = ("play", "hard", "other")  # membrain.notes.MOMENTS
+PERSONA_TOOL_ACTIONS = ("list", "switch", "propose", "confirm", "decline")  # membrain.persona_tool.ACTIONS
+
+
+def _tool_refused(result) -> bool:
+    """Whether a tool's answer to the host was an error (as c5-harness.py tool_error reads it)."""
+    try:
+        value = json.loads(result)
+    except (TypeError, ValueError):
+        return False
+    return isinstance(value, dict) and "error" in value
+
+
+def host_diligence(module, rows: list) -> list[dict]:
+    """One entry per expected host step of the scenario's COVERAGE table (and its off-the-record stretch), from arm
+    P's rows: {"item", "part", "session" index, "message" number, "tool", ["action"], "made", "accepted", [...]}.
+    ``made``: the host called that tool (with that memory_persona action; a memory_note carrying affect or moment)
+    in that turn; ``accepted``: one such call was answered without an error (None when none was made). A feeling
+    entry adds ``basis`` (reported or inferred, as the host saved it: "other" for anything else, None when no such
+    note), a shared-moment entry ``moment`` likewise, a resume entry ``names_session`` (the resume named this
+    conversation), an off-the-record opening ``recognised_by_product`` (the product's own recogniser pauses on that
+    message by itself, so no pause call is needed). Items without a host step (page actions, cases) have none."""
+    sessions = [session for session, _ in module.SESSIONS_LONG]
+    by_turn = {(row.get("session"), row.get("turn")): row for row in rows}
+    table = getattr(module, "COVERAGE", None)
+    table = table if isinstance(table, dict) else {}
+    entries = []
+
+    def position(value):
+        if isinstance(value, (list, tuple)) and len(value) == 2 and value[0] in sessions and type(value[1]) is int:
+            return value[0], value[1]
+        return None
+
+    def expect(item, part, at, tool, *, action=None, field=None, codes=None, label=None):
+        where = position(at)
+        if where is None:
+            return None
+        calls = [call for call in (by_turn.get(where) or {}).get("tool_calls") or ()
+                 if isinstance(call, dict) and call.get("name") == tool]
+        arguments = [call.get("arguments") if isinstance(call.get("arguments"), dict) else {} for call in calls]
+        matching = [(call, args) for call, args in zip(calls, arguments)
+                    if (action is None or args.get("action") == action) and (field is None or args.get(field))]
+        entry = {"item": item, "part": part, "session": sessions.index(where[0]) + 1, "message": where[1] + 1,
+                 "tool": tool}
+        if action is not None:
+            entry["action"] = action
+        entry["made"] = bool(matching)
+        entry["accepted"] = any(not _tool_refused(call.get("result")) for call, _ in matching) if matching else None
+        if label is not None:
+            values = [args[field].get(label) if isinstance(args.get(field), dict) else args.get(label)
+                      for _, args in matching]
+            value = next((value for value in values if value is not None), None)
+            entry[label] = None if not matching else value if value in codes else "other"
+        entries.append(entry)
+        return entry, matching
+
+    def get(item, key):
+        value = table.get(item)
+        return value.get(key) if isinstance(value, dict) else None
+
+    for item in ("stated_feeling", "inferred_feeling"):
+        expect(item, "message", get(item, "message"), "memory_note", field="affect", codes=AFFECT_BASES,
+               label="basis")
+    expect("boundary_in_conversation", "asked", get("boundary_in_conversation", "asked"), "memory_boundary")
+    comments = get("manner_feedback", "comments")
+    for number, at in enumerate(comments if isinstance(comments, (list, tuple)) else (), 1):
+        expect("manner_feedback", f"comment {number}", at, "memory_manner_feedback")
+    expect("from_now_on", "request", get("from_now_on", "request"), "memory_persona", action="propose")
+    expect("from_now_on", "yes", get("from_now_on", "yes"), "memory_persona", action="confirm")
+    expect("switch", "request", get("switch", "request"), "memory_persona", action="switch")
+    for part in ("play", "hard"):
+        expect("shared_moments", part, get("shared_moments", part), "memory_note", field="moment",
+               codes=MOMENT_KINDS, label="moment")
+    stretch = [entry for entry in list(getattr(module, "EXPECT_RECORDING_P", None) or [])
+               if isinstance(entry, (list, tuple)) and len(entry) == 3]
+    opening = next(((session, turn) for session, turn, expected in stretch if expected is False), None)
+    resume = next(((session, turn) for session, turn, expected in stretch if expected is True), None)
+    if opening is not None:
+        found = expect("off_the_record", "opening", opening, "memory_pause")
+        if found is not None:
+            from membrain.recording_policy import requests_pause
+
+            text = dict(module.SESSIONS_LONG)[opening[0]][opening[1]]
+            found[0]["recognised_by_product"] = bool(requests_pause(text))
+    if resume is not None:
+        found = expect("off_the_record", "resume", resume, "memory_resume")
+        if found is not None:
+            entry, matching = found
+            entry["names_session"] = any(args.get("session_id") == resume[0] for _, args in matching) \
+                if matching else None
+    return entries
+
+
+def coverage_report(scenario_path: str, run: Path) -> dict:
+    """``coverage-report SCENARIO.py RUN_P``: the host-diligence table of arm P's run (host_diligence), one JSON
+    line. Content-free: positions by index, tool names, argument enum values and yes/no."""
+    rows, _, _ = _run(run, Path(scenario_path))
+    if not rows or rows[0].get("arm") != "P":
+        raise SystemExit("coverage-report needs the run directory of arm P")
+    report = {"format": COVERAGE_REPORT_FORMAT, "run": run.name,
+              "items": host_diligence(read_scenario(scenario_path), rows)}
+    print(json.dumps(report, sort_keys=True))
+    return report
 
 
 _KIND = re.compile(r"[a-z][a-z0-9_]{0,63}")
@@ -1326,7 +1474,8 @@ def diagnose(run_dirs: list[Path], scenario_path: Path | None = None) -> None:
         arm = rows[0].get("arm") if rows else None
         paused, broken = _host_pauses(run, order, rows, arm)
         if paused or broken:
-            print(f"   unrecorded by the host's own pause (scored with the arm, not harness events): {len(paused)}"
+            print(f"   unrecorded while recording was paused (the host's or the product's own pause; scored with the "
+                  f"arm, not harness events): {len(paused)}"
                   + (f" at {'; '.join(_where(position, sessions) for position in paused)}" if paused else ""))
         if broken:
             print(f"     malformed host-pause lines: {len(broken)}")
@@ -1607,6 +1756,10 @@ if __name__ == "__main__":
         verdicts(Path(args[0]), args[1], companion=companion)
     elif command == "diagnose":
         diagnose([Path(arg) for arg in args], scenario_path)
+    elif command == "coverage-report":
+        if len(args) != 2:
+            raise SystemExit("usage: acceptance_review.py coverage-report SCENARIO.py RUN_P")
+        coverage_report(args[0], Path(args[1]))
     elif command == "gate":
         result = gate(Path(args[0]), args[1:], companion=companion, manifest=manifest)
         if not result["C5" if companion else "R4"]:
