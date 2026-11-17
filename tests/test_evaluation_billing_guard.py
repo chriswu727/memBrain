@@ -96,15 +96,15 @@ def test_uncertain_or_out_of_bound_usage_keeps_its_reservation_and_stops_every_a
         send(path, lambda request: pytest.fail("blocked run reached provider"))
 
 
-@pytest.mark.parametrize("failure", ["timeout", "http", "malformed", "other_model"])
+# Since 2026-11-17 a timeout, a connection or protocol error, HTTP 429 and a 5xx are interruptions, settled at a bound
+# with the ledger left open (tests/test_provider_interruption_retry.py); every other failure still stops the run.
+@pytest.mark.parametrize("failure", ["http_400", "http_401", "malformed", "other_model"])
 def test_provider_failures_never_release_money_for_an_automatic_retry(tmp_path, failure):
     path = ledger(tmp_path)
 
     def handler(request):
-        if failure == "timeout":
-            raise httpx.ReadTimeout("unknown whether billed", request=request)
-        if failure == "http":
-            return httpx.Response(503)
+        if failure.startswith("http_"):
+            return httpx.Response(int(failure[5:]))
         if failure == "malformed":
             return httpx.Response(200, content=b"not json")
         return reply(model="unapproved-model")
@@ -117,11 +117,13 @@ def test_provider_failures_never_release_money_for_an_automatic_retry(tmp_path, 
 
 
 @pytest.mark.parametrize("failure,expected", [
-    ("timeout", {"kind": "provider_transport", "error_class": "ReadTimeout"}),
-    ("body_timeout", {"kind": "provider_transport", "error_class": "ReadTimeout"}),
+    # A body cut short after a final status (a 4xx other than 429) is not an interruption (2026-11-17).
+    ("body_timeout_after_400", {"kind": "provider_transport", "error_class": "ReadTimeout"}),
+    ("decoding", {"kind": "provider_transport", "error_class": "DecodingError"}),
     ("interrupt", {"kind": "provider_transport", "error_class": "SystemExit"}),
+    ("keyboard", {"kind": "provider_transport", "error_class": "KeyboardInterrupt"}),
     ("unknown_class", {"kind": "provider_transport", "error_class": "other"}),
-    ("http", {"kind": "provider_http_status", "http_status": 503}),
+    ("http", {"kind": "provider_http_status", "http_status": 400}),
     ("malformed", {"kind": "response_billing"}),
     ("other_model", {"kind": "response_billing"}),
 ])
@@ -131,20 +133,22 @@ def test_provider_stop_records_safe_cause_without_releasing_reservation(tmp_path
     secret = "PRIVATE-PROVIDER-BODY-AND-EXCEPTION"
 
     def handler(request):
-        if failure == "timeout":
-            raise httpx.ReadTimeout(secret, request=request)
-        if failure == "body_timeout":
+        if failure == "body_timeout_after_400":
             class InterruptedBody(httpx.SyncByteStream):
                 def __iter__(self):
                     yield secret.encode()
                     raise httpx.ReadTimeout(secret, request=request)
-            return httpx.Response(200, stream=InterruptedBody())
+            return httpx.Response(400, stream=InterruptedBody())
+        if failure == "decoding":
+            raise httpx.DecodingError(secret, request=request)
         if failure == "interrupt":
             raise SystemExit(secret)
+        if failure == "keyboard":
+            raise KeyboardInterrupt(secret)
         if failure == "unknown_class":
             raise type(secret, (RuntimeError,), {})(secret)
         if failure == "http":
-            return httpx.Response(503, content=secret, headers={"x-private": secret})
+            return httpx.Response(400, content=secret, headers={"x-private": secret})
         if failure == "malformed":
             return httpx.Response(200, content=secret)
         return reply(model=secret)
@@ -174,7 +178,7 @@ def test_concurrent_shutdown_keeps_the_first_provider_failure_and_both_reservati
 
     def first(request):
         arrived.wait(timeout=10)
-        return httpx.Response(503)
+        return httpx.Response(400)  # 503 until 2026-11-17: a 5xx is now an interruption that leaves the ledger open.
 
     def second(request):
         arrived.wait(timeout=10)

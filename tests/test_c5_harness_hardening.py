@@ -469,6 +469,39 @@ def test_an_arm_writes_its_paid_row_before_a_stop_another_arm_made_during_its_ca
     assert [entry.get("actual_micros") is not None for entry in state["requests"].values()] == [True]
 
 
+def test_a_live_arm_retries_a_transient_provider_failure_and_finishes_valid_evidence(
+        stub_run, shared_ledger, tmp_path, monkeypatch, capsys):
+    """Since 2026-11-17: a send that times out is charged at its bound, sent again after 30 s, and the run goes on;
+    the interruption is recorded by position in provider-interruptions.jsonl, never as a harness event."""
+    import httpx
+
+    arm = "F"
+    monkeypatch.setattr(harness, "STUB", False)  # Live, with the fake provider behind the real guard.
+    monkeypatch.setattr(harness, "BILLING", None)
+    slept = []
+    monkeypatch.setattr(harness.time, "sleep", slept.append)
+    _p_side_for_f(tmp_path, SCENARIO)
+
+    def timeout():
+        raise httpx.ReadTimeout("zq-planted-provider-text")
+
+    shared_ledger.provider.after[2] = timeout  # The second host send: turn 2's only round.
+    rows, events = stub_run(arm, SCENARIO)
+    directory = tmp_path / f"run-{arm}"
+    assert [row["reply"] for row in rows] == ["Fake reply."] * 4 and events == []
+    assert slept == [30] and len(shared_ledger.provider.models) == 5  # Four turns, one of them sent twice.
+    state = shared_ledger.state()
+    assert state["blocked"] is False and len(state["requests"]) == 5
+    (interrupted,) = [entry for entry in state["requests"].values() if "interrupted" in entry]
+    assert interrupted["interrupted"]["error_class"] == "ReadTimeout" and "failure" not in interrupted
+    assert 0 < interrupted["actual_micros"] < interrupted["reserved_micros"]
+    (line,) = [json.loads(text) for text in (directory / harness.INTERRUPTIONS).read_text().splitlines()]
+    assert (line["session"], line["turn"], line["round"], line["send"], line["retried"]) == ("s1", 1, 0, 1, True)
+    log = capsys.readouterr().out
+    assert "provider interrupted ReadTimeout at session 1 of 2, message 2, round 1: send 1 of 3, retry in 30 s" in log
+    assert "zq-planted-provider-text" not in log and not (directory / "harness-events.jsonl").exists()
+
+
 @pytest.mark.parametrize("stop_at", ["before_tool", "before_next_round"])
 def test_a_stopped_tool_turn_keeps_each_billed_round_without_claiming_a_complete_reply(
         stub_run, shared_ledger, tmp_path, monkeypatch, stop_at):

@@ -967,6 +967,65 @@ def _host_pauses(run: Path, order: list, rows: list, arm: str) -> tuple[list, li
     return positions, malformed
 
 
+INTERRUPTIONS = "provider-interruptions.jsonl"  # c5-harness.py INTERRUPTIONS, INTERRUPTION_FORMAT 1
+INTERRUPTION_FORMAT = 1
+INTERRUPTION_SENDS = 3  # c5-harness.py: len(INTERRUPTION_WAITS) + 1
+# evaluation_budget.INTERRUPTED_CLASSES: the transport failures the guard settles at a bound and the harness retries.
+INTERRUPTED_CLASSES = frozenset({
+    "ConnectTimeout", "ReadTimeout", "WriteTimeout", "PoolTimeout", "TimeoutException",
+    "ConnectError", "ReadError", "WriteError", "CloseError", "RemoteProtocolError"})
+
+
+def _provider_interruptions(run: Path, order: list) -> tuple[list, list]:
+    """The host sends the billing guard settled as interrupted (provider-interruptions.jsonl, one line per send),
+    as content-free entries {"session": i, "message": m, "round": r (from 1), "send": n, "code", "retried"}, and the
+    numbers of malformed lines. A line is malformed unless it holds exactly the harness's fields: format 1, the time,
+    a session and turn of the scenario, a round 0 to 3, kind ``provider_transport`` with an allowlisted
+    ``error_class`` or ``provider_http_status`` with ``http_status`` 429 or 5xx, a send 1 to 3 and ``retried``
+    (true only before the last send); or repeats a send of the same host call."""
+    path = run / INTERRUPTIONS
+    if not path.exists():
+        return [], []
+    sessions = list(dict.fromkeys(session for session, _ in order))
+    entries, malformed, seen = [], [], set()
+    common = {"format", "time", "session", "turn", "round", "kind", "send", "retried"}
+    for number, line in enumerate(path.read_text(errors="replace").splitlines(), 1):
+        try:
+            entry = json.loads(line)
+        except ValueError:
+            entry = None
+        if not isinstance(entry, dict):
+            malformed.append(number)
+            continue
+        kind, status, name = entry.get("kind"), entry.get("http_status"), entry.get("error_class")
+        cause_ok = (kind == "provider_transport" and set(entry) == common | {"error_class"}
+                    and isinstance(name, str) and name in INTERRUPTED_CLASSES) or (
+            kind == "provider_http_status" and set(entry) == common | {"http_status"} and type(status) is int
+            and (status == 429 or 500 <= status <= 599))
+        key = (entry.get("session"), entry.get("turn"), entry.get("round"), entry.get("send"))
+        if (not cause_ok or entry["format"] != INTERRUPTION_FORMAT or type(entry["time"]) not in (int, float)
+                or not isinstance(entry["session"], str) or type(entry["turn"]) is not int
+                or (entry["session"], entry["turn"]) not in order or type(entry["round"]) is not int
+                or not 0 <= entry["round"] <= 3 or type(entry["send"]) is not int
+                or not 1 <= entry["send"] <= INTERRUPTION_SENDS or type(entry["retried"]) is not bool
+                or (entry["retried"] and entry["send"] == INTERRUPTION_SENDS) or key in seen):
+            malformed.append(number)
+            continue
+        seen.add(key)
+        session, message = _message_position(sessions, entry["session"], entry["turn"])
+        entries.append({"session": session, "message": message, "round": entry["round"] + 1, "send": entry["send"],
+                        "code": name if kind == "provider_transport" else f"http_{status}",
+                        "retried": entry["retried"]})
+    return entries, malformed
+
+
+def _interruption_report(entries: list) -> dict:
+    """Validity's and diagnose's counts: interrupted sends, host calls sent again, and the entries themselves."""
+    retried = {(entry["session"], entry["message"], entry["round"]) for entry in entries if entry["retried"]}
+    return {"interrupted_sends": len(entries), "retried_host_calls": len(retried),
+            "not_retried": sum(1 for entry in entries if not entry["retried"]), "at": entries}
+
+
 def _markup_replies(rows: list, order: list) -> list:
     """The positions of the replies that contain tool-call markup (TOOL_CALL_MARKUP); None for a row outside the
     scenario's sessions."""
@@ -1125,7 +1184,11 @@ def validity(run_dirs: list[Path], scenario_path: Path | None = None, persona_pr
     (reported, never refused: they are the host's or the service's, and are part of what is measured). Also reported
     without refusing, per run directory: the turns the host's own pause left unrecorded (host-pauses.jsonl; a
     malformed file is refused as damaged evidence) and the replies with tool-call markup (TOOL_CALL_MARKUP), each as
-    a count and positions [session index, message number].
+    a count and positions [session index, message number]. Since 2026-11-17 also, per run directory, the host sends
+    the billing guard settled as interrupted and the host calls the harness sent again
+    (``provider_interruptions``, from provider-interruptions.jsonl: counts, then each send's session index, message,
+    round, send number, code and whether it was retried). A retried interruption leaves the run valid; one that was
+    not retried, and a malformed file, are refused.
 
     Companion mode (``companion``, or a scenario with PAGE_ACTIONS: every C5 scenario) adds two checks, which also run
     whenever their records exist: every arm's page-actions.jsonl holds exactly the scenario's PAGE_ACTIONS in the
@@ -1134,7 +1197,7 @@ def validity(run_dirs: list[Path], scenario_path: Path | None = None, persona_pr
     them); and F carried P's persona block at every turn (persona_turn and the block in each row). An R4 scenario
     has no page actions, so its validity is unchanged apart from the persona check of a current harness's runs."""
     problems, largest, retried, tool_errors = [], 0, {}, {}
-    host_pauses, markup = {}, {}
+    host_pauses, markup, interruptions = {}, {}, {}
     arms_seen, personas, supervision = set(), {}, {}
     collected: dict = {}  # arm -> (run directory, rows, scenario order), for the companion checks
     if not run_dirs:
@@ -1192,6 +1255,12 @@ def validity(run_dirs: list[Path], scenario_path: Path | None = None, persona_pr
         if malformed:
             problems.append(f"{run}: {HOST_PAUSES} is malformed at line {malformed[0]}")
         host_pauses[f"{run.name} ({arm})"] = {"count": len(paused), "positions": paused}
+        sent, broken = _provider_interruptions(run, order)
+        if broken:
+            problems.append(f"{run}: {INTERRUPTIONS} is malformed at line {broken[0]}")
+        problems += [f"{run}: a provider interruption was not retried at session {entry['session']}, message "
+                     f"{entry['message']}, round {entry['round']}" for entry in sent if not entry["retried"]]
+        interruptions[f"{run.name} ({arm})"] = _interruption_report(sent)
         marked = _markup_replies(rows, order)
         markup[f"{run.name} ({arm})"] = {"count": len(marked), "positions": marked}
         if arm == "F":
@@ -1238,7 +1307,7 @@ def validity(run_dirs: list[Path], scenario_path: Path | None = None, persona_pr
     result = {"valid": not problems, "problems": problems, "reference_largest_prompt_tokens": largest,
               "empty_replies_retried": retried, "tool_errors_reported_to_the_host": tool_errors,
               "unrecorded_by_the_hosts_own_pause": host_pauses, "replies_with_tool_call_markup": markup,
-              "page_actions": page_report, "persona_mirroring": mirroring}
+              "provider_interruptions": interruptions, "page_actions": page_report, "persona_mirroring": mirroring}
     if collected and mode and "P" in collected and module is not None:
         # Companion mode only (an R4 report is unchanged): the host-diligence table of coverage-report, never refusing.
         run, rows, _ = collected["P"]
@@ -1364,7 +1433,7 @@ _EXCEPTION_LINE = re.compile(r"((?:[A-Za-z_]\w*\.)*[A-Za-z_]\w*(?:Error|Exceptio
 _KNOWN_CLASSES = frozenset(
     {name for name, value in vars(__import__("builtins")).items()
      if isinstance(value, type) and issubclass(value, BaseException)}
-    | {"BudgetStop", "JSONDecodeError", "CloseError", "ConnectError", "ConnectTimeout", "CookieConflict",
+    | {"BudgetStop", "ProviderInterrupted", "JSONDecodeError", "CloseError", "ConnectError", "ConnectTimeout", "CookieConflict",
        "DecodingError", "HTTPError", "HTTPStatusError", "InvalidURL", "LocalProtocolError", "NetworkError",
        "PoolTimeout", "ProtocolError", "ProxyError", "ReadError", "ReadTimeout", "RemoteProtocolError",
        "RequestError", "RequestNotRead", "ResponseNotRead", "StreamClosed", "StreamConsumed", "StreamError",
@@ -1425,7 +1494,8 @@ def diagnose(run_dirs: list[Path], scenario_path: Path | None = None) -> None:
     """What an invalid run's diagnosis may read, per run directory: how far each arm got and its empty replies, by
     position; the tools the host called in each turn, as fixed codes (``_tool_code``); each harness event's kind,
     with a count per kind and positions (session index, message) where the event has them; the turns the host's own
-    pause left unrecorded (host-pauses.jsonl) and the replies with tool-call markup, as counts and positions; and
+    pause left unrecorded (host-pauses.jsonl) and the replies with tool-call markup, as counts and positions; the
+    provider interruptions (provider-interruptions.jsonl) as counts, positions, send numbers and fixed codes; and
     counts of the log's error lines by kind and exception class name. It never prints a payload string, a session id, an exception
     message, a log line or any input, reply, context or transcript: those can carry held-out content (attempt 3
     lost a scenario that way)."""
@@ -1479,6 +1549,18 @@ def diagnose(run_dirs: list[Path], scenario_path: Path | None = None) -> None:
                   + (f" at {'; '.join(_where(position, sessions) for position in paused)}" if paused else ""))
         if broken:
             print(f"     malformed host-pause lines: {len(broken)}")
+        sent, broken = _provider_interruptions(run, order)
+        if sent or broken:
+            report = _interruption_report(sent)
+            print(f"   provider interruptions (settled at their bound; a retried one leaves the run valid): "
+                  f"{report['interrupted_sends']} sends, {report['retried_host_calls']} host calls sent again, "
+                  f"{report['not_retried']} not retried"
+                  + (" at " + "; ".join(f"{_where([entry['session'], entry['message']], sessions)}, round "
+                                        f"{entry['round']}, send {entry['send']} {entry['code']} "
+                                        f"{'retried' if entry['retried'] else 'not retried'}" for entry in sent)
+                     if sent else ""))
+        if broken:
+            print(f"     malformed provider-interruption lines: {len(broken)}")
         marked = _markup_replies(rows, order)
         if marked:
             known = [position for position in marked if position]
@@ -1490,6 +1572,10 @@ def diagnose(run_dirs: list[Path], scenario_path: Path | None = None) -> None:
             words = text.split()
             if text.startswith("host error"):
                 name = f"host error {_class_name(words[2]) if len(words) > 2 else 'other'}"
+            elif text.startswith("provider interrupted"):
+                code = words[2] if len(words) > 2 else ""
+                name = "provider interrupted " + (code if code in INTERRUPTED_CLASSES or re.fullmatch(
+                    r"http_(429|5\d\d)", code) else "other")
             elif text.startswith("stop failed"):
                 name = f"stop failed {_class_name(words[2]) if len(words) > 2 else 'other'}"
             elif text.startswith("harness event"):

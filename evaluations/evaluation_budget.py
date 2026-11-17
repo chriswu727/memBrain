@@ -16,10 +16,65 @@ _ERROR_CLASSES = {getattr(httpx, name): name for name in (
     "ConnectError", "ReadError", "WriteError", "CloseError", "RemoteProtocolError",
     "LocalProtocolError", "ProxyError", "UnsupportedProtocol", "DecodingError", "HTTPError")}
 _ERROR_CLASSES.update({SystemExit: "SystemExit", KeyboardInterrupt: "KeyboardInterrupt"})
+# Interruptions (since 2026-11-17): a request that ended in one of these transport failures, or with HTTP 429 or a
+# 5xx, is settled at a bound that is true for that request (``interruption_bound``) and the ledger stays open, so the
+# caller may send it again. Every other failure keeps the whole reservation and blocks the ledger, as before:
+# another HTTP status, a response the guard cannot settle, SystemExit, KeyboardInterrupt and any class not listed.
+INTERRUPTED_CLASSES = frozenset({
+    "ConnectTimeout", "ReadTimeout", "WriteTimeout", "PoolTimeout", "TimeoutException",
+    "ConnectError", "ReadError", "WriteError", "CloseError", "RemoteProtocolError"})
+# The prompt bound of an interrupted request, in tokens (``interruption_bound``): twice the bytes of the request body
+# as sent, plus four times the bytes of its tool schemas in their shortest JSON form, plus a fixed allowance for the
+# text the provider adds (chat template, role markers, tool preamble), never above the context bound. Every token of
+# a byte-level tokenizer stands for at least one UTF-8 byte of the text it encodes, in any language, so a prompt has
+# no more tokens than bytes. Message text is rendered as sent, and the body holds every byte of it; a tool schema may
+# be re-serialized, and JSON escaping writes at most six bytes for each byte of the shortest form (2 + 4 = 6 times
+# for the schemas). The reasoning is in evaluation-billing.md.
+PROMPT_TOKENS_PER_BYTE = 2
+PROMPT_TOKENS_PER_TOOL_BYTE = 4
+PROMPT_TOKENS_ALLOWANCE = 16_384
 
 
 class BudgetStop(RuntimeError):
     pass
+
+
+class ProviderInterrupted(BudgetStop):
+    """A request interrupted in transport or answered with HTTP 429 or a 5xx: settled at its bound, the ledger still
+    open. ``failure`` holds the content-free cause: ``kind`` and ``error_class`` or ``http_status``."""
+
+    def __init__(self, failure: dict):
+        super().__init__("An interrupted provider request is charged at its bound; the billing run stays open.")
+        self.failure = dict(failure)
+
+
+def retriable_status(status) -> bool:
+    """HTTP 429 and every 5xx: an answer that a later identical request may not get again."""
+    return type(status) is int and (status == 429 or 500 <= status <= 599)
+
+
+def tools_bytes(tools) -> int:
+    """The UTF-8 bytes of a request's tool schemas in their shortest JSON form (0 without tools)."""
+    return len(json.dumps(tools, ensure_ascii=False, separators=(",", ":")).encode()) if tools else 0
+
+
+def interruption_bound(request_bytes, schema_bytes, max_tokens, rate) -> tuple[int, int, int]:
+    """(prompt token bound, completion token bound, charge in micro-CNY) of an interrupted request whose body was
+    ``request_bytes`` bytes with ``schema_bytes`` of tool schemas (``tools_bytes``), at the request's own
+    ``max_tokens``, at the policy's maximum rates:
+
+        prompt = min(context_tokens, 2 * request_bytes + 4 * schema_bytes + 16,384)
+        charge = ceil(prompt * input rate) + ceil(max_tokens * output rate)
+
+    Raises BudgetStop when it cannot be computed; the caller then keeps the whole reservation."""
+    request_bytes, schema_bytes, max_tokens = _integer(request_bytes), _integer(schema_bytes), _integer(max_tokens)
+    context, output = _integer(rate["context_tokens"]), _integer(rate["max_output_tokens"])
+    if not request_bytes or schema_bytes > request_bytes or not 0 < max_tokens <= output:
+        raise BudgetStop("No bound for this interrupted request.")
+    prompt = min(context, PROMPT_TOKENS_PER_BYTE * request_bytes + PROMPT_TOKENS_PER_TOOL_BYTE * schema_bytes
+                 + PROMPT_TOKENS_ALLOWANCE)
+    return prompt, max_tokens, _charge(prompt, rate["input_cny_per_million"]) + _charge(
+        max_tokens, rate["output_cny_per_million"])
 
 
 def _integer(value):
@@ -158,7 +213,9 @@ class GuardedTransport(httpx.BaseTransport):
                 _write(self.path, state)
                 raise BudgetStop("The shared billing cap cannot reserve this request.")
             ident = uuid.uuid4().hex
-            state["requests"][ident] = {"model": model, "max_tokens": output, "reserved_micros": reserved}
+            # Sizes only (never content), for the bound of an interruption.
+            state["requests"][ident] = {"model": model, "max_tokens": output, "reserved_micros": reserved,
+                                        "request_bytes": len(request.content), "tools_bytes": tools_bytes(tools)}
             _write(self.path, state)
             return ident
 
@@ -201,24 +258,60 @@ class GuardedTransport(httpx.BaseTransport):
             state.setdefault("stop_reason", reason)
             _write(self.path, state)
 
+    def _retain(self, ident, failure):
+        """The failure's charge is unknown: the request keeps its whole reservation and the ledger is blocked."""
+        with _locked(self.path):
+            state = self._state()
+            state["blocked"] = True
+            state.setdefault("stop_reason", failure["kind"])
+            state["requests"][ident]["failure"] = failure
+            _write(self.path, state)
+
+    def _interrupted(self, ident, failure):
+        """Settle an interrupted request at its bound and raise ProviderInterrupted with the ledger left open. When
+        the bound cannot be computed, keep the whole reservation and block the ledger instead (BudgetStop)."""
+        with _locked(self.path):
+            state = self._state()
+            entry = state["requests"][ident]
+            try:
+                prompt, completion, bound = interruption_bound(
+                    entry["request_bytes"], entry["tools_bytes"], entry["max_tokens"], state["models"][entry["model"]])
+                if bound > entry["reserved_micros"]:
+                    raise BudgetStop("The bound exceeds the reservation.")
+            except (KeyError, TypeError, ValueError, BudgetStop):
+                bound = None
+            if bound is not None:
+                entry["actual_micros"] = bound
+                entry["interrupted"] = {**failure, "prompt_tokens_bound": prompt,
+                                        "completion_tokens_bound": completion}
+                _write(self.path, state)
+        if bound is None:
+            self._retain(ident, failure)
+            raise BudgetStop("An interrupted provider request retains its billing reservation; the run is stopped.")
+        raise ProviderInterrupted(failure)
+
     def handle_request(self, request):
         try:
             ident = self._reserve(request)
         except BudgetStop:
             self.stop("request_refused")
             raise
+        status = failure = None
         try:
             response = self.transport.handle_request(request)
+            status = response.status_code
             response.read()
         except BaseException as error:
-            with _locked(self.path):
-                state = self._state()
-                state["blocked"] = True
-                state.setdefault("stop_reason", "provider_transport")
-                state["requests"][ident]["failure"] = {
-                    "kind": "provider_transport", "error_class": _ERROR_CLASSES.get(type(error), "other")}
-                _write(self.path, state)
-            raise BudgetStop("An interrupted provider request retains its billing reservation; the run is stopped.") from None
+            failure = {"kind": "provider_transport", "error_class": _ERROR_CLASSES.get(type(error), "other")}
+        if failure is not None:  # Handled outside the except block, so no provider exception text is chained.
+            # A body cut short after a status that is final by itself (a 4xx other than 429) is not an interruption.
+            if failure["error_class"] in INTERRUPTED_CLASSES and (
+                    status is None or 200 <= status < 300 or retriable_status(status)):
+                self._interrupted(ident, failure)
+            self._retain(ident, failure)
+            raise BudgetStop("An interrupted provider request retains its billing reservation; the run is stopped.")
+        if retriable_status(response.status_code):
+            self._interrupted(ident, {"kind": "provider_http_status", "http_status": response.status_code})
         self._settle(ident, response)
         return response
 

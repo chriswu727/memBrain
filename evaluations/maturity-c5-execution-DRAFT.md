@@ -179,6 +179,7 @@ parallel arms, the 280 CNY ceiling, its C1/C2 coverage list).
 | Coverage per scenario | each scenario all of its requirements | the thirteen items split across the pair (C1 seven, C2 six) | Each item is tested once in the attempt, not twice |
 | Tools offered to `P` | 5 | all `<n>` the server lists | Manner feedback, persona and moments by tool |
 | Runtime | `7902c16e` and earlier | `<runtime>` | Product changes since |
+| Transient provider failure (timeout, connection or protocol error, HTTP 429 or 5xx) | stopped the arm and the attempt; the request kept its whole 20.054016 CNY reservation (attempt `maturity-c5-20261117b` stopped this way at turn 54 of 63 of its second scenario's `P`) | charged at a bound true for the request (Stop rules), the same request sent again after 30 and 120 s, three sends at most; a third interruption stops as before | A run can survive a provider hang; a retried reply is scored like any other (Limits) |
 
 ## Scenarios
 
@@ -245,7 +246,8 @@ Revalidation of prices and limits as in the seventh attempt (`control/provider-r
 `evaluations/maturity-provider-policy-2026-11-14.json` (sha256
 `e7b91106b206412c608b33b0f43adc1d6f7db7c19da0c05a82a620198fb5689f`, unless a new policy is frozen): `deepseek-v4-pro`
 only, 80 CNY, one request in flight; each request reserves 20.054016 CNY, so the guard refuses once settled charges
-exceed 59.945984 CNY.
+exceed 59.945984 CNY. An interrupted host send (Stop rules) counts at its bound in those settled charges, a few CNY
+each on the guard's count, so a run with several interruptions reaches the refusal point sooner.
 
 Expected conservative charge (guard's count), from the seventh attempt's 0.232 CNY per scenario-turn for both arms
 (28.785141 CNY for 124 turns): 120–132 turns give about **30 CNY**; with the plan's unverified 25% companion
@@ -258,13 +260,24 @@ restart; 35–45 for scoring).
 
 ## Stop rules
 
-As in the seventh attempt: a provider or transport failure, a guard refusal, invalid evidence, a reached cap, a
-degraded harness (including a `failed` page action), a frozen input that changed, an existing run directory or a
-driver error stops further work; no new scenario after a failed or invalid one; nothing is retried automatically; no
-stopped ledger is reopened. **Not a stop:** a `not_applicable` page action (`page_refused` included), a turn left
-unrecorded while a pause was in force (the host's or the product's own, decision 6), and a timed pause the host asks
-for (a tool error). The host behaviours that still end a run as invalid are listed in decision 6. A second refused first, second or resolution review stops scoring for the owner. No score is
-changed by hand. No recharge, no retry, no automatic further attempt.
+As in the seventh attempt, except for transient provider failures: a provider failure other than a transient one, a
+guard refusal, invalid evidence, a reached cap, a degraded harness (including a `failed` page action), a frozen input
+that changed, an existing run directory or a driver error stops further work; no new scenario after a failed or
+invalid one; no stopped ledger is reopened. **A transient provider failure is retried (changed from the seventh
+attempt):** a host send that ends in a transport timeout or a connection or protocol error, or that the provider
+answers with HTTP 429 or a 5xx, is charged by the guard at a bound true for that request (`min(1,048,576, 2 × body
+bytes + 4 × tool-schema bytes + 16,384)` input tokens at 9 CNY per million plus the request's 16,384 output tokens
+at 27: for example 1.57 CNY for a 20 KB request carrying `P`'s 17 KB of tool schemas and 3.29 CNY for a 150 KB
+request without tools, instead of the 20.054016 CNY reservation; [billing control](evaluation-billing.md)), the
+ledger stays open, and the harness sends the same request again after 30 and then 120 seconds, three sends at most
+for one host call, each counted against the host call cap. A third interruption blocks the ledger and stops the arm
+as before. Any other HTTP status, a response the guard cannot settle, a guard refusal and an unknown failure stop at
+once. Nothing else is retried automatically. **Not a stop:** a retried provider interruption (listed by validity
+per run with its position and code, never a harness event), a `not_applicable` page action (`page_refused`
+included), a turn left unrecorded while a pause was in force (the host's or the product's own, decision 6), and a
+timed pause the host asks for (a tool error). The host behaviours that still end a run as invalid are listed in decision 6. A second refused first, second or resolution review stops scoring for the owner. No score is
+changed by hand. No recharge, no retry beyond the bounded resend of an interrupted host request, no automatic
+further attempt.
 
 ## Running the attempt (for the lead, after approval; not run in preparation)
 
@@ -308,6 +321,11 @@ part of the acceptance result.
 ## Limits a C5 result will have
 
 State these in the record whatever the result:
+- **A reply produced on a retry is not distinguished in scoring.** When a host send was interrupted and the same
+  request was sent again, the reply scored is the one the retry returned; reviewers are not told, and no score
+  depends on it. Validity lists every interrupted send and retried host call by position and code, and the record
+  states them. The retry repeats the request exactly, but the model's answer to it can differ from the answer the
+  interrupted send would have produced, and in `P` the retry's waits run on the scenario clock.
 - **Persona cases are judged against the user's request, not the block** (decision 8). The persona-version list
   says only "in the conversation" for a change made through the host's tool: the records both arms share do not
   show whether it was a switch or a confirmed change.

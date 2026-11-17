@@ -55,6 +55,12 @@ module. Built on the Phase B harness (v1-2026-10-29-phase-b-harness.py), with:
   from the scenario's STUB_HOST script, which can also answer a consolidation batch, make calls in later rounds of a
   turn and pass a field of an earlier call's result on) and refuses every non-loopback connection, so the whole run
   makes no network call. Only practice scenarios carry stub scripts.
+- **Provider interruptions** (since 2026-11-17). A host send that ends in a transport timeout or a connection or
+  protocol error, or with HTTP 429 or a 5xx, is charged by the billing guard at a bound true for that request and
+  leaves the ledger open; the host client sends the same request again after 30 and then 120 seconds, three sends at
+  most (``INTERRUPTION_WAITS``), and records each interrupted send in provider-interruptions.jsonl (position and
+  codes only). It is not a harness event: a retried interruption leaves the run valid. A third interruption blocks
+  the ledger and stops the arm, as every provider failure did before.
 
 The harness's own log and events name positions by index and carry kinds, codes and counts only: never a session
 id, a scenario's words, a tool argument or a reply.
@@ -468,12 +474,53 @@ class StubHost:
 
 # The host model ---------------------------------------------------------------------------------------------------
 
+# A host call whose send the billing guard settled as interrupted (a transport timeout or connection or protocol
+# error, HTTP 429 or a 5xx: evaluation_budget.ProviderInterrupted) is sent again, the same request, after these
+# waits in seconds: at most two retries, three sends in all. Each send reserves and settles under the guard and counts
+# against the host call cap. A third interruption, or one the cap leaves no send for, blocks the ledger with the
+# interruption's kind and stops the arm. Every interrupted send is one line of provider-interruptions.jsonl
+# (INTERRUPTION_FORMAT 1: time, session, turn, round, kind, error_class or http_status, send, retried), never a
+# harness event: a retried interruption leaves the run valid. Separate from the retries for an empty reply.
+INTERRUPTION_WAITS = (30, 120)
+INTERRUPTIONS = "provider-interruptions.jsonl"
+INTERRUPTION_FORMAT = 1
+
+
+def interruption_code(failure: dict) -> str:
+    """An interruption's cause as a fixed code: the guard's allowlisted class name, or ``http_<status>``."""
+    if failure.get("kind") == "provider_http_status" and type(failure.get("http_status")) is int:
+        return f"http_{failure['http_status']}"
+    name = failure.get("error_class")
+    return name if isinstance(name, str) and name in billing_module().INTERRUPTED_CLASSES else "other"
+
+
 class Host:
-    def __init__(self, cap, transport=None):
+    def __init__(self, cap, transport=None, guard=None, out: Path | None = None):
         self.calls, self.cap = 0, cap
+        self.guard, self.out = guard, out  # The billing guard a final interruption blocks; the run directory.
         self.client = httpx.Client(timeout=600, transport=transport)
 
-    def call(self, messages, tools=None):
+    def _interrupted(self, failure: dict, send: int, retried: bool, at: dict | None) -> None:
+        at = at or {}
+        if self.out is not None:
+            record = {"format": INTERRUPTION_FORMAT, "time": time.time(), "session": at.get("session"),
+                      "turn": at.get("turn"), "round": at.get("round"), "kind": failure.get("kind"),
+                      **({"http_status": failure["http_status"]} if "http_status" in failure
+                         else {"error_class": interruption_code(failure)}),
+                      "send": send, "retried": retried}
+            with (self.out / INTERRUPTIONS).open("a") as stream:
+                stream.write(json.dumps(record) + "\n")
+                stream.flush()
+                os.fsync(stream.fileno())
+        then = (f"retry in {INTERRUPTION_WAITS[send - 1]} s" if retried
+                else "no retry left: the ledger is blocked and the arm stops")
+        log("provider interrupted", interruption_code(failure), "at",
+            f"{at.get('where', 'an unknown turn')}, round {(at.get('round') or 0) + 1}:",
+            f"send {send} of {len(INTERRUPTION_WAITS) + 1},", then)
+
+    def call(self, messages, tools=None, at: dict | None = None):
+        """One host call. ``at`` names its position for the interruption records: session, turn, round and
+        ``where`` (the log's position text, never a session id)."""
         if self.calls >= self.cap:
             raise RuntimeError("host call cap reached")
         body = {"model": MODEL, "messages": messages, "max_tokens": 16384, "stream": False,
@@ -481,7 +528,8 @@ class Host:
         if tools:
             body["tools"] = tools
         key = "stub" if STUB else os.environ["DEEPSEEK_API_KEY"]
-        for attempt in range(4):
+        empty = interrupted = 0
+        while True:
             self.calls += 1
             try:
                 response = self.client.post(BASE_URL + "/chat/completions", json=body,
@@ -492,11 +540,27 @@ class Host:
                 if not message.get("tool_calls") and not (message.get("content") or "").strip():
                     raise ValueError("empty reply")
                 return message, data.get("usage", {})
+            except billing_module().ProviderInterrupted as error:
+                interrupted += 1
+                retried = interrupted <= len(INTERRUPTION_WAITS) and self.calls < self.cap
+                self._interrupted(error.failure, interrupted, retried, at)
+                if not retried:
+                    try:
+                        if self.guard is not None:
+                            self.guard.stop(error.failure.get("kind") or "provider_transport")
+                    except Exception as failure:  # The run script's --stop blocks the ledger again.
+                        log("ledger stop failed", type(failure).__name__)
+                    if interrupted <= len(INTERRUPTION_WAITS):
+                        raise RuntimeError("host call cap reached") from None
+                    raise billing_module().BudgetStop(
+                        "A provider request was interrupted on every send; the billing run is stopped.") from None
+                time.sleep(INTERRUPTION_WAITS[interrupted - 1])
             except (httpx.HTTPError, KeyError, ValueError) as error:
+                empty += 1
                 log("host error", type(error).__name__, str(error)[:300])
-                if attempt == 3 or self.calls >= self.cap:
+                if empty == 4 or self.calls >= self.cap:
                     raise
-                time.sleep(0 if STUB else 10 * (attempt + 1))
+                time.sleep(0 if STUB else 10 * empty)
 
 
 def add_usage(total, usage):
@@ -1447,7 +1511,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
     scenario = Path(scenario_path).stem
     out.mkdir(parents=True, exist_ok=True)
     path = out / f"results_{scenario}_{arm}.jsonl"
-    for existing in (path, out / "host-rounds.jsonl", out / "persona.json"):
+    for existing in (path, out / "host-rounds.jsonl", out / "persona.json", out / INTERRUPTIONS):
         if existing.exists():
             raise SystemExit(f"{existing} exists: a run is never resumed")
     year = getattr(module, "YEAR", YEAR)
@@ -1471,7 +1535,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
     persona = fixed_persona(module)
     BILLING = None if STUB else billing_transport()
     host = Host(cap=sum(len(turns) for _, turns in sessions) * 5,
-                transport=httpx.MockTransport(stub_host) if stub_host else BILLING)
+                transport=httpx.MockTransport(stub_host) if stub_host else BILLING, guard=BILLING, out=out)
     memory = reference = None
     if arm == "P":
         cache = os.environ.get("MEMBRAIN_MODEL_CACHE")
@@ -1616,7 +1680,8 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                 scenario_time = memory.now() if memory is not None else start.isoformat().replace("+00:00", "Z")
                 for round_ in range(4):  # At most three tool rounds, then a final answer without tools.
                     offer = schemas if schemas and len(tool_calls) < 6 and round_ < 3 else None
-                    message, call_usage = host.call(messages, offer)
+                    message, call_usage = host.call(messages, offer, at={
+                        "session": session, "turn": index, "round": round_, "where": where(session, index)})
                     with (out / "host-rounds.jsonl").open("a") as stream:
                         stream.write(json.dumps({"arm": arm, "scenario": scenario, "session": session,
                                                  "turn": index, "round": round_, "usage": call_usage,
