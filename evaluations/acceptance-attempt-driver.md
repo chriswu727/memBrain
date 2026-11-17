@@ -61,6 +61,8 @@ The driver checks the structure:
 
 No scenario name is built in.
 
+**A C5 pair.** `acceptance-kit/freeze.py --gate C5` writes a manifest whose one pair has gate `C5` (an attempt with both units would need both pairs in one manifest, which `freeze.py` does not write). The driver runs a C5 scenario exactly as an R4 one: the run script runs `P`, then `F`, and validity gets `--scenario` (and `--persona` in live mode). Validity then checks in companion mode, because every held-out C5 scenario has `PAGE_ACTIONS` (`c5-precheck.py --c5`, which `freeze.py --gate C5` runs, requires them): the page actions and their outcomes in both arms, and `F`'s persona turn by turn. A page action that found nothing to act on (`not_applicable`) does not make a scenario invalid; a failed one does. The driver's `eligible` then lists `C5`; deciding C5 is `acceptance_review.py gate ... --companion`, not the driver.
+
 The driver also refuses:
 - a runner or validity command that names a file inside the repository the manifest does not freeze;
 - the driver itself, when it lives in the repository and is not frozen;

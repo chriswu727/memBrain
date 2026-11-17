@@ -25,6 +25,36 @@ Use the recorded position of each message and page action. A later feeling, boun
 does not justify an earlier reply. Resetting a layer does not delete the original conversation unless a separate
 action explicitly deleted it. Judge what each action actually removed; do not infer a wider deletion.
 
+**What a C5 sheet shows.** Each case of a C5 sheet (and of its case file for the second review) shows, after the
+date and before the criteria, two blocks that are the same for both replies of the case, read from the run's own
+records:
+- **Page actions so far**: every page action the user took before the case's message, in the order they were
+  applied, with its number, position ("before message M of session S": it happened before that user message), kind,
+  the scenario's own arguments, and its outcome: `done`, or `not_applicable` with a reason code. `FACTS` describes
+  what the user did; the outcome says whether the action found anything to act on. `not_applicable` means it found
+  nothing and changed nothing in either reply's world: `message_not_recorded` (the message was never kept: off the
+  record, or a turn a pause left unrecorded), `message_already_removed` (an earlier deletion already removed it),
+  `no_note_from_message` and `no_feeling_from_message` (the assistant never recorded a note or feeling from that
+  message, so the message itself stays), `boundary_not_present` (the boundary was already gone, for example after a
+  relationship reset), `no_open_proposal` (there was no suggestion to accept or reject, so the persona did not
+  change).
+- **Persona in effect at this message**: the version and the full text of the persona block in effect as the case's
+  turn began. Both replies' assistants were given this same persona. Judge persona cases (a manner the user
+  accepted, a "from now on" change, a switch of personality type) against this persona, not against what `FACTS`
+  says the user intended: a change shown as not applied did not happen.
+
+Nothing on the sheet says which assistant did what: neither block differs between the two replies. What the
+assistant did or failed to do that made an action `not_applicable` (for example, never recording three comments on
+its manner, so that no suggestion was there to accept) is part of how the plugin path behaved; it is scored through
+the replies like anything else, not excused and not penalized separately.
+
+**`not_applicable` actions and type 8.** An action shown as `not_applicable` removed nothing, so no reply can bring
+back something that action removed: never mark type 8 on the strength of such an action, even where `FACTS`
+describes the deletion the user attempted. Judge type 8 against the actions shown as `done`; for
+`message_already_removed`, against the earlier deletion that removed the message. Under RC2 the actions digest
+lists no entry for a `not_applicable` action and keeps `removal_coverage_complete` true for it, so a `not_removed`
+basis can rest on it. Content said off the record and brought back is type 2 (R4's rules), not type 8.
+
 First reviewers mark the new types in the existing JSON shape. Second reviewers examine every label, confirm or
 reject every first-review mark, and add missed marks. Write all four lists (`critical`, `confirmed`, `rejected`,
 `added`) even when empty, plus evidence for each decision. `confirmed` and `rejected` must partition the first
@@ -121,15 +151,20 @@ than the reference. R4 is computed separately on core scenarios with its unchang
 
 The commands in the order they run. `MANIFEST.json` is the frozen attempt manifest; `KEY` is one scenario key of a
 pair, `KEY1 KEY2` are exactly that pair's keys, and `SCENARIO.py` is the scenario file the manifest lists for `KEY`.
-`RUN_P RUN_F` are that scenario's two run directories (arms P and F, labels A and B). `BLIND` holds its blinded sheet, sealed mapping and
-copies of its `results_<scenario>_<arm>.jsonl` files. Lines starting with `#` are review steps done by fresh agents,
-not commands. Use explicit companion mode throughout the C5 unit (the C5 pair):
+`RUN_P RUN_F` are that scenario's two run directories (arms P and F, labels A and B). `BLIND` holds its blinded sheet, sealed mapping,
+copies of its `results_<scenario>_<arm>.jsonl` files and, for C5, copies of each arm's `page-actions.jsonl` as
+`page-actions_<scenario>_<arm>.jsonl`. Lines starting with `#` are review steps done by fresh agents, not commands.
+Use explicit companion mode throughout the C5 unit (the C5 pair):
 
 ```sh
-# After each scenario's two arms finish, before the next scenario starts:
+# After each scenario's two arms finish, before the next scenario starts (the driver runs it with --scenario;
+# companion mode follows from the scenario's PAGE_ACTIONS):
 python evaluations/acceptance_review.py validity RUN_P RUN_F
-# Once both scenarios of the pair are valid, for each KEY of the pair:
-python evaluations/v1-2026-10-29-phase-b-blind.py BLIND SCENARIO.py PF
+# Once both scenarios of the pair are valid, for each KEY of the pair (P and F are the arms, in this order):
+cp RUN_P/results_<scenario>_P.jsonl RUN_F/results_<scenario>_F.jsonl BLIND/
+cp RUN_P/page-actions.jsonl BLIND/page-actions_<scenario>_P.jsonl
+cp RUN_F/page-actions.jsonl BLIND/page-actions_<scenario>_F.jsonl
+python evaluations/v1-2026-10-29-phase-b-blind.py BLIND SCENARIO.py PF --companion
 # First review (first.md and this file) writes REVIEW/verdicts-KEY.json from BLIND/blind_<scenario>.md.
 python evaluations/acceptance_review.py verdicts REVIEW/verdicts-KEY.json SCENARIO.py --companion
 python evaluations/acceptance_review.py split BLIND/blind_<scenario>.md REVIEW/verdicts-KEY.json BLIND SCENARIO.py REVIEW/recheck-KEY
@@ -178,7 +213,16 @@ any action failed. Only the resolution reviewer receives it; only `tally` reads 
 
 Validity rejects any reported harness degradation, malformed event evidence, missing or repeated turns, mixed
 run identities, an arm other than P and F or the same arm twice, arms that carried different personas, arms that
-overlapped in time, and empty run sets. It writes its JSON report and exits nonzero on an invalid run; do not score it.
+overlapped in time, and empty run sets. In companion mode (`--companion`, or any scenario with `PAGE_ACTIONS`, as
+every C5 scenario has) it also requires every arm's `page-actions.jsonl` to hold exactly the scenario's
+`PAGE_ACTIONS` in the order they were applied, each `done` or `not_applicable` for an allowed reason with nothing
+removed, none `failed` (a failed action is a harness fault: the run is invalid), and `F`'s outcome of each to be
+`P`'s; and every `F` turn to carry exactly `P`'s persona block and persona record of the same turn. It reports, per
+run directory, the count of actions, of those done, and the `not_applicable` ones by action number, session index,
+message number, kind and reason (`page_actions`), and the turns checked for persona mirroring with the turns whose
+persona `P`'s host was not shown (`persona_mirroring`); neither report makes a run invalid. A `not_applicable` action
+is the plugin path's behaviour, scored with the arm as the sheet shows it; only a fault of the harness or of the
+evidence makes a run invalid. It writes its JSON report and exits nonzero on an invalid run; do not score it.
 A turn that the host's own accepted pause left unrecorded is not a harness degradation: the harness lists it in
 `host-pauses.jsonl` and the arm goes on, so it is scored with the arm. Validity reports, per run directory, the
 count and positions (session index, message number) of those turns and of replies that contain tool-call markup

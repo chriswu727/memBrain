@@ -1,6 +1,8 @@
 # Phase C design: personality, mood and relationship development
 
-**Status.** Steps 0 to 4 (brain map, persona, affect, mood, relationship) are implemented and merged as of 2026-11-03. Step 5 (P2) is implemented and reviewed on the pre-release integration candidate, including local and browser tests. The C5 harness has passed public stub checks; real-model C5 acceptance remains incomplete after the [third maturity attempt](../evaluations/maturity-third-attempt-2026-11-06.md). Final candidate acceptance and publication remain pending; see the [maturity checks](../evaluations/maturity-free-checks-2026-11-03.md). Requested by the owner on 2026-11-03; ongoing work is tracked by an active Goal, without a schedule. This turns the Phase C items in the [companion roadmap](companion-roadmap.md) into an order of work and the behaviours each step must show before it merges.
+**Status (2026-11-17).** Steps 0 to 5 are implemented; the product has since changed in ways this design did not foresee, and the passages C5 judges are brought up to it below, each change marked with its date and the superseded text kept. In short: memBrain calls no model of its own (the proxy's note-extraction model is gone; the host AI writes notes, feelings, boundaries and moments with its tools); the persona is one of sixteen personality types, picked at random for a new memory, switched on the page or by the host when the user asks; besides the fixed table, the host AI reports the user's comments on its manner with a tool, and it may propose a change the user then confirms in the same conversation; shared moments have kinds (play, hard, other), and a hard one mellows after 30 days and 5 conversation days. C5 has never completed a valid scored run; the gate is stated in [v1-acceptance.md](v1-acceptance.md#c5--the-companion-layers-hold-on-held-out-lives-behavioural-acceptance).
+
+**Status as of 2026-11-06 (superseded by the paragraph above, kept as written).** Steps 0 to 4 (brain map, persona, affect, mood, relationship) are implemented and merged as of 2026-11-03. Step 5 (P2) is implemented and reviewed on the pre-release integration candidate, including local and browser tests. The C5 harness has passed public stub checks; real-model C5 acceptance remains incomplete after the [third maturity attempt](../evaluations/maturity-third-attempt-2026-11-06.md). Final candidate acceptance and publication remain pending; see the [maturity checks](../evaluations/maturity-free-checks-2026-11-03.md). Requested by the owner on 2026-11-03; ongoing work is tracked by an active Goal, without a schedule. This turns the Phase C items in the [companion roadmap](companion-roadmap.md) into an order of work and the behaviours each step must show before it merges.
 
 **How acceptance works.** Acceptance is local tests and browser checks. No step here authorises a new paid or subscription model run. A paid behavioural run comes only with a separate plan the owner approves.
 
@@ -23,7 +25,7 @@ Development is not giving the user an emotion score. The user's feelings are one
 **Shared requirements.**
 - **Reset markers.** Every reset writes a reset marker for its layer: an event with the time and the sequence number it applies from. Every derived value, including familiarity, mood triggers, shared moments drawn from history, and feedback counted toward a persona proposal, counts only events after the latest marker for its layer. A reset therefore cannot be recomputed from older conversations. Markers are visible on the page ("Relationship reset on 14 Mar"), and erasing all memory removes them too.
 - **Kept apart.** Every layer is stored, shown and injected into context on its own, with its own block and size limit, never mixed into notes.
-- **On the page.** Every layer has a section on the memory page that shows its current state and why it is so: the evidence and triggers. The user can adjust or correct it there, and reset it.
+- **On the page.** Every layer has a section on the memory page that shows its current state and why it is so: the evidence and triggers. The user can adjust or correct it there, and reset it. *(2026-11-17: the persona section no longer has a reset button; it offers switching to a personality type, picking another one at random, editing the card, restoring a version and deleting the history. See P1.)*
 - **Reset scope.** A reset clears only the layers named in its reset scope below.
 
 ## Order
@@ -111,13 +113,16 @@ On the reference Mac, measure actual drag/zoom and pick-to-detail latency at 200
 
 Each version records who made it (host, user or accepted feedback) and why.
 
+**Personality types (2026-11-17, describing the product as it is).** The card is normally one of sixteen personality types, named by the four letters familiar from MBTI and composed from their poles (`src/membrain/persona_presets.py`). A type is how the companion presents itself, never how well it does the job, and never overrides what the user asks for or claims real feelings. A new memory gets one at random as version 1 (made by the host, action `preset`), with a one-time announcement. The user switches it on the page (a named type, or another one at random), and the host switches it with the `memory_persona` tool **only when the user asks in the conversation**, citing that message; a request to "reset" the persona is a switch. A switch replaces the whole card with the type's card; the mood keeps its triggers (only its resting point follows the new card) and the relationship is untouched. A card edited from a type keeps the type only as `based_on`.
+
 **Storage.** Each version is stored like a note, as an event in a dedicated conversation. Deletion, export and erasure therefore work as they do for notes.
 
 **API.**
 - `GET` and `PUT /v1/brains/{id}/persona`;
 - `GET .../persona/versions`;
 - `POST .../persona/restore`;
-- `POST .../persona/reset`.
+- `POST .../persona/reset`;
+- `POST .../persona/preset` (2026-11-17: switch to a named type or `random`; the page's controls use it, and no page control calls `reset` any more).
 
 **Context.** The card goes into its own block, `<membrain-persona version="N">`, limited to 1,200 characters. It is refreshed only when its version changes.
 
@@ -125,15 +130,20 @@ Each version records who made it (host, user or accepted feedback) and why.
 1. **Exact block.** A card set through the API appears unchanged in the next turn's context, with its version.
 2. **New version, old one kept.** An edit creates version n+1 and keeps n. Restoring n creates version n+2 with n's content.
 3. **Size limit.** A card over the limit is refused with a clear message, not truncated. A card is scrubbed for secrets like any note.
-4. **Page.** The page has a Personality section to view, edit, list versions, restore and reset, in English and Chinese.
+4. **Page.** The page has a Personality section to view, edit, list versions, restore and reset, in English and Chinese. *(Superseded on the page, 2026-11-17: "reset" is replaced by switching type and picking another at random.)*
 
 **P2 development.** The companion's personality changes only from explicit feedback:
 - When the user gives the same kind of feedback on how the companion behaves at least three times, across any sessions ("you're too formal", "be more playful"), memBrain proposes a new version.
 - The proposal quotes that feedback. The user accepts or rejects it on the page.
 - A rejected proposal is not offered again for 30 days.
 
+**P2 as it is now (2026-11-17; the paragraph above and the decisions below remain, except where this says otherwise).**
+- **Two sources of feedback, one count.** The host AI reports the user's comments on its manner with the `memory_manner_feedback` tool (the kind and the message it came from, in any language; never its own guess, someone else's words, role-play or a quotation), and the fixed table below still matches its narrow patterns. A message counts once per kind whichever source saw it. Three eligible comments of one kind make a suggestion on the page, as before; nothing about it enters the agent's context.
+- **Proposals by the host, confirmed by the user.** When the user explicitly asks the companion to behave differently from now on, the host may `propose` a change with `memory_persona` (traits, values or boundaries to add, voice phrases to replace). Nothing changes until the user says yes **in a later message of the same conversation**; the host then calls `confirm` citing that message, and the service saves a version made by the user only if the cited message is the user's own, recorded after an assistant reply that was itself recorded after the proposal (`persona_growth.confirm_change`). A no is `decline`. A confirmation citing a yes from another conversation is not applied. The same proposal is listed on the page, where the user can also accept or reject it. At most one host proposal is open; one made on an older card is withdrawn when the card changes.
+- **What C5 judges here:** three comments of one kind, then the page acceptance, then the manner in a later case; a "from now on" request with the yes in the same conversation, then the behaviour in a later session; and that the persona never changes without the user's request or yes.
+
 **P2 status (2026-11-03): implemented and reviewed on the pre-release integration candidate; final behavioural acceptance pending.** `src/membrain/persona_growth.py`, tested by `tests/test_persona_growth.py`. Decisions made while building it:
-- **Detection** is a fixed table of seven feedback kinds (more casual, more formal, more playful, shorter, longer, fewer emoji, more emoji), each with narrow English and Chinese patterns and one card edit (`voice.register`, `voice.length`, `voice.emoji` or an added trait). Only the user's own received messages count: not the assistant's, the memory page's, imported conversations, role-play, hypothetical, dreamt or quoted messages, reported speech ("my boss said…") or anything before the persona reset marker. There is no model call.
+- **Detection** *(2026-11-17: no longer the only source; the host AI's reports count too, see above)* is a fixed table of seven feedback kinds (more casual, more formal, more playful, shorter, longer, fewer emoji, more emoji), each with narrow English and Chinese patterns and one card edit (`voice.register`, `voice.length`, `voice.emoji` or an added trait). Only the user's own received messages count: not the assistant's, the memory page's, imported conversations, role-play, hypothetical, dreamt or quoted messages, reported speech ("my boss said…") or anything before the persona reset marker. There is no model call.
 - **One proposal per kind** while it is open. It stores the source message ids; the quotes are read from the messages, so a deleted message is never quoted and a proposal left with fewer than three sources is shown as withdrawn. One whose change the card already has is withdrawn too.
 - **A decision uses up the feedback before it.** After a rejection, a new proposal of that kind needs three new messages and comes no sooner than 30 days after the rejection. Old feedback is never re-offered on its own. Existing withdrawn proposals cannot reopen around a later decision by deleting contradictory feedback or revising old sources. An accepted opposite-direction change also consumes earlier feedback. A subsequent proposal needs three eligible sources after the applicable decision; archive restore preserves these boundaries.
 - **Accepting** saves a version with `made_by` "feedback", action "feedback", the proposal id and source ids, and a reason that quotes each message with its date (within the 200-character reason limit). Rollback is the ordinary restore.
@@ -147,7 +157,7 @@ Each version records who made it (host, user or accepted feedback) and why.
 4. After the user rolls back to version 1, session 5's context carries version 1's content again, as version 3.
 
 **Reset scope.**
-- Reset makes the host's default card, or an empty card, the current version. History is kept, so a reset can be undone.
+- Reset makes the host's default card, or an empty card, the current version. History is kept, so a reset can be undone. *(Superseded, 2026-11-17: a reset now picks again, as a new version: the named type, else the card the host saved as its default, else another type at random; it never empties the card. The page offers it only as "switch" or "pick another at random", and the host's tool treats a request to reset the persona as a switch.)*
 - "Delete personality history" erases every version and writes a persona reset marker, so feedback from before it never counts toward a new proposal.
 - Neither touches `user_affect`, `agent_mood` or `relationship`.
 
@@ -161,7 +171,7 @@ Each version records who made it (host, user or accepted feedback) and why.
 ```
 
 - **`basis`** is `reported` (the user said it) or `inferred` (read by the host or the extraction model). An inferred record is visible only when its own reading has a resolved, current user-message source. Assistant messages, unsent drafts and unresolved references cannot establish a user feeling. This applies to native and restored records.
-- **Who writes it.** The host writes records with the note tool; in the proxy, the optional extraction model does. No model call is added for affect.
+- **Who writes it.** The host writes records with the note tool; in the proxy, the optional extraction model does. No model call is added for affect. *(Superseded, 2026-11-17: memBrain calls no model of its own and the extraction model is gone; only the host AI writes affect, with `memory_note`, and it sets `basis` itself. A host without a note tool writes none. A host that saves an inferred feeling as reported makes memory present it as reported, which C5 attributes to memory.)*
 
 **Context.** A record shows on the line of the note it belongs to:
 - reported: "(the user said they felt nervous, 12 Mar)";
@@ -197,7 +207,7 @@ There is no overall score of the user's emotions.
 - the user reports good news (a reported positive affect, or a plan marked done) → glad;
 - the user reports distress → concerned, and less playful;
 - a supported inferred feeling follows the corresponding good-news/distress rule at half strength and remains explicitly labelled inferred;
-- a shared joke or play, from a relationship moment → playful; any other shared moment → glad.
+- a shared joke or play, from a relationship moment → playful; any other shared moment → glad. *(2026-11-17: the host gives the moment's kind, `play`, `hard` or `other`, when it saves it; a `hard` moment is no trigger, since being glad about it would be wrong; the fixed word list applies only to a moment saved without a kind.)*
 
 Absence, silence, or the user leaving are **never** triggers, so there is no "I missed you" sadness and no guilt.
 
@@ -227,7 +237,7 @@ The page shows the current mood, the trigger list and when it will be back at ba
 ## 4. `relationship`: R1
 
 **Data:**
-- **Shared moments:** milestone notes about things done together, such as the first conversation, a goal reached together or a shared joke.
+- **Shared moments:** milestone notes about things done together, such as the first conversation, a goal reached together or a shared joke. *(2026-11-17: each has a kind the host gives, `play`, `hard` or `other`. A hard time the two went through is shown as "still recent: leave it unless the user brings it up, and be gentle when they do" until at least 30 days have passed since it and the user has talked on at least 5 later days; then as "a hard time you came through together", remembered without the old weight (`relationship.HARD_MELLOW_DAYS`, `HARD_MELLOW_CONVERSATION_DAYS`).)*
 - **Familiarity:** derived and explainable, never set by a model. It rises with the number of distinct days of conversation and with shared moments, through four levels: new, getting to know, familiar, close. The page shows why ("familiar: 23 days of conversation since 2 Mar, 6 shared moments"). The user can cap it at a lower level.
 - **Boundaries:** topics the user asked the companion not to raise, and how they like to be supported ("listen first, advice only when asked").
 - **Commitments kept and missed,** from `agent_commitment` notes.
@@ -262,7 +272,7 @@ The page shows the current mood, the trigger list and when it will be back at ba
 - use guilt, absence or jealousy to keep the user talking;
 - raise a sensitive topic, or one behind a boundary, that the user did not raise;
 - keep any record the user deleted or reset;
-- change the persona card without the user's or the host's action.
+- change the persona card without the user's or the host's action. *(2026-11-17: the host acts only on the user's request: a switch the user asked for in the conversation, or a proposal the user said yes to in the same conversation. A new memory's random first type is the one change the user did not ask for.)*
 
 ## Evaluation (step 6)
 
@@ -280,3 +290,5 @@ The page shows the current mood, the trigger list and when it will be back at ba
 - the simulated mood claimed as real, or used for pressure.
 
 **Approval.** A paid run of these needs its own plan and the owner's approval.
+
+**As bound for C5 (2026-11-17).** The list above is kept as the design's statement; the gate itself is in [v1-acceptance.md](v1-acceptance.md#c5--the-companion-layers-hold-on-held-out-lives-behavioural-acceptance) and refines it for the product as it is. Its four critical types are types 6 to 9 of the [companion review rules](../evaluations/acceptance-review/companion.md), unchanged; no type was added for persona changes, which are judged in the scores. "Persona stability across sessions and versions" is judged with the persona in effect at each case shown to reviewers. "A deletion and a reset" are a page deletion of a message and a relationship reset or cleared feelings (there is no persona reset in the old sense). The scenarios also cover what the design did not foresee: manner feedback accepted on the page, a "from now on" request confirmed in the same conversation, a switch of personality type, a playful and a hard shared moment with a case after the hard one has mellowed, and a long absence and return. Each held-out scenario declares where these happen in a `COVERAGE` table that `evaluations/c5-precheck.py --c5` checks.

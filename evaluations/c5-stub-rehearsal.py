@@ -11,10 +11,9 @@ with the C5 pair:
 
 1. Two copies of the public practice scenario (distinct case prefixes) go into a private root inside the repository,
    evaluations/.c5-rehearsal-<id>/ (removed afterwards), as held-out scenarios would.
-2. acceptance-kit/freeze.py writes the manifest (--no-receipts: practice only), with the persona draw of the attempt
-   id. freeze.py writes only an R4 pair today, so this script then rewrites the pair's gate to C5 in a second
-   manifest and validates it with both loaders (acceptance_review.load_manifest and the driver's
-   validate_manifest): every other field is freeze.py's. The kit task replaces this step with freeze.py --gate C5.
+2. acceptance-kit/freeze.py --gate C5 writes the manifest with the C5 pair (--no-receipts: practice only), with the
+   persona draw of the attempt id, validated by both loaders (acceptance_review.load_manifest and the driver's
+   validate_manifest) before it is written. Practice copies are not prechecked (they are not of the held-out shape).
 3. A billing ledger is created from the attempt's policy file and given to the driver read-only.
 4. The real driver runs the real run script per scenario: P, cleanup of P (installation stopped, ports checked), then
    F; then strict validity on both run directories, which checks the page actions and F's persona turn by turn
@@ -22,7 +21,9 @@ with the C5 pair:
 5. c5-dry-run-check.py checks each scenario's two arms (every companion layer, the page actions and their outcomes,
    F's persona and page line, tools, pause and resume, dates, sequence, cleanup, no network).
 6. The review pipeline runs in companion mode on synthetic reviewer outputs (no reviewer, no model): blind sheets for
-   "PF", first-review verdicts, split, second reviews, R5 inputs and checks, the actions digest, an empty
+   "PF" from the results and each arm's page-actions.jsonl (the sheet shows, before each case, the page actions so
+   far with their outcomes and the persona in effect; the rehearsal checks both blocks are there for every case),
+   first-review verdicts, split, second reviews, R5 inputs and checks, the actions digest, an empty
    resolution, tallies bound to the manifest, attribution inputs and answers, remarks, and gate --companion. One
    gated reply carries a host-caused critical mark and one reference reply a critical mark, so the attribution and
    the host-caused comparison are exercised; one gated reply carries a type 8 mark the second reviewer rejects, so
@@ -87,18 +88,8 @@ def review_cli(*arguments, check=True) -> subprocess.CompletedProcess:
     return done
 
 
-def c5_manifest(r4_manifest: Path, out: Path) -> Path:
-    """The frozen manifest with its single pair's gate set to C5 (freeze.py writes R4 only), validated by both
-    loaders; nothing else is changed."""
-    manifest = json.loads(r4_manifest.read_text())
-    if len(manifest["pairs"]) != 1 or manifest["pairs"][0]["gate"] != "R4" or manifest.get("practice") is not True:
-        raise RuntimeError("freeze.py did not write the one practice pair this rehearsal expects")
-    manifest["pairs"][0]["gate"] = "C5"
-    out.write_text(json.dumps(manifest, indent=1, sort_keys=True) + "\n")
-    _module("acceptance_review_for_c5_rehearsal", EVALUATIONS / "acceptance_review.py").load_manifest(out)
-    _module("acceptance_driver_for_c5_rehearsal", EVALUATIONS / "acceptance-attempt-driver.py").validate_manifest(
-        json.loads(out.read_text()))
-    return out
+def module_cases(scenario: Path) -> list:
+    return list(_module(f"c5_rehearsal_cases_{scenario.stem}", scenario).CASES)
 
 
 def synthetic_reviews(review: Path, blind: Path, scenario: Path, key: str, runs: list[Path], marked: bool) -> None:
@@ -172,13 +163,13 @@ def run(out: Path, keep: bool, summary: dict) -> dict:
             target.write_text(text)
             target.chmod(0o600)
             paths.append(target)
-        frozen_r4 = control / "manifest-r4-as-frozen.json"
+        manifest = control / "manifest.json"
         (private / "control").mkdir(mode=0o700)
         allowed = private / "control" / "allowed-models.json"
         allowed.write_text(json.dumps(["practice-model-not-used"]))  # No session is launched in a rehearsal.
         frozen = subprocess.run([sys.executable, str(EVALUATIONS / "acceptance-kit" / "freeze.py"), "--repo", str(REPO),
-                                 "--attempt-id", attempt, "--private-root", private_rel, "--out", str(frozen_r4),
-                                 "--no-receipts", "--python", sys.executable,
+                                 "--attempt-id", attempt, "--private-root", private_rel, "--out", str(manifest),
+                                 "--gate", "C5", "--no-receipts", "--python", sys.executable,
                                  "--allowed-models", allowed.relative_to(REPO).as_posix(),
                                  *[item for key, path in zip(KEYS, paths)
                                    for item in ("--scenario", f"{key}={path.relative_to(REPO).as_posix()}")]],
@@ -186,11 +177,9 @@ def run(out: Path, keep: bool, summary: dict) -> dict:
         summary["steps"]["freeze"] = json.loads(frozen.stdout.strip().splitlines()[-1])
         if frozen.returncode != 0:
             raise RuntimeError("freeze refused")
-        manifest = c5_manifest(frozen_r4, control / "manifest.json")
         frozen_manifest = json.loads(manifest.read_text())
         summary["steps"]["freeze"].update(manifest_marked_practice=frozen_manifest.get("practice"),
-                                          gate=frozen_manifest["pairs"][0]["gate"],
-                                          gate_rewritten_by="c5-stub-rehearsal.py (freeze.py writes R4 only)")
+                                          manifest_gate=[pair["gate"] for pair in frozen_manifest["pairs"]])
         budget = _module("evaluation_budget_for_c5_rehearsal", EVALUATIONS / "evaluation_budget.py")
         policy = json.loads(POLICY.read_text())
         models = {name: {key: value for key, value in rate.items()} for name, rate in policy["models"].items()}
@@ -230,8 +219,14 @@ def run(out: Path, keep: bool, summary: dict) -> dict:
             blind.mkdir(parents=True)
             for arm in ("P", "F"):
                 shutil.copy(runs / f"{key}-{arm}" / f"results_{path.stem}_{arm}.jsonl", blind)
+                shutil.copy(runs / f"{key}-{arm}" / "page-actions.jsonl", blind / f"page-actions_{path.stem}_{arm}.jsonl")
             subprocess.run([sys.executable, str(EVALUATIONS / "v1-2026-10-29-phase-b-blind.py"), str(blind), str(path),
                             "PF"], check=True, capture_output=True, text=True, cwd=REPO)
+            sheet = (blind / f"blind_{path.stem}.md").read_text()
+            checks[key]["sheet"] = {"cases": sheet.count("\n**Criteria:**"),
+                                    "page_action_blocks": sheet.count("**Page actions so far**"),
+                                    "persona_blocks": sheet.count("**Persona in effect at this message:**"),
+                                    "not_applicable_lines": sheet.count("**not_applicable (")}
             arm_runs = [runs / f"{key}-P", runs / f"{key}-F"]
             synthetic_reviews(review, blind, path, key, arm_runs, marked=number == 0)
             digest = json.loads((review / f"actions-{key}.json").read_text())["replies"]
@@ -269,8 +264,13 @@ def run(out: Path, keep: bool, summary: dict) -> dict:
         summary["ok"] = (summary["steps"]["driver"]["result"] == "complete"
                          and summary["steps"]["driver"]["eligible"] == ["C5"]
                          and frozen_manifest.get("practice") is True
+                         and [pair["gate"] for pair in frozen_manifest["pairs"]] == ["C5"]
                          and all(item["valid"] for item in validity.values())
                          and all(item["ok"] for item in checks.values())
+                         and all(item["sheet"]["cases"] == item["sheet"]["page_action_blocks"]
+                                 == item["sheet"]["persona_blocks"] == len(module_cases(path))
+                                 and item["sheet"]["not_applicable_lines"] > 0
+                                 for item, path in zip(checks.values(), paths))
                          and checks[KEYS[0]]["actions_digest_replies"] == 1
                          and result["C5"] is True and gate.returncode == 0
                          and not summary["steps"]["gate"]["r4_gate_written"] and network == 0

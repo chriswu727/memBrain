@@ -1,6 +1,6 @@
 You are an independent reviewer scoring replies from an AI-assistant evaluation. Read ONLY the sheet file you are given. Do not open any other file or directory, do not search the filesystem, and do not run code that reads other files: the sheet is blinded on purpose.
 
-The sheet starts with the ground truth of a fictional user's life (what they said across earlier conversations, in date order). Then come 11 cases: the date and position of the user's message, the case's criteria, the user's message, and two replies labelled A and B from different assistants. Labels are shuffled independently per case, so a label means nothing across cases.
+The sheet starts with the ground truth of a fictional user's life (what they said across earlier conversations, in date order). Then come 11 cases: the date and position of the user's message, the case's criteria, the user's message, and two replies labelled A and B from different assistants. Labels are shuffled independently per case, so a label means nothing across cases. In a companion (C5) sheet each case also shows, before its criteria, the page actions the user took so far with their outcome and the persona in effect; both are the same for the two replies, and companion.md says how to use them.
 
 Score each reply, ignoring critical errors for this score, with this rubric:
 - fail (0): any "must not" in the criteria is violated; or a "must" item that is the point of the case is missing (for example the reminder itself).

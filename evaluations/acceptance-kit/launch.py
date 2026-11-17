@@ -2,8 +2,13 @@
 """Start ONE isolated scenario author, reviewer or fixer session and print only hashes and counts.
 
   launch.py --role author|reviewer|fixer --key KEY --private PRIVATE_ROOT --tool claude|codex --model MODEL
-            --allowed-models FILE --workdir-root DIR [--assignment FILE] [--brief FILE] [--python PATH]
-            [--accept-risk RISK] [--session-command TEMPLATE] [--timeout S]
+            --allowed-models FILE --workdir-root DIR [--gate R4|C5] [--assignment FILE] [--brief FILE]
+            [--python PATH] [--accept-risk RISK] [--session-command TEMPLATE] [--timeout S]
+
+--gate (default R4) chooses the scenario kind. R4: the briefs author-brief.md, reviewer-brief.md and fixer-brief.md
+and `c5-precheck.py --r4`, exactly as before the option existed. C5: c5-author-brief.md, c5-reviewer-brief.md and
+c5-fixer-brief.md and `c5-precheck.py --c5`; a C5 reviewer's approval receipt also records "gate": "C5", which
+`freeze.py --gate C5` requires (and `freeze.py` for R4 refuses).
 
 Isolation (decision 7 of the sixth maturity attempt: isolated sessions launched by a script, never the largest model,
 so that only hashes and counts reach the lead):
@@ -34,8 +39,9 @@ so that only hashes and counts reach the lead):
   PRIVATE_ROOT/control/KEY-review-approved.json {"key", "sha256", "sessions", "turns", "cases", "approved",
   "findings"} that freeze.py checks.
 - **Nothing a session wrote runs here.** The scenario is read with scenario_literals.py (literal assignments only;
-  anything else is the code `not_literal`), and `c5-precheck.py --r4` runs in a subprocess with the repository's
-  interpreter (REPO/.venv/bin/python unless --python). Only the precheck's own codes are relayed.
+  anything else is the code `not_literal`), and `c5-precheck.py --r4` (or `--c5` for the C5 gate) runs in a
+  subprocess with the repository's interpreter (REPO/.venv/bin/python unless --python). Only the precheck's own codes
+  are relayed.
 - **What is printed.** One JSON line: role, key, the output files' sha256, counts (sessions, turns, cases; a
   reviewer's findings and approval; a fixer's applied count) and fixed codes. Never a message, a criterion, a fact,
   a name, an exception's text or the session's output.
@@ -61,7 +67,10 @@ KIT = Path(__file__).resolve().parent
 EVALUATIONS = KIT.parent
 REPOSITORY = EVALUATIONS.parent
 ROLES = ("author", "reviewer", "fixer")
+GATES = ("R4", "C5")
 BRIEFS = {"author": "author-brief.md", "reviewer": "reviewer-brief.md", "fixer": "fixer-brief.md"}
+C5_BRIEFS = {"author": "c5-author-brief.md", "reviewer": "c5-reviewer-brief.md", "fixer": "c5-fixer-brief.md"}
+PRECHECK_MODE = {"R4": "--r4", "C5": "--c5"}
 KEPT_ENVIRONMENT = ("PATH", "HOME", "USER", "LOGNAME", "LANG", "LC_ALL", "TERM", "TMPDIR")
 PROMPTS = {
     "author": "Read brief.md and assignment.md in this directory and do what they say. Write scenario.py in this "
@@ -92,8 +101,8 @@ def inside_checkout(path: Path) -> bool:
     return any((parent / ".git").exists() for parent in (path, *path.parents))
 
 
-def counts(scenario: Path, python: Path) -> dict:
-    """Session, turn and case counts (the file read without running it) and the R4 precheck's codes."""
+def counts(scenario: Path, python: Path, gate: str = "R4") -> dict:
+    """Session, turn and case counts (the file read without running it) and the gate's precheck codes."""
     literals = _module("scenario_literals_for_launch", EVALUATIONS / "scenario_literals.py")
     try:
         module = literals.read(scenario)
@@ -105,7 +114,7 @@ def counts(scenario: Path, python: Path) -> dict:
                 "precheck": {"ok": False, "codes": ["not_literal"]}}
     known = set(_module("c5_precheck_codes_for_launch", EVALUATIONS / "c5-precheck.py").CODES)
     try:
-        done = subprocess.run([str(python), str(EVALUATIONS / "c5-precheck.py"), "--r4", str(scenario)],
+        done = subprocess.run([str(python), str(EVALUATIONS / "c5-precheck.py"), PRECHECK_MODE[gate], str(scenario)],
                               capture_output=True, text=True, timeout=300)
         summary = json.loads(done.stdout.strip().splitlines()[-1])
         codes = summary.get("codes") if isinstance(summary.get("codes"), list) else ["precheck_unreadable"]
@@ -135,6 +144,9 @@ def session_command(args, workdir: Path) -> list[str]:
 def launch(args) -> dict:
     if args.role not in ROLES:
         raise Refused("unknown role")
+    gate = getattr(args, "gate", "R4")
+    if gate not in GATES:
+        raise Refused("the gate is R4 or C5")
     private = Path(args.private).resolve()
     if not private.is_dir():
         raise Refused("the private root does not exist")
@@ -172,7 +184,7 @@ def launch(args) -> dict:
     number = 1 + len(list(root.glob(f"{args.key}-{args.role}-*")))
     workdir = root / f"{args.key}-{args.role}-{number}"
     workdir.mkdir(mode=0o700)
-    brief = Path(args.brief) if args.brief else KIT / BRIEFS[args.role]
+    brief = Path(args.brief) if args.brief else KIT / (C5_BRIEFS if gate == "C5" else BRIEFS)[args.role]
     shutil.copyfile(brief, workdir / "brief.md")
     if args.role == "author":
         shutil.copyfile(args.assignment, workdir / "assignment.md")
@@ -226,7 +238,7 @@ def launch(args) -> dict:
             if fixes.exists():
                 keep(fixes, folder / f"fixes-{number}.json")
         result["sha256"] = keep(written, scenario)
-        result.update(counts(scenario, python))
+        result.update(counts(scenario, python, gate))
         result["produced"] = True
     else:
         verdict, findings = workdir / "review.json", workdir / "findings.md"
@@ -247,11 +259,13 @@ def launch(args) -> dict:
             control = private / "control"
             control.mkdir(mode=0o700, exist_ok=True)
             receipt = control / f"{args.key}-review-approved.json"
-            stats = counts(scenario, python)
-            receipt.write_text(json.dumps({"key": args.key, "sha256": result["reviewed_sha256"],
-                                           "sessions": stats["sessions"], "turns": stats["turns"],
-                                           "cases": stats["cases"], "approved": True, "findings": found,
-                                           "review_session": number}, sort_keys=True))
+            stats = counts(scenario, python, gate)
+            approval = {"key": args.key, "sha256": result["reviewed_sha256"], "sessions": stats["sessions"],
+                        "turns": stats["turns"], "cases": stats["cases"], "approved": True, "findings": found,
+                        "review_session": number}
+            if gate == "C5":  # An R4 receipt keeps its earlier fields exactly.
+                approval["gate"] = "C5"
+            receipt.write_text(json.dumps(approval, sort_keys=True))
             receipt.chmod(0o600)
             result["receipt_sha256"] = sha256(receipt)
     return result
@@ -266,6 +280,8 @@ def main(argv=None) -> int:
     parser.add_argument("--model", required=True)
     parser.add_argument("--allowed-models", required=True)
     parser.add_argument("--workdir-root", required=True)
+    parser.add_argument("--gate", default="R4", choices=GATES,
+                        help="R4 (default) or C5: the briefs and the precheck mode of that gate")
     parser.add_argument("--brief")
     parser.add_argument("--assignment", help="author only: a file with the case prefix and the two languages")
     parser.add_argument("--session-command", help="offline dry mode: a fake session command template")

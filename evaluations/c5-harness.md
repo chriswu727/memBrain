@@ -12,7 +12,7 @@ The behavioural acceptance harness for R4 and for the C5 companion scenarios. No
 | [`r4-stub-rehearsal.py`](r4-stub-rehearsal.py) | The same for R4 |
 | [`acceptance_persona.py`](acceptance_persona.py) | The seeded draw of the attempt's starting personality type |
 | [`c5-dry-run-check.py`](c5-dry-run-check.py) | Checks a dry run, layer by layer |
-| [`c5-precheck.py`](c5-precheck.py) | Checks a scenario file before a run, printing counts and positions only (`--r4` for R4 scenarios) |
+| [`c5-precheck.py`](c5-precheck.py) | Checks a scenario file before a run, printing counts and positions only (`--r4` for R4 scenarios, `--c5` for held-out C5 scenarios) |
 | [`../src/membrain/evaluation_clock.py`](../src/membrain/evaluation_clock.py) | The evaluation-only scenario clock |
 
 ## Arms
@@ -177,8 +177,8 @@ The three-arm harness of maturity attempts 1 to 5 (2026-11-03 dry runs on `b9c5c
 
 ## What a live C5 attempt still needs
 
-- The kit for C5 (another task, building on the formats above): C5 author, reviewer and fixer briefs; `freeze.py` and `launch.py` with a C5 gate (today `c5-stub-rehearsal.py` rewrites the frozen pair's gate itself); a literal-reading `--c5` precheck with shape and coverage codes that also refuses `PERSONA`; the blind sheet's display of the persona in effect and the page actions before each case; the rule text (`v1-acceptance.md`, `phase-c-design.md`, `companion.md`).
-- A C5 execution binding (arms, persona, ceiling, stop rules, coverage, cost) replacing the three-arm plan draft, the owner's approval of the spend, held-out scenarios written to this format, and the independent reviews.
+- Since 2026-11-17 the kit for C5 exists: `c5-precheck.py --c5` (literal reading, the R4 shape rules, the `COVERAGE` table and its codes), `acceptance-kit/freeze.py --gate C5`, `acceptance-kit/launch.py --gate C5` with the C5 author, reviewer and fixer briefs, and the blind sheet's display of the page actions so far and the persona in effect before each case (`v1-2026-10-29-phase-b-blind.py`, companion mode); `c5-stub-rehearsal.py` uses them. The rule text is in `architecture/v1-acceptance.md` (C5) and `acceptance-review/companion.md`, and a draft binding in `maturity-c5-execution-DRAFT.md`.
+- Still needed: the binding completed by preparation and committed, the owner's approval of the spend and of the subscription sessions, two held-out scenarios written, reviewed and frozen with the kit, the independent freeze review, and the run.
 
 ## Prospective live billing guard
 

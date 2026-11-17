@@ -1,14 +1,16 @@
 #!/usr/bin/env python3
-"""Freeze an R4 behavioural-acceptance attempt: hash every frozen file and the held-out scenarios into the manifest
-the attempt driver validates (acceptance-attempt-driver.md, "Manifest").
+"""Freeze a behavioural-acceptance attempt (R4, or C5 with --gate C5): hash every frozen file and the held-out
+scenarios into the manifest the attempt driver validates (acceptance-attempt-driver.md, "Manifest").
 
   freeze.py --repo REPO --attempt-id ID --private-root REL --out MANIFEST --allowed-models REL
-            --scenario KEY=REL_PATH [--scenario KEY=REL_PATH ...]
+            --scenario KEY=REL_PATH [--scenario KEY=REL_PATH ...] [--gate R4|C5]
             [--receipt KEY=REL_PATH ...] [--control REL_PATH ...] [--binding REL] [--python PATH] [--no-receipts]
 
-- Every scenario is read without running it (scenario_literals.py); every held-out scenario must pass
-  `c5-precheck.py --r4`, run in a subprocess with the repository's interpreter (REPO/.venv/bin/python unless
-  --python), and only the precheck's own codes are relayed.
+- --gate (default R4) is the gate of the manifest's one pair: R4 for the core scenarios, C5 for the companion
+  scenarios. The manifest holds that one pair.
+- Every scenario is read without running it (scenario_literals.py); every held-out scenario must pass the precheck of
+  its gate, `c5-precheck.py --r4` or `c5-precheck.py --c5`, run in a subprocess with the repository's interpreter
+  (REPO/.venv/bin/python unless --python), and only the precheck's own codes are relayed.
 - The lead's allowed-models file (the session models launch.py accepted) is required and frozen.
 - With --binding (the committed execution binding), the binding must name the attempt id in backquotes: the persona
   seed is the attempt id fixed there before the draw is computed.
@@ -24,10 +26,12 @@ the attempt driver validates (acceptance-attempt-driver.md, "Manifest").
 - The working tree must be clean outside the private root (no tracked change, no untracked file elsewhere).
 - Each scenario needs its review receipt (KEY=path of a JSON {"key", "sha256", "cases", "turns", "approved": true,
   ...} written by launch.py for the approving reviewer), whose hash, case count and turn count must match the
-  scenario file. --no-receipts is for the public stub rehearsal only: every scenario must be a practice copy (its file
+  scenario file. A C5 receipt also says "gate": "C5" (launch.py --gate C5 writes it: the scenario was reviewed under
+  the C5 reviewer brief); an R4 receipt has no gate or "gate": "R4", so a receipt of one gate never freezes a
+  scenario for the other. --no-receipts is for the public stub rehearsal only: every scenario must be a practice copy (its file
   name contains "practice"), the manifest records "practice": true (the live driver refuses it), and the summary
   says so. A practice copy is never frozen with receipts.
-- The manifest has one R4 pair with the scenarios in the given order, "order" the same, and "persona" the draw of
+- The manifest has one pair of the given gate with the scenarios in the given order, "order" the same, and "persona" the draw of
   the attempt id (acceptance_persona.py). It is validated with both the review pipeline's load_manifest and the
   driver's validate_manifest before it is written; an existing MANIFEST is refused.
 
@@ -127,11 +131,15 @@ def scenario_counts(path: Path, evaluations: Path) -> dict:
         raise Refused("a scenario's sessions are malformed") from None
 
 
-def precheck(python: Path, evaluations: Path, path: Path) -> list[str]:
-    """`c5-precheck.py --r4` in a subprocess with the repository's interpreter: [] when ok, else its codes (only
-    codes the precheck itself defines are relayed)."""
+GATES = ("R4", "C5")
+PRECHECK_MODE = {"R4": "--r4", "C5": "--c5"}  # The precheck mode of each gate's held-out scenarios.
+
+
+def precheck(python: Path, evaluations: Path, path: Path, gate: str = "R4") -> list[str]:
+    """`c5-precheck.py --r4` (R4) or `--c5` (C5) in a subprocess with the repository's interpreter: [] when ok, else
+    its codes (only codes the precheck itself defines are relayed)."""
     known = set(_module("c5_precheck_codes_for_freeze", evaluations / "c5-precheck.py").CODES)
-    done = subprocess.run([str(python), str(evaluations / "c5-precheck.py"), "--r4", str(path)],
+    done = subprocess.run([str(python), str(evaluations / "c5-precheck.py"), PRECHECK_MODE[gate], str(path)],
                           capture_output=True, text=True, timeout=300)
     try:
         summary = json.loads(done.stdout.strip().splitlines()[-1])
@@ -162,6 +170,9 @@ def _pairs(values: list[str], what: str) -> list[tuple[str, str]]:
 def freeze(args) -> dict:
     repo = Path(args.repo).resolve()
     out = Path(args.out).absolute()
+    gate = getattr(args, "gate", "R4")
+    if gate not in GATES:
+        raise Refused("--gate is R4 or C5")
     if out.exists():
         raise Refused("the manifest already exists: it is written once")
     private = args.private_root.strip("/")
@@ -215,9 +226,9 @@ def freeze(args) -> dict:
         digest = sha256(repo / path)
         counts = scenario_counts(repo / path, evaluations)
         if not is_practice(path):
-            codes = precheck(python, evaluations, repo / path)
+            codes = precheck(python, evaluations, repo / path, gate)
             if codes:
-                raise Refused(f"scenario {key} fails the R4 precheck: {', '.join(codes)}")
+                raise Refused(f"scenario {key} fails the {gate} precheck: {', '.join(codes)}")
         if key in receipts:
             receipt = json.loads((repo / receipts[key]).read_text())
             if not isinstance(receipt, dict) or receipt.get("approved") is not True or receipt.get("key") != key:
@@ -226,12 +237,14 @@ def freeze(args) -> dict:
                 raise Refused(f"the receipt for {key} approves other bytes than the scenario file")
             if receipt.get("cases") != counts["cases"] or receipt.get("turns") != counts["turns"]:
                 raise Refused(f"the receipt for {key} gives other counts than the scenario file")
+            if receipt.get("gate", "R4") != gate:
+                raise Refused(f"the receipt for {key} is a review for another gate than {gate}")
         files[path] = digest
         entries.append({"key": key, "path": path, "sha256": digest})
         printed.append({"key": key, "sha256": digest, **counts})
     drawing = _module("acceptance_persona_for_freeze", evaluations / "acceptance_persona.py")
     manifest = {"version": 1, "attempt_id": args.attempt_id, "files": dict(sorted(files.items())),
-                "pairs": [{"gate": "R4", "scenarios": entries}], "order": [key for key, _ in scenarios],
+                "pairs": [{"gate": gate, "scenarios": entries}], "order": [key for key, _ in scenarios],
                 "persona": drawing.record(args.attempt_id)}
     if args.no_receipts:
         manifest["practice"] = True  # Frozen without review receipts: the live driver refuses it.
@@ -249,7 +262,7 @@ def freeze(args) -> dict:
         os.link(temporary, out)  # Exclusive: never replaces a manifest.
     finally:
         temporary.unlink(missing_ok=True)
-    return {"attempt_id": args.attempt_id, "manifest_sha256": hashlib.sha256(data).hexdigest(),
+    return {"attempt_id": args.attempt_id, "gate": gate, "manifest_sha256": hashlib.sha256(data).hexdigest(),
             "files": len(manifest["files"]), "scenarios": printed, "persona": manifest["persona"]["preset"],
             "receipts": "none (stub rehearsal)" if args.no_receipts else len(receipts)}
 
@@ -261,6 +274,7 @@ def main(argv=None) -> int:
     parser.add_argument("--private-root", required=True)
     parser.add_argument("--out", required=True)
     parser.add_argument("--scenario", action="append", default=[])
+    parser.add_argument("--gate", default="R4", choices=GATES, help="the gate of the manifest's pair (default R4)")
     parser.add_argument("--receipt", action="append", default=[])
     parser.add_argument("--control", action="append", default=[])
     parser.add_argument("--no-receipts", action="store_true", help="the public stub rehearsal only")
