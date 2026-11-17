@@ -86,8 +86,10 @@ def test_diagnose_reports_expected_turns_even_when_no_results_exist(tmp_path):
 
 
 @pytest.mark.parametrize("command", ["validity", "diagnose"])
-@pytest.mark.parametrize("source,error", [(f'SESSIONS_LONG = [("{PRIVATE}", [)]', "SyntaxError"),
-                                         (f'raise RuntimeError("{PRIVATE}")', "RuntimeError"),
+# Since 2026-11-17 validity and diagnose read a scenario as literals, never running it: whatever is wrong with the
+# file, the reader's refusal (a SystemExit with a fixed code) is what is reported, and nothing in it runs.
+@pytest.mark.parametrize("source,error", [(f'SESSIONS_LONG = [("{PRIVATE}", [)]', "SystemExit"),
+                                         (f'raise RuntimeError("{PRIVATE}")', "SystemExit"),
                                          (f'raise SystemExit("{PRIVATE}")', "SystemExit")])
 def test_scenario_load_errors_never_disclose_content(tmp_path, command, source, error):
     scenario = scenario_file(tmp_path)
@@ -118,6 +120,7 @@ def test_legacy_scenario_lookup_remains_supported(tmp_path):
     scenario = scenario_file(tmp_path)
     review = scenario.parent / "acceptance_review.py"
     shutil.copyfile(EVALUATIONS / review.name, review)
+    shutil.copyfile(EVALUATIONS / "scenario_literals.py", scenario.parent / "scenario_literals.py")  # Its reader.
     runs = write_runs(tmp_path)
     result = subprocess.run([sys.executable, str(review), "validity", *map(str, runs)], env=environment(),
                             capture_output=True, text=True, timeout=15)
@@ -139,6 +142,7 @@ def test_driver_runs_real_validity_for_a_nested_manifest_scenario(tmp_path, carr
     review = repo / "evaluations" / "acceptance_review.py"
     review.parent.mkdir()
     shutil.copyfile(EVALUATIONS / review.name, review)
+    shutil.copyfile(EVALUATIONS / "scenario_literals.py", review.parent / "scenario_literals.py")  # Its reader.
     runner = tmp_path / "runner.py"
     runner.write_text(f'''import json, pathlib, sys
 scenario, out, key = sys.argv[1:]

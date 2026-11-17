@@ -324,12 +324,13 @@ def test_f_waits_for_and_mirrors_ps_recorded_outcome_of_each_action(tmp_path, mo
         "failed": "x"})) + "\n")
     with pytest.raises(SystemExit, match="could not apply"):
         harness.p_page_action(out, 0, action)
-    # F's world: the deletion P made, and nothing for the one that found no message.
+    # F's world: the deletion P made; for the one P found no message for (never recorded there), F still drops
+    # that message, which the user deleted (since 2026-11-17), and names it.
     reference = harness.Reference()
     reference.history = [(("s1", 0, "user"), {"role": "user", "content": "a"})]
     assert reference.apply({**unrecorded, "removed": []}, {"status": "not_applicable",
                                                            "reason": "message_not_recorded"}) == {
-        "not_applicable": "message_not_recorded"}
+        "not_applicable": "message_not_recorded", "reference_removed": [["s1", 1, "user"]]}
     assert reference.apply({**action, "removed": [["s1", 0, "user"]]}, {"status": "done"})["deleted"] == 1
 
 
