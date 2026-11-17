@@ -90,7 +90,7 @@ name used as a value, no code that runs anything (the file is read without being
 | Name | Content |
 | --- | --- |
 | `YEAR` | The year of the story, an integer (you choose it). |
-| `HOST` | One short paragraph telling the companion who it is talking to and how to reply ("You are a friendly companion chatting with ... in a messaging app. Reply briefly and naturally. Use what you know about them when it helps."). It must not describe any memory system, tool or product, and must not give the companion a name, a personality or a character. |
+| `HOST` | One short paragraph telling the companion who it is talking to and how to reply ("You are chatting with a person in a messaging app. Reply briefly and naturally, in the language they write in."). It must not describe any memory system, tool or product, and must not give the companion a name, a personality or a character. |
 | `SESSIONS_LONG` | A list of `(session_id, [user message, ...])` in time order. A session is one sitting of conversation. Session ids are short lowercase slugs (`"s01-new-flat"`). |
 | `FACTS` | The ground truth, in date order, as short dated lines (about 4,000 to 8,000 characters). It is what the reviewers read: everything a case relies on must be here (see "What FACTS must record"). |
 | `CASES` | Exactly 11 tuples `(session_id, turn_index, case_id, "Criteria: ...")`. `turn_index` is the 0-based position of the user message in that session that the scored reply answers. Case ids are `"<PREFIX>01-<slug>"` to `"<PREFIX>11-<slug>"` in this order, with the prefix you are given and a lowercase slug (`"C101-exam-nerves"`). |
