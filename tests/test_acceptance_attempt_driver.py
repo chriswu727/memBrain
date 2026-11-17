@@ -40,6 +40,11 @@ for path in config.get("touch", {}).get(key, []):
 for path in config.get("modify", {}).get(key, []):
     with open(path, "a") as file:
         file.write("changed\n")
+for _ in range(config.get("reserve", {}).get(key, 0)):  # Stands in for the guard's reservations (sequence numbers).
+    ledger_path = pathlib.Path(config["ledger"])
+    ledger_state = json.loads(ledger_path.read_text())
+    ledger_state["requests"][f"r{len(ledger_state['requests'])}"] = {"seq": len(ledger_state["requests"]) + 1}
+    ledger_path.write_text(json.dumps(ledger_state))
 if key in config.get("block_ledger", []):
     pathlib.Path(config["ledger"]).write_text(json.dumps({"version": 1, "blocked": True}))
 if key == config.get("hang"):
@@ -62,6 +67,14 @@ sys.exit(3 if key in config.get("fail", []) else 0)
 VALIDITY = r'''
 import json, os, pathlib, sys
 config = json.loads(pathlib.Path(os.environ["FAKE_CONFIG"]).read_text())
+if sys.argv[1:2] == ["ledger-check"]:  # The live driver's ledger check (acceptance_review.py ledger-check).
+    assert sys.argv[2] == "--ledger" and sys.argv[4] == "--after-seq", sys.argv
+    runs = [pathlib.Path(arg) for arg in sys.argv[6:]]
+    key = runs[0].name.rsplit("-", 1)[0]
+    with open(config["calls"], "a") as calls:
+        calls.write(json.dumps(["ledger-check", key, [run.name for run in runs], sys.argv[3], int(sys.argv[5])])
+                    + "\n")
+    sys.exit(1 if key in config.get("ledger_mismatch", []) else 0)
 args = [arg for arg in sys.argv[1:] if arg != "validity"]
 scenario = None
 if "--scenario" in args:
@@ -538,6 +551,45 @@ def test_live_mode_runs_only_the_repositorys_own_frozen_commands(attempt):
     assert state["validity"] == [sys.executable, str(attempt.repo / "evaluations" / "acceptance_review.py"),
                                  "validity"]
     assert summary(result)["shared_stop"] is None and json.loads(attempt.ledger.read_text())["blocked"] is False
+
+
+def test_live_mode_checks_each_scenarios_ledger_entries_against_its_interruption_records(attempt):
+    """Since the 2026-11-17 review: after validity, the repository's own ledger check, given the ledger's highest
+    sequence number read before the scenario started, so it compares only that scenario's reservations."""
+    attempt.make_live()
+    attempt.config["reserve"] = {"alpha": 3, "beta": 2, "delta": 4}  # The fake runner's reservations per scenario.
+    result = attempt.run_live()
+    assert result.returncode == 0, result.stderr
+    assert [call for call in attempt.calls() if call[0] in ("validity", "ledger-check")] == [
+        item for key, before in zip(ORDER, (0, 3, 5, 5)) for item in (
+            ["validity", key, [f"{key}-P", f"{key}-F"]],
+            ["ledger-check", key, [f"{key}-P", f"{key}-F"], str(attempt.ledger), before])]
+    records = attempt.state()["scenarios"]
+    assert [records[key]["ledger_seq_before"] for key in ORDER] == [0, 3, 5, 5]
+    assert all(records[key]["ledger_check_exit"] == 0 and records[key]["ledger_check_finished_at"] for key in ORDER)
+    assert str(attempt.out / "driver-logs" / "alpha.ledger-check.log") in records["alpha"]["logs"]
+
+
+def test_a_ledger_check_mismatch_makes_the_scenario_invalid_and_blocks_the_shared_run(attempt):
+    attempt.make_live()
+    attempt.config["ledger_mismatch"] = ["beta"]
+    result = attempt.run_live()
+    assert result.returncode == 1 and attempt.runner_keys() == ["alpha", "beta"]
+    line = summary(result)
+    assert line["stop"] == "invalid" and line["scenarios"]["beta"] == "invalid" and line["shared_stop"] == "blocked"
+    record = attempt.state()["scenarios"]["beta"]
+    assert record["validity_exit"] == 0 and record["ledger_check_exit"] == 1
+    assert "ledger check exited 1" in attempt.state()["stop"]["detail"]
+    assert attempt.stops() == [["stop", ["--stop", "--reason", "invalid"], str(attempt.ledger)]]
+
+
+def test_an_offline_run_with_its_own_validity_runs_no_ledger_check(attempt):
+    ledger = Path(attempt.config["ledger"])
+    ledger.write_text(json.dumps({"version": 1, "run_id": "attempt-test-1", "blocked": False, "requests": {}}))
+    assert attempt.run("--ledger", str(ledger)).returncode == 0
+    assert not [call for call in attempt.calls() if call[0] == "ledger-check"]
+    assert all(record["ledger_seq_before"] is None and record["ledger_check_exit"] is None
+               for record in attempt.state()["scenarios"].values())
 
 
 LIVE_TRIGGERS = {"ledger variable": ({"C5_ATTEMPT_ID": None}, ()),

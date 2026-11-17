@@ -80,8 +80,11 @@ class Provider:
                     yield SECRET.encode()
                     raise error(SECRET, request=request)
             return httpx.Response(status, stream=CutBody())
-        if failure == "malformed":
+        if failure == "malformed":  # A 2xx body that is not JSON: an interruption (body_not_json) since the review.
             return httpx.Response(200, content=SECRET.encode())
+        if failure == "inconsistent":  # Usage present but not adding up: fatal.
+            return httpx.Response(200, json={"model": harness.MODEL, "usage": {
+                "prompt_tokens": 100, "completion_tokens": 50, "total_tokens": 151}, "note": SECRET})
         if failure == "other_model":
             return reply(model=SECRET)
         if failure == "system_exit":
@@ -141,10 +144,13 @@ def test_a_timeout_then_success_is_charged_at_its_bound_and_the_reply_is_used(tm
     assert "failure" not in interrupted and settled["actual_micros"] == 100 * 9 + 50 * 27
     assert SECRET not in path.read_text()
     (line,) = interruptions(tmp_path)
-    assert set(line) == {"format", "time", "session", "turn", "round", "kind", "error_class", "send", "retried"}
-    assert {key: line[key] for key in ("format", "turn", "round", "kind", "error_class", "send", "retried")} == {
-        "format": 1, "turn": 2, "round": 1, "kind": "provider_transport", "error_class": "ReadTimeout", "send": 1,
-        "retried": True}
+    assert set(line) == {"format", "time", "session", "turn", "round", "kind", "error_class", "request_bytes",
+                         "send_seconds", "wait_seconds", "send", "retried"}
+    assert {key: line[key] for key in ("format", "turn", "round", "kind", "error_class", "request_bytes",
+                                       "wait_seconds", "send", "retried")} == {
+        "format": 2, "turn": 2, "round": 1, "kind": "provider_transport", "error_class": "ReadTimeout",
+        "request_bytes": len(provider.bodies[0]), "wait_seconds": 30, "send": 1, "retried": True}
+    assert 0 <= line["send_seconds"] < 30 and line["request_bytes"] == interrupted["request_bytes"]
     assert not (tmp_path / "harness-events.jsonl").exists()  # A retried interruption is not a harness event.
     out = capsys.readouterr().out
     assert "provider interrupted ReadTimeout at session 1 of 3, message 3, round 2: send 1 of 3, retry in 30 s" in out
@@ -236,7 +242,12 @@ def test_interruption_retries_are_separate_from_the_empty_reply_retries(tmp_path
     (401, {"kind": "provider_http_status", "http_status": 401}),
     (403, {"kind": "provider_http_status", "http_status": 403}),
     (422, {"kind": "provider_http_status", "http_status": 422}),
+    # Since the 2026-11-17 review only 429, 500, 502, 503 and 504 are retried; another 5xx is final.
+    (501, {"kind": "provider_http_status", "http_status": 501}),
+    (505, {"kind": "provider_http_status", "http_status": 505}),
+    (599, {"kind": "provider_http_status", "http_status": 599}),
     ((400, httpx.ReadTimeout), {"kind": "provider_transport", "error_class": "ReadTimeout"}),
+    ((501, httpx.ReadTimeout), {"kind": "provider_transport", "error_class": "ReadTimeout"}),
     (httpx.DecodingError, {"kind": "provider_transport", "error_class": "DecodingError"}),
     (httpx.LocalProtocolError, {"kind": "provider_transport", "error_class": "LocalProtocolError"}),
     (httpx.ProxyError, {"kind": "provider_transport", "error_class": "ProxyError"}),
@@ -244,7 +255,7 @@ def test_interruption_retries_are_separate_from_the_empty_reply_retries(tmp_path
     ("system_exit", {"kind": "provider_transport", "error_class": "SystemExit"}),
     ("keyboard", {"kind": "provider_transport", "error_class": "KeyboardInterrupt"}),
     ("unknown", {"kind": "provider_transport", "error_class": "other"}),
-    ("malformed", {"kind": "response_billing"}),
+    ("inconsistent", {"kind": "response_billing"}),  # Was "malformed" (not JSON), an interruption since the review.
     ("other_model", {"kind": "response_billing"}),
 ])
 def test_other_failures_keep_the_reservation_block_the_ledger_and_are_never_retried(tmp_path, live, failure, cause):
@@ -317,7 +328,8 @@ def test_an_old_reservation_without_sizes_keeps_the_old_stop(tmp_path):
 # The guard alone ---------------------------------------------------------------------------------------------------
 
 @pytest.mark.parametrize("failure,cause", [
-    *[(status, {"kind": "provider_http_status", "http_status": status}) for status in (429, 500, 502, 503, 504, 599)],
+    *[(status, {"kind": "provider_http_status", "http_status": status}) for status in (429, 500, 502, 503, 504)],
+    ("malformed", {"kind": "provider_incomplete_body", "http_status": 200, "body": "not_json"}),
     *[(error, {"kind": "provider_transport", "error_class": error.__name__}) for error in (
         httpx.ReadTimeout, httpx.ConnectTimeout, httpx.WriteTimeout, httpx.PoolTimeout, httpx.ConnectError,
         httpx.ReadError, httpx.WriteError, httpx.CloseError, httpx.RemoteProtocolError)],
@@ -567,11 +579,15 @@ def world(tmp_path, lines=None):
     return scenario, runs
 
 
-def line(session, turn, round_, send, retried, **cause):
+def line(session, turn, round_, send, retried, send_seconds=2.5, **cause):
+    """An interruption line as the harness writes it (INTERRUPTION_FORMAT 2)."""
     cause = cause or {"error_class": "ReadTimeout"}
-    kind = "provider_http_status" if "http_status" in cause else "provider_transport"
-    return {"format": 1, "time": 1.5, "session": session, "turn": turn, "round": round_, "kind": kind, **cause,
-            "send": send, "retried": retried}
+    kind = ("provider_incomplete_body" if "body" in cause else "provider_http_status" if "http_status" in cause
+            else "provider_transport")
+    return {"format": 2, "time": 1.5, "session": session, "turn": turn, "round": round_, "kind": kind, **cause,
+            "request_bytes": 4096, "send_seconds": send_seconds,
+            "wait_seconds": (harness.INTERRUPTION_WAITS + (0,))[send - 1] if retried else 0, "send": send,
+            "retried": retried}
 
 
 RETRIED = [line(f"{SECRET}-b", 0, 0, 1, True), line(f"{SECRET}-b", 0, 0, 2, True, http_status=503),
@@ -583,11 +599,16 @@ def test_validity_reports_retried_interruptions_by_position_and_stays_valid(tmp_
     result = review.validity(runs, scenario, persona_preset="enfp")
     assert result["valid"], result["problems"]
     assert result["provider_interruptions"] == {
-        "k-P (P)": {"interrupted_sends": 3, "retried_host_calls": 2, "not_retried": 0, "at": [
-            {"session": 2, "message": 1, "round": 1, "send": 1, "code": "ReadTimeout", "retried": True},
-            {"session": 2, "message": 1, "round": 1, "send": 2, "code": "http_503", "retried": True},
-            {"session": 1, "message": 2, "round": 3, "send": 1, "code": "http_429", "retried": True}]},
-        "k-F (F)": {"interrupted_sends": 0, "retried_host_calls": 0, "not_retried": 0, "at": []}}
+        "k-P (P)": {"interrupted_sends": 3, "retried_host_calls": 2, "not_retried": 0, "delay_seconds": 187.5,
+                    "delay_by_session": [{"session": 1, "seconds": 32.5}, {"session": 2, "seconds": 155.0}], "at": [
+            {"session": 2, "message": 1, "round": 1, "send": 1, "code": "ReadTimeout", "retried": True,
+             "delay_seconds": 32.5},
+            {"session": 2, "message": 1, "round": 1, "send": 2, "code": "http_503", "retried": True,
+             "delay_seconds": 122.5},
+            {"session": 1, "message": 2, "round": 3, "send": 1, "code": "http_429", "retried": True,
+             "delay_seconds": 32.5}]},
+        "k-F (F)": {"interrupted_sends": 0, "retried_host_calls": 0, "not_retried": 0, "delay_seconds": 0,
+                    "delay_by_session": [], "at": []}}
     assert SECRET not in capsys.readouterr().out
 
 
@@ -599,7 +620,15 @@ def test_validity_reports_retried_interruptions_by_position_and_stays_valid(tmp_
     line(f"{SECRET}-a", 0, 4, 1, True),
     line(f"{SECRET}-c", 0, 0, 1, True),
     {**line(f"{SECRET}-a", 0, 0, 1, True), "message": SECRET},
-    {**line(f"{SECRET}-a", 0, 0, 1, True), "format": 2},
+    {**line(f"{SECRET}-a", 0, 0, 1, True), "format": 1},  # Format 1 had no sizes or durations (was "format": 2).
+    line(f"{SECRET}-a", 0, 0, 1, True, http_status=501),  # Final since the review.
+    line(f"{SECRET}-a", 0, 0, 1, True, http_status=200, body=SECRET),
+    line(f"{SECRET}-a", 0, 0, 1, True, http_status=503, body="blank"),
+    {key: value for key, value in line(f"{SECRET}-a", 0, 0, 1, True).items() if key != "request_bytes"},
+    {**line(f"{SECRET}-a", 0, 0, 1, True), "request_bytes": 0},
+    {**line(f"{SECRET}-a", 0, 0, 1, True), "send_seconds": -1},
+    {**line(f"{SECRET}-a", 0, 0, 1, True), "wait_seconds": 120},  # Not the harness's wait after send 1.
+    {**line(f"{SECRET}-a", 0, 0, 3, False), "wait_seconds": 30},  # No wait after the last send.
     RETRIED[0],  # A repeated send of the same host call.
 ])
 def test_validity_refuses_malformed_interruption_evidence(tmp_path, capsys, bad):
@@ -630,10 +659,25 @@ def test_diagnose_prints_interruptions_as_counts_positions_and_codes_only(tmp_pa
             "session 2 of 2, message 1, round 1, send 2 http_503 retried; session 1 of 2, message 2, round 3, send 1 "
             "http_429 retried") in out
     assert "malformed provider-interruption lines: 1" in out
+    assert ("interruption delay (failed sends plus waits; in P on the scenario clock): 187.5 s in all; session 1 of "
+            "2: 32.5 s; session 2 of 2: 155.0 s") in out
     assert "log: provider interrupted ReadTimeout: 1" in out and "log: provider interrupted other: 1" in out
 
 
 def test_the_review_and_the_guard_agree_on_the_interruption_classes():
     assert review.INTERRUPTED_CLASSES == budget.INTERRUPTED_CLASSES
+    assert review.RETRIED_STATUSES == budget.RETRIED_STATUSES == {429, 500, 502, 503, 504}
+    assert review.INCOMPLETE_BODIES == budget.INCOMPLETE_BODIES == {"blank", "not_json", "no_usage"}
+    assert review.INTERRUPTED_KINDS == budget.INTERRUPTED_KINDS
     assert review.INTERRUPTION_SENDS == len(harness.INTERRUPTION_WAITS) + 1
-    assert review.INTERRUPTIONS == harness.INTERRUPTIONS and harness.INTERRUPTION_WAITS == (30, 120)
+    assert review.INTERRUPTION_WAITS == harness.INTERRUPTION_WAITS == (30, 120)
+    assert review.INTERRUPTIONS == harness.INTERRUPTIONS and review.INTERRUPTION_FORMAT == harness.INTERRUPTION_FORMAT
+    # Every code the harness can log is one diagnose prints, and one validity and the ledger check accept.
+    causes = ([{"kind": "provider_transport", "error_class": name} for name in budget.INTERRUPTED_CLASSES]
+              + [{"kind": "provider_http_status", "http_status": status} for status in budget.RETRIED_STATUSES]
+              + [{"kind": "provider_incomplete_body", "http_status": 200, "body": body}
+                 for body in budget.INCOMPLETE_BODIES])
+    assert {cause["kind"] for cause in causes} == budget.INTERRUPTED_KINDS
+    codes = {harness.interruption_code(cause) for cause in causes}
+    assert codes == review.INTERRUPTION_LOG_CODES and "other" not in codes
+    assert {review._interruption_cause(cause)[1] for cause in causes} == codes

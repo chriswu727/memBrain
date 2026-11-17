@@ -96,17 +96,19 @@ def test_uncertain_or_out_of_bound_usage_keeps_its_reservation_and_stops_every_a
         send(path, lambda request: pytest.fail("blocked run reached provider"))
 
 
-# Since 2026-11-17 a timeout, a connection or protocol error, HTTP 429 and a 5xx are interruptions, settled at a bound
-# with the ledger left open (tests/test_provider_interruption_retry.py); every other failure still stops the run.
-@pytest.mark.parametrize("failure", ["http_400", "http_401", "malformed", "other_model"])
+# Since 2026-11-17 a timeout, a connection or protocol error, HTTP 429, 500, 502, 503 and 504, and a complete 2xx body
+# without billing JSON (blank, not JSON, no usage) are interruptions, settled at a bound with the ledger left open
+# (tests/test_provider_interruption_retry.py); every other failure still stops the run. "inconsistent" (usage present
+# but not adding up) replaced "malformed" (a body that is not JSON), which is now an interruption.
+@pytest.mark.parametrize("failure", ["http_400", "http_401", "http_501", "inconsistent", "other_model"])
 def test_provider_failures_never_release_money_for_an_automatic_retry(tmp_path, failure):
     path = ledger(tmp_path)
 
     def handler(request):
         if failure.startswith("http_"):
             return httpx.Response(int(failure[5:]))
-        if failure == "malformed":
-            return httpx.Response(200, content=b"not json")
+        if failure == "inconsistent":
+            return reply(usage={"prompt_tokens": 10, "completion_tokens": 10, "total_tokens": 21})
         return reply(model="unapproved-model")
 
     with pytest.raises(budget.BudgetStop):
@@ -124,7 +126,8 @@ def test_provider_failures_never_release_money_for_an_automatic_retry(tmp_path, 
     ("keyboard", {"kind": "provider_transport", "error_class": "KeyboardInterrupt"}),
     ("unknown_class", {"kind": "provider_transport", "error_class": "other"}),
     ("http", {"kind": "provider_http_status", "http_status": 400}),
-    ("malformed", {"kind": "response_billing"}),
+    # A body that is not JSON is an interruption since 2026-11-17; usage that is there but malformed stays fatal.
+    ("malformed_usage", {"kind": "response_billing"}),
     ("other_model", {"kind": "response_billing"}),
 ])
 def test_provider_stop_records_safe_cause_without_releasing_reservation(tmp_path, failure, expected):
@@ -149,8 +152,8 @@ def test_provider_stop_records_safe_cause_without_releasing_reservation(tmp_path
             raise type(secret, (RuntimeError,), {})(secret)
         if failure == "http":
             return httpx.Response(400, content=secret, headers={"x-private": secret})
-        if failure == "malformed":
-            return httpx.Response(200, content=secret)
+        if failure == "malformed_usage":
+            return reply(usage={"prompt_tokens": secret, "completion_tokens": 1, "total_tokens": 2})
         return reply(model=secret)
 
     with pytest.raises(budget.BudgetStop) as error:

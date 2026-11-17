@@ -13,6 +13,10 @@ acceptance-attempt-driver.md; the same format as acceptance_review.py's manifest
   refuses existing run directories;
 - runs RUNNER SCENARIO OUT_ROOT KEY, then VALIDITY OUT_ROOT/KEY-P OUT_ROOT/KEY-F (the frozen arms ARMS = P, F: the
   plugin path and the full-history reference; the run script runs them one after the other);
+- with a ledger and the default validity (always in live mode), then also `acceptance_review.py ledger-check`: the
+  ledger's interrupted requests reserved during the scenario (after the highest sequence number read before it
+  started, recorded as ledger_seq_before) against the two run directories' provider-interruptions.jsonl lines,
+  per code and request size; a difference is a harness defect and stops the attempt as invalid;
 - passes the manifest's persona draw to every child as C5_PERSONA_SEED and C5_PERSONA_PRESET, so both arms carry
   the attempt's fixed personality type (the harness refuses a preset that is not the draw of its seed, and a
   scenario's own PERSONA card), and gives the default validity `--persona PRESET`, so an arm that did not carry the
@@ -265,6 +269,17 @@ def ledger_problem(path: Path, attempt_id: str, policy_sha256: str | None) -> tu
     return None
 
 
+def ledger_seq(path: Path) -> int:
+    """The highest reservation sequence number in the billing ledger (0 when it has none), read only. Entries of a
+    ledger older than sequence numbers have none; the ledger check then reports them, so the scenario is invalid."""
+    try:
+        requests = json.loads(path.read_text()).get("requests")
+        return max((entry["seq"] for entry in requests.values()
+                    if isinstance(entry, dict) and type(entry.get("seq")) is int), default=0)
+    except (OSError, ValueError, AttributeError, TypeError):
+        return 0
+
+
 MAX_GRACE_SECONDS = 600.0
 LIVE_RUNNER = "evaluations/c5-run-scenario.sh"
 LIVE_VALIDITY = "evaluations/acceptance_review.py"
@@ -479,7 +494,8 @@ class Driver:
             "scenarios": {key: {"gate": gate_of[key], "path": path_of[key], "sha256_verified_at": None,
                                 "status": "pending", "started_at": None, "runner_finished_at": None,
                                 "runner_exit": None, "validity_finished_at": None, "validity_exit": None,
-                                "run_dirs_created": None, "logs": []}
+                                "ledger_seq_before": None, "ledger_check_finished_at": None,
+                                "ledger_check_exit": None, "run_dirs_created": None, "logs": []}
                           for key in self.manifest["order"]},
             "pairs": [{"gate": pair["gate"], "keys": [s["key"] for s in pair["scenarios"]], "status": "not_run"}
                       for pair in self.manifest["pairs"]],
@@ -601,6 +617,9 @@ class Driver:
             return False
         scenario = str(_inside(self.repo, record["path"]))
         runner_log, validity_log = self.out / LOGS / f"{key}.runner.log", self.out / LOGS / f"{key}.validity.log"
+        checked = bool(self.ledger and self.default_validity)  # The repository's own ledger check (live always).
+        if checked:  # The ledger's last reservation before this scenario: its own requests come after it.
+            record["ledger_seq_before"] = ledger_seq(self.ledger)
         record.update(status="running", started_at=_now(), logs=[str(runner_log)])
         self.save()
         print(f"driver: {key} started", file=sys.stderr)
@@ -631,6 +650,24 @@ class Driver:
             record["status"] = "invalid"
             self.stop(key, "invalid", f"validity exited {code}")
             return False
+        if checked:
+            # The ledger's interrupted requests of this scenario against its runs' interruption lines: a difference
+            # is a harness defect, and the scenario is invalid.
+            check_log = self.out / LOGS / f"{key}.ledger-check.log"
+            record["logs"].append(str(check_log))
+            self.save()
+            code = self.spawn(self.validity[:-1] + ["ledger-check", "--ledger", str(self.ledger), "--after-seq",
+                                                    str(record["ledger_seq_before"])]
+                              + [str(self.run_dir(key, arm)) for arm in ARMS], check_log)
+            record.update(ledger_check_exit=code, ledger_check_finished_at=_now())
+            if self.signal is not None:
+                record["status"] = "interrupted"
+                return False
+            if code != 0:
+                record["status"] = "invalid"
+                self.stop(key, "invalid", f"the ledger check exited {code}: the ledger and the interruption "
+                                          f"records differ (a harness defect)")
+                return False
         problem = verify(self.repo, self.manifest, self.manifest_path, self.manifest_sha256)
         if problem:
             record["status"] = "inputs_changed"  # Changed while this scenario ran: it cannot count.

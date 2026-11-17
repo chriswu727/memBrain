@@ -8,6 +8,11 @@
   validity RUN_DIR...                                 refuse an attempt whose runs degraded; report, without
                                                       refusing, turns a pause left unrecorded and
                                                       replies with tool-call markup (counts and positions)
+  ledger-check --ledger LEDGER --after-seq N RUN_DIR...   the billing ledger's interrupted requests reserved after
+                                                      sequence number N against the run directories'
+                                                      provider-interruptions.jsonl lines, per code and request
+                                                      size; a difference is a harness defect (exit 1); the driver
+                                                      runs it after each scenario's validity
   r5-inputs REVIEW_DIR BLIND_DIR SCENARIO KEY OUT_DIR   after the re-checks: one arm-blind file per reply with a
                                                       candidate type 4 mark, with that reply's own earlier
                                                       assistant replies, for rule R5 (assistant-claims.md)
@@ -62,6 +67,7 @@ from __future__ import annotations
 import hashlib
 import importlib.util
 import json
+import math
 import re
 import sys
 from pathlib import Path, PurePosixPath
@@ -967,28 +973,57 @@ def _host_pauses(run: Path, order: list, rows: list, arm: str) -> tuple[list, li
     return positions, malformed
 
 
-INTERRUPTIONS = "provider-interruptions.jsonl"  # c5-harness.py INTERRUPTIONS, INTERRUPTION_FORMAT 1
-INTERRUPTION_FORMAT = 1
+INTERRUPTIONS = "provider-interruptions.jsonl"  # c5-harness.py INTERRUPTIONS, INTERRUPTION_FORMAT 2
+INTERRUPTION_FORMAT = 2  # Format 1 (sizes and durations missing) was never written by a live run; it is refused.
 INTERRUPTION_SENDS = 3  # c5-harness.py: len(INTERRUPTION_WAITS) + 1
+INTERRUPTION_WAITS = (30, 120)  # c5-harness.py INTERRUPTION_WAITS: the wait after send 1 and after send 2.
 # evaluation_budget.INTERRUPTED_CLASSES: the transport failures the guard settles at a bound and the harness retries.
 INTERRUPTED_CLASSES = frozenset({
     "ConnectTimeout", "ReadTimeout", "WriteTimeout", "PoolTimeout", "TimeoutException",
     "ConnectError", "ReadError", "WriteError", "CloseError", "RemoteProtocolError"})
+RETRIED_STATUSES = frozenset({429, 500, 502, 503, 504})  # evaluation_budget.RETRIED_STATUSES
+INCOMPLETE_BODIES = frozenset({"blank", "not_json", "no_usage"})  # evaluation_budget.INCOMPLETE_BODIES
+INTERRUPTED_KINDS = frozenset({"provider_transport", "provider_http_status", "provider_incomplete_body"})
+
+
+def _interruption_cause(entry: dict) -> tuple[set, str] | None:
+    """(the cause's own keys, the fixed code) of an interruption cause (a ledger entry's ``interrupted`` object or an
+    interruption line), or None when it is not one the guard settles at a bound: ``provider_transport`` with an
+    allowlisted ``error_class``, ``provider_http_status`` with ``http_status`` in RETRIED_STATUSES, or
+    ``provider_incomplete_body`` with a 2xx ``http_status`` and a ``body`` in INCOMPLETE_BODIES
+    (evaluation_budget.interruption_code)."""
+    kind, status, name, body = (entry.get("kind"), entry.get("http_status"), entry.get("error_class"),
+                                entry.get("body"))
+    if kind == "provider_transport" and isinstance(name, str) and name in INTERRUPTED_CLASSES:
+        return {"error_class"}, name
+    if kind == "provider_http_status" and type(status) is int and status in RETRIED_STATUSES:
+        return {"http_status"}, f"http_{status}"
+    if (kind == "provider_incomplete_body" and type(status) is int and 200 <= status <= 299
+            and isinstance(body, str) and body in INCOMPLETE_BODIES):
+        return {"http_status", "body"}, f"body_{body}"
+    return None
+
+
+def _seconds(value) -> bool:
+    return type(value) in (int, float) and math.isfinite(value) and value >= 0
 
 
 def _provider_interruptions(run: Path, order: list) -> tuple[list, list]:
     """The host sends the billing guard settled as interrupted (provider-interruptions.jsonl, one line per send),
-    as content-free entries {"session": i, "message": m, "round": r (from 1), "send": n, "code", "retried"}, and the
-    numbers of malformed lines. A line is malformed unless it holds exactly the harness's fields: format 1, the time,
-    a session and turn of the scenario, a round 0 to 3, kind ``provider_transport`` with an allowlisted
-    ``error_class`` or ``provider_http_status`` with ``http_status`` 429 or 5xx, a send 1 to 3 and ``retried``
-    (true only before the last send); or repeats a send of the same host call."""
+    as content-free entries {"session": i, "message": m, "round": r (from 1), "send": n, "code", "retried",
+    "delay_seconds"}, and the numbers of malformed lines. ``delay_seconds`` is what the interruption added to the host
+    call: the failed send's duration plus the wait before the next send. A line is malformed unless it holds exactly
+    the harness's fields: format 2, the time, a session and turn of the scenario, a round 0 to 3, a cause
+    (``_interruption_cause``), ``request_bytes`` (a positive integer), ``send_seconds`` (seconds, not negative),
+    ``wait_seconds`` (the harness's wait after that send when it was retried, else 0), a send 1 to 3 and
+    ``retried`` (true only before the last send); or repeats a send of the same host call."""
     path = run / INTERRUPTIONS
     if not path.exists():
         return [], []
     sessions = list(dict.fromkeys(session for session, _ in order))
     entries, malformed, seen = [], [], set()
-    common = {"format", "time", "session", "turn", "round", "kind", "send", "retried"}
+    common = {"format", "time", "session", "turn", "round", "kind", "request_bytes", "send_seconds",
+              "wait_seconds", "send", "retried"}
     for number, line in enumerate(path.read_text(errors="replace").splitlines(), 1):
         try:
             entry = json.loads(line)
@@ -997,33 +1032,125 @@ def _provider_interruptions(run: Path, order: list) -> tuple[list, list]:
         if not isinstance(entry, dict):
             malformed.append(number)
             continue
-        kind, status, name = entry.get("kind"), entry.get("http_status"), entry.get("error_class")
-        cause_ok = (kind == "provider_transport" and set(entry) == common | {"error_class"}
-                    and isinstance(name, str) and name in INTERRUPTED_CLASSES) or (
-            kind == "provider_http_status" and set(entry) == common | {"http_status"} and type(status) is int
-            and (status == 429 or 500 <= status <= 599))
+        cause = _interruption_cause(entry)
         key = (entry.get("session"), entry.get("turn"), entry.get("round"), entry.get("send"))
-        if (not cause_ok or entry["format"] != INTERRUPTION_FORMAT or type(entry["time"]) not in (int, float)
+        send = entry.get("send")
+        if (cause is None or set(entry) != common | cause[0] or entry["format"] != INTERRUPTION_FORMAT
+                or type(entry["time"]) not in (int, float)
                 or not isinstance(entry["session"], str) or type(entry["turn"]) is not int
                 or (entry["session"], entry["turn"]) not in order or type(entry["round"]) is not int
-                or not 0 <= entry["round"] <= 3 or type(entry["send"]) is not int
-                or not 1 <= entry["send"] <= INTERRUPTION_SENDS or type(entry["retried"]) is not bool
-                or (entry["retried"] and entry["send"] == INTERRUPTION_SENDS) or key in seen):
+                or not 0 <= entry["round"] <= 3 or type(send) is not int
+                or not 1 <= send <= INTERRUPTION_SENDS or type(entry["retried"]) is not bool
+                or (entry["retried"] and send == INTERRUPTION_SENDS) or key in seen
+                or type(entry["request_bytes"]) is not int or entry["request_bytes"] < 1
+                or not _seconds(entry["send_seconds"]) or not _seconds(entry["wait_seconds"])
+                or entry["wait_seconds"] != (INTERRUPTION_WAITS[send - 1] if entry["retried"] else 0)):
             malformed.append(number)
             continue
         seen.add(key)
         session, message = _message_position(sessions, entry["session"], entry["turn"])
-        entries.append({"session": session, "message": message, "round": entry["round"] + 1, "send": entry["send"],
-                        "code": name if kind == "provider_transport" else f"http_{status}",
-                        "retried": entry["retried"]})
+        entries.append({"session": session, "message": message, "round": entry["round"] + 1, "send": send,
+                        "code": cause[1], "retried": entry["retried"],
+                        "delay_seconds": round(entry["send_seconds"] + entry["wait_seconds"], 1)})
     return entries, malformed
 
 
 def _interruption_report(entries: list) -> dict:
-    """Validity's and diagnose's counts: interrupted sends, host calls sent again, and the entries themselves."""
+    """Validity's and diagnose's counts: interrupted sends, host calls sent again, the delay the interruptions added
+    (the failed sends' durations plus the waits; in P it runs on the scenario clock), in all and per session index
+    (a count, never a refusal), and the entries themselves."""
     retried = {(entry["session"], entry["message"], entry["round"]) for entry in entries if entry["retried"]}
+    by_session: dict = {}
+    for entry in entries:
+        by_session[entry["session"]] = by_session.get(entry["session"], 0) + entry["delay_seconds"]
     return {"interrupted_sends": len(entries), "retried_host_calls": len(retried),
-            "not_retried": sum(1 for entry in entries if not entry["retried"]), "at": entries}
+            "not_retried": sum(1 for entry in entries if not entry["retried"]),
+            "delay_seconds": round(sum(by_session.values()), 1),
+            "delay_by_session": [{"session": session, "seconds": round(seconds, 1)}
+                                 for session, seconds in sorted(by_session.items())],
+            "at": entries}
+
+
+# The codes a "provider interrupted CODE" log line may carry (c5-harness.py interruption_code); any other word is
+# printed as "other".
+INTERRUPTION_LOG_CODES = frozenset(INTERRUPTED_CLASSES | {f"http_{status}" for status in RETRIED_STATUSES}
+                                   | {f"body_{body}" for body in INCOMPLETE_BODIES})
+LEDGER_CHECK_FORMAT = 1
+
+
+def _ledger_interruptions(ledger: Path, after_seq: int) -> tuple[list, list, int]:
+    """(problems, [(code, request_bytes)] of the ledger's interrupted entries with ``seq`` above ``after_seq``, the
+    ledger's highest seq). An entry without a sequence number (a ledger written before 2026-11-17's review) cannot be
+    placed in a scenario, so it is a problem: such a ledger cannot be checked."""
+    try:
+        state = json.loads(ledger.read_text())
+    except (OSError, ValueError) as error:
+        return [f"the billing ledger is unreadable ({_class_name(type(error).__name__)})"], [], 0
+    requests = state.get("requests") if isinstance(state, dict) else None
+    if not isinstance(requests, dict):
+        return ["the billing ledger has no requests table"], [], 0
+    problems, found, numbers = [], [], []
+    for entry in requests.values():
+        seq = entry.get("seq") if isinstance(entry, dict) else None
+        if type(seq) is not int or seq < 1:
+            problems.append("a billing ledger entry has no sequence number (a ledger older than the 2026-11-17 "
+                            "format): its interruptions cannot be checked")
+            continue
+        numbers.append(seq)
+        if seq <= after_seq or "interrupted" not in entry:
+            continue
+        cause = _interruption_cause(entry["interrupted"]) if isinstance(entry["interrupted"], dict) else None
+        sent = entry.get("request_bytes")
+        found.append((cause[1] if cause else "other", sent if type(sent) is int else None))
+    if len(numbers) != len(set(numbers)):
+        problems.append("the billing ledger repeats a sequence number")
+    return list(dict.fromkeys(problems)), found, max(numbers, default=0)
+
+
+def ledger_check(ledger: Path, run_dirs: list[Path], after_seq: int = 0) -> dict:
+    """Compare the billing ledger's interrupted entries reserved after ``after_seq`` (the driver passes the ledger's
+    highest seq before the scenario started) with the interruption lines of the scenario's run directories: per
+    code, the same count and the same request sizes (a multiset of (code, request_bytes)). A difference is a harness
+    defect (an interrupted send charged but not recorded, or recorded but not charged), never a host behaviour, and
+    makes the scenario invalid. Content-free: codes, counts and sizes only. Lines are read as they are; validity
+    checks their format."""
+    problems, ledger_side, highest = _ledger_interruptions(ledger, after_seq)
+    lines_side = []
+    for run in run_dirs:
+        path = run / INTERRUPTIONS
+        for number, line in enumerate(path.read_text(errors="replace").splitlines() if path.exists() else [], 1):
+            try:
+                entry = json.loads(line)
+            except ValueError:
+                entry = None
+            cause = _interruption_cause(entry) if isinstance(entry, dict) else None
+            sent = entry.get("request_bytes") if isinstance(entry, dict) else None
+            if cause is None or type(sent) is not int:
+                problems.append(f"{run.name}: {INTERRUPTIONS} line {number} has no interruption code and size")
+                continue
+            lines_side.append((cause[1], sent))
+
+    def counts(pairs):
+        table: dict = {}
+        for code, _ in pairs:
+            table[code] = table.get(code, 0) + 1
+        return dict(sorted(table.items()))
+
+    unmatched_ledger, unmatched_lines = list(ledger_side), []
+    for pair in lines_side:
+        if pair in unmatched_ledger:
+            unmatched_ledger.remove(pair)
+        else:
+            unmatched_lines.append(pair)
+    if unmatched_ledger or unmatched_lines:
+        problems.append(f"harness defect: the ledger's interrupted requests ({len(ledger_side)}) and the run "
+                        f"directories' interruption lines ({len(lines_side)}) differ by code or request size")
+    return {"format": LEDGER_CHECK_FORMAT, "valid": not problems, "problems": problems, "after_seq": after_seq,
+            "ledger_highest_seq": highest, "ledger_interrupted": counts(ledger_side),
+            "interruption_lines": counts(lines_side),
+            "only_in_ledger": [{"code": code, "request_bytes": size} for code, size in sorted(
+                unmatched_ledger, key=lambda pair: (pair[0], pair[1] or 0))],
+            "only_in_lines": [{"code": code, "request_bytes": size} for code, size in sorted(unmatched_lines)]}
 
 
 def _markup_replies(rows: list, order: list) -> list:
@@ -1186,9 +1313,11 @@ def validity(run_dirs: list[Path], scenario_path: Path | None = None, persona_pr
     malformed file is refused as damaged evidence) and the replies with tool-call markup (TOOL_CALL_MARKUP), each as
     a count and positions [session index, message number]. Since 2026-11-17 also, per run directory, the host sends
     the billing guard settled as interrupted and the host calls the harness sent again
-    (``provider_interruptions``, from provider-interruptions.jsonl: counts, then each send's session index, message,
-    round, send number, code and whether it was retried). A retried interruption leaves the run valid; one that was
-    not retried, and a malformed file, are refused.
+    (``provider_interruptions``, from provider-interruptions.jsonl: counts, the delay the interruptions added in all
+    and per session index, then each send's session index, message, round, send number, code, whether it was
+    retried and its delay). A retried interruption leaves the run valid, whatever its delay; one that was not
+    retried, and a malformed file, are refused. The ledger's side of the interruptions is compared by ``ledger_check``
+    (the driver runs it after validity).
 
     Companion mode (``companion``, or a scenario with PAGE_ACTIONS: every C5 scenario) adds two checks, which also run
     whenever their records exist: every arm's page-actions.jsonl holds exactly the scenario's PAGE_ACTIONS in the
@@ -1499,7 +1628,8 @@ def diagnose(run_dirs: list[Path], scenario_path: Path | None = None) -> None:
     position; the tools the host called in each turn, as fixed codes (``_tool_code``); each harness event's kind,
     with a count per kind and positions (session index, message) where the event has them; the turns the host's own
     pause left unrecorded (host-pauses.jsonl) and the replies with tool-call markup, as counts and positions; the
-    provider interruptions (provider-interruptions.jsonl) as counts, positions, send numbers and fixed codes; and
+    provider interruptions (provider-interruptions.jsonl) as counts, positions, send numbers, fixed codes and the
+    delay they added, in all and per session index; and
     counts of the log's error lines by kind and exception class name. It never prints a payload string, a session id, an exception
     message, a log line or any input, reply, context or transcript: those can carry held-out content (attempt 3
     lost a scenario that way)."""
@@ -1563,6 +1693,11 @@ def diagnose(run_dirs: list[Path], scenario_path: Path | None = None) -> None:
                                         f"{entry['round']}, send {entry['send']} {entry['code']} "
                                         f"{'retried' if entry['retried'] else 'not retried'}" for entry in sent)
                      if sent else ""))
+            if sent:
+                print(f"     interruption delay (failed sends plus waits; in P on the scenario clock): "
+                      f"{report['delay_seconds']} s in all; "
+                      + "; ".join(f"session {item['session']} of {len(sessions)}: {item['seconds']} s"
+                                  for item in report["delay_by_session"]))
         if broken:
             print(f"     malformed provider-interruption lines: {len(broken)}")
         marked = _markup_replies(rows, order)
@@ -1578,8 +1713,7 @@ def diagnose(run_dirs: list[Path], scenario_path: Path | None = None) -> None:
                 name = f"host error {_class_name(words[2]) if len(words) > 2 else 'other'}"
             elif text.startswith("provider interrupted"):
                 code = words[2] if len(words) > 2 else ""
-                name = "provider interrupted " + (code if code in INTERRUPTED_CLASSES or re.fullmatch(
-                    r"http_(429|5\d\d)", code) else "other")
+                name = "provider interrupted " + (code if code in INTERRUPTION_LOG_CODES else "other")
             elif text.startswith("stop failed"):
                 name = f"stop failed {_class_name(words[2]) if len(words) > 2 else 'other'}"
             elif text.startswith("harness event"):
@@ -1833,6 +1967,13 @@ if __name__ == "__main__":
         attribution_inputs(Path(args[0]), Path(args[1]), args[2], args[3], Path(args[4]))
     elif command == "validity":
         if not validity([Path(arg) for arg in args], scenario_path, persona_preset, companion)["valid"]:
+            raise SystemExit(1)
+    elif command == "ledger-check":
+        if len(args) < 4 or args[0] != "--ledger" or args[2] != "--after-seq" or not re.fullmatch(r"\d{1,9}", args[3]):
+            raise SystemExit("usage: acceptance_review.py ledger-check --ledger LEDGER --after-seq N RUN_DIR...")
+        report = ledger_check(Path(args[1]), [Path(arg) for arg in args[4:]], int(args[3]))
+        print(json.dumps(report, sort_keys=True))
+        if not report["valid"]:
             raise SystemExit(1)
     elif command == "remarks":
         remarks(Path(args[0]), args[1])

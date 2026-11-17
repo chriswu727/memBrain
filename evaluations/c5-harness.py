@@ -56,11 +56,20 @@ module. Built on the Phase B harness (v1-2026-10-29-phase-b-harness.py), with:
   turn and pass a field of an earlier call's result on) and refuses every non-loopback connection, so the whole run
   makes no network call. Only practice scenarios carry stub scripts.
 - **Provider interruptions** (since 2026-11-17). A host send that ends in a transport timeout or a connection or
-  protocol error, or with HTTP 429 or a 5xx, is charged by the billing guard at a bound true for that request and
-  leaves the ledger open; the host client sends the same request again after 30 and then 120 seconds, three sends at
-  most (``INTERRUPTION_WAITS``), and records each interrupted send in provider-interruptions.jsonl (position and
-  codes only). It is not a harness event: a retried interruption leaves the run valid. A third interruption blocks
-  the ledger and stops the arm, as every provider failure did before.
+  protocol error, with HTTP 429, 500, 502, 503 or 504, or with a complete 2xx body that holds no billing JSON, is
+  charged by the billing guard at a bound true for that request and leaves the ledger open; the host client sends
+  the same request again after 30 and then 120 seconds, three sends at most (``INTERRUPTION_WAITS``), and records
+  each interrupted send in provider-interruptions.jsonl (position, codes, sizes and seconds only). It is not a
+  harness event: a retried interruption leaves the run valid. A third interruption blocks the ledger and stops the
+  arm, as every provider failure did before.
+- **What the host model is sent of its reasoning.** Within one turn's tool rounds, an assistant message with tool
+  calls is sent back with its ``reasoning_content``. Every earlier turn of the session in progress (``current``) is
+  sent without it, and so is every final reply; earlier sessions are not sent to P at all, and F is never offered
+  tools. The provider's thinking-mode guide says that with ``tools`` the reasoning must be passed back in all
+  subsequent requests or the API answers 400; that is not done here, and it is kept so (the call shape is frozen).
+  A 400 is fatal; if enforced, it would come at P's first request after a turn with a tool call (at a session's
+  second turn already if it covers every earlier assistant message): early in the first scenario, after a few
+  turns' spend, with the refused request keeping its whole reservation on the guard's count.
 
 The harness's own log and events name positions by index and carry kinds, codes and counts only: never a session
 id, a scenario's words, a tool argument or a reply.
@@ -475,23 +484,25 @@ class StubHost:
 # The host model ---------------------------------------------------------------------------------------------------
 
 # A host call whose send the billing guard settled as interrupted (a transport timeout or connection or protocol
-# error, HTTP 429 or a 5xx: evaluation_budget.ProviderInterrupted) is sent again, the same request, after these
-# waits in seconds: at most two retries, three sends in all. Each send reserves and settles under the guard and counts
-# against the host call cap. A third interruption, or one the cap leaves no send for, blocks the ledger with the
-# interruption's kind and stops the arm. Every interrupted send is one line of provider-interruptions.jsonl
-# (INTERRUPTION_FORMAT 1: time, session, turn, round, kind, error_class or http_status, send, retried), never a
-# harness event: a retried interruption leaves the run valid. Separate from the retries for an empty reply.
+# error, HTTP 429, 500, 502, 503 or 504, or a complete 2xx body without billing JSON:
+# evaluation_budget.ProviderInterrupted) is sent again, the same request, after these waits in seconds: at most two
+# retries, three sends in all. Each send reserves and settles under the guard and counts against the host call cap. A
+# third interruption, or one the cap leaves no send for, blocks the ledger with the interruption's kind and stops the
+# arm. Every interrupted send is one line of provider-interruptions.jsonl, never a harness event: a retried
+# interruption leaves the run valid. Separate from the retries for an empty reply. INTERRUPTION_FORMAT 2 (since
+# 2026-11-17's review; format 1 had no sizes or durations): format, time, session, turn, round, kind, the cause
+# (error_class; http_status; or http_status and body), request_bytes (the body's size as the guard recorded it),
+# send_seconds (how long the failed send took), wait_seconds (the wait before the next send, 0 without one), send and
+# retried.
 INTERRUPTION_WAITS = (30, 120)
 INTERRUPTIONS = "provider-interruptions.jsonl"
-INTERRUPTION_FORMAT = 1
+INTERRUPTION_FORMAT = 2
 
 
 def interruption_code(failure: dict) -> str:
-    """An interruption's cause as a fixed code: the guard's allowlisted class name, or ``http_<status>``."""
-    if failure.get("kind") == "provider_http_status" and type(failure.get("http_status")) is int:
-        return f"http_{failure['http_status']}"
-    name = failure.get("error_class")
-    return name if isinstance(name, str) and name in billing_module().INTERRUPTED_CLASSES else "other"
+    """An interruption's cause as a fixed code (evaluation_budget.interruption_code): the guard's allowlisted class
+    name, ``http_<status>`` or ``body_<reason>``; ``other`` for anything else."""
+    return billing_module().interruption_code(failure)
 
 
 class Host:
@@ -500,13 +511,19 @@ class Host:
         self.guard, self.out = guard, out  # The billing guard a final interruption blocks; the run directory.
         self.client = httpx.Client(timeout=600, transport=transport)
 
-    def _interrupted(self, failure: dict, send: int, retried: bool, at: dict | None) -> None:
-        at = at or {}
+    def _interrupted(self, error, send: int, retried: bool, at: dict | None, seconds: float) -> None:
+        at, failure = at or {}, error.failure
         if self.out is not None:
+            if failure.get("kind") == "provider_transport":
+                cause = {"error_class": interruption_code(failure)}
+            elif failure.get("kind") == "provider_incomplete_body":
+                cause = {"http_status": failure.get("http_status"), "body": failure.get("body")}
+            else:
+                cause = {"http_status": failure.get("http_status")}
             record = {"format": INTERRUPTION_FORMAT, "time": time.time(), "session": at.get("session"),
-                      "turn": at.get("turn"), "round": at.get("round"), "kind": failure.get("kind"),
-                      **({"http_status": failure["http_status"]} if "http_status" in failure
-                         else {"error_class": interruption_code(failure)}),
+                      "turn": at.get("turn"), "round": at.get("round"), "kind": failure.get("kind"), **cause,
+                      "request_bytes": error.request_bytes, "send_seconds": round(seconds, 3),
+                      "wait_seconds": INTERRUPTION_WAITS[send - 1] if retried else 0,
                       "send": send, "retried": retried}
             with (self.out / INTERRUPTIONS).open("a") as stream:
                 stream.write(json.dumps(record) + "\n")
@@ -531,6 +548,7 @@ class Host:
         empty = interrupted = 0
         while True:
             self.calls += 1
+            sent = time.monotonic()
             try:
                 response = self.client.post(BASE_URL + "/chat/completions", json=body,
                                              headers={"Authorization": "Bearer " + key})
@@ -543,7 +561,7 @@ class Host:
             except billing_module().ProviderInterrupted as error:
                 interrupted += 1
                 retried = interrupted <= len(INTERRUPTION_WAITS) and self.calls < self.cap
-                self._interrupted(error.failure, interrupted, retried, at)
+                self._interrupted(error, interrupted, retried, at, time.monotonic() - sent)
                 if not retried:
                     try:
                         if self.guard is not None:
@@ -1848,8 +1866,12 @@ def cleanup(run_dir: Path, wait: float = 30) -> dict:
 
 
 def interrupted(signum, frame):
+    """SIGTERM: block the ledger, then exit. Not while this process is inside a guarded section (waiting for the
+    ledger lock or holding it): stop() would take the lock again on another descriptor and wait for this process
+    itself. Then the handler only exits; the request in flight keeps its whole reservation, and the run script's
+    ``--stop`` (run on any nonzero arm exit, from another process) blocks the ledger."""
     try:
-        if BILLING is not None:
+        if BILLING is not None and not billing_module().lock_held():
             BILLING.stop("arm_interrupted")
     finally:
         raise SystemExit(128 + signum)

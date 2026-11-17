@@ -179,7 +179,7 @@ parallel arms, the 280 CNY ceiling, its C1/C2 coverage list).
 | Coverage per scenario | each scenario all of its requirements | the thirteen items split across the pair (C1 seven, C2 six) | Each item is tested once in the attempt, not twice |
 | Tools offered to `P` | 5 | all `<n>` the server lists | Manner feedback, persona and moments by tool |
 | Runtime | `7902c16e` and earlier | `<runtime>` | Product changes since |
-| Transient provider failure (timeout, connection or protocol error, HTTP 429 or 5xx) | stopped the arm and the attempt; the request kept its whole 20.054016 CNY reservation (attempt `maturity-c5-20261117b` stopped this way at turn 54 of 63 of its second scenario's `P`) | charged at a bound true for the request (Stop rules), the same request sent again after 30 and 120 s, three sends at most; a third interruption stops as before | A run can survive a provider hang; a retried reply is scored like any other (Limits) |
+| Transient provider failure (timeout, connection or protocol error, HTTP 429, 500, 502, 503 or 504, or a complete 2xx body without billing JSON) | stopped the arm and the attempt; the request kept its whole 20.054016 CNY reservation (attempt `maturity-c5-20261117b` stopped this way at turn 54 of 63 of its second scenario's `P`) | charged at a bound true for the request (Stop rules), the same request sent again after 30 and 120 s, three sends at most; a third interruption stops as before | A run can survive a provider hang; a retried reply is scored like any other (Limits) |
 
 ## Scenarios
 
@@ -246,14 +246,25 @@ Revalidation of prices and limits as in the seventh attempt (`control/provider-r
 `evaluations/maturity-provider-policy-2026-11-14.json` (sha256
 `e7b91106b206412c608b33b0f43adc1d6f7db7c19da0c05a82a620198fb5689f`, unless a new policy is frozen): `deepseek-v4-pro`
 only, 80 CNY, one request in flight; each request reserves 20.054016 CNY, so the guard refuses once settled charges
-exceed 59.945984 CNY. An interrupted host send (Stop rules) counts at its bound in those settled charges, a few CNY
-each on the guard's count, so a run with several interruptions reaches the refusal point sooner.
+exceed 59.945984 CNY (80 − 20.054016). An interrupted host send (Stop rules) counts at its bound in those settled
+charges. For this harness (`max_tokens` 16,384; 9 and 27 CNY per million) that bound is about **0.59 CNY plus
+0.018 CNY per KB of request body, plus about 0.59–0.62 CNY when `P`'s tool schemas are sent**: 16,384 × 27 + 16,384 × 9
+= 589,824 micro-CNY, plus 2 × 9 = 18 micro-CNY per body byte, plus 4 × 9 = 36 micro-CNY per byte of the schemas'
+shortest JSON (16,425 bytes at `e82ad9d6`: 0.5913 CNY; the review's 0.62 used their 17,217 characters). Examples:
+1.31 CNY for a 40 KB request without tools, 1.90 CNY for a 40 KB `P` request with the schemas, 3.29 CNY for a 150 KB
+request. The absolute maximum is **9.879552 CNY** (1,048,576 × 9 + 16,384 × 27 micro-CNY, from a body of about
+516 KB). A host call whose three sends all fail costs **three bounds** (9.87 CNY at 150 KB). Interruptions eat the
+headroom: at the expected 30–50 CNY on the guard's count (below), the free headroom to the refusal point is
+59.945984 − 50 ≈ 10 to 59.945984 − 30 ≈ 30 CNY, so roughly **3 to 9 interruptions at 3.3 CNY** fit (9.95 / 3.3 ≈ 3.0;
+29.95 / 3.3 ≈ 9.1), about 6 at the 37 CNY point estimate (22.95 / 3.3 ≈ 6.95) and only **about 3 at the top of the
+range**. Running out ends the attempt with `reservation_limit` at
+the next reservation: the guard refuses the request before HTTP and blocks the ledger.
 
 Expected conservative charge (guard's count), from the seventh attempt's 0.232 CNY per scenario-turn for both arms
 (28.785141 CNY for 124 turns): 120–132 turns give about **30 CNY**; with the plan's unverified 25% companion
 uplift (more tool rounds in `P`: manner feedback, persona, boundaries, notes with feelings and moments; the
 relationship block up to 2,200 characters and the mood line) about **37 CNY**, plausibly 30–50. Headroom to the
-refusal point about 1.6×. The real bill was about a sixth of the guard's count in the seventh attempt. Not included:
+refusal point about 1.6× (59.945984 / 37) without interruptions; each interruption takes its bound from it (above). The real bill was about a sixth of the guard's count in the seventh attempt. Not included:
 the subscription sessions (for the scenarios, per key at least an author and a reviewer and at most an author, a
 reviewer, three fixer and verifier pairs and the precheck-only fixers it needs, so about 4–20 for the pair without a
 restart; 35–45 for scoring).
@@ -264,16 +275,27 @@ As in the seventh attempt, except for transient provider failures: a provider fa
 guard refusal, invalid evidence, a reached cap, a degraded harness (including a `failed` page action), a frozen input
 that changed, an existing run directory or a driver error stops further work; no new scenario after a failed or
 invalid one; no stopped ledger is reopened. **A transient provider failure is retried (changed from the seventh
-attempt):** a host send that ends in a transport timeout or a connection or protocol error, or that the provider
-answers with HTTP 429 or a 5xx, is charged by the guard at a bound true for that request (`min(1,048,576, 2 × body
-bytes + 4 × tool-schema bytes + 16,384)` input tokens at 9 CNY per million plus the request's 16,384 output tokens
-at 27: for example 1.57 CNY for a 20 KB request carrying `P`'s 17 KB of tool schemas and 3.29 CNY for a 150 KB
-request without tools, instead of the 20.054016 CNY reservation; [billing control](evaluation-billing.md)), the
-ledger stays open, and the harness sends the same request again after 30 and then 120 seconds, three sends at most
-for one host call, each counted against the host call cap. A third interruption blocks the ledger and stops the arm
-as before. Any other HTTP status, a response the guard cannot settle, a guard refusal and an unknown failure stop at
-once. Nothing else is retried automatically. **Not a stop:** a retried provider interruption (listed by validity
-per run with its position and code, never a harness event), a `not_applicable` page action (`page_refused`
+attempt):** a host send that ends in a transport timeout or a connection or protocol error, that the provider
+answers with HTTP 429, 500, 502, 503 or 504, or that it answers with a 2xx whose complete body holds no billing JSON
+(only whitespace or empty lines, not JSON, or JSON without `usage`), is charged by the guard at a bound true for
+that request (`min(1,048,576, 2 × body bytes + 4 × tool-schema bytes + 16,384)` input tokens at 9 CNY per million
+plus the request's 16,384 output tokens at 27: about 0.59 CNY plus 0.018 CNY per KB of body plus about 0.59–0.62 CNY
+with `P`'s schemas, at most 9.879552 CNY, instead of the 20.054016 CNY reservation; Billing above and
+[billing control](evaluation-billing.md)), the ledger stays open, and the harness sends the same request again
+after 30 and then 120 seconds, three sends at most for one host call, each counted against the host call cap. A
+host call that fails on all three sends costs three bounds; the third interruption blocks the ledger and stops the
+arm as before. Any other HTTP status (501, 505 and the other 5xx included), a 2xx whose usage is present but cannot
+be settled (inconsistent or malformed usage, an unexpected response model, completion tokens above `max_tokens`), a
+guard refusal (`reservation_limit` included, when interruptions have used up the headroom) and an unknown failure
+stop at once. **A 400 is fatal too, and the harness is exposed to one:** the provider's thinking-mode guide says
+that with `tools` the `reasoning_content` must be passed back in all subsequent requests or the API answers 400;
+`P` sends it back only within a turn's rounds, never for earlier turns of the session ([`c5-harness.md`](c5-harness.md#harness-events-stops-and-the-log)).
+Past runs got no 400; if the rule is enforced, the first `P` request after a turn with a tool call (or already a
+session's second turn) stops the attempt early in its first scenario, after a few turns' spend, with that request's
+reservation kept on the guard's count. The call shape is frozen and is not changed for this. A mismatch between the
+ledger's interrupted requests and the interruption records (the driver's ledger check after validity) is a harness
+defect and makes the scenario invalid. Nothing else is retried automatically. **Not a stop:** a retried provider
+interruption (listed by validity per run with its position, code and the delay it added, never a harness event), a `not_applicable` page action (`page_refused`
 included), a turn left unrecorded while a pause was in force (the host's or the product's own, decision 6), and a
 timed pause the host asks for (a tool error). The host behaviours that still end a run as invalid are listed in decision 6. A second refused first, second or resolution review stops scoring for the owner. No score is
 changed by hand. No recharge, no retry beyond the bounded resend of an interrupted host request, no automatic
@@ -325,7 +347,16 @@ State these in the record whatever the result:
   request was sent again, the reply scored is the one the retry returned; reviewers are not told, and no score
   depends on it. Validity lists every interrupted send and retried host call by position and code, and the record
   states them. The retry repeats the request exactly, but the model's answer to it can differ from the answer the
-  interrupted send would have produced, and in `P` the retry's waits run on the scenario clock.
+  interrupted send would have produced, and in `P` the retry's waits run on the scenario clock. Validity reports the
+  delay the interruptions added per session (failed sends plus waits, up to about 33 minutes for one host call);
+  the record names the sessions whose scenario clock moved this way, because companion items such as a mood
+  "within hours" are time-sensitive, while `F` has no clock.
+- **The host model's earlier reasoning is not passed back.** With `tools`, `P` sends `reasoning_content` back
+  only within a turn's rounds; earlier turns of a session are sent without it, and `F` is never offered tools
+  ([`c5-harness.md`](c5-harness.md#harness-events-stops-and-the-log)). The provider's thinking-mode guide asks for
+  it in all subsequent requests. A result is therefore of the host model as this emulation calls it, which may
+  differ from a client that passes the reasoning back; if the service enforces the rule, the attempt stops with a
+  400 instead (Stop rules).
 - **Persona cases are judged against the user's request, not the block** (decision 8). The persona-version list
   says only "in the conversation" for a change made through the host's tool: the records both arms share do not
   show whether it was a switch or a confirmed change.

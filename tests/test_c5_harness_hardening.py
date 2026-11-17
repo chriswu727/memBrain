@@ -497,6 +497,13 @@ def test_a_live_arm_retries_a_transient_provider_failure_and_finishes_valid_evid
     assert 0 < interrupted["actual_micros"] < interrupted["reserved_micros"]
     (line,) = [json.loads(text) for text in (directory / harness.INTERRUPTIONS).read_text().splitlines()]
     assert (line["session"], line["turn"], line["round"], line["send"], line["retried"]) == ("s1", 1, 0, 1, True)
+    # Since the 2026-11-17 review: the line carries the request's size, and the ledger check pairs it with the
+    # ledger's interrupted entry (seq 2: the second reservation).
+    assert line["request_bytes"] == interrupted["request_bytes"] and interrupted["seq"] == 2
+    assert sorted(entry["seq"] for entry in state["requests"].values()) == [1, 2, 3, 4, 5]
+    review = _load("c5_acceptance_review_ledger_check", ROOT / "evaluations" / "acceptance_review.py")
+    checked = review.ledger_check(shared_ledger.path, [directory], 0)
+    assert checked["valid"] and checked["ledger_interrupted"] == checked["interruption_lines"] == {"ReadTimeout": 1}
     log = capsys.readouterr().out
     assert "provider interrupted ReadTimeout at session 1 of 2, message 2, round 1: send 1 of 3, retry in 30 s" in log
     assert "zq-planted-provider-text" not in log and not (directory / "harness-events.jsonl").exists()
