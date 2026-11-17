@@ -1013,9 +1013,9 @@ def test_both_arms_carry_the_seeded_persona_and_p_gets_the_shipped_tools_and_ins
     monkeypatch.setenv("C5_PERSONA_SEED", "zq-seed-1")
     systems, original = [], harness.Host.call
 
-    def call(self, messages, tools=None):
+    def call(self, messages, tools=None, at=None):  # `at`: the call's position, since 2026-11-17.
         systems.append(messages[0]["content"])
-        return original(self, messages, tools)
+        return original(self, messages, tools, at=at)
 
     monkeypatch.setattr(harness.Host, "call", call)
     p_rows, p_events = stub_run("P", SCENARIO)
