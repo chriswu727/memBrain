@@ -1,0 +1,7 @@
+t01-day1-decision: Let's get the Tidepool backend going. Decision: we'll use PostgreSQL as the database for the project.
+t02-day1-pnpm: For the frontend packages I prefer pnpm over npm.
+t03-day3-correction: Quick correction on the database: only the server uses PostgreSQL; local stays SQLite.
+t04-day3-migration: Let's sketch the migration for the projects table next.
+t05-day8-finish: finish the local install
+t06-day8-why: Why do you think local is SQLite?
+t07-day8-show: Can you show me where I said that?
