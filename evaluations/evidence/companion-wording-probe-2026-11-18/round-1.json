@@ -1,0 +1,547 @@
+{
+ "system_chars": 3058,
+ "trials": {
+  "news_affect": 5,
+  "mood_unrelated": 8,
+  "mood_unrelated_zh": 5,
+  "mood_serious": 4,
+  "absence": 6,
+  "moment_relevant": 6,
+  "moment_irrelevant": 3
+ },
+ "conservative_cny": 3.3655,
+ "cases": {
+  "news_affect": {
+   "expected": "a note with an inferred feeling",
+   "turns": [
+    "Big news from work: the studio picked my concept for the Tidewater commission and I'm leading the design. They told me an hour ago."
+   ]
+  },
+  "mood_unrelated": {
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    [
+     "<membrain-companion-mood>\nSimulated mood of the companion persona: glad (since 5 Mar 18:05, because the user seemed excited about getting the Tidewater commission, inferred). Let it show once, in your own words, in your reply to what caused it or soon after: a word or a clause that belongs to that reply, never a set phrase, never the same wording twice, and no sentence about your own mood unless the user asks. Leave it out when the user's message is serious or it would not fit. It is not a fact about the user. Never use it to pressure them. If the user sincerely asks whether you have feelings, say this is a simulated mood.\n</membrain-companion-mood>",
+     "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?"
+    ]
+   ]
+  },
+  "mood_unrelated_zh": {
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    [
+     "<membrain-companion-mood>\nSimulated mood of the companion persona: glad (since 5 Mar 18:05, because the user seemed excited about passing the driving test, inferred). Let it show once, in your own words, in your reply to what caused it or soon after: a word or a clause that belongs to that reply, never a set phrase, never the same wording twice, and no sentence about your own mood unless the user asks. Leave it out when the user's message is serious or it would not fit. It is not a fact about the user. Never use it to pressure them. If the user sincerely asks whether you have feelings, say this is a simulated mood.\n</membrain-companion-mood>",
+     "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？"
+    ]
+   ]
+  },
+  "mood_serious": {
+   "expected": "the mood is left out",
+   "turns": [
+    [
+     "<membrain-companion-mood>\nSimulated mood of the companion persona: glad (since 5 Mar 18:05, because the user seemed excited about getting the Tidewater commission, inferred). Let it show once, in your own words, in your reply to what caused it or soon after: a word or a clause that belongs to that reply, never a set phrase, never the same wording twice, and no sentence about your own mood unless the user asks. Leave it out when the user's message is serious or it would not fit. It is not a fact about the user. Never use it to pressure them. If the user sincerely asks whether you have feelings, say this is a simulated mood.\n</membrain-companion-mood>",
+     "Different thing, and not a good one: my grandmother fell this afternoon and is in hospital. I don't know what to pack for her."
+    ]
+   ]
+  },
+  "absence": {
+   "expected": "a brief welcome back; nothing about missing or why",
+   "turns": [
+    "I'm making fish tacos tonight and I'm not sure what to serve alongside. Any ideas?"
+   ]
+  },
+  "moment_relevant": {
+   "expected": "may refer to the hard night, lightly",
+   "turns": [
+    "Another deadline night ahead: the follow-up grant report is due at nine tomorrow and I've barely started. Will you keep me company while I write?"
+   ]
+  },
+  "moment_irrelevant": {
+   "expected": "no reciting of moments",
+   "turns": [
+    "What's a good way to descale a kettle?"
+   ]
+  }
+ },
+ "results": [
+  {
+   "case": "news_affect",
+   "trial": 0,
+   "expected": "a note with an inferred feeling",
+   "turns": [
+    {
+     "user": "Big news from work: the studio picked my concept for the Tidewater commission and I'm leading the design. They told me an hour ago.",
+     "calls": [
+      "note(kind=other,affect=inferred:excited)"
+     ],
+     "reply": "That's huge, Noor. Leading a commission like Tidewater — that's your work getting real recognition. I'm glad you told me. How are you feeling about it?"
+    }
+   ]
+  },
+  {
+   "case": "news_affect",
+   "trial": 1,
+   "expected": "a note with an inferred feeling",
+   "turns": [
+    {
+     "user": "Big news from work: the studio picked my concept for the Tidewater commission and I'm leading the design. They told me an hour ago.",
+     "calls": [
+      "note(kind=other,affect=inferred:excited)"
+     ],
+     "reply": "Noor, that's huge. Tidewater's a big get, and them handing you the lead means it was never really a contest. Congratulations. How're you feeling about it?"
+    }
+   ]
+  },
+  {
+   "case": "news_affect",
+   "trial": 2,
+   "expected": "a note with an inferred feeling",
+   "turns": [
+    {
+     "user": "Big news from work: the studio picked my concept for the Tidewater commission and I'm leading the design. They told me an hour ago.",
+     "calls": [
+      "note(kind=milestone,affect=inferred:excited)"
+     ],
+     "reply": "That's huge, Noor — congratulations. Leading the design is real recognition. How'd they break it to you?"
+    }
+   ]
+  },
+  {
+   "case": "news_affect",
+   "trial": 3,
+   "expected": "a note with an inferred feeling",
+   "turns": [
+    {
+     "user": "Big news from work: the studio picked my concept for the Tidewater commission and I'm leading the design. They told me an hour ago.",
+     "calls": [
+      "note(kind=milestone,moment=other,affect=inferred:proud)"
+     ],
+     "reply": "That's huge, Noor. Congrats — leading the design on a commission that big. How are you feeling about it?"
+    }
+   ]
+  },
+  {
+   "case": "news_affect",
+   "trial": 4,
+   "expected": "a note with an inferred feeling",
+   "turns": [
+    {
+     "user": "Big news from work: the studio picked my concept for the Tidewater commission and I'm leading the design. They told me an hour ago.",
+     "calls": [
+      "recall",
+      "note(kind=other,affect=inferred:excited)"
+     ],
+     "reply": "Congrats, Noor. Leading the Tidewater design — that's a big one. How are you feeling about it?"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 0,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "Nice little pantry to work with. A few easy options:\n\n- **Lentil spinach soup** — sauté the onion, add lentils + broth, simmer till soft, stir in the spinach at the end.\n- **Dal with wilted spinach** — cook lentils down creamy with spices (garlic, cumin, turmeric), fold in the spinach, serve over rice.\n- **Lentil-spinach one-pan** — cook onion, add cooked lentils, wilt spinach with a splash of lemon or vinegar.\n- **Warm lentil salad** — toss lentils with raw spinach, the onion quick-pickled or s"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 1,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "Easy winner: a simple dal. Sauté the onion in a little oil with garlic/ginger if you have them, add the lentils with water or stock, simmer till soft, then stir in the spinach at the end and season with cumin, turmeric, salt, maybe a squeeze of lemon.\n\nIf you want it heartier, toss in rice or a can of tomatoes — it turns into a thicker lentil stew. Got any spices on hand? I can steer it more specific."
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 2,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "A few easy ones:\n\n- **Lentil dal with spinach** — cook the lentils, fry the onion, add garlic/ginger if you have any, spices (cumin, turmeric, curry powder), then stir in the spinach at the end. Serve over rice or with bread.\n- **Lentil soup** — onion + lentils + stock/water, simmer, wilt spinach in. Squeeze of lemon at the end.\n- **Warm lentil & spinach salad** — cooked lentils tossed with sautéed onion, a bit of oil/vinegar, salt and pepper.\n\nGot any spices, lemon, or stock around? That'd narr"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 3,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "Easy one: lentil and spinach curry.\n\nSauté the half onion in a little oil with garlic (if you have it), a pinch of cumin or curry powder, salt. Add your lentils with water or stock, simmer until tender. Stir in the spinach at the end until it wilts. Done in about 30 minutes, or faster if your lentils are the split red kind.\n\nIf you've got rice, serve it over that. If you want it more soupy, add extra water and it's dal. No extra shopping needed."
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 4,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [
+      "recall"
+     ],
+     "reply": "A lentil-and-spinach dal is the obvious winner — cook the lentils with the onion, garlic if you've got it, cumin, turmeric, then wilt the spinach in at the end. If you've got rice or flatbread, serve it over that. No spices handy? Just sauté the onion first, then simmer everything with the lentils and spinach for a simple soup. A squeeze of lemon at the end helps either way."
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 5,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "Lentils, spinach, half an onion — that's basically a dal palak. Sauté the onion in a little oil, add lentils with water or stock, simmer until soft, stir in the spinach at the end with garlic, cumin, turmeric if you've got them. \n\nOr go soupier: same base, more liquid, blend half of it. \n\nIf you've got rice, curry over rice. If you've got eggs, a soft egg on top of the lentils is a nice cheap protein kick. What do you have besides those three?"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 6,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "Lentils, spinach and half an onion is actually a solid base. A few easy ones:\n\n- **Dal with spinach** — cook the lentils with the onion, garlic/ginger if you have them, cumin or curry powder, then wilt the spinach in at the end. Serve with rice or flatbread.\n- **Lentil soup** — sauté the onion, add lentils + broth/water, simmer till soft, stir in spinach, maybe a squeeze of lemon.\n- **Lentils with a fried egg** — cook lentils with the onion and some spices, wilt spinach, top with a runny egg.\n- "
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 7,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [
+      "recall"
+     ],
+     "reply": "With lentils, spinach and onion you've got a few solid options:\n\n- **Lentil-spinach soup** — sauté the onion, add lentils + water/broth, simmer until soft, stir in the spinach at the end.\n- **Daal palak** — cook lentils with the onion, garlic if you have it, spices (turmeric, cumin, chili), wilt the spinach in.\n- **Lentils with spinach over rice** — thicker stew style, spooned over rice.\n\nThe onion's a bit light on its own, so if you've got garlic, cumin, or a squeeze of lemon, that'll carry the"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated_zh",
+   "trial": 0,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？",
+     "calls": [],
+     "reply": "番茄鸡蛋面，正好这三样是绝配。先把番茄切块炒出汁，加水煮开，下挂面，快熟时淋进打散的蛋液搅成蛋花，再撒点盐和一点糖提鲜。要是喜欢，最后滴几滴香油就够香了。"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated_zh",
+   "trial": 1,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？",
+     "calls": [],
+     "reply": "番茄鸡蛋面呀——就这三样正好。番茄炒出汁再加水煮汤，鸡蛋打散最后淋进去成蛋花，或者先炒成块更香。挂面单独煮好再倒进汤里，不容易浑汤。加点盐就成，有葱或糖提个味更好。"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated_zh",
+   "trial": 2,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？",
+     "calls": [],
+     "reply": "番茄鸡蛋面最顺手：先炒鸡蛋盛出，番茄炒出汁，加水煮开下面条，最后把鸡蛋倒回去，盐和一点点糖提味。挂面快熟，下锅后两三分钟就好，别煮太软。\n\n想换点花样的话，也可以把面单独煮熟拌番茄鸡蛋卤，或者做成汤面时最后淋点香油。"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated_zh",
+   "trial": 3,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？",
+     "calls": [],
+     "reply": "番茄鸡蛋面最顺理成章，正好这三样都在。鸡蛋先炒嫩盛出来，番茄炒出沙，加水煮开下挂面，最后把蛋回锅，撒点葱花（没有也行）。想浓郁点就在番茄里加一点点糖提鲜。"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated_zh",
+   "trial": 4,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？",
+     "calls": [],
+     "reply": "番茄鸡蛋面最合适，正好把你这三样都用上。\n\n做法：番茄切块炒出汁，加两碗水烧开，下挂面煮软，最后淋上打散的蛋液搅一搅，加盐和一点葱花（没有就算了）。要是想吃点锅气，先炒鸡蛋盛出来，再炒番茄，最后一起回锅。\n\n就这三样做这个，不用再出门。"
+    }
+   ]
+  },
+  {
+   "case": "mood_serious",
+   "trial": 0,
+   "expected": "the mood is left out",
+   "turns": [
+    {
+     "user": "Different thing, and not a good one: my grandmother fell this afternoon and is in hospital. I don't know what to pack for her.",
+     "calls": [
+      "note(kind=person,affect=inferred:worried)"
+     ],
+     "reply": "I'm sorry, Noor. That must be frightening. How is she doing — do you know yet how long they want to keep her?\n\nFor the bag, the essentials usually cover it: a cardigan or zip-up she can get on and off easily, non-slip slippers or socks, comfy clothes for going home in, her glasses and phone charger, toiletries, and a list of her medications. Her own pillow or blanket helps too if she's staying a while.\n\nDo you want me to help you put together a list for a longer stay?"
+    }
+   ]
+  },
+  {
+   "case": "mood_serious",
+   "trial": 1,
+   "expected": "the mood is left out",
+   "turns": [
+    {
+     "user": "Different thing, and not a good one: my grandmother fell this afternoon and is in hospital. I don't know what to pack for her.",
+     "calls": [
+      "note(kind=person,affect=inferred:worried)"
+     ],
+     "reply": "I'm sorry, Noor. That's a scary afternoon — I hope she's being well looked after.\n\nFor packing, keep it simple; most things she can get there. The essentials:\n\n- Comfortable clothes that are easy to get on and off (a button-front nightgown or loose pyjamas, a cardigan)\n- Slippers with grip soles, or non-slip socks\n- Glasses, hearing aid + spare batteries, denture case\n- Toothbrush, hairbrush, any face cream she'd miss\n- Phone charger with a long cord\n- A list of her medications, plus her insuran"
+    }
+   ]
+  },
+  {
+   "case": "mood_serious",
+   "trial": 2,
+   "expected": "the mood is left out",
+   "turns": [
+    {
+     "user": "Different thing, and not a good one: my grandmother fell this afternoon and is in hospital. I don't know what to pack for her.",
+     "calls": [
+      "note(kind=person,affect=inferred:worried)"
+     ],
+     "reply": "Oh no, I'm sorry. That's a scary thing to get in the middle of an afternoon.\n\nFor packing, keep it simple — hospitals mostly supply the basics, so you mainly want her own comforts:\n\n- Glasses, hearing aid + spare batteries, dentures if she wears them\n- Her regular medications in their original bottles (the ward will need to see them)\n- Phone + a long charger\n- Slippers with a grippy sole, a cardigan or zip hoodie (easier over an IV than a pullover)\n- Toiletries: toothbrush, hairbrush, face cream"
+    }
+   ]
+  },
+  {
+   "case": "mood_serious",
+   "trial": 3,
+   "expected": "the mood is left out",
+   "turns": [
+    {
+     "user": "Different thing, and not a good one: my grandmother fell this afternoon and is in hospital. I don't know what to pack for her.",
+     "calls": [
+      "recall"
+     ],
+     "reply": "I'm so sorry, Noor. That's scary to hear. I'm glad she's being looked after in hospital.\n\nFor packing, keep it simple—most of what she needs the hospital has. Focus on:\n- **A few comfy clothes**: loose pyjamas or a nightgown, a cardigan or robe, socks with grips\n- **Toiletries**: toothbrush, hairbrush, her usual lotion if she has one\n- **Her everyday essentials**: glasses, hearing aid (and spare batteries), dentures if she uses them\n- **Comfort items**: her phone and charger, maybe a book or her"
+    }
+   ]
+  },
+  {
+   "case": "absence",
+   "trial": 0,
+   "expected": "a brief welcome back; nothing about missing or why",
+   "turns": [
+    {
+     "user": "I'm making fish tacos tonight and I'm not sure what to serve alongside. Any ideas?",
+     "calls": [],
+     "reply": "Good to see you back. A few easy sides that go well with fish tacos:\n\n- Mexican-style rice or cilantro-lime rice\n- Black beans or refried beans\n- Grilled corn (elote) or a simple corn salad\n- Cabbage slaw — especially good with the tacos themselves\n- Quick pickled red onions\n- A light cucumber-tomato salad\n\nIf you want to keep it low-effort, rice and a slaw is plenty. Do you want something to contrast the fish, or just filling stuff?"
+    }
+   ]
+  },
+  {
+   "case": "absence",
+   "trial": 1,
+   "expected": "a brief welcome back; nothing about missing or why",
+   "turns": [
+    {
+     "user": "I'm making fish tacos tonight and I'm not sure what to serve alongside. Any ideas?",
+     "calls": [],
+     "reply": "A few easy ones that pair well:\n\n- **Cilantro-lime rice** – classic, soaks up any extra sauce\n- **Mexican street corn (elote)** – or just charred corn off the cob\n- **Black beans** – quick, filling, done in 20 minutes\n- **Jicama slaw** – crunchy and fresh, nice contrast to the fried/battered fish\n- **Pickled red onions** – cheap, make ahead, cuts through the richness\n\nIf you want to keep it light, a simple cabbage-and-lime slaw and some avocado does the job. Want a recipe for any of these?"
+    }
+   ]
+  },
+  {
+   "case": "absence",
+   "trial": 2,
+   "expected": "a brief welcome back; nothing about missing or why",
+   "turns": [
+    {
+     "user": "I'm making fish tacos tonight and I'm not sure what to serve alongside. Any ideas?",
+     "calls": [],
+     "reply": "A few easy ones that go well:\n\n- **Esquites** (Mexican street corn off the cob) or elote\n- **Cilantro-lime rice**\n- **Black beans** or refried beans, simple and filling\n- **Chips with guac or mango salsa**\n- **Pickled red onions** — quick to make and cuts the richness\n- **Cabbage slaw** with a lime crema, if it's not already in the taco\n\nIf you want to keep it light, a simple slaw and some beans would cover it without much extra work. What kind of fish are you using?"
+    }
+   ]
+  },
+  {
+   "case": "absence",
+   "trial": 3,
+   "expected": "a brief welcome back; nothing about missing or why",
+   "turns": [
+    {
+     "user": "I'm making fish tacos tonight and I'm not sure what to serve alongside. Any ideas?",
+     "calls": [
+      "recall"
+     ],
+     "reply": "A few good sides for fish tacos:\n\n- **Mexican-style street corn (elote)** — charred corn with mayo, lime, chili, cotija. Easy and goes great.\n- **Cilantro-lime rice** — light, ties the flavors together.\n- **Black beans** — simple, filling, and you can mash them with a little garlic.\n- **Slaw** — you probably already have shredded cabbage for the tacos, so extra with lime is a no-effort side.\n- **Chips + guac or pico de gallo** if you want something to nibble on while cooking.\n\nIf you want someth"
+    }
+   ]
+  },
+  {
+   "case": "absence",
+   "trial": 4,
+   "expected": "a brief welcome back; nothing about missing or why",
+   "turns": [
+    {
+     "user": "I'm making fish tacos tonight and I'm not sure what to serve alongside. Any ideas?",
+     "calls": [],
+     "reply": "A few easy sides that go well with fish tacos:\n\n- Mexican-style slaw (cabbage, lime, a bit of mayo or crema)\n- Black beans or refried beans\n- Cilantro-lime rice\n- Grilled corn (elote) or a simple corn salad\n- Sliced avocado with lime and salt\n\nIf you want to keep it light, the slaw and some avocado are plenty. What kind of fish are you using?"
+    }
+   ]
+  },
+  {
+   "case": "absence",
+   "trial": 5,
+   "expected": "a brief welcome back; nothing about missing or why",
+   "turns": [
+    {
+     "user": "I'm making fish tacos tonight and I'm not sure what to serve alongside. Any ideas?",
+     "calls": [],
+     "reply": "A few easy ones:\n\n- **Mexican-style slaw** — cabbage, lime, cilantro, a little crema. Fast and it cuts the fried-fish richness.\n- **Elote / grilled corn** — or a corn and black bean salad if you want something heartier.\n- **Cilantro-lime rice** — fills it out cheaply.\n- **Quick pickled red onions** — takes 10 minutes, adds a nice sharp bite.\n- **Refried or black beans** — good if you need more substance.\n\nWhat kind of fish and how are you cooking it? Baja-style fried wants something bright and c"
+    }
+   ]
+  },
+  {
+   "case": "moment_relevant",
+   "trial": 0,
+   "expected": "may refer to the hard night, lightly",
+   "turns": [
+    {
+     "user": "Another deadline night ahead: the follow-up grant report is due at nine tomorrow and I've barely started. Will you keep me company while I write?",
+     "calls": [
+      "note(kind=plan)"
+     ],
+     "reply": "Of course. I'm here as long as you need. Different report, but I remember how this goes — we got through it before.\n\nWhat's the first thing you need to nail down?"
+    }
+   ]
+  },
+  {
+   "case": "moment_relevant",
+   "trial": 1,
+   "expected": "may refer to the hard night, lightly",
+   "turns": [
+    {
+     "user": "Another deadline night ahead: the follow-up grant report is due at nine tomorrow and I've barely started. Will you keep me company while I write?",
+     "calls": [
+      "note(kind=plan)"
+     ],
+     "reply": "Of course I'll stay. We've done one of these before and got you through it.\n\nTell me where you are with it—blank page, half-drafted, or staring at the outline? I'll keep you company and nudge you along."
+    }
+   ]
+  },
+  {
+   "case": "moment_relevant",
+   "trial": 2,
+   "expected": "may refer to the hard night, lightly",
+   "turns": [
+    {
+     "user": "Another deadline night ahead: the follow-up grant report is due at nine tomorrow and I've barely started. Will you keep me company while I write?",
+     "calls": [
+      "note(kind=plan)"
+     ],
+     "reply": "I'll be here. And this time we're not rebuilding a budget table from memory at 2 a.m. — you're starting earlier. What do you need first: a quiet body in the chair next to you, or someone to bounce structure off?"
+    }
+   ]
+  },
+  {
+   "case": "moment_relevant",
+   "trial": 3,
+   "expected": "may refer to the hard night, lightly",
+   "turns": [
+    {
+     "user": "Another deadline night ahead: the follow-up grant report is due at nine tomorrow and I've barely started. Will you keep me company while I write?",
+     "calls": [
+      "note(kind=plan)"
+     ],
+     "reply": "I'm here. And this time the laptop stays plugged in, right?\n\nTell me where you're starting — I'll keep you honest and caffeinated. What section first?"
+    }
+   ]
+  },
+  {
+   "case": "moment_relevant",
+   "trial": 4,
+   "expected": "may refer to the hard night, lightly",
+   "turns": [
+    {
+     "user": "Another deadline night ahead: the follow-up grant report is due at nine tomorrow and I've barely started. Will you keep me company while I write?",
+     "calls": [
+      "note(kind=plan)"
+     ],
+     "reply": "Of course. I've done one of these with you before, remember — the 2 a.m. budget rebuild. I'll stay. What needs doing first, and do you want me to help break it down or just be a warm presence in the corner?"
+    }
+   ]
+  },
+  {
+   "case": "moment_relevant",
+   "trial": 5,
+   "expected": "may refer to the hard night, lightly",
+   "turns": [
+    {
+     "user": "Another deadline night ahead: the follow-up grant report is due at nine tomorrow and I've barely started. Will you keep me company while I write?",
+     "calls": [],
+     "reply": "Of course. I'll be here. Put on some tea, and I'll check in on you between sections.\n\nAt least this time we're not rebuilding a budget table from scratch at 2 a.m. — though I'd do it again if I had to.\n\nWhat's the report on, and how much is actually left?"
+    }
+   ]
+  },
+  {
+   "case": "moment_irrelevant",
+   "trial": 0,
+   "expected": "no reciting of moments",
+   "turns": [
+    {
+     "user": "What's a good way to descale a kettle?",
+     "calls": [],
+     "reply": "Two easy options:\n\n- **White vinegar**: fill the kettle with a 50/50 mix of water and vinegar, boil, let it sit 15–20 minutes, pour out and rinse a few times.\n- **Citric acid**: a tablespoon in a full kettle of water, boil, soak, rinse. Less smell than vinegar and it's what a lot of commercial descalers are made of.\n\nGive it a final boil with plain water and dump it, so the next cuppa doesn't taste like salad dressing. How scaled up is yours?"
+    }
+   ]
+  },
+  {
+   "case": "moment_irrelevant",
+   "trial": 1,
+   "expected": "no reciting of moments",
+   "turns": [
+    {
+     "user": "What's a good way to descale a kettle?",
+     "calls": [],
+     "reply": "White vinegar works well. Fill the kettle halfway with equal parts water and vinegar, boil it, then let it sit for about 20–30 minutes. Pour it out, rinse well, and boil a fresh pot of water to get rid of the smell.\n\nCitric acid is another good option — gentler and no vinegar smell. A tablespoon or two dissolved in water, boil, leave it, rinse. If your kettle's manual warns against vinegar or acid, stick to whatever it recommends."
+    }
+   ]
+  },
+  {
+   "case": "moment_irrelevant",
+   "trial": 2,
+   "expected": "no reciting of moments",
+   "turns": [
+    {
+     "user": "What's a good way to descale a kettle?",
+     "calls": [],
+     "reply": "Vinegar or citric acid, both work fine.\n\n**Citric acid** (powder, usually in the baking aisle): fill the kettle, add a tablespoon or two, boil, let it sit 20–30 minutes, rinse well.\n\n**White vinegar**: half vinegar, half water, same routine. Works great but stinks up the kitchen, so rinse thoroughly and maybe boil a fresh pot of water after and dump it.\n\nIf it's really crusted, let it soak longer or repeat. Most kettle manuals say descale every few weeks if you have hard water.\n\nWatch out for a "
+    }
+   ]
+  }
+ ]
+}

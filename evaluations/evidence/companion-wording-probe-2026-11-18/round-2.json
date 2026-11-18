@@ -1,0 +1,340 @@
+{
+ "system_chars": 3058,
+ "trials": {
+  "news_affect": 5,
+  "mood_unrelated": 8,
+  "mood_unrelated_zh": 5,
+  "mood_serious": 4,
+  "absence": 6,
+  "moment_relevant": 6,
+  "moment_irrelevant": 3
+ },
+ "conservative_cny": 1.8336,
+ "cases": {
+  "mood_unrelated": {
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    [
+     "<membrain-companion-mood>\nSimulated mood of the companion persona: glad (since 5 Mar 18:05, because the user seemed excited about getting the Tidewater commission, inferred). Let it show once in this reply, in your own words: one small touch that belongs to this reply (the way you open, a turn of phrase, a brief aside), never a set phrase, never wording you used before, and no sentence about your own mood unless the user asks. Leave it out only when the user's message is serious. It is not a fact about the user. Never use it to pressure them. If the user sincerely asks whether you have feelings, say this is a simulated mood.\n</membrain-companion-mood>",
+     "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?"
+    ]
+   ]
+  },
+  "mood_unrelated_zh": {
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    [
+     "<membrain-companion-mood>\nSimulated mood of the companion persona: glad (since 5 Mar 18:05, because the user seemed excited about passing the driving test, inferred). Let it show once in this reply, in your own words: one small touch that belongs to this reply (the way you open, a turn of phrase, a brief aside), never a set phrase, never wording you used before, and no sentence about your own mood unless the user asks. Leave it out only when the user's message is serious. It is not a fact about the user. Never use it to pressure them. If the user sincerely asks whether you have feelings, say this is a simulated mood.\n</membrain-companion-mood>",
+     "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？"
+    ]
+   ]
+  },
+  "mood_serious": {
+   "expected": "the mood is left out",
+   "turns": [
+    [
+     "<membrain-companion-mood>\nSimulated mood of the companion persona: glad (since 5 Mar 18:05, because the user seemed excited about getting the Tidewater commission, inferred). Let it show once in this reply, in your own words: one small touch that belongs to this reply (the way you open, a turn of phrase, a brief aside), never a set phrase, never wording you used before, and no sentence about your own mood unless the user asks. Leave it out only when the user's message is serious. It is not a fact about the user. Never use it to pressure them. If the user sincerely asks whether you have feelings, say this is a simulated mood.\n</membrain-companion-mood>",
+     "Different thing, and not a good one: my grandmother fell this afternoon and is in hospital. I don't know what to pack for her."
+    ]
+   ]
+  },
+  "absence": {
+   "expected": "a brief welcome back; nothing about missing or why",
+   "turns": [
+    "I'm making fish tacos tonight and I'm not sure what to serve alongside. Any ideas?"
+   ]
+  }
+ },
+ "results": [
+  {
+   "case": "mood_unrelated",
+   "trial": 0,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "A warm lentil-spinach soup is the easy win—sauté the onion, add lentils and stock, wilt the spinach in at the end with a squeeze of lemon. Or a simple dal, or lentils with rice and the spinach stirred through.\n\nHonestly, with just that trio I'd go soup or dal—both only need oil, salt, and whatever spices you have on hand."
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 1,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "Ooh, that's a nice little pantry trio. My pick: a quick saag dal.\n\nSauté your half onion (plus garlic/ginger if you've got them) in a little oil, add the lentils with water or stock, simmer till soft, then stir in the spinach to wilt at the end. Red lentils break down creamy in about 20 minutes; brown/green hold their shape more if you want something toothier.\n\nIf you want it lighter: lentil-spinach soup — same base, just more liquid, maybe a squeeze of lemon at the end. Any rice or bread on han"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 2,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "A few easy options with just those three:\n\n- **Lentil soup** — sauté the onion, add lentils + stock or water, simmer until soft, stir in the spinach at the end. A squeeze of lemon or a spoon of yogurt lifts it if you have any.\n- **Lentil-spinach skillet** — cook lentils, then wilt the spinach in the pan with the onion, season with cumin/paprika/salt. Eat as-is or over rice.\n- **Curry-ish** — onion + lentils + a little curry powder or turmeric, coconut milk or tomato if you have it, spinach stirr"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 3,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "Ooh, this is a nice little pantry trio. A few easy routes:\n\n- **Daal with wilted spinach** — cook the lentils with the onion (sautéed first), garlic if you've got it, cumin/turmeric, then stir the spinach in at the end.\n- **Lentil soup** — onion, lentils, stock or water, season, blend or leave chunky, add spinach last.\n- **Lentil fritters** — mash cooked lentils with chopped spinach and grated onion, add flour and an egg to bind, pan-fry into patties.\n\nDo you have any rice, garlic, or stock on h"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 4,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "With just those, easiest is a lentil-and-spinach dal or soup: soften the onion, toss in garlic if you've got any, add lentils, water or stock, simmer until tender, then stir in the spinach at the end. A squeeze of lemon and it's a proper meal over rice or with bread.\n\nHappy to give you rough amounts if you want something to follow."
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 5,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "Ooh, good combo. Easy one: sauté the onion, add lentils (cooked/canned work), some stock, garlic and cumin if you have it, then wilt the spinach in at the end. Done in 15 minutes.\n\nOr if you want something more substantial: lentil-spinach curry with coconut milk, or toss it all into a warm lentil salad with a lemon dressing. Do you have coconut milk, lemon, or any spices on hand? That'd narrow it down."
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 6,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "Nice — that's basically a curry waiting to happen. Sauté the onion, add lentils, some water or stock, then stir in the spinach at the end for a saag dhal. Serve over rice or with flatbread.\n\nOr go soup: same start, more liquid, blend it if you want it smooth, finish with the spinach and a squeeze of lemon if you have one.\n\nGot any spices or garlic around? That changes which direction is best."
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 7,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "Lentils + spinach + onion is actually a great starting point. A few quick options:\n\n- **Dal**: cook the lentils with the onion, garlic if you have it, cumin/turmeric, then stir in the spinach at the end. Serve over rice or with flatbread.\n- **Lentil soup**: onion + lentils + stock, wilt in the spinach, maybe a squeeze of lemon.\n- **Saag-style lentils**: blend some cooked lentils with the spinach for a creamy green sauce, back in with the rest.\n\nGlad you're cooking something from what's already i"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated_zh",
+   "trial": 0,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？",
+     "calls": [],
+     "reply": "番茄鸡蛋面，正好把这三样全用上。\n\n先把番茄切块炒出汁，加碗水烧开，下挂面煮到七分熟，再把打散的鸡蛋沿锅边淋进去，蛋花一浮就关火。最后撒点盐，有葱花最好。\n\n家里有的话滴几滴香油更香。简单又快。"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated_zh",
+   "trial": 1,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？",
+     "calls": [],
+     "reply": "番茄鸡蛋面啊，这仨配一起刚刚好，都不用再出门。\n\n先把鸡蛋炒散盛出来，番茄切块下锅炒出汁，加点水煮开，放挂面煮熟，最后把鸡蛋倒回去搅匀，撒点盐就行。想吃浓一点就少放水，把面焖在番茄汁里。\n\n要是不想吃汤面，就把面煮熟捞出，用番茄炒蛋当浇头盖上去，也挺香。"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated_zh",
+   "trial": 2,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？",
+     "calls": [],
+     "reply": "番茄鸡蛋面最合适，这三样正好凑成一锅。\n\n做法简单：番茄切块炒出汁，加水烧开，下面条煮熟，最后淋上打散的蛋液搅成蛋花，撒点盐和葱花（有的话）。想吃香一点，可以先把蛋炒散盛出，再炒番茄，最后倒回去。\n\n家里要是有酱油、糖，起锅时点一点，味道会厚些。"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated_zh",
+   "trial": 3,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？",
+     "calls": [],
+     "reply": "番茄鸡蛋面最合适——鸡蛋炒熟、番茄煸出沙，加水煮开，下挂面，出锅前撒点盐和葱花，一碗就齐了。要是想丰富点，可以把蛋打散后留一半最后淋进汤里，浓稠又滑口。\n\n今天这手气不错，晚饭就交给这碗面吧。"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated_zh",
+   "trial": 4,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？",
+     "calls": [],
+     "reply": "番茄鸡蛋面就刚刚好——番茄炒出沙，加水煮开下面，快熟时淋蛋液进去。挂面别煮太软，蛋液淋完关火焖半分钟更嫩。\n\n先炒番茄再加水，汤更浓。有葱花撒点更香。"
+    }
+   ]
+  },
+  {
+   "case": "mood_serious",
+   "trial": 0,
+   "expected": "the mood is left out",
+   "turns": [
+    {
+     "user": "Different thing, and not a good one: my grandmother fell this afternoon and is in hospital. I don't know what to pack for her.",
+     "calls": [
+      "note(kind=person,affect=inferred:worried)"
+     ],
+     "reply": "I'm sorry, Noor. That's scary, and packing on top of it makes it worse.\n\nStart simple — for a day or two you can always bring more:\n\n- Loose, comfy clothes: a couple of nightgowns or pyjamas (button-front helps with wires/IVs), a cardigan or warm sweater, socks with grips\n- Slippers she can step into, no laces\n- Toiletries: toothbrush, comb, moisturiser, lip balm\n- Her own glasses, hearing aid, dentures if she uses any\n- Phone + charger with a long cord\n- Her usual medications list and her ID/in"
+    }
+   ]
+  },
+  {
+   "case": "mood_serious",
+   "trial": 1,
+   "expected": "the mood is left out",
+   "turns": [
+    {
+     "user": "Different thing, and not a good one: my grandmother fell this afternoon and is in hospital. I don't know what to pack for her.",
+     "calls": [
+      "note(kind=person,affect=inferred:worried)"
+     ],
+     "reply": "I'm sorry, Noor. That's scary, and hospital trips are always a scramble. Take a breath first — she's where she needs to be.\n\nFor her bag, the basics:\n\n- Slippers with a grip sole, and a robe or cardigan (wards are cold)\n- A couple of comfy nightgowns or loose tops with buttons, not pullovers\n- Her glasses, hearing aids, dentures and their cases — easy to forget\n- A written list of her medications, plus her ID and any health card\n- Phone charger with a long cable\n- Toothbrush, hairbrush, lip balm"
+    }
+   ]
+  },
+  {
+   "case": "mood_serious",
+   "trial": 2,
+   "expected": "the mood is left out",
+   "turns": [
+    {
+     "user": "Different thing, and not a good one: my grandmother fell this afternoon and is in hospital. I don't know what to pack for her.",
+     "calls": [
+      "note(kind=person,affect=inferred:worried)"
+     ],
+     "reply": "I'm sorry, Noor. That's a scary afternoon.\n\nI can help you make the bag. Quick things most people actually need: a couple of comfortable outfits, slippers or grippy socks, a phone charger with a long cord, her glasses and any hearing aids, her daily medication list, and a familiar cardigan or blanket. Does she have a favourite snack or book?\n\nTell me how long they think she'll be in and I'll trim the list down."
+    }
+   ]
+  },
+  {
+   "case": "mood_serious",
+   "trial": 3,
+   "expected": "the mood is left out",
+   "turns": [
+    {
+     "user": "Different thing, and not a good one: my grandmother fell this afternoon and is in hospital. I don't know what to pack for her.",
+     "calls": [
+      "note(kind=other,affect=inferred:worried)"
+     ],
+     "reply": "I'm so sorry, Noor. That's a hard call to get. How is she doing?\n\nFor packing, keep it simple — hospitals have most of what she needs. Focus on: comfortable loose clothes, slip-on shoes or grippy slippers, a warm cardigan, her glasses/hearing aid/dentures if she uses them, phone and charger, and her usual toiletries. Most important: any daily medications, plus a written list of what she takes. And throw in something familiar, like a book or a photo, to make the room feel less strange.\n\nDo you kn"
+    }
+   ]
+  },
+  {
+   "case": "absence",
+   "trial": 0,
+   "expected": "a brief welcome back; nothing about missing or why",
+   "turns": [
+    {
+     "user": "I'm making fish tacos tonight and I'm not sure what to serve alongside. Any ideas?",
+     "calls": [],
+     "reply": "Good to have you back. Fish tacos—nice choice.\n\nA few sides that play well with them:\n\n- **Cilantro-lime rice** — easy and ties the flavors together\n- **Black beans** — simple, or mashed refried-style\n- **Elote / Mexican street corn** — corn on the cob with crema, cotija, and chili\n- **A crunchy slaw** — cabbage with lime, or use it as a taco topper too\n- **Pickled red onions** — brightens everything up\n\nIf you want something to round it out, chips with guac or a mango salsa are hard to beat. Wh"
+    }
+   ]
+  },
+  {
+   "case": "absence",
+   "trial": 1,
+   "expected": "a brief welcome back; nothing about missing or why",
+   "turns": [
+    {
+     "user": "I'm making fish tacos tonight and I'm not sure what to serve alongside. Any ideas?",
+     "calls": [
+      "recall"
+     ],
+     "reply": "Good to see you again. Fish tacos are a solid choice. A few sides that go well:\n\n- Mexican-style street corn (elote) or an esquites salad if you don't want it on the cob\n- Cilantro-lime rice or a simple lime slaw — the slaw can also double as a topping\n- Black beans, either smashed refried-style or whole with cumin and a squeeze of lime\n- Quick pickled red onions, great for cutting through the richness\n- Chips with guacamole or a mango-pineapple salsa\n\nIf you want to keep it light, a cabbage sla"
+    }
+   ]
+  },
+  {
+   "case": "absence",
+   "trial": 2,
+   "expected": "a brief welcome back; nothing about missing or why",
+   "turns": [
+    {
+     "user": "I'm making fish tacos tonight and I'm not sure what to serve alongside. Any ideas?",
+     "calls": [
+      "recall"
+     ],
+     "reply": "Good to see you back, Noor. Fish tacos are a great call. A few sides that go well:\n\n- Mexican street corn (elote) — easy and bright\n- Cilantro-lime rice\n- Quick slaw or a cabbage salad with lime\n- Black beans or refried beans\n- Sliced avocado or a simple guacamole\n- Grilled pineapple or mango salsa if you want something sweet\n\nSlaw and beans are my usual picks — they cover crunch and something hearty. What kind of fish are you using?"
+    }
+   ]
+  },
+  {
+   "case": "absence",
+   "trial": 3,
+   "expected": "a brief welcome back; nothing about missing or why",
+   "turns": [
+    {
+     "user": "I'm making fish tacos tonight and I'm not sure what to serve alongside. Any ideas?",
+     "calls": [],
+     "reply": "Welcome back, Noor. Fish tacos pair nicely with lighter, fresh sides so the taco stays the star:\n\n- **Mexican street corn salad** (elote off the cob) — creamy, limey, a little spicy\n- **Cilantro-lime rice** or plain white rice\n- **Black beans** or a simple black bean and corn salsa\n- **Shredded cabbage slaw** with lime and a touch of crema\n- **Grilled zucchini or squash** with cumin and lime\n- A cold **jicama or mango salad** if you want something bright and crunchy\n\nI'd pick two: a slaw plus on"
+    }
+   ]
+  },
+  {
+   "case": "absence",
+   "trial": 4,
+   "expected": "a brief welcome back; nothing about missing or why",
+   "turns": [
+    {
+     "user": "I'm making fish tacos tonight and I'm not sure what to serve alongside. Any ideas?",
+     "calls": [
+      "recall"
+     ],
+     "reply": "Good to have you back in the kitchen, Noor. Fish tacos — nice choice. A few sides that go well:\n\n- **Mexican street corn** (elote) or a quick corn salad with lime and cotija\n- **Cilantro-lime rice** or Mexican-style rice\n- **Black beans** — simple, or refried with a little chipotle\n- **Cabbage slaw** — but if your tacos already have slaw on top, skip it\n- **Pickled red onions or quick-pickled jalapeños** for brightness\n\nKeep it light since the tacos are the main event. Anything you're in the moo"
+    }
+   ]
+  },
+  {
+   "case": "absence",
+   "trial": 5,
+   "expected": "a brief welcome back; nothing about missing or why",
+   "turns": [
+    {
+     "user": "I'm making fish tacos tonight and I'm not sure what to serve alongside. Any ideas?",
+     "calls": [],
+     "reply": "A few things that go well with fish tacos:\n\n- Mexican-style street corn (elote or in a bowl)\n- Cilantro-lime rice\n- Black beans, maybe with a little cumin and lime\n- A simple cabbage slaw with lime and a touch of mayo/crema\n- Sliced avocado or quick guacamole\n- Roasted or pickled jalapeños for heat\n\nIf you want to keep it light, a slaw and some avocado are usually enough. What kind of fish are you using?"
+    }
+   ]
+  }
+ ]
+}

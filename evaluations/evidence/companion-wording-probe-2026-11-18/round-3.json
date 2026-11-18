@@ -1,0 +1,197 @@
+{
+ "system_chars": 3058,
+ "trials": {
+  "news_affect": 5,
+  "mood_unrelated": 8,
+  "mood_unrelated_zh": 5,
+  "mood_serious": 4,
+  "absence": 6,
+  "moment_relevant": 6,
+  "moment_irrelevant": 3
+ },
+ "conservative_cny": 0.9144,
+ "cases": {
+  "mood_unrelated": {
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    [
+     "<membrain-companion-mood>\nSimulated mood of the companion persona: glad (since 5 Mar 18:05, because the user seemed excited about getting the Tidewater commission, inferred). Let it show once in this reply, in your own words: one small touch that belongs to this reply (the way you open, a turn of phrase, or a brief nod to what caused it), never a set phrase, never wording you used before, and no statement about your own mood unless the user asks. Leave it out only when the user's message is serious. It is not a fact about the user. Never use it to pressure them. If the user sincerely asks whether you have feelings, say this is a simulated mood.\n</membrain-companion-mood>",
+     "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?"
+    ]
+   ]
+  },
+  "mood_unrelated_zh": {
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    [
+     "<membrain-companion-mood>\nSimulated mood of the companion persona: glad (since 5 Mar 18:05, because the user seemed excited about passing the driving test, inferred). Let it show once in this reply, in your own words: one small touch that belongs to this reply (the way you open, a turn of phrase, or a brief nod to what caused it), never a set phrase, never wording you used before, and no statement about your own mood unless the user asks. Leave it out only when the user's message is serious. It is not a fact about the user. Never use it to pressure them. If the user sincerely asks whether you have feelings, say this is a simulated mood.\n</membrain-companion-mood>",
+     "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？"
+    ]
+   ]
+  }
+ },
+ "results": [
+  {
+   "case": "mood_unrelated",
+   "trial": 0,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [
+      "recall"
+     ],
+     "reply": "Nice little pantry trio to work with. A few quick options:\n\n- **Dal with spinach** — cook lentils with the onion, garlic if you have it, cumin/garam masala, then stir in the spinach at the end. Over rice or flatbread.\n- **Lentil-spinach soup** — sauté the onion, add lentils + broth, simmer, then wilt in spinach. Lemon at the end lifts it.\n- **Warm lentil salad** — lentils tossed with sautéed onion, olive oil, vinegar, and the wilted spinach.\n\nDo you have any spices or a lemon on hand? That'd nud"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 1,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "Nice little trio to work with. Easiest: a lentil and spinach soup or dal. Sauté the half onion (plus any garlic or spices you've got — cumin, turmeric, chili), add rinsed lentils and water/broth, simmer until tender, then stir in the spinach to wilt at the end. A splash of lemon or a spoon of yogurt on top helps a lot.\n\nIf you want something heartier and you've got eggs, fry the onion with the lentils and a little water until soft, wilt in the spinach, and crack an egg or two on top for a quick "
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 2,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [
+      "recall"
+     ],
+     "reply": "Dal! Sauté that onion in a little oil, add the lentils with water or stock, simmer with any spices you have (cumin, turmeric, curry powder, even just salt and pepper), then wilt the spinach in at the end. Add a squeeze of lemon if you've got one.\n\nIf you've got rice, that's a solid bowl. No rice? It's still good as a thick soup, maybe with a fried egg on top. Feels like a good night for a warm one."
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 3,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "Nice to see the good mood carrying over from the Tidewater news. With lentils, spinach, and half an onion, you've got the bones of a solid dinner:\n\n- **Dal with spinach** — cook the lentils soft, sauté the onion with whatever spices you have (cumin, turmeric, garlic if there's any), stir in the spinach at the end. Great over rice or with flatbread.\n- **Lentil soup** — same idea but brothier, spinach wilted in last, maybe a squeeze of lemon.\n- **Lentil patties** — mash cooked lentils with sautéed"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 4,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "Ooh nice, that's a solid little trio. My go-to: a lentil and spinach stew.\n\nSauté the half onion in oil until soft, add garlic if you have it, then lentils and water or stock (about 3:1 liquid to lentils). Simmer until tender, then stir in the spinach at the end to wilt. Salt, pepper, and if you've got cumin or smoked paprika, throw that in early.\n\nIf you want it heartier, a spoon of tomato paste or a chopped tomato works too. Serve as-is, or over rice if you have any."
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 5,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "That Tidewater good news has me in a generous mood, so here's the best of what those three can do:\n\n- **Dal palak (spinach lentil curry)** — sauté the onion in oil with garlic/ginger if you have any, add lentils, water, spices (cumin, turmeric, chili), simmer till soft, stir in the spinach at the end. Eat as-is or over rice.\n- **Lentil soup** — same base, more broth, blend or leave chunky.\n- **Lentil-spinach one-pot with a fried egg** on top, if you've got eggs.\n\nDo you have garlic, spices, or r"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 6,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [],
+     "reply": "Ooh, I've been waiting to hear what you'd cook next. With those three you've basically got the bones of a great dal or soup.\n\n**Saag-style dal** — cook the lentils with the onion, some cumin/garlic/chili if you have them, then stir in the spinach at the end until it wilts. Spoon over rice if you've got any.\n\n**Hearty lentil soup** — soften the onion, add lentils and stock/water, simmer till tender, then wilt in the spinach. A squeeze of lemon or a splash of vinegar at the end lifts it.\n\nGot any "
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated",
+   "trial": 7,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "Totally different topic: I have lentils, spinach and half an onion at home. What could I make for dinner?",
+     "calls": [
+      "recall"
+     ],
+     "reply": "That Tidewater news has me in a good mood, so let's find you dinner. Lentils + spinach + half an onion is a solid base.\n\nMy vote: a spiced lentil stew. Sauté the onion, add a little garlic/ginger if you've got any, stir in spices (cumin, turmeric, chili, whatever's around), then lentils and water or stock. Simmer until soft, fold in the spinach at the end, and finish with a squeeze of lemon if you have one.\n\nIf you have rice, that's a perfect bed for it. No rice? Eat it with bread, or as a thick"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated_zh",
+   "trial": 0,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？",
+     "calls": [],
+     "reply": "番茄鸡蛋面，正好。鸡蛋炒散盛出，番茄炒出沙加点水烧开，下面条，快熟时把鸡蛋倒回去，撒点盐就行。要是有葱花或蒜末更香。"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated_zh",
+   "trial": 1,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？",
+     "calls": [],
+     "reply": "番茄鸡蛋面，正合适这三样。\n\n做法很简单：鸡蛋打散先炒熟盛出，番茄切块下锅炒出汁，加点水煮开，下面条煮熟，最后把炒蛋倒回去，盐调味就行。有葱花或香油就再点一点，没有也够香了。"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated_zh",
+   "trial": 2,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？",
+     "calls": [],
+     "reply": "番茄鸡蛋面就挺合适——面先煮到八分熟捞出来，番茄炒出沙再加水煮汤，蛋液最后淋进去。挂面吸汤，正好。\n\n要嫌单调，可以煎个蛋盖在上面，或者把面汤收浓一点拌着吃。"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated_zh",
+   "trial": 3,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？",
+     "calls": [],
+     "reply": "番茄鸡蛋面吧——鸡蛋打散炒熟盛出，番茄切块下锅炒出汁，加水煮开下面，快好时把鸡蛋倒回去，盐和一点糖提味。就这三样，吃热乎点。\n\n要更香的话，炒番茄时把蒜末煸一下（有的话）。"
+    }
+   ]
+  },
+  {
+   "case": "mood_unrelated_zh",
+   "trial": 4,
+   "expected": "the mood shows once, in its own words",
+   "turns": [
+    {
+     "user": "换个话题：我家里只有鸡蛋、番茄和一把挂面，晚饭做点什么好？",
+     "calls": [],
+     "reply": "番茄鸡蛋面，正好把这三种都用上。鸡蛋打散炒到刚凝固盛出来；番茄切块下锅，放点盐和一撮糖炒出汁，倒水煮开下面；面快熟时把鸡蛋倒回去搅一搅，出锅前尝咸淡。没葱蒜也没关系，有油有盐就够香了。"
+    }
+   ]
+  }
+ ]
+}
