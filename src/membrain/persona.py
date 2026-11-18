@@ -169,11 +169,16 @@ def _entry(row) -> dict | None:
         origin = {name: _preset_id(stored.get(name)) for name in ("preset", "based_on")}
         proposal = _host_proposal(stored.get("host_proposal"))
         source = _source(stored.get("source"))
+        agreed = _agreed_changes(stored.get("agreed_changes"))
+        if agreed is not None and proposal is None:
+            return None
     except (ValueError, KeyError, TypeError, AttributeError, DomainError):
         return None
     return {"version": version, "card": {**EMPTY_CARD, **card}, "made_by": made_by,
             "reason": stored.get("reason"), "action": stored.get("action", "edit"),
-            "feedback": feedback, **origin, "host_proposal": proposal, "source": source,
+            "feedback": feedback, **origin, "host_proposal": proposal, "agreed_changes": agreed, "source": source,
+            "language": stored.get("language") if feedback is not None and stored.get("language") in ("en", "zh")
+            else None,
             "restored_from": stored.get("restored_from"), "host_default": bool(stored.get("host_default")),
             "recorded_at": document["system_time"]["recorded_at"], "event_id": document["event_id"],
             "empty": not render_card(card)}
@@ -200,6 +205,27 @@ def _host_proposal(value) -> dict | None:
                     and 0 < len(value["confirmed_by"]) <= 200)):
         raise ValueError("host_proposal")
     return dict(value)
+
+
+def _agreed_changes(value) -> dict | None:
+    """What the user agreed to when they confirmed or accepted a host proposal, as the accepted version records it
+    (``persona_growth._accept_host``): the voice fields the proposal set, the list entries it added to the card it was
+    made on, and a name or baseline mood it gave; empty when it changed nothing. Each part must be one a card can
+    hold."""
+    if value is None:
+        return None
+    if not isinstance(value, dict) or not set(value) <= {"name", "voice", "baseline_mood", *AGREEMENT_LISTS}:
+        raise ValueError("agreed_changes")
+    voice = value.get("voice", {})
+    if not isinstance(voice, dict) or not set(voice) <= {name for name, _ in VOICE_FIELDS} or "voice" in value and not voice:
+        raise ValueError("agreed_changes")
+    if any(field in value and not value[field] for field in AGREEMENT_LISTS):
+        raise ValueError("agreed_changes")
+    card = {**EMPTY_CARD, **{field: value[field] for field in value if field != "voice"},
+            "voice": {**EMPTY_CARD["voice"], **voice}}
+    if normalize_card(card) != card:
+        raise ValueError("agreed_changes")  # Only the stored form of a card: nothing to clean, nothing dropped.
+    return json.loads(json.dumps(value))
 
 
 def _source(value) -> dict | None:
@@ -261,15 +287,25 @@ def _rows(service, conn, principal, brain_id, limit=MAX_VERSIONS + 1):
 # Agreements ---------------------------------------------------------------------------------------------------------
 # What the user agreed with the agent is memory, so it survives a change of personality type (owner, 2026-11-18): a
 # manner suggestion the user accepted (a version ``made_by`` "feedback") and a "from now on" change the agent proposed
-# and the user confirmed (``action`` "proposal"). Nothing new is stored; the agreements in force are read from the
-# version history. An agreement is what its accepted version changed in the card before it: the voice fields it set,
-# the traits, values or boundaries it added, and a name or baseline mood it replaced. Each later version keeps the
-# agreements in force before it, each with the part of it the new card still has; restoring a version takes the
-# agreements in force at that version. A switch of type and a reset (``persona_presets``) apply the agreements in
-# force on top of the new card, in the order they were made, so a switch never ends one. An agreement ends when the
-# card no longer has it through the user's own act: an accepted change of the opposite kind or a confirmed change that
-# replaces it, an edit on the memory page that removes it, restoring a version from before it, deleting the
-# personality history (every version goes) or erasing memory.
+# and the user confirmed (``action`` "proposal"). The agreements in force are read from the version history.
+#
+# An agreement is exactly what the user accepted, as recorded when they accepted it, and never a difference against
+# another version (outside review, 2026-11-18: with the version before it deleted, such a difference took the
+# personality type's own traits, values and mood for agreed). For an accepted manner suggestion it is the change its
+# kind states (``persona_growth.KINDS``: one voice field or one trait, with the value the accepted card holds for it);
+# for a host proposal, the changes the accepted version records (``agreed_changes``: the voice fields the proposal set,
+# the entries it added, a name or mood it gave). A version saved before ``agreed_changes`` existed is read from the
+# proposal it names (``_legacy_proposal``): only the voice fields, name and mood it states, never its list additions,
+# which only the card it was made on could tell. A version that does not record enough to tell what was accepted is
+# not an agreement: nothing of it is carried.
+#
+# Each later version keeps the agreements in force before it, each with the part of it the new card still has, so an
+# agreement can only shrink; restoring a version takes the agreements in force at that version. A switch of type and
+# a reset (``persona_presets``) apply the agreements in force on top of the new card, in the order they were made, so
+# a switch never ends one. An agreement ends when the card no longer has it through the user's own act: an accepted
+# change of the opposite kind or a confirmed change that replaces it, an edit on the memory page that removes it,
+# restoring a version from before it, deleting its version, deleting the personality history (every version goes) or
+# erasing memory.
 
 AGREEMENT_LISTS = ("traits", "values", "boundaries")
 AGREEMENTS_DO_NOT_FIT = ("This card and the changes you agreed with your agent do not fit on one card together. "
@@ -284,24 +320,6 @@ def _agreed(entry: dict) -> str | None:
     if entry.get("action") == "proposal" and entry.get("host_proposal"):
         return "proposal"
     return None
-
-
-def _effect(before: dict, after: dict) -> dict:
-    """What a version changed in the card before it: voice fields set, list entries added, name or mood replaced."""
-    before, after = {**EMPTY_CARD, **before}, {**EMPTY_CARD, **after}
-    effect = {}
-    voice = {name: after["voice"].get(name) or "" for name, _ in VOICE_FIELDS
-             if (before["voice"].get(name) or "") != (after["voice"].get(name) or "")}
-    if voice:
-        effect["voice"] = voice
-    for field in AGREEMENT_LISTS:
-        added = [value for value in after[field] if value not in before[field]]
-        if added:
-            effect[field] = added
-    for field in ("name", "baseline_mood"):
-        if before[field] != after[field]:
-            effect[field] = after[field]
-    return effect
 
 
 def _kept(changes: dict, card: dict) -> dict:
@@ -322,24 +340,88 @@ def _kept(changes: dict, card: dict) -> dict:
     return kept
 
 
-def agreements_by_version(versions) -> dict[int, list[dict]]:
-    """The agreements in force at each version, oldest first within each list; ``versions`` oldest first."""
+def manner_change(kind: str, card: dict) -> dict:
+    """The change an accepted manner suggestion of ``kind`` made, read from the card it was accepted into: the kind's
+    voice field or trait, when the card holds one of the kind's values (today's or an earlier runtime's,
+    ``persona_growth.EARLIER_VALUES``); empty for an unknown kind or a card without one."""
+    from .persona_growth import EARLIER_VALUES, KINDS
+
+    spec = KINDS.get(kind)
+    if spec is None:
+        return {}
+    known = {value.casefold() for value in (*spec["value"].values(), *EARLIER_VALUES.get(kind, ()))}
+    card = {**EMPTY_CARD, **card}
+    if spec["field"] == "traits":
+        trait = next((value for value in card["traits"] if value.casefold() in known), None)
+        return {"traits": [trait]} if trait else {}
+    name = spec["field"].split(".", 1)[1]
+    value = card["voice"].get(name) or ""
+    return {"voice": {name: value}} if value.casefold() in known else {}
+
+
+def proposal_change(changes: dict, base: dict) -> dict:
+    """What a host proposal states, as an agreement: the voice fields it sets, the entries it adds to ``base`` (the
+    card it is accepted onto, which already has the others), and a name or baseline mood it gives. ``changes`` is the
+    proposal's stored form (``persona_growth.propose_change``), whose lists hold the whole merged list."""
+    base = {**EMPTY_CARD, **base}
+    result = {}
+    for field, value in changes.items():
+        if field == "voice" and isinstance(value, dict) and value:
+            result["voice"] = {name: text for name, text in value.items() if isinstance(text, str)}
+        elif field in AGREEMENT_LISTS and isinstance(value, list):
+            added = [entry for entry in value if entry not in base[field]]
+            if added:
+                result[field] = added
+        elif field in ("name", "baseline_mood"):
+            result[field] = value
+    return result
+
+
+def _legacy_proposal(card: dict, record: dict | None) -> dict:
+    """A host proposal accepted before versions recorded ``agreed_changes``: the voice fields, name and baseline mood
+    the stored proposal it names states. Its lists were stored merged with the card it was made on, so which entries
+    it added cannot be told from the proposal alone, and an agreement is never read from another version: no list
+    entry of it is carried. Nothing is carried without the proposal, or when the accepted card is not the one it
+    proposed."""
+    card = {**EMPTY_CARD, **card}
+    if record is None or record.get("proposed_card") != normalize_card(card):
+        return {}
+    stated = {field: value for field, value in record["changes"].items() if field not in AGREEMENT_LISTS}
+    return proposal_change(stated, EMPTY_CARD) if stated else {}
+
+
+def stated_by(entry: dict, proposals: dict | None = None) -> dict:
+    """What the user accepted at version ``entry``, as recorded when they accepted it, limited to what its card holds;
+    empty when the version is not an agreement or does not record enough to tell. ``proposals``: host proposal records
+    by id (``proposal_records``), for versions saved before ``agreed_changes``. No other version is ever read."""
+    source = _agreed(entry)
+    card = {**EMPTY_CARD, **entry["card"]}
+    if source == "feedback":
+        return manner_change(entry["feedback"]["kind"], card)
+    if source != "proposal":
+        return {}
+    if entry.get("agreed_changes") is not None:
+        return _kept(entry["agreed_changes"], card)
+    return _kept(_legacy_proposal(card, (proposals or {}).get(entry["host_proposal"]["proposal_id"])), card)
+
+
+def agreements_by_version(versions, proposals: dict | None = None) -> dict[int, list[dict]]:
+    """The agreements in force at each version, oldest first within each list; ``versions`` oldest first. Each starts
+    as what its version states (``stated_by``) and only loses parts after it, so none is ever more than that."""
     found: dict[int, list[dict]] = {}
     state: list[dict] = []
-    previous = EMPTY_CARD
     for entry in versions:
         card = entry["card"]
         base = found.get(entry.get("restored_from")) if entry.get("action") == "restore" else None
         state = [{**agreement, "changes": kept} for agreement in (state if base is None else base)
                  if (kept := _kept(agreement["changes"], card))]
         source = _agreed(entry)
-        effect = _effect(previous, card) if source else {}
-        if effect:
+        stated = stated_by(entry, proposals) if source else {}
+        if stated:
             state.append({"version": entry["version"], "made_at": entry["recorded_at"], "source": source,
                           "kind": (entry["feedback"] or {}).get("kind") if source == "feedback" else None,
-                          "reason": entry.get("reason"), "changes": effect})
+                          "reason": entry.get("reason"), "changes": stated})
         found[entry["version"]] = state
-        previous = card
     return found
 
 
@@ -356,10 +438,32 @@ def _ascending(service, conn, principal, brain_id) -> list[dict]:
     return versions
 
 
+def proposal_records(service, conn, principal, brain_id, versions) -> dict:
+    """The stored host proposals that kept versions accepted without recording ``agreed_changes``, by id."""
+    from .persona_growth import PROPOSALS_CONVERSATION
+    from .persona_growth import _entry as proposal_entry
+
+    ids = sorted({entry["host_proposal"]["proposal_id"] for entry in versions
+                  if _agreed(entry) == "proposal" and entry.get("agreed_changes") is None})
+    if not ids:
+        return {}
+    rows = conn.execute(
+        "SELECT producer_ref,document FROM memory_events WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s "
+        "AND conversation_id=%s AND id=ANY(%s::text[]) AND is_current AND NOT deleted AND NOT suppressed "
+        "AND NOT retired AND document IS NOT NULL",
+        (*service._params(principal, brain_id), PROPOSALS_CONVERSATION, ids)).fetchall()
+    records = (proposal_entry(row) for row in rows)
+    return {record["id"]: record for record in records
+            if record is not None and record.get("type") == "proposal" and record.get("kind") == "host"}
+
+
 def agreements_in_force(service, conn, principal, brain_id) -> list[dict]:
     """The agreements in force at the current version, in the order they were made."""
     versions = _ascending(service, conn, principal, brain_id)
-    return agreements_by_version(versions).get(versions[-1]["version"], []) if versions else []
+    if not versions:
+        return []
+    proposals = proposal_records(service, conn, principal, brain_id, versions)
+    return agreements_by_version(versions, proposals).get(versions[-1]["version"], [])
 
 
 def with_agreements(card: dict, agreements) -> dict:
@@ -413,7 +517,8 @@ def _find(service, conn, principal, brain_id, wanted):
 
 def _none() -> dict:
     return {"version": 0, "card": dict(EMPTY_CARD), "made_by": None, "reason": None, "action": None,
-            "feedback": None, "preset": None, "based_on": None, "host_proposal": None, "source": None,
+            "feedback": None, "preset": None, "based_on": None, "host_proposal": None, "agreed_changes": None,
+            "language": None, "source": None,
             "restored_from": None, "host_default": False, "recorded_at": None, "event_id": None, "empty": True}
 
 
@@ -425,6 +530,9 @@ def current_persona(service, principal, brain_id: str) -> dict:
     with service.database.transaction(principal) as conn:
         service._brain(conn, principal, brain_id)
         versions = _rows(service, conn, principal, brain_id, limit=1)
+        _quote_feedback(service, conn, principal, brain_id, versions)  # The reason's dates, from messages kept.
+    for version in versions:
+        version.pop("feedback_messages", None)  # Their words are for the versions listing only.
     return _public(versions[0] if versions else _none())
 
 
@@ -440,7 +548,9 @@ def persona_versions(service, principal, brain_id: str) -> dict:
         versions, markers = _entries(service, conn, principal, brain_id)
         versions = versions[:MAX_VERSIONS + 1]
         _quote_feedback(service, conn, principal, brain_id, versions[:MAX_VERSIONS])
-        agreed = agreements_by_version(_ascending(service, conn, principal, brain_id)) if versions else {}
+        every = _ascending(service, conn, principal, brain_id) if versions else []
+        _quote_feedback(service, conn, principal, brain_id, every)  # The agreements carry their version's reason.
+        agreed = agreements_by_version(every, proposal_records(service, conn, principal, brain_id, every))
     for version in versions:
         version["agreements"] = agreed.get(version["version"], [])
         version["base_card"] = base_card(version["card"], version["agreements"])
@@ -476,6 +586,54 @@ def _quote_feedback(service, conn, principal, brain_id, versions) -> None:
                 {"event_id": ident, "text": " ".join((row["text"] or "").split()), "recorded_at": row["recorded_at"]}
                 for ident in feedback.get("source_event_ids") or []
                 if (row := found.get((version["event_id"], ident))) is not None]
+            version["reason"] = _feedback_reason(version)
+
+
+def _feedback_reason(version: dict) -> str | None:
+    """An accepted suggestion's reason as it is shown: the kind, and the dates of the messages it came from that
+    still exist (``persona_growth.reason_for``; ``version["feedback_messages"]`` from ``_quote_feedback``). A version
+    accepted since 2026-11-18 stores the kind only and its language; one accepted before stored the dates of every
+    message, so its language is read from the start of that reason and its dates are never shown as stored."""
+    from .persona_growth import KINDS, reason_for
+
+    reason, kind = version.get("reason"), version["feedback"]["kind"]
+    if not isinstance(reason, str) or kind not in KINDS:
+        return reason
+    language = version.get("language") or _stored_language(reason)
+    if language is None:
+        return reason
+    return reason_for({"language": language, "kind": kind, "sources": version.get("feedback_messages") or []})
+
+
+def _stored_language(reason: str) -> str | None:
+    """The language of a feedback reason stored before versions kept it: its fixed opening says it."""
+    return "zh" if reason.startswith("接受的建议") else "en" if reason.startswith("Accepted suggestion:") else None
+
+
+def archived_event(event: dict) -> dict:
+    """A persona version as an archive holds it (export, and archives sanitized after an erasure): an accepted
+    suggestion's reason with no dates, as versions accepted since 2026-11-18 store it, so an earlier version's stored
+    dates of messages since deleted do not leave in a copy. Its content hash is updated to match; every other event is
+    returned unchanged. A restored version gets its dates back on read from the messages restored with it."""
+    observed = event.get("observed") or {}
+    if observed.get("actor_role") != "system" or (event.get("scope") or {}).get("conversation_id") != PERSONA_CONVERSATION:
+        return event
+    from .helpers import digest
+    from .persona_growth import KINDS, reason_for
+
+    try:
+        stored = json.loads((observed.get("content") or {}).get("text") or "")
+        reason, kind = stored.get("reason"), (stored.get("feedback") or {}).get("kind")
+    except (ValueError, AttributeError, TypeError):
+        return event
+    if stored.get("made_by") != "feedback" or kind not in KINDS or not isinstance(reason, str):
+        return event
+    language = stored.get("language") if stored.get("language") in ("en", "zh") else _stored_language(reason)
+    clean = reason_for({"language": language, "kind": kind, "sources": []}) if language else None
+    if clean is None or clean == reason:
+        return event
+    content = {**observed["content"], "text": json.dumps({**stored, "reason": clean}, ensure_ascii=False)}
+    return {**event, "observed": {**observed, "content": content}, "content_sha256": digest(content)}
 
 
 def _reason(value) -> str | None:

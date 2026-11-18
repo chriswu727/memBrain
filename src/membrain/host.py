@@ -1748,7 +1748,9 @@ def absence_notice(last_message_at, now: str | None = None) -> str:
 def _last_message_at(client, session: str) -> str | None:
     """When the user's last recorded message before this conversation was recorded: the newest of their messages
     in another conversation, leaving out notes and the other reserved conversations, messages typed on the memory
-    page and conversations imported from other assistants."""
+    page and conversations imported from other assistants. Only a current, readable record counts: the service's
+    timeline leaves out deleted, erased, suppressed, retired and superseded messages, so when the last one is gone
+    the one before it is used, and with none left there is no date."""
     response = client.timeline(roles=("user",), max_characters=200, max_item_characters=1, limit=200,
                                exclude_conversation=session)
     for item in response.get("items", []):
@@ -1761,18 +1763,26 @@ def _last_message_at(client, session: str) -> str | None:
 
 
 def _absence(directory: Path, session: str, client) -> str:
-    """The absence sentence for this session, worked out once, at the session's first context. It waits in the
-    session's state until the session's first prompt, like the persona intro, so a context rebuilt before it shows it
-    again and nothing after it does; a host that asks for the session context before every message (chat bots) gets
-    it with the first message only."""
+    """The absence sentence for this session. Whether there is one is decided at the session's first context and
+    waits in the session's state until the session's first prompt, like the persona intro, so a context rebuilt
+    before it can show it again and nothing after it does; a host that asks for the session context before every
+    message (chat bots) gets it with the first message only.
+
+    Only that decision is kept, never the sentence or its date: each time it is shown, the sentence is worked out
+    again from the service, so a message deleted after the first context is never named (the one before it is, or
+    nothing). A sentence an earlier runtime kept is dropped unread."""
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
-        known = session_state(directory, session).get("absence")
+        state = session_state(directory, session)
+        known = state.get("absence")
+        if isinstance(known, dict) and "text" in known:
+            known.pop("text")
+            _write_session_state(directory, session, state)
     if isinstance(known, dict) and known.get("brain_id") == client.brain_id:
-        return (known.get("text") or "") if known.get("pending") else ""
+        return absence_notice(_last_message_at(client, session)) if known.get("pending") else ""
     text = absence_notice(_last_message_at(client, session))
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         state = session_state(directory, session)
-        state["absence"] = {"brain_id": client.brain_id, "text": text, "pending": bool(text)}
+        state["absence"] = {"brain_id": client.brain_id, "pending": bool(text)}
         _write_session_state(directory, session, state)
     return text
 
@@ -1781,8 +1791,9 @@ def _absence_shown(directory: Path, session: str) -> None:
     """The session's first prompt: an absence sentence was shown, or is not to be shown again."""
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         state = session_state(directory, session)
-        if isinstance(state.get("absence"), dict) and state["absence"].get("pending"):
+        if isinstance(state.get("absence"), dict) and (state["absence"].get("pending") or "text" in state["absence"]):
             state["absence"]["pending"] = False
+            state["absence"].pop("text", None)
             _write_session_state(directory, session, state)
 
 
@@ -2671,9 +2682,10 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
     user_id = roleplay_user(user_id, roleplay)
     record = message_record(session, "user", prompt, turn_id=turn_id, producer=producer, user_id=user_id)
     state = session_state(directory, session)
-    if isinstance(state.get("absence"), dict) and state["absence"].get("pending"):
+    if isinstance(state.get("absence"), dict) and (state["absence"].get("pending") or "text" in state["absence"]):
         _absence_shown(directory, session)  # The session's first prompt: never again in this session.
         state["absence"]["pending"] = False  # This copy is written back later in the turn.
+        state["absence"].pop("text", None)
     previous = state.get("last_prompt") if state.get("user_id") == user_id else None
     valid_id = isinstance(turn_id, str) and 1 <= len(turn_id) <= 120
     client = ready_client(directory, user_id)

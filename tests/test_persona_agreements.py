@@ -106,7 +106,8 @@ def test_agreements_are_read_from_the_history_and_end_only_when_the_card_loses_t
         version(1, base, action="preset", preset="intj"),
         version(2, shorter, made_by="feedback", action="feedback",
                 feedback={"proposal_id": "p1", "kind": "shorter", "source_event_ids": ["a", "b", "c"]}),
-        version(3, both, action="proposal", host_proposal={"proposal_id": "p2", "confirmed_by": "m"}),
+        version(3, both, action="proposal", host_proposal={"proposal_id": "p2", "confirmed_by": "m"},
+                agreed_changes={"values": [PATIENT]}),
         version(4, switched, action="preset", preset="enfp"),
         version(5, base, action="restore", restored_from=1, preset="intj"),
         version(6, switched, action="restore", restored_from=4, preset="enfp"),
@@ -284,9 +285,11 @@ def test_the_page_routes_and_every_host_path_keep_the_agreements(installation, c
     assert "agreed to earlier carried over" in result["note"] and kept_both_values(card("agreements-mcp"))
     # OpenClaw's membrain_persona runs `membrain plugin tool persona`.
     _, cited = ready("agreements-openclaw")
+    with host.ready_client(directory, "agreements-openclaw") as client:  # The first type is random: switch away.
+        target = "istp" if client.persona().get("based_on") == "isfp" else "isfp"
     capsys.readouterr()
     code = plugin.run_tool("persona", directory, stream=io.BytesIO(json.dumps(
-        {"action": "switch", "preset": "isfp", "source_event_ids": cited,
+        {"action": "switch", "preset": target, "source_event_ids": cited,
          "membrain_user": "agreements-openclaw"}).encode()))
     assert code == 0 and "carried over" in json.loads(capsys.readouterr().out)["note"]
     assert kept_both_values(card("agreements-openclaw"))

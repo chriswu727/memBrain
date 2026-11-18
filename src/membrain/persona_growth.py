@@ -66,7 +66,7 @@ import re
 
 from .helpers import DomainError, uid
 from .helpers import now as _now
-from .persona import EMPTY_CARD, PERSONA_CONVERSATION, normalize_card
+from .persona import EMPTY_CARD, PERSONA_CONVERSATION, _rows, normalize_card
 
 PROPOSALS_CONVERSATION = "membrain-persona-proposals"
 PROPOSALS_PRODUCER = "membrain-persona-proposals"
@@ -172,6 +172,11 @@ KINDS = {
                      r"(?:^|{B})(?:你)?(?:能不能|可不可以|可以|请)(?:用|发|加)(?:点|些|一点|一些)(?:表情|emoji)"],
     },
 }
+
+# Values a kind wrote before its value in ``KINDS`` changed (2026-11-17). A card accepted then keeps them, so an
+# agreement read from it (``persona.manner_change``) still knows what the suggestion set. Add the old values here
+# whenever a kind's value changes.
+EARLIER_VALUES = {"shorter": ("short", "简短"), "longer": ("detailed", "详细")}
 
 # Kinds that edit the same card field in opposite directions; the user's latest direction decides (see above).
 OPPOSITES = {"less_formal": "more_formal", "more_formal": "less_formal", "shorter": "longer", "longer": "shorter",
@@ -595,6 +600,19 @@ def _current_card(service, conn, principal, brain_id) -> tuple[dict, int]:
     return {**EMPTY_CARD, **versions[0]["card"]}, versions[0]["version"]
 
 
+def _current_sequence(service, conn, principal, brain_id) -> int:
+    """The sequence of the current persona version, or 0 without one. Version numbers are reused once the newest
+    version is deleted, so a host proposal is on the current card only when it was also made after this version."""
+    from .persona import _rows
+
+    versions = _rows(service, conn, principal, brain_id, limit=1)
+    if not versions:
+        return 0
+    row = conn.execute(f"SELECT max(sequence) AS sequence FROM memory_events WHERE {_VISIBLE} AND id=%s",
+                       (*service._params(principal, brain_id), versions[0]["event_id"])).fetchone()
+    return int(row["sequence"] or 0)
+
+
 def _apply(kind: str, card: dict, language: str) -> tuple[dict | None, str | None]:
     """The card with the kind's edit, or (None, why not): already in the card, or it would not fit."""
     spec = KINDS[kind]
@@ -643,6 +661,7 @@ class _State:
         self.records = _records(service, conn, principal, brain_id)
         self.reported = _reported(service, conn, principal, brain_id)
         self.card, self.version = _current_card(service, conn, principal, brain_id)
+        self.version_sequence = _current_sequence(service, conn, principal, brain_id)
         self.decisions = {entry["proposal_id"]: entry for entry in self.records if entry["type"] == "decision"}
         self.decision_sequences, self.accepted_sequences = {}, {}
         for decision in self.decisions.values():
@@ -690,7 +709,10 @@ class _State:
             return result
         if entry["sequence"] < self._newest_host:
             return {**result, "status": "withdrawn", "withdrawn_because": "replaced", "waiting_for_confirmation": False}
-        if entry["base_version"] != self.version:
+        # The number alone is not the card: once the version it was made on is deleted, the next save reuses its
+        # number, and a proposal reopened on that card would bring the deleted version's content back as agreed.
+        if entry["base_version"] != self.version or (self.version_sequence > entry["sequence"]
+                                                     and not entry["imported"]):
             return {**result, "status": "withdrawn", "withdrawn_because": "persona_changed",
                     "waiting_for_confirmation": False}
         if result["evidence"]["unavailable"]:
@@ -877,16 +899,19 @@ def reason_for(proposal: dict) -> str:
 
     The messages' words are never copied into the version: it keeps their ids, and the version list quotes the ones
     that still exist (``persona.persona_versions``). Deleting a message therefore removes its words from the
-    personality history too, and an older archive restored later cannot bring them back."""
+    personality history too, and an older archive restored later cannot bring them back. The dates are written again
+    when a version is read, from the messages that still exist (``persona._quote_feedback``), so a deleted message's
+    date is not shown either; with none left, the reason names only the kind."""
     from .persona import REASON_CHARACTERS
 
     language, sources = proposal["language"], proposal["sources"]
     days = [_short_day(source["recorded_at"], language) for source in sources]
     if language == "zh":
-        reason = f"接受的建议：{KINDS[proposal['kind']]['label'][1]}，来自你的 {len(sources)} 条消息（{'、'.join(days)}）"
+        reason = f"接受的建议：{KINDS[proposal['kind']]['label'][1]}" + (
+            f"，来自你的 {len(sources)} 条消息（{'、'.join(days)}）" if sources else "")
     else:
-        reason = (f"Accepted suggestion: {KINDS[proposal['kind']]['label'][0]}, from {len(sources)} messages "
-                  f"({'; '.join(days)})")
+        reason = f"Accepted suggestion: {KINDS[proposal['kind']]['label'][0]}" + (
+            f", from {len(sources)} message{'' if len(sources) == 1 else 's'} ({'; '.join(days)})" if sources else "")
     return reason if len(reason) <= REASON_CHARACTERS else reason[:REASON_CHARACTERS - 1] + "…"
 
 
@@ -897,13 +922,16 @@ def _accept(service, conn, principal, brain, proposal) -> dict:
                 "source_event_ids": [source["event_id"] for source in proposal["sources"]]}
     from .persona import _origin
 
+    # The stored reason names the kind only, in the suggestion's language (kept beside it): the dates of its messages
+    # are added when the version is read, from those that still exist (``persona._feedback_reason``), so a deleted
+    # message's date is never stored in the personality history, nor exported with it.
     saved = _save_in(service, conn, principal, brain,
-                     lambda find: (proposal["proposed_card"], {"feedback": feedback,
+                     lambda find: (proposal["proposed_card"], {"feedback": feedback, "language": proposal["language"],
                                                                **_origin(find(lambda entry: True), edited=True)}),
-                     made_by="feedback", reason=reason_for(proposal), action="feedback")
+                     made_by="feedback", reason=reason_for({**proposal, "sources": []}), action="feedback")
     if saved.get("unchanged"):
         raise DomainError("version_conflict", "The card already has this change.")
-    return saved
+    return {**saved, "reason": reason_for(proposal)}  # As it reads now: every message it came from still exists.
 
 
 def accept_proposal(service, principal, brain_id: str, proposal_id: str, *, now=None) -> dict:
@@ -1130,16 +1158,31 @@ def _merged(card: dict, changes) -> dict:
 
 def _accept_host(service, conn, principal, brain, proposal, confirmed_by) -> dict:
     """Save a host proposal's card as a new version. ``made_by`` is "user": the user decided; ``host_proposal`` says
-    the host AI proposed it and names the message that confirmed it (None when accepted on the memory page)."""
-    from .persona import _origin, _save_in
+    the host AI proposed it and names the message that confirmed it (None when accepted on the memory page).
+    ``agreed_changes`` records what the user agreed to, as the proposal states it, on the card it is accepted onto
+    (``persona.proposal_change``): the agreement a later switch of type keeps, never more."""
+    from .persona import EMPTY_CARD as PERSONA_EMPTY
+    from .persona import _kept, _origin, _save_in, proposal_change
 
     if proposal["evidence"]["pending"]:
         raise DomainError("source_unavailable", "The suggestion is waiting for its source messages to finish recording.")
     host_proposal = {"proposal_id": proposal["id"], "confirmed_by": confirmed_by}
-    saved = _save_in(service, conn, principal, brain,
-                     lambda find: (proposal["proposed_card"], {"host_proposal": host_proposal,
-                                                               **_origin(find(lambda entry: True), edited=True)}),
-                     made_by="user", reason=proposal["reason"], action="proposal")
+    row = conn.execute(
+        f"SELECT producer_ref,document FROM memory_events WHERE {_VISIBLE} AND conversation_id=%s AND id=%s",
+        (*service._params(principal, brain["id"]), PROPOSALS_CONVERSATION, proposal["id"])).fetchone()
+    stored = _entry(row) if row is not None else None
+    if stored is None or stored.get("kind") != HOST:
+        raise DomainError("not_found_or_forbidden", "That suggestion is not available.")
+
+    def choose(find):
+        current = find(lambda entry: True)
+        agreed = _kept(proposal_change(stored["changes"], current["card"] if current else PERSONA_EMPTY),
+                       proposal["proposed_card"])
+        return proposal["proposed_card"], {"host_proposal": host_proposal, "agreed_changes": agreed,
+                                           **_origin(current, edited=True)}
+
+    saved = _save_in(service, conn, principal, brain, choose, made_by="user", reason=proposal["reason"],
+                     action="proposal")
     if saved.get("unchanged"):
         raise DomainError("version_conflict", "The card already has this change.")
     return saved
@@ -1175,6 +1218,15 @@ def propose_change(service, principal, brain_id: str, changes, *, reason, source
         proposal_id = _write(service, conn, principal, brain, {
             "persona_proposal": HOST, "changes": changes, "proposed_card": proposed, "base_version": version,
             "reason": reason, "source_event_ids": ids, "source_messages": messages, "proposed_at": _iso(when)})
+        # The proposal holds a copy of the card it was made on, so it depends on that version, as a note depends on
+        # its source message: deleting, hiding or erasing the version takes the proposal with it
+        # (``service._dependent_events``), as deleting the personality history takes every proposal.
+        base = _rows(service, conn, principal, brain_id, limit=1)
+        if version and base:
+            conn.execute(
+                "INSERT INTO memory_event_dependencies(tenant_id,owner_id,brain_id,input_event_id,output_event_id) "
+                "VALUES(%s,%s,%s,%s,%s) ON CONFLICT DO NOTHING",
+                (*service._params(principal, brain_id), base[0]["event_id"], proposal_id))
         state = _State(service, conn, principal, brain_id)
     return _decided(state, when, proposal_id, None)
 

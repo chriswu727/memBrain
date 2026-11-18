@@ -499,8 +499,9 @@ const ZH_PATTERNS = [
   [/^Simulated mood: (.+)$/, (_, label) => `模拟心情：${MOOD_LABELS[label] ? translate(MOOD_LABELS[label]) : label}`],
   [/^Familiarity limit: (.+)$/, (_, level) => `熟悉程度上限：${translate(LEVEL_NAMES[level] || level)}`],
   [/^Version: (\d+)$/, (_, n) => `版本：${n}`],
-  [/^Accepted suggestion: (.+), from (\d+) messages \((.+)\)$/, (m, label, n, days) =>
+  [/^Accepted suggestion: (.+), from (\d+) messages? \((.+)\)$/, (m, label, n, days) =>
     `接受的建议：${ZH[label] || label}，来自你的 ${n} 条消息（${days}）`],
+  [/^Accepted suggestion: ([^,]+)$/, (m, label) => `接受的建议：${ZH[label] || label}`],
   [/^(\d+) message\(s\) recorded(?:; latest from (.+?))?(?: on (.+?))?\.$/, (m, n, from, on) =>
     `已记录 ${n} 条消息${from ? `，最近一条来自 ${from}` : ""}${on ? `（${on}）` : ""}。`],
   [/^Enabled\. (\d+) memory item\(s\) still preparing\.$/, (m, n) => `已启用。还有 ${n} 条记忆在准备中。`],

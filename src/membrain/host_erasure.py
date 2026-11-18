@@ -195,6 +195,12 @@ def reconcile(directory, client, owner=None, *, revision=None):
                         if "fingerprint" in context:
                             context.pop("fingerprint")
                             changed = True
+                    # An earlier runtime kept the return-after-an-absence sentence, with a message's date; the
+                    # sentence is now worked out when shown (host._absence), so a kept one is only a stale copy.
+                    absence = state.get("absence")
+                    if isinstance(absence, dict) and "text" in absence:
+                        absence.pop("text")
+                        changed = True
                 callbacks = state.get("callbacks", [])
                 kept = [item for item in callbacks if not (
                     item.get("owner") == owner and item.get("target") == target

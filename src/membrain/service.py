@@ -1263,7 +1263,11 @@ class MemoryService:
                 break
             erased_memories.update(invalidated)
         original_memory_count = len(all_memories(data))
-        data["events"] = [e for e in data["events"] if e["event_id"] not in erased_events]
+        from .persona import archived_event
+
+        # An accepted suggestion's reason leaves without the dates of its messages (some may be deleted since):
+        # an archive is the user's own copy of what is stored, and is read back through the same dated reason.
+        data["events"] = [archived_event(e) for e in data["events"] if e["event_id"] not in erased_events]
         data["memories"] = [m for m in data["memories"] if m["memory_id"] not in erased_memories]
         sanitize_views(data, erased_events, erased_memories)
         working_affected = any(r["event_id"] in erased_events for state in data["working_states"]
