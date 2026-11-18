@@ -3,7 +3,7 @@ rem WorkBuddy / CodeBuddy hook launcher for Windows: membrain-hook <event>. Neve
 rem Without uvx on the path, uv runs the runtime with "uv tool run", the command uvx stands for. Without either, or
 rem before the runtime can run, session-start tells the agent so, since the runtime that would say it is missing.
 setlocal
-if "%MEMBRAIN_PACKAGE%"=="" set "MEMBRAIN_PACKAGE=membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/f69d4cda48bca3b2d9a0f75bf0a5bcf7e05fd0e0.zip"
+if "%MEMBRAIN_PACKAGE%"=="" set "MEMBRAIN_PACKAGE=membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/b465c4b773e97d2fcd09525d200397abd0754b37.zip"
 set "RUN=uvx"
 where uvx >nul 2>nul && goto found
 set "RUN=uv tool run"
