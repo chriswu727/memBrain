@@ -1,7 +1,7 @@
 @echo off
 rem WorkBuddy / CodeBuddy hook launcher for Windows: membrain-hook <event>. Never fails the host.
 setlocal
-if "%MEMBRAIN_PACKAGE%"=="" set "MEMBRAIN_PACKAGE=membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/0def500725715b69ca8f91ef36e95fde4e2d2f90.zip"
+if "%MEMBRAIN_PACKAGE%"=="" set "MEMBRAIN_PACKAGE=membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/f69d4cda48bca3b2d9a0f75bf0a5bcf7e05fd0e0.zip"
 where uvx >nul 2>nul || exit /b 0
 if "%~1"=="start" (
   start "" /b cmd /c "uv tool install --quiet --python 3.12 "%MEMBRAIN_PACKAGE%" >nul 2>nul & uvx --offline --python 3.12 --from membrain-ai membrain plugin start >nul 2>nul"
