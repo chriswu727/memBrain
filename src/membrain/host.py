@@ -12,6 +12,7 @@ import json
 import math
 import os
 import re
+import shlex
 import shutil
 import subprocess
 import sys
@@ -467,6 +468,60 @@ def running_from_uv_cache() -> bool:
     Such environments disappear when the cache is cleaned, so a long-lived service must not be started from one.
     """
     return any(part in ("archive-v0", "builds-v0", "environments-v2") for part in Path(sys.prefix).parts)
+
+
+def _entry_point() -> Path:
+    """This runtime's own ``membrain`` program, in the environment it runs from."""
+    if os.name == "nt":
+        return Path(sys.prefix) / "Scripts" / "membrain.exe"
+    return Path(sys.prefix) / "bin" / "membrain"
+
+
+def _same_program(found: Path, entry: Path) -> bool:
+    """Whether ``found`` runs ``entry``: the same file (uv links a tool's programs into its bin directory on Linux
+    and macOS), or a byte-for-byte copy (on Windows uv copies them; each names the environment's interpreter)."""
+    try:
+        if os.path.samefile(found, entry):
+            return True
+        size = entry.stat().st_size
+        return size == found.stat().st_size and size <= 4 * 1024 * 1024 and found.read_bytes() == entry.read_bytes()
+    except OSError:
+        return False
+
+
+def _shell_word(path: Path) -> str:
+    """``path`` as a shell runs it: under ``~`` when it lies in the home directory (the user's name stays out of the
+    host's context), quoted only where it must be."""
+    if os.name == "nt":  # Forward slashes work in PowerShell and Git Bash; a backslash is an escape in Git Bash.
+        text = path.as_posix()
+        return f'"{text}"' if re.search(r"[\s&()^%!;,'`$]", text) else text
+    text = str(path)
+    try:
+        home = str(Path.home()).rstrip("/")
+    except (RuntimeError, KeyError):
+        home = ""
+    if home and text.startswith(home + "/"):
+        rest = text[len(home) + 1:]
+        if shlex.quote(rest) == rest:
+            return "~/" + rest
+    return shlex.quote(text)
+
+
+def page_command() -> str:
+    """How the host's shell can run this installation's ``membrain plugin ui``.
+
+    The plugin's launchers install the runtime with ``uv tool install``, which links ``membrain`` into uv's tool bin
+    directory, and that directory is not always on the PATH. ``membrain`` is named alone when it resolves on this
+    process's PATH, which the host's shell inherits, to this runtime's own program. Otherwise the program's path is
+    given, unless this runtime runs from an environment uv built in its cache, which a cache cleanup removes: then,
+    as when the runtime has no program of its own, ``membrain`` is named alone. File lookups only: this runs in the
+    session-start hook."""
+    entry = _entry_point()
+    if entry.is_file() and not running_from_uv_cache():
+        found = shutil.which("membrain")
+        if not (found and _same_program(Path(found), entry)):
+            return _shell_word(entry) + " plugin ui"
+    return "membrain plugin ui"
 
 
 def _detached(arguments: list[str]) -> None:
@@ -1621,6 +1676,8 @@ def _saved_context(client, real_life, roleplay, options):
 
     saved = list_notes(client)
     shared = None
+    # The memory page shows the installation's own brain: not one person's of a multi-user host, nor a role-play's.
+    page = page_command() if (options["tools"] or {}).get("note_page") and real_life is None and not roleplay else None
     if roleplay and options.get("share_real_life"):
         current = client.brain_id
         try:
@@ -1630,7 +1687,7 @@ def _saved_context(client, real_life, roleplay, options):
             client.brain_id = current
     return saved, snapshot(saved, brain_id=client.brain_id, shared=shared, persona=_persona(client),
                            relationship=_relationship(client), mood=_persona(client, "mood"),
-                           tools=options["tools"], skip_imports_from=options.get("skip_imports_from", ()))
+                           tools=options["tools"], skip_imports_from=options.get("skip_imports_from", ()), page=page)
 
 
 def _persona(client, route: str = "persona") -> dict | None:

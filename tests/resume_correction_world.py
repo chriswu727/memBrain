@@ -346,6 +346,8 @@ def built_world(tmp_path_factory, host_kind: str, *, busy: bool = False, model: 
     patch.setenv("PYTHON_DOTENV_DISABLED", "1")
     patch.setenv(evaluation_clock.ENV, "")  # Restored afterwards; the harness sets it for its profile.
     patch.setattr(harness, "STUB", True)
+    # `membrain` on the PATH, as `uv tool install` links it in an installation: the notes block then names it alone.
+    patch.setenv("PATH", str(host._entry_point().parent) + os.pathsep + os.environ.get("PATH", ""))
     directory = tmp_path_factory.mktemp(world.name) / "brain"
     try:
         world.memory = harness.Memory(directory, Path(MODEL) if model else None, (free_port(), free_port()), DAY[1])

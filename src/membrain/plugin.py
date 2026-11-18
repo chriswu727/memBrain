@@ -45,11 +45,15 @@ PRODUCERS = {"claude-code": PRODUCER, "codex": "membrain-codex", "openclaw": "me
 TRANSCRIPT_TAIL_BYTES = 2 * 1024 * 1024
 # Hosts that run the MCP bridge use its tool names; others call ``membrain plugin tool`` under these names.
 # ``persona_command``: the host has the /membrain:persona slash command (only Claude Code's plugin format has one).
+# ``note_page``: the host's AI has a shell on the user's machine, so the notes block tells it how to open the memory
+# page at a note (``host.page_command``). Not OpenClaw, whose AI talks to people who are not the owner.
 HOST_TOOLS = {"openclaw": {"note": "membrain_note", "recall": "membrain_search", "pause": "membrain_pause",
                            "resume": "membrain_resume", "consolidate": "membrain_consolidate",
                            "replies": "my_replies", "persona": "membrain_persona",
                            "manner_feedback": "membrain_manner_feedback"},
-              "claude-code": {**host.TOOL_NAMES, "persona_command": "/membrain:persona"}}
+              "claude-code": {**host.TOOL_NAMES, "persona_command": "/membrain:persona", "note_page": True},
+              "codex": {**host.TOOL_NAMES, "note_page": True},
+              "workbuddy": {**host.TOOL_NAMES, "note_page": True}}
 TOOLS = ("note", "search", "pause", "resume", "boundary", "consolidate", "manner_feedback", "persona")
 # Hosts that put their own memory files in the prompt; notes imported from them are not shown to them again.
 HOST_SKIPS = {"codex": ("codex",), "openclaw": ("openclaw",)}

@@ -115,6 +115,18 @@ AFFECT_NOTICE = (" A feeling in brackets is either what the user said they felt 
                  "with its date: bring it up gently and only when it fits, never present an inferred one as something "
                  "the user said, and on a sensitive note only if the user raises the topic.")
 AFFECT_PER_NOTE = 2
+
+
+def note_page_hint(command: str) -> str:
+    """The notes block's sentence on showing a note's basis, for hosts whose shell can run ``command`` (``membrain
+    plugin ui`` in a runnable form). In a host trial (2026-11-18) the host was asked "Can you show me where I said
+    that?", answered from the note, and told the user it could not show the conversation: the command was named only
+    in the skill, which it never opened. Every note line ends with the id the command takes."""
+    return (" If the user asks to see where a note came from (where they said it) or to check it, run "
+            f"{command} --note <id>: it opens their memory page at that note, what it replaced and its source "
+            "messages. Never say you cannot show the source.")
+
+
 _MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
 SOURCE_FIELD = {"source_event_ids": {"type": "array", "items": {"type": "string"}, "maxItems": 64,
                                      "description": "Original message IDs in this brain; never invent sources."}}
@@ -523,9 +535,11 @@ def _feelings(response: dict, chosen: list) -> dict[str, tuple[str, ...]]:
 
 
 def render_notes(response: dict, *, tool: str | None = "memory_note", skip_imports_from=(),
-                 real_life: bool = False, budget: int = NOTES_CHARACTERS, affect: bool = True) -> str | None:
+                 real_life: bool = False, budget: int = NOTES_CHARACTERS, affect: bool = True,
+                 page: str | None = None) -> str | None:
     """The notes block, grouped by kind; ``skip_imports_from`` leaves out notes copied from hosts that show their
     own memory files. ``real_life`` renders the person's non-sensitive real-life notes for a role-play session.
+    ``page`` is the command that opens the memory page (``note_page_hint``), for hosts that can run it.
 
     Feelings (``response["affect"]``) are added to their notes' lines after the notes are chosen, within
     ``AFFECT_CHARACTERS`` on top of ``budget``; ``affect=False`` leaves them out. A role-play's real-life block
@@ -566,7 +580,8 @@ def render_notes(response: dict, *, tool: str | None = "memory_note", skip_impor
             "extending or relying on something only planned (a purchase, booking or task) as if it exists."
             + (AFFECT_NOTICE if feelings else "")
             + (f" When a fact changes, save the new note with {tool} and pass the old note's id in replaces."
-               if tool else "") + more + "\n" + "\n".join(body) + "\n</membrain-notes>")
+               if tool else "") + (note_page_hint(page) if page else "") + more + "\n" + "\n".join(body)
+            + "\n</membrain-notes>")
 
 
 def _as_date(value: str | None, *, end: bool = False) -> _datetime.date | None:

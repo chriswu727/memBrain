@@ -43,14 +43,17 @@ def _without_reset_commitments(saved, relationship):
 
 
 def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, persona=None, mood=None,
-             relationship=None):
+             relationship=None, page=None):
     """Saved memory for the host's context. The persona block comes first, apart from the user's memory, with its
     own size limit: it never takes room from the notes. The companion's simulated mood follows it in its own block
     (none at the baseline); the fingerprint counts its label and its trigger, so a new label or trigger refreshes
     it, and a mood back at its baseline disappears. Turning "easing" (some hours after the trigger) is shown
     whenever the block is sent, but does not by itself re-send the snapshot, as the relationship's day count does
     not. The relationship block follows, also on its own; notes about a boundary topic are left out, and shared
-    moments are shown in the relationship block only."""
+    moments are shown in the relationship block only. ``page`` is the command that opens the memory page at a note,
+    for a host that can run it on this brain (``notes.note_page_hint``); its sentence has its own room, so it never
+    takes a note's place."""
+    from .notes import note_page_hint
     from .relationship import relationship_context
 
     persona_block = render_persona(persona)
@@ -62,8 +65,8 @@ def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, perso
     shared = _outside_boundaries(shared, boundaries)
     blocks = [persona_block, mood_block, bond["block"],
               render_coming_up(saved, skip_imports_from=skip_imports_from, budget=1000),
-              _notes(saved, 2800 if shared is not None else 3600, tool=tools["note"] if tools else None,
-                     skip_imports_from=skip_imports_from)]
+              _notes(saved, (2800 if shared is not None else 3600) + (len(note_page_hint(page)) if page else 0),
+                     tool=tools["note"] if tools else None, skip_imports_from=skip_imports_from, page=page)]
     if shared is not None:
         blocks.append(_notes(shared, 1100, tool=None, real_life=True))
     text = "\n\n".join(block for block in blocks if block)

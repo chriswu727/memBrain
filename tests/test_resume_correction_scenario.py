@@ -315,19 +315,26 @@ def test_search_results_with_ids_name_the_message_and_its_date(diligent):
 # 6. What the host can cite: the note's id, and a command that opens the page at it -------------------------------
 
 SKILL = (Path(__file__).parents[1] / "plugins/membrain/skills/membrain/SKILL.md").read_text(encoding="utf-8")
-# The host learns how to open the page where it already did: the skill's line on the memory page.
+# The skill's line on the memory page, for a host that consults the skill.
 BASIS_LINK = (" When they ask why you think something you took from a note, answer from the note (its date, what it "
-              "replaced) and run `membrain plugin ui --note <id>` with its id: it opens the page at that note and the "
-              "messages it came from.")
+              "replaced). When they ask to see where it came from or to check it, run `membrain plugin ui --note <id>` "
+              "with its id, as the notes block words it (it gives the program's path when `membrain` is not on the "
+              "PATH): it opens the page at that note, what it replaced and its source messages. Never say you cannot "
+              "show the source.")
+# A real host (2026-11-18) never opened the skill and told the user it could not show the conversation: the notes
+# block, given every session with notes and carrying every note's id, now names the command too.
+NOTES_HINT = (" If the user asks to see where a note came from (where they said it) or to check it, run membrain "
+              "plugin ui --note <id>: it opens their memory page at that note, what it replaced and its source "
+              "messages. Never say you cannot show the source.")
 
 
 def test_the_skill_names_the_command_that_opens_the_page_at_a_note_and_what_it_costs():
-    """The skill is read when the host turns to it, not given every session: the server instructions are unchanged."""
+    """The skill agrees with the notes block; the server instructions are unchanged."""
     from membrain import host
 
     assert ("tell them to run `membrain plugin ui`, which opens their memory page." + BASIS_LINK
             + " The page has no editor:") in SKILL
-    assert len(BASIS_LINK) == 226
+    assert len(BASIS_LINK) == 423 and len(NOTES_HINT) == 241
     assert len(host.server_instructions()) == 1_388 and "plugin ui" not in host.server_instructions()
 
 
@@ -339,8 +346,11 @@ def test_the_host_receives_the_id_that_opens_the_page_at_the_basis_and_no_creden
     everything = received(world.captures["day8"]["finish"]) + "".join(world.captures["recall"].values())
     # No link and no code in the host's context: a code is a credential, and the transcript keeps it.
     assert "code=" not in everything and not re.search(r"https?://", everything)
+    notes = block(world.captures["day8"]["finish"]["session_start"], "membrain-notes")
     line = line_with(note_lines(world.captures["day8"]["finish"]["session_start"]), NOTE_CORRECTED)
     assert line and line.endswith(f"(replaces your note of {DATE[1]}) (id: {world.note_ids['corrected']})")
+    # And, in the same block, what to run with that id: `membrain` is on this installation's PATH.
+    assert f"pass the old note's id in replaces.{NOTES_HINT}\n" in notes and notes.count("plugin ui") == 1
 
 
 def test_membrain_plugin_ui_with_the_notes_id_prints_a_single_use_link_at_that_note(diligent, monkeypatch, capsys):
