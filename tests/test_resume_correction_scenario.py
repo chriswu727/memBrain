@@ -18,6 +18,7 @@ change that fixes one turns it into a failure that has to be looked at. Whether 
 from what it receives is not measured here: that needs a model in the loop.
 """
 import re
+from pathlib import Path
 
 import pytest
 from resume_correction_world import (
@@ -311,15 +312,59 @@ def test_search_results_with_ids_name_the_message_and_its_date(diligent):
     assert by_text[CORRECTION]["conversation_id"] == "tidepool-day3"
 
 
-# 6. What the host could cite: ids and dates, no link ---------------------------------------------------------------
+# 6. What the host can cite: the note's id, and a command that opens the page at it -------------------------------
 
-@pytest.mark.xfail(strict=True, reason="Nothing the host receives links to the memory page: notes carry a note id and "
-                   "a date, recall lines a date, and the page has no address for one note or message (memory.js reads "
-                   "only ?code, ?demo, ?show and ?lang), so a reply cannot point the user to its basis.")
-@pytest.mark.parametrize("world", ["diligent", "lazy"], indirect=True)
-def test_the_host_receives_a_link_to_the_basis_it_can_give_the_user(world):
+SKILL = (Path(__file__).parents[1] / "plugins/membrain/skills/membrain/SKILL.md").read_text(encoding="utf-8")
+# The host learns how to open the page where it already did: the skill's line on the memory page.
+BASIS_LINK = (" When they ask why you think something you took from a note, answer from the note (its date, what it "
+              "replaced) and run `membrain plugin ui --note <id>` with its id: it opens the page at that note and the "
+              "messages it came from.")
+
+
+def test_the_skill_names_the_command_that_opens_the_page_at_a_note_and_what_it_costs():
+    """The skill is read when the host turns to it, not given every session: the server instructions are unchanged."""
+    from membrain import host
+
+    assert ("tell them to run `membrain plugin ui`, which opens their memory page." + BASIS_LINK
+            + " The page has no editor:") in SKILL
+    assert len(BASIS_LINK) == 226
+    assert len(host.server_instructions()) == 1_388 and "plugin ui" not in host.server_instructions()
+
+
+@pytest.mark.parametrize("world", ["diligent", pytest.param("lazy", marks=pytest.mark.xfail(strict=True, reason=(
+    "A lazy host saves no notes, so nothing it receives on day 8 carries a note id for `membrain plugin ui --note`; "
+    "the history and recall lines carry dates only, and memory_recall gives message ids only for forgetting.")))],
+    indirect=True)
+def test_the_host_receives_the_id_that_opens_the_page_at_the_basis_and_no_credential(world):
     everything = received(world.captures["day8"]["finish"]) + "".join(world.captures["recall"].values())
-    assert re.search(r"https?://|/memory", everything)
+    # No link and no code in the host's context: a code is a credential, and the transcript keeps it.
+    assert "code=" not in everything and not re.search(r"https?://", everything)
+    line = line_with(note_lines(world.captures["day8"]["finish"]["session_start"]), NOTE_CORRECTED)
+    assert line and line.endswith(f"(replaces your note of {DATE[1]}) (id: {world.note_ids['corrected']})")
+
+
+def test_membrain_plugin_ui_with_the_notes_id_prints_a_single_use_link_at_that_note(diligent, monkeypatch, capsys):
+    import argparse
+
+    from membrain import host, plugin, plugin_cli
+    from membrain.local_profile import load_profile
+
+    monkeypatch.setattr(plugin, "start", lambda directory: {})  # The world's service is already running.
+    parser = argparse.ArgumentParser()
+    plugin_cli.add_commands(parser.add_subparsers(dest="command"))
+    note = diligent.note_ids["corrected"]
+    plugin_cli.dispatch(parser.parse_args(["plugin", "ui", "--no-browser", "--note", note,
+                                           "--directory", str(diligent.directory)]))
+    printed = capsys.readouterr().out.strip().splitlines()
+    assert printed[0] == "Memory page (single-use link, valid for 2 minutes):"
+    base = re.escape(load_profile(diligent.directory).base_url)
+    match = re.fullmatch(rf"{base}/memory\?code=([\w-]+)#note={re.escape(note)}", printed[1])
+    assert match and host.consume_ui_code(diligent.directory, match.group(1))
+    assert not host.consume_ui_code(diligent.directory, match.group(1))
+    with pytest.raises(SystemExit) as refused:
+        plugin_cli.dispatch(parser.parse_args(["plugin", "ui", "--no-browser", "--note", "x" * 257,
+                                               "--directory", str(diligent.directory)]))
+    assert refused.value.code == 2
 
 
 # 7. Cost ---------------------------------------------------------------------------------------------------------------

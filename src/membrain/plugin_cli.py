@@ -65,6 +65,8 @@ def add_commands(commands):
     outcome.add_argument("--limit", type=int, default=10, help="Exchanges in a listing (1 to 50)")
     ui = actions.add_parser("ui", help="Open the memory page in a browser (starts the service if needed)")
     ui.add_argument("--no-browser", action="store_true", help="Only print the single-use link")
+    ui.add_argument("--note", metavar="ID", help="Open the page at this note (the id on a note line), with its "
+                                                 "sources and what it replaced")
     for parser in actions.choices.values():
         parser.add_argument("--directory", type=Path, default=None)
 
@@ -188,8 +190,17 @@ def dispatch(args) -> None:
             from . import host
             from .local_profile import load_profile
 
+            note = getattr(args, "note", None)
+            if note is not None and not 1 <= len(note) <= 256:
+                print("--note takes a note id, as shown on a note line.", file=sys.stderr)
+                raise SystemExit(2)
             result = plugin.start(directory)
             url = f"{load_profile(directory).base_url}/memory?code={host.issue_ui_code(directory)}"
+            if note is not None:
+                from urllib.parse import quote
+
+                # The fragment names the item and never reaches the server; the code stays the only credential.
+                url += f"#note={quote(note, safe='')}"
             if args.plugin_command == "setup":
                 print("Local memory is running. No extra model API key is needed.")
                 print(f"Recall: {result['semantic_recall']}. Recording: {result['recording']}.")

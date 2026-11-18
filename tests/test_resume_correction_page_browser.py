@@ -164,13 +164,26 @@ def test_each_original_message_names_its_conversation(diligent, page):
         f"In the conversation: {DATE[1]} · 8 messages · {DECISION[:90]}")
 
 
-@pytest.mark.xfail(strict=True, reason="A source message names its conversation ('In the conversation: …') but "
-                   "cannot open it: the Conversations view lists the latest 100 messages with no address or anchor for "
-                   "one conversation, so a link would need navigation the page does not have (a follow-up).")
 def test_an_original_message_links_to_its_conversation(diligent, page):
+    """Each source line under a note opens the Conversations view at that message, in its own conversation."""
     open_page(page, diligent)
-    messages = sources_of(corrected_note(page))
-    expect(messages.nth(1).locator("a, button")).not_to_have_count(0, timeout=2_000)
+    ids = diligent.messages()
+    for text, conversation in ((DECISION, "tidepool-day1"), (CORRECTION, "tidepool-day3")):
+        open_view(page, "notes")  # Choosing a tab leaves the address the last link set.
+        assert "#" not in page.url
+        link = sources_of(corrected_note(page)).filter(has_text=text).locator("a.source-conversation")
+        expect(link).to_have_attribute("href", f"#message={ids[text]['event_id']}")
+        link.click()
+        expect(page.locator("#view-conversations")).to_be_visible()
+        assert page.url.endswith(f"/memory#message={ids[text]['event_id']}")
+        opened = page.locator("#conversations > details.item").first
+        expect(opened).to_have_attribute("open", "")
+        expect(opened).to_have_attribute("data-conversation", conversation)
+        expect(page.locator("#conversations .addressed")).to_have_count(1)
+        expect(opened.locator(".message.addressed .user-text")).to_have_text(text)
+        # The conversation is shown once, whole, not again among the latest messages.
+        expect(page.locator(f'#conversations > details.item[data-conversation="{conversation}"]')).to_have_count(1)
+    dump("source-to-conversation", page.locator("#conversations > details.item").first.inner_text())
 
 
 def test_a_lazy_hosts_page_has_no_notes_to_explain_anything(lazy, page):
@@ -318,8 +331,9 @@ def test_conversations_mark_the_decision_as_corrected_later(diligent, page):
 
 
 @pytest.mark.xfail(strict=True, reason="The day-8 reply is stored as text only: no record of the notes, history or "
-                   "recall it was given, so the page cannot go from a reply to its basis (the brain trace covers the "
-                   "last search only, not the reply).")
+                   "recall it was given, so the stored reply leads nowhere (the brain trace covers the last search "
+                   "only). The way from a reply to its basis is the host's: it runs `membrain plugin ui --note <id>` "
+                   "with the note it used, which opens the page at that note (tests below).")
 def test_the_day8_reply_links_to_its_basis(diligent, page):
     open_page(page, diligent)
     open_view(page, "conversations")
@@ -328,6 +342,171 @@ def test_the_day8_reply_links_to_its_basis(diligent, page):
     reply = page.locator("#conversations .message.assistant").filter(has_text=DAY8_REPLY)
     expect(reply).to_have_count(1)
     expect(reply).to_contain_text(re.compile(r"based on|basis|source", re.IGNORECASE), timeout=2_000)
+
+
+# Addresses: from a reply to its basis ------------------------------------------------------------------------------
+# The host has the note's id (on its note line); `membrain plugin ui --note <id>` opens /memory?code=…#note=<id>.
+
+GONE = "This item is no longer here."
+
+
+def open_at(page, world, fragment: str, query: str = ""):
+    """The page as `membrain plugin ui --note <id>` opens it: a single-use code and the item in the fragment."""
+    page.goto(f"{load_profile(world.directory).base_url}/memory?{query}code={host.issue_ui_code(world.directory)}"
+              f"#{fragment}")
+    expect(page.locator("#tabs")).to_be_visible()
+
+
+def link_of(world, note_id: str) -> str:
+    """What `membrain plugin ui --no-browser --note <id>` prints, run as the host would run it."""
+    import argparse
+    import contextlib
+    import io
+
+    from membrain import plugin, plugin_cli
+
+    parser = argparse.ArgumentParser()
+    plugin_cli.add_commands(parser.add_subparsers(dest="command"))
+    output = io.StringIO()
+    patch = pytest.MonkeyPatch()
+    patch.setattr(plugin, "start", lambda directory: {})  # The world's service is already running.
+    try:
+        with contextlib.redirect_stdout(output):
+            plugin_cli.dispatch(parser.parse_args(["plugin", "ui", "--no-browser", "--note", note_id,
+                                                   "--directory", str(world.directory)]))
+    finally:
+        patch.undo()
+    return output.getvalue().strip().splitlines()[-1]
+
+
+def test_the_hosts_link_opens_the_page_at_the_note_with_its_lineage_and_both_source_lists(diligent, page):
+    note = diligent.note_ids["corrected"]
+    link = link_of(diligent, note)
+    assert re.fullmatch(rf"{re.escape(load_profile(diligent.directory).base_url)}/memory\?code=[\w-]+#note={note}",
+                        link)
+    page.goto(link)
+    expect(page.locator("#view-notes")).to_be_visible()
+    # The code is exchanged and dropped; the address stays.
+    expect(page).to_have_url(re.compile(rf"/memory#note={note}$"))
+    item = page.locator("#notes article.item.addressed")
+    expect(item).to_have_count(1)
+    expect(item.locator(":scope > p.user-text")).to_have_text(NOTE_CORRECTED)
+    expect(item.locator(".lineage p.hint").first).to_have_text(f"Replaced an earlier note on {DATE[3]}.")
+    expect(item.locator(".lineage p.earlier")).to_have_text(f"Earlier ({DATE[1]}): {NOTE_DECISION}")
+    expect(item.locator(":scope > details")).to_have_attribute("open", "")
+    expect(item.locator("details .source-role")).to_have_text([f"Said on {DATE[3]}:", "The earlier note was based on:"])
+    expect(item.locator("details .message .user-text")).to_have_text([CORRECTION, DECISION])
+    expect(item.locator("details .message .meta")).to_have_text([f"{DATE[3]} · You", f"{DATE[1]} · You"])
+    expect(item.locator("details a.source-conversation")).to_have_count(2)
+    expect(page.locator("#notes article.item")).to_have_count(3)  # The normal view, at that note.
+    expect(page.locator(".item-gone")).to_have_count(0)
+    dump("address-note", item.inner_text())
+    # A reload keeps the address (the page's own session), and choosing a tab leaves it.
+    page.reload()
+    expect(page.locator("#notes article.item.addressed > p.user-text")).to_have_text(NOTE_CORRECTED)
+    expect(page.locator("#notes article.item.addressed > details")).to_have_attribute("open", "")
+    open_view(page, "conversations")
+    expect(page).to_have_url(re.compile(r"/memory$"))
+    page.reload()
+    expect(page.locator("#view-conversations")).to_be_visible()
+    expect(page.locator(".addressed")).to_have_count(0)
+
+
+def test_the_page_opens_at_a_message_in_its_conversation(diligent, page):
+    decision = diligent.messages()[DECISION]["event_id"]
+    open_at(page, diligent, f"message={decision}")
+    expect(page.locator("#view-conversations")).to_be_visible()
+    expect(page).to_have_url(re.compile(rf"/memory#message={decision}$"))
+    opened = page.locator("#conversations > details.item").first
+    expect(opened).to_have_attribute("open", "")
+    expect(opened.locator("summary")).to_have_text(f"{DATE[1]} · 8 messages · {DECISION[:90]}")
+    message = page.locator("#conversations .message.addressed")
+    expect(message).to_have_count(1)
+    expect(message.locator(".user-text")).to_have_text(DECISION)
+    expect(message.locator(".meta")).to_contain_text(f"You{DATE[1]}")
+    expect(message.locator(".superseded")).to_have_text(f"Superseded by a note saved on {DATE[3]}.")
+    expect(opened.locator(".message")).to_have_count(8)
+    dump("address-message", opened.inner_text())
+
+
+def test_the_address_of_a_replaced_note_opens_the_note_that_replaced_it_at_that_line(diligent, page):
+    open_at(page, diligent, f"note={diligent.note_ids['decision']}")
+    item = page.locator("#notes article.item.addressed")
+    expect(item.locator(":scope > p.user-text")).to_have_text(NOTE_CORRECTED)
+    expect(item.locator(".lineage p.earlier.addressed")).to_have_text(f"Earlier ({DATE[1]}): {NOTE_DECISION}")
+    expect(page.locator(".item-gone")).to_have_count(0)
+
+
+@pytest.mark.parametrize("fragment", ["note=not-a-note", "message=not-a-message", "note=", "note=" + "x" * 300])
+def test_an_unknown_address_shows_one_plain_line_and_the_normal_view(diligent, page, fragment):
+    open_at(page, diligent, fragment)
+    view = "notes" if fragment.startswith("note") else "conversations"
+    expect(page.locator(f"#view-{view}")).to_be_visible()
+    expect(page.locator(f"#{view} > .item-gone")).to_have_text(GONE)
+    expect(page.locator(".item-gone")).to_have_count(1)
+    expect(page.locator(".addressed")).to_have_count(0)
+    if view == "notes":
+        expect(page.locator("#notes article.item")).to_have_count(3)
+    else:
+        expect(page.locator("#conversations > details.item").first).to_be_visible()
+    expect(page.locator("#message")).to_have_text("")  # No error.
+
+
+def test_another_users_note_and_message_are_not_here_on_this_installations_page(diligent, page):
+    """A multi-user installation keeps each person of a bot in a brain of their own; the page is the
+    installation's, and an address naming another person's note or message shows nothing of it."""
+    secret = "Mira's locker code is the year her brother was born."
+    with host.ready_client(diligent.directory, "telegram:basis-link-other") as client:
+        said = client.observe(secret, conversation_id="other-person-chat", branch_id="main",
+                              source_event_key="basis-link-other-1",
+                              producer_ref="basis-link-test")["result"]["accepted_event_ids"][0]
+        note = client.write_note("Mira keeps a locker code tied to a family date.", role="user",
+                                 source_event_ids=[said])["note_id"]
+    for fragment, view in ((f"note={note}", "notes"), (f"message={said}", "conversations")):
+        open_at(page, diligent, fragment)
+        expect(page.locator(f"#{view} > .item-gone")).to_have_text(GONE)
+        content = page.content()
+        assert "Mira" not in content and "locker" not in content and note not in content and said not in content
+
+
+@pytest.mark.parametrize("fragment", [
+    "note={corrected}&delete=1&action=forget&mode=erase_content",
+    "message={decision}&erase=ERASE&view=privacy&confirm=1",
+    "view=privacy&erase=ERASE&accept=1",
+    "note=%3Cimg%20src%3Dx%20onerror%3D%22window.basisPwned%3D1%22%3E",
+])
+def test_a_crafted_address_only_navigates_and_never_acts(diligent, page, fragment):
+    fragment = fragment.format(corrected=diligent.note_ids["corrected"],
+                               decision=diligent.messages()[DECISION]["event_id"])
+    before = (len(diligent.notes()), len(diligent.messages()))
+    requests, dialogs = [], []
+    page.on("request", lambda request: requests.append((request.method, request.url)))
+    page.on("dialog", lambda dialog: (dialogs.append(dialog.message), dialog.dismiss()))
+    open_at(page, diligent, fragment)
+    page.wait_for_load_state("networkidle")
+    assert [(method, url.split("?")[0].split("/", 3)[3]) for method, url in requests if method != "GET"] == [
+        ("POST", "v1/local/ui-session")]
+    assert dialogs == []
+    assert page.evaluate("() => window.basisPwned") is None
+    expect(page.locator("#notes img, #conversations img")).to_have_count(0)
+    expect(page.locator("#view-privacy")).to_be_hidden()
+    assert (len(diligent.notes()), len(diligent.messages())) == before
+
+
+def test_the_address_and_the_gone_line_in_chinese(diligent, page):
+    base = load_profile(diligent.directory).base_url
+    open_at(page, diligent, "note=not-a-note", query="lang=zh&")
+    expect(page.locator("#notes > .item-gone")).to_have_text("这一项已经不在这里了。")
+    open_at(page, diligent, f"note={diligent.note_ids['corrected']}", query="lang=zh&")
+    item = page.locator("#notes article.item.addressed")
+    expect(item.locator(".lineage p.hint").first).to_have_text(f"{DATE[3]} 取代了一条较早的笔记。")
+    link = item.locator("details .message").filter(has_text=DECISION).locator("a.source-conversation")
+    expect(link).to_have_text(f"所在对话：{DATE[1]} · 8 条消息 · {DECISION[:90]}")
+    link.click()
+    expect(page.locator("#conversations .message.addressed .user-text")).to_have_text(DECISION)
+    expect(page.locator("#conversations .message.addressed .superseded")).to_have_text(re.compile(DATE[3]))
+    page.goto(f"{base}/memory?lang=en&code={host.issue_ui_code(diligent.directory)}")  # Leave the page in English.
+    expect(page.locator("#tabs")).to_be_visible()
 
 
 # A chain: decision, correction, a second change (A -> B -> C) ------------------------------------------------------
@@ -385,3 +564,31 @@ def test_deleting_the_current_note_on_the_page_deletes_what_it_replaced_and_ever
     assert not [note for note in notes if "Tidepool database" in note["text"]]
     text = str(export)
     assert NOTE_DECISION not in text and NOTE_CORRECTED not in text and NOTE_THIRD not in text
+
+
+def test_a_deleted_notes_address_shows_one_plain_line_and_nothing_of_the_note(chain, page):
+    """After the deletion above: the host may still hold the note's id from a session that began before it. The
+    address shows one plain line and the normal view, and the page asks for nothing the normal view does not."""
+    made = []
+    # The service's own routes; static files may come from the browser's cache on the second load.
+    page.on("request", lambda request: made.append((request.method, request.url)) if "/v1/" in request.url else None)
+
+    def requests_of(fragment: str) -> set:
+        made.clear()
+        page.goto(f"{load_profile(chain.directory).base_url}/memory?code={host.issue_ui_code(chain.directory)}"
+                  + fragment)
+        expect(page.locator("#view-notes")).to_be_visible()
+        expect(page.locator("#notes article.item").first).to_be_visible()
+        page.wait_for_load_state("networkidle")
+        return set(made)
+
+    normal = requests_of("")
+    for key in ("third", "corrected", "decision"):
+        note = chain.note_ids[key]
+        addressed = requests_of(f"#note={note}")
+        expect(page.locator("#notes > .item-gone")).to_have_text(GONE)
+        expect(page.locator("#notes article.item")).to_have_count(2)  # The two notes the deletion left.
+        content = page.content()
+        assert note not in content and "Tidepool database" not in content and "DuckDB" not in content
+        assert addressed == normal, (key, addressed ^ normal)
+        assert not [url for _, url in addressed if note in url]

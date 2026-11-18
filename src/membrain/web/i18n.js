@@ -97,6 +97,7 @@ const ZH = {
   "No plans or dates yet. When you tell your agent about a plan or a date, it keeps a note here.":
     "还没有计划或日期。当你告诉 agent 一个计划或日期，它会在这里记一条笔记。",
   "Loading original messages…": "正在加载原始消息…", "Some original messages are no longer available.": "部分原始消息已不存在。",
+  "This item is no longer here.": "这一项已经不在这里了。",
   "Delete": "删除", "Date has passed; completion is not confirmed.": "日期已过，但尚未确认完成。",
   "Waiting for the source message to finish recording.": "正在等待来源消息记录完成。",
   "Standalone note written by you.": "你单独写的笔记。",

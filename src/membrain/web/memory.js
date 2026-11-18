@@ -115,7 +115,7 @@ const EMPTY_NOTES = { notes: "No notes yet. Tell your agent what to remember, an
 
 async function loadNotes(view = "notes") {
   const response = await timeline({ role: ["assistant", "user"], conversation_id: NOTES });
-  state.notes = response.items;
+  state.notes = response.items; state.notesComplete = response.complete;
   const list = $(view);
   list.replaceChildren();
   let items = state.notes;
@@ -145,7 +145,15 @@ async function conversationLabels(blocks) {
   }));
   for (const [message, block] of blocks) {
     const label = labels.get(message.conversation_id);
-    if (label) block.append(element("p", `In the conversation: ${label}`, "hint source-conversation"));
+    if (!label) continue;
+    // Opens the Conversations view at this message, through the page's own address (goTo): a link, never an act.
+    const link = element("a", `In the conversation: ${label}`, "source-conversation");
+    if (message.conversation_id !== NOTES && ["user", "assistant"].includes(message.actor_role)) {
+      link.href = `#message=${encodeURIComponent(message.event_id)}`;
+    }
+    const line = element("p", undefined, "hint");
+    line.append(link);
+    block.append(line);
   }
 }
 
@@ -205,6 +213,7 @@ function lineageBlock(note) {
     : `Replaced ${direct} earlier notes on ${day(note.recorded_at)}.`, "hint"));
   for (const entry of earlier.filter((value) => !value.erased)) {
     const row = element("p", undefined, "earlier");
+    row.dataset.eventId = entry.event_id;
     row.append(element("span", `Earlier (${day(entry.recorded_at)}):`, "hint"), " ",
       element("span", typedNote(entry.text).sentence, "user-text"));
     block.append(row);
@@ -220,6 +229,7 @@ function supersededHint(message) {
 
 function noteItem(note) {
   const item = element("article", undefined, "item");
+  item.dataset.eventId = note.event_id;
   const parsed = typedNote(note.text), fields = parsed.fields;
   const meta = element("div", undefined, "meta");
   meta.append(element("span", day(note.recorded_at)));
@@ -336,12 +346,14 @@ async function loadConversations(reset = true) {
 
 function conversationItem(conversation, messages) {
   const item = element("details", undefined, "item");
+  item.dataset.conversation = conversation;
   const summary = element("summary");
   const first = messages.find((message) => message.actor_role === "user") || messages[0];
   summary.textContent = `${day(messages[0].recorded_at)} · ${messages.length} messages · ${first.text.slice(0, 90)}`;
   item.append(summary);
   for (const message of messages) {
     const block = element("div", undefined, `message ${message.actor_role}`);
+    block.dataset.eventId = message.event_id;
     const meta = element("div", undefined, "meta");
     meta.append(element("span", message.actor_role === "user" ? "You" : "Agent"), element("span", day(message.recorded_at)));
     const remove = element("button", "Delete", "link danger");
@@ -1116,7 +1128,95 @@ async function show(view) {
   }
   try { await loaders[view](); } catch (error) { notify(error.message, true); }
 }
-for (const button of $("tabs").querySelectorAll("button")) button.addEventListener("click", () => show(button.dataset.view));
+for (const button of $("tabs").querySelectorAll("button")) {
+  button.addEventListener("click", () => { leaveAddress(); show(button.dataset.view); });
+}
+
+// Addresses ------------------------------------------------------------------------------------------------------
+// /memory#note=<id> opens the Notes view at that note, with its sources and what it replaced shown; /memory#message=<id>
+// opens the Conversations view at that message, in its conversation. The fragment holds an id only and is never sent
+// to the server; the single-use ?code stays the only credential. An address only reads, navigates and expands: it
+// never deletes, accepts or changes anything, and any other key in it is ignored. An id that is not here (never was,
+// deleted, hidden, another person's) shows one plain line and the normal view, and nothing about the id.
+const GONE = "This item is no longer here.";
+
+function address() {
+  const fragment = new URLSearchParams(location.hash.slice(1));
+  for (const kind of ["note", "message"]) {
+    const id = fragment.get(kind);
+    if (id !== null) return { kind, id: id.length <= 256 && !/[\u0000-\u001f]/.test(id) ? id : "" };
+  }
+  return null;
+}
+
+// Choosing a tab leaves the address, so a reload opens the view chosen rather than the item.
+function leaveAddress() {
+  if (location.hash) history.replaceState(null, "", location.pathname + location.search);
+}
+
+const itemsOf = (root, selector, id) => [...root.querySelectorAll(selector)].find((node) => node.dataset.eventId === id);
+
+function gone(list) {
+  list.querySelector(":scope > .empty")?.remove();
+  list.prepend(element("p", GONE, "hint item-gone"));
+}
+
+function arrive(node) {
+  node.classList.add("addressed");
+  node.scrollIntoView({ block: "center" });
+}
+
+async function goToNote(id) {
+  await show("notes");
+  const list = $("notes");
+  let item = id ? itemsOf(list, ":scope > article.item", id) : null, earlier = null;
+  // A note that a current note replaced is shown under it: open the current note, at that earlier line.
+  const current = id && !item && state.notes.find((note) => (note.replaced || []).some((entry) => entry.event_id === id && !entry.erased));
+  if (current) {
+    item = itemsOf(list, ":scope > article.item", current.event_id);
+    earlier = item && itemsOf(item, ".lineage .earlier", id);
+  }
+  // Only a list too long to read whole can leave a current note out; only then is the note asked for by its id.
+  if (id && !item && !state.notesComplete) {
+    const { items } = await timeline({ role: ["assistant", "user"], conversation_id: NOTES, event_id: [id] });
+    if (items[0]) { item = noteItem(items[0]); list.querySelector(":scope > .empty")?.remove(); list.prepend(item); }
+  }
+  if (!item) return gone(list);
+  const sources = item.querySelector(":scope > details");
+  if (sources) sources.open = true;
+  arrive(item);
+  if (earlier) earlier.classList.add("addressed");
+}
+
+async function goToMessage(id) {
+  await show("conversations");
+  const list = $("conversations"), roles = ["user", "assistant"];
+  const found = id ? (await timeline({ role: roles, event_id: [id] })).items[0] : null;
+  if (!found || found.conversation_id === NOTES) return gone(list);
+  const conversation = found.conversation_id;
+  let { items } = await timeline({ role: roles, conversation_id: conversation });
+  // A conversation too long for one read is shown up to this message.
+  if (!items.some((message) => message.event_id === id)) {
+    ({ items } = await timeline({ role: roles, conversation_id: conversation, before_sequence: found.sequence + 1 }));
+  }
+  // The latest messages may hold part of this conversation: it is shown whole, first, and open.
+  for (const node of list.querySelectorAll(":scope > details.item")) if (node.dataset.conversation === conversation) node.remove();
+  list.querySelector(":scope > .empty")?.remove();
+  const item = conversationItem(conversation, items.reverse());
+  list.prepend(item);
+  item.open = true;
+  const block = itemsOf(item, ".message", id);
+  if (block) arrive(block);
+}
+
+async function goTo(target) {
+  try { await (target.kind === "note" ? goToNote(target.id) : goToMessage(target.id)); } catch (error) { notify(error.message, true); }
+}
+
+window.addEventListener("hashchange", () => {
+  const target = address();
+  if (target && !DEMO && state.key && !$("tabs").hidden) goTo(target);
+});
 
 async function open(key, brain, view = "notes") {
   state.key = key; state.brain = brain;
@@ -1124,7 +1224,8 @@ async function open(key, brain, view = "notes") {
   if (!state.brain) throw new Error("No memory installation found. Run membrain plugin start first.");
   await api(`/v1/brains/${encodeURIComponent(state.brain)}/status`);
   $("signin").hidden = true; $("tabs").hidden = false;
-  await Promise.all([loadRecording(), loadServiceStatus(), show(SHOWCASE ? "brain" : view)]);
+  const target = SHOWCASE ? null : address();
+  await Promise.all([loadRecording(), loadServiceStatus(), target ? goTo(target) : show(SHOWCASE ? "brain" : view)]);
   if (SHOWCASE) window.openShowcase();
 }
 onSubmit($("key-form"), () => open($("key").value.trim(), ""));
@@ -1134,7 +1235,7 @@ setInterval(() => { if (!DEMO && state.key && !$("tabs").hidden) { loadServiceSt
   if (DEMO) return;
   const code = new URLSearchParams(location.search).get("code");
   if (code) {
-    history.replaceState(null, "", "/memory");
+    history.replaceState(null, "", `/memory${location.hash}`);  // The code goes; an address stays.
     try {
       const session = await fetch("/v1/local/ui-session", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ code }) });
       const data = await session.json();
