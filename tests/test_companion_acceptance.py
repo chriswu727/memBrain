@@ -36,8 +36,6 @@ from membrain.relationship import (
     add_boundary,
     relationship,
     reset_relationship,
-    set_cap,
-    set_support_style,
 )
 
 NOW = datetime.datetime(2026, 11, 3, 9, tzinfo=datetime.UTC)
@@ -77,8 +75,6 @@ def seed(brain):
     write(brain, "I won a scholarship.", kind="milestone", affect=HAPPY)
     write(brain, "We finished a puzzle together.", kind="milestone", shared=True)
     add_boundary(*brain, "my ex", ["Jordan", "前任"])
-    set_support_style(*brain, "Listen first.")
-    set_cap(*brain, "getting_to_know")
 
 
 def mood(brain):
@@ -300,8 +296,10 @@ def test_relationship_reset_confirmation_names_every_kind_of_state_it_removes():
     script = (WEB / "memory.js").read_text()
     message = re.search(r'confirm\("(Reset the relationship\?[^"\n]+)"\)', script).group(1)
     removed, kept = message.split("The boundaries stay in force")
-    for phrase in ("shared moment", "support style", "familiarity limit", "promises"):
+    for phrase in ("shared moment", "promises"):
         assert phrase in removed
+    # The support style and the familiarity limit were retired (2026-11-18): the text no longer names them.
+    assert "support style" not in message and "familiarity limit" not in message
     # Since 2026-11-18 a reset keeps the boundaries, and the text says so instead of listing them as deleted.
     assert "boundar" not in removed and "remove a boundary on its own" in kept
     assert json.dumps(message, ensure_ascii=False) + ":" in (WEB / "i18n.js").read_text()

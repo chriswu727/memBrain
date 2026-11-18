@@ -64,7 +64,7 @@ def c5_values(prefix="C1", plant=PLANT, dates=DATES):
         "HOST": f"You are a friendly companion chatting with {plant} in a messaging app. Reply briefly and naturally.",
         "SESSIONS_LONG": sessions, "FACTS": f"- {plant}", "CASES": cases,
         "PAGE_ACTIONS": [("s03", 0, {"do": "accept_proposal", "origin": "feedback", "kind": "less_formal"}),
-                         ("s05", 0, {"do": "add_boundary", "topic": f"{plant} topic", "aliases": [plant]}),
+                         ("s05", 0, {"do": "reset_mood"}),
                          ("s06", 1, {"do": "delete_message", "session": "s00", "turn": 1}),
                          ("s07", 0, {"do": "switch_persona", "preset": "random"}),
                          ("s13", 0, {"do": "reset_relationship"})],
@@ -75,7 +75,7 @@ def c5_values(prefix="C1", plant=PLANT, dates=DATES):
             "mood": {"event": ("s00", 2), "within_hours": case(1), "after_48_hours": case(2)},
             "feelings_question": {"case": case(2)},
             "boundary_in_conversation": {"asked": ("s01", 2), "case": case(5)},
-            "boundary_on_page": {"action": ("s05", 0, "add_boundary"), "case": case(6)},
+            "second_boundary": {"asked": ("s04", 1), "case": case(6)},
             "page_deletion": {"action": ("s06", 1, "delete_message"), "case": case(7)},
             "reset": {"action": ("s13", 0, "reset_relationship"), "case": case(11)},
             "manner_feedback": {"comments": [("s00", 3), ("s01", 3), ("s02", 1)],
@@ -92,7 +92,7 @@ def c5_values(prefix="C1", plant=PLANT, dates=DATES):
 # The pair's split of the thirteen COVERAGE items (2026-11-17): each scenario covers its own items, one case each.
 SCENARIO_ONE = ("stated_feeling", "inferred_feeling", "mood", "feelings_question", "boundary_in_conversation",
                 "page_deletion", "absence")
-SCENARIO_TWO = ("boundary_on_page", "reset", "manner_feedback", "from_now_on", "switch", "shared_moments")
+SCENARIO_TWO = ("second_boundary", "reset", "manner_feedback", "from_now_on", "switch", "shared_moments")
 
 
 def split_values(part=1, prefix="C1"):
@@ -157,7 +157,7 @@ def test_the_off_the_record_stretch_is_allowed_not_required_and_a_switch_may_be_
 
 def test_a_relationship_reset_between_a_boundary_and_its_case_no_longer_undoes_it(tmp_path):
     # Since 2026-11-18 a relationship reset keeps the boundaries, so a reset between either boundary and its case is
-    # allowed; removing the page boundary still undoes it ("page boundary removed before its case" below).
+    # allowed; removing a boundary on the page still undoes it ("a boundary removed before its case" below).
     actions = c5_values()["PAGE_ACTIONS"]
     actions = [("s02", 0, {"do": "reset_relationship"}), *actions[:2], ("s05", 1, {"do": "reset_relationship"}),
                *actions[2:]]
@@ -204,12 +204,6 @@ UNFIT = {
                     "c5_action_arms"),
     "action off record": ({"PAGE_ACTIONS": _actions_plus(("s15", 0, {"do": "delete_message", "session": "s14",
                                                                      "turn": 1}))}, "", "c5_action_off_record"),
-    "action limit": ({"PAGE_ACTIONS": _actions_plus(("s15", 0, {"do": "add_boundary", "topic": "x" * 61}))}, "",
-                     "c5_action_limit"),
-    "support style limit": ({"PAGE_ACTIONS": _actions_plus(("s15", 0, {"do": "set_support_style", "text": "y" * 201}))},
-                            "", "c5_action_limit"),
-    "card limit": ({"PAGE_ACTIONS": _actions_plus(("s15", 0, {"do": "set_persona", "card": {"mood": "x"}}))}, "",
-                   "c5_action_limit"),
     "span": ({"SESSIONS_LONG": [(name, [first_message(3, 2, 20, "x", later=2 * number), *messages[1:]])
                                 for number, (name, messages) in enumerate(c5_values()["SESSIONS_LONG"])]}, "",
              "c5_span"),
@@ -217,6 +211,17 @@ UNFIT = {
                 "weekday_mismatch"),
     "bad action": ({"PAGE_ACTIONS": _actions_plus(("s15", 0, {"do": "delete_note", "match": "x"}))}, "",
                    "bad_action"),
+    # Since 2026-11-18 the page has no text entry: what the user set there is said to the agent instead.
+    "a boundary added on the page": ({"PAGE_ACTIONS": _actions_plus(("s15", 0, {"do": "add_boundary",
+                                                                                "topic": "x"}))}, "", "removed_action"),
+    "a support style set on the page": ({"PAGE_ACTIONS": _actions_plus(("s15", 0, {"do": "set_support_style",
+                                                                                   "text": "y"}))}, "", "removed_action"),
+    "a familiarity limit set on the page": ({"PAGE_ACTIONS": _actions_plus(("s15", 0, {"do": "cap_familiarity",
+                                                                                       "level": "new"}))}, "",
+                                            "removed_action"),
+    "a card edited on the page": ({"PAGE_ACTIONS": _actions_plus(("s15", 0, {"do": "set_persona",
+                                                                             "card": {"name": "x"}}))}, "",
+                                  "removed_action"),
     "coverage not a table": ({"COVERAGE": [1, 2]}, "", "c5_coverage_shape"),
     "coverage entry shape": ({"COVERAGE": covered(mood={"event": ("s00", 2), "within_hours": CASE[1]})}, "",
                              "c5_coverage_shape"),
@@ -233,8 +238,14 @@ UNFIT = {
     "coverage case": ({"COVERAGE": covered(feelings_question={"case": "C199-nowhere"})}, "", "c5_coverage_case"),
     "coverage action kind": ({"COVERAGE": covered(reset={"action": ("s07", 0, "switch_persona"), "case": CASE[11]})},
                              "", "c5_coverage_action"),
-    "coverage action missing": ({"COVERAGE": covered(boundary_on_page={"action": ("s04", 0, "add_boundary"),
-                                                                       "case": CASE[6]})}, "", "c5_coverage_action"),
+    "coverage action missing": ({"COVERAGE": covered(page_deletion={"action": ("s04", 0, "delete_message"),
+                                                                    "case": CASE[7]})}, "", "c5_coverage_action"),
+    "the retired page-boundary item": ({"COVERAGE": covered(boundary_on_page={"action": ("s05", 0, "reset_mood"),
+                                                                              "case": CASE[6]})}, "",
+                                       "c5_coverage_unknown"),
+    "second boundary at the first one's message": ({"COVERAGE": covered(second_boundary={"asked": ("s01", 2),
+                                                                                         "case": CASE[6]})}, "",
+                                                   "c5_coverage_distinct"),
     "accept of any origin": ({"PAGE_ACTIONS": [("s03", 0, {"do": "accept_proposal"})] + c5_values()["PAGE_ACTIONS"][1:]},
                              "", "c5_coverage_action"),
     "same feeling message": ({"COVERAGE": covered(inferred_feeling={"message": ("s00", 1), "case": CASE[5]})}, "",
@@ -257,8 +268,11 @@ UNFIT = {
     "no long absence": ({"COVERAGE": covered(absence={"case": CASE[11]})}, "", "c5_coverage_timing"),
     "feelings cleared before the case": ({"PAGE_ACTIONS": _actions_plus(("s02", 0, {"do": "clear_feelings"}))}, "",
                                          "c5_coverage_undone"),
-    "page boundary removed before its case": ({"PAGE_ACTIONS": _actions_plus(
-        ("s05", 1, {"do": "remove_boundary", "topic": f"{PLANT}  TOPIC"}))}, "", "c5_coverage_undone"),
+    # The host saved each boundary in its own words, so any page removal between a boundary and its case undoes it.
+    "a boundary removed before its case": ({"PAGE_ACTIONS": _actions_plus(
+        ("s05", 1, {"do": "remove_boundary", "topic": f"{PLANT} other topic"}))}, "", "c5_coverage_undone"),
+    "the conversation boundary removed before its case": ({"PAGE_ACTIONS": _actions_plus(
+        ("s02", 0, {"do": "remove_boundary", "topic": PLANT}))}, "", "c5_coverage_undone"),
     "persona switched before the from-now-on case": ({"COVERAGE": covered(switch={"request": ("s03", 3),
                                                                                   "case": CASE[8]})}, "",
                                                      "c5_coverage_undone"),
@@ -307,11 +321,14 @@ def test_the_c5_precheck_refuses_each_unfit_scenario_with_its_code(tmp_path, cha
 
 def test_every_c5_code_is_tested_and_known_and_the_briefs_document_them():
     tested = {expected for _, _, expected in UNFIT.values()} | {"c5_not_literal"} | REQUIRED_ONLY
-    assert set(precheck_module.C5_CODES) == tested - {"weekday_mismatch", "bad_action"}
-    assert set(precheck_module.C5_CODES) <= set(precheck_module.CODES)
+    # removed_action (2026-11-18) is a general code, like bad_action: any scenario with page actions can meet it.
+    assert set(precheck_module.C5_CODES) == tested - {"weekday_mismatch", "bad_action", "removed_action"}
+    assert set(precheck_module.C5_CODES) <= set(precheck_module.CODES) and "removed_action" in precheck_module.CODES
+    assert "c5_action_limit" not in precheck_module.CODES  # The page takes no words of the scenario any more.
     author, reviewer = (KIT / "c5-author-brief.md").read_text(), (KIT / "c5-reviewer-brief.md").read_text()
-    for code in precheck_module.C5_CODES:
-        assert f"`{code}`" in author, code
+    fixer = (KIT / "c5-fixer-brief.md").read_text()
+    for code in (*precheck_module.C5_CODES, "bad_action", "removed_action"):
+        assert f"`{code}`" in author and f"`{code}`" in fixer, code
     for field, keys in precheck_module.COVERAGE_FIELDS.items():
         assert f'"{field}"' in author and f'"{field}"' in reviewer, field
         for key in keys:
@@ -516,6 +533,11 @@ def test_the_c5_briefs_are_product_free_and_state_the_format():
         assert f"`{kind}`" in author, kind
         for argument in required | optional:
             assert f"`{argument}`" in author, (kind, argument)
+    # Nor do the briefs offer a page action the page no longer has (2026-11-18), or the retired coverage item.
+    for name in ("c5-author-brief.md", "c5-reviewer-brief.md", "c5-fixer-brief.md", "c5-verifier-brief.md"):
+        text = (KIT / name).read_text()
+        for gone in (*harness.REMOVED_ACTIONS, "boundary_on_page", "c5_action_limit"):
+            assert gone not in text, (name, gone)
     for needle in ("Exactly 11", "60 to 66", "PERSONA", "STUB_", "COVERAGE", "PAGE_ACTIONS", "EXPECT_RECORDING_P",
                    "same conversation", "45", "Hoy es martes, 3 de marzo, 21:00.", "今天是3月3日，星期二，21:00。",
                    "no f-strings"):
@@ -587,7 +609,7 @@ def _companion_scenario():
     cases = [("s1", 1, "C101-a", "Criteria: must a."), ("s2", 0, "C102-b", "Criteria: must b.")]
     actions = [("s2", 0, {"do": "delete_message", "session": "s1", "turn": 0}),
                ("s1", 1, {"do": "accept_proposal", "origin": "feedback"}),
-               ("s2", 0, {"do": "add_boundary", "topic": "work", "aliases": ["the office"]})]
+               ("s2", 0, {"do": "remove_boundary", "topic": "the office"})]
     return (f"SESSIONS_LONG = {SHEET_SESSIONS!r}\nFACTS = '- facts'\nCASES = {cases!r}\n"
             f"PAGE_ACTIONS = {actions!r}\n"), actions
 
@@ -624,8 +646,7 @@ def test_a_companion_sheet_shows_the_page_actions_so_far_and_the_persona_in_effe
     assert 'version 2; the same for every reply of this case:\n\n```text\n<membrain-persona version="2">casual' in first
     assert ("- Action 1, before message 1 of session 2: delete_message (message: session 1, message 1, user): "
             "**done**") in second
-    assert '- Action 3, before message 1 of session 2: add_boundary (topic "work", aliases ["the office"]): **done**' \
-        in second
+    assert '- Action 3, before message 1 of session 2: remove_boundary (topic "the office"): **done**' in second
     assert "````text\n" in second  # A longer fence than any run of backticks in the block.
     assert '"messages"' not in sheet and "before_turn" not in sheet  # Nothing that differs between arms.
     assert sheet.index("**Page actions so far**") < sheet.index("**Persona in effect") < sheet.index("**Criteria:**")

@@ -1,7 +1,10 @@
 """Gap 21 of the maturity test matrix: the memory page (/memory) in a real headless Chromium, against a real service and
 database. The showcase makes no API request; persona suggestions are accepted, rejected and dismissed through the
-page's own native confirm() dialogs; a note edited or deleted on the brain map redraws the map; every companion section
-renders in English and Chinese, and the language switch keeps the current view; the page never scrolls sideways.
+page's own native confirm() dialogs; a note corrected by the agent or deleted on the brain map redraws the map; every
+companion section renders in English and Chinese, and the language switch keeps the current view; the page never
+scrolls sideways. Since 2026-11-18 the page is for looking, checking sources and deleting: it offers no text entry
+for memory content in any view, every item it lists can still be deleted there, and the rarely used whole-memory
+controls sit in a collapsed "More" at the end of their view.
 
 All data is fictional. The service listens on an ephemeral port picked here, never the default one. Without Playwright,
 Chromium or the test database the module is skipped, unless MEMBRAIN_REQUIRE_BROWSER=1 (set in Verify), which turns
@@ -98,7 +101,7 @@ def server(tmp_path_factory):
     except Exception as error:  # noqa: BLE001 - any connection failure means there is no database to test against.
         unavailable(f"the test database is unreachable: {str(error).splitlines()[0]}")
     # One fictional principal per test, so each signs in to an account with exactly one brain.
-    keys = [f"gap21-{uuid.uuid4()}" for _ in range(12)]
+    keys = [f"gap21-{uuid.uuid4()}" for _ in range(16)]
     key_file = tmp_path_factory.mktemp("gap21") / "keys.json"
     key_file.write_text(json.dumps({hashlib.sha256(key.encode()).hexdigest(): {
         "tenant_id": str(uuid.uuid4()), "principal_id": str(uuid.uuid4())} for key in keys}))
@@ -397,28 +400,21 @@ def test_rejecting_a_suggestion_in_the_confirm_dialog_shows_the_pause_and_dismis
     assert client.persona()["version"] == 1, "rejecting never changes the card"
 
 
-def test_the_personality_card_is_edited_restored_and_reset_on_the_page_without_reload(server, account, page):
+def test_the_personality_card_is_switched_and_restored_on_the_page_without_reload(server, account, page):
     key, client = account
     assert client.set_persona(CARD, made_by="host", reason="Initial character", host_default=True)["version"] == 1
+    # Version 2 as an earlier runtime's page editor saved it (made by the user); the page has no editor any more.
+    assert client.set_persona({**CARD, "name": "Wren the Gardener", "voice": {**CARD["voice"], "register": "casual"}},
+                              made_by="user", reason="Warmer for daily chats")["version"] == 2
     sign_in(page, server.base_url, key)
     open_view(page, "persona")
-    expect(page.locator("#persona-version")).to_have_text("Version 1")
-    expect(page.locator("#persona-view")).to_contain_text("Wren")
-
-    # Edit: the form saves version 2 as the user.
-    page.locator("#persona-edit").click()
-    form = page.locator("#persona-form")
-    expect(form).to_be_visible()
-    form.locator('input[name="name"]').fill("Wren the Gardener")
-    form.locator('input[name="register"]').fill("casual")
-    form.locator('input[name="reason"]').fill("Warmer for daily chats")
-    form.get_by_role("button", name="Save as a new version").click()
     expect(page.locator("#persona-version")).to_have_text("Version 2")
-    expect(form).to_be_hidden()
     expect(page.locator("#persona-view")).to_contain_text("Wren the Gardener")
     newest = page.locator("#persona-versions .persona-version").first
     expect(newest).to_contain_text("set by you")
     expect(newest).to_contain_text("Warmer for daily chats")
+    expect(page.locator("#persona-form, #persona-edit")).to_have_count(0)
+    expect(page.locator("#view-persona").get_by_role("button", name="Edit personality")).to_have_count(0)
 
     # Pick another at random: dismissing the confirm changes nothing; accepting saves a personality type as version 3.
     seen = answer_next_dialog(page, accept=False)
@@ -442,7 +438,7 @@ def test_the_personality_card_is_edited_restored_and_reset_on_the_page_without_r
     expect(page.locator("#persona-versions .persona-version").first).to_contain_text("restored from version 2")
     expect(page.locator("#persona-view .user-text").first).to_have_text("Wren the Gardener")
     expect(page.locator("#persona-versions .persona-version")).to_have_count(4)
-    assert same_page(page), "editing, restoring and resetting must not reload the page"
+    assert same_page(page), "switching and restoring must not reload the page"
     versions = client.persona_versions()["versions"]
     assert [(item["version"], item["action"]) for item in versions][:2] == [(4, "restore"), (3, "preset")]
     assert client.persona()["card"]["name"] == "Wren the Gardener"
@@ -450,17 +446,17 @@ def test_the_personality_card_is_edited_restored_and_reset_on_the_page_without_r
 
 
 def test_the_rarely_used_relationship_reset_is_tucked_away_and_still_confirms(server, account, page):
-    # Owner, 2026-11-18: most people rarely reset the relationship, so it is in a collapsed "More" at the end of the
-    # section, a text-style button, still behind its confirmation; it keeps the boundaries.
+    # Owner, 2026-11-18: most people rarely reset the relationship, so it is in the collapsed "More" at the end of the
+    # Companion view, a text-style button, still behind its confirmation; it keeps the boundaries.
     key, client = account
     client.add_boundary("old workplace")
-    client.set_support_style("Listen first.")
+    client.write_note("We finished a puzzle together.", kind="milestone", shared=True)
     sign_in(page, server.base_url, key)
     open_view(page, "persona")
-    more = page.locator("#relationship-more")
+    more = page.locator("#companion-more")
     expect(more).to_have_js_property("open", False)
     expect(page.locator("#relationship-reset")).to_be_hidden()
-    assert page.locator("#relationship .card.danger").count() == 0
+    assert page.locator("#view-persona .card.danger").count() == 0
     assert "danger" in page.locator("#relationship-reset").get_attribute("class") and "link" in page.locator(
         "#relationship-reset").get_attribute("class")
     more.locator("summary").focus()
@@ -470,21 +466,23 @@ def test_the_rarely_used_relationship_reset_is_tucked_away_and_still_confirms(se
     page.locator("#relationship-reset").click()
     expect(page.locator("#relationship-reset")).to_be_enabled()
     assert len(seen) == 1 and seen[0][0] == "confirm" and seen[0][1].startswith("Reset the relationship?")
-    assert client.relationship()["support_style"] is not None  # Dismissed: nothing changed.
+    assert len(client.relationship()["shared_moments"]) == 1  # Dismissed: nothing changed.
     seen = answer_next_dialog(page, accept=True)
     page.locator("#relationship-reset").click()
     expect(page.locator("#relationship-marker")).to_be_visible()
-    assert client.relationship()["support_style"] is None
+    assert client.relationship()["shared_moments"] == []
     assert [item["topic"] for item in client.relationship()["boundaries"]] == ["old workplace"]
     expect(page.locator("#boundaries")).to_contain_text("old workplace")
+    expect(page.locator("#moments")).not_to_contain_text("puzzle")
     assert same_page(page)
     switch_language(page, "zh")
     open_view(page, "persona")
-    expect(page.locator("#relationship-more summary")).to_have_text("更多")
+    expect(page.locator("#companion-more summary")).to_have_text("更多")
 
-# 3. The brain map redraws after an edit or a delete ---------------------------------------------------------------
+# 3. The brain map redraws after a correction or a delete ----------------------------------------------------------
 
-def test_editing_and_deleting_a_note_on_the_brain_map_redraws_the_map_without_reload(server, account, page):
+def test_a_note_corrected_by_the_agent_or_deleted_on_the_brain_map_redraws_the_map_without_reload(
+        server, account, page):
     key, client = account
     tea = client.write_note("Prefers green tea in the morning.", kind="preference", role="user")
     walk = client.write_note("Walks the dog Biscuit before work.", kind="routine", role="user")
@@ -498,13 +496,16 @@ def test_editing_and_deleting_a_note_on_the_brain_map_redraws_the_map_without_re
     expect(nodes).to_have_count(len(labels))
     expect(page.locator("#brain-summary")).to_contain_text(f"{len(labels)} memories")
 
-    # Edit: the same editor as the Notes tab, opened from the map.
+    # The map offers no editor (2026-11-18): the user tells the agent, which saves the corrected note in the old
+    # one's place, as memory_note with replaces does. Opening the map again shows it without reloading the page.
     page.locator(f'#brain-canvas circle.brain-node[data-id="{tea_id}"]').click()
     detail = page.locator("#brain-detail")
     expect(detail).to_contain_text("Prefers green tea in the morning.")
-    detail.locator(".brain-note-actions").get_by_role("button", name="Edit", exact=True).click()
-    detail.locator("textarea").fill("Prefers jasmine tea in the morning.")
-    detail.get_by_role("button", name="Save correction").click()
+    expect(detail.locator(".brain-note-actions button")).to_have_text(["Delete"])
+    expect(detail.locator("textarea, input")).to_have_count(0)
+    client.write_note("Prefers jasmine tea in the morning.", kind="preference", replaces=[tea["note_id"]])
+    open_view(page, "notes")
+    open_view(page, "brain")
     expect(page.locator(f'#brain-canvas circle.brain-node[data-id="{tea_id}"]')).to_have_count(0)
     edited = page.locator("#brain-canvas circle.brain-node").filter(
         has=page.locator("title", has_text="Prefers jasmine tea in the morning."))
@@ -513,7 +514,7 @@ def test_editing_and_deleting_a_note_on_the_brain_map_redraws_the_map_without_re
     after_edit = map_labels(client)
     assert tea_id not in after_edit and "Prefers jasmine tea in the morning." in after_edit.values()
     expect(nodes).to_have_count(len(after_edit))
-    assert same_page(page), "editing on the map must not reload the page"
+    assert same_page(page), "a redrawn map must not reload the page"
 
     # Delete, through the real confirm dialog.
     page.locator(f'#brain-canvas circle.brain-node[data-id="{walk_id}"]').click()
@@ -559,15 +560,18 @@ def test_masked_map_details_hide_recording_time_and_preserve_public_dates(server
 # 4. Every companion section in English and Chinese -----------------------------------------------------------------
 
 SECTIONS = {  # selector: (English, Chinese) strings that must render.
-    ".persona-current": [("Current card", "当前设定"), ("Edit personality", "编辑人格"), ("Version 1", "版本 1")],
+    ".persona-current": [("Current card", "当前设定"), ("Pick another at random", "随机换一个"), ("Version 1", "版本 1")],
     "#persona-proposals-card": [("Suggestions from your feedback", "根据你的反馈提出的建议"),
                                 ("More casual: from 3 messages", "更随意：来自 3 条消息"),
                                 ("waiting for you", "等你决定"), ("What you said:", "你说过的话："),
                                 ("Accept", "接受"), ("Reject", "拒绝")],
-    "#mood": [("Simulated mood", "模拟心情"), ("Triggers", "触发记录"), ("Reset mood", "重置心情")],
-    "#relationship": [("Familiarity", "熟悉程度"), ("How you like to be supported", "你希望被怎样支持"),
-                      ("Boundaries", "边界"), ("Shared moments", "共同时刻"),
+    "#mood": [("Simulated mood", "模拟心情"), ("Triggers", "触发记录")],
+    "#relationship": [("Familiarity", "熟悉程度"), ("Boundaries", "边界"), ("Shared moments", "共同时刻"),
                       ("Promises kept and missed", "做到和错过的承诺")],
+    # Collapsed, but its text is translated all the same.
+    "#companion-more": [("More", "更多"), ("Keep the mood at its baseline", "让心情保持在基础心情"),
+                        ("Reset mood", "重置心情"), ("Reset relationship", "重置关系"),
+                        ("Delete personality history", "删除人格历史")],
 }
 FEELINGS = [("Feelings", "感受"), ("you said", "你说的"), ("You said you felt this.", "这是你说过的感受。"),
             ("Clear feelings", "清除感受")]
@@ -579,7 +583,6 @@ def companion_brain(client: MemoryClient):
     client.write_note("Job interview at the bakery on Friday.", kind="plan", role="user",
                       affect={"label": "nervous", "valence": -1, "intensity": 2, "basis": "reported",
                               "topic": "the interview"})
-    client.set_support_style("Listen first; advice only when asked.")
     client.add_boundary("the old flat", ["旧公寓"])
     assert client.affect_records()["records"], "the fictional feeling is stored"
 
@@ -639,7 +642,242 @@ def test_every_companion_section_renders_in_english_and_chinese_and_the_switch_k
     assert_language(page, "en")
 
 
-# 5. Layout --------------------------------------------------------------------------------------------------------
+# 5. Look, check the source, delete (owner, 2026-11-18) -------------------------------------------------------------
+# Users do not type memory content on the page: the agent writes it when they say so. The page shows what is kept and
+# where it came from, deletes it, and holds a few whole-memory controls.
+
+# Every control on the page that takes typed text or a value, and why it is not a memory edit.
+ALLOWED_INPUTS = {
+    "key": "the access key (signing in)",
+    "search-text": "search: a lookup, nothing is saved",
+    "erase-confirm": "the typed guard of Erase everything",
+    "setup-host": "select: which install command to show",
+    "brain-layer": "select: which graph to draw",
+    "persona-preset-choice": "select: the personality type that the one-click Switch takes",
+    "pause-hours": "select: how long Pause device capture lasts",
+    "show-completed": "checkbox: a filter of the Plans view",
+    "mood-pin": "checkbox: the mood pin, a whole-memory switch under More",
+}
+FORMS = {"key-form", "search-form"}
+# The note editor's seven entry points, the persona card editor, the support style, cap and boundary forms.
+GONE_IDS = ("add-note", "note-form-host", "first-preference", "persona-form", "persona-edit", "persona-cancel",
+            "support-form", "support-text", "relationship-cap", "relationship-cap-save", "boundary-form",
+            "boundary-topic", "boundary-aliases", "moment-add", "moment-form-host", "relationship-more")
+GONE_BUTTONS = ("Edit", "Add a note", "Add note", "Save correction", "Merge duplicate", "Save as note",
+                "Add a preference here", "Edit personality", "Save as a new version", "Save support style",
+                "Save limit", "Add boundary", "Add a shared moment")
+GONE_FUNCTIONS = ("noteEditor", "resetNoteForm", "field", "duplicatePairs", "personaForm", "personaControl",
+                  "observe")
+
+
+def rich_brain(client: MemoryClient) -> dict:
+    """Something in every view: notes of each kind (one pair a likely duplicate, which used to offer "Merge
+    duplicate"), conversations, a feeling, a boundary, a shared moment with its source message, a promise, the
+    persona with a suggestion."""
+    companion_brain(client)
+    source = client.observe("We finally finished the 1000-piece puzzle together!", conversation_id="gap21-chat-4",
+                            branch_id="main", source_event_key=f"gap21-{uuid.uuid4()}",
+                            producer_ref="gap21-browser-test")["result"]["accepted_event_ids"][0]
+    moment = client.write_note("We finished the 1000-piece puzzle together.", kind="milestone", shared=True,
+                               moment="play", source_event_ids=[source])
+    client.observe("The weather is lovely today.", conversation_id="gap21-chat-5", branch_id="main",
+                   source_event_key=f"gap21-{uuid.uuid4()}", producer_ref="gap21-browser-test")
+    sam = client.write_note("Sam is my running partner.", kind="person", about="Sam")
+    client.write_note("Training for a 10k with Sam.", kind="plan", about="Sam", due="2026-12-01")
+    client.write_note("Prefers green tea in the morning.", kind="preference")
+    client.write_note("Prefers green tea in the mornings.", kind="preference")
+    client.write_note("Send Sam the training plan.", kind="agent_commitment", status="intended", due="2026-12-01")
+    return {"moment": moment["note_id"], "source": source, "sam": sam["note_id"],
+            "feeling": client.affect_records()["records"][0]["id"]}
+
+
+def open_every_disclosure(page):
+    """Open every <details>, so what a click would reveal (sources, earlier suggestions, More) is on the page too."""
+    page.evaluate("() => document.querySelectorAll('details').forEach((item) => { item.open = true; })")
+    page.wait_for_load_state("networkidle")
+
+
+def text_entry(page) -> dict:
+    return page.evaluate("""(gone) => ({
+        controls: [...document.querySelectorAll('input, textarea, select')].map((item) => ({
+            id: item.id, tag: item.tagName.toLowerCase(), type: item.type || ''})),
+        editable: [...document.querySelectorAll('*')].filter((item) => item.isContentEditable).length,
+        forms: [...document.querySelectorAll('form')].map((form) => form.id),
+        ids: gone.ids.filter((id) => document.getElementById(id)),
+        buttons: [...document.querySelectorAll('button')].map((button) => button.textContent.trim())
+            .filter((text) => gone.buttons.includes(text)),
+        functions: gone.functions.filter((name) => typeof window[name] === 'function'),
+    })""", {"ids": list(GONE_IDS), "buttons": list(GONE_BUTTONS), "functions": list(GONE_FUNCTIONS)})
+
+
+def assert_no_text_entry(page, where: str):
+    found = text_entry(page)
+    assert [item for item in found["controls"] if item["id"] not in ALLOWED_INPUTS] == [], where
+    assert not any(item["tag"] == "textarea" for item in found["controls"]), where
+    assert found["editable"] == 0 and set(found["forms"]) <= FORMS, (where, found)
+    assert (found["ids"], found["buttons"], found["functions"]) == ([], [], []), (where, found)
+
+
+def test_the_page_offers_no_text_entry_for_memory_content_in_any_view(server, account, page):
+    key, client = account
+    ids = rich_brain(client)
+    sign_in(page, server.base_url, key)
+    assert_no_text_entry(page, "after signing in")
+    for view in VIEWS:
+        open_view(page, view)
+        page.wait_for_load_state("networkidle")
+        open_every_disclosure(page)
+        assert_no_text_entry(page, view)
+    # Where a form used to be, the page says what to tell the agent instead.
+    open_view(page, "persona")
+    expect(page.locator("#relationship")).to_contain_text("To add one, tell your agent")
+    expect(page.locator("#view-persona .heading .muted").first).to_contain_text("To change it, ask your agent")
+    open_view(page, "notes")
+    expect(page.locator("#view-notes .heading")).to_contain_text("tell your agent and it saves the corrected note")
+    expect(page.locator("#view-notes")).not_to_contain_text("take precedence")
+    expect(page.locator("#notes")).not_to_contain_text("Edit to attach its source")
+    # A detail opened on the brain map offers Delete, never an editor, for a note and for a feeling.
+    open_view(page, "brain")
+    page.locator("#mode-2d").click()
+    detail = page.locator("#brain-detail")
+    for node, delete in ((f"note:{ids['sam']}", "Delete"), (f"affect:{ids['feeling']}", "Delete this feeling")):
+        page.locator(f'#brain-canvas circle.brain-node[data-id="{node}"]').click()
+        expect(detail).to_be_visible()
+        expect(detail.locator(".brain-note-actions button")).to_have_text([delete])
+        assert_no_text_entry(page, f"brain detail of {node}")
+    # The first-use panel's example sentence stays; its "Add a preference here" button is gone.
+    expect(page.locator("#first-use")).to_contain_text("Tell your agent a real preference")
+    assert same_page(page)
+
+
+def test_every_item_the_page_lists_can_still_be_deleted_where_it_could_before(server, account, page):
+    key, client = account
+    ids = rich_brain(client)
+    sign_in(page, server.base_url, key)
+    # Notes, People and Plans: one Delete per note, and nothing else to click on it.
+    for view in ("notes", "people", "plans"):
+        open_view(page, view)
+        items = page.locator(f"#{view} article.item")
+        expect(items.first).to_be_visible()
+        expect(items.locator(".meta .actions button")).to_have_text(["Delete"] * items.count())
+    open_view(page, "people")
+    seen = answer_next_dialog(page, accept=True)
+    page.locator("#people article.item", has_text="Sam is my running partner.").get_by_role(
+        "button", name="Delete").click()
+    expect(page.locator("#people")).not_to_contain_text("Sam is my running partner.")
+    assert seen == [("confirm", DELETE_NOTE)]
+    assert ids["sam"] not in {item["event_id"] for item in client.timeline(
+        roles=("assistant", "user"), conversation_id="membrain-notes")["items"]}
+
+    # Conversations: Delete on every message, and Delete this conversation.
+    open_view(page, "conversations")
+    conversations = page.locator("#conversations > details.item")
+    expect(conversations.first).to_be_visible()
+    expect(conversations.locator(":scope > button")).to_have_text(
+        ["Delete this conversation"] * conversations.count())
+    open_every_disclosure(page)
+    messages = page.locator("#conversations .message")
+    expect(messages.locator(".actions button")).to_have_text(["Delete"] * messages.count())
+    weather = page.locator("#conversations .message", has_text="The weather is lovely today.")
+    seen = answer_next_dialog(page, accept=True)
+    weather.get_by_role("button", name="Delete").click()
+    expect(page.locator("#conversations .message", has_text="The weather is lovely today.")).to_have_count(0)
+    assert seen[0][1].startswith("Delete this message?")
+
+    # The brain map: Delete on a note's detail and on a feeling's.
+    open_view(page, "brain")
+    page.locator("#mode-2d").click()
+    page.locator(f'#brain-canvas circle.brain-node[data-id="affect:{ids["feeling"]}"]').click()
+    expect(page.locator("#brain-detail .brain-note-actions button")).to_have_text(["Delete this feeling"])
+
+    # Feelings: Delete on each.
+    open_view(page, "feelings")
+    feelings = page.locator("#feelings .feeling")
+    expect(feelings).to_have_count(1)
+    seen = answer_next_dialog(page, accept=True)
+    feelings.get_by_role("button", name="Delete").click()
+    expect(feelings).to_have_count(0)
+    assert client.affect_records()["records"] == [] and seen[0][1].startswith("Delete this feeling?")
+
+    # Companion: Remove on each boundary, Delete on each shared moment (with its original message), Restore on each
+    # earlier personality version, Accept and Reject on a suggestion.
+    open_view(page, "persona")
+    boundary = page.locator("#boundaries .relationship-boundary")
+    expect(boundary.locator(".actions button")).to_have_text(["Remove"])
+    moment = page.locator("#moments .relationship-moment")
+    expect(moment.locator(".actions button")).to_have_text(["Delete"])
+    expect(moment.locator("details summary")).to_have_text("1 original message")
+    moment.locator("details summary").click()
+    expect(moment.locator("details")).to_contain_text("We finally finished the 1000-piece puzzle together!")
+    expect(page.locator("#persona-proposals .persona-proposal button")).to_have_text(["Accept", "Reject"])
+    seen = answer_next_dialog(page, accept=True)
+    boundary.get_by_role("button", name="Remove").click()
+    expect(page.locator("#boundaries .relationship-boundary")).to_have_count(0)
+    assert client.relationship()["boundaries"] == [] and seen[0][1].startswith("Remove this boundary?")
+    seen = answer_next_dialog(page, accept=True)
+    moment.get_by_role("button", name="Delete").click()
+    expect(page.locator("#moments .relationship-moment")).to_have_count(0)
+    assert client.relationship()["shared_moments"] == [] and seen[0][1].startswith("Delete this shared moment?")
+    assert same_page(page), "deleting must not reload the page"
+
+
+def test_the_more_sections_hold_the_rarely_used_controls_collapsed_by_default(server, account, page):
+    key, client = account
+    companion_brain(client)
+    versions = len(client.persona_versions()["versions"])
+    sign_in(page, server.base_url, key)
+
+    # Companion: one "More" at the end of the view, closed, holding exactly these four controls.
+    open_view(page, "persona")
+    more = page.locator("#companion-more")
+    expect(more).to_have_js_property("open", False)
+    assert page.evaluate("() => document.getElementById('view-persona').lastElementChild.id") == "companion-more"
+    controls = more.evaluate("(root) => [...root.querySelectorAll('button, input, select, textarea')].map((e) => e.id)")
+    assert controls == ["mood-pin", "mood-reset", "relationship-reset", "persona-delete-history"]
+    for ident in controls:
+        expect(page.locator(f"#{ident}")).to_be_hidden()
+    expect(page.locator("#mood button, #mood input")).to_have_count(0)  # Nothing of them is left on the cards.
+    more.locator("summary").click()
+    # The mood pin is the only way to turn the simulated mood off: still here, and it still works.
+    page.locator("#mood-pin").check()
+    expect(page.locator("#mood-why")).to_contain_text("Pinned to its baseline")
+    assert client.mood()["pinned"] is True
+    page.locator("#mood-pin").uncheck()
+    expect(page.locator("#mood-why")).not_to_contain_text("Pinned to its baseline")
+    assert client.mood()["pinned"] is False
+    # Reset mood and Delete personality history still ask first; dismissing changes nothing.
+    for ident, question in (("mood-reset", "Put the mood back at its baseline"),
+                            ("persona-delete-history", "Delete every personality version")):
+        seen = answer_next_dialog(page, accept=False)
+        page.locator(f"#{ident}").click()
+        expect(page.locator(f"#{ident}")).to_be_enabled()
+        assert len(seen) == 1 and seen[0][1].startswith(question), seen
+    assert len(client.persona_versions()["versions"]) == versions and client.mood()["marker"] is None
+
+    # Feelings: its own "More" at the end, closed, with Clear feelings only.
+    open_view(page, "feelings")
+    feelings_more = page.locator("#feelings-more")
+    expect(feelings_more).to_have_js_property("open", False)
+    assert page.evaluate("() => document.getElementById('view-feelings').lastElementChild.id") == "feelings-more"
+    assert feelings_more.evaluate("(root) => [...root.querySelectorAll('button, input')].map((e) => e.id)") == [
+        "clear-feelings"]
+    expect(page.locator("#clear-feelings")).to_be_hidden()
+    feelings_more.locator("summary").click()
+    seen = answer_next_dialog(page, accept=False)
+    page.locator("#clear-feelings").click()
+    expect(page.locator("#clear-feelings")).to_be_enabled()
+    assert len(seen) == 1 and seen[0][1].startswith("Clear every recorded feeling")
+    assert len(client.affect_records()["records"]) == 1
+
+    # Privacy: Erase everything stays where it was, visible, with its typed guard.
+    open_view(page, "privacy")
+    expect(page.locator("#erase")).to_be_visible()
+    expect(page.locator("#erase-confirm")).to_be_visible()
+    assert page.evaluate("() => document.getElementById('erase').closest('details') === null")
+    assert same_page(page)
+
+
+# 6. Layout --------------------------------------------------------------------------------------------------------
 
 def test_no_view_scrolls_sideways_at_desktop_or_phone_width_in_either_language(server, account, page):
     key, client = account

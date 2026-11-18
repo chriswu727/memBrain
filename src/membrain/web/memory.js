@@ -63,15 +63,6 @@ async function forget(kind, ids, mode, conversation) {
     expected_scope_generation: await scopeGeneration() }, conversation);
 }
 
-function observe(text, conversation, role, producer) {
-  return action("observe", { idempotency_key: uid(), events: [{
-    source_event_key: `${producer}:${uid()}`, source_revision: 1, producer_ref: producer, actor_ref: role,
-    actor_role: role, event_kind: "message", content: { media_type: "text/plain", text },
-    occurred_time: { start: null, end: null, precision: "unknown", basis: "unknown" },
-    interpretation_hint: "unknown", delivery_state: "received", parent_source_event_keys: [],
-  }] }, conversation);
-}
-
 const day = (value) => (value || "").slice(0, 10) || "undated";
 
 function guard(button, task) {
@@ -95,8 +86,6 @@ function onSubmit(form, task) {
 
 const KINDS = ["person", "constraint", "preference", "plan", "routine", "milestone", "relationship", "agent_commitment", "other"];
 const STATUSES = ["intended", "scheduled", "done", "cancelled", "superseded"];
-const LABELS = { person: "Person", constraint: "Health or constraint", preference: "Preference", plan: "Plan", routine: "Routine",
-  milestone: "Milestone", relationship: "Relationship", agent_commitment: "Agent promise", other: "Other" };
 // The kind of a shared moment, as the agent or the user judged it; the simulated mood reads it (notes.MOMENTS).
 const MOMENTS = ["play", "hard", "other"];
 const openPlan = (fields) => ["intended", "scheduled"].includes(fields.status || "intended");
@@ -119,23 +108,10 @@ function typedNote(text) {
   return { fields, tags: tokens.map((token) => token.replace("agent_commitment", "agent promise")), sentence: match[2] };
 }
 
-function words(text) {
-  return new Set((text.toLowerCase().match(/[\p{L}\p{N}_]+/gu) || []).filter((word) => word.length > 2));
-}
-
-function duplicatePairs(items) {
-  const parsed = items.filter((note) => note.actor_role !== "user").map((note) => ({ note, ...typedNote(note.text), words: words(typedNote(note.text).sentence) }));
-  const pairs = new Map();
-  parsed.forEach((first, index) => {
-    for (const second of parsed.slice(index + 1)) {
-      if (first.fields.kind !== second.fields.kind || first.fields.about !== second.fields.about || pairs.has(first.note.event_id)) continue;
-      const union = new Set([...first.words, ...second.words]);
-      const shared = [...first.words].filter((word) => second.words.has(word)).length;
-      if (union.size && shared / union.size >= 0.75) pairs.set(first.note.event_id, second.note);
-    }
-  });
-  return pairs;
-}
+// What to say to the agent instead: the page has no form for memory content.
+const EMPTY_NOTES = { notes: "No notes yet. Tell your agent what to remember, and it will keep it here.",
+  people: "No people yet. When you tell your agent about someone, it keeps a note here.",
+  plans: "No plans or dates yet. When you tell your agent about a plan or a date, it keeps a note here." };
 
 async function loadNotes(view = "notes") {
   const response = await timeline({ role: ["assistant", "user"], conversation_id: NOTES });
@@ -150,103 +126,8 @@ async function loadNotes(view = "notes") {
   });
   items = [...items].sort((a, b) => Number(Boolean(typedNote(b.text).fields.pinned)) - Number(Boolean(typedNote(a.text).fields.pinned)));
   if (!response.complete) list.append(element("p", "This is a partial list. Some older notes did not fit; use Search to find them.", "hint"));
-  if (!items.length) list.append(element("p", view === "notes" ? "No notes yet. Add a lasting fact above, or ask your connected agent to remember one." : "Nothing here yet. Add a note with the matching kind.", "empty"));
-  const pairs = duplicatePairs(items);
-  for (const note of items) list.append(noteItem(note, pairs.get(note.event_id)));
-}
-
-function field(form, controls, name, label, type = "text", options) {
-  const wrapper = element("label", undefined, "field");
-  wrapper.append(element("span", label));
-  const control = element(type === "textarea" ? "textarea" : options ? "select" : "input");
-  if (type !== "textarea" && !options) control.type = type;
-  if (options) for (const [value, title] of options) {
-    const option = element("option", title); option.value = value; control.append(option);
-  }
-  control.name = name;
-  wrapper.append(control); form.append(wrapper); controls[name] = control;
-  return control;
-}
-
-function noteEditor(note, merged = [], after = () => loadNotes(), initialSources = []) {
-  const form = element("form", undefined, "note-editor");
-  const controls = {};
-  const parsed = typedNote(note?.text || "");
-  const fields = parsed.fields;
-  const text = field(form, controls, "text", "Note text", "textarea");
-  text.value = parsed.sentence || ""; text.maxLength = 300; text.required = true; text.rows = 3;
-  field(form, controls, "kind", "Kind", "text", KINDS.map((kind) => [kind, LABELS[kind]])).value = fields.kind || "other";
-  field(form, controls, "status", "Plan status", "text", STATUSES.map((value) => [value, value])).value = fields.status || "intended";
-  field(form, controls, "about", "Person or topic").value = fields.about || "";
-  field(form, controls, "aliases", "Other names, separated by commas").value = (fields.aliases || []).join(", ");
-  for (const [name, title] of [["due", "Due date"], ["occurs_at", "Event date"]]) {
-    const value = fields[name] || "";
-    field(form, controls, name, title, value.length === 7 ? "month" : "date").value = value;
-  }
-  for (const [name, title] of [["pinned", "Pin this note"], ["sensitive", "Sensitive: mention only when I bring it up"],
-    ["shared", "Shared moment: something we did or reached together"]]) {
-    const input = field(form, controls, name, title, "checkbox"); input.checked = Boolean(fields[name]); input.parentElement.classList.add("check");
-  }
-  field(form, controls, "moment", "Kind of moment", "text", [["", "Not set"], ["play", "Play or a joke together"],
-    ["hard", "A hard time we went through"], ["other", "Another kind of moment"]]).value = fields.moment || "";
-  const sources = new Set([...(note?.source_event_ids || []), ...initialSources]);
-  const sourceDetails = element("details", undefined, "source-picker");
-  sourceDetails.append(element("summary", "Link original messages"), element("p", "Choose messages this note is based on. Unlinked notes stay clearly labelled.", "hint"));
-  const select = element("select"); select.multiple = true; select.size = 5; select.setAttribute("aria-label", "Original messages");
-  sourceDetails.append(select); form.append(sourceDetails);
-  let loaded = false;
-  for (const id of sources) { const option = element("option", `Linked message ${id}`); option.value = id; option.selected = true; select.append(option); }
-  sourceDetails.addEventListener("toggle", async () => {
-    if (!sourceDetails.open || loaded) return;
-    try {
-      const { items } = await timeline({ role: ["user", "assistant"] });
-      const candidates = items.filter((item) => item.conversation_id !== NOTES);
-      for (const message of candidates) {
-        let option = [...select.options].find((value) => value.value === message.event_id);
-        if (!option) { option = element("option"); option.value = message.event_id; select.append(option); }
-        option.textContent = `${day(message.recorded_at)} · ${message.actor_role === "user" ? "You" : "Agent"}: ${message.text.slice(0, 130)}`;
-        option.selected = sources.has(message.event_id);
-      }
-      loaded = true;
-    } catch (error) { notify(error.message, true); }
-  });
-  if (note?.event_id) form.append(element("p", "Saving a correction also deletes any feeling recorded with this note.", "hint"));
-  const actions = element("div", undefined, "row editor-actions");
-  const save = element("button", note?.event_id ? "Save correction" : "Add note");
-  const cancel = element("button", "Cancel", "secondary"); cancel.type = "button";
-  actions.append(save, cancel); form.append(actions);
-  cancel.addEventListener("click", after);
-  const updateStatus = () => {
-    controls.status.parentElement.hidden = !["plan", "agent_commitment"].includes(controls.kind.value);
-    controls.shared.parentElement.hidden = controls.kind.value !== "milestone";
-    controls.moment.parentElement.hidden = controls.kind.value !== "milestone" || !controls.shared.checked;
-  };
-  controls.kind.addEventListener("change", updateStatus); controls.shared.addEventListener("change", updateStatus);
-  updateStatus();
-  let requestId = uid(), previousBody = "";
-  onSubmit(form, async () => {
-    const body = { text: controls.text.value.trim(), kind: controls.kind.value, role: "user", producer: "membrain-memory-page",
-      replaces: note?.event_id ? [note.event_id, ...merged.map((item) => item.event_id)] : [],
-      source_event_ids: [...select.selectedOptions].map((option) => option.value) };
-    for (const name of ["about", "due", "occurs_at"]) if (controls[name].value.trim()) body[name] = controls[name].value.trim();
-    if (!controls.status.parentElement.hidden) body.status = controls.status.value;
-    if (controls.aliases.value.trim()) body.aliases = controls.aliases.value.split(",").map((value) => value.trim()).filter(Boolean);
-    body.pinned = controls.pinned.checked; body.sensitive = controls.sensitive.checked;
-    body.shared = controls.kind.value === "milestone" && controls.shared.checked;
-    if (body.shared && controls.moment.value) body.moment = controls.moment.value;
-    const serialized = JSON.stringify(body);
-    if (serialized !== previousBody) { requestId = uid(); previousBody = serialized; }
-    await api(`/v1/brains/${encodeURIComponent(state.brain)}/notes`, { request_id: requestId, ...body });
-    notify(note?.event_id ? "Note corrected. Your version takes precedence." : "Note added.");
-    await after(); await loadServiceStatus();
-  });
-  return form;
-}
-
-function resetNoteForm() {
-  $("note-form-host").replaceChildren(noteEditor(null, [], async () => {
-    resetNoteForm(); $("add-note").open = false; await loadNotes();
-  }));
+  if (!items.length) list.append(element("p", EMPTY_NOTES[view], "empty"));
+  for (const note of items) list.append(noteItem(note));
 }
 
 async function showSources(container, ids) {
@@ -263,7 +144,17 @@ async function showSources(container, ids) {
   } catch (error) { container.replaceChildren(element("p", error.message, "hint")); }
 }
 
-function noteItem(note, duplicate) {
+// "N original messages", opened on demand: where a note, a feeling or a shared moment came from.
+function sourcesDetails(ids) {
+  const details = element("details");
+  details.append(element("summary", `${ids.length} original message${ids.length === 1 ? "" : "s"}`));
+  const content = element("div"); details.append(content);
+  let loaded = false;
+  details.addEventListener("toggle", () => { if (details.open && !loaded) { loaded = true; showSources(content, ids); } });
+  return details;
+}
+
+function noteItem(note) {
   const item = element("article", undefined, "item");
   const parsed = typedNote(note.text), fields = parsed.fields;
   const meta = element("div", undefined, "meta");
@@ -272,25 +163,16 @@ function noteItem(note, duplicate) {
   meta.append(element("span", note.actor_role === "user" ? "written by you" : imported ? `imported from ${HOST_NAMES[imported] || imported}` : "saved by your agent", "tag"));
   for (const tag of parsed.tags) meta.append(element("span", tag, "tag"));
   const actions = element("span", undefined, "actions");
-  const edit = element("button", "Edit", "link"), remove = element("button", "Delete", "link danger");
-  actions.append(edit, remove); meta.append(actions); item.append(meta, element("p", parsed.sentence, "user-text"));
+  const remove = element("button", "Delete", "link danger");
+  actions.append(remove); meta.append(actions); item.append(meta, element("p", parsed.sentence, "user-text"));
   const date = fields.due || fields.occurs_at;
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   if (date && openPlan(fields) && date < (date.length === 7 ? today.slice(0, 7) : today)) item.append(element("p", "Date has passed; completion is not confirmed.", "hint"));
   const ids = note.source_event_ids || [];
   if (note.pending_source_count) item.append(element("p", "Waiting for the source message to finish recording.", "hint"));
-  if (ids.length) {
-    const details = element("details"); details.append(element("summary", `${ids.length} original message${ids.length === 1 ? "" : "s"}`));
-    const content = element("div"); details.append(content); item.append(details);
-    let loaded = false;
-    details.addEventListener("toggle", () => { if (details.open && !loaded) { loaded = true; showSources(content, ids); } });
-  } else if (!note.pending_source_count) item.append(element("p", note.actor_role === "user" ? "Standalone note written by you." : "Original message not linked. Edit to attach its source.", "hint"));
-  edit.addEventListener("click", () => { item.replaceChildren(noteEditor(note, [], () => show(currentView()))); item.querySelector("textarea").focus(); });
-  if (duplicate) {
-    const merge = element("button", "Merge duplicate", "link");
-    merge.addEventListener("click", () => item.replaceChildren(noteEditor(note, [duplicate], () => show(currentView())))); actions.prepend(merge);
-  }
+  if (ids.length) item.append(sourcesDetails(ids));
+  else if (!note.pending_source_count) item.append(element("p", note.actor_role === "user" ? "Standalone note written by you." : "Original message not linked.", "hint"));
   guard(remove, async () => {
     if (!confirm("Delete this note? Its content is erased.")) return;
     await forget("events", [note.event_id], "erase_content", NOTES); notify("Note deleted."); await show(currentView());
@@ -336,12 +218,8 @@ function feelingItem(record) {
   note.append(element("p", "On the note:", "hint"), element("p", record.note_text, "user-text"));
   item.append(note);
   const ids = record.source_event_ids || [];
-  if (ids.length) {
-    const details = element("details"); details.append(element("summary", `${ids.length} original message${ids.length === 1 ? "" : "s"}`));
-    const content = element("div"); details.append(content); item.append(details);
-    let loaded = false;
-    details.addEventListener("toggle", () => { if (details.open && !loaded) { loaded = true; showSources(content, ids); } });
-  } else item.append(element("p", "Original message not linked.", "hint"));
+  if (ids.length) item.append(sourcesDetails(ids));
+  else item.append(element("p", "Original message not linked.", "hint"));
   guard(remove, async () => {
     if (!confirm("Delete this feeling? The note and its messages stay.")) return;
     await forget("events", [record.id], "erase_content", AFFECT); notify("Feeling deleted."); await loadFeelings();
@@ -396,12 +274,6 @@ function conversationItem(conversation, messages) {
     const remove = element("button", "Delete", "link danger");
     const actions = element("span", undefined, "actions");
     actions.append(remove);
-    const saveNote = element("button", "Save as note", "link");
-    actions.prepend(saveNote);
-    saveNote.addEventListener("click", () => {
-      const editor = noteEditor({ text: message.text.slice(0, 300), source_event_ids: [message.event_id] }, [], loadConversations);
-      block.replaceChildren(editor); editor.querySelector("textarea").focus();
-    });
     meta.append(actions);
     block.append(meta, element("p", message.text, "user-text"));
     guard(remove, async () => {
@@ -466,8 +338,8 @@ onSubmit($("search-form"), async () => {
 });
 
 // Relationship -----------------------------------------------------------------------------------------------
-// Shared moments (milestone notes flagged shared), derived familiarity with its reason and an optional limit, the
-// support style, boundaries and the promise record. The service derives everything; the page only shows and edits.
+// Shared moments (milestone notes flagged shared), derived familiarity with its reason, boundaries and the promise
+// record. The service derives everything; the page shows it, with its sources, and deletes.
 
 const relationshipPath = (suffix = "") => `/v1/brains/${encodeURIComponent(state.brain)}/relationship${suffix}`;
 const LEVEL_NAMES = { new: "new", getting_to_know: "getting to know", familiar: "familiar", close: "close" };
@@ -486,11 +358,9 @@ async function loadRelationship() {
   $("relationship-next").textContent = !next ? ""
     : next.shared_moments ? `Next: ${LEVEL_NAMES[next.level]} at ${next.days} days and ${next.shared_moments} shared moment${next.shared_moments === 1 ? "" : "s"}.`
     : `Next: ${LEVEL_NAMES[next.level]} at ${next.days} days of conversation.`;
-  $("relationship-cap").value = known.cap || "";
-  $("support-text").value = data.support_style?.text || "";
   const boundaries = $("boundaries");
   boundaries.replaceChildren();
-  if (!data.boundaries.length) boundaries.append(element("p", "No boundaries. Add a topic you don't want your companion to bring up.", "empty"));
+  if (!data.boundaries.length) boundaries.append(element("p", "No boundaries.", "empty"));
   for (const boundary of data.boundaries) boundaries.append(boundaryItem(boundary));
   const moments = $("moments");
   moments.replaceChildren();
@@ -532,13 +402,10 @@ function momentItem(moment) {
   if (moment.sensitive) meta.append(element("span", "sensitive", "tag"));
   if (moment.moment === "hard") meta.append(element("span", moment.mellowed ? "a hard time, mellowed since" : "a hard time", "tag"));
   const actions = element("span", undefined, "actions");
-  const edit = element("button", "Edit", "link"), remove = element("button", "Delete", "link danger");
-  actions.append(edit, remove); meta.append(actions);
+  const remove = element("button", "Delete", "link danger");
+  actions.append(remove); meta.append(actions);
   item.append(meta, element("p", moment.text, "user-text"));
-  edit.addEventListener("click", () => {
-    const note = { event_id: moment.id, text: moment.note_text, source_event_ids: moment.source_event_ids };
-    item.replaceChildren(noteEditor(note, [], loadRelationship)); item.querySelector("textarea").focus();
-  });
+  if (moment.source_event_ids?.length) item.append(sourcesDetails(moment.source_event_ids));
   guard(remove, async () => {
     if (!confirm("Delete this shared moment? Its note is erased.")) return;
     await forget("events", [moment.id], "erase_content", NOTES); notify("Shared moment deleted."); await loadRelationship();
@@ -556,45 +423,22 @@ function promiseItem(kind, promise) {
   return item;
 }
 
-guard($("relationship-cap-save"), async () => {
-  const level = $("relationship-cap").value || null;
-  await api(relationshipPath("/cap"), { level });
-  notify(level ? "Familiarity limit saved." : "Familiarity limit removed."); await loadRelationship();
-});
-onSubmit($("support-form"), async () => {
-  const saved = await api(relationshipPath("/support-style"), { text: $("support-text").value }, "PUT");
-  notify(saved.support_style ? "Support style saved." : "Support style removed."); await loadRelationship();
-});
-onSubmit($("boundary-form"), async () => {
-  const aliases = $("boundary-aliases").value.split(/[,，、]/).map((value) => value.trim()).filter(Boolean);
-  await api(relationshipPath("/boundaries"), { topic: $("boundary-topic").value.trim(), aliases });
-  $("boundary-topic").value = ""; $("boundary-aliases").value = "";
-  notify("Boundary added."); await loadRelationship();
-});
-guard($("moment-add"), async () => {
-  const form = noteEditor(null, [], async () => { $("moment-form-host").replaceChildren(); await loadRelationship(); });
-  $("moment-form-host").replaceChildren(form);
-  form.elements.kind.value = "milestone"; form.elements.kind.dispatchEvent(new Event("change"));
-  form.elements.shared.checked = true; form.elements.shared.dispatchEvent(new Event("change")); form.elements.text.focus();
-});
 guard($("relationship-reset"), async () => {
-  if (!confirm("Reset the relationship? This deletes every shared moment, the support style, the familiarity limit and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. The boundaries stay in force, so those topics are still kept out; remove a boundary on its own if you want. Conversations, your other notes, the personality and feelings stay.")) return;
+  if (!confirm("Reset the relationship? This deletes every shared moment and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. The boundaries stay in force, so those topics are still kept out; remove a boundary on its own if you want. Conversations, your other notes, the personality and feelings stay.")) return;
   await api(relationshipPath("/reset"), {});
   notify("Relationship reset."); await loadRelationship();
 });
 
 // Personality ------------------------------------------------------------------------------------------------
-// The companion's persona card, versioned by the service. The page writes as the user; restore and reset save a
-// new version, so nothing is lost until "Delete personality history".
+// The companion's persona card, versioned by the service. The page has no card editor: the user asks their agent
+// for a change. Restoring a version and switching the type save a new version, so nothing is lost until "Delete
+// personality history".
 
 const personaPath = (suffix = "") => `/v1/brains/${encodeURIComponent(state.brain)}/persona${suffix}`;
 const VOICE = [["register", "register"], ["length", "length"], ["emoji", "emoji"], ["language", "language"]];
 const MADE_BY = { user: "set by you", host: "set by the host", feedback: "from accepted feedback" };
 // Preset personas: which one is current, and switching to another. The labels and summaries are the service's own.
 const PRESET_KIND = { preset: "Personality type:", custom: "Your own card", none: "No personality type" };
-const lines = (text) => text.split("\n").map((value) => value.trim()).filter(Boolean);
-// By name, not as properties: a control named "length" would otherwise read as the collection's length.
-const personaControl = (name) => $("persona-form").elements.namedItem(name);
 
 function personaRows(card) {
   const rows = [];
@@ -624,18 +468,6 @@ function personaCard(card) {
     list.append(term, detail);
   }
   return list;
-}
-
-function personaForm(card) {
-  personaControl("name").value = card.name || "";
-  personaControl("traits").value = (card.traits || []).join("\n");
-  for (const [name] of VOICE) personaControl(name).value = card.voice?.[name] || "";
-  personaControl("values").value = (card.values || []).join("\n");
-  personaControl("boundaries").value = (card.boundaries || []).join("\n");
-  personaControl("mood_label").value = card.baseline_mood?.label || "";
-  personaControl("mood_valence").value = String(card.baseline_mood?.valence ?? 0);
-  personaControl("mood_energy").value = String(card.baseline_mood?.energy ?? 1);
-  personaControl("reason").value = "";
 }
 
 // What the user agreed with their agent (an accepted suggestion, a change they confirmed) is kept across personality
@@ -701,10 +533,9 @@ async function loadPersona() {
   view.replaceChildren(...(current.empty
     ? [element("p", "No personality card is set. Your agent keeps its usual manner.", "empty")]
     : listed ? personaContent(listed) : [personaCard(current.card)]));
-  $("persona-form").hidden = true;
   const list = $("persona-versions");
   list.replaceChildren();
-  if (!history.versions.length) list.append(element("p", "No versions yet. Edit the personality to save the first one.", "empty"));
+  if (!history.versions.length) list.append(element("p", "No versions yet. Switch to a personality type, or ask your agent for a change, to save the first one.", "empty"));
   if (!history.complete) list.append(element("p", "Only the most recent versions are listed.", "hint"));
   for (const version of history.versions) list.append(personaVersion(version, version.version === history.current_version));
   // Every version older than a "history deleted" marker was erased, so the marker always comes last.
@@ -752,26 +583,6 @@ function personaVersion(version, current) {
   return item;
 }
 
-guard($("persona-edit"), async () => {
-  personaForm(state.persona?.card || {});
-  $("persona-form").hidden = false;
-  personaControl("name").focus();
-});
-$("persona-cancel").addEventListener("click", () => { $("persona-form").hidden = true; });
-onSubmit($("persona-form"), async () => {
-  const value = (name) => personaControl(name).value.trim();
-  const card = { name: value("name"), traits: lines(value("traits")), voice: {}, values: lines(value("values")),
-    boundaries: lines(value("boundaries")), baseline_mood: null };
-  for (const [name] of VOICE) card.voice[name] = value(name);
-  if (value("mood_label")) {
-    card.baseline_mood = { label: value("mood_label"), valence: Number(value("mood_valence")), energy: Number(value("mood_energy")) };
-  }
-  const body = { card, made_by: "user" };
-  if (value("reason")) body.reason = value("reason");
-  const saved = await api(personaPath(), body, "PUT");
-  notify(saved.unchanged ? "No change: that is already the current card." : `Saved as version ${saved.version}.`);
-  await loadPersona();
-});
 async function switchType(preset) {
   const saved = await api(personaPath("/preset"), { preset, made_by: "user" });
   notify(saved.unchanged ? "No change: that is already the current card." : `Saved as version ${saved.version}.`);
@@ -1115,12 +926,6 @@ guard($("copy-setup"), async () => {
   try { await navigator.clipboard.writeText($("setup-command").textContent); notify("Install command copied."); }
   catch { notify("Select and copy the install command above."); }
 });
-guard($("first-preference"), async () => {
-  await show("notes"); $("add-note").open = true;
-  const form = $("note-form-host").querySelector("form");
-  form.elements.kind.value = "preference"; form.elements.kind.dispatchEvent(new Event("change"));
-  form.elements.text.focus();
-});
 guard($("prepare-model"), async () => {
   await api("/v1/local/semantic-model", {});
   notify("Preparing recall by meaning. Keyword search keeps working; this page will update automatically.");
@@ -1209,7 +1014,6 @@ async function open(key, brain, view = "notes") {
   if (!state.brain) throw new Error("No memory installation found. Run membrain plugin start first.");
   await api(`/v1/brains/${encodeURIComponent(state.brain)}/status`);
   $("signin").hidden = true; $("tabs").hidden = false;
-  resetNoteForm();
   await Promise.all([loadRecording(), loadServiceStatus(), show(SHOWCASE ? "brain" : view)]);
   if (SHOWCASE) window.openShowcase();
 }

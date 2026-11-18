@@ -55,8 +55,7 @@ duration.
 The codes of the automatic check: `c5_not_literal` (only literal assignments), `c5_persona`, `c5_stub_script`,
 `c5_unknown_name` (a name outside the format), `c5_missing` (`field=` names it), `c5_case_count` (11),
 `c5_turn_count` (60 to 66), `c5_case_position`, `c5_case_id`, `c5_case_prefix`, `c5_recording_position`,
-`c5_recording_shape`, `c5_no_weekday`, `c5_action_arms`, `c5_action_off_record`, `c5_action_limit` (a boundary
-topic up to 60 characters with at most 6 other words of up to 40, a support style up to 200), `c5_named_preset`,
+`c5_recording_shape`, `c5_no_weekday`, `c5_action_arms`, `c5_action_off_record`, `c5_named_preset`,
 `c5_span`, `c5_short_message` (the message at `at=` is too short: make it a complete message that does not react to
 a reply), `c5_reaction_opening` (the message at `at=` opens with a reaction to a reply: remove the reaction, keep the
 rest), and for `COVERAGE` (`field=`, `part=`): `c5_coverage_shape`, `c5_coverage_unknown`, `c5_coverage_missing` (an
@@ -66,8 +65,10 @@ case), `c5_coverage_position`, `c5_coverage_case`, `c5_coverage_action` (no or s
 wrong kind, origin, manner kind or role), `c5_coverage_distinct`, `c5_coverage_order`, `c5_coverage_timing`,
 `c5_coverage_undone` (something in between undoes the item), `c5_coverage_off_record`; and `no_date`, `no_time`,
 `bad_date`, `not_increasing`, `too_close`, `gap_under_3h`, `weekday_mismatch`, `malformed_session`,
-`duplicate_session`, `bad_action`, `malformed_action`, `pause_outside_stretch` (a message outside the stretch would
-pause recording by itself), `timed_pause`.
+`duplicate_session`, `bad_action`, `malformed_action`, `removed_action` (a page action of a kind the page does not
+offer: turn it into something the user says to the companion in a message at that place, and update `COVERAGE`
+and `FACTS` to match), `pause_outside_stretch` (a message outside the stretch would pause recording by itself),
+`timed_pause`.
 
 Write the corrected file as `scenario.py` in this directory (replacing it), and `fixes.json` as
 `{"applied": <number of findings applied>, "fixes": [{"finding": "<B1, M2 or the code and position>", "change":

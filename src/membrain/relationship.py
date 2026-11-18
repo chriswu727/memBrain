@@ -5,20 +5,22 @@ What is stored here, and where:
 - **Shared moments** are milestone notes flagged ``shared`` (``[milestone · shared] ...``): something the user and
   the companion did or reached together. They are notes, so they keep their sources, dates, editing and audited
   deletion; ``kind: relationship`` stays for lasting facts about the relationship that are not moments.
-- **Support style, boundaries, a familiarity cap and acknowledgements of missed commitments** are records in a
-  reserved conversation, with the ``system`` role, like persona versions and affect records: they are what the user
-  asked for, not something anyone said, so they are never extracted into recalled memories, shown as history,
-  counted as messages or scheduled for learning.
+- **Boundaries and acknowledgements of missed commitments** are records in a reserved conversation, with the
+  ``system`` role, like persona versions and affect records: they are what the user asked for, not something anyone
+  said, so they are never extracted into recalled memories, shown as history, counted as messages or scheduled for
+  learning. The same conversation once also held a support style and a familiarity cap (both retired, 2026-11-18,
+  with the memory page's forms): records of those kinds are ignored when read, and a reset or erasing everything
+  still removes them.
 - **Familiarity is derived, never set**: distinct days with user messages and the number of shared moments, both
-  counted after the latest reset marker, mapped to four levels by ``THRESHOLDS``. The user can cap it lower. A
-  message's day is when it happened as its host reported it, never later than when it was recorded. A restored
-  archive keeps a message's reported time but records it again, so messages without one count on the restore
+  counted after the latest reset marker, mapped to four levels by ``THRESHOLDS``. A message's day is when it
+  happened as its host reported it, never later than when it was recorded. A restored archive keeps a message's
+  reported time but records it again, so messages without one count on the restore
   day (open: a restored brain must stay identical to its archive, so the restore cannot add records for this).
 - **Commitments kept and missed** come from ``agent_commitment`` notes: done is kept; still open after its date is
   missed. A missed one is shown once in context and then acknowledged, so it is not repeated.
 
-Reset erases the shared-moment notes, the support style, the cap and the acknowledgements with the same audited
-deletion as notes, and writes a reset marker with the sequence it applies from. Nothing before the marker counts
+Reset erases the shared-moment notes, the acknowledgements and any retired record with the same audited deletion as
+notes, and writes a reset marker with the sequence it applies from. Nothing before the marker counts
 again: not days of conversation, not moments, not commitments, and a moment read from messages before it is refused
 its ``shared`` flag. Conversations themselves stay, so recall of what was said is unchanged. The boundaries stay in
 force: each is something the user told the companion, so only the user removes one, one at a time (owner's decision,
@@ -44,12 +46,13 @@ RELATIONSHIP_PRODUCER = "membrain-relationship"
 # Restoring an exported archive keeps every record but files it under the import producer.
 ARCHIVE_PRODUCER = "archive-import"
 RESET = "reset"
+# What a reset marker counts. Older markers also count a support style and a cap (retired); those counts are not read.
+REMOVED = ("shared_moments", "boundaries", "acknowledgements")
 LEVELS = ("new", "getting_to_know", "familiar", "close")
 LEVEL_LABELS = {"new": "new", "getting_to_know": "getting to know", "familiar": "familiar", "close": "close"}
 # (level, at least this many distinct days with user messages, at least this many shared moments). A level needs
 # both; the highest level whose two thresholds are met applies. Counted after the latest reset marker only.
 THRESHOLDS = (("getting_to_know", 3, 0), ("familiar", 14, 2), ("close", 45, 6))
-SUPPORT_CHARACTERS = 200
 TOPIC_CHARACTERS = 60
 ALIAS_CHARACTERS = 40
 MAX_ALIASES = 6
@@ -135,15 +138,6 @@ def shown(item: dict, boundaries) -> bool:
 
 # Records --------------------------------------------------------------------------------------------------------
 
-def _support(value, scrubbing: bool = True) -> str:
-    if not isinstance(value, str):
-        raise DomainError("validation_failed", "The support style is text.")
-    text = _clean(value, scrubbing)
-    if len(text) > SUPPORT_CHARACTERS:
-        raise DomainError("validation_failed", f"Keep the support style under {SUPPORT_CHARACTERS} characters.")
-    return text
-
-
 def _boundary(topic, aliases=(), scrubbing: bool = True) -> dict:
     if not isinstance(topic, str) or not isinstance(aliases, (list, tuple)):
         raise DomainError("validation_failed", "A boundary is a topic and an optional list of other words for it.")
@@ -165,12 +159,6 @@ def _boundary(topic, aliases=(), scrubbing: bool = True) -> dict:
     return {"topic": topic, "aliases": kept}
 
 
-def _level(value) -> str | None:
-    if value is not None and value not in LEVELS[:-1]:
-        raise DomainError("validation_failed", "A familiarity cap is new, getting_to_know or familiar, or none.")
-    return value
-
-
 def _entry(row) -> dict | None:
     """A stored record or reset marker, or None for anything this module did not write or cannot accept."""
     document = row["document"]
@@ -185,17 +173,13 @@ def _entry(row) -> dict | None:
         if stored.get("relationship_marker") == RESET:
             removed = stored.get("removed") or {}
             return {**base, "marker": RESET, "applies_from_sequence": document["sequence"],
-                    "removed": {key: int(removed.get(key, 0)) for key in (
-                        "shared_moments", "boundaries", "support_style", "cap", "acknowledgements")}}
+                    "removed": {key: int(removed.get(key, 0)) for key in REMOVED}}
         kind = stored["relationship"]
         # Every record passes the checks of a new save; an archive is outside this module's control, so its records are
-        # scrubbed again too. Anything that does not pass is ignored rather than trusted.
-        if kind == "support_style":
-            return {**base, "kind": kind, "text": _support(stored["text"], imported)}
+        # scrubbed again too. Anything that does not pass is ignored rather than trusted, and so is a retired kind (a
+        # support style or a familiarity cap from before 2026-11-18, in the store or in an archive).
         if kind == "boundary":
             return {**base, "kind": kind, **_boundary(stored["topic"], stored.get("aliases", []), imported)}
-        if kind == "cap":
-            return {**base, "kind": kind, "level": _level(stored.get("level"))}
         if kind == "acknowledged":
             return {**base, "kind": kind, "note_id": str(stored["note_id"])}
     except (ValueError, KeyError, TypeError, AttributeError, DomainError):
@@ -226,10 +210,7 @@ def _state(service, conn, principal, brain_id) -> dict:
         else:
             records.append(entry)
     after = markers[-1]["applies_from_sequence"] if markers else 0
-    latest = {kind: next((entry for entry in reversed(records) if entry["kind"] == kind), None)
-              for kind in ("support_style", "cap")}
     return {"marker": markers[-1] if markers else None, "markers": list(reversed(markers)), "after": after,
-            "records": records, "support_style": latest["support_style"], "cap": latest["cap"],
             "boundaries": [entry for entry in records if entry["kind"] == "boundary"],
             "acknowledged": {entry["note_id"] for entry in records if entry["kind"] == "acknowledged"}}
 
@@ -398,24 +379,20 @@ def _plural(number: int, word: str) -> str:
     return f"{number} {word}{'' if number == 1 else 's'}"
 
 
-def familiarity(days: list[str], moments: int, cap: str | None, today: _datetime.date, *,
-                first: str | None = None) -> dict:
-    """The derived level, the cap applied, and the reason in the same numbers the rule used. Days are counted in
-    UTC; ``first``, the earliest time on the first day, writes that day in the user's zone in the reason."""
-    derived = "new"
-    for level, minimum_days, minimum_moments in THRESHOLDS:
+def familiarity(days: list[str], moments: int, today: _datetime.date, *, first: str | None = None) -> dict:
+    """The derived level and the reason in the same numbers the rule used. Days are counted in UTC; ``first``, the
+    earliest time on the first day, writes that day in the user's zone in the reason."""
+    level = "new"
+    for name, minimum_days, minimum_moments in THRESHOLDS:
         if len(days) >= minimum_days and moments >= minimum_moments:
-            derived = level
-    level = cap if cap is not None and LEVELS.index(cap) < LEVELS.index(derived) else derived
+            level = name
     since = (local_date(first) if first else "") or (days[0] if days else "")
     count = (f"{_plural(len(days), 'day')} of conversation since {_short(since, today)}" if days
              else "no conversation yet")
     reason = f"{LEVEL_LABELS[level]}: {count}, {_plural(moments, 'shared moment')}"
-    if level != derived:
-        reason += f" (capped by you; the rule gives {LEVEL_LABELS[derived]})"
     following = next(((name, need_days, need_moments) for name, need_days, need_moments in THRESHOLDS
-                      if LEVELS.index(name) > LEVELS.index(derived)), None)
-    return {"level": level, "label": LEVEL_LABELS[level], "derived_level": derived, "cap": cap,
+                      if LEVELS.index(name) > LEVELS.index(level)), None)
+    return {"level": level, "label": LEVEL_LABELS[level],
             "days": len(days), "since": days[0] if days else None, "shared_moments": moments, "reason": reason,
             "next": None if following is None else {"level": following[0], "days": following[1],
                                                     "shared_moments": following[2]},
@@ -440,17 +417,13 @@ def _read(service, conn, principal, brain_id, today) -> dict:
     moment_state = _moment_state(service, conn, principal, brain_id, after)
     moments = moment_state["items"]
     commitments = _commitments(service, conn, principal, brain_id, after, state["acknowledged"], today)
-    cap = state["cap"]["level"] if state["cap"] else None
     days, first = _conversation_days(service, conn, principal, brain_id, after)
-    known = familiarity(days, moment_state["total"], cap, today, first=first)
+    known = familiarity(days, moment_state["total"], today, first=first)
     for moment in moments:
         if moment["moment"] == "hard":
             moment["mellowed"] = mellowed(moment, days, today)
-    support = state["support_style"]
     return {"familiarity": known, "shared_moments_total": moment_state["total"],
             "shared_moments_truncated": moment_state["truncated"],
-            "support_style": None if not support or not support["text"] else {
-                "text": support["text"], "id": support["id"], "recorded_at": support["recorded_at"]},
             "boundaries": _boundary_view(state),
             "shared_moments": [{key: value for key, value in moment.items() if key != "sequence"}
                                for moment in moments],
@@ -504,11 +477,7 @@ def relationship_context(result: dict | None) -> dict:
     lines = [f"Familiarity: {known['reason']}."]
     # The default level is left out, so a block that only carried a one-time line and then goes away does not
     # count as a change.
-    stable = [f"Familiarity: {known['level']}."] if known["level"] != "new" or known.get("cap") else []
-    if result.get("support_style"):
-        line = f"How they like to be supported: {result['support_style']['text']}"
-        lines.append(line)
-        stable.append(line)
+    stable = [f"Familiarity: {known['level']}."] if known["level"] != "new" else []
     boundaries = result.get("boundaries") or []
     line = boundaries_line(boundaries)
     if line:
@@ -541,7 +510,7 @@ def relationship_context(result: dict | None) -> dict:
     if not stable[:-1] and not once_lines:
         # Nothing beyond the default: a first session, or one after a reset, gets no block at all.
         return {"block": None, "stable": "\n".join(stable), "once": []}
-    # The user's own words (style, topics, moments) are defused, so they can never close or open a memory block.
+    # The user's own words (topics, moments) are defused, so they can never close or open a memory block.
     return {"block": header + neutralize(body) + footer, "stable": "\n".join(stable),
             "once": [item["note_id"] for item in once]}
 
@@ -580,22 +549,6 @@ def _write(service, principal, brain_id, change, today):
     return {**result, **relationship_context(result)}
 
 
-def set_support_style(service, principal, brain_id: str, text, *, today=None) -> dict:
-    """Replace how the user likes to be supported; empty text removes it. The earlier text is erased."""
-    text = _support(text)
-
-    def change(conn, brain, state):
-        earlier = [entry["id"] for entry in state["records"] if entry["kind"] == "support_style"]
-        if state["support_style"] and state["support_style"]["text"] == text:
-            return
-        brain = _erase(service, conn, principal, brain, earlier, "relationship-support-" + uid())
-        if text:
-            _append(service, conn, principal, brain, {"relationship": "support_style", "text": text},
-                    "relationship-support-" + uid())
-
-    return _write(service, principal, brain_id, change, today)
-
-
 def add_boundary(service, principal, brain_id: str, topic, aliases=(), *, today=None) -> dict:
     """Add a topic the user asked the companion not to bring up. The same topic again changes nothing."""
     boundary = _boundary(topic, list(aliases or ()))
@@ -629,22 +582,6 @@ def remove_boundary(service, principal, brain_id: str, boundary_id: str, *, toda
     return _write(service, principal, brain_id, change, today)
 
 
-def set_cap(service, principal, brain_id: str, level, *, today=None) -> dict:
-    """Cap familiarity at a lower level (new, getting_to_know or familiar), or remove the cap with None."""
-    level = _level(level)
-
-    def change(conn, brain, state):
-        earlier = [entry["id"] for entry in state["records"] if entry["kind"] == "cap"]
-        if (state["cap"]["level"] if state["cap"] else None) == level:
-            return
-        brain = _erase(service, conn, principal, brain, earlier, "relationship-cap-" + uid())
-        if level is not None:
-            _append(service, conn, principal, brain, {"relationship": "cap", "level": level},
-                    "relationship-cap-" + uid())
-
-    return _write(service, principal, brain_id, change, today)
-
-
 def acknowledge(service, principal, brain_id: str, note_ids, *, today=None) -> dict:
     """Record that missed commitments were shown, so the context does not repeat them. Unknown ids are ignored."""
     if not isinstance(note_ids, (list, tuple)) or len(note_ids) > 50 or not all(
@@ -666,11 +603,12 @@ def acknowledge(service, principal, brain_id: str, note_ids, *, today=None) -> d
 
 
 def reset_relationship(service, principal, brain_id: str, *, today=None) -> dict:
-    """Erase the shared moments, support style, cap and acknowledgements, and write a reset marker.
+    """Erase the shared moments and acknowledgements, and write a reset marker.
 
     Familiarity then counts only days after the marker, and nothing before it is derived again. The boundaries stay
     in force (the user removes them one by one), and conversations, the user's other notes, the persona, feelings and
     mood are untouched. ``removed["boundaries"]`` is therefore always 0; the key is kept for readers of the marker.
+    Every other record of the relationship conversation is erased too, including a retired support style or cap.
     """
     with service.database.transaction(principal) as conn:
         conn.execute("SET LOCAL lock_timeout = '5s'")
@@ -691,8 +629,6 @@ def reset_relationship(service, principal, brain_id: str, *, today=None) -> dict
             "AND conversation_id=%s AND NOT deleted", (*params, RELATIONSHIP_CONVERSATION))
             if row["id"] not in kept]
         removed = {"shared_moments": moment_state["total"], "boundaries": 0,
-                   "support_style": int(bool(state["support_style"] and state["support_style"]["text"])),
-                   "cap": int(bool(state["cap"] and state["cap"]["level"])),
                    "acknowledgements": len(state["acknowledged"])}
         key = "relationship-reset-" + uid()
         brain = _erase(service, conn, principal, brain,

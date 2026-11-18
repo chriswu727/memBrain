@@ -181,8 +181,8 @@ def test_a_role_play_or_a_service_that_is_starting_gives_no_sentence(tmp_path, m
 
 def bond(moments, boundaries=()):
     return {"familiarity": {"level": "familiar", "reason": "familiar: 20 days of conversation since 1 Mar, 2 shared "
-                                                           "moments", "cap": None},
-            "support_style": None, "boundaries": list(boundaries), "shared_moments": moments,
+                                                           "moments"},
+            "boundaries": list(boundaries), "shared_moments": moments,
             "commitments": {"missed": []}, "today": "2026-09-12"}
 
 

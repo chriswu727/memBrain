@@ -687,7 +687,7 @@ def test_the_largest_map_the_service_allows_is_drawn_and_picked(server, tab):
 
 # 5. Real memory: edit, delete, recall highlight, reset, restore -------------------------------------------------------
 
-def test_editing_and_deleting_a_note_in_3d_redraws_the_scene_without_stale_records(server, account, tab):
+def test_a_corrected_or_deleted_note_in_3d_redraws_the_scene_without_stale_records(server, account, tab):
     key, client = account
     ids = seeded_brain(client)
     page = tab.page
@@ -705,12 +705,16 @@ def test_editing_and_deleting_a_note_in_3d_redraws_the_scene_without_stale_recor
         "Latest recorded recall")
     expect(page.locator("#brain-trace")).to_contain_text("Latest recorded recall")
 
-    # Edit through the shared detail panel; the corrected note replaces the old one in the scene.
+    # The shared detail panel offers Delete and no editor (2026-11-18). The user tells the agent instead, which saves
+    # the corrected note in the old one's place (memory_note with replaces); opening the map again redraws the scene.
     click_node(page, ids["tea"])
     expect(page.locator("#brain-detail")).to_contain_text("Likes jasmine tea after dinner.")
-    page.locator("#brain-detail .brain-note-actions").get_by_role("button", name="Edit", exact=True).click()
-    page.locator("#brain-detail textarea").fill("Likes chamomile tea after dinner.")
-    page.locator("#brain-detail").get_by_role("button", name="Save correction").click()
+    expect(page.locator("#brain-detail .brain-note-actions button")).to_have_text(["Delete"])
+    expect(page.locator("#brain-detail textarea, #brain-detail input")).to_have_count(0)
+    client.write_note("Likes chamomile tea after dinner.", kind="preference", replaces=[ids["tea"].split(":", 1)[1]])
+    page.locator('#tabs button[data-view="notes"]').click()
+    expect(page.locator("#view-notes")).to_be_visible()
+    open_brain(page)
     page.wait_for_function(f"() => !window.observatory.snapshot().nodes.includes({json.dumps(ids['tea'])})")
     edited = settled(page, state["generation"] + 1)
     after_edit = client.memory_map(trace=True)
@@ -813,11 +817,9 @@ def test_companion_graph_matches_saved_personality_mood_and_relationship_evidenc
                       affect={"label": "thrilled", "basis": "reported", "valence": 2, "intensity": 3,
                               "topic": "new job", "felt_at": datetime.now(timezone.utc).date().isoformat()})
     client.add_boundary("old workplace")
-    client.set_support_style("Listen first, then offer advice.")
-    client.cap_familiarity("familiar")
     graph = client.companion_map()
-    assert {"persona", "persona_proposal", "simulated_mood", "mood_trigger", "boundary", "support_style",
-            "relationship_cap", "affect"} <= {node["kind"] for node in graph["nodes"]}
+    assert {"persona", "persona_proposal", "simulated_mood", "mood_trigger", "boundary",
+            "affect"} <= {node["kind"] for node in graph["nodes"]}
 
     page = tab.page
     sign_in(page, server.base_url, key)

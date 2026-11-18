@@ -29,7 +29,7 @@ SESSIONS = [(f"{PLANT}-a", [f"Today is Monday, March 2, 20:00. {PLANT} one", f"{
             (f"{PLANT}-b", [f"Today is Tuesday, March 3, 20:00. {PLANT} three", f"{PLANT} four"])]
 ACTIONS = [(f"{PLANT}-b", 1, {"do": "clear_feelings"}),
            (f"{PLANT}-b", 0, {"do": "delete_message", "session": f"{PLANT}-a", "turn": 1}),
-           (f"{PLANT}-b", 0, {"do": "add_boundary", "topic": PLANT})]
+           (f"{PLANT}-b", 0, {"do": "remove_boundary", "topic": PLANT})]
 ORDER = [1, 2, 0]  # Applied by position: both actions before message 1 of session 2, then the one before message 2.
 BLOCK = f'<membrain-persona version="1">\n{PLANT} card\n</membrain-persona>'
 SWITCHED = f'<membrain-persona version="2">\n{PLANT} other card\n</membrain-persona>'

@@ -83,7 +83,7 @@ def test_showcase_dots_lines_and_pulses_come_only_from_the_memory_map():
     assert re.search(r"\.show-groove \{ stroke: #0[0-9a-f]{5};", styles), "folds are dark grooves, not lit lines"
 
 
-def test_the_map_shows_the_latest_recorded_recall_honestly_and_edits_notes_like_the_notes_tab():
+def test_the_map_shows_the_latest_recorded_recall_honestly_and_deletes_notes_like_the_notes_tab():
     script = (WEB / "brain.js").read_text(encoding="utf-8")
     page = (WEB / "memory.html").read_text(encoding="utf-8")
     assert "&trace=true" in script and "/static/memory-map-demo.json" in script
@@ -91,7 +91,7 @@ def test_the_map_shows_the_latest_recorded_recall_honestly_and_edits_notes_like_
     assert "Latest recorded recall" in script and "it found nothing to add." in script
     assert "Notes and history added when a session starts are not traced" in page
     assert "current reply" not in script
-    # Edit and delete reuse the Notes tab's editor and erase, never in the fictional demo.
-    assert "noteEditor(note, [], () => loadBrain())" in script
+    # Delete reuses the Notes tab's erase, never in the fictional demo. The page has no note editor (2026-11-18).
+    assert "noteEditor" not in script and '"Edit"' not in script
     assert 'forget("events", [id], "erase_content", NOTES)' in script
     assert '!brainState.demo) detail.append(noteActions(' in script

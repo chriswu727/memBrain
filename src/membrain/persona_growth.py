@@ -1137,8 +1137,9 @@ def _merged(card: dict, changes) -> dict:
     """The current card with the proposed change applied: ``traits``, ``values`` and ``boundaries`` are ADDED to the
     ones the card has (a host asked for "be more patient" would otherwise have to repeat every value of the
     personality type or wipe them; in a trial it squeezed the behaviour into a 60-character voice field instead);
-    ``voice`` is changed field by field; ``name`` and ``baseline_mood`` are replaced. Removing or rewriting an entry
-    is the user's edit on the memory page."""
+    ``voice`` is changed field by field; ``name`` and ``baseline_mood`` are replaced. A proposal cannot remove or
+    rewrite an entry, and the memory page has no card editor (2026-11-18): there the user can only restore an earlier
+    version or switch the type."""
     if not isinstance(changes, dict) or not changes or not set(changes) <= set(CHANGE_FIELDS):
         raise DomainError("validation_failed", f"changes must name one or more of {', '.join(CHANGE_FIELDS)}.")
     merged = json.loads(json.dumps({**EMPTY_CARD, **card}))

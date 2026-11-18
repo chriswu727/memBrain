@@ -206,9 +206,10 @@ class _Refusing:
         return refuse
 
 
-@pytest.mark.parametrize("action", [{"do": "add_boundary", "topic": "work"}, {"do": "set_support_style", "text": "x"},
-                                    {"do": "cap_familiarity", "level": "new"}, {"do": "set_persona", "card": {}}])
+@pytest.mark.parametrize("action", [{"do": "switch_persona", "preset": "istj"}])
 def test_a_limit_refusal_after_the_precheck_is_not_applicable_page_refused(action):
+    # Since 2026-11-18 only a type switch can meet a limit the host's records reached (its card and the agreements
+    # no longer fit); the page's boundary, support style, cap and card actions are gone.
     memory = SimpleNamespace(client=lambda: _Refusing(422, "validation_failed"))
     result = harness.apply_page_action(memory, action, {})
     assert result == {"not_applicable": "page_refused", "status": 422}
@@ -216,9 +217,10 @@ def test_a_limit_refusal_after_the_precheck_is_not_applicable_page_refused(actio
 
 
 @pytest.mark.parametrize("status, code, action", [
-    (500, "internal", {"do": "add_boundary", "topic": "work"}),
-    (409, "version_conflict", {"do": "add_boundary", "topic": "work"}),
+    (500, "internal", {"do": "remove_boundary", "topic": "work"}),
+    (409, "version_conflict", {"do": "remove_boundary", "topic": "work"}),
     (422, "validation_failed", {"do": "reset_relationship"}),
+    (422, "validation_failed", {"do": "remove_boundary", "topic": "work"}),  # Not LIMITED: a removal has no limit.
 ])
 def test_a_server_error_or_another_refusal_stays_failed(status, code, action):
     result = harness.apply_page_action(SimpleNamespace(client=lambda: _Refusing(status, code)), action, {})
@@ -458,7 +460,8 @@ def _diligence_run(tmp_path):
              "manner_feedback": {"comments": [("s1", 1), ("s2", 0), ("s2", 1)], "accept": ("s2", 1, "accept_proposal"),
                                  "case": "C101-a"},
              "from_now_on": {"request": ("s2", 0), "yes": ("s2", 1), "case": "C101-a"},
-             "switch": {"request": ("s2", 2), "case": "C101-a"}}
+             "switch": {"request": ("s2", 2), "case": "C101-a"},
+             "second_boundary": {"asked": ("s2", 2), "case": "C101-a"}}  # COVERAGE format 2 (2026-11-18).
     scenario.write_text(f"SESSIONS_LONG = {DILIGENCE_SESSIONS!r}\nCOVERAGE = {table!r}\n"
                         "EXPECT_RECORDING_P = [('s1', 3, False), ('s1', 4, True)]\n")
     calls = {("s1", 0): [{"name": "memory_note", "arguments": {"text": PLANT, "affect": {
@@ -469,7 +472,8 @@ def _diligence_run(tmp_path):
              ("s2", 0): [{"name": "memory_persona", "arguments": {"action": "propose", "reason": PLANT},
                           "result": json.dumps({"proposal_id": "p1"})}],
              ("s2", 1): [{"name": "memory_persona", "arguments": {"action": "confirm"},
-                          "result": json.dumps({"error": PLANT})}]}
+                          "result": json.dumps({"error": PLANT})}],
+             ("s2", 2): [{"name": "memory_boundary", "arguments": {"topic": PLANT}, "result": "{}"}]}
     run = tmp_path / "c1-P"
     run.mkdir()
     rows = [{"arm": "P", "scenario": scenario.stem, "session": session, "turn": turn,
@@ -494,6 +498,8 @@ def test_the_coverage_report_says_per_item_whether_the_host_made_its_tool_call(t
         "basis": "inferred"}  # The host saved the stated feeling as inferred: the host's step.
     assert items[("boundary_in_conversation", "asked")]["made"] is False
     assert items[("boundary_in_conversation", "asked")]["accepted"] is None
+    assert (items[("second_boundary", "asked")]["tool"], items[("second_boundary", "asked")]["made"],
+            items[("second_boundary", "asked")]["accepted"]) == ("memory_boundary", True, True)
     assert [items[("manner_feedback", f"comment {n}")]["made"] for n in (1, 2, 3)] == [True, False, False]
     assert (items[("from_now_on", "request")]["action"], items[("from_now_on", "request")]["accepted"]) == (
         "propose", True)

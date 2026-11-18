@@ -20,7 +20,7 @@ from membrain.mood import reset_mood
 from membrain.notes import store_note
 from membrain.persona import delete_persona_history, set_persona
 from membrain.persona_growth import accept_proposal, persona_proposals
-from membrain.relationship import add_boundary, reset_relationship, set_cap, set_support_style
+from membrain.relationship import add_boundary, reset_relationship
 
 WHEN = "2026-11-03T18:00:00Z"
 
@@ -132,20 +132,18 @@ def test_mood_points_to_the_actual_affect_note_and_original_message(brain):
     assert "new job" not in json.dumps(after)
 
 
-def test_relationship_reset_removes_settings_and_moments_but_keeps_persona(brain):
+def test_relationship_reset_removes_moments_but_keeps_boundaries_and_persona(brain):
     set_persona(*brain, {"name": "Aster"}, made_by="host")
     add_boundary(*brain, "old workplace")
-    set_support_style(*brain, "Listen first, then offer advice.")
     source = say(brain, "We finished our first puzzle together.")
     saved = note(brain, "Finished our first puzzle together.", kind="milestone", shared=True,
                  source_event_ids=[source])
     before = companion_map(*brain)
-    assert {"boundary", "support_style", "persona"} <= {node["kind"] for node in before["nodes"]}
+    assert {"boundary", "persona"} <= {node["kind"] for node in before["nodes"]}
     assert any(node["id"] == "note:" + saved["note_id"] for node in before["nodes"])
     reset_relationship(*brain)
     after = companion_map(*brain)
-    # The boundary stays in force through a reset (since 2026-11-18); the support style goes.
-    assert not any(node["kind"] == "support_style" for node in after["nodes"])
+    # The boundary stays in force through a reset (since 2026-11-18).
     assert [node["label"] for node in after["nodes"] if node["kind"] == "boundary"] == ["old workplace"]
     assert any(node["kind"] == "persona" for node in after["nodes"])
     assert "first puzzle" not in json.dumps(after)
@@ -329,16 +327,14 @@ def test_old_persona_versions_cannot_hide_other_companion_layers(brain):
     for version in range(12):
         set_persona(*brain, {"name": f"Aster {version}"}, made_by="host")
     add_boundary(*brain, "old workplace")
-    set_support_style(*brain, "Listen first.")
     graph = companion_map(*brain, max_nodes=8)
-    assert {"simulated_mood", "persona", "boundary", "support_style"} <= {node["kind"] for node in graph["nodes"]}
+    assert {"simulated_mood", "persona", "boundary"} <= {node["kind"] for node in graph["nodes"]}
     assert any(node["kind"] == "persona" and node["details"]["version"] == 12 for node in graph["nodes"])
     assert graph["truncated"]
     assert_graph(graph)
 
 
-def test_commitments_show_actual_states_and_a_cap_is_configuration_not_affection(brain):
-    set_cap(*brain, "getting_to_know")
+def test_commitments_show_actual_states(brain):
     source = say(brain, "You promised to help with the puzzle.")
     expected = {}
     for status, state in (("done", "kept"), ("cancelled", "cancelled"), ("intended", "missed")):
@@ -349,12 +345,10 @@ def test_commitments_show_actual_states_and_a_cap_is_configuration_not_affection
     actual = {node["id"]: node["details"]["commitment_state"] for node in graph["nodes"]
               if node["kind"] == "agent_commitment"}
     assert actual == expected
-    cap = next(node for node in graph["nodes"] if node["kind"] == "relationship_cap")
-    assert cap["details"]["level"] == "getting_to_know"
     assert all(node["region"] == "commitments" for node in graph["nodes"] if node["kind"] == "agent_commitment")
     assert_graph(graph)
     reset_relationship(*brain)
-    assert not any(node["kind"] in ("agent_commitment", "relationship_cap") for node in companion_map(*brain)["nodes"])
+    assert not any(node["kind"] == "agent_commitment" for node in companion_map(*brain)["nodes"])
 
 
 @pytest.mark.parametrize("arguments", [{"max_nodes": 0}, {"max_nodes": True}, {"max_nodes": 501},

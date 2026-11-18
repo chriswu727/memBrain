@@ -34,23 +34,26 @@ module. Built on the Phase B harness (v1-2026-10-29-phase-b-harness.py), with:
 - **Page actions.** PAGE_ACTIONS = [(session, before_turn, action), ...] are the user's actions on the memory page,
   applied before that turn through the public API (the MemoryClient SDK, the same routes the page calls) in P, and
   mirrored in F's world, logged to page-actions.jsonl (format 2) with what each one removed. R4 scenarios have none
-  (c5-precheck.py --r4 refuses them). An action's target is known from the scenario itself (a message by its
-  scenario position, a boundary topic the scenario added on the page) or from the product's state by kind (the open
-  suggestion, by origin and order); never from text the host model wrote. An action whose target does not exist
-  because of what the host did or did not do (no open suggestion, no note from that message, a turn its pause left
-  unrecorded) is recorded as ``not_applicable`` with a fixed reason code and the run goes on: that is the plugin
-  path's behaviour and is scored. So is an action of LIMITED the service refuses with a validation error (4xx)
-  after the precheck checked the scenario's own words (``page_refused``: for example a page boundary past the page's
-  limits because of boundaries the host saved). Only a real fault (any other refusal, a server error, an exception,
-  a deletion the harness cannot mirror) is ``failed``, the harness event page_action_failed.
+  (c5-precheck.py --r4 refuses them). Only what the page still offers is an action (PAGE_ACTIONS_FORMAT 3, since
+  2026-11-18): the page has no text entry, so a boundary, a support style, a familiarity cap and a card of the
+  user's own are no page actions; a boundary or a persona change is something the user says to the agent. An
+  action's target is known from the scenario itself (a message by its scenario position, a boundary topic in the
+  scenario's own words) or from the product's state by kind (the open suggestion, by origin and order); never from
+  text the host model wrote. An action whose target does not exist because of what the host did or did not do (no
+  open suggestion, no note from that message, a turn its pause left unrecorded, no boundary saved by the scenario's
+  words) is recorded as ``not_applicable`` with a fixed reason code and the run goes on: that is the plugin path's
+  behaviour and is scored. So is an action of LIMITED the service refuses with a validation error (4xx)
+  (``page_refused``: a type switch whose card and the user's agreements no longer fit together). Only a real fault
+  (any other refusal, a server error, an exception, a deletion the harness cannot mirror) is ``failed``, the harness
+  event page_action_failed.
   A ``random`` personality switch is picked by the harness from the attempt's seed (``seeded_random_preset``), so a
   rerun agrees. F applies P's outcome of each action, read from P's page-actions.jsonl.
 - **Reference world.** F's earlier history drops a message only when a page action deletes that message (the product
   erases it); resets, cleared feelings, deleted feelings and notes, and mood or persona actions never delete the
   conversation, so they never change F's history. Within the session in progress every arm keeps its own
-  transcript, as a host app does. What the page did that the conversation does not show (boundaries the scenario
-  added on the page, a relationship reset, cleared feelings, the support style, the familiarity cap, the mood pin)
-  reaches F as one fixed-format line in its system prompt (``Reference.page_line``, PAGE_LINE_FORMAT).
+  transcript, as a host app does. What the page did that the conversation does not show (a boundary removed on the
+  page, a relationship reset, cleared feelings, the mood pin) reaches F as one fixed-format line in its system
+  prompt (``Reference.page_line``, PAGE_LINE_FORMAT).
 - **Dry run.** `C5_STUB=1` replaces the host model with a deterministic local stub (an httpx MockTransport answering
   from the scenario's STUB_HOST script, which can also answer a consolidation batch, make calls in later rounds of a
   turn and pass a field of an earlier call's result on) and refuses every non-loopback connection, so the whole run
@@ -113,10 +116,13 @@ MESES = {name: number for number, name in enumerate(
 MONATE = {name: number for number, name in enumerate(
     ["januar", "februar", "märz", "april", "mai", "juni", "juli", "august", "september", "oktober", "november",
      "dezember"], 1)}
-# The page-action vocabulary (PAGE_ACTIONS_FORMAT 2): kind -> (required arguments, optional arguments). Every action
+# The page-action vocabulary (PAGE_ACTIONS_FORMAT 3): kind -> (required arguments, optional arguments). Every action
 # may also carry "arms" naming only P (F follows P). Only delete_message deletes conversation messages, so only it
-# changes F's history.
-PAGE_ACTIONS_FORMAT = 2
+# changes F's history. Format 3 (2026-11-18) is what the page still offers: format 2's add_boundary, set_support_style,
+# cap_familiarity and set_persona are gone (the page has no text entry, and support style and the familiarity cap
+# left the product), and remove_boundary takes any boundary in force, as the host saved it.
+PAGE_ACTIONS_FORMAT = 3
+REMOVED_ACTIONS = ("add_boundary", "set_support_style", "cap_familiarity", "set_persona")  # Format 2 only.
 ACTION_ARGUMENTS = {
     "delete_message": ({"session", "turn"}, {"role"}),
     "delete_note_from": ({"session", "turn"}, {"role"}),
@@ -125,12 +131,8 @@ ACTION_ARGUMENTS = {
     "reset_relationship": (set(), set()),
     "reset_mood": (set(), set()),
     "pin_mood": (set(), {"pinned"}),
-    "add_boundary": ({"topic"}, {"aliases"}),
     "remove_boundary": ({"topic"}, set()),
-    "set_support_style": ({"text"}, set()),
-    "cap_familiarity": ({"level"}, set()),
     "switch_persona": ({"preset"}, set()),
-    "set_persona": ({"card"}, set()),
     "delete_persona_history": (set(), set()),
     "accept_proposal": (set(), {"origin", "position", "kind"}),
     "reject_proposal": (set(), {"origin", "position", "kind"}),
@@ -142,11 +144,10 @@ PROPOSAL_ACTIONS = {"accept_proposal", "reject_proposal"}
 PROPOSAL_ORIGINS = ("any", "feedback", "host")  # feedback: made from repeated manner feedback; host: the host AI's.
 # A proposal decision may also name a manner kind (an id of the product's persona_growth.KINDS table, never host
 # text): it then takes the open feedback suggestion of that kind.
-# Actions whose own words the precheck checks with the product's validators: a 4xx validation refusal of one is caused
-# by what the host saved before it (more boundaries than the page allows, a line too long), so it is not_applicable
-# ("page_refused") and scored, not a fault.
-LIMITED = {"add_boundary", "set_support_style", "cap_familiarity", "switch_persona", "set_persona"}
-CAP_LEVELS = ("new", "getting_to_know", "familiar", None)
+# Actions a 4xx validation refusal of which is caused by what the host saved before it (a type switch whose card and
+# the agreements the user made with the host no longer fit together), so it is not_applicable ("page_refused") and
+# scored, not a fault.
+LIMITED = {"switch_persona"}
 # The page-actions.jsonl record (PAGE_RECORD_FORMAT 2): every record has "status" done, not_applicable or failed.
 PAGE_RECORD_FORMAT = 2
 # Why an action had no target, because of what the host did or did not do: scored with the arm, never a fault.
@@ -156,7 +157,7 @@ NOT_APPLICABLE = ("message_not_recorded", "message_already_removed", "no_note_fr
 FAILURE_CODES = ("not_found", "unknown_removed", "service_refused", "exception", "card_differs",
                  "ambiguous_proposal")
 PERSONA_TURN_FORMAT = 1  # {"format", "version", "sha256"} in each row: the persona in effect at the turn's start.
-PAGE_LINE_FORMAT = 1  # The line F is given about page-only settings (Reference.page_line).
+PAGE_LINE_FORMAT = 2  # The line F is given about page-only settings (Reference.page_line); 2 since 2026-11-18.
 STARTED: list[Path] = []  # Installations this process started, stopped on the way out even after an error.
 BILLING = None
 logging.getLogger("httpx").setLevel(logging.WARNING)  # Per-request lines would bury the run log.
@@ -796,24 +797,14 @@ def _argument_problem(kind: str, action: dict, sessions: list, at: tuple) -> str
             return "its message comes at or after the action"
     if kind == "pin_mood" and type(action.get("pinned", True)) is not bool:
         return "pinned is true or false"
-    if kind in ("add_boundary", "remove_boundary") and not (isinstance(action["topic"], str) and _topic(
-            action["topic"])):
+    if kind == "remove_boundary" and not (isinstance(action["topic"], str) and _topic(action["topic"])):
         return "a boundary topic is a non-empty string"
-    if kind == "add_boundary" and not (isinstance(action.get("aliases", []), list)
-                                       and all(isinstance(alias, str) for alias in action.get("aliases", []))):
-        return "aliases is a list of strings"
-    if kind == "set_support_style" and not isinstance(action["text"], str):
-        return "the support style is a string (empty removes it)"
-    if kind == "cap_familiarity" and action["level"] not in CAP_LEVELS:
-        return f"the level is one of {CAP_LEVELS}"
     if kind == "switch_persona":
         from membrain import persona_presets
 
         if not isinstance(action["preset"], str) or action["preset"] not in (*persona_presets.IDS,
                                                                               persona_presets.RANDOM):
             return "the preset is a personality type id or random"
-    if kind == "set_persona" and not isinstance(action["card"], dict):
-        return "the card is an object"
     if kind in PROPOSAL_ACTIONS and (action.get("origin", "any") not in PROPOSAL_ORIGINS
                                      or type(action.get("position", 1)) is not int or action.get("position", 1) < 1):
         return f"origin is one of {PROPOSAL_ORIGINS} and position a whole number from 1"
@@ -827,9 +818,9 @@ def _argument_problem(kind: str, action: dict, sessions: list, at: tuple) -> str
 
 def check_actions(module, only: int | None = None) -> list:
     """The scenario's page actions, checked before any model call: each a known kind (ACTION_ARGUMENTS) at a real
-    position, with exactly its kind's arguments; a message named by position comes before the action; a removed
-    boundary is a topic an earlier page action added (the scenario's own words, never the host's). With ``only``,
-    just the action at that index is checked, the others read as context (the precheck checks one at a time)."""
+    position, with exactly its kind's arguments; a message named by position comes before the action. A kind the page
+    no longer offers (REMOVED_ACTIONS) is refused by name. With ``only``, just the action at that index is checked,
+    the others read as context (the precheck checks one at a time)."""
     actions = list(getattr(module, "PAGE_ACTIONS", []))
     sessions = [(session, list(turns)) for session, turns in module.SESSIONS_LONG]
     positions = {(session, index) for session, turns in sessions for index in range(len(turns))}
@@ -837,6 +828,10 @@ def check_actions(module, only: int | None = None) -> list:
         if only is not None and number != only:
             continue
         session, before, action = entry
+        if isinstance(action, dict) and action.get("do") in REMOVED_ACTIONS:
+            # Its own message, which the precheck reads as the fixed code removed_action.
+            raise SystemExit(f"removed page action at {session} {before}: {action['do']} is no longer on the page; "
+                             "the user says it to the agent instead")
         if (session, before) not in positions or not isinstance(action, dict) or action.get("do") not in ACTIONS:
             raise SystemExit(f"bad page action at {session} {before}: "
                              f"{action.get('do') if isinstance(action, dict) else 'not an object'}")
@@ -846,17 +841,6 @@ def check_actions(module, only: int | None = None) -> list:
             raise SystemExit(f"bad page action at {session} {before}: {problem}")
         if action["do"] in PROPOSAL_ACTIONS and not proposals_supported() and not STUB:
             raise SystemExit("this runtime has no persona proposals (P2): the scenario cannot run on it")
-    added = set()
-    formed = [entry if isinstance(entry, tuple | list) and len(entry) == 3 and (entry[0], entry[1]) in positions
-              and isinstance(entry[2], dict) else (sessions[0][0], -1, {}) for entry in actions]
-    for index in application_order(formed, sessions):
-        action = formed[index][2]
-        if action.get("do") == "add_boundary" and isinstance(action.get("topic"), str):
-            added.add(_topic(action["topic"]))
-        elif (action.get("do") == "remove_boundary" and only in (None, index)
-              and _topic(action.get("topic")) not in added):
-            raise SystemExit(f"bad page action at {actions[index][0]} {actions[index][1]}: remove_boundary takes a "
-                             "topic an earlier add_boundary added on the page")
     return actions
 
 
@@ -874,8 +858,6 @@ def world(client) -> dict:
             "shared_moments": len(relationship["shared_moments"]),
             "familiarity": relationship["familiarity"]["level"],
             "familiarity_days": relationship["familiarity"]["days"],
-            "familiarity_cap": (relationship.get("familiarity") or {}).get("cap"),
-            "support_style": bool(relationship.get("support_style")),
             "mood": "baseline" if mood.get("at_baseline") else mood.get("label"), "mood_pinned": bool(mood.get("pinned")),
             "persona_version": persona.get("version", 0)}
 
@@ -947,13 +929,6 @@ def layer_records(client, positions: dict) -> dict:
     for item in relationship.get("boundaries") or ():
         records[item["id"]] = {"kind": "boundary", "sources": [], "content": {
             "topic": words(item.get("topic")), "aliases": sorted(words(alias) for alias in item.get("aliases") or ())}}
-    support = relationship.get("support_style")
-    if support:
-        records[support["id"]] = {"kind": "support_style", "sources": [],
-                                                     "content": {"text": words(support.get("text"))}}
-    cap = (relationship.get("familiarity") or {}).get("cap")
-    if cap:  # The cap has no id of its own: it is its level.
-        records["familiarity_cap:" + cap] = {"kind": "familiarity_cap", "sources": [], "content": {"level": cap}}
     if callable(getattr(client, "persona_versions", None)):
         for item in client.persona_versions().get("versions", []):
             records[item["event_id"]] = {"kind": "persona_version", "sources": [], "content": {
@@ -1024,10 +999,26 @@ def _source_ids(memory: Memory, action: dict) -> tuple[list, dict | None]:
     return [], {"failed": "message not found"}
 
 
+def boundary_named(boundaries, topic: str) -> dict | None:
+    """The boundary in force that a remove_boundary action names, by the scenario's own topic. Since format 3 the
+    host saved every boundary (memory_boundary, when the user asked in conversation) in its own words, so the topic
+    is matched against each boundary's topic first and then against its other words, as the product compares topics
+    (whitespace collapsed, case ignored); the first in the product's order wins. None when no boundary has it: the
+    host did not save one by those words, or an earlier removal took it (a relationship reset keeps boundaries since
+    2026-11-18)."""
+    wanted = _topic(topic)
+    listed = list(boundaries or ())
+    for entry in listed:
+        if _topic(entry.get("topic")) == wanted:
+            return entry
+    for entry in listed:
+        if any(_topic(alias) == wanted for alias in entry.get("aliases") or ()):
+            return entry
+    return None
+
+
 def _apply(memory: Memory, client, action: dict, page: dict) -> dict:
     kind = action["do"]
-    if kind == "set_persona":
-        return {"version": client.set_persona(action["card"], made_by="user")["version"]}
     if kind == "switch_persona":
         from membrain import persona_presets
 
@@ -1056,18 +1047,11 @@ def _apply(memory: Memory, client, action: dict, page: dict) -> dict:
         result = decide(chosen["id"])
         return {"proposal": chosen["id"], "kind": chosen.get("kind"),
                 "version": (result.get("persona") or result).get("version")}
-    if kind == "add_boundary":
-        client.add_boundary(action["topic"], action.get("aliases", ()))
-        return {}
     if kind == "remove_boundary":
-        # The boundary the scenario added on the page, by the scenario's own topic (the product keeps one boundary
-        # per topic, compared without case); gone when an earlier removal took it (a relationship reset keeps
-        # boundaries since 2026-11-18).
-        found = [entry for entry in client.relationship()["boundaries"] if _topic(entry["topic"]) == _topic(
-            action["topic"])]
-        if not found:
+        found = boundary_named(client.relationship()["boundaries"], action["topic"])
+        if found is None:
             return {"not_applicable": "boundary_not_present"}
-        client.remove_boundary(found[0]["id"])
+        client.remove_boundary(found["id"])
         return {}
     if kind == "clear_feelings":
         client.clear_affect()
@@ -1080,12 +1064,6 @@ def _apply(memory: Memory, client, action: dict, page: dict) -> dict:
         return {}
     if kind == "pin_mood":
         client.pin_mood(action.get("pinned", True))
-        return {}
-    if kind == "set_support_style":
-        client.set_support_style(action["text"])
-        return {}
-    if kind == "cap_familiarity":
-        client.cap_familiarity(action["level"])
         return {}
     if kind in ("delete_note_from", "delete_feeling_from"):
         ids, outcome = _source_ids(memory, action)
@@ -1144,8 +1122,8 @@ def apply_page_action(memory: Memory, action: dict, page: dict | None = None) ->
         except httpx.HTTPStatusError as error:
             status = error.response.status_code
             if action["do"] in LIMITED and 400 <= status < 500 and _error_code(error.response) == "validation_failed":
-                # The scenario's own words passed the product's validators in the precheck, so the page's limits were
-                # reached through what the host saved: the plugin path's behaviour, scored.
+                # The page's limits were reached through what the host saved (agreements that no longer fit beside
+                # the type's card): the plugin path's behaviour, scored.
                 return {"not_applicable": "page_refused", "status": status}
             return {"failed": "the service refused the action", "code": "service_refused", "status": status}
         except Exception as error:  # noqa: BLE001 - recorded by class as a fault; the run is invalid.
@@ -1173,7 +1151,8 @@ def page_status(result: dict) -> tuple[str, str | None]:
 
 
 def action_detail(action: dict) -> dict:
-    """What page-actions.jsonl keeps of an action: its arguments, except a set_persona card (its hash instead)."""
+    """What page-actions.jsonl keeps of an action: its arguments, except a card (its hash instead; only format 2's
+    set_persona carried one)."""
     detail = {key: value for key, value in action.items() if key not in ("do", "card")}
     if "card" in action:
         detail["card_sha256"] = hashlib.sha256(json.dumps(action["card"], sort_keys=True, ensure_ascii=False,
@@ -1188,8 +1167,7 @@ def persona_turn(version: int, block: str) -> dict:
             "sha256": hashlib.sha256(block.encode("utf-8")).hexdigest() if block else None}
 
 
-LEVEL_WORDS = {"new": "new", "getting_to_know": "getting to know", "familiar": "familiar"}
-PAGE_LINE_PREFIX = "Memory page settings the user chose (not part of the conversation above): "
+PAGE_LINE_PREFIX = "Memory page changes the user made (not part of the conversation above): "
 
 
 class Reference:
@@ -1199,9 +1177,11 @@ class Reference:
     def __init__(self):
         self.history: list[tuple[tuple, dict]] = []  # ((session, turn, role), message)
         self.deleted: set[tuple] = set()  # Every position a page deletion removed, in any session.
-        # Page-only settings, from the scenario's own words: boundaries the page added, by topic (in order added).
-        self.boundaries: dict[str, tuple[str, list]] = {}
-        self.reset_on = self.cleared_on = self.support = self.cap = None
+        # Page-only changes, from the scenario's own words: boundaries removed on the page, by topic (in the order
+        # first removed), each with the date of its latest removal. The boundaries themselves the host saved when
+        # the user asked in conversation, which F's history shows.
+        self.removed_boundaries: dict[str, tuple[str, str | None]] = {}
+        self.reset_on = self.cleared_on = None
         self.pinned = False
 
     def apply(self, action: dict, outcome: dict | None = None, today: datetime.date | None = None) -> dict:
@@ -1226,50 +1206,41 @@ class Reference:
             before = len(self.history)
             self.history = [(entry, message) for entry, message in self.history if entry not in removed]
             return {"deleted": before - len(self.history), "removed": sorted(map(list, removed))}
-        if kind == "add_boundary":
-            self.boundaries[_topic(action["topic"])] = (" ".join(action["topic"].split()),
-                                                        list(action.get("aliases", [])))
-        elif kind == "remove_boundary":
-            self.boundaries.pop(_topic(action["topic"]), None)
-        elif kind == "reset_relationship":  # It erases support style and cap; boundaries stay (relationship.py).
-            self.support, self.cap, self.reset_on = None, None, day
+        if kind == "remove_boundary":  # A topic removed again keeps its place and first words, with the new date.
+            key = _topic(action["topic"])
+            words = self.removed_boundaries.get(key, (" ".join(action["topic"].split()), None))[0]
+            self.removed_boundaries[key] = (words, day)
+        elif kind == "reset_relationship":  # Boundaries stay in force (relationship.py, since 2026-11-18).
+            self.reset_on = day
         elif kind == "clear_feelings":
             self.cleared_on = day
-        elif kind == "set_support_style":
-            self.support = " ".join(action["text"].split()) or None
-        elif kind == "cap_familiarity":
-            self.cap = action["level"]
         elif kind == "pin_mood":
             self.pinned = action.get("pinned", True)
         return {}
 
     def page_line(self) -> str | None:
         """What the page has done so far that the conversation history does not show, as one line of fixed format
-        (PAGE_LINE_FORMAT 1), or None when there is nothing: PAGE_LINE_PREFIX, then the items present, in this order,
+        (PAGE_LINE_FORMAT 2), or None when there is nothing: PAGE_LINE_PREFIX, then the items present, in this order,
         joined by "; " and ended with ".":
-          topics not to bring up: "<topic>" (also "<alias>", ...), ...   boundaries the page added and still in force
-          relationship reset on YYYY-MM-DD                                 the latest reset
-          feelings cleared on YYYY-MM-DD                                   the latest "clear feelings"
-          support style: "<text>"
-          familiarity limited to <new | getting to know | familiar>
-          simulated mood held at its baseline                              the mood pin
-        Topics, aliases and the support style are the scenario's own words, JSON-quoted; nothing else is free text."""
+          boundaries removed: "<topic>" on YYYY-MM-DD, ...   a boundary the user asked for in conversation and then
+                                                             removed on the page (the latest removal of each topic)
+          relationship reset on YYYY-MM-DD                   the latest reset
+          feelings cleared on YYYY-MM-DD                     the latest "clear feelings"
+          simulated mood held at its baseline                the mood pin
+        Topics are the scenario's own words, JSON-quoted; nothing else is free text. Format 1 (until 2026-11-18) also
+        listed boundaries added on the page, the support style and a familiarity limit, which the page no longer
+        offers."""
         def quoted(text) -> str:
             return json.dumps(text, ensure_ascii=False)
 
         items = []
-        if self.boundaries:
-            items.append("topics not to bring up: " + ", ".join(
-                quoted(topic) + (f" (also {', '.join(map(quoted, aliases))})" if aliases else "")
-                for topic, aliases in self.boundaries.values()))
+        if self.removed_boundaries:
+            items.append("boundaries removed: " + ", ".join(
+                quoted(topic) + (f" on {day}" if day else "") for topic, day in self.removed_boundaries.values()))
         if self.reset_on:
             items.append(f"relationship reset on {self.reset_on}")
         if self.cleared_on:
             items.append(f"feelings cleared on {self.cleared_on}")
-        if self.support:
-            items.append(f"support style: {quoted(self.support)}")
-        if self.cap:
-            items.append(f"familiarity limited to {LEVEL_WORDS[self.cap]}")
         if self.pinned:
             items.append("simulated mood held at its baseline")
         return PAGE_LINE_PREFIX + "; ".join(items) + "." if items else None

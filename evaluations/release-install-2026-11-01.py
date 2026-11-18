@@ -17,7 +17,8 @@ Part "companion" (companion state across upgrade and restore), in a second fresh
 2. Through that baseline's own MCP launcher and SDK, write a persona card with a baseline mood, a mood pin, a reported
    feeling on a note, a shared moment, a boundary with an alias and a support style; read them back.
 3. Upgrade through the current hooks, then check through the candidate's API and hooks that every item is still there
-   and still effective.
+   and still effective. The support style is the exception: the candidate retired it (2026-11-18, no migration), so
+   its stored record must be ignored, neither returned nor delivered, while everything else still reads.
 4. Back up, restore, activate, and check every item again in the restored installation.
 
 Usage: python evaluations/release-install-2026-11-01.py OUT_DIR [--old d0d7a03...] [--companion-old 19e894c...]
@@ -626,7 +627,6 @@ def companion_findings(written: dict, seen: dict) -> list[tuple[str, bool, objec
                   and set(written["boundary_aliases"]) <= set(boundary.get("aliases") or [])]
     moments = [moment for moment in relationship.get("shared_moments") or []
                if moment.get("id") == written["moment_note_id"] and written["moment_text"] in (moment.get("text") or "")]
-    support = (relationship.get("support_style") or {}).get("text")
     unraised, raised = seen["unraised"], seen["raised"]
     return [
         ("the persona block is in session context with its version",
@@ -653,11 +653,12 @@ def companion_findings(written: dict, seen: dict) -> list[tuple[str, bool, objec
          mood.get("pinned") is True and mood.get("label") == baseline and (mood.get("baseline") or {}).get("label")
          == baseline,
          {key: mood.get(key) for key in ("label", "pinned", "pinned_at", "baseline", "at_baseline")}),
-        ("the support style is kept",
-         support == written["support_style"]
-         and f"How they like to be supported: {written['support_style']}" in context,
-         {"support_style": support,
-          "in_session_context": f"How they like to be supported: {written['support_style']}" in context}),
+        # Retired with its page form (2026-11-18): the baseline's record stays stored and is ignored when read.
+        ("the retired support style is ignored",
+         "support_style" not in relationship and "How they like to be supported" not in context
+         and written["support_style"] not in context,
+         {"in_relationship": "support_style" in relationship,
+          "in_session_context": "How they like to be supported" in context}),
     ]
 
 

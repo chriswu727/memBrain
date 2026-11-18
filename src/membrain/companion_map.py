@@ -261,14 +261,6 @@ def _project(service, conn, principal, brain_id, graph, versions, proposals, cur
     for boundary in state["boundaries"]:
         graph.node("boundary:" + boundary["id"], "boundary", "relationship", boundary["topic"],
                    boundary["recorded_at"], event_id=boundary["id"], aliases=boundary["aliases"])
-    support = state["support_style"]
-    if support and support["text"]:
-        graph.node("support:" + support["id"], "support_style", "relationship", support["text"],
-                   support["recorded_at"], event_id=support["id"], text=neutralize(support["text"]))
-    cap = state["cap"]
-    if cap and cap["level"] is not None:
-        graph.node("cap:" + cap["id"], "relationship_cap", "relationship", "Familiarity limit: " + cap["level"],
-                   cap["recorded_at"], event_id=cap["id"], level=cap["level"])
     for moment in moments:
         event(moment["id"])
     for group, commitments_in_group in commitments.items():

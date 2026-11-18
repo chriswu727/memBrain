@@ -16,10 +16,12 @@ attempt's seeded personality type, and the persona then changes only as a user c
   on the page with the note and feeling drawn from it, the inferred feeling deleted by its source message, then
   "clear feelings";
 - agent_mood: good news makes the mood glad; the next morning it is easing; later the mood is reset and pinned;
-- relationship: a boundary by the host's tool (Tom) and one added on the page (work deadlines); a shared moment of
-  kind play and one of kind hard; support style and familiarity cap set on the page; a relationship reset, which
-  keeps both boundaries in force (since 2026-11-18); the page boundary removed on the page two days later, and a
-  second removal of it that finds nothing (not_applicable: boundary_not_present);
+- relationship: two boundaries the user asks for in conversation, saved by the host's tool (Tom; work deadlines);
+  a shared moment of kind play and one of kind hard; a relationship reset, which keeps both boundaries in force
+  (since 2026-11-18); the work-deadlines boundary removed on the page two days later, named by one of its other
+  words, and a second removal of it that finds nothing (not_applicable: boundary_not_present). Since 2026-11-18 the
+  page offers no text entry: no boundary is added, no support style or familiarity limit set (both left the
+  product) and no card edited on the page;
 - recording on the plugin path: a pause by the host's tool quoting the user's words drops the current and next turn;
   resuming records the requested turn; deleting a message of that stretch on the page finds nothing in P
   (not_applicable: message_not_recorded) and F drops it from its history all the same; a pause the product makes by
@@ -64,7 +66,8 @@ SESSIONS_LONG = [
     ("s4-weekend", [
         "Today is Sunday, March 8, 18:00. Thanks for staying with me on Friday night when my flat flooded. That was "
         "rough.",
-        "I'm reading a novel about a breakup. It's good so far.",
+        "I'm reading a novel about a breakup. It's good so far. And please don't bring up work deadlines with me, "
+        "I hear enough about them at work.",
         "Could you switch to a different personality type? Surprise me.",
     ]),
     ("s5-busy", [
@@ -112,17 +115,14 @@ PAGE_ACTIONS = [
     ("s3-morning", 2, {"do": "accept_proposal", "origin": "feedback", "kind": "less_formal"}),
     ("s5-busy", 0, {"do": "delete_feeling_from", "session": "s1-arrival", "turn": 0}),
     ("s5-busy", 0, {"do": "delete_message", "session": "s1-arrival", "turn": 1, "role": "user"}),
-    ("s5-busy", 0, {"do": "add_boundary", "topic": "work deadlines", "aliases": ["deadlines"]}),
     ("s5-busy", 1, {"do": "clear_feelings"}),
     ("s5-busy", 1, {"do": "reset_mood"}),
-    ("s5-busy", 1, {"do": "set_support_style", "text": "Listen first; advice only when I ask."}),
-    ("s5-busy", 2, {"do": "cap_familiarity", "level": "new"}),
     ("s5-busy", 2, {"do": "pin_mood", "pinned": True}),
     ("s6-fresh", 0, {"do": "reset_relationship"}),
     ("s6-fresh", 1, {"do": "switch_persona", "preset": "random"}),
     ("s8-after", 0, {"do": "delete_message", "session": "s7-recording", "turn": 1, "role": "user"}),
     ("s8-after", 0, {"do": "delete_note_from", "session": "s2-review", "turn": 0}),
-    ("s8-after", 0, {"do": "remove_boundary", "topic": "work deadlines"}),
+    ("s8-after", 0, {"do": "remove_boundary", "topic": "deadlines"}),
     ("s10-plans", 0, {"do": "remove_boundary", "topic": "work deadlines"}),
     ("s10-plans", 1, {"do": "accept_proposal", "origin": "host"}),
     ("s10-plans", 2, {"do": "reject_proposal", "origin": "host"}),
@@ -139,20 +139,20 @@ FACTS = """
   me." Before her third message that morning she accepts, on the memory page, the suggestion to be more casual. She
   then asks the companion to be more patient with her when she is slow to decide from now on, and says yes in her
   next message.
-- 8 Mar: she thanks the companion for staying with her when her flat flooded (a hard shared moment). She asks it to
-  switch to a different personality type of its choosing.
-- 10 Mar: on the page she adds a boundary "work deadlines" (also "deadlines"), clears feelings, resets the mood,
-  sets the support style "Listen first; advice only when I ask.", limits familiarity to new and pins the mood. In
-  the conversation she suggests ending replies with a fun fact, then says no.
-- 11 Mar: she resets the relationship on the page (shared moments, support style and the familiarity limit are
-  gone; both boundaries stay), then picks another personality type at random on the page.
+- 8 Mar: she thanks the companion for staying with her when her flat flooded (a hard shared moment). She asks it not
+  to bring up work deadlines (boundary, set by the companion's tool, with "deadlines" as another word for it). She
+  asks it to switch to a different personality type of its choosing.
+- 10 Mar: on the page she clears feelings, resets the mood and keeps the mood at its baseline. In the conversation
+  she suggests ending replies with a fun fact, then says no.
+- 11 Mar: she resets the relationship on the page (the shared moments are gone; both boundaries stay), then picks
+  another personality type at random on the page.
 - 12 Mar: she pauses recording for the conversation; one message is off the record; she resumes in the next.
 - 13 Mar: she deletes on the page the off-the-record message of 12 Mar and the note about her promotion, and
-  removes the boundary "work deadlines".
+  removes the boundary "work deadlines" (by its other word "deadlines").
 - 14 Mar: "Don't remember this." She says, off the record, that she is thinking of quitting her job and has told
   nobody; then asks the companion to remember things again and says she is going hiking tomorrow.
-- 15 Mar: on the page she tries to remove "work deadlines" again (it is already gone). She asks the companion to just listen first when she is upset, instead of jumping to advice, from now
-  on; before her next message she accepts that change on the memory page. She then asks it to walk her through things
+- 15 Mar: on the page she tries to remove "work deadlines" again (it is already gone). She asks the companion to
+  just listen first when she is upset, instead of jumping to advice, from now on; before her next message she accepts that change on the memory page. She then asks it to walk her through things
   step by step from now on; before her next message she rejects that change on the page, and says never mind.
 - 16 Mar: after a long day she asks the companion to keep things gentle when she has had a long day, from now on.
 - 17 Mar: in a new conversation she says yes to that; the companion asks again in this conversation, and she says
@@ -199,6 +199,8 @@ STUB_HOST = {
         "affect": {"label": "happy", "valence": 2, "intensity": 2, "basis": "reported", "topic": "the promotion"}}}],
     ("s2-review", 1): [{"tool": "memory_manner_feedback", "source": "current", "arguments": {"kind": "less_formal"}}],
     ("s2-review", 2): [{"tool": "memory_boundary", "arguments": {"topic": "Tom", "aliases": ["my ex"]}}],
+    ("s4-weekend", 1): [{"tool": "memory_boundary", "arguments": {"topic": "work deadlines",
+                                                                  "aliases": ["deadlines"]}}],
     ("s3-morning", 0): [{"tool": "memory_note", "source": "current", "arguments": {
         "text": "Mia and the companion had a silly pun contest.", "kind": "milestone", "shared": True,
         "moment": "play"}}],
@@ -263,24 +265,21 @@ EXPECT = [
     ("s5-busy", 0, "PF", ['<membrain-persona version="4">', "register casual",
                           "Is patient with Mia when she is slow to decide"], []),
     ("s5-busy", 0, "P", ["work deadlines"], ["nervous", "first design review", "seemed lonely"]),
-    ("s5-busy", 0, "F", ['topics not to bring up: "work deadlines" (also "deadlines")'], []),
     ("s5-busy", 1, "P", [], ["<membrain-companion-mood>", "felt happy"]),
-    ("s5-busy", 1, "F", ["feelings cleared on 2026-03-10", 'support style: "Listen first; advice only when I ask."'],
-     []),
-    ("s5-busy", 2, "F", ["familiarity limited to new", "simulated mood held at its baseline"], []),
+    ("s5-busy", 1, "F", ["feelings cleared on 2026-03-10"], []),
+    ("s5-busy", 2, "F", ["simulated mood held at its baseline"], []),
     # The conversation itself is kept (recall of what was said is unchanged); the shared moment notes are not.
     ("s6-fresh", 0, "P", [], ["had a silly pun contest", "got through the night her flat flooded",
                               "<membrain-companion-mood>"]),
-    # A relationship reset keeps the boundaries in force: the one the host saved and the one added on the page.
+    # A relationship reset keeps the boundaries in force: both the host saved when she asked.
     ("s6-fresh", 0, "P", ["Tom (also: my ex)", "work deadlines (also: deadlines)"], []),
-    ("s6-fresh", 0, "F", ['topics not to bring up: "work deadlines" (also "deadlines")',
-                          "relationship reset on 2026-03-11", "feelings cleared on 2026-03-10",
-                          "simulated mood held at its baseline"],
-     ["support style", "familiarity limited"]),
+    ("s6-fresh", 0, "F", ["relationship reset on 2026-03-11", "feelings cleared on 2026-03-10",
+                          "simulated mood held at its baseline"], ["boundaries removed"]),
     ("s6-fresh", 1, "PF", ['<membrain-persona version="5">', "register casual",
                            "Is patient with Mia when she is slow to decide"], []),
     ("s8-after", 0, "P", ["Tom (also: my ex)"], ["heliotrope", "Mia was promoted at work"]),
-    ("s8-after", 0, "F", ["relationship reset on 2026-03-11"], ["topics not to bring up"]),
+    # F saw her ask for the boundary; the page removal (by its other word) reaches it in the page line.
+    ("s8-after", 0, "F", ['boundaries removed: "deadlines" on 2026-03-13', "relationship reset on 2026-03-11"], []),
     ("s10-plans", 0, "P", [], ["quitting", "told anyone"]),
     ("s10-plans", 1, "PF", ['<membrain-persona version="6">', "Listens first when Mia is upset"], []),
     # P's host was sent version 6 in the previous message's refresh; the rejected change reaches neither arm.
@@ -293,7 +292,7 @@ EXPECT_RECORDING_P = [("s7-recording", 0, False), ("s7-recording", 1, False), ("
 EXPECT_HOST_PAUSES_P = [("s9-quiet", 2)]
 EXPECT_TOOL_ERRORS_P = [("s12-yes", 0, "memory_persona")]
 EXPECT_CONSOLIDATION_P = [("s4-weekend", 0)]
-EXPECT_NOT_APPLICABLE = [(11, "message_not_recorded"), (14, "boundary_not_present")]
+EXPECT_NOT_APPLICABLE = [(8, "message_not_recorded"), (11, "boundary_not_present")]
 EXPECT_PERSONA_VERSIONS_P = [("s1-arrival", 0, 1), ("s3-morning", 1, 1), ("s3-morning", 2, 2), ("s3-morning", 3, 2),
                              ("s4-weekend", 0, 3), ("s4-weekend", 2, 3), ("s5-busy", 0, 4), ("s6-fresh", 0, 4),
                              ("s6-fresh", 1, 5), ("s8-after", 0, 5), ("s10-plans", 0, 5), ("s10-plans", 1, 6),

@@ -30,7 +30,7 @@ flag one only when it is wrong on the facts or demands removed content (F4).
 
 What the words decide, item by item (for the items the assignment names; the item names of `COVERAGE` are
 `"stated_feeling"`, `"inferred_feeling"`, `"mood"`, `"feelings_question"`, `"boundary_in_conversation"`,
-`"boundary_on_page"`, `"page_deletion"`, `"reset"`, `"manner_feedback"`, `"from_now_on"`, `"switch"`,
+`"second_boundary"`, `"page_deletion"`, `"reset"`, `"manner_feedback"`, `"from_now_on"`, `"switch"`,
 `"shared_moments"` and `"absence"`):
 - the stated feeling is stated by the user, and the inferred one is never said;
 - no message between the mood news and the later mood case carries news or a feeling;

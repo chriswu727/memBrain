@@ -34,8 +34,6 @@ from membrain.relationship import (
     relationship_context,
     remove_boundary,
     reset_relationship,
-    set_cap,
-    set_support_style,
     touches,
 )
 
@@ -67,44 +65,42 @@ def test_boundaries_match_whole_words_aliases_and_chinese_and_yield_when_the_use
 def test_familiarity_is_derived_from_days_and_moments_through_documented_thresholds():
     assert THRESHOLDS == (("getting_to_know", 3, 0), ("familiar", 14, 2), ("close", 45, 6))
     days = [(datetime.date(2027, 3, 2) + datetime.timedelta(days=n)).isoformat() for n in range(60)]
-    level = lambda count, moments, cap=None: familiarity(days[:count], moments, cap, TODAY)["level"]  # noqa: E731
+    level = lambda count, moments: familiarity(days[:count], moments, TODAY)["level"]  # noqa: E731
     assert [level(0, 0), level(2, 9), level(3, 0), level(13, 9), level(14, 1), level(14, 2), level(44, 9),
             level(45, 5), level(45, 6)] == ["new", "new", "getting_to_know", "getting_to_know", "getting_to_know",
                                             "familiar", "familiar", "familiar", "close"]
-    known = familiarity(days[:23], 6, None, TODAY)
+    known = familiarity(days[:23], 6, TODAY)
     assert known["reason"] == "familiar: 23 days of conversation since 2 Mar, 6 shared moments"
     assert (known["days"], known["since"], known["shared_moments"]) == (23, "2027-03-02", 6)
     assert known["next"] == {"level": "close", "days": 45, "shared_moments": 6}
-    assert familiarity([], 0, None, TODAY)["reason"] == "new: no conversation yet, 0 shared moments"
-    assert familiarity(days[:1], 1, None, TODAY)["reason"] == "new: 1 day of conversation since 2 Mar, 1 shared moment"
-    assert familiarity(days[:1], 0, None, datetime.date(2028, 1, 5))["reason"].endswith("since 2 Mar 2027, 0 shared moments")
-    # The user can cap it at a lower level; a cap above the derived level changes nothing.
-    capped = familiarity(days[:50], 7, "getting_to_know", TODAY)
-    assert (capped["level"], capped["derived_level"], capped["cap"]) == ("getting_to_know", "close", "getting_to_know")
-    assert capped["reason"] == ("getting to know: 50 days of conversation since 2 Mar, 7 shared moments "
-                                "(capped by you; the rule gives close)")
-    assert familiarity(days[:3], 0, "familiar", TODAY)["level"] == "getting_to_know"
+    assert familiarity([], 0, TODAY)["reason"] == "new: no conversation yet, 0 shared moments"
+    assert familiarity(days[:1], 1, TODAY)["reason"] == "new: 1 day of conversation since 2 Mar, 1 shared moment"
+    assert familiarity(days[:1], 0, datetime.date(2028, 1, 5))["reason"].endswith("since 2 Mar 2027, 0 shared moments")
+    # Familiarity is the derived level and nothing else: the user's cap was retired (2026-11-18).
+    close = familiarity(days[:50], 7, TODAY)
+    assert close["level"] == "close" and "cap" not in close and "derived_level" not in close
+    assert close["reason"] == "close: 50 days of conversation since 2 Mar, 7 shared moments"
 
 
 def state(**extra):
-    base = {"familiarity": familiarity(["2027-03-02"] * 1, 0, None, TODAY), "support_style": None,
-            "boundaries": [], "shared_moments": [], "commitments": {"missed": []}, "today": TODAY.isoformat()}
+    base = {"familiarity": familiarity(["2027-03-02"] * 1, 0, TODAY), "boundaries": [], "shared_moments": [],
+            "commitments": {"missed": []}, "today": TODAY.isoformat()}
     return {**base, **extra}
 
 
-def test_the_block_lists_familiarity_style_boundaries_three_recent_moments_and_a_missed_promise_once():
+def test_the_block_lists_familiarity_boundaries_three_recent_moments_and_a_missed_promise_once():
     moments = [{"id": f"m{n}", "text": f"Moment {n}", "occurs_at": f"2027-03-0{n}", "recorded_at": "x"}
                for n in range(1, 6)] + [{"id": "s", "text": "Private moment", "occurs_at": "2027-03-09",
                                          "sensitive": True}]
     missed = {"note_id": "c1", "text": "Send the recipe", "due": "2027-03-10", "acknowledged": False}
-    result = state(support_style={"text": "listen first, advice only when asked"}, boundaries=[EX],
-                   shared_moments=moments, commitments={"missed": [missed, {**missed, "note_id": "c0",
+    result = state(boundaries=[EX], shared_moments=moments, commitments={"missed": [missed, {**missed, "note_id": "c0",
                                                                              "acknowledged": True}]})
     context = relationship_context(result)
     block = context["block"]
     assert block.startswith("<membrain-relationship>\n") and block.endswith("\n</membrain-relationship>")
     assert "Familiarity: new: 1 day of conversation since 2 Mar, 0 shared moments." in block
-    assert "How they like to be supported: listen first, advice only when asked" in block
+    # A support style was retired (2026-11-18): a result that still carries one never shows it.
+    assert "supported" not in relationship_context({**result, "support_style": {"text": "listen first"}})["block"]
     assert "Do not raise them, or anything recalled about them, unless the user does: my ex (also: 前任, Jordan)." in block
     assert ("Shared moments, oldest first. " + SHARED_MOMENT_CUE + "\n- 3 Mar: Moment 3 (id: m3)\n- 4 Mar: Moment 4 "
             "(id: m4)\n- 5 Mar: Moment 5") in block
@@ -113,7 +109,7 @@ def test_the_block_lists_familiarity_style_boundaries_three_recent_moments_and_a
     assert context["once"] == ["c1"] and len(block) <= RELATIONSHIP_CHARACTERS
     assert "pressure" in block and "not a score of the user" in block
     # What decides a refresh ignores the growing day count and the one-time line, but not a newly missed promise.
-    later = relationship_context({**result, "familiarity": familiarity(["2027-03-02", "2027-03-03"], 0, None, TODAY),
+    later = relationship_context({**result, "familiarity": familiarity(["2027-03-02", "2027-03-03"], 0, TODAY),
                                   "commitments": {"missed": [{**missed, "acknowledged": True}, result["commitments"]["missed"][1]]}})
     assert later["stable"] == context["stable"] and later["block"] != block and later["once"] == []
     assert relationship_context({**result, "commitments": {"missed": []}})["stable"] != context["stable"]
@@ -158,9 +154,10 @@ def test_a_new_relationship_with_nothing_beyond_the_default_renders_no_block():
     empty = relationship_context(state())
     assert (empty["block"], empty["once"]) == (None, [])
     assert snapshot({"items": []}, brain_id="b", tools=None, relationship=state())["text"] == ""
-    for extra in ({"familiarity": familiarity(["2027-03-02"], 0, "new", TODAY)},
-                  {"familiarity": familiarity([f"2027-03-0{n}" for n in range(1, 4)], 0, None, TODAY)},
-                  {"support_style": {"text": "listen first"}}, {"boundaries": [EX]},
+    # A retired support style alone is nothing to show either.
+    assert relationship_context(state(support_style={"text": "listen first"}))["block"] is None
+    for extra in ({"familiarity": familiarity([f"2027-03-0{n}" for n in range(1, 4)], 0, TODAY)},
+                  {"boundaries": [EX]},
                   {"shared_moments": [{"id": "m1", "text": "Our first chat.", "occurs_at": "2027-03-02"}]},
                   {"commitments": {"missed": [{"note_id": "c1", "text": "Send the recipe", "due": "2027-03-10"}]}}):
         assert relationship_context(state(**extra))["block"], extra
@@ -228,7 +225,7 @@ def test_snapshot_keeps_bounded_notes_and_shared_moments_out_of_the_notes_block(
     # Without the relationship layer (an older service) the shared moment stays an ordinary note.
     assert "Our first chat." in snapshot(saved, brain_id="b", tools=None)["text"]
     more = snapshot(saved, brain_id="b", tools=None, relationship={
-        **bond, "familiarity": familiarity(["2027-03-02", "2027-03-03"], 1, None, TODAY)})
+        **bond, "familiarity": familiarity(["2027-03-02", "2027-03-03"], 1, TODAY)})
     assert more["fingerprint"] == current["fingerprint"]  # A new day of conversation alone does not refresh.
 
 
@@ -450,12 +447,6 @@ def test_familiarity_crosses_its_thresholds_with_the_numbers_the_page_shows(brai
     assert [moment["text"] for moment in result["shared_moments"]] == [
         "Our first conversation.", "We laughed about the burnt pancakes."]
     assert "Familiarity: familiar: 14 days of conversation since 2 Mar" in result["block"]
-    # The cap holds it lower and says so; removing the cap restores the derived level.
-    capped = set_cap(service, principal, ident, "getting_to_know", today=TODAY)["familiarity"]
-    assert capped["level"] == "getting_to_know" and "(capped by you; the rule gives familiar)" in capped["reason"]
-    assert set_cap(service, principal, ident, None, today=TODAY)["familiarity"]["level"] == "familiar"
-    with pytest.raises(DomainError):
-        set_cap(service, principal, ident, "close")
     # Deleting a shared moment lowers the count again: nothing is kept after the user deletes it.
     generation = service.dashboard(principal, ident)["brain"]["scope_generation"]
     service.handle(principal, {
@@ -594,13 +585,12 @@ def test_a_reset_keeps_every_boundary_in_force_until_the_user_removes_it(brain, 
     add_boundary(service, principal, ident, "my ex", ["前任", "Jordan"])
     add_boundary(service, principal, ident, "work deadlines", ["Initech"])
     note(brain, "Our first conversation.", kind="milestone", shared=True)
-    set_support_style(service, principal, ident, "listen first")
     before = relationship(service, principal, ident)["boundaries"]
     reset = reset_relationship(service, principal, ident)
     assert reset["removed"]["boundaries"] == 0 and reset["removed"]["shared_moments"] == 1
     assert reset["boundaries"] == before and relationship_boundaries(service, principal, ident)["boundaries"] == before
     assert "my ex (also: 前任, Jordan); work deadlines (also: Initech)" in reset["block"]
-    assert reset["support_style"] is None and reset["shared_moments"] == []
+    assert reset["shared_moments"] == []
     service.work_once(principal, ident)
 
     def handle(request):
@@ -676,8 +666,6 @@ def test_reset_starts_familiarity_again_and_nothing_from_before_the_marker_retur
     note(brain, "Named the cat Biscuit together.", kind="milestone", shared=True, source_event_ids=[source])
     note(brain, "Our first conversation.", kind="milestone", shared=True)
     add_boundary(service, principal, ident, "my ex", ["前任"])
-    set_support_style(service, principal, ident, "listen first, advice only when asked")
-    set_cap(service, principal, ident, "familiar")
     promise = note(brain, "Send the recipe.", kind="agent_commitment", status="intended", due="2027-03-10")["note_id"]
     note(brain, "Called back as promised.", kind="agent_commitment", status="done")
     acknowledge(service, principal, ident, [promise], today=TODAY)
@@ -690,8 +678,7 @@ def test_reset_starts_familiarity_again_and_nothing_from_before_the_marker_retur
 
     reset = reset_relationship(service, principal, ident, today=TODAY)
     # The boundary stays in force (owner's decision, 2026-11-18): the key is kept, always 0.
-    assert reset["removed"] == {"shared_moments": 2, "boundaries": 0, "support_style": 1, "cap": 1,
-                                "acknowledgements": 1}
+    assert reset["removed"] == {"shared_moments": 2, "boundaries": 0, "acknowledgements": 1}
     marker = reset["marker"]
     assert marker["marker"] == "reset" and marker["recorded_at"] and marker["applies_from_sequence"]
     # One more session, on a new day.
@@ -700,9 +687,8 @@ def test_reset_starts_familiarity_again_and_nothing_from_before_the_marker_retur
     after = relationship(service, principal, ident, today=datetime.date(2027, 3, 31))
     assert after["familiarity"]["level"] == "new"
     assert after["familiarity"]["reason"] == "new: 1 day of conversation since 31 Mar, 0 shared moments"
-    assert (after["shared_moments"], after["support_style"]) == ([], None)
+    assert after["shared_moments"] == [] and "support_style" not in after
     assert [(item["topic"], item["aliases"]) for item in after["boundaries"]] == [("my ex", ["前任"])]
-    assert after["familiarity"]["cap"] is None
     assert after["commitments"] == {"kept": [], "missed": [], "cancelled": [], "open": []}
     # The block now holds only the boundary that stays.
     assert after["markers"] == [marker] and after["block"].count("my ex (also: 前任)") == 1
@@ -729,7 +715,7 @@ def test_reset_starts_familiarity_again_and_nothing_from_before_the_marker_retur
             "AND e.owner_id=t.owner_id AND e.brain_id=t.brain_id AND e.id=t.object_id WHERE t.brain_id=%s "
             "AND e.conversation_id=ANY(%s) AND t.mode='erase_content'",
             (ident, [RELATIONSHIP_CONVERSATION, "membrain-notes"])).fetchone()
-    assert tombstones["value"] >= 5  # Audited deletion, so it holds if a backup is restored.
+    assert tombstones["value"] >= 3  # Audited deletion, so it holds if a backup is restored.
     # Erasing all memory removes the marker too.
     generation = service.dashboard(principal, ident)["brain"]["scope_generation"]
     service.handle(principal, {
@@ -752,8 +738,6 @@ def test_records_are_never_recalled_counted_or_scheduled_for_learning(brain):
     say(brain, "My sister is visiting next week.")
     status = service.memory_status(principal, ident)["recorded_messages"]
     add_boundary(service, principal, ident, "Zephyrine", ["Quillbert"])
-    set_support_style(service, principal, ident, "Zephyrine style")
-    set_cap(service, principal, ident, "new")
     reset_relationship(service, principal, ident)
     say(brain, "Ordinary messages are recorded.")
     assert learning_jobs(service, principal, ident) == 0
@@ -777,7 +761,7 @@ def test_records_are_never_recalled_counted_or_scheduled_for_learning(brain):
     assert planted["outcome"] == "rejected" and planted["error"]["code"] == "invalid_evidence"
 
 
-def test_boundaries_and_support_style_are_checked_and_replace_rather_than_pile_up(brain):
+def test_boundaries_are_checked_and_replace_rather_than_pile_up(brain):
     service, principal, ident = brain
     for topic, aliases in (("", []), ("t" * 61, []), ("my", []), ("work", ["a" * 41]), ("work", [f"alias {n}" for n in range(7)]),
                            ("work", [""])):
@@ -791,16 +775,11 @@ def test_boundaries_and_support_style_are_checked_and_replace_rather_than_pile_u
     with pytest.raises(DomainError) as missing:
         remove_boundary(service, principal, ident, "no-such-boundary")
     assert missing.value.code == "not_found_or_forbidden"
-    with pytest.raises(DomainError, match="200"):
-        set_support_style(service, principal, ident, "s" * 201)
-    set_support_style(service, principal, ident, "advice first")
-    assert set_support_style(service, principal, ident, "  listen   first ")["support_style"]["text"] == "listen first"
-    assert set_support_style(service, principal, ident, "")["support_style"] is None
     with service.database.transaction(principal) as conn:
         kept = conn.execute(
             "SELECT count(*) AS value FROM memory_events WHERE brain_id=%s AND conversation_id=%s AND is_current "
             "AND NOT deleted", (ident, RELATIONSHIP_CONVERSATION)).fetchone()["value"]
-    assert kept == 2  # Two boundaries; replaced boundaries and earlier support styles were erased.
+    assert kept == 2  # Two boundaries; the replaced one was erased.
 
 
 def test_api_and_sdk_routes_check_keys_owners_and_bodies(installation, brain, api):
@@ -811,29 +790,27 @@ def test_api_and_sdk_routes_check_keys_owners_and_bodies(installation, brain, ap
     empty = client.get(path).json()
     assert empty["familiarity"]["level"] == "new" and empty["boundaries"] == [] and empty["block"] is None
     for method, suffix, body in (("GET", "", None), ("GET", "/boundaries", None),
-                                 ("PUT", "/support-style", {"text": "x"}),
                                  ("POST", "/boundaries", {"topic": "x"}), ("DELETE", "/boundaries/x", None),
-                                 ("POST", "/cap", {"level": None}), ("POST", "/acknowledge", {"note_ids": []}),
-                                 ("POST", "/reset", None)):
+                                 ("POST", "/acknowledge", {"note_ids": []}), ("POST", "/reset", None)):
         denied = client.request(method, f"/v1/brains/{foreign}/relationship{suffix}", json=body)
         assert denied.status_code == 404, (method, suffix)
         assert client.request(method, f"{path}{suffix}", json=body,
                               headers={"Authorization": "Bearer wrong"}).status_code == 401
-    assert client.put(path + "/support-style", json={"text": "listen first"}).json()["support_style"]["text"] == "listen first"
+    # The support style and the familiarity cap were retired with their routes (2026-11-18).
+    assert client.put(path + "/support-style", json={"text": "listen first"}).status_code in (404, 405)
+    assert client.post(path + "/cap", json={"level": "new"}).status_code in (404, 405)
     added = client.post(path + "/boundaries", json={"topic": "my ex", "aliases": ["前任"]}).json()["boundaries"]
     assert added[0]["topic"] == "my ex"
     assert client.get(path + "/boundaries").json() == {"boundaries": added}
     bad = client.post(path + "/boundaries", json={"topic": "x", "extra": 1})
     assert bad.status_code == 422 and bad.json()["error"]["message"].startswith("Relationship request field extra")
     assert client.post(path + "/boundaries", json={"topic": ""}).status_code == 422
-    assert client.post(path + "/cap", json={"level": "close"}).status_code == 422
-    assert client.post(path + "/cap", json={"level": "new"}).json()["familiarity"]["cap"] == "new"
     assert client.post(path + "/acknowledge", json={"note_ids": ["unknown"]}).status_code == 200
     assert client.delete(path + "/boundaries/" + added[0]["id"]).json()["boundaries"] == []
     assert client.get(path + "/boundaries").json() == {"boundaries": []}
     assert client.delete(path + "/boundaries/" + added[0]["id"]).status_code == 404
     reset = client.post(path + "/reset").json()
-    assert reset["marker"]["marker"] == "reset" and reset["support_style"] is None and reset["familiarity"]["cap"] is None
+    assert reset["marker"]["marker"] == "reset" and "support_style" not in reset and "cap" not in reset["familiarity"]
     shared = client.post(f"/v1/brains/{ident}/notes", json={"request_id": uid(), "text": "First chat.",
                                                            "kind": "milestone", "shared": True}).json()
     assert client.get(path).json()["shared_moments"][0]["id"] == shared["note_id"]
@@ -853,20 +830,17 @@ def test_sdk_uses_the_brain_scoped_relationship_routes():
     with MemoryClient("http://127.0.0.1:8790", "test", brain_id="my brain",
                       transport=httpx.MockTransport(handler)) as client:
         client.relationship()
-        client.set_support_style("listen first")
         client.add_boundary("my ex", ["前任"])
         client.remove_boundary("b 1")
-        client.cap_familiarity("familiar")
         client.acknowledge_commitments(["n1"])
         client.reset_relationship()
         client.relationship_boundaries()
     base = "/v1/brains/my%20brain/relationship"
     assert [(method, path) for method, path, _ in requests] == [
-        ("GET", base), ("PUT", base + "/support-style"), ("POST", base + "/boundaries"),
-        ("DELETE", base + "/boundaries/b%201"), ("POST", base + "/cap"), ("POST", base + "/acknowledge"),
-        ("POST", base + "/reset"), ("GET", base + "/boundaries")]
-    assert json.loads(requests[2][2]) == {"topic": "my ex", "aliases": ["前任"]}
-    assert json.loads(requests[4][2]) == {"level": "familiar"}
+        ("GET", base), ("POST", base + "/boundaries"), ("DELETE", base + "/boundaries/b%201"),
+        ("POST", base + "/acknowledge"), ("POST", base + "/reset"), ("GET", base + "/boundaries")]
+    assert json.loads(requests[1][2]) == {"topic": "my ex", "aliases": ["前任"]}
+    assert not hasattr(MemoryClient, "set_support_style") and not hasattr(MemoryClient, "cap_familiarity")
 
 
 def test_boundary_projection_matches_reset_and_avoids_history_aggregation(brain, api, monkeypatch):
@@ -900,8 +874,6 @@ def test_restored_archives_keep_the_relationship_records(installation, brain):
     service, principal, ident = brain
     note(brain, "Our first conversation.", kind="milestone", shared=True)
     add_boundary(service, principal, ident, "my ex", ["前任"])
-    set_support_style(service, principal, ident, "listen first")
-    set_cap(service, principal, ident, "getting_to_know")
 
     def handle(request):
         return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
@@ -916,11 +888,105 @@ def test_restored_archives_keep_the_relationship_records(installation, brain):
 
     assert relationship_boundaries(service, principal, copy) == {"boundaries": restored["boundaries"]}
     assert [(item["topic"], item["aliases"]) for item in restored["boundaries"]] == [("my ex", ["前任"])]
-    assert restored["support_style"]["text"] == "listen first"
-    assert restored["familiarity"]["cap"] == "getting_to_know"
     assert [moment["text"] for moment in restored["shared_moments"]] == ["Our first conversation."]
     # The restored records can still be changed, and the boundary removed.
     assert remove_boundary(service, principal, copy, restored["boundaries"][0]["id"])["boundaries"] == []
+
+
+def retired_records(brain):
+    """A support style and a familiarity cap, written as the runtime before 2026-11-18 wrote them (the same reserved
+    conversation, producer and JSON); that runtime's routes are gone."""
+    import membrain.relationship as module
+
+    service, principal, ident = brain
+    with service.database.transaction(principal) as conn:
+        current = service._brain(conn, principal, ident)
+        module._append(service, conn, principal, current, {"relationship": "support_style", "text": "listen first"},
+                       "relationship-support-" + uid())
+        module._append(service, conn, principal, current, {"relationship": "cap", "level": "new"},
+                       "relationship-cap-" + uid())
+
+
+def relationship_rows(service, principal, ident):
+    with service.database.transaction(principal) as conn:
+        return [row["text"] for row in conn.execute(
+            "SELECT document->'observed'->'content'->>'text' AS text FROM memory_events WHERE brain_id=%s "
+            "AND conversation_id=%s AND is_current AND NOT deleted AND document IS NOT NULL ORDER BY sequence",
+            (ident, RELATIONSHIP_CONVERSATION)).fetchall()]
+
+
+def test_retired_support_style_and_cap_records_are_ignored_and_still_exported_restored_and_erased(
+        installation, brain, monkeypatch):
+    """No migration (2026-11-18): records of the retired kinds stay stored as they were. Reading ignores them, so
+    familiarity is the derived value and nothing says how the user likes to be supported; an export carries them, an
+    uploaded archive restores with them, and a relationship reset or erasing everything still removes them."""
+    import httpx
+
+    from membrain.client import MemoryClient
+    from membrain.companion_map import companion_map
+
+    service, principal, ident = brain
+    days_of_conversation(brain, monkeypatch, 3)  # getting to know, which the old cap ("new") would have held down.
+    add_boundary(service, principal, ident, "my ex", ["前任"])
+    retired_records(brain)
+    assert sum('"support_style"' in text or '"cap"' in text for text in relationship_rows(service, principal, ident)) == 2
+
+    def check(target):
+        result = relationship(service, principal, target, today=TODAY)
+        assert "support_style" not in result and set(result["familiarity"]) & {"cap", "derived_level"} == set()
+        assert result["familiarity"]["level"] == "getting_to_know"
+        assert "supported" not in result["block"] and "capped" not in result["block"]
+        assert [item["topic"] for item in result["boundaries"]] == ["my ex"]
+        kinds = {node["kind"] for node in companion_map(service, principal, target)["nodes"]}
+        assert "boundary" in kinds and not kinds & {"support_style", "relationship_cap"}
+        assert "cap_node" not in companion_map(service, principal, target)["familiarity"].get("evidence", {})
+
+    check(ident)
+
+    def handle(request):
+        return httpx.Response(200, json=service.handle(principal, json.loads(request.content)))
+
+    with MemoryClient("http://memory.test", "k", ident, transport=httpx.MockTransport(handle)) as client:
+        archive_id = client.export()["result"]["archive_id"]
+        document = service.download_archive(principal, archive_id)["document"]
+        exported = [event["observed"]["content"]["text"] for event in document["events"]
+                    if event["scope"]["conversation_id"] == RELATIONSHIP_CONVERSATION]
+        assert sum('"support_style"' in text or '"cap"' in text for text in exported) == 2
+        # An archive file brought back in (an upload, as an import from a file does) restores with them. The restore
+        # is a few weeks later, so the restored messages keep their own days.
+        copy = service.create_brain(principal, "Restored retired records")["id"]
+        uploaded = service.upload_archive(principal, copy, document)
+        monkeypatch.setattr(service_module, "now", lambda: "2027-03-20T08:00:00Z")
+        client.restore(uploaded["archive_id"], expected_manifest_sha256=uploaded["manifest_sha256"],
+                       expected_scope_generation=1, mode="new_brain", brain_id=copy)
+        monkeypatch.undo()
+    assert sum('"support_style"' in text or '"cap"' in text for text in relationship_rows(service, principal, copy)) == 2
+    check(copy)
+
+    # A reset erases them with everything else of the relationship but the boundaries; its marker no longer counts them.
+    reset = reset_relationship(service, principal, copy, today=TODAY)
+    assert reset["removed"] == {"shared_moments": 0, "boundaries": 0, "acknowledgements": 0}
+    left = relationship_rows(service, principal, copy)
+    assert not any('"support_style"' in text or '"cap"' in text for text in left) and len(left) == 2  # boundary, marker
+    # An older marker that counted them is read without those counts.
+    with service.database.transaction(principal) as conn:
+        import membrain.relationship as module
+
+        module._append(service, conn, principal, service._brain(conn, principal, copy),
+                       {"relationship_marker": "reset", "removed": {"shared_moments": 1, "boundaries": 0,
+                                                                     "support_style": 1, "cap": 1,
+                                                                     "acknowledgements": 0}}, "old-marker-" + uid())
+    assert relationship(service, principal, copy)["markers"][0]["removed"] == {
+        "shared_moments": 1, "boundaries": 0, "acknowledgements": 0}
+
+    # Erasing everything removes them in the original brain.
+    generation = service.dashboard(principal, ident)["brain"]["scope_generation"]
+    service.handle(principal, {
+        "message_type": "request", "contract_version": "1.0.0-draft", "request_id": uid(), "action": "forget",
+        "target": {"brain_ref": ident}, "payload": {
+            "idempotency_key": uid(), "selector": {"kind": "all_authorized_scope", "ids": []},
+            "mode": "erase_content", "expected_scope_generation": generation}})
+    assert relationship_rows(service, principal, ident) == []
 
 
 def restore_copy(service, principal, source, name):
@@ -1110,9 +1176,11 @@ def test_every_relationship_string_on_the_page_has_chinese():
                     "^Next: (.+) at (\\d+) days and (\\d+) shared moments?\\.$", "^also: (.+)$",
                     "^Kept: (\\d+) · missed: (\\d+) · cancelled: (\\d+) · open: (\\d+)$", "^due (.+)$"):
         assert pattern in dictionary, pattern
-    for message in ("Keep the support style under 200 characters.", "That boundary is not available.",
-                    "A boundary topic is 1 to 60 characters."):
-        assert f'"{message}"' in dictionary, message
+    assert '"That boundary is not available."' in dictionary  # Removing one is still on the page.
+    # The page has no form for the relationship any more (2026-11-18), so their messages and labels went too.
+    for gone in ("Keep the support style under 200 characters.", "A boundary topic is 1 to 60 characters.",
+                 "Add boundary", "Save limit", "How you like to be supported", "Add a shared moment"):
+        assert f'"{gone}"' not in dictionary and gone not in script, gone
     html = (WEB / "memory.html").read_text(encoding="utf-8")
     assert '<button data-view="persona">Companion</button>' in html and 'id="relationship"' in html
     assert "loadRelationship()" in script and '"shared"' in script

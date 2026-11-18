@@ -120,13 +120,12 @@ def companion_observation(runner):
                "support_style": runner.COMPANION["support_style"]}
     context = ('<membrain-persona version="1">\nName: Wren\nBaseline mood: cheerful (valence +1, energy 2 of 3)\n'
                "- Job interview at Northwind Labs next Monday. (the user said they felt nervous, 3 Nov)\n"
-               f"How they like to be supported: {written['support_style']}\n- 3 Nov: {written['moment_text']}")
+               f"- 3 Nov: {written['moment_text']}")
     seen = {"persona": {"version": 1, "card": {"name": "Wren"}},
             "affect": {"records": [{"note_id": "n1", "label": "nervous", "basis": "reported"}]},
             "notes": {"items": [{"event_id": "n1"}, {"event_id": "n2"}]},
             "relationship": {"boundaries": [{"topic": "my ex", "aliases": ["Jordan"]}],
-                             "shared_moments": [{"id": "n2", "text": written["moment_text"]}],
-                             "support_style": {"text": written["support_style"]}},
+                             "shared_moments": [{"id": "n2", "text": written["moment_text"]}]},
             "mood": {"label": "cheerful", "pinned": True, "baseline": {"label": "cheerful"}},
             "session_start": context, "unraised": "hiking at Mount Rainier", "raised": "hiking at Lake Tahoe"}
     return written, seen
@@ -138,7 +137,7 @@ def test_companion_items_pass_only_while_each_is_still_there_and_effective(runne
     assert [name for name, _, _ in findings] == [
         "the persona block is in session context with its version", "the feeling is listed with its note",
         "the boundary keeps its topic out of recall until the user raises it", "the shared moment is in the relationship",
-        "the mood is still pinned at the persona's baseline", "the support style is kept"]
+        "the mood is still pinned at the persona's baseline", "the retired support style is ignored"]
     assert all(ok for _, ok, _ in findings)
     json.dumps(findings)  # Every detail can be saved in the report.
 
@@ -160,7 +159,10 @@ def test_companion_items_pass_only_while_each_is_still_there_and_effective(runne
     assert broken(lambda w, s: s["relationship"].update(shared_moments=[])) == [findings[3][0]]
     assert broken(lambda w, s: s.update(mood={"label": "concerned", "pinned": False, "baseline": {"label": "cheerful"}})
                   ) == [findings[4][0]]
-    assert broken(lambda w, s: s["relationship"].update(support_style=None)) == [findings[5][0]]
+    # The candidate retired the support style: returning it, or delivering it, fails the check.
+    assert broken(lambda w, s: s["relationship"].update(support_style={"text": w["support_style"]})) == [findings[5][0]]
+    assert broken(lambda w, s: s.update(session_start=s["session_start"] + "\nHow they like to be supported: "
+                                        + w["support_style"])) == [findings[5][0]]
 
 
 def test_hook_output_is_read_as_the_host_receives_it(runner):

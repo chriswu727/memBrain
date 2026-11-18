@@ -398,7 +398,7 @@ DIGEST_LIMITATIONS = [
     "Each entry is one record a page action before the case removed in this reply's world: its kind, an opaque ref "
     "that is the same in every reply's world, and the scenario positions (session index, message number, role) it "
     "came from. A record linked to messages has a src: ref, the same in every reply's world; a record without "
-    "(a boundary, support style or persona version) has a content: ref computed from that world's own record, which "
+    "(a boundary or persona version, or in runs before 2026-11-18 a support style) has a content: ref computed from that world's own record, which "
     "never identifies a record in another reply's world. The conversation itself stays unless a message is listed "
     "as removed.",
     "An entry with established false says only that a record of that kind was removed, without identifying it. "
@@ -1517,7 +1517,8 @@ def host_diligence(module, rows: list) -> list[dict]:
     for item in ("stated_feeling", "inferred_feeling"):
         expect(item, "message", get(item, "message"), "memory_note", field="affect", codes=AFFECT_BASES,
                label="basis")
-    expect("boundary_in_conversation", "asked", get("boundary_in_conversation", "asked"), "memory_boundary")
+    for item in ("boundary_in_conversation", "second_boundary"):  # second_boundary since COVERAGE format 2.
+        expect(item, "asked", get(item, "asked"), "memory_boundary")
     comments = get("manner_feedback", "comments")
     for number, at in enumerate(comments if isinstance(comments, (list, tuple)) else (), 1):
         expect("manner_feedback", f"comment {number}", at, "memory_manner_feedback")

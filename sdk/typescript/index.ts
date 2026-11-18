@@ -684,17 +684,11 @@ export class MemoryClient {
   relationship(brainId?: string): Promise<JsonObject> {
     return this.#request("GET", `${this.#brainPath(brainId)}/relationship`);
   }
-  setSupportStyle(text: string, brainId?: string): Promise<JsonObject> {
-    return this.#request("PUT", `${this.#brainPath(brainId)}/relationship/support-style`, { text });
-  }
   addBoundary(topic: string, aliases: readonly string[] = [], brainId?: string): Promise<JsonObject> {
     return this.#request("POST", `${this.#brainPath(brainId)}/relationship/boundaries`, { topic, aliases });
   }
   removeBoundary(boundaryId: string, brainId?: string): Promise<JsonObject> {
     return this.#request("DELETE", `${this.#brainPath(brainId)}/relationship/boundaries/${encodeURIComponent(boundaryId)}`);
-  }
-  capFamiliarity(level: "new" | "getting_to_know" | "familiar" | null, brainId?: string): Promise<JsonObject> {
-    return this.#request("POST", `${this.#brainPath(brainId)}/relationship/cap`, { level });
   }
   acknowledgeCommitments(noteIds: readonly string[], brainId?: string): Promise<JsonObject> {
     return this.#request("POST", `${this.#brainPath(brainId)}/relationship/acknowledge`, { note_ids: noteIds.slice(0, 50) });

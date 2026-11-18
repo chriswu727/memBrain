@@ -25,8 +25,7 @@ def load_familiarity(service, conn, principal, brain_id, state, today, include_s
     if (private_day or moments["sensitive"]) and not include_sensitive:
         return moments, {"derived": True, "masked": True}
     days = relationship._days(service, conn, principal, brain_id, state["after"])
-    cap = state["cap"]["level"] if state["cap"] else None
-    summary = relationship.familiarity(days, moments["total"], cap, today)
+    summary = relationship.familiarity(days, moments["total"], today)
     return moments, {**summary, "derived": True, "masked": False, "after_sequence": state["after"],
                      "basis": "distinct_visible_user_conversation_days_and_shared_moments_after_reset"}
 
@@ -35,9 +34,7 @@ def visible_evidence(summary, moments, state, graph):
     if summary["masked"]:
         return summary
     shared = ["note:" + moment["id"] for moment in moments["items"] if "note:" + moment["id"] in graph.nodes]
-    cap = "cap:" + state["cap"]["id"] if state["cap"] else None
     reset = "relationship-reset:" + state["marker"]["id"] if state["marker"] else None
     return {**summary, "evidence": {"shared_moment_nodes": shared,
                                    "shared_moments_truncated": len(shared) < moments["total"],
-                                   "cap_node": cap if cap in graph.nodes else None,
                                    "reset_node": reset if reset in graph.nodes else None}}

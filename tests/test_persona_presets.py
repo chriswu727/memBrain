@@ -44,7 +44,7 @@ from membrain.persona_presets import (
     listing,
     switch_preset,
 )
-from membrain.relationship import add_boundary, relationship, set_support_style
+from membrain.relationship import add_boundary, relationship
 
 ROOT = Path(__file__).parents[1]
 WEB = ROOT / "src" / "membrain" / "web"
@@ -287,8 +287,8 @@ def mood_and_relationship(brain, when):
     service, principal, ident = brain
     mood = mood_state(service, principal, ident, now=when)
     bond = relationship(service, principal, ident, today=when.date())
-    return mood, {key: bond[key] for key in ("familiarity", "shared_moments", "boundaries", "support_style",
-                                              "commitments", "markers")}
+    return mood, {key: bond[key] for key in ("familiarity", "shared_moments", "boundaries", "commitments",
+                                              "markers")}
 
 
 def test_switching_types_changes_only_the_card_and_the_moods_resting_point(brain):
@@ -300,7 +300,6 @@ def test_switching_types_changes_only_the_card_and_the_moods_resting_point(brain
     store_note(service, principal, ident, {"request_id": uid(), "text": "We laughed about the cake together.",
                                            "kind": "milestone", "shared": True, "moment": "play"})
     add_boundary(service, principal, ident, "my ex", ["前任"])
-    set_support_style(service, principal, ident, "listen first, advice only when asked")
     when = datetime.datetime.now(UTC)
     mood_before, bond_before = mood_and_relationship(brain, when)
     assert mood_before["triggers"] and bond_before["shared_moments"] and bond_before["boundaries"]

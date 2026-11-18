@@ -589,6 +589,12 @@ def test_the_mood_section_is_on_the_personality_page_in_english_and_chinese():
     persona = page.split('id="view-persona"', 1)[1].split("</section>", 1)[0]
     for ident in ("mood-now", "mood-why", "mood-return", "mood-pin", "mood-reset", "mood-triggers"):
         assert f'id="{ident}"' in persona, ident
+    # The pin (the only way to turn the simulated mood off) and the reset are rarely used: since 2026-11-18 they are
+    # in the view's collapsed "More", not on the mood card.
+    card = persona.split('id="mood"', 1)[1].split("<!-- End of companion mood -->", 1)[0]
+    more = persona.split('id="companion-more"', 1)[1].split("</details>", 1)[0]
+    assert 'id="mood-pin"' in more and 'id="mood-reset"' in more
+    assert 'id="mood-pin"' not in card and 'id="mood-reset"' not in card
     assert 'data-view="mood"' not in page  # Inside Personality: no tab of its own.
     assert "/mood${suffix}" in script and 'moodPath("/pin")' in script and 'moodPath("/reset")' in script
     assert "confirm(" in script.split('$("mood-reset")', 1)[1].split("});", 1)[0]

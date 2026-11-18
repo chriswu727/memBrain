@@ -198,13 +198,15 @@ def test_the_feelings_section_and_the_emotions_region_are_on_the_page_in_english
     brain = (WEB / "brain.js").read_text(encoding="utf-8")
     dictionary = (WEB / "i18n.js").read_text(encoding="utf-8")
     assert 'data-view="feelings"' in page and 'id="view-feelings"' in page and 'id="clear-feelings"' in page
+    # Rarely used: since 2026-11-18 "Clear feelings" is in the view's collapsed "More" at its end.
+    feelings = page.split('id="view-feelings"', 1)[1].split("</section>", 1)[0]
+    assert 'id="clear-feelings"' in feelings.split('<details id="feelings-more"', 1)[1]
     assert "/affect/reset" in script and 'forget("events", [record.id], "erase_content", AFFECT)' in script
     assert "if (!confirm(" in script[script.index('guard($("clear-feelings")'):]
     for text in ("you said", "inferred", "You said you felt this.", "On the note:", "Original message not linked.",
                  "Your agent inferred this from what you wrote; you did not say it.", "Feeling deleted.",
                  "Feelings cleared.", "This is a partial list of the most recent feelings.",
                  "Delete this feeling? The note and its messages stay.",
-                 "Saving a correction also deletes any feeling recorded with this note.",
                  "No feelings recorded. When you tell your agent how you feel about something, it can keep that "
                  "with the note it belongs to.",
                  "Clear every recorded feeling, said or inferred? Notes and messages stay, and feelings are not "

@@ -14,8 +14,8 @@ const ZH = {
     "“记忆”展示笔记、原始消息及相关情感；“人格、情绪与关系养成”展示人格反馈与决定、模拟心情的触发依据、关系设置和承诺。两种图谱都有展示数量限制，也不代表一条回复用到的全部信息。",
   "Versions, suggestions and your decisions. Available in Companion development.": "人格版本、建议及你的决定，可在养成图谱中查看。",
   "Triggers and the baseline. Available in Companion development.": "触发依据与基准心情，可在养成图谱中查看。",
-  "Support style, boundaries, promises and familiarity limits. Companion development includes a derived familiarity summary with its stored evidence; the summary is not an extra neuron.":
-    "支持方式、边界、承诺及熟悉程度上限。养成图谱包含熟悉度汇总及其存储依据；汇总由规则计算，并非额外的神经元。",
+  "Boundaries, shared moments and promises. Companion development includes a derived familiarity summary with its stored evidence; the summary is not an extra neuron.":
+    "边界、共同时刻及承诺。养成图谱包含熟悉度汇总及其存储依据；汇总由规则计算，并非额外的神经元。",
   "Ball: a saved record or derived state": "圆球：保存的记录或推导状态",
   "Simulated mood is at its baseline.": "模拟心情处于基准状态。",
   "Simulated mood is responding to the linked triggers.": "模拟心情正受到相连触发依据的影响。",
@@ -47,13 +47,13 @@ const ZH = {
   "No recall recorded since memory last started.": "自记忆服务上次启动以来，还没有记录到回忆。",
   "Covers message recall only. Notes and history added when a session starts are not traced, so this is not everything a reply used.":
     "只包含消息回忆。会话开始时加入的笔记和历史不在其中，所以这不是一条回复用到的全部记忆。",
-  "Used by the latest recorded recall": "最近一次记录的回忆用到了它", "This note is no longer available.": "这条笔记已不存在。",
+  "Used by the latest recorded recall": "最近一次记录的回忆用到了它",
   "No memories yet. Talk with your agent, then come back.": "还没有记忆。先和你的 agent 聊聊，再回来看看。",
   "Your memory as a brain: each dot is one memory, grouped by kind": "你的记忆大脑：每个点是一条记忆，按类型分组",
   "Checking memory…": "正在检查记忆…", "Refresh status": "刷新状态",
   "Your agent's memory": "你的 agent 的记忆",
-  "Connect once, then talk normally. Your agent records conversations and brings useful memories into later sessions. You can review and correct them here.":
-    "只需连接一次，之后正常对话即可。你的 agent 会记录对话，并在之后的会话里带上有用的记忆。你可以在这里查看和更正。",
+  "Connect once, then talk normally. Your agent records conversations and brings useful memories into later sessions. Here you can see them, check where each came from and delete any of them.":
+    "只需连接一次，之后正常对话即可。你的 agent 会记录对话，并在之后的会话里带上有用的记忆。你可以在这里查看它们、看每条来自哪里，也可以删除任何一条。",
   "Connection checks": "连接检查", "Local memory": "本地记忆", "Checking…": "检查中…",
   "Messages from your agent": "来自 agent 的消息", "Waiting for a message…": "等待消息…",
   "Recall by meaning": "按语义召回", "Enable recall by meaning": "启用按语义召回",
@@ -65,13 +65,12 @@ const ZH = {
     "告诉你的 agent 一个真实的偏好，比如“我喜欢简短的回答”。然后打开一个新会话，问它“你应该怎样给我排版回答？”，再到这里查看保存的笔记或原始消息。",
   "Receiving messages confirms recording. The new-session exercise checks whether your agent actually uses them. You do not need to maintain notes by hand.":
     "能收到消息说明记录正常；新会话的测试检查 agent 是否真的用上了它们。你不需要手动维护笔记。",
-  "Add a preference here": "在这里添加一个偏好", "Your memory": "你的记忆", "Open this page with": "用",
+  "Your memory": "你的记忆", "Open this page with": "用",
   ". It starts the local service and opens a single-use link, so you never copy a key.":
     " 打开这个页面。它会启动本地服务并打开一个一次性链接，你不需要复制任何密钥。",
   "Use an access key instead": "改用访问密钥", "Access key": "访问密钥", "Open": "打开",
-  "Lasting facts your agent keeps about you. Every session starts with these. Correct anything that is wrong; your corrections take precedence over the agent's notes.":
-    "agent 记下的关于你的长期事实，每个会话开始时都会带上。有错就更正：你的更正优先于 agent 的笔记。",
-  "Add a note": "添加笔记",
+  "Lasting facts your agent keeps about you. Every session starts with these. If one is wrong, tell your agent and it saves the corrected note in its place; delete any you do not want kept.":
+    "agent 记下的关于你的长期事实，每个会话开始时都会带上。如果哪条不对，告诉 agent，它会保存更正后的笔记来替换；不想保留的可以删除。",
   "Open plans, upcoming dates and promises. A plan stays open until you confirm it is done.":
     "未完成的计划、即将到来的日期和承诺。在你确认完成之前，计划一直保持未完成。",
   "Include completed and cancelled plans": "包括已完成和已取消的计划",
@@ -92,26 +91,18 @@ const ZH = {
   "Deletes the content of every message and note. Erasure is recorded, so it also holds if an older backup is restored. This cannot be undone.":
     "删除所有消息和笔记的内容。清除会被记录下来，即使从旧备份恢复也不会回来。此操作无法撤销。",
   "Type ERASE to confirm": "输入 ERASE 确认",
-  "Person": "人物", "Health or constraint": "健康或限制", "Preference": "偏好", "Plan": "计划", "Routine": "习惯",
-  "Milestone": "重要日子", "Relationship": "相处方式", "Agent promise": "agent 的承诺", "Other": "其他",
   "This is a partial list. Some older notes did not fit; use Search to find them.": "这不是完整列表，部分较早的笔记没有显示；可以用搜索找到它们。",
-  "No notes yet. Add a lasting fact above, or ask your connected agent to remember one.": "还没有笔记。可以在上面添加一条长期事实，或者让已连接的 agent 记住一件事。",
-  "Nothing here yet. Add a note with the matching kind.": "这里还没有内容。添加一条对应类型的笔记即可。",
-  "Note text": "笔记内容", "Kind": "类型", "Plan status": "计划状态", "Person or topic": "人物或主题",
-  "Other names, separated by commas": "其他称呼，用逗号分隔", "Due date": "截止日期", "Event date": "发生日期",
-  "Pin this note": "置顶这条笔记", "Sensitive: mention only when I bring it up": "敏感：只在我主动提起时才提",
-  "Link original messages": "关联原始消息",
-  "Choose messages this note is based on. Unlinked notes stay clearly labelled.": "选择这条笔记依据的消息。没有关联来源的笔记会明确标出。",
-  "Original messages": "原始消息", "Save correction": "保存更正", "Add note": "添加笔记", "Cancel": "取消",
-  "Note corrected. Your version takes precedence.": "笔记已更正，以你的版本为准。", "Note added.": "笔记已添加。",
+  "No notes yet. Tell your agent what to remember, and it will keep it here.": "还没有笔记。告诉 agent 要记住什么，它会记在这里。",
+  "No people yet. When you tell your agent about someone, it keeps a note here.": "还没有人物。当你和 agent 说起某个人，它会在这里记一条笔记。",
+  "No plans or dates yet. When you tell your agent about a plan or a date, it keeps a note here.":
+    "还没有计划或日期。当你告诉 agent 一个计划或日期，它会在这里记一条笔记。",
   "Loading original messages…": "正在加载原始消息…", "Some original messages are no longer available.": "部分原始消息已不存在。",
-  "Edit": "编辑", "Delete": "删除", "Date has passed; completion is not confirmed.": "日期已过，但尚未确认完成。",
+  "Delete": "删除", "Date has passed; completion is not confirmed.": "日期已过，但尚未确认完成。",
   "Waiting for the source message to finish recording.": "正在等待来源消息记录完成。",
   "Standalone note written by you.": "你单独写的笔记。",
-  "Original message not linked. Edit to attach its source.": "没有关联原始消息。可以编辑并补上来源。",
-  "Merge duplicate": "合并重复项", "Delete this note? Its content is erased.": "删除这条笔记？它的内容会被清除。",
+  "Delete this note? Its content is erased.": "删除这条笔记？它的内容会被清除。",
   "Note deleted.": "笔记已删除。", "No conversations recorded yet.": "还没有记录任何对话。", "Load older messages": "加载更早的消息",
-  "You": "你", "Agent": "agent", "Save as note": "保存为笔记",
+  "You": "你", "Agent": "agent",
   "Delete this message? Its content is erased everywhere it was used.": "删除这条消息？它在所有用到的地方都会被清除。",
   "Message deleted.": "消息已删除。", "Delete this conversation": "删除这段对话",
   "Delete every message in this conversation?": "删除这段对话里的所有消息？", "Conversation deleted.": "对话已删除。",
@@ -237,7 +228,6 @@ const ZH = {
   "Clear feelings": "清除感受",
   "Deletes every recorded feeling, said or inferred. Notes and messages stay. Feelings are never recreated from messages before this point.":
     "删除所有记录的感受，无论是你说的还是推断的。笔记和消息都会保留。之后也不会再从此前的消息里重新生成感受。",
-  "Saving a correction also deletes any feeling recorded with this note.": "保存更正也会删除这条笔记上记录的感受。",
   "This is a partial list of the most recent feelings.": "这只是最近感受的部分列表。",
   "No feelings recorded. When you tell your agent how you feel about something, it can keep that with the note it belongs to.":
     "还没有记录任何感受。当你告诉 agent 你对某件事的感受时，它可以把感受记在对应的笔记上。",
@@ -253,38 +243,29 @@ const ZH = {
   "中文": "中文", "English": "English",
   // Personality (persona card)
   "Personality": "人格",
-  "How your companion presents itself: its name, character, voice, values and boundaries. Your agent receives it in its own block, apart from what it remembers about you. Every save keeps the earlier versions. How you like replies, as your agent learns it, stays in your preference notes.":
-    "你的伙伴如何展现自己：名字、性格、说话方式、价值观和边界。agent 会在单独的区块里收到它，和它记得的关于你的内容分开。每次保存都会保留之前的版本。agent 学到的你喜欢的回复方式，仍然放在你的偏好笔记里。",
-  "Current card": "当前设定", "Edit personality": "编辑人格", "Reset personality": "重置人格",
-  "Name": "名字", "Traits, one per line (up to 8)": "性格特点，每行一个（最多 8 个）", "Voice": "说话方式",
-  "Register": "语体", "casual, formal…": "随意、正式……", "Typical length": "通常长度", "short, a few sentences…": "简短、几句话……",
-  "Emoji use": "表情符号", "rarely, never…": "很少、从不……", "Language": "语言", "follows the user…": "跟随用户……",
-  "Values, one per line": "价值观，每行一个",
-  "Boundaries: what the companion will not do, one per line": "边界：伙伴不会做的事，每行一个",
-  "Baseline mood": "基础心情", "Mood": "心情", "calm, cheerful…": "平静、开朗……", "Valence": "情绪倾向",
-  "-2 very low": "-2 很低落", "-1 low": "-1 低落", "0 neutral": "0 平和", "+1 positive": "+1 积极", "+2 very positive": "+2 很积极",
-  "Energy": "活力", "0 resting": "0 休息", "1 calm": "1 平静", "2 lively": "2 活泼", "3 very lively": "3 很活泼",
-  "Why this change (optional)": "修改原因（可选）",
-  "The card is limited to 1,200 characters. Values that look like passwords or keys are removed.":
-    "设定最多 1,200 个字符。看起来像密码或密钥的内容会被移除。",
-  "Save as a new version": "保存为新版本", "Versions": "版本",
+  "How your companion presents itself: its name, character, voice, values and boundaries. Your agent receives it in its own block, apart from what it remembers about you. To change it, ask your agent: it describes the change and saves it once you say yes. Every change keeps the earlier versions. How you like replies, as your agent learns it, stays in your preference notes.":
+    "你的伙伴如何展现自己：名字、性格、说话方式、价值观和边界。agent 会在单独的区块里收到它，和它记得的关于你的内容分开。想修改的话，直接告诉 agent：它会说明要改什么，等你同意后再保存。每次修改都会保留之前的版本。agent 学到的你喜欢的回复方式，仍然放在你的偏好笔记里。",
+  "Current card": "当前设定",
+  "Name": "名字", "Voice": "说话方式",
+  "Register": "语体", "Typical length": "通常长度",
+  "Emoji use": "表情符号", "Language": "语言",
+  "Baseline mood": "基础心情",
+  "Versions": "版本",
   "Newest first. Restoring a version saves its content as a new version.": "最新的在前。恢复某个版本会把它的内容保存为一个新版本。",
   "Delete personality history": "删除人格历史",
-  "Persona card field baseline_mood.label: give the mood a name.": "人格字段 baseline_mood.label：请给这个心情起个名字。",
   "Only the host sets the default persona card.": "只有宿主应用可以设定默认人格。",
-  "Erases every version, including the current card. Deletion is recorded, so it also holds if an older backup is restored. Notes and messages are not touched.":
-    "清除所有版本，包括当前设定。删除会被记录下来，即使从旧备份恢复也不会回来。笔记和消息不受影响。",
+  "Erases every personality version, including the current card. Deletion is recorded, so it also holds if an older backup is restored. Notes and messages are not touched.":
+    "清除所有人格版本，包括当前设定。删除会被记录下来，即使从旧备份恢复也不会回来。笔记和消息不受影响。",
   "Traits": "性格特点", "Values": "价值观", "Boundaries": "边界", "register": "语体", "length": "长度", "emoji": "表情符号",
   "language": "语言", "No versions yet": "还没有版本",
   "No personality card is set. Your agent keeps its usual manner.": "还没有设定人格。agent 会保持它平常的方式。",
-  "No versions yet. Edit the personality to save the first one.": "还没有版本。编辑人格即可保存第一个版本。",
+  "No versions yet. Switch to a personality type, or ask your agent for a change, to save the first one.":
+    "还没有版本。切换到一种人格类型，或者让 agent 帮你修改，就会保存第一个版本。",
   "Only the most recent versions are listed.": "只列出了最近的版本。",
   "set by you": "你设定的", "set by the host": "宿主设定的", "from accepted feedback": "来自已接受的反馈",
   "reset to no card": "重置为无设定", "reset to the host's default": "重置为宿主默认设定", "host default": "宿主默认", "edited": "已编辑",
   "current": "当前", "Restore": "恢复", "No card.": "无设定。",
   "No change: that is already the current card.": "没有变化：这已经是当前设定。",
-  "Reset the personality to the host's default, or to no card? Earlier versions are kept and can be restored. Notes and messages are not touched.":
-    "把人格重置为宿主的默认设定，或者清空设定？之前的版本会保留，可以恢复。笔记和消息不受影响。",
   "Delete every personality version, including the current card? This cannot be undone.": "删除所有人格版本，包括当前设定？此操作无法撤销。",
   "Personality history deleted.": "人格历史已删除。",
   // Personality types (the persona presets)
@@ -338,65 +319,50 @@ const ZH = {
     "爱玩、热情；活在当下，让聊天变得有趣。",
   // Relationship (R1) and the Companion tab that holds it with the personality
   "Companion": "伙伴", "Relationship": "关系",
-  "What you and your companion share: moments you had together, how familiar you are, how you like to be supported and the topics it should not bring up. Your agent receives it in its own block.":
-    "你和伙伴之间的关系：一起经历的时刻、彼此有多熟悉、你希望被怎样支持，以及它不该提起的话题。agent 会在单独的一段里收到这些。",
+  "What you and your companion share: moments you had together, how familiar you are and the topics it should not bring up. Your agent receives it in its own block.":
+    "你和伙伴之间的关系：一起经历的时刻、彼此有多熟悉，以及它不该提起的话题。agent 会在单独的一段里收到这些。",
   "Familiarity": "熟悉程度",
   "Only the latest shared moments are listed; familiarity counts all retained moments.": "这里只列出最近的共同经历；熟悉度会统计全部保留的共同经历。",
-  "Conversation days": "对话天数", "Familiarity limit": "熟悉程度上限",
+  "Conversation days": "对话天数",
   "Relationship reset": "关系重置",
   "Familiarity counts only records after this reset.": "熟悉度仅统计此次重置后的记录。",
   "Familiarity includes sensitive evidence and is hidden here.": "熟悉度包含敏感依据，已在此隐藏。",
   "Derived from records after the latest reset; not a measure of affection.": "根据最近一次重置后的记录计算，不代表情感深度。",
   "Only some contributing shared moments fit in this graph.": "本图只展示了部分参与计算的共同经历。",
-  "Worked out from the days you talked and the moments you shared. Nobody sets it, and it is not a score of you. You can keep it at a lower level.":
-    "根据你们聊天的天数和共同的时刻推算出来。没有人设定它，它也不是对你的评分。你可以让它停在较低的程度。",
-  "Keep familiarity at most": "熟悉程度最多到", "No limit": "不限制", "Save limit": "保存上限",
+  "Worked out from the days you talked and the moments you shared. Nobody sets it, and it is not a score of you.":
+    "根据你们聊天的天数和共同的时刻推算出来。没有人设定它，它也不是对你的评分。",
   "new": "初识", "getting to know": "渐渐熟悉", "familiar": "熟悉", "close": "亲近",
-  "How you like to be supported": "你希望被怎样支持", "Support style": "支持方式",
-  "listen first, advice only when asked": "先倾听，我问了再给建议", "Leave it empty to remove it.": "留空即可删除。",
-  "Save support style": "保存支持方式", "Boundaries": "边界",
+  "Boundaries": "边界",
   "Topics your companion will not bring up. Earlier messages about them are left out of recall unless you raise the topic yourself.":
     "伙伴不会主动提起的话题。除非你自己提起，否则召回时会略过之前关于这些话题的消息。",
-  "Topic": "话题", "my ex": "我的前任", "Other words for it, separated by commas": "其他说法，用逗号分隔",
-  "ex-partner, 前任": "前男友, 前女友", "Add boundary": "添加边界", "Shared moments": "共同时刻",
+  "To add one, tell your agent, for example “Please don't bring up my old job again.”":
+    "想添加的话，直接告诉 agent，比如“请别再提我以前的工作了。”", "Shared moments": "共同时刻",
   "Things you and your companion did or reached together, oldest first.": "你和伙伴一起做过或一起达成的事，最早的在前。",
-  "Add a shared moment": "添加一个共同时刻", "Promises kept and missed": "做到和错过的承诺",
+  "Promises kept and missed": "做到和错过的承诺",
   "From your agent's promise notes. A missed promise is shown to your agent once, so it can acknowledge it.":
     "来自 agent 的承诺笔记。错过的承诺会给 agent 看一次，让它可以承认。",
-  "Reset the relationship": "重置关系",
-  "Deletes the shared moments, the support style, the familiarity limit and the record of promises. Familiarity starts again at new. The boundaries stay; remove them one by one. Conversations, your other notes, the personality and feelings stay.":
-    "删除共同时刻、支持方式、熟悉程度上限和承诺记录。熟悉程度从“初识”重新开始。边界会保留，可逐条删除。对话、你的其他笔记、人格和感受都会保留。",
+  "Deletes the shared moments and the record of promises. Familiarity starts again at new. The boundaries stay; remove them one by one. Conversations, your other notes, the personality and feelings stay.":
+    "删除共同时刻和承诺记录。熟悉程度从“初识”重新开始。边界会保留，可逐条删除。对话、你的其他笔记、人格和感受都会保留。",
+  "Turns the simulated mood off: nothing that happens moves it until you clear this.":
+    "关闭模拟心情：在你取消勾选之前，发生的任何事都不会改变它。",
+  "Puts the mood back at its baseline and forgets its triggers. Feelings, notes and the personality stay.":
+    "把心情恢复到基础心情，并忘掉它的触发记录。感受、笔记和人格都会保留。",
   "Reset relationship": "重置关系", "More": "更多",
-  "No boundaries. Add a topic you don't want your companion to bring up.": "没有边界。添加一个你不希望伙伴提起的话题。",
+  "No boundaries.": "没有边界。",
   "No shared moments yet. When you and your companion do something together, your agent can keep it here.":
     "还没有共同时刻。当你和伙伴一起做了什么，agent 可以把它记在这里。",
   "No kept or missed promises since the relationship began or was last reset.": "自关系开始或上次重置以来，没有做到或错过的承诺。",
   "Remove": "移除", "kept": "做到了", "missed": "错过了", "open": "进行中", "shown to your agent": "已给 agent 看过",
   "not shown yet": "还没给 agent 看", "shared": "共同时刻",
-  "Shared moment: something we did or reached together": "共同时刻：我们一起做过或一起达成的事",
-  "Kind of moment": "时刻的类型", "Not set": "未设置", "Play or a joke together": "一起玩或开玩笑",
-  "Another kind of moment": "其他时刻", "moment play": "一起玩", "moment other": "其他时刻",
-  "A hard time we went through": "一起经历过的不愉快", "moment hard": "不愉快的时刻",
+  "moment play": "一起玩", "moment other": "其他时刻", "moment hard": "不愉快的时刻",
   "a hard time": "不愉快的时刻", "a hard time, mellowed since": "不愉快的时刻，已随时间淡去",
   "Remove this boundary? Your companion may bring the topic up again, and earlier messages about it are recalled normally.":
     "移除这个边界？伙伴可能会再次提起这个话题，之前关于它的消息也会照常召回。",
-  "Boundary removed.": "边界已移除。", "Boundary added.": "边界已添加。",
+  "Boundary removed.": "边界已移除。",
   "Delete this shared moment? Its note is erased.": "删除这个共同时刻？它的笔记会被清除。",
-  "Shared moment deleted.": "共同时刻已删除。", "Familiarity limit saved.": "熟悉程度上限已保存。",
-  "Familiarity limit removed.": "熟悉程度上限已取消。", "Support style saved.": "支持方式已保存。",
-  "Support style removed.": "支持方式已删除。", "Relationship reset.": "关系已重置。",
-  "Reset the relationship? This deletes every shared moment, the support style, the familiarity limit and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. The boundaries stay in force, so those topics are still kept out; remove a boundary on its own if you want. Conversations, your other notes, the personality and feelings stay.":
-    "重置关系？这会删除所有共同时刻、支持方式、熟悉程度上限，以及做到和错过的承诺记录。熟悉程度从“初识”重新开始，只计算从现在起的天数。边界仍然有效，这些话题仍会被略过；如需取消，请单独删除某条边界。对话、你的其他笔记、人格和感受都会保留。",
-  "The support style is text.": "支持方式必须是文字。",
-  "Keep the support style under 200 characters.": "支持方式请控制在 200 个字符以内。",
-  "A boundary is a topic and an optional list of other words for it.": "边界是一个话题，加上可选的其他说法。",
-  "A boundary topic is 1 to 60 characters.": "边界话题为 1 到 60 个字符。",
-  "Each other word for a boundary is 1 to 40 characters.": "边界的每个其他说法为 1 到 40 个字符。",
-  "A boundary has at most 6 other words.": "一个边界最多有 6 个其他说法。",
-  "Name the topic itself, not only words like \"my\" or \"the\".": "请写出话题本身，而不只是“我的”这类词。",
-  "A familiarity cap is new, getting_to_know or familiar, or none.": "熟悉程度上限只能是初识、渐渐熟悉、熟悉，或不限制。",
-  "There can be at most 12 boundaries. Remove one first.": "最多 12 个边界。请先移除一个。",
-  "The boundaries would be too long to show in full. Shorten them or remove one first.": "边界加起来太长，无法完整显示。请缩短或先移除一个。",
+  "Shared moment deleted.": "共同时刻已删除。", "Relationship reset.": "关系已重置。",
+  "Reset the relationship? This deletes every shared moment and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. The boundaries stay in force, so those topics are still kept out; remove a boundary on its own if you want. Conversations, your other notes, the personality and feelings stay.":
+    "重置关系？这会删除所有共同时刻，以及做到和错过的承诺记录。熟悉程度从“初识”重新开始，只计算从现在起的天数。边界仍然有效，这些话题仍会被略过；如需取消，请单独删除某条边界。对话、你的其他笔记、人格和感受都会保留。",
   "That boundary is not available.": "这个边界已不存在。",
   // Companion mood (M1)
   "Simulated mood": "模拟心情",
@@ -415,8 +381,6 @@ const ZH = {
   "Mood pinned to its baseline.": "心情已固定在基础心情。", "Mood pin lifted.": "已取消固定心情。", "Mood reset.": "心情已重置。",
   "Put the mood back at its baseline and forget its triggers? Feelings, notes and the personality are not touched, and events before now never change the mood again.":
     "把心情恢复到基础心情，并忘掉它的触发记录？感受、笔记和人格不受影响，之前发生的事也不会再改变心情。",
-  "Leave the mood empty to rest at calm. It is the resting point the simulated mood returns to; it is not a feeling.":
-    "心情留空则以平静为基础心情。它是模拟心情回归的起点，不是一种真实的感受。",
   // Persona suggestions from feedback (P2)
   "Suggestions from your feedback": "根据你的反馈提出的建议",
   "When you give your companion the same kind of feedback on how it talks three times, in any conversations, memBrain suggests a change to its card here and quotes what you said. Nothing changes until you accept. If you reject a suggestion, none of the same kind is offered again for 30 days.":
@@ -478,8 +442,6 @@ const ZH = {
     "版本、建议和你的决定。暂不可用；可以在“伙伴”标签页查看。",
   "Triggers and the baseline. Not available yet; the Companion tab shows them.": "触发记录和基础心情。暂不可用；可以在“伙伴”标签页查看。",
   "Relationship evidence": "关系的依据",
-  "Support style, boundaries, promises and familiarity. Not available yet; shared moments appear as notes.":
-    "支持方式、边界、承诺和熟悉程度。暂不可用；共同时刻会作为笔记出现。",
   "Memories in this map": "记忆图里的记忆",
   "Arrow keys move through the list and Enter opens a memory. The 3D view marks the one in focus.":
     "用方向键在列表里移动，按 Enter 打开一条记忆。3D 视图会标出当前聚焦的那一条。",
@@ -497,7 +459,6 @@ const ZH = {
 const ZH_PATTERNS = [
   [/^Personality v(\d+): (.+)$/, (_, n, name) => `人格版本 ${n}：${name}`],
   [/^Simulated mood: (.+)$/, (_, label) => `模拟心情：${MOOD_LABELS[label] ? translate(MOOD_LABELS[label]) : label}`],
-  [/^Familiarity limit: (.+)$/, (_, level) => `熟悉程度上限：${translate(LEVEL_NAMES[level] || level)}`],
   [/^Version: (\d+)$/, (_, n) => `版本：${n}`],
   [/^Accepted suggestion: (.+), from (\d+) messages? \((.+)\)$/, (m, label, n, days) =>
     `接受的建议：${ZH[label] || label}，来自你的 ${n} 条消息（${days}）`],
@@ -516,7 +477,6 @@ const ZH_PATTERNS = [
   [/^Keyword recall ready; semantic model not enabled$/, () => "关键词召回已就绪；未启用语义模型"],
   [/^Keyword recall available; local model status unknown$/, () => "关键词召回可用；本地模型状态未知"],
   [/^(.*) Run membrain doctor for help\.$/, (m, error) => `${error} 运行 membrain doctor 获取帮助。`],
-  [/^Linked message (.+)$/, (m, id) => `已关联消息 ${id}`],
   [/^imported from (.+)$/, (m, host) => `从 ${host} 导入`],
   [/^due (.+)$/, (m, date) => `截止 ${date}`],
   [/^on (\d{4}-\d{2}(?:-\d{2})?)$/, (m, date) => `日期 ${date}`],
@@ -528,7 +488,6 @@ const ZH_PATTERNS = [
   [/^Version (\d+)$/, (m, n) => `版本 ${n}`],
   [/^History deleted on (.+)$/, (m, date) => `人格历史已于 ${date} 删除`],
   [/^Saved as version (\d+)\.$/, (m, n) => `已保存为版本 ${n}。`],
-  [/^Personality reset as version (\d+)\.$/, (m, n) => `人格已重置，保存为版本 ${n}。`],
   [/^restored from version (\d+)$/, (m, n) => `从版本 ${n} 恢复`],
   [/^From version (\d+): a suggestion you accepted$/, (m, n) => `来自版本 ${n}：你接受的建议`],
   [/^From version (\d+): a change your agent suggested and you agreed to$/, (m, n) => `来自版本 ${n}：agent 提出、你同意的改动`],
@@ -563,16 +522,15 @@ const ZH_PATTERNS = [
     (m, region, text) => `${ZH[region]}：${text}`],
   // Relationship (R1). The reason is the service's own sentence, with the numbers its rule used.
   [/^Relationship reset on (.+)$/, (m, date) => `关系已于 ${translate(date)} 重置`],
-  [/^(new|getting to know|familiar|close): (\d+) days? of conversation since (.+), (\d+) shared moments?(?: \(capped by you; the rule gives (.+)\))?$/,
-    (m, level, days, since, moments, derived) => `${ZH[level]}：自 ${zhDay(since)} 起聊了 ${days} 天，${moments} 个共同时刻${derived ? `（你设了上限；按规则是“${ZH[derived]}”）` : ""}`],
-  [/^(new|getting to know|familiar|close): no conversation yet, (\d+) shared moments?(?: \(capped by you; the rule gives (.+)\))?$/,
-    (m, level, moments, derived) => `${ZH[level]}：还没有聊过，${moments} 个共同时刻${derived ? `（你设了上限；按规则是“${ZH[derived]}”）` : ""}`],
+  [/^(new|getting to know|familiar|close): (\d+) days? of conversation since (.+), (\d+) shared moments?$/,
+    (m, level, days, since, moments) => `${ZH[level]}：自 ${zhDay(since)} 起聊了 ${days} 天，${moments} 个共同时刻`],
+  [/^(new|getting to know|familiar|close): no conversation yet, (\d+) shared moments?$/,
+    (m, level, moments) => `${ZH[level]}：还没有聊过，${moments} 个共同时刻`],
   [/^Next: (.+) at (\d+) days and (\d+) shared moments?\.$/, (m, level, days, moments) => `下一级：${ZH[level]}，需要聊满 ${days} 天并有 ${moments} 个共同时刻。`],
   [/^Next: (.+) at (\d+) days of conversation\.$/, (m, level, days) => `下一级：${ZH[level]}，需要聊满 ${days} 天。`],
   [/^also: (.+)$/s, (m, names) => `也叫：${names}`],
   [/^Kept: (\d+) · missed: (\d+) · cancelled: (\d+) · open: (\d+)$/, (m, kept, missed, cancelled, open) =>
     `做到 ${kept} · 错过 ${missed} · 取消 ${cancelled} · 进行中 ${open}`],
-  [/^Relationship request field ([\w.\[\]]+): (.+)$/s, (m, where, detail) => `关系字段 ${where}：${detail}`],
   // Persona suggestions from feedback (P2). The kind is one of the labels above; dates are "3 Nov 2026".
   [/^(.+): from (\d+) messages$/, (m, kind, n) => `${ZH[kind] || kind}：来自 ${n} 条消息`],
   [/^Accepted on (.+) as version (\d+)\.$/, (m, date, n) => `已于 ${translate(date)} 接受，保存为版本 ${n}。`],

@@ -49,11 +49,11 @@ def test_history_recalled_messages_notes_moments_and_familiarity_use_the_users_d
     notes = render_notes({"items": [{"event_id": "n1", "text": "[person · about Biscuit] Biscuit is the user's corgi.",
                                      "actor_role": "assistant", "recorded_at": evening}]})
     assert "[2026-11-13" in notes and "2026-11-14" not in notes
-    known = familiarity(["2026-11-14", "2026-11-15"], 1, None, TODAY, first=evening)
+    known = familiarity(["2026-11-14", "2026-11-15"], 1, TODAY, first=evening)
     assert known["reason"] == "new: 2 days of conversation since 13 Nov, 1 shared moment"
     assert known["since"] == "2026-11-14"  # Days are still counted, and reported, in UTC.
-    assert familiarity(["2026-11-14"], 0, None, TODAY)["reason"].endswith("since 14 Nov, 0 shared moments")
-    block = relationship_context({"familiarity": known, "support_style": None, "boundaries": [],
+    assert familiarity(["2026-11-14"], 0, TODAY)["reason"].endswith("since 14 Nov, 0 shared moments")
+    block = relationship_context({"familiarity": known, "boundaries": [],
                                   "commitments": {"missed": []}, "today": TODAY.isoformat(),
                                   "shared_moments": [{"id": "m1", "text": "We laughed about the mail carrier.",
                                                       "recorded_at": evening},

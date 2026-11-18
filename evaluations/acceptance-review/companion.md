@@ -35,10 +35,12 @@ records:
   nothing and changed nothing in either reply's world: `message_not_recorded` (the message was never kept: off the
   record, or a turn a pause left unrecorded), `message_already_removed` (an earlier deletion already removed it),
   `no_note_from_message` and `no_feeling_from_message` (the assistant never recorded a note or feeling from that
-  message, so the message itself stays), `boundary_not_present` (the boundary was already gone, for example removed
-  earlier on the page; a relationship reset keeps boundaries since 2026-11-18), `no_open_proposal` (there was no suggestion to accept or reject, so the persona did not
-  change), `page_refused` (the page refused the action because a limit was reached, for example more boundaries than
-  the page allows after the ones the assistant saved; nothing changed).
+  message, so the message itself stays), `boundary_not_present` (no boundary in force had the words the action names:
+  the assistant saved none by those words when the user asked, or it was removed earlier on the page; a relationship
+  reset keeps boundaries since 2026-11-18), `no_open_proposal` (there was no suggestion to accept or reject, so the
+  persona did not change), `page_refused` (the page refused the action because a limit was reached, for example a
+  personality switch whose card and the changes the user agreed with the assistant no longer fit together; nothing
+  changed).
 - **Persona in effect at this message**: the version and the full text of the persona block in effect as the case's
   turn began. Both replies' assistants were given this same persona.
 - **Persona versions so far** (since 2026-11-17): each change of the persona up to the case's message, with the
@@ -103,7 +105,7 @@ Resolution adds these rules to the existing protocol:
   (`do`, `session`, `before_message`), the record's `kind`, an opaque `ref` that holds no content, its `sources`
   (`[session index, message number, role]` of the messages it came from) and `established`. A record linked to
   messages (a message, note, feeling or shared moment) has a `src:` ref, the same in every reply's world. A record
-  with no sources (a boundary, support style or persona version) has a `content:` ref computed from that world's
+  with no sources (a boundary or persona version; in runs before 2026-11-18 also a support style) has a `content:` ref computed from that world's
   own record text, so the same logical record can have different content refs in different replies' worlds: a
   content ref identifies a record only in its own reply's world and is never matched across replies. An item with
   `established: false` says only that something of that kind was removed, without identifying it. There are no counts, no state and no

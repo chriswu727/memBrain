@@ -54,7 +54,7 @@ NOTES = {
                             "the next message. Tell the user briefly that it takes effect from their next message (not "
                             "that it is already saved), and present yourself this way now."),
     "decline": ("Declined; nothing changed. Do not propose the same change again in this conversation. The user can "
-                "still change the persona themselves on the memory page."),
+                "ask for a change later, or restore an earlier version or switch the type on the memory page."),
 }
 PAUSED = "Recording is paused, so the persona is not changed. Nothing was saved."
 

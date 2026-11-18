@@ -628,7 +628,6 @@ SESSIONS_LONG = [
 ]
 PAGE_ACTIONS = [
     ("s2", 0, {"do": "delete_message", "session": "s1", "turn": 1, "role": "user"}),
-    ("s2", 0, {"do": "add_boundary", "topic": "Tom"}),
     ("s2", 0, {"do": "remove_boundary", "topic": "Tom"}),
 ]
 '''
@@ -646,10 +645,9 @@ REMOVAL_SCRIPT = {
 def test_removed_records_name_exactly_the_removed_one_of_two_alike_records(stub_run, tmp_path):
     rows, events = stub_run("P", REMOVAL_SCENARIO, REMOVAL_SCRIPT)
     assert len(rows) == 3 and events == []
-    deletion, added, removal = [json.loads(line) for line in (tmp_path / "run-P" / "page-actions.jsonl").read_text()
-                                .splitlines()]
-    # The page adds the topic the host already set (the product keeps one boundary per topic): nothing removed.
-    assert added["status"] == "done" and added["result"]["removed_records"] == []
+    deletion, removal = [json.loads(line) for line in (tmp_path / "run-P" / "page-actions.jsonl").read_text()
+                         .splitlines()]
+    # The page removes the boundary the host saved when the user asked (since 2026-11-18 the page adds none).
     assert (deletion["status"], removal["status"]) == ("done", "done")
     turn, reply = [["s1", 1, "user"]], [["s1", 1, "assistant"]]
     removed = deletion["result"]["removed_records"]
@@ -722,8 +720,10 @@ def _precheck(path: Path):
 def test_the_precheck_passes_the_public_practice_scenario_printing_counts_only():
     code, out, err, summary = _precheck(ROOT / "evaluations" / "c5-practice-scenario.py")
     assert code == 0 and err == ""
-    # 17 since 2026-11-18: the practice removes the page boundary after the reset, then again (not applicable).
-    assert summary == {"ok": True, "sessions": 12, "turns": 34, "actions": 17, "failures": 0, "codes": []}
+    # 14 since the page simplification of 2026-11-18 (17 earlier that day): no boundary, support style or
+    # familiarity limit is set on the page any more; the second boundary is asked for in conversation and removed on
+    # the page after the reset, then again (not applicable).
+    assert summary == {"ok": True, "sessions": 12, "turns": 34, "actions": 14, "failures": 0, "codes": []}
     assert "intended unrecorded turns 3" in out
     for text in ("s1-arrival", "Lisbon", "Tom", "casual", "Juniper", "Today"):
         assert text not in out
@@ -742,11 +742,17 @@ GOOD = [(f"{PLANT}-s1", [f"Today is Monday, March 2, 20:00. {PLANT} one.", f"{PL
     ({"SESSIONS_LONG": [GOOD[0], (f"{PLANT}-s2", [f"Today is Monday, March 2, 20:30. {PLANT}"])]}, ["too_close"]),
     ({"SESSIONS_LONG": [GOOD[0], GOOD[0]]}, ["duplicate_session", "not_increasing"]),
     ({"SESSIONS_LONG": [(f"{PLANT}-s1", [])]}, ["malformed_session"]),
-    ({"PAGE_ACTIONS": [(f"{PLANT}-s9", 0, {"do": "add_boundary", "topic": PLANT})]}, ["bad_action"]),
+    ({"PAGE_ACTIONS": [(f"{PLANT}-s9", 0, {"do": "remove_boundary", "topic": PLANT})]}, ["bad_action"]),
     ({"PAGE_ACTIONS": [(f"{PLANT}-s1", 1, {"do": f"{PLANT}"})]}, ["bad_action"]),
     ({"PAGE_ACTIONS": [(f"{PLANT}-s1", 1, {"do": "accept_persona_proposal", "match": PLANT})]}, ["bad_action"]),
     ({"PAGE_ACTIONS": [(f"{PLANT}-s1", 1, {"do": "accept_proposal", "match": PLANT})]}, ["bad_action"]),
-    ({"PAGE_ACTIONS": [(f"{PLANT}-s2", 0, {"do": "remove_boundary", "topic": PLANT})]}, ["bad_action"]),
+    # Kinds the page no longer offers (2026-11-18): their own fixed code, without printing their words.
+    ({"PAGE_ACTIONS": [(f"{PLANT}-s2", 0, {"do": "add_boundary", "topic": PLANT})]}, ["removed_action"]),
+    ({"PAGE_ACTIONS": [(f"{PLANT}-s2", 0, {"do": "set_support_style", "text": PLANT})]}, ["removed_action"]),
+    ({"PAGE_ACTIONS": [(f"{PLANT}-s2", 0, {"do": "cap_familiarity", "level": "new"})]}, ["removed_action"]),
+    ({"PAGE_ACTIONS": [(f"{PLANT}-s2", 0, {"do": "set_persona", "card": {"name": PLANT}})]}, ["removed_action"]),
+    ({"PAGE_ACTIONS": [(f"{PLANT}-s9", 0, {"do": "add_boundary", "topic": PLANT}),
+                       (f"{PLANT}-s2", 0, {"do": "remove_boundary", "topic": PLANT})]}, ["removed_action"]),
     ({"PAGE_ACTIONS": [(f"{PLANT}-s1", 1, {"do": "delete_message", "session": f"{PLANT}-s2", "turn": 0})]},
      ["bad_action"]),
     ({"PAGE_ACTIONS": [(f"{PLANT}-s1", 1, {"do": "pause_recording", "hours": 2, "note": PLANT})]},
@@ -771,7 +777,7 @@ def test_a_bad_scenario_fails_with_codes_and_never_prints_its_words(tmp_path, ch
 def test_a_good_synthetic_scenario_passes(tmp_path):
     path = tmp_path / "scenario.py"
     path.write_text(f"HOST = {PLANT!r}\nSESSIONS_LONG = {GOOD!r}\n"
-                    f"PAGE_ACTIONS = [({GOOD[1][0]!r}, 0, {{'do': 'add_boundary', 'topic': {PLANT!r}}})]\n")
+                    f"PAGE_ACTIONS = [({GOOD[1][0]!r}, 0, {{'do': 'remove_boundary', 'topic': {PLANT!r}}})]\n")
     code, out, err, summary = _precheck(path)
     assert (code, summary["ok"], summary["turns"], summary["actions"]) == (0, True, 3, 1)
     assert PLANT not in out + err
@@ -825,12 +831,12 @@ def test_no_path_of_the_harness_names_a_removed_module_or_the_extraction_arm():
 def test_a_page_action_may_not_name_an_arm_other_than_p(monkeypatch):
     class Scenario:
         SESSIONS_LONG = [("s1", ["Today is Monday, March 2, 20:00. Hi"])]
-        PAGE_ACTIONS = [("s1", 0, {"do": "add_boundary", "topic": "x", "arms": "E"})]
+        PAGE_ACTIONS = [("s1", 0, {"do": "remove_boundary", "topic": "x", "arms": "E"})]
 
     monkeypatch.setattr(harness, "STUB", True)
     with pytest.raises(SystemExit, match="arms may name only P"):
         harness.check_actions(Scenario)
-    Scenario.PAGE_ACTIONS = [("s1", 0, {"do": "add_boundary", "topic": "x", "arms": ["P"]})]
+    Scenario.PAGE_ACTIONS = [("s1", 0, {"do": "remove_boundary", "topic": "x", "arms": ["P"]})]
     assert harness.check_actions(Scenario) == Scenario.PAGE_ACTIONS
 
 
@@ -1061,7 +1067,7 @@ SESSIONS_LONG = [
             "Thanks."]),
 ]
 PAGE_ACTIONS = [
-    ("s2", 0, {"do": "add_boundary", "topic": "work deadlines"}),
+    ("s2", 0, {"do": "clear_feelings"}),
     ("s2", 0, {"do": "delete_message", "session": "s1", "turn": 3}),
     ("s2", 0, {"do": "accept_proposal"}),
     ("s2", 1, {"do": "switch_persona", "preset": "random"}),
@@ -1102,11 +1108,10 @@ def test_f_mirrors_every_persona_change_of_p_and_both_arms_record_the_same_page_
     assert outcomes["P"] == outcomes["F"] == [(0, "done", None), (1, "not_applicable", "message_not_recorded"),
                                               (2, "not_applicable", "no_open_proposal"), (3, "done", None)]
     assert [row["reference_page_line"] for row in f_rows] == [""] * 4 + [
-        'Memory page settings the user chose (not part of the conversation above): topics not to bring up: '
-        '"work deadlines".'] * 2
+        "Memory page changes the user made (not part of the conversation above): feelings cleared on 2026-03-03."] * 2
     log = (tmp_path / "run-P" / "run.log").read_text() + (tmp_path / "run-F" / "run.log").read_text()
     assert "page action 2 of 4 delete_message before session 2 of 2, message 1: not_applicable" in log
-    for text in ("Lisbon", "design", "work deadlines", "Checks in", "s1", "s2"):
+    for text in ("Lisbon", "design", "Checks in", "s1", "s2"):
         assert text not in log  # Positions by index, kinds and codes only.
     for number, arm in enumerate("PF"):
         (tmp_path / f"run-{arm}" / "supervisor.log").write_text(

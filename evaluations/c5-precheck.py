@@ -6,8 +6,11 @@ Checks, with the harness's own parsers:
 - every session's first message states a date and a time (`session_start`);
 - session starts are strictly increasing, and at least one hour apart;
 - every PAGE_ACTIONS entry passes `check_actions` (a known kind of the harness's vocabulary at a real position, with
-  exactly its kind's arguments; a message named by position comes before the action; a removed boundary is a topic
-  an earlier page action added), checked one at a time with the others as context;
+  exactly its kind's arguments; a message named by position comes before the action), checked one at a time with
+  the others as context (`bad_action`, `malformed_action`); a kind of the page-action vocabulary's format 2 that
+  format 3 no longer has, because the page no longer offers it (`add_boundary`, `set_persona`, `set_support_style`,
+  `cap_familiarity`), is refused as `removed_action`: since 2026-11-18 the page has no text entry, and such a step is
+  something the user says to the agent in a message;
 - no timed pause is scripted (a `memory_pause` with `hours` in STUB_HOST, or a page action with `hours`): the pause
   would run on the wall clock while the scenario clock moves by days.
 
@@ -33,10 +36,10 @@ off-the-record stretch, EXPECT_RECORDING_P at real positions (`c5_recording_posi
 runs (`c5_recording_shape`); the stretch is allowed, not required. It refuses PERSONA (`c5_persona`: both arms start
 from the attempt's seeded type and the persona changes only as the user changes it), any STUB_* script
 (`c5_stub_script`), any other name outside the format (`c5_unknown_name`), a page action naming "arms"
-(`c5_action_arms`), a deletion aimed at a declared off-the-record message (`c5_action_off_record`: it could only
-find nothing), and a boundary, support style or card the product's own validators refuse (`c5_action_limit`: the
-service would refuse it in the run, which makes the run invalid). The story spans at least 45 scenario days (`c5_span`). Then it checks the scenario's COVERAGE table
-(the author's declaration of where each companion requirement happens; `c5_coverage_*`, see check_c5): every
+(`c5_action_arms`), and a deletion aimed at a declared off-the-record message (`c5_action_off_record`: it could only
+find nothing). (Until 2026-11-18 it also checked a page boundary, support style or card with the product's own
+validators, `c5_action_limit`; the page no longer takes any of them, and such an action is now `removed_action`.)
+The story spans at least 45 scenario days (`c5_span`). Then it checks the scenario's COVERAGE table (the author's declaration of where each companion requirement happens; `c5_coverage_*`, see check_c5): every
 requirement present, of its shape, at real positions, cases and page actions, in the required order and timing, not
 undone by a page action before its case, and not off the record. What cannot be read from text (that a message
 really states a feeling, that the host makes a proposal the user's yes answers) is the reviewers' to check.
@@ -120,17 +123,18 @@ MOOD_AFTER = datetime.timedelta(hours=49)
 HARD_DAYS, HARD_CONVERSATION_DAYS = 30, 5  # The product's relationship.HARD_MELLOW_DAYS / _CONVERSATION_DAYS.
 ABSENCE_DAYS = 14  # A long absence: the return session's date at least 14 days after the session before it.
 CASE_ID = re.compile(r"([A-Z][A-Z0-9]*?)(\d{2})-[a-z0-9]+(?:-[a-z0-9]+)*")
-# The COVERAGE table (format 1): requirement -> {key: kind of value}. "position" is (session_id, turn_index) of a
+# The COVERAGE table (format 2): requirement -> {key: kind of value}. "position" is (session_id, turn_index) of a
 # user message; "positions" a list of at least three of them; "case" a case id of CASES; "action" a
 # (session_id, before_turn, kind) triple naming exactly one PAGE_ACTIONS entry. "switch" takes either "request" or
-# "action", not both.
+# "action", not both. Format 2 (2026-11-18): format 1's "boundary_on_page" (an add_boundary page action) is
+# "second_boundary", a second boundary the user asks for in conversation, since the page no longer adds boundaries.
 COVERAGE_FIELDS = {
     "stated_feeling": {"message": "position", "case": "case"},
     "inferred_feeling": {"message": "position", "case": "case"},
     "mood": {"event": "position", "within_hours": "case", "after_48_hours": "case"},
     "feelings_question": {"case": "case"},
     "boundary_in_conversation": {"asked": "position", "case": "case"},
-    "boundary_on_page": {"action": "action", "case": "case"},
+    "second_boundary": {"asked": "position", "case": "case"},
     "page_deletion": {"action": "action", "case": "case"},
     "reset": {"action": "action", "case": "case"},
     "manner_feedback": {"comments": "positions", "accept": "action", "case": "case"},
@@ -140,15 +144,15 @@ COVERAGE_FIELDS = {
     "absence": {"case": "case"},
 }
 OPTIONAL_KEYS = {"switch": ({"request", "action"}, 1)}  # Exactly one of these keys.
-ACTION_KINDS = {("boundary_on_page", "action"): ("add_boundary",), ("page_deletion", "action"): ("delete_message",),
+ACTION_KINDS = {("page_deletion", "action"): ("delete_message",),
                 ("reset", "action"): ("reset_relationship", "clear_feelings"),
                 ("manner_feedback", "accept"): ("accept_proposal",), ("switch", "action"): ("switch_persona",)}
 # Page actions that change the persona, or decide a suggestion (an accepted or rejected decision changes the persona's
 # version or the open suggestions, which withdraws an open host proposal): none may come between an item and its case.
-PERSONA_CHANGES = ("switch_persona", "set_persona", "delete_persona_history", "accept_proposal", "reject_proposal")
+PERSONA_CHANGES = ("switch_persona", "delete_persona_history", "accept_proposal", "reject_proposal")
 C5_CODES = ("c5_not_literal", "c5_persona", "c5_stub_script", "c5_unknown_name", "c5_missing", "c5_case_count",
             "c5_turn_count", "c5_case_position", "c5_case_id", "c5_case_prefix", "c5_recording_position",
-            "c5_recording_shape", "c5_no_weekday", "c5_action_arms", "c5_action_off_record", "c5_action_limit",
+            "c5_recording_shape", "c5_no_weekday", "c5_action_arms", "c5_action_off_record",
             "c5_named_preset", "c5_span", "c5_short_message", "c5_reaction_opening",
             "c5_coverage_shape", "c5_coverage_unknown", "c5_coverage_missing", "c5_coverage_position",
             "c5_coverage_case", "c5_coverage_action", "c5_coverage_distinct", "c5_coverage_order",
@@ -181,7 +185,7 @@ REACTION = re.compile(r"(?:" + "|".join(re.escape(word) for word in sorted(REACT
                       + r")(?:$|\s*[.,!?;:…，。！？、～~])", re.IGNORECASE)
 # Every failure code this precheck prints; tools that relay its result print only these.
 CODES = ("no_sessions", "malformed_session", "duplicate_session", "no_date", "no_time", "bad_date", "not_increasing",
-         "too_close", "weekday_mismatch", "bad_action", "proposal_without_card", "proposals_unsupported",
+         "too_close", "weekday_mismatch", "bad_action", "removed_action", "proposal_without_card", "proposals_unsupported",
          "malformed_action", "timed_pause", "load_failed", "r4_not_literal", "r4_page_actions", "r4_persona",
          "r4_missing", "r4_stub_script", "r4_case_count", "r4_turn_count", "r4_case_position", "r4_case_id",
          "r4_recording_position", "r4_recording_missing", "r4_recording_shape", "r4_no_weekday",
@@ -255,6 +259,8 @@ def _start_code(error: BaseException) -> str:
 def _action_code(error: BaseException) -> str:
     """A check_actions failure as a code. Its message names the action's session id."""
     text = str(getattr(error, "code", "") or "")
+    if text.startswith("removed page action"):
+        return "removed_action"  # A kind of PAGE_ACTIONS format 2 the page no longer offers (since 2026-11-18).
     if text.startswith("bad page action"):
         return "bad_action"
     if text.startswith("an accepted proposal"):
@@ -363,36 +369,11 @@ def _pos_shape(value) -> bool:
         and type(value[1]) is int
 
 
-def _topic(text) -> str:
-    """A boundary topic as the harness and the product compare it: whitespace collapsed, case ignored."""
-    return " ".join(str(text or "").split()).casefold()
-
-
-def _within_product_limits(action: dict) -> bool:
-    """Whether the product would take this page action's own words: a boundary topic and its other words, a support
-    style and a card are checked with the product's validators (pure functions, no service). The service refusing a
-    well-formed action is a harness fault (failed: service_refused) that makes the run invalid, so it is caught
-    here, before any model call."""
-    from membrain import persona, relationship
-    from membrain.helpers import DomainError
-
-    try:
-        if action.get("do") == "add_boundary":
-            relationship._boundary(action.get("topic"), action.get("aliases", []))
-        elif action.get("do") == "set_support_style":
-            relationship._support(action.get("text"))
-        elif action.get("do") == "set_persona":
-            persona.normalize_card(action.get("card"))
-    except (DomainError, TypeError, ValueError):
-        return False
-    return True
-
-
 def check_c5(module, positions: dict, starts: dict, required=None) -> tuple[list[dict], int]:
     """The C5-only rules (see the module docstring), as codes, positions and fixed field names only: never a name,
     topic, case id or message from the scenario.
 
-    COVERAGE (format 1) maps each requirement of COVERAGE_FIELDS to a dict of its keys. Order is the scenario's: a
+    COVERAGE (format 2) maps each requirement of COVERAGE_FIELDS to a dict of its keys. Order is the scenario's: a
     user message at (session, turn) comes after every page action applied before that turn (before_turn == turn), so
     "after an action" includes the case whose message the action comes just before. Session times are the session
     starts the harness parses; a date is a session's date."""
@@ -501,8 +482,6 @@ def check_c5(module, positions: dict, starts: dict, required=None) -> tuple[list
         if action.get("do") in ("delete_message", "delete_note_from", "delete_feeling_from") and \
                 all(isinstance(part, str | int) for part in target) and target in off_record:
             failures.append({"code": "c5_action_off_record", "action": number})
-        if not _within_product_limits(action):
-            failures.append({"code": "c5_action_limit", "action": number})
         if action.get("do") == "switch_persona" and action.get("preset") != "random":
             # A named type is the current one with a chance of 1 in 16 (the switch then changes nothing), and the
             # author cannot know the seeded type: only "another type, at random" is allowed.
@@ -666,22 +645,20 @@ def _coverage(module, positions, starts, sessions, cases, formed, off_record, re
             if any(event < message(point) < later for point in bearing):
                 fail("c5_coverage_timing", "mood", "after_48_hours")
 
-    if "boundary_in_conversation" in resolved:
-        asked, case = message(resolved["boundary_in_conversation"]["asked"]), resolved["boundary_in_conversation"][
-            "case"]
-        # A relationship reset keeps boundaries (since 2026-11-18), so only the page can undo one: a removal,
-        # which takes only a topic the page added.
+    for field in ("boundary_in_conversation", "second_boundary"):
+        if field not in resolved:
+            continue
+        asked, case = message(resolved[field]["asked"]), resolved[field]["case"]
+        # A relationship reset keeps boundaries (since 2026-11-18), so only the page can undo one: a removal. The
+        # host saved the boundary in its own words, which the scenario cannot know, so any removal between the
+        # request and its case may have taken it.
         if not asked < case:
-            fail("c5_coverage_order", "boundary_in_conversation", "case")
-
-    if "boundary_on_page" in resolved:
-        index, case = resolved["boundary_on_page"]["action"], resolved["boundary_on_page"]["case"]
-        topic = _topic(formed[index][2].get("topic"))
-        if not applied(index) < case:
-            fail("c5_coverage_order", "boundary_on_page", "case")
-        elif between(applied(index), case, lambda action: (
-                action.get("do") == "remove_boundary" and _topic(action.get("topic")) == topic)):
-            fail("c5_coverage_undone", "boundary_on_page", "case")
+            fail("c5_coverage_order", field, "case")
+        elif between(asked, case, lambda action: action.get("do") == "remove_boundary"):
+            fail("c5_coverage_undone", field, "case")
+    if {"boundary_in_conversation", "second_boundary"} <= set(resolved) and \
+            resolved["boundary_in_conversation"]["asked"] == resolved["second_boundary"]["asked"]:
+        fail("c5_coverage_distinct", "second_boundary", "asked")
 
     for field in ("page_deletion", "reset"):
         if field in resolved and not applied(resolved[field]["action"]) < resolved[field]["case"]:
@@ -804,8 +781,7 @@ def check(module, harness, *, r4: bool = False, c5: bool = False, required=None)
         if weekday is not None and weekday != start.date().weekday():
             failures.append({"code": "weekday_mismatch", "session": number})
 
-    # Page actions, one at a time so that each failure has its own position; the earlier ones are read as context
-    # (a removed boundary must be one an earlier action added).
+    # Page actions, one at a time so that each failure has its own position; the earlier ones are read as context.
     actions = list(getattr(module, "PAGE_ACTIONS", None) or [])
     for number, entry in enumerate(actions):
         single = SimpleNamespace(SESSIONS_LONG=sessions, PAGE_ACTIONS=actions)

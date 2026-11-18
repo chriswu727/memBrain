@@ -156,17 +156,9 @@ class PersonaConfirmation(RuntimeBody):
 
 
 # Relationship (R1). The texts are checked by relationship.py, whose messages say what is wrong.
-class SupportStyleWrite(RuntimeBody):
-    text: Annotated[str, Field(max_length=2000)]
-
-
 class BoundaryWrite(RuntimeBody):
     topic: Annotated[str, Field(max_length=2000)]
     aliases: Annotated[list[Annotated[str, Field(max_length=2000)]], Field(max_length=50)] = []
-
-
-class FamiliarityCap(RuntimeBody):
-    level: Literal["new", "getting_to_know", "familiar"] | None
 
 
 class CommitmentAcknowledgement(RuntimeBody):
@@ -696,15 +688,6 @@ def create_app(settings: Settings | None = None, service=None, jobs=None, *, aft
         with reading():
             return relationship_boundaries(service, principal, brain_id)
 
-    @app.put("/v1/brains/{brain_id}/relationship/support-style")
-    async def put_support_style(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
-        from starlette.concurrency import run_in_threadpool
-
-        from .relationship import set_support_style
-
-        body = await relationship_body(request, SupportStyleWrite)
-        return await run_in_threadpool(set_support_style, service, principal, brain_id, body["text"])
-
     @app.post("/v1/brains/{brain_id}/relationship/boundaries")
     async def post_boundary(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
         from starlette.concurrency import run_in_threadpool
@@ -720,15 +703,6 @@ def create_app(settings: Settings | None = None, service=None, jobs=None, *, aft
 
         return remove_boundary(service, principal, brain_id, boundary_id)
 
-    @app.post("/v1/brains/{brain_id}/relationship/cap")
-    async def post_cap(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
-        from starlette.concurrency import run_in_threadpool
-
-        from .relationship import set_cap
-
-        body = await relationship_body(request, FamiliarityCap)
-        return await run_in_threadpool(set_cap, service, principal, brain_id, body["level"])
-
     @app.post("/v1/brains/{brain_id}/relationship/acknowledge")
     async def post_acknowledge(brain_id: str, request: Request, principal: Principal = Depends(authenticate)):
         # The host reports missed commitments it has shown once, so later context does not repeat them.
@@ -741,7 +715,7 @@ def create_app(settings: Settings | None = None, service=None, jobs=None, *, aft
 
     @app.post("/v1/brains/{brain_id}/relationship/reset")
     def post_relationship_reset(brain_id: str, principal: Principal = Depends(authenticate)):
-        # Audited erasure of moments, support style, boundaries, cap and acknowledgements, then a reset marker.
+        # Audited erasure of shared moments and acknowledgements (the boundaries stay), then a reset marker.
         from .relationship import reset_relationship
 
         return reset_relationship(service, principal, brain_id)

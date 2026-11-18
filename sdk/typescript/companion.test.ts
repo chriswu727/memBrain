@@ -43,10 +43,8 @@ test("every companion operation retains explicit brain scope, authentication and
     ["POST", "mood/pin", () => client.pinMood(true, brain)],
     ["POST", "mood/reset", () => client.resetMood(brain)],
     ["GET", "relationship", () => client.relationship(brain)],
-    ["PUT", "relationship/support-style", () => client.setSupportStyle("Listen first.", brain)],
     ["POST", "relationship/boundaries", () => client.addBoundary("work", [], brain)],
     ["DELETE", `relationship/boundaries/${record}`, () => client.removeBoundary(id, brain)],
-    ["POST", "relationship/cap", () => client.capFamiliarity("new", brain)],
     ["POST", "relationship/acknowledge", () => client.acknowledgeCommitments([id], brain)],
     ["POST", "relationship/reset", () => client.resetRelationship(brain)],
     ["GET", "memory-map", () => client.memoryMap(options)],
@@ -99,17 +97,15 @@ test("preset switches and proposed persona changes pass the user's message they 
   ]);
 });
 
-test("relationship and mood controls preserve removal, false and bounded acknowledgements", async () => {
+test("relationship and mood controls preserve aliases, false and bounded acknowledgements", async () => {
   const { client, requests } = recorded();
   const aliases = Object.freeze(["Jordan", "前任"]);
   const notes = Object.freeze(Array.from({ length: 60 }, (_, i) => `note-${i}`));
-  await client.setSupportStyle("");
   await client.addBoundary("old relationship", aliases);
-  await client.capFamiliarity(null);
   await client.pinMood(false);
   await client.acknowledgeCommitments(notes);
   assert.deepEqual(requests.map(r => JSON.parse(String(r.init.body))), [
-    { text: "" }, { topic: "old relationship", aliases }, { level: null }, { pinned: false },
+    { topic: "old relationship", aliases }, { pinned: false },
     { note_ids: notes.slice(0, 50) },
   ]);
   assert.equal(notes.length, 60);

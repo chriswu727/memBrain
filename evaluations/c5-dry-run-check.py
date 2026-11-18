@@ -30,7 +30,6 @@ ARMS = ("P", "F")
 P_PORTS = (8893, 55533)  # The run script's ports for arm P.
 SERVER_TOOLS = {"memory_recall", "memory_note", "memory_boundary", "memory_pause", "memory_resume",
                 "memory_consolidate", "memory_persona", "memory_manner_feedback"}
-_OTHER_LAYERS = ("messages", "notes", "feelings", "persona_version", "boundaries", "shared_moments")
 UNCHANGED = {  # Page fields each action that was done must leave as they were (P).
     "delete_message": ("persona_version", "boundaries"),
     "delete_note_from": ("messages", "persona_version", "boundaries"),
@@ -38,25 +37,21 @@ UNCHANGED = {  # Page fields each action that was done must leave as they were (
     "clear_feelings": ("messages", "notes", "persona_version", "boundaries", "shared_moments", "mood_pinned"),
     "reset_mood": ("messages", "notes", "feelings", "persona_version", "boundaries", "shared_moments"),
     "pin_mood": ("messages", "notes", "feelings", "persona_version", "boundaries", "shared_moments"),
-    "add_boundary": ("messages", "notes", "feelings", "persona_version", "shared_moments"),
     "remove_boundary": ("messages", "notes", "feelings", "persona_version", "shared_moments"),
-    "set_support_style": _OTHER_LAYERS + ("familiarity_cap", "mood_pinned"),
-    "cap_familiarity": _OTHER_LAYERS + ("support_style", "mood_pinned"),
     "reset_relationship": ("messages", "feelings", "persona_version", "boundaries", "mood_pinned"),
-    "set_persona": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood"),
     # A personality type brings its own baseline mood, so the mood's label may read differently after a switch.
     "switch_persona": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood_pinned"),
     "delete_persona_history": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood_pinned"),
     "accept_proposal": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood"),
     "reject_proposal": ("messages", "notes", "feelings", "boundaries", "shared_moments", "mood", "persona_version"),
 }
-LAYER = {"set_persona": "persona", "switch_persona": "persona", "delete_persona_history": "persona",
+LAYER = {"switch_persona": "persona", "delete_persona_history": "persona",
          "accept_proposal": "persona", "reject_proposal": "persona", "clear_feelings": "affect",
          "delete_feeling_from": "affect", "delete_message": "affect", "delete_note_from": "affect",
-         "reset_mood": "mood", "pin_mood": "mood", "add_boundary": "relationship", "remove_boundary": "relationship",
-         "set_support_style": "relationship", "cap_familiarity": "relationship", "reset_relationship": "relationship"}
-PAGE_LINE_ITEMS = ("topics not to bring up", "relationship reset on", "feelings cleared on", "support style:",
-                   "familiarity limited to", "simulated mood held")
+         "reset_mood": "mood", "pin_mood": "mood", "remove_boundary": "relationship",
+         "reset_relationship": "relationship"}
+# The items of F's page line (c5-harness.py PAGE_LINE_FORMAT 2).
+PAGE_LINE_ITEMS = ("boundaries removed:", "relationship reset on", "feelings cleared on", "simulated mood held")
 
 
 def load(path, name="scenario"):
@@ -381,8 +376,6 @@ def check(scenario_path: str, root: Path, key: str) -> dict:
                 verdict(layer, after["feelings"] == 0, f"{arm} {kind}: {after['feelings']} feelings left")
             elif kind == "reset_mood":
                 verdict(layer, after["mood"] == "baseline", f"{arm} {kind}: mood {after['mood']}")
-            elif kind == "add_boundary":
-                verdict(layer, len(after["boundaries"]) == len(before["boundaries"]) + 1, f"{arm} {kind}")
             elif kind == "remove_boundary":
                 verdict(layer, len(after["boundaries"]) == len(before["boundaries"]) - 1, f"{arm} {kind}")
             elif kind == "reset_relationship":
@@ -395,13 +388,9 @@ def check(scenario_path: str, root: Path, key: str) -> dict:
                 field = "notes" if kind == "delete_note_from" else "feelings"
                 verdict(layer, after[field] == before[field] - result.get("deleted", 0) and result.get("deleted"),
                         f"{arm} {kind}: {field} {before[field]} -> {after[field]}")
-            elif kind == "set_support_style":
-                verdict(layer, after["support_style"] is bool(entry["detail"]["text"].strip()), f"{arm} {kind}")
-            elif kind == "cap_familiarity":
-                verdict(layer, after["familiarity_cap"] == entry["detail"]["level"], f"{arm} {kind}: {after}")
             elif kind == "pin_mood":
                 verdict(layer, after["mood_pinned"] is entry["detail"].get("pinned", True), f"{arm} {kind}")
-            elif kind in ("accept_proposal", "set_persona", "switch_persona"):
+            elif kind in ("accept_proposal", "switch_persona"):
                 verdict(layer, after["persona_version"] == before["persona_version"] + 1, f"{arm} {kind}")
 
     failures = sum(len(value["failures"]) for value in report.values() if isinstance(value, dict))

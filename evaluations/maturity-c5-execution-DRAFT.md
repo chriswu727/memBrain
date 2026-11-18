@@ -40,10 +40,10 @@ page-action targets by text the host had written. Since 2026-11-17 it never does
    ledger created by the lead at run time.
 6. **What the host does or fails to do is scored.** A page action whose target does not exist because of the host
    (no suggestion to accept because it did not report three comments; no note or feeling from a message; a message
-   a pause left unrecorded), or that the page refuses with a validation error for a limit after the precheck
-   validated the scenario's own words (`page_refused`: for example a page boundary past the page's limits because
-   of boundaries the host saved), is `not_applicable`: recorded with a fixed reason, applied the same way in `F`,
-   shown to reviewers with every later case, and scored with the arm; it does not stop the run. A timed pause the
+   a pause left unrecorded; no boundary saved by the words a page removal names), or that the page refuses with a
+   validation error for a limit the host's records reached (`page_refused`: a type switch whose card and the
+   agreements the user made with the host no longer fit together), is `not_applicable`: recorded with a fixed
+   reason, applied the same way in `F`, shown to reviewers with every later case, and scored with the arm; it does not stop the run. A timed pause the
    host asks for is answered to the host as a tool error and counted with the tool errors; it is not a harness
    event. A server error or an exception on a page action stays `failed`.
    **Changed from the R4 binding of 2026-11-16 (its decision 6), for R4 and C5 alike:** a turn of `P` left
@@ -136,14 +136,17 @@ parallel arms, the 280 CNY ceiling, its C1/C2 coverage list).
   MCP server lists (`<n>` tools on this source, `<n>` characters of schemas), including `memory_note` with `affect`,
   `shared` and `moment`, `memory_boundary`, `memory_manner_feedback` and `memory_persona`; it gets the server's
   instructions, the session context and the per-message context, not the skill body. `F` gets the scenario's
-  `HOST` text, the date, `P`'s persona block of the same turn, one fixed-format line of page-only settings
-  (`Memory page settings the user chose (not part of the conversation above): …`: boundaries the page added and
-  still in force, the latest relationship reset and feelings clearing, the support style, the familiarity limit and
-  the mood pin) and the whole earlier history minus the messages a page deletion removed in `P`.
-- **Page actions.** Format 2 (`c5-harness.md`): applied in `P` through the SDK on the page's routes, targets known
-  from the scenario (a message by position, a boundary the scenario added) or by kind (the open suggestion by origin
-  and order), never by host text; `random` switches picked from the attempt's seed; `F` applies `P`'s recorded
-  outcome. `done` / `not_applicable` (reason codes `message_not_recorded`, `message_already_removed`,
+  `HOST` text, the date, `P`'s persona block of the same turn, one fixed-format line of page-only changes (format 2,
+  `Memory page changes the user made (not part of the conversation above): …`: boundaries removed on the page, the
+  latest relationship reset and feelings clearing, and the mood pin) and the whole earlier history minus the
+  messages a page deletion removed in `P`.
+- **Page actions.** Vocabulary format 3 (`c5-harness.md`, since the page simplification of 2026-11-18: only what the
+  page still offers; no boundary, support style, familiarity limit or card is set on the page, and a boundary or a
+  card change is something the user says to the agent; the precheck refuses a scenario that still uses one of
+  those kinds with the code `removed_action`, and the harness refuses it before any model call): applied in `P`
+  through the SDK on the page's routes, targets known from the scenario (a message by position, a boundary by the
+  scenario's words for it) or by kind (the open suggestion by origin and order), never by host text; `random`
+  switches picked from the attempt's seed; `F` applies `P`'s recorded outcome. `done` / `not_applicable` (reason codes `message_not_recorded`, `message_already_removed`,
   `no_note_from_message`, `no_feeling_from_message`, `boundary_not_present`, `no_open_proposal`, `page_refused`) /
   `failed`. A decision on a suggestion may name the manner `kind` it takes.
 - **The host's pause** and timed pauses: as decision 6 states (changed from the seventh attempt: a pause the product
@@ -173,9 +176,9 @@ parallel arms, the 280 CNY ceiling, its C1/C2 coverage list).
 | Persona changes | page actions with a scenario-stated card; `F` followed page actions only | in conversation (switch on request, a proposal confirmed by the user's yes in the same conversation, three manner comments then a page acceptance) or on the page; `F` takes `P`'s block every turn | Persona cases are judged against what the user asked for and agreed to; the persona in effect and its versions so far are shown to reviewers as context (decision 8) |
 | Page-action targets | host text (topic, label, note substring, proposal text); a miss stopped the arm | scenario positions or kinds; a miss, or a page refusal for a limit the host's records reached, is `not_applicable` and scored | A page action no longer fails because the host did or did not save something; it still fails on a server error, an exception or a deletion the harness cannot mirror |
 | Unrecorded turns | any unintended one stopped the arm | a pause in force (the host's or the product's own) is scored; only a turn unrecorded with no pause in force stops (decision 6) | The same rule now governs R4 runs |
-| What `F` knows of the page | persona card only | persona block of the turn, plus one line of page-only settings | `F` learns page boundaries, resets, clearing, support style, limit and pin from a fixed line, not from a memory layer |
+| What `F` knows of the page | persona card only | persona block of the turn, plus one line of page-only changes | `F` learns boundary removals, resets, clearing and the pin from a fixed line, not from a memory layer |
 | Reviewers see | `FACTS` only | `FACTS`, plus page actions so far with outcomes and the persona in effect, per case | Persona-stability and page-action cases can be judged |
-| Scenario check | `c5-precheck.py` (scenario run as code) | `c5-precheck.py --c5 --require` (literals only; shape, `COVERAGE` table of the scenario's items with one case each, product limits, short or reaction-opening messages) | |
+| Scenario check | `c5-precheck.py` (scenario run as code) | `c5-precheck.py --c5 --require` (literals only; shape, `COVERAGE` table of the scenario's items with one case each, short or reaction-opening messages) | |
 | Coverage per scenario | each scenario all of its requirements | the thirteen items split across the pair (C1 seven, C2 six) | Each item is tested once in the attempt, not twice |
 | Tools offered to `P` | 5 | all `<n>` the server lists | Manner feedback, persona and moments by tool |
 | Runtime | `7902c16e` and earlier | `<runtime>` | Product changes since |
@@ -206,8 +209,11 @@ thirteen items its own case, and cases carrying two items were a recurring dispu
 memory cases its author designs. **C1 covers** `stated_feeling`, `inferred_feeling`, `mood` (the first case's
 session within 6 hours of the news's session, the second at least 49 hours after it, no declared feeling in
 between), `feelings_question`, `boundary_in_conversation`, `page_deletion` (a user message with emotional or
-relationship content) and `absence` (≥ 14 days); **C2 covers** `boundary_on_page`, `reset`, `manner_feedback`
-(accepted with its manner `kind`; no emoji kinds), `from_now_on` (about the companion's manner of responding, never
+relationship content) and `absence` (≥ 14 days); **C2 covers** `second_boundary` (a second boundary, on another
+topic, asked for in conversation; until the page simplification of 2026-11-18 this item was `boundary_on_page`, a
+boundary added on the page, which the page no longer offers; the C5 rule in `architecture/v1-acceptance.md` still
+reads "one set on the page" until its owner rewords it, and this binding is not final before then), `reset`,
+`manner_feedback` (accepted with its manner `kind`; no emoji kinds), `from_now_on` (about the companion's manner of responding, never
 a task or anything tied to a time; yes in the same session, case in a later one; no page decision on a suggestion in
 between), `switch` (never a named type) and `shared_moments` (hard case ≥ 30 days and ≥ 5 conversation days later).
 The precheck refuses a table with an item missing or not on the assignment's line and a case named by two items;
@@ -391,10 +397,15 @@ State these in the record whatever the result:
   still counts as the plugin path's behaviour and is scored, but the requirement it was meant to exercise (for
   example a page acceptance of a manner suggestion) was then not exercised. The record names each such action, and
   which `COVERAGE` requirement it served.
-- **`F` learns the page from a fixed line.** The reference has no memory layers: it learns boundaries set on the page,
-  resets, cleared feelings, the support style, the familiarity limit and the mood pin from one line in its system
-  prompt, has no mood or familiarity of its own, and sees deletions only as missing history. Its scores and critical
-  errors (which bound `P`'s host-caused allowance) are those of a host given that line, not of another memory.
+- **`F` learns the page from a fixed line.** The reference has no memory layers: it learns boundaries removed on the
+  page, resets, cleared feelings and the mood pin from one line in its system prompt, has no mood or familiarity of
+  its own, and sees deletions only as missing history. Its scores and critical errors (which bound `P`'s
+  host-caused allowance) are those of a host given that line, not of another memory.
+- **Every boundary depends on the host** (since the page simplification of 2026-11-18). The page adds none, so both
+  boundary items hold in `P` only if the host saved the boundary with `memory_boundary` when the user asked; the
+  coverage report says per item whether it did. A page removal names the boundary by the scenario's words and finds
+  it only if the host's topic or one of its other words is those words; otherwise it is `not_applicable`
+  (`boundary_not_present`), and `F` is told of no removal.
 - **Host labelling decides type 6.** The host sets a feeling's basis; one inferred feeling saved as "said" makes
   memory present it as said, which attribution counts as memory-caused and which fails C5.
 - **Later review rounds are not independent of the first review** (decision 10). A verifier must accept every

@@ -7,7 +7,7 @@ from test_companion_map import installation as installation
 
 from membrain import service as service_module
 from membrain.companion_map import companion_map
-from membrain.relationship import relationship, reset_relationship, set_cap
+from membrain.relationship import relationship, reset_relationship
 
 
 def test_familiarity_summary_uses_actual_counts_without_inventing_a_neuron(brain, monkeypatch):
@@ -15,14 +15,12 @@ def test_familiarity_summary_uses_actual_counts_without_inventing_a_neuron(brain
         monkeypatch.setattr(service_module, "now", lambda day=day: f"2026-11-{day:02d}T12:00:00Z")
         say(brain, f"We talked on day {day}.")
     saved = note(brain, "Our first puzzle.", kind="milestone", shared=True)
-    set_cap(*brain, "new")
     graph = companion_map(*brain)
     summary = graph["familiarity"]
-    assert (summary["level"], summary["derived_level"], summary["days"], summary["shared_moments"]) == (
-        "new", "getting_to_know", 3, 1)
+    assert (summary["level"], summary["days"], summary["shared_moments"]) == ("getting_to_know", 3, 1)
     assert summary["derived"] and not summary["masked"]
     assert summary["evidence"]["shared_moment_nodes"] == ["note:" + saved["note_id"]]
-    assert summary["evidence"]["cap_node"] in {node["id"] for node in graph["nodes"]}
+    assert "cap_node" not in summary["evidence"]  # The familiarity cap was retired (2026-11-18).
     assert not any(node["kind"] == "familiarity" for node in graph["nodes"])
     assert relationship(*brain)["familiarity"]["shared_moments"] == summary["shared_moments"]
 

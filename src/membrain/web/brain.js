@@ -102,7 +102,7 @@ function nodeText(node) {
     const label = node.label || "(no text)";
     return translate(label.charAt(0).toUpperCase() + label.slice(1));
   }
-  if (["persona", "persona_proposal", "simulated_mood", "relationship_cap", "relationship_reset"].includes(node.kind)) return translate(node.label || "(no text)");
+  if (["persona", "persona_proposal", "simulated_mood", "relationship_reset"].includes(node.kind)) return translate(node.label || "(no text)");
   return node.label || "(no text)";
 }
 
@@ -187,7 +187,6 @@ function renderFamiliarity(summary) {
     return;
   }
   panel.append(element("p", `${translate(summary.label)} · ${translate("Conversation days")}: ${summary.days} · ${translate("Shared moments")}: ${summary.shared_moments}`));
-  if (summary.cap) panel.append(element("p", `${translate("Familiarity limit")}: ${translate(summary.cap.replaceAll("_", " "))}`, "hint"));
   panel.append(element("p", "Derived from records after the latest reset; not a measure of affection.", "hint"));
   if (summary.evidence?.shared_moments_truncated) panel.append(element("p", "Only some contributing shared moments fit in this graph.", "hint"));
 }
@@ -300,7 +299,7 @@ function selectNode(id) {
     controls.addEventListener("click", () => show("persona"));
     detail.append(controls);
   }
-  if (node.id.startsWith("note:") && !brainState.demo) detail.append(noteActions(node, detail));
+  if (node.id.startsWith("note:") && !brainState.demo) detail.append(noteActions(node));
   if (node.id.startsWith("affect:") && !brainState.demo) detail.append(feelingActions(node));
   const links = (brainState.map.edges || []).filter((edge) => edge.source === id || edge.target === id);
   if (links.length) {
@@ -340,20 +339,13 @@ function edgeCaption(edge, id) {
   return caption + (["association", "belief_relation"].includes(edge.type) ? ` ${translate(edge.basis)}` : "") + " ";
 }
 
-// The same edit and delete as the Notes tab; the map redraws afterwards.
-function noteActions(node, detail) {
+// The same delete as the Notes tab; the map redraws afterwards.
+function noteActions(node) {
   const id = node.id.slice(5);
   const row = element("div", undefined, "row brain-note-actions");
-  const edit = element("button", "Edit", "link"), remove = element("button", "Delete", "link danger");
-  edit.type = "button"; remove.type = "button";
-  row.append(edit, remove);
-  guard(edit, async () => {
-    const { items } = await timeline({ role: ["assistant", "user"], conversation_id: NOTES, event_id: [id] });
-    const note = items.find((item) => item.event_id === id);
-    if (!note) throw new Error("This note is no longer available.");
-    detail.replaceChildren(noteEditor(note, [], () => loadBrain()));
-    detail.querySelector("textarea").focus();
-  });
+  const remove = element("button", "Delete", "link danger");
+  remove.type = "button";
+  row.append(remove);
   guard(remove, async () => {
     if (!confirm("Delete this note? Its content is erased.")) return;
     await forget("events", [id], "erase_content", NOTES);

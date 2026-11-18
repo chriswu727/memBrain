@@ -71,14 +71,9 @@ code { background: var(--wash); padding: 1px 5px; border-radius: 4px; font-size:
 .try-memory p { margin: 6px 0 12px; }
 #connect-agent .field { max-width: 300px; margin-top: 12px; }
 #setup-command { white-space: pre-wrap; overflow-wrap: anywhere; background: var(--wash); padding: 12px; border-radius: 8px; font-size: 13px; }
-.note-editor { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
 .field { display: flex; flex-direction: column; gap: 5px; font-size: 13px; }
-.field:has(textarea), .source-picker, .editor-actions { grid-column: 1 / -1; }
 .check { display: flex; flex-direction: row; align-items: center; gap: 8px; margin: 8px 0; }
 .check input { width: auto; }
-.source-picker select { margin-top: 8px; }
-.note-compose summary { margin-top: 0; }
-.note-compose[open] summary { margin-bottom: 16px; }
 button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-visible, summary:focus-visible {
   outline: 3px solid var(--accent); outline-offset: 3px;
 }
@@ -89,7 +84,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
   nav { order: 3; width: 100%; }
 }
 @media (max-width: 600px) {
-  .note-editor { grid-template-columns: 1fr; }
   .service-status { align-items: stretch; flex-direction: column; }
   header { gap: 10px; }
   nav { order: 3; width: 100%; }
@@ -216,16 +210,11 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .persona-card dt { color: var(--muted); font-size: 13px; padding-top: 1px; }
 .persona-card dd { margin: 0; overflow-wrap: anywhere; display: flex; flex-wrap: wrap; gap: 4px 14px; }
 .persona-part { display: inline-flex; gap: 6px; align-items: baseline; }
-.persona-editor { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
-.persona-editor .field:has(textarea), .persona-editor .persona-voice, .persona-editor .hint,
-.persona-editor .editor-actions { grid-column: 1 / -1; }
-.persona-voice { border: 1px solid var(--border); border-radius: 10px; padding: 10px 14px 14px; margin: 0;
-  display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px 14px; }
-.persona-voice legend { padding: 0 6px; font-size: 13px; font-weight: 600; }
-.persona-voice .hint { margin: 0; }
 .persona-version .persona-card { margin-top: 8px; font-size: 14px; }
-.relationship-more { margin: 4px 0 16px; }
-.relationship-more .hint { margin: 8px 0 4px; }
+/* A view's rarely used controls, collapsed at its end ("More"). */
+.view-more { margin: 4px 0 16px; }
+.view-more .hint { margin: 12px 0 4px; }
+.view-more .check { margin: 12px 0 4px; }
 .persona-agreements { margin-top: 12px; padding: 8px 12px; border-left: 3px solid var(--border); }
 .persona-agreements > p { margin: 0; }
 .persona-agreement .hint { margin: 8px 0 0; }
@@ -234,7 +223,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .persona-marker { border-style: dashed; }
 .persona-marker p { margin: 0; }
 @media (max-width: 600px) {
-  .persona-editor, .persona-voice { grid-template-columns: 1fr; }
   .persona-card { grid-template-columns: 1fr; gap: 2px; }
   .persona-card dd { margin-bottom: 6px; }
 }
@@ -242,10 +230,6 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .relationship { margin-top: 32px; border-top: 1px solid var(--border); padding-top: 8px; }
 .relationship-level { display: flex; gap: 10px; align-items: baseline; flex-wrap: wrap; font-size: 16px; margin: 4px 0; }
 .relationship-level strong { font-size: 14px; background: var(--accent); color: var(--paper); }
-.relationship-cap, .boundary-form { align-items: flex-end; flex-wrap: wrap; }
-.boundary-form .field { flex: 1 1 200px; }
-.relationship .row .field input, .relationship .row .field select { flex: none; }
-.relationship-cap .field { min-width: 220px; }
 .relationship-missed { background: var(--danger-wash); color: var(--danger); }
 .relationship-marker { border-left: 3px solid var(--accent); padding-left: 10px; }
 /* Brain showcase: full-screen and dark in every colour scheme, for presenting and screen recording. */

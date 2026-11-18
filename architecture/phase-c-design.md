@@ -83,7 +83,7 @@ Development is not giving the user an emotion score. The user's feelings are one
 | Persona development | Current version, proposal, explicit feedback and accepted/rejected/withdrawn decision | Companion controls and bounded 3D/2D graph; final acceptance pending |
 | Simulated mood | Current labelled simulation, baseline, applicable trigger evidence and recovery | Companion controls and bounded 3D/2D graph; final acceptance pending |
 | Working state | Stored version, item/open-loop membership, knowledge state and valid source evidence | Bounded persisted records in 3D/2D; no invented empty state |
-| Relationship | Shared moments, commitments, support style, boundaries and reset scope | Stored settings/moments/commitments in 3D/2D; derived familiarity summary with bounded evidence |
+| Relationship | Shared moments, commitments, boundaries and reset scope | Stored boundaries/moments/commitments in 3D/2D; derived familiarity summary with bounded evidence |
 
 These are conceptual layers, not claims that brain anatomy places plans, people or feelings in the displayed locations. Nodes are software records, not biological neurons or the host model's artificial neurons. Neither pgvector's search index nor a pretty network is the agent's reasoning process.
 
@@ -240,11 +240,11 @@ The page shows the current mood, the trigger list and when it will be back at ba
 
 **Data:**
 - **Shared moments:** milestone notes about things done together, such as the first conversation, a goal reached together or a shared joke. *(2026-11-17: each has a kind the host gives, `play`, `hard` or `other`. A hard time the two went through is shown as "still recent: leave it unless the user brings it up, and be gentle when they do" until at least 30 days have passed since it and the user has talked on at least 5 later days; then as "a hard time you came through together", remembered without the old weight (`relationship.HARD_MELLOW_DAYS`, `HARD_MELLOW_CONVERSATION_DAYS`).)*
-- **Familiarity:** derived and explainable, never set by a model. It rises with the number of distinct days of conversation and with shared moments, through four levels: new, getting to know, familiar, close. The page shows why ("familiar: 23 days of conversation since 2 Mar, 6 shared moments"). The user can cap it at a lower level.
-- **Boundaries:** topics the user asked the companion not to raise, and how they like to be supported ("listen first, advice only when asked").
+- **Familiarity:** derived and explainable, never set by a model. It rises with the number of distinct days of conversation and with shared moments, through four levels: new, getting to know, familiar, close. The page shows why ("familiar: 23 days of conversation since 2 Mar, 6 shared moments"). The user can cap it at a lower level. *(2026-11-18: the cap was removed with the memory page's forms; familiarity is the derived level.)*
+- **Boundaries:** topics the user asked the companion not to raise, and how they like to be supported ("listen first, advice only when asked"). *(2026-11-18: the support style was removed with the memory page's forms; how the user wants the companion to be with them is a `relationship` note. Boundaries are created in conversation, through the boundary tool; the page lists and removes them.)*
 - **Commitments kept and missed,** from `agent_commitment` notes.
 
-**Context.** The block `<membrain-relationship>` holds the familiarity level, the support style, the boundaries, and up to 3 recent shared moments.
+**Context.** The block `<membrain-relationship>` holds the familiarity level, the support style, the boundaries, and up to 3 recent shared moments. *(2026-11-18: no support style any more; a stored one is ignored.)*
 - The persona card can say how familiarity shows, for example a nickname only from "familiar" on.
 - A missed commitment appears once, so it can be acknowledged.
 
@@ -254,7 +254,7 @@ The page shows the current mood, the trigger list and when it will be back at ba
 3. After the user removes the boundary on the page, session 6 recalls the topic normally.
 4. Separately, familiarity moves from "getting to know" to "familiar" once the day and moment thresholds are crossed. The page shows the same numbers the rule used.
 
-**Reset scope.** *(2026-11-18, owner's decision: a reset keeps the boundaries, which the user told the companion and removes one by one; the items below that name boundaries describe the design before it.)*
+**Reset scope.** *(2026-11-18, owner's decision: a reset keeps the boundaries, which the user told the companion and removes one by one; the items below that name boundaries describe the design before it. The support style was removed the same day; a reset still erases a stored one.)*
 - Reset clears shared moments, familiarity (back to "new"), boundaries, support style and the commitment record.
 - It writes a relationship reset marker. Familiarity then counts only days of conversation after the marker. Shared moments and boundaries are never re-derived from messages before it, and commitments before it are left out of the record. The conversations themselves stay in memory, so recall of what was said is unchanged.
 - **Acceptance.** A test reaches "familiar", resets, and then runs one more session. Familiarity is "new" (one day after the marker), and no shared moment, boundary or commitment from before the marker comes back.

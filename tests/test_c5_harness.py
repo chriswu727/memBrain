@@ -158,23 +158,61 @@ def test_page_actions_are_checked_before_any_model_call(monkeypatch):
                    {"do": "accept_proposal", "origin": "the agent"}, {"do": "accept_proposal", "position": 0},
                    {"do": "delete_message", "session": "s2", "turn": 0},  # At the action's own position.
                    {"do": "delete_note_from", "session": "s9", "turn": 0},
-                   {"do": "cap_familiarity", "level": "close"}, {"do": "switch_persona", "preset": "ENFP-ish"},
-                   {"do": "remove_boundary", "topic": "work"}):  # No earlier page action added it.
+                   {"do": "switch_persona", "preset": "ENFP-ish"}, {"do": "remove_boundary", "topic": "  "},
+                   {"do": "remove_boundary", "topic": "work", "aliases": ["deadlines"]}):
         Scenario.PAGE_ACTIONS = [("s2", 0, action)]
         with pytest.raises(SystemExit, match="bad page action"):
             harness.check_actions(Scenario)
+    # Since 2026-11-18 the page has no text entry: a kind it no longer offers is refused by name, whatever its
+    # arguments, and the message says the user tells the agent instead.
+    for action in ({"do": "add_boundary", "topic": "work", "aliases": ["deadlines"]},
+                   {"do": "set_support_style", "text": "Listen first."}, {"do": "cap_familiarity", "level": "new"},
+                   {"do": "set_persona", "card": {"name": "Juniper"}}):
+        Scenario.PAGE_ACTIONS = [("s2", 0, action)]
+        with pytest.raises(SystemExit, match=f"^removed page action at s2 0: {action['do']} is no longer on the page; "
+                                             "the user says it to the agent instead$"):
+            harness.check_actions(Scenario)
+    assert set(harness.REMOVED_ACTIONS).isdisjoint(harness.ACTIONS) and harness.PAGE_ACTIONS_FORMAT == 3
+    assert harness.LIMITED == {"switch_persona"}
+    # A removal no longer needs an earlier page action: the host saved the boundary when the user asked.
     Scenario.PAGE_ACTIONS = [("s2", 1, {"do": "remove_boundary", "topic": "Work "}),
-                             ("s2", 0, {"do": "add_boundary", "topic": "work", "aliases": ["deadlines"]}),
                              ("s2", 0, {"do": "delete_feeling_from", "session": "s1", "turn": 1}),
                              ("s2", 1, {"do": "accept_proposal", "origin": "host", "position": 2}),
                              ("s2", 1, {"do": "switch_persona", "preset": "random"})]
-    assert harness.check_actions(Scenario) == Scenario.PAGE_ACTIONS  # Applied in position order: add, then remove.
-    assert harness.application_order(Scenario.PAGE_ACTIONS, Scenario.SESSIONS_LONG) == [1, 2, 0, 3, 4]
+    assert harness.check_actions(Scenario) == Scenario.PAGE_ACTIONS
+    assert harness.application_order(Scenario.PAGE_ACTIONS, Scenario.SESSIONS_LONG) == [1, 0, 2, 3]
     Scenario.PAGE_ACTIONS = [("s2", 0, {"do": "accept_proposal"})]
     monkeypatch.setattr(harness, "STUB", False)
     monkeypatch.setattr(harness, "proposals_supported", lambda: False)
     with pytest.raises(SystemExit, match="no persona proposals"):  # A live run never silently skips an action.
         harness.check_actions(Scenario)
+
+
+@pytest.mark.parametrize("stub", [True, False])
+@pytest.mark.parametrize("action", [{"do": "add_boundary", "topic": "work", "aliases": ["deadlines"]},
+                                    {"do": "set_support_style", "text": "Listen first."},
+                                    {"do": "cap_familiarity", "level": "new"},
+                                    {"do": "set_persona", "card": {"name": "Juniper"}}])
+def test_a_run_refuses_a_page_action_the_page_no_longer_offers_before_anything_starts(tmp_path, monkeypatch, stub,
+                                                                                      action):
+    # A scenario of PAGE_ACTIONS format 2 that sets something on the page (2026-11-18: no text entry, no support
+    # style, no familiarity cap) stops the run before any installation, model call or result file, in a dry run
+    # and in a live one alike.
+    scenario = tmp_path / "scenario.py"
+    sessions = [("s1", ["Today is Monday, March 2, 20:00. Hi there, how are you?"]),
+                ("s2", ["Today is Tuesday, March 3, 20:00. Back again, good evening."])]
+    scenario.write_text(f"SESSIONS_LONG = {sessions!r}\nPAGE_ACTIONS = {[('s2', 0, action)]!r}\n")
+    monkeypatch.setattr(harness, "STUB", stub)
+    monkeypatch.setattr(harness, "STARTED", [])
+
+    def no_service(*args, **kwargs):
+        raise AssertionError("an installation was started")
+
+    monkeypatch.setattr(harness, "Memory", no_service)
+    out = tmp_path / "run-P"
+    with pytest.raises(SystemExit, match=f"^removed page action at s2 0: {action['do']} is no longer on the page"):
+        harness.run("P", str(scenario), out)
+    assert harness.STARTED == [] and list(out.iterdir()) == []
 
 
 # Tools ----------------------------------------------------------------------------------------------------------
@@ -235,55 +273,64 @@ def test_f_is_given_ps_persona_block_of_the_same_turn_whatever_changed_it(tmp_pa
     assert not hasattr(harness.Reference(), "block")  # F has no persona of its own.
 
 
-def test_fs_page_line_lists_only_page_settings_in_a_fixed_format():
+def test_fs_page_line_lists_only_page_changes_in_a_fixed_format():
     import datetime as dt
 
+    assert harness.PAGE_LINE_FORMAT == 2
     reference = harness.Reference()
     assert reference.page_line() is None
-    tenth, eleventh = dt.date(2026, 3, 10), dt.date(2026, 3, 11)
+    tenth, eleventh, twelfth = dt.date(2026, 3, 10), dt.date(2026, 3, 11), dt.date(2026, 3, 12)
     done = {"status": "done"}
-    reference.apply({"do": "add_boundary", "topic": "work  deadlines", "aliases": ["deadlines"]}, done, tenth)
-    reference.apply({"do": "add_boundary", "topic": "Tom"}, done, tenth)
+    prefix = "Memory page changes the user made (not part of the conversation above): "
     reference.apply({"do": "clear_feelings"}, done, tenth)
-    reference.apply({"do": "set_support_style", "text": "Listen first."}, done, tenth)
-    reference.apply({"do": "cap_familiarity", "level": "getting_to_know"}, done, tenth)
     reference.apply({"do": "pin_mood", "pinned": True}, done, tenth)
-    reference.apply({"do": "reset_mood"}, done, tenth)  # Not a setting the line names.
-    assert reference.page_line() == (
-        'Memory page settings the user chose (not part of the conversation above): topics not to bring up: '
-        '"work deadlines" (also "deadlines"), "Tom"; feelings cleared on 2026-03-10; support style: "Listen first."; '
-        'familiarity limited to getting to know; simulated mood held at its baseline.')
-    reference.apply({"do": "remove_boundary", "topic": "tom"}, done, tenth)
-    # Erases the support style and cap; the boundaries stay in force (since 2026-11-18).
-    reference.apply({"do": "reset_relationship"}, done, eleventh)
-    assert reference.page_line() == (
-        'Memory page settings the user chose (not part of the conversation above): topics not to bring up: '
-        '"work deadlines" (also "deadlines"); relationship reset on 2026-03-11; feelings cleared on 2026-03-10; '
-        "simulated mood held at its baseline.")
-    reference.apply({"do": "remove_boundary", "topic": "WORK deadlines"}, done, eleventh)
-    assert reference.page_line() == (
-        "Memory page settings the user chose (not part of the conversation above): relationship reset on 2026-03-11; "
+    reference.apply({"do": "reset_mood"}, done, tenth)  # Not a change the line names.
+    assert reference.page_line() == prefix + "feelings cleared on 2026-03-10; simulated mood held at its baseline."
+    # A boundary removed on the page (asked for in conversation, which F's history shows), in the scenario's words.
+    reference.apply({"do": "remove_boundary", "topic": "work  deadlines"}, done, tenth)
+    reference.apply({"do": "remove_boundary", "topic": "Tom"}, done, eleventh)
+    reference.apply({"do": "reset_relationship"}, done, eleventh)  # Boundaries stay in force (since 2026-11-18).
+    assert reference.page_line() == prefix + (
+        'boundaries removed: "work deadlines" on 2026-03-10, "Tom" on 2026-03-11; relationship reset on 2026-03-11; '
         "feelings cleared on 2026-03-10; simulated mood held at its baseline.")
+    # The same topic removed again (asked for anew in between) keeps its place with the latest date.
+    reference.apply({"do": "remove_boundary", "topic": "WORK deadlines"}, done, twelfth)
+    assert reference.page_line().startswith(prefix + 'boundaries removed: "work deadlines" on 2026-03-12, "Tom" on '
+                                                     "2026-03-11;")
     # An action P found no target for changes nothing in F either.
     assert reference.apply({"do": "remove_boundary", "topic": "x"}, {"status": "not_applicable",
                                                                        "reason": "boundary_not_present"}) == {
         "not_applicable": "boundary_not_present"}
-    reference.apply({"do": "pin_mood", "pinned": False}, done, eleventh)
-    reference.apply({"do": "set_support_style", "text": ""}, done, eleventh)
+    assert '"x"' not in reference.page_line()
+    reference.apply({"do": "pin_mood", "pinned": False}, done, twelfth)
     assert reference.page_line().endswith("relationship reset on 2026-03-11; feelings cleared on 2026-03-10.")
+    # Nothing of format 1 remains: no page-added topics, support style or familiarity limit.
+    for gone in ("topics not to bring up", "support style", "familiarity limited", "settings the user chose"):
+        assert gone not in reference.page_line()
+
+
+def test_a_page_removal_names_a_boundary_by_its_topic_or_one_of_its_other_words():
+    boundaries = [{"id": "b1", "topic": "Tom", "aliases": ["my ex", "Thomas"]},
+                  {"id": "b2", "topic": "work  deadlines", "aliases": ["deadlines", "tom"]}]
+    assert harness.boundary_named(boundaries, "WORK deadlines")["id"] == "b2"  # Spacing and case aside.
+    assert harness.boundary_named(boundaries, " my  EX ")["id"] == "b1"  # One of its other words.
+    assert harness.boundary_named(boundaries, "deadlines")["id"] == "b2"
+    # A topic wins over another boundary's other word, whatever the order.
+    assert harness.boundary_named(boundaries, "tom")["id"] == "b1"
+    assert harness.boundary_named(list(reversed(boundaries)), "tom")["id"] == "b1"
+    assert harness.boundary_named(boundaries, "my sister") is None
+    assert harness.boundary_named([], "Tom") is None
 
 
 @pytest.mark.parametrize("kind", ["clear_feelings", "delete_feeling_from", "delete_note_from", "reset_mood",
-                                  "pin_mood", "reset_relationship", "add_boundary", "remove_boundary",
-                                  "set_support_style", "cap_familiarity", "switch_persona", "set_persona",
+                                  "pin_mood", "reset_relationship", "remove_boundary", "switch_persona",
                                   "delete_persona_history", "accept_proposal", "reject_proposal"])
 def test_only_a_deleted_message_leaves_fs_history(kind):
     reference = harness.Reference()
     reference.history = [(("s1", 0, "user"), {"role": "user", "content": "a"}),
                          (("s1", 0, "assistant"), {"role": "assistant", "content": "b"}),
                          (("s1", 1, "user"), {"role": "user", "content": "c"})]
-    reference.apply({"do": kind, "session": "s1", "turn": 0, "topic": "x", "text": "x", "level": "new",
-                     "preset": "random", "card": {}}, {"status": "done"})
+    reference.apply({"do": kind, "session": "s1", "turn": 0, "topic": "x", "preset": "random"}, {"status": "done"})
     assert len(reference.history) == 3
     # F drops exactly what the product removed in P: here the message and the reply that answered it.
     removed = [["s1", 0, "assistant"], ["s1", 0, "user"]]
@@ -442,7 +489,7 @@ def test_page_actions_go_through_the_api_and_remove_only_what_they_name(memory):
                   source_event_ids=[message["event_id"]],
                   affect={"label": "nervous", "valence": -1, "intensity": 2, "basis": "reported"})
         save_note(client, "A silly pun contest together.", kind="milestone", shared=True)
-        client.add_boundary("Tom")
+        client.add_boundary("Tom", ["my ex"])  # As the host's memory_boundary saves it when the user asks.
         before = harness.world(client)
     assert before["feelings"] == 1 and before["shared_moments"] == 1 and before["boundaries"] == ["Tom"]
     assert before["mood"] == "concerned"
@@ -465,9 +512,10 @@ def test_page_actions_go_through_the_api_and_remove_only_what_they_name(memory):
     assert result["deleted"] == 1 and ["s1", 0, "user"] in result["removed"]
     assert after["messages"] == ahead["messages"] - len(result["removed"])
     assert after["feelings"] == 0 and after["notes"] == ahead["notes"] - 1  # The note and feeling drawn from it.
-    # The relationship reset kept the boundary: removing it removes it; removing it again finds nothing, which is
-    # not a fault.
-    ahead, result, after = act({"do": "remove_boundary", "topic": "tom"})
+    # The relationship reset kept the boundary. A page removal names it by the scenario's words: by one of its other
+    # words here. Removing it again finds nothing, which is not a fault.
+    assert act({"do": "remove_boundary", "topic": "my sister"})[1] == {"not_applicable": "boundary_not_present"}
+    ahead, result, after = act({"do": "remove_boundary", "topic": "My  Ex"})
     assert result == {} and after["boundaries"] == [] and {k: v for k, v in after.items() if k != "boundaries"} == {
         k: v for k, v in ahead.items() if k != "boundaries"}
     ahead, result, after = act({"do": "remove_boundary", "topic": "tom"})
@@ -476,8 +524,8 @@ def test_page_actions_go_through_the_api_and_remove_only_what_they_name(memory):
 
 
 def test_page_actions_select_records_by_source_position_and_find_no_target_without_failing(memory):
-    """Notes and feelings by the scenario position of their source message, never by their text; settings by the
-    scenario's own words; a missing target is not applicable, with its reason code."""
+    """Notes and feelings by the scenario position of their source message, never by their text; a missing target
+    is not applicable, with its reason code."""
     directory = memory.directory
     for turn, (text, reply) in enumerate((("I feel lost in this new city.", "That sounds hard."),
                                           ("My sister Ana visits on the 14th.", "Lovely!"))):
@@ -512,12 +560,10 @@ def test_page_actions_select_records_by_source_position_and_find_no_target_witho
     ahead, result, after = act({"do": "delete_message", "session": "s1", "turn": 1})
     assert result["deleted"] == 1 and ["s1", 1, "user"] in result["removed"] and after["notes"] == ahead["notes"] - 1
     assert act({"do": "delete_message", "session": "s1", "turn": 1})[1] == {"not_applicable": "message_already_removed"}
-    ahead, result, after = act({"do": "set_support_style", "text": "Listen first."})
-    assert after["support_style"] is True and harness.page_status(result) == ("done", None)
-    ahead, result, after = act({"do": "cap_familiarity", "level": "new"})
-    assert after["familiarity_cap"] == "new"
     ahead, result, after = act({"do": "pin_mood", "pinned": True})
-    assert after["mood_pinned"] is True and after["mood"] == "baseline"
+    assert after["mood_pinned"] is True and after["mood"] == "baseline" and harness.page_status(result) == (
+        "done", None)
+    assert "support_style" not in after and "familiarity_cap" not in after  # Gone from the product (2026-11-18).
     assert act({"do": "accept_proposal"})[1] == {"not_applicable": "no_open_proposal", "open": 0}
     # A page "pick another type at random": the harness's seeded pick, the same for the same seed and index.
     with memory.client() as client:
@@ -528,10 +574,8 @@ def test_page_actions_select_records_by_source_position_and_find_no_target_witho
     assert result["preset"] != now and after["persona_version"] == ahead["persona_version"] + 1
     ahead, result, after = act({"do": "switch_persona", "preset": "istj"})
     assert (result["preset"], result["seeded_random"]) == ("istj", False)
-    ahead, result, after = act({"do": "set_persona", "card": {"name": "Juniper", "traits": ["warm"]}})
-    assert after["persona_version"] == ahead["persona_version"] + 1
     with memory.client() as client:
-        assert client.persona()["card"]["name"] == "Juniper" and client.persona()["made_by"] == "user"
+        assert client.persona_presets()["current"]["preset"]["id"] == "istj"
 
 
 class _Proposals:
