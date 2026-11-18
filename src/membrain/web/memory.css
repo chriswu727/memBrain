@@ -176,6 +176,8 @@ button:focus-visible, input:focus-visible, textarea:focus-visible, select:focus-
 .edge-count { margin-left: auto; }
 .edge-swatch { display: inline-block; width: 28px; height: 0; border-top: 2px solid var(--accent); flex: none; align-self: center; }
 .edge-swatch.edge-about_person { border-top-style: dashed; border-color: var(--r-people); }
+.edge-replaced_source { stroke-dasharray: 4 3; }
+.edge-swatch.edge-replaced_source { border-top-style: dashed; opacity: .6; }
 .edge-swatch.edge-feeling_of { border-top-style: dotted; border-top-width: 3px; border-color: var(--r-emotions); }
 .shape-swatch { display: inline-block; width: 12px; height: 12px; flex: none; background: var(--muted); align-self: center; }
 .shape-note { border-radius: 50%; }

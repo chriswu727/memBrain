@@ -387,7 +387,26 @@ def _when(fields: dict) -> str:
     return ", ".join(parts)
 
 
-def _line(item: dict, fields: dict, sentence: str, feelings: tuple[str, ...] = ()) -> str:
+def _joined(parts: list[str]) -> str:
+    return parts[0] if len(parts) == 1 else ", ".join(parts[:-1]) + " and " + parts[-1]
+
+
+def replaces_phrase(item: dict) -> str:
+    """The clause " (replaces your note of 2026-11-02)" of a note that replaced others, from the replaced records the
+    service returns with it (``item["replaced"]``); nothing when there are none or their content is gone. The date is
+    the user's day, written as the note lines write theirs. The old sentence is never quoted: the host is told only
+    that this is the current version and when the earlier one was saved."""
+    direct = [entry for entry in item.get("replaced") or ()
+              if isinstance(entry, dict) and entry.get("depth") == 1 and not entry.get("erased")]
+    days = sorted({day for day in (local_date(entry.get("recorded_at")) for entry in direct) if _as_date(day)})
+    if not direct or not days:
+        return ""
+    users = sum(entry.get("actor_role") == "user" for entry in direct)
+    owner = "your " if not users else "the user's " if users == len(direct) else ""
+    return f" (replaces {owner}note{'s' if len(direct) > 1 else ''} of {_joined(days)})"
+
+
+def _line(item: dict, fields: dict, sentence: str, feelings: tuple[str, ...] = (), marker: str = "") -> str:
     tags = []
     when = _when(fields)
     if fields.get("kind") in ("plan", "agent_commitment"):
@@ -410,8 +429,8 @@ def _line(item: dict, fields: dict, sentence: str, feelings: tuple[str, ...] = (
     detail = f" ({'; '.join(tags)})" if tags else ""
     pin = "pinned · " if fields.get("pinned") else ""
     feeling = "".join(" " + phrase for phrase in feelings)
-    return neutralize(f"- [{pin}{local_date(item.get('recorded_at'))}{_label(item)}] {who}{sentence}{feeling}"
-                      f"{detail} (id: {item['event_id']})")
+    return neutralize(f"- [{pin}{local_date(item.get('recorded_at'))}{marker}{_label(item)}] {who}{sentence}{feeling}"
+                      f"{detail}{replaces_phrase(item)} (id: {item['event_id']})")
 
 
 def _parsed(response: dict, skip_imports_from=()) -> list[tuple[dict, dict, str]]:
@@ -611,6 +630,53 @@ def render_coming_up(response: dict, *, today: _datetime.date | None = None, ski
     return header + "\n".join(chosen) + (more if len(chosen) < len(lines) else "") + footer
 
 
+RECALLED_NOTES = 3  # Current notes a deliberate search puts before the messages it found.
+_HAN = re.compile(r"[㐀-鿿]{2,}")
+
+
+def _shares(term: str, words: set[str], names: set[str], text: str) -> bool:
+    """Whether a search word is in a note: the same word, or one a few letters longer or shorter ("install" and
+    "installs"); a three-letter word only as a name the note is about ("Mei"), so "for" or "the" never matches; for
+    Chinese, a run of two or more characters found in the other text."""
+    if _HAN.search(term):
+        return any(run in text for run in _HAN.findall(term)) or any(run in term for run in _HAN.findall(text))
+    if len(term) < 4:
+        return term in names
+    return any(word == term or (min(len(word), len(term)) >= 4 and (word.startswith(term) or term.startswith(word))
+                                and abs(len(word) - len(term)) <= 3) for word in words)
+
+
+def matching_notes(response: dict, query: str, *, limit: int = RECALLED_NOTES, skip=lambda text: False) -> list:
+    """The current notes a search matches by its words, most matched words first, then the newest.
+
+    No ranking model: a note matches when it shares a word with the query (``_shares``). A word found in more than
+    half of four or more notes does not count, so a project's name alone does not list every note. ``skip`` leaves
+    out notes by their stored text (a boundary topic the query does not raise).
+    """
+    parsed = [entry for entry in _parsed(response) if not skip(entry[0].get("text") or "")]
+    terms = {word for word in re.findall(r"\w+", (query or "").casefold()) if len(word) > 2 or _HAN.search(word)}
+    if not parsed or not terms:
+        return []
+    texts = [" ".join([sentence, fields.get("about", ""), *fields.get("aliases", ())]).casefold()
+             for _item, fields, sentence in parsed]
+    notes = [(_words(text), _words(" ".join([fields.get("about", ""), *fields.get("aliases", ())])), text)
+             for text, (_item, fields, _sentence) in zip(texts, parsed)]
+    common = {term for term in terms
+              if len(parsed) >= 4 and sum(_shares(term, *note) for note in notes) * 2 > len(parsed)}
+    scored = []
+    for index, (entry, note) in enumerate(zip(parsed, notes)):
+        score = sum(_shares(term, *note) for term in terms - common)
+        if score:
+            scored.append((-score, -index, entry))
+    return [entry for *_, entry in sorted(scored, key=lambda value: value[:2])[:limit]]
+
+
+def recalled_note_lines(response: dict, query: str, *, skip=lambda text: False) -> list[tuple[str, str]]:
+    """(note id, line) for the notes a search matched, as the notes block writes them, marked as notes."""
+    return [(item["event_id"], _line(item, fields, sentence, marker=" · note"))
+            for item, fields, sentence in matching_notes(response, query, skip=skip)]
+
+
 def alias_cues(response: dict, text: str) -> tuple[str, ...]:
     """Names of people whose aliases appear in ``text``, so recall also searches by the real name."""
     lowered, cues = f" {text.casefold()} ", []
@@ -743,6 +809,10 @@ def store_note(service, principal, brain_id: str, arguments: dict) -> dict:
                 "payload": {"idempotency_key": "replace-" + request_id, "selector": {"kind": "events", "ids": stale},
                             "mode": "suppress_recall", "expected_scope_generation": brain["scope_generation"]}},
                 revoke_recording=False)
+            from .note_lineage import record as record_replacement
+
+            # Which note this one replaced is read from the replaced record itself, which is erased with this one.
+            record_replacement(conn, params, note_id, stale)
         for source_id in sorted(sources):
             conn.execute(
                 "INSERT INTO memory_event_dependencies(tenant_id,owner_id,brain_id,input_event_id,output_event_id) "

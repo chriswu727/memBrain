@@ -130,28 +130,92 @@ async function loadNotes(view = "notes") {
   for (const note of items) list.append(noteItem(note));
 }
 
-async function showSources(container, ids) {
+// The conversation a source message was said in, as the Conversations view names it: its first day, its size and
+// how it began. Read when the sources are opened, one request per conversation.
+async function conversationLabels(blocks) {
+  const wanted = [...new Set(blocks.map(([message]) => message.conversation_id).filter(Boolean))];
+  const labels = new Map();
+  await Promise.all(wanted.map(async (conversation) => {
+    try {
+      const { items } = await timeline({ role: ["user", "assistant"], conversation_id: conversation });
+      const messages = items.reverse();
+      const first = messages.find((message) => message.actor_role === "user") || messages[0];
+      if (first) labels.set(conversation, `${day(messages[0].recorded_at)} · ${messages.length} messages · ${first.text.slice(0, 90)}`);
+    } catch { /* The message itself is still shown. */ }
+  }));
+  for (const [message, block] of blocks) {
+    const label = labels.get(message.conversation_id);
+    if (label) block.append(element("p", `In the conversation: ${label}`, "hint source-conversation"));
+  }
+}
+
+function sourceBlock(message) {
+  const block = element("div", undefined, "message");
+  block.append(element("div", `${day(message.recorded_at)} · ${message.actor_role === "user" ? "You" : "Agent"}`, "meta"), element("p", message.text, "user-text"));
+  return block;
+}
+
+// ``earlier`` are the messages behind the notes this one replaced (read from those notes): the page shows them apart
+// from the messages this note was said in, never as support for it.
+async function showSources(container, ids, earlier = [], earlierNotes = 0) {
   container.replaceChildren(element("p", "Loading original messages…", "hint"));
   try {
-    const { items } = await timeline({ role: ["user", "assistant", "operator", "tool"], event_id: ids });
+    const wanted = [...new Set([...ids, ...earlier])];
+    const { items } = await timeline({ role: ["user", "assistant", "operator", "tool"], event_id: wanted });
     container.replaceChildren();
-    if (items.length < ids.length) container.append(element("p", "Some original messages are no longer available.", "hint"));
-    for (const message of items.reverse()) {
-      const block = element("div", undefined, "message");
-      block.append(element("div", `${day(message.recorded_at)} · ${message.actor_role === "user" ? "You" : "Agent"}`, "meta"), element("p", message.text, "user-text"));
-      container.append(block);
+    if (items.length < wanted.length) container.append(element("p", "Some original messages are no longer available.", "hint"));
+    const messages = items.reverse(), blocks = [];
+    const own = messages.filter((message) => !earlier.includes(message.event_id));
+    const behind = messages.filter((message) => earlier.includes(message.event_id));
+    if (earlier.length && own.length) {
+      const days = [...new Set(own.map((message) => day(message.recorded_at)))];
+      container.append(element("p", days.length === 1 ? `Said on ${days[0]}:` : "Said in these messages:", "hint source-role"));
     }
+    for (const message of own) { const block = sourceBlock(message); blocks.push([message, block]); container.append(block); }
+    if (behind.length) {
+      container.append(element("p", earlierNotes > 1 ? "The earlier notes were based on:" : "The earlier note was based on:", "hint source-role"));
+      for (const message of behind) { const block = sourceBlock(message); blocks.push([message, block]); container.append(block); }
+    }
+    await conversationLabels(blocks);
   } catch (error) { container.replaceChildren(element("p", error.message, "hint")); }
 }
 
 // "N original messages", opened on demand: where a note, a feeling or a shared moment came from.
-function sourcesDetails(ids) {
+function sourcesDetails(ids, earlier = [], earlierNotes = 0) {
+  const count = new Set([...ids, ...earlier]).size;
   const details = element("details");
-  details.append(element("summary", `${ids.length} original message${ids.length === 1 ? "" : "s"}`));
+  details.append(element("summary", `${count} original message${count === 1 ? "" : "s"}`));
   const content = element("div"); details.append(content);
   let loaded = false;
-  details.addEventListener("toggle", () => { if (details.open && !loaded) { loaded = true; showSources(content, ids); } });
+  details.addEventListener("toggle", () => {
+    if (details.open && !loaded) { loaded = true; showSources(content, ids, earlier, earlierNotes); }
+  });
   return details;
+}
+
+// What a note replaced, read each time from the replaced notes themselves (the service returns them with the note,
+// newest first): read-only, and erased with this note. An earlier note whose content was erased shows nothing of
+// itself, neither sentence nor date; that this note replaced one is this note's own record.
+function lineageBlock(note) {
+  const earlier = note.replaced || [];
+  if (!earlier.length) return null;
+  const direct = earlier.filter((entry) => entry.depth === 1).length || 1;
+  const block = element("div", undefined, "lineage");
+  block.append(element("p", direct === 1 ? `Replaced an earlier note on ${day(note.recorded_at)}.`
+    : `Replaced ${direct} earlier notes on ${day(note.recorded_at)}.`, "hint"));
+  for (const entry of earlier.filter((value) => !value.erased)) {
+    const row = element("p", undefined, "earlier");
+    row.append(element("span", `Earlier (${day(entry.recorded_at)}):`, "hint"), " ",
+      element("span", typedNote(entry.text).sentence, "user-text"));
+    block.append(row);
+  }
+  return block;
+}
+
+// A message a current note overruled (the service names that note, read from the records each time).
+function supersededHint(message) {
+  return message.superseded_by
+    ? element("p", `Superseded by a note saved on ${day(message.superseded_by.recorded_at)}.`, "hint superseded") : null;
 }
 
 function noteItem(note) {
@@ -169,12 +233,21 @@ function noteItem(note) {
   const now = new Date();
   const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
   if (date && openPlan(fields) && date < (date.length === 7 ? today.slice(0, 7) : today)) item.append(element("p", "Date has passed; completion is not confirmed.", "hint"));
-  const ids = note.source_event_ids || [];
+  const lineage = lineageBlock(note);
+  if (lineage) item.append(lineage);
+  // The messages behind the notes this one replaced stay linked to it so that deleting one reaches it, but they are
+  // the earlier note's basis, not this one's.
+  const earlier = [...new Set((note.replaced || []).flatMap((entry) => entry.source_event_ids || []))];
+  const ids = (note.source_event_ids || []).filter((id) => !earlier.includes(id));
   if (note.pending_source_count) item.append(element("p", "Waiting for the source message to finish recording.", "hint"));
-  if (ids.length) item.append(sourcesDetails(ids));
+  if (ids.length || earlier.length) item.append(sourcesDetails(ids, earlier, (note.replaced || []).length));
   else if (!note.pending_source_count) item.append(element("p", note.actor_role === "user" ? "Standalone note written by you." : "Original message not linked.", "hint"));
+  const kept = (note.replaced || []).filter((entry) => !entry.erased).length;
+  const question = !kept ? "Delete this note? Its content is erased."
+    : kept === 1 ? "Delete this note and the earlier note it replaced? Their content is erased."
+      : "Delete this note and the earlier notes it replaced? Their content is erased.";
   guard(remove, async () => {
-    if (!confirm("Delete this note? Its content is erased.")) return;
+    if (!confirm(question)) return;
     await forget("events", [note.event_id], "erase_content", NOTES); notify("Note deleted."); await show(currentView());
   });
   return item;
@@ -276,6 +349,8 @@ function conversationItem(conversation, messages) {
     actions.append(remove);
     meta.append(actions);
     block.append(meta, element("p", message.text, "user-text"));
+    const superseded = supersededHint(message);
+    if (superseded) block.append(superseded);
     guard(remove, async () => {
       if (!confirm("Delete this message? Its content is erased everywhere it was used.")) return;
       await forget("events", [message.event_id], "erase_content", conversation);
@@ -333,6 +408,8 @@ onSubmit($("search-form"), async () => {
     meta.append(element("span", day(message.recorded_at)),
       element("span", message.conversation_id === NOTES ? "note" : message.actor_role === "user" ? "You" : "Agent", "tag"));
     block.append(meta, element("p", message.text, "user-text"));
+    const superseded = supersededHint(message);
+    if (superseded) block.append(superseded);
     results.append(block);
   }
 });

@@ -1608,6 +1608,17 @@ class MemoryService:
                 (*self._params(principal, brain["id"]), list(roles), exclude_conversation, exclude_conversation,
                  event_ids, event_ids, conversation_id, conversation_id, before_sequence, before_sequence, limit + 1),
             ).fetchall()
+            from .note_lineage import replaced_notes, superseded
+            from .notes import NOTES_CONVERSATION
+
+            # Read from the replaced records each time, never stored with the note or the message: one query each.
+            params = self._params(principal, brain["id"])
+            lineage = replaced_notes(conn, params, [row["document"]["event_id"] for row in rows[:limit]
+                                                    if row["conversation_id"] == NOTES_CONVERSATION],
+                                     max_characters=max_item_characters)
+            overruled = superseded(conn, params, [
+                row["document"]["event_id"] for row in rows[:limit] if row["conversation_id"] != NOTES_CONVERSATION
+                and row["document"]["observed"]["actor_role"] == "user"])
         items, used, complete = [], 0, len(rows) <= limit
         for row in rows[:limit]:
             document = row["document"]
@@ -1625,6 +1636,11 @@ class MemoryService:
                           "recorded_at": document["system_time"]["recorded_at"], "text": text,
                           "source_event_ids": row["source_event_ids"],
                           "pending_source_count": max(0, len(document["observed"].get("source_references", [])) - len(row["source_event_ids"]))})
+            # A note's replaced notes, newest first; a user message's current note that overruled it.
+            if document["event_id"] in lineage:
+                items[-1]["replaced"] = lineage[document["event_id"]]
+            if document["event_id"] in overruled:
+                items[-1]["superseded_by"] = overruled[document["event_id"]]
         return {"items": items, "complete": complete, "characters": used,
                 "next_before_sequence": items[-1]["sequence"] if items and not complete else None}
 

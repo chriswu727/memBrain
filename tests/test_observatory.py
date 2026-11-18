@@ -24,7 +24,7 @@ VENDORED = {
     "three/three.core.js": "9edde002b066a9a05676a6127f67735b62baf399bdea529f2f7e31657da769e6",
     "three/LICENSE": "8b378ebe60e2fe500158cb0ac71cb5e8b7d92953c2abcc63a0eb90499653b5bc",
 }
-MEMORY_EDGE_TYPES = {"derived_from", "about_person", "feeling_of"}
+MEMORY_EDGE_TYPES = {"derived_from", "replaced_source", "about_person", "feeling_of"}
 EDGE_TYPES = MEMORY_EDGE_TYPES | {"working_member", "working_evidence", "based_on_feedback", "proposed_from_feedback", "accepted_proposal", "restored_from",
                                   "baseline_from", "triggered_by", "affected_by", "memory_evidence", "memory_derivation",
                                   "episode_evidence", "episode_member", "pattern_member", "association", "belief_relation"}

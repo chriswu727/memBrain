@@ -49,8 +49,13 @@ class RecallTraces:
             return dict(entries[-1]) if entries else None
 
 
+LABEL_CHARACTERS = 80
+
+
 def _label(text):
-    return neutralize(" ".join(text.split()))[:80]
+    """A node's label: the text on one line, cut at 80 characters with an ellipsis that says it was cut."""
+    text = neutralize(" ".join(text.split()))
+    return text if len(text) <= LABEL_CHARACTERS else text[:LABEL_CHARACTERS - 1] + "…"
 
 
 def sensitive_note_ids(conn, params, note_ids):
@@ -177,10 +182,15 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
                 (*params, [row["id"] for row in chosen_messages], NOTES_CONVERSATION),
             )}
         hidden_notes = sensitive_note_ids(conn, params, note_ids)
+        from .note_lineage import replaced_notes
+
+        # What each note replaced, read from the replaced records (never a node of its own: it is not current).
+        lineage = replaced_notes(conn, params, note_ids)
     result = _project(brain_id, chosen_notes, chosen_messages, links, hidden_sources, feelings,
                       max_nodes=max_nodes, max_edges=max_edges, include_sensitive=include_sensitive,
                       truncated=(len(notes) > len(chosen_notes) or len(recent) > len(chosen_messages)
-                                 or len(links) >= max_edges + max_nodes + 1), hidden_notes=hidden_notes)
+                                 or len(links) >= max_edges + max_nodes + 1), hidden_notes=hidden_notes,
+                      lineage=lineage)
     if trace is not None:
         shown = {row["id"] for row in traced} & {node["id"].split(":", 1)[1] for node in result["nodes"]}
         for node in result["nodes"]:
@@ -189,8 +199,21 @@ def memory_map(service, principal, brain_id, *, max_nodes=200, max_edges=400, in
     return result
 
 
+def _replaced(entries, include_sensitive):
+    """The notes a note replaced directly, as its node shows them: label and day, a sensitive one masked."""
+    shown = []
+    for entry in entries:
+        if entry.get("depth") != 1 or entry.get("erased"):
+            continue
+        fields, text = parse_note(entry.get("text") or "")
+        masked = bool(fields.get("sensitive")) and not include_sensitive
+        shown.append({"label": "Sensitive memory" if masked else _label(text),
+                      "recorded_at": None if masked else entry.get("recorded_at")})
+    return shown
+
+
 def _project(brain_id, notes, messages, links, hidden_sources, feelings=(), *, max_nodes, max_edges,
-             include_sensitive, truncated, hidden_notes=()):
+             include_sensitive, truncated, hidden_notes=(), lineage=None):
     nodes, fields_by_id = [], {}
     for row in notes:
         fields, text = parse_note(row["text"] or "")
@@ -206,6 +229,9 @@ def _project(brain_id, notes, messages, links, hidden_sources, feelings=(), *, m
                       "date": None if masked else fields.get("due") or fields.get("occurs_at"),
                       "sensitive": sensitive, "recorded_at": None if masked else row["recorded_at"],
                       "weight": 1.0 if fields.get("pinned") else 0.5})
+        replaced = [] if masked else _replaced((lineage or {}).get(row["id"], ()), include_sensitive)
+        if replaced:
+            nodes[-1]["replaces"] = replaced
     masked_notes = {row["id"] for row in notes if parse_note(row["text"] or "")[0].get("sensitive")} | set(hidden_notes)
     for record in feelings:
         masked = record["note_id"] in masked_notes and not include_sensitive
@@ -231,8 +257,16 @@ def _project(brain_id, notes, messages, links, hidden_sources, feelings=(), *, m
             seen.add(key)
             edges.append({"source": source, "target": target, "type": kind, "basis": basis})
 
+    # A replacement note keeps the messages behind the notes it replaced as dependencies (notes.store_note); they are
+    # the earlier note's basis, not this note's, and are linked as such.
+    earlier = {note: {source for entry in entries for source in entry.get("source_event_ids") or ()}
+               for note, entries in (lineage or {}).items()}
     for link in links:
-        edge("note:" + link["output_event_id"], "msg:" + link["input_event_id"], "derived_from", "source_event_ids")
+        note, message = "note:" + link["output_event_id"], "msg:" + link["input_event_id"]
+        if link["input_event_id"] in earlier.get(link["output_event_id"], ()):
+            edge(note, message, "replaced_source", "replaced_note")
+        else:
+            edge(note, message, "derived_from", "source_event_ids")
     for node in nodes:
         if node["kind"] == "affect":
             edge(node["id"], "note:" + node.pop("note_id"), "feeling_of", "note")

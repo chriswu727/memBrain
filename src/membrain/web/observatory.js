@@ -35,6 +35,7 @@ const OBS_SPACE = {
 // Recorded dependency types from the memory and companion maps; unknown types are drawn plain grey.
 const OBS_EDGES = {
   derived_from: { color: "--accent", dash: null, opacity: 0.55 },
+  replaced_source: { color: "--accent", dash: [0.14, 0.08], opacity: 0.35 },
   about_person: { color: "--r-people", dash: [0.14, 0.08], opacity: 0.85 },
   feeling_of: { color: "--r-emotions", dash: [0.035, 0.05], opacity: 0.95 },
   based_on_feedback: { color: "--r-persona", dash: null, opacity: 0.7 },

@@ -101,6 +101,13 @@ const ZH = {
   "Waiting for the source message to finish recording.": "正在等待来源消息记录完成。",
   "Standalone note written by you.": "你单独写的笔记。",
   "Delete this note? Its content is erased.": "删除这条笔记？它的内容会被清除。",
+  "Delete this note and the earlier note it replaced? Their content is erased.": "删除这条笔记以及它取代的较早笔记？它们的内容会被清除。",
+  "Delete this note and the earlier notes it replaced? Their content is erased.": "删除这条笔记以及它取代的那些较早笔记？它们的内容会被清除。",
+  "Said in these messages:": "出自这些消息：", "The earlier note was based on:": "被取代的笔记依据的消息：",
+  "The earlier notes were based on:": "被取代的那些笔记依据的消息：",
+  "earlier note based on:": "被取代的笔记依据：", "basis of a replaced note:": "曾是被取代笔记的依据：",
+  "earlier note based on": "被取代的笔记依据",
+  "A note and a message that the note it replaced was based on.": "一条笔记，和它取代的那条笔记所依据的消息。",
   "Note deleted.": "笔记已删除。", "No conversations recorded yet.": "还没有记录任何对话。", "Load older messages": "加载更早的消息",
   "You": "你", "Agent": "agent",
   "Delete this message? Its content is erased everywhere it was used.": "删除这条消息？它在所有用到的地方都会被清除。",
@@ -502,7 +509,14 @@ const ZH_PATTERNS = [
   [/^Latest recorded recall \((.+)\): (\d+) of (\d+) records it used are lit\.$/, (m, when, shown, used) =>
     `最近一次记录的回忆（${when}）：它用到的 ${used} 条记录中，有 ${shown} 条在图中点亮。`],
   [/^Latest recorded recall \((.+)\): it found nothing to add\.$/, (m, when) => `最近一次记录的回忆（${when}）：没有找到可补充的记忆。`],
-  [/^(derived from|about person|replaces|feeling of) \((source event ids|about|replaces|note)\)$/, (m, type) => BRAIN_EDGES[type]],
+  [/^(derived from|about person|replaces|feeling of|replaced source) \((source event ids|about|replaces|note|replaced note)\)$/, (m, type) => BRAIN_EDGES[type]],
+  // A replacement note and what it replaced (memory.js lineageBlock and showSources); dates are YYYY-MM-DD.
+  [/^Replaced an earlier note on (\S+)\.$/, (m, date) => `${date} 取代了一条较早的笔记。`],
+  [/^Replaced (\d+) earlier notes on (\S+)\.$/, (m, n, date) => `${date} 取代了 ${n} 条较早的笔记。`],
+  [/^Earlier \((\S+)\):$/, (m, date) => `较早（${date}）：`],
+  [/^Said on (\S+):$/, (m, date) => `出自 ${date} 的消息：`],
+  [/^Superseded by a note saved on (\S+)\.$/, (m, date) => `已被 ${date} 保存的笔记取代。`],
+  [/^In the conversation: (\S+) · (\d+) messages · (.*)$/s, (m, date, n, first) => `所在对话：${date} · ${n} 条消息 · ${first}`],
   [/^Feelings cleared on (.+)$/, (m, date) => `感受已于 ${translate(date)} 清除`],
   // Companion mood (M1): times are "14 Mar 21:05" in the viewer's own zone.
   [/^(\d{1,2}) (Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec) (\d{2}:\d{2})$/, (m, d, month, time) =>
@@ -548,6 +562,7 @@ function zhDay(text) {
 const BRAIN_STATUS = { intended: "打算中", scheduled: "已安排", done: "已完成", cancelled: "已取消", superseded: "已被取代",
   open: "待处理", accepted: "已接受", rejected: "已拒绝", withdrawn: "已撤回", active: "生效中", ended: "已结束" };
 const BRAIN_EDGES = { "derived from": "来自这条消息", "about person": "关于这个人", replaces: "取代了这条",
+  "replaced source": "被取代笔记的依据",
   "feeling of": "这条笔记上的感受" };
 
 let language = "en";

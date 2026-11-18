@@ -270,6 +270,13 @@ function selectNode(id) {
   if (node.basis) detail.append(element("p", node.basis === "reported" ? "A feeling you said you had"
     : "A feeling your agent inferred; you did not say it", "hint"));
   if (node.traced) detail.append(element("p", "Used by the latest recorded recall", "hint"));
+  // What this note replaced, read from the replaced note itself; it is not current, so it has no dot of its own.
+  for (const earlier of node.replaces || []) {
+    const row = element("p", undefined, "hint brain-replaces");
+    row.append(element("span", "replaces:"), " ", element("span", earlier.label, earlier.recorded_at ? "user-text" : "muted"));
+    if (earlier.recorded_at) row.append(" ", element("span", `Saved: ${String(earlier.recorded_at).slice(0, 10)}`));
+    detail.append(row);
+  }
   if (data.version) detail.append(element("p", `Version: ${data.version}`, "hint"));
   if (data.revision) detail.append(element("p", `${translate("Record revision")}: ${data.revision}`, "hint"));
   if (data.representation) detail.append(element("p", `${translate("Representation")}: ${translate(data.representation)}`, "hint"));
@@ -320,6 +327,7 @@ function selectNode(id) {
 function edgeCaption(edge, id) {
   const labels = {
     derived_from: ["derived from:", "source for:"], about_person: ["about person:", "mentioned by:"],
+    replaced_source: ["earlier note based on:", "basis of a replaced note:"],
     feeling_of: ["feeling of:", "feeling attached:"],
     based_on_feedback: ["based on feedback:", "feedback for personality:"],
     proposed_from_feedback: ["proposed from feedback:", "feedback for suggestion:"],
