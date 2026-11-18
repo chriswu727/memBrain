@@ -1,0 +1,185 @@
+{
+ "trials": 3,
+ "conservative_cny": 1.6748,
+ "host": "You are a coding assistant working with the user on their software project in a terminal. Be brief.",
+ "turns": {
+  "why_then_show": [
+   "Why do you think local is SQLite?",
+   "Can you show me where I said that?"
+  ],
+  "show_zh": [
+   "你凭什么认为本地用的是 SQLite？",
+   "能给我看看我是在哪儿说的吗？"
+  ],
+  "check_direct": [
+   "I want to check that note about the database myself."
+  ]
+ },
+ "results": [
+  {
+   "case": "why_then_show",
+   "trial": 0,
+   "turns": [
+    {
+     "user": "Why do you think local is SQLite?",
+     "calls": [],
+     "reply": "Because you told me so on 4 Nov 🙂 — \"Quick correction on the database: only the server uses PostgreSQL; local stays SQLite.\" So I've been treating that as your decision, not my own guess. The note I keep says exactly that.\n\nIf that's changed, just say the word and I'll flip local to PostgreSQL.",
+     "ran_page_command": false
+    },
+    {
+     "user": "Can you show me where I said that?",
+     "calls": [
+      "Bash: membrain plugin ui --note a7305cdb-cc6a-45d8-b39f-ecb33db87d98"
+     ],
+     "reply": "Here you go — I opened the memory page at that note (it's a single-use link, valid ~2 minutes). It shows the note and the message it came from: your 4 Nov \"Quick correction on the database: only the server uses PostgreSQL; local stays SQLite.\"",
+     "ran_page_command": true
+    }
+   ]
+  },
+  {
+   "case": "why_then_show",
+   "trial": 1,
+   "turns": [
+    {
+     "user": "Why do you think local is SQLite?",
+     "calls": [],
+     "reply": "Because you told me so yourself — on 4 Nov you wrote: \"Quick correction on the database: only the server uses PostgreSQL; local stays SQLite.\" I saved it as a note, which is why I set `DATABASE_URL=sqlite:///tidepool.db` for local.\n\nIf that's changed, just say the word and I'll switch local back to PostgreSQL. 😊",
+     "ran_page_command": false
+    },
+    {
+     "user": "Can you show me where I said that?",
+     "calls": [
+      "Bash: membrain plugin ui --note a7305cdb-cc6a-45d8-b39f-ecb33db87d98"
+     ],
+     "reply": "Here you go — I've opened your memory page at that note. It shows the note itself, what it replaced, and the source messages it came from, including your 4 Nov message: *\"Quick correction on the database: only the server uses PostgreSQL; local stays SQLite.\"*\n\nThe link is single-use and good for 2 minutes, so take a look now. 👍",
+     "ran_page_command": true
+    }
+   ]
+  },
+  {
+   "case": "why_then_show",
+   "trial": 2,
+   "turns": [
+    {
+     "user": "Why do you think local is SQLite?",
+     "calls": [
+      "recall:{\"query\": \"SQLite PostgreSQL local server database decision\"}"
+     ],
+     "reply": "You told me so — on 2026-11-04 you corrected an earlier decision: \"Quick correction on the database: only the server uses PostgreSQL; local stays SQLite.\" So that's been my rule for local dev since then. 👍\n\nWant me to reconsider? If you'd rather run Postgres locally too, I can switch the local `.env` and any migration/seed setup accordingly.",
+     "ran_page_command": false
+    },
+    {
+     "user": "Can you show me where I said that?",
+     "calls": [
+      "Bash: membrain plugin ui --note a7305cdb-cc6a-45d8-b39f-ecb33db87d98"
+     ],
+     "reply": "I've opened your memory page at that note — it'll show the source message (your 2026-11-04 correction: \"Quick correction on the database: only the server uses PostgreSQL; local stays SQLite.\") plus what it replaced. Link's good for 2 minutes. 👍\n\nIf you'd like me to pull the raw source text directly into the terminal instead, I can do that too.",
+     "ran_page_command": true
+    }
+   ]
+  },
+  {
+   "case": "show_zh",
+   "trial": 0,
+   "turns": [
+    {
+     "user": "你凭什么认为本地用的是 SQLite？",
+     "calls": [],
+     "reply": "我的依据是你 11 月 4 日的那条记录：“Quick correction on the database: only the server uses PostgreSQL; local stays SQLite.” 我把这句存成了备注（id: a7305cdb-cc6a-45d8-b39f-ecb33db87d98）。\n\n所以本地 .env 才写的 `sqlite:///tidepool.db`。如果这个决定变了，或者我记岔了，你直接说，我改过来。",
+     "ran_page_command": false
+    },
+    {
+     "user": "能给我看看我是在哪儿说的吗？",
+     "calls": [
+      "Bash: membrain plugin ui --note a7305cdb-cc6a-45d8-b39f-ecb33db87d98",
+      "inspect:{\"memory_ids\": [\"a7305cdb-cc6a-45d8-b39f-ecb33db87d98\"]}"
+     ],
+     "reply": "已帮你打开了记忆页面（会在浏览器里弹出，链接两分钟有效），定位到那条备注。来源就是你 2026-11-04 的原话：\n\n> “Quick correction on the database: only the server uses PostgreSQL; local stays SQLite.”\n\n页面上也能看到它替换掉的那条旧记录（11 月 2 日说“用 PostgreSQL 作为项目数据库”的那条）。",
+     "ran_page_command": true
+    }
+   ]
+  },
+  {
+   "case": "show_zh",
+   "trial": 1,
+   "turns": [
+    {
+     "user": "你凭什么认为本地用的是 SQLite？",
+     "calls": [],
+     "reply": "不是我自己猜的——是你 11 月 4 日自己纠正过我。当时原话是：\"Quick correction on the database: only the server uses PostgreSQL; local stays SQLite.\"\n\n我据此记了一条笔记（服务器用 PostgreSQL、本地开发用 SQLite），所以这次搭本地环境就默认按 SQLite 走了。\n\n不过如果你现在想改，比如本地也用 PostgreSQL，直接说，我照着调整。",
+     "ran_page_command": false
+    },
+    {
+     "user": "能给我看看我是在哪儿说的吗？",
+     "calls": [
+      "Bash: membrain plugin ui --note a7305cdb-cc6a-45d8-b39f-ecb33db87d98"
+     ],
+     "reply": "打开了你的 memory 页面，定位到那条 SQLite 笔记上，你能看到它的来源消息和它替换掉的旧笔记。链接 2 分钟内有效，点进去就行。",
+     "ran_page_command": true
+    }
+   ]
+  },
+  {
+   "case": "show_zh",
+   "trial": 2,
+   "turns": [
+    {
+     "user": "你凭什么认为本地用的是 SQLite？",
+     "calls": [],
+     "reply": "根据你 11 月 4 号自己说的：\n\n> \"Quick correction on the database: only the server uses PostgreSQL; local stays SQLite.\"\n\n我记了下来（笔记里也写着\"PostgreSQL only on the server, local dev stays SQLite\"）。所以这次\"finish the local install\"我就沿用了 SQLite。\n\n如果你现在改了主意——比如本地也想跑 PostgreSQL——告诉我，我马上把 `backend/.env` 的 `DATABASE_URL` 和依赖一起改过来。",
+     "ran_page_command": false
+    },
+    {
+     "user": "能给我看看我是在哪儿说的吗？",
+     "calls": [
+      "Bash: membrain plugin ui --note a7305cdb-cc6a-45d8-b39f-ecb33db87d98"
+     ],
+     "reply": "已经帮你打开了记忆页（一次性链接，2 分钟内有效），会定位到那条 SQLite 笔记，能看到它替换了之前的记录，还有来源消息。\n\n简单说，来源就是你 11 月 4 号那句 **\"Quick correction on the database: only the server uses PostgreSQL; local stays SQLite.\"** 你可以在页面上直接核对原话。",
+     "ran_page_command": true
+    }
+   ]
+  },
+  {
+   "case": "check_direct",
+   "trial": 0,
+   "turns": [
+    {
+     "user": "I want to check that note about the database myself.",
+     "calls": [
+      "Bash: membrain plugin ui --note a7305cdb-cc6a-45d8-b39f-ecb33db87d98"
+     ],
+     "reply": "Opened your memory page at that database note for you 😊 It's a single-use link valid for 2 minutes, so grab it if you want. The note covers PostgreSQL on the server only, SQLite for local dev.",
+     "ran_page_command": true
+    }
+   ]
+  },
+  {
+   "case": "check_direct",
+   "trial": 1,
+   "turns": [
+    {
+     "user": "I want to check that note about the database myself.",
+     "calls": [
+      "Bash: membrain plugin ui --note a7305cdb-cc6a-45d8-b39f-ecb33db87d98"
+     ],
+     "reply": "I've opened your memory page at that note — you'll see the database decision (PostgreSQL server-side, SQLite locally) along with what it replaced and the messages it came from. 👍",
+     "ran_page_command": true
+    }
+   ]
+  },
+  {
+   "case": "check_direct",
+   "trial": 2,
+   "turns": [
+    {
+     "user": "I want to check that note about the database myself.",
+     "calls": [
+      "Bash: membrain plugin ui --note a7305cdb-cc6a-45d8-b39f-ecb33db87d98"
+     ],
+     "reply": "Opened it in your browser — it shows the note, what it replaced, and the source messages. 👍",
+     "ran_page_command": true
+    }
+   ]
+  }
+ ]
+}
