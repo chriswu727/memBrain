@@ -180,9 +180,11 @@ const TOOLS = [
       "switch; that request is enough, do not ask again. When the user asks to reset their persona, that " +
       "means switch with random, or with the type they name. action propose with changes and a short " +
       "reason: values, traits or boundaries are lists of phrases to ADD to the card (a behaviour goes in " +
-      "values as one sentence), voice is an object of short phrases (register, length, emoji, language), " +
-      "name and baseline_mood replace; only when the user explicitly " +
-      "asks you to behave differently from now on ('be more patient from now on') or keeps asking for " +
+      "values as one sentence); remove, an object of those lists, takes card entries off as worded there " +
+      "(replace = remove + add, one proposal); voice is an object of short phrases (register, length, emoji, " +
+      "language), name and baseline_mood replace (an empty string or null clears); only when the user explicitly " +
+      "asks you to behave differently from now on ('be more patient from now on') or to drop or change " +
+      "something on the card, or keeps asking for " +
       "something the persona does not say, beyond what the manner-feedback tool records (too long, too " +
       "formal, more jokes, emoji). Never propose a change on your own taste. Nothing changes until the user " +
       "says yes: describe the change in a sentence and ask; when they clearly say yes in a later message, " +
@@ -196,7 +198,7 @@ const TOOLS = [
       preset: { type: "string", maxLength: 40,
         description: "For switch: a personality type such as intj (any case), or random." },
       changes: { type: "object", description: "For propose: the card fields to change (name, traits, voice, " +
-        "values, boundaries, baseline_mood)." },
+        "values, boundaries, baseline_mood), and remove: the traits, values or boundaries entries to take off." },
       reason: { type: "string", maxLength: 200, description: "For propose: why, in one short sentence." },
       proposal_id: { type: "string", description: "For confirm and decline: the id propose returned." },
       source_messages: { type: "array", maxItems: 10, items: { type: "object", properties: {

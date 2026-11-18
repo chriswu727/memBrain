@@ -435,7 +435,9 @@ class MemoryClient:
     def propose_persona_change(self, changes: Mapping[str, Any], *, reason: str, source_event_ids: Sequence[str] = (),
                                source_messages: Sequence[Mapping[str, Any]] = (),
                                brain_id: str | None = None) -> JsonObject:
-        """The host AI proposes a change to the card (a partial card); nothing changes until the user confirms."""
+        """The host AI proposes a change to the card (a partial card, optionally with ``remove``: entries of
+        ``traits``, ``values`` or ``boundaries`` the card holds, to take off); nothing changes until the user
+        confirms."""
         return self._request("POST", self._persona_path(brain_id, "/proposals"),
                              json={"changes": dict(changes) if isinstance(changes, Mapping) else changes,
                                    "reason": reason, "source_event_ids": list(source_event_ids),

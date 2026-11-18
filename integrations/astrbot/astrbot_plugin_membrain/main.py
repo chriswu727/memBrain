@@ -189,7 +189,7 @@ class MembrainPlugin(star.Star):
         Args:
             action(string): One of {', '.join(PERSONA_ACTIONS)}.
             preset(string): For switch: a personality type such as intj (any case), or random.
-            changes(object): For propose: the card fields to change (name, traits, voice, values, boundaries, baseline_mood).
+            changes(object): For propose: the card fields to change (name, traits, voice, values, boundaries, baseline_mood), and remove: the traits, values or boundaries entries to take off.
             reason(string): For propose: why, in one short sentence.
             proposal_id(string): For confirm and decline: the id propose returned.
             source_messages(array[object]): Exact source references from the current membrain-source block.

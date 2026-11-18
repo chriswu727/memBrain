@@ -243,8 +243,8 @@ const ZH = {
   "中文": "中文", "English": "English",
   // Personality (persona card)
   "Personality": "人格",
-  "How your companion presents itself: its name, character, voice, values and boundaries. Your agent receives it in its own block, apart from what it remembers about you. To change it, ask your agent: it describes the change and saves it once you say yes. Every change keeps the earlier versions. How you like replies, as your agent learns it, stays in your preference notes.":
-    "你的伙伴如何展现自己：名字、性格、说话方式、价值观和边界。agent 会在单独的区块里收到它，和它记得的关于你的内容分开。想修改的话，直接告诉 agent：它会说明要改什么，等你同意后再保存。每次修改都会保留之前的版本。agent 学到的你喜欢的回复方式，仍然放在你的偏好笔记里。",
+  "How your companion presents itself: its name, character, voice, values and boundaries. Your agent receives it in its own block, apart from what it remembers about you. To change it, ask your agent to add, remove or replace something: it describes the change and saves it once you say yes. Every change keeps the earlier versions. How you like replies, as your agent learns it, stays in your preference notes.":
+    "你的伙伴如何展现自己：名字、性格、说话方式、价值观和边界。agent 会在单独的区块里收到它，和它记得的关于你的内容分开。想修改的话，直接告诉 agent 要添加、删除或替换什么：它会说明要改什么，等你同意后再保存。每次修改都会保留之前的版本。agent 学到的你喜欢的回复方式，仍然放在你的偏好笔记里。",
   "Current card": "当前设定",
   "Name": "名字", "Voice": "说话方式",
   "Register": "语体", "Typical length": "通常长度",
@@ -253,7 +253,6 @@ const ZH = {
   "Versions": "版本",
   "Newest first. Restoring a version saves its content as a new version.": "最新的在前。恢复某个版本会把它的内容保存为一个新版本。",
   "Delete personality history": "删除人格历史",
-  "Only the host sets the default persona card.": "只有宿主应用可以设定默认人格。",
   "Erases every personality version, including the current card. Deletion is recorded, so it also holds if an older backup is restored. Notes and messages are not touched.":
     "清除所有人格版本，包括当前设定。删除会被记录下来，即使从旧备份恢复也不会回来。笔记和消息不受影响。",
   "Traits": "性格特点", "Values": "价值观", "Boundaries": "边界", "register": "语体", "length": "长度", "emoji": "表情符号",
@@ -402,6 +401,9 @@ const ZH = {
   "Withdrawn: the card changed after it was suggested.": "已撤回：提出建议之后，设定已经改变。",
   "Reject this suggestion?": "拒绝这条建议？", "Suggestion rejected.": "已拒绝这条建议。",
   "(empty)": "（空）", "What you said:": "你说过的话：", "Change to the card (everything else stays):": "对设定的修改（其他内容不变）：",
+  "Removes:": "将删除：", "Adds:": "将添加：",
+  "This changes the current card only. Switching type later starts from that type's own card plus what you agreed with your agent.":
+    "这只修改当前的设定。之后切换类型时，会从那个类型自己的设定开始，再加上你和 agent 约定好的内容。",
   "Accept": "接受", "Reject": "拒绝", "accepted suggestion": "接受的建议", "The messages behind this change were deleted.": "这次修改所依据的消息已被删除。",
   "Accept this suggestion? The card is saved as a new version; you can restore the earlier one at any time.":
     "接受这条建议？设定会保存为一个新版本；你随时可以恢复之前的版本。",
@@ -494,11 +496,6 @@ const ZH_PATTERNS = [
   [/^Restore version (\d+)\? Its content becomes a new version\.$/, (m, n) => `恢复版本 ${n}？它的内容会成为一个新版本。`],
   [/^\(valence ([+-]?\d), energy (\d) of 3\)$/, (m, valence, energy) => `（情绪倾向 ${valence}，活力 ${energy}/3）`],
   [/^Persona version (\d+) is not available\.$/, (m, version) => `人格版本 ${version} 已不存在。`],
-  [/^A reason is text of at most (\d+) characters\.$/, (m, n) => `原因最多 ${n} 个字符。`],
-  // Field checks name the field; the detail after it comes from the validator and stays in English.
-  [/^Persona card field ([\w.\[\]]+): (.+)$/s, (m, where, detail) => `人格字段 ${where}：${detail}`],
-  [/^The persona card is (\d+) characters when rendered; the limit is 1,200\. Shorten it\. Nothing was saved and nothing was cut\.$/,
-    (m, n) => `这份人格设定有 ${n} 个字符，上限是 1,200。请缩短后再保存。没有保存任何内容，也没有截断。`],
   [/^(\d+) memories and (\d+) links( \(a bounded selection; more exist\))?\.$/, (m, n, e, more) =>
     `${n} 条记忆，${e} 条关联${more ? "（显示数量有限，还有更多）" : ""}。`],
   [/^(\d+) memor(?:y|ies) · (\d+) links?$/, (m, n, e) => `${n} 条记忆 · ${e} 条关联`],

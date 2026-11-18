@@ -303,9 +303,15 @@ def _rows(service, conn, principal, brain_id, limit=MAX_VERSIONS + 1):
 # agreement can only shrink; restoring a version takes the agreements in force at that version. A switch of type and
 # a reset (``persona_presets``) apply the agreements in force on top of the new card, in the order they were made, so
 # a switch never ends one. An agreement ends when the card no longer has it through the user's own act: an accepted
-# change of the opposite kind or a confirmed change that replaces it, an edit on the memory page that removes it,
-# restoring a version from before it, deleting its version, deleting the personality history (every version goes) or
-# erasing memory.
+# change of the opposite kind or a confirmed change that replaces it, a confirmed or accepted proposal that removes
+# it (``changes.remove``) or clears it, a card written through ``PUT .../persona`` without it, restoring a version
+# from before it, deleting its version, deleting the personality history (every version goes) or erasing memory.
+#
+# A removal or a clearing is a change to the current card, never an agreement: it is not recorded in
+# ``agreed_changes`` and is not applied to another type's card. A later switch starts from that type's own card plus
+# the agreements still in force, so an entry the user removed comes back only when it is the type's own (or by
+# restoring a version that had it). An emptied voice field or name, or a null mood, is therefore never part of an
+# agreement (``_kept``), also when an earlier runtime recorded one.
 
 AGREEMENT_LISTS = ("traits", "values", "boundaries")
 AGREEMENTS_DO_NOT_FIT = ("This card and the changes you agreed with your agent do not fit on one card together. "
@@ -323,11 +329,12 @@ def _agreed(entry: dict) -> str | None:
 
 
 def _kept(changes: dict, card: dict) -> dict:
-    """The part of an agreement's changes the card still has."""
+    """The part of an agreement's changes the card still has. A cleared field (an empty voice field or name, a null
+    mood) is a change to one card, never an agreement, so it is never kept."""
     card = {**EMPTY_CARD, **card}
     kept = {}
     voice = {name: value for name, value in (changes.get("voice") or {}).items()
-             if (card["voice"].get(name) or "") == value}
+             if value and (card["voice"].get(name) or "") == value}
     if voice:
         kept["voice"] = voice
     for field in AGREEMENT_LISTS:
@@ -335,7 +342,7 @@ def _kept(changes: dict, card: dict) -> dict:
         if values:
             kept[field] = values
     for field in ("name", "baseline_mood"):
-        if field in changes and card[field] == changes[field]:
+        if changes.get(field) and card[field] == changes[field]:
             kept[field] = changes[field]
     return kept
 
@@ -362,7 +369,9 @@ def manner_change(kind: str, card: dict) -> dict:
 def proposal_change(changes: dict, base: dict) -> dict:
     """What a host proposal states, as an agreement: the voice fields it sets, the entries it adds to ``base`` (the
     card it is accepted onto, which already has the others), and a name or baseline mood it gives. ``changes`` is the
-    proposal's stored form (``persona_growth.propose_change``), whose lists hold the whole merged list."""
+    proposal's stored form (``persona_growth.propose_change``), whose lists hold the whole merged list: an entry of
+    ``base`` missing from it was removed, which is a change to that card and no part of the agreement, as is a field
+    the proposal clears (dropped by ``_kept``)."""
     base = {**EMPTY_CARD, **base}
     result = {}
     for field, value in changes.items():

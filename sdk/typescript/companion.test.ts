@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { MemoryClient, MemoryHttpError } from "./index.ts";
-import type { PersonaCard } from "./index.ts";
+import type { PersonaCard, PersonaChanges } from "./index.ts";
 
 function recorded() {
   const requests: { url: URL; init: RequestInit }[] = [];
@@ -95,6 +95,16 @@ test("preset switches and proposed persona changes pass the user's message they 
       source_event_ids: ["evt-1"], source_messages: [] },
     { source_event_ids: [], source_messages: [reference] },
   ]);
+});
+
+test("a proposed replacement sends the entries to remove beside the additions, as one change", async () => {
+  const { client, requests } = recorded();
+  const changes: PersonaChanges = { traits: ["gentle"], remove: { traits: ["blunt"], values: ["Teases a lot"] },
+    voice: { emoji: "" } };
+  await client.proposePersonaChange(changes, "The user asked to be gentle instead of blunt.");
+  assert.deepEqual(JSON.parse(String(requests[0].init.body)), {
+    changes: { traits: ["gentle"], remove: { traits: ["blunt"], values: ["Teases a lot"] }, voice: { emoji: "" } },
+    reason: "The user asked to be gentle instead of blunt.", source_event_ids: [], source_messages: [] });
 });
 
 test("relationship and mood controls preserve aliases, false and bounded acknowledgements", async () => {

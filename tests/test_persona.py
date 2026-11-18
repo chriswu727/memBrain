@@ -357,15 +357,20 @@ def test_every_personality_string_on_the_page_has_chinese():
                "actions", "item persona-version", "user", "PUT", "DELETE", "restore", "reset"}
     missing = sorted(text for text in literals - ignored if f'"{text}"' not in dictionary)
     assert missing == []
-    for pattern in ("^Version (\\d+)$", "^History deleted on (.+)$", "^Saved as version (\\d+)\\.$", "^Personality reset as version (\\d+)\\.$",
+    # What the page can still show: a version number, the history marker, "Saved as version" after Accept, Restore or
+    # a switch, a restored version's label, Restore's question, a mood's scale, and Restore of a version deleted
+    # meanwhile. With no card editor and no reset or default-card control (2026-11-18), the page no longer sends a card,
+    # a reason or a host default, so the card-check, reason and host-default messages it once translated are gone; a
+    # proposal's card is checked when the agent proposes it, and the agent gets those refusals in English.
+    for pattern in ("^Version (\\d+)$", "^History deleted on (.+)$", "^Saved as version (\\d+)\\.$",
                     "^restored from version (\\d+)$", "^Restore version (\\d+)\\? Its content becomes a new version\\.$",
-                    "^\\(valence ([+-]?\\d), energy (\\d) of 3\\)$", "^The persona card is (\\d+) characters",
-                    "^Persona version (\\d+) is not available\\.$", "^A reason is text of at most (\\d+) characters\\.$",
-                    "^Persona card field ("):
+                    "^\\(valence ([+-]?\\d), energy (\\d) of 3\\)$", "^Persona version (\\d+) is not available\\.$"):
         assert pattern in dictionary, pattern
-    for message in ("Persona card field baseline_mood.label: give the mood a name.",
-                    "Only the host sets the default persona card."):
-        assert f'"{message}"' in dictionary, message
+    for gone in ("Personality reset as version", "A reason is text of at most", "Persona card field",
+                 "The persona card is", "Only the host sets the default persona card."):
+        assert gone not in dictionary, gone
+    assert '"This card and the changes you agreed with your agent do not fit on one card together. Nothing was saved."' \
+        in dictionary  # A switch can still be refused.
     html = (WEB / "memory.html").read_text(encoding="utf-8")
     # The tab is named Companion: it holds the personality and the relationship (R1).
     assert '<button data-view="persona">Companion</button>' in html and 'id="view-persona"' in html

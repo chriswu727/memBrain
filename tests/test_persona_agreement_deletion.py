@@ -7,8 +7,9 @@ values and mood into something the user agreed to.
 
 The first tests drive the normal host entry points on a real service: the plugin hooks record the user's comments,
 the page's routes accept, delete (the page's "forget" action on the version's record) and switch. The property test
-runs thousands of random sequences of accepting, confirming, editing, deleting, hiding, restoring, switching and
-deleting the history without a database; the last test runs one such sequence on the service."""
+runs thousands of random sequences of accepting, confirming, removing entries or clearing fields by a confirmed
+proposal (since 2026-11-18), editing, deleting, hiding, restoring, switching and deleting the history without a
+database; the last test runs one such sequence on the service."""
 import json
 import random
 
@@ -32,7 +33,14 @@ from membrain.persona import (
     restore_persona,
     with_agreements,
 )
-from membrain.persona_growth import KINDS, _apply, _merged, accept_proposal, persona_proposals
+from membrain.persona_growth import (
+    CHANGE_FIELDS,
+    KINDS,
+    _apply,
+    _merged,
+    accept_proposal,
+    persona_proposals,
+)
 from membrain.persona_presets import switch_preset
 
 SHORTER = KINDS["shorter"]["value"]["en"]
@@ -206,6 +214,23 @@ VALUES = [PATIENT, "Says when it is unsure", "Checks before assuming"]
 LENGTHS = ["two sentences at most", "a paragraph"]
 
 
+def set_or_added(asked, before):
+    """What the user was asked and said yes to in a confirmed proposal: the voice fields it sets to a value and the
+    entries it adds that the card did not have. Removing and clearing change that card only: never agreed."""
+    voice = {name: text for name, text in (asked.get("voice") or {}).items() if text}
+    return {**({"voice": voice} if voice else {}),
+            **{field: [item for item in asked[field] if item not in before[field]]
+               for field in AGREEMENT_LISTS if field in asked}}
+
+
+def stored_form(asked, proposed):
+    """The changes as ``persona_growth.propose_change`` stores them: each field the request touches, a list that a
+    removal touches stored whole."""
+    touched = [field for field in CHANGE_FIELDS if field in asked or field in asked.get("remove", {})]
+    return {field: {name: proposed["voice"][name] for name in asked["voice"]} if field == "voice"
+            else proposed[field] for field in touched}
+
+
 def within(changes, stated):
     """Whether ``changes`` is part of ``stated``: the same voice fields with the same values, list entries among the
     stated ones, the same name or mood."""
@@ -229,6 +254,7 @@ class History:
 
     def __init__(self, seed):
         self.random, self.kept, self.accepted, self.proposals, self.clock = random.Random(seed), [], {}, {}, 0
+        self.removals = 0
 
     def card(self):
         return self.kept[-1]["card"] if self.kept else dict(EMPTY_CARD)
@@ -244,8 +270,8 @@ class History:
                 if self.kept else [])
 
     def step(self):
-        pick = self.random.choice(("switch", "switch", "manner", "manner", "host", "edit", "delete", "delete",
-                                   "restore", "history"))
+        pick = self.random.choice(("switch", "switch", "manner", "manner", "host", "remove", "remove", "edit",
+                                   "delete", "delete", "restore", "history"))
         if pick == "switch":
             try:
                 card = with_agreements(persona_presets.card(self.random.choice(PRESETS)), self.in_force())
@@ -270,15 +296,14 @@ class History:
             if self.random.random() < 0.5:
                 asked["values"] = [self.random.choice(VALUES)]
             if self.random.random() < 0.4 or not asked:
-                asked["voice"] = {"length": self.random.choice(LENGTHS)}
+                asked["voice"] = {"length": self.random.choice(["", *LENGTHS])}  # "" clears it.
             try:
                 proposed = _merged(self.card(), asked)
             except DomainError:
                 return
             if proposed == normalize_card(self.card()):
                 return
-            stored = {field: {name: proposed["voice"][name] for name in asked["voice"]} if field == "voice"
-                      else proposed[field] for field in asked}
+            stored = stored_form(asked, proposed)
             ident = uid()
             if self.random.random() < 0.3:  # Accepted by an earlier runtime: no agreed_changes, only the proposal.
                 self.proposals[ident] = {"id": ident, "type": "proposal", "kind": "host", "changes": stored,
@@ -287,16 +312,16 @@ class History:
                 saved = self.save(proposed, action="proposal", host_proposal={"proposal_id": ident,
                                                                               "confirmed_by": "m"})
                 # Such a record keeps only the voice fields the proposal states, never its list additions.
-                self.accepted[saved["recorded_at"]] = {"voice": asked["voice"]} if "voice" in asked else {}
+                self.accepted[saved["recorded_at"]] = {key: value for key, value in set_or_added(
+                    asked, self.card_before(saved)).items() if key == "voice"}
                 return
             agreed = _kept(persona.proposal_change(stored, self.card()), proposed)
             saved = self.save(proposed, action="proposal", host_proposal={"proposal_id": ident, "confirmed_by": "m"},
                               agreed_changes=agreed)
             # What the user was asked and said yes to: the asked voice fields and the entries not already there.
-            self.accepted[saved["recorded_at"]] = {
-                **({"voice": asked["voice"]} if "voice" in asked else {}),
-                **{field: [item for item in asked[field] if item not in self.card_before(saved)[field]]
-                   for field in AGREEMENT_LISTS if field in asked}}
+            self.accepted[saved["recorded_at"]] = set_or_added(asked, self.card_before(saved))
+        elif pick == "remove" and self.kept:
+            self.remove()
         elif pick == "edit" and self.kept:
             card = json.loads(json.dumps(self.card()))
             field = self.random.choice(("traits", "values", "voice", "name"))
@@ -315,6 +340,45 @@ class History:
         elif pick == "history" and self.random.random() < 0.3:  # Deleting the personality history.
             self.kept = []
 
+    def remove(self):
+        """A confirmed proposal that takes entries off the current card (``changes.remove``, matched in any case),
+        sometimes adding others in the same proposal (a replacement) or clearing a voice field."""
+        before = {**EMPTY_CARD, **self.card()}
+        held = [(field, item) for field in AGREEMENT_LISTS for item in before[field]]
+        if not held:
+            return
+        asked = {"remove": {}}
+        for field, item in self.random.sample(held, min(len(held), self.random.randint(1, 2))):
+            asked["remove"].setdefault(field, []).append(item.upper() if self.random.random() < 0.3 else item)
+        if self.random.random() < 0.5:
+            asked["traits"] = [self.random.choice(TRAITS)]
+        if self.random.random() < 0.3:
+            asked["voice"] = {"length": self.random.choice(["", *LENGTHS])}
+        try:
+            proposed = _merged(before, asked)
+        except DomainError:
+            return
+        if proposed == normalize_card(before):
+            return
+        agreed = _kept(persona.proposal_change(stored_form(asked, proposed), before), proposed)
+        saved = self.save(proposed, action="proposal", host_proposal={"proposal_id": uid(), "confirmed_by": "m"},
+                          agreed_changes=agreed)
+        self.accepted[saved["recorded_at"]] = set_or_added(asked, before)
+        # What it took off is in no agreement in force, and a switch now brings it back only as the type's own.
+        removed = {(field, item) for field in AGREEMENT_LISTS for item in before[field] if item not in proposed[field]}
+        for agreement in self.in_force():
+            assert not {(field, item) for field in AGREEMENT_LISTS
+                        for item in agreement["changes"].get(field, ())} & removed, agreement
+        for preset in PRESETS:
+            try:
+                switched = with_agreements(persona_presets.card(preset), self.in_force())
+            except DomainError:
+                continue
+            plain = persona_presets.card(preset)
+            for field, item in removed:
+                assert item not in switched[field] or item in plain[field], (preset, field, item)
+        self.removals += 1
+
     def card_before(self, saved):
         position = self.kept.index(saved)
         return {**EMPTY_CARD, **(self.kept[position - 1]["card"] if position else EMPTY_CARD)}
@@ -329,12 +393,14 @@ class History:
                 assert within(agreement["changes"], {**EMPTY_CARD, **version["card"]}), agreement  # Still on the card.
 
 
-def test_no_sequence_of_deleting_hiding_restoring_or_switching_widens_an_agreement():
+def test_no_sequence_of_deleting_hiding_restoring_removing_or_switching_widens_an_agreement():
+    removals = 0
     for seed in range(400):
         history = History(seed)
         for _ in range(30):
             history.step()
             history.check()
+        removals += history.removals
         # After a switch, everything the card has beyond the type is something the user accepted.
         if history.kept:
             preset = history.random.choice(PRESETS)
@@ -351,6 +417,7 @@ def test_no_sequence_of_deleting_hiding_restoring_or_switching_widens_an_agreeme
                 assert text == plain["voice"][name] or any(
                     (stated.get("voice") or {}).get(name) == text for stated in accepted), (name, text)
             assert switched["baseline_mood"] == plain["baseline_mood"] and switched["name"] == plain["name"]
+    assert removals > 500, removals  # The removal steps really ran.
 
 
 # The same on a real service --------------------------------------------------------------------------------------

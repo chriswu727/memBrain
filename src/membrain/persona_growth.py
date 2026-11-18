@@ -1131,19 +1131,69 @@ def _host_evidence(service, conn, principal, brain_id, proposals, decisions, aft
 
 
 LIST_FIELDS = ("traits", "values", "boundaries")
+REMOVE = "remove"  # changes.remove: {"traits": [...], "values": [...], "boundaries": [...]}, entries the card holds.
+REMOVE_ENTRIES = 8  # A card list holds at most 8 entries (persona.card_model).
+
+
+def _folded(text: str) -> str:
+    """An entry as a removal matches it: case and surrounding or repeated whitespace ignored."""
+    return " ".join(text.split()).casefold()
+
+
+def _removed(card: dict, removal) -> dict:
+    """``card`` without the entries ``removal`` names (``changes.remove``). Each must match an entry of that field of
+    the card, ignoring case and surrounding or repeated whitespace (also as the ``<membrain-persona>`` block shows
+    it); otherwise the proposal is refused with the field's entries listed, so the host can ask the user or correct
+    itself, and nothing is saved."""
+    from .persona import _clean
+    from .privacy import neutralize
+
+    if not isinstance(removal, dict) or not removal or not set(removal) <= set(LIST_FIELDS):
+        raise DomainError("validation_failed", "changes.remove names entries to remove from traits, values or "
+                          "boundaries: an object of lists, such as {\"traits\": [\"blunt\"]}.")
+    for field, entries in removal.items():
+        if (not isinstance(entries, list) or not 0 < len(entries) <= REMOVE_ENTRIES
+                or not all(isinstance(entry, str) and 0 < len(entry) <= 200 for entry in entries)):
+            raise DomainError("validation_failed", f"changes.remove.{field} must be a list of the card's {field} "
+                              "to remove, as the card words them.")
+        held = card[field]
+        forms = [{_folded(entry), _folded(neutralize(entry))} for entry in held]
+        missing = [entry for entry in entries if not any(_folded(entry) in form for form in forms)]
+        if missing and not held:
+            raise DomainError("validation_failed", f"The card has no {field}, so there is nothing to remove there. "
+                              "Nothing was saved.")
+        if missing:
+            listed = "; ".join(f'"{entry}"' for entry in held)
+            asked = "; ".join(f'"{_clean(entry)[:160]}"' for entry in missing)
+            raise DomainError("validation_failed", f"The card's {field} have no entry {asked} to remove. Its {field} "
+                              f"are: {listed}. Ask the user which they mean, or remove one of these as written. "
+                              "Nothing was saved.")
+        wanted = {_folded(entry) for entry in entries}
+        card[field] = [entry for entry, form in zip(held, forms) if not form & wanted]
+    return card
 
 
 def _merged(card: dict, changes) -> dict:
     """The current card with the proposed change applied: ``traits``, ``values`` and ``boundaries`` are ADDED to the
     ones the card has (a host asked for "be more patient" would otherwise have to repeat every value of the
     personality type or wipe them; in a trial it squeezed the behaviour into a 60-character voice field instead);
-    ``voice`` is changed field by field; ``name`` and ``baseline_mood`` are replaced. A proposal cannot remove or
-    rewrite an entry, and the memory page has no card editor (2026-11-18): there the user can only restore an earlier
-    version or switch the type."""
-    if not isinstance(changes, dict) or not changes or not set(changes) <= set(CHANGE_FIELDS):
-        raise DomainError("validation_failed", f"changes must name one or more of {', '.join(CHANGE_FIELDS)}.")
+    ``voice`` is changed field by field; ``name`` and ``baseline_mood`` are replaced. An empty voice field or name,
+    or a null ``baseline_mood``, clears it.
+
+    ``changes.remove`` names entries of the three lists to take off the card (``_removed``), before the additions, so
+    "replace X with Y" is one proposal the user confirms once. Since the memory page has no card editor (2026-11-18),
+    this is how the user removes or rewrites an entry: by asking the agent. A removal is a change to the current card
+    only, never an agreement carried to other personality types (``persona.proposal_change`` records what a proposal
+    adds or sets)."""
+    if not isinstance(changes, dict) or not changes or not set(changes) <= {*CHANGE_FIELDS, REMOVE}:
+        raise DomainError("validation_failed", f"changes must name one or more of {', '.join(CHANGE_FIELDS)}, "
+                          f"or {REMOVE} (entries of traits, values or boundaries to remove).")
     merged = json.loads(json.dumps({**EMPTY_CARD, **card}))
+    if REMOVE in changes:
+        merged = _removed(merged, changes[REMOVE])
     for field, value in changes.items():
+        if field == REMOVE:
+            continue
         if field == "voice":
             if not isinstance(value, dict):
                 raise DomainError("validation_failed", "changes.voice must be an object of voice fields.")
@@ -1161,7 +1211,9 @@ def _accept_host(service, conn, principal, brain, proposal, confirmed_by) -> dic
     """Save a host proposal's card as a new version. ``made_by`` is "user": the user decided; ``host_proposal`` says
     the host AI proposed it and names the message that confirmed it (None when accepted on the memory page).
     ``agreed_changes`` records what the user agreed to, as the proposal states it, on the card it is accepted onto
-    (``persona.proposal_change``): the agreement a later switch of type keeps, never more."""
+    (``persona.proposal_change``): the agreement a later switch of type keeps, never more. What the proposal removes
+    or clears is not recorded: it changes this card only, and the agreements in force lose what it took off when the
+    version is read (``persona.agreements_by_version``, through ``_kept``)."""
     from .persona import EMPTY_CARD as PERSONA_EMPTY
     from .persona import _kept, _origin, _save_in, proposal_change
 
@@ -1192,7 +1244,8 @@ def _accept_host(service, conn, principal, brain, proposal, confirmed_by) -> dic
 def propose_change(service, principal, brain_id: str, changes, *, reason, source_event_ids=(), source_messages=(),
                    now=None) -> dict:
     """The host AI proposes a change to the persona card: ``changes`` is a partial card (any of ``CHANGE_FIELDS``;
-    lists are added to, ``voice`` changes field by field) and ``reason`` says why in a sentence. Nothing changes: an
+    lists are added to, ``voice`` changes field by field), optionally with ``remove``, entries of the card's lists to
+    take off (``_merged``), and ``reason`` says why in a sentence. Nothing changes: an
     open proposal of kind ``host`` is stored, and any earlier open one is withdrawn ("replaced"). The resulting card
     must pass ``persona.normalize_card`` now. Cited messages (optional, up to ``MAX_SOURCES``) are checked like manner
     feedback: recorded ones must be the user's own messages; a reference to the current message may wait."""
@@ -1213,9 +1266,12 @@ def propose_change(service, principal, brain_id: str, changes, *, reason, source
         proposed = _merged(card, changes)
         if proposed == normalize_card(card):
             raise DomainError("validation_failed", "The persona already is like that: nothing to propose.")
-        # The fields as stored in the card (scrubbed and trimmed like it), never the raw request.
+        # The fields as stored in the card (scrubbed and trimmed like it), never the raw request. A list a removal
+        # touches is stored whole, as an addition is: the stored form has the same fields as before removals existed,
+        # so an earlier runtime still reads it, and what it adds is told from the card it is accepted onto.
+        touched = [field for field in CHANGE_FIELDS if field in changes or field in changes.get(REMOVE, {})]
         changes = {field: {name: proposed["voice"][name] for name in changes["voice"]} if field == "voice"
-                   else proposed[field] for field in changes}
+                   else proposed[field] for field in touched}
         proposal_id = _write(service, conn, principal, brain, {
             "persona_proposal": HOST, "changes": changes, "proposed_card": proposed, "base_version": version,
             "reason": reason, "source_event_ids": ids, "source_messages": messages, "proposed_at": _iso(when)})

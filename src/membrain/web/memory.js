@@ -637,7 +637,26 @@ function proposalValue(values, other, mark) {
   return box;
 }
 
+// What a change takes off the card and what it puts on, read from its before and after: list entries one by one, a
+// single value (a voice field, the name, the mood) as a whole. A replacement is one change with both.
+function proposalParts(change) {
+  const before = Array.isArray(change.before) ? change.before : [proposalText(change.before)].filter(Boolean);
+  const after = Array.isArray(change.after) ? change.after : [proposalText(change.after)].filter(Boolean);
+  return { removed: before.filter((text) => !after.includes(text)), added: after.filter((text) => !before.includes(text)) };
+}
+
+function proposalPlain(label, items, kind) {
+  const line = element("p", undefined, `proposal-plain proposal-${kind}`);
+  line.append(element("span", label, "hint"), " ");
+  items.forEach((text, index) => {
+    if (index) line.append(element("span", "; ", "hint"));
+    line.append(element("span", text, "user-text"));
+  });
+  return line;
+}
+
 function proposalChange(change) {
+  const parts = proposalParts(change);
   change = { ...change, before: proposalText(change.before), after: proposalText(change.after) };
   const list = element("dl", undefined, "persona-card proposal-diff");
   const detail = element("dd");
@@ -645,9 +664,19 @@ function proposalChange(change) {
   const after = Array.isArray(change.after) ? change.after : [change.after].filter(Boolean);
   detail.append(proposalValue(change.before, after, "del"), element("span", "→", "proposal-arrow"),
     proposalValue(change.after, before, "ins"));
+  // Said plainly as well: what goes and what comes.
+  if (parts.removed.length) detail.append(proposalPlain("Removes:", parts.removed, "removes"));
+  if (parts.added.length) detail.append(proposalPlain("Adds:", parts.added, "adds"));
   list.append(element("dt", PROPOSAL_FIELDS[change.field] || change.field), detail);
   return list;
 }
+
+// Whether accepting takes something off the card: a list entry removed, or a value cleared. A replaced value is not
+// a removal: the new one is what the user agrees to.
+const proposalRemoves = (changes) => changes.some((change) => {
+  const parts = proposalParts(change);
+  return parts.removed.length && (Array.isArray(change.after) || !parts.added.length);
+});
 
 function proposalSources(proposal) {
   const box = element("div", undefined, "proposal-sources");
@@ -675,6 +704,10 @@ function proposalItem(proposal) {
   }
   if (proposal.status === "open" && proposal.changes?.length) {
     item.append(element("p", "Change to the card (everything else stays):", "hint"), ...proposal.changes.map(proposalChange));
+    // A removal changes this card only; it is not carried to another personality type as an agreement is.
+    if (proposalRemoves(proposal.changes)) {
+      item.append(element("p", "This changes the current card only. Switching type later starts from that type's own card plus what you agreed with your agent.", "hint proposal-removal-note"));
+    }
   }
   if (proposal.status === "accepted") item.append(element("p", `Accepted on ${shortDate(proposal.decided_at)} as version ${proposal.version}.`, "hint"));
   if (proposal.status === "rejected") {

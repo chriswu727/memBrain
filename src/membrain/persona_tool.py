@@ -1,5 +1,7 @@
 """The persona tool the host AI calls: list the personality types, switch when the user asks (a request to reset the
-persona is a switch too), and propose a change the user then confirms or declines in the conversation.
+persona is a switch too), and propose a change the user then confirms or declines in the conversation: entries to add,
+entries to remove (``changes.remove``), so a replacement is one proposal, voice fields, a name or a mood to set or
+clear. Since the memory page has no card editor (2026-11-18), this is how a user changes the card by talking.
 
 Switching is the user's own request, so it is done at once; it must cite the user's message, as notes do. A proposed
 change waits for the user's answer, and the service will not apply it without a later user message
@@ -31,9 +33,11 @@ TOOL_DESCRIPTION = (
     "again. When the user asks to reset their persona, that means switch with random, or with the type they name. "
     "action propose with "
     "changes and a short reason: values, traits or boundaries are lists of phrases to ADD to the card (a behaviour "
-    "goes in values as one sentence), voice is an object of short phrases (register, length, emoji, language), "
-    "name and baseline_mood replace; only when the user "
-    "explicitly asks you to behave differently from now on ('be more patient from now on') or keeps asking for "
+    "goes in values as one sentence); remove, an object of those lists, takes card entries off as worded there "
+    "(replace = remove + add, one proposal); voice is an object of short phrases (register, length, emoji, "
+    "language), name and baseline_mood replace (an empty string or null clears); only when the user "
+    "explicitly asks you to behave differently from now on ('be more patient from now on') or to drop or change "
+    "something on the card, or keeps asking for "
     "something the persona does not say, beyond what the manner-feedback tool records (too long, too formal, more "
     "jokes, emoji). Never propose a change on your own taste. Nothing changes until the user says yes: describe the "
     "change in a sentence and ask; when they clearly say yes in a later message, call confirm with the proposal_id; "
@@ -49,6 +53,10 @@ NOTES = {
     "propose": ("Nothing has changed yet. Describe this change to the user in one sentence, in their language, and ask "
                 "whether they want it. When they clearly say yes in their next message, call this tool with action "
                 "confirm, this proposal_id and that message as the source; when they say no, call decline."),
+    # Added to the propose note when the proposal takes something off the card (summary: "Remove ..."), so the user
+    # hears it before they say yes.
+    "removes": ("Say what it removes. This changes the current card only: switching type later starts from that "
+                "type's own card plus what the user agreed with you."),
     "confirmed": "Saved as a new persona version. Tell the user briefly; present yourself this way from now on.",
     "waiting_for_message": ("Not saved yet: the new persona version is saved when this turn is recorded and shows from "
                             "the next message. Tell the user briefly that it takes effect from their next message (not "
@@ -56,6 +64,40 @@ NOTES = {
     "decline": ("Declined; nothing changed. Do not propose the same change again in this conversation. The user can "
                 "ask for a change later, or restore an earlier version or switch the type on the memory page."),
 }
+
+
+def _quoted(values) -> str:
+    return "; ".join(f'"{value}"' for value in values)
+
+
+def _shown(value) -> str:
+    if isinstance(value, dict):  # A baseline mood.
+        return f"{value.get('label')} (valence {value.get('valence')}, energy {value.get('energy')})"
+    return str(value)
+
+
+def summary(changes) -> tuple[list[str], bool]:
+    """What a proposal's listed changes (``persona_growth._changes``: each field with its value before and after)
+    remove, add or replace, one plain line each, and whether it takes anything off the card (an entry removed or a
+    field cleared)."""
+    lines, removes = [], False
+    for change in changes or ():
+        field, before, after = change.get("field"), change.get("before"), change.get("after")
+        if isinstance(before, list) and isinstance(after, list):
+            removed, added = [v for v in before if v not in after], [v for v in after if v not in before]
+            if removed:
+                lines.append(f"Remove from {field}: {_quoted(removed)}.")
+            if added:
+                lines.append(f"Add to {field}: {_quoted(added)}.")
+            removes = removes or bool(removed)
+        elif before and after:
+            lines.append(f"Change {field} from {_quoted([_shown(before)])} to {_quoted([_shown(after)])}.")
+        elif after:
+            lines.append(f"Set {field} to {_quoted([_shown(after)])}.")
+        elif before:
+            lines.append(f"Clear {field} (now {_quoted([_shown(before)])}).")
+            removes = True
+    return lines, removes
 PAUSED = "Recording is paused, so the persona is not changed. Nothing was saved."
 
 
@@ -101,7 +143,9 @@ def run(directory: Path, client, action, *, preset=None, changes=None, reason=No
         if action == "propose":
             result = client.propose_persona_change(changes, reason=reason, **sources)
             proposal = result.get("proposal") or {}
-            return {"proposal_id": proposal.get("id"), "changes": proposal.get("changes"), "note": NOTES["propose"]}
+            lines, removes = summary(proposal.get("changes"))
+            return {"proposal_id": proposal.get("id"), "changes": proposal.get("changes"), "summary": lines,
+                    "note": NOTES["propose"] + (" " + NOTES["removes"] if removes else "")}
         if action == "confirm":
             exchange, conversation = (staged_turn(directory, sources["source_messages"][0], user_id, recording_capture)
                                       if len(sources["source_messages"]) == 1 and not sources["source_event_ids"]

@@ -75,6 +75,11 @@ export type PersonaCard = {
   boundaries?: readonly string[];
   baseline_mood?: { label: string; valence: -2 | -1 | 0 | 1 | 2; energy: 0 | 1 | 2 | 3 } | null;
 };
+// A proposed change: card fields to add or set, and `remove`, entries the card's lists hold to take off, so a
+// replacement is one proposal. An empty voice field or name, or a null baseline_mood, clears it.
+export type PersonaChanges = PersonaCard & {
+  remove?: { traits?: readonly string[]; values?: readonly string[]; boundaries?: readonly string[] };
+};
 export type PersonaChangeOptions = {
   brainId?: string;
   madeBy?: "host" | "user" | "feedback";
@@ -653,7 +658,7 @@ export class MemoryClient {
     });
   }
   // A change the host AI proposes; it is applied only by confirmPersonaChange citing the user's later yes.
-  proposePersonaChange(changes: PersonaCard, reason: string, options: PersonaSourceOptions = {}): Promise<JsonObject> {
+  proposePersonaChange(changes: PersonaChanges, reason: string, options: PersonaSourceOptions = {}): Promise<JsonObject> {
     return this.#request("POST", `${this.#brainPath(options.brainId)}/persona/proposals`, {
       changes, reason, ...personaSources(options),
     });

@@ -333,6 +333,10 @@ body.showing { overflow: hidden; }
 .proposal-diff ins { color: var(--accent); background: var(--wash); border-radius: 4px; padding: 0 4px;
   text-decoration: none; font-weight: 600; }
 .proposal-arrow { color: var(--muted); }
+/* What a change removes and adds, said plainly under the before and after. */
+.proposal-plain { margin: 0; flex-basis: 100%; overflow-wrap: anywhere; }
+.proposal-removes .user-text { color: var(--danger); }
+.proposal-adds .user-text { color: var(--accent); font-weight: 600; }
 .proposal-sources ul { margin: 2px 0 0; padding-left: 20px; display: grid; gap: 2px; }
 .proposal-sources li q { margin-right: 8px; overflow-wrap: anywhere; }
 .proposal-sources p { margin: 0; }
