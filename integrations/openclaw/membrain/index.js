@@ -5,7 +5,8 @@ import { spawn } from "node:child_process";
 const PACKAGE = process.env.MEMBRAIN_PACKAGE ||
   "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/f69d4cda48bca3b2d9a0f75bf0a5bcf7e05fd0e0.zip";
 
-function run(command, args, { input, timeoutMs = 12_000, env } = {}) {
+// `missing` runs instead when the command is not on the path.
+function run(command, args, { input, timeoutMs = 12_000, env, missing } = {}) {
   return new Promise((resolve) => {
     let child;
     try {
@@ -17,15 +18,28 @@ function run(command, args, { input, timeoutMs = 12_000, env } = {}) {
     let output = "";
     const timer = setTimeout(() => child.kill(), timeoutMs);
     child.stdout.on("data", (chunk) => { output += chunk; });
-    child.on("error", () => { clearTimeout(timer); resolve(null); });
+    child.on("error", (error) => {
+      clearTimeout(timer);
+      resolve(error?.code === "ENOENT" && missing ? missing() : null);
+    });
     child.on("close", (code) => { clearTimeout(timer); resolve(code === 0 ? output : null); });
     child.stdin.on("error", () => {});
     child.stdin.end(input === undefined ? "" : JSON.stringify(input));
   });
 }
 
+// Said once per session when the runtime cannot run at all, since the runtime that would say it is missing.
+export const NO_UV = "memBrain is installed but cannot run: uv was not found on this computer, so nothing is " +
+  "remembered or recalled. In your first reply, tell the user this once and ask them to install uv from " +
+  "https://docs.astral.sh/uv/ and then start a new session.";
+let uvMissing = false;  // Neither uvx nor uv was on the path at the last attempt.
+
+// uvx is uv's shortcut for `uv tool run`: with uv but no uvx on the path, the long form runs the same command.
 function membrain(args, options) {
-  return run("uvx", ["--offline", "--python", "3.12", "--from", "membrain-ai", "membrain", "plugin", ...args], options);
+  const command = ["--offline", "--python", "3.12", "--from", "membrain-ai", "membrain", "plugin", ...args];
+  uvMissing = false;
+  return run("uvx", command, { ...options, missing: () => run("uv", ["tool", "run", ...command],
+    { ...options, missing: () => { uvMissing = true; return null; } }) });
 }
 
 function textOf(content) {
@@ -231,8 +245,9 @@ export function memoryUser(ctx) {
 const OWNER = Symbol("owner");
 const DENIED = Symbol("denied");
 
-export function createMembrain({ exec = membrain, directory } = {}) {
+export function createMembrain({ exec = membrain, directory, unavailable = () => uvMissing } = {}) {
   const env = directory ? { MEMBRAIN_DIRECTORY: directory } : undefined;
+  const told = new Set();  // Sessions already told that the runtime cannot run.
   const prompts = new Map();  // session -> the current turn's prompt, dropped when the turn ends
   const users = new Map();  // Session aliases -> memory owner and canonical session, learned from the turn's hooks.
   const remember = (ctx) => {
@@ -270,7 +285,12 @@ export function createMembrain({ exec = membrain, directory } = {}) {
         ? await hook("user-prompt", { session_id: session, prompt_id: event?.currentUserMessageId, prompt }, user)
         : null;
       const result = {};
-      if (block) result.appendSystemContext = block;
+      if (block) {
+        result.appendSystemContext = block;
+      } else if (unavailable() && !told.has(session)) {
+        told.add(session);
+        result.appendSystemContext = NO_UV;
+      }
       if (recalled) result.prependContext = recalled;
       return Object.keys(result).length ? result : undefined;
     },

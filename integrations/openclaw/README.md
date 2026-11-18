@@ -6,7 +6,7 @@ Your own private chats with the assistant share your memory with Claude Code, Co
 
 ## Install
 
-Requires [uv](https://docs.astral.sh/uv/) on the Gateway's `PATH`.
+Requires [uv](https://docs.astral.sh/uv/) on the Gateway's `PATH`; `uvx` is optional (the plugin uses `uv tool run` without it). Without uv, in your own conversations the assistant is told once per conversation that memBrain cannot run and asked to tell you to install uv.
 
 ```sh
 curl -L https://github.com/chriswu727/memBrain/archive/refs/heads/main.zip -o membrain.zip

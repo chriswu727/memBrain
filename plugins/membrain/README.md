@@ -22,7 +22,7 @@ codebuddy plugin marketplace add chriswu727/memBrain
 codebuddy plugin install membrain@membrain
 ```
 
-Requires [uv](https://docs.astral.sh/uv/). No Docker, setup wizard or extra model API key.
+Requires [uv](https://docs.astral.sh/uv/); `uvx` is optional, since the hooks and the tool server run the runtime with `uv tool run` without it. No Docker, setup wizard or extra model API key. Without uv, or until the runtime has installed (the first session, or an installation that failed), the session-start hook tells the agent once that memory is not running and what the user can do, so the agent tells you ([wording](../../docs/reference.md#when-the-runtime-cannot-run)). This was checked with fake uv commands, not yet in a real host.
 
 The runtime is downloaded as an archive pinned to a full commit, so installation does not require the Git command.
 
@@ -33,7 +33,7 @@ After the runtime is installed, run `membrain plugin setup` to open the guided m
 | Hook | Behaviour |
 | --- | --- |
 | `SessionStart` (asynchronous) | Installs or updates the runtime with `uv tool install` and starts the local service with an embedded PostgreSQL database. |
-| `SessionStart` | Adds Claude's saved notes about you and your recent messages from other sessions. |
+| `SessionStart` | Adds Claude's saved notes about you and your recent messages from other sessions; while the runtime cannot run, a one-line notice saying so instead. |
 | `UserPromptSubmit` | Refreshes changed saved notes, recalls related earlier messages by keywords and meaning, and stages the privacy-filtered user message. |
 | `Stop` | Records the staged user message and Claude's final reply together. |
 

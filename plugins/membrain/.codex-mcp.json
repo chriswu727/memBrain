@@ -1,8 +1,10 @@
 {
   "mcpServers": {
     "membrain": {
-      "command": "uvx",
+      "command": "uv",
       "args": [
+        "tool",
+        "run",
         "--python",
         "3.12",
         "--from",

@@ -6,7 +6,7 @@
 
 ## 安装
 
-需要 Gateway 的 `PATH` 中有 [uv](https://docs.astral.sh/uv/)。
+需要 Gateway 的 `PATH` 中有 [uv](https://docs.astral.sh/uv/)；`uvx` 可有可无（没有它时插件改用 `uv tool run`）。没有 uv 时，在你自己的对话里，助手会在每个对话中被告知一次 memBrain 无法运行，并被要求提醒你安装 uv。
 
 ```sh
 curl -L https://github.com/chriswu727/memBrain/archive/refs/heads/main.zip -o membrain.zip

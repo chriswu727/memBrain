@@ -50,6 +50,19 @@ Boundary-read errors propagate to the caller so an unavailable relationship serv
 
 memBrain cannot withdraw text already supplied to a model, or erase a host's independently retained transcript. Refreshing memBrain's contribution does not rewrite a host's chat history. Native hosts must invoke their lifecycle/provider hooks; framework-level caching outside this adapter is not controlled by memBrain.
 
+## When the runtime cannot run
+
+Launchers need uv; `uvx` is optional (`uv tool run` is used without it). Without uv, or before the installed runtime runs, the launcher itself tells the host's AI once at session start ([wording](reference.md#when-the-runtime-cannot-run)). Checked on Linux with fake `uv` and `uvx` commands on a sandboxed path, not in the host applications.
+
+| Integration | Told when uv is missing | Told when uv is present but the runtime does not run |
+| --- | --- | --- |
+| Claude Code, Codex | Session-start hook context | Session-start hook context |
+| WorkBuddy / CodeBuddy | Session-start hook context from `bin/membrain-hook`; `membrain-hook.cmd` by inspection only | The same |
+| OpenClaw | Appended system context, once per session, owner's conversations only | Not told; memory tools answer that memBrain "may still be installing" |
+| AstrBot, Hermes, proxy | Not applicable: AstrBot and Hermes install the runtime into their own Python with pip or `uv pip`, and the user runs the proxy; no launcher | Not applicable |
+
+Not shown at all when the host does not run the plugin's hooks: Codex before the user trusts them in `/hooks`; Claude Code on Windows without Git Bash, which runs hooks with PowerShell; WorkBuddy's PowerShell fallback. A failed tool server is shown only where the host shows MCP status (in Claude Code, `/mcp` and `claude mcp list`).
+
 ## What was actually exercised
 
 - **Shared installed runtime on macOS:** runtime `fc149df` passed [49 fresh launcher checks, 112 installed regressions and two 187-input installed comparisons](../evaluations/maturity-semantic-balance-2026-11-07.md#exact-runtime-installation-and-fullscreen-qualification), including MCP, proxy, companion preservation, upgrade/restart and backup/restore. This is not a claim that every native macOS host application ran. The earlier `d4d7126` result remains scoped to its own runtime.

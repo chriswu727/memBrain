@@ -174,8 +174,8 @@ def test_hook_commands_do_not_persist_unfiltered_input_without_the_runtime(
     payload = {"session_id": "s1", "prompt_id": "p1", "prompt": "I'm Mei.\nPeanut allergy.",
                "last_assistant_message": "Noted."}
     system_path = "/usr/bin:/bin"
-    if shutil.which("uvx", path=system_path):
-        pytest.skip("uvx is installed on the system path")
+    if shutil.which("uvx", path=system_path) or shutil.which("uv", path=system_path):
+        pytest.skip("uv is installed on the system path")  # The hooks fall back to `uv tool run` without uvx.
     if runtime_fails:
         launcher = tmp_path / "uvx"
         launcher.write_text("#!/bin/sh\nexit 1\n")
@@ -639,15 +639,20 @@ def test_workbuddy_launcher_does_not_persist_unfiltered_input_without_the_runtim
     from pathlib import Path
 
     bash = shutil.which("bash")
-    if bash is None or shutil.which("uvx", path="/usr/bin:/bin"):
-        pytest.skip("needs bash and no system-wide uvx")
+    if bash is None or shutil.which("uvx", path="/usr/bin:/bin") or shutil.which("uv", path="/usr/bin:/bin"):
+        pytest.skip("needs bash and no system-wide uv or uvx")
     launcher = Path(__file__).parents[1] / "plugins" / "membrain" / "bin" / "membrain-hook"
     payload = {"session_id": "s1", "prompt": "Mei turns 30.\nShe hates sesame.", "hook_event_name": "UserPromptSubmit"}
     environment = {"PATH": "/usr/bin:/bin", "CLAUDE_PLUGIN_DATA": str(tmp_path / "data")}
     for event in ("start", "session-start", "user-prompt"):
         result = subprocess.run([bash, str(launcher), event], input=json.dumps(payload, indent=2), text=True,
                                 capture_output=True, env=environment, timeout=30)
-        assert result.returncode == 0 and result.stdout == ""
+        assert result.returncode == 0
+        if event == "session-start":  # Only the notice that uv is missing (tests/test_launchers.py), no input.
+            assert "uv was not found" in json.loads(result.stdout)["hookSpecificOutput"]["additionalContext"]
+            assert "Mei" not in result.stdout
+        else:
+            assert result.stdout == ""
     assert not (tmp_path / "data" / "pending-hooks.jsonl").exists()
 
 
