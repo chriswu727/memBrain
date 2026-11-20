@@ -339,7 +339,7 @@ def start(directory: Path | None = None) -> dict:
         if _supervisor_active(profile):
             raise DesktopError("service_transitioning", "The service is starting or finishing work. Check desktop status before retrying.")
         if _port_open(profile.api_port):
-            raise DesktopError("port_conflict", "The saved API port belongs to another service. Free that port and retry; no process was stopped.")
+            raise DesktopError("port_conflict", f"Port {profile.api_port}, the saved API port of this installation, is in use by another program. Free that port and retry; no process was stopped.")
         print("Starting the local memory database and service…", file=sys.stderr)
         _prepare_database(profile)
         profile = load_profile(profile.directory)
@@ -381,7 +381,7 @@ def stop(directory: Path | None = None) -> dict:
             except (httpx.HTTPError, KeyError):
                 raise DesktopError("stop_unconfirmed", "The service did not confirm shutdown; no process was killed.") from None
         elif _port_open(profile.api_port):
-            raise DesktopError("port_conflict", "The API port is not this installation; no process was stopped.")
+            raise DesktopError("port_conflict", f"Port {profile.api_port}, the saved API port, is in use by another program, not this installation; no process was stopped.")
         _wait_stopped(profile)
         _database_stop(profile)
         return {**_base_status(profile), "ready": False, "state": "stopped",

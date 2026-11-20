@@ -77,6 +77,7 @@ def test_start_foreign_port_never_prepares_database_or_launches(profile, monkeyp
     with pytest.raises(desktop.DesktopError) as error:
         desktop.start(profile.directory)
     assert error.value.code == "port_conflict"
+    assert f"Port {profile.api_port}," in str(error.value)  # The user is told which port to free.
 
 
 def test_start_degraded_owned_service_does_not_spawn_a_second_process(profile, monkeypatch):
@@ -174,6 +175,7 @@ def test_stop_foreign_port_does_not_send_shutdown_or_touch_database(profile, mon
     with pytest.raises(desktop.DesktopError) as error:
         desktop.stop(profile.directory)
     assert error.value.code == "port_conflict"
+    assert f"Port {profile.api_port}," in str(error.value)
 
 
 def test_stop_waits_for_owned_instance_then_stops_database_without_removing_volume(profile, monkeypatch):

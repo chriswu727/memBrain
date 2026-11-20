@@ -22,7 +22,7 @@ codebuddy plugin marketplace add chriswu727/memBrain
 codebuddy plugin install membrain@membrain
 ```
 
-Requires [uv](https://docs.astral.sh/uv/); `uvx` is optional, since the hooks and the tool server run the runtime with `uv tool run` without it. No Docker, setup wizard or extra model API key. Without uv, or until the runtime has installed (the first session, or an installation that failed), the session-start hook tells the agent once that memory is not running and what the user can do, so the agent tells you ([wording](../../docs/reference.md#when-the-runtime-cannot-run)). This was checked with fake uv commands, not yet in a real host.
+Requires [uv](https://docs.astral.sh/uv/); `uvx` is optional, since the hooks and the tool server run the runtime with `uv tool run` without it. No Docker, setup wizard or extra model API key. Without uv, or until the runtime has installed (the first session, or an installation that failed), the session-start hook tells the agent once that memory is not running and what the user can do, so the agent tells you ([wording](../../docs/reference.md#when-the-runtime-cannot-run)). This was checked with fake uv commands, not yet in a real host. In a sandbox run of the real launchers on 2026-11-19 the line was not given while uv was still installing: the hooks wait for uv's lock until the host stops them, and each message waited 15 seconds ([record](../../evaluations/first-run-2026-11-19.md)).
 
 The runtime is downloaded as an archive pinned to a full commit, so installation does not require the Git command.
 
