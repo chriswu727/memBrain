@@ -1045,8 +1045,16 @@ def test_both_arms_carry_the_seeded_persona_and_p_gets_the_shipped_tools_and_ins
     recorded = {arm: json.loads((tmp_path / f"run-{arm}" / "persona.json").read_text()) for arm in "PF"}
     assert recorded["P"]["preset"] == persona_draw.draw("zq-seed-1")
     assert {**recorded["P"], "arm": None} == {**recorded["F"], "arm": None}
-    block = re.search(r'<membrain-persona version="1">.*?</membrain-persona>', p_rows[0]["session_context"], re.S)
-    assert block and all(row["reference_persona"] == block[0] for row in f_rows)
+    # Claude Code is a coding host (since 2026-11-19): P's session starts with the persona's quiet form and is handed
+    # the full card with its first casual message ("My sister Ana visits on the 14th."). F is given exactly the block
+    # P's host had at each turn.
+    pattern = r'<membrain-persona version="1">.*?</membrain-persona>'
+    block = re.search(pattern, p_rows[0]["session_context"], re.S)
+    assert block and "Your own manner, not a fact about the user" in block[0] and "Traits:" not in block[0]
+    full = re.search(pattern, p_rows[1]["host_user_content"], re.S)
+    assert full and "<membrain-companion>" in p_rows[1]["host_user_content"] and "Traits:" in full[0]
+    assert [row["reference_persona"] for row in f_rows] == [row["persona_block"] for row in p_rows]
+    assert [row["reference_persona"] for row in f_rows[:3]] == [block[0], full[0], full[0]]
     assert not any("picked at random" in row["session_context"] + row["host_user_content"] for row in p_rows)
     offered = json.loads((tmp_path / "run-P" / "tools.json").read_text())
     assert {"memory_recall", "memory_note", "memory_boundary", "memory_pause", "memory_resume", "memory_consolidate",

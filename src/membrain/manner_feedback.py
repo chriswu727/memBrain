@@ -10,6 +10,9 @@ from __future__ import annotations
 from pathlib import Path
 
 KINDS = ("less_formal", "more_formal", "more_playful", "shorter", "longer", "less_emoji", "more_emoji")
+# Asking for more warmth or play brings a quiet session's companion (``host.companion_tool_used``); "shorter" or
+# "more formal" asks for less of it, and "longer" is about the work.
+WARMER = ("less_formal", "more_playful", "more_emoji")
 TOOL_DESCRIPTION = (
     "Record that the user gave you feedback on how you talk or behave, only when they actually said so: too long "
     "(shorter), too short or too thin (longer), too formal or stiff (less_formal), too casual (more_formal), too "
@@ -51,6 +54,10 @@ def report(directory: Path, client, kind, *, source_event_ids=(), source_message
             return {"error": rejected["message"], "code": rejected["code"]}
         except (ValueError, KeyError, TypeError):
             raise error from None
+    if kind in WARMER:
+        from .host import companion_tool_used
+
+        companion_tool_used(directory, recording_capture)  # A quiet session's next prompt brings the companion.
     return {**result, "note": ("Recorded with the user's other feedback on your manner. Keep following what they "
                                "asked in this conversation; any change to the persona is the user's decision on "
                                "their memory page.")}

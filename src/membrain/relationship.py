@@ -465,19 +465,22 @@ def boundaries_line(boundaries) -> str | None:
             "them, unless the user does: " + "; ".join(_boundary_text(item) for item in boundaries) + ".")
 
 
-def relationship_context(result: dict | None) -> dict:
+def relationship_context(result: dict | None, *, quiet: bool = False) -> dict:
     """``block``: the ``<membrain-relationship>`` block. ``stable``: what decides whether it changed, without the day
     count (which grows every day) and without the one-time line, so neither causes a refresh on its own; every
     missed commitment's id is in it instead, so a newly missed one does. ``once``: missed commitments shown in this
-    block for the first and only time, to be acknowledged once the block is delivered."""
+    block for the first and only time, to be acknowledged once the block is delivered.
+
+    ``quiet`` (a coding host's work session, ``host_context.snapshot``): only what binds the agent in any
+    conversation, the boundaries and its own missed promises, without the header, familiarity or shared moments."""
     if not result or "familiarity" not in result:
         return {"block": None, "stable": None, "once": []}
     today = _date(result.get("today")) or _clock_today()
     known = result["familiarity"]
-    lines = [f"Familiarity: {known['reason']}."]
+    lines = [] if quiet else [f"Familiarity: {known['reason']}."]
     # The default level is left out, so a block that only carried a one-time line and then goes away does not
     # count as a change.
-    stable = [f"Familiarity: {known['level']}."] if known["level"] != "new" else []
+    stable = [f"Familiarity: {known['level']}."] if known["level"] != "new" and not quiet else []
     boundaries = result.get("boundaries") or []
     line = boundaries_line(boundaries)
     if line:
@@ -488,8 +491,8 @@ def relationship_context(result: dict | None) -> dict:
     once_lines = [f"A promise you made is past its date and not done (shown once): {item['text']} (due "
                   f"{item.get('due') or item.get('occurs_at')}, id: {item['note_id']}). Acknowledge it briefly if it "
                   "fits, and update its note when it is done or dropped." for item in once]
-    moments = [moment for moment in result.get("shared_moments") or () if shown(moment, boundaries)]
-    header = f"<membrain-relationship>\n{HEADER}\n"
+    moments = [] if quiet else [moment for moment in result.get("shared_moments") or () if shown(moment, boundaries)]
+    header = "<membrain-relationship>\n" + ("" if quiet else f"{HEADER}\n")
     footer = "\n</membrain-relationship>"
     body = "\n".join(lines + once_lines)
     chosen = []

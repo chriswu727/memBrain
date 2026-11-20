@@ -57,6 +57,9 @@ HOST_TOOLS = {"openclaw": {"note": "membrain_note", "recall": "membrain_search",
 TOOLS = ("note", "search", "pause", "resume", "boundary", "consolidate", "manner_feedback", "persona")
 # Hosts that put their own memory files in the prompt; notes imported from them are not shown to them again.
 HOST_SKIPS = {"codex": ("codex",), "openclaw": ("openclaw",)}
+# Coding hosts: the companion is on but quiet until the conversation turns casual or emotional (owner, 2026-11-19;
+# ``host.companion_handed``). OpenClaw talks to people in chat apps, so it is not one.
+CODING_HOSTS = ("claude-code", "codex", "workbuddy")
 
 
 def _conversation(payload: dict) -> str:
@@ -125,7 +128,8 @@ def session_start(payload: dict, directory: Path, producer: str = PRODUCER) -> s
     _import_host_queue(directory, producer)
     name = next((key for key, value in PRODUCERS.items() if value == producer), "claude-code")
     return host.session_context(directory, _conversation(payload), tools=HOST_TOOLS.get(name, host.TOOL_NAMES),
-                                skip_imports_from=HOST_SKIPS.get(name, ()), user_id=_user(payload))
+                                skip_imports_from=HOST_SKIPS.get(name, ()), user_id=_user(payload),
+                                quiet=name in CODING_HOSTS)
 
 
 def user_prompt(payload: dict, directory: Path, producer: str = PRODUCER) -> str | None:
@@ -133,7 +137,7 @@ def user_prompt(payload: dict, directory: Path, producer: str = PRODUCER) -> str
     name = next((key for key, value in PRODUCERS.items() if value == producer), "claude-code")
     return host.prompt_context(directory, _conversation(payload), payload.get("prompt"), turn_id=_turn(payload),
                                producer=producer, include_source=True, tools=HOST_TOOLS.get(name, host.TOOL_NAMES),
-                               user_id=_user(payload))
+                               user_id=_user(payload), quiet=name in CODING_HOSTS)
 
 
 def _text(content) -> str:

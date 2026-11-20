@@ -24,7 +24,12 @@ def save_note(directory, client, text, *, recording_capture=None, user_id=None, 
 
     try:
         revision = note_revision(directory, client, recording_capture, user_id)
-        return write(client, text, expected_recording_revision=revision, **fields)
+        result = write(client, text, expected_recording_revision=revision, **fields)
+        if fields.get("shared") or fields.get("moment") or (fields.get("affect") or {}).get("basis") == "reported":
+            from .host import companion_tool_used
+
+            companion_tool_used(directory, recording_capture)  # A quiet session's next prompt brings the companion.
+        return result
     except ValueError as error:
         return {"error": str(error)}
     except MemoryActionError as error:

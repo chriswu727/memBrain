@@ -43,7 +43,7 @@ def _without_reset_commitments(saved, relationship):
 
 
 def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, persona=None, mood=None,
-             relationship=None, page=None):
+             relationship=None, page=None, quiet=False):
     """Saved memory for the host's context. The persona block comes first, apart from the user's memory, with its
     own size limit: it never takes room from the notes. The companion's simulated mood follows it in its own block
     (none at the baseline); the fingerprint counts its label and its trigger, so a new label or trigger refreshes
@@ -52,16 +52,21 @@ def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, perso
     not. The relationship block follows, also on its own; notes about a boundary topic are left out, and shared
     moments are shown in the relationship block only. ``page`` is the command that opens the memory page at a note,
     for a host that can run it on this brain (``notes.note_page_hint``); its sentence has its own room, so it never
-    takes a note's place."""
+    takes a note's place.
+
+    ``quiet``: a coding host's work session (owner's decision, 2026-11-19): the persona's quiet form
+    (``persona.render_manner``), no mood, and only the boundaries and missed promises of the relationship; shared
+    moments are left out of the notes too. Everything is still recorded and computed; only what is handed changes."""
     from .notes import note_page_hint
+    from .persona import render_manner
     from .relationship import relationship_context
 
-    persona_block = render_persona(persona)
-    mood_block = render_mood(mood)
-    bond = relationship_context(relationship)
+    persona_block = render_manner(persona) if quiet else render_persona(persona)
+    mood_block = None if quiet else render_mood(mood)
+    bond = relationship_context(relationship, quiet=quiet)
     boundaries = (relationship or {}).get("boundaries") or []
     saved = _without_reset_commitments(saved, relationship)
-    saved = _outside_boundaries(saved, boundaries, drop_shared=bond["block"] is not None)
+    saved = _outside_boundaries(saved, boundaries, drop_shared=quiet or bond["block"] is not None)
     shared = _outside_boundaries(shared, boundaries)
     blocks = [persona_block, mood_block, bond["block"],
               render_coming_up(saved, skip_imports_from=skip_imports_from, budget=1000),
@@ -80,7 +85,20 @@ def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, perso
     basis = [brain_id, whole] if bond["stable"] is None else [brain_id, others, bond["stable"]]
     return {"fingerprint": digest(basis), "text": text, "notes_shown": any(blocks[3:]),
             "persona_version": persona["version"] if persona_block else None, "mood_shown": bool(mood_block),
-            "boundaries": boundaries, "acknowledge": bond["once"]}
+            "boundaries": boundaries, "acknowledge": bond["once"], "companion": blocks[:3]}
+
+
+COMPANION = ("Your full companion context, for the rest of this conversation: it replaces the earlier "
+             "membrain-persona and membrain-relationship blocks; the saved notes stand.")
+
+
+def companion_update(current, lines=()) -> str:
+    """What a quiet session (``snapshot`` with ``quiet``) is handed once its conversation turns casual or emotional,
+    when nothing else changed: the full persona, mood and relationship blocks of ``current`` (a full snapshot), and
+    ``lines`` (the first persona's intro, the absence sentence) before them; the notes are not sent again."""
+    lead = " ".join((COMPANION, *(line.strip() for line in lines if line)))
+    return "\n\n".join(("<membrain-companion>\n" + lead + "\n</membrain-companion>",
+                        *(block for block in current["companion"] if block)))
 
 
 def update(current, previous, previous_persona=None, previous_mood=False):

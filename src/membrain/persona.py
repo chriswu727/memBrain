@@ -135,6 +135,31 @@ def render_persona(persona: dict | None) -> str | None:
             "emotions because of it.\n" + body + "\n</membrain-persona>")
 
 
+def render_manner(persona: dict | None) -> str | None:
+    """The quiet form of the ``<membrain-persona>`` block, for a coding host's work session (``host_context``): the
+    voice, and of the traits, values and boundaries only those the user's personality type does not have, which are
+    what the user agreed with the agent or wrote themselves. A host was seen to follow the voice (emoji in almost
+    every reply after a switch to a type with "emoji now and then": host trial of 2026-11-13); no trial showed it
+    using the type's own traits or values, so they wait for a casual exchange, with the baseline mood. A card with no
+    type is shown whole but for its mood."""
+    if not render_persona(persona):
+        return None
+    from .persona_presets import PRESETS
+
+    card = {**EMPTY_CARD, **(persona.get("card") or {})}
+    origin = persona.get("preset") or persona.get("based_on")
+    own = next((item["card"] for item in PRESETS if item["id"] == origin), None)
+    quiet = {**card, "baseline_mood": None}
+    if own is not None:
+        quiet.update({field: [value for value in card[field] if value not in own.get(field, ())]
+                      for field in ("traits", "values", "boundaries")})
+    body = render_card(quiet)
+    if not body:
+        return None
+    return (f'<membrain-persona version="{int(persona["version"])}">\nYour own manner, not a fact about the user; '
+            "where the user's preferences differ, follow the user.\n" + body + "\n</membrain-persona>")
+
+
 HISTORY_DELETED = "history_deleted"
 # Restoring an exported archive keeps every record but files it under the import producer.
 ARCHIVE_PRODUCER = "archive-import"

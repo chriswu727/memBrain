@@ -65,8 +65,13 @@ def delete(directory, user, kind, ids, conversation):
     assert result.get("outcome") == "completed", result
 
 
+# The session start of a chat host with several people (OpenClaw), which shows the absence sentence and the
+# familiarity line at once; a coding host holds both for a casual message (test_quiet_companion.py).
+CHAT_HOST = plugin.PRODUCERS["openclaw"]
+
+
 def opening(directory, user, session):
-    return plugin.session_start({"session_id": session, "membrain_user": user}, directory) or ""
+    return plugin.session_start({"session_id": session, "membrain_user": user}, directory, CHAT_HOST) or ""
 
 
 def test_a_deleted_last_message_gives_no_date_and_the_one_before_it_is_used(installation, clock):
@@ -119,7 +124,7 @@ def test_a_deletion_after_the_first_context_and_before_it_is_shown_again_is_seen
     assert SENTENCE not in str(state) and "12 days ago" not in str(state)
     # The first prompt still ends the notice for this session.
     plugin.user_prompt({"session_id": session, "prompt": "Hello.", "prompt_id": "t1", "membrain_user": user},
-                       directory)
+                       directory, CHAT_HOST)
     assert SENTENCE not in opening(directory, user, session)
 
 

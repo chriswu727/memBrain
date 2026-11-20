@@ -1644,7 +1644,7 @@ def _mark_history(directory: Path, session: str, complete: bool, brain_id: str |
             key: state[key] for key in ("pending", "user_id", "paused_turn", "paused_at", "resumed_turn",
                                         "turns", "turns_managed", "turns_require_staging", "callbacks",
                                         "last_prompt", "last_prompt_key", "last_prompt_recording",
-                                        "persona_intro", "absence")
+                                        "persona_intro", "absence", "companion", "companion_tool")
             if key in state}})
     with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
         cutoff = time.time() - SESSION_MARKER_SECONDS
@@ -1670,7 +1670,9 @@ def _remember_context(directory, session, brain_id, current, options):
         _write_session_state(directory, session, state)
 
 
-def _saved_context(client, real_life, roleplay, options):
+def _saved_context(client, real_life, roleplay, options, *, quiet=False, also_quiet=False):
+    """The saved notes and the snapshot for the host, quiet or not (``host_context.snapshot``); with ``also_quiet``,
+    the quiet snapshot of the same reads is returned third, to tell whether only the companion changed."""
     from .host_context import snapshot
     from .notes import list_notes
 
@@ -1685,9 +1687,11 @@ def _saved_context(client, real_life, roleplay, options):
             shared = list_notes(client)
         finally:
             client.brain_id = current
-    return saved, snapshot(saved, brain_id=client.brain_id, shared=shared, persona=_persona(client),
-                           relationship=_relationship(client), mood=_persona(client, "mood"),
-                           tools=options["tools"], skip_imports_from=options.get("skip_imports_from", ()), page=page)
+    read = {"brain_id": client.brain_id, "shared": shared, "persona": _persona(client),
+            "relationship": _relationship(client), "mood": _persona(client, "mood"), "tools": options["tools"],
+            "skip_imports_from": options.get("skip_imports_from", ()), "page": page}
+    current = snapshot(saved, **read, quiet=quiet)
+    return (saved, current, snapshot(saved, **read, quiet=True)) if also_quiet else (saved, current)
 
 
 def _persona(client, route: str = "persona") -> dict | None:
@@ -1726,16 +1730,17 @@ def _first_persona(directory: Path, client, *, roleplay, paused_now: bool) -> di
     return result.get("preset") if isinstance(result, dict) and result.get("assigned") else None
 
 
-def _intro(preset: dict | None, tools: dict | None) -> str:
-    """The one-time line for the session in which the first persona was picked."""
+def _intro(preset: dict | None, tools: dict | None, *, first: bool = True) -> str:
+    """The one-time line for the session in which the first persona was picked. A quiet session (a coding host's)
+    holds it until its conversation turns casual, and then it is for the reply at hand (``first`` false)."""
     if not preset:
         return ""
     command = (tools or {}).get("persona_command")
     how = (f"they can switch with {command} (or by asking you)" if command
            else "they can ask you to switch to another type, or pick one at random, at any time")
     return (f"A personality type was picked at random for this user's companion: {preset['label']} "
-            f"({preset['summary']}). In your first reply, mention it once, briefly and naturally, and say that {how}. "
-            "If you already told them in this conversation, do not repeat it.")
+            f"({preset['summary']}). In your {'first ' if first else ''}reply, mention it once, briefly and "
+            f"naturally, and say that {how}. If you already told them in this conversation, do not repeat it.")
 
 
 def _pending_intro(directory: Path, session: str, brain_id: str, preset: dict | None = None,
@@ -1852,6 +1857,49 @@ def _absence_shown(directory: Path, session: str) -> None:
             state["absence"]["pending"] = False
             state["absence"].pop("text", None)
             _write_session_state(directory, session, state)
+
+
+# The companion on a coding host (owner's decision, 2026-11-19) ---------------------------------------------------
+# Always on, but quiet: a session starts with the persona's quiet form, the agreements and the boundaries
+# (``host_context.snapshot`` with ``quiet``), and the rest of the companion is handed once, through the prompt hook,
+# when the conversation turns casual or emotional (``conversation_tone.companion_cue``) or the host uses a companion
+# tool in it; it then stays for the session. The session's state says it was handed (``companion``) and that a
+# companion tool was used (``companion_tool``), so a session context rebuilt later (a resumed session) keeps it.
+
+def companion_handed(directory: Path, session: str, brain_id: str) -> bool:
+    handed = session_state(directory, session).get("companion")
+    return isinstance(handed, dict) and handed.get("brain_id") == brain_id
+
+
+def _hand_companion(directory: Path, session: str, brain_id: str, cue: str) -> None:
+    with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+        state = session_state(directory, session)
+        state["companion"] = {"brain_id": brain_id, "cue": cue}
+        state.pop("companion_tool", None)
+        _write_session_state(directory, session, state)
+
+
+def companion_tool_used(directory: Path, recording_capture) -> None:
+    """A companion tool was used in the conversation a turn's recording capture belongs to: a note with a shared
+    moment or a feeling the user said, manner feedback asking for more warmth or play, or the persona tool. Its next
+    prompt brings the companion; nothing happens for a capture that names no session here."""
+    from .host_recording import capture_marker
+    from .local_profile import LocalProfileBusy
+
+    marker = capture_marker(recording_capture)
+    if marker is None or directory is None:
+        return
+    path = state_directory(directory) / "sessions" / f"{marker}.json"
+    if not path.exists():
+        return
+    try:  # A courtesy: the tool call it follows has already been answered.
+        with profile_lock(state_directory(directory) / "session-state-lock", timeout=5):
+            state = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(state, dict) and not state.get("companion_tool") and not state.get("companion"):
+                state["companion_tool"] = True
+                _write_session_marker(path, state)
+    except (OSError, ValueError, LocalProfileBusy) as error:
+        log(directory, f"companion tool mark failed: {type(error).__name__}")
 
 
 # Relationship (R1) --------------------------------------------------------------------------------------------
@@ -2688,17 +2736,20 @@ def _session_notice(complete: bool, tools: dict | None, is_paused: bool, rolepla
 
 def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_NAMES,
                     user_id: str | None = None, skip_imports_from=(), roleplay: str | None = None,
-                    share_real_life: bool = False) -> str:
+                    share_real_life: bool = False, quiet: bool = False) -> str:
     """Notice, saved notes and recent history for a new session; starts the service if it is not running.
 
     ``user_id`` selects one user's memory in a multi-user host; without it the installation's own memory is used.
     ``skip_imports_from`` names hosts whose own memory files are already in the prompt, so notes imported from them
     are not repeated. ``roleplay`` names a role-play character whose separate memory is used; with
-    ``share_real_life`` the person's non-sensitive real-life notes are shown too, marked as such.
+    ``share_real_life`` the person's non-sensitive real-life notes are shown too, marked as such. ``quiet``: a coding
+    host, whose session starts with the companion's quiet form (``companion_handed``); the first persona's intro and
+    the absence sentence wait for the prompt hook.
     """
     real_life = user_id
     user_id = roleplay_user(user_id, roleplay)
-    options = {"tools": tools, "skip_imports_from": list(skip_imports_from), "share_real_life": share_real_life}
+    options = {"tools": tools, "skip_imports_from": list(skip_imports_from), "share_real_life": share_real_life,
+               "quiet": quiet}
     history, current, complete, consolidation, intro, confirmation, absence = None, None, False, "", "", "", ""
     resumed = ("Recording was paused for an earlier conversation only; that local pause has ended. "
                if end_conversation_pause(directory, session, real_life) else "")
@@ -2730,6 +2781,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
             confirmation = _persona_confirmation(directory, client, user_id, session)
             first = _first_persona(directory, client, roleplay=roleplay,
                                    paused_now=policy["paused"] or paused(directory, user_id, session))
+            held = quiet and not companion_handed(directory, session, client.brain_id)
             try:
                 intro = _intro(_pending_intro(directory, session, client.brain_id, first), tools)
             except Exception as error:  # The intro is a courtesy; it never costs the session its context.
@@ -2738,8 +2790,10 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
                 absence = "" if roleplay else _absence(directory, session, client)
             except Exception as error:  # A courtesy too.
                 log(directory, f"absence notice failed: {type(error).__name__}")
+            if held:  # Kept waiting in the session's state for the prompt hook.
+                intro = absence = ""
             try:
-                _, current = _saved_context(client, real_life, roleplay, options)
+                _, current = _saved_context(client, real_life, roleplay, options, quiet=held)
                 _acknowledge(client, current)  # This block is returned below, so its one-time lines are shown.
             except Exception as error:
                 log(directory, f"notes failed: {type(error).__name__}")
@@ -2774,14 +2828,18 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
 
 def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str | None = None,
                    producer: str = PRODUCER, user_id: str | None = None, roleplay: str | None = None,
-                   include_source: bool = False, tools: dict | None = TOOL_NAMES) -> str | None:
-    """Related earlier messages for this prompt. The prompt is staged and stored when the turn finishes."""
+                   include_source: bool = False, tools: dict | None = TOOL_NAMES,
+                   quiet: bool = False) -> str | None:
+    """Related earlier messages for this prompt. The prompt is staged and stored when the turn finishes. ``quiet``: a
+    coding host (``session_context``); its companion context is handed here once the conversation turns casual or
+    emotional."""
     if not isinstance(prompt, str) or not prompt.strip():
         return None
     real_life = user_id
     user_id = roleplay_user(user_id, roleplay)
     record = message_record(session, "user", prompt, turn_id=turn_id, producer=producer, user_id=user_id)
     state = session_state(directory, session)
+    absence_waiting = isinstance(state.get("absence"), dict) and bool(state["absence"].get("pending"))
     if isinstance(state.get("absence"), dict) and (state["absence"].get("pending") or "text" in state["absence"]):
         _absence_shown(directory, session)  # The session's first prompt: never again in this session.
         state["absence"]["pending"] = False  # This copy is written back later in the turn.
@@ -2813,25 +2871,57 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
                   + ". This reference links after the turn is recorded.\nFor every memory write from this turn, pass recording_capture="
                   + json.dumps(capture) + ". Never substitute a later turn's capture.\n</membrain-source>")
     with client:
-        from .host_context import update
+        from .host_context import companion_update, update
         from .notes import alias_cues
 
         saved, refreshed, current = {"items": []}, None, None
         context = session_state(directory, session).get("memory_context") or {}
         same_brain = context.get("brain_id") == client.brain_id
-        options = ({name: context[name] for name in ("tools", "skip_imports_from", "share_real_life")}
-                   if same_brain else {"tools": tools, "skip_imports_from": [], "share_real_life": False})
+        options = ({name: context.get(name) for name in ("tools", "skip_imports_from", "share_real_life", "quiet")}
+                   if same_brain else {"tools": tools, "skip_imports_from": [], "share_real_life": False,
+                                       "quiet": quiet})
         waiting = None
         try:
-            if "persona_intro" in state:  # The session's first prompt: the intro was shown, or is now, never again.
+            # A quiet session hands its companion context once: at the first casual or emotional message, or the
+            # first after the host used a companion tool in it (``companion_tool_used``).
+            held = bool(options["quiet"]) and not companion_handed(directory, session, client.brain_id)
+            cue = None
+            if held:
+                from .conversation_tone import companion_cue
+
+                cue = companion_cue(prompt) or ("tool" if state.get("companion_tool") else None)
+                if cue:
+                    _hand_companion(directory, session, client.brain_id, cue)
+            if "persona_intro" in state and not (held and not cue):
+                # The session's first prompt (a quiet one's companion): the intro was shown, or is now, never again.
                 waiting = _pending_intro(directory, session, client.brain_id, clear=True)
             first = None if same_brain else _first_persona(
                 directory, client, roleplay=roleplay,
                 paused_now=policy["paused"] or paused(directory, user_id, session))
-            saved, current = _saved_context(client, real_life, roleplay, options)
-            refreshed = update(current, context.get("fingerprint") if same_brain else None,
-                               context.get("persona_version") if same_brain else None,
-                               bool(context.get("mood_shown")) if same_brain else False)
+            if first and held and not cue:  # Held, as at a quiet session's start.
+                _pending_intro(directory, session, client.brain_id, first)
+                first = None
+            intro = ""
+            if (first or waiting) and cue in ("casual", "self"):
+                # A held intro goes with the companion only to a greeting, small talk or a question about the agent.
+                intro = _intro(first or waiting, options["tools"], first=False)
+            elif (first or waiting) and not held and not same_brain:
+                intro = _intro(first or waiting, options["tools"])
+            absence = (absence_notice(_last_message_at(client, session))
+                       if cue and absence_waiting and not roleplay else "")
+            saved, current, *quiet_current = _saved_context(client, real_life, roleplay, options,
+                                                            quiet=held and not cue, also_quiet=bool(cue))
+            if cue and same_brain and context.get("fingerprint") == quiet_current[0]["fingerprint"]:
+                # Only the companion is new: its blocks, not the notes again.
+                refreshed = (companion_update(current, (intro, absence))
+                             if current["fingerprint"] != quiet_current[0]["fingerprint"] else None)
+                if refreshed:
+                    intro = absence = ""
+            else:
+                refreshed = update(current, context.get("fingerprint") if same_brain else None,
+                                   context.get("persona_version") if same_brain else None,
+                                   bool(context.get("mood_shown")) if same_brain else False)
+            lines = " ".join(line for line in (intro, absence) if line)
             if not same_brain:
                 notice = "memBrain memory is active for this user. "
                 if roleplay:
@@ -2839,9 +2929,9 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
                 if options["tools"]:
                     notice += (f"Save lasting facts with {options['tools']['note']}; search with "
                                f"{options['tools']['recall']} when personal context is missing. ")
-                if first or waiting:
-                    notice += _intro(first or waiting, options["tools"]) + " "
-                refreshed = notice + "\n\n" + refreshed
+                refreshed = notice + (lines + " " if lines else "") + "\n\n" + refreshed
+            elif lines:
+                refreshed = lines + ("\n\n" + refreshed if refreshed else "")
             _remember_context(directory, session, client.brain_id, current, options)
             if refreshed:
                 _acknowledge(client, current)

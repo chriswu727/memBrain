@@ -127,19 +127,22 @@ class Timeline(Client):
 
 
 SENTENCE = "The user's last conversation with you was"
+# A chat host's hooks (OpenClaw's), which put the sentence in the session notice; a coding host holds it for the
+# first message when that message is casual (test_quiet_companion.py).
+CHAT_HOST = plugin.PRODUCERS["openclaw"]
 
 
 def test_the_session_notice_says_it_once_and_leaves_out_what_is_not_a_conversation(tmp_path, monkeypatch):
     client = Timeline([("membrain-notes", "membrain-notes", ago(1)), ("chat-2", "membrain-memory-page", ago(2)),
                        ("imported", "membrain-import:hermes", ago(3)), ("c1", "membrain-claude-code", ago(19))])
     monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: client)
-    opening = plugin.session_start({"session_id": "c2"}, tmp_path)
+    opening = plugin.session_start({"session_id": "c2"}, tmp_path, CHAT_HOST)
     assert opening.count(SENTENCE + " 19 days ago (24 August).") == 1
     assert client.asked[0]["exclude_conversation"] == "c2" and client.asked[0]["roles"] == ("user",)
     # A context rebuilt before the first prompt (a resumed session) still has it; nothing after the first prompt does.
-    assert SENTENCE in plugin.session_start({"session_id": "c2"}, tmp_path)
-    plugin.user_prompt({"session_id": "c2", "prompt": "Hi again!", "prompt_id": "t1"}, tmp_path)
-    assert SENTENCE not in plugin.session_start({"session_id": "c2"}, tmp_path)
+    assert SENTENCE in plugin.session_start({"session_id": "c2"}, tmp_path, CHAT_HOST)
+    plugin.user_prompt({"session_id": "c2", "prompt": "Hi again!", "prompt_id": "t1"}, tmp_path, CHAT_HOST)
+    assert SENTENCE not in plugin.session_start({"session_id": "c2"}, tmp_path, CHAT_HOST)
 
 
 @pytest.mark.parametrize("messages", [[], [("c1", "membrain-claude-code", ago(6))],
@@ -147,7 +150,7 @@ def test_the_session_notice_says_it_once_and_leaves_out_what_is_not_a_conversati
 def test_no_sentence_for_a_first_conversation_or_a_short_gap(tmp_path, monkeypatch, messages):
     client = Timeline(messages)
     monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: client)
-    assert SENTENCE not in plugin.session_start({"session_id": "c2"}, tmp_path)
+    assert SENTENCE not in plugin.session_start({"session_id": "c2"}, tmp_path, CHAT_HOST)
 
 
 def test_each_person_on_a_multi_user_host_gets_their_own_and_a_chat_bot_says_it_with_the_first_message(

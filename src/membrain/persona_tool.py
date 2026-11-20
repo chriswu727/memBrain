@@ -128,6 +128,9 @@ def run(directory: Path, client, action, *, preset=None, changes=None, reason=No
     refused = refusal(directory, action, user_id, recording_capture)
     if refused:
         return refused
+    from .host import companion_tool_used
+
+    companion_tool_used(directory, recording_capture)  # The talk is about the agent: a quiet session's companion.
     sources = {"source_event_ids": list(source_event_ids or ()), "source_messages": list(source_messages or ())}
     if action in ("switch", "confirm") and not _cited(**sources):
         return {"error": ("Cite the user's message that asked for this: source_messages from the current "

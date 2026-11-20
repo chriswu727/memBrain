@@ -21,7 +21,11 @@ module. Built on the Phase B harness (v1-2026-10-29-phase-b-harness.py), with:
   none) and ``persona_turn`` ({"format": 1, "version", "sha256"}: the version and the sha256 of the block's UTF-8,
   None for none). F, which runs after P, gives its host exactly P's block for the same turn and records the same
   ``persona_turn`` beside it (``reference_persona``), so a change made by the host's tool, by an accepted
-  suggestion or by a random pick reaches F as it reached P. Validity checks every F turn against P's.
+  suggestion or by a random pick reaches F as it reached P. Validity checks every F turn against P's. Claude Code
+  is a coding host (since 2026-11-19): each P session starts with the companion's quiet form (the persona's voice,
+  the user's agreements and the boundaries; no mood, familiarity or shared moments) and is handed the rest by the
+  prompt hook at its first casual or emotional message, or the first after the host used a companion tool in it, as
+  a real user's session is. Until then the block in effect, and so F's, is the quiet form.
 - **What a plugin host gives its model unasked.** P drives the plugin's own hook functions
   (membrain.plugin.session_start, user_prompt and stop, with Claude Code's tool names) and offers every tool the
   plugin's MCP server lists, with its own schemas and descriptions. One server per session, as a host keeps one MCP
@@ -725,12 +729,18 @@ class Memory:
     def now(self) -> str:
         return self.clock.current(self.directory).isoformat().replace("+00:00", "Z")
 
-    def persona_in_effect(self) -> tuple[str, dict]:
-        """The persona in effect now, as the product renders it for the host: its block ("" for none) and its
-        content-free identity (persona_turn)."""
+    def persona_in_effect(self, session: str) -> tuple[str, dict]:
+        """The persona in effect now, as the product renders it for this session's host: its block ("" for none) and
+        its content-free identity (persona_turn). Claude Code is a coding host, so until the session's conversation
+        turns casual or emotional the block is the quiet form (``persona.render_manner``, since 2026-11-19)."""
+        from membrain.persona import render_manner
+
         with self.client() as client:
             current = client.persona()
-        block = current.get("block") or ""
+            brain = client.brain_id
+        quiet = ((self.host.session_state(self.directory, session).get("memory_context") or {}).get("quiet")
+                 and not self.host.companion_handed(self.directory, session, brain))
+        block = (render_manner(current) if quiet else current.get("block")) or ""
         return block, persona_turn((current.get("version") or 0) if block else 0, block)
 
     def paused(self, session: str) -> bool:
@@ -1653,7 +1663,7 @@ def run(arm: str, scenario_path: str, out: Path) -> None:
                     system += "\n\n" + instructions + ("\n\n" + session_context if session_context else "")
                     # The persona in effect as this turn starts, as the product renders it (after the prompt hook,
                     # which refreshes the host's snapshot when it changed): F is given exactly this block.
-                    persona_block, identity = memory.persona_in_effect()
+                    persona_block, identity = memory.persona_in_effect(session)
                 else:
                     # P's persona at the start of the same turn, then what the page did that the history cannot show.
                     persona_block, identity = p_persona(out, scenario, session, index, p_rows)
