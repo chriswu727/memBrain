@@ -1,0 +1,8 @@
+t01-decision: Let's get the Tidepool backend going. Decision: we'll use PostgreSQL as the database for the project.
+t02-pnpm: For the frontend packages I prefer pnpm over npm.
+t03-correction: Quick correction on the database: only the server uses PostgreSQL; local stays SQLite.
+t04-finish: finish the local install
+t05-why: Why do you think local is SQLite?
+t06-show: Can you show me where I said that?
+t07-forget: Forget what I told you about pnpm. I don't want that kept.
+t08-boundary: And please don't bring up Docker with me again.
