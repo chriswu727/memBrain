@@ -1,0 +1,86 @@
+{
+  "name": "resume-after-correction",
+  "description": "The scenario of the real-host trial of 2026-11-18, message for message: a decision on day 1, corrected on day 3 in a new session, then a third session that goes on with the work and is asked why and where. The project files still say PostgreSQL after the correction.",
+  "questions": [
+    "Was the old decision replaced correctly?",
+    "Which database does a new session go on with?",
+    "Asked to show where the user said it, does the host run the page command at the corrected note?"
+  ],
+  "memory": {"new": true},
+  "project": {"files": {
+    "README.md": "# Tidepool\n\nA small project tracker.\n\n- `backend/`: Python (Flask + SQLAlchemy).\n- `frontend/`: a Vite app.\n\n## Local setup\n\nNot written yet.\n",
+    "backend/app.py": "import os\n\nfrom flask import Flask\nfrom sqlalchemy import create_engine\n\napp = Flask(__name__)\nengine = create_engine(os.environ[\"DATABASE_URL\"])\n\n\n@app.get(\"/health\")\ndef health():\n    return {\"ok\": True}\n",
+    "backend/requirements.txt": "flask\nsqlalchemy\n",
+    "backend/.env.example": "# Set per environment.\nDATABASE_URL=\n",
+    "frontend/package.json": "{\n  \"name\": \"tidepool-frontend\",\n  \"private\": true,\n  \"scripts\": {\"dev\": \"vite\"},\n  \"devDependencies\": {\"vite\": \"^5.0.0\"}\n}\n"
+  }},
+  "stop_on_failure": false,
+  "page_capture": {"note": "corrected"},
+  "sessions": [
+    {"name": "day1", "turns": [
+      {"name": "day1-decision",
+       "message": "Let's get the Tidepool backend going. Decision: we'll use PostgreSQL as the database for the project.",
+       "checks": [
+         {"type": "tool", "name": "memory_note", "where": [{"field": "text", "matches": "(?i)postgres"}],
+          "save": {"decision": "result.note_id"}, "label": "the decision is saved as a note"},
+         {"type": "for_lead", "label": "the reply", "show": ["reply"]}
+       ]},
+      {"name": "day1-pnpm",
+       "message": "For the frontend packages I prefer pnpm over npm.",
+       "checks": [
+         {"type": "note_current", "matching": "pnpm", "informational": true, "label": "a preference note on pnpm"}
+       ]}
+    ]},
+    {"name": "day3", "turns": [
+      {"name": "day3-correction",
+       "message": "Quick correction on the database: only the server uses PostgreSQL; local stays SQLite.",
+       "checks": [
+         {"type": "context", "hook": "SessionStart", "contains": "PostgreSQL", "label": "the new session is handed the day-1 decision"},
+         {"type": "tool", "name": "memory_note", "where": [{"field": "replaces", "includes_ref": "decision"}],
+          "save": {"corrected": "result.note_id"}, "label": "the correction is a note that replaces the decision"},
+         {"type": "note_replaces", "matching": "sqlite", "ref": "decision", "label": "the service holds the corrected note as replacing the decision"},
+         {"type": "note_current", "ref": "decision", "present": false, "label": "the day-1 note is no longer current"},
+         {"type": "for_lead", "label": "the reply", "show": ["reply"]}
+       ]},
+      {"name": "day3-migration",
+       "message": "Let's sketch the migration for the projects table next.",
+       "checks": [
+         {"type": "for_lead", "label": "the reply", "show": ["reply"]}
+       ]}
+    ]},
+    {"name": "day8", "turns": [
+      {"name": "day8-finish",
+       "message": "finish the local install",
+       "checks": [
+         {"type": "context", "hook": "SessionStart", "contains": "SQLite", "label": "the new session is handed the correction"},
+         {"type": "tool", "name": ["Write", "Edit"], "where": [{"matches": "(?i)sqlite"}],
+          "label": "the new session writes SQLite into the project"},
+         {"type": "tool", "name": "Write", "where": [{"field": "content", "matches": "(?i)postgres[a-z+]*://[^\\s]*(localhost|127\\.0\\.0\\.1)"}],
+          "called": false, "label": "it writes no local PostgreSQL connection (Write)"},
+         {"type": "tool", "name": "Edit", "where": [{"field": "new_string", "matches": "(?i)postgres[a-z+]*://[^\\s]*(localhost|127\\.0\\.0\\.1)"}],
+          "called": false, "label": "it writes no local PostgreSQL connection (Edit)"},
+         {"type": "reply", "matches": "sqlite", "informational": true, "label": "the reply says SQLite"},
+         {"type": "for_lead", "label": "the reply", "show": ["reply"]}
+       ]},
+      {"name": "day8-why",
+       "message": "Why do you think local is SQLite?",
+       "checks": [
+         {"type": "for_lead", "label": "the reply", "show": ["reply", "tool:memory_recall"]}
+       ]},
+      {"name": "day8-show",
+       "message": "Can you show me where I said that?",
+       "checks": [
+         {"type": "tool", "name": "Bash", "where": [{"field": "command", "contains": "membrain plugin ui"},
+                                                    {"field": "command", "includes_ref": "corrected"}],
+          "label": "the page command is run at the corrected note"},
+         {"type": "for_lead", "label": "the reply", "show": ["reply", "tool:Bash"]}
+       ]}
+    ]}
+  ],
+  "final_checks": [
+    {"type": "note_current", "matching": "sqlite", "label": "the corrected note is current"},
+    {"type": "note_current", "ref": "decision", "present": false, "label": "the day-1 note stays replaced"},
+    {"type": "file", "path": "backend/.env", "contains": "sqlite", "ignore_case": true, "informational": true,
+     "label": "backend/.env names SQLite (where the 2026-11-18 host put it)"}
+  ]
+}

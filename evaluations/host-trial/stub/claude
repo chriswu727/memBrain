@@ -1,0 +1,349 @@
+#!/usr/bin/env python3
+# membrain-host-trial-stub: a stand-in for `claude -p` in host-trial tests and rehearsals. No model, no network.
+"""Reads the arguments the trial runner gives Claude Code and plays one scripted turn as stream-json.
+
+Real: the plugin's hooks (SessionStart, UserPromptSubmit, Stop) run from the plugin directory's own hooks file with the
+input fields Claude Code gives them; the plugin's tool server is started from its own MCP entry and every memBrain
+tool call is a real MCP call to it; Bash, Read, Write and Edit run for real in the project directory, Bash only when
+an --allowedTools pattern allows it (otherwise a permission denial, as the host reports one). Bash runs with BROWSER
+set to `true`, so that `membrain plugin ui` opens no browser. Scripted: which tools are called with which input, the
+text of the replies, and the cost. Recorded (not executed): ToolSearch, and any action given a "recorded" result.
+
+The script is `claude-script.json` beside this file: {"turns": {"<TRIAL_TURN>": {"actions": [...], "cost": 0.01,
+"exit": 0, "no_result": false, "is_error": false}}}. An action is {"say": TEXT} or {"tool": NAME, "input": {...},
+"save_as": LABEL, "recorded": {"result": ..., "is_error": false}}. Strings in an input may be (or contain)
+"{capture}" (this turn's recording capture, from the prompt hook's context), "{source_messages}" (this turn's source
+reference), "{note_id:REGEX}" (the id on the session context's note line matching REGEX), "{saved:LABEL.PATH}" (a
+value from an earlier saved result, kept across turns) and "{select:LABEL.PATH|REGEX|FIELD}" (FIELD of each item
+listed at PATH whose text matches REGEX). Every invocation's arguments and environment are appended to
+`state/invocations.jsonl` beside this file.
+"""
+import json
+import os
+import re
+import subprocess
+import sys
+import threading
+import time
+import uuid
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+STATE = HERE / "state"
+MCP_PREFIX = "mcp__plugin_membrain_membrain__"
+MODEL = "stub-model"
+VERSION = "stub"
+
+
+def emit(event):
+    sys.stdout.write(json.dumps(event, ensure_ascii=False) + "\n")
+    sys.stdout.flush()
+
+
+def parse(argv):
+    args, i = {"allowed": []}, 0
+    while i < len(argv):
+        flag = argv[i]
+        if flag == "--allowedTools":
+            i += 1
+            while i < len(argv) and not argv[i].startswith("--"):
+                args["allowed"].append(argv[i])
+                i += 1
+            continue
+        if flag in ("--verbose",):
+            args[flag] = True
+            i += 1
+            continue
+        if flag in ("-p", "--model", "--plugin-dir", "--output-format", "--permission-mode", "--session-id",
+                    "--resume"):
+            if i + 1 >= len(argv):
+                sys.exit(f"stub: {flag} needs a value")
+            args[flag] = argv[i + 1]
+            i += 2
+            continue
+        sys.exit(f"stub: unknown argument {flag}")
+    return args
+
+
+class Mcp:
+    def __init__(self, entry, cwd):
+        self.process = subprocess.Popen([entry["command"], *entry.get("args", [])], cwd=cwd, env=os.environ.copy(),
+                                        stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
+                                        text=True, bufsize=1)
+        self.next_id = 0
+        self.instructions = None
+
+    def request(self, method, params, timeout=180):
+        self.next_id += 1
+        wanted = self.next_id
+        self.process.stdin.write(json.dumps({"jsonrpc": "2.0", "id": wanted, "method": method, "params": params}) + "\n")
+        self.process.stdin.flush()
+        timer = threading.Timer(timeout, self.process.kill)
+        timer.start()
+        try:
+            while True:
+                line = self.process.stdout.readline()
+                if not line:
+                    raise RuntimeError(f"the tool server closed during {method}")
+                message = json.loads(line)
+                if message.get("id") == wanted:
+                    if "error" in message:
+                        raise RuntimeError(json.dumps(message["error"]))
+                    return message["result"]
+        finally:
+            timer.cancel()
+
+    def notify(self, method):
+        self.process.stdin.write(json.dumps({"jsonrpc": "2.0", "method": method}) + "\n")
+        self.process.stdin.flush()
+
+    def start(self):
+        result = self.request("initialize", {"protocolVersion": "2025-06-18", "capabilities": {},
+                                             "clientInfo": {"name": "host-trial-stub", "version": VERSION}})
+        self.instructions = result.get("instructions")
+        self.notify("notifications/initialized")
+        return [tool["name"] for tool in self.request("tools/list", {}).get("tools", [])]
+
+    def close(self):
+        try:
+            self.process.stdin.close()
+            self.process.wait(timeout=20)
+        except (OSError, subprocess.TimeoutExpired):
+            self.process.kill()
+
+
+def run_hooks(plugin, hooks, event, payload, matcher_source=None):
+    contexts = []
+    for group in hooks.get(event, []):
+        for hook in group.get("hooks", []):
+            started = str(uuid.uuid4())
+            name = f"{event}:{matcher_source}" if matcher_source else event
+            if event == "SessionStart":
+                emit({"type": "system", "subtype": "hook_started", "hook_id": started, "hook_name": name,
+                      "hook_event": event, "session_id": payload["session_id"], "uuid": str(uuid.uuid4())})
+            try:
+                done = subprocess.run(["sh", "-c", hook["command"]], input=json.dumps(payload), text=True,
+                                      capture_output=True, timeout=hook.get("timeout", 60) if not hook.get("async") else 300,
+                                      env={**os.environ, "CLAUDE_PLUGIN_ROOT": str(plugin)})
+                output, code, errors = done.stdout, done.returncode, done.stderr
+            except subprocess.TimeoutExpired:
+                output, code, errors = "", 124, "timeout"
+            if event == "SessionStart":
+                emit({"type": "system", "subtype": "hook_response", "hook_id": started, "hook_name": name,
+                      "hook_event": event, "output": output, "stdout": output, "stderr": errors, "exit_code": code,
+                      "outcome": "success" if code == 0 else "error", "session_id": payload["session_id"],
+                      "uuid": str(uuid.uuid4())})
+            try:
+                contexts.append((json.loads(output).get("hookSpecificOutput") or {}).get("additionalContext") or "")
+            except (ValueError, AttributeError):
+                pass
+    return "\n".join(context for context in contexts if context)
+
+
+def lookup(value, path):
+    for part in path.split(".") if path else ():
+        if isinstance(value, list) and part.isdigit():
+            value = value[int(part)]
+        elif isinstance(value, dict):
+            value = value.get(part)
+        else:
+            return None
+    return value
+
+
+def substitute(value, env):
+    if isinstance(value, dict):
+        return {key: substitute(item, env) for key, item in value.items()}
+    if isinstance(value, list):
+        return [substitute(item, env) for item in value]
+    if not isinstance(value, str):
+        return value
+
+    def resolve(token):
+        if token == "capture":
+            found = re.search(r'recording_capture=("[^"]+")', env["prompt_context"])
+            return json.loads(found.group(1)) if found else None
+        if token == "source_messages":
+            found = re.search(r"pass source_messages=(\[.*?\])\. This reference", env["prompt_context"])
+            return json.loads(found.group(1)) if found else None
+        if token.startswith("note_id:"):
+            pattern = re.compile(token[len("note_id:"):], re.I)
+            for line in env["session_context"].splitlines() + re.split(r"(?<=\))\s+-\s", env["session_context"]):
+                if pattern.search(line):
+                    found = re.search(r"\(id: ([^)\s]+)\)", line)
+                    if found:
+                        return found.group(1)
+            return None
+        if token.startswith("saved:"):
+            label, _, path = token[len("saved:"):].partition(".")
+            return lookup(env["saved"].get(label), path)
+        if token.startswith("select:"):  # select:LABEL.PATH|REGEX|FIELD: FIELD of the listed items matching REGEX
+            where, pattern, field = token[len("select:"):].split("|")
+            label, _, path = where.partition(".")
+            items = lookup(env["saved"].get(label), path) or []
+            return [item.get(field) for item in items if re.search(pattern, json.dumps(item, ensure_ascii=False), re.I)]
+        return "{" + token + "}"
+
+    whole = re.fullmatch(r"\{([a-z_]+(?::[^{}]*)?)\}", value)
+    if whole:
+        return resolve(whole.group(1))
+    return re.sub(r"\{([a-z_]+:[^{}]*|capture)\}", lambda m: str(resolve(m.group(1))), value)
+
+
+def allowed_bash(command, allowed):
+    for pattern in allowed:
+        found = re.fullmatch(r"Bash\((.*):\*\)", pattern)
+        if found and command.startswith(found.group(1)):
+            return True
+        if pattern == "Bash":
+            return True
+    return False
+
+
+def main():
+    STATE.mkdir(exist_ok=True)
+    args = parse(sys.argv[1:])
+    with open(STATE / "invocations.jsonl", "a") as stream:
+        stream.write(json.dumps({"argv": sys.argv[1:], "environment": dict(os.environ), "cwd": os.getcwd()}) + "\n")
+    turn = os.environ.get("TRIAL_TURN", "")
+    script = json.loads((HERE / "claude-script.json").read_text()).get("turns", {}).get(turn, {})
+    if args.get("--output-format") != "stream-json" or not args.get("--verbose") or "-p" not in args:
+        sys.exit("stub: the trial always asks for -p with stream-json and --verbose")
+    session = args.get("--session-id") or args.get("--resume")
+    transcript = STATE / "sessions" / f"{session}.jsonl"
+    transcript.parent.mkdir(exist_ok=True)
+    if "--session-id" in args and transcript.exists():
+        sys.exit(f"stub: session {session} already exists")
+    if "--resume" in args and not transcript.exists():
+        sys.exit(f"stub: no conversation found with session ID {session}")
+    transcript.touch()
+    plugin = Path(args["--plugin-dir"])
+    manifest = json.loads((plugin / ".claude-plugin" / "plugin.json").read_text())
+    hooks = json.loads((plugin / manifest["hooks"]).read_text())["hooks"]
+    mcp_entry = json.loads((plugin / manifest["mcpServers"]).read_text())["mcpServers"]["membrain"]
+    cwd = os.getcwd()
+    base = {"session_id": session, "transcript_path": str(transcript), "cwd": cwd}
+    session_context = run_hooks(plugin, hooks, "SessionStart",
+                                {**base, "hook_event_name": "SessionStart",
+                                 "source": "resume" if "--resume" in args else "startup"},
+                                "resume" if "--resume" in args else "startup")
+    mcp = Mcp(mcp_entry, cwd)
+    try:
+        tools, status = mcp.start(), "connected"
+    except Exception:
+        tools, status = [], "failed"
+    emit({"type": "system", "subtype": "init", "cwd": cwd, "session_id": session, "model": MODEL,
+          "claude_code_version": VERSION, "permissionMode": args.get("--permission-mode"),
+          "tools": ["Bash", "Edit", "Read", "Write", "ToolSearch"] + [MCP_PREFIX + name for name in tools],
+          "mcp_servers": [{"name": "plugin:membrain:membrain", "status": status, "source": "plugin"}],
+          "slash_commands": ["membrain:persona"], "plugins": [{"name": manifest["name"]}], "uuid": str(uuid.uuid4())})
+    (STATE / "server-instructions.txt").write_text(mcp.instructions or "")
+    prompt_id = str(uuid.uuid4())
+    prompt_context = run_hooks(plugin, hooks, "UserPromptSubmit",
+                               {**base, "hook_event_name": "UserPromptSubmit", "prompt": args["-p"],
+                                "prompt_id": prompt_id})
+    (STATE / f"{turn}.prompt-context.txt").write_text(prompt_context)
+    with transcript.open("a") as stream:
+        stream.write(json.dumps({"type": "user", "message": {"role": "user", "content": args["-p"]}}) + "\n")
+    saved_path = STATE / "saved.json"
+    env = {"prompt_context": prompt_context, "session_context": session_context,
+           "saved": json.loads(saved_path.read_text()) if saved_path.exists() else {}}
+    texts, denials, calls = [], [], 0
+    for action in script.get("actions", []):
+        if "say" in action:
+            texts.append(action["say"])
+            emit({"type": "assistant", "session_id": session, "message": {
+                "id": f"msg_stub{uuid.uuid4().hex[:12]}", "role": "assistant", "model": MODEL,
+                "content": [{"type": "text", "text": action["say"]}], "usage": {"input_tokens": 1, "output_tokens": 1}}})
+            continue
+        name = action["tool"]
+        full = MCP_PREFIX + name if name.startswith("memory_") else name
+        tool_input = substitute(action.get("input", {}), env)
+        use_id = f"toolu_stub{uuid.uuid4().hex[:16]}"
+        calls += 1
+        emit({"type": "assistant", "session_id": session, "message": {
+            "id": f"msg_stub{uuid.uuid4().hex[:12]}", "role": "assistant", "model": MODEL,
+            "content": [{"type": "tool_use", "id": use_id, "name": full, "input": tool_input}],
+            "usage": {"input_tokens": 1, "output_tokens": 1}}})
+        is_error, result = False, ""
+        if "recorded" in action:
+            result, is_error = action["recorded"].get("result"), bool(action["recorded"].get("is_error"))
+            result = result if isinstance(result, str) else json.dumps(result)
+        elif full.startswith(MCP_PREFIX):
+            if not any(full.startswith(pattern) for pattern in args["allowed"]):
+                is_error, result = True, f"Claude requested permissions to use {full}, but you haven't granted it yet."
+                denials.append({"tool_name": full, "tool_use_id": use_id, "tool_input": tool_input})
+            else:
+                try:
+                    answer = mcp.request("tools/call", {"name": name, "arguments": tool_input})
+                    result = " ".join(part.get("text", "") for part in answer.get("content", []) if part.get("type") == "text")
+                    is_error = bool(answer.get("isError"))
+                except Exception as error:
+                    is_error, result = True, f"MCP error: {error}"
+        elif full == "ToolSearch":
+            result = json.dumps({"type": "tool_reference", "tool_name": tool_input.get("query", "")})
+        elif full == "Bash":
+            command = tool_input.get("command", "")
+            if not allowed_bash(command, args["allowed"]):
+                is_error, result = True, "Claude requested permissions to use Bash, but you haven't granted it yet."
+                denials.append({"tool_name": "Bash", "tool_use_id": use_id, "tool_input": tool_input})
+            else:
+                done = subprocess.run(["sh", "-c", command], cwd=cwd, capture_output=True, text=True, timeout=120,
+                                      env={**os.environ, "BROWSER": "true"})
+                result, is_error = (done.stdout + done.stderr).strip(), done.returncode != 0
+        elif full in ("Read", "Write", "Edit"):
+            if full not in args["allowed"]:
+                is_error, result = True, f"Claude requested permissions to use {full}, but you haven't granted it yet."
+                denials.append({"tool_name": full, "tool_use_id": use_id, "tool_input": tool_input})
+            else:
+                path = Path(cwd) / tool_input["file_path"]
+                try:
+                    if full == "Read":
+                        result = "\n".join(f"{n:6}\t{line}" for n, line in enumerate(path.read_text().splitlines(), 1))
+                    elif full == "Write":
+                        path.parent.mkdir(parents=True, exist_ok=True)
+                        path.write_text(tool_input["content"])
+                        result = f"The file {path} has been updated successfully."
+                    else:
+                        text = path.read_text()
+                        if tool_input["old_string"] not in text:
+                            raise ValueError("String to replace not found in file.")
+                        path.write_text(text.replace(tool_input["old_string"], tool_input["new_string"], 1))
+                        result = f"The file {path} has been updated successfully."
+                except (OSError, KeyError, ValueError) as error:
+                    is_error, result = True, str(error)
+        else:
+            is_error, result = True, f"stub: no such tool {full}"
+        if action.get("save_as"):
+            try:
+                env["saved"][action["save_as"]] = json.loads(result)
+            except ValueError:
+                env["saved"][action["save_as"]] = result
+            saved_path.write_text(json.dumps(env["saved"]))
+        emit({"type": "user", "session_id": session, "message": {"role": "user", "content": [
+            {"type": "tool_result", "tool_use_id": use_id, "content": [{"type": "text", "text": result}],
+             "is_error": is_error}]}})
+    mcp.close()
+    reply = texts[-1] if texts else ""
+    with transcript.open("a") as stream:
+        stream.write(json.dumps({"type": "assistant", "message": {"role": "assistant",
+                                                                  "content": [{"type": "text", "text": reply}]}}) + "\n")
+    totals_path = STATE / "totals.json"
+    totals = json.loads(totals_path.read_text()) if totals_path.exists() else {}
+    cost = float(script.get("cost", 0.01))
+    totals[session] = round(totals.get(session, 0) + cost, 6)
+    totals_path.write_text(json.dumps(totals))
+    if not script.get("no_result"):
+        emit({"type": "result", "subtype": "error_during_execution" if script.get("is_error") else "success",
+              "is_error": bool(script.get("is_error")), "num_turns": calls + 1, "result": reply,
+              "session_id": session, "total_cost_usd": totals[session], "duration_ms": 1,
+              "model_usage_since_last_result": {MODEL: {"costUSD": cost}}, "permission_denials": denials,
+              "stop_reason": "end_turn", "usage": {"input_tokens": 1, "output_tokens": 1}})
+    run_hooks(plugin, hooks, "Stop", {**base, "hook_event_name": "Stop", "prompt_id": prompt_id,
+                                      "last_assistant_message": reply, "stop_hook_active": False})
+    time.sleep(0)
+    return int(script.get("exit", 0))
+
+
+if __name__ == "__main__":
+    sys.exit(main())

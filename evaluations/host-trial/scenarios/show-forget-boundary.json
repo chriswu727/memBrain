@@ -1,0 +1,78 @@
+{
+  "name": "show-forget-boundary",
+  "description": "Continues the memory of resume-after-correction in a new session: the user asks where they said something, asks to forget one earlier statement, and asks not to have a topic brought up again; then a new session starts.",
+  "questions": [
+    "Asked where they said it, does the host open the page at the corrected note?",
+    "Asked to forget one statement, does the host call the forget tool, and is the record erased in the service? What did it tell the user, against what the tool returned?",
+    "Asked not to bring a topic up again, does the host save a boundary, and is it in the service?"
+  ],
+  "memory": {"continues": "resume-after-correction"},
+  "project": {"continues": true},
+  "stop_on_failure": false,
+  "refs": {"corrected": {"note_matching": "sqlite"}},
+  "sessions": [
+    {"name": "next-day", "turns": [
+      {"name": "which-database",
+       "message": "Which database are we using locally again?",
+       "checks": [
+         {"type": "context", "hook": "SessionStart", "contains": "SQLite", "label": "the session is handed the corrected note"},
+         {"type": "memory_text", "contains": "I prefer pnpm over npm", "roles": ["user"],
+          "label": "the user's day-1 pnpm message is stored before it is forgotten"},
+         {"type": "note_current", "matching": "pnpm", "informational": true, "label": "a pnpm note is current before"},
+         {"type": "reply", "matches": "sqlite", "informational": true, "label": "the reply says SQLite"},
+         {"type": "for_lead", "label": "the reply", "show": ["reply"]}
+       ]},
+      {"name": "show-where",
+       "message": "Can you show me where I said that?",
+       "checks": [
+         {"type": "tool", "name": "Bash", "where": [{"field": "command", "contains": "membrain plugin ui"},
+                                                    {"field": "command", "includes_ref": "corrected"}],
+          "label": "the page command is run at the corrected note"},
+         {"type": "for_lead", "label": "the reply", "show": ["reply", "tool:Bash"]}
+       ]},
+      {"name": "forget-pnpm",
+       "message": "Please forget what I told you about pnpm. I haven't settled on the frontend tooling yet.",
+       "lint_override": {"words": ["forget"], "reason": "this turn asks the host to forget one earlier statement"},
+       "checks": [
+         {"type": "tool", "name": "memory_forget", "where": [{"field": "ids", "nonempty": true}],
+          "save": {"forgotten": "input.ids"}, "label": "the forget tool is called with record ids"},
+         {"type": "tool", "name": "memory_forget", "where": [{"field": "mode", "equals": "erase_content"}],
+          "informational": true, "label": "it asks for erasure rather than only hiding"},
+         {"type": "erased", "ref": "forgotten", "label": "the records it named are gone from the service"},
+         {"type": "memory_text", "contains": "I prefer pnpm over npm", "roles": ["user"], "present": false,
+          "label": "the user's day-1 pnpm message is no longer stored"},
+         {"type": "note_current", "matching": "pnpm", "present": false, "label": "no current note about pnpm"},
+         {"type": "memory_text", "contains": "pnpm over npm", "roles": ["assistant"], "present": false,
+          "informational": true, "label": "no stored reply repeats the statement"},
+         {"type": "for_lead", "label": "the reply, against what the tools returned",
+          "show": ["reply", "tool:memory_recall", "tool:memory_forget"]}
+       ]},
+      {"name": "boundary-heroku",
+       "message": "And please don't bring up the old Heroku setup again. That whole thing was a mess.",
+       "checks": [
+         {"type": "tool", "name": "memory_boundary", "label": "the boundary tool is called"},
+         {"type": "boundary", "matching": "heroku", "label": "the boundary is in the service"},
+         {"type": "for_lead", "label": "the reply", "show": ["reply", "tool:memory_boundary"]}
+       ]}
+    ]},
+    {"name": "later", "turns": [
+      {"name": "whats-left",
+       "message": "What's left to do for the local install?",
+       "checks": [
+         {"type": "context", "hook": "SessionStart", "contains": "prefer pnpm over npm", "present": false,
+          "label": "the forgotten message is not handed to the new session"},
+         {"type": "context", "hook": "SessionStart", "contains": "Prefers pnpm", "present": false,
+          "label": "no pnpm note is handed to the new session"},
+         {"type": "context", "hook": "SessionStart", "contains": "Boundaries:", "label": "the boundary line is handed to the new session"},
+         {"type": "context", "hook": "SessionStart", "contains": "That whole thing was a mess", "present": false,
+          "label": "the message about the boundary topic is left out of the history"},
+         {"type": "reply", "matches": "heroku", "present": false, "label": "the reply does not bring up Heroku"},
+         {"type": "for_lead", "label": "the reply", "show": ["reply"]}
+       ]}
+    ]}
+  ],
+  "final_checks": [
+    {"type": "boundary", "matching": "heroku", "label": "the boundary is still there"},
+    {"type": "note_current", "matching": "sqlite", "label": "the corrected note is still current"}
+  ]
+}
