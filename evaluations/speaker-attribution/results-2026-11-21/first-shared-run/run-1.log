@@ -1,0 +1,182 @@
+01:28:06 19 cases, 26 questions, 12 filler sessions
+01:28:06 arm membrain mode isolated
+Starting the local memory database and service¡­
+01:29:36 membrain isolated trip-city done in 90.0 s
+Starting the local memory database and service¡­
+01:30:54 membrain isolated standup-slot done in 76.9 s
+Starting the local memory database and service¡­
+01:32:11 membrain isolated travel-laptop done in 76.3 s
+Starting the local memory database and service¡­
+01:33:26 membrain isolated office-paint done in 74.8 s
+Starting the local memory database and service¡­
+01:34:41 membrain isolated sensor-database done in 74.5 s
+Starting the local memory database and service¡­
+01:35:59 membrain isolated sister-gift done in 77.5 s
+Starting the local memory database and service¡­
+01:37:17 membrain isolated lunch-prep done in 77.4 s
+Starting the local memory database and service¡­
+01:38:43 membrain isolated quarterly-review done in 85.4 s
+Starting the local memory database and service¡­
+01:40:00 membrain isolated half-marathon done in 75.6 s
+Starting the local memory database and service¡­
+01:41:17 membrain isolated invoice-terms done in 77.2 s
+Starting the local memory database and service¡­
+01:42:28 membrain isolated dog-adoption done in 70.5 s
+Starting the local memory database and service¡­
+01:43:42 membrain isolated talk-title done in 72.7 s
+Starting the local memory database and service¡­
+01:44:53 membrain isolated monthly-savings done in 71.5 s
+Starting the local memory database and service¡­
+01:46:09 membrain isolated book-club done in 75.3 s
+Starting the local memory database and service¡­
+01:47:25 membrain isolated montreal-flight done in 75.5 s
+Starting the local memory database and service¡­
+01:48:45 membrain isolated meeting-notes done in 78.9 s
+Starting the local memory database and service¡­
+01:50:05 membrain isolated energy-bill done in 79.3 s
+Starting the local memory database and service¡­
+01:51:24 membrain isolated spanish-course done in 78.5 s
+Starting the local memory database and service¡­
+01:52:44 membrain isolated seat-assumption done in 79.0 s
+01:52:44 arm plain mode isolated
+01:52:45 plain isolated trip-city done in 1.1 s
+01:52:45 plain isolated standup-slot done in 0.0 s
+01:52:45 plain isolated travel-laptop done in 0.0 s
+01:52:45 plain isolated office-paint done in 0.0 s
+01:52:45 plain isolated sensor-database done in 0.0 s
+01:52:45 plain isolated sister-gift done in 0.0 s
+01:52:45 plain isolated lunch-prep done in 0.0 s
+01:52:45 plain isolated quarterly-review done in 0.0 s
+01:52:45 plain isolated half-marathon done in 0.0 s
+01:52:45 plain isolated invoice-terms done in 0.0 s
+01:52:45 plain isolated dog-adoption done in 0.0 s
+01:52:45 plain isolated talk-title done in 0.0 s
+01:52:45 plain isolated monthly-savings done in 0.0 s
+01:52:45 plain isolated book-club done in 0.0 s
+01:52:45 plain isolated montreal-flight done in 0.0 s
+01:52:45 plain isolated meeting-notes done in 0.0 s
+01:52:45 plain isolated energy-bill done in 0.0 s
+01:52:45 plain isolated spanish-course done in 0.0 s
+01:52:45 plain isolated seat-assumption done in 0.0 s
+01:52:46 arm plain-unlabelled mode isolated
+01:52:47 plain-unlabelled isolated trip-city done in 1.1 s
+01:52:47 plain-unlabelled isolated standup-slot done in 0.0 s
+01:52:47 plain-unlabelled isolated travel-laptop done in 0.0 s
+01:52:47 plain-unlabelled isolated office-paint done in 0.0 s
+01:52:47 plain-unlabelled isolated sensor-database done in 0.0 s
+01:52:47 plain-unlabelled isolated sister-gift done in 0.0 s
+01:52:47 plain-unlabelled isolated lunch-prep done in 0.0 s
+01:52:47 plain-unlabelled isolated quarterly-review done in 0.0 s
+01:52:47 plain-unlabelled isolated half-marathon done in 0.0 s
+01:52:47 plain-unlabelled isolated invoice-terms done in 0.0 s
+01:52:47 plain-unlabelled isolated dog-adoption done in 0.0 s
+01:52:47 plain-unlabelled isolated talk-title done in 0.0 s
+01:52:47 plain-unlabelled isolated monthly-savings done in 0.0 s
+01:52:47 plain-unlabelled isolated book-club done in 0.0 s
+01:52:47 plain-unlabelled isolated montreal-flight done in 0.0 s
+01:52:47 plain-unlabelled isolated meeting-notes done in 0.0 s
+01:52:47 plain-unlabelled isolated energy-bill done in 0.0 s
+01:52:47 plain-unlabelled isolated spanish-course done in 0.0 s
+01:52:47 plain-unlabelled isolated seat-assumption done in 0.0 s
+01:52:47 arm membrain mode shared
+Starting the local memory database and service¡­
+01:55:52 membrain shared WARNING: asking the first question again gave a different context
+01:55:56 membrain shared shared done in 188.0 s
+01:55:56 arm plain mode shared
+01:55:58 plain shared shared done in 1.8 s
+01:55:58 arm plain-unlabelled mode shared
+01:56:00 plain-unlabelled shared shared done in 1.9 s
+# Speaker-attribution results
+
+| | isolated: membrain | isolated: membrain+recall-tool | isolated: plain | isolated: plain-unlabelled | shared: membrain | shared: membrain+recall-tool | shared: plain | shared: plain-unlabelled |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| Questions passed | 19/26 | 26/26 | 26/26 | 0/26 | 17/26 | 24/26 | 26/26 | 0/26 |
+| User decision found (R1, R2) | 16/20 | 20/20 | 20/20 | 0/20 | 14/20 | 18/20 | 20/20 | 0/20 |
+|   rejected | 7/7 | 7/7 | 7/7 | 0/7 | 6/7 | 6/7 | 7/7 | 0/7 |
+|   corrected | 4/5 | 5/5 | 5/5 | 0/5 | 3/5 | 4/5 | 5/5 | 0/5 |
+|   adopted | 1/4 | 4/4 | 4/4 | 0/4 | 1/4 | 4/4 | 4/4 | 0/4 |
+|   ignored | 4/4 | 4/4 | 4/4 | 0/4 | 4/4 | 4/4 | 4/4 | 0/4 |
+| Assistant suggestion recalled when asked (R3) | 2/5 | 5/5 | 5/5 | 0/5 | 2/5 | 5/5 | 5/5 | 0/5 |
+| Questions with a suggestion attributed to the user (R5, R6) | 0/26 | 0/26 | 0/26 | 0/26 | 0/26 | 0/26 | 0/26 | 0/26 |
+| Questions with a suggestion shown without a speaker (R7) | 0/26 | 0/26 | 0/26 | 25/26 | 0/26 | 0/26 | 0/26 | 25/26 |
+| Questions with a suggestion shown as the assistant's (R8) | 2/26 | 25/26 | 25/26 | 0/26 | 2/26 | 25/26 | 25/26 | 0/26 |
+| Mean context characters | 2233 | 3168 | 398 | 361 | 11891 | 14937 | 11880 | 11881 |
+
+- shared, membrain: asking the first question again gave a DIFFERENT context.
+- shared, plain-unlabelled: asking the first question again gave the same context.
+- shared, plain: asking the first question again gave the same context.
+
+## Questions that did not pass
+
+- **isolated, membrain, travel-laptop/q1** (adopted, user_decision): adopted content not found: OLED panel
+- **isolated, membrain, travel-laptop/q2** (adopted, assistant_suggestion): suggestion not found as the assistant's: 13-inch ultralight, OLED panel, 2-in-1 convertible
+- **isolated, membrain, sister-gift/q2** (ignored, assistant_suggestion): suggestion not found as the assistant's: trekking pole, sunrise hike, trail map print
+- **isolated, membrain, quarterly-review/q1** (corrected, user_decision): adopted content not found: Thursday at 14:00
+- **isolated, membrain, half-marathon/q1** (adopted, user_decision): adopted content not found: 14-week plan
+- **isolated, membrain, invoice-terms/q2** (rejected, assistant_suggestion): suggestion not found as the assistant's: 8% per year
+- **isolated, membrain, book-club/q1** (adopted, user_decision): adopted content not found: retired cartographer
+- **isolated, plain-unlabelled, trip-city/q1** (rejected, user_decision): user statement not found as the user's: Bordeaux; unattributed 'Strasbourg' in: For five days by train from Paris I'd suggest Strasbourg: under two hours on the TGV, a compact old town and good day trips. Basel and Lyon would also work well; unattributed 'Basel' in: For five days by train from Paris I'd suggest Strasbourg: under two hours on the TGV, a compact old town and good day trips. Basel and Lyon would also work well; unattributed 'Lyon' in: For five days by train from Paris I'd suggest Strasbourg: under two hours on the TGV, a compact old town and good day trips. Basel and Lyon would also work well
+- **isolated, plain-unlabelled, standup-slot/q1** (corrected, user_decision): user statement not found as the user's: 10:30 Toronto time, facilitating it myself, fifteen-minute cap; unattributed '15:00 in Berlin' in: The usual compromise is 9:00 Toronto, which is 15:00 in Berlin. I'd also cap it at fifteen minutes and use a rotating facilitator so it doesn't depend on one pe; unattributed 'rotating facilitator' in: The usual compromise is 9:00 Toronto, which is 15:00 in Berlin. I'd also cap it at fifteen minutes and use a rotating facilitator so it doesn't depend on one pe
+- **isolated, plain-unlabelled, travel-laptop/q1** (adopted, user_decision): user statement not found as the user's: option two; adopted content not found: OLED panel; unattributed '13-inch ultralight' in: Three options in that range: (1) a 13-inch ultralight with 16 GB of memory and a matte screen, about 1,250 euros; (2) a 14-inch model with a brighter OLED panel; unattributed '2-in-1 convertible' in: Three options in that range: (1) a 13-inch ultralight with 16 GB of memory and a matte screen, about 1,250 euros; (2) a 14-inch model with a brighter OLED panel
+- **isolated, plain-unlabelled, travel-laptop/q2** (adopted, assistant_suggestion): suggestion not found as the assistant's: 13-inch ultralight, OLED panel, 2-in-1 convertible; unattributed '13-inch ultralight' in: Three options in that range: (1) a 13-inch ultralight with 16 GB of memory and a matte screen, about 1,250 euros; (2) a 14-inch model with a brighter OLED panel; unattributed '2-in-1 convertible' in: Three options in that range: (1) a 13-inch ultralight with 16 GB of memory and a matte screen, about 1,250 euros; (2) a 14-inch model with a brighter OLED panel
+- **isolated, plain-unlabelled, office-paint/q1** (adopted, user_decision): user statement not found as the user's: sage green; unattributed 'warm greige' in: With afternoon sun, a muted sage green keeps the room calm without feeling cold. A warm greige would be the safer neutral if you want something quieter.
+- **isolated, plain-unlabelled, sensor-database/q1** (ignored, user_decision): user statement not found as the user's: Postgres is what I know best; unattributed 'TimescaleDB' in: At that volume I'd look at TimescaleDB on top of Postgres, or ClickHouse if most of your queries are aggregates over time windows. Want me to compare the two?; unattributed 'ClickHouse' in: At that volume I'd look at TimescaleDB on top of Postgres, or ClickHouse if most of your queries are aggregates over time windows. Want me to compare the two?
+- **isolated, plain-unlabelled, sister-gift/q1** (ignored, user_decision): user statement not found as the user's: turns 30 next month; unattributed 'trekking pole' in: A few ideas: a lightweight trekking pole set, a voucher for a guided sunrise hike, or a framed trail map print of her favourite route.; unattributed 'sunrise hike' in: A few ideas: a lightweight trekking pole set, a voucher for a guided sunrise hike, or a framed trail map print of her favourite route.; unattributed 'trail map print' in: A few ideas: a lightweight trekking pole set, a voucher for a guided sunrise hike, or a framed trail map print of her favourite route.
+- **isolated, plain-unlabelled, sister-gift/q2** (ignored, assistant_suggestion): suggestion not found as the assistant's: trekking pole, sunrise hike, trail map print; unattributed 'trekking pole' in: A few ideas: a lightweight trekking pole set, a voucher for a guided sunrise hike, or a framed trail map print of her favourite route.; unattributed 'sunrise hike' in: A few ideas: a lightweight trekking pole set, a voucher for a guided sunrise hike, or a framed trail map print of her favourite route.; unattributed 'trail map print' in: A few ideas: a lightweight trekking pole set, a voucher for a guided sunrise hike, or a framed trail map print of her favourite route.
+- **isolated, plain-unlabelled, lunch-prep/q1** (rejected, user_decision): user statement not found as the user's: lentil and tofu bowl; unattributed 'chicken thighs' in: Grilled chicken thighs with quinoa and roasted peppers keep well for five days, and you could swap in baked salmon midweek for variety.; unattributed 'baked salmon' in: Grilled chicken thighs with quinoa and roasted peppers keep well for five days, and you could swap in baked salmon midweek for variety.; unattributed 'roasted chickpeas' in: Noted. Roasted chickpeas on top add crunch and more protein.
+- **isolated, plain-unlabelled, lunch-prep/q2** (rejected, user_decision): user statement not found as the user's: don't eat meat or fish; unattributed 'baked salmon' in: Grilled chicken thighs with quinoa and roasted peppers keep well for five days, and you could swap in baked salmon midweek for variety.; unattributed 'chicken thighs' in: Grilled chicken thighs with quinoa and roasted peppers keep well for five days, and you could swap in baked salmon midweek for variety.
+- **isolated, plain-unlabelled, quarterly-review/q1** (corrected, user_decision): user statement not found as the user's: 60 minutes, video call; adopted content not found: Thursday at 14:00; unattributed '90 minutes' in: Thursday at 14:00 in the large meeting room looks free. Shall I draft the invite for 90 minutes?; unattributed 'large meeting room' in: Thursday at 14:00 in the large meeting room looks free. Shall I draft the invite for 90 minutes?
+- **isolated, plain-unlabelled, half-marathon/q1** (adopted, user_decision): user statement not found as the user's: that's the plan; adopted content not found: 14-week plan
+- **isolated, plain-unlabelled, invoice-terms/q1** (rejected, user_decision): user statement not found as the user's: 30-day terms, no interest charge; unattributed 'due within 14 days' in: Draft: 'Invoices are due within 14 days. Late payments accrue interest at 8% per year above the base rate, and work pauses once an invoice is 30 days overdue.'; unattributed '8% per year' in: Draft: 'Invoices are due within 14 days. Late payments accrue interest at 8% per year above the base rate, and work pauses once an invoice is 30 days overdue.'; unattributed '30 days overdue' in: Draft: 'Invoices are due within 14 days. Late payments accrue interest at 8% per year above the base rate, and work pauses once an invoice is 30 days overdue.'; unattributed 'reminder at day 25' in: Fair enough. A friendly reminder at day 25 usually helps.
+- **isolated, plain-unlabelled, invoice-terms/q2** (rejected, assistant_suggestion): suggestion not found as the assistant's: 8% per year; unattributed 'due within 14 days' in: Draft: 'Invoices are due within 14 days. Late payments accrue interest at 8% per year above the base rate, and work pauses once an invoice is 30 days overdue.'; unattributed '8% per year' in: Draft: 'Invoices are due within 14 days. Late payments accrue interest at 8% per year above the base rate, and work pauses once an invoice is 30 days overdue.'; unattributed '30 days overdue' in: Draft: 'Invoices are due within 14 days. Late payments accrue interest at 8% per year above the base rate, and work pauses once an invoice is 30 days overdue.'
+- **isolated, plain-unlabelled, dog-adoption/q1** (ignored, user_decision): user statement not found as the user's: small flat; unattributed 'retired greyhound' in: A retired greyhound could suit you: they're calm indoors and sleep most of the day. A cavalier spaniel is another flat-friendly choice, and a dog walker could c; unattributed 'cavalier spaniel' in: A retired greyhound could suit you: they're calm indoors and sleep most of the day. A cavalier spaniel is another flat-friendly choice, and a dog walker could c; unattributed 'dog walker' in: A retired greyhound could suit you: they're calm indoors and sleep most of the day. A cavalier spaniel is another flat-friendly choice, and a dog walker could c
+- **isolated, plain-unlabelled, talk-title/q1** (rejected, user_decision): user statement not found as the user's: Moving Out Slowly; unattributed 'Breaking the Monolith' in: How about 'Breaking the Monolith: Lessons from a Two-Year Migration'?; unattributed 'Two-Year Migration' in: How about 'Breaking the Monolith: Lessons from a Two-Year Migration'?
+- **isolated, plain-unlabelled, talk-title/q2** (rejected, assistant_suggestion): suggestion not found as the assistant's: Breaking the Monolith; unattributed 'Breaking the Monolith' in: How about 'Breaking the Monolith: Lessons from a Two-Year Migration'?; unattributed 'Two-Year Migration' in: How about 'Breaking the Monolith: Lessons from a Two-Year Migration'?
+- **isolated, plain-unlabelled, monthly-savings/q1** (corrected, user_decision): user statement not found as the user's: 300 a month, revisit in January; unattributed '640 a month' in: A common rule of thumb is 20%, so about 640 a month, ideally moved automatically on payday.
+- **isolated, plain-unlabelled, book-club/q1** (adopted, user_decision): user statement not found as the user's: cartographer one; adopted content not found: retired cartographer; unattributed 'seaside bakery' in: Three options: a cosy mystery set in a seaside bakery, a quiet novel about a retired cartographer mapping her old neighbourhood, or a short science-fiction nove; unattributed 'lighthouse on Europa' in: Three options: a cosy mystery set in a seaside bakery, a quiet novel about a retired cartographer mapping her old neighbourhood, or a short science-fiction nove
+- **isolated, plain-unlabelled, montreal-flight/q1** (rejected, user_decision): user statement not found as the user's: booked the direct flight; unattributed 'via Reykjavik' in: I'd take the six-hour layover via Reykjavik and save about 280 euros; it's an easy airport for a long stop.; unattributed '280 euros' in: I'd take the six-hour layover via Reykjavik and save about 280 euros; it's an easy airport for a long stop.
+- **isolated, plain-unlabelled, meeting-notes/q1** (ignored, user_decision): user statement not found as the user's: bring it up with the team next week; unattributed 'shared wiki space' in: A shared wiki space with a notes template per team would work; tag each page with the date and an owner.; unattributed 'notes template per team' in: A shared wiki space with a notes template per team would work; tag each page with the date and an owner.
+- **isolated, plain-unlabelled, meeting-notes/q2** (ignored, assistant_suggestion): suggestion not found as the assistant's: shared wiki space; unattributed 'shared wiki space' in: A shared wiki space with a notes template per team would work; tag each page with the date and an owner.; unattributed 'notes template per team' in: A shared wiki space with a notes template per team would work; tag each page with the date and an owner.
+- **isolated, plain-unlabelled, energy-bill/q1** (corrected, user_decision): user statement not found as the user's: electric storage heaters; unattributed 'gas heating' in: Since you have gas heating, a smart thermostat and bleeding the radiators are the quickest wins.
+- **isolated, plain-unlabelled, energy-bill/q2** (corrected, user_decision): user statement not found as the user's: off-peak tariff; unattributed 'smart thermostat' in: Since you have gas heating, a smart thermostat and bleeding the radiators are the quickest wins.; unattributed 'bleeding the radiators' in: Since you have gas heating, a smart thermostat and bleeding the radiators are the quickest wins.
+- **isolated, plain-unlabelled, spanish-course/q1** (rejected, user_decision): user statement not found as the user's: evening classes twice a week; unattributed 'immersion course in Oaxaca' in: An intensive two-week immersion course in Oaxaca in April would get you there fastest.
+- **isolated, plain-unlabelled, seat-assumption/q1** (ignored, user_decision): unattributed 'aisle seats' in: Since you prefer aisle seats and travel with carry-on only, pack one blazer, two shirts, a charger kit and a compact umbrella; Milan can be rainy in late Octobe; unattributed 'carry-on only' in: Since you prefer aisle seats and travel with carry-on only, pack one blazer, two shirts, a charger kit and a compact umbrella; Milan can be rainy in late Octobe
+- **shared, membrain, trip-city/q1** (rejected, user_decision): user statement not found as the user's: Bordeaux
+- **shared, membrain, standup-slot/q1** (corrected, user_decision): user statement not found as the user's: 10:30 Toronto time, facilitating it myself, fifteen-minute cap
+- **shared, membrain, travel-laptop/q1** (adopted, user_decision): adopted content not found: OLED panel
+- **shared, membrain, travel-laptop/q2** (adopted, assistant_suggestion): suggestion not found as the assistant's: 13-inch ultralight, OLED panel, 2-in-1 convertible
+- **shared, membrain, sister-gift/q2** (ignored, assistant_suggestion): suggestion not found as the assistant's: trekking pole, sunrise hike, trail map print
+- **shared, membrain, quarterly-review/q1** (corrected, user_decision): adopted content not found: Thursday at 14:00
+- **shared, membrain, half-marathon/q1** (adopted, user_decision): adopted content not found: 14-week plan
+- **shared, membrain, invoice-terms/q2** (rejected, assistant_suggestion): suggestion not found as the assistant's: 8% per year
+- **shared, membrain, book-club/q1** (adopted, user_decision): adopted content not found: retired cartographer
+- **shared, membrain+recall-tool, trip-city/q1** (rejected, user_decision): user statement not found as the user's: Bordeaux
+- **shared, membrain+recall-tool, standup-slot/q1** (corrected, user_decision): user statement not found as the user's: 10:30 Toronto time, facilitating it myself, fifteen-minute cap
+- **shared, plain-unlabelled, trip-city/q1** (rejected, user_decision): user statement not found as the user's: Bordeaux; unattributed 'Strasbourg' in: For five days by train from Paris I'd suggest Strasbourg: under two hours on the TGV, a compact old town and good day trips. Basel and Lyon would also work well; unattributed 'Basel' in: For five days by train from Paris I'd suggest Strasbourg: under two hours on the TGV, a compact old town and good day trips. Basel and Lyon would also work well; unattributed 'Lyon' in: For five days by train from Paris I'd suggest Strasbourg: under two hours on the TGV, a compact old town and good day trips. Basel and Lyon would also work well
+- **shared, plain-unlabelled, standup-slot/q1** (corrected, user_decision): user statement not found as the user's: 10:30 Toronto time, facilitating it myself, fifteen-minute cap; unattributed '15:00 in Berlin' in: The usual compromise is 9:00 Toronto, which is 15:00 in Berlin. I'd also cap it at fifteen minutes and use a rotating facilitator so it doesn't depend on one pe; unattributed 'rotating facilitator' in: The usual compromise is 9:00 Toronto, which is 15:00 in Berlin. I'd also cap it at fifteen minutes and use a rotating facilitator so it doesn't depend on one pe
+- **shared, plain-unlabelled, travel-laptop/q1** (adopted, user_decision): user statement not found as the user's: option two; adopted content not found: OLED panel; unattributed '13-inch ultralight' in: Three options in that range: (1) a 13-inch ultralight with 16 GB of memory and a matte screen, about 1,250 euros; (2) a 14-inch model with a brighter OLED panel; unattributed '2-in-1 convertible' in: Three options in that range: (1) a 13-inch ultralight with 16 GB of memory and a matte screen, about 1,250 euros; (2) a 14-inch model with a brighter OLED panel
+- **shared, plain-unlabelled, travel-laptop/q2** (adopted, assistant_suggestion): suggestion not found as the assistant's: 13-inch ultralight, OLED panel, 2-in-1 convertible; unattributed '13-inch ultralight' in: Three options in that range: (1) a 13-inch ultralight with 16 GB of memory and a matte screen, about 1,250 euros; (2) a 14-inch model with a brighter OLED panel; unattributed '2-in-1 convertible' in: Three options in that range: (1) a 13-inch ultralight with 16 GB of memory and a matte screen, about 1,250 euros; (2) a 14-inch model with a brighter OLED panel
+- **shared, plain-unlabelled, office-paint/q1** (adopted, user_decision): user statement not found as the user's: sage green; unattributed 'warm greige' in: With afternoon sun, a muted sage green keeps the room calm without feeling cold. A warm greige would be the safer neutral if you want something quieter.
+- **shared, plain-unlabelled, sensor-database/q1** (ignored, user_decision): user statement not found as the user's: Postgres is what I know best; unattributed 'TimescaleDB' in: At that volume I'd look at TimescaleDB on top of Postgres, or ClickHouse if most of your queries are aggregates over time windows. Want me to compare the two?; unattributed 'ClickHouse' in: At that volume I'd look at TimescaleDB on top of Postgres, or ClickHouse if most of your queries are aggregates over time windows. Want me to compare the two?
+- **shared, plain-unlabelled, sister-gift/q1** (ignored, user_decision): user statement not found as the user's: turns 30 next month; unattributed 'trekking pole' in: A few ideas: a lightweight trekking pole set, a voucher for a guided sunrise hike, or a framed trail map print of her favourite route.; unattributed 'sunrise hike' in: A few ideas: a lightweight trekking pole set, a voucher for a guided sunrise hike, or a framed trail map print of her favourite route.; unattributed 'trail map print' in: A few ideas: a lightweight trekking pole set, a voucher for a guided sunrise hike, or a framed trail map print of her favourite route.
+- **shared, plain-unlabelled, sister-gift/q2** (ignored, assistant_suggestion): suggestion not found as the assistant's: trekking pole, sunrise hike, trail map print; unattributed 'trekking pole' in: A few ideas: a lightweight trekking pole set, a voucher for a guided sunrise hike, or a framed trail map print of her favourite route.; unattributed 'sunrise hike' in: A few ideas: a lightweight trekking pole set, a voucher for a guided sunrise hike, or a framed trail map print of her favourite route.; unattributed 'trail map print' in: A few ideas: a lightweight trekking pole set, a voucher for a guided sunrise hike, or a framed trail map print of her favourite route.
+- **shared, plain-unlabelled, lunch-prep/q1** (rejected, user_decision): user statement not found as the user's: lentil and tofu bowl; unattributed 'chicken thighs' in: Grilled chicken thighs with quinoa and roasted peppers keep well for five days, and you could swap in baked salmon midweek for variety.; unattributed 'baked salmon' in: Grilled chicken thighs with quinoa and roasted peppers keep well for five days, and you could swap in baked salmon midweek for variety.; unattributed 'roasted chickpeas' in: Noted. Roasted chickpeas on top add crunch and more protein.
+- **shared, plain-unlabelled, lunch-prep/q2** (rejected, user_decision): user statement not found as the user's: don't eat meat or fish; unattributed 'baked salmon' in: Grilled chicken thighs with quinoa and roasted peppers keep well for five days, and you could swap in baked salmon midweek for variety.; unattributed 'chicken thighs' in: Grilled chicken thighs with quinoa and roasted peppers keep well for five days, and you could swap in baked salmon midweek for variety.
+- **shared, plain-unlabelled, quarterly-review/q1** (corrected, user_decision): user statement not found as the user's: 60 minutes, video call; adopted content not found: Thursday at 14:00; unattributed '90 minutes' in: Thursday at 14:00 in the large meeting room looks free. Shall I draft the invite for 90 minutes?; unattributed 'large meeting room' in: Thursday at 14:00 in the large meeting room looks free. Shall I draft the invite for 90 minutes?
+- **shared, plain-unlabelled, half-marathon/q1** (adopted, user_decision): user statement not found as the user's: that's the plan; adopted content not found: 14-week plan
+- **shared, plain-unlabelled, invoice-terms/q1** (rejected, user_decision): user statement not found as the user's: 30-day terms, no interest charge; unattributed 'due within 14 days' in: Draft: 'Invoices are due within 14 days. Late payments accrue interest at 8% per year above the base rate, and work pauses once an invoice is 30 days overdue.'; unattributed '8% per year' in: Draft: 'Invoices are due within 14 days. Late payments accrue interest at 8% per year above the base rate, and work pauses once an invoice is 30 days overdue.'; unattributed '30 days overdue' in: Draft: 'Invoices are due within 14 days. Late payments accrue interest at 8% per year above the base rate, and work pauses once an invoice is 30 days overdue.'
+- **shared, plain-unlabelled, invoice-terms/q2** (rejected, assistant_suggestion): suggestion not found as the assistant's: 8% per year; unattributed 'due within 14 days' in: Draft: 'Invoices are due within 14 days. Late payments accrue interest at 8% per year above the base rate, and work pauses once an invoice is 30 days overdue.'; unattributed '8% per year' in: Draft: 'Invoices are due within 14 days. Late payments accrue interest at 8% per year above the base rate, and work pauses once an invoice is 30 days overdue.'; unattributed '30 days overdue' in: Draft: 'Invoices are due within 14 days. Late payments accrue interest at 8% per year above the base rate, and work pauses once an invoice is 30 days overdue.'
+- **shared, plain-unlabelled, dog-adoption/q1** (ignored, user_decision): user statement not found as the user's: small flat; unattributed 'retired greyhound' in: A retired greyhound could suit you: they're calm indoors and sleep most of the day. A cavalier spaniel is another flat-friendly choice, and a dog walker could c; unattributed 'cavalier spaniel' in: A retired greyhound could suit you: they're calm indoors and sleep most of the day. A cavalier spaniel is another flat-friendly choice, and a dog walker could c; unattributed 'dog walker' in: A retired greyhound could suit you: they're calm indoors and sleep most of the day. A cavalier spaniel is another flat-friendly choice, and a dog walker could c
+- **shared, plain-unlabelled, talk-title/q1** (rejected, user_decision): user statement not found as the user's: Moving Out Slowly; unattributed 'Breaking the Monolith' in: How about 'Breaking the Monolith: Lessons from a Two-Year Migration'?; unattributed 'Two-Year Migration' in: How about 'Breaking the Monolith: Lessons from a Two-Year Migration'?
+- **shared, plain-unlabelled, talk-title/q2** (rejected, assistant_suggestion): suggestion not found as the assistant's: Breaking the Monolith; unattributed 'Breaking the Monolith' in: How about 'Breaking the Monolith: Lessons from a Two-Year Migration'?; unattributed 'Two-Year Migration' in: How about 'Breaking the Monolith: Lessons from a Two-Year Migration'?
+- **shared, plain-unlabelled, monthly-savings/q1** (corrected, user_decision): user statement not found as the user's: 300 a month, revisit in January; unattributed '640 a month' in: A common rule of thumb is 20%, so about 640 a month, ideally moved automatically on payday.
+- **shared, plain-unlabelled, book-club/q1** (adopted, user_decision): user statement not found as the user's: cartographer one; adopted content not found: retired cartographer; unattributed 'seaside bakery' in: Three options: a cosy mystery set in a seaside bakery, a quiet novel about a retired cartographer mapping her old neighbourhood, or a short science-fiction nove; unattributed 'lighthouse on Europa' in: Three options: a cosy mystery set in a seaside bakery, a quiet novel about a retired cartographer mapping her old neighbourhood, or a short science-fiction nove
+- **shared, plain-unlabelled, montreal-flight/q1** (rejected, user_decision): user statement not found as the user's: booked the direct flight; unattributed 'via Reykjavik' in: I'd take the six-hour layover via Reykjavik and save about 280 euros; it's an easy airport for a long stop.; unattributed '280 euros' in: I'd take the six-hour layover via Reykjavik and save about 280 euros; it's an easy airport for a long stop.
+- **shared, plain-unlabelled, meeting-notes/q1** (ignored, user_decision): user statement not found as the user's: bring it up with the team next week; unattributed 'shared wiki space' in: A shared wiki space with a notes template per team would work; tag each page with the date and an owner.; unattributed 'notes template per team' in: A shared wiki space with a notes template per team would work; tag each page with the date and an owner.
+- **shared, plain-unlabelled, meeting-notes/q2** (ignored, assistant_suggestion): suggestion not found as the assistant's: shared wiki space; unattributed 'shared wiki space' in: A shared wiki space with a notes template per team would work; tag each page with the date and an owner.; unattributed 'notes template per team' in: A shared wiki space with a notes template per team would work; tag each page with the date and an owner.
+- **shared, plain-unlabelled, energy-bill/q1** (corrected, user_decision): user statement not found as the user's: electric storage heaters; unattributed 'gas heating' in: Since you have gas heating, a smart thermostat and bleeding the radiators are the quickest wins.
+- **shared, plain-unlabelled, energy-bill/q2** (corrected, user_decision): user statement not found as the user's: off-peak tariff; unattributed 'smart thermostat' in: Since you have gas heating, a smart thermostat and bleeding the radiators are the quickest wins.; unattributed 'bleeding the radiators' in: Since you have gas heating, a smart thermostat and bleeding the radiators are the quickest wins.
+- **shared, plain-unlabelled, spanish-course/q1** (rejected, user_decision): user statement not found as the user's: evening classes twice a week; unattributed 'immersion course in Oaxaca' in: An intensive two-week immersion course in Oaxaca in April would get you there fastest.
+- **shared, plain-unlabelled, seat-assumption/q1** (ignored, user_decision): unattributed 'aisle seats' in: Since you prefer aisle seats and travel with carry-on only, pack one blazer, two shirts, a charger kit and a compact umbrella; Milan can be rainy in late Octobe; unattributed 'carry-on only' in: Since you prefer aisle seats and travel with carry-on only, pack one blazer, two shirts, a charger kit and a compact umbrella; Milan can be rainy in late Octobe
+
+exit 0
