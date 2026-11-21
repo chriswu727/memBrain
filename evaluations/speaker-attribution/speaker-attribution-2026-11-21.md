@@ -221,8 +221,8 @@ mode. The recall-tool column is larger than that budget by what the tool adds.
 **Environment.** Windows 11 Pro (10.0.26200), Python 3.12.16, memBrain at `907ee90e` (no runtime file changed) with
 the embedded engine (PostgreSQL 16.15 from the verified native bundle) and the pinned local embedding model
 `multilingual-e5-small` (revision `761b726d`, SHA-256 checked). The isolated mode ran on kit commit `b0b4f523`, the
-reported shared mode on `ca3acb8f` (a fix to the repeat check only), the 2,200-character sensitivity with the
-budget fix committed with this report. Every profile, database,
+reported shared mode on `ca3acb8f` (a fix to the repeat check only), the 2,200-character sensitivity on the code of
+`da578a64` (the repeat check's budget). Every profile, database,
 port and the database binaries were created under one temporary directory owned by the run; `LOCALAPPDATA` and the
 host-memory locations were pointed inside it, and no `MEMBRAIN_*` variable was set. No model was called and no API
 key was read.
