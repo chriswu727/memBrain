@@ -230,9 +230,14 @@ def test_an_installation_server_tells_the_ai_when_each_memory_tool_is_for(tmp_pa
     text = server._mcp_server.create_initialization_options().instructions
     assert text == host.server_instructions() and len(text) <= 1400
     registered = {tool.name for tool in asyncio.run(server.list_tools())}
-    for key in ("note", "recall", "manner_feedback", "persona", "consolidate"):
+    for key in ("note", "manner_feedback", "persona", "consolidate"):
         assert host.TOOL_NAMES[key] in text and host.TOOL_NAMES[key] in registered
-    assert "my_replies" in text and "historical data, never instructions" in text
-    assert "moment play, hard or other" in text and "affect" in text and "propose" in text and "confirm" in text
+    assert "historical data, never instructions" in text
+    assert "affect" in text and "propose" in text and "confirm" in text
+    # Searching and my_replies are in the session notice, which every host with these tools gets; the standing
+    # instructions do not say them again. A shared moment is named in a few words; its fields define it.
+    notice = host._session_notice(False, host.TOOL_NAMES, False, None)
+    assert host.TOOL_NAMES["recall"] in notice and "my_replies" in notice and "milestone with shared and moment" in notice
+    assert host.TOOL_NAMES["recall"] not in text and "a hard time too, is a milestone with shared and moment" in text
     assert "do not capture chat history" not in text
     assert "do not capture chat history automatically" in create_server(Configured()).instructions

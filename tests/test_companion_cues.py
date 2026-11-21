@@ -225,11 +225,14 @@ def test_a_moment_the_user_only_tells_about_is_not_a_shared_moment_on_every_note
     rule = ("Not something the user only tells you about (a quarrel with someone else, a success at work): shared "
             "means the two of you did it or went through it together in conversation.")
     assert rule in notes.NOTE_FIELDS["shared"]["description"]
-    assert ("not something the user only tells you about, such as a quarrel with someone else or a success at work: "
-            "shared means the two of you did it or went through it together in conversation") in (
+    # memBrain's own note tool says it once, in the fields its schema gives with the description; the description
+    # points to them instead of repeating them.
+    assert "your first conversation, a goal reached together or a shared joke" in notes.NOTE_FIELDS["shared"][
+        "description"]
+    assert "a difficult time the two of you went through" in notes.NOTE_FIELDS["moment"]["description"]
+    assert "only tells you about" not in notes.NOTE_TOOL_DESCRIPTION
+    assert "milestone (with shared true and moment for a moment you and the user shared, as those fields say)" in (
         notes.NOTE_TOOL_DESCRIPTION)
-    assert "a first conversation, a goal reached together, a shared joke" in notes.NOTE_TOOL_DESCRIPTION
-    assert "moment hard for a difficult time the two of you went through" in notes.NOTE_TOOL_DESCRIPTION
     openclaw = OPENCLAW[OPENCLAW.index('name: "membrain_note"'):]
     assert rule in openclaw and "not something they only tell you about such as a quarrel" in "".join(
         re.findall(r'"([^"]*)"', openclaw[:openclaw.index("parameters:")]))

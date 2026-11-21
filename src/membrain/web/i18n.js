@@ -251,8 +251,8 @@ const ZH = {
   "中文": "中文", "English": "English",
   // Personality (persona card)
   "Personality": "人格",
-  "How your companion presents itself: its name, character, voice, values and boundaries. Your agent receives it in its own block, apart from what it remembers about you. To change it, ask your agent to add, remove or replace something: it describes the change and saves it once you say yes. Every change keeps the earlier versions. How you like replies, as your agent learns it, stays in your preference notes.":
-    "你的伙伴如何展现自己：名字、性格、说话方式、价值观和边界。agent 会在单独的区块里收到它，和它记得的关于你的内容分开。想修改的话，直接告诉 agent 要添加、删除或替换什么：它会说明要改什么，等你同意后再保存。每次修改都会保留之前的版本。agent 学到的你喜欢的回复方式，仍然放在你的偏好笔记里。",
+  "How your companion presents itself: its name, character, voice, values and boundaries. Your agent receives it in its own block, apart from what it remembers about you. To change it, ask your agent to add, remove or replace something: it describes the change and saves it once you say yes. Every change keeps the earlier versions.":
+    "你的伙伴如何展现自己：名字、性格、说话方式、价值观和边界。agent 会在单独的区块里收到它，和它记得的关于你的内容分开。想修改的话，直接告诉 agent 要添加、删除或替换什么：它会说明要改什么，等你同意后再保存。每次修改都会保留之前的版本。",
   "Current card": "当前设定",
   "Name": "名字", "Voice": "说话方式",
   "Register": "语体", "Typical length": "通常长度",

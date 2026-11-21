@@ -51,7 +51,7 @@ def test_the_host_ai_is_asked_once_to_index_earlier_messages_and_recall_then_fin
 
             opening = host.session_context(directory, "tuesday")
             assert "5 earlier messages have not been indexed by memory yet." in opening
-            assert "memory_consolidate" in opening and "beyond a few words" in opening
+            assert "memory_consolidate" in opening and "then write your reply." in opening
             assert "not been indexed" not in host.session_context(directory, "tuesday", tools=None)
 
             batch = _call(server, "memory_consolidate", {})

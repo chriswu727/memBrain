@@ -51,19 +51,17 @@ NOTE_TOOL_DESCRIPTION = (
     "aliases, and the relation in the text; also the user's family, friends and pets), constraint (a limit on what "
     "the user can do, eat, afford or use, not their job), preference, plan (with status intended until the user "
     "confirms it is scheduled or done, and due or occurs_at as YYYY-MM-DD or YYYY-MM when the day is unknown), "
-    "routine, milestone (shared true when it "
-    "is a moment you and the user shared: a first conversation, a goal reached together, a shared joke; not "
-    "something the user only tells you about, such as a quarrel with someone else or a success at work: shared means "
-    "the two of you did it or went through it together in conversation; with it, moment play for a joke, a game or play together, moment hard for a difficult time the two of you went "
-    "through, such as a disagreement between you, a time you let them down or a rough stretch you kept them "
-    "company in, otherwise moment other), relationship (about you and the user only), or "
+    # What a shared moment is, and each kind of moment, is said once: in the shared and moment fields below.
+    "routine, milestone (with shared true and moment for a moment you and the user shared, as those fields say), "
+    "relationship (about you and the user only), or "
     "agent_commitment for something you promised to do. Status done means everything in the note has happened: a "
     "purchase paid for but not yet delivered, or a booking still ahead, is scheduled, with its date. "
     "When a fact changes (a plan is done, moved or cancelled), "
     "save the updated note and pass the old note's id in replaces. Use source_messages from the current "
     "membrain-source block or source_event_ids from recorded history when available; never invent sources. "
-    "Lifecycle-integrated host tools also require recording_capture from this turn's membrain-source block for every write, "
-    "including unsourced notes and replacements. Never substitute another turn's capture. "
+    # "Lifecycle-integrated host tools" named something a host cannot tell about itself; what it can see is the block.
+    "When this turn's membrain-source block gives a recording_capture, every write needs it, including unsourced "
+    "notes and replacements; never use another turn's. "
     "When the user expresses a feeling about what the note covers, add affect {label in their own words, valence "
     "-2..2, intensity 0..3, basis, topic, felt_at}: basis reported only if they said it, or inferred, with the "
     "message it was read from as a source, if it is clearly evident but unsaid. News that plainly carries a "
@@ -121,10 +119,11 @@ def note_page_hint(command: str) -> str:
     """The notes block's sentence on showing a note's basis, for hosts whose shell can run ``command`` (``membrain
     plugin ui`` in a runnable form). In a host trial (2026-11-18) the host was asked "Can you show me where I said
     that?", answered from the note, and told the user it could not show the conversation: the command was named only
-    in the skill, which it never opened. Every note line ends with the id the command takes."""
+    in the skill, which it never opened. Every note line ends with the id the command takes. The last sentence forbids
+    that false claim without asking for one when the command cannot run (no shell approval, no PATH)."""
     return (" If the user asks to see where a note came from (where they said it) or to check it, run "
             f"{command} --note <id>: it opens their memory page at that note, what it replaced and its source "
-            "messages. Never say you cannot show the source.")
+            "messages. If it fails, say so; never claim there is no way to show the source.")
 
 
 _MONTHS = ("Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec")
@@ -629,10 +628,9 @@ def render_coming_up(response: dict, *, today: _datetime.date | None = None, ski
         return None
     header = ("<membrain-coming-up>\nToday is " + f"{today.isoformat()} ({today.strftime('%A')}). Plans and promises "
             "that are due soon, overdue or still open. Follow up naturally when it fits (\"Did the passport "
-            "arrive?\"); never assume a planned action happened. Something only planned (a purchase, booking or "
-            "task) may not exist yet: do not tell the user to use, extend or rely on it as if it does; say it is "
-            "not confirmed or make the suggestion conditional (\"if the walker has arrived\"). When the user confirms "
-            "or cancels one, replace its note with the new status.\n")
+            "arrive?\"); never assume a planned action happened: say it is not confirmed or make the suggestion "
+            "conditional (\"if the walker has arrived\"). When the user confirms or cancels one, replace its note "
+            "with the new status.\n")  # Not to rely on something only planned is in the notes block, given with it.
     footer = "\n</membrain-coming-up>"
     more = "\nMore plans did not fit; search when needed."
     if len(header) + len(footer) + len(more) > budget:

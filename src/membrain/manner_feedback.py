@@ -59,5 +59,5 @@ def report(directory: Path, client, kind, *, source_event_ids=(), source_message
 
         companion_tool_used(directory, recording_capture)  # A quiet session's next prompt brings the companion.
     return {**result, "note": ("Recorded with the user's other feedback on your manner. Keep following what they "
-                               "asked in this conversation; any change to the persona is the user's decision on "
+                               "asked in this conversation; whether it changes the persona is the user's decision on "
                                "their memory page.")}

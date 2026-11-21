@@ -163,12 +163,13 @@ def test_the_session_notice_names_manner_feedback_persona_changes_hard_moments_a
             notice = host._session_notice(complete, tools, False, None)
             assert f"how you talk with {tools['manner_feedback']}" in notice
             assert f"behave differently from now on, propose it with {tools['persona']} and wait for their yes" in notice
-            assert "a hard one too, is a note of kind milestone with shared and moment" in notice
+            assert ("a hard time you got through together too, is a note of kind milestone with shared and moment"
+                    in notice)
             assert f"search with {tools['recall']} and my_replies set" in notice
             assert "shown only when the user's message asks about them" in notice and "not shown unasked" not in notice
         assert tools["persona"] not in host._session_notice(False, tools, False, "Merlin")  # The character is it.
     plain = host._session_notice(False, hermes.TOOLS, False, None)  # Hermes has neither tool.
-    assert "how you talk" not in plain and "behave differently" not in plain and "hard one too" in plain
+    assert "how you talk" not in plain and "behave differently" not in plain and "got through together too" in plain
     assert "how you talk" not in host._session_notice(False, None, False, None)
     # The longest notice grew by 348 characters for these two behaviours, the hard moment and the corrected
     # sentence on the AI's own replies; that much less of the history fits at session start.

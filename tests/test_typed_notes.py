@@ -74,7 +74,8 @@ def test_a_shared_moment_keeps_the_kind_the_host_gave_it():
     assert notes.note_fields({"kind": "milestone", "shared": True, "moment": "play", "pinned": False}) == {
         "kind": "milestone", "shared": True, "moment": "play"}
     assert notes.NOTE_FIELDS["moment"]["enum"] == list(notes.MOMENTS) == ["play", "hard", "other"]
-    assert "moment play" in notes.NOTE_TOOL_DESCRIPTION and "moment hard" in notes.NOTE_TOOL_DESCRIPTION
+    assert "shared true and moment" in notes.NOTE_TOOL_DESCRIPTION  # Each kind of moment is described in its field.
+    assert all(f"{kind} when" in notes.NOTE_FIELDS["moment"]["description"] for kind in ("play", "hard"))
     hard = format_note("We argued about the budget and I had it wrong.", kind="milestone", shared=True, moment="hard")
     assert hard == "[milestone · shared · moment hard] We argued about the budget and I had it wrong."
     assert parse_note(hard)[0] == {"kind": "milestone", "shared": True, "moment": "hard"}

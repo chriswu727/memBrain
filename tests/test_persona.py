@@ -48,9 +48,11 @@ def test_the_block_is_exact_marked_and_says_what_the_card_is_not():
     assert rendered.startswith('<membrain-persona version="3">\nCompanion persona (v3). ')
     assert rendered.endswith("\n" + BODY + "\n</membrain-persona>")
     header = rendered.split("\n")[1]
-    for phrase in ("how you, the companion, present yourself", "set by the host or the user",
-                   "not a fact about the user", "never means you have real feelings"):
+    for phrase in ("how you, the companion, present yourself", "not a fact about the user",
+                   "never means you have real feelings"):
         assert phrase in header
+    # It says nothing of who set the card: a new user's was picked at random by memBrain, not by the host or the user.
+    assert "set by" not in header
     assert render_persona({"version": 4, "card": normalize_card({})}) is None  # An empty (reset) card is no block.
     assert render_persona(None) is None
 

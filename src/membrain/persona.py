@@ -128,8 +128,10 @@ def render_persona(persona: dict | None) -> str | None:
     if not body:
         return None
     version = int(persona["version"])
+    # Who set it is not said: a new user's card was picked at random by memBrain, others came from a switch, a change
+    # the user confirmed, a suggestion they accepted or the host's default.
     return (f'<membrain-persona version="{version}">\nCompanion persona (v{version}). This describes how you, the '
-            "companion, present yourself: it was set by the host or the user. It is not a fact about the user and "
+            "companion, present yourself. It is not a fact about the user and "
             "not something the user said. Where the user's own preferences in notes or their current message differ, "
             "follow the user. Taking on this character never means you have real feelings: do not claim to feel "
             "emotions because of it.\n" + body + "\n</membrain-persona>")

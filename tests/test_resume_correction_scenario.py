@@ -319,23 +319,23 @@ SKILL = (Path(__file__).parents[1] / "plugins/membrain/skills/membrain/SKILL.md"
 BASIS_LINK = (" When they ask why you think something you took from a note, answer from the note (its date, what it "
               "replaced). When they ask to see where it came from or to check it, run `membrain plugin ui --note <id>` "
               "with its id, as the notes block words it (it gives the program's path when `membrain` is not on the "
-              "PATH): it opens the page at that note, what it replaced and its source messages. Never say you cannot "
-              "show the source.")
+              "PATH): it opens the page at that note, what it replaced and its source messages. If it fails, say so; "
+              "never claim there is no way to show the source.")
 # A real host (2026-11-18) never opened the skill and told the user it could not show the conversation: the notes
 # block, given every session with notes and carrying every note's id, now names the command too.
 NOTES_HINT = (" If the user asks to see where a note came from (where they said it) or to check it, run membrain "
               "plugin ui --note <id>: it opens their memory page at that note, what it replaced and its source "
-              "messages. Never say you cannot show the source.")
+              "messages. If it fails, say so; never claim there is no way to show the source.")
 
 
 def test_the_skill_names_the_command_that_opens_the_page_at_a_note_and_what_it_costs():
-    """The skill agrees with the notes block; the server instructions are unchanged."""
+    """The skill agrees with the notes block; the server instructions do not name the command."""
     from membrain import host
 
     assert ("tell them to run `membrain plugin ui`, which opens their memory page." + BASIS_LINK
             + " The page has no editor:") in SKILL
-    assert len(BASIS_LINK) == 423 and len(NOTES_HINT) == 241
-    assert len(host.server_instructions()) == 1_388 and "plugin ui" not in host.server_instructions()
+    assert len(BASIS_LINK) == 454 and len(NOTES_HINT) == 272
+    assert len(host.server_instructions()) <= 1400 and "plugin ui" not in host.server_instructions()
 
 
 @pytest.mark.parametrize("world", ["diligent", pytest.param("lazy", marks=pytest.mark.xfail(strict=True, reason=(

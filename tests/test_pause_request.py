@@ -267,7 +267,7 @@ def test_the_notice_asks_for_indexing_before_the_reply_on_every_host(tools, name
     assert host.consolidation_notice(_Pending(), tools) == (
         f"7 earlier messages have not been indexed by memory yet. Once in this conversation, before you write your "
         f"reply to the user's first message, call the {name} tool without arguments and do what it returns; then "
-        "write your reply. Do not describe the indexing to the user beyond a few words.")
+        "write your reply.")  # The tool's last answer says to describe the indexing in a few words at most.
 
 
 def test_nothing_shared_with_hosts_still_asks_for_the_answer_before_indexing(tmp_path):

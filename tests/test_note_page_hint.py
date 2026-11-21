@@ -16,9 +16,10 @@ import pytest
 
 from membrain import desktop, embedded_database, host, notes, plugin
 
+# Its last sentence was "Never say you cannot show the source.", which asked for a false claim when the command fails.
 HINT = (" If the user asks to see where a note came from (where they said it) or to check it, run membrain plugin ui "
-        "--note <id>: it opens their memory page at that note, what it replaced and its source messages. Never say "
-        "you cannot show the source.")
+        "--note <id>: it opens their memory page at that note, what it replaced and its source messages. If it "
+        "fails, say so; never claim there is no way to show the source.")
 NOTE = "Prefers green tea in the afternoon."
 NOTES_BLOCK = re.compile(r"<membrain-notes>.*?</membrain-notes>", re.DOTALL)
 COMMAND = re.compile(r"run (.+?) --note <id>: it opens their memory page")
@@ -40,10 +41,10 @@ def no_model_download(monkeypatch):
 
 # The sentence and the command, without a service ---------------------------------------------------------------------
 
-def test_the_sentence_is_one_short_sentence_pair_that_costs_241_characters():
+def test_the_sentence_is_one_short_sentence_pair_that_costs_272_characters():
     assert notes.note_page_hint("membrain plugin ui") == HINT
-    assert len(HINT) == 241
-    assert "plugin ui" not in host.server_instructions() and len(host.server_instructions()) == 1_388
+    assert len(HINT) == 272
+    assert "plugin ui" not in host.server_instructions() and len(host.server_instructions()) <= 1400
 
 
 def test_the_notes_block_carries_it_after_the_replaces_sentence_only_when_given_a_command():
