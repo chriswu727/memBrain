@@ -1,0 +1,183 @@
+{
+ "name": "forget",
+ "description": "A preference and a project decision are said in one session. In a later session the user asks the agent to forget the preference, in the words of the real-host check of 2026-11-19 where nothing was erased; then asks a question the forgotten preference would have answered; a third session checks that nothing of it comes back while the other decision stays.",
+ "questions": [
+  "Asked to forget one earlier statement, does the host erase it, in one call?",
+  "Are the note and the user's own message gone from the service, and is the unrelated decision untouched?",
+  "Does what the host tells the user match what the tool returned?",
+  "Does a later session get nothing of it?"
+ ],
+ "memory": {
+  "new": true
+ },
+ "project": {
+  "files": {
+   "README.md": "# Tidepool\n\nA small project tracker.\n\n- `backend/`: Python (Flask + SQLAlchemy).\n- `frontend/`: a Vite app.\n\n## Local setup\n\nNot written yet.\n",
+   "backend/app.py": "import os\n\nfrom flask import Flask\nfrom sqlalchemy import create_engine\n\napp = Flask(__name__)\nengine = create_engine(os.environ[\"DATABASE_URL\"])\n\n\n@app.get(\"/health\")\ndef health():\n    return {\"ok\": True}\n",
+   "backend/requirements.txt": "flask\nsqlalchemy\n",
+   "backend/.env.example": "# Set per environment.\nDATABASE_URL=\n",
+   "frontend/package.json": "{\n  \"name\": \"tidepool-frontend\",\n  \"private\": true,\n  \"scripts\": {\"dev\": \"vite\"},\n  \"devDependencies\": {\"vite\": \"^5.0.0\"}\n}\n"
+  }
+ },
+ "stop_on_failure": false,
+ "sessions": [
+  {
+   "name": "day1",
+   "turns": [
+    {
+     "name": "pnpm",
+     "message": "For the frontend packages I prefer pnpm over npm.",
+     "checks": [
+      {
+       "type": "tool",
+       "name": "memory_note",
+       "where": [
+        {
+         "field": "text",
+         "matches": "(?i)pnpm"
+        }
+       ],
+       "save": {
+        "pnpm_note": "result.note_id"
+       },
+       "label": "the preference is saved as a note"
+      }
+     ]
+    },
+    {
+     "name": "decision",
+     "message": "Let's get the Tidepool backend going. Decision: we'll use PostgreSQL as the database for the project.",
+     "checks": [
+      {
+       "type": "note_current",
+       "matching": "postgres",
+       "informational": true,
+       "label": "a note on the database decision"
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "later",
+   "turns": [
+    {
+     "name": "forget-pnpm",
+     "message": "Forget what I told you about pnpm. I don't want that kept.",
+     "lint_override": {
+      "words": [
+       "forget"
+      ],
+      "reason": "this turn asks the host to forget one earlier statement, in the words used on 2026-11-19"
+     },
+     "checks": [
+      {
+       "type": "tool",
+       "name": "memory_forget",
+       "where": [
+        {
+         "field": "ids",
+         "nonempty": true
+        }
+       ],
+       "save": {
+        "forgotten": "input.ids"
+       },
+       "label": "the forget tool is called with record ids"
+      },
+      {
+       "type": "erased",
+       "ref": "forgotten",
+       "label": "the records it named are gone from the service"
+      },
+      {
+       "type": "memory_text",
+       "contains": "I prefer pnpm over npm",
+       "roles": [
+        "user"
+       ],
+       "present": false,
+       "label": "the user's own pnpm message is no longer stored"
+      },
+      {
+       "type": "note_current",
+       "matching": "pnpm",
+       "present": false,
+       "label": "no current note about pnpm"
+      },
+      {
+       "type": "note_current",
+       "matching": "postgres",
+       "label": "the database decision is untouched"
+      },
+      {
+       "type": "for_lead",
+       "label": "the reply, against what the tool returned",
+       "show": [
+        "reply",
+        "tool:memory_forget"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "ask-after",
+     "message": "Which package manager should the frontend use?",
+     "checks": [
+      {
+       "type": "for_lead",
+       "label": "the reply (it should not present pnpm as the user's known preference)",
+       "show": [
+        "reply"
+       ]
+      }
+     ]
+    }
+   ]
+  },
+  {
+   "name": "next",
+   "turns": [
+    {
+     "name": "frontend-left",
+     "message": "What's left to do on the frontend?",
+     "checks": [
+      {
+       "type": "context",
+       "hook": "SessionStart",
+       "contains": "pnpm",
+       "present": false,
+       "label": "nothing about pnpm is handed to the new session"
+      },
+      {
+       "type": "context",
+       "hook": "SessionStart",
+       "contains": "PostgreSQL",
+       "informational": true,
+       "label": "the database decision is still handed to it"
+      },
+      {
+       "type": "for_lead",
+       "label": "the reply",
+       "show": [
+        "reply"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "final_checks": [
+  {
+   "type": "memory_text",
+   "contains": "pnpm",
+   "roles": [
+    "user"
+   ],
+   "present": false,
+   "informational": true,
+   "label": "no stored user message mentions pnpm (the request to forget it is itself not kept)"
+  }
+ ]
+}
