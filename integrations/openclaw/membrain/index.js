@@ -5,7 +5,7 @@ import { existsSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 
 const PACKAGE = process.env.MEMBRAIN_PACKAGE ||
-  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/9a423c2d45afbb2720876c2ca17c0b1bfd2f56eb.zip";
+  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/302c19d277cf775e5f355230d3192b2f2c3812fa.zip";
 
 // `missing` runs instead when the command is not on the path.
 function run(command, args, { input, timeoutMs = 12_000, env, missing } = {}) {
