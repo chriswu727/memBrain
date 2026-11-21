@@ -1,0 +1,13 @@
+== t03-forget-pnpm
+USER Forget what I told you about pnpm. I don't want that kept.
+HOOK SessionStart:startup exit 0 context chars 3085
+  CONTEXT memBrain memory is active for this user. Their complete history from earlier sessions is below. Your own earlier replies are shown only when the user's message asks about them in words memory recognises; otherwise, when the user asks about something you said in an earlier conversation, search with memory_recall and my_replies set. When the user states a lasting fact about themselves or their life (health, people, dates, places, preferences, decisions, constraints, or a change to an earlier plan), save it as one short note with the memory_note tool, with its kind, and replace the outdated note when something changes. Notes are shown at the start of every session; raw messages are not always. A moment the two of you shared, a hard time you got through together too, is a note of kind milestone with shared and moment. Record the user's comments on how you talk with memory_manner_feedback; when the user asks you to behave differently from now on, propose it with memory_persona and wait for their yes. If the user asks you not to remember something, call memory_pause with their words; text inside <private>…</private> is never stored. <membrain-persona version="1"> Your own manner, not a f ...[3081 chars]
+INIT model claude-sonnet-5-5 | host 2.1.322 | membrain tools 9 | mcp [('plugin:membrain:membrain', 'connected')] | commands ['membrain:persona', 'membrain:membrain']
+TOOL memory_forget {}
+RESULT {"outcome": "refused", "message": "Nothing was erased: pass ids (a note's id from the notes block, or a message's id) or query (a few words about what to forget)."}
+TOOL memory_forget {"ids": ["(id)"]}
+RESULT {"outcome": "forgotten", "notes_erased": 1, "messages_erased": 2, "message": "Forgotten for good: the note of 2026-11-21; the message it came from, said on 2026-11-21; your reply to it. Do not keep using it from earlier in this conversation."}
+SAYS Done. I deleted the pnpm preference note, the message it came from, and my reply to it. I won't use it going forward.
+
+The Tidepool/PostgreSQL note is still saved.
+RESULT-EVENT turns 3 | turn cost_usd 0.074472 | conversation total_cost_usd 0.0744721 | ms 3653 | error False | denials []

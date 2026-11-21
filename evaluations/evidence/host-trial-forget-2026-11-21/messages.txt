@@ -1,0 +1,5 @@
+t01-pnpm: For the frontend packages I prefer pnpm over npm.
+t02-decision: Let's get the Tidepool backend going. Decision: we'll use PostgreSQL as the database for the project.
+t03-forget-pnpm: Forget what I told you about pnpm. I don't want that kept.
+t04-ask-after: Which package manager should the frontend use?
+t05-frontend-left: What's left to do on the frontend?

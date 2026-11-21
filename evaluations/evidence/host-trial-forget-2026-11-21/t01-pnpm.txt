@@ -1,0 +1,11 @@
+== t01-pnpm
+USER For the frontend packages I prefer pnpm over npm.
+HOOK SessionStart:startup exit 0 context chars 1644
+  CONTEXT memBrain memory is active for this user. Related messages from earlier conversations are added automatically before replies, favouring recent ones. When a request depends on the user's personal context and nothing relevant is shown, search with the memory_recall tool using a few concrete keywords before answering; a search reaches older conversations just as easily. Your own earlier replies are shown only when the user's message asks about them in words memory recognises; otherwise, when the user asks about something you said in an earlier conversation, search with memory_recall and my_replies set. When the user states a lasting fact about themselves or their life (health, people, dates, places, preferences, decisions, constraints, or a change to an earlier plan), save it as one short note with the memory_note tool, with its kind, and replace the outdated note when something changes. Notes are shown at the start of every session; raw messages are not always. A moment the two of you shared, a hard time you got through together too, is a note of kind milestone with shared and moment. Record the user's comments on how you talk with memory_manner_feedback; when the user asks you to beh ...[1642 chars]
+INIT model claude-sonnet-5-5 | host 2.1.322 | membrain tools 9 | mcp [('plugin:membrain:membrain', 'connected')] | commands ['membrain:persona', 'membrain:membrain']
+TOOL ToolSearch {"query": "select:mcp__plugin_membrain_membrain__memory_note", "max_results": 1}
+RESULT {"type": "tool_reference", "tool_name": "mcp__plugin_membrain_membrain__memory_note"}
+TOOL memory_note {"text": "Prefers pnpm over npm for frontend packages.", "kind": "preference", "source_messages": [{"producer_ref": "membrain-plugin", "source_event_key": "(id):(id):user", "source_revision": 1}], "recording_capture": "(removed)"}
+RESULT {"note_id": "(id)", "replaced": [], "unknown": [], "source_event_ids": [], "pending_source_count": 1}
+SAYS Noted. I'll use pnpm for frontend packages from now on.
+RESULT-EVENT turns 3 | turn cost_usd 0.089996 | conversation total_cost_usd 0.08999590000000002 | ms 5418 | error False | denials []

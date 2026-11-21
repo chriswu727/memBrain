@@ -1,0 +1,3 @@
+t01-first: Let's get the Tidepool backend going. Decision: we'll use PostgreSQL as the database for the project.
+t02-pnpm: For the frontend packages I prefer pnpm over npm.
+t03-next: What did we decide about the database, and which package manager do I like for the frontend?
