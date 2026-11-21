@@ -8,7 +8,7 @@
         "--python",
         "3.12",
         "--from",
-        "${MEMBRAIN_PACKAGE:-membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/6106561a77102c4eb87c10524007f6fcc9cade5a.zip}",
+        "${MEMBRAIN_PACKAGE:-membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/9a423c2d45afbb2720876c2ca17c0b1bfd2f56eb.zip}",
         "membrain",
         "plugin",
         "mcp"
