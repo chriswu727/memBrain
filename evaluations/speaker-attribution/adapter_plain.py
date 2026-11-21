@@ -8,8 +8,8 @@ speaker rule: it is the plain alternative at equal size.
 Two forms, both real ways of keeping raw messages:
 
 - ``plain`` writes each turn with its role, ``[user] ...`` or ``[assistant] ...``.
-- ``plain-unlabelled`` (``roles=False``) writes the text alone, as the LongMemEval and LoCoMo baselines in this
-  repository stored it.
+- ``plain-unlabelled`` (``roles=False``) writes the text alone, as the LongMemEval baseline in this repository
+  stored it.
 """
 from __future__ import annotations
 

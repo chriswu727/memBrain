@@ -125,13 +125,14 @@ def run_arm(arm: str, mode: str, cases, filler, args, budgets: dict) -> list[dic
             for session in sessions:
                 adapter.ingest(session)
             adapter.ready()
+            def budget_for(question):
+                return budgets.get((mode, question.key), args.budget) if arm != "membrain" else args.cap
+
             for question in questions:
-                budget = budgets.get((mode, question.key), args.budget) if arm != "membrain" else args.cap
-                rows.extend(ask(adapter, question, budget, turns, mode))
+                rows.extend(ask(adapter, question, budget_for(question), turns, mode))
             if mode == "shared" and questions:
                 # Asking does not change later answers: the first question again, after all the others.
-                again = adapter.context(questions[0].text, budget=budgets.get((mode, questions[0].key), args.cap)
-                                        if arm != "membrain" else args.cap)
+                again = adapter.context(questions[0].text, budget=budget_for(questions[0]))
                 first = next(row for row in rows if row["arm"] == adapter.name and row["case"] == questions[0].case
                              and row["question"] == questions[0].id)
                 again = again[:first["budget"]]
