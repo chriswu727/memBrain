@@ -857,8 +857,11 @@ def test_an_export_replaces_an_existing_readable_file_with_an_owner_only_one(tmp
 
 
 @pytest.mark.skipif(not embedded_database.available(), reason="embedded PostgreSQL binaries are not installed")
-def test_a_plugin_host_can_forget_a_message_and_its_note_by_following_the_skill(tmp_path):
+def test_a_plugin_host_can_forget_a_note_and_its_message_with_only_the_tool_and_the_notes_block(tmp_path):
+    """Not the skill: a real host does not read it. Only what a host has: the notes block's id and the tool's own
+    description, which says a note's id is enough."""
     import asyncio
+    import re
 
     from membrain.mcp_server import create_server
     from membrain.notes import list_notes
@@ -869,23 +872,25 @@ def test_a_plugin_host_can_forget_a_message_and_its_note_by_following_the_skill(
         context = host.prompt_context(directory, "first", "My dentist is Dr. Alvarez, Thursday at 3 pm.", turn_id="1",
                                       include_source=True)
         references, _ = json.JSONDecoder().raw_decode(context.split("source_messages=", 1)[1])
-        host.finish_turn(directory, "first", "Noted.", turn_id="1")
         capture, _ = json.JSONDecoder().raw_decode(context.split("recording_capture=", 1)[1])
         with host.ready_client(directory) as client:
             server = create_server(client, directory=directory)
             _, saved = asyncio.run(server.call_tool("memory_note", {"text": "Dentist: Dr. Alvarez, Thursday 3 pm.", "kind": "plan",
                                                          "source_messages": references, "recording_capture": capture}))
             assert saved["note_id"]
-            _, found = asyncio.run(server.call_tool("memory_recall", {"query": "dentist Alvarez", "with_ids": True}))
-            assert isinstance(found["scope_generation"], int)
-            original = [record for record in found["records"] if record["text"] == "My dentist is Dr. Alvarez, "
-                        "Thursday at 3 pm." and record["conversation_id"] == "first"]
-            assert original and "memory_forget" in found["how_to_forget"]
-            _, result = asyncio.run(server.call_tool("memory_forget", {
-                "ids": [original[0]["event_id"]], "kind": "events", "mode": "erase_content",
-                "expected_scope_generation": found["scope_generation"]}))
-            assert result.get("outcome") not in ("rejected", "conflict", "failed"), result
-            assert list_notes(client)["items"] == []  # The note drawn from the message went with it.
+        host.finish_turn(directory, "first", "Noted.", turn_id="1")
+        opening = host.session_context(directory, "second")
+        line = next(line for line in opening.splitlines() if "Dr. Alvarez" in line and "(id: " in line)
+        note_id = re.search(r"\(id: ([^)]+)\)", line)[1]
+        with host.ready_client(directory) as client:
+            server = create_server(client, directory=directory)
+            tool = {tool.name: tool for tool in asyncio.run(server.list_tools())}["memory_forget"]
+            assert "a note's id from the notes block" in tool.description
+            _, result = asyncio.run(server.call_tool("memory_forget", {"ids": [note_id]}))
+            assert result["outcome"] == "forgotten" and (result["notes_erased"], result["messages_erased"]) == (1, 2)
+            assert list_notes(client)["items"] == []
+            texts = [item["text"] for item in client.timeline(roles=("user", "assistant"), max_characters=200_000)["items"]]
+            assert not any("Alvarez" in text for text in texts)  # The message the note came from went with it.
         later = host.prompt_context(directory, "second", "Who is my dentist?", turn_id="1")
         assert "Alvarez" not in (later or "") and "Alvarez" not in host.session_context(directory, "third")
     finally:

@@ -105,9 +105,11 @@ def test_a_memory_is_kept_recalled_corrected_deleted_and_not_brought_back(tmp_pa
             found = _call(server, "memory_recall", {"query": "running with Xiao Lin", "with_ids": True})
             targets = [record["event_id"] for record in found["records"] if record["text"] == FIRST]
             assert len(targets) == 1
-            result = _call(server, "memory_forget", {"ids": targets, "kind": "events", "mode": "erase_content",
-                                                     "expected_scope_generation": found["scope_generation"]})
-            assert result.get("outcome") not in ("rejected", "conflict", "failed"), result
+            result = _call(server, "memory_forget", {"ids": targets})
+            # The message, the reply, the partner note, and the corrected home note with the note it replaced:
+            # the correction kept the first message as its own deletion dependency.
+            assert result["outcome"] == "forgotten", result
+            assert (result["notes_erased"], result["messages_erased"]) == (3, 2), result
 
             def nothing_left(stage):
                 everything = json.dumps({

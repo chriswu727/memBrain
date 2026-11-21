@@ -217,7 +217,7 @@ def test_the_tool_server_answers_at_once_and_works_once_a_busy_first_start_ends(
     try:
         assert mcp.initialize() < 20  # Before: no answer until the start finished, or a crash at 30 seconds.
         tools = mcp.request("tools/list", {})["result"]["tools"]
-        assert len(tools) == 14
+        assert len(tools) == 9  # The plugin's nine (the low-level contract tools are not offered to plugin hosts).
         assert mcp.recall("Biscuit") == TOOL_STARTING
         time.sleep(35)  # Longer than any profile wait: the server does not give up.
         assert mcp.process.poll() is None and mcp.recall("Biscuit") == TOOL_STARTING

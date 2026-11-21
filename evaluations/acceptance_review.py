@@ -1590,12 +1590,15 @@ def _event_position(event: dict, sessions: list) -> str | None:
     return where + (f", message {turn + 1}" if type(turn) is int and turn >= 0 else "")
 
 
-# The tools the plugin's server lists. A name outside this list could be a model's invention carrying text, so the
-# diagnosis prints it as "other".
-_TOOL_NAMES = frozenset({
-    "memory_capabilities", "memory_recall", "memory_inspect", "memory_observe", "memory_note", "memory_consolidate",
-    "memory_boundary", "memory_pause", "memory_resume", "memory_manner_feedback", "memory_persona", "memory_prepare",
-    "memory_checkpoint", "memory_forget"})
+# The tools the plugin's server lists (nine since 2026-11-19), and those it listed before (fourteen), so that a
+# recorded run of an earlier source still reads by name. A name outside these could be a model's invention carrying
+# text, so the diagnosis prints it as "other".
+_PLUGIN_TOOLS = frozenset({
+    "memory_recall", "memory_note", "memory_consolidate", "memory_boundary", "memory_pause", "memory_resume",
+    "memory_manner_feedback", "memory_persona", "memory_forget"})
+_RETIRED_PLUGIN_TOOLS = frozenset({
+    "memory_capabilities", "memory_inspect", "memory_observe", "memory_prepare", "memory_checkpoint"})
+_TOOL_NAMES = _PLUGIN_TOOLS | _RETIRED_PLUGIN_TOOLS
 
 
 def _tool_code(call) -> str:

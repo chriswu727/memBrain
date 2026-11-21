@@ -18,6 +18,7 @@ from membrain.client import (
     prepared_context,
     recalled_context,
 )
+from membrain.host_forget import plain_error
 
 READ_ONLY = ToolAnnotations(readOnlyHint=True, destructiveHint=False, openWorldHint=False)
 WRITE = ToolAnnotations(readOnlyHint=False, destructiveHint=False, idempotentHint=True, openWorldHint=False)
@@ -105,13 +106,21 @@ def create_server(client: MemoryClient | None, *, directory=None, require_turn_c
 
         return guard
 
-    @tool(annotations=READ_ONLY)
-    async def memory_capabilities() -> dict[str, Any]:
-        """Inspect this adapter's actual limitations and the authenticated service capabilities."""
-        capabilities = integration_capabilities("mcp_stdio")
-        capabilities["supported_actions"] = ["observe", "prepare", "recall", "inspect", "checkpoint", "forget"]
-        return {"adapter": capabilities, "service": await asyncio.to_thread(client.capabilities),
-                "recording_capture_required": directory is not None and require_turn_capture}
+    # A plugin host (Claude Code, Codex, WorkBuddy, CodeBuddy: ``membrain plugin mcp``) records and recalls through its
+    # hooks, so it is offered only the tools its AI uses. In both real-host trials no host called the low-level
+    # contract tools (capabilities, observe, prepare, checkpoint), and inspect was called only by a host that had gone
+    # astray: it answered "not found" for a note's id (a note is an event, not a memory) and misled the host further.
+    # A standalone MCP client keeps them: there they are the only interface.
+    plugin_host = directory is not None and require_turn_capture
+
+    if not plugin_host:
+        @tool(annotations=READ_ONLY)
+        async def memory_capabilities() -> dict[str, Any]:
+            """Inspect this adapter's actual limitations and the authenticated service capabilities."""
+            capabilities = integration_capabilities("mcp_stdio")
+            capabilities["supported_actions"] = ["observe", "prepare", "recall", "inspect", "checkpoint", "forget"]
+            return {"adapter": capabilities, "service": await asyncio.to_thread(client.capabilities),
+                    "recording_capture_required": False}
 
     if directory is not None:
         @tool(annotations=READ_ONLY)
@@ -122,13 +131,18 @@ def create_server(client: MemoryClient | None, *, directory=None, require_turn_c
             A search reaches old conversations as easily as recent ones; what is added automatically favours recent
             ones. Set my_replies when the user asks about something you said, suggested, recommended or explained in an
             earlier conversation: your own earlier replies are then searched too and come back marked "assistant
-            said". They are what you said then, not facts about the user. Set with_ids only to forget records: it
-            returns each record's event_id and the scope_generation that memory_forget needs."""
+            said". They are what you said then, not facts about the user. Set with_ids to get each message's id, for
+            memory_forget."""
             from membrain import host
 
             if with_ids:
-                response = await asyncio.to_thread(host.recall, client, host.scrub(query), deliberate=True)
-                records = await asyncio.to_thread(host.recall_records, client, response)
+                try:
+                    response = await asyncio.to_thread(host.recall, client, host.scrub(query), deliberate=True)
+                    records = await asyncio.to_thread(host.recall_records, client, response)
+                except (MemoryActionError, httpx.HTTPError) as error:
+                    if pending is not None and isinstance(error, httpx.ConnectError):
+                        raise  # Nothing was sent: the guard reconnects and answers with the service's state.
+                    return {"error": plain_error(error, "Memory could not search right now.")}
                 return {"action": "recall", "outcome": response["outcome"], **records}
             # The same compact recall the hooks inject, so tool results read like the rest of the memory context.
             found = await asyncio.to_thread(host.recall_context, client, host.scrub(query), replies=bool(my_replies),
@@ -169,53 +183,52 @@ def create_server(client: MemoryClient | None, *, directory=None, require_turn_c
                     "context": recalled_context(_outside_boundaries(response, boundaries, query)),
                     "context_tokens": response["result"]["usage"]["context_tokens"]}
 
-    @tool(annotations=READ_ONLY)
-    async def memory_inspect(
-        memory_ids: list[str], conversation_id: str | None = None,
-        branch_id: str | None = None, max_context_tokens: int = 16000,
-    ) -> dict[str, Any]:
-        """Inspect sources and corrections for known memory IDs within the authenticated scope."""
-        return await asyncio.to_thread(
-            client.inspect, memory_ids, conversation_id=conversation_id, branch_id=branch_id,
-            budget=default_budget(max_context_tokens),
-        )
-
-    @tool(annotations=WRITE)
-    async def memory_observe(
-        text: str, conversation_id: str, branch_id: str, source_event_key: str,
-        source_revision: int = 1, recording_capture: str | None = None,
-    ) -> dict[str, Any]:
-        """Save an assistant-authored observation. Reuse source_event_key on retries; this does not verify user claims.
-
-        Plugin connections require recording_capture from the original turn's membrain-source block.
-        """
-        from membrain.privacy import scrub
-
-        if directory is None and recording_capture is not None:
-            return {"error": "This MCP connection cannot validate host recording captures."}
-        recording = {}
-        if directory is not None:
-            from membrain import host, host_recording
-
-            if host.paused(directory, marker=host_recording.capture_marker(recording_capture)):
-                return {"error": "Recording is paused. Resume before saving observations."}
-            if require_turn_capture or recording_capture is not None:
-                try:
-                    recording["expected_recording_revision"] = await asyncio.to_thread(
-                        host_recording.note_revision, directory, client, recording_capture)
-                except (ValueError, MemoryActionError) as error:
-                    return {"error": str(error)}
-        try:
+    if not plugin_host:
+        @tool(annotations=READ_ONLY)
+        async def memory_inspect(
+            memory_ids: list[str], conversation_id: str | None = None,
+            branch_id: str | None = None, max_context_tokens: int = 16000,
+        ) -> dict[str, Any]:
+            """Inspect sources and corrections for known memory IDs within the authenticated scope."""
             return await asyncio.to_thread(
-                client.observe, scrub(text), conversation_id=conversation_id, branch_id=branch_id,
-                source_event_key=source_event_key, source_revision=source_revision,
-                role="assistant", actor_ref="assistant", producer_ref="mcp",
-                delivery_state="unknown", interpretation_hint="unknown", **recording,
+                client.inspect, memory_ids, conversation_id=conversation_id, branch_id=branch_id,
+                budget=default_budget(max_context_tokens),
             )
-        except MemoryActionError as error:
-            if error.code not in ("recording_paused", "recording_stale"):
-                raise
-            return {"error": str(error), "code": error.code}
+
+        @tool(annotations=WRITE)
+        async def memory_observe(
+            text: str, conversation_id: str, branch_id: str, source_event_key: str,
+            source_revision: int = 1, recording_capture: str | None = None,
+        ) -> dict[str, Any]:
+            """Save an assistant-authored observation. Reuse source_event_key on retries; this does not verify user
+            claims. A recording_capture, when given, is checked against the turn it came from."""
+            from membrain.privacy import scrub
+
+            if directory is None and recording_capture is not None:
+                return {"error": "This MCP connection cannot validate host recording captures."}
+            recording = {}
+            if directory is not None:
+                from membrain import host, host_recording
+
+                if host.paused(directory, marker=host_recording.capture_marker(recording_capture)):
+                    return {"error": "Recording is paused. Resume before saving observations."}
+                if recording_capture is not None:
+                    try:
+                        recording["expected_recording_revision"] = await asyncio.to_thread(
+                            host_recording.note_revision, directory, client, recording_capture)
+                    except (ValueError, MemoryActionError) as error:
+                        return {"error": str(error)}
+            try:
+                return await asyncio.to_thread(
+                    client.observe, scrub(text), conversation_id=conversation_id, branch_id=branch_id,
+                    source_event_key=source_event_key, source_revision=source_revision,
+                    role="assistant", actor_ref="assistant", producer_ref="mcp",
+                    delivery_state="unknown", interpretation_hint="unknown", **recording,
+                )
+            except MemoryActionError as error:
+                if error.code not in ("recording_paused", "recording_stale"):
+                    raise
+                return {"error": str(error), "code": error.code}
 
     from membrain.notes import NOTE_TOOL_DESCRIPTION
 
@@ -330,50 +343,66 @@ def create_server(client: MemoryClient | None, *, directory=None, require_turn_c
                 proposal_id=proposal_id, source_event_ids=source_event_ids or (),
                 source_messages=source_messages or (), recording_capture=recording_capture)
 
-    @tool(annotations=READ_ONLY)
-    async def memory_prepare(
-        turn_id: str, conversation_id: str, branch_id: str,
-        latest_input_event_ids: list[str], max_context_tokens: int = 2000,
-    ) -> dict[str, Any]:
-        """Build a bounded context packet. The host must supply observed inputs and inject this packet itself."""
-        capabilities = integration_capabilities("mcp_stdio")
-        capabilities["supported_actions"] = ["observe", "prepare", "recall", "inspect", "checkpoint", "forget"]
-        response = await asyncio.to_thread(
-            client.prepare, turn_id, conversation_id=conversation_id, branch_id=branch_id,
-            latest_input_event_ids=latest_input_event_ids,
-            budget=default_budget(max_context_tokens), capabilities=capabilities,
-        )
-        packet = response["result"]
-        return {
-            "packet_id": packet["packet_id"], "outcome": response["outcome"],
-            "context": prepared_context(packet),
-            "limitations": packet["coverage"]["limitations"],
-            "context_tokens": packet["usage"]["context_tokens"],
-        }
+    if not plugin_host:
+        @tool(annotations=READ_ONLY)
+        async def memory_prepare(
+            turn_id: str, conversation_id: str, branch_id: str,
+            latest_input_event_ids: list[str], max_context_tokens: int = 2000,
+        ) -> dict[str, Any]:
+            """Build a bounded context packet. The host must supply observed inputs and inject this packet itself."""
+            capabilities = integration_capabilities("mcp_stdio")
+            capabilities["supported_actions"] = ["observe", "prepare", "recall", "inspect", "checkpoint", "forget"]
+            response = await asyncio.to_thread(
+                client.prepare, turn_id, conversation_id=conversation_id, branch_id=branch_id,
+                latest_input_event_ids=latest_input_event_ids,
+                budget=default_budget(max_context_tokens), capabilities=capabilities,
+            )
+            packet = response["result"]
+            return {
+                "packet_id": packet["packet_id"], "outcome": response["outcome"],
+                "context": prepared_context(packet),
+                "limitations": packet["coverage"]["limitations"],
+                "context_tokens": packet["usage"]["context_tokens"],
+            }
 
-    @tool(annotations=WRITE)
-    async def memory_checkpoint(
-        conversation_id: str, branch_id: str, expected_working_revision: int,
-        through_sequence: int,
-    ) -> dict[str, Any]:
-        """Request a manual durable checkpoint. This does not intercept the host's compaction lifecycle."""
-        return await asyncio.to_thread(
-            client.checkpoint, conversation_id=conversation_id, branch_id=branch_id,
-            expected_working_revision=expected_working_revision,
-            through_sequence=through_sequence, reason="manual",
-        )
+        @tool(annotations=WRITE)
+        async def memory_checkpoint(
+            conversation_id: str, branch_id: str, expected_working_revision: int,
+            through_sequence: int,
+        ) -> dict[str, Any]:
+            """Request a manual durable checkpoint. This does not intercept the host's compaction lifecycle."""
+            return await asyncio.to_thread(
+                client.checkpoint, conversation_id=conversation_id, branch_id=branch_id,
+                expected_working_revision=expected_working_revision,
+                through_sequence=through_sequence, reason="manual",
+            )
 
-    @tool(annotations=DESTRUCTIVE)
-    async def memory_forget(
-        ids: list[str], kind: Literal["events", "memories", "conversation"],
-        mode: Literal["suppress_recall", "erase_content"], expected_scope_generation: int,
-        conversation_id: str | None = None, branch_id: str | None = None,
-    ) -> dict[str, Any]:
-        """Suppress or erase specified records only when the user requests it; report the returned deletion status."""
-        return await asyncio.to_thread(
-            client.forget, ids, kind=kind, mode=mode, expected_scope_generation=expected_scope_generation,
-            conversation_id=conversation_id, branch_id=branch_id,
-        )
+    if directory is not None:
+        from membrain import host_forget
+
+        forgotten: set[str] = set()  # What this connection erased, so asking again is answered as such.
+
+        @tool(annotations=DESTRUCTIVE, description=host_forget.TOOL_DESCRIPTION)
+        async def memory_forget(ids: Any = None, query: Any = None) -> dict[str, Any]:
+            # Checked by host_forget, so a wrong type is answered with a sentence; the listed schema is set below.
+            return await asyncio.to_thread(host_forget.forget, client, ids, query, directory=directory,
+                                           forgotten=forgotten, raise_unsent=pending is not None)
+
+        listed = server._tool_manager.get_tool("memory_forget")
+        listed.parameters = {**listed.parameters, "properties": {"ids": host_forget.IDS_FIELD,
+                                                                 "query": host_forget.QUERY_FIELD}}
+    else:
+        @tool(annotations=DESTRUCTIVE)
+        async def memory_forget(
+            ids: list[str], kind: Literal["events", "memories", "conversation"],
+            mode: Literal["suppress_recall", "erase_content"], expected_scope_generation: int,
+            conversation_id: str | None = None, branch_id: str | None = None,
+        ) -> dict[str, Any]:
+            """Suppress or erase specified records only when the user requests it; report the returned deletion status."""
+            return await asyncio.to_thread(
+                client.forget, ids, kind=kind, mode=mode, expected_scope_generation=expected_scope_generation,
+                conversation_id=conversation_id, branch_id=branch_id,
+            )
 
     return server
 

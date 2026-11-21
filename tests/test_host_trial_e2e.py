@@ -122,9 +122,7 @@ SCRIPT_B = {
         {"say": "I opened your memory page at that note."}]},
     "t03-forget-pnpm": {"actions": [
         {"tool": "memory_recall", "input": {"query": "pnpm", "with_ids": True}, "save_as": "found"},
-        {"tool": "memory_forget", "input": {"ids": "{select:found.records|pnpm|event_id}", "kind": "events",
-                                            "mode": "erase_content",
-                                            "expected_scope_generation": "{saved:found.scope_generation}"}},
+        {"tool": "memory_forget", "input": {"ids": "{select:found.records|pnpm|event_id}"}},
         {"say": "Done: I erased your message about pnpm."}]},
     "t04-boundary-heroku": {"actions": [
         {"tool": "memory_boundary", "input": {"topic": "the old Heroku setup", "aliases": ["Heroku"]}},

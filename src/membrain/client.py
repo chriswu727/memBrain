@@ -259,8 +259,10 @@ class MemoryClient:
     def timeline(self, *, roles: Sequence[str] = ("user",), max_characters: int = 8000,
                  max_item_characters: int = 1500, limit: int = 200, exclude_conversation: str | None = None,
                  event_ids: Sequence[str] = (), conversation_id: str | None = None,
-                 brain_id: str | None = None, before_sequence: int | None = None) -> JsonObject:
-        """Original messages, newest first, within a character budget; ``complete`` means nothing was left out."""
+                 brain_id: str | None = None, before_sequence: int | None = None,
+                 erasure: bool = False) -> JsonObject:
+        """Original messages, newest first, within a character budget; ``complete`` means nothing was left out.
+        With ``erasure`` each item carries ``erased_with``: what deleting it alone would erase as well."""
         brain = self._scope(brain_id=brain_id)["brain_ref"]
         params = [("role", role) for role in roles] + [
             ("max_characters", max_characters), ("max_item_characters", max_item_characters), ("limit", limit)]
@@ -271,6 +273,8 @@ class MemoryClient:
             params.append(("conversation_id", conversation_id))
         if before_sequence is not None:
             params.append(("before_sequence", before_sequence))
+        if erasure:
+            params.append(("erasure", "true"))
         return self._request("GET", f"v1/brains/{quote(brain, safe='')}/timeline", params=params)
 
     def memory_map(self, *, max_nodes: int = 200, max_edges: int = 400, include_sensitive: bool = False,

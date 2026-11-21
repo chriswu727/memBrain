@@ -183,11 +183,13 @@ def test_new_conversation_does_not_remove_a_concurrently_replaced_pause(tmp_path
 def test_local_mcp_cannot_bypass_pause_with_an_observation(tmp_path, offline):
     client = Client()
     host.prompt_context(tmp_path, "s", "Off the record: private synthetic detail.")
-    server = create_server(client, directory=tmp_path)
-    for name, arguments in (
-        ("memory_observe", {"text": "Private synthetic detail.", "conversation_id": "s",
-                            "branch_id": "main", "source_event_key": "private"}),
-        ("memory_note", {"text": "Private synthetic detail."}),
+    # The observation tool is offered only on a tools-only connection; a plugin connection has the note tool.
+    tools_only = create_server(client, directory=tmp_path, require_turn_capture=False)
+    for server, name, arguments in (
+        (tools_only, "memory_observe", {"text": "Private synthetic detail.", "conversation_id": "s",
+                                        "branch_id": "main", "source_event_key": "private"}),
+        (tools_only, "memory_note", {"text": "Private synthetic detail."}),
+        (create_server(client, directory=tmp_path), "memory_note", {"text": "Private synthetic detail."}),
     ):
         _, result = asyncio.run(server.call_tool(name, arguments))
         assert "Recording is paused" in result["error"]

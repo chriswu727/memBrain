@@ -107,20 +107,14 @@ class Play:
                                     expected_scope_generation=generation)
         assert result.get("outcome") == "completed", result
 
-    def forget(self, ids, *, mode="erase_content", conversation=None, tool=False) -> None:
-        """As the memory page's Delete sends it, or (``tool``) as the host's memory_forget tool does."""
-        client, server, _schemas, _instructions = self.memory.tools()
-        try:
+    def forget(self, ids, *, mode="erase_content", conversation=None) -> None:
+        """As the memory page's Delete sends it, and an API or SDK caller can (a replaced note, which neither the
+        page nor the host's notes block shows; hiding instead of erasing). The host's own forget tool, which takes
+        only current notes and messages and also erases a note's messages, is tested in test_forget_tool."""
+        with self.memory.client() as client:
             generation = client.dashboard()["brain"]["scope_generation"]
-            if tool:
-                result = call(server, "memory_forget", {"ids": list(ids), "kind": "events", "mode": mode,
-                                                        "expected_scope_generation": generation,
-                                                        "conversation_id": conversation})
-            else:
-                result = client.forget(list(ids), kind="events", mode=mode, expected_scope_generation=generation,
-                                       conversation_id=conversation)
-        finally:
-            client.close()
+            result = client.forget(list(ids), kind="events", mode=mode, expected_scope_generation=generation,
+                                   conversation_id=conversation)
         assert result.get("outcome") == "completed", result
 
     def observe(self) -> dict:
@@ -219,19 +213,19 @@ def perform(play: Play, act: str) -> tuple[set[str], set[str]]:
         play.forget([play.ids[key]], conversation=f"tidepool-{key}")
         return reached(chain, key), set()
     if act == "delete_replaced":  # The oldest note: the page does not show it, so the host forgets it by its id.
-        play.forget([play.ids["A"]], conversation=NOTES_CONVERSATION, tool=True)
+        play.forget([play.ids["A"]], conversation=NOTES_CONVERSATION)
         return reached(chain, "A"), set()
     if act == "delete_middle":  # B: replaced in a chain, current otherwise.
-        play.forget([play.ids["B"]], conversation=NOTES_CONVERSATION, tool=chain)
+        play.forget([play.ids["B"]], conversation=NOTES_CONVERSATION)
         return reached(chain, "B"), set()
     if act == "delete_current":  # The page's Delete on the note it shows.
         play.forget([play.ids[current]], conversation=NOTES_CONVERSATION)
         return reached(chain, current), set()
     if act == "hide_current":
-        play.forget([play.ids[current]], mode="suppress_recall", conversation=NOTES_CONVERSATION, tool=True)
+        play.forget([play.ids[current]], mode="suppress_recall", conversation=NOTES_CONVERSATION)
         return set(), reached(chain, current)
     if act == "hide_day1":
-        play.forget([play.ids["day1"]], mode="suppress_recall", conversation="tidepool-day1", tool=True)
+        play.forget([play.ids["day1"]], mode="suppress_recall", conversation="tidepool-day1")
         return set(), reached(chain, "day1")
     if act == "restore_before":  # An archive from before the correction brings nothing back.
         play.restore("before")

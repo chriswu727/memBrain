@@ -229,6 +229,11 @@ def test_arm_p_offers_every_tool_the_plugins_server_lists_with_its_instructions(
     offered = [schema["function"]["name"] for schema in schemas]
     assert returned is client and offered == list(listed)  # Every tool, in the server's own order.
     assert {"memory_boundary", "memory_consolidate", "memory_persona", "memory_manner_feedback"} <= set(offered)
+    # Nine since 2026-11-19 (fourteen before): a plugin host is not offered the low-level contract tools.
+    assert len(offered) == 9 and not {"memory_capabilities", "memory_inspect", "memory_observe", "memory_prepare",
+                                      "memory_checkpoint"} & set(offered)
+    forget = next(item["function"] for item in schemas if item["function"]["name"] == "memory_forget")
+    assert set(forget["parameters"]["properties"]) == {"ids", "query"}
     assert instructions == host.server_instructions() and "memory_consolidate" in instructions
     schema = {item["function"]["name"]: item["function"] for item in schemas}
     assert schema["memory_note"]["description"] == listed["memory_note"].description

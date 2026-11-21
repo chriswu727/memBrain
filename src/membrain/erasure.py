@@ -2,7 +2,7 @@ import json
 
 from psycopg.types.json import Jsonb
 
-from .helpers import digest, now, uid
+from .helpers import DomainError, digest, now, uid
 
 # Every record that depends on the given ones, directly or through others, each with the record it was reached from:
 # the one walk of ``memory_event_dependencies`` that an erasure takes (``dependent_events``) and that the memory page's
@@ -87,7 +87,15 @@ def resolve_targets(service, conn, principal, brain, selector):
             (*params, ids) if kind != 'all_authorized_scope' else params,
         ):
             event_ids.add(row['id'])
-    return service._dependent_events(conn, principal, brain, event_ids), memory_ids
+    found = service._dependent_events(conn, principal, brain, event_ids)
+    if kind != 'all_authorized_scope' and not found and not memory_ids:
+        # A request whose ids match nothing in this memory (never stored, another person's, or of another kind: a
+        # note's id passed as a memory) was answered "completed" with zero objects, and a host told the user it was
+        # done. It is refused instead and records nothing. A retry of a completed request is answered before this,
+        # from its stored response or its recorded deletion intent; ids already erased still match.
+        raise DomainError('not_found_or_forbidden', f'No {"memory" if kind == "memories" else "record"} with these '
+                          'ids is stored in this memory; nothing was erased.')
+    return found, memory_ids
 
 
 def apply_erasure(service, conn, principal, brain, *, event_ids, memory_ids, mode, deletion_id=None,

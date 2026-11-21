@@ -528,12 +528,10 @@ def upgrade_part(out: Path, old: str, pin: str, current_hooks: str) -> None:
             notes = context.split("<membrain-notes>")[-1].split("</membrain-notes>")[0]
             check("the corrected note replaces the old one at session start",
                   "November 13" in notes and "3 pm" not in notes, notes[-400:])
-            # Forget, following the skill's steps: recall with IDs, then forget those events.
+            # Forget as the tool's description says: the ids of the records found and of the note.
             found = json.loads(mcp.call("memory_recall", {"query": "dentist Dr. Alvarez", "with_ids": True}))
             ids = [record["event_id"] for record in found.get("records", [])] + [corrected["note_id"]]
-            deleted = json.loads(mcp.call("memory_forget", {"ids": sorted(set(ids)), "kind": "events",
-                                                            "mode": "erase_content",
-                                                            "expected_scope_generation": found.get("scope_generation")}))
+            deleted = json.loads(mcp.call("memory_forget", {"ids": sorted(set(ids))}))
             context = session(home, new_hooks, "release-s4", "Who is my dentist?", None)
             text = context["session_start"] + context["user_prompt"]
             check("forgetting through MCP removes the records from later sessions",

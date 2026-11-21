@@ -2264,15 +2264,11 @@ def recall(client, query: str, cues: tuple[str, ...] = (), *, replies: bool = Fa
 
 
 def recall_records(client, response: dict, limit: int = 20) -> dict:
-    """The original messages behind recalled records, with the IDs needed to forget them: each message's event ID
-    and the brain's scope generation, which ``memory_forget`` requires (``kind: "events"``)."""
+    """The original messages behind recalled records, with each message's event ID, which ``memory_forget`` takes."""
     result = response.get("result") or {}
-    events, generations = [], set()
+    events = []
     for item in result.get("items", []):
         memory = item.get("memory") or {}
-        scope = memory.get("scope") or {}
-        if isinstance(scope.get("scope_generation"), int):
-            generations.add(scope["scope_generation"])
         for ref in memory.get("evidence_refs") or ():
             if isinstance(ref, dict) and isinstance(ref.get("event_id"), str) and ref["event_id"] not in events:
                 events.append(ref["event_id"])
@@ -2286,9 +2282,8 @@ def recall_records(client, response: dict, limit: int = 20) -> dict:
                 "role": found[event].get("actor_role"), "recorded_at": local_date(found[event].get("recorded_at")),
                 "text": neutralize(" ".join((found[event].get("text") or "").split()))}
                for event in events if event in found]
-    return {"records": records, "scope_generation": max(generations) if generations else None,
-            "how_to_forget": "Call memory_forget with kind 'events', the event_id of each record the user wants "
-                             "forgotten and expected_scope_generation set to scope_generation."}
+    return {"records": records,
+            "how_to_forget": "To forget records, call memory_forget with their event_id values as ids."}
 
 
 def render_context(response: dict, *, current_conversation: str | None = None,

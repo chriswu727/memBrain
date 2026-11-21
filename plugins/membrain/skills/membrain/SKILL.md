@@ -15,7 +15,7 @@ Raw messages pile up and only part of them fits in a session, so durable facts m
 
 - Save: health conditions and limits, allergies and diet, people and their roles (with names that are easy to confuse), dates and places of plans, budgets and numbers that will matter, preferences about how you should work, decisions, and plans that were only intended but not yet confirmed done ("Plans to buy visitor insurance for Mom; not confirmed bought as of 23 Mar").
 - Include dates when timing matters, and who the fact is about.
-- For every `memory_note` or `memory_observe` call, copy `recording_capture` from the current turn's `<membrain-source>` block. This also applies to unsourced notes and replacements. If it is missing or rejected, do not save the note, obtain another turn's capture, or bypass the tool through the API. Continue the conversation normally; a later public turn can receive its own permission.
+- For every `memory_note` call, copy `recording_capture` from the current turn's `<membrain-source>` block. This also applies to unsourced notes and replacements. If it is missing or rejected, do not save the note, obtain another turn's capture, or bypass the tool through the API. Continue the conversation normally; a later public turn can receive its own permission.
 - When a `<membrain-source>` block is provided for the current message, copy its exact `source_messages` into the note call. The reference resolves when the turn is recorded. For earlier recorded messages, use `source_event_ids` when known. Never invent a source or assume the most recent message belongs to the current session. Unlinked notes are labelled as such.
 - A stale replacement can return a conflict. Refresh the current notes before retrying; do not create a second conflicting version as a workaround.
 - When a fact changes (a date moves, a plan is cancelled, something planned is now done), save the updated note and pass the old note's `id` from `<membrain-notes>` in `replaces`.
@@ -80,16 +80,16 @@ Automatic recall matches the current message by keywords and meaning, so it can 
 - Nothing is forgotten, but automatic recall puts recent conversations first: of two equally relevant messages the newer one is shown. A search has no such preference. When the user refers to something from months ago and it is not in what was added, search for it before saying you do not remember.
 - Your own earlier replies are added automatically only when the user's message asks about them in words memBrain recognises ("what did you suggest"), because a suggestion you made is easily mistaken later for a fact about the user. Otherwise, when the user asks about something you said, recommended, listed or explained in an earlier conversation ("what was that deli you mentioned?", "remind me of the ratio you told me"), call `memory_recall` with `my_replies: true` and keywords from the topic.
 - Recalled lines marked "assistant said" are your own earlier replies. A suggestion, draft or itinerary you offered there is not the user's plan or a fact about them unless a "user said" line confirms it.
-- Use `memory_inspect` only when you need the full source of a specific memory.
 
 ## Forgetting
 
-When the user asks to forget something:
+When the user asks to forget something, call `memory_forget` before you reply:
 
-1. Find the records with `memory_recall` and `with_ids: true`. Each returned record has its `event_id`, and the result has a `scope_generation`. A note's `id` in `<membrain-notes>` is also an event ID.
-2. If it is not clear which records they mean, show them the matching records and ask.
-3. Call `memory_forget` with `kind: "events"`, those event IDs, `expected_scope_generation` set to the `scope_generation`, and `mode: "erase_content"` when they want it deleted or `"suppress_recall"` when they only want it to stop coming up. Notes saved from a message are deleted with it.
-4. Report exactly what the tool returned. Do not claim deletion without a successful result.
+1. With `ids` when you have them: a note's `id` from `<membrain-notes>` (the messages it was drawn from, your replies to them and the notes it replaced are erased with it) or a message's `event_id` from `memory_recall` with `with_ids: true` (the notes drawn from it are erased with it).
+2. Otherwise with `query`, a few words about it. That erases nothing and returns candidates; call again with the right ids, and ask the user first if more than one could be meant.
+3. Tell the user what the answer's `message` says, in your own words. If it kept a message because that message also supports another note, say so and ask whether to erase it too (that erases the other note as well). Never claim deletion the answer does not report, and stop using the forgotten content from earlier in the conversation.
+
+When the user only wants a topic not brought up again, save a boundary with `memory_boundary` instead.
 
 ## Privacy
 

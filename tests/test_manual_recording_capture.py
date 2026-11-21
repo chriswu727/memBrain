@@ -149,10 +149,11 @@ def test_evicted_and_reused_implicit_turn_captures_fail_closed(turns, connected,
 def test_local_mcp_observation_uses_original_recording_revision(turns, connected, tmp_path):
     token = capture(host.prompt_context(tmp_path, "s", "First detail.", turn_id="one", include_source=True))
     with connected(tmp_path) as client:
-        server = create_server(client, directory=tmp_path)
+        # A plugin connection, whose hooks record the conversation, offers no observation tool at all.
+        plugin_tools = {tool.name for tool in asyncio.run(create_server(client, directory=tmp_path).list_tools())}
+        assert "memory_observe" not in plugin_tools
+        server = create_server(client, directory=tmp_path, require_turn_capture=False)
         args = {"text": "An observation.", "conversation_id": "s", "branch_id": "main", "source_event_key": "observed"}
-        missing = asyncio.run(server.call_tool("memory_observe", args))[1]
-        assert "error" in missing
         saved = asyncio.run(server.call_tool("memory_observe", {**args, "recording_capture": token}))[1]
         assert saved["result"]["accepted_event_ids"]
         policy(turns, True, 0)
