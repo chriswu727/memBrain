@@ -79,8 +79,8 @@ const ZH = {
     "按记录保存的原始消息。关联了来源的笔记会显示它们依据的原始消息。",
   "The same recall your agent uses before replying.": "和 agent 回复前使用的召回相同。",
   "Search memory": "搜索记忆", "What did I say about…": "我说过关于……的什么",
-  "Memory is stored on this computer. Recalled text is sent to the agent you use; configured model providers may also process it.":
-    "记忆保存在这台电脑上。召回的内容会发送给你使用的 agent；你配置的模型服务商也可能处理这些内容。",
+  "Memory is stored on this computer. Recalled text goes to the agent you use, and with the conversation to its AI model's service (through memBrain's proxy, to the service your bot uses). Apart from installing and updating itself, memBrain connects out only once, to download the local model.":
+    "记忆保存在这台电脑上。召回的内容会交给你使用的 agent，并随对话发送到它的 AI 模型服务（通过 memBrain 代理时，发送到你的机器人使用的模型服务）。除了安装和更新自身，memBrain 只对外连接一次：下载本地模型。",
   "Recording": "记录", "Pause duration": "暂停时长", "for 1 hour": "1 小时", "for 24 hours": "24 小时",
   "until I resume": "直到我恢复", "Pause recording": "暂停记录", "Resume recording": "恢复记录",
   "While paused nothing new is stored; recall of earlier memory keeps working. Text inside":

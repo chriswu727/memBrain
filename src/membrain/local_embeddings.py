@@ -4,7 +4,8 @@ The model (multilingual-e5-small, int8 ONNX export, MIT licence) runs in-process
 downloaded once into the installation directory, pinned to a revision and verified by SHA-256. Without the optional
 ``semantic`` extra or before the download finishes, recall stays lexical. A local profile configures the provider
 before the download; it reports ready once the verified files are in place and then loads on first use, so a running
-service starts using the model without a restart.
+service starts using the model without a restart. ONNX Runtime's reporting to Microsoft is switched off
+(``_onnxruntime``), so the download from the model host is the only connection this module makes.
 """
 from __future__ import annotations
 
@@ -39,11 +40,22 @@ class LocalEmbeddingError(RuntimeError):
     pass
 
 
+def _onnxruntime():
+    """ONNX Runtime with its telemetry off. On Linux and macOS ``ORT_DISABLE_TELEMETRY`` (set when ``membrain`` is
+    imported) keeps its uploader from starting; Windows wheels log to the system's event tracing instead, which this
+    documented call turns off."""
+    import onnxruntime
+
+    onnxruntime.disable_telemetry_events()
+    return onnxruntime
+
+
 def runtime_available() -> bool:
     try:
         import numpy  # noqa: F401
-        import onnxruntime  # noqa: F401
         import tokenizers  # noqa: F401
+
+        _onnxruntime()
     except ImportError:
         return False
     return True
@@ -157,9 +169,9 @@ class LocalEmbeddingProvider:
             raise LocalEmbeddingError("The local embedding model is not installed yet.")
         with self._lock:
             if self._session is None:
-                import onnxruntime
                 from tokenizers import Tokenizer
 
+                onnxruntime = _onnxruntime()
                 tokenizer = Tokenizer.from_file(str(self._directory / "tokenizer.json"))
                 document_tokenizer = Tokenizer.from_file(str(self._directory / "tokenizer.json"))
                 document_tokenizer.no_truncation()
