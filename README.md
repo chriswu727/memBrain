@@ -4,31 +4,44 @@ English | [简体中文](README.zh-CN.md)
 
 memBrain gives Claude Code, Codex and other supported agents one shared memory on your own computer: it keeps what you said apart from what the assistant suggested, shows which messages a note came from, and lets you look through and delete what it keeps.
 
-<!-- DEMO GIF PLACEHOLDER: replace the image below with the 20-second demo GIF (for example .github/assets/demo.gif, at the same width) once it is recorded, and update its alt text and the caption to match. Make the same change in README.zh-CN.md. -->
-<img src=".github/assets/brain-showcase.png" width="600" alt="memBrain brain view with fictional memories grouped by kind and connected to their sources">
+![Demo of the memBrain memory page with fictional data: the 3D Showcase, then the Memories graph, a picked note, and the page opened at that note with the messages it came from](.github/assets/demo.gif)
 
-*The local memory page's brain view (an earlier 2D version, with fictional demo data); [more about it](#brain-view).*
+*The real memory page with fictional data, from two recordings joined and sped up, with the pointer drawn in. The brain shell and glow are decoration, and the travelling light is simulated, not agent activity ([what the demo shows](.github/assets/README.md)).*
 
-**Try it in Claude Code.** Install [uv](https://docs.astral.sh/uv/), then run:
+**Try it in Claude Code** ([Codex and other hosts](#claude-code-plugin)). Install [uv](https://docs.astral.sh/uv/), then run:
 
 ```sh
 claude plugin install membrain --marketplace chriswu727/membrain
 ```
 
-Then start a new session. That session downloads about 260 MB and installs memBrain in the background. In a Linux sandbox that played Claude Code's part, the memory tools gave results after about 70 seconds on a fast link and 90 seconds at 20 Mbit/s; messages typed meanwhile were queued and kept, but those sent before the runtime was installed were not, and Claude was told how many ([record](evaluations/first-run-fix-2026-11-19.md)). This install command has not yet been run on a real host. For Codex and other hosts, see [Use with Claude Code](#claude-code-plugin) and the sections after it.
+Then start a new session. It downloads about 260 MB, memory starts working within about a minute and a half, and messages sent before memBrain has installed itself are not kept ([first run](#what-is-and-is-not-verified)).
 
 **What is different**
 
-- **One local memory for Claude Code and Codex.** Both plugins use the same embedded database on your computer, with no cloud account or API key, and memBrain calls no model of its own. Apart from installing itself and downloading its local model once, it connects to nothing outside your computer ([observed on Linux](docs/reference.md#what-leaves-your-machine)); what your agent is given from memory goes to the agent's own model service with the conversation. A hand-off from one host to the other has not been checked yet.
-- **Your words are kept apart from the assistant's.** Every message keeps who said it. Automatic recall leaves the assistant's earlier replies out unless you ask about them, because in earlier acceptance runs agents restated their own old suggestions as facts about the user.
-- **You can see what a memory rests on.** The local memory page (`membrain plugin ui`) shows the messages a note came from and the note it replaced, and links promises, feelings, mood triggers and persona changes back to the notes or messages behind them; boundaries have no stored source yet. Asked "Can you show me where I said that?", Claude Code ran the command that opens the page at that note in a [real-host check](evaluations/host-recheck-2026-11-19.md) (one run).
-- **You can delete it from the page.** Messages, notes, promises, feelings and search results can each be deleted there, and before each delete the page names what goes with it, such as the agent's reply and the notes resting on a message. Asking the agent to forget something does **not** work yet: in the same check nothing was erased.
+- **One local memory for Claude Code and Codex**: both use the same embedded database on your computer, with no cloud account, no API key and no model of memBrain's own.
+- **Your words are kept apart from the assistant's**: automatic recall leaves the assistant's earlier replies out unless you ask about them.
+- **You can see what a memory rests on**: the local memory page (`membrain plugin ui`) shows the messages a note came from and the note it replaced.
+- **You can delete it from the page**, and the page names what each delete takes with it, such as the agent's reply and the notes resting on a message.
+
+<a id="what-is-and-is-not-verified"></a>
+
+**What is and is not verified**
+
+- **First run.** Measured in a Linux sandbox that played Claude Code's part: the memory tools gave results after about 70 seconds on a fast link and 90 seconds at 20 Mbit/s, messages typed meanwhile were queued and kept, and Claude was told how many earlier ones were not ([record](evaluations/first-run-fix-2026-11-19.md)). This install command has not yet been run on a real host.
+- **Network.** Apart from installing itself and downloading its local model once, memBrain connects to nothing outside your computer, observed on Linux only; what your agent is given from memory goes to the agent's own model service with the conversation ([details](docs/reference.md#what-leaves-your-machine)).
+- **Two hosts.** Memory across sessions has been checked in each host on its own; a hand-off between Claude Code and Codex has not been checked yet.
+- **Sources.** Asked "Can you show me where I said that?", Claude Code ran the command that opens the page at that note in a [real-host check](evaluations/host-recheck-2026-11-19.md) (one run). The page also links promises, feelings, mood triggers and persona changes back to the notes or messages behind them; boundaries have no stored source yet.
+- **Deleting.** Messages, notes, promises, feelings and search results can each be deleted on the page; a single persona version or suggestion cannot yet be deleted on its own.
+- **Forgetting.** Asking the agent to forget something does **not** work yet: in the same check nothing was erased.
+- **Why replies are left out.** In earlier acceptance runs, agents restated their own old suggestions as facts about the user.
 
 **Status: pre-release, no tagged release yet.** Behavioural acceptance (R4) passed on its seventh attempt by a thin margin, with one emulated host model on an earlier runtime; the release bar's install, test, privacy and performance items are still open. See [Status and verification](#status-and-verification).
 
 [Claude Code plugin](#claude-code-plugin) · [Why memBrain](#why-membrain) · [Quickstart](#quickstart) · [Python integration](#python-integration) · [How memory works](#how-memory-works) · [Status and verification](#status-and-verification) · [Full reference](docs/reference.md)
 
 ## Brain view
+
+![memBrain brain view with fictional memories grouped by kind and connected to their sources](.github/assets/brain-showcase.png)
 
 *The working brain view, using fictional demo data. Open `membrain plugin ui`, choose Brain, then Showcase. Dots represent memories and lines represent recorded links; the brain shape and glow are illustrative.*
 

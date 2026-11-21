@@ -4,25 +4,36 @@
 
 memBrain 让 Claude Code、Codex 和其他受支持的 Agent 在你自己的电脑上共用一份记忆：它把你说的话和助手的建议分开保存，能显示一条笔记来自哪些消息，并让你查看和删除它保存的内容。
 
-<!-- DEMO GIF PLACEHOLDER: replace the image below with the 20-second demo GIF (for example .github/assets/demo.gif, at the same width) once it is recorded, and update its alt text and the caption to match. Make the same change in README.md. -->
-<img src=".github/assets/brain-showcase.png" width="600" alt="memBrain 大脑视图：虚构记忆按类别分布，并与来源相连">
+![memBrain 记忆页面演示（虚构数据）：3D 展示模式，然后是记忆图谱、选中一条笔记，以及打开到这条笔记并显示其来源消息的页面](.github/assets/demo.gif)
 
-*本地记忆页面中的大脑视图（此前的 2D 版本，使用虚构演示数据）；[了解更多](#brain-view)。*
+*真实的记忆页面，使用虚构数据；由两段录屏拼接并加速，指针为后期绘制。脑形外壳和发光是装饰，流动的光是模拟的，不代表 Agent 的活动（[演示说明](.github/assets/README.md)）。*
 
-**在 Claude Code 中试用。** 先安装 [uv](https://docs.astral.sh/uv/)，然后运行：
+**在 Claude Code 中试用**（[Codex 和其他宿主](#claude-code-plugin)）。先安装 [uv](https://docs.astral.sh/uv/)，然后运行：
 
 ```sh
 claude plugin install membrain --marketplace chriswu727/membrain
 ```
 
-然后开启一个新会话。这个会话会在后台下载约 260 MB 并安装 memBrain。在一次由驱动程序扮演 Claude Code 的 Linux 沙盒测试中，网络较快时约 70 秒后记忆工具开始给出结果，20 Mbit/s 时约 90 秒；期间输入的消息排队后得以保存，但运行时装好之前发送的消息没有保存，Claude 被告知了有几条（[记录](evaluations/first-run-fix-2026-11-19.md)）。这条安装命令本身尚未在真实宿主上运行过。Codex 和其他宿主见[在 Claude Code 中使用](#claude-code-plugin)及其后各节。
+然后开启一个新会话。它会下载约 260 MB，大约一分半钟内记忆开始工作；memBrain 装好之前发送的消息不会保存（[首次运行](#what-is-and-is-not-verified)）。
 
 **有何不同**
 
-- **Claude Code 和 Codex 共用一份本地记忆。** 两个插件使用你电脑上的同一个嵌入式数据库，无需云账号或 API key，memBrain 自己也不调用任何模型。除了安装自身和一次性下载本地模型，它不连接你电脑以外的任何地方（[在 Linux 上观察](docs/reference.md#what-leaves-your-machine)）；Agent 从记忆中得到的内容会随对话一起发给 Agent 自己的模型服务。从一个宿主转到另一个宿主继续使用的情形尚未验证。
-- **你的话和助手的话分开保存。** 每条消息都保留是谁说的。自动召回默认不带上助手以前的回复，除非你问起，因为在此前的验收测试中 Agent 曾把自己以前的建议当作关于用户的事实复述。
-- **能看到一条记忆依据的是什么。** 本地记忆页面（`membrain plugin ui`）会显示一条笔记来自哪些消息、替换了哪条笔记，并把承诺、感受、心情触发和人格变更链接回它们依据的笔记或消息；边界目前没有保存来源。在一次[真实宿主检查](evaluations/host-recheck-2026-11-19.md)中，用户请 Claude Code 展示自己是在哪里说的，它运行了打开页面上这条笔记的命令（仅一次运行）。
-- **可以在页面上删除。** 消息、笔记、承诺、感受和搜索结果都可以在页面上逐条删除，每次删除前页面会说明哪些内容会一并删除，例如 Agent 的回复和依据这条消息的笔记。请 Agent 忘掉某件事目前**还不起作用**：在同一次检查中，什么都没有被擦除。
+- **Claude Code 和 Codex 共用一份本地记忆**：两者使用你电脑上的同一个嵌入式数据库，无需云账号、无需 API key，memBrain 也没有自己的模型。
+- **你的话和助手的话分开保存**：自动召回默认不带上助手以前的回复，除非你问起。
+- **能看到一条记忆依据的是什么**：本地记忆页面（`membrain plugin ui`）会显示一条笔记来自哪些消息、替换了哪条笔记。
+- **可以在页面上删除**，页面会说明每次删除会一并带走哪些内容，例如 Agent 的回复和依据这条消息的笔记。
+
+<a id="what-is-and-is-not-verified"></a>
+
+**哪些已验证、哪些尚未验证**
+
+- **首次运行。** 在一次由驱动程序扮演 Claude Code 的 Linux 沙盒测试中测得：网络较快时约 70 秒后记忆工具开始给出结果，20 Mbit/s 时约 90 秒；期间输入的消息排队后得以保存，Claude 被告知了此前有几条没有保存（[记录](evaluations/first-run-fix-2026-11-19.md)）。这条安装命令本身尚未在真实宿主上运行过。
+- **网络。** 除了安装自身和一次性下载本地模型，memBrain 不连接你电脑以外的任何地方，这只在 Linux 上观察过；Agent 从记忆中得到的内容会随对话一起发给 Agent 自己的模型服务（[详情](docs/reference.md#what-leaves-your-machine)）。
+- **两个宿主。** 跨会话记忆已在每个宿主上分别验证；在 Claude Code 和 Codex 之间接续使用的情形尚未验证。
+- **来源。** 在一次[真实宿主检查](evaluations/host-recheck-2026-11-19.md)中，用户请 Claude Code 展示自己是在哪里说的，它运行了打开页面上这条笔记的命令（仅一次运行）。页面还会把承诺、感受、心情触发和人格变更链接回它们依据的笔记或消息；边界目前没有保存来源。
+- **删除。** 消息、笔记、承诺、感受和搜索结果都可以在页面上逐条删除；单个人格版本或人格修改建议目前还不能单独删除。
+- **遗忘。** 请 Agent 忘掉某件事目前**还不起作用**：在同一次检查中，什么都没有被擦除。
+- **为什么不带上助手的回复。** 在此前的验收测试中，Agent 曾把自己以前的建议当作关于用户的事实复述。
 
 **状态：发布前版本，尚无带标签的发布。** 行为验收（R4）在第七次尝试中以很小的优势通过，只用了一个经模拟的宿主模型，且是在更早的运行时上；发布门槛中的安装、测试、隐私和性能项仍未完成。详见[状态与验证](#status-and-verification)。
 
@@ -31,6 +42,8 @@ claude plugin install membrain --marketplace chriswu727/membrain
 <a id="brain-view"></a>
 
 ## 大脑视图
+
+![memBrain 大脑视图：虚构记忆按类别分布，并与来源相连](.github/assets/brain-showcase.png)
 
 *实际运行的大脑视图，使用虚构演示数据。运行 `membrain plugin ui`，选择“大脑”，再打开“展示”。光点代表记忆，连线代表已记录的关联；脑形和发光是示意装饰。*
 
