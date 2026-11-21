@@ -6,7 +6,7 @@ memBrain 让 Claude Code、Codex 和其他受支持的 Agent 在你自己的电�
 
 ![memBrain 记忆页面演示（虚构数据）：3D 展示模式，然后是记忆图谱、选中一条笔记，以及打开到这条笔记并显示其来源消息的页面](.github/assets/demo.gif)
 
-*真实的记忆页面，使用虚构数据；由两段录屏拼接并加速，指针为后期绘制。脑形外壳和发光是装饰，流动的光是模拟的，不代表 Agent 的活动（[演示说明](.github/assets/README.md)）。*
+*真实的记忆页面，使用通过插件钩子录入的虚构数据；一段录屏，部分加速，指针为后期绘制。脑形外壳和发光是装饰，流动的光是模拟的，不代表 Agent 的活动（[演示说明](.github/assets/README.md)）。*
 
 **在 Claude Code 中试用**（[Codex 和其他宿主](#claude-code-plugin)）。先安装 [uv](https://docs.astral.sh/uv/)，然后运行：
 

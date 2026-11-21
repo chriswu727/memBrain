@@ -6,7 +6,7 @@ memBrain gives Claude Code, Codex and other supported agents one shared memory o
 
 ![Demo of the memBrain memory page with fictional data: the 3D Showcase, then the Memories graph, a picked note, and the page opened at that note with the messages it came from](.github/assets/demo.gif)
 
-*The real memory page with fictional data, from two recordings joined and sped up, with the pointer drawn in. The brain shell and glow are decoration, and the travelling light is simulated, not agent activity ([what the demo shows](.github/assets/README.md)).*
+*The real memory page with fictional data recorded through the plugin's hooks, one recording sped up in parts, with the pointer drawn in. The brain shell and glow are decoration, and the travelling light is simulated, not agent activity ([what the demo shows](.github/assets/README.md)).*
 
 **Try it in Claude Code** ([Codex and other hosts](#claude-code-plugin)). Install [uv](https://docs.astral.sh/uv/), then run:
 
