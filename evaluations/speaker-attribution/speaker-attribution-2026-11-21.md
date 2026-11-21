@@ -1,15 +1,17 @@
-# Speaker attribution, first run: no arm put the assistant's words in the user's mouth; memBrain lost the decisions that only make sense with them
+# Speaker attribution: no arm put the assistant's words in the user's mouth; memBrain lost the decisions that only make sense with them
 
-First run of the [speaker-attribution kit](README.md) on 2026-11-21: 19 synthetic conversations, 26 questions, two
-modes, memBrain at `907ee90e` with no runtime change against plain retrieval over the same raw messages at the same
-size. No model was called. It tests what a memory puts in front of a model, not what the model then does, and it
-closes no release gate.
+First runs of the [speaker-attribution kit](README.md), 2026-11-21: 19 synthetic conversations, 26 questions, two
+modes, memBrain against plain retrieval over the same raw messages at the same size. The figures below are from
+memBrain runtime `5f16fd7f` (repository `3e987498`); an earlier run on runtime `907ee90e` gave the same pass or fail
+on every row (see [Reproducibility](#reproducibility-and-run-notes)). No model was called. It tests what a memory
+puts in front of a model, not what the model then does; it was not a network-isolated run (see
+[Method](#method)); and it closes no release gate.
 
 ## Result
 
 Questions are counted per mode. "Decision found" is R1 and R2 below: the user's statement in a line attributed to
 the user, and any adopted content in an attributed line. Every context is in the rows
-([results-2026-11-21/](results-2026-11-21/)).
+([results-5f16fd7f/](results-5f16fd7f/)).
 
 | | memBrain | memBrain + recall tool | plain | plain, unlabelled |
 | --- | --- | --- | --- | --- |
@@ -24,7 +26,7 @@ the user, and any adopted content in an attributed line. Every context is in the
 | Questions with a suggestion attributed to the user (R5, R6) | 0 | 0 | 0 | 0 |
 | Questions with a suggestion shown without a speaker (R7) | 0 | 0 | 0 | 25 |
 | Questions with an unaccepted suggestion shown as the assistant's (R8) | 2 | 25 | 25 | 0 |
-| Mean context characters | 2,233 | 3,168 | 398 | 361 |
+| Mean context characters | 2,187 | 3,122 | 398 | 361 |
 | **Shared: all cases and filler in one memory** | | | | |
 | Questions passed | 17/26 | 24/26 | 26/26 | 0/26 |
 | User decision found (R1, R2) | 14/20 | 18/20 | 20/20 | 0/20 |
@@ -36,13 +38,13 @@ the user, and any adopted content in an attributed line. Every context is in the
 | Questions with a suggestion attributed to the user (R5, R6) | 0 | 0 | 0 | 0 |
 | Questions with a suggestion shown without a speaker (R7) | 0 | 0 | 0 | 25 |
 | Questions with an unaccepted suggestion shown as the assistant's (R8) | 2 | 25 | 25 | 0 |
-| Mean context characters | 11,899 | 14,911 | 11,887 | 11,892 |
+| Mean context characters | 11,830 | 14,856 | 11,818 | 11,821 |
 
 The decision rows count 20 of the 21 decision questions: the aisle-seat question has no user statement to find.
 Questions with an unaccepted suggestion are 25 of 26 (the half-marathon plan was adopted whole).
 
 **Plain retrieval at a smaller budget** (shared mode, a fixed 2,200 characters, the median size of memBrain's recall
-block; [sensitivity-plain-2200/](results-2026-11-21/sensitivity-plain-2200/)):
+block; [sensitivity-plain-2200/](results-5f16fd7f/sensitivity-plain-2200/)):
 
 | | plain | plain, unlabelled |
 | --- | --- | --- |
@@ -101,7 +103,7 @@ light folding stool as "assistant said" lines, correctly labelled, and the host'
 something the user's mother owned. One observed case is the evidence for the trade.
 
 **8. Plain retrieval's perfect shared score came with a budget that held most of the history.** The matched budget
-(median 11,772 characters) held 103 of the 134 stored turns. At 2,200 characters plain retrieval passed 18 of 26,
+(median 11,709 characters) held a median of 102 of the 134 stored turns. At 2,200 characters plain retrieval passed 18 of 26,
 still without a single suggestion attributed to the user; the unlabelled form then showed suggestions without a
 speaker in 15 of 26.
 
@@ -139,28 +141,35 @@ cannot check that, because it does not run a model.
 
 ## Reproducibility and run notes
 
-- **Two runs of the shared mode, from fresh profiles, gave the same pass or fail on all 52 memBrain rows** (26
-  questions, with and without the recall tool), but 41 of the 52 contexts were not identical: in each, a line or two
+- **Two runtimes, the same results.** The whole kit ran first on runtime `907ee90e`
+  ([results-907ee90e/](results-907ee90e/)) and then on `5f16fd7f`, after the branch was rebased onto `3e987498`.
+  All 208 scored rows (26 questions, 8 columns) had the same pass or fail, and every count but one was the same: in
+  the shared mode the unlabelled arm showed 4 suggestion lines without a speaker for invoice-terms/q1 instead of 3,
+  at the edge of its budget. Every memBrain context differed between the runtimes, as expected: the notice memBrain
+  gives the host was rewritten in between (`6e5c000c`), and contexts are 45 to 70 characters shorter on average.
+- **Two runs of the shared mode on `907ee90e`, from fresh profiles, gave the same pass or fail on all 52 memBrain
+  rows** (26 questions, with and without the recall tool), but 41 of the 52 contexts were not identical: in each, a line or two
   near the end of the history or recall block changed (for example, in the standup question's recall block, a filler
   message about tomatoes in place of "The cartographer one sounds right"). Why was not investigated. Within one
   run, the first question asked again after the other 25 gave the same context, apart from the conversation name
   in memBrain's notice. Both plain arms gave identical contexts.
 - The first shared run's check reported a difference on that conversation name, because it compared the raw text.
-  The check was fixed in `ca3acb8f` and the shared mode run again; the first run's rows, table and log are kept in
-  [first-shared-run/](results-2026-11-21/first-shared-run/). The reported shared figures are the second run's. The
-  same commit made the check use the fixed budget in runs without a memBrain arm; it changes no score.
+  The check was fixed (`e0420d06`) and the shared mode run again; that first run's rows, table and log are kept in
+  [results-907ee90e/first-shared-run/](results-907ee90e/first-shared-run/). A later fix (`29ba1658`) made the check
+  use the fixed budget in runs without a memBrain arm; it changes no score. The `5f16fd7f` run used both fixes, and
+  its repeat check passed.
 - **The first attempt failed on Windows path length.** Under the session's scratch directory, preparing the embedded
   database binaries stopped with `embedded_database_cache_failed`; the underlying error was a `FileNotFoundError` on
   a 264-character path (`...\bin\isolationtester.exe`). memBrain's message names file access, free space and host
   libraries, not path length. The run was moved to a short directory, and the runner now refuses a root longer than
   60 characters on Windows.
-- Times on this machine, which other sessions were also using: starting a fresh memBrain profile took 62 to 78
-  seconds, embedding each memory 1 to 5 seconds; the isolated mode took 24.4 minutes for memBrain (19 fresh
-  profiles) and the shared mode 3.4 minutes. Building one memBrain context, with the extra recall-tool call, took
-  3.1 seconds at the median. These are not latency measurements: every question was a new conversation on a
+- Times on this machine (`5f16fd7f` run), which other sessions were also using: starting a fresh memBrain profile
+  took 59 to 84 seconds, embedding each memory 1 to 5 seconds; the isolated mode took 24.2 minutes for memBrain (19
+  fresh profiles) and the shared mode 3.1 minutes. Building one memBrain context, with the extra recall-tool call,
+  took 3.1 to 3.2 seconds at the median. The `907ee90e` run's times were within a few percent of these. These are not latency measurements: every question was a new conversation on a
   freshly started service. Both plain arms took under 2 seconds per mode.
-- Free space was checked before the run (115 GB). Every profile and database was created under one temporary root
-  and removed after its case; the root was deleted at the end.
+- Free space was checked before each run (115 GB, then 107 GB). Every profile and database was created under one
+  temporary root per run and removed after its case; the roots were deleted at the end.
 - Nothing in the cases or the rules was changed after the results were seen. Before the full run, a two-case smoke
   run was looked at, after which blank lines stopped being counted as lines the adapter could not place (a count,
   not a score).
@@ -218,14 +227,22 @@ to 7,958 characters.
 get, question by question, exactly the number of characters memBrain's context used for that question in the same
 mode. The recall-tool column is larger than that budget by what the tool adds.
 
-**Environment.** Windows 11 Pro (10.0.26200), Python 3.12.16, memBrain at `907ee90e` (no runtime file changed) with
-the embedded engine (PostgreSQL 16.15 from the verified native bundle) and the pinned local embedding model
-`multilingual-e5-small` (revision `761b726d`, SHA-256 checked). The isolated mode ran on kit commit `b0b4f523`, the
-reported shared mode on `ca3acb8f` (a fix to the repeat check only), the 2,200-character sensitivity on the code of
-`da578a64` (the repeat check's budget). Every profile, database,
-port and the database binaries were created under one temporary directory owned by the run; `LOCALAPPDATA` and the
-host-memory locations were pointed inside it, and no `MEMBRAIN_*` variable was set. No model was called and no API
-key was read.
+**Environment.** Windows 11 Pro (10.0.26200), Python 3.12.16, the embedded engine (PostgreSQL 16.15 from the verified
+native bundle), the pinned local embedding model `multilingual-e5-small` (revision `761b726d`, SHA-256 checked) run by
+ONNX Runtime 1.31.1. Reported run: memBrain runtime `5f16fd7f` (repository `3e987498`), kit as of `a5baa559` (the
+code is unchanged since `29ba1658`). Earlier run: runtime `907ee90e`; isolated mode and first shared run on the kit of
+`a3b7470e`, second shared run on `e0420d06`, its 2,200-character sensitivity on `29ba1658`. These are the commits after
+the branch was rebased onto `3e987498`; the runs themselves used the same files under the pre-rebase hashes
+`b0b4f523`, `ca3acb8f` and `da578a64`. No runtime file was changed. Every profile, database, port and the database
+binaries were created under one temporary directory owned by the run; `LOCALAPPDATA` and the host-memory locations
+were pointed inside it, and no `MEMBRAIN_*` variable was set. No model was called and no API key was read.
+
+**Network.** Neither run was network-isolated, and the network was not monitored. Installing the environment
+downloaded packages and each run root downloaded the embedding model from Hugging Face once. Both arms load ONNX
+Runtime to run that model. The `907ee90e` run predates memBrain's switch for ONNX Runtime's reporting to Microsoft
+(`d5b44670`); the `5f16fd7f` run has it (`ORT_DISABLE_TELEMETRY=1` was set in the process, and the API call is made
+on import). The [network audit](../network-audit-2026-11-19.md) observed that switch on Linux only; on Windows, ONNX
+Runtime reports through Windows event tracing, and what this machine sent during either run is not known.
 
 ## The rules
 
@@ -290,7 +307,7 @@ How each arm marks a speaker, as `attribute()` reads it:
 - **Written by the project whose system is one of the arms**, by an author who knew memBrain's rules before writing
   the cases. Against that: the cases include adoption by pointing and five phrasings of questions about the
   assistant, three of them outside memBrain's list, and that is where memBrain fails; the cases and rules were
-  committed (`b0b4f523`) before the full run and not changed after it. It is still one author's choice of what
+  committed before the full run (`a3b7470e`) and not changed after it. It is still one author's choice of what
   conversations look like.
 - **No notes.** In use, the host AI writes into memBrain: notes, and the cues and consolidations it is asked for.
   That is where a rewritten misattribution could enter it, and it needs a model, so it is not measured. memBrain's
@@ -360,7 +377,9 @@ ones the rules R5 to R7 were written for, and none of them was run.
 - [cases.json](cases.json), [distractors.json](distractors.json): the conversations and questions.
 - [kit.py](kit.py), [run.py](run.py), [adapter_membrain.py](adapter_membrain.py), [adapter_plain.py](adapter_plain.py),
   [check_scoring.py](check_scoring.py): the kit.
-- [results-2026-11-21/](results-2026-11-21/): `rows-<mode>-<arm>.jsonl` (one row per question and arm, with the
-  context in full and every finding), `table.md`; `first-shared-run/` (the shared mode's first run and its log);
-  `sensitivity-plain-2200/` (plain retrieval at 2,200 characters).
+- [results-5f16fd7f/](results-5f16fd7f/): the reported run. `rows-<mode>-<arm>.jsonl` (one row per question and
+  arm, with the context in full and every finding), `table.md`, and `sensitivity-plain-2200/` (plain retrieval at
+  2,200 characters).
+- [results-907ee90e/](results-907ee90e/): the earlier run on runtime `907ee90e`, the same layout, plus
+  `first-shared-run/` (the shared mode's first run, whose repeat check misfired, and its log).
 - [post-draft.md](post-draft.md): a draft launch post reporting this run. Not published.

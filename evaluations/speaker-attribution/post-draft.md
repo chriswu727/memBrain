@@ -1,5 +1,6 @@
 <!-- Draft launch post. Not published. Working title from the brief: "Your agent's memory believes its own
-suggestions". Every number below is from evaluations/speaker-attribution/speaker-attribution-2026-11-21.md; the
+suggestions". Every number below is from evaluations/speaker-attribution/speaker-attribution-2026-11-21.md (runtime
+5f16fd7f; the same on 907ee90e). Make no network or deletion claim in this post. The
 papers are cited only for what their arXiv abstracts say (read 2026-11-21). -->
 
 # Does your agent's memory believe its own suggestions?

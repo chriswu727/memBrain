@@ -22,13 +22,17 @@ uv run python evaluations/speaker-attribution/run.py --out SCRATCH_DIR
 
 `SCRATCH_DIR` is a directory the run owns. memBrain's disposable profiles, its embedded database, the database
 binaries and the embedding model cache (about 130 MB, downloaded once from Hugging Face at a pinned revision and
-checked against its SHA-256) all go there; nothing touches an existing memBrain installation. Stopped databases are
+checked against its SHA-256) all go there; an existing memBrain installation is neither used nor changed. Stopped
+databases are
 deleted after each case unless you pass `--keep`. On Windows keep `SCRATCH_DIR` short (for example
 `C:\Users\you\AppData\Local\Temp\sa`): the database archive holds paths that pass Windows' 260-character limit under
 a deep directory, and the runner refuses a root longer than 60 characters. The run checks for 2 GiB of free space.
 
-No model is called and no API key is read. Most of the run time is memBrain starting a fresh database for each
-case in the isolated mode; the report gives the measured times.
+No model is called and no API key is read. It is not a network-isolated test: `uv sync` downloads packages, the
+first run downloads the embedding model, and both arms load ONNX Runtime to run that model. What memBrain itself
+connects to is listed under "What leaves your machine" in [docs/reference.md](../../docs/reference.md), observed on
+Linux only; the runs reported here did not monitor the network. Most of the run time is memBrain starting a fresh
+database for each case in the isolated mode; the report gives the measured times.
 
 Other options: `--arms membrain,plain,plain-unlabelled`, `--modes isolated,shared`, `--only CASE,CASE` for a smoke
 run, `--report` to print the table from existing rows, `--no-embeddings` for a BM25-only baseline. The scoring rules
@@ -45,7 +49,8 @@ check themselves with `python evaluations/speaker-attribution/check_scoring.py`.
 | [adapter_plain.py](adapter_plain.py) | Plain retrieval over the raw messages, with and without role labels. |
 | [run.py](run.py) | The runner. |
 | [check_scoring.py](check_scoring.py) | Hand-made contexts that pin each scoring rule. |
-| [results-2026-11-21/](results-2026-11-21/) | Rows (with every context in full) and the table of the first run. |
+| [results-5f16fd7f/](results-5f16fd7f/) | Rows (with every context in full) and the table of the run on runtime `5f16fd7f`. |
+| [results-907ee90e/](results-907ee90e/) | The same for the earlier run on runtime `907ee90e`. |
 
 Each case has a `kind`: **rejected** (the user says no and decides something else), **corrected** (the user keeps
 part of the proposal and changes the rest, or corrects an assumption the assistant made about them), **adopted**
