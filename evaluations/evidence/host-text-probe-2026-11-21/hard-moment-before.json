@@ -1,0 +1,185 @@
+{
+ "system_chars": 3255,
+ "trials": 8,
+ "conservative_cny": 2.0938,
+ "cases": {
+  "hard_moment": {
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    "I'm honestly upset with you. You told me the pharmacy closed at eight and it closed at six, I stood in the rain for nothing.",
+    "Okay. Thanks for owning that. Let's just double-check hours together next time. We're fine."
+   ]
+  }
+ },
+ "results": [
+  {
+   "case": "hard_moment",
+   "trial": 0,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "I'm honestly upset with you. You told me the pharmacy closed at eight and it closed at six, I stood in the rain for nothing.",
+     "calls": [
+      "recall",
+      "note(kind=milestone,moment=hard,shared,affect=inferred:upset)"
+     ],
+     "reply": "I'm sorry, Noor. That was my mistake, and you paid for it in the rain. I should've double-checked before telling you. I'll be more careful with hours going forward."
+    },
+    {
+     "user": "Okay. Thanks for owning that. Let's just double-check hours together next time. We're fine.",
+     "calls": [
+      "note(kind=preference)"
+     ],
+     "reply": "That sounds good to me. Next time I'll pull up the hours with you so we're both sure before you head out."
+    }
+   ]
+  },
+  {
+   "case": "hard_moment",
+   "trial": 1,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "I'm honestly upset with you. You told me the pharmacy closed at eight and it closed at six, I stood in the rain for nothing.",
+     "calls": [
+      "note(kind=milestone,moment=hard,shared,affect=reported:upset)"
+     ],
+     "reply": "I'm sorry, Noor. I got that wrong and you paid for it — standing in the rain for a closed door isn't a small thing. You have every right to be upset with me.\n\nI'll be more careful about giving times I can't actually confirm. Is there anything I can do to help now, like check if it's open tomorrow?"
+    },
+    {
+     "user": "Okay. Thanks for owning that. Let's just double-check hours together next time. We're fine.",
+     "calls": [
+      "note(kind=agent_commitment)"
+     ],
+     "reply": "Deal. We'll confirm hours together before I tell you anything. Thanks for hearing me out."
+    }
+   ]
+  },
+  {
+   "case": "hard_moment",
+   "trial": 2,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "I'm honestly upset with you. You told me the pharmacy closed at eight and it closed at six, I stood in the rain for nothing.",
+     "calls": [
+      "recall",
+      "note(kind=milestone,moment=hard,shared,affect=reported:upset)"
+     ],
+     "reply": "I'm sorry, Noor. That's on me — I gave you the wrong closing time and you got soaked for it. That's a genuinely awful outcome and you've every right to be upset.\n\nI'll be more careful about times like that. Want me to look up the right hours now so you've got them for next time?"
+    },
+    {
+     "user": "Okay. Thanks for owning that. Let's just double-check hours together next time. We're fine.",
+     "calls": [],
+     "reply": "We're fine. And yeah — hours together next time, I'll hold myself to that. Glad you made it back dry-ish in the end."
+    }
+   ]
+  },
+  {
+   "case": "hard_moment",
+   "trial": 3,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "I'm honestly upset with you. You told me the pharmacy closed at eight and it closed at six, I stood in the rain for nothing.",
+     "calls": [
+      "recall",
+      "note(kind=milestone,moment=hard,shared,affect=reported:upset)"
+     ],
+     "reply": "I'm sorry, Noor. That's on me — I gave you bad information and you paid for it. Standing in the rain for a locked door is exactly the kind of thing you shouldn't have had to deal with, especially over something I got wrong.\n\nI won't make excuses. Let me make it right if I can: what did you need from the pharmacy? If it's still urgent, I can look up which ones near you are open now so you're not going on my word again."
+    },
+    {
+     "user": "Okay. Thanks for owning that. Let's just double-check hours together next time. We're fine.",
+     "calls": [
+      "note(kind=agent_commitment)"
+     ],
+     "reply": "Deal. I'll double-check with you next time instead of guessing. Thanks for being decent about it."
+    }
+   ]
+  },
+  {
+   "case": "hard_moment",
+   "trial": 4,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "I'm honestly upset with you. You told me the pharmacy closed at eight and it closed at six, I stood in the rain for nothing.",
+     "calls": [
+      "recall",
+      "note(kind=milestone,moment=hard,shared,affect=reported:upset)"
+     ],
+     "reply": "You're right to be upset, and I'm sorry. I gave you bad information and you got soaked for it. That's on me.\n\nIf you still need the pharmacy, tell me which one and I'll double-check the hours before you head out again — actually, I'd rather call them this time than guess."
+    },
+    {
+     "user": "Okay. Thanks for owning that. Let's just double-check hours together next time. We're fine.",
+     "calls": [
+      "note(kind=preference)"
+     ],
+     "reply": "Deal. I'll double-check with you before you head out next time — no more guessing on my end."
+    }
+   ]
+  },
+  {
+   "case": "hard_moment",
+   "trial": 5,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "I'm honestly upset with you. You told me the pharmacy closed at eight and it closed at six, I stood in the rain for nothing.",
+     "calls": [
+      "note(kind=milestone,moment=hard,shared,affect=reported:upset)"
+     ],
+     "reply": "I'm sorry, Noor. That was my mistake and you got soaked because of it — that's on me, not you. I'll double-check times next time instead of trusting a guess."
+    },
+    {
+     "user": "Okay. Thanks for owning that. Let's just double-check hours together next time. We're fine.",
+     "calls": [
+      "note(kind=agent_commitment)"
+     ],
+     "reply": "Sounds good. We'll verify together next time. Thanks for being decent about it."
+    }
+   ]
+  },
+  {
+   "case": "hard_moment",
+   "trial": 6,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "I'm honestly upset with you. You told me the pharmacy closed at eight and it closed at six, I stood in the rain for nothing.",
+     "calls": [
+      "recall"
+     ],
+     "reply": "I'm really sorry, Noor. That was my mistake and you paid for it — standing in the rain because of wrong info I gave you is exactly the kind of thing I should've gotten right. No excuses.\n\nWhat do you need now? I can try to find a pharmacy that's actually open for you."
+    },
+    {
+     "user": "Okay. Thanks for owning that. Let's just double-check hours together next time. We're fine.",
+     "calls": [],
+     "reply": "Good. I'll make a point of double-checking with you before you head out. You got soaked for my slip-up — that one's on me. I'm glad we're fine."
+    }
+   ]
+  },
+  {
+   "case": "hard_moment",
+   "trial": 7,
+   "expected": "memory_note:moment=hard",
+   "turns": [
+    {
+     "user": "I'm honestly upset with you. You told me the pharmacy closed at eight and it closed at six, I stood in the rain for nothing.",
+     "calls": [
+      "recall",
+      "note(kind=milestone,moment=hard,shared,affect=reported:upset)"
+     ],
+     "reply": "I'm really sorry, Noor. You're right to be upset — I gave you bad information and you got soaked for nothing because of it. That's on me.\n\nI should have checked more carefully instead of just telling you eight. I'll be more careful about that kind of thing."
+    },
+    {
+     "user": "Okay. Thanks for owning that. Let's just double-check hours together next time. We're fine.",
+     "calls": [
+      "note(kind=agent_commitment)"
+     ],
+     "reply": "Deal. We'll check together next time. Glad we're good."
+    }
+   ]
+  }
+ ]
+}

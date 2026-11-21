@@ -3,7 +3,7 @@
 import { spawn } from "node:child_process";
 
 const PACKAGE = process.env.MEMBRAIN_PACKAGE ||
-  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/b465c4b773e97d2fcd09525d200397abd0754b37.zip";
+  "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/5f16fd7f0f349ef5dc6a6e8ed084ca76bcccd80c.zip";
 
 // `missing` runs instead when the command is not on the path.
 function run(command, args, { input, timeoutMs = 12_000, env, missing } = {}) {

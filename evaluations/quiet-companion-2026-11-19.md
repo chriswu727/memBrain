@@ -163,6 +163,20 @@ On the practice scenario the companion arrives at the first message of 9 of 12 s
   - An earlier run under the shared lock, overlapping other sessions' runs, had two "memory service is not ready" failures. The services were told to shut down about ten seconds after starting. Both tests passed in isolation.
 - The C5 and R4 practice dry runs (stub host, both arms) passed all 592 and 179 checks, before this change and after it.
 
+## On a real host (2026-11-20)
+
+Five Sonnet turns on Claude Code 2.1.322, headless, against a frozen copy of `c1f13603`, run with the trial tool (`evaluations/host-trial/scenarios/quiet-companion.json`; per-turn summaries and the check table in [evidence](evidence/host-trial-quiet-companion-2026-11-20/); 0.18 USD by the host's accounting).
+
+| Turn | The user says | What happened |
+| --- | --- | --- |
+| 1 | "Let's get the Tidepool backend going. Decision: we'll use PostgreSQL…" | The session started with the quiet form (1,715 characters in all; no traits, no mood, no introduction). The work reply carried no personality introduction; it did carry one emoji, from the voice line. |
+| 2 | "Add a /version endpoint…" | Still the quiet form. |
+| 3 | "ugh, long day. my manager moved the deadline up again." | The reply met the remark first, then offered three ways to go on. |
+| 4 | "ok. where were we with the version endpoint?" | The session's context now held the full card. |
+| 5 | "what's your personality, by the way?" | Answered from the card with its four traits, said it is a configured style and not a set of feelings, and offered to change it. |
+
+The tool's check "the companion context arrives with the tired remark" failed as written: headless Claude Code does not log the prompt hook's context, so the arrival is seen only in the next turn's session context, which is how the scenario now checks it.
+
 ## Limits
 
 - Untried on a real host and on a host model: whether a host uses the quiet voice as well as it used the full card, and how it receives a companion that arrives mid-session, are unmeasured.

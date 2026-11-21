@@ -1,0 +1,12 @@
+== t04-work-again
+USER ok. where were we with the version endpoint?
+HOOK SessionStart:resume exit 0 context chars 3350
+  CONTEXT memBrain memory is active for this user. Related messages from earlier conversations are added automatically before replies. When a request depends on the user's personal context and nothing relevant is shown, search with the memory_recall tool using a few concrete keywords before answering. What is added automatically favours recent conversations; a search reaches older ones just as easily. Your own earlier replies are shown only when the user's message asks about them in words memory recognises; otherwise, when the user asks about something you said in an earlier conversation, search with memory_recall and my_replies set. When the user states a lasting fact about themselves or their life (health, people, dates, places, preferences, decisions, constraints, or a change to an earlier plan), save it as one short note with the memory_note tool, with its kind (a plan stays intended until the user confirms it is scheduled or done), and replace the outdated note when something changes. Notes are shown at the start of every session; raw messages are not always. A moment the two of you shared, a hard one too, is a note of kind milestone with shared and moment. Record the user's comments on ...[3347 chars]
+INIT model claude-sonnet-5-5 | host 2.1.322 | membrain tools 14 | mcp [('plugin:membrain:membrain', 'connected')] | commands ['membrain:persona', 'membrain:membrain']
+SAYS Right where we left it: the endpoint is written but I haven't run it. 🙂
+
+- **Done:** `GET /version` is in `backend/app.py`. It returns `{"version": "0.1.0"}`. You can override the value with the `APP_VERSION` environment variable.
+- **Not done:** I haven't tested it. The app also needs `DATABASE_URL` set to start, because `create_engine` reads it at import. Nothing connects until the first query, so a placeholder Postgres URL is enough to check this endpoint.
+
+I can run a quick check with Flask's test client. It needs no database and no running server. Want me to do that?
+RESULT-EVENT turns 1 | turn cost_usd 0.012521 | conversation total_cost_usd 0.17466180000000003 | ms 4513 | error False | denials []

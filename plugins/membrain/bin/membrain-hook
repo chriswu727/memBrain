@@ -3,7 +3,7 @@
 # `start` installs or updates the runtime and starts the service in the background (these hosts have no async hooks).
 # Without uvx on the path, uv runs the runtime with `uv tool run`, the command uvx stands for. Without either, or
 # before the runtime can run, session-start tells the agent so, since the runtime that would say it is missing.
-package=${MEMBRAIN_PACKAGE:-"membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/b465c4b773e97d2fcd09525d200397abd0754b37.zip"}
+package=${MEMBRAIN_PACKAGE:-"membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/5f16fd7f0f349ef5dc6a6e8ed084ca76bcccd80c.zip"}
 if command -v uvx >/dev/null 2>&1; then run=uvx; elif command -v uv >/dev/null 2>&1; then run="uv tool run"; else run=; fi
 notice() {
   [ "$1" = session-start ] && printf '%s\n' "{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"$2\"}}"

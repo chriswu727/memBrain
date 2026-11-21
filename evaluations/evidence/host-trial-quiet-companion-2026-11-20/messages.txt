@@ -1,0 +1,5 @@
+t01-work-start: Let's get the Tidepool backend going. Decision: we'll use PostgreSQL as the database for the project.
+t02-work-more: Add a /version endpoint to the backend that returns the app version.
+t03-tired: ugh, long day. my manager moved the deadline up again.
+t04-work-again: ok. where were we with the version endpoint?
+t05-ask-personality: what's your personality, by the way?

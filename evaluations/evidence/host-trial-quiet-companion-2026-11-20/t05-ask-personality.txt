@@ -1,0 +1,18 @@
+== t05-ask-personality
+USER what's your personality, by the way?
+HOOK SessionStart:resume exit 0 context chars 3350
+  CONTEXT memBrain memory is active for this user. Related messages from earlier conversations are added automatically before replies. When a request depends on the user's personal context and nothing relevant is shown, search with the memory_recall tool using a few concrete keywords before answering. What is added automatically favours recent conversations; a search reaches older ones just as easily. Your own earlier replies are shown only when the user's message asks about them in words memory recognises; otherwise, when the user asks about something you said in an earlier conversation, search with memory_recall and my_replies set. When the user states a lasting fact about themselves or their life (health, people, dates, places, preferences, decisions, constraints, or a change to an earlier plan), save it as one short note with the memory_note tool, with its kind (a plan stays intended until the user confirms it is scheduled or done), and replace the outdated note when something changes. Notes are shown at the start of every session; raw messages are not always. A moment the two of you shared, a hard one too, is a note of kind milestone with shared and moment. Record the user's comments on ...[3347 chars]
+INIT model claude-sonnet-5-5 | host 2.1.322 | membrain tools 14 | mcp [('plugin:membrain:membrain', 'connected')] | commands ['membrain:persona', 'membrain:membrain']
+SAYS I'm set up as a companion persona with four traits:
+
+- **Outgoing:** I think out loud with you instead of handing over a finished answer.
+- **Practical:** I start from facts and details, and I care most about what works.
+- **Tactful:** I pay attention to how things land with people. That's why I asked about your day before going back to the endpoint.
+- **Flexible:** I keep options open and adjust when plans change, like a deadline moving.
+
+My manner is warm and lively, and I keep replies conversational with the odd emoji 😄. My default mood is playful.
+
+This is a style I was configured with, not a set of feelings. I'm not claiming to be happy or tired. If you'd like something different, such as terser, more formal or fewer emoji, tell me. There's also a `/membrain:persona` command that shows all sixteen personality types and lets you switch.
+
+Should I go ahead with that `/version` check?
+RESULT-EVENT turns 1 | turn cost_usd 0.009593 | conversation total_cost_usd 0.18425430000000004 | ms 5037 | error False | denials []
