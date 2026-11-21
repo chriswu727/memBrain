@@ -33,7 +33,16 @@ def add_commands(commands):
     setup = actions.add_parser("setup", help="Start memory and open a guided connection check; no model API key needed")
     setup.add_argument("--no-browser", action="store_true", help="Print the guided memory page link without opening it")
     actions.add_parser("mcp", help="Run the MCP stdio bridge, creating and starting the installation if needed")
-    actions.add_parser("status", help="Show installation, service and pending-record state")
+    actions.add_parser("status", help="Show installation, service and pending-record state, and where memBrain "
+                                      "keeps its files on this computer")
+    actions.add_parser("stop", help="Stop the local service for now; your agent's next message or session starts it "
+                                    "again")
+    uninstall = actions.add_parser("uninstall", help="Stop memBrain and remove it, with your memory unless "
+                                                     "--keep-data; asks first. Not from an agent session")
+    uninstall.add_argument("--keep-data", action="store_true",
+                           help="Remove the program and caches, keep your memory for a later installation")
+    uninstall.add_argument("--export", type=Path, metavar="FILE", help="Save an export of your memory here first")
+    uninstall.add_argument("--yes", action="store_true", help="Do not ask for confirmation")
     actions.add_parser("fetch-model", help="Download the local multilingual embedding model for semantic recall")
     pause = actions.add_parser("pause", help="Stop recording messages (recall keeps working) until resumed")
     pause.add_argument("--hours", type=float, default=None, help="Resume automatically after this many hours")
@@ -87,14 +96,7 @@ def _person(args, directory: Path) -> int:
         if args.plugin_command == "export-user":
             document = json.dumps(host.export_user(directory, user), ensure_ascii=False, indent=2)
             if args.out:
-                from .local_profile import _open_private
-
-                # A new owner-only file replaces the target, so an existing readable file never gets the export.
-                temporary = args.out.with_name(f".{args.out.name}.{os.getpid()}.tmp")
-                descriptor = _open_private(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
-                with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
-                    stream.write(document)
-                os.replace(temporary, args.out)
+                write_private(args.out, document)
                 print(f"Exported {user} to {args.out}. The file holds their original messages; store it securely.",
                       file=sys.stderr)
             else:
@@ -110,6 +112,17 @@ def _person(args, directory: Path) -> int:
     except RuntimeError as error:
         print(str(error), file=sys.stderr)
         return 1
+
+
+def write_private(path: Path, text: str) -> None:
+    """Write ``text`` as a new owner-only file that replaces ``path``, so an existing readable file never gets it."""
+    from .local_profile import _open_private
+
+    temporary = path.with_name(f".{path.name}.{os.getpid()}.tmp")
+    descriptor = _open_private(temporary, os.O_WRONLY | os.O_CREAT | os.O_EXCL)
+    with os.fdopen(descriptor, "w", encoding="utf-8") as stream:
+        stream.write(text)
+    os.replace(temporary, path)
 
 
 def _outcome(args, directory: Path) -> int:
@@ -174,6 +187,15 @@ def dispatch(args) -> None:
         raise SystemExit(_outcome(args, directory))
     if args.plugin_command in ("forget-user", "export-user"):
         raise SystemExit(_person(args, directory))
+    if args.plugin_command in ("stop", "uninstall"):
+        from . import lifecycle
+
+        if args.plugin_command == "stop":
+            status, lines = lifecycle.stop_lines(directory)
+            print("\n".join(lines), file=sys.stdout if status == 0 else sys.stderr)
+            raise SystemExit(status)
+        raise SystemExit(lifecycle.uninstall(directory, keep_data=args.keep_data, export=args.export,
+                                             yes=args.yes))
     if args.plugin_command == "import":
         from . import host, imports
 
@@ -236,9 +258,13 @@ def dispatch(args) -> None:
 
             result = host_recording.pause(directory, args.hours) if args.plugin_command == "pause" else host_recording.resume(directory)
         else:
-            from . import host
+            from . import host, lifecycle
 
             result = host.installation_status(directory)
+            result["on_this_computer"] = lifecycle.footprint(directory)
+            if sys.stdout.isatty():  # A person reads it: plain lines; a program gets the JSON below.
+                print("\n".join(lifecycle.status_lines(result)))
+                return
     except DesktopError as error:
         print(f"{error.code}: {error}", file=sys.stderr)
         raise SystemExit(1) from None

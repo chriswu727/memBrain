@@ -34,6 +34,7 @@ FAKE = """#!/bin/sh
 { printf '%s' "${0##*/}"; for argument in "$@"; do printf '\\t%s' "$argument"; done; printf '\\n'; } >> "$FAKE_LOG"
 printf '%s\\n' "${UV_LOCK_TIMEOUT-unset}" >> "$FAKE_LOG.lock-timeout"
 cat > /dev/null
+case " $* " in *" --constraints "*) [ -n "$FAKE_CONSTRAINED_EXIT" ] && exit "$FAKE_CONSTRAINED_EXIT";; esac
 printf '%s' "$FAKE_STDOUT"
 exit "${FAKE_EXIT:-0}"
 """
@@ -162,8 +163,45 @@ def test_workbuddy_wrapper_runs_the_runtime_with_uvx_or_with_uv_alone(tmp_path, 
     sandbox.log.unlink()
     result = run_wrapper(sandbox, "start")
     assert (result.returncode, result.stdout, result.stderr) == (0, "", "")
-    assert wait_for_calls(sandbox, 2) == [["uv", "tool", "install", "--quiet", "--python", "3.12", requirement()],
-                                          [*runner, *RUN, "start"]]
+    assert wait_for_calls(sandbox, 2) == [[*INSTALL, "--constraints", str(WRAPPER.parent / ".." / "constraints.txt"),
+                                           requirement()], [*runner, *RUN, "start"]]
+
+
+INSTALL = ["uv", "tool", "install", "--quiet", "--python", "3.12"]
+
+
+@pytest.mark.parametrize("shell", SHELLS)
+@pytest.mark.parametrize("hooks_file,root", [("claude-hooks.json", "CLAUDE_PLUGIN_ROOT"),
+                                             ("codex-hooks.json", "PLUGIN_ROOT"),
+                                             ("codex-hooks.json", "CLAUDE_PLUGIN_ROOT")])
+def test_installation_uses_the_tested_versions_and_falls_back_without_them(tmp_path, shell, hooks_file, root):
+    """The start hook installs with the plugin's constraints.txt (the versions uv.lock pins), and installs as before
+    when uv refuses them: an older uv without --constraints, or a pinned version with no wheel for the platform."""
+    sandbox = Sandbox(tmp_path, ("uv", "uvx"))
+    command = hook_commands(hooks_file)["start"]["command"]
+    constraints = str(PLUGIN / "constraints.txt")
+    plain = [*INSTALL, requirement()]
+    constrained = [*INSTALL, "--constraints", constraints, requirement()]
+    assert sandbox.run([shell, "-c", command], **{root: str(PLUGIN)}).returncode == 0
+    assert sandbox.calls() == [constrained, ["uvx", *RUN, "start"]]
+    sandbox.log.unlink()
+    result = sandbox.run([shell, "-c", command], FAKE_CONSTRAINED_EXIT="2", **{root: str(PLUGIN)})
+    assert (result.returncode, result.stdout, result.stderr) == (0, "", "")
+    assert sandbox.calls() == [constrained, plain, ["uvx", *RUN, "start"]]
+    sandbox.log.unlink()
+    empty = tmp_path / "plugin-without-constraints"  # An older plugin copy, or a host that names no plugin root.
+    empty.mkdir()
+    assert sandbox.run([shell, "-c", command], **{root: str(empty)}).returncode == 0
+    assert sandbox.calls() == [plain, ["uvx", *RUN, "start"]]
+
+
+def test_workbuddy_wrapper_installs_without_the_tested_versions_when_uv_refuses_them(tmp_path):
+    sandbox = Sandbox(tmp_path, ("uv", "uvx"))
+    result = run_wrapper(sandbox, "start", FAKE_CONSTRAINED_EXIT="2")
+    assert (result.returncode, result.stdout, result.stderr) == (0, "", "")
+    assert wait_for_calls(sandbox, 3) == [
+        [*INSTALL, "--constraints", str(WRAPPER.parent / ".." / "constraints.txt"), requirement()],
+        [*INSTALL, requirement()], ["uvx", *RUN, "start"]]
 
 
 def test_workbuddy_wrapper_says_once_at_session_start_that_uv_is_missing(tmp_path):
@@ -209,7 +247,15 @@ def test_windows_wrapper_follows_the_same_order_by_inspection():
     assert lines[-1] == "exit /b 0"
     start = lines[lines.index('if "%~1"=="start" ('):lines.index(")") + 1]
     assert start[1].strip() == "where uv >nul 2>nul || exit /b 0"
-    assert "& %RUN% --offline --python 3.12 --from membrain-ai membrain plugin start" in start[2]
+    # In the background, the batch file runs itself to install: with the tested versions, else without them.
+    assert start[2].strip() == 'start "" /b cmd /c ""%~f0" _install"' and start[3].strip() == "exit /b 0"
+    install = lines[lines.index('if "%~1"=="_install" ('):]
+    install = [line.strip() for line in install[:install.index(")") + 1]]
+    assert install[1] == ('uv tool install --quiet --python 3.12 --constraints "%~dp0..\\constraints.txt" '
+                          '"%MEMBRAIN_PACKAGE%" >nul 2>nul || uv tool install --quiet --python 3.12 '
+                          '"%MEMBRAIN_PACKAGE%" >nul 2>nul')
+    assert install[2] == "%RUN% --offline --python 3.12 --from membrain-ai membrain plugin start >nul 2>nul"
+    assert install[3:] == ["exit /b 0", ")"] and lines.index(":found") < lines.index('if "%~1"=="_install" (')
     assert not any(line.lstrip().startswith("uvx ") or "& uvx " in line for line in lines)
     assert all(line.split("exit /b")[1].strip() == "0" for line in lines if "exit /b" in line)
     # cmd.exe would act on these characters in an echoed message; the messages use none of them.
@@ -351,6 +397,37 @@ def test_openclaw_says_once_per_session_that_uv_is_missing(tmp_path):
 def test_openclaw_says_nothing_when_uv_exists_but_the_runtime_fails(tmp_path):
     sandbox = Sandbox(tmp_path, commands=("uv",))
     assert run_openclaw(sandbox, FAKE_EXIT="2") == [None, None, None]
+
+
+OPENCLAW_INSTALL = """
+import { installRuntime, CONSTRAINTS } from %s;
+const calls = [];
+const fail = new Set(JSON.parse(process.env.FAIL));
+await installRuntime(undefined, { exec: async (command, args) => {
+  calls.push([command, ...args]);
+  return fail.has(args.includes("--constraints") ? "constrained" : "plain") ? null : "";
+} });
+console.log(JSON.stringify({ calls, constraints: CONSTRAINTS }));
+"""
+
+
+@pytest.mark.parametrize("fail,expected", [([], ["constrained"]), (["constrained"], ["constrained", "plain"])])
+def test_openclaw_installs_with_the_tested_versions_and_falls_back_without_them(tmp_path, fail, expected):
+    node = shutil.which("node")
+    if node is None:
+        pytest.skip("Node.js is required for the OpenClaw plugin")
+    sandbox = Sandbox(tmp_path, ("uv", "uvx"))
+    index = (ROOT / "integrations" / "openclaw" / "membrain" / "index.js").as_uri()
+    result = sandbox.run([node, "--input-type=module", "-e", OPENCLAW_INSTALL % json.dumps(index)], payload={},
+                         FAIL=json.dumps(fail))
+    assert result.returncode == 0, result.stderr
+    found = json.loads(result.stdout)
+    constraints = ROOT / "integrations" / "openclaw" / "membrain" / "constraints.txt"
+    assert found["constraints"] == str(constraints) and constraints.is_file()
+    calls = {"constrained": ["uv", *INSTALL[1:], "--constraints", str(constraints), requirement()],
+             "plain": ["uv", *INSTALL[1:], requirement()]}
+    assert found["calls"] == [calls[name] for name in expected]
+    assert wait_for_calls(sandbox, 1)[-1] == ["uvx", *RUN, "start"]  # Then the service starts, as before.
 
 
 def load_pin_runtime():

@@ -546,9 +546,23 @@ def _recorded(profile, document):
     return layout
 
 
+def _restore_cache(document):
+    """Extract the engine again when its cache was removed (a cleared cache folder, ``plugin uninstall --keep-data``).
+
+    Only the path ``native_bundle.prepare`` makes for this runtime's bundle is restored, and ``_recorded`` then
+    verifies every file against the recorded manifest as before; any other missing target stays an error."""
+    if document is None:
+        return
+    prefix = Path(document["target"]["prefix"])
+    if not prefix.exists() and prefix.name == "pginstall" and prefix.parent.parent == native_bundle._cache_directory():
+        native_bundle.prepare()
+
+
 def recorded_layout(profile):
     try:
-        return _recorded(profile, read_document(profile.directory / "native-transition.json"))
+        document = read_document(profile.directory / "native-transition.json")
+        _restore_cache(document)
+        return _recorded(profile, document)
     except NativeTransitionError:
         raise
     except (OSError, ValueError, TypeError, KeyError, RegistryError, LocalProfileError):

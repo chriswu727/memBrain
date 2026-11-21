@@ -232,16 +232,73 @@ def _completed(target, identity, records):
     return False
 
 
+def _long_paths_enabled():
+    """Whether Windows lets this process use paths of MAX_PATH (260 characters) or more; None if it cannot tell."""
+    try:
+        import ctypes
+
+        check = ctypes.WinDLL("ntdll").RtlAreLongPathsEnabled
+        check.restype = ctypes.c_ubyte  # A BOOLEAN: only the low byte of the return register is set.
+        check.argtypes = []
+        return bool(check())
+    except (OSError, AttributeError, ValueError):
+        pass
+    try:
+        import winreg
+
+        with winreg.OpenKey(winreg.HKEY_LOCAL_MACHINE, r"SYSTEM\CurrentControlSet\Control\FileSystem") as key:
+            return winreg.QueryValueEx(key, "LongPathsEnabled")[0] == 1
+    except (OSError, ImportError):
+        return None
+
+
+def path_limit():
+    """(characters a path may have here, whether that limit is certain): Windows' MAX_PATH less its terminating
+    NUL unless long paths are on, else the platform's PATH_MAX. ``None`` when nothing limits paths in practice."""
+    if os.name == "nt":
+        enabled = _long_paths_enabled()
+        return (None, True) if enabled else (259, enabled is False)
+    if platform.system() == "Darwin":
+        return 1023, True
+    return 4095, True
+
+
+def longest_path(root, key, identity, archive_name, records):
+    """The longest path preparing the cache writes: a file extracted under the staging directory (in the supplier
+    archive's own top directory), or the same file where the cache keeps it."""
+    longest = max((len(name) for name in records), default=0)
+    staging = len(str(root)) + len(os.sep) + len(".staging-") + 24
+    extracted = staging + 2 * len(os.sep) + len(archive_name) + longest
+    final = len(str(root / ("v1-" + POSTGRES + "-" + key + "-" + identity[:24]) / "pginstall")) + len(os.sep) + longest
+    return max(extracted, final)
+
+
+def _too_long(root, longest, limit):
+    return NativeBundleError(
+        "embedded_database_path_too_long",
+        f"The embedded database cache could not be prepared: its files need paths of up to {longest} characters "
+        f"under {root}, and this system allows {limit}. "
+        + ("Turn on Windows long path support (LongPathsEnabled) or give LOCALAPPDATA a shorter folder, then "
+           "retry. " if os.name == "nt" else "Use a shorter cache folder (XDG_CACHE_HOME), then retry. ")
+        + "Existing database data was preserved.",
+    )
+
+
 def prepare():
     source = _source()
     if source is None:
         return None
     key, entry, archive = source
     staging = None
+    root = longest = None
     try:
         records = _manifest(entry)
         identity = entry["manifest_sha256"]
         root = _cache_directory()
+        longest = longest_path(root, key, identity, archive.name.removesuffix(".tar.gz"), records)
+        limit, certain = path_limit()
+        if limit is not None and certain and longest > limit:
+            raise _too_long(root, longest, limit)
         with profile_lock(root, timeout=120):
             base = root / ("v1-" + POSTGRES + "-" + key + "-" + identity[:24])
             for target in (base, *sorted(root.glob(base.name + "-repair-*"))):
@@ -298,6 +355,10 @@ def prepare():
     except NativeBundleError:
         raise
     except (OSError, ValueError, KeyError, TypeError, tarfile.TarError, subprocess.SubprocessError):
+        limit = path_limit()[0]
+        if longest is not None and limit is not None and longest > limit:
+            # Windows could not say whether long paths are on, and the paths are longer than it allows without.
+            raise _too_long(root, longest, limit) from None
         raise NativeBundleError(
             "embedded_database_cache_failed",
             "The embedded database cache could not be prepared. Check file access, free space and required host libraries, then retry. Existing database data was preserved.",

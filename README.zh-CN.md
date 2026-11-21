@@ -101,6 +101,17 @@ hermes config set memory.provider membrain   # 或：hermes memory setup
 
 **基准测试。** 在 LoCoMo（1540 道题）上，走插件流程的 memBrain 答对 76.4%，把整段对话放进上下文为 81.4%，没有记忆为 2.4%；memBrain 给模型的上下文约为后者的七分之一。在相同的模型、评判和向量模型下运行的 Mem0 开源版得分 81.3%；开启可选的笔记提取后 memBrain 得分 78.4%，在留出的对话上两者没有明显差距（78.5% 和 80.3%，[报告](evaluations/mem0-and-extraction-2026-11-01.md)）。在没有用于调整召回的 7 段对话上，得分从调整前的 69.3% 提高到 76.2%（[报告](evaluations/locomo-2026-10-29.md)）。在 LongMemEval 的 30 题抽样上，它与把完整历史放进上下文打平（都答对 22 题），提示词 token 约为后者的二十分之一；薄弱点是询问助手自己之前说过什么的问题（[报告](evaluations/longmemeval-2026-10-29.md)）。在两个留出的、关于记住一个人生活的场景上（计划是否真的完成、相似的人名、即将发生的事、承诺、角色扮演），插件得分 18.5/22，Phase B 之前为 14.5，把完整历史放进提示词为 18（[报告](evaluations/v1-2026-10-29-phase-b.md)）。
 
+<a id="stop-uninstall-remove"></a>
+
+## 停止、卸载、删除
+
+- **暂时停止：** `membrain plugin stop` 会停止服务及其数据库，你的记忆保留。插件会在你的 agent 下一条消息或下一个会话时再次启动它们。要让 memBrain 保持停止，请在 agent 中关闭插件（Claude Code：`claude plugin disable membrain@membrain`）；对于 Codex、WorkBuddy 和 OpenClaw，本仓库不知道有关闭开关，请在那里移除插件，记忆仍会保留。
+- **查看电脑上有什么：** `membrain plugin status` 会列出记忆所在的文件夹及大小、清除记录（保存在它旁边）、uv 安装的程序、数据库引擎缓存、agent 存放插件的位置，以及正在运行的 memBrain 进程（Windows 上不列出）。
+- **卸载但保留记忆：** `membrain plugin uninstall --keep-data` 会停止一切，并删除程序及其缓存。再次安装插件后，记忆会回来。
+- **删除一切：** `membrain plugin uninstall` 还会删除你的记忆及其清除记录，删除前会先提出保存一份导出（`--export FILE`）。
+
+两种方式都会要求你输入一个词确认（加 `--yes` 则不问）；只要还有 agent 会话打开着 memBrain 就会拒绝；也绝不会在 agent 会话中运行：agent 可以告诉你命令，但不能替你运行。memBrain 不会修改 agent 的设置；最后一步是 agent 自己的命令（Claude Code：`claude plugin uninstall membrain@membrain`），在你运行它之前，agent 的下一个会话会再次安装 memBrain。memBrain 无法删除：agent 自己的对话历史和记忆文件（Claude Code 放在 `~/.claude` 下，Codex 放在 `~/.codex` 下）、agent 写进你项目里的内容、uv 共享的下载缓存，以及 2026-11-19 之前的版本创建的 `~/.cache/Microsoft/DeveloperTools/.onnxruntime/`；命令会逐一指出它找到的这些位置。已在 Linux 沙盒中用插件真实的启动脚本、并通过本地服务上的测试检查（[记录](evaluations/lifecycle-2026-11-21.md)）；尚未在 macOS、Windows 或真实宿主上运行，Claude Code 以外宿主的命令未经检查。
+
 <a id="why-membrain"></a>
 
 ## 为什么选择 memBrain

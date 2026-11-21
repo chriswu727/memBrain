@@ -1,6 +1,8 @@
 // memBrain for OpenClaw. The memory work happens in the memBrain runtime (installed with uv); this plugin maps
 // OpenClaw's hooks onto `membrain plugin hook ... --host openclaw` and its tools onto `membrain plugin tool ...`.
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
+import { fileURLToPath } from "node:url";
 
 const PACKAGE = process.env.MEMBRAIN_PACKAGE ||
   "membrain-ai[embedded,semantic] @ https://github.com/chriswu727/membrain/archive/9a423c2d45afbb2720876c2ca17c0b1bfd2f56eb.zip";
@@ -334,9 +336,17 @@ export function createMembrain({ exec = membrain, directory, unavailable = () =>
   };
 }
 
-function installRuntime(directory) {
-  // Install or update the runtime and start the local service in the background, like the Claude Code plugin.
-  run("uv", ["tool", "install", "--quiet", "--python", "3.12", PACKAGE], { timeoutMs: 15 * 60 * 1000 })
+// The versions memBrain's tests ran, generated from uv.lock (scripts/write_constraints.py).
+export const CONSTRAINTS = fileURLToPath(new URL("./constraints.txt", import.meta.url));
+
+export function installRuntime(directory, { exec = run } = {}) {
+  // Install or update the runtime and start the local service in the background, like the Claude Code plugin:
+  // with the tested versions, or without them when uv cannot use them (an older uv, no wheel for this platform).
+  const install = ["tool", "install", "--quiet", "--python", "3.12"];
+  const options = { timeoutMs: 15 * 60 * 1000 };
+  const constrained = existsSync(CONSTRAINTS) ?
+    exec("uv", [...install, "--constraints", CONSTRAINTS, PACKAGE], options) : Promise.resolve(null);
+  return constrained.then((done) => done !== null ? done : exec("uv", [...install, PACKAGE], options))
     .then(() => membrain(["start"], { timeoutMs: 10 * 60 * 1000,
       env: directory ? { MEMBRAIN_DIRECTORY: directory } : undefined }));
 }

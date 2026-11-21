@@ -139,6 +139,12 @@ def start(directory: Path) -> dict:
 def session_start(payload: dict, directory: Path, producer: str = PRODUCER) -> str | None:
     _import_host_queue(directory, producer)
     name = next((key for key, value in PRODUCERS.items() if value == producer), "claude-code")
+    try:
+        from .lifecycle import record_host
+
+        record_host(directory, name)  # Where this host keeps the plugin, for status and uninstall.
+    except OSError:
+        pass
     return host.session_context(directory, _conversation(payload), tools=HOST_TOOLS.get(name, host.TOOL_NAMES),
                                 skip_imports_from=HOST_SKIPS.get(name, ()), user_id=_user(payload),
                                 quiet=name in CODING_HOSTS, workspace=_workspace(payload))

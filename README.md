@@ -99,6 +99,17 @@ Hermes then starts each session with your notes and recent messages, adds relate
 
 **Benchmarks.** On LoCoMo (1,540 questions), memBrain through the plugin path answered 76.4% correctly, against 81.4% with the whole conversation in context and 2.4% without memory, while giving the model about a seventh of the context. Mem0 open source, run under the same model, judge and embeddings, scored 81.3%; with the optional note extraction memBrain scored 78.4%, and the two were not clearly apart on the held-out conversations (78.5% and 80.3%, [report](evaluations/mem0-and-extraction-2026-11-01.md)). On the seven conversations not used to tune recall, the score was 76.2%, up from 69.3% before tuning ([report](evaluations/locomo-2026-10-29.md)). On a 30-question sample of LongMemEval it tied the whole history in context (22 of 30 each) with about a twentieth of the prompt tokens; questions about what the assistant itself said earlier were its weak spot ([report](evaluations/longmemeval-2026-10-29.md)). On two held-out scenarios about remembering a person's life (plans and whether they happened, similar names, upcoming events, promises, role-play), the plugin scored 18.5 of 22, against 14.5 before Phase B and 18 with the whole history in the prompt ([report](evaluations/v1-2026-10-29-phase-b.md)).
 
+<a id="stop-uninstall-remove"></a>
+
+## Stop, uninstall, remove
+
+- **Stop for now:** `membrain plugin stop` stops the service and its database; your memory stays. The plugin starts them again with your agent's next message or session. To keep memBrain stopped, turn the plugin off in the agent (Claude Code: `claude plugin disable membrain@membrain`); for Codex, WorkBuddy and OpenClaw this repository knows no off switch, so remove the plugin there, which keeps your memory.
+- **See what is on your computer:** `membrain plugin status` lists your memory's folder and size, the record of what you erased (kept beside it), the program uv installed, the database engine cache, where your agent keeps the plugin, and memBrain's running processes (not listed on Windows).
+- **Uninstall and keep your memory:** `membrain plugin uninstall --keep-data` stops everything and removes the program and its caches. Installing the plugin again brings the memory back.
+- **Remove everything:** `membrain plugin uninstall` also removes your memory and its record of erasures, after offering to save an export first (`--export FILE`).
+
+Both ask you to type a word unless you add `--yes`, refuse while an agent session still has memBrain open, and never run inside an agent session: your agent can tell you the command but cannot run it. memBrain does not change your agent's settings; the last step is the agent's own command (Claude Code: `claude plugin uninstall membrain@membrain`), and until you run it the agent's next session installs memBrain again. memBrain cannot remove your agent's own conversation history and memory files (Claude Code keeps them under `~/.claude`, Codex under `~/.codex`), what the agent wrote into your projects, uv's shared download cache, or `~/.cache/Microsoft/DeveloperTools/.onnxruntime/`, which releases before 2026-11-19 created; the command names each one it finds. Checked in a Linux sandbox with the plugin's real launchers and by tests on a local service ([record](evaluations/lifecycle-2026-11-21.md)); not yet on macOS, Windows or a real host, and the commands for hosts other than Claude Code are not checked.
+
 <a id="why-membrain"></a>
 
 ## Why memBrain

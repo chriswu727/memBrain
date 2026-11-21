@@ -14,7 +14,11 @@ if [ -z "$run" ]; then
 fi
 if [ "$1" = start ]; then
   command -v uv >/dev/null 2>&1 || exit 0
-  ( uv tool install --quiet --python 3.12 "$package"; $run --offline --python 3.12 --from membrain-ai membrain plugin start ) </dev/null >/dev/null 2>&1 &
+  # With the versions the tests ran (constraints.txt), or without them when uv cannot use them.
+  constraints="${0%/*}/../constraints.txt"
+  ( { [ -f "$constraints" ] && uv tool install --quiet --python 3.12 --constraints "$constraints" "$package"; } ||
+    uv tool install --quiet --python 3.12 "$package"
+    $run --offline --python 3.12 --from membrain-ai membrain plugin start ) </dev/null >/dev/null 2>&1 &
   exit 0
 fi
 # A hook never waits on uv's tool lock: while uv installs or updates the runtime, it gives up after 2 seconds.

@@ -13,7 +13,13 @@ exit /b 0
 :found
 if "%~1"=="start" (
   where uv >nul 2>nul || exit /b 0
-  start "" /b cmd /c "uv tool install --quiet --python 3.12 "%MEMBRAIN_PACKAGE%" >nul 2>nul & %RUN% --offline --python 3.12 --from membrain-ai membrain plugin start >nul 2>nul"
+  start "" /b cmd /c ""%~f0" _install"
+  exit /b 0
+)
+rem Run by "start" in the background: the versions the tests ran (constraints.txt), or without them when that fails.
+if "%~1"=="_install" (
+  uv tool install --quiet --python 3.12 --constraints "%~dp0..\constraints.txt" "%MEMBRAIN_PACKAGE%" >nul 2>nul || uv tool install --quiet --python 3.12 "%MEMBRAIN_PACKAGE%" >nul 2>nul
+  %RUN% --offline --python 3.12 --from membrain-ai membrain plugin start >nul 2>nul
   exit /b 0
 )
 rem A hook never waits on uv's tool lock: while uv installs or updates the runtime, it gives up after 2 seconds.
