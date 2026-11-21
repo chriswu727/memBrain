@@ -404,12 +404,18 @@ def use_brain(client, user_id: str | None):
 
 
 def ready_client(directory: Path, user_id: str | None = None):
+    """A client of the ready service, or None. A profile held by a start in progress counts as not ready: hooks then
+    queue the message rather than wait for the start (``local_profile.brief_profile_waits``)."""
     from . import desktop
     from .desktop_connection import open_client
+    from .local_profile import LocalProfileBusy
 
-    if not (Path(directory) / "profile.json").exists() or not desktop.status(directory).get("ready"):
+    try:
+        if not (Path(directory) / "profile.json").exists() or not desktop.status(directory).get("ready"):
+            return None
+        client = open_client(directory, start_service=False, timeout=10)
+    except LocalProfileBusy:
         return None
-    client = open_client(directory, start_service=False, timeout=10)
     try:
         use_brain(client, user_id)
         host_recording.status(directory, client, user_id)
@@ -417,6 +423,28 @@ def ready_client(directory: Path, user_id: str | None = None):
     except Exception:
         client.close()
         raise
+
+
+def not_ready(directory: Path) -> dict:
+    """Why the service is not ready, for what the host is told while it is not (``host_recording.notice``)."""
+    from . import desktop
+    from .local_profile import LocalProfileBusy
+
+    try:
+        state = desktop.status(directory) if (Path(directory) / "profile.json").exists() else {}
+    except LocalProfileBusy:
+        state = {}
+    except Exception:
+        return {"cause": None}
+    if state.get("state") == "port_conflict":
+        from urllib.parse import urlsplit
+
+        try:
+            return {"cause": "port_conflict", "port": urlsplit(state["base_url"]).port}
+        except (KeyError, TypeError, ValueError):
+            return {"cause": None}
+    return {"cause": {"restart_required": "restarting", "recovery_blocked": None}.get(state.get("state"),
+                                                                                    "starting")}
 
 
 TOOL_PACKAGE = "membrain-ai"
@@ -548,12 +576,15 @@ def start(directory: Path) -> dict:
     from . import desktop
     from .desktop_connection import open_client
 
-    ensure_installation(directory)
-    # After a package update the old service reports restart_required; replace it with this build.
-    if desktop.status(directory).get("state") == "restart_required":
-        result = desktop.restart(directory)
-    else:
-        result = desktop.start(directory)
+    profile = ensure_installation(directory)
+    # After a package update the old service reports restart_required; replace it with this build. Decided under the
+    # lifecycle lock, so that of two starts at once (the session's own and a tool server's, or a hook's background
+    # start) only the first restarts and the second finds the new service ready.
+    with profile_lock(profile.directory / "lifecycle", timeout=360):
+        if desktop.status(directory).get("state") == "restart_required":
+            result = desktop.restart(directory)
+        else:
+            result = desktop.start(directory)
     with open_client(directory, start_service=False, timeout=30) as client:
         result["spool_replayed"] = flush(client, directory)
     state = semantic_state(directory)
@@ -2767,7 +2798,7 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
                 "active or that you remember earlier sessions. Continue helping normally. Memory will be "
                 "retried on the next message. Run membrain plugin setup to check the connection. "
                 + privacy_notice(tools) + " " + (" ".join(filter(None, (off_record_notice(off_record),
-                    host_recording.notice(policy),
+                    host_recording.notice(policy, not_ready(directory)),
                     _recording_notice(paused(directory, user_id, session), tools)))))).strip()
     else:
         with client:
@@ -2826,13 +2857,25 @@ def session_context(directory: Path, session: str, *, tools: dict | None = TOOL_
     return "\n\n".join(part for part in (notice, current["text"] if current else None, history) if part)
 
 
+def unkept_notice(count: int) -> str:
+    """Said once, with the first message memBrain sees in a conversation whose earlier messages it never saw."""
+    if count < 1:
+        return ""
+    messages = "earlier message, so it was" if count == 1 else f"{count} earlier messages, so they were"
+    return f"memBrain was not running yet for this conversation's {messages} not kept; tell the user if it matters."
+
+
 def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str | None = None,
                    producer: str = PRODUCER, user_id: str | None = None, roleplay: str | None = None,
                    include_source: bool = False, tools: dict | None = TOOL_NAMES,
-                   quiet: bool = False) -> str | None:
+                   quiet: bool = False, unkept: int = 0) -> str | None:
     """Related earlier messages for this prompt. The prompt is staged and stored when the turn finishes. ``quiet``: a
     coding host (``session_context``); its companion context is handed here once the conversation turns casual or
-    emotional."""
+    emotional.
+
+    ``unkept`` counts the conversation's earlier messages that memBrain never saw (``plugin.unkept_messages``); the
+    host is told once, with this message, the first memBrain sees.
+    """
     if not isinstance(prompt, str) or not prompt.strip():
         return None
     real_life = user_id
@@ -2861,8 +2904,9 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
         raise
     if client is None:
         start_in_background(directory)
-        return " ".join(filter(None, (host_recording.notice(policy),
-                _recording_notice(paused(directory, user_id, session), tools, session=session)))) or None
+        return " ".join(filter(None, (host_recording.notice(policy, not_ready(directory)),
+                _recording_notice(paused(directory, user_id, session), tools, session=session),
+                unkept_notice(unkept)))) or None
     source = ""
     if include_source and capture and not paused(directory, user_id, session):
         source = ("<membrain-source>\nWhen saving a note based on the current user message, pass source_messages="
@@ -2938,7 +2982,8 @@ def prompt_context(directory: Path, session: str, prompt: str, *, turn_id: str |
         except Exception as error:
             log(directory, f"notes refresh failed: {type(error).__name__}")
         recording = " ".join(filter(None, (host_recording.notice(policy),
-                    _recording_notice(paused(directory, user_id, session), tools, session=session))))
+                    _recording_notice(paused(directory, user_id, session), tools, session=session),
+                    unkept_notice(unkept))))
         prefix = "\n\n".join(part for part in (recording, source, refreshed) if part)
         try:
             flush(client, directory)

@@ -78,7 +78,11 @@ def test_offline_resume_reports_unknown_and_keeps_cached_protection(tmp_path, cl
     assert result["recording"] == "unknown"
     assert result["capture_blocked"] is (cached_pause is True)
     assert result["controls"]["server"]["last_known_paused"] is cached_pause
-    assert "unknown" in host_recording.notice(host_recording.status(tmp_path))
+    # The host is never told that recording is on: a cached pause keeps its fail-closed words, otherwise the state
+    # is said to be unconfirmed.
+    notice = host_recording.notice(host_recording.status(tmp_path))
+    assert ("Current server recording state is unknown" in notice if cached_pause else
+            notice == "memBrain cannot confirm its recording state right now; new messages may be queued for memory.")
 
 
 def test_unreadable_local_state_is_unknown_but_blocks_capture(tmp_path, client):

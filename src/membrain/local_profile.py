@@ -381,12 +381,35 @@ def _load(directory: Path) -> DesktopProfile:
     return _validate(document, directory)
 
 
+# How long reading the profile waits while another process holds its lock. A first start holds it for 10 to 30
+# seconds while it prepares the database; hooks run inside the host's turn, so ``brief_profile_waits`` makes them
+# give up after a moment (and at once after the first time) and treat memory as starting.
+# Per thread, so the tool server's waits for a reply do not shorten its background start's.
+_READ_WAIT = threading.local()
+
+
+@contextmanager
+def brief_profile_waits(seconds: float = 1.5, after_busy: float = 0.1):
+    saved = getattr(_READ_WAIT, "waits", None)
+    _READ_WAIT.waits = {"seconds": seconds, "after_busy": after_busy, "busy": False}
+    try:
+        yield
+    finally:
+        _READ_WAIT.waits = saved
+
+
 def load_profile(directory: Path | None = None) -> DesktopProfile:
     path = _directory(directory)
     if not path.is_dir():
         raise LocalProfileError("No desktop profile exists; run desktop setup first.")
-    with profile_lock(path):
-        return _load(path)
+    waits = getattr(_READ_WAIT, "waits", None)
+    try:
+        with profile_lock(path, timeout=30.0 if waits is None else waits["after_busy" if waits["busy"] else "seconds"]):
+            return _load(path)
+    except LocalProfileBusy:
+        if waits is not None:
+            waits["busy"] = True
+        raise
 
 
 def _save(profile: DesktopProfile) -> None:

@@ -439,21 +439,31 @@ def test_installed_tool_handoff_requires_exact_build_identity(tmp_path, monkeypa
 
 
 def test_mcp_never_delegates_to_a_stale_installed_runtime(tmp_path, monkeypatch, capsys):
+    """While an update is still being installed the tool server serves from here and waits for it: it neither runs
+    the old runtime nor starts the service, and its tools say so, instead of the server exiting."""
     import argparse
     import subprocess
 
-    from membrain import plugin, plugin_cli
+    from membrain import desktop_connection, plugin, plugin_cli
 
     monkeypatch.setattr(host, "running_from_uv_cache", lambda: True)
     monkeypatch.setattr(host, "installed_tool_python", lambda: tmp_path / "old-python")
     monkeypatch.setattr(host, "installed_tool_matches", lambda candidate: False)
     monkeypatch.setattr(subprocess, "call", lambda *args: pytest.fail("Do not launch the old runtime"))
-    monkeypatch.setattr(plugin, "ensure_installation", lambda *args: pytest.fail("Do not touch the profile"))
-    with pytest.raises(SystemExit) as stopped:
-        plugin_cli.dispatch(argparse.Namespace(plugin_command="mcp", directory=tmp_path / "brain"))
-    assert stopped.value.code == 1 and not (tmp_path / "brain").exists()
-    output = capsys.readouterr()
-    assert output.out == "" and "Update the tool" in output.err
+    monkeypatch.setattr(subprocess, "run", lambda *args, **kwargs: pytest.fail("Do not start the old runtime"))
+    monkeypatch.setattr(plugin, "start", lambda *args: pytest.fail("Do not start the service from here"))
+    served = []
+    monkeypatch.setattr(desktop_connection, "serve_pending", lambda directory, start: served.append((directory, start)))
+    plugin_cli.dispatch(argparse.Namespace(plugin_command="mcp", directory=tmp_path / "brain"))
+    ((directory, start),) = served
+    assert directory == tmp_path / "brain"
+    pending = desktop_connection.PendingService(directory, start)
+    with pytest.raises(desktop_connection.Updating):
+        start(directory)
+    pending._updating = True
+    monkeypatch.setattr(pending, "wake", lambda: None)
+    assert pending.refusal() == {"error": "memBrain is being updated; try again in a moment."}
+    assert not (tmp_path / "brain").exists() and capsys.readouterr().out == ""
 
 
 @pytest.mark.parametrize("user_id", [None, "alice", "alice|roleplay:Ada"])

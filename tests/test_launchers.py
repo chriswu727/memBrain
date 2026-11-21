@@ -8,6 +8,7 @@ import os
 import re
 import shutil
 import subprocess
+import sys
 import time
 from pathlib import Path
 
@@ -23,14 +24,15 @@ RUN = ["--offline", "--python", "3.12", "--from", "membrain-ai", "membrain", "pl
 NO_UV = ("memBrain is installed but cannot run: uv was not found on this computer, so nothing is remembered or "
          "recalled. In your first reply, tell the user this once and ask them to install uv from "
          "https://docs.astral.sh/uv/ and then start a new session.")
-NOT_READY = ("memBrain is installed but its runtime is not ready yet, so nothing is remembered or recalled in this "
-             "session. It installs in the background when a session starts; the first time needs an internet "
-             "connection and takes a few minutes. In your first reply, tell the user this once, and that if they "
-             "see it again in a later session the installation is failing, for example without an internet "
-             "connection.")
+NOT_READY = ("memBrain is installed but its runtime is not ready yet, so nothing is remembered or recalled until it "
+             "is. It installs in the background; the first time needs an internet connection and takes a few "
+             "minutes. Memory then starts by itself; no new session is needed. In your first reply, tell the user "
+             "this once, and that if they see it again in a later session the installation is failing, for example "
+             "without an internet connection.")
 SHELLS = [shell for shell in ("/bin/sh", "/bin/dash", "/bin/bash") if os.access(shell, os.X_OK)]
 FAKE = """#!/bin/sh
 { printf '%s' "${0##*/}"; for argument in "$@"; do printf '\\t%s' "$argument"; done; printf '\\n'; } >> "$FAKE_LOG"
+printf '%s\\n' "${UV_LOCK_TIMEOUT-unset}" >> "$FAKE_LOG.lock-timeout"
 cat > /dev/null
 printf '%s' "$FAKE_STDOUT"
 exit "${FAKE_EXIT:-0}"
@@ -213,6 +215,68 @@ def test_windows_wrapper_follows_the_same_order_by_inspection():
     # cmd.exe would act on these characters in an echoed message; the messages use none of them.
     for message in (NO_UV, NOT_READY):
         assert not set(message) & set("&|<>^%()!\"'`$\\")
+    # A hook gives up on uv's tool lock after 2 seconds; the installation started under "start" waits for it.
+    assert lines[-4] == 'set "UV_LOCK_TIMEOUT=2"' and lines.index(")") < len(lines) - 4
+    assert sum("UV_LOCK_TIMEOUT" in line for line in lines if not line.startswith("rem ")) == 1
+
+
+def lock_timeouts(sandbox):
+    path = Path(str(sandbox.log) + ".lock-timeout")
+    return path.read_text().splitlines() if path.exists() else []
+
+
+@pytest.mark.parametrize("hooks_file,host", HOOK_FILES)
+@pytest.mark.parametrize("commands", [("uv",), ("uv", "uvx")])
+def test_hooks_never_wait_on_uvs_tool_lock_but_the_installation_does(tmp_path, hooks_file, host, commands):
+    sandbox = Sandbox(tmp_path, commands)
+    hooks = hook_commands(hooks_file)
+    for event in EVENTS:
+        sandbox.run(["/bin/sh", "-c", hooks[event]["command"]], FAKE_STDOUT="{}")
+    assert lock_timeouts(sandbox) == ["2"] * 3
+    Path(str(sandbox.log) + ".lock-timeout").unlink()
+    sandbox.run(["/bin/sh", "-c", hooks["start"]["command"]])
+    assert lock_timeouts(sandbox) == ["unset", "unset"]  # uv tool install, then plugin start: both wait.
+    (tmp_path / "wrapper").mkdir()
+    sandbox = Sandbox(tmp_path / "wrapper", commands)
+    for name in EVENTS.values():
+        run_wrapper(sandbox, name, FAKE_STDOUT="{}")
+    assert lock_timeouts(sandbox) == ["2"] * 3
+    run_wrapper(sandbox, "start")
+    assert len(wait_for_calls(sandbox, 5)) == 5 and lock_timeouts(sandbox)[3:] == ["unset", "unset"]
+
+
+def test_with_real_uv_a_hook_gives_up_on_the_tool_lock_in_seconds(tmp_path):
+    """While ``uv tool install`` holds uv's tool lock (held here directly, as uv takes it: an exclusive flock on the
+    tool directory's .lock), the real uv gives up after 2 seconds: session start says the runtime is not ready, and
+    the prompt and stop hooks return with nothing, instead of waiting until the host stops them at 10 and 15 seconds.
+    Offline and with no runtime installed; nothing is downloaded."""
+    import fcntl
+
+    uv = shutil.which("uv")
+    assert uv, "uv must be on the PATH for this test"
+    sandbox = Sandbox(tmp_path, commands=())
+    os.symlink(uv, sandbox.bin / "uv")  # uv alone: the hooks fall back to `uv tool run`.
+    os.symlink(sys.executable, sandbox.bin / "python3.12")  # The Python 3.12 the hooks ask for, found on the PATH.
+    tools = tmp_path / "uv-tools"
+    tools.mkdir()
+    env = {"UV_TOOL_DIR": str(tools), "UV_CACHE_DIR": str(tmp_path / "uv-cache"), "UV_NO_CONFIG": "1",
+           "UV_PYTHON_DOWNLOADS": "never"}
+    with open(tools / ".lock", "a+") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        for hooks_file, _ in HOOK_FILES:
+            hooks = hook_commands(hooks_file)
+            for event in EVENTS:
+                started = time.monotonic()
+                result = sandbox.run(["/bin/sh", "-c", hooks[event]["command"]], **env)
+                assert 1.5 < time.monotonic() - started < 6, (hooks_file, event)
+                assert result.returncode == 0 and result.stderr == ""
+                if event == "SessionStart":
+                    assert json.loads(result.stdout) == notice(NOT_READY)
+                else:
+                    assert result.stdout == ""
+        started = time.monotonic()
+        result = run_wrapper(sandbox, "session-start", **env)
+        assert 1.5 < time.monotonic() - started < 6 and json.loads(result.stdout) == notice(NOT_READY)
 
 
 def test_every_launcher_says_the_same_words():

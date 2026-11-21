@@ -81,7 +81,8 @@ def test_messages_are_spooled_when_the_service_is_not_ready(tmp_path, monkeypatc
     monkeypatch.setattr(host, "ready_client", lambda directory, user_id=None: None)
     monkeypatch.setattr(host, "start_in_background", started.append)
     notice = plugin.user_prompt({"session_id": "s1", "prompt_id": "p1", "prompt": "Remember Biscuit"}, tmp_path)
-    assert "recording state is unknown" in notice and "server persistence is not confirmed" in notice
+    assert notice == ("memBrain is starting, so nothing can be recalled yet; new messages are queued for memory "
+                      "meanwhile.")
     plugin.stop({"session_id": "s1", "prompt_id": "p1", "last_assistant_message": "Noted."}, tmp_path)
     records = [json.loads(line) for line in (tmp_path / "plugin" / "spool.jsonl").read_text().splitlines()]
     assert [record["role"] for record in records] == ["user", "assistant"]
@@ -554,7 +555,7 @@ def test_codex_hooks_use_turn_ids_and_their_own_producer(tmp_path, monkeypatch, 
         assert plugin.run_hook(event, tmp_path, stream=io.BytesIO(raw), host_name="codex") == 0
     output = json.loads(capsys.readouterr().out)["hookSpecificOutput"]
     assert output["hookEventName"] == "UserPromptSubmit"
-    assert "recording state is unknown" in output["additionalContext"]
+    assert output["additionalContext"].startswith("memBrain is starting, so nothing can be recalled yet")
     records = [json.loads(line) for line in (tmp_path / "plugin" / "spool.jsonl").read_text().splitlines()]
     assert [(record["source_event_key"], record["producer_ref"]) for record in records] == [
         ("019a-codex:turn-7:user", "membrain-codex"), ("019a-codex:turn-7:assistant", "membrain-codex")]

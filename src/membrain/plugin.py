@@ -14,6 +14,7 @@ import os
 import sys
 import time
 import traceback
+from datetime import datetime
 from pathlib import Path
 
 from . import host, host_receipts, host_recording, manner_feedback, persona_tool
@@ -38,6 +39,7 @@ from .host import (  # noqa: F401  (re-exported for callers of the previous plug
     render_history,
     semantic_state,
 )
+from .local_profile import brief_profile_waits
 
 MAX_INPUT_BYTES = 4 * 1024 * 1024
 PRODUCERS = {"claude-code": PRODUCER, "codex": "membrain-codex", "openclaw": "membrain-openclaw",
@@ -135,9 +137,42 @@ def session_start(payload: dict, directory: Path, producer: str = PRODUCER) -> s
 def user_prompt(payload: dict, directory: Path, producer: str = PRODUCER) -> str | None:
     _import_host_queue(directory, producer)
     name = next((key for key, value in PRODUCERS.items() if value == producer), "claude-code")
-    return host.prompt_context(directory, _conversation(payload), payload.get("prompt"), turn_id=_turn(payload),
+    session = _conversation(payload)
+    return host.prompt_context(directory, session, payload.get("prompt"), turn_id=_turn(payload),
                                producer=producer, include_source=True, tools=HOST_TOOLS.get(name, host.TOOL_NAMES),
-                               user_id=_user(payload), quiet=name in CODING_HOSTS)
+                               user_id=_user(payload), quiet=name in CODING_HOSTS,
+                               unkept=unkept_messages(payload, directory, session))
+
+
+def unkept_messages(payload: dict, directory: Path, session: str) -> int:
+    """How many of this conversation's earlier messages memBrain never saw, because it was not running yet.
+
+    Only while the runtime has staged no message of this conversation (a stop hook that found nothing staged does not
+    count), and only messages from the transcript dated within the time a session's state is kept: an older message
+    may have been seen under state that has since been removed, so it is not counted.
+    """
+    if host.session_state(directory, session).get("turns_managed"):
+        return 0
+    cutoff = time.time() - host.SESSION_MARKER_SECONDS + 3600
+    prompt = payload.get("prompt").strip() if isinstance(payload.get("prompt"), str) else None
+    count, newest = 0, True
+    for role, text, entry in _transcript_tail(payload.get("transcript_path"), entries=True):
+        if role != "user":
+            continue
+        if newest and text.strip() == prompt:
+            newest = False  # The current message, when the host has written it already.
+            continue
+        newest = False
+        stripped = text.lstrip()
+        if stripped.startswith(("<command-", "<local-command", "[Request interrupted")) or host.is_command(stripped):
+            continue  # Slash commands, their output and interruptions are not messages to remember.
+        try:
+            when = datetime.fromisoformat(str(entry.get("timestamp")).replace("Z", "+00:00")).timestamp()
+        except ValueError:
+            continue
+        if when >= cutoff:
+            count += 1
+    return count
 
 
 def _text(content) -> str:
@@ -169,8 +204,8 @@ def last_user_message(transcript: str | None) -> str | None:
     return next((text for role, text in _transcript_tail(transcript) if role == "user"), None)
 
 
-def _transcript_tail(transcript: str | None):
-    """(role, text) of the transcript's last entries that have text, newest first."""
+def _transcript_tail(transcript: str | None, *, entries: bool = False):
+    """(role, text) of the transcript's last entries that have text, newest first; with ``entries``, each entry too."""
     if not isinstance(transcript, str) or not transcript:
         return
     try:
@@ -191,7 +226,7 @@ def _transcript_tail(transcript: str | None):
         role = message.get("role") or entry.get("type")
         text = _text(message.get("content"))
         if role in ("assistant", "user") and text.strip():
-            yield role, text
+            yield (role, text, entry) if entries else (role, text)
 
 
 def stop(payload: dict, directory: Path, producer: str = PRODUCER) -> None:
@@ -244,7 +279,10 @@ def run_hook(event: str, directory: Path | None = None, stream=None, *, host_nam
         return 0
     name, handler = HANDLERS[event]
     try:
-        context = handler(payload, directory, PRODUCERS[host_name])
+        # A hook runs inside the host's turn: while a first start holds the profile, memory counts as starting and
+        # the message is queued, instead of the hook waiting until the host stops it with nothing kept.
+        with brief_profile_waits():
+            context = handler(payload, directory, PRODUCERS[host_name])
     except Exception:
         host.log(directory, f"{event} failed: {traceback.format_exc(limit=3)}")
         return 0

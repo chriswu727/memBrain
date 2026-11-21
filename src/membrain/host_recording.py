@@ -190,12 +190,23 @@ def observe(client, record):
     return client.observe(**values)
 
 
-def notice(policy):
+def notice(policy, not_ready=None):
+    """What the host is told about recording. ``not_ready`` is why the service is not ready (``host.not_ready``)
+    when that is known: while it starts, messages are queued, which says nothing about whether they will be kept."""
     if policy.get("availability", "current") != "current":
-        protection = (" Local capture remains blocked by the last known policy or unreadable policy metadata."
-                      if policy["paused"] else " Messages may be queued locally; server persistence is not confirmed.")
-        return ("Current server recording state is unknown." + protection
-                + " Reconnect to confirm it; local resume does not change server recording controls.")
+        if policy["paused"]:
+            return ("Current server recording state is unknown. Local capture remains blocked by the last known policy "
+                    "or unreadable policy metadata. Reconnect to confirm it; local resume does not change server "
+                    "recording controls.")
+        cause = (not_ready or {}).get("cause")
+        if cause == "port_conflict":
+            return (f"memBrain cannot start: another program is using port {not_ready['port']}, which it needs. "
+                    "New messages are queued, but nothing can be recalled until that program is closed; tell the user "
+                    "once.")
+        if cause in ("starting", "restarting"):
+            return ("memBrain is " + ("starting" if cause == "starting" else "restarting after an update")
+                    + ", so nothing can be recalled yet; new messages are queued for memory meanwhile.")
+        return "memBrain cannot confirm its recording state right now; new messages may be queued for memory."
     if policy["paused"]:
         return ("Recording is paused by the memory service for this brain. New messages are not being "
                 "remembered. Local resume cannot change this policy; reconnect and use the server recording "

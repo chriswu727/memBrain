@@ -16,6 +16,8 @@ if "%~1"=="start" (
   start "" /b cmd /c "uv tool install --quiet --python 3.12 "%MEMBRAIN_PACKAGE%" >nul 2>nul & %RUN% --offline --python 3.12 --from membrain-ai membrain plugin start >nul 2>nul"
   exit /b 0
 )
+rem A hook never waits on uv's tool lock: while uv installs or updates the runtime, it gives up after 2 seconds.
+set "UV_LOCK_TIMEOUT=2"
 %RUN% --offline --python 3.12 --from membrain-ai membrain plugin hook %1 --host workbuddy 2>nul && exit /b 0
-if "%~1"=="session-start" echo {"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"memBrain is installed but its runtime is not ready yet, so nothing is remembered or recalled in this session. It installs in the background when a session starts; the first time needs an internet connection and takes a few minutes. In your first reply, tell the user this once, and that if they see it again in a later session the installation is failing, for example without an internet connection."}}
+if "%~1"=="session-start" echo {"hookSpecificOutput":{"hookEventName":"SessionStart","additionalContext":"memBrain is installed but its runtime is not ready yet, so nothing is remembered or recalled until it is. It installs in the background; the first time needs an internet connection and takes a few minutes. Memory then starts by itself; no new session is needed. In your first reply, tell the user this once, and that if they see it again in a later session the installation is failing, for example without an internet connection."}}
 exit /b 0

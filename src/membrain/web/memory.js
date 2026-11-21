@@ -1058,9 +1058,10 @@ function showConnection(brain, local) {
   if (!local) { $("first-use").hidden = true; return; }
   $("first-use").hidden = false;
   const received = brain.recorded_messages > 0;
-  $("connection-summary").textContent = received ? "Messages are arriving" : "Finish connecting your agent";
+  $("connection-summary").textContent = received ? "Messages are arriving" : "Waiting for your first message";
   if (!state.connectionShown) {
-    $("first-use").open = !received; $("connect-agent").open = !received;
+    // Someone on this page has usually come through the plugin already: the install command stays folded away.
+    $("first-use").open = !received;
     if (brain.last_message_producer === "membrain-codex") $("setup-host").value = "codex";
     setupCommand(); state.connectionShown = true;
   }
@@ -1069,7 +1070,7 @@ function showConnection(brain, local) {
     "membrain-openclaw": "OpenClaw", "membrain-workbuddy": "WorkBuddy" }[brain.last_message_producer];
   $("setup-recording").textContent = received
     ? `${brain.recorded_messages} message(s) recorded${producer ? `; latest from ${producer}` : ""}${brain.last_message_at ? ` on ${day(brain.last_message_at)}` : ""}.`
-    : "No agent messages received yet. Connect below, send a message and wait for its reply, then refresh.";
+    : "No messages yet. Say something to your agent; after it replies, refresh: the message appears under Conversations, and anything it saves for later under Notes.";
   const semantic = local.semantic_recall;
   $("setup-semantic").textContent = semantic === "ready"
     ? `Enabled. ${brain.embedding_pending ? `${brain.embedding_pending} memory item(s) still preparing.` : "Finds related wording across languages."}`

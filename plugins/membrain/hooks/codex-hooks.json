@@ -19,7 +19,7 @@
             "timeout": 10,
             "statusMessage": "Loading memBrain notes",
             "additionalContextLimit": 10000,
-            "command": "if command -v uvx >/dev/null 2>&1 || command -v uv >/dev/null 2>&1; then command -v uvx >/dev/null 2>&1 || uvx() { uv tool run \"$@\"; }; uvx --offline --python 3.12 --from membrain-ai membrain plugin hook session-start --host codex 2>/dev/null || printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"memBrain is installed but its runtime is not ready yet, so nothing is remembered or recalled in this session. It installs in the background when a session starts; the first time needs an internet connection and takes a few minutes. In your first reply, tell the user this once, and that if they see it again in a later session the installation is failing, for example without an internet connection.\"}}'; else printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"memBrain is installed but cannot run: uv was not found on this computer, so nothing is remembered or recalled. In your first reply, tell the user this once and ask them to install uv from https://docs.astral.sh/uv/ and then start a new session.\"}}'; fi; true"
+            "command": "export UV_LOCK_TIMEOUT=2; if command -v uvx >/dev/null 2>&1 || command -v uv >/dev/null 2>&1; then command -v uvx >/dev/null 2>&1 || uvx() { uv tool run \"$@\"; }; uvx --offline --python 3.12 --from membrain-ai membrain plugin hook session-start --host codex 2>/dev/null || printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"memBrain is installed but its runtime is not ready yet, so nothing is remembered or recalled until it is. It installs in the background; the first time needs an internet connection and takes a few minutes. Memory then starts by itself; no new session is needed. In your first reply, tell the user this once, and that if they see it again in a later session the installation is failing, for example without an internet connection.\"}}'; else printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"memBrain is installed but cannot run: uv was not found on this computer, so nothing is remembered or recalled. In your first reply, tell the user this once and ask them to install uv from https://docs.astral.sh/uv/ and then start a new session.\"}}'; fi; true"
           }
         ]
       }
@@ -31,7 +31,7 @@
             "type": "command",
             "timeout": 15,
             "additionalContextLimit": 7000,
-            "command": "command -v uvx >/dev/null 2>&1 || uvx() { uv tool run \"$@\"; }; uvx --offline --python 3.12 --from membrain-ai membrain plugin hook user-prompt --host codex 2>/dev/null; true"
+            "command": "export UV_LOCK_TIMEOUT=2; command -v uvx >/dev/null 2>&1 || uvx() { uv tool run \"$@\"; }; uvx --offline --python 3.12 --from membrain-ai membrain plugin hook user-prompt --host codex 2>/dev/null; true"
           }
         ]
       }
@@ -42,7 +42,7 @@
           {
             "type": "command",
             "timeout": 10,
-            "command": "command -v uvx >/dev/null 2>&1 || uvx() { uv tool run \"$@\"; }; uvx --offline --python 3.12 --from membrain-ai membrain plugin hook stop --host codex 2>/dev/null; true"
+            "command": "export UV_LOCK_TIMEOUT=2; command -v uvx >/dev/null 2>&1 || uvx() { uv tool run \"$@\"; }; uvx --offline --python 3.12 --from membrain-ai membrain plugin hook stop --host codex 2>/dev/null; true"
           }
         ]
       }

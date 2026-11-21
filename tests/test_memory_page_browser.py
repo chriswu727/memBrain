@@ -746,7 +746,7 @@ def test_the_page_offers_no_text_entry_for_memory_content_in_any_view(server, ac
         expect(detail.locator(".brain-note-actions button")).to_have_text([delete])
         assert_no_text_entry(page, f"brain detail of {node}")
     # The first-use panel's example sentence stays; its "Add a preference here" button is gone.
-    expect(page.locator("#first-use")).to_contain_text("Tell your agent a real preference")
+    expect(page.locator("#first-use")).to_contain_text("Tell your agent something true about you")
     assert same_page(page)
 
 

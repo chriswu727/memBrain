@@ -140,6 +140,30 @@ def _outcome(args, directory: Path) -> int:
     return 1 if result.get("status") in ("not_found", "unavailable") else 0
 
 
+def _start_for_tools(directory: Path) -> None:
+    """How a tool server starts the service, in its background thread (``desktop_connection.PendingService``).
+
+    A tool server running from uv's cache starts it through the installed tool, so the service outlives cache
+    cleanups, and only once the installed tool is its own: while an update is still being installed it waits
+    (``Updating``). With no installed tool at all, or as the installed tool, it starts the service itself.
+    """
+    from . import plugin
+    from .desktop_connection import Updating
+    from .host import installed_tool_matches, installed_tool_python, running_from_uv_cache
+
+    durable = installed_tool_python() if running_from_uv_cache() else None
+    if durable is None:
+        plugin.start(directory)
+        return
+    if not installed_tool_matches(durable):
+        raise Updating()
+    import subprocess
+
+    subprocess.run([str(durable), "-m", "membrain.cli", "plugin", "start", "--directory", str(directory)],
+                   stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=900,
+                   check=False)
+
+
 def dispatch(args) -> None:
     from . import plugin
 
@@ -162,22 +186,18 @@ def dispatch(args) -> None:
     if args.plugin_command == "tool":
         raise SystemExit(plugin.run_tool(args.name, directory))
     if args.plugin_command == "mcp":
-        from .desktop_connection import run_mcp
+        from .desktop_connection import serve_pending
         from .host import installed_tool_matches, installed_tool_python, running_from_uv_cache
 
         durable = installed_tool_python() if running_from_uv_cache() else None
-        if durable is not None:
-            if not installed_tool_matches(durable):
-                print("The installed memBrain tool differs from this MCP runtime. Update the tool using the same package source as this MCP configuration, then reconnect. Existing data was preserved.", file=sys.stderr)
-                raise SystemExit(1)
+        if durable is not None and installed_tool_matches(durable):
             # Serve MCP from the installed tool so the service it starts outlives uv cache cleanups.
             import subprocess
 
             raise SystemExit(subprocess.call([str(durable), "-m", "membrain.cli", "plugin", "mcp",
                                               "--directory", str(directory)]))
-
-        plugin.ensure_installation(directory)
-        run_mcp(directory, require_turn_capture=True)
+        # Otherwise serve from here at once: the installed tool is missing or being updated, or this is it.
+        serve_pending(directory, _start_for_tools)
         return
     from .desktop import DesktopError
 

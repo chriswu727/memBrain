@@ -52,17 +52,17 @@ const ZH = {
   "Your memory as a brain: each dot is one memory, grouped by kind": "你的记忆大脑：每个点是一条记忆，按类型分组",
   "Checking memory…": "正在检查记忆…", "Refresh status": "刷新状态",
   "Your agent's memory": "你的 agent 的记忆",
-  "Connect once, then talk normally. Your agent records conversations and brings useful memories into later sessions. Here you can see them, check where each came from and delete any of them.":
-    "只需连接一次，之后正常对话即可。你的 agent 会记录对话，并在之后的会话里带上有用的记忆。你可以在这里查看它们、看每条来自哪里，也可以删除任何一条。",
+  "Talk to your agent as usual. It records your conversations and brings useful memories into later sessions. Here you can see them, check where each came from and delete any of them.":
+    "照常和你的 agent 对话即可。它会记录你们的对话，并在之后的会话里带上有用的记忆。你可以在这里查看它们、看每条来自哪里，也可以删除任何一条。",
   "Connection checks": "连接检查", "Local memory": "本地记忆", "Checking…": "检查中…",
   "Messages from your agent": "来自 agent 的消息", "Waiting for a message…": "等待消息…",
   "Recall by meaning": "按语义召回", "Enable recall by meaning": "启用按语义召回",
-  "Connect Claude Code or Codex": "连接 Claude Code 或 Codex", "Your agent": "你的 agent",
+  "Not connected yet? Install the plugin for Claude Code or Codex": "还没有连接？为 Claude Code 或 Codex 安装插件", "Your agent": "你的 agent",
   "Run this in a terminal, then open a new agent session. Approve its memory tools and hooks when asked.":
     "在终端里运行下面的命令，然后打开一个新的 agent 会话。提示时请允许它的记忆工具和 hook。",
   "Copy install command": "复制安装命令", "Try remembering across sessions": "试试跨会话记忆",
-  "Tell your agent a real preference, such as “I prefer short answers.” Open a new session and ask “How should you format answers for me?” Check the saved note or original message here.":
-    "告诉你的 agent 一个真实的偏好，比如“我喜欢简短的回答”。然后打开一个新会话，问它“你应该怎样给我排版回答？”，再到这里查看保存的笔记或原始消息。",
+  "Tell your agent something true about you, such as “My sister Mei lives in Bristol.” Open a new session and ask “Where does my sister live?” Check the saved note or original message here.":
+    "告诉你的 agent 一件关于你的真实情况，比如“我妹妹 Mei 住在布里斯托尔”。然后打开一个新会话，问它“我妹妹住在哪里？”，再到这里查看保存的笔记或原始消息。",
   "Receiving messages confirms recording. The new-session exercise checks whether your agent actually uses them. You do not need to maintain notes by hand.":
     "能收到消息说明记录正常；新会话的测试检查 agent 是否真的用上了它们。你不需要手动维护笔记。",
   "Your memory": "你的记忆", "Open this page with": "用",
@@ -142,10 +142,10 @@ const ZH = {
   "Install command copied.": "安装命令已复制。", "Select and copy the install command above.": "请选中并复制上面的安装命令。",
   "Preparing recall by meaning. Keyword search keeps working; this page will update automatically.":
     "正在准备按语义召回。关键词搜索照常可用，页面会自动更新。",
-  "Messages are arriving": "正在收到消息", "Finish connecting your agent": "请完成 agent 的连接",
+  "Messages are arriving": "正在收到消息", "Waiting for your first message": "等待你的第一条消息",
   "Running on this computer.": "正在这台电脑上运行。", "Needs attention. Run membrain doctor for a diagnosis.": "需要处理。运行 membrain doctor 查看诊断。",
-  "No agent messages received yet. Connect below, send a message and wait for its reply, then refresh.":
-    "还没有收到 agent 的消息。请在下面完成连接，发一条消息并等它回复，然后刷新。",
+  "No messages yet. Say something to your agent; after it replies, refresh: the message appears under Conversations, and anything it saves for later under Notes.":
+    "还没有消息。和你的 agent 说点什么；它回复后刷新页面：消息会出现在“对话”里，它为以后保存的内容会出现在“笔记”里。",
   "Downloading the local model (about 135 MB). Keyword search already works.": "正在下载本地模型（约 135 MB）。关键词搜索已经可用。",
   "The download failed. Check your connection and retry below; keyword search still works.": "下载失败。请检查网络后在下面重试；关键词搜索仍然可用。",
   "The model is downloaded and is being enabled. Keyword search already works.": "模型已下载，正在启用。关键词搜索已经可用。",
