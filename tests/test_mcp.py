@@ -238,6 +238,6 @@ def test_an_installation_server_tells_the_ai_when_each_memory_tool_is_for(tmp_pa
     # instructions do not say them again. A shared moment is named in a few words; its fields define it.
     notice = host._session_notice(False, host.TOOL_NAMES, False, None)
     assert host.TOOL_NAMES["recall"] in notice and "my_replies" in notice and "milestone with shared and moment" in notice
-    assert host.TOOL_NAMES["recall"] not in text and "a hard time too, is a milestone with shared and moment" in text
+    assert host.TOOL_NAMES["recall"] not in text and "hard for a hard time you got through together" in text and "saved with affect for what the user felt" in text
     assert "do not capture chat history" not in text
     assert "do not capture chat history automatically" in create_server(Configured()).instructions

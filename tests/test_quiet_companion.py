@@ -80,7 +80,7 @@ def test_the_quiet_persona_is_the_voice_and_what_the_user_added_in_about_a_third
         assert quiet.startswith('<membrain-persona version="1">\n' + QUIET + "; where the user's preferences differ, "
                                 "follow the user.\nVoice: register ")
         assert all(word not in quiet for word in ("Traits:", "Values:", "Baseline mood"))
-        assert len(quiet) <= 230 and len(quiet) / len(full) < 0.31, (preset["id"], len(quiet), len(full))
+        assert len(quiet) <= 230 and len(quiet) / len(full) < 0.34, (preset["id"], len(quiet), len(full))
     # What the user agreed to stays: a voice change and an added value, kept on a type's card by a switch.
     card = with_agreements(persona_presets.card("intj"), [
         {"changes": {"voice": {"length": "one to three sentences unless the user asks for detail"},

@@ -277,8 +277,12 @@ def server_instructions(tools: dict = TOOL_NAMES) -> str:
         # "Never a plan or fact they did not state" could be read as "never note a plan". What is meant: a suggestion
         # of the assistant's, or a trip the user only asked about, is not the user's plan.
         f"{tools['note']}: a lasting fact the user stated, never your own suggestion or something they only asked "
-        # Also here in a few words: a session whose start missed the service gets no full notice.
-        "about; a moment you shared, a hard time too, is a milestone with shared and moment. "
+        # The hard-moment sentence stays here in full: a host reads a tool's field descriptions only after it looks
+        # the tool up, and with the definition only there a probe on 2026-11-21 saw the hard moment saved in the
+        # turn the user said it in 3 of 8 times against 7 of 8, and the feeling recorded 5 of 8 against 7 of 8.
+        "about. A moment you shared is a milestone with shared and moment: hard for a hard time you got through "
+        "together (a bad night you sat with them through, or the user upset with you), saved with affect for what "
+        "the user felt. "
         "Add affect to any note when the user expresses a feeling. "
         "When the user comments on how you talk (too long, too formal, more jokes, emoji), record it with "
         f"{tools['manner_feedback']} and follow it; do not save it as a note. "
