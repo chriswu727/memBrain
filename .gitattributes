@@ -5,3 +5,4 @@ plugins/membrain/bin/*.cmd text eol=crlf
 # the test suite. The OpenClaw and AstrBot install instructions take integrations/ from the same archive; keep it.
 /evaluations export-ignore
 /tests export-ignore
+/.github export-ignore
