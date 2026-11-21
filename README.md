@@ -21,18 +21,19 @@ Then start a new session. It downloads about 260 MB, memory starts working withi
 - **One local memory for Claude Code and Codex**: both use the same embedded database on your computer, with no cloud account, no API key and no model of memBrain's own.
 - **Your words are kept apart from the assistant's**: automatic recall leaves the assistant's earlier replies out unless you ask about them.
 - **You can see what a memory rests on**: the local memory page (`membrain plugin ui`) shows the messages a note came from and the note it replaced.
-- **You can delete it from the page**, and the page names what each delete takes with it, such as the agent's reply and the notes resting on a message.
+- **You can delete it from the page, or tell your agent to forget it**, and either way you are told what goes with it, such as the agent's reply and the notes resting on a message.
 
 <a id="what-is-and-is-not-verified"></a>
 
 **What is and is not verified**
 
-- **First run.** Measured in a Linux sandbox that played Claude Code's part: the memory tools gave results after about 70 seconds on a fast link and 90 seconds at 20 Mbit/s, messages typed meanwhile were queued and kept, and Claude was told how many earlier ones were not ([record](evaluations/first-run-fix-2026-11-19.md)). This install command has not yet been run on a real host.
+- **First run.** Measured in a Linux sandbox that played Claude Code's part: the memory tools gave results after about 70 seconds on a fast link and 90 seconds at 20 Mbit/s, messages typed meanwhile were queued and kept, and Claude was told how many earlier ones were not ([record](evaluations/first-run-fix-2026-11-19.md)).
+- **Install on a real host.** On real Claude Code 2.1.322 on Linux, the install command worked from an empty configuration: the first turn said memory was still installing, the next turn used it, and a new session answered from it (one run, with the database engine and dependency wheels already cached on that machine; [record](evaluations/forget-and-first-install-on-a-real-host-2026-11-21.md#3-the-documented-install-command-from-a-clean-seat)). The documented install has not been run on a real host for Codex or WorkBuddy, or on macOS or Windows.
 - **Network.** Apart from installing itself and downloading its local model once, memBrain connects to nothing outside your computer, observed on Linux only; what your agent is given from memory goes to the agent's own model service with the conversation ([details](docs/reference.md#what-leaves-your-machine)).
 - **Two hosts.** Memory across sessions has been checked in each host on its own; a hand-off between Claude Code and Codex has not been checked yet.
 - **Sources.** Asked "Can you show me where I said that?", Claude Code ran the command that opens the page at that note in a [real-host check](evaluations/host-recheck-2026-11-19.md) (one run). The page also links promises, feelings, mood triggers and persona changes back to the notes or messages behind them; boundaries have no stored source yet.
 - **Deleting.** Messages, notes, promises, feelings and search results can each be deleted on the page; a single persona version or suggestion cannot yet be deleted on its own.
-- **Forgetting.** Asking the agent to forget something does **not** work yet: in the same check nothing was erased.
+- **Forgetting.** Told "Forget what I told you about pnpm", Claude Code erased the note, the user's message and its own reply, and memBrain handed nothing about it to the next session ([real-host check](evaluations/forget-and-first-install-on-a-real-host-2026-11-21.md#1-forget-what-i-told-you-now-forgets), five turns, one model). Codex, WorkBuddy and CodeBuddy offer the same tool but were not run; OpenClaw, AstrBot and Hermes have no per-item forget. It erases memBrain's memory, not what the agent already wrote into your project files.
 - **Why replies are left out.** In earlier acceptance runs, agents restated their own old suggestions as facts about the user.
 
 **Status: pre-release, no tagged release yet.** Behavioural acceptance (R4) passed on its seventh attempt by a thin margin, with one emulated host model on an earlier runtime; the release bar's install, test, privacy and performance items are still open. See [Status and verification](#status-and-verification).

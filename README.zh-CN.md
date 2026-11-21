@@ -21,18 +21,19 @@ claude plugin install membrain --marketplace chriswu727/membrain
 - **Claude Code 和 Codex 共用一份本地记忆**：两者使用你电脑上的同一个嵌入式数据库，无需云账号、无需 API key，memBrain 也没有自己的模型。
 - **你的话和助手的话分开保存**：自动召回默认不带上助手以前的回复，除非你问起。
 - **能看到一条记忆依据的是什么**：本地记忆页面（`membrain plugin ui`）会显示一条笔记来自哪些消息、替换了哪条笔记。
-- **可以在页面上删除**，页面会说明每次删除会一并带走哪些内容，例如 Agent 的回复和依据这条消息的笔记。
+- **可以在页面上删除，也可以让 Agent 忘掉它**，两种方式都会告诉你哪些内容会一并带走，例如 Agent 的回复和依据这条消息的笔记。
 
 <a id="what-is-and-is-not-verified"></a>
 
 **哪些已验证、哪些尚未验证**
 
-- **首次运行。** 在一次由驱动程序扮演 Claude Code 的 Linux 沙盒测试中测得：网络较快时约 70 秒后记忆工具开始给出结果，20 Mbit/s 时约 90 秒；期间输入的消息排队后得以保存，Claude 被告知了此前有几条没有保存（[记录](evaluations/first-run-fix-2026-11-19.md)）。这条安装命令本身尚未在真实宿主上运行过。
+- **首次运行。** 在一次由驱动程序扮演 Claude Code 的 Linux 沙盒测试中测得：网络较快时约 70 秒后记忆工具开始给出结果，20 Mbit/s 时约 90 秒；期间输入的消息排队后得以保存，Claude 被告知了此前有几条没有保存（[记录](evaluations/first-run-fix-2026-11-19.md)）。
+- **在真实宿主上安装。** 在 Linux 上的真实 Claude Code 2.1.322 中，这条安装命令从空白配置开始顺利完成：第一轮说明记忆仍在安装，下一轮就用上了记忆，新会话也能据此回答（仅一次运行，且这台机器上已缓存了数据库引擎和依赖包；[记录](evaluations/forget-and-first-install-on-a-real-host-2026-11-21.md#3-the-documented-install-command-from-a-clean-seat)）。Codex、WorkBuddy 以及 macOS、Windows 上的文档安装方式尚未在真实宿主上运行过。
 - **网络。** 除了安装自身和一次性下载本地模型，memBrain 不连接你电脑以外的任何地方，这只在 Linux 上观察过；Agent 从记忆中得到的内容会随对话一起发给 Agent 自己的模型服务（[详情](docs/reference.md#what-leaves-your-machine)）。
 - **两个宿主。** 跨会话记忆已在每个宿主上分别验证；在 Claude Code 和 Codex 之间接续使用的情形尚未验证。
 - **来源。** 在一次[真实宿主检查](evaluations/host-recheck-2026-11-19.md)中，用户请 Claude Code 展示自己是在哪里说的，它运行了打开页面上这条笔记的命令（仅一次运行）。页面还会把承诺、感受、心情触发和人格变更链接回它们依据的笔记或消息；边界目前没有保存来源。
 - **删除。** 消息、笔记、承诺、感受和搜索结果都可以在页面上逐条删除；单个人格版本或人格修改建议目前还不能单独删除。
-- **遗忘。** 请 Agent 忘掉某件事目前**还不起作用**：在同一次检查中，什么都没有被擦除。
+- **遗忘。** 在一次[真实宿主检查](evaluations/forget-and-first-install-on-a-real-host-2026-11-21.md#1-forget-what-i-told-you-now-forgets)中（五轮对话、一个模型），用户让 Claude Code 忘掉自己说过的 pnpm 偏好，它擦除了这条笔记、用户的那条消息和它自己的回复，memBrain 在下一个会话中也不再提供相关内容。Codex、WorkBuddy 和 CodeBuddy 提供同一个工具，但没有实际运行过；OpenClaw、AstrBot 和 Hermes 没有逐条遗忘。它擦除的是 memBrain 的记忆，不包括 Agent 已经写进你项目文件里的内容。
 - **为什么不带上助手的回复。** 在此前的验收测试中，Agent 曾把自己以前的建议当作关于用户的事实复述。
 
 **状态：发布前版本，尚无带标签的发布。** 行为验收（R4）在第七次尝试中以很小的优势通过，只用了一个经模拟的宿主模型，且是在更早的运行时上；发布门槛中的安装、测试、隐私和性能项仍未完成。详见[状态与验证](#status-and-verification)。
