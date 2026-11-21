@@ -65,6 +65,38 @@ async function forget(kind, ids, mode, conversation) {
 
 const day = (value) => (value || "").slice(0, 10) || "undated";
 
+// Every text the page shortens (a conversation's first message, a line of a delete question) goes through here: on
+// one line, at most `size` characters, ending with "…" when cut. The cut falls between two words when one ends in
+// the second half (the browser's own word segmenter, so Chinese and Japanese too), and never inside a character,
+// a combining sequence or an emoji.
+const SEGMENTERS = {};
+function segments(text, granularity) {
+  if (typeof Intl === "undefined" || !Intl.Segmenter) {  // Older browsers: a character with its marks; words at spaces.
+    const pattern = granularity === "word" ? /\s+|\S+/gu : /[\s\S]\p{M}*/gu;
+    return [...text.matchAll(pattern)].map((match) => ({ segment: match[0], index: match.index }));
+  }
+  SEGMENTERS[granularity] ||= new Intl.Segmenter(document.documentElement.lang || undefined, { granularity });
+  return SEGMENTERS[granularity].segment(text);
+}
+
+function shorten(text, size = 100) {
+  text = String(text ?? "").replace(/\s+/g, " ").trim();
+  if (text.length <= size) return text;
+  const head = text.slice(0, size + 24);  // Enough to see whether the last kept word ends at the cut.
+  let end = 0;
+  for (const { segment, index } of segments(head, "grapheme")) {
+    if (index + segment.length > size - 1) break;
+    end = index + segment.length;
+  }
+  let word = 0;
+  for (const { segment, index } of segments(head, "word")) {
+    if (index + segment.length > end) break;
+    if (/\S/.test(segment)) word = index + segment.length;
+  }
+  if (word >= size / 2) end = word;
+  return `${text.slice(0, end).replace(/[\s,;:、，；：]+$/u, "")}…`;
+}
+
 function guard(button, task) {
   button.addEventListener("click", async (event) => {
     event.preventDefault();
@@ -140,7 +172,7 @@ async function conversationLabels(blocks) {
       const { items } = await timeline({ role: ["user", "assistant"], conversation_id: conversation });
       const messages = items.reverse();
       const first = messages.find((message) => message.actor_role === "user") || messages[0];
-      if (first) labels.set(conversation, `${day(messages[0].recorded_at)} · ${messages.length} messages · ${first.text.slice(0, 90)}`);
+      if (first) labels.set(conversation, `${day(messages[0].recorded_at)} · ${messages.length} messages · ${shorten(first.text, 90)}`);
     } catch { /* The message itself is still shown. */ }
   }));
   for (const [message, block] of blocks) {
@@ -229,16 +261,14 @@ function supersededHint(message) {
 
 // What else a deletion erases, as the service reads it on request from the dependencies the erasure itself follows
 // (``erased_with``): one line per record, named as the page shows it, so the question and the erasure cannot disagree.
-const clip = (text, size = 100) => (text.length > size ? `${text.slice(0, size - 1)}…` : text);
-
 function erasedLine(entry) {
   const when = day(entry.recorded_at);
-  if (entry.kind === "note") return `${translate(`Note (${when}):`)} ${clip(typedNote(entry.text).sentence)}`;
-  if (entry.kind === "earlier_note") return `${translate(`Earlier note (${when}):`)} ${clip(typedNote(entry.text).sentence)}`;
-  if (entry.kind === "hidden_note") return `${translate(`Hidden note (${when}):`)} ${clip(typedNote(entry.text).sentence)}`;
+  if (entry.kind === "note") return `${translate(`Note (${when}):`)} ${shorten(typedNote(entry.text).sentence)}`;
+  if (entry.kind === "earlier_note") return `${translate(`Earlier note (${when}):`)} ${shorten(typedNote(entry.text).sentence)}`;
+  if (entry.kind === "hidden_note") return `${translate(`Hidden note (${when}):`)} ${shorten(typedNote(entry.text).sentence)}`;
   if (entry.kind === "feeling") return `${translate("Feeling:")} ${entry.label}${entry.topic ? ` · ${entry.topic}` : ""}`;
   if (entry.kind === "message") {
-    return `${translate(entry.actor_role === "assistant" ? `Your agent's reply (${when}):` : `Message (${when}):`)} ${clip(entry.text)}`;
+    return `${translate(entry.actor_role === "assistant" ? `Your agent's reply (${when}):` : `Message (${when}):`)} ${shorten(entry.text)}`;
   }
   return translate(entry.kind === "suggestion" ? `Personality suggestion (${when})` : `Other record (${when})`);
 }
@@ -438,7 +468,7 @@ function conversationItem(conversation, messages) {
   item.dataset.conversation = conversation;
   const summary = element("summary");
   const first = messages.find((message) => message.actor_role === "user") || messages[0];
-  summary.textContent = `${day(messages[0].recorded_at)} · ${messages.length} messages · ${first.text.slice(0, 90)}`;
+  summary.textContent = `${day(messages[0].recorded_at)} · ${messages.length} messages · ${shorten(first.text, 90)}`;
   item.append(summary);
   for (const message of messages) {
     const block = element("div", undefined, `message ${message.actor_role}`);
@@ -864,7 +894,7 @@ guard($("persona-delete-history"), async () => {
   // What goes with the versions, read again: the agreements in force (they are kept in the versions) and every
   // suggestion, decided or waiting.
   const [history, listing] = await Promise.all([api(personaPath("/versions")), api(personaPath("/proposals"))]);
-  const lines = (history.agreements || []).map((agreement) => `• ${translate(`Agreed with your agent in version ${agreement.version}:`)} ${clip(agreementText(agreement), 160)}`);
+  const lines = (history.agreements || []).map((agreement) => `• ${translate(`Agreed with your agent in version ${agreement.version}:`)} ${shorten(agreementText(agreement), 160)}`);
   const count = listing.proposals.length;
   if (count) lines.push(`• ${translate(count === 1 ? "1 suggestion" : `${count} suggestions`)}`);
   const question = "Delete every personality version, including the current card? This cannot be undone.";

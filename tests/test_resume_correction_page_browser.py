@@ -38,6 +38,9 @@ except ImportError:  # Without Playwright the browser fixture skips (or fails wh
 
 pytestmark = pytest.mark.integration
 
+# A conversation is named by its first message, shortened to 90 characters between two words (memory.js shorten).
+DECISION_SHOWN = "Let's get the Tidepool backend going today. Decision: we'll use PostgreSQL as the…"
+
 
 @pytest.fixture(scope="module")
 def diligent(tmp_path_factory):
@@ -161,7 +164,7 @@ def test_each_original_message_names_its_conversation(diligent, page):
     expect(messages.nth(0).locator(".source-conversation")).to_have_text(
         f"In the conversation: {DATE[3]} · 6 messages · {CORRECTION}")
     expect(messages.nth(1).locator(".source-conversation")).to_have_text(
-        f"In the conversation: {DATE[1]} · 8 messages · {DECISION[:90]}")
+        f"In the conversation: {DATE[1]} · 8 messages · {DECISION_SHOWN}")
 
 
 def test_an_original_message_links_to_its_conversation(diligent, page):
@@ -273,8 +276,9 @@ def test_the_brain_map_links_the_corrected_note_to_both_messages_and_has_no_repl
     note = page.locator(f'#brain-canvas circle.brain-node[data-id="note:{diligent.note_ids["corrected"]}"]')
     note.click()
     detail = page.locator("#brain-detail")
-    # The map's labels are cut at 80 characters, with an ellipsis that says so (memory_map._label).
-    expect(detail.locator("p.user-text").first).to_have_text(NOTE_CORRECTED[:79] + "…")
+    # The map's labels are cut at 80 characters between words, with an ellipsis that says so (memory_map.label).
+    expect(detail.locator("p.user-text").first).to_have_text(
+        "Tidepool database: PostgreSQL on the server only; local development stays on…")
     dump("brain-detail", detail.inner_text())
     expect(detail).to_contain_text(f"Saved: {DATE[3]}")
     links = detail.locator(".brain-links li")
@@ -422,7 +426,7 @@ def test_the_page_opens_at_a_message_in_its_conversation(diligent, page):
     expect(page).to_have_url(re.compile(rf"/memory#message={decision}$"))
     opened = page.locator("#conversations > details.item").first
     expect(opened).to_have_attribute("open", "")
-    expect(opened.locator("summary")).to_have_text(f"{DATE[1]} · 8 messages · {DECISION[:90]}")
+    expect(opened.locator("summary")).to_have_text(f"{DATE[1]} · 8 messages · {DECISION_SHOWN}")
     message = page.locator("#conversations .message.addressed")
     expect(message).to_have_count(1)
     expect(message.locator(":scope > p.user-text")).to_have_text(DECISION)
@@ -504,7 +508,7 @@ def test_the_address_and_the_gone_line_in_chinese(diligent, page):
     item = page.locator("#notes article.item.addressed")
     expect(item.locator(".lineage p.hint").first).to_have_text(f"{DATE[3]} 取代了一条较早的笔记。")
     link = item.locator("details .message").filter(has_text=DECISION).locator("a.source-conversation")
-    expect(link).to_have_text(f"所在对话：{DATE[1]} · 8 条消息 · {DECISION[:90]}")
+    expect(link).to_have_text(f"所在对话：{DATE[1]} · 8 条消息 · {DECISION_SHOWN}")
     link.click()
     expect(page.locator("#conversations .message.addressed > p.user-text")).to_have_text(DECISION)
     expect(page.locator("#conversations .message.addressed .superseded")).to_have_text(re.compile(DATE[3]))

@@ -1,7 +1,9 @@
 """A bounded view of recorded notes and their sources, without inferred semantic links."""
 from __future__ import annotations
 
+import re
 import threading
+import unicodedata
 from collections import OrderedDict, deque
 from contextlib import nullcontext
 
@@ -52,10 +54,37 @@ class RecallTraces:
 LABEL_CHARACTERS = 80
 
 
-def _label(text):
-    """A node's label: the text on one line, cut at 80 characters with an ellipsis that says it was cut."""
+# Characters that belong to the one before them: combining marks, joiners, variation selectors, skin tones and tags.
+_ATTACHED = re.compile("[\u200c\u200d\ufe00-\ufe0f\U0001f3fb-\U0001f3ff\U000e0020-\U000e007f\U000e0100-\U000e01ef]")
+_FLAG = re.compile("[\U0001f1e6-\U0001f1ff]")  # Regional indicators: a flag is a pair of them.
+
+
+def _attached(text, index):
+    """Whether a cut before ``text[index]`` would split a character from its marks or an emoji sequence."""
+    after, before = text[index], text[index - 1]
+    if unicodedata.category(after) in ("Mn", "Mc", "Me") or _ATTACHED.match(after) or before == "\u200d":
+        return True
+    if _FLAG.match(before) and _FLAG.match(after):
+        run = 0
+        while run < index and _FLAG.match(text[index - run - 1]):
+            run += 1
+        return run % 2 == 1
+    return False
+
+
+def label(text):
+    """A node's label: the text on one line, at most 80 characters. A longer one is cut between words where one ends in
+    the second half (before a space or after Chinese punctuation), never inside a character with its marks or an
+    emoji sequence, and ends with "…" to say it was cut. The memory page shortens its own texts the same way."""
     text = neutralize(" ".join(text.split()))
-    return text if len(text) <= LABEL_CHARACTERS else text[:LABEL_CHARACTERS - 1] + "…"
+    if len(text) <= LABEL_CHARACTERS:
+        return text
+    end = LABEL_CHARACTERS - 1
+    while end > 1 and _attached(text, end):
+        end -= 1
+    end = max((cut for cut in range(LABEL_CHARACTERS // 2, end + 1) if text[cut] == " " or text[cut - 1] in "，。；、！？："),
+              default=end)
+    return text[:end].rstrip(" ,;:、，；：") + "…"
 
 
 def sensitive_note_ids(conn, params, note_ids):
@@ -207,7 +236,7 @@ def _replaced(entries, include_sensitive):
             continue
         fields, text = parse_note(entry.get("text") or "")
         masked = bool(fields.get("sensitive")) and not include_sensitive
-        shown.append({"label": "Sensitive memory" if masked else _label(text),
+        shown.append({"label": "Sensitive memory" if masked else label(text),
                       "recorded_at": None if masked else entry.get("recorded_at")})
     return shown
 
@@ -224,7 +253,7 @@ def _project(brain_id, notes, messages, links, hidden_sources, feelings=(), *, m
         # A shared moment (a milestone flagged shared) belongs to the relationship layer.
         region = "relationship" if fields.get("shared") and not masked else REGIONS.get(kind, "other")
         nodes.append({"id": "note:" + row["id"], "region": region, "kind": kind,
-                      "label": "Sensitive memory" if masked else _label(text),
+                      "label": "Sensitive memory" if masked else label(text),
                       "status": None if masked else fields.get("status"),
                       "date": None if masked else fields.get("due") or fields.get("occurs_at"),
                       "sensitive": sensitive, "recorded_at": None if masked else row["recorded_at"],
@@ -235,17 +264,17 @@ def _project(brain_id, notes, messages, links, hidden_sources, feelings=(), *, m
     masked_notes = {row["id"] for row in notes if parse_note(row["text"] or "")[0].get("sensitive")} | set(hidden_notes)
     for record in feelings:
         masked = record["note_id"] in masked_notes and not include_sensitive
-        label = record["label"] + (f" · {record['topic']}" if record["topic"] else "")
+        felt = record["label"] + (f" · {record['topic']}" if record["topic"] else "")
         # A feeling is evidence about one note, never a score: no weight beyond the layout default.
         nodes.append({"id": "affect:" + record["id"], "region": "emotions", "kind": "affect",
-                      "label": "Sensitive memory" if masked else _label(label), "status": None,
+                      "label": "Sensitive memory" if masked else label(felt), "status": None,
                       "date": None if masked else record["felt_at"], "sensitive": record["note_id"] in masked_notes,
                       "basis": None if masked else record["basis"], "note_id": record["note_id"],
                       "recorded_at": None if masked else record["recorded_at"], "weight": 0.25})
     for row in messages:
         masked = row["id"] in hidden_sources
         nodes.append({"id": "msg:" + row["id"], "region": "episodes", "kind": "message",
-                      "label": "Sensitive memory" if masked else _label(row["text"] or ""),
+                      "label": "Sensitive memory" if masked else label(row["text"] or ""),
                       "status": None, "date": None, "sensitive": masked,
                       "recorded_at": None if masked else row["recorded_at"], "weight": 0.25})
     available = {node["id"] for node in nodes}

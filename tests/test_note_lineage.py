@@ -166,7 +166,8 @@ def test_the_map_shows_what_a_note_replaced_and_links_the_earlier_notes_message_
     graph = memory_map(brain.service, brain.principal, brain.brain)
     node = next(node for node in graph["nodes"] if node["id"] == "note:" + second["note_id"])
     (earlier,) = node["replaces"]
-    assert earlier["label"].endswith("…") and len(earlier["label"]) == 80  # Cut with an ellipsis that says so.
+    # Cut between two words, with an ellipsis that says so.
+    assert earlier["label"] == "Uses PostgreSQL for everything in this project, on every machine, servers and…"
     edges = {(edge["target"], edge["type"]) for edge in graph["edges"] if edge["source"] == node["id"]}
     assert edges == {("msg:" + correction, "derived_from"), ("msg:" + decision, "replaced_source")}
     assert not any(item["id"] == "note:" + first["note_id"] for item in graph["nodes"])

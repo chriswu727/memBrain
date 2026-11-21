@@ -44,6 +44,7 @@ from resume_correction_world import (
 
 from membrain import embedded_database, evaluation_clock, host, plugin
 from membrain.helpers import local_date
+from membrain.memory_map import label as map_label
 from membrain.notes import NOTES_CONVERSATION
 
 pytestmark = pytest.mark.integration
@@ -345,8 +346,7 @@ def check(play: Play, act: str, seen: dict, erased: set[str], hidden: set[str]) 
             (name, kind) for name in visible for kind in ("derived_from", "replaced_source")}
         direct = REPLACES.get(key)
         labels = [entry["label"] for entry in node.get("replaces", [])]
-        assert labels == ([NOTES[direct][:79] + "…" if len(NOTES[direct]) > 80 else NOTES[direct]]
-                          if direct in live else [])
+        assert labels == ([map_label(NOTES[direct])] if direct in live else [])
     # 7. The recall tool leads with the current note that matches.
     if current:
         context = seen["recall_tool"]["database"]

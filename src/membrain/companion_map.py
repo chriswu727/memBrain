@@ -7,6 +7,7 @@ from . import affect, mood, persona, persona_growth, relationship
 from .familiarity_map import load_familiarity, visible_evidence
 from .helpers import DomainError, now
 from .memory_map import REGIONS, sensitive_note_ids
+from .memory_map import label as map_label
 from .notes import NOTES_CONVERSATION, parse_note
 from .privacy import neutralize
 
@@ -25,7 +26,7 @@ class _Graph:
             return None
         self.nodes[ident] = {
             "id": ident, "kind": kind, "region": region,
-            "label": "Sensitive memory" if masked else neutralize(" ".join(label.split()))[:80],
+            "label": "Sensitive memory" if masked else map_label(label),
             "recorded_at": None if masked else recorded_at, "sensitive": sensitive, "masked": masked,
             "details": {} if masked else details,
         }

@@ -19,7 +19,9 @@ const OBS_SPACE = {
   preferences: { at: [-1.16, 1.32, -0.6], size: [0.42, 0.34, 0.48] },
   constraints: { at: [0.16, 1.58, 0.6], size: [0.42, 0.34, 0.48] },
   routines: { at: [1.47, 1.21, -0.5], size: [0.42, 0.34, 0.48] },
-  episodes: { at: [0.26, 0.1, 0], size: [0.72, 0.5, 1.0] },
+  // Original messages are most of a real memory (and the evidence of every learned assertion): their volume fills
+  // the middle of the shell, so a few dozen of them stay apart instead of clumping at its centre.
+  episodes: { at: [0.26, 0.1, 0], size: [1.9, 1.1, 1.35] },
   people: { at: [-0.89, -0.95, 0.7], size: [0.42, 0.34, 0.48] },
   relationship: { at: [0.63, -0.89, -0.7], size: [0.42, 0.34, 0.48] },
   milestones: { at: [2.42, 0.21, 0.5], size: [0.42, 0.36, 0.48] },
@@ -482,7 +484,8 @@ function obsFrame(now) {
   if (moving) obsRequestRender();
 }
 
-// Area names follow their volumes; a name that would cover a nearer one moves down a line, so none overlap.
+// Area names follow their volumes, nearest first. A name that would cover one already placed moves a line down or
+// up; when neither is free it is hidden until the view turns, so no two names ever overlap.
 function obsPlaceLabels() {
   const canvas = $("observatory-canvas");
   const width = canvas.clientWidth, height = canvas.clientHeight;
@@ -491,22 +494,22 @@ function obsPlaceLabels() {
   const labels = [...$("observatory-labels").children].map((label) => {
     const space = OBS_SPACE[label.dataset.region];
     point.set(space.at[0], space.at[1] + space.size[1] + 0.12, space.at[2]).project(obs.camera);
-    label.size ||= [label.offsetWidth, label.offsetHeight];
+    if (!label.size?.[0]) { label.hidden = false; label.size = [label.offsetWidth, label.offsetHeight]; }
     return { label, x: ((point.x + 1) / 2) * width, y: ((1 - point.y) / 2) * height, depth: point.z,
       visible: point.z > -1 && point.z < 1 && Math.abs(point.x) < 0.92 && Math.abs(point.y) < 0.95 };
   }).sort((a, b) => a.depth - b.depth);
+  const gap = 2;
+  const free = (box) => !placed.some((other) => box.left < other.left + other.w + gap && other.left < box.left + box.w + gap
+    && box.top < other.top + other.h + gap && other.top < box.top + box.h + gap);
   for (const item of labels) {
-    item.label.hidden = !item.visible;
-    if (!item.visible) continue;
     const [w, h] = item.label.size;
-    let top = item.y - h;
-    for (let tries = 0; tries < 4; tries += 1) {
-      const clash = placed.find((box) => Math.abs(box.x - item.x) * 2 < box.w + w && top < box.top + box.h && top + h > box.top);
-      if (!clash) break;
-      top = clash.top + clash.h + 1;
-    }
-    placed.push({ x: item.x, top, w, h });
-    item.label.style.transform = `translate(${item.x - w / 2}px, ${top}px)`;
+    const left = Math.max(0, Math.min(width - w, item.x - w / 2));
+    const spot = !item.visible ? null : [0, 1, -1, 2].map((line) => ({ left, top: item.y - h + line * (h + gap), w, h }))
+      .find((box) => box.top >= 0 && box.top + h <= height && free(box));
+    item.label.hidden = !spot;
+    if (!spot) continue;
+    placed.push(spot);
+    item.label.style.transform = `translate(${spot.left}px, ${spot.top}px)`;
   }
 }
 
@@ -576,8 +579,12 @@ function obsBindInput() {
       if (node) tip.textContent = `${regionOf(node.region).label}: ${nodeText(node)}`;
     }
     if (obs.hovered) {
-      const rect = canvas.getBoundingClientRect();
-      tip.style.transform = `translate(${event.clientX - rect.left + 12}px, ${event.clientY - rect.top + 12}px)`;
+      // Below and right of the pointer, or on its other side where that would leave the view; always inside it.
+      const rect = canvas.getBoundingClientRect(), x = event.clientX - rect.left, y = event.clientY - rect.top;
+      const w = tip.offsetWidth, h = tip.offsetHeight;
+      const left = x + 12 + w <= rect.width ? x + 12 : x - 12 - w;
+      const top = y + 12 + h <= rect.height ? y + 12 : y - 12 - h;
+      tip.style.transform = `translate(${Math.max(0, Math.min(rect.width - w, left))}px, ${Math.max(0, Math.min(rect.height - h, top))}px)`;
     }
   });
   const release = (event) => {
