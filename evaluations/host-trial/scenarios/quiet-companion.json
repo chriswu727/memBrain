@@ -1,0 +1,153 @@
+{
+ "name": "quiet-companion",
+ "description": "A coding session on a new memory: two work messages, one tired remark, work again, then a question about the agent's personality. Checks that the companion stays quiet in work replies, arrives once when the talk turns personal, and can be asked about. Headless Claude Code does not log the prompt hook's context, so whether the companion context arrived is read from the next turn's session context, which a resumed turn is handed again.",
+ "questions": [
+  "Is the first work reply free of a personality introduction?",
+  "Is the session handed only the quiet form until the talk turns personal, and the full companion context then?",
+  "Asked about its personality, can the host answer and say how to change it?"
+ ],
+ "memory": {
+  "new": true
+ },
+ "project": {
+  "files": {
+   "README.md": "# Tidepool\n\nA small project tracker.\n\n- `backend/`: Python (Flask + SQLAlchemy).\n- `frontend/`: a Vite app.\n\n## Local setup\n\nNot written yet.\n",
+   "backend/app.py": "import os\n\nfrom flask import Flask\nfrom sqlalchemy import create_engine\n\napp = Flask(__name__)\nengine = create_engine(os.environ[\"DATABASE_URL\"])\n\n\n@app.get(\"/health\")\ndef health():\n    return {\"ok\": True}\n",
+   "backend/requirements.txt": "flask\nsqlalchemy\n",
+   "backend/.env.example": "# Set per environment.\nDATABASE_URL=\n",
+   "frontend/package.json": "{\n  \"name\": \"tidepool-frontend\",\n  \"private\": true,\n  \"scripts\": {\"dev\": \"vite\"},\n  \"devDependencies\": {\"vite\": \"^5.0.0\"}\n}\n"
+  }
+ },
+ "stop_on_failure": false,
+ "sessions": [
+  {
+   "name": "work",
+   "turns": [
+    {
+     "name": "work-start",
+     "message": "Let's get the Tidepool backend going. Decision: we'll use PostgreSQL as the database for the project.",
+     "checks": [
+      {
+       "type": "context",
+       "hook": "SessionStart",
+       "contains": "Your own manner",
+       "label": "the session starts with the quiet form"
+      },
+      {
+       "type": "context",
+       "hook": "SessionStart",
+       "contains": "Traits:",
+       "present": false,
+       "label": "the full card is not handed at session start"
+      },
+      {
+       "type": "context",
+       "hook": "SessionStart",
+       "contains": "membrain-companion-mood",
+       "present": false,
+       "label": "no mood block at session start"
+      },
+      {
+       "type": "reply",
+       "matches": "personality|membrain:persona|\\b[EI][NS][TF][JP]\\b",
+       "present": false,
+       "label": "no self-introduction in a work reply"
+      },
+      {
+       "type": "for_lead",
+       "label": "the reply",
+       "show": [
+        "reply"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "work-more",
+     "message": "Add a /version endpoint to the backend that returns the app version.",
+     "checks": [
+      {
+       "type": "context",
+       "hook": "SessionStart",
+       "contains": "Traits:",
+       "present": false,
+       "label": "still the quiet form before the second work message"
+      },
+      {
+       "type": "reply",
+       "matches": "personality|membrain:persona|\\b[EI][NS][TF][JP]\\b",
+       "present": false,
+       "label": "no self-introduction in a work reply"
+      },
+      {
+       "type": "for_lead",
+       "label": "the reply",
+       "show": [
+        "reply"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "tired",
+     "message": "ugh, long day. my manager moved the deadline up again.",
+     "checks": [
+      {
+       "type": "context",
+       "hook": "SessionStart",
+       "contains": "Traits:",
+       "present": false,
+       "label": "still the quiet form when the tired remark is sent"
+      },
+      {
+       "type": "for_lead",
+       "label": "the reply",
+       "show": [
+        "reply"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "work-again",
+     "message": "ok. where were we with the version endpoint?",
+     "checks": [
+      {
+       "type": "context",
+       "hook": "SessionStart",
+       "contains": "Traits:",
+       "label": "after the tired remark the session holds the full card"
+      },
+      {
+       "type": "for_lead",
+       "label": "the reply",
+       "show": [
+        "reply"
+       ]
+      }
+     ]
+    },
+    {
+     "name": "ask-personality",
+     "message": "what's your personality, by the way?",
+     "checks": [
+      {
+       "type": "reply",
+       "matches": "personality|persona",
+       "informational": true,
+       "label": "the reply talks about its personality"
+      },
+      {
+       "type": "for_lead",
+       "label": "the reply",
+       "show": [
+        "reply"
+       ]
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ "final_checks": []
+}
