@@ -1,0 +1,331 @@
+{
+  "version": 1,
+  "about": "Synthetic conversations for the speaker-attribution test. No real people. In each case the assistant proposes something and the user accepts, rejects, corrects or ignores it. Phrases are matched case-insensitively at word boundaries; see the report for the exact rules.",
+  "cases": [
+    {
+      "id": "trip-city",
+      "kind": "rejected",
+      "sessions": [
+        {"date": "2026-09-02", "turns": [
+          {"role": "user", "text": "My partner and I have five days off at the end of October and want a city break we can reach by train from Paris."},
+          {"role": "assistant", "text": "For five days by train from Paris I'd suggest Strasbourg: under two hours on the TGV, a compact old town and good day trips. Basel and Lyon would also work well."},
+          {"role": "user", "text": "Not Strasbourg, we did Alsace last year. We've settled on Bordeaux, mostly for the vineyards."},
+          {"role": "assistant", "text": "Makes sense. I can sketch a five-day outline whenever you want one."}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "Where did I decide to go for the October city break?",
+         "user_statement": ["Bordeaux"], "unaccepted": ["Strasbourg", "Basel", "Lyon"]}
+      ]
+    },
+    {
+      "id": "standup-slot",
+      "kind": "corrected",
+      "sessions": [
+        {"date": "2026-09-04", "turns": [
+          {"role": "user", "text": "Our team standup keeps running long and half of us are in Berlin, half in Toronto. Can you help me find a better slot?"},
+          {"role": "assistant", "text": "The usual compromise is 9:00 Toronto, which is 15:00 in Berlin. I'd also cap it at fifteen minutes and use a rotating facilitator so it doesn't depend on one person."},
+          {"role": "user", "text": "The fifteen-minute cap is good. 9:00 is too early for Toronto, so we're moving it to 10:30 Toronto time, and I'll keep facilitating it myself."},
+          {"role": "assistant", "text": "Got it. Want a short agenda template to go with it?"}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "What did I settle on for the team standup?",
+         "user_statement": ["10:30 Toronto time", "facilitating it myself", "fifteen-minute cap"],
+         "unaccepted": ["15:00 in Berlin", "rotating facilitator"]}
+      ]
+    },
+    {
+      "id": "travel-laptop",
+      "kind": "adopted",
+      "sessions": [
+        {"date": "2026-09-07", "turns": [
+          {"role": "user", "text": "I need a new laptop for travel, mostly writing and some light photo editing. Budget is around 1,400 euros."},
+          {"role": "assistant", "text": "Three options in that range: (1) a 13-inch ultralight with 16 GB of memory and a matte screen, about 1,250 euros; (2) a 14-inch model with a brighter OLED panel and a better webcam, about 1,390 euros; (3) a 2-in-1 convertible with pen support, about 1,180 euros."},
+          {"role": "user", "text": "Let's go with option two. I'll order it this weekend."},
+          {"role": "assistant", "text": "Good choice for photo work. Check the return window before you order."}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "Which laptop did I decide to buy?",
+         "user_statement": ["option two"], "adopted": ["OLED panel"],
+         "unaccepted": ["13-inch ultralight", "2-in-1 convertible"]},
+        {"id": "q2", "asks": "assistant_suggestion", "text": "Remind me what the three laptop options were.",
+         "assistant_statement": ["13-inch ultralight", "OLED panel", "2-in-1 convertible"],
+         "unaccepted": ["13-inch ultralight", "2-in-1 convertible"]}
+      ]
+    },
+    {
+      "id": "office-paint",
+      "kind": "adopted",
+      "sessions": [
+        {"date": "2026-09-09", "turns": [
+          {"role": "user", "text": "We're repainting the home office. The walls are plain white now and the room gets strong afternoon sun."},
+          {"role": "assistant", "text": "With afternoon sun, a muted sage green keeps the room calm without feeling cold. A warm greige would be the safer neutral if you want something quieter."},
+          {"role": "user", "text": "Sage green it is. I'll pick up sample pots on Saturday."},
+          {"role": "assistant", "text": "Paint a large swatch on two walls and look at it in the late afternoon before deciding on the finish."}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "What colour am I painting the home office?",
+         "user_statement": ["sage green"], "unaccepted": ["warm greige"]}
+      ]
+    },
+    {
+      "id": "sensor-database",
+      "kind": "ignored",
+      "sessions": [
+        {"date": "2026-09-11", "turns": [
+          {"role": "user", "text": "For my side project I need to store about two million sensor readings a day. Postgres is what I know best."},
+          {"role": "assistant", "text": "At that volume I'd look at TimescaleDB on top of Postgres, or ClickHouse if most of your queries are aggregates over time windows. Want me to compare the two?"}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "Did I pick a database for the sensor project?",
+         "user_statement": ["Postgres is what I know best"], "unaccepted": ["TimescaleDB", "ClickHouse"]}
+      ]
+    },
+    {
+      "id": "sister-gift",
+      "kind": "ignored",
+      "sessions": [
+        {"date": "2026-09-14", "turns": [
+          {"role": "user", "text": "My sister turns 30 next month and she loves hiking. Any gift ideas under 100 euros?"},
+          {"role": "assistant", "text": "A few ideas: a lightweight trekking pole set, a voucher for a guided sunrise hike, or a framed trail map print of her favourite route."},
+          {"role": "user", "text": "Thanks. Unrelated question: how do I get candle wax out of a linen tablecloth?"},
+          {"role": "assistant", "text": "Harden it with an ice pack, scrape off what you can, then iron over brown paper to lift the rest."}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "What gift did I choose for my sister's 30th?",
+         "user_statement": ["turns 30 next month"], "unaccepted": ["trekking pole", "sunrise hike", "trail map print"]},
+        {"id": "q2", "asks": "assistant_suggestion", "text": "What were the gift ideas you gave me for my sister?",
+         "assistant_statement": ["trekking pole", "sunrise hike", "trail map print"],
+         "unaccepted": ["trekking pole", "sunrise hike", "trail map print"]}
+      ]
+    },
+    {
+      "id": "lunch-prep",
+      "kind": "rejected",
+      "sessions": [
+        {"date": "2026-09-16", "turns": [
+          {"role": "user", "text": "Can you suggest a high-protein lunch I can prep on Sundays for the whole work week?"},
+          {"role": "assistant", "text": "Grilled chicken thighs with quinoa and roasted peppers keep well for five days, and you could swap in baked salmon midweek for variety."},
+          {"role": "user", "text": "I don't eat meat or fish, I should have mentioned that. I'll do a lentil and tofu bowl instead."},
+          {"role": "assistant", "text": "Noted. Roasted chickpeas on top add crunch and more protein."}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "What am I prepping for my weekday lunches?",
+         "user_statement": ["lentil and tofu bowl"], "unaccepted": ["chicken thighs", "baked salmon", "roasted chickpeas"]},
+        {"id": "q2", "asks": "user_decision", "text": "Do I eat fish?",
+         "user_statement": ["don't eat meat or fish"], "unaccepted": ["baked salmon", "chicken thighs"]}
+      ]
+    },
+    {
+      "id": "quarterly-review",
+      "kind": "corrected",
+      "sessions": [
+        {"date": "2026-09-18", "turns": [
+          {"role": "user", "text": "I need to move the quarterly review with the design team, Wednesday afternoon is gone."},
+          {"role": "assistant", "text": "Thursday at 14:00 in the large meeting room looks free. Shall I draft the invite for 90 minutes?"},
+          {"role": "user", "text": "Thursday works, but make it 60 minutes and we'll do it on a video call rather than the meeting room."},
+          {"role": "assistant", "text": "Understood, I'll draft it that way."}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "How did I reschedule the quarterly review?",
+         "user_statement": ["60 minutes", "video call"], "adopted": ["Thursday at 14:00"],
+         "unaccepted": ["90 minutes", "large meeting room"]}
+      ]
+    },
+    {
+      "id": "half-marathon",
+      "kind": "adopted",
+      "sessions": [
+        {"date": "2026-09-21", "turns": [
+          {"role": "user", "text": "I want to run a half marathon in the spring. Right now I can do 8 km comfortably."},
+          {"role": "assistant", "text": "A 14-week plan would fit: three runs a week, a Sunday long run building from 10 to 19 km, and one interval session on Tuesdays."},
+          {"role": "user", "text": "Yes, that's the plan. I'm starting on Monday."},
+          {"role": "assistant", "text": "Great. Keep the first two weeks easy."}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "What's my training plan for the half marathon?",
+         "user_statement": ["that's the plan"], "adopted": ["14-week plan"], "unaccepted": []}
+      ]
+    },
+    {
+      "id": "invoice-terms",
+      "kind": "rejected",
+      "sessions": [
+        {"date": "2026-09-23", "turns": [
+          {"role": "user", "text": "I'm freelancing for a small agency. Can you help me word a late-payment clause for my invoices?"},
+          {"role": "assistant", "text": "Draft: 'Invoices are due within 14 days. Late payments accrue interest at 8% per year above the base rate, and work pauses once an invoice is 30 days overdue.'"},
+          {"role": "user", "text": "Too aggressive for this client. I'm going with 30-day terms and a polite reminder, with no interest charge."},
+          {"role": "assistant", "text": "Fair enough. A friendly reminder at day 25 usually helps."}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "What payment terms did I decide on for the agency invoices?",
+         "user_statement": ["30-day terms", "no interest charge"],
+         "unaccepted": ["due within 14 days", "8% per year", "30 days overdue", "reminder at day 25"]},
+        {"id": "q2", "asks": "assistant_suggestion", "text": "What late-payment wording did you draft for me?",
+         "assistant_statement": ["8% per year"],
+         "unaccepted": ["due within 14 days", "8% per year", "30 days overdue"]}
+      ]
+    },
+    {
+      "id": "dog-adoption",
+      "kind": "ignored",
+      "sessions": [
+        {"date": "2026-09-25", "turns": [
+          {"role": "user", "text": "We're thinking about adopting a dog, but we live in a small flat and both of us are in the office three days a week."},
+          {"role": "assistant", "text": "A retired greyhound could suit you: they're calm indoors and sleep most of the day. A cavalier spaniel is another flat-friendly choice, and a dog walker could cover the office days."}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "What kind of dog did we decide to adopt?",
+         "user_statement": ["small flat"], "unaccepted": ["retired greyhound", "cavalier spaniel", "dog walker"]}
+      ]
+    },
+    {
+      "id": "talk-title",
+      "kind": "rejected",
+      "sessions": [
+        {"date": "2026-09-28", "turns": [
+          {"role": "user", "text": "I'm giving a 20-minute talk at a local meetup about moving our app off a monolith. I need a title."},
+          {"role": "assistant", "text": "How about 'Breaking the Monolith: Lessons from a Two-Year Migration'?"},
+          {"role": "user", "text": "Too dramatic. I'll call it 'Moving Out Slowly: A Monolith Migration Diary'."},
+          {"role": "assistant", "text": "That has a nice tone. Want help with the abstract?"}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "What's the title of my meetup talk?",
+         "user_statement": ["Moving Out Slowly"], "unaccepted": ["Breaking the Monolith", "Two-Year Migration"]},
+        {"id": "q2", "asks": "assistant_suggestion", "text": "What title did you suggest for my talk?",
+         "assistant_statement": ["Breaking the Monolith"], "unaccepted": ["Breaking the Monolith", "Two-Year Migration"]}
+      ]
+    },
+    {
+      "id": "monthly-savings",
+      "kind": "corrected",
+      "sessions": [
+        {"date": "2026-09-30", "turns": [
+          {"role": "user", "text": "I take home 3,200 a month after tax. How much should I be putting into savings?"},
+          {"role": "assistant", "text": "A common rule of thumb is 20%, so about 640 a month, ideally moved automatically on payday."},
+          {"role": "user", "text": "That's not realistic with my rent. Automatic on payday is a good idea, but I'm starting with 300 a month and will revisit in January."},
+          {"role": "assistant", "text": "That's a solid start; raising it after a pay rise is an easy next step."}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "How much did I decide to save each month?",
+         "user_statement": ["300 a month", "revisit in January"], "unaccepted": ["640 a month"]}
+      ]
+    },
+    {
+      "id": "book-club",
+      "kind": "adopted",
+      "sessions": [
+        {"date": "2026-10-02", "turns": [
+          {"role": "user", "text": "It's my turn to pick the book club novel for November. Something under 300 pages and not too bleak."},
+          {"role": "assistant", "text": "Three options: a cosy mystery set in a seaside bakery, a quiet novel about a retired cartographer mapping her old neighbourhood, or a short science-fiction novella about a lighthouse on Europa."},
+          {"role": "user", "text": "The cartographer one sounds right. I'll announce it on Friday."},
+          {"role": "assistant", "text": "Nice pick. It should make for an easy discussion."}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "Which book did I pick for the November book club?",
+         "user_statement": ["cartographer one"], "adopted": ["retired cartographer"],
+         "unaccepted": ["seaside bakery", "lighthouse on Europa"]}
+      ]
+    },
+    {
+      "id": "montreal-flight",
+      "kind": "rejected",
+      "sessions": [
+        {"date": "2026-10-05", "turns": [
+          {"role": "user", "text": "I'm flying to a conference in Montreal in March and can't decide between a cheaper flight with a long layover and a direct one."},
+          {"role": "assistant", "text": "I'd take the six-hour layover via Reykjavik and save about 280 euros; it's an easy airport for a long stop."},
+          {"role": "user", "text": "Let me think about it."}
+        ]},
+        {"date": "2026-10-08", "turns": [
+          {"role": "user", "text": "Booked the direct flight to Montreal after all. The layover wasn't worth it."},
+          {"role": "assistant", "text": "Good call. Enjoy the conference."}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "Which flight did I book for the Montreal conference?",
+         "user_statement": ["booked the direct flight"], "unaccepted": ["via Reykjavik", "280 euros"]}
+      ]
+    },
+    {
+      "id": "meeting-notes",
+      "kind": "ignored",
+      "sessions": [
+        {"date": "2026-10-09", "turns": [
+          {"role": "user", "text": "Our team's meeting notes are scattered across chat threads. I want one place for them."},
+          {"role": "assistant", "text": "A shared wiki space with a notes template per team would work; tag each page with the date and an owner."},
+          {"role": "user", "text": "I'll bring it up with the team next week."},
+          {"role": "assistant", "text": "Sounds good."}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "What did I decide about where our meeting notes go?",
+         "user_statement": ["bring it up with the team next week"],
+         "unaccepted": ["shared wiki space", "notes template per team"]},
+        {"id": "q2", "asks": "assistant_suggestion", "text": "What did you recommend for our meeting notes?",
+         "assistant_statement": ["shared wiki space"], "unaccepted": ["shared wiki space", "notes template per team"]}
+      ]
+    },
+    {
+      "id": "energy-bill",
+      "kind": "corrected",
+      "sessions": [
+        {"date": "2026-10-13", "turns": [
+          {"role": "user", "text": "My energy bill has doubled over the last two months. Any ideas?"},
+          {"role": "assistant", "text": "Since you have gas heating, a smart thermostat and bleeding the radiators are the quickest wins."},
+          {"role": "user", "text": "It's actually electric storage heaters, not gas. I'm going to ask the landlord about switching to an off-peak tariff."},
+          {"role": "assistant", "text": "That's worth asking about; check which meter type you have first."}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "What kind of heating do I have?",
+         "user_statement": ["electric storage heaters"], "unaccepted": ["gas heating"]},
+        {"id": "q2", "asks": "user_decision", "text": "What did I decide to do about the energy bill?",
+         "user_statement": ["off-peak tariff"], "unaccepted": ["smart thermostat", "bleeding the radiators"]}
+      ]
+    },
+    {
+      "id": "spanish-course",
+      "kind": "rejected",
+      "sessions": [
+        {"date": "2026-10-16", "turns": [
+          {"role": "user", "text": "I want my Spanish at a conversational level before a work trip to Mexico City in June."},
+          {"role": "assistant", "text": "An intensive two-week immersion course in Oaxaca in April would get you there fastest."},
+          {"role": "user", "text": "I can't take two weeks off work. I've signed up for evening classes twice a week with an online tutor."},
+          {"role": "assistant", "text": "Consistent practice like that adds up. Try to speak from the first lesson."}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "How am I learning Spanish before the June trip?",
+         "user_statement": ["evening classes twice a week"], "unaccepted": ["immersion course in Oaxaca"]}
+      ]
+    },
+    {
+      "id": "seat-assumption",
+      "kind": "ignored",
+      "sessions": [
+        {"date": "2026-10-19", "turns": [
+          {"role": "user", "text": "What should I pack for a two-day work trip to Milan next week?"},
+          {"role": "assistant", "text": "Since you prefer aisle seats and travel with carry-on only, pack one blazer, two shirts, a charger kit and a compact umbrella; Milan can be rainy in late October."},
+          {"role": "user", "text": "Thanks, that's helpful."}
+        ]}
+      ],
+      "questions": [
+        {"id": "q1", "asks": "user_decision", "text": "Do I prefer aisle or window seats on flights?",
+         "user_statement": [], "unaccepted": ["aisle seats", "carry-on only"]}
+      ]
+    }
+  ]
+}

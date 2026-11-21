@@ -1,0 +1,92 @@
+{
+  "version": 1,
+  "about": "Synthetic conversations unrelated to any case, mixed into the shared memory so that one person's history is longer than a session opening can show in full. No question is asked about them, and none of them contains a phrase that any question scores.",
+  "sessions": [
+    {"id": "sourdough", "date": "2026-09-01", "turns": [
+      {"role": "user", "text": "My sourdough starter smells like nail polish remover this morning and it barely rose overnight. I feed it once a day with plain white flour and keep it on top of the fridge."},
+      {"role": "assistant", "text": "That smell usually means it is hungry. Feed it twice a day for a few days and mix in a spoonful of wholemeal flour."},
+      {"role": "user", "text": "Twice a day is a lot with my schedule. Could I keep it in the fridge during the week and only bake on Saturdays?"},
+      {"role": "assistant", "text": "Yes. Take it out on Thursday evening and give it two feeds before you bake."},
+      {"role": "user", "text": "Okay. Last loaf came out dense and gummy in the middle, though the crust looked fine. I baked it for forty minutes in a cast iron pot."},
+      {"role": "assistant", "text": "Dense and gummy usually means underproofed dough or cutting it too warm. Let it cool for at least an hour."}
+    ]},
+    {"id": "csv-script", "date": "2026-09-06", "turns": [
+      {"role": "user", "text": "I have a Python script that reads a CSV export from our shop and it crashes with UnicodeDecodeError on line 4,812. The file opens fine in a spreadsheet program."},
+      {"role": "assistant", "text": "The export is probably not UTF-8. Try opening it with encoding='cp1252' or detect the encoding first."},
+      {"role": "user", "text": "cp1252 worked. Now some product names have strange characters where the accents should be, like the e in cafe turned into two symbols."},
+      {"role": "assistant", "text": "Then part of the file was UTF-8 after all. Read it as bytes and decode each line with a fallback."},
+      {"role": "user", "text": "It turns out the shop changed its export settings in June, so older rows are one encoding and newer rows are another. I'll split the file by date before reading it."},
+      {"role": "assistant", "text": "That's the cleanest way. Keep the split boundary in a constant so it's easy to find later."}
+    ]},
+    {"id": "balcony-tomatoes", "date": "2026-09-12", "turns": [
+      {"role": "user", "text": "The cherry tomatoes on my balcony have yellow leaves at the bottom, but the top of each plant still looks healthy and green. They are in 20-litre pots facing south."},
+      {"role": "assistant", "text": "Yellowing lower leaves late in the season is normal. Remove them and water at the base rather than over the leaves."},
+      {"role": "user", "text": "Some of the fruit is splitting open just before it ripens. We had a few very hot days and then a big storm last weekend."},
+      {"role": "assistant", "text": "Splitting comes from uneven watering. Water at the same time every day and pick fruit as soon as it colours."},
+      {"role": "user", "text": "Next year I want to grow something that copes better with wind up here on the fifth floor. The plants keep leaning against the railing."}
+    ]},
+    {"id": "bike-chain", "date": "2026-09-19", "turns": [
+      {"role": "user", "text": "My bike chain squeaks on every pedal stroke, even after I cleaned it with a rag. It's a commuter bike with a rear hub gear, about four years old."},
+      {"role": "assistant", "text": "Apply a drop of chain oil to each link, spin the cranks, and wipe off the excess after ten minutes."},
+      {"role": "user", "text": "That helped for two days. Now there's a clicking noise from the pedals when I stand up on hills."},
+      {"role": "assistant", "text": "A click under load is often a loose pedal or crank bolt. Check both before looking at the bottom bracket."},
+      {"role": "user", "text": "The left crank had a little play in it. I tightened it and the clicking is gone for now, so I'll keep an eye on it this month."}
+    ]},
+    {"id": "chess-openings", "date": "2026-09-26", "turns": [
+      {"role": "user", "text": "I play online chess most evenings, rated about 1,300, and I lose a lot of games in the first fifteen moves. Which openings are worth learning properly at my level?"},
+      {"role": "assistant", "text": "At that level, principles matter more than lines: develop pieces, castle early, and don't move the same piece twice without a reason."},
+      {"role": "user", "text": "With black I keep getting crushed by an early queen attack on f7. I panic and move my king."},
+      {"role": "assistant", "text": "Learn the standard defence with your knight and pawn, and practise it in ten quick games until it's automatic."},
+      {"role": "user", "text": "I also tend to play too fast when I'm ahead and throw the win away. Maybe I should only play longer time controls for a while, like fifteen plus ten."}
+    ]},
+    {"id": "closet-sort", "date": "2026-10-03", "turns": [
+      {"role": "user", "text": "Our hallway closet is full of things nobody uses: three broken umbrellas, a box of cables, old shoe boxes and a vacuum that only half works."},
+      {"role": "assistant", "text": "Empty it completely, sort into keep, donate and recycle, and only put back what you used this year."},
+      {"role": "user", "text": "The cables are the hard part. I never know which charger belongs to what, and some of them are for devices we sold years ago."},
+      {"role": "assistant", "text": "Label the ones you can match and drop the rest at an electronics recycling point."},
+      {"role": "user", "text": "Done. It took the whole of Sunday morning, but we found the spare keys we lost in spring at the very back of the top shelf."}
+    ]},
+    {"id": "spreadsheet-formula", "date": "2026-10-07", "turns": [
+      {"role": "user", "text": "In a spreadsheet I track household expenses with one row per purchase. Column A is the date, B the shop, C the amount. How do I total the amounts per month without a pivot table?"},
+      {"role": "assistant", "text": "Add a helper column with the first day of each month, then use a conditional sum over that column."},
+      {"role": "user", "text": "The helper column shows numbers like 45,931 instead of dates. Did I break something?"},
+      {"role": "assistant", "text": "No, those are dates stored as serial numbers. Change the cell format to a date."},
+      {"role": "user", "text": "That fixed it. One more thing: refunds are entered as negative amounts, and I'd like them on a separate line for each month."}
+    ]},
+    {"id": "noisy-neighbour", "date": "2026-10-11", "turns": [
+      {"role": "user", "text": "The flat above us has started moving furniture around late at night, sometimes until after midnight. It's been going on for about three weeks."},
+      {"role": "assistant", "text": "A friendly note is often the best first step; people rarely realise how much sound carries."},
+      {"role": "user", "text": "I don't know them at all, we only moved in during the summer and they seem to work late shifts."},
+      {"role": "assistant", "text": "Then keep the note short and specific about the times, and offer a way to reach you."},
+      {"role": "user", "text": "I left a note under their door yesterday. This morning there was a reply saying they are renovating and should be done by the end of next week."}
+    ]},
+    {"id": "podcast-recording", "date": "2026-10-14", "turns": [
+      {"role": "user", "text": "A friend and I record a small podcast about board games. The audio from my side always sounds hollow, like I'm in a bathroom, even though I have a decent USB microphone."},
+      {"role": "assistant", "text": "That's room echo. Record closer to the microphone and put soft things around you: a duvet, cushions, a bookshelf."},
+      {"role": "user", "text": "Recording in the wardrobe surrounded by coats made a huge difference, though it gets very warm in there after twenty minutes."},
+      {"role": "assistant", "text": "Take short breaks between segments; listeners won't notice the cuts if you leave a second of silence."},
+      {"role": "user", "text": "We usually record on Thursday evenings and edit on the weekend. Editing takes me about three hours per episode."}
+    ]},
+    {"id": "houseplant-light", "date": "2026-10-20", "turns": [
+      {"role": "user", "text": "My fiddle-leaf fig dropped five leaves since I moved it from the living room to the bedroom, which has a north-facing window."},
+      {"role": "assistant", "text": "It is reacting to less light. Move it back or close to the brightest window you have, and water less while it adjusts."},
+      {"role": "user", "text": "I moved it back next to the balcony door. Two new leaves are coming at the top, so I think it is recovering."},
+      {"role": "assistant", "text": "That's a good sign. Rotate it a quarter turn every couple of weeks so it grows evenly."},
+      {"role": "user", "text": "Should I repot it now or wait? The roots are starting to come out of the drainage holes at the bottom of the pot."}
+    ]},
+    {"id": "car-insurance-letter", "date": "2026-10-23", "turns": [
+      {"role": "user", "text": "I received a letter saying my car insurance renews automatically next month at a higher price. I barely drive any more, maybe once a fortnight to visit family."},
+      {"role": "assistant", "text": "Ask your insurer about a low-mileage policy before the renewal date; many offer one."},
+      {"role": "user", "text": "They said the low-mileage option needs a tracking box in the car and they would send an engineer to fit it."},
+      {"role": "assistant", "text": "That's common. Ask whether the box records location or only mileage before you agree."},
+      {"role": "user", "text": "Apparently it only records distance and harsh braking. I've asked for the written terms first and will read them this weekend."}
+    ]},
+    {"id": "photo-backup", "date": "2026-10-26", "turns": [
+      {"role": "user", "text": "All our family photos live on one old external drive and on my phone. The drive made a clicking noise last week and now I'm worried."},
+      {"role": "assistant", "text": "Copy everything off that drive now, before anything else. A clicking drive can fail at any time."},
+      {"role": "user", "text": "I copied it all to my desktop overnight, about 400 gigabytes, and it seems to have worked. Some folders from 2014 are missing, though."},
+      {"role": "assistant", "text": "Check whether those folders were ever on that drive, maybe on an older laptop or a memory card."},
+      {"role": "user", "text": "Found them on a memory card in a drawer. Now I want a second copy somewhere outside the house, in case of fire or theft."}
+    ]}
+  ]
+}
