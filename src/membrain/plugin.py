@@ -5,7 +5,9 @@ Hooks never own the host's turn and always exit 0. ``SessionStart`` adds saved n
 and the reply together and keeps the exchange's recording outcome for ``membrain plugin outcome`` (hook output is
 unchanged). Before the runtime is installed, hooks skip recording. Legacy bootstrap queues
 are imported with privacy filtering on the next start. Codex runs the same hooks with the
-same input fields, except that it identifies a turn by ``turn_id`` instead of ``prompt_id``.
+same input fields, except that it identifies a turn by ``turn_id`` instead of ``prompt_id``. Each hook's ``cwd``
+names the project the session runs in: its label (``membrain.workspace``), never the path, is kept with each message
+and marks what reaches the session from other projects.
 """
 from __future__ import annotations
 
@@ -76,6 +78,14 @@ def _turn(payload: dict) -> str | None:
     return turn if isinstance(turn, str) and 1 <= len(turn) <= 120 else None
 
 
+def _workspace(payload: dict) -> str | None:
+    """The label of the project the session runs in, from the hook's ``cwd`` (``membrain.workspace``); never the
+    path itself."""
+    from .workspace import label
+
+    return label(payload.get("cwd"))
+
+
 def _user(payload: dict) -> str | None:
     """The person a hook or tool call belongs to, for hosts that talk to more than their owner (OpenClaw).
 
@@ -110,7 +120,7 @@ def _import_host_queue(directory: Path, producer: str = PRODUCER) -> int:
             else:
                 continue
             record = host.message_record(_conversation(payload), role, text, turn_id=_turn(payload),
-                                         producer=producer)
+                                         producer=producer, workspace=_workspace(payload))
         except (ValueError, AttributeError):
             continue  # A torn or unrelated line cannot be recorded and must not block the rest.
         if host.deliver(directory, None, record):  # Spooled in order; replayed by the next ready call.
@@ -131,7 +141,7 @@ def session_start(payload: dict, directory: Path, producer: str = PRODUCER) -> s
     name = next((key for key, value in PRODUCERS.items() if value == producer), "claude-code")
     return host.session_context(directory, _conversation(payload), tools=HOST_TOOLS.get(name, host.TOOL_NAMES),
                                 skip_imports_from=HOST_SKIPS.get(name, ()), user_id=_user(payload),
-                                quiet=name in CODING_HOSTS)
+                                quiet=name in CODING_HOSTS, workspace=_workspace(payload))
 
 
 def user_prompt(payload: dict, directory: Path, producer: str = PRODUCER) -> str | None:
@@ -141,7 +151,7 @@ def user_prompt(payload: dict, directory: Path, producer: str = PRODUCER) -> str
     return host.prompt_context(directory, session, payload.get("prompt"), turn_id=_turn(payload),
                                producer=producer, include_source=True, tools=HOST_TOOLS.get(name, host.TOOL_NAMES),
                                user_id=_user(payload), quiet=name in CODING_HOSTS,
-                               unkept=unkept_messages(payload, directory, session))
+                               unkept=unkept_messages(payload, directory, session), workspace=_workspace(payload))
 
 
 def unkept_messages(payload: dict, directory: Path, session: str) -> int:
@@ -242,7 +252,7 @@ def stop(payload: dict, directory: Path, producer: str = PRODUCER) -> None:
         prompt = prompt or last_user_message(payload.get("transcript_path"))
     receipt = {}
     host.finish_turn(directory, session, reply, turn_id=_turn(payload), producer=producer,
-                     user_id=_user(payload), prompt=prompt, receipt=receipt)
+                     user_id=_user(payload), prompt=prompt, receipt=receipt, workspace=_workspace(payload))
     if host_receipts.needs_attention(receipt):
         # States and reasons only. The outcome itself stays queryable: membrain plugin outcome.
         host.log(directory, "recording outcome needs attention: " + host_receipts.summary(receipt))

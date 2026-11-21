@@ -116,6 +116,7 @@ export type ObservedEventInput = {
   "delivery_state": "received" | "delivered" | "partially_delivered" | "draft" | "cancelled" | "unknown";
   "parent_source_event_keys"?: (Identifier)[];
   "speech_act_hint"?: "direct_statement" | "inquiry" | "presupposition" | "correction" | "confirmation" | "instruction" | "unknown" | "not_applicable";
+  "workspace_ref"?: string;
 };
 
 export type Event = {

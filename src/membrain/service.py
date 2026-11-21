@@ -1598,7 +1598,13 @@ class MemoryService:
                 "SELECT conversation_id, producer_ref, document, ARRAY(SELECT d.input_event_id FROM memory_event_dependencies d "
                 "WHERE d.tenant_id=memory_events.tenant_id AND d.owner_id=memory_events.owner_id "
                 "AND d.brain_id=memory_events.brain_id AND d.output_event_id=memory_events.id ORDER BY d.input_event_id) "
-                "AS source_event_ids FROM memory_events WHERE tenant_id=%s AND owner_id=%s "
+                "AS source_event_ids, ARRAY(SELECT DISTINCT s.document->'observed'->>'workspace_ref' "
+                "FROM memory_event_dependencies d JOIN memory_events s ON s.tenant_id=d.tenant_id "
+                "AND s.owner_id=d.owner_id AND s.brain_id=d.brain_id AND s.id=d.input_event_id "
+                "WHERE d.tenant_id=memory_events.tenant_id AND d.owner_id=memory_events.owner_id "
+                "AND d.brain_id=memory_events.brain_id AND d.output_event_id=memory_events.id AND s.is_current "
+                "AND NOT s.deleted AND NOT s.suppressed AND s.document->'observed'->>'workspace_ref' IS NOT NULL) "
+                "AS source_workspaces FROM memory_events WHERE tenant_id=%s AND owner_id=%s "
                 "AND brain_id=%s AND is_current AND NOT deleted AND NOT suppressed AND NOT retired "
                 "AND document IS NOT NULL AND document->'observed'->>'event_kind'='message' "
                 "AND document->'observed'->>'actor_role'=ANY(%s::text[]) "
@@ -1640,6 +1646,12 @@ class MemoryService:
                           "recorded_at": document["system_time"]["recorded_at"], "text": text,
                           "source_event_ids": row["source_event_ids"],
                           "pending_source_count": max(0, len(document["observed"].get("source_references", [])) - len(row["source_event_ids"]))})
+            # Where it was said (``membrain.workspace``): a message's own project; a note's, read each time from the
+            # messages it was written from, so nothing about it is stored with the note or outlives those messages.
+            places = (sorted(row["source_workspaces"]) if row["conversation_id"] == NOTES_CONVERSATION
+                      else [document["observed"]["workspace_ref"]] if document["observed"].get("workspace_ref") else [])
+            if places:
+                items[-1]["workspaces"] = places
             # A note's replaced notes, newest first; a user message's current note that overruled it.
             if document["event_id"] in lineage:
                 items[-1]["replaced"] = lineage[document["event_id"]]

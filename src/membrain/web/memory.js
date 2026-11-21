@@ -313,12 +313,17 @@ function restsOn(message) {
   return box;
 }
 
+// The project a message was said in, or a note's messages were: the label the coding host's session recorded.
+function projectTags(record) {
+  return (record.workspaces || []).map((name) => element("span", `project ${name}`, "tag"));
+}
+
 function noteItem(note) {
   const item = element("article", undefined, "item");
   item.dataset.eventId = note.event_id;
   const parsed = typedNote(note.text), fields = parsed.fields;
   const meta = element("div", undefined, "meta");
-  meta.append(element("span", day(note.recorded_at)));
+  meta.append(element("span", day(note.recorded_at)), ...projectTags(note));
   const imported = (note.producer || "").startsWith("membrain-import:") ? note.producer.slice(16) : null;
   meta.append(element("span", note.actor_role === "user" ? "written by you" : imported ? `imported from ${HOST_NAMES[imported] || imported}` : "saved by your agent", "tag"));
   for (const tag of parsed.tags) meta.append(element("span", tag, "tag"));
@@ -439,7 +444,8 @@ function conversationItem(conversation, messages) {
     const block = element("div", undefined, `message ${message.actor_role}`);
     block.dataset.eventId = message.event_id;
     const meta = element("div", undefined, "meta");
-    meta.append(element("span", message.actor_role === "user" ? "You" : "Agent"), element("span", day(message.recorded_at)));
+    meta.append(element("span", message.actor_role === "user" ? "You" : "Agent"), element("span", day(message.recorded_at)),
+      ...projectTags(message));
     const remove = element("button", "Delete", "link danger");
     const actions = element("span", undefined, "actions");
     actions.append(remove);
@@ -512,7 +518,8 @@ onSubmit($("search-form"), async () => {
     const note = message.conversation_id === NOTES;
     const meta = element("div", undefined, "meta");
     meta.append(element("span", day(message.recorded_at)),
-      element("span", note ? "note" : message.actor_role === "user" ? "You" : "Agent", "tag"));
+      element("span", note ? "note" : message.actor_role === "user" ? "You" : "Agent", "tag"),
+      ...projectTags(message));
     block.append(meta, element("p", message.text, "user-text"));
     const superseded = supersededHint(message);
     if (superseded) block.append(superseded);

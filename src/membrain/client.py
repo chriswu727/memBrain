@@ -528,7 +528,7 @@ class MemoryClient:
         delivery_state: str = "received", occurred_time: Mapping[str, Any] | None = None,
         speech_act_hint: str = "unknown", parent_source_event_keys: Sequence[str] = (),
         idempotency_key: str | None = None, request_id: str | None = None,
-        expected_recording_revision: int | None = None,
+        expected_recording_revision: int | None = None, workspace_ref: str | None = None,
     ) -> JsonObject:
         scope = self._scope(conversation_id, branch_id)
         event = {
@@ -543,6 +543,8 @@ class MemoryClient:
             "speech_act_hint": speech_act_hint,
             "parent_source_event_keys": list(parent_source_event_keys),
         }
+        if workspace_ref is not None:  # The project a coding host's session ran in (``membrain.workspace``).
+            event["workspace_ref"] = workspace_ref
         return self.action("observe", {
             "idempotency_key": idempotency_key or self._key(
                 "observe", [producer_ref, source_event_key, source_revision], scope,

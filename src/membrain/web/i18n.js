@@ -499,6 +499,7 @@ const ZH_PATTERNS = [
   [/^Keyword recall available; local model status unknown$/, () => "关键词召回可用；本地模型状态未知"],
   [/^(.*) Run membrain doctor for help\.$/, (m, error) => `${error} 运行 membrain doctor 获取帮助。`],
   [/^imported from (.+)$/, (m, host) => `从 ${host} 导入`],
+  [/^project (.+)$/, (m, name) => `项目 ${name}`],
   [/^due (.+)$/, (m, date) => `截止 ${date}`],
   [/^on (\d{4}-\d{2}(?:-\d{2})?)$/, (m, date) => `日期 ${date}`],
   [/^about (.+)$/, (m, name) => `关于 ${name}`],

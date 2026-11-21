@@ -409,6 +409,12 @@
             "not_applicable"
           ]
         },
+        "workspace_ref": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "description": "Short label of the project the host session ran in (a folder name, never a path). A client claim, kept with the event and erased with it."
+        },
         "source_references": {
           "type": "array",
           "maxItems": 64,

@@ -43,7 +43,7 @@ def _without_reset_commitments(saved, relationship):
 
 
 def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, persona=None, mood=None,
-             relationship=None, page=None, quiet=False):
+             relationship=None, page=None, quiet=False, workspace=None):
     """Saved memory for the host's context. The persona block comes first, apart from the user's memory, with its
     own size limit: it never takes room from the notes. The companion's simulated mood follows it in its own block
     (none at the baseline); the fingerprint counts its label and its trigger, so a new label or trigger refreshes
@@ -52,7 +52,8 @@ def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, perso
     not. The relationship block follows, also on its own; notes about a boundary topic are left out, and shared
     moments are shown in the relationship block only. ``page`` is the command that opens the memory page at a note,
     for a host that can run it on this brain (``notes.note_page_hint``); its sentence has its own room, so it never
-    takes a note's place.
+    takes a note's place. ``workspace`` is the project the session runs in: notes and plans from other projects are
+    marked with theirs (``membrain.workspace``).
 
     ``quiet``: a coding host's work session (owner's decision, 2026-11-19): the persona's quiet form
     (``persona.render_manner``), no mood, and only the boundaries and missed promises of the relationship; shared
@@ -69,11 +70,12 @@ def snapshot(saved, *, brain_id, tools, skip_imports_from=(), shared=None, perso
     saved = _outside_boundaries(saved, boundaries, drop_shared=quiet or bond["block"] is not None)
     shared = _outside_boundaries(shared, boundaries)
     blocks = [persona_block, mood_block, bond["block"],
-              render_coming_up(saved, skip_imports_from=skip_imports_from, budget=1000),
+              render_coming_up(saved, skip_imports_from=skip_imports_from, budget=1000, workspace=workspace),
               _notes(saved, (2800 if shared is not None else 3600) + (len(note_page_hint(page)) if page else 0),
-                     tool=tools["note"] if tools else None, skip_imports_from=skip_imports_from, page=page)]
+                     tool=tools["note"] if tools else None, skip_imports_from=skip_imports_from, page=page,
+                     workspace=workspace)]
     if shared is not None:
-        blocks.append(_notes(shared, 1100, tool=None, real_life=True))
+        blocks.append(_notes(shared, 1100, tool=None, real_life=True, workspace=workspace))
     text = "\n\n".join(block for block in blocks if block)
     # The relationship block counts by what it means (level, style, boundaries, moments, which promises were missed),
     # not by its day count or one-time line, so a new day or an acknowledgement alone does not refresh everything.

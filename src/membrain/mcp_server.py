@@ -123,6 +123,11 @@ def create_server(client: MemoryClient | None, *, directory=None, require_turn_c
                     "recording_capture_required": False}
 
     if directory is not None:
+        from membrain.workspace import label
+
+        # The host starts its server in the session's directory: lines from other projects are marked.
+        workspace = label(os.getcwd())
+
         @tool(annotations=READ_ONLY)
         async def memory_recall(query: str, with_ids: bool = False, my_replies: bool = False) -> dict[str, Any]:
             """Search this user's memory from earlier sessions with a few concrete keywords (names, places, dates,
@@ -146,7 +151,7 @@ def create_server(client: MemoryClient | None, *, directory=None, require_turn_c
                 return {"action": "recall", "outcome": response["outcome"], **records}
             # The same compact recall the hooks inject, so tool results read like the rest of the memory context.
             found = await asyncio.to_thread(host.recall_context, client, host.scrub(query), replies=bool(my_replies),
-                                            deliberate=True, notes=True)
+                                            deliberate=True, notes=True, workspace=workspace)
             return {"context": found or "No matching records."}
     else:
         @tool(annotations=READ_ONLY)
