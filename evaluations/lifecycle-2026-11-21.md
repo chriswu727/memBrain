@@ -65,3 +65,14 @@ The agent's plugin (the host's command: `claude plugin uninstall membrain@membra
 | Sandbox above | every step as listed |
 
 Not run: macOS, Windows, a real host, Docker. Host commands other than Claude Code's are worded from this repository's documentation and not checked.
+
+## On a real host (2026-11-21, after the launchers were pinned to `302c19d2`)
+
+The documented install command was run again in an empty Claude configuration directory on Claude Code 2.1.322, and two Sonnet turns followed with the installed plugin unmodified (uv's tool directories and memBrain's data directory redirected into a sandbox; per-turn summaries in [evidence](evidence/host-trial-install-2026-11-21/), files `second-install-*`).
+
+- The plugin directory holds `constraints.txt`, and the installation it made has the locked versions (checked: onnxruntime 1.31.1, fastapi 0.161.0, numpy 2.5.4, starlette 1.9.0, psycopg 3.3.6).
+- Turn 1, runtime not installed yet: the user was told memory was still installing; the host saved the decision once memory answered.
+- Turn 2, a new session: nine tools offered; asked what was decided about the database, it answered from memory.
+- `membrain plugin stop` then stopped the service, printed that the memory is kept and how to keep it stopped, and no process was left.
+
+One run, Linux, with the wheels and the bundled engine already cached on the machine; `plugin uninstall` was exercised in the sandbox walk above, not here.
