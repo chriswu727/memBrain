@@ -51,7 +51,8 @@ button:disabled { opacity: .5; cursor: progress; }
 .message.user { border-color: var(--accent); }
 /* The item a link opened the page at (#note=, #message=). */
 .addressed { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: 4px; }
-.source-conversation[href] { color: var(--accent); }
+.source-conversation[href], .note-link[href] { color: var(--accent); }
+.result-actions { margin-top: 6px; font-size: 13px; }
 .empty { color: var(--muted); padding: 24px 0; text-align: center; }
 summary { cursor: pointer; color: var(--accent); margin-top: 12px; }
 code { background: var(--wash); padding: 1px 5px; border-radius: 4px; font-size: 13px; }

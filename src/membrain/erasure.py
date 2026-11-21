@@ -1,6 +1,71 @@
+import json
+
 from psycopg.types.json import Jsonb
 
 from .helpers import digest, now, uid
+
+# Every record that depends on the given ones, directly or through others, each with the record it was reached from:
+# the one walk of ``memory_event_dependencies`` that an erasure takes (``dependent_events``) and that the memory page's
+# delete questions are written from (``erased_with``), so the two cannot disagree.
+_CLOSURE = ("WITH RECURSIVE affected(root,id) AS (SELECT r,r FROM unnest(%s::text[]) AS r UNION "
+            "SELECT a.root,d.output_event_id FROM memory_event_dependencies d JOIN affected a "
+            "ON d.input_event_id=a.id WHERE d.tenant_id=%s AND d.owner_id=%s AND d.brain_id=%s) ")
+
+
+def dependent_events(conn, params, event_ids) -> set[str]:
+    """``event_ids`` and every record that depends on them: what erasing or hiding them reaches."""
+    return {row["id"] for row in conn.execute(_CLOSURE + "SELECT DISTINCT id FROM affected",
+                                              (list(event_ids), *params))}
+
+
+def erased_with(conn, params, event_ids) -> dict[str, list[dict]]:
+    """For each of ``event_ids``, the records deleting it alone would erase as well, oldest first: those whose content
+    still exists (an erased record has nothing left to name). Each is named by what the page shows of it.
+
+    ``kind`` is ``note``, ``earlier_note`` (a note a note in the walk replaced), ``hidden_note``, ``feeling``,
+    ``message`` (with ``actor_role``, ``conversation_id``), ``suggestion`` (a personality suggestion) or ``record``.
+    A note or message carries its ``text``; a feeling its ``label`` and ``topic``. Read on request, never stored.
+    """
+    from .affect import AFFECT_CONVERSATION
+    from .notes import NOTES_CONVERSATION
+    from .persona_growth import PROPOSALS_CONVERSATION
+
+    event_ids = sorted(set(event_ids))
+    if not event_ids:
+        return {}
+    rows = conn.execute(
+        _CLOSURE + "SELECT a.root,e.id,e.conversation_id,e.sequence,e.suppressed OR e.retired AS hidden,"
+        "e.document->'observed'->>'actor_role' AS actor_role,e.document->'system_time'->>'recorded_at' AS recorded_at,"
+        "left(e.document->'observed'->'content'->>'text',2000) AS text,"
+        "EXISTS(SELECT 1 FROM memory_event_dependencies r JOIN memory_events n ON n.tenant_id=r.tenant_id "
+        "AND n.owner_id=r.owner_id AND n.brain_id=r.brain_id AND n.id=r.input_event_id AND n.conversation_id=%s "
+        "WHERE r.tenant_id=e.tenant_id AND r.owner_id=e.owner_id AND r.brain_id=e.brain_id "
+        "AND r.output_event_id=e.id) AS replaced "
+        "FROM affected a JOIN memory_events e ON e.tenant_id=%s AND e.owner_id=%s AND e.brain_id=%s "
+        "AND e.id=a.id AND e.is_current AND NOT e.deleted AND e.document IS NOT NULL "
+        "WHERE a.id<>a.root ORDER BY a.root,e.sequence",
+        (event_ids, *params, NOTES_CONVERSATION, *params)).fetchall()
+    found: dict[str, list[dict]] = {}
+    for row in rows:
+        entry = {"event_id": row["id"], "recorded_at": row["recorded_at"]}
+        if row["conversation_id"] == NOTES_CONVERSATION:
+            kind = "note" if not row["hidden"] else "earlier_note" if row["replaced"] else "hidden_note"
+            entry.update(kind=kind, text=row["text"] or "")
+        elif row["conversation_id"] == AFFECT_CONVERSATION:
+            try:
+                affect = json.loads(row["text"] or "")["affect"]
+                entry.update(kind="feeling", label=str(affect["label"]), topic=affect.get("topic") or None)
+            except (ValueError, KeyError, TypeError):
+                entry.update(kind="record")
+        elif row["conversation_id"] == PROPOSALS_CONVERSATION:
+            entry.update(kind="suggestion")
+        elif row["actor_role"] in ("user", "assistant"):
+            entry.update(kind="message", actor_role=row["actor_role"], conversation_id=row["conversation_id"],
+                         text=row["text"] or "")
+        else:
+            entry.update(kind="record")
+        found.setdefault(row["root"], []).append(entry)
+    return found
 
 
 def resolve_targets(service, conn, principal, brain, selector):

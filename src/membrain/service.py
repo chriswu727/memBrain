@@ -430,13 +430,9 @@ class MemoryService:
         return affected
 
     def _dependent_events(self, conn, principal, brain, event_ids):
-        params = self._params(principal, brain["id"])
-        return {row["id"] for row in conn.execute(
-            "WITH RECURSIVE affected(id) AS (SELECT unnest(%s::text[]) UNION "
-            "SELECT d.output_event_id FROM memory_event_dependencies d JOIN affected a "
-            "ON d.input_event_id=a.id WHERE d.tenant_id=%s AND d.owner_id=%s AND d.brain_id=%s) "
-            "SELECT id FROM affected", (list(event_ids), *params),
-        )}
+        from .erasure import dependent_events
+
+        return dependent_events(conn, self._params(principal, brain["id"]), event_ids)
 
     def _retire_dependent_events(self, conn, principal, brain, event_ids):
         descendants = self._dependent_events(conn, principal, brain, event_ids) - set(event_ids)
@@ -1565,14 +1561,18 @@ class MemoryService:
             return read(self, conn, principal, brain, windows, query, target)
 
     def timeline(self, principal, brain_id, *, roles=("user",), max_characters=8000, max_item_characters=1500,
-                 limit=200, exclude_conversation=None, event_ids=None, conversation_id=None, before_sequence=None):
+                 limit=200, exclude_conversation=None, event_ids=None, conversation_id=None, before_sequence=None,
+                 erasure=False):
         """Original messages, newest first, within a character budget.
 
         Deleted, suppressed, retired and superseded records are excluded. ``complete`` is true only when every
         matching message is returned in full, so a host may treat the result as the whole history. ``event_ids``
         restricts the result to those messages, for example the sources of recalled memories, and
-        ``conversation_id`` to one conversation.
+        ``conversation_id`` to one conversation. With ``erasure`` each item carries ``erased_with``: what deleting it
+        alone would erase as well (``erasure.erased_with``), for a question asked before deleting it.
         """
+        if type(erasure) is not bool:
+            raise DomainError("validation_failed", "erasure must be a boolean.")
         if before_sequence is not None and (type(before_sequence) is not int or not 1 <= before_sequence <= 2**63 - 1):
             raise DomainError("validation_failed", "Timeline cursor must be a positive sequence.")
         roles = tuple(roles)
@@ -1619,6 +1619,10 @@ class MemoryService:
             overruled = superseded(conn, params, [
                 row["document"]["event_id"] for row in rows[:limit] if row["conversation_id"] != NOTES_CONVERSATION
                 and row["document"]["observed"]["actor_role"] == "user"])
+            if erasure:
+                from .erasure import erased_with
+
+                reaches = erased_with(conn, params, [row["document"]["event_id"] for row in rows[:limit]])
         items, used, complete = [], 0, len(rows) <= limit
         for row in rows[:limit]:
             document = row["document"]
@@ -1641,6 +1645,8 @@ class MemoryService:
                 items[-1]["replaced"] = lineage[document["event_id"]]
             if document["event_id"] in overruled:
                 items[-1]["superseded_by"] = overruled[document["event_id"]]
+            if erasure:
+                items[-1]["erased_with"] = reaches.get(document["event_id"], [])
         return {"items": items, "complete": complete, "characters": used,
                 "next_before_sequence": items[-1]["sequence"] if items and not complete else None}
 

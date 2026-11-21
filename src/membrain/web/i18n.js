@@ -348,8 +348,8 @@ const ZH = {
   "Promises kept and missed": "做到和错过的承诺",
   "From your agent's promise notes. A missed promise is shown to your agent once, so it can acknowledge it.":
     "来自 agent 的承诺笔记。错过的承诺会给 agent 看一次，让它可以承认。",
-  "Deletes the shared moments and the record of promises. Familiarity starts again at new. The boundaries stay; remove them one by one. Conversations, your other notes, the personality and feelings stay.":
-    "删除共同时刻和承诺记录。熟悉程度从“初识”重新开始。边界会保留，可逐条删除。对话、你的其他笔记、人格和感受都会保留。",
+  "Deletes the shared moments and the record of promises. Familiarity starts again at new. The boundaries stay; remove them one by one. Conversations, your other notes, the personality and feelings stay, except a feeling recorded with a shared moment.":
+    "删除共同时刻和承诺记录。熟悉程度从“初识”重新开始。边界会保留，可逐条删除。对话、你的其他笔记、人格和感受都会保留，记录在共同时刻上的感受除外。",
   "Turns the simulated mood off: nothing that happens moves it until you clear this.":
     "关闭模拟心情：在你取消勾选之前，发生的任何事都不会改变它。",
   "Puts the mood back at its baseline and forgets its triggers. Feelings, notes and the personality stay.":
@@ -371,6 +371,17 @@ const ZH = {
   "Reset the relationship? This deletes every shared moment and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. The boundaries stay in force, so those topics are still kept out; remove a boundary on its own if you want. Conversations, your other notes, the personality and feelings stay.":
     "重置关系？这会删除所有共同时刻，以及做到和错过的承诺记录。熟悉程度从“初识”重新开始，只计算从现在起的天数。边界仍然有效，这些话题仍会被略过；如需取消，请单独删除某条边界。对话、你的其他笔记、人格和感受都会保留。",
   "That boundary is not available.": "这个边界已不存在。",
+  "Reset the relationship? This deletes every shared moment and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. The boundaries stay in force, so those topics are still kept out; remove a boundary on its own if you want. Conversations, your other notes, the personality and the feelings not listed below stay.":
+    "重置关系？这会删除所有共同时刻，以及做到和错过的承诺记录。熟悉程度从“初识”重新开始，只计算从现在起的天数。边界仍然有效，这些话题仍会被略过；如需取消，请单独删除某条边界。对话、你的其他笔记、人格以及下面未列出的感受都会保留。",
+  // What a deletion erases as well (memory.js deleteQuestion, restsOn): read from the same dependencies as the erasure.
+  "Deleted with it:": "会一并删除：", "Deleted with them:": "会一并删除：", "Feeling:": "感受：",
+  "A note rests on this message:": "有一条笔记依据这条消息：", "Open in its conversation": "在所在对话中查看",
+  "Show the note": "查看这条笔记", "Promise deleted.": "承诺已删除。",
+  "Delete this promise? Its note is erased.": "删除这项承诺？它的笔记会被清除。",
+  "The conversation is too long to list everything here; what rests on its older messages is deleted too.":
+    "这段对话太长，这里无法全部列出；依据其中较早消息的内容也会一并删除。",
+  "Where you agreed:": "你同意时说的话：", "Where you asked for it:": "你提出时说的话：",
+  "The message behind this change is no longer in memory.": "这次修改所依据的消息已不在记忆中。",
   // Companion mood (M1)
   "Simulated mood": "模拟心情",
   "A short-term mood your companion simulates from what happens in your conversations. It is not a real feeling and says nothing about you. It drifts back to the baseline mood on its own; time apart never changes it.":
@@ -516,6 +527,17 @@ const ZH_PATTERNS = [
   [/^Replaced (\d+) earlier notes on (\S+)\.$/, (m, n, date) => `${date} 取代了 ${n} 条较早的笔记。`],
   [/^Earlier \((\S+)\):$/, (m, date) => `较早（${date}）：`],
   [/^Said on (\S+):$/, (m, date) => `出自 ${date} 的消息：`],
+  // What a deletion erases as well, one line each (memory.js erasedLine); dates are YYYY-MM-DD.
+  [/^Note \((\S+)\):$/, (m, date) => `笔记（${date}）：`],
+  [/^Earlier note \((\S+)\):$/, (m, date) => `较早的笔记（${date}）：`],
+  [/^Hidden note \((\S+)\):$/, (m, date) => `已隐藏的笔记（${date}）：`],
+  [/^Your agent's reply \((\S+)\):$/, (m, date) => `agent 的回复（${date}）：`],
+  [/^Message \((\S+)\):$/, (m, date) => `消息（${date}）：`],
+  [/^Personality suggestion \((\S+)\)$/, (m, date) => `人格建议（${date}）`],
+  [/^Other record \((\S+)\)$/, (m, date) => `其他记录（${date}）`],
+  [/^(\d+) notes rest on this message:$/, (m, n) => `有 ${n} 条笔记依据这条消息：`],
+  [/^Agreed with your agent in version (\d+):$/, (m, n) => `在版本 ${n} 中与 agent 的约定：`],
+  [/^(\d+) suggestions?$/, (m, n) => `${n} 条建议`],
   [/^Superseded by a note saved on (\S+)\.$/, (m, date) => `已被 ${date} 保存的笔记取代。`],
   [/^In the conversation: (\S+) · (\d+) messages · (.*)$/s, (m, date, n, first) => `所在对话：${date} · ${n} 条消息 · ${first}`],
   [/^Feelings cleared on (.+)$/, (m, date) => `感受已于 ${translate(date)} 清除`],

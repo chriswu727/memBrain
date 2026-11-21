@@ -180,7 +180,7 @@ def test_an_original_message_links_to_its_conversation(diligent, page):
         expect(opened).to_have_attribute("open", "")
         expect(opened).to_have_attribute("data-conversation", conversation)
         expect(page.locator("#conversations .addressed")).to_have_count(1)
-        expect(opened.locator(".message.addressed .user-text")).to_have_text(text)
+        expect(opened.locator(".message.addressed > p.user-text")).to_have_text(text)
         # The conversation is shown once, whole, not again among the latest messages.
         expect(page.locator(f'#conversations > details.item[data-conversation="{conversation}"]')).to_have_count(1)
     dump("source-to-conversation", page.locator("#conversations > details.item").first.inner_text())
@@ -240,8 +240,11 @@ def test_search_finds_both_messages_dated_and_does_not_list_the_note(diligent, p
     correction = results.locator(".item").filter(has_text=CORRECTION)
     expect(decision.locator(".meta")).to_have_text(f"{DATE[1]}You")
     expect(correction.locator(".meta")).to_have_text(f"{DATE[3]}You")
-    # The corrected note is not a search result: recall is over messages, and the note's sentence is not shown.
-    expect(results).not_to_contain_text(NOTE_CORRECTED)
+    # The corrected note is not a search result: recall is over messages. Since 2026-11-19 each message names the
+    # notes that rest on it, as a link to the note: both messages lead to the corrected note.
+    expect(results.locator(":scope > .item > p.user-text").filter(has_text=NOTE_CORRECTED)).to_have_count(0)
+    for item in (decision, correction):
+        expect(item.locator(".rests-on a.note-link")).to_have_text(NOTE_CORRECTED)
 
 
 def test_search_marks_the_day1_decision_as_replaced_by_the_day3_correction(diligent, page):
@@ -422,7 +425,7 @@ def test_the_page_opens_at_a_message_in_its_conversation(diligent, page):
     expect(opened.locator("summary")).to_have_text(f"{DATE[1]} · 8 messages · {DECISION[:90]}")
     message = page.locator("#conversations .message.addressed")
     expect(message).to_have_count(1)
-    expect(message.locator(".user-text")).to_have_text(DECISION)
+    expect(message.locator(":scope > p.user-text")).to_have_text(DECISION)
     expect(message.locator(".meta")).to_contain_text(f"You{DATE[1]}")
     expect(message.locator(".superseded")).to_have_text(f"Superseded by a note saved on {DATE[3]}.")
     expect(opened.locator(".message")).to_have_count(8)
@@ -503,7 +506,7 @@ def test_the_address_and_the_gone_line_in_chinese(diligent, page):
     link = item.locator("details .message").filter(has_text=DECISION).locator("a.source-conversation")
     expect(link).to_have_text(f"所在对话：{DATE[1]} · 8 条消息 · {DECISION[:90]}")
     link.click()
-    expect(page.locator("#conversations .message.addressed .user-text")).to_have_text(DECISION)
+    expect(page.locator("#conversations .message.addressed > p.user-text")).to_have_text(DECISION)
     expect(page.locator("#conversations .message.addressed .superseded")).to_have_text(re.compile(DATE[3]))
     page.goto(f"{base}/memory?lang=en&code={host.issue_ui_code(diligent.directory)}")  # Leave the page in English.
     expect(page.locator("#tabs")).to_be_visible()
@@ -553,7 +556,10 @@ def test_deleting_the_current_note_on_the_page_deletes_what_it_replaced_and_ever
     page.once("dialog", lambda dialog: (questions.append(dialog.message), dialog.accept()))
     item.locator("button", has_text="Delete").click()
     expect(page.locator("#notes article.item").filter(has_text="Tidepool database")).to_have_count(0)
-    assert questions == ["Delete this note and the earlier notes it replaced? Their content is erased."]
+    # The question names each earlier note that goes with it (read from the dependencies the erasure follows).
+    assert questions == ["Delete this note and the earlier notes it replaced? Their content is erased.\n\n"
+                         f"Deleted with it:\n• Earlier note ({DATE[1]}): {NOTE_DECISION}\n"
+                         f"• Earlier note ({DATE[3]}): {NOTE_CORRECTED}"]
     expect(page.locator("#notes")).not_to_contain_text("PostgreSQL")
     open_view(page, "conversations")
     expect(page.locator("#conversations > details.item").first).to_be_visible()

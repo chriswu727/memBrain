@@ -427,11 +427,12 @@ def create_app(settings: Settings | None = None, service=None, jobs=None, *, aft
     def timeline(brain_id: str, role: list[str] = Query(default=["user"]), max_characters: int = 8000,
                  max_item_characters: int = 1500, limit: int = 200, exclude_conversation: str | None = None,
                  event_id: list[str] = Query(default=[]), conversation_id: str | None = None,
-                 before_sequence: int | None = None, principal: Principal = Depends(authenticate)):
+                 before_sequence: int | None = None, erasure: bool = False,
+                 principal: Principal = Depends(authenticate)):
         return service.timeline(principal, brain_id, roles=role, max_characters=max_characters,
                                 max_item_characters=max_item_characters, limit=limit,
                                 exclude_conversation=exclude_conversation, event_ids=event_id or None,
-                                conversation_id=conversation_id, before_sequence=before_sequence)
+                                conversation_id=conversation_id, before_sequence=before_sequence, erasure=erasure)
 
     from .memory_map import RecallTraces
 

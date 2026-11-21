@@ -294,15 +294,21 @@ def test_empty_brain_map_contains_no_fabricated_nodes_or_edges(brain):
 
 def test_relationship_reset_confirmation_names_every_kind_of_state_it_removes():
     script = (WEB / "memory.js").read_text()
-    message = re.search(r'confirm\("(Reset the relationship\?[^"\n]+)"\)', script).group(1)
-    removed, kept = message.split("The boundaries stay in force")
-    for phrase in ("shared moment", "promises"):
-        assert phrase in removed
-    # The support style and the familiarity limit were retired (2026-11-18): the text no longer names them.
-    assert "support style" not in message and "familiarity limit" not in message
-    # Since 2026-11-18 a reset keeps the boundaries, and the text says so instead of listing them as deleted.
-    assert "boundar" not in removed and "remove a boundary on its own" in kept
-    assert json.dumps(message, ensure_ascii=False) + ":" in (WEB / "i18n.js").read_text()
+    reset = script[script.index('guard($("relationship-reset")'):]
+    reset = reset[:reset.index("\n});")]
+    # Two wordings since 2026-11-19: with feelings recorded on a shared moment, which the reset erases with it and the
+    # question lists, the last sentence keeps only the feelings not listed.
+    messages = re.findall(r'"(Reset the relationship\?[^"\n]+)"', reset)
+    assert len(messages) == 2 and "confirm(deleteQuestion(" in reset
+    for message in messages:
+        removed, kept = message.split("The boundaries stay in force")
+        for phrase in ("shared moment", "promises"):
+            assert phrase in removed
+        # The support style and the familiarity limit were retired (2026-11-18): the text no longer names them.
+        assert "support style" not in message and "familiarity limit" not in message
+        # Since 2026-11-18 a reset keeps the boundaries, and the text says so instead of listing them as deleted.
+        assert "boundar" not in removed and "remove a boundary on its own" in kept
+        assert json.dumps(message, ensure_ascii=False) + ":" in (WEB / "i18n.js").read_text()
 
 
 @pytest.mark.parametrize("boundary", [False, True])

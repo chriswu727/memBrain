@@ -55,7 +55,8 @@ def test_a_source_the_agent_said_opens_its_conversation_at_that_message(server, 
     message = page.locator("#conversations .message.addressed")
     expect(message).to_have_count(1)
     expect(message).to_have_class("message assistant addressed")
-    expect(message.locator(".user-text")).to_have_text("We picked Crumb & Co on Elm Street for the party cake.")
+    expect(message.locator(":scope > p.user-text")).to_have_text(
+        "We picked Crumb & Co on Elm Street for the party cake.")
     expect(page.locator("#conversations > details.item[open] .message")).to_have_count(3)
 
 

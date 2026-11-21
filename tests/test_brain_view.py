@@ -91,7 +91,10 @@ def test_the_map_shows_the_latest_recorded_recall_honestly_and_deletes_notes_lik
     assert "Latest recorded recall" in script and "it found nothing to add." in script
     assert "Notes and history added when a session starts are not traced" in page
     assert "current reply" not in script
-    # Delete reuses the Notes tab's erase, never in the fictional demo. The page has no note editor (2026-11-18).
+    # Delete reuses the Notes tab's erase and its question, never in the fictional demo. The page has no note editor
+    # (2026-11-18).
     assert "noteEditor" not in script and '"Edit"' not in script
-    assert 'forget("events", [id], "erase_content", NOTES)' in script
+    assert 'await deleteNote(id, "Note deleted.")' in script
+    memory = (WEB / "memory.js").read_text(encoding="utf-8")
+    assert 'forget("events", [id], "erase_content", NOTES)' in memory[memory.index("async function deleteNote("):]
     assert '!brainState.demo) detail.append(noteActions(' in script

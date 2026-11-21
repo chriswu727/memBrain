@@ -308,6 +308,7 @@ function selectNode(id) {
   }
   if (node.id.startsWith("note:") && !brainState.demo) detail.append(noteActions(node));
   if (node.id.startsWith("affect:") && !brainState.demo) detail.append(feelingActions(node));
+  if (node.id.startsWith("msg:") && !brainState.demo) detail.append(messageActions(node));
   const links = (brainState.map.edges || []).filter((edge) => edge.source === id || edge.target === id);
   if (links.length) {
     const list = element("ul", "", "brain-links");
@@ -347,17 +348,31 @@ function edgeCaption(edge, id) {
   return caption + (["association", "belief_relation"].includes(edge.type) ? ` ${translate(edge.basis)}` : "") + " ";
 }
 
-// The same delete as the Notes tab; the map redraws afterwards.
+// The note in the Notes view (its sources by role, what it replaced) and the same delete as there; the map redraws.
 function noteActions(node) {
   const id = node.id.slice(5);
   const row = element("div", undefined, "row brain-note-actions");
   const remove = element("button", "Delete", "link danger");
   remove.type = "button";
-  row.append(remove);
+  row.append(noteLink(id, "Show the note"), remove);
   guard(remove, async () => {
-    if (!confirm("Delete this note? Its content is erased.")) return;
-    await forget("events", [id], "erase_content", NOTES);
-    notify("Note deleted.");
+    if (!await deleteNote(id, "Note deleted.")) return;
+    brainState.selected = "";
+    await loadBrain();
+  });
+  return row;
+}
+
+// An original message: its conversation, and the same delete as there (what rests on it goes with it).
+function messageActions(node) {
+  const id = node.id.slice(4);
+  const row = element("div", undefined, "row brain-note-actions");
+  const remove = element("button", "Delete", "link danger");
+  remove.type = "button";
+  row.append(messageLink(id), remove);
+  guard(remove, async () => {
+    const fresh = await erasureOf(id);
+    if (!fresh) { notify(GONE, true); } else if (!await deleteMessage(fresh)) return;
     brainState.selected = "";
     await loadBrain();
   });

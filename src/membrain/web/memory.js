@@ -227,6 +227,92 @@ function supersededHint(message) {
     ? element("p", `Superseded by a note saved on ${day(message.superseded_by.recorded_at)}.`, "hint superseded") : null;
 }
 
+// What else a deletion erases, as the service reads it on request from the dependencies the erasure itself follows
+// (``erased_with``): one line per record, named as the page shows it, so the question and the erasure cannot disagree.
+const clip = (text, size = 100) => (text.length > size ? `${text.slice(0, size - 1)}…` : text);
+
+function erasedLine(entry) {
+  const when = day(entry.recorded_at);
+  if (entry.kind === "note") return `${translate(`Note (${when}):`)} ${clip(typedNote(entry.text).sentence)}`;
+  if (entry.kind === "earlier_note") return `${translate(`Earlier note (${when}):`)} ${clip(typedNote(entry.text).sentence)}`;
+  if (entry.kind === "hidden_note") return `${translate(`Hidden note (${when}):`)} ${clip(typedNote(entry.text).sentence)}`;
+  if (entry.kind === "feeling") return `${translate("Feeling:")} ${entry.label}${entry.topic ? ` · ${entry.topic}` : ""}`;
+  if (entry.kind === "message") {
+    return `${translate(entry.actor_role === "assistant" ? `Your agent's reply (${when}):` : `Message (${when}):`)} ${clip(entry.text)}`;
+  }
+  return translate(entry.kind === "suggestion" ? `Personality suggestion (${when})` : `Other record (${when})`);
+}
+
+// The question, then what goes with it. Without a list the question is translated whole, as every confirm is.
+function deleteQuestion(question, entries, many = false) {
+  if (!entries.length) return question;
+  return `${translate(question)}\n\n${translate(many ? "Deleted with them:" : "Deleted with it:")}\n`
+    + entries.map((entry) => `• ${erasedLine(entry)}`).join("\n");
+}
+
+// A record as it is now, with what deleting it would erase as well; null once it is gone.
+async function erasureOf(id) {
+  const { items } = await timeline({ role: ["user", "assistant"], event_id: [id], erasure: true });
+  return items[0] || null;
+}
+
+// The question for deleting a note (a shared moment and a promise are notes too): what it replaced goes with it.
+function noteQuestion(entries, question) {
+  const earlier = entries.filter((entry) => entry.kind === "earlier_note").length;
+  return deleteQuestion(question || (!earlier ? "Delete this note? Its content is erased."
+    : earlier === 1 ? "Delete this note and the earlier note it replaced? Their content is erased."
+      : "Delete this note and the earlier notes it replaced? Their content is erased."), entries);
+}
+
+// Deletes a note after asking, read again first so the question names what deleting it erases now: "deleted", or
+// null when the user said no. A note deleted meanwhile is reported ("gone"), not deleted again.
+async function deleteNote(id, done, question) {
+  const fresh = await erasureOf(id);
+  if (!fresh) { notify(GONE, true); return "gone"; }
+  if (!confirm(noteQuestion(fresh.erased_with, question))) return null;
+  await forget("events", [id], "erase_content", NOTES);
+  notify(done);
+  return "deleted";
+}
+
+// The same for a message of a conversation: the reply that answers it and the notes drawn from it go with it.
+// The ids erased, or null when the user said no.
+async function deleteMessage(message) {
+  const fresh = await erasureOf(message.event_id);
+  if (!fresh) { notify(GONE, true); return [message.event_id]; }
+  if (!confirm(deleteQuestion("Delete this message? Its content is erased everywhere it was used.", fresh.erased_with))) return null;
+  await forget("events", [message.event_id], "erase_content", message.conversation_id);
+  notify("Message deleted.");
+  return [message.event_id, ...fresh.erased_with.map((entry) => entry.event_id)];
+}
+
+// A link to a note by its address (goTo): it only opens the note, with its sources and what it replaced.
+function noteLink(id, text, className = "note-link") {
+  const link = element("a", text, className);
+  link.href = `#note=${encodeURIComponent(id)}`;
+  return link;
+}
+
+function messageLink(id, text = "Open in its conversation") {
+  const link = element("a", text, "source-conversation");
+  link.href = `#message=${encodeURIComponent(id)}`;
+  return link;
+}
+
+// The notes that rest on a message (they are erased with it), each a link to the note.
+function restsOn(message) {
+  const notes = (message.erased_with || []).filter((entry) => entry.kind === "note");
+  if (!notes.length) return null;
+  const box = element("div", undefined, "rests-on");
+  box.append(element("p", notes.length === 1 ? "A note rests on this message:" : `${notes.length} notes rest on this message:`, "hint"));
+  for (const note of notes) {
+    const line = element("p", undefined, "hint");
+    line.append(noteLink(note.event_id, typedNote(note.text).sentence, "note-link user-text"));
+    box.append(line);
+  }
+  return box;
+}
+
 function noteItem(note) {
   const item = element("article", undefined, "item");
   item.dataset.eventId = note.event_id;
@@ -252,13 +338,8 @@ function noteItem(note) {
   if (note.pending_source_count) item.append(element("p", "Waiting for the source message to finish recording.", "hint"));
   if (ids.length || earlier.length) item.append(sourcesDetails(ids, earlier, (note.replaced || []).length));
   else if (!note.pending_source_count) item.append(element("p", note.actor_role === "user" ? "Standalone note written by you." : "Original message not linked.", "hint"));
-  const kept = (note.replaced || []).filter((entry) => !entry.erased).length;
-  const question = !kept ? "Delete this note? Its content is erased."
-    : kept === 1 ? "Delete this note and the earlier note it replaced? Their content is erased."
-      : "Delete this note and the earlier notes it replaced? Their content is erased.";
   guard(remove, async () => {
-    if (!confirm(question)) return;
-    await forget("events", [note.event_id], "erase_content", NOTES); notify("Note deleted."); await show(currentView());
+    if (await deleteNote(note.event_id, "Note deleted.")) await show(currentView());
   });
   return item;
 }
@@ -299,6 +380,9 @@ function feelingItem(record) {
     : "Your agent inferred this from what you wrote; you did not say it.", "hint"));
   const note = element("div", undefined, "feeling-note");
   note.append(element("p", "On the note:", "hint"), element("p", record.note_text, "user-text"));
+  const open = element("p", undefined, "hint");
+  open.append(noteLink(record.note_id, "Show the note"));
+  note.append(open);
   item.append(note);
   const ids = record.source_event_ids || [];
   if (ids.length) item.append(sourcesDetails(ids));
@@ -320,7 +404,7 @@ const currentView = () => $("tabs").querySelector("button.active")?.dataset.view
 // Conversations ----------------------------------------------------------------------------------------------
 
 async function loadConversations(reset = true) {
-  const response = await timeline({ role: ["user", "assistant"], limit: 100,
+  const response = await timeline({ role: ["user", "assistant"], limit: 100, erasure: true,
     ...(reset || !state.conversationCursor ? {} : { before_sequence: state.conversationCursor }) });
   state.conversations = reset ? response.items : [...state.conversations, ...response.items];
   state.conversationCursor = response.next_before_sequence;
@@ -363,17 +447,25 @@ function conversationItem(conversation, messages) {
     block.append(meta, element("p", message.text, "user-text"));
     const superseded = supersededHint(message);
     if (superseded) block.append(superseded);
+    const notes = restsOn(message);
+    if (notes) block.append(notes);
     guard(remove, async () => {
-      if (!confirm("Delete this message? Its content is erased everywhere it was used.")) return;
-      await forget("events", [message.event_id], "erase_content", conversation);
-      block.remove();
-      notify("Message deleted.");
+      const erased = await deleteMessage(message);
+      // The reply that answered it goes with it, on the page too.
+      for (const id of erased || []) itemsOf(item, ".message", id)?.remove();
     });
     item.append(block);
   }
   const removeAll = element("button", "Delete this conversation", "link danger");
   guard(removeAll, async () => {
-    if (!confirm("Delete every message in this conversation?")) return;
+    // Every message of the conversation, read again, with what rests on each; what lies inside it is not listed.
+    const { items, complete } = await timeline({ role: ["user", "assistant"], conversation_id: conversation, erasure: true });
+    const inside = new Set(items.map((message) => message.event_id));
+    const entries = [...new Map(items.flatMap((message) => message.erased_with)
+      .filter((entry) => !inside.has(entry.event_id)).map((entry) => [entry.event_id, entry])).values()];
+    let question = deleteQuestion("Delete every message in this conversation?", entries, true);
+    if (!complete) question = `${translate(question)}\n\n${translate("The conversation is too long to list everything here; what rests on its older messages is deleted too.")}`;
+    if (!confirm(question)) return;
     await forget("conversation", [conversation], "erase_content", conversation);
     notify("Conversation deleted.");
     await loadConversations();
@@ -410,18 +502,32 @@ onSubmit($("search-form"), async () => {
     results.append(element("p", "Nothing found.", "empty"));
     return;
   }
-  const { items } = await timeline({ role: ["user", "assistant"], event_id: sources.slice(0, 20) });
+  const { items } = await timeline({ role: ["user", "assistant"], event_id: sources.slice(0, 20), erasure: true });
   const byId = new Map(items.map((message) => [message.event_id, message]));
   for (const id of sources.slice(0, 20)) {
     const message = byId.get(id);
     if (!message) continue;
     const block = element("div", undefined, "item");
+    block.dataset.eventId = message.event_id;
+    const note = message.conversation_id === NOTES;
     const meta = element("div", undefined, "meta");
     meta.append(element("span", day(message.recorded_at)),
-      element("span", message.conversation_id === NOTES ? "note" : message.actor_role === "user" ? "You" : "Agent", "tag"));
+      element("span", note ? "note" : message.actor_role === "user" ? "You" : "Agent", "tag"));
     block.append(meta, element("p", message.text, "user-text"));
     const superseded = supersededHint(message);
     if (superseded) block.append(superseded);
+    const notes = restsOn(message);
+    if (notes) block.append(notes);
+    // Where it was said, and Delete, as in its conversation (a note: as in Notes).
+    const row = element("div", undefined, "row result-actions");
+    const remove = element("button", "Delete", "link danger");
+    row.append(note ? noteLink(message.event_id, "Show the note") : messageLink(message.event_id), remove);
+    block.append(row);
+    guard(remove, async () => {
+      const erased = note ? (await deleteNote(message.event_id, "Note deleted.") ? [message.event_id] : null)
+        : await deleteMessage(message);
+      for (const gone of erased || []) itemsOf(results, ":scope > .item", gone)?.remove();
+    });
     results.append(block);
   }
 });
@@ -475,6 +581,7 @@ function boundaryItem(boundary) {
   actions.append(remove); meta.append(actions);
   item.append(meta, element("p", boundary.topic, "user-text"));
   if (boundary.aliases.length) item.append(element("p", `also: ${boundary.aliases.join(", ")}`, "hint"));
+  item.append(element("p", "Original message not linked.", "hint"));
   guard(remove, async () => {
     if (!confirm("Remove this boundary? Your companion may bring the topic up again, and earlier messages about it are recalled normally.")) return;
     await api(relationshipPath(`/boundaries/${encodeURIComponent(boundary.id)}`), undefined, "DELETE");
@@ -495,25 +602,56 @@ function momentItem(moment) {
   actions.append(remove); meta.append(actions);
   item.append(meta, element("p", moment.text, "user-text"));
   if (moment.source_event_ids?.length) item.append(sourcesDetails(moment.source_event_ids));
+  item.append(noteLine(moment.id));
   guard(remove, async () => {
-    if (!confirm("Delete this shared moment? Its note is erased.")) return;
-    await forget("events", [moment.id], "erase_content", NOTES); notify("Shared moment deleted."); await loadRelationship();
+    if (await deleteNote(moment.id, "Shared moment deleted.", "Delete this shared moment? Its note is erased.")) await loadRelationship();
   });
   return item;
 }
 
+function noteLine(id) {
+  const line = element("p", undefined, "hint");
+  line.append(noteLink(id, "Show the note"));
+  return line;
+}
+
+// A promise is an agent_commitment note: its messages, the note itself (in Notes and in Plans and dates) and Delete.
 function promiseItem(kind, promise) {
-  const item = element("article", undefined, "item");
+  const item = element("article", undefined, "item relationship-promise");
   const meta = element("div", undefined, "meta");
   meta.append(element("span", PROMISE_TAGS[kind], kind === "missed" ? "tag relationship-missed" : "tag"));
   if (promise.due) meta.append(element("span", `due ${promise.due}`, "tag"));
   if (kind === "missed") meta.append(element("span", promise.acknowledged ? "shown to your agent" : "not shown yet", "tag"));
+  const actions = element("span", undefined, "actions");
+  const remove = element("button", "Delete", "link danger");
+  actions.append(remove); meta.append(actions);
   item.append(meta, element("p", promise.text, "user-text"));
+  const ids = promise.source_event_ids || [];
+  item.append(ids.length ? sourcesDetails(ids) : element("p", "Original message not linked.", "hint"), noteLine(promise.note_id));
+  guard(remove, async () => {
+    if (await deleteNote(promise.note_id, "Promise deleted.", "Delete this promise? Its note is erased.")) await loadRelationship();
+  });
   return item;
 }
 
+// What the given records' deletion erases as well, read in batches the timeline accepts; the records themselves are
+// not listed.
+async function erasedWithAll(ids) {
+  const found = new Map(), own = new Set(ids);
+  for (let start = 0; start < ids.length; start += 100) {
+    const { items } = await timeline({ role: ["user", "assistant"], event_id: ids.slice(start, start + 100), erasure: true });
+    for (const entry of items.flatMap((item) => item.erased_with)) if (!own.has(entry.event_id)) found.set(entry.event_id, entry);
+  }
+  return [...found.values()];
+}
+
 guard($("relationship-reset"), async () => {
-  if (!confirm("Reset the relationship? This deletes every shared moment and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. The boundaries stay in force, so those topics are still kept out; remove a boundary on its own if you want. Conversations, your other notes, the personality and feelings stay.")) return;
+  const data = await api(relationshipPath());
+  const entries = await erasedWithAll(data.shared_moments.map((moment) => moment.id));
+  if (!confirm(deleteQuestion(entries.length
+    ? "Reset the relationship? This deletes every shared moment and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. The boundaries stay in force, so those topics are still kept out; remove a boundary on its own if you want. Conversations, your other notes, the personality and the feelings not listed below stay."
+    : "Reset the relationship? This deletes every shared moment and the record of promises kept and missed. Familiarity starts again at new and counts only days from now. The boundaries stay in force, so those topics are still kept out; remove a boundary on its own if you want. Conversations, your other notes, the personality and feelings stay.",
+  entries, true))) return;
   await api(relationshipPath("/reset"), {});
   notify("Relationship reset."); await loadRelationship();
 });
@@ -571,8 +709,25 @@ function personaAgreements(agreements) {
       ? `From version ${agreement.version}: a suggestion you accepted`
       : `From version ${agreement.version}: a change your agent suggested and you agreed to`, "hint"),
     personaCard(agreement.changes));
+    // The messages it rests on, from those that still exist: the user's yes, or the feedback they accepted.
+    if (agreement.said_in?.length) item.append(saidIn(agreement.source === "feedback" ? "What you said:" : "Where you agreed:", agreement.said_in));
     box.append(item);
   }
+  return box;
+}
+
+// User messages quoted as links to where they were said.
+function saidIn(label, messages) {
+  const box = element("div", undefined, "persona-said-in");
+  box.append(element("p", label, "hint"));
+  const list = element("ul", "", "persona-said-quotes");
+  for (const message of messages) {
+    const row = element("li", "");
+    row.append(messageLink(message.event_id, `“${message.text}”`), element("span", ` ${day(message.recorded_at)}`, "hint"));
+    row.firstChild.classList.add("user-text");
+    list.append(row);
+  }
+  box.append(list);
   return box;
 }
 
@@ -657,12 +812,18 @@ function personaVersion(version, current) {
   meta.append(actions);
   item.append(meta);
   if (version.reason) item.append(element("p", version.reason, version.feedback ? "hint" : "user-text"));
+  // The user's message this version was made in (a "yes" to the agent's suggestion, or a switch asked for in
+  // conversation), from the message as it is now; a deleted one is never shown.
+  if (version.asked_in?.event_id) {
+    item.append(saidIn(version.action === "proposal" ? "Where you agreed:" : "Where you asked for it:", [version.asked_in]));
+  } else if (version.asked_in?.deleted) item.append(element("p", "The message behind this change is no longer in memory.", "hint"));
   if (version.feedback) {
     // P2: the feedback is quoted from the messages that still exist; a deleted message is never shown.
     const quotes = element("ul", "", "persona-feedback-quotes");
     for (const message of version.feedback_messages || []) {
       const row = element("li", "");
-      row.append(element("span", `“${message.text}”`, "user-text"), element("span", ` ${String(message.recorded_at).slice(0, 10)}`, "hint"));
+      row.append(messageLink(message.event_id, `“${message.text}”`), element("span", ` ${String(message.recorded_at).slice(0, 10)}`, "hint"));
+      row.firstChild.classList.add("user-text");
       quotes.append(row);
     }
     if (!(version.feedback_messages || []).length) quotes.append(element("li", "The messages behind this change were deleted.", "hint"));
@@ -686,8 +847,21 @@ guard($("persona-random"), async () => {
   if (!confirm("Pick another personality type at random? It is saved as a new version, and earlier versions can be restored. The mood, familiarity and what you agreed with your agent carry over.")) return;
   await switchType("random");
 });
+// An agreement in one line, for a question: each part of the card it changed.
+function agreementText(agreement) {
+  return personaRows(agreement.changes).map(([label, value]) => `${translate(label)}: ${Array.isArray(value)
+    ? value.map(([name, text]) => `${translate(name)} ${text}`).join("; ") : typeof value === "object" ? value.label : value}`).join("; ");
+}
+
 guard($("persona-delete-history"), async () => {
-  if (!confirm("Delete every personality version, including the current card? This cannot be undone.")) return;
+  // What goes with the versions, read again: the agreements in force (they are kept in the versions) and every
+  // suggestion, decided or waiting.
+  const [history, listing] = await Promise.all([api(personaPath("/versions")), api(personaPath("/proposals"))]);
+  const lines = (history.agreements || []).map((agreement) => `• ${translate(`Agreed with your agent in version ${agreement.version}:`)} ${clip(agreementText(agreement), 160)}`);
+  const count = listing.proposals.length;
+  if (count) lines.push(`• ${translate(count === 1 ? "1 suggestion" : `${count} suggestions`)}`);
+  const question = "Delete every personality version, including the current card? This cannot be undone.";
+  if (!confirm(lines.length ? `${translate(question)}\n\n${translate("Deleted with them:")}\n${lines.join("\n")}` : question)) return;
   await api(personaPath("/versions"), undefined, "DELETE");
   notify("Personality history deleted.");
   await loadPersona();
@@ -773,7 +947,10 @@ function proposalSources(proposal) {
   const list = element("ul");
   for (const source of proposal.sources) {
     const line = element("li");
-    line.append(element("q", source.text, "user-text"), element("span", shortDate(source.recorded_at), "hint"));
+    const quote = element("q", source.text, "user-text");
+    const link = messageLink(source.event_id, "");
+    link.append(quote);
+    line.append(link, element("span", shortDate(source.recorded_at), "hint"));
     list.append(line);
   }
   box.append(list);
@@ -879,6 +1056,8 @@ function moodSource(trigger) {
     if (source.basis !== "reported") box.append(element("p", "You did not say it.", "hint"));
   }
   if (source.note_text) box.append(element("p", "On the note:", "hint"), element("p", source.note_text, "user-text"));
+  if (source.source_event_ids?.length) box.append(sourcesDetails(source.source_event_ids));
+  if (source.note_id) box.append(noteLine(source.note_id));
   return box;
 }
 
@@ -1195,10 +1374,11 @@ async function goToMessage(id) {
   const found = id ? (await timeline({ role: roles, event_id: [id] })).items[0] : null;
   if (!found || found.conversation_id === NOTES) return gone(list);
   const conversation = found.conversation_id;
-  let { items } = await timeline({ role: roles, conversation_id: conversation });
+  let { items } = await timeline({ role: roles, conversation_id: conversation, erasure: true });
   // A conversation too long for one read is shown up to this message.
   if (!items.some((message) => message.event_id === id)) {
-    ({ items } = await timeline({ role: roles, conversation_id: conversation, before_sequence: found.sequence + 1 }));
+    ({ items } = await timeline({ role: roles, conversation_id: conversation, before_sequence: found.sequence + 1,
+      erasure: true }));
   }
   // The latest messages may hold part of this conversation: it is shown whole, first, and open.
   for (const node of list.querySelectorAll(":scope > details.item")) if (node.dataset.conversation === conversation) node.remove();

@@ -584,10 +584,20 @@ def persona_versions(service, principal, brain_id: str) -> dict:
         _quote_feedback(service, conn, principal, brain_id, versions[:MAX_VERSIONS])
         every = _ascending(service, conn, principal, brain_id) if versions else []
         _quote_feedback(service, conn, principal, brain_id, every)  # The agreements carry their version's reason.
+        _quote_asked(service, conn, principal, brain_id, [*versions[:MAX_VERSIONS], *every])
         agreed = agreements_by_version(every, proposal_records(service, conn, principal, brain_id, every))
+    by_number = {entry["version"]: entry for entry in every}
     for version in versions:
         version["agreements"] = agreed.get(version["version"], [])
         version["base_card"] = base_card(version["card"], version["agreements"])
+        for agreement in version["agreements"]:
+            # Where the user agreed, read from the messages that still exist: the message that said yes to the
+            # agent's suggestion, or the messages whose feedback they accepted. None when they accepted it here.
+            entry = by_number.get(agreement["version"]) or {}
+            asked = entry.get("asked_in") or {}
+            agreement["said_in"] = ([asked] if agreement["source"] == "proposal" and asked.get("event_id")
+                                    else list(entry.get("feedback_messages") or []) if agreement["source"] == "feedback"
+                                    else [])
     return {"versions": versions[:MAX_VERSIONS], "complete": len(versions) <= MAX_VERSIONS,
             "current_version": versions[0]["version"] if versions else 0,
             "agreements": versions[0]["agreements"] if versions else [],
@@ -621,6 +631,52 @@ def _quote_feedback(service, conn, principal, brain_id, versions) -> None:
                 for ident in feedback.get("source_event_ids") or []
                 if (row := found.get((version["event_id"], ident))) is not None]
             version["reason"] = _feedback_reason(version)
+
+
+def _quote_asked(service, conn, principal, brain_id, versions) -> None:
+    """The user's message a version was made in, from the message as it is now: the one that confirmed the agent's
+    suggestion (``host_proposal.confirmed_by``) or asked for a type switch (``source``). ``version["asked_in"]`` is
+    the message (``event_id``, ``text``, ``recorded_at``) while it is a current user message of a conversation,
+    ``{"deleted": true}`` once it was deleted or hidden, and absent when the version names no message or none can be
+    found by its reference (not recorded yet, or erased with a key that named its content). Nothing of a deleted
+    message is read."""
+    wanted = {}
+    for version in versions:
+        proposal, source = version.get("host_proposal") or {}, version.get("source") or {}
+        if proposal.get("confirmed_by"):
+            wanted[version["event_id"]] = ("id", proposal["confirmed_by"])
+        elif source.get("event_id"):
+            wanted[version["event_id"]] = ("id", source["event_id"])
+        elif source.get("message"):
+            wanted[version["event_id"]] = ("message", source["message"])
+    if not wanted:
+        return
+    from .persona_growth import _reserved
+
+    ids = sorted({value for kind, value in wanted.values() if kind == "id"})
+    references = [value for kind, value in wanted.values() if kind == "message"]
+    rows = conn.execute(
+        "SELECT id,producer_ref,source_key,source_revision,"
+        "(is_current AND NOT deleted AND NOT suppressed AND NOT retired AND document IS NOT NULL "
+        "AND document->'observed'->>'actor_role'='user' AND NOT (conversation_id=ANY(%s::text[]))) AS shown,"
+        "CASE WHEN NOT deleted THEN left(document->'observed'->'content'->>'text',160) END AS text,"
+        "document->'system_time'->>'recorded_at' AS recorded_at FROM memory_events "
+        "WHERE tenant_id=%s AND owner_id=%s AND brain_id=%s AND (id=ANY(%s::text[]) OR (producer_ref,source_key,"
+        "source_revision) IN (SELECT * FROM unnest(%s::text[],%s::text[],%s::bigint[])))",
+        (_reserved(), *service._params(principal, brain_id), ids,
+         [ref["producer_ref"] for ref in references], [ref["source_event_key"] for ref in references],
+         [ref["source_revision"] for ref in references])).fetchall()
+    by_id = {row["id"]: row for row in rows}
+    by_key = {(row["producer_ref"], row["source_key"], row["source_revision"]): row for row in rows}
+    for version in versions:
+        kind, value = wanted.get(version["event_id"], (None, None))
+        row = by_id.get(value) if kind == "id" else by_key.get(
+            (value["producer_ref"], value["source_event_key"], value["source_revision"])) if kind else None
+        if row is None:
+            continue
+        version["asked_in"] = ({"event_id": row["id"], "text": " ".join((row["text"] or "").split()),
+                                "recorded_at": row["recorded_at"]} if row["shown"] and row["text"]
+                               else {"deleted": True})
 
 
 def _feedback_reason(version: dict) -> str | None:

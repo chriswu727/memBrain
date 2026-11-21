@@ -301,7 +301,7 @@ def _commitments(service, conn, principal, brain_id, after, acknowledged, today)
         when = _as_date(fields.get("due") or fields.get("occurs_at"), end=True)
         item = {"note_id": note["id"], "text": note["text"], "status": status, "due": fields.get("due"),
                 "occurs_at": fields.get("occurs_at"), "recorded_at": note["recorded_at"],
-                "sensitive": note["sensitive"]}
+                "sensitive": note["sensitive"], "source_event_ids": note["source_event_ids"]}
         if status == "done":
             record["kept"].append(item)
         elif status == "cancelled":

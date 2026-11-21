@@ -155,7 +155,9 @@ def _affect_triggers(service, conn, principal, brain_id) -> list[dict]:
                          "at": record["recorded_at"], "reason": reason,
                          "source": {"kind": "affect", "id": record["id"], "note_id": record["note_id"],
                                     "label": label, "basis": record["basis"], "topic": topic,
-                                    "note_text": record["note_text"]}})
+                                    "note_text": record["note_text"],
+                                    # The messages the feeling was read from, as the Feelings view lists them.
+                                    "source_event_ids": list(record["source_event_ids"])}})
         if replaced is not None:
             listed = not replaced["sensitive"] and replaced["valence"] != 0
             triggers[-1].update(superseded_sequence=replaced["sequence"], superseded_at=replaced["recorded_at"],
