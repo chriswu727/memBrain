@@ -22,6 +22,7 @@ from __future__ import annotations
 import argparse
 import json
 import os
+import re
 import shutil
 import sys
 import time
@@ -34,6 +35,7 @@ import kit  # noqa: E402
 
 FREE_BYTES = 2 * 1024 ** 3
 MAX_WINDOWS_ROOT = 60
+SESSION_NAME = re.compile(r"speaker-attribution-question-\d+")
 ARMS = ("membrain", "plain", "plain-unlabelled")
 
 
@@ -132,8 +134,11 @@ def run_arm(arm: str, mode: str, cases, filler, args, budgets: dict) -> list[dic
                                         if arm != "membrain" else args.cap)
                 first = next(row for row in rows if row["arm"] == adapter.name and row["case"] == questions[0].case
                              and row["question"] == questions[0].id)
-                stable = again[:first["budget"]] == first["context"]
-                rows.append({"mode": mode, "arm": adapter.name, "check": "repeat_first_question", "stable": stable})
+                again = again[:first["budget"]]
+                # memBrain's notice names the conversation it was written for; that name differs by design.
+                stable = SESSION_NAME.sub("#", again) == SESSION_NAME.sub("#", first["context"])
+                rows.append({"mode": mode, "arm": adapter.name, "check": "repeat_first_question", "stable": stable,
+                             "identical": again == first["context"], "context": again})
                 if not stable:
                     log(arm, mode, "WARNING: asking the first question again gave a different context")
         finally:
@@ -177,8 +182,10 @@ def report(results: Path) -> str:
     lines = ["# Speaker-attribution results", "", table, ""]
     checks = [row for row in rows if row.get("check") == "repeat_first_question"]
     for row in checks:
-        lines.append(f"- {row['mode']}, {row['arm']}: asking the first question again gave "
-                     f"{'the same' if row['stable'] else 'a DIFFERENT'} context.")
+        same = "the same" if row["stable"] else "a DIFFERENT"
+        if row["stable"] and row.get("identical") is False:
+            same += " (apart from the conversation name in memBrain's notice)"
+        lines.append(f"- {row['mode']}, {row['arm']}: asking the first question again gave {same} context.")
     lines += ["", "## Questions that did not pass", ""]
     for row in scored:
         if row["passed"]:
